@@ -23,8 +23,14 @@
   transform:perspective(300px) rotateX(58deg);transform-origin:50% 100%;
   -webkit-mask-image:linear-gradient(180deg,transparent,#000 70%);mask-image:linear-gradient(180deg,transparent,#000 70%)}
 
+/* ---------- sound buttons: top right corner (their own row below 1000px, so they never cover the sign) ---------- */
+.floor-page .sound-ctl{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0}
+@media (min-width:1000px){ .floor-page .sound-ctl{position:absolute;top:0;right:0;z-index:20;padding-right:12px}
+  .floor-page .snd-btn{padding:6px 9px;letter-spacing:.05em;gap:5px} }
+
 /* ---------- neon sign ---------- */
-.sign{text-align:center;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 4px}
+.sign{text-align:center;padding:6px 16px 4px}
+@media (min-width:1000px){ .sign{padding-top:calc(16px + env(safe-area-inset-top,0px))} }
 .neon{font-family:var(--neon-font);font-weight:400;font-size:clamp(32px,min(7.6vw,7.4vh),64px);line-height:1.1;letter-spacing:.04em;
   color:var(--pink-hi);text-shadow:0 0 2px var(--pink-hi),0 0 8px var(--pink),0 0 22px var(--pink-ink)}
 .neon span{color:var(--cyan-hi);text-shadow:0 0 2px var(--cyan-hi),0 0 8px var(--cyan),0 0 22px var(--cyan-ink)}

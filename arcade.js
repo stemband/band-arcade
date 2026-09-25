@@ -1,6 +1,7 @@
 /* Arcade home page: the arcade floor. Students pick a GAME here (no instruments on this page).
    A carousel of cabinets: arrows, swipe, ←/→ keys, the indicator lights, or a tap on a side cabinet
-   turn a cabinet to the front. START goes to select-player/index.html?game=<id>. */
+   turn a cabinet to the front. START goes to select-player/index.html?game=<id>.
+   Sound (shared/sfx.js): a whoosh when the aisle turns, a coin drop on START. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -11,6 +12,7 @@
   $('arcadeTagline').textContent = A.ARCADE_TAGLINE;
   document.title = A.ARCADE_NAME;
   $('demoNote').hidden = !A.DEMO;
+  A.Sfx.mountControls($('soundCtl'));
   if (!N) return;
 
   /* The ring of cabinets. With fewer than 5 games the list repeats (only visually) so both
@@ -60,12 +62,13 @@
     try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }
   }
 
-  const go = step => { cur = ((cur + step) % M + M) % M; place(); };
+  const go = step => { cur = ((cur + step) % M + M) % M; place(); A.Sfx.play('whoosh'); };
   /** turn game i to the front, taking the shortest way round */
   function goTo(i) {
     let best = cur, bestD = Infinity;
     for (let r = i; r < M; r += N) { const d = Math.abs(wrap(r - cur)); if (d < bestD) { bestD = d; best = r; } }
-    cur = best; place();
+    if (best === cur) return;
+    cur = best; place(); A.Sfx.play('whoosh');
   }
 
   $('prevBtn').addEventListener('click', () => go(-1));
@@ -84,7 +87,9 @@
     if (swiped) { swiped = false; e.preventDefault(); e.stopPropagation(); return; }
     const slot = e.target.closest('.slot'); if (!slot) return;
     const d = +slot.dataset.d;
-    if (d !== 0) { e.preventDefault(); go(d); }
+    if (d !== 0) { e.preventDefault(); go(d); return; }
+    const start = e.target.closest('.cab-start');     // START: coin drop, then Select Player
+    if (start && !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('coin', start.href); }
   }, true);
 
   /* swipe left/right. touch-action: pan-y (arcade.css) leaves vertical scrolling to the browser. */

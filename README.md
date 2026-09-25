@@ -15,6 +15,7 @@ shared/               The engine every game uses
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
   storage.js          Saved instrument, mic sensitivity, and progress (on this device only)
   games.js            The list of games on the arcade floor, and how each cabinet looks
+  sfx.js              Sound effects for the arcade floor and Select Player (made in code, no audio files)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
   fonts.css + fonts/  Fonts bundled with the site (no outside font service needed)
@@ -85,7 +86,7 @@ For a brand-new look:
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The games make **no sounds**. A pitched sound effect would be picked up by the mic and counted as a note.
+- The games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor and Select Player make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.

@@ -9,10 +9,11 @@
   const gameLink = A.linkTo('../' + game.id + '/index.html');
   const {noteLabel} = A.music;
   const notesOf = inst => inst.notes.map(noteLabel).join(' ');
-  function choose(id) { A.store.setInstId(id); location.href = gameLink; }
+  function choose(id) { A.store.setInstId(id); A.Sfx.playThenGo('blip', gameLink); }   // blip, then the game (silent)
 
   document.title = `Select Player · ${game.name}`;
   $('homeLink').href = A.homeLink(game.id);
+  A.Sfx.mountControls($('soundCtl'));
   document.body.className = A.trimClasses(game);          // this game's neon colors for the whole page
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
   $('gameSkill').textContent = game.skill ? `${game.skill} · ${game.name}` : game.name;
@@ -23,6 +24,10 @@
     $('continueName').textContent = saved.name;
     $('continueNotes').textContent = 'Plays ' + notesOf(saved);
     $('continueBtn').href = gameLink;
+    $('continueBtn').addEventListener('click', e => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+      e.preventDefault(); A.Sfx.playThenGo('blip', gameLink);
+    });
     $('pickHelp').hidden = true;
   }
 

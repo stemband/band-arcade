@@ -7,7 +7,7 @@ Mat Graham (middle school band director) owns this project. It's a set of mic-dr
 - **Classic `<script>` tags, not ES modules.** Everything hangs off the `window.Arcade` namespace. Modules break when a page is opened from a local file, and Mat tests by double-clicking.
 - **All links end in `index.html`** (e.g. `../index.html`, `ghost-notes/index.html`) so they work both locally and hosted. Build links with `Arcade.link(path)` so `?demo` carries through.
 - **Never copy shared logic into a game.** Instruments and transpositions live only in `shared/instruments.js`, pitch detection only in `shared/pitch.js`, and so on. A fix to the engine must reach every game.
-- **No pitched audio output from games.** The mic would hear it. Visual feedback only.
+- **No audio while a game is listening to the microphone.** Sound is allowed on the arcade floor and select-player pages through `shared/sfx.js`, and must always respect the mute setting.
 - Games must work on iPad Safari. The mic and AudioContext start only from a tap, via `Arcade.requireMic(fn)`.
 - Keep the student-facing copy plain and encouraging. Students are 11–14.
 
@@ -21,10 +21,11 @@ Mat Graham (middle school band director) owns this project. It's a set of mic-dr
 - `Arcade.Pitch.setInstrument(inst)`, `onFrame((reading, level, now) => …)` (~25×/s; `reading` is `null` or `{freq, midi, pc, cents}` with a concert `pc`), `onHeld((pc, now) => …)` (once per held note, `holdMs` = 280), `ignoreCurrent()`, `heldPc()`, `setSensitivity(0–100)`, `bars(level)`, `levelPct(level)`.
 - `Arcade.requireMic(fn)` shows the mic prompt when needed, then runs `fn`.
 - Links: `Arcade.link(path)` keeps the query string. `Arcade.linkTo(path, {game})` keeps `?demo` but sets or drops `?game=` (use it for links between pages). `Arcade.playerLink(gameId, root)`, `Arcade.homeLink(gameId, root)`; `root` is `'../'` from a game folder (the default) or `''` from the site root.
+- Sound (`shared/sfx.js`, loaded ONLY by `index.html` and `select-player/`, never a game page or the Note Checker): `Arcade.Sfx.play('whoosh'|'coin'|'blip')`, `Arcade.Sfx.playThenGo(name, href)` (waits 300 ms, or goes straight away when muted), `Arcade.Sfx.mountControls(el)` (SOUND and AMBIENCE buttons). All sounds are synthesized with Web Audio; the AudioContext starts on the first pointerdown/keydown, never on load. Settings: `Arcade.store.sfx`/`setSfx(on)` (default on), `Arcade.store.ambience`/`setAmbience(on)` (default off; plays only when sound is on).
 - `Arcade.requireInstrument(gameId)`: the saved instrument, or redirect to Select Player (returns null).
 - Cabinets (`shared/cabinets.js` + `shared/cabinets.css`): `Arcade.cabinetHTML(game, {href})`, `Arcade.marqueeHTML(game)`, `Arcade.trimClasses(game)`, `Arcade.cabinetOf(game)` (settings with defaults), `Arcade.setAttract(cabEl, game)` (only the front cabinet animates).
 - `Arcade.staffSVG(clef, items, {fit, label, width, captions})`, `Arcade.noteGlyph(clef, {n, x, caption}, capY)` (one note, for games that move notes on their own layer), `Arcade.noteY(clef, n)`, `Arcade.fiveNoteStaff(inst, colorFor)`, `Arcade.colorNote(id, color)`, `Arcade.ghostSVG(text, cls)`, `Arcade.starStr(n)`, `Arcade.mountTopbar(inst, extraHTML, gameId)`.
-- `Arcade.store`: `instId`, `sens`, `level(game, inst, lvl)`, `setLevel(game, inst, lvl, {stars, best})`, `totalStars(game, inst)`. Progress shape: `games[gameId][instId][level] = {stars, best}`.
+- `Arcade.store`: `instId`, `sens`, `sfx`, `ambience`, `level(game, inst, lvl)`, `setLevel(game, inst, lvl, {stars, best})`, `totalStars(game, inst)`. Progress shape: `games[gameId][instId][level] = {stars, best}`.
 - `Arcade.DEMO` is true with `?demo`. Keys 1–5 fake the five notes, and games should unlock all levels.
 
 ## Adding a game
