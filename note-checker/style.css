@@ -26,3 +26,31 @@
 .levelbar i{position:absolute;inset:0 auto 0 0;background:var(--mist);width:0}
 .levelbar i.over{background:var(--gold)}
 .levelbar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--coral)}
+
+/* mode toggle: FIRST 5 NOTES | FULL RANGE */
+.modes{display:flex;gap:0;margin:14px 0 4px;border:2px solid var(--cyan-ink);border-radius:999px;padding:3px;width:max-content;max-width:100%}
+.mode-btn{min-height:44px;padding:8px 18px;border:0;border-radius:999px;background:transparent;color:var(--text-lo);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.mode-btn[aria-pressed="true"]{background:var(--cyan);color:var(--deep);box-shadow:var(--glow-cyan)}
+.mode-btn:not([aria-pressed="true"]):hover{color:var(--text-hi)}
+
+/* full range */
+.member-pick{background:var(--night-2);border-radius:var(--r);padding:18px 16px;margin:14px 0 6px;text-align:center}
+.member-pick h2{font-family:var(--display);font-weight:400;font-size:clamp(22px,4.6vw,28px);line-height:1.15;margin-bottom:14px}
+.member-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.member-btn{min-height:64px;font-size:19px;background:var(--floor-3);color:var(--text-hi);border:2px solid var(--cyan-ink);border-radius:16px}
+.member-btn:hover{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.full-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:0 0 10px}
+.playing{margin:0;color:var(--text-lo)}
+.playing b{color:var(--text-hi)}
+.linkish{background:none;border:0;padding:4px 6px;min-height:32px;color:var(--cyan-hi);text-decoration:underline;font-size:15px}
+.dir-btn[aria-pressed="true"]{background:var(--cyan);color:var(--deep);border-color:var(--cyan)}
+.full-stage{padding:6px 8px 0}
+.full-stage .staff+.staff{margin-top:-6px;border-top:1px dashed var(--screen-2)}
+/* the note being heard right now: a glowing outline on the staff */
+#fullStaff .hearing .head{stroke:var(--cyan-ink);stroke-width:6px;stroke-opacity:.85;paint-order:stroke}
+#fullStaff .hearing .ncap{fill:var(--cyan-ink)}
+/* ?demo: the note Space will play */
+#fullStaff .demo-cursor .ncap{text-decoration:underline;fill:var(--pink-ink)}
+.octave-hint{min-height:27px;margin:8px 0 0;font-weight:700;color:var(--text-hi)}
+.demo-help{font-size:14px;color:var(--text-lo);margin:4px 0 0}
+@media (max-width:420px){ .mode-btn{padding:8px 12px;font-size:14px} }

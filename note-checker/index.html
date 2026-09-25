@@ -17,9 +17,32 @@
   <div id="topbar"></div>
 
   <h1 class="page-title">Note Checker</h1>
-  <p class="muted lede">Play each of your five notes and hold it. A note turns gold once the game hears it, so you know you're ready to play.</p>
+  <div class="modes" role="group" aria-label="What to check">
+    <button class="mode-btn" type="button" data-mode="five" aria-pressed="true">First 5 notes</button>
+    <button class="mode-btn" type="button" data-mode="full" aria-pressed="false">Full range</button>
+  </div>
 
-  <div class="stage" style="padding-bottom:6px"><div id="ckStaff"></div></div>
+  <div id="fivePanel">
+    <p class="muted lede">Play each of your five notes and hold it. A note turns gold once the game hears it, so you know you're ready to play.</p>
+    <div class="stage" style="padding-bottom:6px"><div id="ckStaff"></div></div>
+  </div>
+
+  <div id="fullPanel" hidden>
+    <section class="member-pick" id="memberPick" hidden aria-labelledby="memberQ">
+      <h2 id="memberQ">Which instrument do you play?</h2>
+      <div class="member-btns" id="memberBtns"></div>
+    </section>
+    <div id="fullMain" hidden>
+      <p class="muted lede">Play your whole chromatic scale. Hold each note until it turns gold. It has to be the <b>right octave</b>: the low D and the high D are different notes.</p>
+      <div class="full-head">
+        <p class="playing">Playing: <b id="memberName"></b> <button class="linkish" type="button" id="memberChange">change</button></p>
+        <button class="btn btn-ghost btn-small dir-btn" type="button" id="dirBtn" aria-pressed="false">Going down</button>
+      </div>
+      <div class="stage full-stage"><div id="fullStaff"></div></div>
+      <p class="octave-hint" id="fullHint" aria-live="polite"></p>
+      <p class="demo-help" id="demoHelp" hidden>Demo: <b>↑</b>/<b>↓</b> pick a note, hold <b>Space</b> to play it. <b>Shift+Space</b> plays it an octave low.</p>
+    </div>
+  </div>
 
   <div class="startrow" id="startRow">
     <button class="btn btn-gold" id="startBtn">Start listening</button>
@@ -52,7 +75,7 @@
   </div>
 
   <div class="found">
-    <b id="ckFound">0 of 5 notes found</b>
+    <b id="ckFound" aria-live="polite">0 of 5 notes found</b>
     <button class="btn btn-ghost btn-small" id="ckReset">Reset</button>
   </div>
 

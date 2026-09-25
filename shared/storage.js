@@ -1,6 +1,7 @@
 /* Band Arcade — saved settings and progress (this device only, via localStorage).
    Shape:
      { inst: 'alto', sens: 50, sfx: true, ambience: false,
+       checkerMode: 'five', members: {bb: 'clarinet'},
        games: { 'ghost-notes': { alto: { 1:{stars:3,best:1480}, 2:{...} } } } }
    Games store progress per instrument, per level, as {stars, best}. The arcade home
    page reads that shape to show star totals, so new games should use it too. */
@@ -8,7 +9,7 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const KEY = 'bandarcade.v1';
-  let data = {inst: null, sens: 50, sfx: true, ambience: false, games: {}};
+  let data = {inst: null, sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, games: {}};
 
   try {
     const raw = localStorage.getItem(KEY);
@@ -36,6 +37,12 @@ window.Arcade = window.Arcade || {};
     setSfx(on) { data.sfx = !!on; save(); },
     get ambience() { return data.ambience === true; },
     setAmbience(on) { data.ambience = !!on; save(); },
+    /** Note Checker: 'five' (first five notes) or 'full' (full chromatic range) */
+    get checkerMode() { return data.checkerMode === 'full' ? 'full' : 'five'; },
+    setCheckerMode(m) { data.checkerMode = m === 'full' ? 'full' : 'five'; save(); },
+    /** which instrument in a player group this student plays (e.g. bb -> 'clarinet'); for full range only */
+    memberFor(groupId) { return (data.members || {})[groupId] || null; },
+    setMember(groupId, id) { data.members = Object.assign({}, data.members, {[groupId]: id}); save(); },
     /** progress object for one game + instrument (created on demand) */
     levels(gameId, instId) {
       const g = data.games[gameId] || (data.games[gameId] = {});
