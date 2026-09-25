@@ -1,0 +1,110 @@
+/* Note Storm */
+.hub-head{margin-bottom:18px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
+.game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
+.hub-head p{max-width:52ch;margin:10px 0 0}
+.fivecard{padding-bottom:4px;margin-bottom:14px}
+.checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--text-dim);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
+.checker-cta p{margin:0;max-width:46ch;color:var(--text-lo);font-size:15px}
+.checker-cta b{color:var(--text-hi)}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:150px}
+.lvl:hover:not([disabled]){border-color:var(--yellow)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;display:flex;gap:1px;font-family:var(--music);font-size:20px;line-height:1;color:var(--cyan)}
+.lvl .mini i{font-style:normal}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+
+/* play screen: let the staff run wider than the reading pages */
+.wrap.playing{max-width:1100px}
+.hud{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:10px;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.hud div{display:flex;flex-direction:column;min-width:0}
+.hud .c{text-align:center}
+.hud .r{text-align:right}
+.hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700;white-space:nowrap}
+.hud b{font-size:22px;line-height:1.2}
+.lives{letter-spacing:2px;color:var(--text-dim)}
+.lives span{opacity:.35}
+.lives .on{opacity:1;color:var(--pink);text-shadow:var(--glow-pink)}
+@media (max-width:480px){
+  .hud small{font-size:10px;letter-spacing:.08em}
+  .hud b{font-size:18px}
+}
+
+.storm-stage{padding:6px 8px}
+.field{position:relative}
+.layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fx{overflow:visible}
+
+/* Tempo, the defender */
+.tempo .t-body{fill:var(--floor-2);stroke:var(--cyan-ink);stroke-width:3;stroke-linejoin:round}
+.tempo .t-face{fill:var(--deep)}
+.tempo .t-eye{fill:var(--cyan)}
+.tempo .t-foot{fill:var(--floor-3)}
+.tempo .t-arm{stroke:var(--floor-3);stroke-width:5;stroke-linecap:round;fill:none}
+.tempo .t-fork{stroke:var(--floor-2);stroke-width:3.5;stroke-linejoin:round;fill:none}
+.tempo .t-core{fill:var(--pink-ink)}
+.tempo .pend line{stroke:var(--floor-3);stroke-width:3;stroke-linecap:round}
+.tempo .pend circle{fill:var(--pink)}
+.tempo .pend{transform-box:fill-box;transform-origin:50% 100%;animation:tick 1s ease-in-out infinite alternate}
+@keyframes tick{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+.tempo.fire{animation:recoil .22s ease-out}
+.tempo.fire .t-core{fill:var(--yellow)}
+@keyframes recoil{40%{transform:translateX(-3px)}}
+.tempo.ouch{animation:shake .45s ease-out}
+.tempo.ouch .t-eye,.tempo.ouch .t-core{fill:var(--red-ink)}
+@keyframes shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.is-paused .tempo .pend{animation-play-state:paused}
+.beam{stroke:var(--yellow);stroke-width:5;stroke-linecap:round;animation:beam .32s ease-out forwards}
+@keyframes beam{from{opacity:1}to{opacity:0;stroke-width:1}}
+
+/* marching notes: each one is its own layer, moved with a transform */
+.sn{position:absolute;left:0;top:0;height:100%;will-change:transform}
+.sn svg{display:block;width:100%;height:100%;overflow:visible;animation:enter .3s ease-out}
+@keyframes enter{from{opacity:0}}
+.sn .halo,.sn .brackets{opacity:0}
+.sn .brackets{fill:none;stroke:var(--pink-ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.sn .halo{fill:var(--pink);fill-opacity:.16}
+.sn.front .halo{opacity:1}
+.sn.front .brackets{opacity:1;animation:aim .8s ease-in-out infinite alternate}
+@keyframes aim{to{opacity:.45}}
+.sn.front .head{fill:var(--pink-ink)}
+.sn.front .stem{stroke:var(--pink-ink)}
+.sn.nope .brackets{stroke:var(--red-ink);animation:nope .4s ease-out}
+@keyframes nope{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.sn .burst{opacity:0;transform-box:fill-box;transform-origin:center}
+.sn .burst circle{fill:var(--yellow)}
+.sn .burst line{stroke:var(--yellow-ink);stroke-width:3;stroke-linecap:round}
+.sn.boom .glyph{animation:vanish .25s ease-in forwards}
+.sn.boom .burst{animation:burst .5s ease-out forwards}
+@keyframes vanish{to{opacity:0}}
+@keyframes burst{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(1.5)}}
+.sn.lost .head{fill:var(--red-ink)}
+.sn.lost .stem{stroke:var(--red-ink)}
+.sn.lost svg{animation:vanish .5s ease-in forwards}
+.pop-pts{position:absolute;transform:translateX(-50%);font-family:var(--display);font-size:22px;color:var(--pink-ink);white-space:nowrap;animation:rise .8s ease-out forwards}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,8px)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-26px)}}
+
+.prompt{min-height:28px;text-align:center;margin:14px 0 10px;font-size:18px;font-weight:700}
+.prompt.bad{color:var(--red)}
+.prompt.good{color:var(--yellow)}
+.play-foot{display:flex;justify-content:center;gap:10px;margin-top:16px}
+
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+.panel .best{font-size:14px;margin-top:8px}
+
+@media (prefers-reduced-motion:reduce){
+  .tempo .pend,.tempo.fire,.tempo.ouch,.sn.front .brackets,.sn.nope .brackets,.sn svg{animation:none}
+  .sn.boom .glyph,.sn.boom .burst,.sn.lost svg,.beam,.pop-pts{animation-duration:.01s}
+}

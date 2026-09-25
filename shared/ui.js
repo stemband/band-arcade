@@ -17,10 +17,27 @@ window.Arcade = window.Arcade || {};
     const base = clef === 'treble' ? 30 /* E4 */ : 18 /* G2 */;
     return STAFF_BOTTOM - (stepOf(n) - base) * 8;
   }
+  A.noteY = noteY;
+  /* one note (ledger lines, accidental, head, stem, optional caption at capY) at it.x.
+     staffSVG uses it; games that move notes on their own layer can use it too. */
+  A.noteGlyph = function (clef, it, capY) {
+    const x = it.x, y = noteY(clef, it.n), col = it.color || INK;
+    let g = '';
+    for (let ly = 136; ly <= y; ly += 16) g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
+    for (let ly = 40; ly >= y; ly -= 16)  g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
+    if (it.n.acc) g += `<text class="head" x="${x - 31}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">${it.n.acc < 0 ? '♭' : '♯'}</text>`;
+    g += `<ellipse class="head" cx="${x}" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y})" fill="${col}"/>`;
+    g += y > MID_LINE
+      ? `<line class="stem" x1="${x + 8.3}" y1="${y - 2}" x2="${x + 8.3}" y2="${y - 52}" stroke="${col}" stroke-width="2"/>`
+      : `<line class="stem" x1="${x - 8.3}" y1="${y + 2}" x2="${x - 8.3}" y2="${y + 52}" stroke="${col}" stroke-width="2"/>`;
+    if (it.caption && capY) g += `<text class="ncap" x="${x}" y="${capY}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="15" fill="#4b5570">${it.caption}</text>`;
+    return g;
+  };
+  /* opts.captions: leave room for captions even when no item has one yet (for notes drawn on another layer) */
   A.staffSVG = function (clef, items, opts = {}) {
     const W = opts.width || 400;
     const ys = (opts.fit || items.map(i => i.n)).map(n => noteY(clef, n));
-    const hasCap = items.some(i => i.caption);
+    const hasCap = opts.captions || items.some(i => i.caption);
     const top = Math.min(30, Math.min(...ys.map(y => y > MID_LINE ? y - 60 : y - 14)));
     const bot = Math.max(146, Math.max(...ys.map(y => y > MID_LINE ? y + 14 : y + 60))) + (hasCap ? 34 : 6);
     const capY = bot - 10;
@@ -32,19 +49,7 @@ window.Arcade = window.Arcade || {};
     s += clef === 'treble'
       ? `<text x="14" y="119" ${MUSIC_FONT} font-size="64" fill="${INK}">𝄞</text>`
       : `<text x="16" y="111" ${MUSIC_FONT} font-size="62" fill="${INK}">𝄢</text>`;
-    items.forEach(it => {
-      const x = it.x, y = noteY(clef, it.n), col = it.color || INK;
-      let g = `<g${it.id ? ` id="${it.id}"` : ''}>`;
-      for (let ly = 136; ly <= y; ly += 16) g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
-      for (let ly = 40; ly >= y; ly -= 16)  g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
-      if (it.n.acc) g += `<text class="head" x="${x - 31}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">${it.n.acc < 0 ? '♭' : '♯'}</text>`;
-      g += `<ellipse class="head" cx="${x}" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y})" fill="${col}"/>`;
-      g += y > MID_LINE
-        ? `<line class="stem" x1="${x + 8.3}" y1="${y - 2}" x2="${x + 8.3}" y2="${y - 52}" stroke="${col}" stroke-width="2"/>`
-        : `<line class="stem" x1="${x - 8.3}" y1="${y + 2}" x2="${x - 8.3}" y2="${y + 52}" stroke="${col}" stroke-width="2"/>`;
-      if (it.caption) g += `<text x="${x}" y="${capY}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="15" fill="#4b5570">${it.caption}</text>`;
-      s += g + `</g>`;
-    });
+    items.forEach(it => { s += `<g${it.id ? ` id="${it.id}"` : ''}>${A.noteGlyph(clef, it, capY)}</g>`; });
     return s + `</svg>`;
   };
   /** five notes spread across a staff, labeled (used by hub cards and the Note Checker) */

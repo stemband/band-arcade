@@ -2,7 +2,7 @@
    To add a game: make a folder next to ghost-notes/, then add an entry here.
      id        folder name, also the key for saved progress
      maxStars  total stars available per instrument (levels × 3), or 0 if the game has no stars
-     icon      'ghost' | 'tuner' (add new icons in arcade.js)
+     icon      'ghost' | 'tuner' | 'storm' (add new icons in arcade.js)
      color     the cabinet's marquee light on the home page: 'pink' | 'cyan' | 'yellow'
                (the neon tokens --pink, --cyan, --yellow in theme.css)
      order     games are shown in this order */
@@ -27,5 +27,14 @@ window.Arcade.GAMES = [
     maxStars: 24,
     icon: 'ghost',
     color: 'pink',
+  },
+  {
+    id: 'note-storm',
+    name: 'Note Storm',
+    skill: 'Speed reading',
+    blurb: 'Notes march toward your robot. Read each one fast and play it to blast it.',
+    maxStars: 24,
+    icon: 'storm',
+    color: 'yellow',
   },
 ];

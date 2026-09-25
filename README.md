@@ -11,7 +11,7 @@ shared/               The engine every game uses
   instruments.js      Instrument groups, transpositions, first five notes (single source of truth)
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
-  ui.js               Staff notation drawing, ghost mascot, stars, top bar
+  ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
   storage.js          Saved instrument, mic sensitivity, and progress (on this device only)
   games.js            The list of games shown on the home page
   theme.css           Colors, type, buttons, overlays shared by every page
@@ -20,6 +20,9 @@ note-checker/         Shared tuner-style checker (every game links to it)
 ghost-notes/          Game 1: note reading with fading note names
   levels.js           Level design: counts, time per note, how visible the names are
   game.js             Game logic
+note-storm/           Game 2: speed reading; notes march toward Tempo the robot, play each one to blast it
+  levels.js           Level design: counts, march speed, notes on screen at once, names on or off
+  game.js             Game logic (the staff is drawn once; only the notes move)
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Note Storm</title>
+<meta name="description" content="Notes march toward your defender. Read each one fast and play it to blast it.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Note <span>Storm</span></h1>
+      <p class="muted">Notes march along the staff toward Tempo, your note-blasting robot. Play the glowing note to blast it before it gets through. Faster reading, bigger bonus!</p>
+    </div>
+    <div class="stage fivecard">
+      <div class="cap"><span>Your first five notes</span><span id="hubConcert"></span></div>
+      <div id="hubStaff"></div>
+    </div>
+    <div class="checker-cta">
+      <p><b>New here, or on a new device?</b> Open the Note Checker first. Play all five notes and make sure each one lights up.</p>
+      <a class="btn btn-ghost" id="checkerLink" href="#">Note Checker</a>
+    </div>
+    <p class="eyebrow">Levels</p>
+    <div class="levels" id="levelGrid"></div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">Warm-Up</b></div>
+      <div class="c"><small>Notes left</small><b id="hudLeft">6</b></div>
+      <div class="c"><small>Lives</small><b class="lives" id="hudLives" aria-live="polite"></b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <div class="stage storm-stage">
+      <div class="field" id="field">
+        <div id="stormStaff"></div>
+        <svg class="layer fx" id="fx" aria-hidden="true"></svg>
+        <div class="layer" id="noteLayer" aria-hidden="true"></div>
+      </div>
+    </div>
+    <p class="prompt" id="prompt" aria-live="polite">Get ready…</p>
+    <div class="hear">
+      <small>Hearing</small><b id="hearNote">–</b><span class="lvlbars" id="hearBars"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div class="play-foot">
+      <button class="btn btn-ghost btn-small" id="pauseBtn">Pause</button>
+      <button class="btn btn-ghost btn-small" id="quitPlay">Quit level</button>
+    </div>
+  </section>
+</div>
+
+<!-- PAUSED -->
+<div class="overlay" id="paused" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pausedTitle">
+    <h2 id="pausedTitle">Paused</h2>
+    <p>The notes are frozen. Take a breath, then jump back in.</p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resumeBtn">Resume</button>
+      <button class="btn btn-ghost" id="pauseQuit">Quit level</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel">
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Level cleared</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Blasted</small><b id="resHits">0/0</b></div>
+      <div><small>Lost</small><b id="resLost">0</b></div>
+      <div><small>Wrong</small><b id="resWrong">0</b></div>
+      <div><small>Score</small><b id="resScore">0</b></div>
+    </div>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next level</button>
+      <button class="btn btn-ghost" id="resRetry">Try again</button>
+      <button class="btn btn-ghost" id="resLevels">Levels</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
