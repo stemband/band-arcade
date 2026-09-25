@@ -1,0 +1,54 @@
+/* Select Player: an arcade character-select screen. The page takes the chosen game's neon
+   (--t, --u from shared/cabinets.css, set on <body> by player.js). */
+.wrap{max-width:980px}
+.topbar{margin-bottom:10px}
+
+/* the game's marquee, then the title */
+.sp-head{text-align:center;margin-bottom:22px}
+.sp-marquee{display:flex;width:min(440px,100%);height:112px;margin:0 auto;font-size:22px}
+.sp-marquee .mq{box-shadow:var(--t-glow)}
+.sp-marquee .mq-shade{transform:skewY(-3deg)}
+.sp-skill{margin:14px 0 0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
+.sp-title{font-family:var(--display);font-weight:400;font-size:clamp(30px,7vw,48px);line-height:1.1;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+
+/* CONTINUE AS … */
+.continue{text-align:center;margin-bottom:22px}
+.btn-continue{display:flex;flex-direction:column;align-items:center;gap:2px;width:min(560px,100%);margin:0 auto;padding:16px 22px;text-decoration:none;
+  background:var(--yellow);color:var(--deep);border:3px solid var(--yellow-hi);border-radius:20px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.25),var(--glow-yellow)}
+.btn-continue:hover{background:var(--yellow-hi)}
+.btn-continue:active{transform:translateY(2px)}
+.btn-continue:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px}
+.c-label{font-family:var(--display);font-size:15px;letter-spacing:.14em;text-transform:uppercase}
+.c-name{font-family:var(--display);font-size:clamp(20px,4.6vw,28px);line-height:1.15;text-transform:uppercase;text-align:center}
+.c-notes{font-weight:700;font-size:16px}
+.or{margin:14px 0 0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
+.pick-help{text-align:center;color:var(--text-lo);margin:0 0 14px}
+
+/* the roster: ten character-select tiles */
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.player{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;padding:10px 10px 12px;background:var(--floor-2);
+  border:3px solid var(--floor-3);border-radius:14px;min-height:190px;transition:border-color .12s, background .12s}
+.p-num{position:absolute;top:-2px;left:-2px;z-index:1;font-family:var(--display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:12px 0 10px 0;background:var(--floor-3);color:var(--text-lo)}
+.p-portrait{display:block;background:var(--screen);border-radius:8px;padding:10px 2px 0;box-shadow:inset 0 0 0 2px var(--deep)}
+.p-name{font-weight:700;font-size:16px;line-height:1.25;color:var(--text-hi)}
+.p-notes{margin-top:auto;font-family:var(--display),var(--music);font-size:15px;letter-spacing:.08em;color:var(--text-lo)}
+/* the "cursor": the tile lights up in the game's neon */
+.player:hover,.player:focus-visible{border-color:var(--t);background:var(--floor-lit);box-shadow:var(--t-glow)}
+.player:hover .p-num,.player:focus-visible .p-num{background:var(--t);color:var(--deep)}
+.player:focus-visible{outline:3px solid var(--text-hi);outline-offset:3px}
+.player:active{transform:translateY(2px)}
+.player.me{border-color:var(--yellow-ink)}
+.player.me .p-num{background:var(--yellow);color:var(--deep)}
+
+@media (max-width:420px){
+  .roster{grid-template-columns:1fr 1fr;gap:10px}
+  .player{min-height:170px;padding:8px 8px 10px}
+  .p-name{font-size:15px}
+  .sp-marquee{height:96px;font-size:19px}
+}
+@media (prefers-reduced-motion:reduce){
+  .player,.btn-continue{transition:none}
+  .player:active,.btn-continue:active{transform:none}
+}

@@ -1,79 +1,92 @@
-/* Arcade home page: the lobby. A lit marquee sign, a "Select player" screen, and a row of game cabinets. */
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Arcade home page: the arcade floor. A neon sign, then an aisle of cabinets (a carousel):
+   the chosen one stands in front, its neighbors sit to the sides, angled like cabinets down an aisle.
+   The cabinets themselves are drawn by shared/cabinets.js + shared/cabinets.css. */
 
-/* ---------- marquee sign ---------- */
-.marquee{position:relative;text-align:center;margin:6px 0 34px;padding:34px 18px 30px;background:linear-gradient(180deg,var(--floor-3),var(--deep));border:3px solid var(--pink);border-radius:20px;box-shadow:var(--glow-pink),inset 0 0 30px rgba(255,79,179,.18)}
-/* rows of marquee bulbs along the top and bottom edge, alternating bright/dim */
-.marquee::before,.marquee::after{content:"";position:absolute;left:14px;right:14px;height:10px;
-  background:radial-gradient(circle at 5px 5px,var(--yellow-hi) 0 3px,transparent 4px) 0 0/24px 10px repeat-x,
-             radial-gradient(circle at 5px 5px,rgba(255,225,77,.35) 0 3px,transparent 4px) 12px 0/24px 10px repeat-x;
-  animation:chase 1.2s steps(1) infinite}
-.marquee::before{top:9px}
-.marquee::after{bottom:9px;animation-delay:-.6s}
-@keyframes chase{50%{background-position:12px 0,0 0}}
-.marquee h1{font-family:var(--display);font-weight:400;font-size:clamp(38px,9vw,80px);line-height:1;letter-spacing:.02em;color:var(--pink-hi);text-shadow:var(--glow-pink)}
-.marquee h1 span{color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
-.marquee p{margin:12px auto 0;max-width:40ch;color:var(--text-lo);font-size:18px}
+/* cabinet size: as big as fits, leaving room for the sign above and the description below */
+.floor-page{
+  --cab-w:clamp(180px, min(64vw, calc((100vh - 320px) / 2)), 290px);
+  --step:calc(var(--cab-w) * .9);          /* distance from the front cabinet to its neighbors */
+  overflow-x:hidden;
+}
+@supports (height:100svh){ .floor-page{--cab-w:clamp(180px, min(64vw, calc((100svh - 320px) / 2)), 290px)} }
 
-/* ---------- step headings ---------- */
-.step-head{margin-bottom:14px}
-.step-head .eyebrow{margin-bottom:2px;color:var(--text-lo)}
-.step-title{font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,32px);line-height:1.1;letter-spacing:.03em;text-transform:uppercase;color:var(--cyan);text-shadow:var(--glow-cyan)}
-#stepGame{color:var(--yellow);text-shadow:var(--glow-yellow)}
+/* ---------- the room: dark, a little haze, light pooling on the floor ---------- */
+.room{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60% 34% at 50% 44%, rgba(184,107,255,.14), transparent 70%),        /* haze */
+    radial-gradient(50% 22% at 18% 8%, rgba(255,79,179,.12), transparent 70%),
+    radial-gradient(50% 22% at 82% 8%, rgba(58,232,255,.1), transparent 70%),
+    linear-gradient(180deg, var(--deep) 0, var(--floor) 58%, var(--floor-2) 76%, var(--deep) 100%)}
+/* the floor: a faint checkerboard receding under the cabinets */
+.room::after{content:"";position:absolute;left:-20%;right:-20%;bottom:0;height:34%;opacity:.35;
+  background:repeating-conic-gradient(var(--floor-3) 0 25%, transparent 0 50%) 0 0/64px 64px;
+  transform:perspective(300px) rotateX(58deg);transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 70%);mask-image:linear-gradient(180deg,transparent,#000 70%)}
 
-/* ---------- select player ---------- */
-.select{background:rgba(6,4,13,.55);border:2px solid var(--floor-3);border-radius:var(--r);padding:16px}
-.inst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.inst{display:flex;align-items:center;gap:12px;text-align:left;background:var(--floor-2);border:2px solid var(--floor-3);border-radius:14px;padding:12px 14px;min-height:74px;transition:border-color .12s, background .12s}
-.inst:hover{background:var(--floor-3);border-color:var(--cyan-ink)}
-.inst-text{display:flex;flex-direction:column;gap:2px;min-width:0}
-.inst b{font-size:17px;line-height:1.25}
-.inst small{font-size:14px;color:var(--text-lo)}
-/* the round arcade button: dark until chosen, then lit */
-.led{flex:none;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--led-off),var(--deep) 70%);border:2px solid var(--floor-3);box-shadow:inset 0 -3px 0 rgba(0,0,0,.5)}
-.inst[aria-pressed="true"]{border-color:var(--yellow);background:var(--floor-lit);box-shadow:var(--glow-yellow)}
-.inst[aria-pressed="true"] .led{background:radial-gradient(circle at 35% 30%,var(--yellow-hi),var(--yellow) 45%,var(--yellow-ink));border-color:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+/* ---------- neon sign ---------- */
+.sign{text-align:center;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 4px}
+.neon{font-family:var(--neon-font);font-weight:400;font-size:clamp(32px,min(7.6vw,7.4vh),64px);line-height:1.1;letter-spacing:.04em;
+  color:var(--pink-hi);text-shadow:0 0 2px var(--pink-hi),0 0 8px var(--pink),0 0 22px var(--pink-ink)}
+.neon span{color:var(--cyan-hi);text-shadow:0 0 2px var(--cyan-hi),0 0 8px var(--cyan),0 0 22px var(--cyan-ink)}
+.neon span{animation:flicker 7s steps(1) infinite}
+@keyframes flicker{0%,100%{opacity:1}91%{opacity:.55}92%{opacity:1}94%{opacity:.7}95%{opacity:1}}
+.sign p{margin:4px auto 0;max-width:40ch;color:var(--text-lo);font-size:17px}
 
-/* ---------- game cabinets ---------- */
-.games-section{margin-top:36px}
-.cabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
-.cab{--c:var(--cyan);--c-glow:var(--glow-cyan);display:flex;flex-direction:column;text-decoration:none;color:var(--text-hi);background:linear-gradient(180deg,var(--floor-3),var(--floor-2));border:3px solid var(--c);border-radius:18px 18px 10px 10px;overflow:hidden;box-shadow:var(--c-glow);transition:transform .12s}
-.cab-pink{--c:var(--pink);--c-glow:var(--glow-pink)}
-.cab-yellow{--c:var(--yellow);--c-glow:var(--glow-yellow)}
-.cab:hover{transform:translateY(-3px)}
-.cab:active{transform:translateY(0)}
-/* lit marquee: neon panel, dark lettering */
-.cab-marquee{margin:0;padding:14px 12px 12px;background:var(--c);color:var(--deep);text-align:center;font-family:var(--display);font-weight:400;font-size:24px;line-height:1.1;letter-spacing:.03em;text-transform:uppercase;border-bottom:3px solid var(--deep)}
-/* screen: dark glass with faint scanlines, inside a bezel */
-.cab-screen{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;margin:14px;padding:14px;flex:1;
-  background:repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 2px,transparent 2px 4px),var(--deep);
-  border:6px solid var(--bezel);border-radius:14px;box-shadow:inset 0 0 18px rgba(0,0,0,.8)}
-.cab .ico{grid-row:1/3;width:60px;height:60px;display:grid;place-items:center}
-.cab .ico svg{width:44px;height:auto}
-.cab .tag{align-self:end;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--c);font-weight:700}
-.cab .blurb{align-self:start;color:var(--text-hi);font-size:15px;line-height:1.4}
-@media (max-width:360px){.cab-screen{grid-template-columns:1fr}.cab .ico{grid-row:auto}}
-.tuner .arc{stroke:var(--text-lo)}
-.tuner .hand{stroke:var(--yellow)}
-.tuner .hub{fill:var(--yellow)}
-.storm .lines{stroke:var(--text-dim)}
-.storm .bolt{fill:var(--yellow);stroke:var(--deep);stroke-width:1.5;stroke-linejoin:round}
-.storm .head{fill:var(--cyan)}
-.storm .stem{stroke:var(--cyan)}
-/* control panel strip */
-.cab-panel{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--deep);border-top:2px solid var(--floor-3);min-height:64px}
-.cab-info{font-size:15px;font-weight:700;color:var(--text-lo);font-variant-numeric:tabular-nums}
-.cab-stars{font-size:18px;color:var(--text-hi)}
-.cab-stars .star{color:var(--yellow);text-shadow:0 0 6px rgba(255,225,77,.6)}
-.cab-start{flex:none;font-family:var(--display);font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--deep);background:var(--c);border-radius:999px;padding:9px 18px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),var(--c-glow)}
-.cab:hover .cab-start{background:var(--text-hi)}
-/* not playable until a player (instrument) is chosen */
-.cab.off{pointer-events:none;opacity:.5;border-color:var(--floor-3);box-shadow:none}
-.cab.off .cab-marquee{background:var(--floor-3);color:var(--text-lo)}
-.cab.off .tag{color:var(--text-lo)}
-.note{color:var(--text-lo);font-size:15px;margin-top:14px}
+/* ---------- carousel ---------- */
+.carousel{position:relative;margin-top:14px}
+.aisle{position:relative;height:calc(var(--cab-w) * 2.08);perspective:1000px;perspective-origin:50% 40%;touch-action:pan-y;overflow:hidden;
+  -webkit-user-select:none;user-select:none}
+.slot{position:absolute;top:0;left:50%;width:var(--cab-w);margin-left:calc(var(--cab-w) / -2);
+  transition:transform .42s cubic-bezier(.25,.8,.3,1),opacity .42s;will-change:transform}
+.slot.jump{transition:none}
+.slot[data-d="0"]{z-index:5}
+.slot[data-d="-1"]{transform:translateX(calc(var(--step) * -1)) translateZ(-180px) rotateY(-34deg);opacity:.5;z-index:4;cursor:pointer}
+.slot[data-d="1"]{transform:translateX(var(--step)) translateZ(-180px) rotateY(34deg);opacity:.5;z-index:4;cursor:pointer}
+.slot[data-d="-2"]{transform:translateX(calc(var(--step) * -1.75)) translateZ(-420px) rotateY(-40deg);opacity:.22;z-index:3;cursor:pointer}
+.slot[data-d="2"]{transform:translateX(calc(var(--step) * 1.75)) translateZ(-420px) rotateY(40deg);opacity:.22;z-index:3;cursor:pointer}
+.slot[data-d="-3"]{transform:translateX(calc(var(--step) * -2.4)) translateZ(-600px) rotateY(-44deg);opacity:0;visibility:hidden}
+.slot[data-d="3"]{transform:translateX(calc(var(--step) * 2.4)) translateZ(-600px) rotateY(44deg);opacity:0;visibility:hidden}
+.slot:not([data-d="0"]) .cab-start{pointer-events:none}
+.slot:not([data-d="0"]) .cab::after{opacity:.15}
+
+/* big arrow buttons, level with the cabinet's screen */
+.nav{position:absolute;top:calc(var(--cab-w) * .62);z-index:10;display:grid;place-items:center;width:56px;height:56px;padding:0;border-radius:50%;
+  background:var(--deep);border:3px solid var(--cyan);color:var(--cyan-hi);box-shadow:var(--glow-cyan)}
+.nav svg{width:26px;height:26px;fill:currentColor}
+.nav:hover{background:var(--cyan);color:var(--deep)}
+.nav:active{transform:scale(.94)}
+.nav-prev{left:max(16px, calc(50% - var(--cab-w) * 1.55))}
+.nav-next{right:max(16px, calc(50% - var(--cab-w) * 1.55))}
+
+/* indicator lights */
+.lights{display:flex;justify-content:center;gap:4px;margin-top:4px}
+.light{display:grid;place-items:center;width:44px;height:44px;padding:0;background:none;border:0;border-radius:50%}
+.light i{display:block;width:16px;height:16px;border-radius:50%;background:var(--led-off);border:2px solid var(--floor-3)}
+.light:hover i{background:var(--text-dim)}
+.light[aria-current="true"] i{background:var(--yellow);border-color:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+
+/* ---------- about the front game (real text, AA contrast) ---------- */
+.info{max-width:560px;margin:4px auto 0;padding:0 16px calc(28px + env(safe-area-inset-bottom,0px));text-align:center}
+.info-skill{margin:0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.info-name{font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,32px);line-height:1.1;letter-spacing:.03em;text-transform:uppercase;color:var(--text-hi);margin:2px 0 6px}
+.info-blurb{margin:0;color:var(--text-lo);font-size:17px}
+.hiscore{display:inline-block;margin:0 0 10px;padding:6px 14px;border:2px solid var(--yellow-ink);border-radius:10px;background:var(--deep);
+  font-weight:700;font-size:16px;letter-spacing:.04em;color:var(--text-hi);font-variant-numeric:tabular-nums}
+.hiscore b{font-family:var(--display);font-weight:400;color:var(--yellow);letter-spacing:.08em}
+.hiscore .star{color:var(--yellow);text-shadow:0 0 6px rgba(255,225,77,.6)}
+.hiscore .who{color:var(--text-lo);font-weight:400}
+.note{color:var(--text-lo);font-size:15px;text-align:center;margin:0 16px 24px}
+
+/* one cabinet at a time on phones: the neighbors step out of view, the arrows sit beside it */
+@media (max-width:599px){
+  .floor-page{--step:calc(var(--cab-w) * 1.5)}
+  .slot:not([data-d="0"]){opacity:0;visibility:hidden}
+  .nav{width:48px;height:48px}
+}
 
 @media (prefers-reduced-motion:reduce){
-  .marquee::before,.marquee::after{animation:none}
-  .cab,.cab:hover{transform:none;transition:none}
+  .neon span{animation:none}
+  .slot{transition:none}
+  .aisle.fade{animation:fade .25s ease-out}
+  @keyframes fade{from{opacity:0}}
 }

@@ -1,0 +1,136 @@
+/* Band Arcade — arcade cabinets (drawn by shared/cabinets.js). Used by the home page and Select Player.
+   Sizing: a cabinet fills its box, which should be 1 wide × 2 tall. Everything inside is sized in em,
+   and .cab sets 1em = 1/18.75 of --cab-w (16px on a 300px-wide cabinet), so it all scales together.
+   Colors: --t… is the cabinet's neon tube (trim), --u… its second neon (trim2). */
+
+/* ---------- neon colors: trim-<color> and trim2-<color> ---------- */
+.trim-pink{--t:var(--pink);--t-hi:var(--pink-hi);--t-ink:var(--pink-ink);--t-glow:var(--glow-pink)}
+.trim-cyan{--t:var(--cyan);--t-hi:var(--cyan-hi);--t-ink:var(--cyan-ink);--t-glow:var(--glow-cyan)}
+.trim-yellow{--t:var(--yellow);--t-hi:var(--yellow-hi);--t-ink:var(--yellow-ink);--t-glow:var(--glow-yellow)}
+.trim-purple{--t:var(--purple);--t-hi:var(--purple-hi);--t-ink:var(--purple-ink);--t-glow:var(--glow-purple)}
+.trim-amber{--t:var(--amber);--t-hi:var(--amber-hi);--t-ink:var(--amber-ink);--t-glow:var(--glow-amber)}
+.trim-green{--t:var(--green);--t-hi:var(--green-hi);--t-ink:var(--green-ink);--t-glow:var(--glow-green)}
+.trim2-pink{--u:var(--pink);--u-hi:var(--pink-hi);--u-glow:var(--glow-pink)}
+.trim2-cyan{--u:var(--cyan);--u-hi:var(--cyan-hi);--u-glow:var(--glow-cyan)}
+.trim2-yellow{--u:var(--yellow);--u-hi:var(--yellow-hi);--u-glow:var(--glow-yellow)}
+.trim2-purple{--u:var(--purple);--u-hi:var(--purple-hi);--u-glow:var(--glow-purple)}
+.trim2-amber{--u:var(--amber);--u-hi:var(--amber-hi);--u-glow:var(--glow-amber)}
+.trim2-green{--u:var(--green);--u-hi:var(--green-hi);--u-glow:var(--glow-green)}
+
+/* ---------- the cabinet ---------- */
+.cab{position:relative;width:100%;aspect-ratio:1/2;font-size:calc(var(--cab-w,300px) / 18.75);line-height:1.15;color:var(--text-hi)}
+.cab-shell{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+/* light from the cabinet pooling on the dark floor */
+.cab::after{content:"";position:absolute;left:-12%;right:-12%;bottom:-5%;height:11%;background:radial-gradient(closest-side,var(--t),transparent);opacity:.35;pointer-events:none}
+
+.s-side{fill:var(--cab-side)}
+.s-face{fill:var(--cab-face)}
+.s-tube-glow{fill:none;stroke:var(--t);stroke-width:10;stroke-opacity:.25;stroke-linejoin:round}
+.s-tube{fill:none;stroke:var(--t-hi);stroke-width:2.6;stroke-linejoin:round}
+.s-bezel{fill:var(--deep);stroke:var(--u);stroke-width:1.5;stroke-opacity:.55}
+.s-panel{fill:var(--cab-panel);stroke:var(--t);stroke-width:2;stroke-linejoin:round}
+.s-lip{fill:var(--t-ink)}
+.s-joybase{fill:var(--deep)}
+.s-shaft{stroke:var(--cab-metal);stroke-width:4;stroke-linecap:round}
+.s-ball{fill:var(--u)}
+.s-shine{fill:var(--text-hi);opacity:.45}
+.s-btn0{fill:var(--t)} .s-btn1{fill:var(--u)} .s-btn2{fill:var(--t-hi)}
+.s-door{fill:var(--cab-side);stroke:var(--cab-metal);stroke-width:2}
+.s-coin{fill:var(--red)}
+.s-slit{stroke:var(--deep);stroke-width:2.5}
+.s-return{fill:var(--deep);stroke:var(--cab-metal);stroke-width:1.5}
+.s-kick{fill:var(--cab-metal);opacity:.5}
+.s-lamp{fill:var(--t-hi)} .s-lamp2{fill:var(--u-hi)}
+.s-decal{fill:none;stroke:var(--u);stroke-width:2.5;stroke-linecap:round;opacity:.8}
+.s-bolt{fill:var(--u);stroke:none}
+.s-grille{stroke:var(--cab-metal);stroke-width:3;stroke-linecap:round}
+
+/* ---------- marquees (also used alone at the top of Select Player) ---------- */
+.cab-mq{position:absolute;display:flex}
+.mq{flex:1;display:flex;align-items:center;justify-content:center;gap:.3em;margin:0;padding:.2em .4em;text-align:center;overflow:hidden;
+  border-radius:.4em;background:var(--t);color:var(--deep);font-family:var(--display);font-weight:400;text-transform:uppercase}
+.mq-text{display:flex;flex-direction:column;align-items:center;min-width:0}
+.mq-name{font-size:1.45em;line-height:1;letter-spacing:.02em}
+.mq-kicker{font-size:.62em;letter-spacing:.14em;margin-bottom:.35em}
+/* haunted: an arched, purple-lit sign with drippy letters and the ghost */
+.mq-haunt{background:radial-gradient(ellipse at 50% 110%,var(--t-ink),var(--deep) 75%);color:var(--t-hi);border:.12em solid var(--t);
+  border-radius:50% 50% .35em .35em / 70% 70% .35em .35em;padding-top:.5em;box-shadow:inset 0 0 .8em var(--t-ink)}
+.mq-haunt .mq-name{font-family:"GN Haunt",var(--display);font-size:2.05em;letter-spacing:.04em;text-shadow:var(--u-glow)}
+.mq-mascot{flex:none;width:1.9em;margin-top:.3em}
+.mq-mascot svg{display:block;width:100%;height:auto}
+/* sound check: a black LCD with amber pixel letters */
+.mq-pixel{background:var(--deep);color:var(--t);border:.12em solid var(--t);border-radius:.9em .9em .3em .3em;
+  box-shadow:inset 0 0 0 .2em var(--cab-side)}
+.mq-pixel .mq-name{font-family:"GN Pixel",var(--display);font-size:.9em;line-height:1.35;text-shadow:var(--t-glow)}
+.mq-pixel .mq-kicker{font-family:"GN Pixel",var(--display);font-size:.58em;letter-spacing:.06em;color:var(--u);text-shadow:var(--u-glow);margin-bottom:.6em}
+/* storm: a slanted sign with chunky shaded letters */
+.mq-shade{background:repeating-linear-gradient(135deg,var(--u) 0 .5em,var(--pink-ink) .5em 1em);color:var(--t);border:.12em solid var(--t);border-radius:.2em;transform:skewY(7.4deg)}
+.mq-shade .mq-text{background:var(--deep);padding:.2em .45em;border-radius:.2em}
+.mq-shade .mq-name{font-family:"GN Shade",var(--display);font-size:1.7em;text-shadow:0 0 .3em var(--t-ink)}
+
+/* ---------- screen ---------- */
+.cab-screen{position:absolute;overflow:hidden;border-radius:.5em;background:var(--deep);box-shadow:0 0 0 .12em var(--deep),0 0 .8em var(--u)}
+.shape-haunted .cab-screen{border-radius:50% 50% .4em .4em / 34% 34% .4em .4em}
+.shape-storm .cab-screen{border-radius:.15em}
+.scr{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* Ghost Notes: the lit staff screen */
+.scr-ghost{background:var(--screen);padding-top:.6em}
+.att-ghost{width:42%;margin-bottom:-.3em}
+.scr-ghost .g-body{fill:var(--t)}
+.scr-ghost .g-text,.scr-ghost .g-eye{fill:var(--deep)}
+.att-ghost svg{display:block;width:100%;height:auto}
+.att-staff{width:108%}
+.attract .att-ghost{animation:att-fade 2.6s ease-in forwards}
+@keyframes att-fade{0%,20%{opacity:1}85%,100%{opacity:.1}}
+/* Note Checker: tuning meter */
+.scr-tuner{background:repeating-linear-gradient(180deg,rgba(255,255,255,.04) 0 2px,transparent 2px 4px),var(--deep);gap:.2em}
+.att-note{font-family:var(--display),var(--music);font-size:2.3em;line-height:1;color:var(--u-hi);text-shadow:var(--u-glow)}
+.att-meter{width:84%;height:auto;overflow:visible}
+.att-meter .m-arc{fill:none;stroke:var(--t);stroke-width:3}
+.att-meter .m-zone{fill:none;stroke:var(--u);stroke-width:7}
+.att-meter .m-tick{stroke:var(--t-hi);stroke-width:2}
+.att-meter .m-needle{stroke:var(--text-hi);stroke-width:3;stroke-linecap:round}
+.att-meter .m-hub{fill:var(--t)}
+.att-needle{transform-box:view-box;transform-origin:80px 64px}
+.att-verdict{font-family:var(--display);font-size:.8em;letter-spacing:.12em;color:var(--u)}
+.attract .att-needle{animation:att-needle 3s ease-in-out forwards}
+.attract .att-verdict,.attract .att-note{animation:att-lock 3s steps(1) forwards}
+@keyframes att-needle{0%{transform:rotate(-48deg)}22%{transform:rotate(30deg)}40%{transform:rotate(-18deg)}56%{transform:rotate(8deg)}68%,100%{transform:rotate(0)}}
+@keyframes att-lock{0%{opacity:.25}68%,100%{opacity:1}}
+/* Note Storm: notes march toward Tempo */
+.scr-storm{background:var(--screen)}
+.scr-storm svg{width:100%;height:auto}
+.att-lines line{stroke:var(--ink-2);stroke-width:1.2}
+.att-robot rect{fill:var(--cyan-ink)} .att-robot .eye{fill:var(--yellow)}
+.att-robot line{stroke:var(--cyan-ink);stroke-width:2} .att-robot circle{fill:var(--pink-ink)}
+.att-zap{fill:none;stroke:var(--yellow-ink);stroke-width:3;stroke-linejoin:round;opacity:0}
+.att-march{fill:var(--ink);stroke:var(--ink);stroke-width:2}
+.att-march ellipse{stroke:none}
+.att-march:nth-of-type(3){transform:translateX(96px)} .att-march:nth-of-type(4){transform:translateX(140px)} .att-march:nth-of-type(5){transform:translateX(184px)}
+.attract .att-march{animation:att-march 3s linear infinite}
+.attract .att-zap{animation:att-zap 1s steps(1) infinite}
+@keyframes att-march{0%{transform:translateX(212px);opacity:1}88%{transform:translateX(80px);opacity:1}100%{transform:translateX(68px);opacity:0}}
+@keyframes att-zap{0%{opacity:0}80%{opacity:1}}
+/* default screen: the game's name and a blinking PRESS START */
+.scr-insert{gap:.8em;padding:.5em;text-align:center;background:repeating-linear-gradient(180deg,rgba(255,255,255,.04) 0 2px,transparent 2px 4px),var(--deep)}
+.att-title{font-family:var(--display);font-size:1.3em;line-height:1.1;text-transform:uppercase;color:var(--t-hi);text-shadow:var(--t-glow)}
+.att-blink{display:grid;font-family:var(--display);font-size:.8em;letter-spacing:.1em;text-transform:uppercase;color:var(--u-hi)}
+.att-blink span{grid-area:1/1}
+.att-blink span+span{opacity:0}
+.attract .att-blink span{animation:att-blink 2s steps(1) infinite}
+.attract .att-blink span+span{animation-delay:-1s}
+@keyframes att-blink{0%{opacity:1}50%{opacity:0}}
+
+/* ---------- START: the real link ---------- */
+.cab-start{position:absolute;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:1.4em;letter-spacing:.1em;
+  text-transform:uppercase;text-decoration:none;color:var(--deep);background:var(--t);border:.12em solid var(--t-hi);border-radius:999px;
+  box-shadow:inset 0 -.2em 0 rgba(0,0,0,.3),var(--t-glow)}
+.cab-start:hover{background:var(--t-hi)}
+.cab-start:active{box-shadow:inset 0 .15em 0 rgba(0,0,0,.3),var(--t-glow)}
+.cab-start:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px;box-shadow:0 0 0 9px var(--deep),var(--t-glow)}
+.attract .cab-start{animation:att-start 1.4s steps(1) infinite}
+@keyframes att-start{50%{background:var(--t-hi)}}
+
+@media (prefers-reduced-motion:reduce){
+  .cab *,.cab{animation:none!important}
+}

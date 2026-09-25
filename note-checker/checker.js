@@ -3,13 +3,13 @@
 (function (A) {
   "use strict";
   const {$} = A;
-  const inst = A.currentInstrument();
-  if (!inst) { location.replace(A.link('../index.html')); return; }
+  const inst = A.requireInstrument('note-checker');
+  if (!inst) return;
 
   // "Back to <game>" when opened from a game (the game links here with #<game-id>)
   const fromGame = A.GAMES.find(g => g.id === location.hash.slice(1) && g.id !== 'note-checker');
   A.mountTopbar(inst, fromGame
-    ? `<a class="btn btn-ghost btn-small" href="${A.link('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '');
+    ? `<a class="btn btn-ghost btn-small" href="${A.linkTo('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '', 'note-checker');
 
   A.Pitch.setInstrument(inst);
   let found = new Set(), smooth = 0;

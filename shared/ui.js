@@ -76,14 +76,38 @@ window.Arcade = window.Arcade || {};
 
   A.starStr = n => [0, 1, 2].map(i => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
 
-  /** Standard game top bar: a "← Lobby" button back to the arcade on the left, instrument chip on the right.
-      Call on a page that has <div id="topbar"></div>. */
-  A.mountTopbar = function (inst, extraRightHTML = '') {
+  /* ---------- links between pages ----------
+     linkTo(path, {game}) keeps ?demo (like Arcade.link) but sets or drops ?game=, so the
+     select-player page's ?game= never leaks into a game's own links. */
+  A.linkTo = function (path, extra = {}) {
+    const p = new URLSearchParams();
+    Object.keys(extra).forEach(k => extra[k] != null && p.set(k, extra[k]));
+    A.params.forEach((v, k) => { if (k !== 'game' && !(k in extra)) p.append(k, v); });
+    const q = p.toString().replace(/=(?=&|$)/g, '');          // "?demo=" -> "?demo"
+    return path + (q ? '?' + q : '');
+  };
+  /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../') */
+  A.playerLink = (gameId, root = '../') => A.linkTo(root + 'select-player/index.html', {game: gameId});
+  /** the arcade floor, turned to this game's cabinet */
+  A.homeLink = (gameId, root = '../') => A.linkTo(root + 'index.html') + (gameId ? '#' + gameId : '');
+
+  /** For game pages: the saved instrument, or (if none) send the student to pick one for this game.
+      Usage: const inst = A.requireInstrument(GAME_ID); if (!inst) return; */
+  A.requireInstrument = function (gameId) {
+    const inst = A.currentInstrument();
+    if (!inst) location.replace(A.playerLink(gameId));
+    return inst;
+  };
+
+  /** Standard game top bar: "← Arcade" back to the arcade floor on the left, instrument chip on the right.
+      The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
+  A.mountTopbar = function (inst, extraRightHTML = '', gameId = '') {
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     el.innerHTML =
-      `<a class="brand" href="${A.link('../index.html')}" aria-label="Back to the arcade lobby"><span aria-hidden="true">←</span><span>Lobby</span></a>` +
+      `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +
-      `<a class="chip" href="${A.link('../index.html')}" title="Change instrument">${inst ? inst.shortName : 'Choose instrument'}</a></div>`;
+      `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">` +
+      `<span class="sr">Change instrument. Playing as </span>${inst ? inst.shortName : 'Choose instrument'}</a></div>`;
   };
 })(window.Arcade);
