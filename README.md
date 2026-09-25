@@ -7,6 +7,8 @@ Practice games for beginning band that listen through the device microphone. Bui
 ```
 index.html            The arcade floor (home page): pick a GAME from a carousel of cabinets
 arcade.css / .js      Arcade floor look and behavior (carousel, swipe, arrow keys, indicator lights)
+arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, glossy floor, haze
+shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
 select-player/        "Select Player": pick your instrument for the game you chose, then play
 shared/               The engine every game uses
   instruments.js      Instrument groups, transpositions, first five notes (single source of truth)
@@ -37,6 +39,15 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
+
+## The 3D arcade floor
+
+On devices that can do it, the home page shows real 3D cabinets (three.js). Everything students read or press (game name, description, hi-score, START, the arrows and lights) is still regular page content on top of the 3D picture.
+
+- **2D fallback.** The flat cabinets are still there. The page switches to them by itself when the device has no WebGL, when three.js can't load, or when the device is too slow. The 3D view first lowers its quality (sharper pixels off, no haze, no sway); if frames are still slow (averaging over 40 ms for a few seconds), it switches to 2D.
+- **Force 2D:** add `?flat` to the address, e.g. `index.html?flat` or `index.html?demo&flat`.
+- **For testing only:** `?keep3d` stops the automatic switch to 2D, so you can see the 3D view on a slow computer. `?fps` shows the average frame time in the corner (under 40 ms is fine; the page aims for about 17–33 ms).
+- **Why three.js r149:** it's the last version with a plain `three.min.js` that works from a `<script>` tag and when you open the page by double-clicking. Newer versions need JavaScript modules, which break on local files. Don't update it without checking that.
 
 ## Try it on your computer
 
@@ -81,6 +92,7 @@ For a brand-new look:
 
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
+- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
 - **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
 
 ## Known limits
