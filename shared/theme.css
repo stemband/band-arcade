@@ -1,0 +1,92 @@
+/* Band Arcade — shared look. Every page loads fonts.css + this file, then its own style.css.
+   One committed dark theme (navy + gold). Change colors here and every game follows. */
+:root{
+  color-scheme:dark;
+  --night:#0f1d36; --night-2:#172a4d; --night-3:#213a66; --deep:#091326;
+  --gold:#f0b43c; --gold-hi:#ffd67a; --gold-ink:#c98a12;
+  --bone:#f4ecd9; --bone-2:#e6dcc3; --ink:#18203a; --ink-2:#4b5570;
+  --mist:#a3b4d2; --mist-2:#6f82a6; --coral:#ef6f5e; --coral-ink:#d0503f;
+  --line:rgba(163,180,210,.18);
+  --display:"GN Display","Arial Black",Impact,sans-serif;
+  --text:"GN Text","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --music:"GN Music","Noto Music",serif;
+  --r:18px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:var(--text);font-size:17px;line-height:1.5;color:var(--bone);
+  background:
+    radial-gradient(900px 520px at 85% -8%, rgba(120,150,210,.22), transparent 70%),
+    radial-gradient(700px 500px at -10% 110%, rgba(240,180,60,.08), transparent 70%),
+    var(--night);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;
+}
+[hidden]{display:none!important}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--gold-hi);outline-offset:3px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-inline:max(16px, env(safe-area-inset-left,0px));padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
+.eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);font-weight:700;margin:0 0 10px}
+.muted{color:var(--mist)}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;min-height:44px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-family:var(--display);font-size:18px;letter-spacing:.04em;color:var(--bone);background:none;border:0;padding:0;text-decoration:none}
+.brand svg{width:24px;height:auto}
+.topbar-right{display:flex;gap:8px;align-items:center;min-width:0}
+.chip{font-size:14px;color:var(--mist);border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:rgba(9,19,38,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;text-decoration:none}
+a.chip:hover{border-color:var(--mist-2)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:700;font-size:17px;border:2px solid transparent;min-height:48px;text-decoration:none;transition:transform .12s, background .12s, border-color .12s}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:var(--ink)}
+.btn-gold:hover{background:var(--gold-hi)}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--bone)}
+.btn-ghost:hover{border-color:var(--mist-2)}
+.btn-small{min-height:40px;padding:8px 16px;font-size:15px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* ---------- ghost mascot ---------- */
+.ghost .g-body{fill:var(--bone)}
+.ghost .g-eye{fill:var(--night)}
+.ghost .g-text{font-family:var(--display),var(--music);font-size:28px;fill:var(--night)}
+.ghost.gold .g-body{fill:var(--gold-hi)}
+.ghost.coral .g-body{fill:var(--coral)}
+.ghost.coral .g-text,.ghost.coral .g-eye{fill:#2a0f0b}
+.bob{animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-7px)}}
+
+/* ---------- staff card ---------- */
+.staff{display:block;width:100%;height:auto}
+.stage{position:relative;background:var(--bone);color:var(--ink);border-radius:var(--r);padding:8px 10px 0;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.stage .cap{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;color:var(--ink-2);padding:2px 6px 0}
+
+/* ---------- stars ---------- */
+.stars{letter-spacing:2px;font-size:16px;color:var(--mist-2)}
+.stars .on{color:var(--gold)}
+
+/* ---------- "hearing" pill + mic level bars ---------- */
+.hear{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;background:rgba(9,19,38,.55);border:1px solid var(--line);border-radius:999px;padding:8px 18px;width:max-content;max-width:100%;margin:0 auto}
+.hear small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);font-weight:700}
+.hear b{font-family:var(--display),var(--music);font-weight:400;font-size:24px;min-width:2.2ch;text-align:center}
+.hear b.match{color:var(--gold)}
+.lvlbars{display:flex;gap:3px;align-items:flex-end;height:18px}
+.lvlbars i{width:5px;background:var(--mist-2);border-radius:2px;opacity:.35}
+.lvlbars i.on{opacity:1;background:var(--gold)}
+
+/* ---------- overlays (mic gate, results) ---------- */
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px 16px;background:rgba(6,12,26,.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.panel{width:min(460px,100%);background:var(--night-2);border:1px solid var(--line);border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.panel h2{font-family:var(--display);font-weight:400;font-size:32px;line-height:1.05;margin-bottom:10px}
+.panel p{color:var(--mist);margin:0 0 12px}
+.panel .acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.err{color:var(--coral)!important;text-align:left;font-size:15px;background:rgba(239,111,94,.08);border-radius:12px;padding:10px 12px}
+.err ul{margin:6px 0 0;padding-left:20px}
+
+@media (prefers-reduced-motion:reduce){
+  .bob{animation:none}
+}

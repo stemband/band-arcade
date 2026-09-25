@@ -1,0 +1,31 @@
+/* Arcade home page */
+.hero{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;margin:10px 0 30px}
+.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(44px,10vw,88px);line-height:.92;letter-spacing:.01em;color:var(--bone)}
+.hero h1 span{display:block;color:var(--gold)}
+.hero p{max-width:34ch;color:var(--mist);margin:14px 0 0;font-size:18px}
+.hero-ghosts{position:relative;width:clamp(100px,22vw,170px);aspect-ratio:1/1.1;max-width:100%}
+.hero-ghosts svg{position:absolute;width:62%}
+.hero-ghosts svg:nth-child(1){left:0;top:4%}
+.hero-ghosts svg:nth-child(2){left:30%;top:22%;opacity:.45;width:50%;animation-delay:-1s}
+.hero-ghosts svg:nth-child(3){left:58%;top:0;opacity:.14;width:40%;animation-delay:-2s}
+
+.inst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.inst{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--night-2);border:2px solid transparent;border-radius:14px;padding:14px 16px;min-height:74px;transition:border-color .12s, background .12s}
+.inst:hover{background:var(--night-3)}
+.inst b{font-size:17px;line-height:1.25}
+.inst small{font-size:14px;color:var(--mist)}
+.inst[aria-pressed="true"]{border-color:var(--gold);background:var(--night-3)}
+
+.games-section{margin-top:34px}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.game{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:start;text-decoration:none;background:var(--night-2);border:2px solid transparent;border-radius:var(--r);padding:16px 18px}
+.game:hover{border-color:var(--gold)}
+.game .ico{grid-row:1/4;width:56px;height:56px;display:grid;place-items:center;background:var(--deep);border-radius:14px}
+.game .ico svg{width:34px;height:auto}
+.game .tag{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.game h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.05}
+.game p{margin:4px 0 0;color:var(--mist);font-size:15px;line-height:1.4}
+.game .prog{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:14px;color:var(--mist);font-variant-numeric:tabular-nums}
+.game .prog b{color:var(--bone)}
+.game.off{opacity:.5;pointer-events:none}
+.note{color:var(--mist);font-size:15px;margin-top:14px}

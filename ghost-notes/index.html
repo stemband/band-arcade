@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ghost Notes</title>
+<meta name="description" content="Read the note and play it. The note names fade away as you level up.">
+<meta name="theme-color" content="#0f1d36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Ghost <span>Notes</span></h1>
+      <p class="muted">Read the note and play it on your instrument. Each level, the note names fade a little more until only the staff is left.</p>
+    </div>
+    <div class="stage fivecard">
+      <div class="cap"><span>Your first five notes</span><span id="hubConcert"></span></div>
+      <div id="hubStaff"></div>
+    </div>
+    <div class="checker-cta">
+      <p><b>New here, or on a new device?</b> Open the Note Checker first. Play all five notes and make sure each one lights up.</p>
+      <a class="btn btn-ghost" id="checkerLink" href="#">Note Checker</a>
+    </div>
+    <p class="eyebrow">Levels</p>
+    <div class="levels" id="levelGrid"></div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">Warm-Up</b></div>
+      <div class="c"><small>Note</small><b id="hudCount">1 / 6</b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <div class="stage">
+      <div id="playStaff"></div>
+      <div class="ghost-slot" id="ghostSlot"></div>
+      <div class="pop" id="pop">+100</div>
+      <div class="timer" id="timer"><i></i></div>
+    </div>
+    <p class="prompt" id="prompt">Play the note on the staff</p>
+    <div class="hear">
+      <small>Hearing</small><b id="hearNote">–</b><span class="lvlbars" id="hearBars"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div class="play-foot"><button class="btn btn-ghost btn-small" id="quitPlay">Quit level</button></div>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel">
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Level cleared</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Notes</small><b id="resHits">0/0</b></div>
+      <div><small>Wrong</small><b id="resWrong">0</b></div>
+      <div><small>Score</small><b id="resScore">0</b></div>
+    </div>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next level</button>
+      <button class="btn btn-ghost" id="resRetry">Try again</button>
+      <button class="btn btn-ghost" id="resLevels">Levels</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

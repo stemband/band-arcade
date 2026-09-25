@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Note Checker</title>
+<meta name="theme-color" content="#0f1d36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <h1 class="page-title">Note Checker</h1>
+  <p class="muted lede">Play each of your five notes and hold it. A note turns gold once the game hears it, so you know you're ready to play.</p>
+
+  <div class="stage" style="padding-bottom:6px"><div id="ckStaff"></div></div>
+
+  <div class="startrow" id="startRow">
+    <button class="btn btn-gold" id="startBtn">Start listening</button>
+  </div>
+
+  <div class="readout">
+    <div class="bignote"><b id="ckNote">–</b><span id="ckConcert">Play a note</span></div>
+    <div class="meter">
+      <svg viewBox="0 0 360 86" role="img" aria-label="Tuning meter">
+        <rect x="150" y="18" width="60" height="36" rx="6" fill="rgba(240,180,60,.16)"/>
+        <g stroke="#6f82a6" stroke-width="2">
+          <line x1="30" y1="26" x2="30" y2="46"/><line x1="105" y1="30" x2="105" y2="42"/>
+          <line x1="180" y1="20" x2="180" y2="52"/><line x1="255" y1="30" x2="255" y2="42"/>
+          <line x1="330" y1="26" x2="330" y2="46"/>
+        </g>
+        <line x1="30" y1="36" x2="330" y2="36" stroke="#6f82a6" stroke-width="1" opacity=".5"/>
+        <g font-family="GN Text, system-ui, sans-serif" font-size="13" fill="#a3b4d2" text-anchor="middle">
+          <text x="30" y="72">−50</text><text x="105" y="72">−25</text><text x="180" y="72">0</text><text x="255" y="72">+25</text><text x="330" y="72">+50</text>
+        </g>
+        <g font-family="GN Text, system-ui, sans-serif" font-size="12" font-weight="700" fill="#a3b4d2" letter-spacing="1.5">
+          <text x="30" y="12" text-anchor="start">FLAT</text><text x="330" y="12" text-anchor="end">SHARP</text>
+        </g>
+        <g id="needle" style="transition:transform .08s linear" opacity=".25">
+          <line x1="180" y1="14" x2="180" y2="58" stroke="#ffd67a" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="180" cy="36" r="6" fill="#f0b43c"/>
+        </g>
+      </svg>
+      <div class="verdict" id="ckVerdict">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="found">
+    <b id="ckFound">0 of 5 notes found</b>
+    <button class="btn btn-ghost btn-small" id="ckReset">Reset</button>
+  </div>
+
+  <div class="sens">
+    <label for="sens">Mic sensitivity</label>
+    <div class="sens-row"><span class="muted">Less</span><input type="range" id="sens" min="0" max="100" value="50"><span class="muted">More</span></div>
+    <div class="levelbar" aria-hidden="true"><i id="lvlFill"></i><em id="lvlGate"></em></div>
+    <p>The bar shows how loud the mic hears you. The games only listen when the bar passes the red mark. Other people playing nearby? Slide toward Less. Game not hearing you? Slide toward More. This setting is shared by every game.</p>
+  </div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/games.js"></script>
+<script src="checker.js"></script>
+</body>
+</html>
