@@ -20,7 +20,8 @@ Mat Graham (middle school band director) owns this project. It's a set of mic-dr
 - `Arcade.DEMO` is true with `?demo`. Keys 1–5 fake the five notes, and games should unlock all levels.
 
 ## Adding a game
-Make a new folder with `index.html` (same shared script tags as `ghost-notes/index.html`), `style.css` and `game.js`. Add it to `shared/games.js` (`maxStars` = levels × 3, or 0). Reuse `theme.css` components (`.stage`, `.hear`, `.overlay/.panel`, `.btn-*`). Keep the navy/gold look.
+Make a new folder with `index.html` (same shared script tags as `ghost-notes/index.html`), `style.css` and `game.js`. Add it to `shared/games.js` (`maxStars` = levels × 3, or 0). Reuse `theme.css` components (`.stage`, `.hear`, `.overlay/.panel`, `.btn-*`). Give it a cabinet `color` (`'pink'|'cyan'|'yellow'`) in `games.js`.
+- Keep the neon arcade look: a near-black arcade floor (`--floor`, `--floor-2`, `--floor-3`, `--deep`) lit by neon `--pink`, `--cyan` and `--yellow` (each with `-hi`/`-ink` variants and a `--glow-*` shadow). Every color is a token in `shared/theme.css`; don't hard-code colors in a game. Neon is for titles, borders, glows and short labels; long text uses `--text-hi`/`--text-lo` so it meets WCAG AA. The staff `.stage` is a light "screen" (`--screen`, `--ink`) in a cyan neon frame, so notation stays crisp. Titles use the display font (`--display`, Bungee); body text stays Atkinson Hyperlegible (`--text`). Keep motion light (no blur filters) and turn it off under `prefers-reduced-motion`. The older names (`--gold`, `--night-2`, `--bone`, `--mist`, `--coral`…) are aliases of the new tokens.
 
 ## Testing
 - `python3 -m http.server` from the repo root, then open `http://localhost:8000/?demo`.

@@ -1,6 +1,6 @@
 /* Fonts ship with the site (no Google Fonts), so they load even when a district filter blocks font CDNs.
    Each file is subset to the characters the arcade uses. */
 @font-face{font-family:"GN Music";src:url("fonts/music.woff2") format("woff2");font-display:block}      /* clefs, flat, sharp, natural */
-@font-face{font-family:"GN Display";src:url("fonts/bowlby.woff2") format("woff2");font-display:swap}   /* Bowlby One */
+@font-face{font-family:"GN Display";src:url("fonts/bungee.woff2") format("woff2");font-display:swap}   /* Bungee (SIL OFL, see fonts/OFL-Bungee.txt): Basic Latin + · – — ‘ ’ “ ” … ← → ▶ */
 @font-face{font-family:"GN Text";font-weight:400;src:url("fonts/atk4.woff2") format("woff2");font-display:swap} /* Atkinson Hyperlegible */
 @font-face{font-family:"GN Text";font-weight:700;src:url("fonts/atk7.woff2") format("woff2");font-display:swap}

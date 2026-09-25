@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Note Checker</title>
-<meta name="theme-color" content="#0f1d36">
+<meta name="theme-color" content="#0b0716">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
@@ -29,22 +29,22 @@
     <div class="bignote"><b id="ckNote">–</b><span id="ckConcert">Play a note</span></div>
     <div class="meter">
       <svg viewBox="0 0 360 86" role="img" aria-label="Tuning meter">
-        <rect x="150" y="18" width="60" height="36" rx="6" fill="rgba(240,180,60,.16)"/>
-        <g stroke="#6f82a6" stroke-width="2">
+        <rect class="m-zone" x="150" y="18" width="60" height="36" rx="6"/>
+        <g class="m-tick" stroke-width="2">
           <line x1="30" y1="26" x2="30" y2="46"/><line x1="105" y1="30" x2="105" y2="42"/>
           <line x1="180" y1="20" x2="180" y2="52"/><line x1="255" y1="30" x2="255" y2="42"/>
           <line x1="330" y1="26" x2="330" y2="46"/>
         </g>
-        <line x1="30" y1="36" x2="330" y2="36" stroke="#6f82a6" stroke-width="1" opacity=".5"/>
-        <g font-family="GN Text, system-ui, sans-serif" font-size="13" fill="#a3b4d2" text-anchor="middle">
+        <line class="m-tick" x1="30" y1="36" x2="330" y2="36" stroke-width="1" opacity=".5"/>
+        <g font-family="GN Text, system-ui, sans-serif" font-size="13" class="m-label" text-anchor="middle">
           <text x="30" y="72">−50</text><text x="105" y="72">−25</text><text x="180" y="72">0</text><text x="255" y="72">+25</text><text x="330" y="72">+50</text>
         </g>
-        <g font-family="GN Text, system-ui, sans-serif" font-size="12" font-weight="700" fill="#a3b4d2" letter-spacing="1.5">
+        <g font-family="GN Text, system-ui, sans-serif" font-size="12" font-weight="700" class="m-label" letter-spacing="1.5">
           <text x="30" y="12" text-anchor="start">FLAT</text><text x="330" y="12" text-anchor="end">SHARP</text>
         </g>
         <g id="needle" style="transition:transform .08s linear" opacity=".25">
-          <line x1="180" y1="14" x2="180" y2="58" stroke="#ffd67a" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="180" cy="36" r="6" fill="#f0b43c"/>
+          <line class="m-needle" x1="180" y1="14" x2="180" y2="58" stroke-width="4" stroke-linecap="round"/>
+          <circle class="m-hub" cx="180" cy="36" r="6"/>
         </g>
       </svg>
       <div class="verdict" id="ckVerdict">&nbsp;</div>
