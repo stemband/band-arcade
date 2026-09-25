@@ -15,8 +15,15 @@
        marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade'  (styles in shared/cabinets.css)
        kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'insert'  (shared/cabinets.js, SCREENS)
+     cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
+               gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
+       profile  the side silhouette that is extruded into a 3D body, plus its topper:
+                'classic' | 'haunted' (peaked roof) | 'soundcheck' (short, domed) | 'storm' (raked top, lightning fins)
+                (drawn in arcade3d.js, PROFILES)
+       trim, trim2  neon colors, as above (default: the 2D cabinet's)
+       body     side-panel color: 'cab-side' | 'cab-face' | 'cab-panel' | 'floor-3' (theme.css tokens)
    A brand-new look (a new shape or screen) is added in shared/cabinets.js and styled in
-   shared/cabinets.css; see README.md "Adding a cabinet". */
+   shared/cabinets.css; a new 3D profile goes in arcade3d.js. See README.md "Adding a cabinet". */
 window.Arcade = window.Arcade || {};
 window.Arcade.ARCADE_NAME = 'Band Arcade';
 window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
@@ -29,6 +36,7 @@ window.Arcade.GAMES = [
     maxStars: 0,
     color: 'cyan',
     cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', kicker: 'Sound check', screen: 'tuner'},
+    cabinet3d: {profile: 'soundcheck', body: 'cab-face'},
   },
   {
     id: 'ghost-notes',
@@ -38,6 +46,7 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'pink',
     cabinet: {shape: 'haunted', trim: 'purple', trim2: 'cyan', marquee: 'haunt', screen: 'ghost'},
+    cabinet3d: {profile: 'haunted', body: 'cab-side'},
   },
   {
     id: 'note-storm',
@@ -47,5 +56,6 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'yellow',
     cabinet: {shape: 'storm', trim: 'yellow', trim2: 'pink', marquee: 'shade', screen: 'storm'},
+    cabinet3d: {profile: 'storm', body: 'cab-side'},
   },
 ];

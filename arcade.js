@@ -1,7 +1,14 @@
 /* Arcade home page: the arcade floor. Students pick a GAME here (no instruments on this page).
    A carousel of cabinets: arrows, swipe, ←/→ keys, the indicator lights, or a tap on a side cabinet
    turn a cabinet to the front. START goes to select-player/index.html?game=<id>.
-   Sound (shared/sfx.js): a whoosh when the aisle turns, a coin drop on START. */
+   Sound (shared/sfx.js): a whoosh when the aisle turns, a coin drop on START.
+
+   Two ways to draw the cabinets ("views"), one set of controls:
+     3D   arcade3d.js + shared/vendor/three.min.js (loaded here only when WebGL works)
+     2D   the CSS/SVG cabinets from shared/cabinets.js. Used when ?flat is in the URL, when WebGL or
+          three.js is missing, or when the 3D view gives up because the device is too slow.
+   A view has: place(cur, instant), pick(event) -> ring offset of a tapped side cabinet (or null),
+   startLink (the real START <a>), destroy(). */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -18,36 +25,59 @@
   /* The ring of cabinets. With fewer than 5 games the list repeats (only visually) so both
      sides of the aisle always have a neighbor. ring[r] is GAMES[r % N]. */
   const M = N >= 5 ? N : N * Math.ceil(5 / N);
+  const ring = Array.from({length: M}, (_, r) => GAMES[r % N]);
   const aisle = $('aisle');
-  aisle.innerHTML = Array.from({length: M}, (_, r) => {
-    const g = GAMES[r % N];
-    return `<div class="slot" data-r="${r}">${A.cabinetHTML(g, {href: A.playerLink(g.id, '')})}</div>`;
-  }).join('');
-  const slots = [...aisle.querySelectorAll('.slot')];
+  const wrap = d => { d = ((d % M) + M) % M; return d > M / 2 ? d - M : d; };   // ring offset, −M/2 < d ≤ M/2
+  let cur = Math.max(0, GAMES.findIndex(g => '#' + g.id === location.hash));
+  let view = null;
+
+  /* ---------- the 2D view: CSS 3D-transformed HTML cabinets ---------- */
+  function make2D() {
+    aisle.classList.remove('is-3d', 'loading-3d');
+    aisle.innerHTML = ring.map((g, r) =>
+      `<div class="slot" data-r="${r}">${A.cabinetHTML(g, {href: A.playerLink(g.id, '')})}</div>`).join('');
+    const slots = [...aisle.querySelectorAll('.slot')];
+    return {
+      kind: '2d',
+      get startLink() { return slots[cur].querySelector('.cab-start'); },
+      place(c) {
+        slots.forEach((el, r) => {
+          let d = Math.max(-3, Math.min(3, wrap(r - c)));
+          const prev = el.dataset.d === undefined ? d : +el.dataset.d;
+          el.classList.toggle('jump', Math.abs(d - prev) > 1);   // wrapping from one end of the aisle to the other: no fly-across
+          el.dataset.d = d;
+          el.setAttribute('aria-hidden', d === 0 ? 'false' : 'true');
+          el.querySelector('.cab-start').tabIndex = d === 0 ? 0 : -1;
+        });
+        A.setAttract(slots[c].querySelector('.cab'), ring[c]);
+      },
+      pick(e) {
+        const slot = e.target.closest('.slot');
+        return slot ? +slot.dataset.d : null;
+      },
+      destroy() { A.setAttract(null); slots.forEach(el => el.remove()); },
+    };
+  }
+
+  function useView(v) {
+    const hadFocus = aisle.contains(document.activeElement);
+    if (view) view.destroy();
+    view = v;
+    aisle.dataset.view = v.kind;
+    place(true);
+    if (hadFocus) view.startLink.focus({preventScroll: true});
+  }
 
   $('lights').innerHTML = GAMES.map((g, i) =>
     `<button class="light" data-i="${i}" aria-label="${g.name}"><i></i></button>`).join('');
   const lights = [...$('lights').querySelectorAll('.light')];
 
-  const wrap = d => { d = ((d % M) + M) % M; return d > M / 2 ? d - M : d; };   // ring offset, −M/2 < d ≤ M/2
-  let cur = Math.max(0, GAMES.findIndex(g => '#' + g.id === location.hash));
-
-  function place() {
+  function place(instant) {
     const hadFocus = aisle.contains(document.activeElement);
-    slots.forEach((el, r) => {
-      let d = wrap(r - cur);
-      d = Math.max(-3, Math.min(3, d));
-      const prev = el.dataset.d === undefined ? d : +el.dataset.d;
-      el.classList.toggle('jump', Math.abs(d - prev) > 1);   // wrapping from one end of the aisle to the other: no fly-across
-      el.dataset.d = d;
-      const front = d === 0;
-      el.setAttribute('aria-hidden', front ? 'false' : 'true');
-      el.querySelector('.cab-start').tabIndex = front ? 0 : -1;
-    });
-    const g = GAMES[cur % N], frontEl = slots[cur];
-    A.setAttract(frontEl.querySelector('.cab'), g);
-    if (hadFocus) frontEl.querySelector('.cab-start').focus({preventScroll: true});
-    if (reduced.matches) { aisle.classList.remove('fade'); void aisle.offsetWidth; aisle.classList.add('fade'); }
+    view.place(cur, instant || reduced.matches);
+    const g = ring[cur];
+    if (hadFocus) view.startLink.focus({preventScroll: true});
+    if (reduced.matches && !instant) { aisle.classList.remove('fade'); void aisle.offsetWidth; aisle.classList.add('fade'); }
 
     $('infoSkill').textContent = g.skill || '';
     $('infoName').textContent = g.name;
@@ -85,11 +115,14 @@
   let swiped = false;
   aisle.addEventListener('click', e => {
     if (swiped) { swiped = false; e.preventDefault(); e.stopPropagation(); return; }
-    const slot = e.target.closest('.slot'); if (!slot) return;
-    const d = +slot.dataset.d;
-    if (d !== 0) { e.preventDefault(); go(d); return; }
-    const start = e.target.closest('.cab-start');     // START: coin drop, then Select Player
-    if (start && !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('coin', start.href); }
+    if (!view) return;
+    const start = e.target.closest('a');
+    if (start && start === view.startLink) {          // START: coin drop, then Select Player
+      if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('coin', start.href); }
+      return;
+    }
+    const d = view.pick(e);
+    if (d) { e.preventDefault(); go(d); }
   }, true);
 
   /* swipe left/right. touch-action: pan-y (arcade.css) leaves vertical scrolling to the browser. */
@@ -104,5 +137,34 @@
   aisle.addEventListener('pointercancel', () => { sid = null; });
   aisle.addEventListener('dragstart', e => e.preventDefault());
 
-  place();
+  /* ---------- choose a view ---------- */
+  function hasWebGL() {
+    try {
+      const c = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+  }
+  function loadScript(src) {
+    return new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = ok; s.onerror = fail;
+      document.head.appendChild(s);
+    });
+  }
+
+  useView(make2D());                       // the 2D aisle works right away (and is the fallback)
+  if (!A.params.has('flat') && hasWebGL() && A.Floor3D) {
+    aisle.classList.add('loading-3d');     // hide the 2D cabinets for the moment the 3D ones take to load
+    let settled = false;                   // once we fall back to 2D, a late 3D load is thrown away
+    const giveUp = () => { settled = true; if (!view || view.kind !== '2d') useView(make2D()); aisle.classList.remove('loading-3d'); };
+    const timer = setTimeout(giveUp, 8000);
+    loadScript('shared/vendor/three.min.js')
+      .then(() => A.Floor3D.create(aisle, {ring, wrap, cur, onGiveUp: giveUp}))
+      .then(v => {
+        clearTimeout(timer);
+        if (settled) { v.destroy(); return; }
+        aisle.classList.remove('loading-3d'); useView(v);
+      })
+      .catch(err => { clearTimeout(timer); if (window.console) console.warn('3D arcade off:', err); giveUp(); });
+  }
 })(window.Arcade);
