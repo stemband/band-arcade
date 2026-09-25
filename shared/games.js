@@ -32,7 +32,7 @@ window.Arcade.GAMES = [
     id: 'note-checker',
     name: 'Note Checker',
     skill: 'Start here',
-    blurb: 'Play your five notes and watch each one light up. Tuning needle included.',
+    blurb: 'Play a note and watch it light up. Tuning needle included.',
     maxStars: 0,
     color: 'cyan',
     cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', kicker: 'Sound check', screen: 'tuner'},
