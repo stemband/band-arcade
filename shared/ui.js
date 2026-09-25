@@ -71,13 +71,13 @@ window.Arcade = window.Arcade || {};
 
   A.starStr = n => [0, 1, 2].map(i => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
 
-  /** Standard game top bar: back to the arcade on the left, instrument chip on the right.
+  /** Standard game top bar: a "← Lobby" button back to the arcade on the left, instrument chip on the right.
       Call on a page that has <div id="topbar"></div>. */
   A.mountTopbar = function (inst, extraRightHTML = '') {
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     el.innerHTML =
-      `<a class="brand" href="${A.link('../index.html')}">${A.ghostSVG('', '')}<span>Arcade</span></a>` +
+      `<a class="brand" href="${A.link('../index.html')}" aria-label="Back to the arcade lobby"><span aria-hidden="true">←</span><span>Lobby</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +
       `<a class="chip" href="${A.link('../index.html')}" title="Change instrument">${inst ? inst.shortName : 'Choose instrument'}</a></div>`;
   };

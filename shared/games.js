@@ -3,6 +3,8 @@
      id        folder name, also the key for saved progress
      maxStars  total stars available per instrument (levels × 3), or 0 if the game has no stars
      icon      'ghost' | 'tuner' (add new icons in arcade.js)
+     color     the cabinet's marquee light on the home page: 'pink' | 'cyan' | 'yellow'
+               (the neon tokens --pink, --cyan, --yellow in theme.css)
      order     games are shown in this order */
 window.Arcade = window.Arcade || {};
 window.Arcade.ARCADE_NAME = 'Band Arcade';
@@ -15,6 +17,7 @@ window.Arcade.GAMES = [
     blurb: 'Play your five notes and watch each one light up. Tuning needle included.',
     maxStars: 0,
     icon: 'tuner',
+    color: 'cyan',
   },
   {
     id: 'ghost-notes',
@@ -23,5 +26,6 @@ window.Arcade.GAMES = [
     blurb: 'Read the note and play it. The note names fade away as you level up.',
     maxStars: 24,
     icon: 'ghost',
+    color: 'pink',
   },
 ];

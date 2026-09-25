@@ -1,7 +1,7 @@
 /* Ghost Notes */
 .hub-head{margin-bottom:18px}
 .game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
-.game-title span{color:var(--gold)}
+.game-title span{color:var(--gold);text-shadow:var(--glow-yellow)}
 .hub-head p{max-width:52ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--mist-2);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
@@ -26,13 +26,14 @@
 .hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);font-weight:700}
 .hud b{font-size:22px;line-height:1.2}
 .ghost-slot{position:absolute;right:5%;top:8%;width:21%;max-width:130px;transition:opacity .6s ease}
-.ghost-slot svg{width:100%;display:block;filter:drop-shadow(0 6px 10px rgba(24,32,58,.25))}
-.pop{position:absolute;left:50%;top:18%;transform:translateX(-50%);font-family:var(--display);font-size:30px;color:var(--gold);text-shadow:0 2px 0 var(--ink);pointer-events:none;opacity:0}
+.ghost-slot svg{width:100%;display:block;filter:drop-shadow(0 3px 2px rgba(24,32,58,.35))}
+.ghost-slot .g-body{stroke:var(--ink-2);stroke-width:2.5}
+.pop{position:absolute;left:50%;top:18%;transform:translateX(-50%);font-family:var(--display);font-size:30px;color:var(--pink-ink);pointer-events:none;opacity:0}
 .pop.go{animation:pop .8s ease-out forwards}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,10px)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-30px)}}
 .timer{height:10px;background:var(--bone-2);margin:8px -10px 0}
-.timer i{display:block;height:100%;background:var(--gold);transform-origin:left;transform:scaleX(1)}
-.timer.low i{background:var(--coral)}
+.timer i{display:block;height:100%;background:var(--cyan-ink);transform-origin:left;transform:scaleX(1)}
+.timer.low i{background:var(--red-ink)}
 .prompt{min-height:28px;text-align:center;margin:16px 0 10px;font-size:18px;font-weight:700}
 .prompt.bad{color:var(--coral)}
 .prompt.good{color:var(--gold)}

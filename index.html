@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Band Arcade</title>
 <meta name="description" content="Band practice games that listen to you play.">
-<meta name="theme-color" content="#0f1d36">
+<meta name="theme-color" content="#0b0716">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Band Arcade">
@@ -17,22 +17,25 @@
 </head>
 <body>
 <div class="wrap">
-  <header class="hero">
-    <div>
-      <h1 id="arcadeName">Band Arcade</h1>
-      <p id="arcadeTagline"></p>
-    </div>
-    <div class="hero-ghosts" id="heroGhosts" aria-hidden="true"></div>
+  <header class="marquee">
+    <h1 id="arcadeName">Band Arcade</h1>
+    <p id="arcadeTagline"></p>
   </header>
 
-  <section aria-labelledby="stepInst">
-    <p class="eyebrow" id="stepInst">1 · Choose your instrument</p>
+  <section aria-labelledby="stepInst" class="select">
+    <div class="step-head">
+      <p class="eyebrow">Step 1 · Choose your instrument</p>
+      <h2 class="step-title" id="stepInst">Select player</h2>
+    </div>
     <div class="inst-grid" id="instGrid"></div>
   </section>
 
   <section aria-labelledby="stepGame" class="games-section">
-    <p class="eyebrow" id="stepGame">2 · Choose a game</p>
-    <div class="games" id="gameGrid"></div>
+    <div class="step-head">
+      <p class="eyebrow">Step 2 · Choose a game</p>
+      <h2 class="step-title" id="stepGame">Pick a game</h2>
+    </div>
+    <div class="cabs" id="gameGrid"></div>
     <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
   </section>
 </div>
