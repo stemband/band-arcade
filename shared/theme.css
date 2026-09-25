@@ -11,6 +11,10 @@
   --cyan:#3ae8ff; --cyan-hi:#a6f5ff; --cyan-ink:#007e9c;
   --yellow:#ffe14d; --yellow-hi:#fff2a8; --yellow-ink:#c9a400;
   --red:#ff6b6b; --red-ink:#d0503f;
+  /* extra neon tubes for the arcade-floor cabinets */
+  --purple:#b86bff; --purple-hi:#dcb8ff; --purple-ink:#7a2fd0;
+  --amber:#ffab2e; --amber-hi:#ffd699; --amber-ink:#b86e00;
+  --green:#4dff88; --green-hi:#b3ffcc; --green-ink:#00a347;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */
@@ -20,6 +24,11 @@
   --glow-pink:0 0 4px rgba(255,79,179,.9),0 0 14px rgba(255,79,179,.45);
   --glow-cyan:0 0 4px rgba(58,232,255,.9),0 0 14px rgba(58,232,255,.4);
   --glow-yellow:0 0 4px rgba(255,225,77,.9),0 0 14px rgba(255,225,77,.4);
+  --glow-purple:0 0 4px rgba(184,107,255,.9),0 0 14px rgba(184,107,255,.45);
+  --glow-amber:0 0 4px rgba(255,171,46,.9),0 0 14px rgba(255,171,46,.4);
+  --glow-green:0 0 4px rgba(77,255,136,.9),0 0 14px rgba(77,255,136,.4);
+  /* cabinet woodwork: side panels, front face, control panel (darkest to lightest) */
+  --cab-side:#120c22; --cab-face:#1b1433; --cab-panel:#2a2148; --cab-metal:#6d6590;
 
   /* older names, kept so every game's style.css follows the theme */
   --night:var(--floor); --night-2:var(--floor-2); --night-3:var(--floor-3);
@@ -28,6 +37,7 @@
   --mist:var(--text-lo); --mist-2:var(--text-dim); --coral:var(--red); --coral-ink:var(--red-ink);
 
   --display:"GN Display","Arial Black",Impact,sans-serif;
+  --neon-font:"GN Neon",var(--display);     /* arcade sign (home page only) */
   --text:"GN Text","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --music:"GN Music","Noto Music",serif;
   --r:18px;
@@ -53,6 +63,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .wrap{max-width:860px;margin:0 auto;padding-inline:max(16px, env(safe-area-inset-left,0px));padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
 .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);font-weight:700;margin:0 0 10px}
 .muted{color:var(--text-lo)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---------- top bar ---------- */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;min-height:44px}

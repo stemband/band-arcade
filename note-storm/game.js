@@ -8,11 +8,11 @@
   const LEVELS = window.STORM_LEVELS, RULES = window.STORM_RULES;
   const {noteLabel} = A.music;
 
-  const inst = A.currentInstrument();
-  if (!inst) { location.replace(A.link('../index.html')); return; }
+  const inst = A.requireInstrument(GAME_ID);
+  if (!inst) return;
   A.Pitch.setInstrument(inst);
-  A.mountTopbar(inst);
-  $('checkerLink').href = A.link('../note-checker/index.html') + '#' + GAME_ID;
+  A.mountTopbar(inst, '', GAME_ID);
+  $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
 
   /* ---------- staff geometry (SVG units; the staff's middle line is y = 88) ---------- */
   const MID_Y = 88;

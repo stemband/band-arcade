@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Select Player</title>
+<meta name="description" content="Choose your instrument.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="../shared/cabinets.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a class="brand" id="homeLink" href="../index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a></div>
+
+  <header class="sp-head">
+    <div class="sp-marquee" id="marquee"></div>
+    <p class="sp-skill" id="gameSkill"></p>
+    <h1 class="sp-title">Select player</h1>
+  </header>
+
+  <section class="continue" id="continue" hidden>
+    <a class="btn-continue" id="continueBtn" href="#">
+      <span class="c-label">Continue as</span>
+      <span class="c-name" id="continueName"></span>
+      <span class="c-notes" id="continueNotes"></span>
+    </a>
+    <p class="or">or choose a different player</p>
+  </section>
+
+  <section aria-labelledby="pickTitle">
+    <h2 class="sr" id="pickTitle">Choose your instrument</h2>
+    <p class="pick-help" id="pickHelp">Choose your instrument. Your five notes are on each card.</p>
+    <div class="roster" id="roster"></div>
+  </section>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

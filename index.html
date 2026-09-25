@@ -13,38 +13,45 @@
 <link rel="icon" href="shared/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="shared/fonts.css">
 <link rel="stylesheet" href="shared/theme.css">
+<link rel="stylesheet" href="shared/cabinets.css">
 <link rel="stylesheet" href="arcade.css">
 </head>
-<body>
-<div class="wrap">
-  <header class="marquee">
-    <h1 id="arcadeName">Band Arcade</h1>
-    <p id="arcadeTagline"></p>
-  </header>
+<body class="floor-page">
+<div class="room" aria-hidden="true"></div>
 
-  <section aria-labelledby="stepInst" class="select">
-    <div class="step-head">
-      <p class="eyebrow">Step 1 · Choose your instrument</p>
-      <h2 class="step-title" id="stepInst">Select player</h2>
-    </div>
-    <div class="inst-grid" id="instGrid"></div>
+<header class="sign">
+  <h1 class="neon" id="arcadeName">Band Arcade</h1>
+  <p id="arcadeTagline"></p>
+</header>
+
+<main>
+  <section class="carousel" aria-roledescription="carousel" aria-label="Games">
+    <button class="nav nav-prev" id="prevBtn" aria-label="Previous game">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4L6 12l10 8z"/></svg>
+    </button>
+    <div class="aisle" id="aisle"></div>
+    <button class="nav nav-next" id="nextBtn" aria-label="Next game">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l10 8-10 8z"/></svg>
+    </button>
   </section>
 
-  <section aria-labelledby="stepGame" class="games-section">
-    <div class="step-head">
-      <p class="eyebrow">Step 2 · Choose a game</p>
-      <h2 class="step-title" id="stepGame">Pick a game</h2>
-    </div>
-    <div class="cabs" id="gameGrid"></div>
-    <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
+  <div class="lights" id="lights" role="group" aria-label="Choose a game"></div>
+
+  <section class="info" aria-live="polite">
+    <p class="info-skill" id="infoSkill"></p>
+    <h2 class="info-name" id="infoName"></h2>
+    <p class="hiscore" id="hiscore" hidden></p>
+    <p class="info-blurb" id="infoBlurb"></p>
   </section>
-</div>
+
+  <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
+</main>
 
 <script src="shared/instruments.js"></script>
 <script src="shared/storage.js"></script>
-<script src="shared/pitch.js"></script>
 <script src="shared/ui.js"></script>
 <script src="shared/games.js"></script>
+<script src="shared/cabinets.js"></script>
 <script src="arcade.js"></script>
 </body>
 </html>

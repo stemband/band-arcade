@@ -4,3 +4,9 @@
 @font-face{font-family:"GN Display";src:url("fonts/bungee.woff2") format("woff2");font-display:swap}   /* Bungee (SIL OFL, see fonts/OFL-Bungee.txt): Basic Latin + · – — ‘ ’ “ ” … ← → ▶ */
 @font-face{font-family:"GN Text";font-weight:400;src:url("fonts/atk4.woff2") format("woff2");font-display:swap} /* Atkinson Hyperlegible */
 @font-face{font-family:"GN Text";font-weight:700;src:url("fonts/atk7.woff2") format("woff2");font-display:swap}
+/* Arcade-floor display fonts (all SIL OFL, licenses in fonts/). Subset to A–Z, a–z, 0–9 and a little punctuation,
+   so they are only for signs and marquees. Loaded only by pages that use them. */
+@font-face{font-family:"GN Neon";src:url("fonts/monoton.woff2") format("woff2");font-display:swap}          /* Monoton: neon-tube sign */
+@font-face{font-family:"GN Haunt";src:url("fonts/creepster.woff2") format("woff2");font-display:swap}        /* Creepster: Ghost Notes marquee */
+@font-face{font-family:"GN Pixel";src:url("fonts/press-start-2p.woff2") format("woff2");font-display:swap}   /* Press Start 2P: Note Checker marquee */
+@font-face{font-family:"GN Shade";src:url("fonts/bungee-shade.woff2") format("woff2");font-display:swap}     /* Bungee Shade: Note Storm marquee */
