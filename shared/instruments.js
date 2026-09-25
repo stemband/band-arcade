@@ -52,7 +52,81 @@ window.Arcade = window.Arcade || {};
     inst.shortName = inst.name.split(/[,/&(]/)[0].trim();
   });
 
-  A.music = {NAMES, parseNote, noteLabel, writtenMidi, stepOf, mod12, mtof};
+  /*
+    Full-range members (used only by the Note Checker's FULL RANGE mode; the games use the first five notes).
+    Ranges come from the GMEA All-State Middle School Chromatic Scale sheets. If GMEA changes a range,
+    update it here to match the new sheet.
+      chromatic  [lowest, highest] WRITTEN note, scientific pitch notation (middle C = C4)
+      sounds     semitones the instrument SOUNDS below written pitch (negative = sounds higher).
+                 Exact, octave included, so the checker can tell a low D from a high D.
+                 Always matches the group's `t` modulo 12.
+  */
+  const MEMBERS = {
+    flute: [
+      {id: 'flute',     name: 'Flute',              chromatic: ['C4', 'F6'], sounds: 0},
+      {id: 'oboe',      name: 'Oboe',               chromatic: ['C4', 'C6'], sounds: 0},
+      {id: 'tonebells', name: 'Colored Tone Bells', chromatic: ['C4', 'F6'], sounds: 0},
+    ],
+    bells: [{id: 'bells', name: 'Orchestral Bells / Bell Kit', chromatic: ['G3', 'C6'], sounds: -24}],   // sounds two octaves higher than written
+    alto:  [{id: 'altosax', name: 'Alto Sax', chromatic: ['C4', 'D6'], sounds: 9}],
+    bari:  [{id: 'barisax', name: 'Baritone Sax', chromatic: ['C4', 'D6'], sounds: 21}],
+    bb: [
+      {id: 'trumpet',  name: 'Trumpet',     chromatic: ['F#3', 'G5'], sounds: 2},
+      {id: 'clarinet', name: 'B♭ Clarinet', chromatic: ['E3', 'D6'],  sounds: 2},
+      {id: 'tenorsax', name: 'Tenor Sax',   chromatic: ['C4', 'D6'],  sounds: 14},
+    ],
+    hornF: [{id: 'horn', name: 'Horn in F', chromatic: ['F3', 'F5'], sounds: 7}],
+    hornC: [{id: 'horn', name: 'Horn in F', chromatic: ['F3', 'F5'], sounds: 7}],
+    bcl: [
+      {id: 'basscl',     name: 'Bass Clarinet', chromatic: ['E3', 'A5'],  sounds: 14},
+      {id: 'baritonetc', name: 'Baritone T.C.', chromatic: ['F#3', 'G5'], sounds: 14},   // the B.C. range E2–F4, written a 9th higher
+    ],
+    low: [
+      {id: 'trombone', name: 'Trombone',                 chromatic: ['E2', 'F4'],  sounds: 0},
+      {id: 'euphbc',   name: 'Baritone/Euphonium B.C.',  chromatic: ['E2', 'F4'],  sounds: 0},
+      {id: 'bassoon',  name: 'Bassoon',                  chromatic: ['Bb1', 'F4'], sounds: 0},
+    ],
+    tuba: [{id: 'tuba', name: 'Tuba', chromatic: ['E1', 'F3'], sounds: 0}],
+  };
+  INSTRUMENTS.forEach(inst => {
+    inst.members = (MEMBERS[inst.id] || []).map(m => Object.assign({}, m, {
+      group: inst.id, clef: inst.clef,
+      low: parseNote(m.chromatic[0]), high: parseNote(m.chromatic[1]),
+    }));
+    inst.members.forEach(m => {
+      m.lowMidi = writtenMidi(m.low); m.highMidi = writtenMidi(m.high);             // written
+      m.soundLow = m.lowMidi - m.sounds; m.soundHigh = m.highMidi - m.sounds;       // sounding (concert, exact octave)
+    });
+  });
+
+  /* Spelling for chromatic scales: sharps going up (as on the GMEA sheets), flats going down. */
+  const SHARP = [['C', 0], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['A', 1], ['B', 0]];
+  const FLAT  = [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]];
+  /** written midi -> {letter, acc, oct, midi} spelled with sharps or flats */
+  function spell(midi, flats) {
+    const [letter, acc] = (flats ? FLAT : SHARP)[mod12(midi)];
+    const oct = Math.floor((midi - LETTER_PC[letter] - acc) / 12) - 1;
+    return {letter, acc, oct, midi};
+  }
+  /**
+   * The chromatic scale for a member, as WRITTEN notes: [{letter, acc, oct, midi, sounding}]
+   * Ascending with sharps; {down: true} gives the same pitches descending, spelled with flats.
+   * The lowest and highest notes keep the spelling from the range data (e.g. B♭1 for bassoon).
+   */
+  function chromaticScale(m, {down = false} = {}) {
+    const out = [];
+    for (let w = m.lowMidi; w <= m.highMidi; w++) {
+      const n = w === m.lowMidi ? Object.assign({midi: w}, m.low) : w === m.highMidi ? Object.assign({midi: w}, m.high) : spell(w, down);
+      n.sounding = w - m.sounds;
+      out.push(n);
+    }
+    return down ? out.reverse() : out;
+  }
+
+  A.music = {NAMES, parseNote, noteLabel, writtenMidi, stepOf, mod12, mtof, spell};
   A.INSTRUMENTS = INSTRUMENTS;
   A.getInstrument = id => INSTRUMENTS.find(i => i.id === id) || null;
+  A.chromaticScale = chromaticScale;
+  /** a group's member by id (or its only member), or null */
+  A.getMember = (inst, id) => inst ? (inst.members.find(m => m.id === id) || (inst.members.length === 1 ? inst.members[0] : null)) : null;
 })(window.Arcade);

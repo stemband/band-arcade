@@ -5,10 +5,19 @@
      3. subscribe with Arcade.Pitch.onFrame(fn) and/or Arcade.Pitch.onHeld(fn)
 
    onFrame(reading, level, now)  runs ~25×/second.
-       reading = null (nothing clear) or {freq, midi, pc, cents}
+       reading = null (nothing clear) or {freq, midi, note, pc, cents}
        pc is the CONCERT pitch class 0–11; use inst.writtenName(pc) for display.
-   onHeld(pc, now)  fires once when a note has been held for holdMs.
+       note is the rounded SOUNDING midi note (exact octave; see setRange for octave fixing).
+   onHeld(pc, now, note)  fires once when a note has been held for holdMs.
        A new onHeld needs a new attack (a short gap) or a different note.
+
+   Full range (Note Checker only): setRange(lowMidi, highMidi) with a member's SOUNDING range
+   (instruments.js) widens the search to that range and makes it octave-exact:
+     - a new note is a new held note even if it has the same letter (D4 then D5 fires twice)
+     - a reading outside the range whose octave above/below is inside is reported in that octave
+       (built-in mics often hear low brass an octave off); reading.folded says by how much
+   setRange(null) goes back to the default (the group's first-five range, letter names only).
+   Games never call setRange, so they behave exactly as before.
 */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -24,11 +33,16 @@ window.Arcade = window.Arcade || {};
     gate: 0.01,        // minimum loudness (RMS) before we try to detect a pitch
   };
 
-  let mic = null, inst = null;
+  let mic = null, inst = null, range = null;
   const frameFns = [], heldFns = [];
-  const H = {pc: null, since: 0, last: 0, fired: false};   // hold tracker
+  const H = {pc: null, note: null, since: 0, last: 0, fired: false};   // hold tracker
 
   P.setInstrument = i => { inst = i; };
+  P.setRange = function (lowMidi, highMidi) {
+    range = lowMidi == null ? null : {lo: lowMidi, hi: highMidi, minF: mtof(lowMidi) * 0.78, maxF: Math.min(7000, mtof(highMidi) * 2.3)};
+    H.pc = H.note = null; H.fired = false;
+  };
+  P.demoNote = null;   // ?demo: a SOUNDING midi note the page wants "played" right now (Note Checker full range)
   P.onFrame = fn => frameFns.push(fn);
   P.onHeld  = fn => heldFns.push(fn);
   /** treat whatever is sounding right now as already counted (use when a new target appears) */
@@ -105,6 +119,18 @@ window.Arcade = window.Arcade || {};
     return {rms, freq: sr / bt, clarity: 1 - d[tau]};
   }
 
+  /* Low ranges (full-range tuba, bassoon, trombone…) need long lags, and YIN's cost grows with lag².
+     Averaging k samples first (sample rate / k) keeps the cost about the same as a game's range.
+     Only used with setRange; k keeps the new Nyquist at least 4× the highest pitch searched. */
+  let dec = new Float32Array(0);
+  function decimate(buf, k) {
+    const m = Math.floor(buf.length / k);
+    if (dec.length !== m) dec = new Float32Array(m);
+    for (let i = 0, j = 0; i < m; i++) { let s = 0; for (let q = 0; q < k; q++) s += buf[j++]; dec[i] = s / k; }
+    return dec;
+  }
+  P._detect = detect; P._decimate = decimate;   // for tests only
+
   /* ---------- demo keys (?demo): hold 1–5 to "play" the five notes ---------- */
   let demoKey = null;
   if (A.DEMO) {
@@ -118,32 +144,58 @@ window.Arcade = window.Arcade || {};
     let reading = null, level = 0;
     if (mic && inst) {
       mic.an.getFloatTimeDomainData(mic.buf);
-      const r = detect(mic.buf, mic.sr, inst.minF, inst.maxF);
+      let r;
+      if (range) {
+        const k = Math.max(1, Math.min(4, Math.floor(mic.sr / (range.maxF * 8))));
+        r = k > 1 ? detect(decimate(mic.buf, k), mic.sr / k, range.minF, range.maxF) : detect(mic.buf, mic.sr, range.minF, range.maxF);
+      } else {
+        r = detect(mic.buf, mic.sr, inst.minF, inst.maxF);
+      }
       level = r.rms;
       if (r.rms >= P.gate && r.freq > 0 && r.clarity >= 0.8) {
         const m = 69 + 12 * Math.log2(r.freq / 440);
-        reading = {freq: r.freq, midi: m, pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
+        reading = {freq: r.freq, midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
       }
     }
     if (A.DEMO && demoKey !== null && inst) {
       const m = 60 + inst.targetPc[demoKey] + (Math.random() - .5) * .2;
-      reading = {freq: mtof(m), midi: m, pc: inst.targetPc[demoKey], cents: (m - Math.round(m)) * 100};
+      reading = {freq: mtof(m), midi: m, note: Math.round(m), pc: inst.targetPc[demoKey], cents: (m - Math.round(m)) * 100};
       level = 0.1;
     }
-    // hysteresis: stay on the current note unless the pitch is clearly past the halfway point
-    if (reading && H.pc !== null) {
-      const dd = mod12(reading.midi - H.pc);
-      if (dd < .65 || dd > 11.35) reading.pc = H.pc;
+    if (A.DEMO && P.demoNote !== null && inst) {
+      const m = P.demoNote + (Math.random() - .5) * .2;
+      reading = {freq: mtof(m), midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
+      level = 0.1;
     }
-    if (reading) {
-      if (reading.pc !== H.pc) { H.pc = reading.pc; H.since = now; H.fired = false; }
-      H.last = now;
-    } else if (H.pc !== null && now - H.last > 110) { H.pc = null; H.fired = false; }
+    // full range: a reading an octave (or two) outside the range is moved into it
+    if (reading && range && (reading.note < range.lo || reading.note > range.hi)) {
+      const k = [12, -12, 24, -24].find(k => reading.note + k >= range.lo && reading.note + k <= range.hi);
+      if (k) { reading.note += k; reading.midi += k; reading.freq *= Math.pow(2, k / 12); reading.folded = k; }
+    }
+    if (range) {
+      // full range: exact notes. Stay on the current note unless the pitch is clearly past the halfway point.
+      if (reading && H.note !== null && Math.abs(reading.midi - H.note) < .65) { reading.note = H.note; reading.pc = mod12(H.note); }
+      if (reading) {
+        if (reading.note !== H.note) { H.note = reading.note; H.pc = reading.pc; H.since = now; H.fired = false; }
+        H.last = now;
+      } else if (H.note !== null && now - H.last > 110) { H.note = H.pc = null; H.fired = false; }
+    } else {
+      // hysteresis: stay on the current note unless the pitch is clearly past the halfway point
+      if (reading && H.pc !== null) {
+        const dd = mod12(reading.midi - H.pc);
+        if (dd < .65 || dd > 11.35) reading.pc = H.pc;
+      }
+      if (reading) {
+        if (reading.pc !== H.pc) { H.pc = reading.pc; H.since = now; H.fired = false; }
+        H.note = reading.note;
+        H.last = now;
+      } else if (H.pc !== null && now - H.last > 110) { H.pc = null; H.fired = false; }
+    }
 
     P.reading = reading; P.level = level;
     if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {
       H.fired = true;
-      heldFns.forEach(fn => fn(H.pc, now));
+      heldFns.forEach(fn => fn(H.pc, now, H.note));
     }
     frameFns.forEach(fn => fn(reading, level, now));
   }

@@ -11,7 +11,8 @@ arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, gl
 shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
 select-player/        "Select Player": pick your instrument for the game you chose, then play
 shared/               The engine every game uses
-  instruments.js      Instrument groups, transpositions, first five notes (single source of truth)
+  instruments.js      Instrument groups, transpositions, first five notes, and each group's instruments
+                      with their full chromatic ranges (single source of truth)
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
@@ -21,7 +22,7 @@ shared/               The engine every game uses
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
   fonts.css + fonts/  Fonts bundled with the site (no outside font service needed)
-note-checker/         Shared tuner-style checker (every game links to it)
+note-checker/         Shared tuner-style checker (every game links to it): FIRST 5 NOTES or FULL RANGE
 ghost-notes/          Game 1: note reading with fading note names
   levels.js           Level design: counts, time per note, how visible the names are
   game.js             Game logic
@@ -39,6 +40,15 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
+
+## Note Checker: full range
+
+The Note Checker has two modes, switched at the top: **First 5 notes** (what the games use) and **Full range**, the student's whole chromatic scale. Full range asks "Which instrument do you play?" when a player group has more than one (for example Trumpet / B♭ Clarinet / Tenor Sax) and remembers the answer.
+
+- **The ranges** come from the **GMEA All-State Middle School Chromatic Scale sheets**. They live in `MEMBERS` in `shared/instruments.js`: each instrument's lowest and highest written note, and `sounds`, how many half steps it sounds below what's written (bells: −24, two octaves higher). If GMEA changes a sheet, change it there. The games are not affected.
+- **The octave matters.** A note turns gold only when it's played in the octave written on the staff. Playing a low D doesn't count for the high D; the page says "That's a D, but an octave lower. Try the higher one." If the microphone hears a note a whole octave outside the instrument's range (common with tubas on built-in mics), it's moved into the range and counts.
+- **Going down** shows the same scale descending, with flats. Notes found going up stay found.
+- **Testing without an instrument** (`?demo`): in Full range, **↑/↓** pick a note and holding **Space** plays it; **Shift+Space** plays it an octave low.
 
 ## The 3D arcade floor
 
