@@ -56,6 +56,10 @@
 .tuner .arc{stroke:var(--text-lo)}
 .tuner .hand{stroke:var(--yellow)}
 .tuner .hub{fill:var(--yellow)}
+.storm .lines{stroke:var(--text-dim)}
+.storm .bolt{fill:var(--yellow);stroke:var(--deep);stroke-width:1.5;stroke-linejoin:round}
+.storm .head{fill:var(--cyan)}
+.storm .stem{stroke:var(--cyan)}
 /* control panel strip */
 .cab-panel{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--deep);border-top:2px solid var(--floor-3);min-height:64px}
 .cab-info{font-size:15px;font-weight:700;color:var(--text-lo);font-variant-numeric:tabular-nums}

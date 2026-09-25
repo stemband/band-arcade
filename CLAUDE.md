@@ -15,7 +15,7 @@ Mat Graham (middle school band director) owns this project. It's a set of mic-dr
 - `Arcade.INSTRUMENTS`, `Arcade.currentInstrument()`. Each instrument has `notes` (written), `targetPc` (concert pitch classes), `writtenName(pc)`, `clef`, `t` (transposition), `concertLabel`, `shortName`.
 - `Arcade.Pitch.setInstrument(inst)`, `onFrame((reading, level, now) => …)` (~25×/s; `reading` is `null` or `{freq, midi, pc, cents}` with a concert `pc`), `onHeld((pc, now) => …)` (once per held note, `holdMs` = 280), `ignoreCurrent()`, `heldPc()`, `setSensitivity(0–100)`, `bars(level)`, `levelPct(level)`.
 - `Arcade.requireMic(fn)` shows the mic prompt when needed, then runs `fn`.
-- `Arcade.staffSVG(clef, items, {fit, label})`, `Arcade.fiveNoteStaff(inst, colorFor)`, `Arcade.colorNote(id, color)`, `Arcade.ghostSVG(text, cls)`, `Arcade.starStr(n)`, `Arcade.mountTopbar(inst, extraHTML)`.
+- `Arcade.staffSVG(clef, items, {fit, label, width, captions})`, `Arcade.noteGlyph(clef, {n, x, caption}, capY)` (one note, for games that move notes on their own layer), `Arcade.noteY(clef, n)`, `Arcade.fiveNoteStaff(inst, colorFor)`, `Arcade.colorNote(id, color)`, `Arcade.ghostSVG(text, cls)`, `Arcade.starStr(n)`, `Arcade.mountTopbar(inst, extraHTML)`.
 - `Arcade.store`: `instId`, `sens`, `level(game, inst, lvl)`, `setLevel(game, inst, lvl, {stars, best})`, `totalStars(game, inst)`. Progress shape: `games[gameId][instId][level] = {stars, best}`.
 - `Arcade.DEMO` is true with `?demo`. Keys 1–5 fake the five notes, and games should unlock all levels.
 
