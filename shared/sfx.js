@@ -1,6 +1,6 @@
 /* Band Arcade — sound effects for the arcade floor, Select Player, and games that DON'T use the
-   microphone (Note Ninja). Never load this on a page that listens to the mic (Ghost Notes, Note Storm,
-   the Note Checker): any sound would be heard as a note.
+   microphone (Note Ninja, Chime Heist, Ancient Ninja Scrolls, Button Masher). Never load this on a page that
+   listens to the mic (Ghost Notes, Note Storm, the Note Checker): any sound would be heard as a note.
    Every sound is made here with the Web Audio API (no audio files). Browsers only allow sound
    after the first tap or key press, so the AudioContext is created then, never on page load.
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   does nothing when muted or before the first tap
@@ -132,6 +132,13 @@ window.Arcade = window.Arcade || {};
     'scroll-unroll':  () => { slash(); arp([659, 784, 988, 1319], 0.06, 'triangle', 0.25); },
     'gong':           () => { tone(98, 0, 2, 0.45, 'sine'); tone(233, 0, 1.3, 0.14, 'sine'); tone(311, 0.01, 0.9, 0.08, 'triangle'); },
     'test-ready':     () => { tone(262, 0, 1.2, 0.25, 'sine'); arp([523, 659, 784, 1047, 1319], 0.09, 'triangle', 0.32); },
+    // Button Masher
+    'key-press':      () => tone(1500, 0, 0.018, 0.1, 'square'),                                                       // a soft button click
+    'special-move':   () => { tone([220, 1320], 0, 0.2, 0.28, 'sawtooth'); [1047, 1319, 1568].forEach((f, i) => tone(f, 0.16 + i * 0.05, 0.1, 0.22, 'square')); },
+    'combo-streak':   () => arp([784, 988, 1175, 1568, 1976], 0.045, 'square', 0.26),
+    'rival-counter':  () => { tone([330, 660], 0, 0.08, 0.3, 'sine'); tone([660, 150], 0.08, 0.26, 0.3, 'sine'); },    // a cartoon "boing"
+    'ko':             () => { tone([880, 98], 0, 0.7, 0.28, 'sawtooth'); arp([523, 659, 784, 1047], 0.1, 'triangle', 0.3); },
+    'fight-start':    () => { tone(196, 0, 0.16, 0.32, 'square'); tone(196, 0.22, 0.16, 0.32, 'square'); tone([392, 440], 0.46, 0.45, 0.36, 'square'); },
   };
 
   /* ---------- bell tones (Chime Heist's bell kit): always generated, so every pitch is exact ----------

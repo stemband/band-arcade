@@ -1,0 +1,323 @@
+/* Button Masher: a neon versus fighting-game stage. Red rival on the right, the student's blue side on the left.
+   Reading comes first: the staff sits on the light screen card between the fighters; the fingering diagram
+   below is the controller. Cartoon only: energy blasts and sparkles, a harmless "boing" counter, dizzy stars. */
+
+/* ---------- the arena backdrop ---------- */
+.masher-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(77,141,255,.16), transparent 30%, transparent 70%, rgba(255,107,107,.16)),
+    repeating-linear-gradient(90deg, var(--arena-grid) 0 1px, transparent 1px 72px),
+    linear-gradient(180deg, var(--floor) 55%, var(--arena) 100%)}
+.masher .eyebrow{color:var(--red-hi)}
+
+/* ---------- phones held upright with a woodwind diagram ---------- */
+.rotate{display:none}
+@media (max-width:599px) and (orientation:portrait){
+  body.ww .rotate{display:flex;position:fixed;inset:0;z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:24px;text-align:center;background:var(--floor)}
+  .rotate svg{width:140px;height:auto;animation:tilt 2.4s ease-in-out infinite}
+  .rotate .ph{fill:none;stroke:var(--blue);stroke-width:4}
+  .rotate .arr{fill:none;stroke:var(--red);stroke-width:4;stroke-linecap:round}
+  .rotate h2{font-family:var(--display);font-weight:400;font-size:26px;color:var(--blue-hi);text-shadow:var(--glow-blue)}
+  .rotate p{max-width:30ch;color:var(--text-lo);margin:0}
+  body.ww .wrap{display:none}
+}
+@keyframes tilt{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+
+/* ---------- rival select ---------- */
+.hub-head{margin-bottom:18px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.95;font-style:italic;transform:skewX(-8deg);transform-origin:left}
+.game-title .vs-l{color:var(--blue-hi);text-shadow:var(--glow-blue)}
+.game-title .vs-r{color:var(--red-hi);text-shadow:var(--glow-red)}
+.hub-head p{max-width:58ch;margin:12px 0 0}
+.hub-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 10px}
+.hub-bar .eyebrow{margin:0}
+.chart-btn{font-family:var(--display);letter-spacing:.1em;text-transform:uppercase;border-color:var(--yellow-ink)}
+.chart-btn:hover{border-color:var(--yellow);box-shadow:var(--glow-yellow)}
+.perc{background:var(--floor-2);border:2px solid var(--yellow-ink);border-radius:var(--r);padding:20px 18px;text-align:center}
+.perc h2{font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,32px);color:var(--yellow-hi);text-shadow:var(--glow-yellow);margin-bottom:8px}
+.perc .acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:760px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;color:var(--text-hi);
+  background:linear-gradient(160deg, var(--floor-3), var(--floor-2));border:2px solid var(--r1,var(--floor-3));border-radius:16px;padding:12px 10px 12px 14px;min-height:170px}
+.lvl:hover:not([disabled]){box-shadow:0 0 12px var(--r1)}
+.lvl.boss{border-width:3px;background:linear-gradient(160deg, var(--floor-lit), var(--floor-2))}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl.boss .n{color:var(--red-hi)}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;width:58px;display:grid;place-items:center}
+.lvl .mini svg{width:100%;height:auto}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45;border-color:var(--floor-3)}
+.r-lock{fill:var(--text-dim);font-family:var(--display)}
+
+/* ---------- characters (every color a token; rivals get --r1/--r2 from levels.js) ---------- */
+.rival-svg,.fighter-svg{display:block;width:100%;height:100%;overflow:visible}
+.r-main{fill:var(--r1)} .r-trim{fill:var(--r2)} .r-white{fill:var(--screen)} .r-skin{fill:var(--fighter-skin)} .r-ink{fill:var(--ink)}
+.r-line{stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
+.r-cut{fill:none}
+.r-glyph{font-family:var(--music);stroke:var(--ink);stroke-width:2}
+.r-eye{fill:var(--screen);stroke:var(--ink);stroke-width:1.5}
+.r-pupil{fill:var(--ink)}
+.r-brow,.r-mouth,.r-lash{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
+.r-limb{fill:none;stroke:var(--r1);stroke-width:6;stroke-linecap:round}
+.r-fx{fill:none;stroke:var(--r2);stroke-width:3;stroke-linecap:round}
+.r-plume{fill:var(--r2);stroke:var(--ink);stroke-width:1.5}
+.r-pearl{fill:var(--screen);stroke:var(--ink);stroke-width:1}
+.r-fork,.r-arm{fill:none;stroke:var(--cab-metal);stroke-width:3.5;stroke-linecap:round}
+.r-baton{stroke:var(--screen);stroke-width:3;stroke-linecap:round}
+.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
+.f-line{stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
+.f-jacket{fill:var(--f1)} .f-pants{fill:var(--fighter-pants)} .f-shoe{fill:var(--fighter-shoe)} .f-skin{fill:var(--fighter-skin)}
+.f-hair{fill:var(--fighter-hair)} .f-band{fill:var(--red)} .f-ink{fill:var(--ink)}
+.f-zip{fill:none;stroke:var(--ink);stroke-width:2}
+.f-arm{fill:none;stroke:var(--f1);stroke-width:9;stroke-linecap:round}
+.f-tails{fill:none;stroke:var(--red);stroke-width:3.5;stroke-linecap:round}
+.f-mouth{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round}
+
+/* ---------- a match ---------- */
+.wrap.playing{display:flex;flex-direction:column;max-width:1100px;min-height:100vh;min-height:100dvh;padding-bottom:0;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.wrap.playing #play{display:flex;flex-direction:column;flex:1;min-height:0}
+.wrap.playing .topbar{margin-bottom:8px}
+
+/* health and energy bars, fighting-game style: the rival's across the top, yours below */
+.bars{display:grid;gap:6px;margin-bottom:6px}
+.bar-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+.who{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.rival-row .who{color:var(--red-hi);text-shadow:var(--glow-red)}
+.you-row .who{color:var(--blue-hi);text-shadow:var(--glow-blue)}
+.hp{height:18px;border-radius:4px;background:var(--deep);border:2px solid var(--red);box-shadow:var(--glow-red);overflow:hidden;transform:skewX(-14deg)}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,var(--red-ink),var(--red),var(--yellow));transform-origin:right;transition:transform .35s ease-out}
+.rival-row small{font-size:13px;color:var(--text-lo);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.energy{display:flex;gap:4px;max-width:260px}
+.energy i{flex:1;height:14px;border-radius:3px;background:var(--floor-3);transform:skewX(-14deg)}
+.energy i.on{background:var(--blue);box-shadow:var(--glow-blue)}
+.energy.low i.on{background:var(--yellow);box-shadow:var(--glow-yellow)}
+.mini-hud{display:flex;gap:16px;font-variant-numeric:tabular-nums}
+.mini-hud span{display:flex;flex-direction:column;align-items:flex-end}
+.mini-hud small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.mini-hud b{font-size:18px;line-height:1.2}
+#hudCombo.hot{color:var(--yellow);text-shadow:var(--glow-yellow)}
+
+/* the arena: fighter | the note on the staff | rival */
+.arena{position:relative;display:grid;grid-template-columns:1fr minmax(170px,300px) 1fr;grid-template-rows:100%;align-items:end;gap:8px;height:clamp(140px,25vh,230px);
+  padding:0 4px;border-bottom:3px solid var(--blue);background:linear-gradient(180deg,transparent 70%,rgba(77,141,255,.12));
+  box-shadow:0 3px 0 -1px var(--red)}
+.fighter,.rival{height:92%;min-width:0;align-self:end}
+.fighter svg,.rival svg{width:100%;height:100%}
+.rival.boss{height:100%}
+.note-card{align-self:center;max-height:100%;padding:6px 8px 0;border-color:var(--yellow);box-shadow:0 0 0 4px var(--deep),var(--glow-yellow),inset 0 0 0 2px rgba(255,255,255,.6);text-align:center}
+.note-card .staff{max-height:calc(clamp(140px,25vh,230px) - 44px);margin:0 auto}
+.note-name{margin:0 0 4px;min-height:1.2em;font-family:var(--display),var(--music);font-size:22px;line-height:1.1;color:var(--ink)}
+.note-name:empty{min-height:0;margin:0}
+.taunt{position:absolute;right:18%;top:4px;max-width:min(360px,60%);margin:0;padding:8px 12px;border-radius:14px;background:var(--screen);color:var(--ink);
+  font-weight:700;font-size:15px;line-height:1.3;box-shadow:0 0 0 3px var(--red),var(--glow-red);z-index:3}
+.taunt::after{content:"";position:absolute;right:26px;bottom:-12px;border:8px solid transparent;border-top-color:var(--screen);border-bottom:0}
+
+/* ROUND 1 … FIGHT! / K.O.! */
+.banner{position:absolute;left:50%;top:50%;z-index:6;transform:translate(-50%,-50%) skewX(-10deg);pointer-events:none;white-space:nowrap;
+  font-family:var(--display);font-size:clamp(40px,9vw,84px);line-height:1;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--yellow);-webkit-text-stroke:3px var(--red-ink);text-shadow:0 5px 0 var(--red-ink),var(--glow-yellow)}
+.banner.fight{color:var(--red-hi);-webkit-text-stroke-color:var(--deep);text-shadow:0 5px 0 var(--deep),var(--glow-red)}
+.banner.ko{color:var(--yellow-hi)}
+.banner.go{animation:bn-in .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bn-in{0%{transform:translate(-50%,-50%) skewX(-10deg) scale(2.4);opacity:0}100%{transform:translate(-50%,-50%) skewX(-10deg) scale(1);opacity:1}}
+
+/* idle bob, strike, hit, counter, dizzy, K.O. */
+.fighter svg,.rival svg{animation:bob 1.8s ease-in-out infinite}
+.rival svg{animation-delay:-.9s}
+.fighter.strike svg{animation:lunge .35s ease-out}
+@keyframes lunge{40%{transform:translateX(14px) scale(1.04)}}
+.rival.hit svg{animation:hit .45s ease-out}
+@keyframes hit{0%,100%{transform:none;opacity:1}15%{transform:translateX(10px) rotate(4deg);opacity:.5}30%{opacity:1}45%{transform:translateX(-6px);opacity:.6}60%{opacity:1}}
+.rival.counter svg{animation:counter .45s ease-out}
+@keyframes counter{40%{transform:translateX(-18px) scale(1.05)}}
+.fighter.dizzy svg{animation:wobble .8s ease-in-out}
+.fighter.dizzy .dizzy{animation:stars-in .8s ease-out}
+@keyframes wobble{20%{transform:rotate(-6deg)}45%{transform:rotate(5deg)}70%{transform:rotate(-3deg)}}
+@keyframes stars-in{0%,100%{opacity:0}20%,80%{opacity:1}}
+.rival.ko svg{animation:bow 1.6s ease-in-out forwards;transform-origin:50% 95%}
+.rival.ko .dizzy,.bowing .dizzy{opacity:1}
+.rival.ko .dizzy{animation:orbit 1s linear infinite;transform-origin:60px 10px;transform-box:view-box}
+@keyframes bow{0%{transform:none}25%{transform:rotate(-8deg)}50%{transform:rotate(6deg)}100%{transform:rotate(22deg) translateY(6px)}}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes bob{50%{transform:translateY(-4px)}}
+
+/* the special move: a glowing energy blast, sparkles and a COMBO! callout; the counter: a harmless sound wave */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:visible}
+.fx .blast{position:absolute;left:var(--x0);top:42%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;opacity:0;
+  background:radial-gradient(circle, var(--white-hi) 0 22%, var(--blue-hi) 34%, var(--blue) 55%, rgba(77,141,255,0) 72%);box-shadow:var(--glow-blue)}
+.fx.go .blast{animation:blast .42s ease-in forwards}
+@keyframes blast{0%{opacity:1;transform:translateX(0) scale(.5)}85%{opacity:1;transform:translateX(var(--dx)) scale(1.2)}100%{opacity:0;transform:translateX(var(--dx)) scale(2.2)}}
+.fx .spark{position:absolute;left:calc(var(--x0) + var(--dx));top:42%;width:10px;height:10px;margin:-5px;opacity:0;
+  background:var(--yellow-hi);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.fx.go .spark{animation:spark .6s ease-out .36s forwards}
+.fx .spark:nth-child(3n){background:var(--pink-hi)} .fx .spark:nth-child(3n+1){background:var(--cyan-hi)}
+@keyframes spark{0%{opacity:1;transform:rotate(calc(var(--k) * 60deg)) translateY(0) scale(1.4)}100%{opacity:0;transform:rotate(calc(var(--k) * 60deg)) translateY(-54px) scale(.6)}}
+.fx .pop{position:absolute;left:calc(var(--x0) + var(--dx));top:2%;transform:translateX(-50%) skewX(-10deg);font-family:var(--display);font-weight:400;font-size:clamp(20px,4vw,34px);
+  text-transform:uppercase;white-space:nowrap;color:var(--yellow);-webkit-text-stroke:1.5px var(--red-ink);text-shadow:0 3px 0 var(--red-ink);opacity:0}
+.fx .pop.bad{color:var(--red-hi);-webkit-text-stroke-color:var(--deep);text-shadow:0 3px 0 var(--deep)}
+.fx.go .pop,.fx.go-back .pop{animation:pop .9s ease-out forwards}
+@keyframes pop{0%{opacity:0;transform:translateX(-50%) skewX(-10deg) scale(.6)}20%{opacity:1;transform:translateX(-50%) skewX(-10deg) scale(1.15)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px) skewX(-10deg)}}
+.fx .wave{position:absolute;left:var(--x0);top:36%;font-family:var(--display);font-style:normal;font-size:34px;letter-spacing:-.1em;color:var(--red-hi);
+  text-shadow:var(--glow-red);opacity:0;transform:scaleX(-1)}
+.fx.go-back .wave{animation:wave .45s ease-in forwards}
+@keyframes wave{0%{opacity:1;transform:translateX(0) scaleX(-1)}90%{opacity:1}100%{opacity:0;transform:translateX(var(--dx)) scaleX(-1.4)}}
+
+.timer{height:8px;border-radius:4px;background:var(--floor-3);overflow:hidden;margin-top:8px}
+.timer i{display:block;height:100%;background:var(--blue);transform-origin:left;transform:scaleX(1)}
+.timer.low i{background:var(--red)}
+.prompt{min-height:24px;text-align:center;margin:6px 0;font-size:17px;font-weight:700}
+.prompt.bad{color:var(--red-hi)}
+.prompt.good{color:var(--green-hi)}
+
+/* ---------- the controller: the instrument diagram ---------- */
+.pad{flex:1 1 0;min-height:160px;max-height:360px;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:18px;
+  background:radial-gradient(ellipse at 50% 60%, var(--floor-3), var(--floor-2) 70%);border:2px solid var(--blue-ink);box-shadow:inset 0 0 0 2px var(--deep)}
+.pad .diagram{width:100%;height:100%;max-height:340px}
+.diagram{display:block;overflow:visible;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.dg-body{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
+.dg-pipe{fill:none;stroke:var(--cab-metal);stroke-width:12;stroke-linecap:round}
+.dg-bell{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
+.dg-coil{fill:none;stroke:var(--cab-metal);stroke-width:10}
+.dg-mouth,.dg-reed,.dg-lip{fill:var(--cab-metal)}
+.dg-hand{font-family:var(--display);font-size:13px;letter-spacing:.14em;fill:var(--text-dim)}
+.dg-cap{font-family:var(--text);font-weight:700;font-size:14px;fill:var(--text-lo)}
+.key{cursor:pointer;outline:none}
+.k-hit{fill:transparent}
+.k-base{fill:var(--key-open);stroke:var(--key-rim);stroke-width:3}
+.k-fill,.k-half{fill:var(--key-on);opacity:0}
+.k-lbl{font-family:var(--text);font-weight:700;font-size:18px;fill:var(--text-hi);pointer-events:none}
+.k-lbl.long{font-size:14px}
+.valve .k-base{stroke-width:5}
+.valve .k-lbl{font-family:var(--display);font-weight:400;font-size:34px}
+.pos .k-lbl{font-family:var(--display);font-weight:400;font-size:28px}
+.key[data-state="1"] .k-fill{opacity:1}
+.key[data-state="h"] .k-half{opacity:1}
+.key[data-state="1"] .k-lbl,.key[data-state="h"] .k-lbl{fill:var(--deep)}
+.key[data-state="1"] .k-base,.key[data-state="h"] .k-base{stroke:var(--yellow-hi)}
+.halfable .k-base{stroke-dasharray:none}
+.key:focus-visible .k-base{stroke:var(--yellow-hi);stroke-width:6}
+/* the right combo after a miss (green glow; half-holes glow on the left half), and the faint hint */
+.key.glow .k-base{stroke:var(--key-glow);stroke-width:6}
+.key.glow[data-glow="1"] .k-fill{fill:var(--key-glow);opacity:.85}
+.key.glow[data-glow="h"] .k-half{fill:var(--key-glow);opacity:.85}
+.key.glow .k-lbl{fill:var(--deep)}
+.key.hint .k-base{stroke:var(--key-glow);stroke-dasharray:6 5;stroke-width:4}
+.key.hint[data-hint="1"]:not([data-state="1"]) .k-fill{fill:var(--key-glow);opacity:.18}
+.key.hint[data-hint="h"]:not([data-state="h"]) .k-half{fill:var(--key-glow);opacity:.22}
+.dg-brace{transition:transform .18s ease-out;opacity:.35}
+.dg-brace rect{fill:var(--cab-metal)} .dg-brace path{stroke:var(--deep);stroke-width:4}
+.dg-brace.on{opacity:1}
+
+/* the COMBO display: fighting-game input icons */
+.combo-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;margin-top:8px}
+.combo{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:52px;padding:6px 12px;border-radius:14px;background:var(--deep);border:2px solid var(--floor-3)}
+.combo-empty{color:var(--text-dim);font-size:15px}
+.ci{display:inline-grid;place-items:center;min-width:40px;height:40px;padding:0 6px;border-radius:50%;font-family:var(--display);font-size:17px;line-height:1;
+  color:var(--deep);background:radial-gradient(circle at 35% 30%, var(--yellow-hi), var(--yellow) 60%, var(--yellow-ink));box-shadow:0 3px 0 var(--yellow-ink),var(--glow-yellow)}
+.ci-key{border-radius:12px;background:radial-gradient(circle at 35% 30%, var(--cyan-hi), var(--cyan) 60%, var(--cyan-ink));box-shadow:0 3px 0 var(--cyan-ink),var(--glow-cyan)}
+.ci-valve{background:radial-gradient(circle at 35% 30%, var(--blue-hi), var(--blue) 60%, var(--blue-ink));box-shadow:0 3px 0 var(--blue-ink),var(--glow-blue);color:var(--white-hi)}
+.ci.long{font-size:12px}
+.plus{font-style:normal;font-family:var(--display);color:var(--text-dim);font-size:16px}
+.clear-btn{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;min-height:52px}
+.strike-btn{min-height:56px;padding:10px 26px;font-family:var(--display);font-weight:400;font-size:22px;letter-spacing:.06em;text-transform:uppercase;font-style:italic;
+  color:var(--deep);background:linear-gradient(180deg,var(--red-hi),var(--red));border:2px solid var(--red-hi);box-shadow:0 4px 0 var(--red-ink),var(--glow-red)}
+.strike-btn:hover{background:var(--red-hi)}
+.strike-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--red-ink),var(--glow-red)}
+
+.play-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px));flex-wrap:wrap}
+.keys-help,.demo-ans{font-size:13px;color:var(--text-lo);margin:0}
+.demo-ans{color:var(--green-hi)}
+#quitPlay{margin-left:auto}
+
+@media (max-width:600px){
+  .arena{grid-template-columns:1fr minmax(150px,200px) 1fr}
+  .mini-hud{gap:10px}.mini-hud b{font-size:16px}
+  .who{font-size:14px}
+  .combo-row{grid-template-columns:1fr auto}
+  .combo{grid-column:1/-1}
+  .strike-btn{font-size:20px}
+  .taunt{right:4%;font-size:14px}
+}
+/* short screens (iPad and Chromebook landscape): tighter so the arena and the diagram both fit */
+@media (max-height:820px){
+  .arena{height:clamp(120px,22vh,190px)}
+  .note-card .staff{max-height:calc(clamp(120px,22vh,190px) - 40px)}
+  .prompt{margin:4px 0;font-size:16px}
+  .bars{gap:4px}
+}
+@media (max-height:520px) and (min-width:600px){    /* phones on their side: the fight on the left, the controller on the right */
+  .wrap.playing .topbar{margin-bottom:4px;min-height:36px}
+  .wrap.playing .topbar .brand,.wrap.playing .snd-btn{min-height:36px;padding-block:4px}
+  .wrap.playing{padding-top:calc(6px + env(safe-area-inset-top,0px));max-width:none}
+  .wrap.playing #play{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);grid-template-rows:auto auto auto 1fr auto;column-gap:12px;
+    grid-template-areas:"bars pad" "arena pad" "timer pad" "prompt combo" "foot foot"}
+  .bars{grid-area:bars}.arena{grid-area:arena}.timer{grid-area:timer}.prompt{grid-area:prompt}.pad{grid-area:pad}.combo-row{grid-area:combo}.play-foot{grid-area:foot}
+  .bar-row{gap:6px}.who{font-size:13px}.mini-hud{gap:8px}.mini-hud small{font-size:9px}.mini-hud b{font-size:14px}.rival-row small{font-size:11px}
+  .arena{height:clamp(100px,32vh,140px);grid-template-columns:1fr minmax(120px,170px) 1fr}
+  .note-card .staff{max-height:calc(clamp(100px,32vh,140px) - 34px)}
+  .note-name{font-size:16px}
+  .prompt{font-size:14px;margin:4px 0;align-self:center}
+  .pad{min-height:0;max-height:none;padding:2px}
+  .combo-row{margin-top:4px;grid-template-columns:1fr auto auto;gap:6px}
+  .combo{grid-column:auto;min-height:44px;padding:4px 8px}.ci{min-width:32px;height:32px;font-size:14px}
+  .strike-btn,.clear-btn{min-height:44px;padding:4px 12px;font-size:16px}
+  .play-foot{padding:3px 0 calc(4px + env(safe-area-inset-bottom,0px))}
+  .play-foot .btn{min-height:34px;padding-block:4px}
+  .keys-help{display:none}
+  .taunt{font-size:13px;right:2%}
+}
+
+/* ---------- the chart ---------- */
+.chart{place-items:stretch;padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+.chart-panel{width:min(1100px,100%);max-height:100%;margin:0 auto;display:flex;flex-direction:column;text-align:left;padding:16px 16px 8px;border-color:var(--yellow);box-shadow:var(--glow-yellow),0 30px 80px rgba(0,0,0,.6)}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.chart-panel h2{margin:0;color:var(--yellow-hi);font-size:clamp(22px,4vw,30px)}
+.chart-sub{margin:6px 0 8px!important;font-size:15px}
+.chart-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 4px 10px;flex:1}
+.ch-sec h3{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.04em;color:var(--cyan-hi);margin:14px 0 8px}
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:10px}
+.ch-card{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin:0;padding:8px;border-radius:14px;background:var(--deep);border:1px solid var(--floor-3)}
+.ch-note{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ch-staff{width:110px;background:var(--screen);border-radius:8px;padding:2px 2px 0}
+.ch-staff .staff{height:92px;width:100%}
+.ch-note figcaption{text-align:center;line-height:1.1}
+.ch-note b{font-family:var(--display),var(--music);font-weight:400;font-size:24px;display:block}
+.ch-note small{color:var(--text-lo);font-size:12px}
+.ch-fing .diagram{width:100%;height:auto;max-height:150px;pointer-events:none}
+.ch-prim{margin:2px 0 0!important;font-weight:700;color:var(--text-hi)!important;font-size:15px}
+.ch-alt{margin:2px 0 0!important;font-size:14px}
+.ch-foot{margin-top:14px!important}
+
+/* ---------- results ---------- */
+.res-rival{width:96px;height:120px;margin:0 auto 2px;--r1:var(--red)}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+.res-score{margin:10px 0 0!important;color:var(--text-hi)!important;font-weight:700}
+.res-score b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--yellow)}
+.panel .best{font-size:14px;margin-top:8px}
+.panel{border-color:var(--red);box-shadow:var(--glow-red),0 30px 80px rgba(0,0,0,.6)}
+.panel h2{color:var(--red-hi);font-style:italic}
+.bowing{transform:rotate(18deg);transform-origin:50% 95%}
+
+.topbar-right .sound-ctl{flex-wrap:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .fighter svg,.rival svg,.rotate svg,.banner.go,.fighter.strike svg,.rival.hit svg,.rival.counter svg,.fighter.dizzy svg,.rival.ko .dizzy{animation:none}
+  .rival.ko svg{animation:none;transform:rotate(18deg);transform-origin:50% 95%}
+  .fighter.dizzy .dizzy{animation:stars-in .8s steps(1)}
+  .fx.go .blast{animation:flash-at .5s steps(1)}
+  .fx .blast{left:calc(var(--x0) + var(--dx))}
+  .fx.go-back .wave{animation:flash-at .5s steps(1)}
+  .fx .wave{left:calc(var(--x0) + var(--dx))}
+  .hp i,.dg-brace{transition:none}
+}
+@keyframes flash-at{0%{opacity:1}100%{opacity:0}}

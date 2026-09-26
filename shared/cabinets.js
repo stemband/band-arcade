@@ -7,7 +7,8 @@
               face     the front board, inside the side panels
               bezel    the dark surround the screen sits in
               panel    the control panel (a trapezoid; taller = steeper), lip = its front edge
-              joy      joystick [x, y];  btns  buttons [[x, y], …]
+              joy      joystick [x, y];  btns  buttons [[x, y], …] (or [x, y, class] to pick its color)
+              joy2     optional second joystick [x, y] (a two-player cabinet; its ball takes the trim color)
               door     coin door {x, y, w, h} (and `doorPath` for an odd shape);  kick  kick plate [x1, x2]
               dial     optional: the door is a round safe door with a combination dial instead of coin slots
               extras   optional extra SVG (decals, lights), drawn last
@@ -19,8 +20,8 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-  const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll'];
+  const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
@@ -96,6 +97,21 @@ window.Arcade = window.Arcade || {};
               '<circle class="s-lamp" cx="58" cy="452" r="4"/><circle class="s-lamp2" cx="242" cy="578" r="4"/>',
       slots: {marquee: [66, 116, 168, 52], screen: [72, 188, 156, 118], start: [80, 402, 140, 44]},
     },
+    /* versus: a wide two-player fighting cabinet. The body flares out to a long control panel with a joystick and
+       three buttons for each player (1P in trim2, 2P in trim), a split red/blue face with a lightning seam below */
+    versus: {
+      outline: 'M22 20H278V112H266L270 298L296 314V394H274V598H26V394H4V314L30 298L34 112H22Z',
+      face: 'M48 112H252L256 304H44ZM40 394H260V598H40Z', kick: [40, 260],
+      bezel: 'M62 124H238Q246 124 246 132V288Q246 296 238 296H62Q54 296 54 288V132Q54 124 62 124Z',
+      panel: 'M34 304H266L296 370H4Z', lip: 'M4 370H296V386H4Z',
+      joy: [36, 340], joy2: [166, 340],
+      btns: [[76, 338, 's-btn1'], [100, 334, 's-btn1'], [124, 338, 's-btn1'], [206, 338, 's-btn0'], [230, 334, 's-btn0'], [254, 338, 's-btn0']],
+      door: {x: 104, y: 462, w: 92, h: 104},
+      extras: '<path class="s-side1" d="M40 394H150L140 452L158 500L144 598H40Z"/><path class="s-side2" d="M150 394H260V598H144L158 500L140 452Z"/>' +
+              '<path class="s-seam" d="M150 394L140 452L158 500L144 598"/>' +
+              '<text class="s-plabel s-p1" x="36" y="318" text-anchor="middle">1P</text><text class="s-plabel s-p2" x="166" y="318" text-anchor="middle">2P</text>',
+      slots: {marquee: [30, 28, 240, 76], screen: [64, 134, 172, 152], start: [80, 398, 140, 44]},
+    },
     /* temple: a temple gate. An upswept top beam and a tie beam over two pillars, paper lanterns in the
        Band Ninja belt colors hanging between the beams, the marquee a hand scroll hung from the tie beam */
     temple: {
@@ -132,17 +148,17 @@ window.Arcade = window.Arcade || {};
       `<rect class="s-return" x="${cx - 16}" y="${d.y + d.h * .74}" width="32" height="12" rx="2"/>`;
   }
 
+  const joystick = ([jx, jy], cls = '') => `<ellipse class="s-joybase" cx="${jx}" cy="${jy + 6}" rx="18" ry="7"/><line class="s-shaft" x1="${jx}" y1="${jy + 5}" x2="${jx}" y2="${jy - 12}"/>` +
+    `<circle class="s-ball${cls}" cx="${jx}" cy="${jy - 15}" r="9"/><circle class="s-shine" cx="${jx - 3}" cy="${jy - 18}" r="3"/>`;
   function shellSVG(s) {
-    const [jx, jy] = s.joy;
     return `<svg class="cab-shell" viewBox="0 0 300 600" aria-hidden="true" focusable="false">` +
       `<path class="s-side" d="${s.outline}"/>` +
       `<path class="s-face" d="${s.face}"/>` +
       `<path class="s-tube-glow" d="${s.outline}"/><path class="s-tube" d="${s.outline}"/>` +
       `<path class="s-bezel" d="${s.bezel}"/>` +
       `<path class="s-panel" d="${s.panel}"/><path class="s-lip" d="${s.lip}"/>` +
-      `<ellipse class="s-joybase" cx="${jx}" cy="${jy + 6}" rx="18" ry="7"/><line class="s-shaft" x1="${jx}" y1="${jy + 5}" x2="${jx}" y2="${jy - 12}"/>` +
-      `<circle class="s-ball" cx="${jx}" cy="${jy - 15}" r="9"/><circle class="s-shine" cx="${jx - 3}" cy="${jy - 18}" r="3"/>` +
-      s.btns.map(([x, y], i) => `<ellipse class="s-btn s-btn${i}" cx="${x}" cy="${y}" rx="10" ry="7"/><ellipse class="s-shine" cx="${x - 2}" cy="${y - 2}" rx="4" ry="2"/>`).join('') +
+      joystick(s.joy) + (s.joy2 ? joystick(s.joy2, ' s-ball2') : '') +
+      s.btns.map(([x, y, c], i) => `<ellipse class="s-btn ${c || 's-btn' + i}" cx="${x}" cy="${y}" rx="${s.joy2 ? 9 : 10}" ry="${s.joy2 ? 6.5 : 7}"/><ellipse class="s-shine" cx="${x - 2}" cy="${y - 2}" rx="4" ry="2"/>`).join('') +
       doorSVG(s) +
       `<rect class="s-kick" x="${s.kick[0]}" y="586" width="${s.kick[1] - s.kick[0]}" height="12"/>` +
       (s.extras || '') + `</svg>`;
@@ -229,6 +245,24 @@ window.Arcade = window.Arcade || {};
         return `<div class="scr scr-scrolls"><span class="ss-lamps" aria-hidden="true">` +
           ['orange', 'green', 'blue', 'purple', 'red', 'brown', 'black', 'diamond'].map(b => `<i style="background:var(--belt-${b})"></i>`).join('') + `</span>` +
           `<span class="ss-scroll"><b>${esc(t)}</b><small>${esc(m)}</small></span></div>`;
+      },
+    },
+    /* Button Masher: two fighters face off under health bars; a combo of input icons builds up, then an energy
+       blast flies and the rival's bar drops */
+    versus: {
+      period: 2400,
+      html(g, i) {
+        const COMBOS = [['1', '3'], ['1', '2', '3'], ['2'], ['1', '2'], ['0'], ['2', '3']], c = COMBOS[i % COMBOS.length];
+        const hp = 60 - (i % 5) * 12;
+        return `<div class="scr scr-versus"><svg viewBox="0 0 160 120" aria-hidden="true">` +
+          `<rect class="vs-bar" x="8" y="8" width="60" height="7" rx="2"/><rect class="vs-hp1" x="8" y="8" width="60" height="7" rx="2"/>` +
+          `<rect class="vs-bar" x="92" y="8" width="60" height="7" rx="2"/><rect class="vs-hp2" x="${152 - hp}" y="8" width="${hp}" height="7" rx="2"/>` +
+          `<text class="vs-vs" x="80" y="17" text-anchor="middle">VS</text><line class="vs-floor" x1="0" y1="92" x2="160" y2="92"/>` +
+          `<g class="vs-p1"><circle cx="30" cy="48" r="9"/><path d="M22 58H38L40 80H20Z"/><path class="vs-limb" d="M36 64L50 60M24 80L22 92M36 80L38 92"/></g>` +
+          `<g class="vs-p2"><circle cx="130" cy="46" r="10"/><path d="M121 58H139L142 82H118Z"/><path class="vs-limb" d="M122 64L110 58M122 82L120 92M138 82L140 92"/></g>` +
+          `<circle class="vs-blast" cx="56" cy="60" r="6"/>` +
+          c.map((b, k) => `<g class="vs-key" style="animation-delay:${k * .25}s"><circle cx="${62 + k * 18}" cy="106" r="7"/><text x="${62 + k * 18}" y="109.5" text-anchor="middle">${b}</text></g>`).join('') +
+          `</svg></div>`;
       },
     },
     /* the default for a game with no custom screen: its name, blinking PRESS START */

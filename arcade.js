@@ -85,10 +85,18 @@
     // a game with its own instrument (games.js `player`, e.g. Chime Heist's bell kit) always shows its score
     // player 'all' (a game that needs no instrument, e.g. Ancient Ninja Scrolls) saves under that id
     const inst = g.player ? (A.getInstrument(g.player) || {id: g.player, shortName: ''}) : A.currentInstrument(), hs = $('hiscore');
-    hs.hidden = !(inst && g.maxStars);
-    if (!hs.hidden) {
-      hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, inst.id)} / ${g.maxStars} ` +
-        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span>` + ((g.playerName || inst.shortName) ? ` <span class="who">(${g.playerName || inst.shortName})</span>` : '');
+    // games.js `byMember` (Button Masher): progress lives under the member chosen for "Which instrument do you play?"
+    const member = g.byMember && inst ? A.getMember(inst, A.store.memberFor(inst.id)) : null;
+    const pid = g.byMember ? (member && member.id) : inst && inst.id;
+    // games.js `noPlay`: an instrument the game can't use (percussion in Button Masher) gets a link to a game it can
+    const np = g.noPlay, redirect = np && inst && ((np.groups || []).includes(inst.id) || (member && (np.members || []).includes(member.id)));
+    hs.hidden = !(inst && g.maxStars && (pid || redirect));
+    if (redirect) {
+      const to = GAMES.find(x => x.id === np.game);
+      hs.innerHTML = to ? `<a class="np-link" href="${A.startLink(to, '')}">${np.label}</a>` : np.label;
+    } else if (!hs.hidden) {
+      hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, pid)} / ${g.maxStars} ` +
+        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span>` + ((g.playerName || (member ? member.name : inst.shortName)) ? ` <span class="who">(${g.playerName || (member ? member.name : inst.shortName)})</span>` : '');
       // games.js `badge`: a count of badges the game keeps in store.gameData(id).badges (e.g. "Test Ready: 3 belts")
       if (g.badge) {
         const n = Object.keys(A.store.gameData(g.id).badges || {}).length;
@@ -96,7 +104,7 @@
       }
       // the other modes save separately; just say how many have been tried
       const keys = g.modeKeys ? g.modeKeys.map(k => g.id + ':' + k) : g.player === 'all' ? [] : A.Scales ? A.Scales.LIST.map(sc => A.Scales.progressKey(g.id, sc.id)) : [];
-      const started = keys.filter(k => A.store.hasProgress(k, inst.id)).length;
+      const started = keys.filter(k => A.store.hasProgress(k, pid)).length;
       if (started) hs.innerHTML += `<span class="scales-note">${g.modeKeys ? 'Other modes' : 'Scales'}: ${started} of ${keys.length} started</span>`;
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));

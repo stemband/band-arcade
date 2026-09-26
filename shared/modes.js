@@ -47,9 +47,7 @@ window.Arcade = window.Arcade || {};
         modes.map(m => `<button type="button" class="mode-big" data-mode="${m.id}" aria-pressed="${state.mode === m.id}">${m.label}</button>`).join('') + `</div>`;
       if (state.mode === 'scales') {
         if (!state.member) {
-          h += `<section class="member-pick" aria-labelledby="mpQ"><h2 id="mpQ">Which instrument do you play?</h2>` +
-            `<p class="muted">Your scales are written a little differently for each one.</p><div class="member-btns">` +
-            inst.members.map(m => `<button type="button" class="btn member-btn" data-member="${m.id}">${m.name}</button>`).join('') + `</div></section>`;
+          h += memberPickHTML(inst);
         } else {
           if (!member && inst.members.length > 1) h += `<p class="playing">Playing: <b>${state.member.name}</b> <button type="button" class="linkish" data-change>change</button></p>`;
           h += `<div class="scale-btns n${scaleIds.length}" role="group" aria-label="Choose a scale">` + scaleIds.map(id => {
@@ -75,6 +73,21 @@ window.Arcade = window.Arcade || {};
     }
     render();
     return {state, refresh: render};
+  }
+
+  /* "Which instrument do you play?": the same saved setting everywhere (Arcade.store.memberFor / setMember) */
+  function memberPickHTML(inst, why = 'Your scales are written a little differently for each one.') {
+    return `<section class="member-pick" aria-labelledby="mpQ"><h2 id="mpQ">Which instrument do you play?</h2>` +
+      `<p class="muted">${why}</p><div class="member-btns">` +
+      inst.members.map(m => `<button type="button" class="btn member-btn" data-member="${m.id}">${m.name}</button>`).join('') + `</div></section>`;
+  }
+  /** the question on its own, for a game without RANDOM NOTES / SCALES (Button Masher): saves the answer, then onPick(member) */
+  function memberPick(el, inst, onPick, why) {
+    el.innerHTML = memberPickHTML(inst, why);
+    el.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => {
+      A.store.setMember(inst.id, b.dataset.member);
+      onPick(A.getMember(inst, b.dataset.member));
+    }));
   }
 
   /** note names for what the mic hears: spelled like the scale's key in SCALES mode, else the group's usual names */
@@ -122,5 +135,5 @@ window.Arcade = window.Arcade || {};
   /** a level's description in SCALES mode (the random-mode blurbs talk about "the first three notes") */
   function scaleBlurb(parts) { return parts.filter(Boolean).join(' '); }
 
-  A.Modes = {mount, nameFor, useRange, demoSpace, hubCard, scaleBlurb};
+  A.Modes = {mount, nameFor, useRange, demoSpace, hubCard, scaleBlurb, memberPick};
 })(window.Arcade);

@@ -12,6 +12,7 @@
 .trim-green{--t:var(--green);--t-hi:var(--green-hi);--t-ink:var(--green-ink);--t-glow:var(--glow-green)}
 .trim-red{--t:var(--red);--t-hi:var(--red-hi);--t-ink:var(--red-ink);--t-glow:var(--glow-red)}
 .trim-white{--t:var(--white);--t-hi:var(--white-hi);--t-ink:var(--white-ink);--t-glow:var(--glow-white)}
+.trim-blue{--t:var(--blue);--t-hi:var(--blue-hi);--t-ink:var(--blue-ink);--t-glow:var(--glow-blue)}
 .trim2-pink{--u:var(--pink);--u-hi:var(--pink-hi);--u-glow:var(--glow-pink)}
 .trim2-cyan{--u:var(--cyan);--u-hi:var(--cyan-hi);--u-glow:var(--glow-cyan)}
 .trim2-yellow{--u:var(--yellow);--u-hi:var(--yellow-hi);--u-glow:var(--glow-yellow)}
@@ -20,6 +21,7 @@
 .trim2-green{--u:var(--green);--u-hi:var(--green-hi);--u-glow:var(--glow-green)}
 .trim2-red{--u:var(--red);--u-hi:var(--red-hi);--u-glow:var(--glow-red)}
 .trim2-white{--u:var(--white);--u-hi:var(--white-hi);--u-glow:var(--glow-white)}
+.trim2-blue{--u:var(--blue);--u-hi:var(--blue-hi);--u-glow:var(--glow-blue)}
 
 /* ---------- the cabinet ---------- */
 .cab{position:relative;width:100%;aspect-ratio:1/2;font-size:calc(var(--cab-w,300px) / 18.75);line-height:1.15;color:var(--text-hi)}
@@ -55,6 +57,10 @@
 .s-dial{fill:var(--cab-panel);stroke:var(--cab-metal);stroke-width:2.5}
 .s-spoke{stroke:var(--cab-metal);stroke-width:5;stroke-linecap:round}
 .s-lantern{stroke:var(--temple-wood);stroke-width:1.5}
+.s-ball2{fill:var(--t)}
+.s-side1{fill:var(--u);opacity:.2} .s-side2{fill:var(--t);opacity:.2}
+.s-seam{fill:none;stroke:var(--yellow-hi);stroke-width:3;stroke-linejoin:round}
+.s-plabel{font-family:var(--display);font-size:13px} .s-p1{fill:var(--u-hi)} .s-p2{fill:var(--t-hi)}
 
 /* ---------- marquees (also used alone at the top of Select Player) ---------- */
 .cab-mq{position:absolute;display:flex}
@@ -92,6 +98,14 @@
   linear-gradient(180deg,var(--cab-panel),var(--deep));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:inset 0 -.14em 0 var(--u),var(--t-glow)}
 .mq-heist .mq-name{font-size:1.5em;letter-spacing:.06em;text-shadow:var(--t-glow)}
 .mq-heist .mq-kicker{color:var(--u-hi)}
+
+/* versus: a split blue/red sign with slanted, outlined fighting-game letters */
+.mq-versus{background:linear-gradient(100deg,var(--u) 0 49%,var(--yellow-hi) 49% 51%,var(--t) 51%);color:var(--yellow);border:.12em solid var(--t-hi);border-radius:.2em;
+  box-shadow:inset 0 0 0 .18em var(--deep),var(--t-glow);padding:.2em .2em}
+.mq-versus .mq-text{background:rgba(6,4,13,.72);border-radius:.2em;padding:.12em .3em .2em}
+.mq-versus .mq-name{font-size:1.32em;font-style:italic;letter-spacing:.01em;transform:skewX(-12deg);-webkit-text-stroke:.05em var(--deep);
+  text-shadow:.05em .08em 0 var(--red-ink),0 0 .35em var(--t)}
+.mq-versus .mq-kicker{color:var(--white-hi);letter-spacing:.3em}
 
 /* ---------- screen ---------- */
 .cab-screen{position:absolute;overflow:hidden;border-radius:.5em;background:var(--deep);box-shadow:0 0 0 .12em var(--deep),0 0 .8em var(--u)}
@@ -136,6 +150,23 @@
 .attract .att-zap{animation:att-zap 1s steps(1) infinite}
 @keyframes att-march{0%{transform:translateX(212px);opacity:1}88%{transform:translateX(80px);opacity:1}100%{transform:translateX(68px);opacity:0}}
 @keyframes att-zap{0%{opacity:0}80%{opacity:1}}
+/* Button Masher: two fighters, input icons light up one by one, then a blast */
+.scr-versus{background:linear-gradient(180deg,var(--deep),var(--floor-3))}
+.scr-versus svg{width:100%;height:auto}
+.scr-versus .vs-bar{fill:var(--floor-3)}
+.scr-versus .vs-hp1{fill:var(--u)} .scr-versus .vs-hp2{fill:var(--t)}
+.scr-versus .vs-vs{font:400 10px var(--display);fill:var(--yellow)}
+.scr-versus .vs-floor{stroke:var(--u);stroke-width:1.5}
+.scr-versus .vs-p1{fill:var(--u-hi)} .scr-versus .vs-p2{fill:var(--t-hi)}
+.scr-versus .vs-limb{fill:none;stroke-width:4;stroke-linecap:round}
+.scr-versus .vs-p1 .vs-limb{stroke:var(--u-hi)} .scr-versus .vs-p2 .vs-limb{stroke:var(--t-hi)}
+.scr-versus .vs-blast{fill:var(--white-hi);stroke:var(--u);stroke-width:3;opacity:0}
+.scr-versus .vs-key circle{fill:var(--yellow)} .scr-versus .vs-key text{font:400 8px var(--display);fill:var(--deep)}
+.cab:not(.attract) .scr-versus .vs-blast{opacity:1;transform:translateX(40px)}
+.attract .scr-versus .vs-key{animation:vs-key 2.4s steps(1) both}
+.attract .scr-versus .vs-blast{animation:vs-blast 2.4s ease-in forwards}
+@keyframes vs-key{0%{opacity:0}10%,100%{opacity:1}}
+@keyframes vs-blast{0%,55%{opacity:0;transform:none}60%{opacity:1;transform:none}90%{opacity:1;transform:translateX(62px)}100%{opacity:0;transform:translateX(62px)}}
 /* default screen: the game's name and a blinking PRESS START */
 /* Note Ninja: paper scroll screen, the right letter lights, then a slash */
 .scr-ninja{background:var(--dojo-paper)}
