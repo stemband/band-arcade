@@ -23,6 +23,8 @@
        while a game listens to the microphone (Arcade.Sfx.sync() after listening starts/stops) and pause while the tab
        is hidden (the AudioContext is suspended, so they carry on where they were).
      Arcade.Sfx.preloadMusic([names])  fetch the likely next tracks now (Arcade Quest: the foyer, the manor, battle)
+     A music file is never remembered as missing (a 404 is asked again past the browser's cache), so a track uploaded
+     after a browser once got "404" for it still plays. ?debug on any page shows the MUSIC LOG (console + a box).
    THE MICROPHONE: a sound played while a game is listening (Arcade.Pitch.listening()) makes the detector ignore
    everything for the sound's length + ECHO_MS (Arcade.Pitch.suppress), and games pause their timers meanwhile
    (Arcade.Pitch.isSuppressed). Sounds marked mic: false in sounds.js never play while listening.
@@ -48,7 +50,7 @@ window.Arcade = window.Arcade || {};
   const entry = name => A.Sounds ? A.Sounds.get(name) : null;
 
   /* ---------- unlock on the first tap / key press ---------- */
-  function unlock() {
+  function unlock(e) {
     if (!AC) return;
     try {
       if (!ctx) {
@@ -58,20 +60,54 @@ window.Arcade = window.Arcade || {};
         master = ctx.createGain(); master.gain.value = GEN_LEVEL; master.connect(fxBus);    // the generated sounds
         Object.values(CH).forEach(c => { c.bus = ctx.createGain(); c.bus.connect(ctx.destination); });
         applySettings();
+        // the audio can stop again (iPad: another app, a call, the tab in the background, a resume refused without a
+        // tap): then the next tap/key unlocks it again, and the music carries on
+        ctx.onstatechange = () => { mdbg('audio ' + ctx.state); if (ctx.state === 'running') unlocked(); else if (ctx.state !== 'closed') arm(true); };
+        mdbg('audio unlocking (' + (e && e.type || 'tap') + ')');
       }
       if (ctx.state !== 'running') ctx.resume().then(unlocked, () => {}); else unlocked();
     } catch (e) { /* no sound on this browser; everything else still works */ }
   }
+  let wasUnlocked = false;
   function unlocked() {
     if (ctx.state !== 'running') return;
-    UNLOCK_EVENTS.forEach(t => removeEventListener(t, unlock, true));
-    applyAll();
-    early.forEach(f => { if (!files[f]) load(f); });     // decode the music fetched before this tap, so it's ready
+    arm(false);
+    applyAll();                                           // the wanted track loads (and starts) first
+    if (wasUnlocked) return;
+    wasUnlocked = true;
+    mdbg('audio unlocked');
     preload();
+    // then the other music fetched before this tap is decoded, ONE file at a time after the wanted one: a slow iPad
+    // decoding four big files at once would keep the wanted one waiting
+    const wantedNow = Object.values(CH).map(c => c.want && files[fileOf(c.want.events[0])]).filter(r => r && r.p).map(r => r.p);
+    Promise.all(wantedNow).then(() => [...early].reduce((p, f) => p.then(() => files[f] ? null : load(f)), Promise.resolve()));
   }
   // pointerdown/keydown are the first chance; touchend/click are backups for older iPads that only unlock on those
   const UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchend', 'click'];
-  UNLOCK_EVENTS.forEach(t => addEventListener(t, unlock, true));
+  const arm = on => UNLOCK_EVENTS.forEach(t => (on ? addEventListener : removeEventListener)(t, unlock, true));
+  arm(true);
+
+  /* ?debug: a log of what the music manager does (the track asked for, every URL tried, what loaded, start/stop),
+     in the console and in a small box on the page (for iPads, which have no console) */
+  const DEBUG = /[?&]debug(=|&|$)/.test(location.search);
+  const musicLog = [];
+  let logBox = null;
+  function mdbg(msg) {
+    if (!DEBUG) return;
+    const line = (performance.now() / 1000).toFixed(2) + ' s  ' + msg;
+    musicLog.push(line); if (musicLog.length > 60) musicLog.shift();
+    console.log('[music] ' + msg);
+    if (!document.body) return;
+    if (!logBox) {
+      logBox = document.createElement('pre');
+      logBox.setAttribute('aria-hidden', 'true');
+      logBox.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9999;max-width:min(96vw,560px);max-height:40vh;overflow:hidden;margin:0;' +
+        'padding:6px 8px;font:11px/1.35 ui-monospace,monospace;white-space:pre-wrap;pointer-events:none;border-radius:6px;' +
+        'background:var(--deep,black);color:var(--text-hi,white);border:1px solid var(--cyan,white);opacity:.9';
+      document.body.appendChild(logBox);
+    }
+    logBox.textContent = 'MUSIC (?debug)\n' + musicLog.slice(-14).join('\n');
+  }
 
   /* true once this page has had a tap. A context made by that same tap may still be starting
      ("suspended"); sounds scheduled now play as soon as it runs, so the first tap still clicks. */
@@ -247,6 +283,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- sound files ---------- */
   const MISS_KEY = 'bandarcade.snd-miss', miss = new Set();
   try { JSON.parse(sessionStorage.getItem(MISS_KEY) || '[]').forEach(u => miss.add(u)); } catch (e) {}
+  const retries = {};          // music file -> tries after network errors
   const files = {};            // file name -> {state: 'loading' | 'ok' | 'missing', buf | el, ext, dur, loopStart, loopEnd}
   const decode = ab => new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
   const loadEl = url => new Promise((res, rej) => {
@@ -267,35 +304,51 @@ window.Arcade = window.Arcade || {};
     if (!file || !BASE) return Promise.resolve({state: 'missing'});
     if (files[file] && !bust && !(fresh && files[file].state === 'missing')) return files[file].p;
     const rec = files[file] = {state: 'loading', file};
+    // MUSIC (a loop file) is never skipped because of an earlier miss, and a 404 is asked again past the browser's
+    // cache: a file uploaded after this browser once got "404" for it (GitHub Pages lets browsers keep a 404 for 10
+    // minutes) must still play. Effects have a built-in sound to fall back on; music would just be silent.
+    const music = loops(file);
     rec.p = (async () => {
-      let asked = false;
+      let asked = false, transient = false;
       for (const ext of ['m4a', 'mp3']) {
         const base = BASE + file + '.' + ext + '?v=' + VERSION();
         const url = bust ? base + '&t=' + Date.now() : base;
-        if (!fresh && !bust && miss.has(base)) continue;
+        if (!fresh && !bust && !music && miss.has(base)) continue;
         asked = true;
         try {
           if (FILE_MODE || !ctx) {
             const el = await loadEl(url);
             Object.assign(rec, {state: 'ok', el, ext, url, dur: el.duration || 0.5});
           } else {
-            const r = await fetch(url, bust ? {cache: 'reload'} : undefined);
-            if (!r.ok) throw new Error(r.status);
+            let r = await fetch(url, bust ? {cache: 'reload'} : undefined);
+            if (!r.ok && music && !bust) { if (wanted(file)) mdbg(`${file}.${ext}: ${r.status}, asking the server again`); r = await fetch(url, {cache: 'no-cache'}); }
+            if (!r.ok) throw Object.assign(new Error(r.status), {status: r.status});
             const ab = await r.arrayBuffer(); rec.bytes = ab.byteLength;
-            let buf = await decode(ab);
+            if (music && wanted(file)) mdbg(`${file}.${ext}: downloaded ${(ab.byteLength / 1048576).toFixed(1)} MB, decoding`);
+            let buf;
+            try { buf = await decode(ab); } catch (x) { throw Object.assign(new Error('decode'), {status: 'could not decode'}); }
             const pts = loopPoints(buf);
             if (loops(file)) buf = crossfaded(buf, pts);                     // a loop: bake a seamless wrap into the buffer
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
+          if (music) mdbg(`${file}.${ext}: loaded (${rec.dur.toFixed(1)} s)`);
           if (wanted(file)) setTimeout(applyAll, 0);         // a music file just loaded: the manager starts it now
           return rec;
         } catch (e) {
+          const gone = e.status === 404 || e.status === 410 || e.status === 'could not decode';
+          if (music) mdbg(`${file}.${ext}: ${e.status || 'network error'}`);
+          if (!gone) { transient = true; continue; }         // a Wi-Fi hiccup is never remembered as "missing"
+          if (music) continue;                               // music: never remembered (see above)
           miss.add(base);
           try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss])); } catch (x) {}
         }
       }
       rec.state = 'missing';
+      if (music) mdbg(`${file}: no .m4a or .mp3 could play`);
+      // music that failed on a bad connection: try again in a few seconds while it's still wanted (3 tries)
+      if (music && transient && !bust && (retries[file] = (retries[file] || 0) + 1) <= 3)
+        setTimeout(() => { if (files[file] === rec && wanted(file)) { delete files[file]; applyAll(); } }, 4000 * retries[file]);
       if (wanted(file)) setTimeout(applyAll, 0);           // it won't come: the manager falls back (a lesser file, built-in, or nothing)
       if (asked) console.info(`Band Arcade sound: no shared/sounds/${file}.m4a or ${file}.mp3 (or it would not play); using the built-in sound.`);
       return rec;
@@ -415,15 +468,24 @@ window.Arcade = window.Arcade || {};
   /* before the first tap there is no AudioContext to decode with, so the wanted files are fetched early (they sit in
      the browser's cache) and decoded the moment the audio unlocks */
   const early = new Set();
-  function fetchEarly(file) {
-    if (!file || FILE_MODE || !BASE || early.has(file) || files[file]) return;
+  let fetchQ = [], fetching = false;
+  function fetchEarly(file, first = false) {
+    if (!file || FILE_MODE || !BASE || files[file]) return;
+    if (ctx) { if (first || ctx.state === 'running') load(file); else early.add(file); return; }
+    if (early.has(file)) { if (first && fetchQ.includes(file)) fetchQ = [file].concat(fetchQ.filter(f => f !== file)); return; }
     early.add(file);
-    if (ctx) { load(file); return; }
-    (async () => { for (const ext of ['m4a', 'mp3']) {
+    if (first) fetchQ.unshift(file); else fetchQ.push(file);   // the wanted track downloads first, one file at a time
+    if (!fetching) nextFetch();
+  }
+  async function nextFetch() {
+    const file = fetchQ.shift();
+    if (!file) { fetching = false; return; }
+    fetching = true;
+    if (!files[file]) for (const ext of ['m4a', 'mp3']) {
       const url = BASE + file + '.' + ext + '?v=' + VERSION();
-      if (miss.has(url)) continue;
-      try { const r = await fetch(url); if (r.ok) { await r.arrayBuffer(); return; } } catch (e) { /* offline: load() tries again later */ }
-    } })();
+      try { const r = await fetch(url); if (r.ok) { await r.arrayBuffer(); break; } } catch (e) { /* offline: load() tries again later */ }
+    }
+    nextFetch();
   }
   function loopBuffer(c, buf, from, to, level, fadeIn) {
     const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
@@ -435,6 +497,7 @@ window.Arcade = window.Arcade || {};
   function fadeOut(c, secs = XF) {
     if (!c.cur) return;
     const a = c.cur; c.cur = null;
+    mdbg(`${c.name}: stop ${a.gen ? 'the built-in loop' : a.file}`);
     if (a.el) { a.el.pause(); return; }
     if (!a.out) return;
     const t = ctx.currentTime;
@@ -447,15 +510,19 @@ window.Arcade = window.Arcade || {};
     const level = e.vol == null ? 0.6 : e.vol;
     if (rec.el) {                                         // a double-clicked page: an <audio> loop
       const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
-      c.cur = {el, level, file: rec.file}; return;
+      c.cur = {el, level, file: rec.file}; mdbg(`${c.name}: START ${rec.file}.${rec.ext} (<audio>)`); return;
     }
     c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, FADE_IN), {file: rec.file});
+    c.why = ''; mdbg(`${c.name}: START ${rec.file}.${rec.ext}`);
   }
   /** make channel c sound the way the page wants it */
   function apply(c) {
-    if (!ctx || ctx.state !== 'running') return;          // not unlocked yet: the first tap calls applyAll()
+    if (!ctx || ctx.state !== 'running') { if (c.want) why(c, 'waiting for the first tap to unlock the audio'); return; }   // the first tap calls applyAll()
     const w = c.want;
-    if (!w || !store.sfx || vol(c.key) <= 0 || listening()) { fadeOut(c); return; }
+    if (!w || !store.sfx || vol(c.key) <= 0 || listening()) {
+      if (w) why(c, !store.sfx ? 'sound is off' : vol(c.key) <= 0 ? c.name + ' slider at 0' : 'quiet while the mic listens');
+      fadeOut(c); return;
+    }
     let pick = null, waiting = false;
     for (const n of w.events) {                           // the best file that exists (wait while a better one loads)
       const e = entry(n), f = e && e.file;
@@ -469,20 +536,23 @@ window.Arcade = window.Arcade || {};
       if (c.cur && !c.cur.gen && c.cur.file === pick.rec.file) return;        // already playing it: never restart
       fadeOut(c); startFile(c, pick.rec, pick.e); return;                       // a new track: crossfade
     }
-    if (waiting) return;                                  // it starts the moment its file has loaded
-    if (!w.builtIn) { fadeOut(c); return; }               // file-only music (Arcade Quest) and no file: silence
+    if (waiting) { why(c, 'waiting for the file to load'); return; }   // it starts the moment its file has loaded
+    if (!w.builtIn) { why(c, 'no file for ' + w.events.join(' / ') + ': silence'); fadeOut(c); return; }   // file-only music (Arcade Quest) and no file: silence
     if (c.cur && c.cur.gen) return;                       // the built-in version is already playing
     fadeOut(c);
     const g = c.gen(c);
     if (g) c.cur = g;
   }
   function applyAll() { Object.values(CH).forEach(apply); }
+  function why(c, text) { if (c.why !== text) { c.why = text; mdbg(c.name + ': ' + text); } }
   function want(c, names, {builtIn = false} = {}) {
     const events = [].concat(names || []).filter(Boolean);
     const id = events.length ? events.join('|') + (builtIn ? '+' : '') : null;
     if (id === (c.want ? c.want.id : null)) return;       // the same track again: nothing changes
     c.want = id ? {id, events, builtIn} : null;
-    events.forEach(n => fetchEarly(fileOf(n)));
+    c.why = '';
+    mdbg(`${c.name}: wanted ${id ? events.join(' or ') + (builtIn ? ' (else the built-in one)' : '') : 'nothing'}`);
+    events.forEach(n => fetchEarly(fileOf(n), true));
     apply(c); refreshAll();
   }
   // a hidden tab pauses every sound where it is (the context is suspended) and carries on when it's visible again
@@ -671,6 +741,8 @@ window.Arcade = window.Arcade || {};
     musicState: () => Object.fromEntries(Object.values(CH).map(c => [c.name, {want: c.want ? c.want.events.join('|') : null, builtIn: !!(c.want && c.want.builtIn),
       playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null}])).valueOf(),
     get unlocked() { return !!ctx && ctx.state === 'running'; },
+    /** ?debug: the music log (also shown on the page) */
+    musicLog,
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */

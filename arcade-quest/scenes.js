@@ -2,7 +2,8 @@
    TITLE: "ARCADE QUEST: THE MYSTERIOUS MICROPHONE" over the microphone's 8-bit silhouette in static.
    CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (the intro cutscene, then Episode 1 from
    the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, and TEST
-   ARENA (only with ?demo or ?test). The title music is quest-title.
+   ARENA (only with ?demo or ?test). The title music is quest-title. While the audio is still locked (the first visit
+   of this page load), the menu waits behind PRESS START, so the first tap starts the music instead of a new game.
    TEST ARENA (index.html?test, or TEST ARENA on the title): pick any test enemy (one per challenge type) and fight it
    with your instrument. The card shows the challenge YOUR instrument gets (the Snare Drum: ARTICULATE or VOCAB).
    Your HP refills every time you come back to the arena. RESET SAVE starts the save slot over. */
@@ -41,7 +42,21 @@
           }
         }});
       };
-      menu();
+      // PRESS START while the audio is still locked: browsers allow sound only after a tap, so the first tap on this
+      // page starts the title music (shared/sfx.js unlocks on that same tap) instead of leaving the title at once
+      if (A.Sfx && !A.Sfx.unlocked) {
+        const box = Q.$('qTitleMenu');
+        box.innerHTML = `<button type="button" class="q-btn q-press" id="qPress">Press start<small>${Q.input.touch ? 'Tap anywhere' : 'Press any key'}</small></button>`;
+        // any click/tap (it ends with a click), any key or the on-screen pad; the menu appears just AFTER that gesture,
+        // so the same tap can't also press a menu button that appears under the finger
+        const done = () => { off(); document.removeEventListener('click', go, true); document.removeEventListener('keydown', key, true); };
+        const go = () => { done(); setTimeout(() => { if (Q.$('qPress')) { box.innerHTML = ''; menu(); } }, 0); };
+        const key = e => { if (!/^(Shift|Control|Alt|Meta|Tab)$/.test(e.key)) go(); };
+        const off = Q.input.on(() => { go(); return true; });
+        document.addEventListener('click', go, true);
+        document.addEventListener('keydown', key, true);
+        Q.$('qPress').focus({preventScroll: true});
+      } else menu();
     },
     exit() { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(null); },
     draw(ctx, now) {

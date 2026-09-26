@@ -23,7 +23,7 @@ sound for that moment, so nothing ever goes silent and students never see an err
 ## Caching: SOUNDS_VERSION
 
 Browsers keep a saved copy of each sound so games start fast (GitHub Pages lets them keep files for about 10
-minutes, and a tab also remembers a missing file until it closes). That's why a replaced sound can keep playing
+minutes, and a tab also remembers a missing sound effect until it closes; music is always checked again). That's why a replaced sound can keep playing
 the old version for a while. Every sound's address ends in `?v=<SOUNDS_VERSION>`, so when you add 1 to that
 number, the files count as new and every device downloads them the next time it loads the page; after that they're
 saved again, so students keep fast sounds. You don't need to bump it for a brand-new sound that nobody has heard
@@ -37,8 +37,14 @@ Tips:
 - Keep files short and small (under about 100 KB each; the ambience and music loops under about 1 MB). Students load them on
   school Wi-Fi, and each page only loads its own sounds, after the first tap.
 - Trim silence at the start, so the sound plays the moment it happens.
-- A browser remembers a missing file for the rest of that tab. If you just uploaded one, open a new tab, or bump
-  `SOUNDS_VERSION` (the Sound Board always checks again).
+- A browser remembers a missing sound EFFECT for the rest of that tab. If you just uploaded one, open a new tab, or bump
+  `SOUNDS_VERSION` (the Sound Board always checks again). Music (the loops) is never remembered as missing: a
+  newly uploaded music file plays on the next page load.
+- **Music not playing?** Add `?debug` to the page's address (for example `arcade-quest/index.html?debug`): a small
+  MUSIC box on the page lists the track the page wants, every file it tried (404 = not there), when it loaded and
+  when it started or stopped.
+- Keep music files around 128 kbps. A 320 kbps file is about 2.5× bigger, so it takes longer to download on school
+  Wi-Fi and to get ready on an iPad.
 - Each sound's loudness can be adjusted without re-recording: change its `vol` (0–1) in `shared/sounds.js`.
 - Students set their own SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE volumes with the speaker button in every top bar.
 - Opening a page by double-clicking it (a local file) still plays your files, through the browser's plain audio

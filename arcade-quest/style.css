@@ -201,6 +201,8 @@ body.q-touch .q-menu-btn{display:block}
 .q-stars th{color:var(--q-gold);text-align:left;font-weight:700}
 .q-stars td,.q-stars th{padding:calc(var(--px) * .5) calc(var(--px) * 2);border-bottom:calc(var(--px) * .5) solid var(--q-grey-d)}
 .q-stars td+td,.q-stars th+th{text-align:right}
+.q-press{grid-column:1/-1;justify-self:center;min-width:calc(var(--px) * 110);font-size:calc(var(--px) * 10);animation:q-blink 1.1s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){.q-press{animation:none}}
 .q-ep{margin:0;color:var(--q-pink);font-size:calc(var(--px) * 8);text-align:center}
 @media (prefers-reduced-motion:reduce){.q-area{transition:none}}
 
