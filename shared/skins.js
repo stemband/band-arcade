@@ -12,7 +12,8 @@
                 backdrop  'horizon' (synthwave sun + stripes) | 'galaxy' (stars + nebula)        drawn in CSS
                 aura      'flame' (fire around the instrument)                                  drawn in SVG below
                 fx        'sparkle' | 'sweep' (a band of light) | 'shimmer' (prismatic) | 'animatronic' (metal sheen + bolts)
-                          | 'nightmare' (cracked chrome + a few loose wires)
+                          | 'nightmare' (cracked chrome + a few loose wires) | 'stripes' (two racing stripes down the art)
+                stripes   true: Sustain Speedway's car gets racing stripes too
                 eyes      true: a pair of glowing eyes on the instrument's "face" (ANCHORS), in the skin's second color;
                           'flicker': one red, one blue, swapping slowly on the big portrait (still under reduced motion)
                 pixel     true: the art is redrawn pixelated with a chunky 8-bit frame
@@ -28,6 +29,8 @@
                                           + suffix: only progress keys ending in it (':extra' = Showtime
                                           Malfunction's EXTRA SPOOKY difficulty)
      {game, badge: true, text}            achievement: any Ancient Ninja Scrolls TEST READY badge
+     {game, achievement: 'id', text}      achievement: store.gameData(game).achievements[id] is true (the game sets it;
+                                          Sustain Speedway: 'virtuoso-win' = won any track on Virtuoso)
    A rule for a game that isn't in shared/games.js is skipped (the skin stays locked, with its text shown).
    DRAWN VARIANTS: shared/portraits/<file>--<skin id>.png (and <file>-full--<skin id>.png) replace the effect
    version for that instrument (see shared/portraits/README.md).
@@ -52,6 +55,8 @@ window.Arcade = window.Arcade || {};
                                                                                   look: {colors: ['anim-metal', 'anim-eye-good'], fx: 'animatronic', eyes: true}},
     {id: 'nightmare', kind: 'color', name: 'Nightmare Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, suffix: ':extra', text: 'Clear The Midnight Encore on EXTRA SPOOKY in Showtime Malfunction'},
                                                                                   look: {colors: ['anim-chrome', 'anim-eye-bad'], fx: 'nightmare', eyes: 'flicker'}},
+    {id: 'stripes', kind: 'color', name: 'Racing Stripes', unlock: {game: 'sustain-speedway', level: 8, stars: 3, text: 'Win The Grand Prix in Sustain Speedway'},
+                                                                                  look: {colors: ['pink', 'amber'], fx: 'stripes', stripes: true}},
     {id: 'ghostly', kind: 'color', name: 'Ghostly',      unlock: {game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'},
                                                                                   look: {colors: ['cyan', 'purple'], ghost: true}},
     // ---- accessories (combine with any color skin) ---------------------------------------------------------
@@ -60,6 +65,7 @@ window.Arcade = window.Arcade || {};
     {id: 'visor',    kind: 'acc', name: 'Visor',      unlock: {stars: 500}, art: 'face'},
     {id: 'crown',    kind: 'acc', name: 'Crown',      unlock: {game: 'button-masher', level: 8, stars: 1, text: 'Defeat The Conductor in Button Masher'}, art: 'head'},
     {id: 'cape',     kind: 'acc', name: 'Cape',       unlock: {game: 'neon-face-off', level: 8, stars: 1, text: 'Beat The Champ in Neon Face-Off (1 player vs CPU)'}, art: 'back'},
+    {id: 'helmet',   kind: 'acc', name: 'Helmet',     unlock: {game: 'sustain-speedway', achievement: 'virtuoso-win', text: 'Win any track on Virtuoso in Sustain Speedway'}, art: 'head'},
     {id: 'mask',     kind: 'acc', name: 'Ninja Mask', unlock: {game: 'ancient-ninja-scrolls', badge: true, text: 'Earn a TEST READY badge in Ancient Ninja Scrolls'}, art: 'face'},
   ];
 
@@ -115,6 +121,12 @@ window.Arcade = window.Arcade || {};
       '<circle cx="32" cy="48.5" r="2.6" fill="var(--ink)"/><circle cx="68" cy="48.5" r="2.6" fill="var(--ink)"/>' +
       '<path d="M98 42Q110 44 116 56M98 50Q106 58 104 70" stroke="var(--deep)" stroke-width="6" stroke-linecap="round" fill="none"/>' +
       '<path d="M98 42Q110 44 116 56M98 50Q106 58 104 70" stroke="var(--purple)" stroke-width="1.6" stroke-linecap="round" fill="none"/>'},
+    // a racing helmet (original): a rounded shell with a visor and a center stripe, sitting on the head anchor
+    helmet: {vb: '0 0 100 72', svg:
+      '<path d="M8 66Q4 18 50 6Q96 18 92 66Z" fill="var(--pink)" stroke="var(--pink-hi)" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M44 7Q50 5 56 7L58 66H42Z" fill="var(--amber-hi)" opacity=".9"/>' +
+      '<path d="M14 50Q50 34 86 50L84 62Q50 52 16 62Z" fill="var(--deep)" stroke="var(--cyan)" stroke-width="2.4"/>' +
+      '<path d="M22 50Q50 40 78 50" stroke="var(--cyan-hi)" stroke-width="2" fill="none" opacity=".8"/>'},
     crown: {vb: '0 0 100 64', svg:
       '<path d="M8 60L3 16L28 36L50 5L72 36L97 16L92 60Z" fill="var(--yellow)" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round"/>' +
       '<path d="M10 50H90" stroke="var(--amber)" stroke-width="3"/>' +
@@ -151,7 +163,7 @@ window.Arcade = window.Arcade || {};
   const SPARKS = [[18, 22, .9], [82, 18, .7], [88, 62, 1], [12, 70, .75], [50, 8, .6], [64, 88, .8], [30, 46, .5]];
   const FX = {
     sparkle: `<svg class="sk-sparks" viewBox="0 0 100 100" aria-hidden="true">${SPARKS.map(([x, y, s], i) => `<g style="--i:${i}">${star4(x, y, s, 'sk-spark')}</g>`).join('')}</svg>`,
-    sweep: '', shimmer: '',
+    sweep: '', shimmer: '', stripes: '',
     animatronic: '',
     // cracks across the chrome (inside the masked layer, so they only show on the art)
     nightmare: `<svg class="sk-cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">` +
@@ -180,6 +192,7 @@ window.Arcade = window.Arcade || {};
     if (milestone(s)) return !!member && st().allStars(member) >= u.stars;
     if (!u.game || !hasGame(u.game)) return false;
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
+    if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
     if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
     return false;
   }

@@ -1,0 +1,160 @@
+/* Sustain Speedway: a neon synthwave racetrack. The road is a canvas (game.js); the HUD is plain HTML/SVG on top.
+   Colors are theme tokens (the canvas reads the --sw-* ones). prefers-reduced-motion: no pulses, no speed lines, no shake. */
+.speedway{--sw-hot:var(--pink);--sw-warm:var(--amber)}
+.hub-head{margin-bottom:14px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95;font-style:italic;transform:skewX(-6deg);transform-origin:left}
+.game-title .t1{color:var(--amber-hi);text-shadow:var(--glow-amber)}
+.game-title .t2{color:var(--pink-hi);text-shadow:var(--glow-pink)}
+.hub-head p{max-width:66ch;margin:10px 0 12px}
+.diff-set{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+#diffBtns{display:flex;gap:6px;flex-wrap:wrap}
+.seg{min-height:44px;min-width:92px;padding:6px 14px;border-radius:12px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);font-family:var(--display);font-size:15px;text-transform:uppercase}
+.seg[aria-pressed="true"]{border-color:var(--pink);color:var(--pink-hi);box-shadow:var(--glow-pink)}
+.diff-say{font-size:14px;color:var(--text-lo)}
+
+/* the track cards */
+.tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.tracks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.trk{display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px;min-height:170px;border-radius:16px;color:var(--text-hi);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--sc,var(--pink)) 16%,var(--floor-2)),var(--floor-2) 45%);border:2px solid var(--floor-3);border-top:3px solid var(--sc,var(--pink))}
+.trk:hover:not([disabled]){border-color:var(--sc,var(--pink))}
+.trk[disabled]{opacity:.45;cursor:not-allowed}
+.trk .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--text-lo)}
+.trk .t{font-family:var(--display);font-weight:400;font-size:18px;line-height:1.1;text-transform:uppercase}
+.trk .d{font-size:13px;color:var(--text-lo);line-height:1.35}
+.trk .facts{font-size:12.5px;font-weight:700;color:var(--amber-hi)}
+.trk .foot{margin-top:auto;display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:12.5px;color:var(--text-lo);font-variant-numeric:tabular-nums}
+.sc-city{--sc:var(--pink)}.sc-river{--sc:var(--cyan)}.sc-sunset{--sc:var(--amber)}.sc-harbor{--sc:var(--blue)}.sc-mountain{--sc:var(--purple)}.sc-desert{--sc:var(--yellow)}.sc-grandprix{--sc:var(--red)}
+.demo-help{margin-top:12px;font-size:14px;color:var(--text-lo)}
+
+/* ---------- the race ---------- */
+.racing .wrap{max-width:1180px}
+.stage{position:relative;height:clamp(230px,calc(100dvh - 318px),640px);border-radius:18px;overflow:hidden;background:var(--sw-ground);border:2px solid var(--pink-ink);box-shadow:0 0 18px color-mix(in srgb,var(--pink) 30%,transparent)}
+#road{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hud-top{position:absolute;left:8px;right:8px;top:8px;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+.hud-box{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;background:color-mix(in srgb,var(--deep) 78%,transparent);border:1px solid var(--pink-ink);
+  font-variant-numeric:tabular-nums;line-height:1.05}
+.hud-box small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.hud-box b{display:block;font-family:var(--display);font-weight:400;font-size:clamp(18px,2.6vw,28px);color:var(--amber-hi);text-shadow:var(--glow-amber)}
+.who-pic{display:grid;place-items:center;width:clamp(38px,5vw,54px);flex:none}
+.who-pic .pt-box{width:100%}
+/* the target note: a light "screen" so the notation stays crisp */
+.note-card{margin-left:auto;display:grid;justify-items:center;gap:0;padding:4px 8px 6px;border-radius:12px;background:var(--screen);color:var(--ink);border:2px solid var(--cyan);
+  box-shadow:var(--glow-cyan);width:clamp(140px,19vw,210px);position:relative}
+.note-card small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-2)}
+.note-staff{width:100%}
+.note-staff svg{display:block;width:100%;height:auto}
+.note-name{font-family:var(--display);font-weight:400;font-size:clamp(18px,2.4vw,26px);line-height:1}
+.note-flash{position:absolute;inset:auto 4px -30px;padding:3px 6px;border-radius:8px;text-align:center;font-weight:700;font-size:14px;background:var(--red);color:var(--white-hi);opacity:0}
+.note-card.flash{border-color:var(--red);box-shadow:var(--glow-red)}
+.note-card.flash .note-flash{opacity:1}
+.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) skewX(-8deg);margin:0;white-space:nowrap;font-family:var(--display);font-style:italic;
+  font-size:clamp(34px,min(8vw,10vh),84px);color:var(--yellow);-webkit-text-stroke:2px var(--red-ink);text-shadow:0 4px 0 var(--red-ink),var(--glow-yellow);pointer-events:none}
+.banner.b-zone{color:var(--sw-nitro);-webkit-text-stroke-color:var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-cyan)}
+.banner.b-lap{font-size:clamp(22px,min(5vw,6vh),48px)}
+.banner.b-finish{color:var(--white-hi)}
+/* the pit stop */
+.pit{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--deep) 72%,transparent);padding:10px}
+.pit-card{display:grid;justify-items:center;gap:2px;text-align:center;padding:10px 18px 12px;border-radius:18px;background:var(--floor-2);border:2px solid var(--amber);box-shadow:var(--glow-amber);max-width:min(420px,94%)}
+.pit-card p{margin:0}
+.pit-title{font-family:var(--display);font-size:clamp(22px,3vw,30px);text-transform:uppercase;color:var(--amber-hi);letter-spacing:.06em}
+.breath{width:56px;height:56px;display:grid;place-items:center}
+.breath .ring{width:100%;height:100%;border-radius:50%;border:4px solid var(--cyan);box-shadow:var(--glow-cyan)}
+.coach{font-family:var(--display);font-size:clamp(22px,3.4vw,34px);color:var(--cyan-hi)}
+.pit-next{font-size:14px;color:var(--text-lo)}
+.pit-next b{color:var(--text-hi)}
+.note-staff.big{width:min(260px,70vw);background:var(--screen);border-radius:10px;padding:0 6px}
+.pit-name{font-family:var(--display);font-size:24px;color:var(--text-hi)}
+.pit-tip{font-size:13.5px;color:var(--text-lo);max-width:32ch}
+
+/* the dashboard under the road */
+.dash{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:12px 18px;align-items:center;margin-top:10px}
+.gauge{position:relative;background:var(--floor-2);border:2px solid var(--floor-3);border-radius:18px;padding:4px 8px 6px}
+.gauge svg{display:block;width:100%;height:auto;overflow:visible;max-height:min(24vh,190px)}
+.g-track{fill:none;stroke:var(--floor-3);stroke-width:14}
+.g-warm{fill:none;stroke:var(--amber);stroke-width:14;opacity:.35}
+.g-zone{fill:none;stroke:var(--green);stroke-width:14;filter:none;opacity:.95}
+.g-nitro{fill:none;stroke:var(--sw-nitro);stroke-width:6}
+.g-speed-bg{fill:none;stroke:var(--deep);stroke-width:12}
+.g-speed{fill:none;stroke:var(--pink);stroke-width:12;stroke-linecap:round}
+.g-tick{stroke:var(--text-lo);stroke-width:2}.g-tick.big{stroke:var(--text-hi);stroke-width:3}
+.g-lbl{fill:var(--text-lo);font:700 11px var(--text);letter-spacing:.04em}
+.g-lbl.mid{fill:var(--green-hi);font-size:12px}
+.g-needle{fill:var(--yellow);transition:transform .08s linear}
+.g-needle.off{opacity:.25}
+.cents{margin:-4px 0 0;text-align:center;font-family:var(--display);font-size:clamp(16px,2vw,22px);color:var(--text-lo)}
+.cents.good{color:var(--green-hi)}.cents.zone{color:var(--sw-nitro)}.cents.off{color:var(--amber-hi)}.cents.bad{color:var(--red-hi)}
+.meters{display:grid;gap:8px}
+.meter{display:grid;grid-template-columns:78px auto 1fr;align-items:center;gap:10px}
+.meter small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--text-lo)}
+.meter b{font-family:var(--display);font-weight:400;font-size:22px;min-width:5ch;color:var(--text-hi);font-variant-numeric:tabular-nums}
+.bar{height:16px;border-radius:8px;background:var(--deep);border:1px solid var(--floor-3);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--amber));transition:width .1s linear}
+.bar.steady i{background:linear-gradient(90deg,var(--cyan-ink),var(--cyan))}
+.bar i.nitro{background:linear-gradient(90deg,var(--cyan),var(--sw-nitro))}
+.zone{margin:0;font-size:14.5px;font-weight:700;color:var(--text-lo);min-height:2.6em}
+.nitro-on .zone{color:var(--sw-nitro)}
+.race-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.diff-tag{font-size:13px;font-weight:700;color:var(--text-lo);letter-spacing:.04em}
+
+/* phones and portrait screens: a taller HUD under a shorter road */
+@media (orientation:portrait),(max-width:700px){
+  .stage{height:clamp(220px,calc(100dvh - 480px),640px)}
+  .dash{grid-template-columns:minmax(200px,1fr) 1fr}
+}
+@media (max-width:560px){
+  .dash{grid-template-columns:1fr;gap:8px}
+  .stage{height:clamp(200px,calc(100dvh - 500px),340px)}
+  .gauge{max-width:250px;justify-self:center;width:100%;padding:2px 6px 4px}
+  .hud-box b{font-size:17px}
+  .hud-box small{font-size:9.5px}
+  .who-pic{width:30px}
+  .hud-top{left:4px;right:4px;top:4px;gap:4px}
+  .hud-box{padding:4px 6px;gap:5px}
+  .note-card{width:104px;padding:2px 4px 4px}
+  .note-card small{font-size:8.5px}
+  .zone{min-height:0;font-size:13.5px}
+  .meter{grid-template-columns:62px auto 1fr;gap:6px}
+  .meter b{font-size:18px}
+}
+
+/* ---------- results ---------- */
+.res-panel{max-width:640px;width:100%}
+.overlay#results{align-items:flex-start;overflow-y:auto}
+.overlay#results>.panel{margin:auto}
+.res-pos{margin:0;font-family:var(--display);font-size:clamp(30px,min(7vw,7vh),56px);font-style:italic;text-transform:uppercase;color:var(--text-hi)}
+.res-pos.p1{color:var(--yellow);text-shadow:var(--glow-yellow)}.res-pos.p2{color:var(--white-hi)}.res-pos.p3{color:var(--amber-hi)}
+.panel .bigstars{font-size:34px;letter-spacing:6px;color:var(--text-dim);margin:0 0 4px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:10px 0 6px;font-variant-numeric:tabular-nums}
+.stats div{background:var(--deep);border-radius:12px;padding:8px 4px}
+.stats small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:17px}
+@media (max-width:560px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.chart-title{margin:10px 0 2px;font-weight:700;color:var(--text-hi)}
+.chart-title small{display:block;font-weight:400;font-size:12.5px;color:var(--text-lo)}
+.chart{background:var(--deep);border-radius:12px;padding:6px}
+.chart svg{display:block;width:100%;height:auto;max-height:clamp(130px,24vh,200px)}
+.c-band{fill:var(--green);opacity:.16}
+.c-zero{stroke:var(--text-lo);stroke-width:1}
+.c-ax,.c-lap{fill:var(--text-lo);font:11px var(--text)}
+.c-side{fill:var(--text-lo);font:700 11px var(--text)}
+.c-bar.ok{fill:var(--green)}.c-bar.sharp{fill:var(--amber)}.c-bar.flat{fill:var(--cyan)}
+.c-val{fill:var(--text-hi);font:700 11px var(--text)}
+.c-note{fill:var(--text-hi);font:700 12px var(--text),var(--music)}
+.lap-notes{list-style:none;margin:8px 0 0;padding:0;text-align:left;font-size:14px;display:grid;gap:3px}
+.lap-notes li{padding-left:14px;position:relative;color:var(--text-lo)}
+.lap-notes li::before{content:"";position:absolute;left:0;top:.45em;width:8px;height:8px;border-radius:2px;background:var(--text-lo)}
+.lap-notes li.ok::before{background:var(--green)}.lap-notes li.sharp::before{background:var(--amber)}.lap-notes li.flat::before{background:var(--cyan)}
+.lap-notes b{color:var(--text-hi)}
+.best{color:var(--yellow-hi);font-weight:700;min-height:1.2em}
+
+@media (prefers-reduced-motion:no-preference){
+  .breath .ring{animation:breathe 3.5s ease-in-out infinite}
+  .banner:not(.b-count){animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+  .note-card.flash{animation:shake .3s}
+}
+@keyframes breathe{0%{transform:scale(.55)}70%,100%{transform:scale(1)}}
+@keyframes pop{from{transform:translate(-50%,-50%) skewX(-8deg) scale(1.6);opacity:0}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){ .g-needle,.bar i{transition:none} }

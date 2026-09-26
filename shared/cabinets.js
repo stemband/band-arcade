@@ -8,6 +8,7 @@
               bezel    the dark surround the screen sits in
               panel    the control panel (a trapezoid; taller = steeper), lip = its front edge
               joy      joystick [x, y];  btns  buttons [[x, y], …] (or [x, y, class] to pick its color)
+              wheel    optional steering wheel [x, y, r] instead of the joystick (a sit-down racer)
               joy2     optional second joystick [x, y] (a two-player cabinet; its ball takes the trim color)
               door     coin door {x, y, w, h} (and `doorPath` for an odd shape);  kick  kick plate [x1, x2]
               dial     optional: the door is a round safe door with a combination dial instead of coin slots
@@ -21,10 +22,25 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
+    /* speedway: a sit-down racer. A wide hood over a big screen, a dashboard with a steering wheel and a gear stick,
+       the cockpit flaring out below to the seat box, two pedals, and sunset stripes along the sides (Sustain Speedway) */
+    speedway: {
+      outline: 'M18 26Q18 16 28 16H272Q282 16 282 26V112H268L274 300L292 318V598H8V318L26 300L32 112H18Z',
+      face: 'M52 112H248L252 304H48ZM30 330H270V598H30Z', kick: [30, 270],
+      bezel: 'M62 124H238Q246 124 246 132V288Q246 296 238 296H62Q54 296 54 288V132Q54 124 62 124Z',
+      panel: 'M38 304H262L286 362H14Z', lip: 'M14 362H286V378H14Z',
+      wheel: [150, 336, 34], btns: [[252, 342, 's-btn0']],
+      door: {x: 108, y: 452, w: 84, h: 70},
+      extras: '<path class="s-shift" d="M58 350V326"/><circle class="s-knob" cx="58" cy="322" r="7"/>' +                        // the gear stick
+              '<rect class="s-pedal" x="112" y="540" width="30" height="40" rx="6"/><rect class="s-pedal" x="158" y="540" width="30" height="40" rx="6"/>' +
+              '<path class="s-sun1" d="M34 396H96M34 410H90M34 424H84"/><path class="s-sun2" d="M266 396H204M266 410H210M266 424H216"/>' +
+              '<path class="s-flag" d="M36 100H264"/>',                                                                   // a checkered strip under the marquee
+      slots: {marquee: [34, 24, 232, 76], screen: [62, 134, 176, 154], start: [80, 386, 140, 44]},
+    },
     /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
        control panel and one button missing (Showtime Malfunction) */
     showtime: {
@@ -179,6 +195,10 @@ window.Arcade = window.Arcade || {};
 
   const joystick = ([jx, jy], cls = '') => `<ellipse class="s-joybase" cx="${jx}" cy="${jy + 6}" rx="18" ry="7"/><line class="s-shaft" x1="${jx}" y1="${jy + 5}" x2="${jx}" y2="${jy - 12}"/>` +
     `<circle class="s-ball${cls}" cx="${jx}" cy="${jy - 15}" r="9"/><circle class="s-shine" cx="${jx - 3}" cy="${jy - 18}" r="3"/>`;
+  /* a steering wheel seen from the driver's seat: rim, three spokes, a hub in the trim color */
+  const wheelSVG = ([x, y, r]) => `<circle class="s-wheel" cx="${x}" cy="${y}" r="${r}"/>` +
+    `<path class="s-spokes" d="M${x - r} ${y}H${x + r}M${x} ${y}V${y + r}"/><circle class="s-hub" cx="${x}" cy="${y}" r="${r * .3}"/>` +
+    `<path class="s-grip" d="M${x - r * .7} ${y - r * .72}A${r} ${r} 0 0 1 ${x + r * .7} ${y - r * .72}"/>`;
   function shellSVG(s) {
     return `<svg class="cab-shell" viewBox="0 0 300 600" aria-hidden="true" focusable="false">` +
       `<path class="s-side" d="${s.outline}"/>` +
@@ -186,7 +206,7 @@ window.Arcade = window.Arcade || {};
       `<path class="s-tube-glow" d="${s.outline}"/><path class="s-tube" d="${s.outline}"/>` +
       `<path class="s-bezel" d="${s.bezel}"/>` +
       `<path class="s-panel" d="${s.panel}"/><path class="s-lip" d="${s.lip}"/>` +
-      joystick(s.joy) + (s.joy2 ? joystick(s.joy2, ' s-ball2') : '') +
+      (s.wheel ? wheelSVG(s.wheel) : joystick(s.joy)) + (s.joy2 ? joystick(s.joy2, ' s-ball2') : '') +
       s.btns.map(([x, y, c], i) => `<ellipse class="s-btn ${c || 's-btn' + i}" cx="${x}" cy="${y}" rx="${s.joy2 ? 9 : 10}" ry="${s.joy2 ? 6.5 : 7}"/><ellipse class="s-shine" cx="${x - 2}" cy="${y - 2}" rx="4" ry="2"/>`).join('') +
       doorSVG(s) +
       `<rect class="s-kick" x="${s.kick[0]}" y="586" width="${s.kick[1] - s.kick[0]}" height="12"/>` +
@@ -309,6 +329,20 @@ window.Arcade = window.Arcade || {};
     showtime: {
       html() {
         return `<div class="scr scr-showtime"><span class="st-static"></span><span class="st-eyes"><i></i><i></i></span><span class="st-label">SHOWTIME?</span></div>`;
+      },
+    },
+    /* Sustain Speedway: a synthwave road to a striped sun; the lane lines rush toward you and a car holds the middle */
+    speedway: {
+      html() {
+        return `<div class="scr scr-speedway"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<rect class="sw-sky" x="0" y="0" width="160" height="52"/><circle class="sw-sun" cx="80" cy="50" r="24"/>` +
+          `<path class="sw-cut" d="M50 40H110M50 45H110M52 49H108"/><rect class="sw-ground" x="0" y="52" width="160" height="58"/>` +
+          `<path class="sw-grid" d="M0 62H160M0 74H160M0 92H160M80 52L-40 110M80 52L20 110M80 52L140 110M80 52L200 110"/>` +
+          `<path class="sw-road" d="M74 52H86L130 110H30Z"/><path class="sw-edge" d="M74 52L30 110M86 52L130 110"/>` +
+          `<path class="sw-dash" d="M80 54V110"/>` +
+          `<g class="sw-car"><rect x="66" y="92" width="28" height="10" rx="2"/><rect class="sw-glass" x="71" y="87" width="18" height="6" rx="2"/>` +
+          `<rect class="sw-tail" x="67" y="95" width="6" height="2.5"/><rect class="sw-tail" x="87" y="95" width="6" height="2.5"/></g>` +
+          `<text class="sw-cap" x="80" y="20" text-anchor="middle">HOLD THE NOTE</text></svg></div>`;
       },
     },
     /* the default for a game with no custom screen: its name, blinking PRESS START */

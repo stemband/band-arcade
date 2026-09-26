@@ -92,12 +92,14 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `select-button-masher` | `select-button-masher.m4a` or `select-button-masher.mp3` | START on the arcade floor for Button Masher (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-neon-face-off` | `select-neon-face-off.m4a` or `select-neon-face-off.mp3` | START on the arcade floor for Neon Face-Off (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-showtime-malfunction` | `select-showtime-malfunction.m4a` or `select-showtime-malfunction.mp3` | START on the arcade floor for Showtime Malfunction (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
+| `select-sustain-speedway` | `select-sustain-speedway.m4a` or `select-sustain-speedway.mp3` | START on the arcade floor for Sustain Speedway (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 
 ### Select Player
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
 | `select-music` | `select-music.m4a` or `select-music.mp3` | Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays. **loops** | 30–90 s loop |
+| `select-music-<game id>` | e.g. `select-music-sustain-speedway.m4a` or `.mp3` | Optional: Select Player music for ONE game (when a student picks their instrument for that game), instead of `select-music`. Any game works: use its folder name. Without the file, `select-music` plays. **loops** | 30–90 s loop |
 | `tile-move` | `tile-move.m4a` or `tile-move.mp3` | The highlight moves to another instrument. | 0.05–0.15 s |
 | `player-select` | `player-select.m4a` or `player-select.mp3` | An instrument tile is confirmed (SELECT, or tapping the highlighted tile). | 0.2–0.5 s |
 | `player-continue` | `player-continue.m4a` or `player-continue.mp3` | The CONTINUE AS button (or Same opponent) is pressed. | 0.2–0.5 s |
@@ -201,3 +203,16 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `spotlight-out` | `spotlight-out.m4a` or `spotlight-out.mp3` | Showtime Malfunction: an animatronic reaches the front and a spotlight goes out. **during play: under 0.5 s** | under 0.5 s |
 | `showtime-over` | `showtime-over.m4a` or `showtime-over.mp3` | Showtime Malfunction: all three spotlights are out, SHOWTIME'S OVER. Spooky-fun, never a scream. | 1–2 s |
 | `extra-spooky-unlocked` | `extra-spooky-unlocked.m4a` or `extra-spooky-unlocked.mp3` | Showtime Malfunction: the results screen the first time EXTRA SPOOKY unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream. falls back to `skin-unlocked` | 0.8–1.5 s |
+
+### Sustain Speedway
+
+The microphone listens for the whole race, so there is no engine sound, music or ambience while racing. The countdown
+plays before GO (the race waits for it to end), and `pit-in` plays during the pit stop, which is a rest.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `race-countdown` | `race-countdown.m4a` or `race-countdown.mp3` | Sustain Speedway: "3, 2, 1, GO!" before the first note. It plays BEFORE listening counts: GO waits until it ends. | 3–3.5 s (GO on the last beat) |
+| `pit-in` | `pit-in.m4a` or `pit-in.mp3` | Sustain Speedway: the car pulls into the pit stop (a rest between laps). **during play: under 0.5 s** | under 0.5 s |
+| `race-finish` | `race-finish.m4a` or `race-finish.mp3` | Sustain Speedway: crossing the finish line. | 0.8–1.5 s |
+| `podium` | `podium.m4a` or `podium.mp3` | Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd. | 1–2 s |
+| `new-best-lap` | `new-best-lap.m4a` or `new-best-lap.mp3` | Sustain Speedway: the results screen, a new best lap on this track (after the podium). | 0.5–1 s |
