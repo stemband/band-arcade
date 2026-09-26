@@ -33,6 +33,7 @@
 .drum-ico{display:inline-block;width:46px;height:40px;flex:none;border-radius:6px 6px 14px 14px;background:linear-gradient(var(--anim-drumhead) 0 22%,var(--anim-drum) 22% 100%);
   box-shadow:inset 0 -6px 0 var(--anim-metal-dark),0 0 10px color-mix(in srgb,var(--pt-snare) 50%,transparent)}
 .drum-ico.big{width:64px;height:54px}
+.drum-ico.huge{width:clamp(90px,40%,150px);height:auto;aspect-ratio:1.18;border-radius:10px 10px 26px 26px;box-shadow:inset 0 -12px 0 var(--anim-metal-dark),0 0 18px color-mix(in srgb,var(--pt-snare) 50%,transparent)}
 
 .levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:760px){.levels{grid-template-columns:repeat(2,1fr)}}
@@ -99,7 +100,7 @@
 .bulb.dying{animation:bulb-die 1s ease-out}
 @keyframes bulb-die{0%{background:var(--yellow-hi)}30%{background:var(--floor-3)}45%{background:var(--yellow)}100%{background:var(--floor-3)}}
 
-.arena{position:relative;height:calc(100vh - 222px);height:calc(100dvh - 222px);min-height:340px;border-radius:18px;overflow:hidden;background:var(--floor);border:2px solid var(--floor-3)}
+.arena{position:relative;min-width:0;height:calc(100vh - 222px);height:calc(100dvh - 222px);min-height:340px;border-radius:18px;overflow:hidden;background:var(--floor);border:2px solid var(--floor-3)}
 .scene,.scene>*{position:absolute;pointer-events:none}
 .scene{inset:0}
 /* the arcade floor after closing: fluorescent tubes, cabinets glowing along the walls, the band's little stage at the back */
@@ -160,7 +161,7 @@
 .bots .bot.glitch:not(.twitch) .bot-head{transform:rotate(3deg)}
 .bots .bot.spark .a-spark{animation:spark .35s ease-out}
 @keyframes spark{0%{opacity:1}100%{opacity:0}}
-.bots .bot.target .a-felt,.bots .bot.target .a-felt2{stroke:var(--st-red);stroke-width:2.6}          /* the target: outlined in red (no blur filters) */
+.bots .bot.target .a-felt,.bots .bot.target .a-felt2{stroke:var(--yellow);stroke-width:3.4}          /* the target: outlined in the panel's yellow (no blur filters) */
 .bots .bot.fixed .a-felt,.bots .bot.fixed .a-felt2{stroke:var(--st-blue);stroke-width:2.2}
 .bots .bot.walk-home{transition:transform 1.1s ease-in,opacity 1.1s ease-in;opacity:.4}
 .bots .bot.fizzle{animation:fizzle .8s ease-in forwards}
@@ -171,19 +172,59 @@
 .bots .bot.lean-in .sign{display:none}
 .bots .bot.lean-in .a-eyeglow{opacity:.6}
 /* the voice box sign over each one: its note (or a drum) and how many plays are left */
-.sign{position:absolute;left:50%;bottom:98%;transform:translateX(-50%) scale(var(--k,1));transform-origin:50% 100%;min-width:118px;padding:4px 6px 6px;border-radius:10px;
-  background:var(--deep);border:2px solid color-mix(in srgb,var(--st-red) 55%,transparent);text-align:center;opacity:.92}
+.sign{position:absolute;left:50%;bottom:98%;transform:translateX(-50%) translateY(var(--dy,0px)) scale(var(--k,1));transform-origin:50% 100%;min-width:118px;padding:4px 6px 6px;text-align:center;isolation:isolate}
+.sign::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:10px;background:var(--deep);border:2px solid color-mix(in srgb,var(--st-red) 55%,transparent)}
 .vb-top{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);white-space:nowrap}
+.vb-next{display:none;margin-left:6px;padding:0 5px;border-radius:6px;background:var(--text-hi);color:var(--deep)}
+.bot.next .vb-next{display:inline-block}
 .vb-main{display:flex;align-items:center;gap:6px}
-.vb-main .staff{width:140px;height:auto;background:var(--screen);border-radius:6px}
+.vb-main .staff{width:96px;height:auto;background:var(--screen);border-radius:6px}
 .vb-count{font-family:var(--display);font-weight:400;font-size:34px;line-height:1;color:var(--yellow);text-shadow:var(--glow-yellow);white-space:nowrap}
-.bot.target .sign{opacity:1;border-color:var(--st-red);box-shadow:0 0 14px color-mix(in srgb,var(--st-red) 70%,transparent)}
-.bot.target .sign::after{content:"▼";position:absolute;left:50%;top:100%;transform:translateX(-50%);color:var(--st-red);font-size:14px}
-.bot.fixed .sign{border-color:var(--st-blue)}
+.bot.target .sign::before{border:3px solid var(--yellow);box-shadow:0 0 14px color-mix(in srgb,var(--yellow) 60%,transparent)}
+.bot.target .sign::after{content:"▼";position:absolute;left:50%;top:100%;transform:translateX(-50%);color:var(--yellow);font-size:14px}
+.bot.fixed .sign::before{border-color:var(--st-blue)}
 .sign.tick .vb-count{animation:tick .3s ease-out}
 @keyframes tick{0%{transform:scale(1.35);color:var(--white-hi)}100%{transform:none}}
-.sign.sour{animation:sour .35s steps(3)}
-@keyframes sour{0%{transform:translateX(-50%) scale(var(--k,1)) skewX(8deg)}50%{transform:translateX(-52%) scale(var(--k,1)) skewX(-8deg);border-color:var(--amber)}100%{transform:translateX(-50%) scale(var(--k,1))}}
+.sign.sour::before{animation:sour .35s steps(3)}
+@keyframes sour{0%{transform:skewX(8deg)}50%{transform:translateX(-3px) skewX(-8deg);border-color:var(--amber)}100%{transform:none}}
+/* the target's floor ring (it grows with the animatronic) */
+.bots .ring{position:absolute;left:8%;right:8%;bottom:-5%;height:12%;border-radius:50%;border:4px solid var(--yellow);opacity:0;box-shadow:0 0 14px color-mix(in srgb,var(--yellow) 55%,transparent)}
+.bots .bot.target .ring{opacity:.9}
+@media (prefers-reduced-motion:no-preference){.bots .bot.target .ring{animation:ring 1.6s ease-in-out infinite}}
+@keyframes ring{0%,100%{opacity:.9}50%{opacity:.45}}
+/* the tether from the target to the panel: a thin dashed yellow line (marching slowly) */
+.tether{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;opacity:0;overflow:visible}
+.tether.on{opacity:1}
+.tether line{stroke:var(--yellow);stroke-width:2.5;stroke-dasharray:6 8;stroke-linecap:round;opacity:.7}
+@media (prefers-reduced-motion:no-preference){.tether line{animation:march 1s linear infinite}}
+@keyframes march{to{stroke-dashoffset:-14}}
+
+/* ---------- THE TARGET PANEL: beside the arena in landscape, below it in portrait and on phones.
+   It sits outside the arena, so the static, vignette, emergency light and lean-in never cover or dim it. ---------- */
+.show-main{--tp-w:clamp(250px,31vw,380px);display:grid;grid-template-columns:minmax(0,1fr) var(--tp-w);gap:12px}
+.tpanel{display:flex;flex-direction:column;gap:8px;min-width:0;padding:10px 12px 12px;border-radius:18px;background:var(--floor-2);border:3px solid var(--yellow);
+  box-shadow:var(--glow-yellow)}
+.tp-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tp-lbl{font-family:var(--display);font-size:18px;color:var(--yellow);letter-spacing:.06em;text-transform:uppercase}
+.tp-who{font-size:14px;font-weight:700;color:var(--text-hi);text-align:right;min-width:0;overflow-wrap:anywhere}
+.tp-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.tp-staff{position:relative;flex:1;min-height:0;min-width:0;background:var(--screen);border-radius:12px}
+.tp-staff .staff,.tp-staff .drum-ico{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px)}   /* fills the box, never sizes it */
+.tp-staff .drum-ico.huge{inset:0;margin:auto;width:min(60%,150px);height:auto}
+.tp-count{font-family:var(--display);font-weight:400;font-size:clamp(56px,min(8vw,12vh),110px);line-height:1;text-align:center;color:var(--yellow);text-shadow:var(--glow-yellow);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tpanel.idle{border-color:var(--floor-3);box-shadow:none}
+.tpanel.idle .tp-lbl{color:var(--text-lo)}
+.tpanel.idle .tp-staff{background:var(--deep)}
+.tp-count.tick{animation:tp-tick .3s ease-out}
+@keyframes tp-tick{0%{transform:scale(1.25);color:var(--white-hi)}100%{transform:none}}
+.tpanel.swap{animation:tp-swap .45s ease-out}
+.tpanel.swap .tp-body{animation:tp-slide .3s ease-out}
+@keyframes tp-swap{0%{border-color:var(--white-hi);background:color-mix(in srgb,var(--yellow) 22%,var(--floor-2))}100%{}}
+@keyframes tp-slide{from{transform:translateY(14px);opacity:.3}to{transform:none;opacity:1}}
+/* thicker staff lines, stems and ledger lines, and fuller note heads, everywhere in this game */
+.showtime .staff line{stroke-width:2.4px}
+.showtime .staff line.stem{stroke-width:2.8px}
+.showtime .staff ellipse.head{stroke:var(--ink);stroke-width:1.6px}
 /* the student's three spotlights along the front */
 .spots{position:absolute;left:0;right:0;bottom:0;height:26%;display:flex;justify-content:space-around;align-items:flex-end;z-index:2}
 .spot{position:relative;width:26%;height:100%}
@@ -216,20 +257,33 @@
 .stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
 .stats b{font-size:22px}
 
+/* portrait and phones: the panel goes below the arena (staff left, count right) and the arena gives it room */
+@media (orientation:portrait),(max-width:760px){
+  .show-main{--tp-h:clamp(160px,29vh,310px);grid-template-columns:minmax(0,1fr)}
+  .arena{height:calc(100dvh - 238px - var(--tp-h) - 12px);min-height:300px}
+  .tpanel{height:var(--tp-h);padding:8px 10px 10px}
+  .tp-body{flex-direction:row;align-items:stretch}
+  .tp-count{align-self:center;min-width:2.3em;font-size:clamp(44px,min(13vw,9vh),110px)}
+  .tpanel.swap .tp-body{animation-name:tp-slide-x}
+}
+@keyframes tp-slide-x{from{transform:translateX(18px);opacity:.3}to{transform:none;opacity:1}}
 @media (max-width:560px){
-  .arena{height:calc(100dvh - 235px);min-height:420px}
+  .tp-count{min-width:0}
+  .arena{height:calc(100dvh - 235px - var(--tp-h) - 12px);min-height:260px}
   .hud b{font-size:17px}
   .bulb{width:16px;height:16px}
   .sign{min-width:96px}
-  .vb-main .staff{width:104px}
+  .vb-main .staff{width:80px}
   .vb-count{font-size:26px}
 }
-@media (orientation:portrait) and (min-width:561px){ .arena{height:min(calc(100dvh - 210px),900px)} }
+@media (orientation:portrait) and (min-width:561px){ .arena{height:min(calc(100dvh - 228px - var(--tp-h) - 12px),760px)} }
 
 /* reduced motion: no flicker, shake, twitch, strobe or lean-in; the band still walks (smoothly) */
 @media (prefers-reduced-motion:reduce){
-  .game-title .t2,.fluoro,.static,.emergency,.bots .bot .a-eye,.bots .bot .a-eyeglow,.diff-lock,.bots .bot.glitch .body,.band-bot,.bulb.dying,.spot.dying::before,.sign.tick .vb-count,.sign.sour,.bots .bot.spark .a-spark,.bots .bot.fizzle{animation:none!important}
+  .game-title .t2,.fluoro,.static,.emergency,.bots .bot .a-eye,.bots .bot .a-eyeglow,.diff-lock,.bots .bot.glitch .body,.band-bot,.bulb.dying,.spot.dying::before,.sign.tick .vb-count,.sign.sour::before,.tp-count.tick,.bots .bot.spark .a-spark,.bots .bot.fizzle{animation:none!important}
   .bots .bot.twitch .bot-head,.bots .bot.glitch:not(.twitch) .bot-head{transform:none}
   .bots .bot.walk-home,.bots .bot.lean-in{transition:none!important}
   .bots .bot.fizzle{opacity:0}
+  .tpanel.swap,.tpanel.swap .tp-body{animation:tp-fade .3s linear!important}   /* a gentle color fade instead of the slide */
 }
+@keyframes tp-fade{from{border-color:var(--white-hi)}to{}}

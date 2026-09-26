@@ -49,6 +49,7 @@
       <div class="lights" id="hudLights" role="img" aria-label="3 of 3 spotlights"></div>
       <div class="r"><small>Score</small><b id="hudScore">0</b></div>
     </div>
+    <div class="show-main" id="showMain">
     <div class="arena" id="arena">
       <div class="scene" aria-hidden="true">
         <div class="fluoro f1"></div><div class="fluoro f2"></div><div class="fluoro f3"></div>
@@ -59,9 +60,16 @@
         <div class="static"></div>
         <div class="vignette"></div>
       </div>
+      <svg class="tether" id="tether" aria-hidden="true"><line id="tetherLine"/></svg>
       <div class="bots" id="bots"></div>
       <div class="spots" id="spots" aria-hidden="true"></div>
       <p class="banner" id="banner" hidden aria-live="assertive"></p>
+    </div>
+    <!-- THE TARGET PANEL: the closest animatronic's note and count, always big (game.js drawPanel) -->
+    <aside class="tpanel idle" id="tpanel" aria-label="Your target">
+      <div class="tp-head"><span class="tp-lbl">Target</span><span class="tp-who" id="tpWho">Get ready…</span></div>
+      <div class="tp-body"><div class="tp-staff" id="tpStaff"></div><b class="tp-count" id="tpCount"></b></div>
+    </aside>
     </div>
     <p class="prompt" id="prompt" aria-live="polite">Play the note on the glowing voice box, once for each count.</p>
     <div class="play-foot">
