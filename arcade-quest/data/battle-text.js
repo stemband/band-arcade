@@ -59,6 +59,10 @@ window.QUEST_TEXT = {
   blast:           'B♭ BLAST',                     blastSub: 'Your B♭ scale: hits harder',
   playWhich:       'Which attack?',
   boosted:         'The Tuning Slide makes it ring! ×{n} power!',
+  // charms (data/items.js QUEST_CHARMS; ARCADE QUEST ONLY)
+  charmInTune:     'Your Tuning Fork hums along: in tune hits harder!',
+  charmMute:       'Your Silver Mute soaked up a sour note!',
+  gotCharm:        'They gave you a charm: the {item}! Wear it from the Menu (CHARMS).',
   phase:           'Phase {n}: {what}',
   itemBoost:       'Your next PLAY will hit harder!',
   bought:          'You bought a {item}!',

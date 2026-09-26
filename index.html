@@ -93,7 +93,7 @@
           <button type="button" data-horn="F">F–C</button><button type="button" data-horn="C">C–G</button>
         </div>
         <button type="button" class="card-backup" id="backupBtn" aria-haspopup="dialog">Backup / Restore</button>
-        <button type="button" class="btn-skins" id="skinsBtn" aria-haspopup="dialog"><span>Skins</span> <small id="skinsCount"></small></button>
+        <button type="button" class="btn-skins" id="skinsBtn" aria-haspopup="dialog"><span>Locker</span> <small id="skinsCount"></small></button>
         <button type="button" class="btn-select" id="selectBtn">Select</button>
       </div>
     </aside>
@@ -108,22 +108,22 @@
   </div>
 </div>
 
-<!-- THE SKINS LOCKER (shared/skins.js): equip a color skin and an accessory for the highlighted instrument -->
+<!-- THE LOCKER: avatar items (shared/avatar-parts.js unlocks, worn everywhere) + skins (shared/skins.js, per instrument) -->
 <div class="overlay sk-locker" id="locker" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
     <div class="lk-head">
       <div class="lk-stage"><div class="lk-pic" id="lkPic"></div></div>
       <div class="lk-info">
-        <p class="card-fam">Skins locker</p>
+        <p class="card-fam">Locker</p>
         <h2 id="lkTitle">Trumpet</h2>
         <p class="lk-now" id="lkNow" aria-live="polite"></p>
-        <p class="muted lk-how">Earn skins by playing: stars on this instrument in any game, or special wins. Tap one to wear it.</p>
+        <p class="muted lk-how">Earn items with stars from every game, special wins, or tokens at Arcade Quest's Token Booth. Tap one to wear it.</p>
       </div>
     </div>
-    <h3 class="lk-sub" id="lkColorsLbl">Color</h3>
-    <div class="lk-grid" id="lkColors" role="group" aria-labelledby="lkColorsLbl"></div>
-    <h3 class="lk-sub" id="lkAccLbl">Accessory <small>(wear one with any color)</small></h3>
-    <div class="lk-grid" id="lkAcc" role="group" aria-labelledby="lkAccLbl"></div>
+    <div class="lk-tabs" role="tablist" aria-label="Locker sections" id="lkTabs">
+      <button type="button" role="tab" data-tab="outfit" id="lkTab-outfit">Outfit</button><button type="button" role="tab" data-tab="hats" id="lkTab-hats">Hats</button><button type="button" role="tab" data-tab="extras" id="lkTab-extras">Extras</button><button type="button" role="tab" data-tab="pets" id="lkTab-pets">Pets</button><button type="button" role="tab" data-tab="effects" id="lkTab-effects">Effects</button>
+    </div>
+    <div class="lk-body" id="lkBody" role="tabpanel"></div>
     <div class="acts"><button type="button" class="btn btn-gold" id="lkDone">Done</button></div>
   </div>
 </div>

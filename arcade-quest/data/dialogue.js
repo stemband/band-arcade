@@ -274,6 +274,8 @@ window.QUEST_SIGNS = {
   'stove': ['A ghostly stove. The kettle whistles a perfect A. That\'s 440 vibrations a second!'],
   'counter': ['A recipe card: "Tonguing Soup. One \'too\' per note. Stir. Do not slur."'],
   'counter-2': ['A jar labeled "SPARE REEDS." It is empty. Of course it is.'],
+  'counter-2-found': ['A jar labeled "SPARE REEDS." Wait: one reed is stuck at the bottom, and it sparkles!'],
+  'library-table-found': ['A stack of flash cards... and under them, a tuning fork. It hums a perfect A!'],
   'kitchen-clock': ['The kitchen clock ticks: tick, tock, tick, tock. Perfectly even. Like good tonguing.'],
   'kitchen-table': ['Teacups everywhere. You check them all. None of them are talking. Yet.'],
   'stairs': ['The stairs creak in B♭. Every. Single. Step.'],

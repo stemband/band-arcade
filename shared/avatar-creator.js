@@ -38,7 +38,7 @@ window.Arcade = window.Arcade || {};
       {k: 'hairColor', label: 'Hair color', kind: 'color', list: () => P().HAIR_COLORS.map(c => ({id: c.id, name: c.name, token: 'av-hair-' + c.id}))},
     ]},
     {id: 'head', label: 'Head', groups: [
-      {k: 'head', label: 'Head covering', kind: 'part', list: () => P().HEADS, thumb: 'bust'},
+      {k: 'head', label: 'Hats and head coverings', kind: 'part', list: () => P().HEADS, thumb: 'bust'},
       {k: 'headColor', label: 'Color', kind: 'color', list: () => colorList(P().COLORS.map(c => c.id), 'av-'), show: av => av.head !== 'none'},
     ]},
     {id: 'clothes', label: 'Clothes', groups: [
@@ -56,6 +56,8 @@ window.Arcade = window.Arcade || {};
       {k: 'aidColor', label: 'Hearing aid color', kind: 'color', list: () => colorList(P().AID_COLORS, 'av-'), show: av => av.aids !== 'none'},
       {k: 'chair', label: 'Wheelchair', kind: 'toggle', list: () => [{id: false, name: 'No wheelchair'}, {id: true, name: 'Wheelchair'}], thumb: 'body'},
       {k: 'chairColor', label: 'Wheelchair color', kind: 'color', list: () => colorList(P().CHAIR_COLORS, 'av-'), show: av => av.chair},
+      {k: 'pet', label: 'Pet', kind: 'part', list: () => P().PETS, thumb: 'bust'},
+      {k: 'back', label: 'On your back', kind: 'part', list: () => P().BACKS, thumb: 'bust'},
       {k: 'gear.acc', label: 'Gear you earned', kind: 'gear', list: () => gearList('acc'), thumb: 'bust', show: () => !!S.member && !S.guest},
       {k: 'gear.color', label: 'Glow effect', kind: 'gear', list: () => gearList('color'), thumb: 'effect', show: () => !!S.member && !S.guest},
     ]},
@@ -107,6 +109,7 @@ window.Arcade = window.Arcade || {};
             <button type="button" class="btn btn-gold avc-save">Save</button>
           </div>
           <div class="avc-leave" hidden><p>Leave without saving?</p><button type="button" class="btn btn-ghost avc-stay">Keep editing</button><button type="button" class="btn btn-gold avc-go">Leave</button></div>
+          <p class="avc-lockmsg" role="status" hidden></p>
         </section>
         <section class="avc-edit">
           <div class="avc-tabs" role="tablist" aria-label="Parts">${tabs.map(t => `<button type="button" role="tab" id="avcTab-${t.id}" class="avc-tab" data-tab="${t.id}" aria-controls="avcPanel" aria-selected="false" tabindex="-1">${t.label}</button>`).join('')}</div>
@@ -155,7 +158,13 @@ window.Arcade = window.Arcade || {};
     sfx('avatar-change');
     render();
   }
+  const locked = (g, id) => g.kind !== 'gear' && !V().isUnlocked(g.k, id);
   function pickOption(g, id) {
+    if (locked(g, id)) {                                         // locked: say how to get it, change nothing
+      const n = S.root.querySelector('.avc-lockmsg'); n.textContent = `Locked: ${V().requirement(g.k, id)}.`;
+      n.hidden = false; clearTimeout(S.lockT); S.lockT = setTimeout(() => { if (S) n.hidden = true; }, 3200);
+      return;
+    }
     if (g.kind === 'gear') change(() => { S.gear = Object.assign({}, S.gear, {[g.k.split('.')[1]]: id}); });
     else change(() => setK(S.av, g.k, id));
     sfx('avatar-change');
@@ -248,6 +257,10 @@ window.Arcade = window.Arcade || {};
         `<div class="avc-grid avc-${g.kind}${g.thumb === 'body' ? ' avc-bodies' : ''}" role="group" aria-labelledby="${gid}" data-k="${g.k}">` +
         list.map(o => {
           const on = o.id === cur || (o.id === null && !cur);
+          if (locked(g, o.id)) {                                 // a dark silhouette + what unlocks it
+            const req = V().requirement(g.k, o.id);
+            return `<button type="button" class="avc-opt avc-locked" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + ', locked. ' + req)}">${thumbHTML(g, o)}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span></button>`;
+          }
           return `<button type="button" class="avc-opt" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name)}">${thumbHTML(g, o)}<span class="avc-lbl">${esc(o.name)}</span></button>`;
         }).join('') + `</div></div>`;
     });

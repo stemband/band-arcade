@@ -431,4 +431,132 @@ window.AVATAR_PARTS = {};
                          '......VrVvvvvvvv', '......VrVvvvvvvv', '......VrVvvvvvvv', '......VrVvvvvvvv', '......VrV.......', '......VrV.......', '......VrV.......',
                          '......VrV.......', '.......VV.......']},
   };
+
+  /* =====================================================================================================================
+     UNLOCKABLE ITEMS. Most parts are free. A part with an `unlock` rule must be earned first; until then it shows as a
+     dark silhouette with its requirement (Create Your Player and the LOCKER on Select Player).
+     UNLOCK RULES (the `unlock` field):
+       {stars: 150}                         150 ★ on THIS DEVICE: every instrument, every game, every mode added up
+       {game, level, stars, text}           an achievement: any instrument has `stars` on that level of that game
+       {game, achievement: 'id', text}      an achievement a game saves (Arcade Quest's 'ep1', Speedway's 'virtuoso-win')
+       {game, badge: true, text}            any TEST READY badge in Ancient Ninja Scrolls
+       {shop: 250}                          bought for 250 Arcade Tokens at Arcade Quest's Token Booth (owned forever)
+     IDENTITY ITEMS ARE ALWAYS FREE AND CAN NEVER BE LOCKED (avatar.js enforces it, whatever a rule says): no head
+     covering at all, the hijab, headwrap and turban, hearing aids, the wheelchair and glasses.
+     HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, PETS or BACKS) with a new id
+     and a name, draw its maps like the parts above, and give it an `unlock` rule (or none: free). An UNLOCKED! card
+     shows the first time a student has earned it (results screens and Select Player), and old progress counts.
+     Then add '<field>:<id>' (e.g. 'pet:ghost') to the END of QUEST_V2.cosmetics in shared/backup.js so save codes
+     carry it, and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
+     A {shop} item appears on the Token Booth's PLAYER ITEMS shelf by itself (keep prices 50–500).
+     ===================================================================================================================== */
+  const recolor = (map, from, to) => map && Object.assign({}, map, map.half ? {half: map.half.map(r => r.replace(from, to))} : {rows: map.rows.map(r => r.replace(from, to))});
+  const deep = o => JSON.parse(JSON.stringify(o));
+
+  // ---- expressions (emotes) ----
+  P.EYES.push(
+    {id: 'stars',  name: 'Star eyes',  unlock: {stars: 10},  front: ['..', '.g'], side: ['..', 'g.'], bust: ['.g.', 'ggg', '.g.']},
+    {id: 'hearts', name: 'Heart eyes', unlock: {shop: 75},   front: ['..', '.5'], side: ['..', '5.'], bust: ['5.5', '555', '.5.']},
+    // the right eye can differ: frontR / sideR / bustR are the RIGHT eye as you see it (not mirrored)
+    {id: 'wink',   name: 'Wink',       unlock: {game: 'ancient-ninja-scrolls', badge: true, text: 'Earn a TEST READY badge in Ancient Ninja Scrolls'},
+     front: ['..', '.e'], frontR: ['..', 'KK'], side: ['..', 'e.'], bust: ['...', '.ee', '.ee'], bustR: ['...', '...', 'KKK']});
+  P.MOUTHS.push(
+    {id: 'tongue',  name: 'Silly tongue', unlock: {stars: 200}, front: ['.mm.', '.nn.'], side: ['..m', '.nm'], bust: ['.mmmm.', '.mnnm.', '..nn..']},
+    {id: 'whistle', name: 'Whistle',      unlock: {shop: 50},   front: ['....', '..m.'], side: ['...', '..m'], bust: ['......', '...mm.', '...mm.']});
+
+  // ---- hair colors (their colors are --av-hair-<id> tokens; fx: 'tips' = flame-colored ends, 'sparkle' = stars) ----
+  P.HAIR_COLORS.push(
+    {id: 'gold',     name: 'Gold',       unlock: {stars: 50}},
+    {id: 'neon',     name: 'Neon green', unlock: {shop: 100}},
+    {id: 'galaxy',   name: 'Galaxy',     unlock: {stars: 300}, fx: 'sparkle'},
+    {id: 'flametip', name: 'Flame tips', unlock: {game: 'sustain-speedway', level: 8, stars: 3, text: 'Win The Grand Prix in Sustain Speedway'}, fx: 'tips'});
+
+  // ---- hats ----
+  const shako = P.HEADS.find(h => h.id === 'shako');
+  const plume = k => recolor(recolor(shako[k], /W/g, '5'), /j/g, '9');
+  P.HEADS.push(
+    {id: 'tophat', name: 'Top hat', unlock: {stars: 100}, hides: 'top', clip: {front: 6, side: 6, back: 6, bust: 13},
+     front: {y: 0, half: ['...........KKKKK', '...........KKKKK', '...........KKKKK', '...........uuuuu', '...........KKKKK', '........KKKKKKKK']},
+     side:  {y: 0, rows: ['...........KKKKKKK', '...........KKKKKKK', '...........KKKKKKK', '...........uuuuuuu', '...........KKKKKKK', '........KKKKKKKKKKKKK']},
+     bust:  {y: 0, half: ['...........KKKKKKK', '...........KKKKKKK', '...........KKKKKKK', '...........KKKKKKK', '...........KKKKKKK', '...........KKKKKKK',
+                          '...........KKKKKKK', '...........uuuuuuu', '...........uuuuuuu', '...........KKKKKKK', '...........KKKKKKK', '.......KKKKKKKKKKK', '........KKKKKKKKKK']}},
+    {id: 'wizard', name: 'Wizard hat', unlock: {stars: 500}, hides: 'top', clip: {front: 6, side: 6, back: 6, bust: 13},
+     front: {y: 0, half: ['..............uu', '.............uuu', '............uu3u', '...........uuuuu', '..........uu3uuu', '........UUUUUUUU']},
+     side:  {y: 0, rows: ['..............uu', '.............uuuu', '............uu3uu', '...........uuuuuuu', '..........uu3uuuuu', '........UUUUUUUUUUUU']},
+     bust:  {y: 0, half: ['................uu', '...............uuu', '...............uuu', '..............uuuu', '.............uu3uu', '.............uuuuu',
+                          '............uuuuuu', '...........uuuuu3u', '...........uuuuuuu', '..........uu3uuuuu', '..........uuuuuuuu', '.......UUUUUUUUUUU', '........UUUUUUUUUU']}},
+    {id: 'plumeshako', name: 'Plumed shako', unlock: {game: 'button-masher', level: 8, stars: 1, text: 'Defeat The Conductor in Button Masher'}, hides: 'top', clip: shako.clip,
+     front: plume('front'), side: plume('side'), back: shako.back,
+     bust: {y: 0, half: ['...............555', '..............5595', '...............555', '..........uuuuuuuu', '..........uuuuuuuu', '..........uuuuuugg',
+                         '..........uuuuuggg', '..........uuuuuugg', '..........uuuuuuuu', '..........gggggggg', '..........uuuuuuuu', '.........KKKKKKKKK',
+                         '..........KKKKKKKK', '..........g.......', '..........g.......']}},
+    {id: 'royalcrown', name: 'Royal crown', unlock: {shop: 400}, hides: 'none',
+     front: {y: 0, half: ['..........3..3.3', '..........333333', '..........345363']}, side: {y: 0, rows: ['..........3..3..3', '..........33333333', '..........35363543']},
+     back:  {y: 0, half: ['..........3..3.3', '..........333333', '..........343434']},
+     bust:  {y: 0, half: ['.........3...3...3', '.........33..333.3', '.........333333333', '.........334335336', '.........333333333', '.........444444444']}},
+    {id: 'diamondband', name: 'Diamond headband', unlock: {game: 'note-ninja', level: 10, stars: 1, text: 'Earn the Diamond belt in Note Ninja'}, hides: 'none',
+     front: {y: 4, half: ['...............0', '.........6666669']}, side: {y: 4, rows: ['..................0', '........66666666669']}, back: {y: 5, half: ['.........6666666']},
+     bust:  {y: 8, half: ['.................0', '................09', '........6666666609', '.........66666669.', '.................9']}});
+
+  // ---- jackets ----
+  const marching = P.TOPS.find(t => t.id === 'marching'), concert = P.TOPS.find(t => t.id === 'concert');
+  const sparkle = map => map && Object.assign({}, map, {[map.half ? 'half' : 'rows']: (map.half || map.rows).map((r, y) => [...r].map((ch, x) => ch === 'c' && (x * 3 + y * 5) % 7 === 0 ? 'W' : ch).join(''))});
+  P.TOPS.push(
+    {id: 'rockstar', name: 'Rock-star jacket', unlock: {stars: 25}, sleeve: 1, sleeveCh: 'K',
+     front: {y: 14, half: ['...........gKKcc', '...........KKKcc', '...........KKKcc', '...........KgKcc', '...........KKKcc', '...........KKKcc', '...........KKKcc']},
+     side:  {y: 14, rows: Array(7).fill('............KKKKKcc')},
+     back:  {y: 14, half: ['...........gKgKg', '...........KKKKK', '...........KgKgK', '...........KKKKK', '...........KKKKK', '...........KKKKK', '...........KKKKK']},
+     bust:  {y: 27, half: ['.........KKKKccsss', '......KgKKKKKccccc', '.....KKKKKgKKccccc', '....KKKKKKKKKccccc', '...KKgKKKKKKKccccc', '...KKKKKKKKKKccccc',
+                          '...KKKKKKgKKKccccc', '...KKKKKKKKKKccccc', '...KKKKKKKKKKccccc']}},
+    {id: 'tuxedo', name: 'Tuxedo', unlock: {stars: 750}, sleeve: 1, base: 'black',
+     front: {y: 14, half: ['...........KKWWK', '...........KKKWW', '...........KKKWW', '...........KKKKW', '...........KKKKW', '...........KKKKK', '...........KKKKK']},
+     side: concert.side, back: concert.back,
+     bust:  {y: 27, half: ['.........KKKKKWWss', '......KKKKKKKWWWKK', '.....KKKKKKKKWWWWK', '....KKdKKKKKKKWWWW', '...KKddKKKKKKKWWWW', '...KKKKKKKKKKKKWWW',
+                          '...KKKKKKKKKKKKWWW', '...KKKKKKKKKKKKKWW', '...KKKKKKKKKKKKKWW']}},
+    {id: 'champion', name: 'Championship jacket', unlock: {game: 'neon-face-off', level: 8, stars: 1, text: 'Beat The Champ in Neon Face-Off (1 player vs CPU)'}, sleeve: 1,
+     front: {y: 13, half: ['..............gg', '...........ggccc', T(11, 15), '...........ccccg', '...........cccgg', T(11, 15), T(11, 15), '...........ggggg']},
+     side:  {y: 13, rows: ['..............ggg', '............ggcccc', T(12, 18), T(12, 18), T(12, 18), T(12, 18), T(12, 18), '............ggggggg']},
+     back:  {y: 13, half: ['..............gg', '...........ggccc', T(11, 15), '...........cccgg', '...........ccggg', '...........cccgg', T(11, 15), '...........ggggg']},
+     bust:  {y: 25, half: ['..............gggg', '..............gggg', '.........ccccccggs', '......ccccccccccgg', '.....ccccccccccccc', '....cccccccccccccg',
+                          '...cccccccccccccgg', '...ccccccccccccggg', '...cccccccccccccgg', '...ccccccccccccccc']}},
+    {id: 'sequin', name: 'Sequined marching jacket', unlock: {game: 'chime-heist', level: 8, stars: 1, text: 'Clear The Golden Vault in Chime Heist'}, sleeve: 1,
+     front: sparkle(marching.front), side: sparkle(marching.side), back: sparkle(marching.back), bust: sparkle(marching.bust),
+     bustTop: marching.bustTop});
+
+  // ---- PETS: a little friend floating beside the avatar (its own colors in `pal`: letter -> theme token) ----
+  P.PETS = [
+    {id: 'none', name: 'No pet'},
+    {id: 'ghost', name: 'Tiny ghost', unlock: {game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'},
+     pal: {W: 'white-hi', K: 'av-black', p: 'pink'},
+     rows: ['..WWWW..', '.WWWWWW.', '.WKWWKW.', '.WWWWWW.', '.WpWWpW.', '.WWWWWW.', '.WW.WW.W', 'W..W..W.']},
+    {id: 'animatronic', name: 'Mini animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, text: 'Defeat Maestro Moose in Showtime Malfunction'},
+     pal: {M: 'anim-metal-dark', m: 'anim-metal', r: 'anim-eye-bad'},
+     rows: ['.M....M.', '.MMMMMM.', 'MmmmmmmM', 'MmrmmrmM', 'MmmmmmmM', 'MmMMMMmM', '.MmmmmM.', '..M..M..']},
+    {id: 'note', name: 'Note sprite', unlock: {stars: 150}, pal: {y: 'yellow', a: 'amber'},
+     rows: ['....yy..', '....y.y.', '....y..y', '....y...', '..yyy...', '.yyyya..', '.yyyya..', '..aa....']},
+    {id: 'star', name: 'Lucky star', unlock: {shop: 150}, pal: {y: 'yellow', a: 'amber', K: 'av-black'},
+     rows: ['...yy...', '...yy...', 'yyyyyyyy', '.yKyyKy.', '..yyyy..', '.yyaayy.', 'yy....yy', '........']},
+    {id: 'metronome', name: 'Metronome buddy', unlock: {shop: 250}, pal: {w: 'q-wood', W: 'q-wood-l', m: 'q-silver'},
+     rows: ['...ww...', '..wWWw..', '..wmWw..', '.wWmWWw.', '.wWWmWw.', 'wWWWWWWw', 'wwwwwwww', '........']},
+  ];
+  P.PET_AT = {sprite: [24, 1], bust: [27, 1]};             // where a pet floats (top-left of its 8 × 8 picture)
+
+  // ---- BACK items: capes and gear behind the avatar (accessory colors 1–0) ----
+  const cape = P.ACCESSORIES.cape, capeColors = m => recolor(recolor(m, /1/g, '3'), /7/g, '6');
+  P.BACKS = [
+    {id: 'none', name: 'Nothing'},
+    {id: 'pixelcape', name: 'Pixel-hero cape', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'},
+     behind: {front: capeColors(cape.behind.front), side: capeColors(cape.behind.side), back: capeColors(cape.behind.back)}, bustBehind: capeColors(cape.bustBehind)},
+    {id: 'jetpack', name: 'Jetpack', unlock: {shop: 300},
+     behind: {front: {y: 14, half: ['........99......', '........98......', '........98......', '........98......', '........99......', '.........4......', '.........3......']},
+              side:  {y: 14, rows: ['........999', '........988', '........988', '........988', '........999', '........4.4', '........3.3']},
+              back:  {y: 14, half: ['...........99999', '...........98889', '...........98889', '...........98889', '...........99999', '............4..4', '............3..3']}},
+     bustBehind: {y: 24, half: ['...999............', '..99889...........', '..98889...........', '..98889...........', '..98889...........', '..99999...........', '...4.4............', '...3.3............']}},
+    {id: 'wings', name: 'Neon wings', unlock: {stars: 1000},
+     behind: {front: {y: 11, half: ['..9.............', '.990............', '.9900...........', '99900...........', '.99900..........', '.999000.........', '..99900.........', '...9900.........', '....990.........', '.....99.........']},
+              side:  {y: 10, rows: ['....9', '...990', '..9900', '..99900', '.999900', '.9999000', '..999900', '...99900', '....9990', '.....99']},
+              back:  {y: 11, half: ['..9.............', '.990............', '.9900...........', '99900...........', '.99900..........', '.999000.........', '..99900.........', '...9900.........', '....990.........', '.....99.........']}},
+     bustBehind: {y: 12, half: ['.9................', '990...............', '9900..............', '99900.............', '999900............', '.99990............', '.999900...........', '..99990...........',
+                              '..999900..........', '...99990..........', '...999900.........', '....99990.........', '.....9999.........', '......99..........']}},
+  ];
 })(window.AVATAR_PARTS);

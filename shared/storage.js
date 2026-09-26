@@ -170,6 +170,14 @@ window.Arcade = window.Arcade || {};
         like Button Masher) or a player id a game saves under directly ('bells', 'all'). Every key that starts with
         '<gameId>:' counts for that game, so Showtime Malfunction's EXTRA SPOOKY keys (':extra') are included. */
     allStars(instrument, gameId) {
+      if (instrument === '*') {                   // DEVICE-WIDE: every instrument, every game, every mode
+        let n = 0;
+        Object.keys(data.games || {}).forEach(k => {
+          if (gameId && k.split(':')[0] !== gameId) return;
+          Object.keys(data.games[k] || {}).forEach(i => { n += this.totalStars(k, i); });
+        });
+        return n;
+      }
       const isMember = !!A.memberById(instrument);
       const groups = isMember ? A.groupsOf(instrument).map(g => g.id) : [instrument];
       let n = 0;
@@ -212,6 +220,12 @@ window.Arcade = window.Arcade || {};
     setAvatar(av) { data.avatar = av; save(); },
     get guestAvatar() { return data.guestAvatar && typeof data.guestAvatar === 'object' ? JSON.parse(JSON.stringify(data.guestAvatar)) : null; },
     setGuestAvatar(av) { data.guestAvatar = av; save(); },
+    /** AVATAR ITEMS (shared/avatar.js): items bought at the Token Booth ({'<field>:<id>': true}, owned forever,
+        everywhere) and earned items whose UNLOCKED! card was already shown */
+    get ownedItems() { return Object.assign({}, (data.items || {}).owned); },
+    ownItem(key) { const it = data.items || (data.items = {}); (it.owned || (it.owned = {}))[key] = true; save(); },
+    get itemsSeen() { return Object.assign({}, (data.items || {}).seen); },
+    markItemsSeen(keys) { const it = data.items || (data.items = {}), s = it.seen || (it.seen = {}); keys.forEach(k => { s[k] = true; }); save(); },
     /** Select Player asks "Create your player?" once per device */
     get avatarOffered() { return !!data.avatarOffered; },
     setAvatarOffered() { data.avatarOffered = true; save(); },

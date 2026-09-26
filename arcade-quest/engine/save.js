@@ -1,10 +1,14 @@
 /* ARCADE QUEST ENGINE: the save slot and the settings, both in Arcade.store.gameData('arcade-quest') on this device.
-   SAVE FORMAT (version 2; bump SAVE_VERSION and add a step to upgrade() whenever the shape changes):
+   SAVE FORMAT (version 3; bump SAVE_VERSION and add a step to upgrade() whenever the shape changes):
      {v: 2, level, xp, hp, maxHp, tokens, items: {itemId: count}, roster: [enemyId…] (befriended), battles: {won, befriended, faded},
       world: {map, x, y, dir} (where you last saved at a Save Jukebox; null = never),
       flags: {name: true} (story flags: met-mezzo, songBb, reginaldAwake, atticOpen…),
       done: {'<room>:<ghost key>': 'befriend' | 'fade'} (manor ghosts already helped: they don't come back),
-      converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>')}
+      converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>'),
+      charms: {owned: {charmId: true}, equipped: [charmId | null, charmId | null]} (v3: data/items.js QUEST_CHARMS)}
+   maxHp = maxHpAt(level) + the equipped charms' maxHp (Q.charms.fixHp keeps it right).
+   AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
+   everywhere. The save code carries them anyway (shared/backup.js version 2).
    Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
    SAVE CODES (shared/backup.js, format version 1): Q.save.code() = the 25-character code shown at the jukebox;
    Q.save.fromCode(code) -> {ok, error} replaces this device's save with it (ENTER SAVE CODE on the title screen).
@@ -17,8 +21,9 @@
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 2;
+  const SAVE_VERSION = 3;
   const data = () => A.store.gameData(GAME);
+  const CHARMS = () => window.QUEST_CHARMS || {};
   /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10,
      the Ghost Conductor 20 */
   function progress(s) {
@@ -30,12 +35,15 @@
   }
   const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
-    world: null, flags: {}, done: {}, converted: {}});
+    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}});
   /** older saves -> the current version, one step at a time */
   function upgrade(s) {
     if (!s || typeof s !== 'object' || !s.v) return fresh();
     if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
+    if (s.v === 2) { s.charms = {owned: {}, equipped: [null, null]}; s.v = 3; }                           // v2 -> v3: charms
     s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
+    s.charms = s.charms || {owned: {}, equipped: [null, null]}; s.charms.owned = s.charms.owned || {};
+    s.charms.equipped = [0, 1].map(i => { const id = (s.charms.equipped || [])[i]; return id && s.charms.owned[id] && CHARMS()[id] ? id : null; });
     return s;
   }
 
@@ -52,8 +60,16 @@
       if (!r.ok) return r;
       const f = r.fields, s = fresh(), friends = f.roster.filter(id => !['squawk', 'warble', 'clatterbox', 'quizzle', 'stickyvalve'].includes(id));
       Object.assign(s, {level: f.level, xp: f.xp, tokens: f.tokens, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world: f.world,
-        convertedLeft: f.convertedLeft, maxHp: Q.save.maxHpAt(f.level)});
+        convertedLeft: f.convertedLeft, maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms});
+      data().save = s; Q.charms.fixHp(s);
       s.hp = s.maxHp;
+      // avatar items (version-2 codes): unlocked ones become owned on this device, the worn ones go back on
+      if (f.cosmetics) {
+        f.cosmetics.owned.forEach(k => A.store.ownItem(k));
+        if (f.cosmetics.worn.length && A.store.avatar) {
+          const av = A.store.avatar; f.cosmetics.worn.forEach(k => { const [fl, id] = k.split(':'); av[fl] = id; }); A.store.setAvatar(av);
+        }
+      }
       const done = Object.values(f.done);
       s.battles = {won: done.length, befriended: done.filter(k => k === 'befriend').length || friends.length, faded: done.filter(k => k === 'fade').length};
       data().save = s; write();
@@ -76,6 +92,38 @@
     setFlag(name, on = true) { const s = Q.save.get(); s.flags = s.flags || {}; if (on) s.flags[name] = true; else delete s.flags[name]; write(); },
     /** manor ghosts helped (befriended or faded), outside the Practice Hall */
     helped: () => Object.keys(Q.save.get().done || {}).length,
+  };
+
+  /* ---------- CHARMS (ARCADE QUEST ONLY): 2 slots. Only battle.js and dodge.js read them, and only this game loads
+     this file, so they can never change a practice game. ---------- */
+  Q.charms = {
+    SLOTS: 2,
+    list: () => CHARMS(),
+    get: id => CHARMS()[id] || null,
+    owned: id => !!Q.save.get().charms.owned[id],
+    equipped: () => Q.save.get().charms.equipped.slice(),
+    /** the equipped charms' effects, e.g. Q.charms.effects().map(e => e.calm) */
+    effects: () => Q.save.get().charms.equipped.filter(Boolean).map(id => (CHARMS()[id] || {}).effect || {}),
+    /** a product (calm, dodge…) or a sum (maxHp, block) of the equipped charms' effects */
+    mult: k => Q.charms.effects().reduce((m, e) => m * (e[k] || 1), 1),
+    sum: k => Q.charms.effects().reduce((n, e) => n + (e[k] || 0), 0),
+    /** give a charm (found, bought or a reward): false if it was already yours */
+    give(id) { const s = Q.save.get(); if (!CHARMS()[id] || s.charms.owned[id]) return false; s.charms.owned[id] = true; write(); return true; },
+    /** wear a charm in slot 0/1 (null = take it off); the same charm can't be in both slots */
+    equip(slot, id) {
+      const s = Q.save.get(), eq = s.charms.equipped;
+      if (id && !s.charms.owned[id]) return false;
+      if (id) eq.forEach((x, i) => { if (x === id) eq[i] = null; });
+      eq[slot] = id || null; Q.charms.fixHp(s); write();
+      return true;
+    },
+    /** max HP = the level's + the charms'; HP goes up with it (and never over it) */
+    fixHp(s = Q.save.get()) {
+      const was = s.maxHp, bonus = (s.charms.equipped || []).filter(Boolean).reduce((n, id) => n + (((CHARMS()[id] || {}).effect || {}).maxHp || 0), 0);
+      s.maxHp = Q.save.maxHpAt(s.level) + bonus;
+      if (s.maxHp > was) s.hp += s.maxHp - was;
+      s.hp = Math.max(1, Math.min(s.hp, s.maxHp));
+    },
   };
 
   const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false};

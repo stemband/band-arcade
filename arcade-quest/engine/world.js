@@ -253,6 +253,14 @@
       cx = Math.round(cx); cy = Math.round(cy);
       ctx.drawImage(W.canvas, -cx, -cy);
       W.anim.forEach(a => Q.draw(ctx, a.sprite, a.x * T - cx, a.y * T - cy, {t: now}));
+      // a charm still hidden here (a map thing with `charm`): a small twinkle (steady under reduced motion)
+      W.def.things.forEach(th => {
+        if (!th.charm || !Q.charms || Q.charms.owned(th.charm)) return;
+        const on = Q.reduced() || Math.floor(now / 400) % 3 !== 0, x = th.at[0] * T + 11 - cx, y = th.at[1] * T + 3 - cy;
+        if (!on) return;
+        ctx.fillStyle = Q.css('q-white'); ctx.fillRect(x, y - 2, 1, 5); ctx.fillRect(x - 2, y, 5, 1);
+        ctx.fillStyle = Q.css('yellow'); ctx.fillRect(x, y, 1, 1);
+      });
       // everyone, back to front
       const bob = Q.reduced() ? 0 : Math.round(Math.sin(now / 300));
       const list = [];

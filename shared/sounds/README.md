@@ -123,6 +123,9 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `avatar-change` | `avatar-change.m4a` or `avatar-change.mp3` | Create Your Player: picking any option (a hair style, a color, a word of your name…). Without it: the toggle blip. | 0.05–0.15 s |
 | `avatar-randomize` | `avatar-randomize.m4a` or `avatar-randomize.mp3` | Create Your Player: SURPRISE ME (everything, one tab, or a random name). Without it: a quick built-in arpeggio. | 0.2–0.5 s |
 | `avatar-save` | `avatar-save.m4a` or `avatar-save.mp3` | Create Your Player: SAVE. Without it: the skin-equip sound. | 0.3–0.6 s |
+| `item-unlocked` | `item-unlocked.m4a` or `item-unlocked.mp3` | An UNLOCKED! card with a new item for your player (a hat, a pet, a jacket…): a results screen or Select Player. falls back to `skin-unlocked` | 0.5–1 s |
+| `item-purchase` | `item-purchase.m4a` or `item-purchase.mp3` | Arcade Quest: buying a player item or a charm at the Token Booth. falls back to `quest-tokens` | 0.3–0.8 s |
+| `charm-equip` | `charm-equip.m4a` or `charm-equip.mp3` | Arcade Quest: putting on or taking off a charm (Menu: CHARMS), or a ghost giving you one. falls back to `skin-equip` | 0.2–0.5 s |
 
 ### Every game (shared events)
 

@@ -204,13 +204,21 @@ window.Arcade = window.Arcade || {};
     const s = typeof skin === 'string' ? get(skin) : skin, u = s && s.unlock;
     if (!u) return false;
     if (u.always || UNLOCK_ALL) return true;
-    if (milestone(s)) return !!member && st().allStars(member) >= u.stars;
+    return ruleMet(u, member);
+  }
+  /** an unlock rule from saved progress (skins here; avatar items in avatar.js use it for their game rules):
+      {stars} = this member's star total, {game, badge|achievement|level…} = that game's records (any instrument) */
+  function ruleMet(u, member) {
+    if (!u) return false;
+    if (u.stars && !u.game) return !!member && st().allStars(member) >= u.stars;
     if (!u.game || !hasGame(u.game)) return false;
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
     if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
     if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
     return false;
   }
+  const AV = () => A.Avatar && A.Avatar.freshItems ? A.Avatar : null;
+  const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item'};
   /** what a locked skin asks for, in student words */
   function requirement(skin) {
     const u = skin.unlock || {};
@@ -226,7 +234,7 @@ window.Arcade = window.Arcade || {};
   const seenKey = (skin, member) => milestone(skin) ? member : '*';
 
   const Skins = A.Skins = {
-    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, requirement, progress, milestone,
+    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, requirement, progress, milestone,
     colors: () => SKINS.filter(s => s.kind === 'color'),
     accessories: () => SKINS.filter(s => s.kind === 'acc'),
     /** the equipped {color, acc} for a member (a locked choice falls back to Classic Neon / none) */
@@ -295,7 +303,11 @@ window.Arcade = window.Arcade || {};
         : member && A.portraitHTML ? A.portraitHTML(member, {size: 'tile', skin: skinOf(s)})
         : s.kind === 'acc' ? Skins.accSVG(s.id) : `<span class="sk-swatch" style="--sk1:var(--${((s.look || {}).colors || ['cyan'])[0]})"></span>`;
       const m = member && A.memberById ? A.memberById(member) : null;
-      return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s =>
+      const itemPic = it => A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
+      return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s => s.item ?
+        `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
+        `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.text || ''}</small>` +
+        `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
         `<div class="sk-u-item"><span class="sk-u-pic">${pic(s)}</span><b class="sk-u-name">${s.name}</b>` +
         `<small>${s.kind === 'acc' ? 'Accessory' : 'Skin'}${milestone(s) ? (m ? ` for ${m.short}` : '') : ' for every instrument'} · ${milestone(s) ? `${s.unlock.stars} ★` : s.unlock.text}</small>` +
         (member ? `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-skin="${s.id}">Equip now</button>` : '') + `</div>`).join('') + `</div></div>`;
@@ -310,25 +322,29 @@ window.Arcade = window.Arcade || {};
       const list = (members || [st().player]).filter((m, i, a) => a.indexOf(m) === i);
       let found = [], shownFor = member || list.find(Boolean) || null;
       list.forEach(m => { found = found.concat(Skins.fresh(m).filter(s => !found.some(f => f.id === s.id))); });
-      if (!found.length) return [];
+      const items = AV() ? AV().freshItems() : [];                 // avatar items (device-wide stars, achievements)
+      if (!found.length && !items.length) return [];
       list.forEach(m => Skins.markSeen(m, found));
-      const wrap = document.createElement('div'); wrap.innerHTML = Skins.cardHTML(found, shownFor);
+      if (items.length) AV().markSeen(items);
+      const wrap = document.createElement('div'); wrap.innerHTML = Skins.cardHTML(items.map(item => ({item})).concat(found), shownFor);
       const card = wrap.firstChild, acts = [...host.children].find(c => c.classList.contains('acts'));
       if (acts) host.insertBefore(card, acts); else host.appendChild(card);         // after the stars and the result, above the buttons
       const ov = host.closest('.overlay'); if (ov) ov.classList.add('sk-tall');      // a taller panel scrolls
       wire(card, shownFor);
-      setTimeout(() => sfx('skin-unlocked'), 650);
-      return found;
+      setTimeout(() => sfx(items.length ? 'item-unlocked' : 'skin-unlocked'), 650);
+      return items.map(item => ({item})).concat(found);
     },
     /** Select Player: a card for everything unlocked since the student last looked (existing progress included) */
     catchUp(member, {onEquip} = {}) {
-      const found = Skins.fresh(member);
-      if (!found.length) return [];
-      Skins.markSeen(member, found);
+      const skins = Skins.fresh(member), items = AV() ? AV().freshItems() : [];
+      if (!skins.length && !items.length) return [];
+      Skins.markSeen(member, skins);
+      if (items.length) AV().markSeen(items);
+      const found = items.map(item => ({item})).concat(skins);
       const ov = document.createElement('div');
       ov.className = 'overlay sk-catchup';
-      ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New skins unlocked">${Skins.cardHTML(found, member)}` +
-        `<p class="muted sk-u-foot">Find all your skins in the <b>SKINS</b> locker on the player card.</p>` +
+      ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${Skins.cardHTML(found, member)}` +
+        `<p class="muted sk-u-foot">Find everything in the <b>LOCKER</b> on the player card.</p>` +
         `<div class="acts"><button type="button" class="btn btn-ghost" data-close>OK</button></div></div>`;
       document.body.appendChild(ov);
       wire(ov, member, onEquip);
@@ -337,7 +353,7 @@ window.Arcade = window.Arcade || {};
       document.addEventListener('keydown', esc);
       ov.querySelector('[data-close]').addEventListener('click', close);
       ov.querySelector('.sk-u-equip, [data-close]').focus();
-      setTimeout(() => sfx('skin-unlocked'), 250);
+      setTimeout(() => sfx(items.length ? 'item-unlocked' : 'skin-unlocked'), 250);
       return found;
     },
   };
@@ -356,6 +372,13 @@ window.Arcade = window.Arcade || {};
   }
   function wire(root, member, onEquip) {
     root.querySelectorAll('.sk-u-equip').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.item) {                                      // an avatar item: the player wears it now
+        const [field, id] = b.dataset.item.split(':'), av = A.Avatar.get();
+        av[field] = id; A.Avatar.set(av); sfx('skin-equip');
+        b.textContent = 'Wearing it!'; b.disabled = true;
+        if (onEquip) onEquip({item: b.dataset.item});
+        return;
+      }
       const s = get(b.dataset.skin); if (!s || !member) return;
       Skins.equip(member, s.kind === 'acc' ? {acc: s.id} : {color: s.id});
       b.textContent = 'Equipped!'; b.disabled = true;

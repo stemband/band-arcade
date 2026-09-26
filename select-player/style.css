@@ -83,13 +83,13 @@
 .btn-select:hover{background:var(--t-hi)}
 .btn-select:active{transform:translateY(2px)}
 
-/* the SKINS button (opens the locker) */
+/* the LOCKER button (opens the locker) */
 .btn-skins{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;min-height:44px;border-radius:999px;border:2px solid var(--cyan);
   background:var(--deep);color:var(--cyan-hi);font-family:var(--display);font-size:17px;letter-spacing:.06em;text-transform:uppercase;box-shadow:var(--glow-cyan)}
 .btn-skins small{font-family:var(--text);font-size:13px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--text-lo)}
 .btn-skins:hover{background:var(--floor-lit)}
 
-/* ---------- the SKINS locker ---------- */
+/* ---------- the LOCKER ---------- */
 .sk-locker{align-items:flex-start;overflow-y:auto;padding:12px}
 .sk-locker .panel{max-width:860px;width:100%;margin:auto;text-align:left;border-color:var(--cyan)}
 .lk-head{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:16px;align-items:center}
@@ -101,6 +101,11 @@
 .lk-how{margin:0;font-size:14px}
 .lk-sub{margin:16px 0 8px;font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan-hi)}
 .lk-sub small{font-family:var(--text);font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-lo)}
+.lk-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 2px;border-bottom:2px solid var(--floor-3);padding-bottom:8px}
+.lk-tabs [role="tab"]{flex:1 1 90px;min-height:44px;padding:6px 10px;border-radius:999px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);
+  font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.lk-tabs [role="tab"][aria-selected="true"]{border-color:var(--cyan);color:var(--cyan-hi);box-shadow:var(--glow-cyan);background:var(--floor-lit)}
+.lk-tabs [role="tab"]:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
 .lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
 .sk-opt{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:14px;border:2px solid var(--floor-3);
   background:var(--deep);color:var(--text-hi);text-align:center;min-width:0}

@@ -11,6 +11,9 @@
    line; quest-boss-phase plays between them), `finale` (at HP 1 its CALM fills and it says these lines: time to
    HARMONIZE), `harmonizeKeep` (a missed HARMONIZE keeps the CALM) and harmonize {type: 'scale'} (the whole concert
    B♭ scale). Key items (`keep` in data/items.js, the Conductor's Baton) aren't used up: once per battle.
+   CHARMS (data/items.js QUEST_CHARMS, 2 worn, Q.charms in engine/save.js; ARCADE QUEST ONLY): `calm` × every CALM
+   gain, `inTune` × damage of a PLAY at `at` accuracy or better, `block` sour notes blocked per battle (B.mute),
+   `dodge` × the enemy notes' speed (dodge.js), `maxHp` (the save's maxHp).
    Q.go('battle', {enemy: 'squawk', back: 'arena'}) or, from the overworld,
    Q.go('battle', {enemy: 'wisp', overrides: {happy: 2}, back: {scene: 'world', args: {...}}}): when it ends, the
    back scene gets args.result = {kind: 'befriend' | 'fade' | 'rest', enemy}. All words: data/battle-text.js. */
@@ -31,7 +34,7 @@
     Q.$('qPHp').style.width = Math.max(0, s.hp / s.maxHp * 100) + '%';
     Q.$('qPHpN').textContent = `${Math.max(0, s.hp)}/${s.maxHp}`;
     Q.$('qLv').textContent = 'LV ' + s.level;
-    Q.$('qShield').hidden = !B.shield; Q.$('qShield').textContent = `Shield ×${B.shield}`;
+    Q.$('qShield').hidden = !B.shield && !B.mute; Q.$('qShield').textContent = [B.shield ? `Shield ×${B.shield}` : '', B.mute ? 'Mute ready' : ''].filter(Boolean).join(' · ');
   };
   /** a floating number over the canvas (damage, CALM +) */
   function float(text, x, y, cls) {
@@ -41,6 +44,7 @@
   }
   function addCalm(n, say) {
     if (!n) return;
+    n *= Q.charms.mult('calm');                                  // the Lucky Reed
     const was = B.calm;
     B.calm = Math.min(RULES.calmMax, B.calm + n); hud();
     if (B.calm >= 50 && was < 50 && B.calm < RULES.calmMax) B.queue.push(B.e.lines.calm);
@@ -115,6 +119,8 @@
     if (B === null) return false;
     const power = RULES.power + (B.save.level - 1) * RULES.powerPerLevel;
     let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
+    const fork = Q.charms.effects().find(e => e.inTune && res.acc >= (e.at || .9));    // the Tuning Fork
+    if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
     const boosted = B.boost && dmg > 0 ? B.boost : 0;
     if (boosted) { dmg = Math.round(dmg * boosted); B.boost = 0; }
     if (dmg > 0) {
@@ -181,15 +187,17 @@
     await Q.say([Q.pick([].concat(B.e.lines.turn)), Q.text('dodgeStart')], {name: B.e.name});
     const st = Q.settings.get();
     const res = await Q.dodge.start({enemy: foe(), easy: st.dodge === 'easy', slow: B.slow, shield: B.shield, assist: st.assist,
+      mute: B.mute, charm: Q.charms.mult('dodge'),
       onHit: (dmg, blocked) => {
         if (blocked) { float('Blocked!', 150, 80, 'calm'); return; }
         B.save.hp = Math.max(0, B.save.hp - dmg); float('-' + dmg, 40, 58, 'dmg'); Q.sfx('quest-hurt'); hud();
         if (B.save.hp <= 0) return 'stop';
       }});
-    B.slow = null; B.shield = res.shieldLeft || 0; hud(); Q.save.write();
+    B.slow = null; B.shield = res.shieldLeft || 0; B.mute = res.muteLeft || 0; hud(); Q.save.write();
     const lines = [];
     if (res.damage) lines.push(Q.text('dodgeHits', {n: res.damage}));
-    else lines.push(Q.text(res.blocked ? 'shieldBlock' : 'dodgeClean'));
+    else lines.push(Q.text(res.muted && !res.blocked ? 'charmMute' : res.blocked ? 'shieldBlock' : 'dodgeClean'));
+    if (res.damage && res.muted) lines.push(Q.text('charmMute'));
     await Q.say(lines);
   }
 
@@ -199,10 +207,13 @@
     s.xp += r.xp; s.tokens += r.tokens;
     const lines = [Q.text('rewards', {n: r.xp, tokens: r.tokens})];
     if (r.item && ITEMS()[r.item]) { s.items[r.item] = (s.items[r.item] || 0) + 1; lines.push(Q.text('gotItem', {item: ITEMS()[r.item].name})); }
+    if (kind === 'befriend') Object.keys(Q.charms.list()).forEach(id => {       // a charm for befriending this ghost
+      const c = Q.charms.get(id); if (c.reward === B.e.id && Q.charms.give(id)) { lines.push(Q.text('gotCharm', {item: c.name})); Q.sfx('charm-equip'); }
+    });
     const breath = Math.min(s.maxHp - s.hp, Math.ceil(s.maxHp * RULES.breath));   // a breather after every battle won
     if (breath > 0) { s.hp += breath; lines.push(Q.text('breath', {n: breath})); }
     let up = false;
-    while (s.xp >= Q.save.xpToNext(s.level)) { s.xp -= Q.save.xpToNext(s.level); s.level++; s.maxHp = Q.save.maxHpAt(s.level); s.hp = s.maxHp; up = true; }
+    while (s.xp >= Q.save.xpToNext(s.level)) { s.xp -= Q.save.xpToNext(s.level); s.level++; Q.charms.fixHp(s); s.hp = s.maxHp; up = true; }
     s.battles = s.battles || {won: 0, befriended: 0, faded: 0};
     s.battles.won++; s.battles[kind === 'befriend' ? 'befriended' : 'faded']++;
     Q.save.write(); hud();
@@ -257,7 +268,7 @@
     enter({enemy, back, overrides}) {
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
-      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
+      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
         player: Q.playerId(member.id)};
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +
@@ -295,5 +306,5 @@
       Q.dodge.draw(ctx, now);
     },
   };
-  Q.battleState = () => B && {hp: B.e.hp, calm: B.calm, php: B.save.hp, state: B.state, shield: B.shield};   // tests
+  Q.battleState = () => B && {hp: B.e.hp, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute};   // tests
 })(window.Arcade);

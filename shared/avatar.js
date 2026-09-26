@@ -43,22 +43,74 @@ window.Arcade = window.Arcade || {};
     shoes: () => ids(P.SHOES), shoeColor: () => P.SHOE_COLORS,
     glasses: () => ids(P.GLASSES), glassesColor: () => P.FRAME_COLORS, aids: () => ids(P.AIDS), aidColor: () => P.AID_COLORS,
     chair: () => [false, true], chairColor: () => P.CHAIR_COLORS,
+    pet: () => ids(P.PETS), back: () => ids(P.BACKS),
   };
+
+  /* ---------- UNLOCKS (the rules are on the parts in avatar-parts.js) ----------
+     A part without `unlock` is free. IDENTITY items are ALWAYS free, whatever a rule says (never lock them). */
+  const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS};
+  const IDENTITY = {head: ['none', 'hijab', 'headwrap', 'turban'], aids: '*', chair: '*', glasses: '*', glassesColor: '*', aidColor: '*', chairColor: '*'};
+  const itemKey = (field, id) => field + ':' + id;
+  const partFor = (field, id) => LOCKABLE[field] ? byId(LOCKABLE[field](), id) : null;
+  const identity = (field, id) => IDENTITY[field] === '*' || (IDENTITY[field] || []).includes(id);
+  /** is this choice open on this device? (?demo&unlockall opens everything) */
+  function isUnlocked(field, id) {
+    if (identity(field, id)) return true;
+    const p = partFor(field, id), u = p && p.unlock;
+    if (!u || (A.Skins && A.Skins.UNLOCK_ALL)) return true;
+    if (u.shop) return !!(st().ownedItems || {})[itemKey(field, id)];
+    if (u.stars && !u.game) return st().allStars('*') >= u.stars;      // device-wide: every instrument, every game
+    return !!(A.Skins && A.Skins.ruleMet(u));
+  }
+  /** what a locked choice asks for, in student words */
+  function requirement(field, id) {
+    const u = (partFor(field, id) || {}).unlock;
+    if (!u || identity(field, id)) return '';
+    if (u.shop) return `${u.shop} tokens at the Token Booth`;
+    if (u.stars && !u.game) return `Earn ${u.stars} ★`;
+    return u.text || 'Keep playing to unlock';
+  }
+  /** "37 of 150 ★ (every instrument and game)" for a locked star item, else '' */
+  function progress(field, id) {
+    const u = (partFor(field, id) || {}).unlock;
+    return u && u.stars && !u.game && !isUnlocked(field, id) ? `${st().allStars("*")} of ${u.stars} ★ so far` : '';
+  }
+  /** every item that has to be earned or bought: {key, field, id, name, unlock, shop} */
+  function items() {
+    const out = [];
+    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0}); }));
+    return out;
+  }
+  /** earned items (not bought ones) whose UNLOCKED! card hasn't been shown yet (never with ?unlockall) */
+  function freshItems() {
+    if (A.Skins && A.Skins.UNLOCK_ALL) return [];
+    const seen = st().itemsSeen || {};
+    return items().filter(it => !it.shop && !seen[it.key] && isUnlocked(it.field, it.id));
+  }
+  /** a copy of the avatar with anything still locked swapped for a free choice (what the arcade shows) */
+  function effective(av) {
+    const out = Object.assign({}, av);
+    Object.keys(LOCKABLE).forEach(f => { if (!isUnlocked(f, out[f])) out[f] = FIELDS[f]().find(id => isUnlocked(f, id)); });
+    return out;
+  }
   const NATURAL = ['black', 'darkbrown', 'brown', 'auburn', 'copper', 'blonde', 'platinum', 'gray', 'white'];
   /** a random value for one field (weighted so most random players look like students, with fun ones mixed in) */
   function randomField(k) {
     const r = Math.random();
     switch (k) {
-      case 'hairColor': return r < 0.8 ? pick(NATURAL.slice(0, 7)) : pick(FIELDS.hairColor());
-      case 'head': return r < 0.72 ? 'none' : pick(FIELDS.head().filter(x => x !== 'none'));
+      case 'hairColor': return r < 0.8 ? pick(NATURAL.slice(0, 7)) : pick(open(k));
+      case 'head': return r < 0.72 ? 'none' : pick(open(k).filter(x => x !== 'none'));
       case 'glasses': return r < 0.72 ? 'none' : pick(FIELDS.glasses().filter(x => x !== 'none'));
       case 'aids': return r < 0.9 ? 'none' : pick(FIELDS.aids().filter(x => x !== 'none'));
       case 'freckles': return r < 0.2;
       case 'chair': return r < 0.06;
       case 'topColor': case 'headColor': return pick(FIELDS[k]().filter(x => x !== 'khaki' && x !== 'denim' && x !== 'tan'));
-      default: return pick(FIELDS[k]());
+      case 'pet': return r < 0.8 ? 'none' : pick(open(k));
+      case 'back': return 'none';
+      default: return pick(open(k));
     }
   }
+  const open = k => FIELDS[k]().filter(id => isUnlocked(k, id));
   function randomName() {
     return {title: pick(NAMES.titles), adj: pick(NAMES.adjectives), noun: pick(NAMES.nouns), initial: Math.random() < 0.3 ? pick('ABCDEFGHIJKLMNOPRSTW'.split('')) : ''};
   }
@@ -74,7 +126,7 @@ window.Arcade = window.Arcade || {};
   function normalize(av) {
     const out = {v: VERSION};
     av = av && typeof av === 'object' ? av : {};
-    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : k === 'head' || k === 'glasses' || k === 'aids' ? 'none' : list[0]); });
+    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back'].includes(k) ? 'none' : list[0]); });
     const n = av.name || {};
     out.name = {title: typeof n.title === 'string' && n.title ? n.title : NAMES.titles[0], adj: typeof n.adj === 'string' && n.adj ? n.adj : NAMES.adjectives[0],
                 noun: typeof n.noun === 'string' && n.noun ? n.noun : NAMES.nouns[0], initial: /^[A-Z]$/.test(n.initial || '') ? n.initial : ''};
@@ -87,10 +139,10 @@ window.Arcade = window.Arcade || {};
   function get() {
     let av = st().avatar;
     if (!av) { av = random(); st().setAvatar(av); }
-    return normalize(av);
+    return effective(normalize(av));
   }
   function set(av) { st().setAvatar(normalize(av)); redrawAll(); }
-  function guest() { let av = st().guestAvatar; if (!av) { av = random(); st().setGuestAvatar(av); } return normalize(av); }
+  function guest() { let av = st().guestAvatar; if (!av) { av = random(); st().setGuestAvatar(av); } return effective(normalize(av)); }
   function setGuest(av) { st().setGuestAvatar(normalize(av)); redrawAll(); }
 
   /* ---------- colors: palette letters -> theme tokens -> [r, g, b] ---------- */
@@ -120,7 +172,7 @@ window.Arcade = window.Arcade || {};
       p: `av-${av.bottomColor}`, P: `av-${av.bottomColor}-d`, q: `av-${av.shoeColor}`, Q: av.shoeColor === 'white' ? 'av-gray' : 'av-white',
       u: `av-${av.headColor}`, U: `av-${av.headColor}-d`, j: av.headColor === 'white' || av.headColor === 'yellow' ? 'av-red' : 'av-white',
       x: `av-${av.glassesColor}`, a: av.aidColor === 'aid' ? 'av-aid' : `av-${av.aidColor}`,
-      v: `av-${av.chairColor}`, V: 'av-tire', r: 'av-rim',
+      v: `av-${av.chairColor}`, V: 'av-tire', r: 'av-rim', '*': 'white-hi',
     };
     Object.entries(P.ACC_COLORS).forEach(([k, t]) => { pal[k] = t; });
     return pal;
@@ -191,12 +243,32 @@ window.Arcade = window.Arcade || {};
     if (acc && acc.hides === 'top') clipY = Math.max(clipY, acc.clip[view]);
     return {clipY};
   }
+  /** special hair colors: 'tips' = the ends of the hair in flame colors, 'sparkle' = little stars in it */
+  function hairFx(av, g, bust) {
+    const fx = (partOf(P.HAIR_COLORS, av.hairColor) || {}).fx;
+    if (!fx) return;
+    const H = g.length, W = g[0].length, hairy = ch => ch === 'h' || ch === 'H' || ch === 'l';
+    if (fx === 'tips') for (let x = 0; x < W; x++) {
+      let last = -1; for (let y = 0; y < H; y++) if (hairy(g[y][x])) last = y;
+      if (last >= 0) { g[last][x] = 'l'; if (bust && last > 0 && hairy(g[last - 1][x])) g[last - 1][x] = 'l'; }
+    }
+    if (fx === 'sparkle') g.forEach((row, y) => row.forEach((ch, x) => { if (hairy(ch) && (x * 7 + y * 11) % (bust ? 13 : 9) === 0) row[x] = (x + y) % 2 ? '*' : 'l'; }));
+  }
+  /** the pet's own layer: its picture floating beside the avatar (bob: 0/1), with a dark outline */
+  function petLayer(av, bust, bob = 0) {
+    const pet = partOf(P.PETS, av.pet);
+    if (!pet.rows) return null;
+    const W = bust ? 36 : 32, g = blank(W, W), [x, y] = P.PET_AT[bust ? 'bust' : 'sprite'];
+    stamp(g, {x, y: y + bob, rows: pet.rows});
+    return {g: outline(g), pal: Object.assign({o: 'av-out'}, pet.pal)};
+  }
   /** the head's layers for one view: {behind, body} grids (W × H); view 'front' | 'side' | 'back' | 'bust' */
   function headAndBody(av, eq, view) {
     const W = view === 'bust' ? 36 : 32, H = W, bust = view === 'bust';
     const behind = blank(W, H), body = blank(W, H), over = blank(W, H);
     const faceShape = partOf(P.FACES, av.face), hair = partOf(P.HAIRS, av.hair), top = partOf(P.TOPS, av.top);
     const {head, acc, accId} = coveringOf(av, eq);
+    const backItem = partOf(P.BACKS, av.back);
     const clip = hairClip(av, eq, view);
     const v = view === 'back' ? 'front' : view;         // the back view uses the front's silhouettes
     // --- behind the body ---
@@ -205,7 +277,9 @@ window.Arcade = window.Arcade || {};
       if (top.bustBehind && head.id !== 'hijab') stamp(behind, top.bustBehind);
       if (head.bustBehind && head.id !== 'hijab') stamp(behind, head.bustBehind);
       if (acc && acc.bustBehind) stamp(behind, acc.bustBehind);
+      if (backItem.bustBehind) stamp(behind, backItem.bustBehind);
     } else if (view !== 'back') {
+      if (backItem.behind && backItem.behind[view]) stamp(behind, backItem.behind[view]);
       if (clip && hair.behind && hair.behind[view]) stamp(behind, hair.behind[view], {clipY: clip.clipY});
       if (top.behind && top.behind[view] && head.id !== 'hijab') stamp(behind, top.behind[view]);
       if (head.behind && head.behind[view] && head.id !== 'hijab') stamp(behind, head.behind[view]);
@@ -223,11 +297,13 @@ window.Arcade = window.Arcade || {};
     if (view !== 'back') {
       const eyes = partOf(P.EYES, av.eyes), brows = partOf(P.BROWS, av.brows), mouth = partOf(P.MOUTHS, av.mouth);
       if (bust) {
-        feature(body, eyes.bust, 12, 15, 21); feature(body, brows.bust, 12, 13, 21); feature(body, mouth.bust, 15, 20);
+        if (eyes.bustR) { feature(body, eyes.bust, 12, 15); feature(body, eyes.bustR, 21, 15); } else feature(body, eyes.bust, 12, 15, 21);
+        feature(body, brows.bust, 12, 13, 21); feature(body, mouth.bust, 15, 20);
         stamp(body, P.NOSE.bust);
         if (av.freckles) stamp(body, P.FRECKLES.bust);
       } else if (view === 'front') {
-        feature(body, eyes.front, 12, 8, 18); feature(body, brows.front, 11, 6, 18); feature(body, mouth.front, 14, 10);
+        if (eyes.frontR) { feature(body, eyes.front, 12, 8); feature(body, eyes.frontR, 18, 8); } else feature(body, eyes.front, 12, 8, 18);
+        feature(body, brows.front, 11, 6, 18); feature(body, mouth.front, 14, 10);
         if (av.freckles) stamp(body, P.FRECKLES.front);
       } else {
         feature(body, eyes.side, 17, 8); feature(body, brows.side, 16, 6); feature(body, mouth.side, 16, 10);
@@ -250,6 +326,7 @@ window.Arcade = window.Arcade || {};
         // long hair, a ponytail, braids: down the back, over the body
         if (hair.behind) stamp(over, hair.behind.back || hair.behind.front, {clipY: clip.clipY});
       } else stamp(body, hair[view], {clipY: clip.clipY});
+      hairFx(av, body, bust);
     }
     // --- glasses, hearing aids ---
     const gl = partOf(P.GLASSES, av.glasses);
@@ -276,6 +353,7 @@ window.Arcade = window.Arcade || {};
       if (bust && acc.bust && acc.bust.after) stamp(body, acc.bust.after);
       if (view === 'back' && acc.behind && acc.behind.back) stamp(over, acc.behind.back);
     }
+    if (view === 'back' && backItem.behind && backItem.behind.back) stamp(over, backItem.behind.back);
     if (bust && top.bustDetail && head.id !== 'hijab') stamp(body, top.bustDetail);
     // a hijab wraps the face: it is one shape with the head (no outline between them)
     if (head.id === 'hijab') {
@@ -291,8 +369,8 @@ window.Arcade = window.Arcade || {};
   function bustCanvas(av, eq) {
     const pal = palette(av, eq, {bust: true});
     const {behind, body} = headAndBody(av, eq, 'bust');
-    const o = outline(body), ob = outline(behind, o);
-    return paint(36, 36, [{g: ob, pal}, {g: o, pal}]);
+    const o = outline(body), ob = outline(behind, o), pet = petLayer(av, true);
+    return paint(36, 36, [{g: ob, pal}, {g: o, pal}].concat(pet ? [pet] : []));
   }
   function bustURL(av, eq) {
     const key = JSON.stringify([av, eq && eq.color, eq && eq.acc]);
@@ -442,7 +520,7 @@ window.Arcade = window.Arcade || {};
   function frameLayers(av, eq, pal, view, pose, bob, step, spin, parts) {
     const ART = window.QUEST_ART, IP = ART.INSTRUMENT_PALETTE, S = ART.SHAPES;
     const L = (g, palette, dy = 0) => ({g, pal: palette, dy});
-    const top = partOf(P.TOPS, av.top), sleeveCh = top.base === 'black' ? 'K' : 'c';
+    const top = partOf(P.TOPS, av.top), sleeveCh = top.sleeveCh || (top.base === 'black' ? 'K' : 'c');
     const partsGrid = z => {
       const g = blank(PW, PW);
       (pose.parts || []).forEach(([shape, x, y, pz = 'front']) => {
@@ -507,7 +585,7 @@ window.Arcade = window.Arcade || {};
       : {side: [[0, {back: -2, front: 2}, 0], [1, {}, 0], [0, {back: 2, front: -2}, 0], [1, {}, 0]],
          front: [[0, {left: 2}, 0], [1, {}, 0], [0, {right: 2}, 0], [1, {}, 0]]};
     const make = (view, pose, list, extra) => Object.assign({w: PW, h: PW, fps: 2,
-      frames: list.map(([bob, step, spin], i) => paint(PW, PW, frameLayers(av, eq, pal, view, typeof pose === 'function' ? pose(i) : pose, bob, step, spin, heads[view])))}, extra || {});
+      frames: list.map(([bob, step, spin], i) => { const pet = petLayer(av, false, i % 2); return paint(PW, PW, frameLayers(av, eq, pal, view, typeof pose === 'function' ? pose(i) : pose, bob, step, spin, heads[view]).concat(pet ? [pet] : [])); })}, extra || {});
     const out = {
       '': make('side', Pz.side, IDLE),
       '-walk': make('side', Pz.side, WALK.side, {fps: 8}),
@@ -535,7 +613,9 @@ window.Arcade = window.Arcade || {};
   }
 
   A.Avatar = {
-    stampResults,
+    stampResults, isUnlocked, requirement, progress, items, LOCKABLE: Object.keys(LOCKABLE), freshItems, effective, itemKey,
+    /** mark items' UNLOCKED! cards as shown */
+    markSeen: list => st().markItemsSeen(list.map(it => it.key)),
     VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone,
     bustURL, bustCanvas, sprites, redrawAll, eqFor,
     /** the parts' lists (the creator reads them) */
