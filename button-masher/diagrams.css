@@ -1,0 +1,37 @@
+/* Button Masher's fingering diagrams (diagrams.js): the instrument drawing and its tappable keys.
+   Loaded by Button Masher and by Arcade Quest's FINGERING challenge, so both draw the diagrams the same way. */
+.diagram{display:block;overflow:visible;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.dg-body{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
+.dg-pipe{fill:none;stroke:var(--cab-metal);stroke-width:12;stroke-linecap:round}
+.dg-bell{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
+.dg-coil{fill:none;stroke:var(--cab-metal);stroke-width:10}
+.dg-mouth,.dg-reed,.dg-lip{fill:var(--cab-metal)}
+.dg-hand{font-family:var(--display);font-size:13px;letter-spacing:.14em;fill:var(--text-dim)}
+.dg-cap{font-family:var(--text);font-weight:700;font-size:14px;fill:var(--text-lo)}
+.key{cursor:pointer;outline:none}
+.k-hit{fill:transparent}
+.k-base{fill:var(--key-open);stroke:var(--key-rim);stroke-width:3}
+.k-fill,.k-half{fill:var(--key-on);opacity:0}
+.k-lbl{font-family:var(--text);font-weight:700;font-size:18px;fill:var(--text-hi);pointer-events:none}
+.k-lbl.long{font-size:14px}
+.valve .k-base{stroke-width:5}
+.valve .k-lbl{font-family:var(--display);font-weight:400;font-size:34px}
+.pos .k-lbl{font-family:var(--display);font-weight:400;font-size:28px}
+.key[data-state="1"] .k-fill{opacity:1}
+.key[data-state="h"] .k-half{opacity:1}
+.key[data-state="1"] .k-lbl,.key[data-state="h"] .k-lbl{fill:var(--deep)}
+.key[data-state="1"] .k-base,.key[data-state="h"] .k-base{stroke:var(--yellow-hi)}
+.halfable .k-base{stroke-dasharray:none}
+.key:focus-visible .k-base{stroke:var(--yellow-hi);stroke-width:6}
+/* the right combo after a miss (green glow; half-holes glow on the left half), and the faint hint */
+.key.glow .k-base{stroke:var(--key-glow);stroke-width:6}
+.key.glow[data-glow="1"] .k-fill{fill:var(--key-glow);opacity:.85}
+.key.glow[data-glow="h"] .k-half{fill:var(--key-glow);opacity:.85}
+.key.glow .k-lbl{fill:var(--deep)}
+.key.hint .k-base{stroke:var(--key-glow);stroke-dasharray:6 5;stroke-width:4}
+.key.hint[data-hint="1"]:not([data-state="1"]) .k-fill{fill:var(--key-glow);opacity:.18}
+.key.hint[data-hint="h"]:not([data-state="h"]) .k-half{fill:var(--key-glow);opacity:.22}
+.dg-brace{transition:transform .18s ease-out;opacity:.35}
+.dg-brace rect{fill:var(--cab-metal)} .dg-brace path{stroke:var(--deep);stroke-width:4}
+.dg-brace.on{opacity:1}
+@media (prefers-reduced-motion:reduce){ .dg-brace{transition:none} }

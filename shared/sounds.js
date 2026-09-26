@@ -112,12 +112,24 @@ window.Arcade = window.Arcade || {};
     'race-finish':     {file: 'race-finish', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'level-complete', when: 'Sustain Speedway: crossing the finish line.', len: '0.8–1.5 s'},
     'podium':          {file: 'podium', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'new-high-score', when: 'Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd.', len: '1–2 s'},
     'new-best-lap':    {file: 'new-best-lap', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'star-earned', when: 'Sustain Speedway: the results screen, a new best lap on this track (after the podium).', len: '0.5–1 s'},
+    // ---- Arcade Quest (the mic listens only during a playing challenge; menus and dodging are quiet for it) --------
+    'quest-battle': {file: 'quest-battle', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: battle music (the MUSIC slider), during menus and dodging. It stops while the microphone listens. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-text': {file: 'quest-text', vol: .25, mic: false, screen: 'arcade-quest', gen: [[880, 0, .018, .12, 'square']], when: 'Arcade Quest: the text box typing (a tiny blip every few letters). Never while the microphone listens.', len: 'under 0.05 s'},
+    'quest-move': {file: 'quest-move', vol: .5, mic: false, screen: 'arcade-quest', gen: 'tile-move', when: 'Arcade Quest: moving between menu buttons.', len: 'under 0.1 s'},
+    'quest-select': {file: 'quest-select', vol: .6, mic: false, screen: 'arcade-quest', gen: 'ui-toggle', when: 'Arcade Quest: choosing a menu button.', len: 'under 0.2 s'},
+    'quest-hurt': {file: 'quest-hurt', vol: .6, mic: false, play: true, screen: 'arcade-quest', gen: [[330, 0, .07, .3, 'square'], [220, .06, .09, .3, 'square']], when: 'Arcade Quest: a sour note hits you while dodging.', len: 'under 0.3 s'},
+    'quest-enemy-hurt': {file: 'quest-enemy-hurt', vol: .7, mic: true, screen: 'arcade-quest', gen: [[660, 0, .06, .3, 'square'], [990, .06, .08, .25, 'square']], when: 'Arcade Quest: your PLAY lands (after the challenge, never while listening).', len: 'under 0.4 s'},
+    'quest-calm': {file: 'quest-calm', vol: .6, mic: true, screen: 'arcade-quest', gen: 'note-hit', when: 'Arcade Quest: the enemy\'s CALM meter rises.', len: 'under 0.4 s'},
+    'quest-befriend': {file: 'quest-befriend', vol: .8, mic: true, screen: 'arcade-quest', gen: 'level-complete', when: 'Arcade Quest: HARMONIZE works and the enemy joins your band.', len: '1–2 s'},
+    'quest-fade': {file: 'quest-fade', vol: .7, mic: true, screen: 'arcade-quest', gen: [[523, 0, .12, .25, 'triangle'], [392, .12, .12, .25, 'triangle'], [262, .24, .3, .25, 'triangle']], when: 'Arcade Quest: the enemy fades away grumbling (its HP ran out).', len: '0.5–1 s'},
+    'quest-levelup': {file: 'quest-levelup', vol: .8, mic: true, screen: 'arcade-quest', gen: 'star-earned', when: 'Arcade Quest: LEVEL UP after a battle.', len: '0.8–1.5 s'},
+    'quest-item': {file: 'quest-item', vol: .6, mic: false, screen: 'arcade-quest', gen: 'skin-equip', when: 'Arcade Quest: using an item.', len: 'under 0.5 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {
     LIST, SCREENS,

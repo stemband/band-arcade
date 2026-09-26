@@ -1,0 +1,54 @@
+/* ARCADE QUEST: EVERY BATTLE MESSAGE. MAT: edit freely. {name} = the enemy, {you} = your instrument, {n} = a number,
+   {note} = a note in your written pitch, {item} = an item. A list = one is picked at random each time.
+   Keep it warm and funny, never violent: enemies fade away grumbling or become friends. */
+window.QUEST_TEXT = {
+  menuPrompt:      ['What will you do?', 'Your move, {you}!', 'Ready when you are.'],
+  play:            'PLAY',                         playSub: 'Attack with your instrument',
+  listen:          'LISTEN',                       listenSub: 'Learn what it likes',
+  item:            'ITEM',                         itemSub: 'Use something from your bag',
+  harmonize:       'HARMONIZE',                    harmonizeSub: 'Make friends (CALM is full!)',
+  harmonizeLocked: 'Fill its CALM meter first',
+  noItems:         'Your bag is empty.',
+  back:            'Back',
+
+  playIntro:       'Play these notes!',
+  longIntro:       'Hold {note} steady and in tune for {n} seconds!',
+  tapIntro:        'Play {note}, {n} separate times! (Ta, ta, ta…)',
+  tapIntroDrum:    'Hit the drum {n} separate times!',
+  vocabIntro:      'Answer the question!',
+  fingerIntro:     'Show the fingering for {note}, then press CHECK.',
+  harmonizeIntro:  'Play its happy note, {note}, and hold it!',
+  harmonizeDrum:   'Play its happy rhythm: {n} clean hits!',
+
+  hitGreat:        ['A clean hit! {name} takes {n}.', 'Perfect! {name} takes {n}.'],
+  hitGood:         '{name} takes {n}.',
+  hitWeak:         ['A wobbly hit. {name} takes {n}.', 'Close! {name} takes {n}.'],
+  miss:            ['The notes didn\'t land this time. Try again next turn!', 'Not quite! You\'ll get it next time.'],
+  wrongNote:       'That\'s {note}. Look for the one on the staff.',
+  calmUp:          '{name}\'s CALM goes up!',
+  calmFull:        '{name} is totally CALM. You can HARMONIZE now!',
+  listenCalm:      '{name} likes that you listened. CALM goes up!',
+
+  itemUsed:        'You used the {item}.',
+  itemHeal:        'You got back {n} HP.',
+  fullHp:          'Your HP is already full. Save it for later!',
+  itemShield:      'Sour notes will slide right off you (next {n} hits).',
+  itemSlow:        'Tick… tock… The next dodge will be slower.',
+
+  dodgeStart:      ['Dodge the sour notes!', 'Here it comes! Dodge!', 'Rest your lips and dodge!'],
+  dodgeClean:      'Not a single sour note touched you!',
+  dodgeHits:       'You took {n} damage.',
+  shieldBlock:     'The Cork Grease blocked every sour note that hit you!',
+
+  harmonizeFail:   '{name} almost sang along… Its CALM drops a little. Try again!',
+  befriended:      '{name} joined your band!',
+  faded:           '{name} fades away grumbling.',
+  rewards:         'You earned {n} XP and {tokens} Arcade Tokens!',
+  gotItem:         'You found a {item}!',
+  levelUp:         'LEVEL UP! You\'re level {n}. Max HP up!',
+
+  outOfBreath:     'You\'re out of breath! Time to rest up and try again.',
+  outOfBreath2:    'No worries: nothing is lost. Your HP is back to full.',
+
+  micHint:         'Tap PLAY to use your instrument. The microphone only listens while you play.',
+};

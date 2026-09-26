@@ -1,0 +1,168 @@
+/* ARCADE QUEST. The 320 × 180 canvas fills the biggest 16:9 box (letterboxed); HTML UI on top is measured in game
+   pixels: calc(var(--px) * N). Pixel font "GN Quest" (Pixelify Sans, shared/fonts). Colors = theme.css tokens only. */
+html,body{height:100%}
+body{margin:0;background:var(--deep);color:var(--text-hi);overflow:hidden}
+.q-wrap{height:100%;display:flex;flex-direction:column;padding:8px 12px calc(8px + env(safe-area-inset-bottom));box-sizing:border-box;gap:6px}
+.q-wrap>#topbar{margin:0;flex:none}
+#viewport{flex:1;min-height:0;display:grid;place-items:center}
+#stage{position:relative;--px:3px;background:var(--q-black);overflow:hidden;box-shadow:0 0 0 2px var(--floor-3),var(--glow-cyan);
+  font-family:"GN Quest",var(--text);font-size:calc(var(--px) * 7.5);line-height:1.25;font-variant-ligatures:none;user-select:none;-webkit-user-select:none;touch-action:none}
+#screen{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#ui{position:absolute;inset:0}
+#ui>*{position:absolute}
+.q-sprite{image-rendering:pixelated;display:block}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit}
+
+/* ---------- the text box: black with a white border ---------- */
+.q-textbox{left:calc(var(--px) * 8);right:calc(var(--px) * 8);bottom:calc(var(--px) * 6);min-height:calc(var(--px) * 44);display:flex;gap:calc(var(--px) * 6);
+  background:var(--q-black);border:calc(var(--px) * 2) solid var(--q-white);padding:calc(var(--px) * 5) calc(var(--px) * 7);box-sizing:border-box;cursor:pointer;z-index:5}
+.q-textbox[hidden]{display:none}
+.q-portrait{flex:none;display:grid;place-items:center;border-right:calc(var(--px) * 1) solid var(--q-grey-d);padding-right:calc(var(--px) * 5)}
+.q-portrait[hidden]{display:none}
+.q-tbody{position:relative;flex:1;min-width:0}
+.q-tname{margin:0 0 calc(var(--px) * 2);color:var(--q-gold);font-weight:700}
+.q-tname[hidden]{display:none}
+.q-tline{margin:0;color:var(--q-white);font-size:calc(var(--px) * 9);min-height:2.5em}
+.q-tmore{position:absolute;right:0;bottom:calc(var(--px) * -2);color:var(--q-white);animation:q-bob .8s steps(2) infinite}
+.q-tmore[hidden]{display:none}
+@keyframes q-bob{50%{transform:translateY(calc(var(--px) * 2))}}
+
+/* ---------- pixel buttons and menus ---------- */
+.q-menu{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:calc(var(--px) * 3)}
+.q-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--px) * 1);min-height:calc(var(--px) * 22);
+  padding:calc(var(--px) * 3) calc(var(--px) * 4);background:var(--q-black);color:var(--q-white);border:calc(var(--px) * 1.5) solid var(--q-grey);
+  border-radius:0;cursor:pointer;font-weight:700;font-size:calc(var(--px) * 9);letter-spacing:.03em;text-align:center;box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3)}
+.q-btn small{font-weight:400;font-size:calc(var(--px) * 6);color:var(--text-lo);letter-spacing:0;line-height:1.15}
+.q-btn:hover,.q-btn.sel,.q-btn:focus-visible{border-color:var(--q-cursor);color:var(--q-cursor);outline:none}
+.q-btn.sel .q-bl::before,.q-btn:focus-visible .q-bl::before{content:"▸ "}
+.q-btn:disabled{opacity:.45;cursor:default;border-style:dashed}
+.q-btn:disabled small{color:var(--text-lo)}
+.c-play{border-color:var(--q-gold)}
+.c-harm.ready{border-color:var(--q-pink);color:var(--q-pink);animation:q-pulse 1.2s steps(2) infinite}
+@keyframes q-pulse{50%{box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3),0 0 0 calc(var(--px) * 1.5) var(--q-pink)}}
+
+/* ---------- battle HUD ---------- */
+.q-hud{inset:0;pointer-events:none}
+.q-hud-e,.q-hud-p{position:absolute;background:var(--q-black);border:calc(var(--px) * 1) solid var(--q-grey-d);padding:calc(var(--px) * 2) calc(var(--px) * 4);box-sizing:border-box}
+.q-hud-e{left:calc(var(--px) * 204);top:calc(var(--px) * 6);width:calc(var(--px) * 108)}
+.q-hud-p{left:calc(var(--px) * 8);top:calc(var(--px) * 6);width:calc(var(--px) * 90)}
+.q-hname{margin:0;font-weight:700;font-size:calc(var(--px) * 7.5);color:var(--q-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-hname span{color:var(--q-gold)}
+.q-hud small{font-size:calc(var(--px) * 6);color:var(--text-lo)}
+.q-bar{height:calc(var(--px) * 4);background:var(--q-grey-d);margin:calc(var(--px) * 1) 0}
+.q-bar i{display:block;height:100%;background:var(--q-green);transition:width .3s steps(6)}
+.q-bar.php i{background:var(--q-cursor)}
+.q-calm{display:flex;align-items:center;gap:calc(var(--px) * 3);font-size:calc(var(--px) * 6);color:var(--q-pink)}
+.q-calm .q-bar{flex:1}
+.q-bar.calm i{background:var(--q-pink)}
+.q-calm.full span{color:var(--q-gold)}
+.q-calm.full .q-bar i{background:var(--q-gold)}
+.q-shield{display:block;color:var(--q-gold)!important}
+.q-gear{right:calc(var(--px) * 4);bottom:calc(var(--px) * 124);width:calc(var(--px) * 14);height:calc(var(--px) * 14);padding:0;background:var(--q-black);color:var(--q-white);
+  border:calc(var(--px) * 1) solid var(--q-grey-d);cursor:pointer;font-size:calc(var(--px) * 8);display:none}
+.q-prompt{left:calc(var(--px) * 12);bottom:calc(var(--px) * 44);margin:0;color:var(--q-white);font-size:calc(var(--px) * 8)}
+.q-prompt[hidden],.q-cmd[hidden]{display:none}
+.q-cmd{left:calc(var(--px) * 8);right:calc(var(--px) * 8);bottom:calc(var(--px) * 8)}
+.q-mictag{left:50%;transform:translateX(-50%);top:calc(var(--px) * 2);margin:0;padding:calc(var(--px) * 1) calc(var(--px) * 4);background:var(--q-black);
+  color:var(--q-red);border:calc(var(--px) * 1) solid var(--q-red);font-size:calc(var(--px) * 6);z-index:6}
+.q-mictag[hidden]{display:none}
+.q-dot{display:inline-block;width:calc(var(--px) * 3);height:calc(var(--px) * 3);background:var(--q-red);animation:q-blink 1s steps(2) infinite}
+@keyframes q-blink{50%{opacity:.2}}
+.q-float{font-weight:700;font-size:calc(var(--px) * 10);color:var(--q-white);transform:translate(-50%,0);animation:q-float 1.1s steps(8) forwards;z-index:4;
+  text-shadow:calc(var(--px) * 1) calc(var(--px) * 1) 0 var(--q-black)}
+.q-float.dmg{color:var(--q-red)}.q-float.calm{color:var(--q-pink)}.q-float.heal{color:var(--q-green)}
+@keyframes q-float{to{transform:translate(-50%,calc(var(--px) * -16));opacity:0}}
+
+/* ---------- the challenge panel (a light screen, so notation stays crisp) ---------- */
+.q-chal{left:calc(var(--px) * 40);right:calc(var(--px) * 40);top:calc(var(--px) * 26);bottom:calc(var(--px) * 8);display:flex;flex-direction:column;align-items:center;
+  background:var(--q-black);border:calc(var(--px) * 2) solid var(--q-white);padding:calc(var(--px) * 4) calc(var(--px) * 6);box-sizing:border-box;z-index:3;gap:calc(var(--px) * 2)}
+.q-chal-t{margin:0;color:var(--q-gold);font-weight:700;font-size:calc(var(--px) * 9);text-align:center}
+.q-chal-body{flex:1 1 0;min-height:0;overflow:hidden;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--px) * 3)}
+.q-staff{background:var(--screen);color:var(--ink);border:calc(var(--px) * 1.5) solid var(--cyan);width:100%;max-height:100%;box-sizing:border-box;padding:0 calc(var(--px) * 3)}
+.q-staff svg{display:block;width:100%;height:auto;max-height:calc(var(--px) * 64)}
+.q-staff.q-one{width:60%}
+.q-staff.q-small{width:40%;flex:none}
+.q-staff.q-small svg{max-height:calc(var(--px) * 30)}
+.q-staff .q-cur{fill:var(--cyan-ink);stroke:var(--cyan-ink)}
+.q-staff .q-cur *{fill:var(--cyan-ink)}
+.q-staff .q-done,.q-staff .q-done *{fill:var(--green);opacity:.55}
+.q-clock{width:100%;height:calc(var(--px) * 3);background:var(--q-grey-d);flex:none}
+.q-clock i{display:block;height:100%;width:100%;background:var(--q-gold)}
+.q-chal-say{margin:0;min-height:1.3em;color:var(--q-white);font-size:calc(var(--px) * 8);text-align:center}
+.q-chal-say.good{color:var(--q-green)}.q-chal-say.bad{color:var(--q-orange)}
+.q-chal-mic{position:absolute;left:calc(var(--px) * 4);top:calc(var(--px) * 3);margin:0;font-size:calc(var(--px) * 6);color:var(--q-red)}
+.q-hold{width:70%;height:calc(var(--px) * 6);background:var(--q-grey-d);border:calc(var(--px) * 1) solid var(--q-white)}
+.q-hold i{display:block;height:100%;width:0;background:var(--q-cursor)}
+.q-cents{margin:0;font-size:calc(var(--px) * 9);color:var(--text-lo)}
+.q-cents.good{color:var(--q-green)}.q-cents.bad{color:var(--q-orange)}
+.q-taps{display:flex;gap:calc(var(--px) * 4);margin:0}
+.q-taps i{width:calc(var(--px) * 8);height:calc(var(--px) * 8);border:calc(var(--px) * 1.5) solid var(--q-white);box-sizing:border-box}
+.q-taps i.on{background:var(--q-gold);border-color:var(--q-gold)}
+.q-drum{width:calc(var(--px) * 44);height:calc(var(--px) * 22);background:var(--q-drum);border-top:calc(var(--px) * 5) solid var(--q-head);border-bottom:calc(var(--px) * 3) solid var(--q-silver-d)}
+.q-q{margin:0;color:var(--q-white);font-family:var(--text);font-size:calc(var(--px) * 8.5);text-align:center;max-width:100%}
+.q-sym{background:var(--screen);color:var(--ink);padding:0 calc(var(--px) * 4)}
+.q-sym svg{display:block;height:calc(var(--px) * 26);width:auto}
+#qChoices{width:100%}
+.q-choices .q-btn{min-height:calc(var(--px) * 16);font-family:var(--text);font-size:calc(var(--px) * 8);text-transform:none}
+.q-symc{display:inline-block;background:var(--screen);padding:0 calc(var(--px) * 2)}
+.q-symc svg{display:block;height:calc(var(--px) * 16);width:auto}
+.q-diagram{flex:1 1 0;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;background:var(--floor-2);overflow:hidden}
+.q-diagram svg.diagram{height:100%;max-height:calc(var(--px) * 64);width:auto;max-width:100%}
+.q-check{position:static;flex:none;min-height:calc(var(--px) * 16);padding:0 calc(var(--px) * 14)}
+.q-demo{margin:0;flex:none;font-size:calc(var(--px) * 6);color:var(--text-lo)}
+
+/* ---------- title and arena ---------- */
+.q-title{inset:0;display:flex;flex-direction:column;align-items:center;padding-top:calc(var(--px) * 46);gap:calc(var(--px) * 6)}
+.q-title h1{margin:0;text-align:center;color:var(--q-cursor);font-family:"GN Quest",var(--text);font-size:calc(var(--px) * 16);line-height:1.05;font-weight:700}
+.q-title h1 small{display:block;color:var(--q-gold);font-size:calc(var(--px) * 9);letter-spacing:.2em;text-transform:uppercase}
+#qTitleMenu{width:calc(var(--px) * 110)}
+.q-soon{margin:0;font-size:calc(var(--px) * 6.5);color:var(--text-lo);text-align:center;max-width:calc(var(--px) * 180)}
+.q-arena{inset:0;padding:calc(var(--px) * 4) calc(var(--px) * 8)}
+.q-ah{margin:0;text-align:center;font-size:calc(var(--px) * 9);color:var(--q-gold);font-weight:700}
+.q-stats{position:absolute;left:calc(var(--px) * 8);right:calc(var(--px) * 8);top:calc(var(--px) * 72);margin:0;text-align:center;font-size:calc(var(--px) * 7);color:var(--q-white)}
+.q-stats.q-small{top:calc(var(--px) * 82);font-size:calc(var(--px) * 6);color:var(--text-lo)}
+#qFoes{position:absolute;left:calc(var(--px) * 6);right:calc(var(--px) * 6);top:calc(var(--px) * 92)}
+.q-foes .q-btn{min-height:calc(var(--px) * 24);font-size:calc(var(--px) * 7.5)}
+.q-foes .q-btn small{font-size:calc(var(--px) * 5.5)}
+.q-ok{color:var(--q-green)}
+#qFoot{position:absolute;right:calc(var(--px) * 6);bottom:calc(var(--px) * 4);width:calc(var(--px) * 150)}
+.q-small-menu .q-btn{min-height:calc(var(--px) * 14);font-size:calc(var(--px) * 6.5)}
+
+/* ---------- settings ---------- */
+.q-overlay{inset:0;z-index:10;background:color-mix(in srgb,var(--deep) 90%,transparent);display:grid;place-items:center}
+.q-panel{width:calc(var(--px) * 250);max-height:calc(var(--px) * 170);overflow:auto;background:var(--q-black);border:calc(var(--px) * 2) solid var(--q-white);
+  padding:calc(var(--px) * 5) calc(var(--px) * 8);box-sizing:border-box;font-size:calc(var(--px) * 7)}
+.q-panel h2{margin:0 0 calc(var(--px) * 3);text-align:center;color:var(--q-gold);font-size:calc(var(--px) * 10)}
+.q-row{display:grid;grid-template-columns:calc(var(--px) * 64) 1fr;align-items:center;gap:calc(var(--px) * 1) calc(var(--px) * 4);margin-bottom:calc(var(--px) * 3)}
+.q-row small{grid-column:2;font-size:calc(var(--px) * 5.5);color:var(--text-lo)}
+.q-row>span{color:var(--q-white)}
+.q-seg{display:flex;flex-wrap:wrap;gap:calc(var(--px) * 2)}
+.q-chip{min-height:calc(var(--px) * 13);padding:0 calc(var(--px) * 5);background:var(--q-black);color:var(--q-white);border:calc(var(--px) * 1) solid var(--q-grey);cursor:pointer;font-size:calc(var(--px) * 6.5)}
+.q-chip[aria-pressed="true"]{border-color:var(--q-cursor);color:var(--q-black);background:var(--q-cursor)}
+.q-chip:focus-visible{outline:calc(var(--px) * 1) solid var(--q-gold);outline-offset:calc(var(--px) * 1)}
+.q-tone{display:inline-block;width:calc(var(--px) * 7);height:calc(var(--px) * 7);vertical-align:middle;border:calc(var(--px) * .5) solid var(--q-out)}
+.q-tone.t0{background:var(--q-skin-1)}.q-tone.t1{background:var(--q-skin-2)}.q-tone.t2{background:var(--q-skin-3)}.q-tone.t3{background:var(--q-skin-4)}
+.q-snd{font-family:var(--text);font-size:14px}
+.q-close{position:static;margin:calc(var(--px) * 2) auto 0;min-height:calc(var(--px) * 15);width:calc(var(--px) * 70)}
+
+/* ---------- touch: D-pad + A/B (touch screens only) ---------- */
+.q-pad{flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 8px;gap:12px}
+.q-pad[hidden]{display:none}
+.dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px)}
+@media (min-height:900px){.dpad{grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px)}}
+.pb{background:var(--floor-2);color:var(--text-hi);border:2px solid var(--floor-3);font-size:20px;touch-action:none;cursor:pointer;padding:0}
+.pb.on{background:var(--cyan-ink);border-color:var(--cyan)}
+.pb-up{grid-area:1/2}.pb-left{grid-area:2/1}.pb-right{grid-area:2/3}.pb-down{grid-area:3/2}
+.abpad{display:flex;gap:14px;align-items:center}
+.pb-a,.pb-b{width:60px;height:60px;border-radius:50%;font-family:"GN Quest",var(--display);font-size:24px}
+.pb-a{border-color:var(--pink);color:var(--pink)}
+.pb-b{border-color:var(--cyan);color:var(--cyan);margin-top:24px}
+body.q-touch .q-gear{display:block}
+
+@media (prefers-reduced-motion:reduce){
+  .q-tmore,.c-harm.ready,.q-dot{animation:none}
+  .q-float{animation:q-fade 1.1s forwards}
+  .q-bar i{transition:none}
+}
+@keyframes q-fade{to{opacity:0}}
