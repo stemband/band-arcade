@@ -10,6 +10,11 @@
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
      still   the moment (seconds into the loop) shown as the still frame (side cabinets, reduced motion)
      every   'storm' only: seconds between lightning strikes (never under 1.2)
+     titleFit  'max' = the sign shows ONLY the title (no kicker), as large as it can be without clipping: every way
+             of breaking it into lines (titleLayouts, or every split of its words into 1–3 lines) is measured with its
+             outline, glow and slant, and the one with the biggest letters wins; an even safe margin (TITLE_MARGIN ×
+             the sign's height) on every side. Re-fitted whenever the size changes or a font arrives.
+     titleLayouts  optional, with titleFit 'max': [['SHOWTIME MALFUNCTION'], ['SHOWTIME', 'MALFUNCTION']]
    The title is the game's `name` (and the cabinet's `kicker`) in the cabinet's lettering (`cabinet.marquee` in
    games.js picks the font), always with a dark outline and a dark haze behind it so it stays readable.
 
@@ -545,7 +550,8 @@ window.Arcade = window.Arcade || {};
     const main = TRIMS.includes(g.color) ? g.color : cab.trim;
     const defaults = scene === 'sparkle' ? [main, cab.trim2] : S.colors;
     const colors = defaults.map((d, i) => (m.colors && m.colors[i]) || d);
-    return {scene, S, colors, speed: +m.speed > 0 ? +m.speed : 1, still: m.still != null ? +m.still : typeof S.still === 'function' ? S.still(m) : S.still, every: m.every, cab};
+    return {scene, S, colors, speed: +m.speed > 0 ? +m.speed : 1, still: m.still != null ? +m.still : typeof S.still === 'function' ? S.still(m) : S.still, every: m.every, cab,
+      fit: m.titleFit === 'max' ? 'max' : null, layouts: Array.isArray(m.titleLayouts) ? m.titleLayouts : null};
   }
 
   /* ---------- the title ---------- */
@@ -556,7 +562,53 @@ window.Arcade = window.Arcade || {};
     while (s > 6 && x.measureText(text).width > maxW) { s -= 1; x.font = `${font.w || ''} ${s}px ${font.f}`; }
     return s;
   }
+  /* ---------- titleFit 'max': the biggest title that fits ---------- */
+  const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
+  const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)
+  const LINE_GAP = .1;                             // space between two lines' letters (× font size)
+  /** every way to break the words into 1–maxLines lines, in order */
+  function splits(words, maxLines = 3) {
+    const out = [];
+    const go = (i, lines) => {
+      if (i === words.length) { out.push(lines.map(l => l.join(' '))); return; }
+      if (lines.length) go(i + 1, lines.slice(0, -1).concat([lines[lines.length - 1].concat(words[i])]));
+      if (lines.length < maxLines) go(i + 1, lines.concat([[words[i]]]));
+    };
+    go(0, []);
+    return out;
+  }
+  const fitCache = new Map();
+  /** {size, lines: [{text, asc, desc, left, adv}], pad, blockH, slant, font} for the biggest layout that fits W × H */
+  function fitMax(x, W, H, g, k, font, slant) {
+    const name = g.name.toUpperCase(), ready = !document.fonts || document.fonts.check(`40px ${font.f}`);
+    const key = [g.id, W, H, ready, font.f].join('|');
+    if (fitCache.has(key)) return fitCache.get(key);
+    const layouts = (k.layouts || splits(name.split(' '))).map(l => l.map(t => String(t).toUpperCase()));
+    // the margin starts inside the border; + 2 px for the outline's 2 px minimum and anti-aliasing on small signs
+    const REF = 100, m = H * TITLE_MARGIN + Math.max(2, H * .05) / 2 + 2;
+    x.save(); x.font = `${font.w} ${REF}px ${font.f}`;
+    let best = null;
+    layouts.forEach(layout => {
+      const lines = layout.map(text => {
+        // drawn letter by letter: the ink runs from the first letter's left overhang to the last letter's right edge
+        const mt = x.measureText(text), chars = [...text], adv = chars.reduce((a, ch) => a + x.measureText(ch).width, 0);
+        const first = x.measureText(chars[0]), last = x.measureText(chars[chars.length - 1]), lastX = adv - last.width;
+        return {text, asc: mt.actualBoundingBoxAscent / REF, desc: mt.actualBoundingBoxDescent / REF, left: first.actualBoundingBoxLeft / REF,
+          right: (lastX + last.actualBoundingBoxRight) / REF, adv: adv / REF};
+      });
+      const pad = STROKE / 2 + GLOW * GLOW_REACH, sl = Math.abs(slant);
+      const wCoef = Math.max(...lines.map(l => l.left + l.right + sl * (l.asc + l.desc))) + 2 * pad;
+      const hCoef = lines.reduce((a, l) => a + l.asc + l.desc, 0) + LINE_GAP * (lines.length - 1) + 2 * pad;
+      const size = Math.min((W - 2 * m) / wCoef, (H - 2 * m) / hCoef);
+      if (!best || size > best.size + .01) best = {size, lines, pad, hCoef};
+    });
+    x.restore();
+    if (fitCache.size > 200) fitCache.clear();
+    fitCache.set(key, best);
+    return best;
+  }
   function title(x, W, H, g, k) {
+    if (k.fit === 'max') return titleMax(x, W, H, g, k);
     const style = k.cab.marquee, name = g.name.toUpperCase(), kicker = (k.cab.kicker || '').toUpperCase();
     const font = {f: FONTS[style] || '"GN Display", sans-serif', w: style === 'quest' ? '700' : ''};
     const slant = style === 'versus' || style === 'speedway' ? -.2 : 0;
@@ -606,6 +658,48 @@ window.Arcade = window.Arcade || {};
     });
   }
 
+  /** the title alone, as big as it fits (titleFit 'max'): same colors, outline, glow and style as title() */
+  function titleMax(x, W, H, g, k) {
+    const style = k.cab.marquee, font = {f: FONTS[style] || '"GN Display", sans-serif', w: style === 'quest' ? '700' : ''};
+    const slant = style === 'versus' || style === 'speedway' ? -.2 : 0;
+    const F = fitMax(x, W, H, g, k, font, slant), s = F.size, words = g.name.toUpperCase().split(' ');
+    // each word keeps its color: showtime = first word trim, the rest trim2 with the dead F bulb; faceoff likewise
+    const two = (style === 'showtime' || style === 'faceoff') && words.length > 1;
+    const colorOf = wi => (two && wi > 0 ? k.cab.trim2 : k.cab.trim);
+    const blockH = (F.hCoef - 2 * F.pad) * s;
+    let y = H / 2 - blockH / 2, wi = 0, deadUsed = false;
+    // a soft dark haze behind the letters (never over them), as on every marquee (tests measure the letters without it)
+    if (!k.noHaze) {
+    x.save(); x.translate(W / 2, H / 2); x.scale(1, Math.min(1, (blockH + s) / W));
+    const hr = W * .55, hg = x.createRadialGradient(0, 0, 0, 0, 0, hr);
+    hg.addColorStop(0, rgba('deep', .6)); hg.addColorStop(.7, rgba('deep', .4)); hg.addColorStop(1, rgba('deep', 0));
+    x.fillStyle = hg; x.fillRect(-hr, -hr, hr * 2, hr * 2); x.restore();
+    }
+    x.font = `${font.w} ${s}px ${font.f}`; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
+    F.lines.forEach(l => {
+      const base = y + l.asc * s, sl = Math.abs(slant);
+      // the box of this line with its slant: [left - sl·desc, right + sl·asc]; center that box
+      const bl = -l.left * s - sl * l.desc * s, br = l.right * s + sl * l.asc * s, x0 = W / 2 - (bl + br) / 2;
+      x.save(); x.translate(x0, base); if (slant) x.transform(1, 0, slant, 1, 0, 0);
+      let cx = 0;
+      l.text.split(' ').forEach((wd, j, arr) => {
+        const text = j < arr.length - 1 ? wd + ' ' : wd, col = colorOf(wi++);
+        x.lineWidth = Math.max(2, s * STROKE); x.strokeStyle = tok('deep'); x.shadowBlur = 0; x.strokeText(text, cx, 0);
+        [...text].forEach(ch => {
+          const dead = style === 'showtime' && col === k.cab.trim2 && ch === 'F' && !deadUsed;
+          if (dead) deadUsed = true;
+          x.shadowColor = dead ? 'rgba(0,0,0,0)' : tok(col); x.shadowBlur = s * GLOW;
+          x.fillStyle = dead ? tok('cab-metal') : tok(col + '-hi'); x.fillText(ch, cx, 0);
+          x.shadowBlur = 0; x.fillText(ch, cx, 0);
+          cx += x.measureText(ch).width;
+        });
+      });
+      x.restore();
+      y += (l.asc + l.desc + LINE_GAP) * s;
+    });
+    x.shadowBlur = 0;
+  }
+
   /* ---------- Mat's pictures (shared/marquees/) ---------- */
   const BASE = (() => { const s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^/]*$/, '') + 'marquees/' : 'shared/marquees/'; })();
   const MISS_KEY = 'bandarcade.mq-miss', misses = new Set();
@@ -638,10 +732,11 @@ window.Arcade = window.Arcade || {};
     const tt = (t == null ? k.still : t) * k.speed;
     if (a && a.img && a.full) { cover(x, a.img, W, H); x.restore(); return; }
     if (a && a.img) cover(x, a.img, W, H);
-    else k.S.draw(x, W, H, tt, k.colors, {every: k.every}, g);
+    else if (!opts.titleOnly) k.S.draw(x, W, H, tt, k.colors, {every: k.every}, g);
     x.shadowBlur = 0; x.globalAlpha = 1;
+    if (opts.titleOnly) k.noHaze = true;
     title(x, W, H, g, k);
-    x.shadowBlur = 0; x.strokeStyle = tok(k.cab.trim); x.lineWidth = Math.max(2, H * .05); x.strokeRect(0, 0, W, H);
+    if (!opts.titleOnly) { x.shadowBlur = 0; x.strokeStyle = tok(k.cab.trim); x.lineWidth = Math.max(2, H * .05); x.strokeRect(0, 0, W, H); }
     x.restore();
   }
 
@@ -701,7 +796,13 @@ window.Arcade = window.Arcade || {};
   }
 
   A.Marquee = {
-    FPS, MAX_FLASH_HZ, SCENES, config, draw, html, hydrate, animate,
+    FPS, MAX_FLASH_HZ, SCENES, config, draw, html, hydrate, animate, TITLE_MARGIN,
+    /** tests: the fit chosen for a titleFit 'max' game at W × H ({size, lines}) */
+    fitInfo(g, W, H) {
+      const k = config(g), style = k.cab.marquee, c = document.createElement('canvas').getContext('2d');
+      const F = fitMax(c, W, H, g, k, {f: FONTS[style] || '"GN Display", sans-serif', w: style === 'quest' ? '700' : ''}, style === 'versus' || style === 'speedway' ? -.2 : 0);
+      return {size: Math.round(F.size * 10) / 10, lines: F.lines.map(l => l.text)};
+    },
     onArt(g, fn) { (listeners[g.id] = listeners[g.id] || []).push(fn); },
     /** tests: the brightest flash rate this game's scene can make (Hz), from the scene's own settings */
     flashLimit(g) { const k = config(g); return k.scene === 'storm' ? k.speed / Math.max(1.2, +k.every || 3.2) : 0; },

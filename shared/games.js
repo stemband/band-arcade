@@ -45,6 +45,8 @@
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
+       titleFit 'max' = the sign shows only the title (no kicker), as big as it fits without clipping, trying every
+                way to break it into 1–3 lines (or titleLayouts: [['ONE LINE'], ['TWO', 'LINES']]) and keeping the largest
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
@@ -130,7 +132,7 @@ window.Arcade.GAMES = [
     color: 'yellow',
     player: 'all',
     badge: {label: 'Test Ready', one: 'belt', many: 'belts'},
-    marquee: {scene: 'scroll', colors: ['temple-sky', 'amber']},
+    marquee: {scene: 'scroll', colors: ['temple-sky', 'amber'], titleFit: 'max'},
     cabinet: {shape: 'temple', trim: 'amber', trim2: 'red', marquee: 'scroll', screen: 'scrolls'},
     cabinet3d: {profile: 'temple', body: 'cab-side'},
   },
@@ -170,7 +172,7 @@ window.Arcade.GAMES = [
     noteModes: true,                                 // NOTES × ORDER (the snare plays a single count mode)
     byMember: true,                                  // stars are saved per instrument member ('snare' included)
     unpitched: true,                                 // the Snare Drum plays it: count mode, any clean hit counts
-    marquee: {scene: 'curtain', colors: ['red', 'amber-hi', 'anim-eye-bad']},
+    marquee: {scene: 'curtain', colors: ['red', 'amber-hi', 'anim-eye-bad'], titleFit: 'max'},
     cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', kicker: 'The Showtime Band', screen: 'showtime'},
     cabinet3d: {profile: 'showtime', body: 'cab-side'},
   },
@@ -186,7 +188,7 @@ window.Arcade.GAMES = [
     // bells and snare can't hold a long tone: block: true sends them back to Select Player with this message
     noPlay: {groups: ['bells', 'snare'], label: 'Percussion: try Chime Heist or Showtime Malfunction!', game: 'chime-heist',
              games: ['chime-heist', 'showtime-malfunction'], block: true},
-    marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi']},
+    marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi'], titleFit: 'max'},
     cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', kicker: 'Long tones', screen: 'speedway'},
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
