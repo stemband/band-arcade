@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arcade Quest</title>
+<meta name="description" content="Arcade Quest: The Mysterious Microphone. A pixel-art band adventure: play your instrument to calm grumpy arcade creatures.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="../button-masher/diagrams.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="q-wrap">
+  <div id="topbar"></div>
+  <main id="viewport">
+    <div id="stage">
+      <canvas id="screen" aria-hidden="true"></canvas>
+      <div id="ui"></div>
+    </div>
+  </main>
+  <div id="pad" class="q-pad" hidden></div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/mode-picker.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<!-- borrowed from other games (never copied): Band Ninja vocab, Button Masher fingerings + diagrams -->
+<script src="../ancient-ninja-scrolls/vocab.js"></script>
+<script src="../button-masher/fingerings.js"></script>
+<script src="../button-masher/diagrams.js"></script>
+<script src="sprites.js"></script>
+<script src="engine/core.js"></script>
+<script src="engine/input.js"></script>
+<script src="engine/sprites.js"></script>
+<script src="engine/text.js"></script>
+<script src="engine/save.js"></script>
+<script src="data/enemies.js"></script>
+<script src="data/items.js"></script>
+<script src="data/battle-text.js"></script>
+<script src="battle/challenges.js"></script>
+<script src="battle/dodge.js"></script>
+<script src="battle/battle.js"></script>
+<script src="scenes.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

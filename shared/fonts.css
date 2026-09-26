@@ -10,3 +10,6 @@
 @font-face{font-family:"GN Haunt";src:url("fonts/creepster.woff2") format("woff2");font-display:swap}        /* Creepster: Ghost Notes marquee */
 @font-face{font-family:"GN Pixel";src:url("fonts/press-start-2p.woff2") format("woff2");font-display:swap}   /* Press Start 2P: Note Checker marquee */
 @font-face{font-family:"GN Shade";src:url("fonts/bungee-shade.woff2") format("woff2");font-display:swap}     /* Bungee Shade: Note Storm marquee */
+/* Pixelify Sans (SIL OFL, see fonts/OFL-PixelifySans.txt; a variable font, weights 400–700): Arcade Quest's pixel
+   text. Basic Latin, Latin-1, curly quotes, dashes, … and •. Readable at large sizes, so it is used for its body text. */
+@font-face{font-family:"GN Quest";src:url("fonts/pixelify.woff2") format("woff2");font-weight:400 700;font-display:swap}

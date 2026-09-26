@@ -22,10 +22,30 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest'];
+
+  /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
+  const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
+                     'X...X...X', 'X...X...X', '.X..X..X.', '..XXXXX..', '....X....', '....X....', '..XXXXX..'];
+  const pixelSVG = (rows, cls) => `<svg class="${cls}" viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges" aria-hidden="true">` +
+    rows.map((r, y) => [...r].map((ch, x) => ch === 'X' ? `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>` : '').join('')).join('') + `</svg>`;
+  A.QUEST_MIC = QUEST_MIC;
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
+    /* quest: a pixel-art cabinet (Arcade Quest): stepped 8-bit corners and edges, a pixel D-pad and A/B buttons,
+       and a row of pixel "coins" along the kick plate */
+    quest: {
+      outline: 'M40 14H260V22H270V30H278V112H266V304H274V312H282V380H270V598H30V380H18V312H26V304H34V112H22V30H30V22H40Z',
+      face: 'M50 112H250V306H50ZM40 386H260V598H40Z', kick: [40, 260],
+      bezel: 'M64 124H236V132H244V284H236V292H64V284H56V132H64Z',
+      panel: 'M40 312H260V320H268V372H32V320H40Z', lip: 'M32 372H268V386H32Z',
+      joy: [84, 342], btns: [[196, 346, 's-btn0'], [226, 334, 's-btn1']],
+      door: {x: 102, y: 462, w: 96, h: 100},
+      extras: '<text class="s-ab" x="196" y="366" text-anchor="middle">B</text><text class="s-ab" x="226" y="354" text-anchor="middle">A</text>' +
+              [60, 84, 216, 240].map(x => `<rect class="s-coinpix" x="${x - 6}" y="574" width="12" height="12"/><rect class="s-coinpix2" x="${x - 2}" y="577" width="4" height="6"/>`).join(''),
+      slots: {marquee: [34, 20, 232, 86], screen: [66, 134, 168, 148], start: [80, 392, 140, 46]},
+    },
     /* speedway: a sit-down racer. A wide hood over a big screen, a dashboard with a steering wheel and a gear stick,
        the cockpit flaring out below to the seat box, two pedals, and sunset stripes along the sides (Sustain Speedway) */
     speedway: {
@@ -345,6 +365,12 @@ window.Arcade = window.Arcade || {};
           `<text class="sw-cap" x="80" y="20" text-anchor="middle">HOLD THE NOTE</text></svg></div>`;
       },
     },
+    /* Arcade Quest: glitchy static, and an 8-bit microphone flickering through it (something is waking up) */
+    quest: {
+      html() {
+        return `<div class="scr scr-quest"><span class="q-static"></span><span class="q-bars"></span>${pixelSVG(QUEST_MIC, 'q-mic')}<span class="q-label">?? ??? ??</span></div>`;
+      },
+    },
     /* the default for a game with no custom screen: its name, blinking PRESS START */
     insert: {
       html(g) {
@@ -375,6 +401,7 @@ window.Arcade = window.Arcade || {};
     const c = A.cabinetOf(g);
     return `<${tag} class="mq mq-${c.marquee}">` +
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
+      (c.marquee === 'quest' ? `<span class="mq-mascot mq-mic">${pixelSVG(QUEST_MIC, 'mq-micsvg')}</span>` : '') +
       (c.marquee === 'dojo' && A.ninjaSVG ? `<span class="mq-mascot mq-ninja" aria-hidden="true">${A.ninjaSVG({belt: 'belt-black'})}</span>` : '') +
       `<span class="mq-text">${c.kicker ? `<span class="mq-kicker">${esc(c.kicker)}</span>` : ''}` +
       `<span class="mq-name">${c.marquee === 'faceoff' ? esc(g.name).replace(/^(\S+) (.+)$/, '$1 <span class="fo2">$2</span>')

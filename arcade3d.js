@@ -100,6 +100,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.66, 1.54], [0.66, 1.72]], screen: [[0.455, 1.07], [0.405, 1.45]], panel: [[0.86, 0.96], [0.56, 1.02]],
       door: {z: 0.98, y0: 0.1, y1: 0.44}, start: [0.66, 0.71],
     },
+    /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
+    quest: {
+      width: 0.94,
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.72, 0.78], [0.72, 0.84], [0.82, 0.84], [0.82, 0.92], [0.56, 0.98], [0.46, 1.02], [0.40, 1.46],
+               [0.56, 1.46], [0.56, 1.52], [0.64, 1.52], [0.64, 1.76], [0.56, 1.76], [0.56, 1.82], [0, 1.82]],
+      marquee: [[0.64, 1.53], [0.64, 1.75]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.82, 0.92], [0.56, 0.98]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* versus: a wide two-player fighting cabinet with a long control panel and a lit VS sign on top */
     versus: {
       width: 1.08, topper: 'vs', twoPlayer: true,
@@ -108,7 +116,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -246,6 +254,20 @@ window.Arcade = window.Arcade || {};
       x.shadowColor = u; x.fillStyle = tok[k.trim2 + '-hi']; x.fillText(w2, x0 + a, H * .56);
       x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
       return;
+    } else if (k.marquee === 'quest') {
+      // a pixel sign (match .mq-quest): scanlines, a big 8-bit microphone, ARCADE QUEST in the pixel font
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      x.fillStyle = u; x.globalAlpha = .18; for (let y = 0; y < H; y += H * .06) x.fillRect(0, y, W, H * .03); x.globalAlpha = 1;
+      const mic = A.QUEST_MIC || [], ps = H * .8 / Math.max(1, mic.length), mx = W * .06, my = H * .1;
+      x.fillStyle = thi; x.shadowColor = t; x.shadowBlur = 8;
+      mic.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch === 'X') x.fillRect(mx + rx * ps, my + ry * ps, ps + .5, ps + .5); }));
+      x.shadowBlur = 0; x.textAlign = 'left';
+      const tx = mx + 9 * ps + W * .04, room = (W - tx - W * .05) * .9;   // fitText measures the regular weight: leave room for bold
+      if (k.kicker) { x.fillStyle = tok[k.trim2 + '-hi']; x.font = `600 ${fitText(x, k.kicker.toUpperCase(), '"GN Quest", sans-serif', H * .14, room)}px "GN Quest", sans-serif`; x.fillText(k.kicker.toUpperCase(), tx, H * .2); }
+      const s = fitText(x, name, '"GN Quest", sans-serif', H * .46, room);
+      x.font = `700 ${s}px "GN Quest", sans-serif`; x.fillStyle = tok[k.trim2 + '-ink']; x.fillText(name, tx + s * .08, H * .62 + s * .08);
+      x.fillStyle = thi; x.shadowColor = t; x.shadowBlur = 10; x.fillText(name, tx, H * .62);
+      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .08; x.strokeRect(0, 0, W, H); x.textAlign = 'center';
     } else if (k.marquee === 'speedway') {
       // sunset racing lettering: a sky gradient, italic name in a yellow-to-trim gradient, speed lines (match .mq-speedway)
       const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, tok['sw-sky-mid']); bg.addColorStop(.7, tok['sw-sky-top']); bg.addColorStop(1, tok.deep);
@@ -471,6 +493,23 @@ window.Arcade = window.Arcade || {};
       const px = W / 2 - Math.cos(a) * (W / 2 - L - W * .13), py = H / 2 - Math.sin(a) * (H / 2 - T - H * .12);
       const gr = x.createRadialGradient(px, py, 0, px, py, H * .1); gr.addColorStop(0, tok['white-hi']); gr.addColorStop(.4, tok.yellow); gr.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = gr; x.beginPath(); x.arc(px, py, H * .1, 0, 7); x.fill();
+    },
+    /* Arcade Quest: glitchy static with an 8-bit microphone flickering through it (as 2D) */
+    quest(x, W, H, t) {
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      const seed = t == null ? 1 : Math.floor(t * 8);
+      for (let i = 0; i < 140; i++) {
+        const r = Math.sin(seed * 91.7 + i * 12.9898) * 43758.5453, a = r - Math.floor(r), b = (r * 7.13) - Math.floor(r * 7.13);
+        x.fillStyle = `rgba(200,195,225,${.06 + a * .2})`; x.fillRect(a * W, b * H, W * .05, 1.5);
+      }
+      const bar = t == null ? .3 : ((Math.floor(t * 3) * 37) % 70) / 100;
+      x.fillStyle = tok[this.trim]; x.globalAlpha = .25; x.fillRect(0, H * bar, W, H * .1); x.globalAlpha = 1;
+      const glitch = t != null && (t % 3.4) > 2.9, mic = A.QUEST_MIC || [], ps = H * .5 / Math.max(1, mic.length);
+      const ox = W / 2 - 4.5 * ps + (glitch ? ps * 2 : 0), oy = H * .2;
+      x.fillStyle = tok[this.trim + '-hi']; x.globalAlpha = glitch ? .4 : 1;
+      mic.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch === 'X') x.fillRect(ox + rx * ps, oy + ry * ps, ps + .5, ps + .5); }));
+      x.globalAlpha = 1; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim2 + '-hi'];
+      x.font = `700 ${H * .09}px "GN Quest", sans-serif`; x.fillText('?? ??? ??', W / 2, H * .86);
     },
     /* Sustain Speedway: a synthwave road to a striped sun, lane lines rushing toward you, a car in the middle (as 2D) */
     speedway(x, W, H, t) {
@@ -762,7 +801,7 @@ window.Arcade = window.Arcade || {};
     create(aisle, opts) {
       const THREE = window.THREE;
       if (!THREE || !THREE.WebGLRenderer) return Promise.reject(new Error('three.js missing'));
-      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text', 'GN Neon'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
+      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text', 'GN Neon', 'GN Quest'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
       const fontWait = Promise.race([Promise.all(fonts).catch(() => {}), new Promise(ok => setTimeout(ok, 2500))]);
       return fontWait.then(() => setup(THREE, aisle, opts));
     },

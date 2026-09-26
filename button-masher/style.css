@@ -184,40 +184,7 @@
 .pad{flex:1 1 0;min-height:160px;max-height:360px;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:18px;
   background:radial-gradient(ellipse at 50% 60%, var(--floor-3), var(--floor-2) 70%);border:2px solid var(--blue-ink);box-shadow:inset 0 0 0 2px var(--deep)}
 .pad .diagram{width:100%;height:100%;max-height:340px}
-.diagram{display:block;overflow:visible;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-.dg-body{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
-.dg-pipe{fill:none;stroke:var(--cab-metal);stroke-width:12;stroke-linecap:round}
-.dg-bell{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
-.dg-coil{fill:none;stroke:var(--cab-metal);stroke-width:10}
-.dg-mouth,.dg-reed,.dg-lip{fill:var(--cab-metal)}
-.dg-hand{font-family:var(--display);font-size:13px;letter-spacing:.14em;fill:var(--text-dim)}
-.dg-cap{font-family:var(--text);font-weight:700;font-size:14px;fill:var(--text-lo)}
-.key{cursor:pointer;outline:none}
-.k-hit{fill:transparent}
-.k-base{fill:var(--key-open);stroke:var(--key-rim);stroke-width:3}
-.k-fill,.k-half{fill:var(--key-on);opacity:0}
-.k-lbl{font-family:var(--text);font-weight:700;font-size:18px;fill:var(--text-hi);pointer-events:none}
-.k-lbl.long{font-size:14px}
-.valve .k-base{stroke-width:5}
-.valve .k-lbl{font-family:var(--display);font-weight:400;font-size:34px}
-.pos .k-lbl{font-family:var(--display);font-weight:400;font-size:28px}
-.key[data-state="1"] .k-fill{opacity:1}
-.key[data-state="h"] .k-half{opacity:1}
-.key[data-state="1"] .k-lbl,.key[data-state="h"] .k-lbl{fill:var(--deep)}
-.key[data-state="1"] .k-base,.key[data-state="h"] .k-base{stroke:var(--yellow-hi)}
-.halfable .k-base{stroke-dasharray:none}
-.key:focus-visible .k-base{stroke:var(--yellow-hi);stroke-width:6}
-/* the right combo after a miss (green glow; half-holes glow on the left half), and the faint hint */
-.key.glow .k-base{stroke:var(--key-glow);stroke-width:6}
-.key.glow[data-glow="1"] .k-fill{fill:var(--key-glow);opacity:.85}
-.key.glow[data-glow="h"] .k-half{fill:var(--key-glow);opacity:.85}
-.key.glow .k-lbl{fill:var(--deep)}
-.key.hint .k-base{stroke:var(--key-glow);stroke-dasharray:6 5;stroke-width:4}
-.key.hint[data-hint="1"]:not([data-state="1"]) .k-fill{fill:var(--key-glow);opacity:.18}
-.key.hint[data-hint="h"]:not([data-state="h"]) .k-half{fill:var(--key-glow);opacity:.22}
-.dg-brace{transition:transform .18s ease-out;opacity:.35}
-.dg-brace rect{fill:var(--cab-metal)} .dg-brace path{stroke:var(--deep);stroke-width:4}
-.dg-brace.on{opacity:1}
+/* the diagram and key styles are in diagrams.css (shared with Arcade Quest's FINGERING challenge) */
 
 /* the COMBO display: fighting-game input icons */
 .combo-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;margin-top:8px}
@@ -327,6 +294,6 @@
   .fx .blast{left:calc(var(--x0) + var(--dx))}
   .fx.go-back .wave{animation:flash-at .5s steps(1)}
   .fx .wave{left:calc(var(--x0) + var(--dx))}
-  .hp i,.dg-brace{transition:none}
+  .hp i{transition:none}
 }
 @keyframes flash-at{0%{opacity:1}100%{opacity:0}}

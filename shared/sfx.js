@@ -398,7 +398,7 @@ window.Arcade = window.Arcade || {};
   };
   const loopOf = name => Object.values(LOOPS).find(c => c.event === name);
   /** a channel's events, best first: Select Player's music tries select-music-<game id> (allowMusic(true, gameId)), then select-music */
-  const loopEvents = c => [c.alt, c.event].filter(Boolean);
+  const loopEvents = c => c.only ? [c.only] : [c.alt, c.event].filter(Boolean);
   const loopFiles = c => loopEvents(c).map(n => (entry(n) || {}).file).filter(Boolean);
   const loopVol = c => store.sfx ? vol(c.key) : 0;
   function loopBuffer(c, buf, from, to, level, fadeIn) {
@@ -420,6 +420,7 @@ window.Arcade = window.Arcade || {};
       c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, 1.2), {file: e.file}); return;
     }
     loopFiles(c).forEach(f => { if (!files[f]) load(f); });   // the built-in loop now; a file as soon as one has loaded
+    if (c.only) return;                                    // setMusic(): a file or nothing (no built-in version)
     c.cur = c.gen(c);
   }
   function stopLoop(c, quick) {
@@ -612,6 +613,15 @@ window.Arcade = window.Arcade || {};
     },
     allowAmbience(on) { LOOPS.amb.allowed = !!on; syncLoops(); refreshAll(); },
     /** the character-select music may play on this page (Select Player); false fades it out (leaving the page) */
+    /** a game's own music loop on the MUSIC slider (Arcade Quest's battle music): plays `name`'s file if it exists,
+        nothing otherwise (no built-in version); stops while the mic listens, like every loop. null = off. */
+    setMusic(name) {
+      const c = LOOPS.mus;
+      if ((name || null) !== (c.only || null)) stopLoop(c, true);
+      c.only = name || null; c.allowed = !!name; syncLoops(); refreshAll();
+    },
+    /** re-check which loops should play (after Pitch.pauseListening, which changes Pitch.listening()) */
+    sync: () => syncLoops(),
     allowMusic(on, gameId) {
       if (gameId !== undefined) { const alt = gameId ? 'select-music-' + gameId : null; if (alt !== LOOPS.mus.alt) { stopLoop(LOOPS.mus, true); LOOPS.mus.alt = alt; } }
       LOOPS.mus.allowed = !!on; syncLoops(); refreshAll();

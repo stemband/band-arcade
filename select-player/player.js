@@ -9,7 +9,7 @@
 (function (A) {
   "use strict";
   const {$} = A;
-  const game = A.GAMES.find(g => g.id === A.params.get('game'));
+  const game = (A.ALL_GAMES || A.GAMES).find(g => g.id === A.params.get('game'));
   if (!game) { location.replace(A.homeLink('')); return; }      // missing or unknown game: back to the arcade
   if (game.player) { location.replace(A.startLink(game)); return; }   // a game with its own instrument: nothing to choose
 

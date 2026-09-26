@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff'  (styles in shared/cabinets.css)
@@ -27,6 +27,7 @@
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
      players    optional: 2 = a two-player game (Neon Face-Off): START opens Select Player with &players=2, so Player 2
                 picks too (or CPU); stored as Arcade.store.opponent, never replacing Player 1's instrument
+     demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
      unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
                 Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
@@ -168,4 +169,20 @@ window.Arcade.GAMES = [
     cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', kicker: 'Long tones', screen: 'speedway'},
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
+  {
+    id: 'arcade-quest',
+    name: 'Arcade Quest',
+    skill: 'RPG adventure',
+    blurb: 'Arcade Quest: The Mysterious Microphone. An 8-bit adventure where your instrument calms the arcade\'s grumpy creatures. Coming soon!',
+    maxStars: 0,                                     // no stars: the quest keeps its own save (level, tokens, band roster)
+    color: 'cyan',
+    unpitched: true,                                 // the Snare Drum plays too (rhythm, vocab and dodging challenges)
+    demoOnly: true,                                  // hidden on the floor unless ?demo, until Episode 1 is finished
+    cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', kicker: 'The Mysterious Microphone', screen: 'quest'},
+    cabinet3d: {profile: 'quest', body: 'cab-side'},
+  },
 ];
+/* games still being built (demoOnly) stay off the floor unless the URL has ?demo. ALL_GAMES keeps every game, so a
+   hidden game's own page, Select Player and requireInstrument still find it. */
+window.Arcade.ALL_GAMES = window.Arcade.GAMES;
+if (!/[?&]demo(=|&|$)/.test(location.search)) window.Arcade.GAMES = window.Arcade.GAMES.filter(g => !g.demoOnly);

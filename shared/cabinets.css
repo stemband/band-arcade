@@ -283,6 +283,16 @@
 .shape-speedway .s-sun2{stroke:var(--u);stroke-width:5;stroke-linecap:round;opacity:.85}
 .shape-speedway .s-flag{stroke:var(--white-hi);stroke-width:5;stroke-dasharray:6 6;opacity:.7}
 
+/* quest: a pixel-art marquee: a big 8-bit microphone beside ARCADE QUEST in the pixel font, on a dark scanline sign */
+.mq-quest{background:repeating-linear-gradient(0deg,var(--deep) 0 .12em,color-mix(in srgb,var(--u) 18%,var(--deep)) .12em .24em);border:.18em solid var(--t);
+  border-radius:0;box-shadow:inset 0 0 0 .12em var(--deep),var(--t-glow);gap:.35em}
+.mq-quest .mq-mic{height:82%;aspect-ratio:9/14;flex:none}
+.mq-quest .mq-micsvg{display:block;width:100%;height:100%;fill:var(--t-hi);filter:none}
+.mq-quest .mq-name{font-family:"GN Quest","GN Pixel",var(--display);font-weight:700;font-size:1.6em;line-height:.95;letter-spacing:.04em;color:var(--t-hi);text-shadow:.08em .08em 0 var(--u-ink)}
+.mq-quest .mq-kicker{font-family:"GN Quest",var(--text);font-weight:600;color:var(--u-hi);letter-spacing:.06em;text-transform:uppercase;font-size:.72em}
+.shape-quest .s-ab{font:700 14px "GN Quest",var(--display);fill:var(--deep)}
+.shape-quest .s-coinpix{fill:var(--yellow)}.shape-quest .s-coinpix2{fill:var(--yellow-hi)}
+
 .attract .cab-start{animation:att-start 1.4s steps(1) infinite}
 @keyframes att-start{50%{background:var(--t-hi)}}
 
@@ -302,6 +312,17 @@
 .attract .scr-speedway .sw-car{animation:sw-sway 2.4s ease-in-out infinite}
 @keyframes sw-dash{to{stroke-dashoffset:-14}}
 @keyframes sw-sway{50%{transform:translateX(3px)}}
+.scr-quest{position:relative;background:var(--deep);overflow:hidden}
+.scr-quest .q-static{position:absolute;inset:0;opacity:.4;background:repeating-linear-gradient(0deg,var(--text-lo) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,transparent 0 4px,color-mix(in srgb,var(--u) 50%,transparent) 4px 5px)}
+.scr-quest .q-bars{position:absolute;left:0;right:0;top:30%;height:12%;background:color-mix(in srgb,var(--t) 35%,transparent);opacity:.5}
+.scr-quest .q-mic{position:absolute;left:50%;top:48%;height:52%;transform:translate(-50%,-50%);fill:var(--t-hi)}
+.scr-quest .q-label{position:absolute;left:0;right:0;bottom:8%;text-align:center;font:700 .8em "GN Quest",var(--display);color:var(--u-hi);letter-spacing:.15em}
+.attract .scr-quest .q-static{animation:st-static 1.2s steps(4) infinite}
+.attract .scr-quest .q-bars{animation:q-bars 2.2s steps(6) infinite}
+.attract .scr-quest .q-mic{animation:q-glitch 3.4s steps(1) infinite}
+@keyframes q-bars{0%{top:10%}33%{top:62%}66%{top:36%}100%{top:80%}}
+@keyframes q-glitch{0%,84%,100%{opacity:1;transform:translate(-50%,-50%)}86%{opacity:.3;transform:translate(-44%,-50%)}90%{opacity:1;transform:translate(-56%,-50%)}}
 .scr-showtime{position:relative;background:var(--deep)}
 .scr-showtime .st-static{position:absolute;inset:0;opacity:.35;background:repeating-linear-gradient(0deg,var(--text-lo) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,transparent 0 3px,color-mix(in srgb,var(--text-lo) 40%,transparent) 3px 4px);animation:st-static 1.2s steps(4) infinite}

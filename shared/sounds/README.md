@@ -216,3 +216,22 @@ plays before GO (the race waits for it to end), and `pit-in` plays during the pi
 | `race-finish` | `race-finish.m4a` or `race-finish.mp3` | Sustain Speedway: crossing the finish line. | 0.8–1.5 s |
 | `podium` | `podium.m4a` or `podium.mp3` | Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd. | 1–2 s |
 | `new-best-lap` | `new-best-lap.m4a` or `new-best-lap.mp3` | Sustain Speedway: the results screen, a new best lap on this track (after the podium). | 0.5–1 s |
+
+### Arcade Quest
+
+The microphone listens only while a student plays a challenge (PLAY, a long tone, HARMONIZE…). Menus, text and
+dodging are quiet times for it, so these sounds play freely there; the battle music stops while it listens.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `quest-battle` | `quest-battle.m4a` or `quest-battle.mp3` | Arcade Quest: battle music (the MUSIC slider), during menus and dodging. It stops while the microphone listens. Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-text` | `quest-text.m4a` or `quest-text.mp3` | Arcade Quest: the text box typing (a tiny blip every few letters). Never while the microphone listens. | under 0.05 s |
+| `quest-move` | `quest-move.m4a` or `quest-move.mp3` | Arcade Quest: moving between menu buttons. | under 0.1 s |
+| `quest-select` | `quest-select.m4a` or `quest-select.mp3` | Arcade Quest: choosing a menu button. | under 0.2 s |
+| `quest-hurt` | `quest-hurt.m4a` or `quest-hurt.mp3` | Arcade Quest: a sour note hits you while dodging. **during play: under 0.5 s** | under 0.3 s |
+| `quest-enemy-hurt` | `quest-enemy-hurt.m4a` or `quest-enemy-hurt.mp3` | Arcade Quest: your PLAY lands (after the challenge, never while listening). | under 0.4 s |
+| `quest-calm` | `quest-calm.m4a` or `quest-calm.mp3` | Arcade Quest: the enemy's CALM meter rises. | under 0.4 s |
+| `quest-befriend` | `quest-befriend.m4a` or `quest-befriend.mp3` | Arcade Quest: HARMONIZE works and the enemy joins your band. | 1–2 s |
+| `quest-fade` | `quest-fade.m4a` or `quest-fade.mp3` | Arcade Quest: the enemy fades away grumbling (its HP ran out). | 0.5–1 s |
+| `quest-levelup` | `quest-levelup.m4a` or `quest-levelup.mp3` | Arcade Quest: LEVEL UP after a battle. | 0.8–1.5 s |
+| `quest-item` | `quest-item.m4a` or `quest-item.mp3` | Arcade Quest: using an item. | under 0.5 s |

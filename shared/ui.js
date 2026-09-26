@@ -181,7 +181,7 @@ window.Arcade = window.Arcade || {};
     const inst = A.store.player ? A.currentInstrument() : null;      // the exact instrument must be chosen (a member)
     if (!inst) { location.replace(A.playerLink(gameId)); return null; }
     // an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js
-    const g = (A.GAMES || []).find(x => x.id === gameId);
+    const g = (A.ALL_GAMES || A.GAMES || []).find(x => x.id === gameId);
     // games.js noPlay with block: true (Sustain Speedway: bells and snare can't hold a long tone): back to Select Player
     if (A.blockedBy(g, A.store.player)) { location.replace(A.playerLink(gameId) + '&need=noplay'); return null; }
     if (inst.pitched === false && !(g && g.unpitched)) { location.replace(A.playerLink(gameId) + '&need=pitched'); return null; }

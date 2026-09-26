@@ -60,7 +60,15 @@ window.Arcade = window.Arcade || {};
   P.suppress = ms => { P.suppressedUntil = Math.max(P.suppressedUntil, performance.now() + ms); H.fired = true; };
   P.isSuppressed = (t = performance.now()) => t < P.suppressedUntil;
   /** true while a game is listening (the mic is running, or ?demo is standing in for it) */
-  P.listening = () => P.active || P.demoReady;
+  P.listening = () => (P.active || P.demoReady) && !P.paused;
+  /** PAUSE LISTENING between challenges (Arcade Quest: the mic only listens while the student plays). While paused
+      nothing is analysed: onFrame gets null, no holds, no attacks, and listening() is false, so sounds play without
+      muting anything. The microphone stays open, so listening resumes at once (no new permission tap). */
+  P.paused = false;
+  P.pauseListening = on => {
+    P.paused = !!on;
+    if (!on) { H.pc = H.note = null; H.fired = true; if (env) env.hist.length = 0; }   // start fresh: only a new note counts
+  };
   P.heldPc = () => H.pc;
 
   /* sensitivity slider 0–100 -> loudness gate. 0 ignores quiet sounds, 100 hears almost anything */
@@ -166,7 +174,7 @@ window.Arcade = window.Arcade || {};
      After an attack nothing fires for ENV.refractoryMs (no double counts from one attack, bell shimmer, brass blips).
      Its pitch: the stable reading (two agreeing detector frames) from ENV.pitchFrom to ENV.pitchBy ms after the
      attack; none = pc null (a drum). Nothing counts while a sound plays (suppress), like every other detection.
-     ?demo on a page that uses attacks: tap Space = an attack on P.demoTarget() (the right note), tap W = an attack
+     ?demo on a page that uses attacks: tap Space (or T) = an attack on P.demoTarget() (the right note), tap W = an attack
      on a wrong note, hold S = a steady note with no new attacks. */
   const ENV = {periods: 1.5, minWin: 256, maxWin: 2048, every: 8, gateK: 1.2, rise: 2.2, dipMs: 70, jump: 1.35, jumpMs: 24, above: 1.25, refractoryMs: 90, pitchFrom: 50, pitchBy: 170};
   P.ENV = ENV;
@@ -201,6 +209,7 @@ window.Arcade = window.Arcade || {};
   }
   function envTick() {
     const now = performance.now();
+    if (P.paused) return;
     env.an.getFloatTimeDomainData(env.buf);
     let s = 0; const b = env.buf; for (let i = 0; i < b.length; i++) s += b[i] * b[i];
     const e = Math.sqrt(s / b.length), h = env.hist;
@@ -244,9 +253,9 @@ window.Arcade = window.Arcade || {};
     let heldS = false;
     const wrongOf = t => t ? {pc: mod12(t.pc + 2), midi: t.midi + 2} : null;
     addEventListener('keydown', e => {
-      if (!attackFns.length || !P.demoAttacks || e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && e.key === ' ') return;
+      if (!attackFns.length || !P.demoAttacks || P.paused || e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && e.key === ' ') return;
       const t = P.demoTarget(), k = e.key.toLowerCase();
-      if (k === ' ') { e.preventDefault(); if (performance.now() >= P.suppressedUntil) attackAt(performance.now(), t); }
+      if (k === ' ' || k === 't') { e.preventDefault(); if (performance.now() >= P.suppressedUntil) attackAt(performance.now(), t); }
       else if (k === 'w') { if (performance.now() >= P.suppressedUntil) attackAt(performance.now(), t ? wrongOf(t) : {pc: 1, midi: 61}); }
       else if (k === 's' && !heldS) { heldS = true; if (t) { P.demoNote = t.midi; demoHeldPc = t.pc; } else demoHeldPc = 'drum'; }
     });
@@ -260,7 +269,7 @@ window.Arcade = window.Arcade || {};
   function tick() {
     const now = performance.now();
     let reading = null, level = 0;
-    if (mic && inst) {
+    if (mic && inst && !P.paused) {
       mic.an.getFloatTimeDomainData(mic.buf);
       let r;
       if (range) {
@@ -285,6 +294,7 @@ window.Arcade = window.Arcade || {};
       reading = {freq: mtof(m), midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
       level = 0.1;
     }
+    if (P.paused) { reading = null; level = 0; }            // not listening right now (demo notes included)
     // full range: a reading an octave (or two) outside the range is moved into it
     if (reading && range && (reading.note < range.lo || reading.note > range.hi)) {
       const k = [12, -12, 24, -24].find(k => reading.note + k >= range.lo && reading.note + k <= range.hi);

@@ -63,6 +63,14 @@ showtime-malfunction/ Game 8: articulation. Play each note N separate times (ton
 sustain-speedway/     Game 9: long tones and tuning. Your instrument is the engine: hold each lap's note in tune and steady to race
   levels.js           The 8 tracks (Downtown Loop … The Grand Prix): laps, lap length, rivals, and HOW SPEED WORKS. Edit here
   game.js             The race: the speed model, the canvas road, the tuning speedometer, pit stops, rivals, ghost car, results
+arcade-quest/         Arcade Quest: The Mysterious Microphone (stage 1: engine, battles, test arena; hidden unless ?demo)
+  sprites.js          THE PIXEL ART: every sprite as a small pixel map + palette (theme tokens). Edit here
+  engine/             core.js (screen, loop, scenes), input.js (keys, taps, touch pad), sprites.js (drawing, PNG hook,
+                      player builder), text.js (text box, menus), save.js (save slot + settings)
+  data/               enemies.js, items.js, battle-text.js (every enemy, item and battle message: edit freely)
+  battle/             challenges.js (PLAY, LONG TONE, ARTICULATE, VOCAB, FINGERING, HARMONIZE), dodge.js, battle.js
+  scenes.js / main.js The title screen and the test arena; start-up
+  art/                (optional) your own PNGs: art/<sprite id>.png replaces a drawn sprite
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.
@@ -176,6 +184,22 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **Sound:** nothing plays during a race (the microphone is listening): no engine, music or ambience. `race-countdown` plays before GO (the race waits for it), `pit-in` in the pit stop (a rest), then `race-finish`, `podium` and `new-best-lap`.
 - **Achievements:** win The Grand Prix → the **Racing Stripes** skin; win any track on Virtuoso → the **Helmet**.
 - **Testing** (`?demo`): every track is open. Hold **Space** = the right note perfectly in tune, **D** = the right note drifting sharp (+25 to +35 cents, wobbling), **W** = a wrong note, **E** = the right note centered but wobbly; let go = breathing.
+
+## Arcade Quest: The Mysterious Microphone (stage 1)
+
+**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Stage 1 is the engine, the battle system and a **test arena**: no story, map or characters yet. The cabinet only shows on the arcade floor with `?demo` (games.js `demoOnly: true`) until Episode 1 is ready; `arcade-quest/index.html?test` opens the arena directly.
+
+- **Look:** a 320 × 180 pixel screen drawn in code, scaled up crisp (letterboxed on iPad portrait). Battles are on black with a white-bordered text box. Text is **Pixelify Sans** (OFL), bundled as `shared/fonts/pixelify.woff2`.
+- **Your hero** is the saved player: a pixel band kid holding their instrument (all 16 drawn in `arcade-quest/sprites.js`), shirt in the instrument's color, outlined in the equipped skin's color. SETTINGS picks the skin tone.
+- **A battle:** your HP, the enemy's HP and its **CALM** meter. Your turn: **PLAY** (the enemy's challenge; damage = accuracy × speed, right notes raise CALM), **LISTEN** (what it is, what it likes; some calm down just from being listened to), **ITEM** (Valve Oil heals, Cork Grease blocks the next 3 sour notes, Metronome slows the next dodge), **HARMONIZE** (only with a full CALM meter: play its happy note or rhythm and it **joins your band**, with bigger rewards). At 0 HP an enemy **fades away grumbling** (smaller rewards). Out of HP = "out of breath": nothing is lost.
+- **Challenges:** PLAY (1–4 notes from sequences.js), **LONG TONE** (hold a note in tune: cents shown), **ARTICULATE** (one note N separate times, `Pitch.onAttack`), **VOCAB** (an Orange-belt question from Ancient Ninja Scrolls' `vocab.js`), **FINGERING** (Button Masher's diagram and `fingerings.js`). A challenge the instrument can't do falls back: Snare Drum → ARTICULATE (VOCAB stays VOCAB); Bells → no long tones; no fingering chart → PLAY.
+- **The enemy's turn is a dodge** (no instrument, a rest for the lips): steer a glowing note for 5–8 s (arrows/WASD, the on-screen pad, or drag anywhere) around sour notes, static bursts and falling rests.
+- **The microphone listens only during PLAY, HARMONIZE and the playing challenges** (a red "The mic is listening" tag shows). Battle music (`quest-battle`, only if Mat adds the file) plays in menus and dodges and stops while listening.
+- **Settings:** text speed, dodging Easy/Normal (Easy = slower and fewer), **ASSIST MODE** (half damage), skin tone, and the arcade's own sound and music sliders. Reduced motion (device setting) = no screen shake or flashing.
+- **Rewards:** XP (level-ups raise max HP), Arcade Tokens, items. The save slot (level, HP, XP, tokens, items, band roster, version number) is on this device.
+- **Your own art:** put `arcade-quest/art/<sprite id>.png` (frames side by side, transparent background) and it replaces the drawn sprite: enemies by id (`squawk`…), players `player-<instrument>` (28 × 25, 2 frames).
+- **Editing:** enemies (HP, challenge, happy note, dodge patterns, lines, rewards) in `data/enemies.js`, items in `data/items.js`, every battle message in `data/battle-text.js`.
+- **Testing** (`?demo&test`): hold **Space** = the right note(s), **W** = a wrong note, **S** = a steady long tone, **T** (or Space) taps = attacks, **V** = auto-answer VOCAB / FINGERING.
 
 ### Attack detection (the engine)
 
