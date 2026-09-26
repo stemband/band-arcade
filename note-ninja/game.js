@@ -18,7 +18,6 @@
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.allowAmbience(false);                       // no arcade-room hum inside a game
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
 

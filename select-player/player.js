@@ -1,34 +1,47 @@
-/* Select Player: a fighting-game character select for the game named in ?game=<id>. One tile per instrument
-   (Arcade.PLAYERS), each with its neon portrait (shared/portraits.js). The highlighted tile has a pulsing neon
-   outline and a 1P marker; the big preview and player card show it. Tap a tile to highlight it, tap it again
-   (or SELECT) to choose; arrow keys move, Enter selects. Choosing saves the instrument MEMBER
-   (Arcade.store.setPlayer); its player group follows (Arcade.groupFor), so every game's saved stars stay put.
+/* Select Player: a fighting-game character select for one game. One tile per instrument (Arcade.PLAYERS), each with
+   its neon portrait (shared/portraits.js). The highlighted tile has a pulsing neon outline and a 1P marker; the big
+   preview and player card show it. Tap a tile to highlight it, tap it again (or SELECT) to choose; arrow keys move,
+   Enter selects. Choosing saves the instrument MEMBER (Arcade.store.setPlayer); its player group follows
+   (Arcade.groupFor), so every game's saved stars stay put.
    Two-player games (games.js `players: 2`, or &players=2): after Player 1 (cyan 1P marker), "PLAYER 2 — PRESS
    START": Player 2 picks with a magenta 2P marker, or CPU. That is saved as the last opponent
-   (Arcade.store.setOpponent) and never replaces Player 1's instrument. */
+   (Arcade.store.setOpponent) and never replaces Player 1's instrument.
+   IT IS A VIEW ON THE ARCADE FLOOR PAGE (index.html, #selectView), so the audio the student unlocked on the floor
+   stays unlocked and the select music starts the moment it opens:
+     Arcade.SelectView.open(game, {players, need})   build the screen for that game (arcade.js calls it)
+     Arcade.SelectView.close()                        tear it down (every listener it added goes with it)
+   The URL is index.html?game=<id>[&players=2][&need=pitched|noplay]; select-player/index.html?game=<id> redirects
+   there. Links from here are relative to the site root. */
 (function (A) {
   "use strict";
   const {$} = A;
-  const game = (A.ALL_GAMES || A.GAMES).find(g => g.id === A.params.get('game'));
-  if (!game) { location.replace(A.homeLink('')); return; }      // missing or unknown game: back to the arcade
-  if (game.player) { location.replace(A.startLink(game)); return; }   // a game with its own instrument: nothing to choose
-
-  const gameLink = A.linkTo('../' + game.id + '/index.html');
+  const ROOT = '';                                          // this view lives on the floor page, at the site root
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const {noteLabel} = A.music;
   const FAMILY = {woodwind: 'Woodwind', brass: 'Brass', percussion: 'Percussion'};
   const KEY = {0: 'Concert pitch', 2: 'B♭ instrument', 7: 'F instrument', 9: 'E♭ instrument'};
+  let live = null;                                          // the open view: {game, ac (AbortController)}
 
+  function open(game, opts = {}) {
+  close();
+  const ac = new AbortController(), on = (el, type, fn, o) => el.addEventListener(type, fn, Object.assign({signal: ac.signal}, o || {}));
+  const view = $('selectView');
+  const me = live = {game, ac};
+  const still = fn => () => { if (live === me) fn(); };    // a timer that does nothing once the view has closed
+  const gameLink = A.linkTo(ROOT + game.id + '/index.html', {need: null});
+  view.className = 'sp-view ' + A.trimClasses(game);        // this game's neon colors for the whole screen
+  view.hidden = false; view.scrollTop = 0;
   document.title = `Select Player · ${game.name}`;
-  $('homeLink').href = A.homeLink(game.id);
-  $('homeLink').addEventListener('click', e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); A.Sfx.playThenGo('ui-back', e.currentTarget.href); });
-  A.Sfx.mountControls($('soundCtl'));
-  A.Sfx.use('select');                                  // this screen's sounds load after the first tap
-  A.Sfx.allowAmbience(false); A.Sfx.allowMusic(true, game.id);   // select-music-<game id> if Mat uploaded one    // character select music here (the MUSIC slider), not the room ambience
-  document.body.className = A.trimClasses(game);          // this game's neon colors for the whole page
+  $('spMsg').hidden = true; $('spMsg').innerHTML = '';
+  $('spTitle').textContent = 'Select your player';
+  $('ready').hidden = true; $('ready').classList.remove('go');
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
+  A.Sfx.use('select');                                      // this screen's sounds load after the first tap
+  // the music manager: the room ambience fades out, the character-select music fades in (this game's own
+  // select-music-<id> if Mat uploaded one, else select-music, else the built-in chiptune). No extra tap needed.
+  A.Sfx.setAmbience(null); A.Sfx.setMusic(['select-music-' + game.id, 'select-music'], {builtIn: true});
 
-  const two = game.players > 1 || A.params.get('players') === '2';
+  const two = game.players > 1 || String(opts.players) === '2';
   let phase = 1;                                                      // 1 = Player 1 picks, 2 = Player 2 picks
   const ids = two ? A.PLAYERS.concat('cpu') : A.PLAYERS, info = id => A.memberById(id);
   const hornOf = () => phase === 2 ? A.store.opponentHornStart : A.store.hornStart;
@@ -48,22 +61,23 @@
   const canPlay = id => !blocked(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
   const np = game.noPlay || {};
   tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (blocked(t.dataset.id) ? np.label : 'try Showtime Malfunction')); } });
-  const gameLinkHTML = id => { const g = A.GAMES.find(x => x.id === id); return g ? `<a href="${A.startLink(g)}">${g.name}</a>` : ''; };
+  const gameLinkHTML = id => { const g = A.GAMES.find(x => x.id === id); return g ? `<a href="${A.startLink(g, ROOT)}">${g.name}</a>` : ''; };
   const snareMsg = id => {
-    $('msg').hidden = false;
-    if ((id && blocked(id)) || A.params.get('need') === 'noplay') {      // games.js noPlay.block: its own message, with links
+    $('spMsg').hidden = false;
+    if ((id && blocked(id)) || opts.need === 'noplay') {      // games.js noPlay.block: its own message, with links
       const links = (np.games || [np.game]).map(gameLinkHTML).filter(Boolean);
-      $('msg').innerHTML = `<b>${np.label}</b> Pick an instrument that can hold a long note for this game.${links.length ? ` Or go to ${links.join(' or ')}.` : ''}`;
+      $('spMsg').innerHTML = `<b>${np.label}</b> Pick an instrument that can hold a long note for this game.${links.length ? ` Or go to ${links.join(' or ')}.` : ''}`;
       return;
     }
     const sm = A.GAMES.find(g => g.id === 'showtime-malfunction');
-    $('msg').innerHTML = `<b>Snare drummers:</b> try ${sm ? `<a href="${A.playerLink(sm.id)}">Showtime Malfunction</a>` : 'Showtime Malfunction'}! Pick a pitched instrument for this game.`;
+    $('spMsg').innerHTML = `<b>Snare drummers:</b> try ${sm ? `<a href="${A.playerLink(sm.id, ROOT)}">Showtime Malfunction</a>` : 'Showtime Malfunction'}! Pick a pitched instrument for this game.`;
   };
 
   /* returning students: CONTINUE AS, or (after the members update) a group to pick an exact instrument from */
   const saved = A.store.player, pending = A.store.pending;
   let cur = Math.max(0, ids.indexOf(saved && canPlay(saved) ? saved : 'flute'));
-  if (/^(pitched|noplay)$/.test(A.params.get('need') || '') || (saved && !canPlay(saved))) snareMsg(saved);
+  $('continue').hidden = true; $('continue').querySelector('.c-label').textContent = 'Continue as';
+  if (/^(pitched|noplay)$/.test(opts.need || '') || (saved && !canPlay(saved))) snareMsg(saved);
   if (saved && canPlay(saved)) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;
@@ -77,11 +91,11 @@
     const g = A.getInstrument(pending.group), mine = g ? g.members.map(m => m.id) : [];
     tiles.forEach(t => t.classList.toggle('suggest', mine.includes(t.dataset.id)));
     if (mine.length) cur = ids.indexOf(mine[0]);
-    $('msg').hidden = false;
-    $('msg').innerHTML = `<b>Pick your exact instrument!</b> Every instrument has its own player now. You played as ${g ? g.name : 'a group'}: choose the one that's yours.`;
+    $('spMsg').hidden = false;
+    $('spMsg').innerHTML = `<b>Pick your exact instrument!</b> Every instrument has its own player now. You played as ${g ? g.name : 'a group'}: choose the one that's yours.`;
   } else if (pending && pending.reason === 'tonebells') {
-    $('msg').hidden = false;
-    $('msg').innerHTML = `<b>Choose your player again!</b> Colored Tone Bells has left the arcade. Pick your instrument (percussion players: choose Bells).`;
+    $('spMsg').hidden = false;
+    $('spMsg').innerHTML = `<b>Choose your player again!</b> Colored Tone Bells has left the arcade. Pick your instrument (percussion players: choose Bells).`;
   }
 
   /* ---------- highlight + player card ---------- */
@@ -133,11 +147,11 @@
     if (moved && sound) A.Sfx.event('tile-move');
   }
 
-  tiles.forEach((t, k) => t.addEventListener('click', () => {
+  tiles.forEach((t, k) => on(t, 'click', () => {
     if (k === cur && t.classList.contains('on')) confirm(ids[k]); else highlight(k);
   }));
-  $('selectBtn').addEventListener('click', () => confirm(ids[cur]));
-  $('hornToggle').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  on($('selectBtn'), 'click', () => confirm(ids[cur]));
+  $('hornToggle').querySelectorAll('button').forEach(b => on(b, 'click', () => {
     (phase === 2 ? A.store.setOpponentHornStart(b.dataset.horn) : A.store.setHornStart(b.dataset.horn)); A.Sfx.event('ui-toggle'); card();
   }));
 
@@ -156,8 +170,8 @@
     });
     return best < 0 ? cur : best;
   }
-  addEventListener('keydown', e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden])')) return;   // the locker or an UNLOCKED! card is open
+  on(window, 'keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden])') || !$('pressStart').hidden) return;   // the locker or an UNLOCKED! card is open
     const onButton = e.target.closest && e.target.closest('button, a');
     if (onButton && !onButton.classList.contains('tile') && (e.key === 'Enter' || e.key === ' ')) return;   // SELECT, horn toggle, sound…
     const side = {ArrowLeft: -1, ArrowRight: 1}[e.key], up = {ArrowUp: -1, ArrowDown: 1}[e.key];
@@ -169,7 +183,7 @@
   /* ---------- confirm: a flash, PLAYER n READY, then the game (or Player 2's turn to pick) ---------- */
   let leaving = false;
   function confirm(id, viaContinue) {
-    if (!canPlay(id)) { snareMsg(id); A.Sfx.event('note-wrong'); $('msg').scrollIntoView({block: 'nearest'}); return; }
+    if (!canPlay(id)) { snareMsg(id); A.Sfx.event('note-wrong'); $('spMsg').scrollIntoView({block: 'nearest'}); return; }
     if (leaving || (phase === 1 && id === 'cpu')) return;
     leaving = true;
     if (phase === 1) A.store.setPlayer(id); else A.store.setOpponent(id);
@@ -179,22 +193,22 @@
     r.querySelector('span').textContent = `Player ${phase}`;
     r.classList.toggle('p2', phase === 2);
     r.hidden = false; r.classList.remove('go'); void r.offsetWidth; r.classList.add('go');
-    setTimeout(() => A.Sfx.event('player-ready'), 260);
+    setTimeout(still(() => A.Sfx.event('player-ready')), 260);
     const wait = reduced.matches ? 700 : 1100;
-    if (two && phase === 1) setTimeout(() => { r.hidden = true; startPlayer2(id); leaving = false; }, wait);
+    if (two && phase === 1) setTimeout(still(() => { r.hidden = true; startPlayer2(id); leaving = false; }), wait);
     else {
-      setTimeout(() => A.Sfx.allowMusic(false), Math.max(0, wait - 400));   // the music fades out as the game opens
-      setTimeout(() => { location.href = gameLink; }, wait);
+      setTimeout(still(() => A.Sfx.setMusic(null)), Math.max(0, wait - 400));      // the music fades out as the game opens
+      setTimeout(still(() => { location.href = gameLink; }), wait);
     }
   }
   /* Player 2: the 1P tile stays marked, the highlight becomes magenta 2P, and CPU joins the grid */
   function startPlayer2(p1) {
     phase = 2;
     A.Sfx.event('player2-join');
-    document.body.classList.add('phase2');
-    document.querySelector('.sp-title').textContent = 'Player 2 — Press Start';
+    view.classList.add('phase2');
+    $('spTitle').textContent = 'Player 2 — Press Start';
     tiles.forEach(t => { t.classList.toggle('p1-lock', t.dataset.id === p1); t.classList.remove('chosen', 'suggest'); });
-    $('msg').hidden = true;
+    $('spMsg').hidden = true;
     const opp = A.store.opponent && canPlay(A.store.opponent) ? A.store.opponent : null;
     $('continue').hidden = !opp;
     if (opp) {
@@ -205,9 +219,9 @@
     }
     highlight(Math.max(0, ids.indexOf(opp || (p1 === 'flute' ? 'oboe' : 'flute'))), {sound: false});
     (opp ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
-    window.scrollTo(0, 0);
+    view.scrollTop = 0;
   }
-  addEventListener('pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
+  on(window, 'pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
 
   /* ---------- the SKINS locker: live preview on the big portrait; equipped per instrument on this device ---------- */
   let lockerFor = null;
@@ -249,16 +263,27 @@
     A.Skins.refresh(id);
     if (ids[cur] === id) card();
   }
-  $('skinsBtn').addEventListener('click', openLocker);
-  $('backupBtn').addEventListener('click', () => A.Backup && A.Backup.open());       // shared/backup.js
-  ['lkColors', 'lkAcc'].forEach(g => $(g).addEventListener('click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); }));
+  on($('skinsBtn'), 'click', openLocker);
+  on($('backupBtn'), 'click', () => A.Backup && A.Backup.open());       // shared/backup.js
+  ['lkColors', 'lkAcc'].forEach(g => on($(g), 'click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); }));
   const closeLocker = () => { $('locker').hidden = true; lockerFor = null; $('skinsBtn').focus({preventScroll: true}); };
-  $('lkDone').addEventListener('click', closeLocker);
-  $('locker').addEventListener('click', e => { if (e.target === $('locker')) closeLocker(); });
-  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('locker').hidden) closeLocker(); });
+  on($('lkDone'), 'click', closeLocker);
+  on($('locker'), 'click', e => { if (e.target === $('locker')) closeLocker(); });
+  on(window, 'keydown', e => { if (e.key === 'Escape' && !$('locker').hidden) closeLocker(); });
 
   highlight(cur, {focus: false, sound: false});
-  (saved ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
+  (saved && canPlay(saved) ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
   /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card */
   if (saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)});
+  }
+
+  function close() {
+    if (!live) return;
+    live.ac.abort(); live = null;
+    const v = $('selectView');
+    v.hidden = true; $('locker').hidden = true; $('ready').hidden = true;
+    $('grid').innerHTML = '';
+    document.title = A.ARCADE_NAME || 'Band Arcade';
+  }
+  A.SelectView = {open, close, get isOpen() { return !!live; }, get game() { return live && live.game; }};
 })(window.Arcade);

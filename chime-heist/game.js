@@ -18,7 +18,6 @@
   const member = A.getMember(inst, 'bells');
   const SOUNDS = -member.sounds;                        // bells sound 24 semitones (two octaves) above written
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Bell Kit', portrait: 'bells'});
-  A.Sfx.allowAmbience(false);
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
 

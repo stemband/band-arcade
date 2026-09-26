@@ -66,7 +66,12 @@
     prerender();
     setTimeout(() => { if (W && W.def === def) prerender(); }, 800);     // again, once any PNG art has loaded
     W.whisperAt = Q.rand(25, 45); W.whisper = null;
-    if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(def.music || 'quest-manor');
+    // the room's track, through the music manager: it starts as soon as it's loaded, the FIRST time too. Its ghosts'
+    // battle music is fetched now, so a battle starts with music
+    if (A.Sfx && A.Sfx.setMusic) {
+      A.Sfx.setMusic(def.music || 'quest-manor');
+      A.Sfx.preloadMusic(def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle'));
+    }
     Q.talk.hud(); Q.talk.banner(def.name);
   }
 

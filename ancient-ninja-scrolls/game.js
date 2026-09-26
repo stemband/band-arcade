@@ -20,7 +20,6 @@
   const pick = (a, n, not = []) => shuffle(a.filter(x => !not.includes(x))).slice(0, n);
 
   A.mountTopbar(null, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Band Ninja'});
-  A.Sfx.allowAmbience(false);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
 

@@ -1,8 +1,13 @@
 /* Arcade home page: the arcade floor. Students pick a GAME here (no instruments on this page).
    A carousel of cabinets: arrows, swipe, ←/→ keys, the indicator lights, or a tap on a side cabinet
-   turn a cabinet to the front. START goes to select-player/index.html?game=<id>.
+   turn a cabinet to the front. START opens SELECT YOUR PLAYER as a view on this same page (select-player/player.js;
+   URL index.html?game=<id>, the browser's Back button returns to the carousel), so the audio the student unlocked
+   here stays unlocked and the select music starts at once. A game with its own fixed player (Chime Heist, Ancient
+   Ninja Scrolls) goes straight to its page.
+   PRESS START: the first time the floor opens in a visit (sessionStorage), a full-screen attract screen; any tap,
+   click or key dismisses it, and that same gesture unlocks the audio. ?demo&nostart skips it.
    Sound (shared/sfx.js): wheel-left / wheel-right when the aisle turns, cabinet-focus when it stops, select-<game id>
-   on START (the page changes when it ends, 1.5 s at most), and the lobby ambience loop.
+   on START, and, through the music manager, the lobby ambience here / the select music in the select view.
 
    Two ways to draw the cabinets ("views"), one set of controls:
      3D   arcade3d.js + shared/vendor/three.min.js (loaded here only when WebGL works)
@@ -23,6 +28,33 @@
   A.Sfx.mountControls($('soundCtl'));
   if (A.Backup) A.Backup.button($('soundCtl').querySelector('.snd-pop'), 'snd-backup');   // shared/backup.js: BACKUP / RESTORE
   A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
+  A.Sfx.mountControls($('spSound'));                     // the select view's own speaker button (same settings)
+
+  /* ---------- PRESS START (first visit only; the gesture that dismisses it also unlocks the audio) ---------- */
+  const VISIT = 'bandarcade.visit', ps = $('pressStart');
+  let visited = false;
+  try { visited = sessionStorage.getItem(VISIT) === '1'; } catch (e) { /* private mode: show it */ }
+  const pressStart = () => !ps.hidden;
+  if (!visited && !(A.DEMO && A.params.has('nostart'))) {
+    $('psName').innerHTML = $('arcadeName').innerHTML;
+    $('psHint').textContent = matchMedia('(pointer: coarse)').matches ? 'Tap anywhere' : 'Press any key';
+    ps.hidden = false; ps.focus();
+    const dismiss = e => {
+      if (ps.classList.contains('go')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      if (e.type === 'keydown' && /^(Shift|Control|Alt|Meta|Tab)$/.test(e.key)) return;
+      e.preventDefault(); e.stopImmediatePropagation();       // the key or tap only starts the arcade, nothing else
+      try { sessionStorage.setItem(VISIT, '1'); } catch (x) { /* fine */ }
+      A.Sfx.play('coin');                                      // shared/sfx.js unlocked the audio a moment ago (same gesture)
+      ps.classList.add('go');
+      // it stays on top a moment longer, so the click that follows this tap can't press a cabinet's START
+      setTimeout(() => {
+        ps.hidden = true; ps.classList.remove('go');
+        ['pointerdown', 'keydown', 'click'].forEach(t => removeEventListener(t, dismiss, true));
+        const f = A.SelectView.isOpen ? null : view && view.startLink; if (f) f.focus({preventScroll: true});
+      }, 320);
+    };
+    ['pointerdown', 'keydown', 'click'].forEach(t => addEventListener(t, dismiss, true));
+  }
   if (!N) return;
 
   /* The ring of cabinets. With fewer than 5 games the list repeats (only visually) so both
@@ -119,7 +151,9 @@
       }
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));
-    try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }
+    if (!g.player) A.Sfx.preloadMusic('select-music-' + g.id);   // this game's own select music (if Mat made one) is ready for START
+    // the address says which cabinet is in front (not while Select Player's ?game= address is showing)
+    if (!new URLSearchParams(location.search).has('game')) { try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ } }
   }
 
   /* the turn sound (wheel-left / wheel-right), then a quiet cabinet-focus once the new cabinet is at the front */
@@ -142,7 +176,7 @@
   lights.forEach(b => b.addEventListener('click', () => goTo(+b.dataset.i)));
 
   document.addEventListener('keydown', e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || A.SelectView.isOpen || pressStart()) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
   });
@@ -153,8 +187,13 @@
     if (swiped) { swiped = false; e.preventDefault(); e.stopPropagation(); return; }
     if (!view) return;
     const start = e.target.closest('a');
-    if (start && start === view.startLink) {          // START: the game's select-<id> sound HERE, then the page changes when it ends
-      if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('select-' + ring[cur].id, start.href); }
+    if (start && start === view.startLink) {          // START: the game's select-<id> sound, then Select Player (this page)
+      if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) {
+        e.preventDefault();
+        const g = ring[cur];
+        if (g.player) A.Sfx.playThenGo('select-' + g.id, start.href);   // its own fixed player: straight to the game
+        else { A.Sfx.event('select-' + g.id); openSelect(g); }
+      }
       return;
     }
     const d = view.pick(e);
@@ -188,7 +227,70 @@
     });
   }
 
+  /* ---------- the two views of this page: the carousel and SELECT YOUR PLAYER (index.html?game=<id>) ---------- */
+  const SELECT_KEYS = ['game', 'players', 'need'];
+  /** this page's address without the select view's parameters (every other flag, like ?demo, stays) */
+  function floorURL(gameId) {
+    const p = new URLSearchParams(location.search);
+    SELECT_KEYS.forEach(k => p.delete(k));
+    const q = p.toString().replace(/=(?=&|$)/g, '');
+    return location.pathname + (q ? '?' + q : '') + (gameId ? '#' + gameId : '');
+  }
+  const wanted = () => { const id = new URLSearchParams(location.search).get('game'); return id ? (A.ALL_GAMES || GAMES).find(g => g.id === id) || null : null; };
+  /** the lobby's sound through the music manager: the room ambience, no music */
+  const floorSound = () => { A.Sfx.setMusic(null); A.Sfx.setAmbience('lobby-ambience', {builtIn: true}); A.Sfx.preloadMusic('select-music'); };
+  /** make the page match its address (on load, after START, and on the Back/Forward buttons) */
+  function showView() {
+    A.params = new URLSearchParams(location.search);
+    const g = wanted();
+    if (g && g.player) { location.replace(A.startLink(g, '')); return; }        // a game with its own player: no choosing
+    if (g) {
+      document.body.classList.add('in-select'); A.floorPaused = true;          // the 3D floor stops drawing meanwhile
+      if (A.SelectView.game !== g) A.SelectView.open(g, {players: A.params.get('players'), need: A.params.get('need')});
+      return;
+    }
+    if (new URLSearchParams(location.search).has('game')) { try { history.replaceState(null, '', floorURL()); } catch (e) { /* file:// */ } A.params = new URLSearchParams(location.search); }
+    const was = A.SelectView.game;
+    A.SelectView.close();
+    document.body.classList.remove('in-select'); A.floorPaused = false;
+    floorSound();
+    if (was) faceGame(was.id);
+  }
+  function openSelect(g) {
+    try { history.pushState({select: g.id}, '', A.playerLink(g.id, '')); } catch (e) { location.href = A.playerLink(g.id, ''); return; }
+    showView();
+  }
+  /** turn this game's cabinet to the front, with no turning sound (back from Select Player) */
+  function faceGame(id) {
+    const i = GAMES.findIndex(g => g.id === id);
+    if (i < 0) return;
+    let best = cur, bestD = Infinity;
+    for (let r = i; r < M; r += N) { const d = Math.abs(wrap(r - cur)); if (d < bestD) { bestD = d; best = r; } }
+    cur = best; place(true);
+    if (view && view.startLink) view.startLink.focus({preventScroll: true});
+  }
+  addEventListener('popstate', showView);
+  // "← ARCADE" in the select view: back to the carousel (the browser's Back when START opened it, so history stays tidy)
+  $('spBack').addEventListener('click', e => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    e.preventDefault(); A.Sfx.event('ui-back');
+    const g = A.SelectView.game;
+    if (history.state && history.state.select) history.back();
+    else { try { history.replaceState(null, '', floorURL(g && g.id)); } catch (x) { location.href = floorURL(g && g.id); return; } showView(); }
+  });
+  // links to another game's Select Player (the snare message's "try Showtime Malfunction") stay on this page too
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('#selectView a[href]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button || a.id === 'spBack') return;
+    const u = new URL(a.href, location.href);
+    if (u.pathname !== location.pathname || !u.searchParams.get('game')) return;
+    const g = (A.ALL_GAMES || GAMES).find(x => x.id === u.searchParams.get('game'));
+    if (!g || g.player) return;
+    e.preventDefault(); A.Sfx.event('select-' + g.id); openSelect(g);
+  });
+
   useView(make2D());                       // the 2D aisle works right away (and is the fallback)
+  showView();                              // ?game=<id> opens straight into Select Player; otherwise the lobby sound
   if (!A.params.has('flat') && hasWebGL() && A.Floor3D) {
     aisle.classList.add('loading-3d');     // hide the 2D cabinets for the moment the 3D ones take to load
     let settled = false;                   // once we fall back to 2D, a late 3D load is thrown away

@@ -15,8 +15,16 @@
 <link rel="stylesheet" href="shared/theme.css">
 <link rel="stylesheet" href="shared/cabinets.css">
 <link rel="stylesheet" href="arcade.css">
+<link rel="stylesheet" href="select-player/style.css">
 </head>
 <body class="floor-page">
+<!-- PRESS START: the attract screen on the first visit (arcade.js). Any tap, click or key starts the arcade; that same
+     gesture unlocks the audio (shared/sfx.js), so the lobby sound starts right away. -->
+<button type="button" class="press-start" id="pressStart" aria-label="Press start to enter the arcade" hidden>
+  <span class="ps-sign neon" id="psName" aria-hidden="true">Band Arcade</span>
+  <span class="ps-start" aria-hidden="true">Press Start</span>
+  <span class="ps-hint" id="psHint" aria-hidden="true">Press any key</span>
+</button>
 <div class="room" aria-hidden="true"></div>
 <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
 
@@ -48,9 +56,84 @@
   <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
 </main>
 
+<!-- SELECT YOUR PLAYER: a view on this page (select-player/player.js), so the audio unlocked on the floor stays
+     unlocked. URL: index.html?game=<id>; select-player/index.html?game=<id> redirects here. -->
+<div class="sp-view" id="selectView" hidden>
+<div class="wrap sp">
+  <div class="topbar"><a class="brand" id="spBack" href="index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="spSound" role="group" aria-label="Sound"></div></div>
+
+  <header class="sp-head">
+    <div class="sp-marquee" id="marquee"></div>
+    <h1 class="sp-title" id="spTitle">Select your player</h1>
+  </header>
+
+  <section class="continue" id="continue" hidden>
+    <a class="btn-continue" id="continueBtn" href="#">
+      <span class="c-pic" id="continuePic" aria-hidden="true"></span>
+      <span class="c-text"><span class="c-label">Continue as</span><span class="c-name" id="continueName"></span></span>
+    </a>
+  </section>
+  <p class="sp-msg" id="spMsg" role="status" hidden></p>
+
+  <div class="sp-main">
+    <!-- the highlighted instrument, big, with its player card -->
+    <aside class="preview" id="preview" aria-live="polite">
+      <div class="pv-stage"><div class="pv-pic" id="pvPic"></div></div>
+      <div class="card">
+        <p class="card-fam" id="cFam"></p>
+        <h2 class="card-name" id="cName"></h2>
+        <p class="card-key" id="cKey"></p>
+        <p class="card-five" id="cFive"></p>
+        <p class="card-stars"><span class="star" aria-hidden="true">★</span> <b id="cStars">0</b> <span id="cStarsWord">stars on this device</span></p>
+        <div class="horn-toggle" id="hornToggle" role="group" aria-labelledby="hornLbl" hidden>
+          <span id="hornLbl">Starting notes:</span>
+          <button type="button" data-horn="F">F–C</button><button type="button" data-horn="C">C–G</button>
+        </div>
+        <button type="button" class="card-backup" id="backupBtn" aria-haspopup="dialog">Backup / Restore</button>
+        <button type="button" class="btn-skins" id="skinsBtn" aria-haspopup="dialog"><span>Skins</span> <small id="skinsCount"></small></button>
+        <button type="button" class="btn-select" id="selectBtn">Select</button>
+      </div>
+    </aside>
+
+    <section class="grid-wrap" aria-labelledby="gridTitle">
+      <h2 class="sr" id="gridTitle">Instruments</h2>
+      <div class="grid" id="grid" role="group" aria-label="Instruments. Arrow keys move, Enter selects"></div>
+      <ul class="legend" aria-label="Sections">
+        <li class="fam-woodwind">Woodwinds</li><li class="fam-brass">Brass</li><li class="fam-percussion">Percussion</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<!-- THE SKINS LOCKER (shared/skins.js): equip a color skin and an accessory for the highlighted instrument -->
+<div class="overlay sk-locker" id="locker" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
+    <div class="lk-head">
+      <div class="lk-stage"><div class="lk-pic" id="lkPic"></div></div>
+      <div class="lk-info">
+        <p class="card-fam">Skins locker</p>
+        <h2 id="lkTitle">Trumpet</h2>
+        <p class="lk-now" id="lkNow" aria-live="polite"></p>
+        <p class="muted lk-how">Earn skins by playing: stars on this instrument in any game, or special wins. Tap one to wear it.</p>
+      </div>
+    </div>
+    <h3 class="lk-sub" id="lkColorsLbl">Color</h3>
+    <div class="lk-grid" id="lkColors" role="group" aria-labelledby="lkColorsLbl"></div>
+    <h3 class="lk-sub" id="lkAccLbl">Accessory <small>(wear one with any color)</small></h3>
+    <div class="lk-grid" id="lkAcc" role="group" aria-labelledby="lkAccLbl"></div>
+    <div class="acts"><button type="button" class="btn btn-gold" id="lkDone">Done</button></div>
+  </div>
+</div>
+
+<!-- PLAYER 1 READY: a flash across the screen, then the game -->
+<div class="ready" id="ready" hidden aria-live="assertive"><div class="flash"></div><p><span>Player 1</span><span>Ready</span></p></div>
+</div>
+
 <script src="shared/instruments.js"></script>
 <script src="shared/storage.js"></script>
 <script src="shared/ui.js"></script>
+<script src="shared/portraits.js"></script>
+<script src="shared/skins.js"></script>
 <script src="shared/games.js"></script>
 <script src="shared/scales.js"></script>
 <script src="shared/sequences.js"></script>
@@ -58,6 +141,7 @@
 <script src="shared/sounds.js"></script>
 <script src="shared/sfx.js"></script>
 <script src="shared/backup.js"></script>
+<script src="select-player/player.js"></script>
 <script src="arcade3d.js"></script>
 <script src="arcade.js"></script>
 </body>

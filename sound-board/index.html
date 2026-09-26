@@ -80,7 +80,6 @@
   "use strict";
   const $ = id => document.getElementById(id), S = A.Sounds, B = A.Sfx.board;
   A.Sfx.mountControls($('soundCtl'));
-  A.Sfx.allowAmbience(false);                           // the loop test below plays the ambience on demand
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
   /* ---------- the list, grouped by screen ---------- */

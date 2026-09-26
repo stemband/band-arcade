@@ -12,6 +12,8 @@
   A.mountTopbar(inst, '', GAME_ID);
   A.Pitch.setInstrument(inst);
   A.Pitch.pauseListening(true);
+  // the music manager (shared/sfx.js) starts each scene's track as soon as it has loaded; fetch the likely ones now
+  A.Sfx.preloadMusic(['quest-title', 'quest-foyer', 'quest-manor', 'quest-battle']);
   Q.challengeSetup(inst, member);
   const hero = () => Q.playerId(member.id, {tone: Q.settings.get().tone});   // your sprite (rebuilt when SETTINGS change)
   hero(); Q.onSettings = hero;

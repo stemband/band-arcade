@@ -26,7 +26,6 @@
   if (!opp) { location.replace(A.playerLink(GAME_ID)); return; }       // Player 2 hasn't been chosen yet
   const vsCPU = opp === 'cpu';
   A.mountTopbar(inst1, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.allowAmbience(false);
   $('demoHelp').hidden = !A.DEMO;
   $('changePlayers').href = A.playerLink(GAME_ID);
 

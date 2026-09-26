@@ -159,7 +159,7 @@
 .phase2 .tile.on .p2,.phase2 .tile.p1-lock .p1{opacity:1}
 .phase2 .tile.p1-lock{opacity:1;border-color:var(--cyan)}
 .phase2 .tile.on{--fam:var(--pink);--fam-hi:var(--pink-hi);--fam-glow:var(--glow-pink)}
-body:not(.phase2) .tile.cpu{display:none}
+.sp-view:not(.phase2) .tile.cpu{display:none}
 /* the Snare Drum on a game that needs pitch: shown, dimmed, and choosing it explains why */
 .tile.no-play{opacity:.35;border-style:dashed}
 .tile.no-play .pt-box{filter:grayscale(1)}
