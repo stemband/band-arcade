@@ -182,8 +182,16 @@ window.Arcade = window.Arcade || {};
     if (!inst) { location.replace(A.playerLink(gameId)); return null; }
     // an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js
     const g = (A.GAMES || []).find(x => x.id === gameId);
+    // games.js noPlay with block: true (Sustain Speedway: bells and snare can't hold a long tone): back to Select Player
+    if (A.blockedBy(g, A.store.player)) { location.replace(A.playerLink(gameId) + '&need=noplay'); return null; }
     if (inst.pitched === false && !(g && g.unpitched)) { location.replace(A.playerLink(gameId) + '&need=pitched'); return null; }
     return inst;
+  };
+  /** true when games.js `noPlay` (with `block: true`) rules out this instrument member for game g */
+  A.blockedBy = function (g, memberId) {
+    const np = g && g.noPlay;
+    if (!np || !np.block || !memberId || !A.memberById(memberId)) return false;
+    return (np.members || []).includes(memberId) || A.groupsOf(memberId).some(gr => (np.groups || []).includes(gr.id));
   };
   /** the line shown to a snare drummer where a game needs a pitched instrument */
   A.SNARE_MSG = 'Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.';

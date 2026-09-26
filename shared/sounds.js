@@ -29,7 +29,8 @@ var SOUNDS_VERSION = 1;
    `gen` is its built-in fallback: a list of [frequency Hz, start s, length s, volume 0–1, wave] beeps
    (or the name of another event to borrow, e.g. gen: 'star-earned').
    select-<game id> needs no line: every game in shared/games.js gets one automatically (file select-<id>,
-   falling back to select-default). */
+   falling back to select-default). Nor does select-music-<game id>: optional Select Player music for one game
+   (a loop; without the file, select-music plays). */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
@@ -105,12 +106,18 @@ window.Arcade = window.Arcade || {};
     'spotlight-out':   {file: 'spotlight-out', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reaches the front and a spotlight goes out.', len: 'under 0.5 s'},
     'showtime-over':   {file: 'showtime-over', vol: .8, mic: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: all three spotlights are out, SHOWTIME\'S OVER. Spooky-fun, never a scream.', len: '1–2 s'},
     'extra-spooky-unlocked': {file: 'extra-spooky-unlocked', vol: .8, mic: true, fallback: 'skin-unlocked', screen: 'showtime-malfunction', when: 'Showtime Malfunction: the results screen the first time EXTRA SPOOKY unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream.', len: '0.8–1.5 s'},
+    // ---- Sustain Speedway (the mic listens for the whole race: nothing plays while racing) ------------------------
+    'race-countdown':  {file: 'race-countdown', vol: .8, mic: true, screen: 'sustain-speedway', gen: [[523, 0, .16], [523, 1, .16], [523, 2, .16], [1047, 3, .45]], when: 'Sustain Speedway: "3, 2, 1, GO!" before the first note. It plays BEFORE listening counts: GO waits until it ends.', len: '3–3.5 s (GO on the last beat)'},
+    'pit-in':          {file: 'pit-in', vol: .7, mic: true, play: true, screen: 'sustain-speedway', gen: [[392, 0, .08, .25], [523, .08, .14, .25]], when: 'Sustain Speedway: the car pulls into the pit stop (a rest between laps).', len: 'under 0.5 s'},
+    'race-finish':     {file: 'race-finish', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'level-complete', when: 'Sustain Speedway: crossing the finish line.', len: '0.8–1.5 s'},
+    'podium':          {file: 'podium', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'new-high-score', when: 'Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd.', len: '1–2 s'},
+    'new-best-lap':    {file: 'new-best-lap', vol: .8, mic: true, screen: 'sustain-speedway', gen: 'star-earned', when: 'Sustain Speedway: the results screen, a new best lap on this track (after the podium).', len: '0.5–1 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway']];
 
   A.Sounds = {
     LIST, SCREENS,
@@ -120,6 +127,11 @@ window.Arcade = window.Arcade || {};
     /** the entry for an event; select-<game id> is made on the fly for any game */
     get(name) {
       if (LIST[name]) return LIST[name];
+      if (/^select-music-/.test(name)) {                   // a game's own character-select music (optional)
+        const g = (A.GAMES || []).find(x => 'select-music-' + x.id === name);
+        return g ? {file: name, vol: .6, loop: true, mic: false, screen: 'select', fallback: 'select-music', auto: true,
+                    when: `Select Player music for ${g.name} only (instead of select-music).`, len: '30–90 s loop'} : null;
+      }
       if (/^select-/.test(name)) {
         const g = (A.GAMES || []).find(x => 'select-' + x.id === name);
         return {file: name, vol: .8, mic: false, screen: 'floor', fallback: 'select-default', auto: true,

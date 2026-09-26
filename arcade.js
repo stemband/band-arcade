@@ -93,7 +93,7 @@
     // games.js `noPlay`: an instrument the game can't use (percussion in Button Masher) gets a link to a game it can
     let np = g.noPlay, redirect = np && inst && ((np.groups || []).includes(inst.id) || (member && (np.members || []).includes(member.id)));
     // an unpitched player (the Snare Drum) on a game that needs pitch: a link to Showtime Malfunction instead
-    if (!g.player && !g.unpitched && inst && inst.pitched === false) { np = {label: 'Snare drummers: try Showtime Malfunction!', game: 'showtime-malfunction'}; redirect = true; }
+    if (!redirect && !g.player && !g.unpitched && inst && inst.pitched === false) { np = {label: 'Snare drummers: try Showtime Malfunction!', game: 'showtime-malfunction'}; redirect = true; }
     hs.hidden = !(inst && g.maxStars && (pid || redirect));
     if (redirect) {
       const to = GAMES.find(x => x.id === np.game);

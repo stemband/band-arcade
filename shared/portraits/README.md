@@ -51,8 +51,8 @@ square portrait.
 Skins (`shared/skins.js`) are drawn in code on top of your pictures: color skins become a glow, a backdrop or an
 aura, and accessories are small drawings placed on the portrait. If you'd rather draw a skin yourself, save it as
 `<name>--<skin id>.png` (or `.webp`), for example `trumpet--flame.png` or `horn--crown.png`, with the skin id from
-the `SKINS` list in `shared/skins.js` (`sunset`, `ice`, `flame`, `galaxy`, `pixel`, `gold`, `diamond`, `animatronic`, `nightmare`, `ghostly`;
-accessories `headband`, `shades`, `visor`, `crown`, `cape`, `mask`). For the big preview, `<name>-full--<skin id>.png`.
+the `SKINS` list in `shared/skins.js` (`sunset`, `ice`, `flame`, `galaxy`, `pixel`, `gold`, `diamond`, `animatronic`, `nightmare`, `stripes`, `ghostly`;
+accessories `headband`, `shades`, `visor`, `crown`, `cape`, `helmet`, `mask`). For the big preview, `<name>-full--<skin id>.png`.
 
 - A drawn **color** skin (`trumpet--flame.png`) replaces the code-drawn effect for that instrument. An accessory
   the student wears with it is still drawn on top.

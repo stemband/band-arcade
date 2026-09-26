@@ -9,9 +9,10 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
-               and two sets of buttons on the control panel (1P in trim2, 2P in trim).
+               and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
+               and a gear stick instead (a sit-down racer).
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
    Marquee and screen are canvas textures drawn with the bundled fonts; only the front cabinet's
    screen animates (the attract loop).
@@ -91,6 +92,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* speedway: a sit-down racer (Sustain Speedway): a tall screen hood, a dashboard with a steering wheel and a gear
+       stick, a deep seat box in front, and a rear wing on top */
+    speedway: {
+      width: 1.04, topper: 'wing', wheel: true,
+      points: [[0, 0], [0.98, 0], [0.98, 0.52], [0.66, 0.58], [0.66, 0.84], [0.86, 0.90], [0.86, 0.96], [0.56, 1.02], [0.46, 1.04], [0.40, 1.48], [0.66, 1.52], [0.66, 1.74], [0, 1.74]],
+      marquee: [[0.66, 1.54], [0.66, 1.72]], screen: [[0.455, 1.07], [0.405, 1.45]], panel: [[0.86, 0.96], [0.56, 1.02]],
+      door: {z: 0.98, y0: 0.1, y1: 0.44}, start: [0.66, 0.71],
+    },
     /* versus: a wide two-player fighting cabinet with a long control panel and a lit VS sign on top */
     versus: {
       width: 1.08, topper: 'vs', twoPlayer: true,
@@ -99,7 +108,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -123,7 +132,8 @@ window.Arcade = window.Arcade || {};
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
    'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink', 'blue', 'blue-hi', 'blue-ink',
    'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
-   'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad'].forEach(n => { tok[n] = cssVar(n); });
+   'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad',
+   'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -236,6 +246,18 @@ window.Arcade = window.Arcade || {};
       x.shadowColor = u; x.fillStyle = tok[k.trim2 + '-hi']; x.fillText(w2, x0 + a, H * .56);
       x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
       return;
+    } else if (k.marquee === 'speedway') {
+      // sunset racing lettering: a sky gradient, italic name in a yellow-to-trim gradient, speed lines (match .mq-speedway)
+      const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, tok['sw-sky-mid']); bg.addColorStop(.7, tok['sw-sky-top']); bg.addColorStop(1, tok.deep);
+      x.fillStyle = bg; x.fillRect(0, 0, W, H);
+      x.fillStyle = u; x.fillRect(0, H * .9, W, H * .1);
+      if (k.kicker) { x.fillStyle = tok[k.trim2 + '-hi']; x.font = `italic ${H * .13}px "GN Display", sans-serif`; x.fillText(k.kicker.toUpperCase().split('').join(' '), W / 2, H * .2); }
+      const s = fitText(x, name, 'italic "GN Display", sans-serif', H * .36, W * .78);
+      x.save(); x.translate(W / 2, H * .56); x.transform(1, 0, -.2, 1, 0, 0);
+      const tg = x.createLinearGradient(0, -s / 2, 0, s / 2); tg.addColorStop(0, tok['yellow-hi']); tg.addColorStop(.55, u); tg.addColorStop(1, t);
+      x.font = `italic ${s}px "GN Display", sans-serif`; x.shadowColor = t; x.shadowBlur = 12; x.fillStyle = tg; x.fillText(name, 0, 0); x.restore();
+      x.strokeStyle = u; x.lineWidth = H * .03; [[.03, .1], [.87, .97]].forEach(([a, b]) => [.48, .56, .64].forEach(yy => { x.beginPath(); x.moveTo(W * a, H * yy); x.lineTo(W * b, H * yy); x.stroke(); }));
+      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
     } else if (k.marquee === 'showtime') {
       // a worn bulb-lit sign: SHOWTIME in the trim, MALFUNCTION in trim2, one bulb burnt out (match .mq-showtime)
       x.fillStyle = tok['cab-panel']; x.fillRect(0, 0, W, H);
@@ -450,6 +472,29 @@ window.Arcade = window.Arcade || {};
       const gr = x.createRadialGradient(px, py, 0, px, py, H * .1); gr.addColorStop(0, tok['white-hi']); gr.addColorStop(.4, tok.yellow); gr.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = gr; x.beginPath(); x.arc(px, py, H * .1, 0, 7); x.fill();
     },
+    /* Sustain Speedway: a synthwave road to a striped sun, lane lines rushing toward you, a car in the middle (as 2D) */
+    speedway(x, W, H, t) {
+      const hor = H * .47, tt = t == null ? 0 : t;
+      x.fillStyle = tok['sw-sky-mid']; x.fillRect(0, 0, W, hor);
+      const r = H * .22, sg = x.createLinearGradient(0, hor - r, 0, hor); sg.addColorStop(0, tok['sw-sun-1']); sg.addColorStop(1, tok['sw-sun-2']);
+      x.fillStyle = sg; x.beginPath(); x.arc(W / 2, hor, r, Math.PI, 0); x.fill();
+      x.fillStyle = tok['sw-sky-mid']; [.25, .45, .65].forEach((k, i) => x.fillRect(W / 2 - r, hor - r * k, r * 2, 2 + i * 1.5));
+      x.fillStyle = tok['sw-ground']; x.fillRect(0, hor, W, H - hor);
+      x.strokeStyle = tok['sw-grid']; x.globalAlpha = .6; x.lineWidth = 1;
+      for (let i = 1; i < 7; i++) { const y = hor + (H - hor) * Math.pow(((i + (tt * 1.4) % 1) / 7), 2); x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); }
+      for (let i = -6; i <= 6; i++) { x.beginPath(); x.moveTo(W / 2 + i * W * .02, hor); x.lineTo(W / 2 + i * W * .2, H); x.stroke(); }
+      x.globalAlpha = 1;
+      x.fillStyle = tok['sw-road']; x.beginPath(); x.moveTo(W * .47, hor); x.lineTo(W * .53, hor); x.lineTo(W * .85, H); x.lineTo(W * .15, H); x.closePath(); x.fill();
+      x.strokeStyle = tok[this.trim]; x.lineWidth = 3; x.beginPath(); x.moveTo(W * .47, hor); x.lineTo(W * .15, H); x.moveTo(W * .53, hor); x.lineTo(W * .85, H); x.stroke();
+      x.strokeStyle = tok['sw-lane']; x.lineWidth = 3;
+      for (let i = 0; i < 6; i++) { const a = ((i + (tt * 2) % 1) / 6), b = a + .07; x.beginPath(); x.moveTo(W / 2, hor + (H - hor) * a * a); x.lineTo(W / 2, hor + (H - hor) * Math.min(1, b * b)); x.stroke(); }
+      const cw = W * .2, cy = H * .9, sway = Math.sin(tt * 2.6) * W * .01;
+      x.fillStyle = tok[this.trim]; x.fillRect(W / 2 - cw / 2 + sway, cy - H * .09, cw, H * .09);
+      x.fillStyle = tok['sw-glass']; x.fillRect(W / 2 - cw * .32 + sway, cy - H * .15, cw * .64, H * .06);
+      x.fillStyle = tok['sw-tail']; x.fillRect(W / 2 - cw * .45 + sway, cy - H * .06, cw * .2, H * .025); x.fillRect(W / 2 + cw * .25 + sway, cy - H * .06, cw * .2, H * .025);
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim2 + '-hi'];
+      x.font = `${H * .08}px "GN Display", sans-serif`; x.fillText('HOLD THE NOTE', W / 2, H * .12);
+    },
     /* Showtime Malfunction: static, and a pair of red eyes glowing through it that blinks now and then (as 2D) */
     showtime(x, W, H, t) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
@@ -541,7 +586,16 @@ window.Arcade = window.Arcade || {};
       const b = new THREE.Mesh(up(new THREE.CylinderGeometry(r, r, .025, 14)), basic(col(c)));
       b.position.set(x, y, .012); pw.add(detail(b));
     };
-    if (P.twoPlayer) {                                  // 1P (trim2) on the left, 2P (trim) on the right
+    if (P.wheel) {                                      // a sit-down racer: a steering wheel, a gear stick, one button
+      const wh = new THREE.Group(); wh.position.set(0, -.02, .05); wh.rotation.x = -.75; pw.add(wh);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.1, .022, 8, 28), lambert(col('deep'))); wh.add(detail(rim));
+      const grip = new THREE.Mesh(new THREE.TorusGeometry(.1, .026, 8, 16, Math.PI * .7), basic(col(k.trim))); grip.rotation.z = Math.PI * .15; wh.add(detail(grip));
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .02, 14), basic(col(k.trim2))); hub.rotation.x = Math.PI / 2; wh.add(detail(hub));
+      [[.12, .012], [.012, .12]].forEach(([a, b], i) => { const sp = new THREE.Mesh(new THREE.BoxGeometry(i ? .014 : .19, i ? .1 : .014, .01), lambert(col('cab-metal'))); if (i) sp.position.y = -.05; wh.add(detail(sp)); });
+      const col0 = new THREE.Mesh(up(new THREE.CylinderGeometry(.016, .016, .09, 8)), lambert(col('cab-metal'))); col0.position.set(0, .01, .045); pw.add(detail(col0));
+      joystick(-W * .36, k.trim);                       // the gear stick
+      button(W * .36, 0, k.trim2);
+    } else if (P.twoPlayer) {                                  // 1P (trim2) on the left, 2P (trim) on the right
       [[-W * .4, k.trim2], [W * .06, k.trim]].forEach(([x0, c]) => {
         joystick(x0, c);
         [0, 1, 2].forEach(i => button(x0 + W * (.12 + i * .075), (i === 1 ? .015 : -.005), c, .024));
@@ -669,6 +723,13 @@ window.Arcade = window.Arcade || {};
       const face = new THREE.Mesh(new THREE.PlaneGeometry(sw * .94, sh * .86), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
       face.position.set(0, topY + sh / 2 + .02, fz + .002); group.add(face);
       neon([new THREE.Vector3(-sw / 2, topY + sh + .02, fz + .004), new THREE.Vector3(sw / 2, topY + sh + .02, fz + .004)]);
+    } else if (P.topper === 'wing') {
+      // a racing wing on two struts, edged in both neons (Sustain Speedway)
+      const fz = frontTop + zc - .2, metal = lambert(col('cab-metal'));
+      [-1, 1].forEach(sd => { const st = new THREE.Mesh(new THREE.BoxGeometry(.03, .14, .05), metal); st.position.set(sd * W * .3, topY + .07, fz); group.add(detail(st)); });
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(W * 1.02, .025, .2), lambert(col('cab-side'))); wing.position.set(0, topY + .15, fz); wing.rotation.x = -.12; group.add(wing);
+      neon([new THREE.Vector3(-W * .51, topY + .17, fz + .1), new THREE.Vector3(W * .51, topY + .17, fz + .1)]);
+      [-1, 1].forEach(sd => { const pl = new THREE.Mesh(new THREE.BoxGeometry(.02, .12, .24), basic(col(k.trim2))); pl.position.set(sd * W * .51, topY + .15, fz); group.add(detail(pl)); });
     } else if (P.topper === 'lamp') {
       // a broken stage spotlight on a bracket, knocked askew, its lens still glowing (Showtime Malfunction)
       const fz = frontTop + zc - .14, metal = lambert(col('cab-metal'));

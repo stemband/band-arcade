@@ -12,8 +12,9 @@
                                        preloaded after the first tap, two at a time (school Wi-Fi)
      Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS and AMBIENCE sliders (saved on the device)
      Arcade.Sfx.allowAmbience(false)   a page where the lobby ambience never plays (every game page, Select Player)
-     Arcade.Sfx.allowMusic(true)       a page where the character-select music plays (Select Player only): the
-                                       select-music file, or a built-in original chiptune loop until there is one
+     Arcade.Sfx.allowMusic(true, id)   a page where the character-select music plays (Select Player only): the game's own
+                                       select-music-<id> file if there is one, else select-music, else a built-in
+                                       original chiptune loop
    THE MICROPHONE: a sound played while a game is listening (Arcade.Pitch.listening()) makes the detector ignore
    everything for the sound's length + ECHO_MS (Arcade.Pitch.suppress), and games pause their timers meanwhile
    (Arcade.Pitch.isSuppressed). Sounds marked mic: false in sounds.js never play while listening.
@@ -278,8 +279,8 @@ window.Arcade = window.Arcade || {};
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
-          const lc = Object.values(LOOPS).find(c => (entry(c.event) || {}).file === file);
-          if (lc && lc.cur && lc.cur.gen) { stopLoop(lc, true); syncLoops(); }   // swap the built-in loop for the file
+          const lc = Object.values(LOOPS).find(c => loopFiles(c).includes(file)), fs = lc ? loopFiles(lc) : [];
+          if (lc && lc.cur && (lc.cur.gen || fs.indexOf(file) < fs.indexOf(lc.cur.file))) { stopLoop(lc, true); syncLoops(); }   // swap in the better loop
           return rec;
         } catch (e) {
           miss.add(base);
@@ -396,6 +397,9 @@ window.Arcade = window.Arcade || {};
     mus: {event: 'select-music', key: 'musVol', allowed: false, cur: null, bus: null, gen: genMusic},
   };
   const loopOf = name => Object.values(LOOPS).find(c => c.event === name);
+  /** a channel's events, best first: Select Player's music tries select-music-<game id> (allowMusic(true, gameId)), then select-music */
+  const loopEvents = c => [c.alt, c.event].filter(Boolean);
+  const loopFiles = c => loopEvents(c).map(n => (entry(n) || {}).file).filter(Boolean);
   const loopVol = c => store.sfx ? vol(c.key) : 0;
   function loopBuffer(c, buf, from, to, level, fadeIn) {
     const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
@@ -406,15 +410,16 @@ window.Arcade = window.Arcade || {};
   }
   function startLoop(c) {
     if (c.cur || !ctx) return;
-    const e = entry(c.event) || {vol: 0.6}, rec = files[e.file], level = e.vol == null ? 0.6 : e.vol;
-    if (rec && rec.state === 'ok') {
+    for (const n of loopEvents(c)) {                       // the best file that has loaded
+      const e = entry(n) || {vol: 0.6}, rec = files[e.file], level = e.vol == null ? 0.6 : e.vol;
+      if (!rec || rec.state !== 'ok') continue;
       if (rec.el) {                                       // a double-clicked page: an <audio> loop
         const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
-        c.cur = {el, level}; return;
+        c.cur = {el, level, file: e.file}; return;
       }
-      c.cur = loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, 1.2); return;
+      c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, 1.2), {file: e.file}); return;
     }
-    if (!rec && e.file) load(e.file);                      // the built-in loop now; the file as soon as it has loaded
+    loopFiles(c).forEach(f => { if (!files[f]) load(f); });   // the built-in loop now; a file as soon as one has loaded
     c.cur = c.gen(c);
   }
   function stopLoop(c, quick) {
@@ -607,7 +612,10 @@ window.Arcade = window.Arcade || {};
     },
     allowAmbience(on) { LOOPS.amb.allowed = !!on; syncLoops(); refreshAll(); },
     /** the character-select music may play on this page (Select Player); false fades it out (leaving the page) */
-    allowMusic(on) { LOOPS.mus.allowed = !!on; syncLoops(); refreshAll(); },
+    allowMusic(on, gameId) {
+      if (gameId !== undefined) { const alt = gameId ? 'select-music-' + gameId : null; if (alt !== LOOPS.mus.alt) { stopLoop(LOOPS.mus, true); LOOPS.mus.alt = alt; } }
+      LOOPS.mus.allowed = !!on; syncLoops(); refreshAll();
+    },
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */

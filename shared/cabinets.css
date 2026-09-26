@@ -262,9 +262,46 @@
 .cab-start:hover{background:var(--t-hi)}
 .cab-start:active{box-shadow:inset 0 .15em 0 rgba(0,0,0,.3),var(--t-glow)}
 .cab-start:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px;box-shadow:0 0 0 9px var(--deep),var(--t-glow)}
+/* speedway: a sit-down racer in magenta/orange sunset neon; the marquee is chrome-italic racing lettering with speed lines */
+.mq-speedway{background:linear-gradient(180deg,var(--sw-sky-mid),var(--sw-sky-top) 60%,var(--deep));border:.12em solid var(--t);border-radius:.4em .4em .2em .2em;
+  box-shadow:inset 0 -.25em 0 var(--u-ink),var(--t-glow)}
+.mq-speedway .mq-name{font-size:1.18em;line-height:1;font-style:italic;letter-spacing:.02em;transform:skewX(-12deg);white-space:normal;
+  background:linear-gradient(180deg,var(--yellow-hi),var(--u) 55%,var(--t));-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:none;text-shadow:none;-webkit-text-stroke:.02em var(--deep)}
+.mq-speedway .mq-kicker{color:var(--u-hi);letter-spacing:.3em;font-style:italic}
+.mq-speedway .mq-text{position:relative}
+.mq-speedway .mq-text::before,.mq-speedway .mq-text::after{content:"";position:absolute;top:58%;width:.9em;height:.08em;background:var(--u);box-shadow:0 .18em 0 var(--t),0 -.18em 0 var(--t)}
+.mq-speedway .mq-text::before{right:100%;margin-right:.2em}.mq-speedway .mq-text::after{left:100%;margin-left:.2em}
+.shape-speedway .s-wheel{fill:none;stroke:var(--deep);stroke-width:9}
+.shape-speedway .s-grip{fill:none;stroke:var(--t);stroke-width:4;stroke-linecap:round}
+.shape-speedway .s-spokes{stroke:var(--cab-metal);stroke-width:5}
+.shape-speedway .s-hub{fill:var(--u);stroke:var(--deep);stroke-width:2}
+.shape-speedway .s-shift{stroke:var(--cab-metal);stroke-width:5;stroke-linecap:round}
+.shape-speedway .s-knob{fill:var(--t);stroke:var(--deep);stroke-width:2}
+.shape-speedway .s-pedal{fill:var(--cab-metal);stroke:var(--deep);stroke-width:2}
+.shape-speedway .s-sun1{stroke:var(--t);stroke-width:5;stroke-linecap:round;opacity:.85}
+.shape-speedway .s-sun2{stroke:var(--u);stroke-width:5;stroke-linecap:round;opacity:.85}
+.shape-speedway .s-flag{stroke:var(--white-hi);stroke-width:5;stroke-dasharray:6 6;opacity:.7}
+
 .attract .cab-start{animation:att-start 1.4s steps(1) infinite}
 @keyframes att-start{50%{background:var(--t-hi)}}
 
+.scr-speedway{background:var(--deep)}
+.scr-speedway svg{width:100%;height:auto}
+.scr-speedway .sw-sky{fill:var(--sw-sky-mid)}
+.scr-speedway .sw-sun{fill:var(--sw-sun-1)}
+.scr-speedway .sw-cut{stroke:var(--sw-sky-mid);stroke-width:2}
+.scr-speedway .sw-ground{fill:var(--sw-ground)}
+.scr-speedway .sw-grid{stroke:var(--sw-grid);stroke-width:.7;opacity:.6;fill:none}
+.scr-speedway .sw-road{fill:var(--sw-road)}
+.scr-speedway .sw-edge{stroke:var(--t);stroke-width:2;fill:none}
+.scr-speedway .sw-dash{stroke:var(--sw-lane);stroke-width:2.5;stroke-dasharray:6 8}
+.scr-speedway .sw-car rect{fill:var(--t)}.scr-speedway .sw-car .sw-glass{fill:var(--sw-glass)}.scr-speedway .sw-car .sw-tail{fill:var(--sw-tail)}
+.scr-speedway .sw-cap{fill:var(--u-hi);font:700 8px var(--display);letter-spacing:.08em}
+.attract .scr-speedway .sw-dash{animation:sw-dash .5s linear infinite}
+.attract .scr-speedway .sw-car{animation:sw-sway 2.4s ease-in-out infinite}
+@keyframes sw-dash{to{stroke-dashoffset:-14}}
+@keyframes sw-sway{50%{transform:translateX(3px)}}
 .scr-showtime{position:relative;background:var(--deep)}
 .scr-showtime .st-static{position:absolute;inset:0;opacity:.35;background:repeating-linear-gradient(0deg,var(--text-lo) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,transparent 0 3px,color-mix(in srgb,var(--text-lo) 40%,transparent) 3px 4px);animation:st-static 1.2s steps(4) infinite}

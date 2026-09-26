@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff'  (styles in shared/cabinets.css)
@@ -31,7 +31,9 @@
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
                 Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
      noPlay     optional: {groups, members, label, game}: students whose instrument is one of these see `label`
-                as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist)
+                as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist).
+                + block: true = those instruments can't play it at all: the game sends them to Select Player, which
+                dims their tiles and shows `label` with links to `games` (Sustain Speedway: bells and snare)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
@@ -150,5 +152,20 @@ window.Arcade.GAMES = [
     unpitched: true,                                 // the Snare Drum plays it: count mode, any clean hit counts
     cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', kicker: 'The Showtime Band', screen: 'showtime'},
     cabinet3d: {profile: 'showtime', body: 'cab-side'},
+  },
+  {
+    id: 'sustain-speedway',
+    name: 'Sustain Speedway',
+    skill: 'Long tones & tuning',
+    blurb: 'Your instrument is the engine! Hold each lap\'s note in tune and steady to race; breathe in the pit stops.',
+    maxStars: 24,
+    color: 'pink',
+    noteModes: true,                                 // NOTES × ORDER: one target note per lap
+    byMember: true,                                  // stars (and ghost cars) are saved per instrument member
+    // bells and snare can't hold a long tone: block: true sends them back to Select Player with this message
+    noPlay: {groups: ['bells', 'snare'], label: 'Percussion: try Chime Heist or Showtime Malfunction!', game: 'chime-heist',
+             games: ['chime-heist', 'showtime-malfunction'], block: true},
+    cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', kicker: 'Long tones', screen: 'speedway'},
+    cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
 ];

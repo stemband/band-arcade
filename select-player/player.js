@@ -24,7 +24,7 @@
   $('homeLink').addEventListener('click', e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); A.Sfx.playThenGo('ui-back', e.currentTarget.href); });
   A.Sfx.mountControls($('soundCtl'));
   A.Sfx.use('select');                                  // this screen's sounds load after the first tap
-  A.Sfx.allowAmbience(false); A.Sfx.allowMusic(true);    // character select music here (the MUSIC slider), not the room ambience
+  A.Sfx.allowAmbience(false); A.Sfx.allowMusic(true, game.id);   // select-music-<game id> if Mat uploaded one    // character select music here (the MUSIC slider), not the room ambience
   document.body.className = A.trimClasses(game);          // this game's neon colors for the whole page
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
 
@@ -42,19 +42,28 @@
   }).join('');
   const tiles = [...$('grid').querySelectorAll('.tile')];
 
-  /* an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js */
-  const canPlay = id => game.unpitched || !(info(id) && info(id).pitched === false);
-  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: try Showtime Malfunction'); } });
-  const snareMsg = () => {
-    const sm = A.GAMES.find(g => g.id === 'showtime-malfunction');
+  /* an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js, and games.js
+     `noPlay` with `block: true` rules out more (Sustain Speedway: bells and snare can't hold a long tone) */
+  const blocked = id => A.blockedBy(game, id);
+  const canPlay = id => !blocked(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
+  const np = game.noPlay || {};
+  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (blocked(t.dataset.id) ? np.label : 'try Showtime Malfunction')); } });
+  const gameLinkHTML = id => { const g = A.GAMES.find(x => x.id === id); return g ? `<a href="${A.startLink(g)}">${g.name}</a>` : ''; };
+  const snareMsg = id => {
     $('msg').hidden = false;
+    if ((id && blocked(id)) || A.params.get('need') === 'noplay') {      // games.js noPlay.block: its own message, with links
+      const links = (np.games || [np.game]).map(gameLinkHTML).filter(Boolean);
+      $('msg').innerHTML = `<b>${np.label}</b> Pick an instrument that can hold a long note for this game.${links.length ? ` Or go to ${links.join(' or ')}.` : ''}`;
+      return;
+    }
+    const sm = A.GAMES.find(g => g.id === 'showtime-malfunction');
     $('msg').innerHTML = `<b>Snare drummers:</b> try ${sm ? `<a href="${A.playerLink(sm.id)}">Showtime Malfunction</a>` : 'Showtime Malfunction'}! Pick a pitched instrument for this game.`;
   };
 
   /* returning students: CONTINUE AS, or (after the members update) a group to pick an exact instrument from */
   const saved = A.store.player, pending = A.store.pending;
   let cur = Math.max(0, ids.indexOf(saved && canPlay(saved) ? saved : 'flute'));
-  if (A.params.get('need') === 'pitched' || (saved && !canPlay(saved))) snareMsg();
+  if (/^(pitched|noplay)$/.test(A.params.get('need') || '') || (saved && !canPlay(saved))) snareMsg(saved);
   if (saved && canPlay(saved)) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;
@@ -160,7 +169,7 @@
   /* ---------- confirm: a flash, PLAYER n READY, then the game (or Player 2's turn to pick) ---------- */
   let leaving = false;
   function confirm(id, viaContinue) {
-    if (!canPlay(id)) { snareMsg(); A.Sfx.event('note-wrong'); $('msg').scrollIntoView({block: 'nearest'}); return; }
+    if (!canPlay(id)) { snareMsg(id); A.Sfx.event('note-wrong'); $('msg').scrollIntoView({block: 'nearest'}); return; }
     if (leaving || (phase === 1 && id === 'cpu')) return;
     leaving = true;
     if (phase === 1) A.store.setPlayer(id); else A.store.setOpponent(id);

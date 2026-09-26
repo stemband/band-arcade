@@ -44,6 +44,12 @@
   --anim-walrus:#7f6f63; --anim-walrus-2:#b9a48c; --anim-owl:#80543a; --anim-owl-2:#d9bf92; --anim-gator:#3e7d47; --anim-gator-2:#9fbe68;
   --anim-raccoon:#6f727e; --anim-raccoon-2:#cfcfd6; --anim-moose:#6e4428; --anim-moose-2:#b08457; --anim-clone:#4f6e5e;
   --anim-metal:#8c95a6; --anim-metal-dark:#4a5060; --anim-tusk:#efe6d2; --anim-coat:#231d3a; --anim-brass:#d9a834; --anim-silver:#c9d2de;
+  /* Sustain Speedway: the synthwave racetrack (canvas colors are read from these) */
+  --sw-sky-top:#0c0420; --sw-sky-mid:#3a0b55; --sw-sky-low:#ff5a7a; --sw-dusk-low:#b0348c; --sw-night-low:#2a1060;
+  --sw-sun-1:#ffd166; --sw-sun-2:#ff3fa4; --sw-moon:#e8e2ff; --sw-star:#fff4d8;
+  --sw-ground:#0a0314; --sw-grid:#ff3fa4; --sw-road:#150b26; --sw-road-2:#1d1133; --sw-lane:#f4ecff;
+  --sw-far:#1b0a31; --sw-near:#28104a; --sw-window:#ffcf5a; --sw-water:#0d2346; --sw-tunnel:#040209;
+  --sw-tail:#ff2a55; --sw-glass:#23305e; --sw-tire:#07050c; --sw-nitro:#5ef0ff;
   --anim-chrome:#d9e1ec; --anim-crack:#262b36; --anim-emergency:#ff2a2a;
   --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6;
   --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;
@@ -162,6 +168,9 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-fx-sweep>.sk-fx{background:linear-gradient(110deg,transparent 38%,color-mix(in srgb,var(--white-hi) 70%,transparent) 48%,color-mix(in srgb,var(--yellow) 40%,transparent) 52%,transparent 62%) 0 0/250% 100%;background-position:60% 0}
 .sk-fx-shimmer>.sk-fx{background:linear-gradient(120deg,var(--pink),var(--yellow),var(--green),var(--cyan),var(--purple),var(--pink)) 0 0/300% 300%;mix-blend-mode:color;opacity:.55}
 .sk-fx-shimmer>.sk-fx::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 26% 30%,var(--white-hi) 0 1.5%,transparent 3%),radial-gradient(circle at 70% 58%,var(--white-hi) 0 1.2%,transparent 2.6%),radial-gradient(circle at 44% 78%,var(--white-hi) 0 1%,transparent 2.2%)}
+/* Racing Stripes: two stripes down the art (masked by the picture itself) */
+.sk-fx-stripes>.sk-fx{-webkit-mask:var(--sk-src) center/contain no-repeat;mask:var(--sk-src) center/contain no-repeat;
+  background:linear-gradient(90deg,transparent 38%,color-mix(in srgb,var(--white-hi) 75%,transparent) 38% 45%,transparent 45% 55%,color-mix(in srgb,var(--white-hi) 75%,transparent) 55% 62%,transparent 62%)}
 /* Animatronic: a brushed-metal sheen on the art (masked by the picture), four bolts, glowing eyes on its face */
 .sk-fx-animatronic>.sk-fx{-webkit-mask:var(--sk-src) center/contain no-repeat;mask:var(--sk-src) center/contain no-repeat;
   background:repeating-linear-gradient(100deg,transparent 0 6%,color-mix(in srgb,var(--white-hi) 22%,transparent) 6% 7%),linear-gradient(120deg,transparent 30%,color-mix(in srgb,var(--white-hi) 45%,transparent) 48%,transparent 60%) 0 0/250% 100%;

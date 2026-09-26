@@ -46,6 +46,7 @@ window.Arcade = window.Arcade || {};
   P.instrument = () => inst;                  // read-only: the group being listened for, and the range (null = default)
   P.range = () => range;
   P.demoNote = null;   // ?demo: a SOUNDING midi note the page wants "played" right now (Note Checker full range)
+  P.demoJitter = 0.2;  // ?demo: how much a demoNote wobbles, in semitones (0.2 = ±10 cents; Sustain Speedway's "perfect" note uses less)
   P.onFrame = fn => frameFns.push(fn);
   P.onHeld  = fn => heldFns.push(fn);
   /** treat whatever is sounding right now as already counted (use when a new target appears) */
@@ -280,7 +281,7 @@ window.Arcade = window.Arcade || {};
       level = 0.1;
     }
     if (A.DEMO && P.demoNote !== null && inst) {
-      const m = P.demoNote + (Math.random() - .5) * .2;
+      const m = P.demoNote + (Math.random() - .5) * P.demoJitter;
       reading = {freq: mtof(m), midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
       level = 0.1;
     }

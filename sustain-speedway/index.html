@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sustain Speedway</title>
+<meta name="description" content="A long-tone racing game: your instrument is the engine. Hold each lap's note in tune and steady to race.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="speedway">
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- TRACK SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title"><span class="t1">Sustain</span> <span class="t2">Speedway</span></h1>
+      <p class="muted">Your instrument is the engine. Your car only moves while you hold the lap's note, and it goes faster the more <b>in tune</b> and <b>steady</b> you are. Breathe whenever you need to (the car coasts), and rest in the pit stop between laps.</p>
+      <div class="diff-set" role="group" aria-labelledby="diffLbl"><span class="mp-lbl" id="diffLbl">Difficulty</span><span id="diffBtns"></span>
+        <span class="diff-say" id="diffSay"></span></div>
+    </div>
+    <div id="modePick"></div>
+    <p class="eyebrow">Tracks</p>
+    <div class="tracks" id="trackGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every track is unlocked. In a race, hold <b>Space</b> = the right note, perfectly in tune; hold <b>D</b> = the right note drifting sharp (+25 to +35 cents, wobbling); hold <b>W</b> = a wrong note; hold <b>E</b> = the right note, centered but wobbling (no nitro); let go = breathing (the car coasts).</p>
+  </section>
+
+  <!-- A RACE -->
+  <section id="race" hidden>
+    <div class="stage" id="stage">
+      <canvas id="road" aria-hidden="true"></canvas>
+      <div class="hud-top">
+        <div class="hud-box who"><span class="who-pic" id="whoPic" aria-hidden="true"></span>
+          <div><small>Position</small><b id="hudPos">1st</b><small id="hudOf">of 4</small></div></div>
+        <div class="hud-box"><small>Lap</small><b id="hudLap">1/4</b><small id="hudTime">0:00.0</small></div>
+        <div class="note-card" id="noteCard" aria-live="polite"><small>Target note</small><div class="note-staff" id="noteStaff"></div>
+          <b class="note-name" id="noteName"></b><span class="note-flash" id="noteFlash"></span></div>
+      </div>
+      <p class="banner" id="banner" hidden aria-live="assertive"></p>
+      <div class="pit" id="pit" hidden>
+        <div class="pit-card">
+          <p class="pit-title">Pit stop</p>
+          <div class="breath" aria-hidden="true"><span class="ring"></span></div>
+          <p class="coach" id="coach" aria-live="polite">Breathe in…</p>
+          <p class="pit-next">Next lap: <b id="pitLap">2</b></p>
+          <div class="note-staff big" id="pitStaff"></div>
+          <p class="pit-name" id="pitName"></p>
+          <p class="pit-tip">Get the fingering ready and hear the pitch in your head.</p>
+        </div>
+      </div>
+    </div>
+    <div class="dash">
+      <div class="gauge" aria-label="Tuning speedometer">
+        <svg id="gaugeSvg" viewBox="0 0 240 150" role="img" aria-labelledby="gaugeLbl"><title id="gaugeLbl">Tuning: how far from the center of the note</title></svg>
+        <p class="cents" id="centsTxt" aria-live="off">–</p>
+      </div>
+      <div class="meters">
+        <div class="meter"><small>Speed</small><b id="speedTxt">0</b><div class="bar speed"><i id="speedBar"></i></div></div>
+        <div class="meter"><small>Steady</small><b id="steadyTxt">–</b><div class="bar steady"><i id="steadyBar"></i></div></div>
+        <p class="zone" id="zoneTxt">Hold within ±5 cents, steady, for 2 seconds: IN THE ZONE!</p>
+        <div class="race-foot">
+          <span class="diff-tag" id="raceDiff"></span>
+          <button class="btn btn-ghost btn-small" id="quitRace">Leave the race</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel res-panel">
+    <p class="res-pos" id="resPos">1st place</p>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Race won!</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Total time</small><b id="resTime">0:00.0</b></div>
+      <div><small>Best lap</small><b id="resLap">0.0 s</b></div>
+      <div><small>Avg. off</small><b id="resCents">0¢</b></div>
+      <div><small>In the zone</small><b id="resZone">0%</b></div>
+      <div><small>Difficulty</small><b id="resDiff">Rookie</b></div>
+    </div>
+    <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
+    <div class="chart" id="resChart"></div>
+    <ul class="lap-notes" id="resLaps"></ul>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next track</button>
+      <button class="btn btn-ghost" id="resRetry">Race again</button>
+      <button class="btn btn-ghost" id="resTracks">Tracks</button>
+    </div>
+  </div>
+</div>
+
+<!-- The microphone listens for the whole race: no engine sound, music or ambience; the only sounds play before GO and in the pit stops. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/mode-picker.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
