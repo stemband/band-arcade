@@ -236,9 +236,10 @@
         Q.draw(ctx, g.type, Math.round(g.px + 8 - d.w / 2 - cx), Math.round(g.py + T - d.h + 2 - cy + bob), {t: now});
       }}));
       list.push({y: W.py + 0.5, fn: () => {
-        const back = W.dir === 'up', id = 'player-' + A.currentMember().id + (back ? '-back' : '');
-        const frame = W.move ? 1 + (Math.floor(now / 140) % 2 ? 0 : -1) : 0;
-        Q.draw(ctx, id, Math.round(W.px + 8 - 14 - cx), Math.round(W.py + T - 25 - cy), {frame: Math.max(0, frame), flip: W.dir === 'left'});
+        // the character (32 × 32, feet on the tile): side view walking left/right, front walking down, back walking up
+        const base = 'player-' + A.currentMember().id, walk = W.move ? '-walk' : '';
+        const id = W.dir === 'up' ? base + '-back' + walk : W.dir === 'down' ? base + '-front' + walk : base + walk;
+        Q.draw(ctx, id, Math.round(W.px + 8 - 16 - cx), Math.round(W.py + T - 31 - cy), {t: now, flip: W.dir === 'left'});
       }});
       list.sort((a, b) => a.y - b.y).forEach(o => o.fn());
       // the "talk" bubble over whoever you face

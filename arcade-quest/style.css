@@ -75,7 +75,8 @@ button{font:inherit}
 @keyframes q-float{to{transform:translate(-50%,calc(var(--px) * -16));opacity:0}}
 
 /* ---------- the challenge panel (a light screen, so notation stays crisp) ---------- */
-.q-chal{left:calc(var(--px) * 40);right:calc(var(--px) * 40);top:calc(var(--px) * 26);bottom:calc(var(--px) * 8);display:flex;flex-direction:column;align-items:center;
+/* the challenge panel leaves the left edge free, so the player's PLAYING pose shows beside it */
+.q-chal{left:calc(var(--px) * 74);right:calc(var(--px) * 6);top:calc(var(--px) * 26);bottom:calc(var(--px) * 8);display:flex;flex-direction:column;align-items:center;
   background:var(--q-black);border:calc(var(--px) * 2) solid var(--q-white);padding:calc(var(--px) * 4) calc(var(--px) * 6);box-sizing:border-box;z-index:3;gap:calc(var(--px) * 2)}
 .q-chal-t{margin:0;color:var(--q-gold);font-weight:700;font-size:calc(var(--px) * 9);text-align:center}
 .q-chal-body{flex:1 1 0;min-height:0;overflow:hidden;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--px) * 3)}
@@ -197,3 +198,29 @@ body.q-touch .q-menu-btn{display:block}
 .q-stars td+td,.q-stars th+th{text-align:right}
 .q-ep{margin:0;color:var(--q-pink);font-size:calc(var(--px) * 8);text-align:center}
 @media (prefers-reduced-motion:reduce){.q-area{transition:none}}
+
+/* ---------- ?sprites: the sprite review sheet (a normal scrolling page, not the game screen) ---------- */
+body.q-review{overflow:auto;height:auto}
+body.q-review .q-wrap{display:none}
+.spr{padding:16px;max-width:1500px;margin:0 auto;font-family:var(--text);color:var(--text-hi)}
+.spr-head h1{margin:0 0 4px;font-family:var(--display);font-size:24px;color:var(--cyan)}
+.spr-head p{margin:0 0 10px;color:var(--text-lo)}
+.spr-controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+.spr-controls span{margin:0 4px 0 10px;color:var(--text-lo);font-size:14px}
+.spr-controls button{min-height:36px;padding:0 12px;background:var(--floor-2);color:var(--text-hi);border:2px solid var(--floor-3);border-radius:8px;cursor:pointer;font:inherit}
+.spr-controls button[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan)}
+.spr-card{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;padding:12px;margin-bottom:14px;border:2px solid var(--floor-3);border-radius:12px;background:var(--floor)}
+.spr-card h2{flex-basis:100%;margin:0;font-family:var(--display);font-size:18px;color:var(--yellow)}
+.spr-preview{display:flex;flex-direction:column;align-items:center;padding:8px;background:var(--q-floor);border-radius:8px}
+.spr-panel{padding:8px 10px;border-radius:8px}
+.spr-dark{background:var(--q-black)}
+.spr-light{background:var(--screen);color:var(--ink)}
+.spr-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px}
+.spr-label{width:120px;margin:0;font-size:13px}
+.spr-dark .spr-label,.spr-dark figcaption{color:var(--text-lo)}
+.spr-cell{margin:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.spr-cell figcaption{font-size:11px}
+.spr-sprite{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.spr-cap{margin:4px 0 0;font-size:12px;color:var(--text-lo)}
+.spr-name{margin:4px 0 0;font-size:13px;font-weight:700;text-align:center}
+.spr-dark .spr-name{color:var(--text-hi)}

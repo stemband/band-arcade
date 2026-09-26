@@ -45,7 +45,7 @@
       for (let i = 0; i < 40; i++) ctx.fillRect((i * 73) % Q.W, (i * 41) % 110, 1, 1);
       const bob = Q.reduced() ? 0 : Math.round(Math.sin(now / 500) * 2);
       Q.draw(ctx, 'mic', 160 - 9, 10 + bob, {scale: 2});
-      Q.draw(ctx, player, 8, 128, {scale: 2, t: now});
+      Q.draw(ctx, player, 0, 118, {scale: 2, t: now});
     },
   };
 
@@ -88,7 +88,7 @@
         ctx.fillStyle = Q.css(i === cur ? 'q-cursor' : 'q-grey-d'); ctx.fillRect(x - 2, y + 30, 36, 3);
         Q.draw(ctx, e.sprite, x, y + (i === cur && !Q.reduced() ? Math.round(Math.sin(now / 180)) - 1 : 0), {t: now, frame: s.roster.includes(e.id) ? 2 : undefined});
       });
-      Q.draw(ctx, player, 18, 129, {scale: 2, t: now});
+      Q.draw(ctx, player, 8, 118, {scale: 2, t: now});
     },
   };
 })(window.Arcade);
