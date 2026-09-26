@@ -34,13 +34,13 @@ One catch: `shared/sounds.js` is itself a saved file, so a device that loaded a 
 still have the old number until its copy of `sounds.js` refreshes (at most about 10 minutes on GitHub Pages).
 
 Tips:
-- Keep files short and small (under about 100 KB each; the ambience loop under about 1 MB). Students load them on
+- Keep files short and small (under about 100 KB each; the ambience and music loops under about 1 MB). Students load them on
   school Wi-Fi, and each page only loads its own sounds, after the first tap.
 - Trim silence at the start, so the sound plays the moment it happens.
 - A browser remembers a missing file for the rest of that tab. If you just uploaded one, open a new tab, or bump
   `SOUNDS_VERSION` (the Sound Board always checks again).
 - Each sound's loudness can be adjusted without re-recording: change its `vol` (0–1) in `shared/sounds.js`.
-- Students set their own SOUND ON/OFF, EFFECTS and AMBIENCE volumes with the speaker button in every top bar.
+- Students set their own SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE volumes with the speaker button in every top bar.
 - Opening a page by double-clicking it (a local file) still plays your files, through the browser's plain audio
   player; the ambience seam and exact lengths are only right on the served site.
 
@@ -58,6 +58,10 @@ Showtime Malfunction's `attack-tick` plays after every counted note while the st
 only keeps the microphone deaf for its own length + 60 ms (its `echo` in `shared/sounds.js`). **Keep that recording
 under 0.1 s**, or fast tonguing will start missing notes.
 
+The **character select music** (`select-music`) plays only on Select Player, instead of the room ambience; until you
+upload one, the arcade plays its own short original chiptune loop. Make it loop cleanly, like the ambience below, and
+use the Sound Board's **Loop test** to hear the seam.
+
 The **ambience loop** (`lobby-ambience`) never plays while the microphone is listening. Make it loop cleanly: start
 and end at the same loudness. The arcade skips the tiny silence that .m4a and .mp3 encoders add at the ends, so it
 loops without a gap; use the Sound Board's **Loop test** to hear the seam.
@@ -74,7 +78,7 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `lobby-ambience` | `lobby-ambience.m4a` or `lobby-ambience.mp3` | Background room sound on the arcade floor and Select Player (the AMBIENCE slider). Loops without a gap. **loops** | 20–60 s loop |
+| `lobby-ambience` | `lobby-ambience.m4a` or `lobby-ambience.mp3` | Background room sound on the arcade floor (the AMBIENCE slider). Loops without a gap. **loops** | 20–60 s loop |
 | `wheel-left` | `wheel-left.m4a` or `wheel-left.mp3` | The cabinets turn left (◀, swipe, ← key). | 0.2–0.4 s |
 | `wheel-right` | `wheel-right.m4a` or `wheel-right.mp3` | The cabinets turn right (▶, swipe, → key). | 0.2–0.4 s |
 | `cabinet-focus` | `cabinet-focus.m4a` or `cabinet-focus.mp3` | A new cabinet arrives at the front (quiet, after the turn). | 0.1–0.3 s |
@@ -93,6 +97,7 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
+| `select-music` | `select-music.m4a` or `select-music.mp3` | Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays. **loops** | 30–90 s loop |
 | `tile-move` | `tile-move.m4a` or `tile-move.mp3` | The highlight moves to another instrument. | 0.05–0.15 s |
 | `player-select` | `player-select.m4a` or `player-select.mp3` | An instrument tile is confirmed (SELECT, or tapping the highlighted tile). | 0.2–0.5 s |
 | `player-continue` | `player-continue.m4a` or `player-continue.mp3` | The CONTINUE AS button (or Same opponent) is pressed. | 0.2–0.5 s |

@@ -12,7 +12,7 @@ var SOUNDS_VERSION = 1;
    Each line:
      file    the file name in shared/sounds/, without .m4a/.mp3
      vol     0–1, this sound's own loudness (the student's effects slider is applied on top)
-     loop    true: plays until stopped (only the arcade-floor ambience)
+     loop    true: plays until stopped (the arcade-floor ambience, and the Select Player music)
      mic     true: may play while a game is listening to the microphone. The detector then ignores what it
              hears for the sound's length + 250 ms, and game timers pause meanwhile (see shared/pitch.js).
              false: never plays while the microphone is listening.
@@ -35,13 +35,14 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const LIST = {
     // ---- the arcade floor --------------------------------------------------------------------------------
-    'lobby-ambience':  {file: 'lobby-ambience', vol: .3, loop: true, mic: false, screen: 'floor', when: 'Background room sound on the arcade floor and Select Player (the AMBIENCE slider). Loops without a gap.', len: '20–60 s loop'},
+    'lobby-ambience':  {file: 'lobby-ambience', vol: .3, loop: true, mic: false, screen: 'floor', when: 'Background room sound on the arcade floor (the AMBIENCE slider). Loops without a gap.', len: '20–60 s loop'},
     'wheel-left':      {file: 'wheel-left',  vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn left (◀, swipe, ← key).', len: '0.2–0.4 s'},
     'wheel-right':     {file: 'wheel-right', vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn right (▶, swipe, → key).', len: '0.2–0.4 s'},
     'cabinet-focus':   {file: 'cabinet-focus', vol: .35, mic: false, screen: 'floor', when: 'A new cabinet arrives at the front (quiet, after the turn).', len: '0.1–0.3 s'},
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js
     // ---- Select Player --------------------------------------------------------------------------------------
+    'select-music':    {file: 'select-music', vol: .6, loop: true, mic: false, screen: 'select', when: 'Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays.', len: '30–90 s loop'},
     'tile-move':       {file: 'tile-move',       vol: .5, mic: false, screen: 'select', when: 'The highlight moves to another instrument.', len: '0.05–0.15 s'},
     'player-select':   {file: 'player-select',   vol: .8, mic: false, screen: 'select', when: 'An instrument tile is confirmed (SELECT, or tapping the highlighted tile).', len: '0.2–0.5 s'},
     'player-continue': {file: 'player-continue', vol: .8, mic: false, screen: 'select', when: 'The CONTINUE AS button (or Same opponent) is pressed.', len: '0.2–0.5 s'},

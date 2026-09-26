@@ -108,10 +108,13 @@ window.Arcade = window.Arcade || {};
     /** SOUND ON/OFF for the whole arcade (shared/sfx.js) */
     get sfx() { return data.sfx !== false; },
     setSfx(on) { data.sfx = !!on; save(); },
-    /** volumes 0–1 (shared/sfx.js's speaker button): effects (default 0.6) and the lobby ambience (default 0.3, 0 = off) */
+    /** volumes 0–1 (shared/sfx.js's speaker button): effects (default 0.6), the lobby ambience (default 0.3, 0 = off),
+        and the Select Player music (musVol, below) */
     get sfxVol() { return typeof data.sfxVol === 'number' ? data.sfxVol : 0.6; },
     get ambVol() { return typeof data.ambVol === 'number' ? data.ambVol : 0.3; },
-    setVolume(k, v) { if (k === 'sfxVol' || k === 'ambVol') { data[k] = Math.max(0, Math.min(1, +v || 0)); save(); } },
+    /** the character-select music on Select Player (default 0.4, 0 = off) */
+    get musVol() { return typeof data.musVol === 'number' ? data.musVol : 0.4; },
+    setVolume(k, v) { if (k === 'sfxVol' || k === 'ambVol' || k === 'musVol') { data[k] = Math.max(0, Math.min(1, +v || 0)); save(); } },
     /** the lobby ambience is on (its volume is above 0) */
     get ambience() { return this.ambVol > 0; },
     setAmbience(on) { data.ambVol = on ? (this.ambVol || 0.3) : 0; save(); },

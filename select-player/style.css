@@ -31,14 +31,37 @@
 .sp-msg{max-width:720px;margin:0 auto 12px;padding:10px 14px;border-radius:14px;text-align:center;background:var(--floor-2);border:2px solid var(--yellow);box-shadow:var(--glow-yellow)}
 .sp-msg b{color:var(--yellow-hi)}
 
-/* layout: preview on the side (landscape) or on top (portrait) */
+/* layout: preview on the side (landscape) or on top (portrait). Landscape gives the grid most of the width. */
 .sp-main{display:grid;gap:16px;grid-template-columns:1fr}
-@media (min-width:900px) and (orientation:landscape){ .sp-main{grid-template-columns:minmax(260px,32%) 1fr;align-items:start} }
+@media (min-width:900px) and (orientation:landscape){ .sp-main{grid-template-columns:clamp(210px,23vw,290px) 1fr;gap:clamp(12px,1.6vw,20px);align-items:start} }
 
 /* ---------- the preview + player card ---------- */
 .preview{--pc:var(--cyan);background:var(--floor-2);display:grid;grid-template-columns:minmax(120px,40%) 1fr;gap:12px;align-items:center;padding:12px;border-radius:20px;
   background:radial-gradient(circle at 30% 45%, color-mix(in srgb, var(--pc) 22%, transparent), transparent 60%), var(--floor-2);border:2px solid var(--floor-3)}
-@media (min-width:900px) and (orientation:landscape){ .preview{grid-template-columns:1fr;position:sticky;top:12px} }
+@media (min-width:900px) and (orientation:landscape){
+  .preview{grid-template-columns:1fr;position:sticky;top:12px;gap:10px;padding:10px}
+  /* the portrait a little smaller, sized by the screen height, so the card, SKINS and SELECT fit with no scrolling */
+  .pv-stage{width:min(100%,clamp(140px,calc(100vh - 570px),260px));justify-self:center}
+  .preview .card-name{font-size:clamp(22px,2.4vw,30px);margin-bottom:4px}
+  .preview .card-key,.preview .card-five{font-size:14px}
+  .preview .card-stars{margin-top:6px}
+  .preview .btn-skins{min-height:40px;margin-top:8px}
+  .preview .btn-select{margin-top:8px;min-height:50px;padding:6px 10px;font-size:clamp(15px,1.5vw,19px);line-height:1.1}
+  /* Horn's Starting notes toggle: the label on its own line, both buttons on one, and a smaller portrait to make room */
+  .preview .horn-toggle{margin-top:6px;gap:4px 6px}
+  .preview .horn-toggle>span{flex-basis:100%}
+  .preview .horn-toggle button{min-height:36px;padding:2px 14px}
+  .preview:has(.horn-toggle:not([hidden])) .pv-stage{width:min(100%,clamp(120px,calc(100vh - 600px),260px))}
+}
+/* short landscape screens (iPad landscape, 1366 × 768 Chromebooks): a slightly tighter header */
+@media (min-width:900px) and (orientation:landscape) and (max-height:860px){
+  .sp-head{margin-bottom:8px}
+  .sp-marquee{height:50px;margin-bottom:4px;font-size:12px}
+  .sp-title{font-size:min(6.4vw,6.6vh)}
+  .continue{margin-bottom:10px}
+  .btn-continue{min-height:56px;padding:6px 20px 6px 8px}
+  .c-pic{width:44px;height:44px}.c-pic .pt-box{width:38px;height:38px}
+}
 .pv-stage{display:grid;place-items:center;aspect-ratio:1;border-radius:16px;background:var(--deep);background:radial-gradient(circle, color-mix(in srgb, var(--pc) 18%, var(--deep)), var(--deep) 70%);
   border-bottom:3px solid var(--pc);box-shadow:0 10px 30px -12px var(--pc)}
 .pv-pic{width:86%;animation:idle 2.6s ease-in-out infinite}
@@ -104,13 +127,25 @@
   .sk-opt small{font-size:10.5px}
 }
 
-/* ---------- the grid ---------- */
-.grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}   /* 16 players: woodwinds, then brass + percussion */
-.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;min-width:0;border-radius:14px;
+/* ---------- the grid ----------
+   16 players in Arcade.PLAYERS order (woodwinds, brass, bells, snare). Tile size comes from the grid, gaps from clamp().
+   Portrait / narrow screens: 4 columns (4 × 4). Landscape from 900 px (iPad landscape, Chromebooks, desktops): 6 columns
+   in 3 rows, the 4 tiles of row 3 centered; the grid has 12 half-columns and each tile spans two, so the last row can
+   start half a tile in (with Face-Off's CPU tile, 5 tiles, it starts one half-column in). */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(8px,1.4vw,14px)}
+@media (min-width:900px) and (orientation:landscape){
+  .grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(10px,1.2vw,14px)}
+  .grid>.tile{grid-column:span 2}
+  .grid>.tile:nth-child(13){grid-column:3/span 2}
+  .phase2 .grid>.tile:nth-child(13){grid-column:2/span 2}
+}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:clamp(6px,.9vw,10px) 4px clamp(5px,.7vw,8px);min-width:0;border-radius:14px;
   background:linear-gradient(180deg, var(--deep), var(--floor-2));border:2px solid var(--floor-3);border:2px solid color-mix(in srgb, var(--fam) 55%, transparent);opacity:.72;
   transition:opacity .12s, transform .12s}
-.tile .pt-box{width:78%}
-.t-name{font-weight:700;font-size:14px;line-height:1.15;text-align:center;color:var(--text-hi);min-height:2.3em;display:flex;align-items:center}
+.tile .pt-box{width:80%}
+/* names wrap to two lines rather than being cut off ("Baritone (T.C.)", "Euphonium (B.C.)") */
+.t-name{font-weight:700;font-size:clamp(12.5px,1.25vw,15px);line-height:1.15;text-align:center;color:var(--text-hi);min-height:2.3em;display:flex;align-items:center;
+  justify-content:center;max-width:100%;overflow-wrap:break-word;hyphens:manual}
 .tile:hover{opacity:.95}
 .tile.suggest{opacity:1;border-style:dashed;border-color:var(--yellow)}
 .tile.on{opacity:1;z-index:1;border-color:var(--fam-hi);box-shadow:0 0 0 4px var(--fam),var(--fam-glow),0 0 26px var(--fam);animation:pulse 1.2s ease-in-out infinite;transform:scale(1.04)}
@@ -136,10 +171,11 @@ body:not(.phase2) .tile.cpu{display:none}
 .legend li{display:flex;align-items:center;gap:6px}
 .legend li::before{content:"";width:14px;height:14px;border-radius:4px;border:2px solid var(--fam);box-shadow:var(--fam-glow)}
 
-/* phones: three columns, the preview a short strip on top */
+/* phones: four columns (same order), the preview a short strip on top; the page scrolls down, never sideways */
 @media (max-width:560px){
-  .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-  .t-name{font-size:13px}
+  .grid{gap:6px}
+  .tile{padding:6px 3px 5px}
+  .t-name{font-size:12.5px}
   .preview{grid-template-columns:96px 1fr;padding:8px 10px;gap:10px}
   .pv-stage{border-radius:12px}
   .card-name{font-size:22px;margin-bottom:2px}
