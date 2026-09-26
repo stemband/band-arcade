@@ -8,7 +8,8 @@
   "use strict";
   const {$} = A;
   const GAME_ID = 'note-ninja';
-  const BELTS = window.NINJA_BELTS, RULES = window.NINJA_RULES;
+  const RULES = window.NINJA_RULES;
+  const BELTS = window.NINJA_BELTS.map(L => Object.assign({}, A.belt(L.name), L));   // color and sparkle from shared/belts.js
   const {noteLabel} = A.music;
   const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   const ACC_SIGN = {'-1': '♭', 0: '', 1: '♯'};

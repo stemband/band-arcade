@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ancient Ninja Scrolls</title>
+<meta name="description" content="The Band Ninja music vocabulary trainer: study the scrolls for Ranks 3–10 and get ready for your belt test.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="temple">
+<!-- the temple library at night: sky, stone steps, drifting mist -->
+<div class="temple-bg" aria-hidden="true"><div class="mist m1"></div><div class="mist m2"></div><div class="steps"></div></div>
+
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- THE TEMPLE: choose a chamber (one per belt) -->
+  <section id="hub">
+    <div class="lantern-row" id="lanternRow" aria-hidden="true"></div>
+    <h1 class="game-title">Ancient Ninja <span>Scrolls</span></h1>
+    <div class="sensei-talk">
+      <div class="sensei-spot" id="hubSensei" aria-hidden="true"></div>
+      <p class="bubble" id="hubSay">Welcome, young ninja. Each chamber of this temple holds the fifteen secret scrolls of one belt. Choose the chamber for your next test.</p>
+    </div>
+    <p class="eyebrow">Chambers: Band Ninja Ranks 3–10</p>
+    <div class="chambers" id="chambers"></div>
+    <button class="review-card" id="reviewBtn">
+      <span class="rv-t">Scroll Review</span>
+      <span class="rv-d" id="reviewInfo">Master a scroll in any chamber to open Scroll Review.</span>
+    </button>
+    <p class="demo-help" id="demoHelp" hidden>Demo: the right answer has a faint dashed outline, and the Belt Exam shows each answer in small text. Keys 1–4 pick an answer.</p>
+  </section>
+
+  <!-- ONE CHAMBER (belt): modes and its scroll rack -->
+  <section id="chamber" hidden>
+    <div class="ch-head">
+      <div class="lantern big" aria-hidden="true"></div>
+      <div><p class="ch-rank" id="chRank">Rank 3</p><h2 class="ch-name" id="chName">Orange Chamber</h2></div>
+      <button class="btn btn-ghost btn-small ch-back" id="chBack">Temple</button>
+    </div>
+    <div class="modes">
+      <button class="mode-card" id="goTrain"><span class="mt">Train</span><span class="md">Learn each scroll with four choices. Missed ones come back.</span><span class="mf" id="trainInfo"></span></button>
+      <button class="mode-card" id="goSpar"><span class="mt">Spar</span><span class="md">60 seconds of rapid-fire questions. Build a combo!</span><span class="mf" id="sparInfo"></span></button>
+      <button class="mode-card exam" id="goExam"><span class="mt">Belt Exam</span><span class="md">Your real test: fill in all 15 from the word bank.</span><span class="mf" id="examInfo"></span></button>
+    </div>
+    <h3 class="eyebrow rack-title" id="rackTitle">Scroll rack</h3>
+    <div class="rack" id="rack"></div>
+  </section>
+
+  <!-- TRAIN / SPAR / SCROLL REVIEW: one question at a time -->
+  <section id="quiz" hidden>
+    <div class="hud">
+      <div><small id="qMode">Train</small><b id="qBelt">Orange</b></div>
+      <div class="c"><small id="qCountLabel">Scrolls</small><b id="qCount">0 / 15</b></div>
+      <div class="c" id="qComboBox"><small>Combo</small><b id="qCombo">0</b></div>
+      <div class="r"><small id="qScoreLabel">Right first try</small><b id="qScore">0</b></div>
+    </div>
+    <div class="timer" id="qTimer" hidden><i></i></div>
+    <div class="q-card" id="qCard">
+      <p class="q-kicker" id="qKicker">Fill in the blank</p>
+      <div class="q-sym" id="qSym"></div>
+      <p class="q-text" id="qText"></p>
+    </div>
+    <div class="choices" id="choices" role="group" aria-label="Answers: press 1 to 4"></div>
+    <div class="feedback" id="feedback" aria-live="polite">
+      <p class="fb-line" id="fbLine"></p>
+      <p class="fb-tip" id="fbTip"></p>
+      <button class="btn btn-gold" id="nextBtn" hidden>Next</button>
+    </div>
+    <div class="quiz-foot"><button class="btn btn-ghost btn-small" id="quitQuiz">Leave</button></div>
+  </section>
+
+  <!-- BELT EXAM: the paper test, on screen -->
+  <section id="exam" hidden>
+    <div class="ex-head">
+      <div><p class="ch-rank" id="exRank">Rank 3</p><h2 class="ch-name" id="exName">Orange Belt Exam</h2></div>
+      <button class="btn btn-ghost btn-small" id="exBack">Chamber</button>
+    </div>
+    <div class="ex-result" id="exResult" hidden></div>
+    <div class="bank" id="bank" role="group" aria-label="Word bank"></div>
+    <p class="ex-how" id="exHow">Tap a word, then tap a blank to place it. Tap a filled blank to clear it. Each word is used once.</p>
+    <ol class="ex-list" id="exList"></ol>
+    <div class="ex-foot"><button class="btn btn-gold" id="exSubmit">Submit exam</button></div>
+  </section>
+</div>
+
+<!-- a scroll unrolls (term mastered) -->
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<!-- SUBMIT? -->
+<div class="overlay" id="confirm" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="cfTitle">
+    <h2 id="cfTitle">Turn in your exam?</h2>
+    <p id="cfMsg"></p>
+    <div class="acts"><button class="btn btn-gold" id="cfYes">Turn it in</button><button class="btn btn-ghost" id="cfNo">Keep working</button></div>
+  </div>
+</div>
+
+<!-- ROUND RESULTS (Train, Spar, Review) -->
+<div class="overlay" id="results" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="res-sensei" id="resSensei" aria-hidden="true"></div>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Round complete</h2>
+    <p id="resMsg"></p>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resAgain">Again</button>
+      <button class="btn btn-ghost" id="resBack">Chamber</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEST READY: the Sensei presents the badge -->
+<div class="overlay" id="badge" hidden>
+  <div class="panel badge-panel" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+    <div class="bd-scene"><div class="res-sensei" id="bdSensei" aria-hidden="true"></div><div class="medal" id="bdMedal" aria-hidden="true"></div></div>
+    <h2 id="bdTitle">TEST READY</h2>
+    <p id="bdMsg"></p>
+    <div class="acts"><button class="btn btn-gold" id="bdOk">Thank you, Sensei</button></div>
+  </div>
+</div>
+
+<!-- No microphone and no instrument: no pitch.js, no mic-gate.js. Sounds come from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/belts.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="vocab.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

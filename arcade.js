@@ -83,13 +83,19 @@
     $('infoName').textContent = g.name;
     $('infoBlurb').textContent = g.blurb || '';
     // a game with its own instrument (games.js `player`, e.g. Chime Heist's bell kit) always shows its score
-    const inst = g.player ? A.getInstrument(g.player) : A.currentInstrument(), hs = $('hiscore');
+    // player 'all' (a game that needs no instrument, e.g. Ancient Ninja Scrolls) saves under that id
+    const inst = g.player ? (A.getInstrument(g.player) || {id: g.player, shortName: ''}) : A.currentInstrument(), hs = $('hiscore');
     hs.hidden = !(inst && g.maxStars);
     if (!hs.hidden) {
       hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, inst.id)} / ${g.maxStars} ` +
-        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span> <span class="who">(${g.playerName || inst.shortName})</span>`;
+        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span>` + ((g.playerName || inst.shortName) ? ` <span class="who">(${g.playerName || inst.shortName})</span>` : '');
+      // games.js `badge`: a count of badges the game keeps in store.gameData(id).badges (e.g. "Test Ready: 3 belts")
+      if (g.badge) {
+        const n = Object.keys(A.store.gameData(g.id).badges || {}).length;
+        if (n) hs.innerHTML += `<span class="scales-note">${g.badge.label}: ${n} ${n === 1 ? g.badge.one : g.badge.many}</span>`;
+      }
       // the other modes save separately; just say how many have been tried
-      const keys = g.modeKeys ? g.modeKeys.map(k => g.id + ':' + k) : A.Scales ? A.Scales.LIST.map(sc => A.Scales.progressKey(g.id, sc.id)) : [];
+      const keys = g.modeKeys ? g.modeKeys.map(k => g.id + ':' + k) : g.player === 'all' ? [] : A.Scales ? A.Scales.LIST.map(sc => A.Scales.progressKey(g.id, sc.id)) : [];
       const started = keys.filter(k => A.store.hasProgress(k, inst.id)).length;
       if (started) hs.innerHTML += `<span class="scales-note">${g.modeKeys ? 'Other modes' : 'Scales'}: ${started} of ${keys.length} started</span>`;
     }

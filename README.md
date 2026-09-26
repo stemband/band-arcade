@@ -20,6 +20,7 @@ shared/               The engine every game uses
   scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
   modes.js            RANDOM NOTES / SCALES picker every game shows on its level screen
   games.js            The list of games on the arcade floor, and how each cabinet looks
+  belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
   sfx.js              Sound effects for the arcade floor, Select Player and the mic-free games, and Chime Heist's
                       bell tones (made in code, no audio files)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
@@ -37,6 +38,9 @@ note-ninja/           Game 3: note names, no microphone; tap the name of the not
 chime-heist/          Game 4: mallet keyboard for percussion, no microphone; strike the bar on an on-screen bell kit
   levels.js           The vaults (Lemonade Stand Lockbox … The Golden Vault): notes, time, labels, read-ahead, alarm
   game.js             Game logic: the bell kit, the vault code, the alarm meter
+ancient-ninja-scrolls/ Game 5: Band Ninja music vocabulary (Ranks 3–10), no instrument, no microphone
+  vocab.js            THE Band Ninja vocabulary tests: word banks, pass rules, all 120 items. Edit here
+  game.js             Train, Spar, Belt Exam, Scroll Review, the scroll rack and the Sensei
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.
@@ -77,9 +81,26 @@ A **mallet keyboard** game for percussionists, and it **doesn't use the micropho
 - Progress: `chime-heist` (First five), `chime-heist:full`, `chime-heist:scale-Bb` … `chime-heist:scale-Ab`, `chime-heist:chromatic`, all under the `bells` player. The arcade floor's hi-score counts First five and shows "Other modes: n of 6 started".
 - In `?demo` all vaults are unlocked and the right bar has a faint dashed outline.
 
+## Ancient Ninja Scrolls
+
+The official Band Ninja **music vocabulary** trainer for Ranks 3–10 (Orange through Diamond), using the real vocabulary tests. It needs **no instrument and no microphone**: START on the arcade floor goes straight in (no Select Player), and the instrument saved for the other games is never changed.
+
+The temple has one chamber per belt, each lit in its belt color. Every term is a secret scroll: answer it right 3 times (in any mode, across sessions) and it unrolls onto that belt's **scroll rack**; scrolls not yet mastered stay rolled with their names hidden. Every belt is open.
+
+- **Train:** four choices from the belt's word bank. Every other question flips: the term is shown and the student picks the matching sentence (or, for symbols, the name or the symbol). A miss shows the right answer and a one-line reminder, and that item comes back a few questions later until it's answered right twice. Stars per belt: 1 = round complete, 2 = 90%+ right the first time, 3 = all 15 scrolls mastered.
+- **Spar:** 60 seconds of rapid-fire questions from one belt, with a combo multiplier (×2 at 5 in a row, up to ×4) and a best score per belt.
+- **Belt Exam:** a replica of the paper test. All 15 items on one page with the word bank at the top: tap a word, then a blank (or a blank, then a word); each word is used once and grays out; tap a filled blank to clear it. Symbol items (fermata, repeat sign, measure repeat, accent) are "tap the correct symbol". SUBMIT asks first, then marks each item right or wrong with the answer. Pass rules: Orange 100%, Green miss 2 or fewer, Blue–Diamond miss 3 or fewer. Passing earns the belt's **TEST READY** badge from the Sensei: "You're ready to take your real Rank X test in person!" The best result is kept.
+- **Scroll Review:** 15 mixed questions from every belt with at least one mastered scroll, weighted toward the terms missed most.
+- Keys **1–4** pick an answer; Enter goes on after a miss. In `?demo` the right answer has a faint dashed outline, and the exam shows each answer in small text.
+- The home page shows Train stars (out of 24) and "Test Ready: n belts".
+
+**Editing the tests (`ancient-ninja-scrolls/vocab.js`):** `VOCAB_BANKS` are the word banks in the order printed on each test; `VOCAB_PASS` is how many items each rank may miss; `VOCAB` has one line per item: `id` (a short name that never changes, since saved progress uses it), `rank`, `prompt` (exactly as on the test, with `___` where the blank goes), `answer` (spelled exactly like its bank word, accents included: Più, L'istesso), and `type` (`'word'` or `'symbol'`; symbol answers are `'treble-clef'`, `'bass-clef'`, `'fermata'`, `'repeat'`, `'measure-repeat'`, `'accent'`). `show` draws a symbol with the prompt; `tip` overrides the reminder shown after a miss. `SCROLL_RULES` at the bottom sets how many right answers master a scroll, Spar's length and so on.
+
+Saved: Train stars as the usual progress (`ancient-ninja-scrolls`, player `all`, belts 1–8 = Orange–Diamond); mastered terms, misses, Spar bests, exam results and TEST READY badges in their own object, `gameData['ancient-ninja-scrolls']`.
+
 ## Sounds
 
-`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja and Chime Heist only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
+`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist and Ancient Ninja Scrolls only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
 
 | Event | When | Sound (falls back to) |
 |---|---|---|
@@ -100,6 +121,10 @@ A **mallet keyboard** game for percussionists, and it **doesn't use the micropho
 | `caught` | Chime Heist: the alarm meter is full | a siren wail (blip) |
 | `vault-open` | Chime Heist: a vault is cracked and the door swings open | a heavy clunk and a shimmer (blip) |
 | `vault-unlocked` | Chime Heist: a new vault becomes available | a rising chime (blip) |
+| `answer-right` / `answer-wrong` | Ancient Ninja Scrolls: an answer | two bright notes / a soft falling tone (blip) |
+| `scroll-unroll` | Ancient Ninja Scrolls: a term mastered | a paper swish and a run up (blip) |
+| `gong` | Ancient Ninja Scrolls: the Belt Exam is turned in | a low gong (blip) |
+| `test-ready` | Ancient Ninja Scrolls: a TEST READY badge | a warm fanfare (blip) |
 
 Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (bright attack, quick decay) at the exact pitch, so every bar is in tune. It is never replaced by an audio file, and it is silent when SOUND is off.
 
@@ -161,7 +186,7 @@ Every later change you save to the repository goes live at the same link within 
 3. At the top of `game.js`, start with `const inst = Arcade.requireInstrument('echo-notes'); if (!inst) return;` and `Arcade.mountTopbar(inst, '', 'echo-notes');`. That sends students without an instrument to Select Player, and wires up the top bar.
 4. Add an entry to `shared/games.js` (see the comment at the top of that file).
 5. Save progress with `Arcade.store.setLevel(gameId, instrumentId, level, {stars, best})`, which lets the arcade floor show the hi-score automatically.
-6. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress.
+6. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
 
 ## Adding a cabinet
 
@@ -173,22 +198,22 @@ To give it a look, add a `cabinet` field to its entry in `shared/games.js` and m
 cabinet: {shape: 'storm', trim: 'green', trim2: 'pink', marquee: 'shade', kicker: 'New!', screen: 'insert'},
 ```
 
-- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams)
+- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns)
 - `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`
-- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`
-- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'insert'`
+- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll)
+- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'insert'`
 
 For a brand-new look:
 
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
-- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
+- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
 - **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
 
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja and Chime Heist (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist and Ancient Ninja Scrolls (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.

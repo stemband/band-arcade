@@ -9,14 +9,17 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo'  (styles in shared/cabinets.css)
        kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'insert'  (shared/cabinets.js, SCREENS)
-     player     optional: a game with its own fixed instrument group (e.g. 'bells'): START skips Select Player,
-                the saved instrument is left alone, and progress is saved under that group. playerName: its label.
+     player     optional: a game with its own fixed instrument group (e.g. 'bells'), or 'all' for a game that needs
+                no instrument: START skips Select Player, the saved instrument is left alone, and progress is
+                saved under that id. playerName: its label on the home page (leave out for none).
+     badge      optional: {label, one, many}: the home page adds "<label>: n <one|many>", counting the keys of
+                Arcade.store.gameData(id).badges (Ancient Ninja Scrolls: "Test Ready: 3 belts")
      modeKeys   optional: a game's own extra progress keys ('<id>:<key>') for the home page's "n started" note
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
@@ -82,5 +85,17 @@ window.Arcade.GAMES = [
     modeKeys: ['full', 'scale-Bb', 'scale-Eb', 'scale-F', 'scale-Ab', 'chromatic'],   // its other modes, for the home page
     cabinet: {shape: 'vault', trim: 'green', trim2: 'red', marquee: 'heist', screen: 'heist'},
     cabinet3d: {profile: 'vault', body: 'cab-side'},
+  },
+  {
+    id: 'ancient-ninja-scrolls',
+    name: 'Ancient Ninja Scrolls',
+    skill: 'Music vocabulary',
+    blurb: 'Study the Band Ninja vocabulary scrolls for Ranks 3–10, then pass the practice Belt Exam. No instrument needed!',
+    maxStars: 24,
+    color: 'yellow',
+    player: 'all',
+    badge: {label: 'Test Ready', one: 'belt', many: 'belts'},
+    cabinet: {shape: 'temple', trim: 'amber', trim2: 'red', marquee: 'scroll', screen: 'scrolls'},
+    cabinet3d: {profile: 'temple', body: 'cab-side'},
   },
 ];

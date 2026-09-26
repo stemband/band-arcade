@@ -27,6 +27,10 @@
   --steel:#1a1d26; --steel-2:#262b38; --steel-3:#3a4152; --rivet:#5a6378;
   --bar-metal:#c9ced8; --bar-metal-2:#8d94a3; --bar-metal-hi:#f2f5fa; --bar-ink:#1b2130;
   --term:#07130d; --term-line:rgba(77,255,136,.18); --treasure-brown:#b07a4a;
+  /* Ancient Ninja Scrolls: the mountain temple library at night, its scrolls, and the Sensei */
+  --temple-sky:#0d0a24; --temple-stone:#262235; --temple-stone-2:#34304a; --temple-wood:#3b2419; --temple-mist:rgba(196,186,255,.10);
+  --scroll-paper:#fbf1d6; --scroll-paper-2:#ecdcb0; --scroll-rod:#6b3f22; --scroll-seal:#c43a3a;
+  --sensei-robe:#2e3170; --sensei-robe-2:#474c9e; --sensei-hair:#efebf7;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */

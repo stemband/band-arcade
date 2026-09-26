@@ -70,6 +70,36 @@ window.Arcade = window.Arcade || {};
     items.forEach(it => { s += `<g${it.id ? ` id="${it.id}"` : ''}>${A.noteGlyph(clef, it, capY)}</g>`; });
     return s + `</svg>`;
   };
+  /* ---------- music symbols for vocabulary games (Ancient Ninja Scrolls) ----------
+     Each is drawn on a short staff so it looks the way it does in a part. */
+  const SYMBOLS = {
+    'treble-clef':    {name: 'Treble clef', svg: `<text x="46" y="119" ${MUSIC_FONT} font-size="64" fill="${INK}">𝄞</text>`},
+    'bass-clef':      {name: 'Bass clef', svg: `<text x="46" y="111" ${MUSIC_FONT} font-size="62" fill="${INK}">𝄢</text>`},
+    'fermata':        {name: 'Fermata', svg: note(80, true) + `<path d="M52 42A18 18 0 0 1 88 42H84.6A14.6 13 0 0 0 55.4 42Z" fill="${INK}"/><circle cx="70" cy="37" r="3.4" fill="${INK}"/>`},
+    'accent':         {name: 'Accent', svg: note(80, true) + `<path d="M56 32L84 40L56 48" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="miter"/>`},
+    'repeat':         {name: 'Repeat sign', svg:
+      `<rect x="14" y="56" width="6" height="64" fill="${INK}"/><line x1="25" y1="56" x2="25" y2="120" stroke="${INK}" stroke-width="1.8"/>` +
+      `<circle cx="33" cy="80" r="3.6" fill="${INK}"/><circle cx="33" cy="96" r="3.6" fill="${INK}"/>` +
+      `<circle cx="107" cy="80" r="3.6" fill="${INK}"/><circle cx="107" cy="96" r="3.6" fill="${INK}"/>` +
+      `<line x1="115" y1="56" x2="115" y2="120" stroke="${INK}" stroke-width="1.8"/><rect x="120" y="56" width="6" height="64" fill="${INK}"/>`},
+    'measure-repeat': {name: 'Measure repeat sign', svg:
+      `<line x1="12" y1="56" x2="12" y2="120" stroke="${INK}" stroke-width="1.8"/><line x1="128" y1="56" x2="128" y2="120" stroke="${INK}" stroke-width="1.8"/>` +
+      `<path d="M56 106L78 70H86L64 106Z" fill="${INK}"/><circle cx="60" cy="78" r="4" fill="${INK}"/><circle cx="82" cy="98" r="4" fill="${INK}"/>`},
+  };
+  function note(y, stemDown) {         // a quarter note at x = 70 for symbols that sit on a note
+    return `<ellipse cx="70" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 70 ${y})" fill="${INK}"/>` +
+      (stemDown ? `<line x1="61.7" y1="${y + 2}" x2="61.7" y2="${y + 52}" stroke="${INK}" stroke-width="2"/>` : '');
+  }
+  A.SYMBOL_IDS = Object.keys(SYMBOLS);
+  A.symbolName = id => (SYMBOLS[id] || {}).name || id;
+  /** one symbol on a short staff (viewBox 140 × 130), for answer buttons and prompts */
+  A.symbolSVG = function (id, label) {
+    const sym = SYMBOLS[id]; if (!sym) return '';
+    let s = `<svg class="symbol" viewBox="0 20 140 130" role="img" aria-label="${label || sym.name}">`;
+    for (let i = 0; i < 5; i++) s += `<line x1="6" y1="${56 + i * 16}" x2="134" y2="${56 + i * 16}" stroke="${INK}" stroke-width="1.6"/>`;
+    return s + sym.svg + `</svg>`;
+  };
+
   /** five notes spread across a staff, labeled (used by hub cards and the Note Checker) */
   A.fiveNoteStaff = function (inst, colorFor) {
     const xs = [120, 175, 230, 285, 340];
@@ -135,7 +165,8 @@ window.Arcade = window.Arcade || {};
   };
   /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../') */
   A.playerLink = (gameId, root = '../') => A.linkTo(root + 'select-player/index.html', {game: gameId});
-  /** where a game's START goes: Select Player, or straight into a game with its own fixed instrument (games.js `player`) */
+  /** where a game's START goes: Select Player, or straight into a game with its own fixed player (games.js `player`:
+      an instrument group like 'bells', or 'all' for a game that needs no instrument) */
   A.startLink = (g, root = '../') => g.player ? A.linkTo(root + g.id + '/index.html') : A.playerLink(g.id, root);
   /** the arcade floor, turned to this game's cabinet */
   A.homeLink = (gameId, root = '../') => A.linkTo(root + 'index.html') + (gameId ? '#' + gameId : '');
