@@ -7,6 +7,20 @@ window.Arcade = window.Arcade || {};
   const MUSIC_FONT = `font-family='"GN Music","Noto Music",serif'`;
 
   A.$ = id => document.getElementById(id);
+  /** lock the page's own scrolling while an overlay that scrolls by itself is open (Button Masher's chart…), and put
+      it back exactly (same scroll position) when it closes. Works on iPad Safari too (body pinned with position: fixed). */
+  let locked = null;
+  A.lockScroll = function (on) {
+    const b = document.body;
+    if (on && !locked) {
+      locked = {y: scrollY, style: b.getAttribute('style')};
+      Object.assign(b.style, {position: 'fixed', top: -locked.y + 'px', left: '0', right: '0', overflow: 'hidden'});
+    } else if (!on && locked) {
+      const l = locked; locked = null;
+      if (l.style == null) b.removeAttribute('style'); else b.setAttribute('style', l.style);
+      scrollTo(0, l.y);
+    }
+  };
 
   /* ---------- staff ----------
      Lines at y = 56..120 (16px per space). One diatonic step = 8px.

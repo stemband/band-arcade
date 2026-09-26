@@ -246,12 +246,15 @@
 }
 
 /* ---------- the chart ---------- */
-.chart{place-items:stretch;padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
-.chart-panel{width:min(1100px,100%);max-height:100%;margin:0 auto;display:flex;flex-direction:column;text-align:left;padding:16px 16px 8px;border-color:var(--yellow);box-shadow:var(--glow-yellow),0 30px 80px rgba(0,0,0,.6)}
-.chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+/* the overlay itself scrolls (theme.css .overlay); the header with the instrument's name and CLOSE sticks to its top */
+.chart{padding:0 12px 12px}
+.chart-panel{width:min(1100px,100%);margin:0 auto;text-align:left;padding:0 16px 8px;border-top-left-radius:0;border-top-right-radius:0;border-color:var(--yellow);box-shadow:var(--glow-yellow),0 30px 80px rgba(0,0,0,.6)}
+.chart-head{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 -16px;padding:max(10px,env(safe-area-inset-top,0px)) 16px 10px;
+  background:var(--floor-2);border-bottom:2px solid var(--yellow-ink)}
+.chart-close{min-height:48px;min-width:120px;font-size:18px;flex:none}
 .chart-panel h2{margin:0;color:var(--yellow-hi);font-size:clamp(22px,4vw,30px)}
 .chart-sub{margin:6px 0 8px!important;font-size:15px}
-.chart-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 4px 10px;flex:1}
+.chart-body{padding:2px 4px 10px}
 .ch-sec h3{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.04em;color:var(--cyan-hi);margin:14px 0 8px}
 .ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:10px}
 .ch-card{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin:0;padding:8px;border-radius:14px;background:var(--deep);border:1px solid var(--floor-3)}

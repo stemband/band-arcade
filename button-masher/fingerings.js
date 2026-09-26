@@ -31,6 +31,9 @@
      delete it. Save and reload: the Chart view shows the change. Only use key names that appear on the diagram
      (listed above); a typo shows a warning in the browser console.
 
+   VERIFIED BY MR. GRAHAM
+     Bassoon  E♭3 = W 1 3 (whisper key, left hand 1 and 3; no E♭ key). The old W 1 2 + E♭ key is not accepted.
+
    FINGERINGS I WAS NOT FULLY CERTAIN ABOUT (please check these first)
      Oboe (the whole oboe table deserves a check; student oboes vary):
        F4 / F5  primary "regular F" = 1 2 3 | 5 6 + right F key; alternates forked F (1 2 3 | 4 6) and left F
@@ -46,7 +49,7 @@
        F4 to B4  also accepted WITHOUT the right-pinky E♭ key (many beginners are taught without it)
        D6 (T 2 3 + E♭) and E♭6 (T 1 2 3 | 4 5 6 + E♭)
      Bassoon (the whole bassoon table deserves a check):
-       D3 (W 1 2), E♭3 (W 1 2 + E♭ key), E3 (W 1), F3 (W only)
+       D3 (W 1 2), E3 (W 1), F3 (W only)
        D♭3      W 1 2 3 + C♯ key (left pinky)
        G3, A♭3  half-hole, whisper key optional
        A3, B♭3  flick key optional (A flick; C flick also accepted on B♭3)
@@ -274,7 +277,7 @@
     'C3':  ['W 1 2 3'],
     'Db3': ['W 1 2 3 C#'],
     'D3':  ['W 1 2'],
-    'Eb3': ['W 1 2 Eb'],
+    'Eb3': ['W 1 3'],                                    // verified by Mr. Graham
     'E3':  ['W 1'],
     'F3':  ['W'],
     'G3':  ['1h 2 3 | 4 5 6', 'W 1h 2 3 | 4 5 6'],

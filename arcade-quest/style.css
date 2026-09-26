@@ -264,7 +264,12 @@ body.q-review .q-wrap{display:none}
 .q-complete .sk-unlock{margin:calc(var(--px) * 3) auto}
 @media (prefers-reduced-motion:reduce){
   .q-roll{animation:none;position:static;padding:calc(var(--px) * 10) 0}
-  .q-credits{overflow-y:auto}
+  .q-credits{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
   .q-whisper.on{animation:none;opacity:1}
   .q-beat i.on{box-shadow:none}
 }
+
+/* panels that can be taller than the screen (settings, shop, pause, save code, Episode complete, the credits with
+   reduced motion) scroll by themselves with the wheel, a trackpad or a finger, even though the game screen around
+   them takes over touch (#stage touch-action: none) */
+.q-panel{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
