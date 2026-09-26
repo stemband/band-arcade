@@ -9,6 +9,7 @@
    Note-reading games save each NOTES × ORDER combination under its own key (Arcade.progressKey, sequences.js):
    First 5 + Random keeps the plain game id and scales in order keep '<gameId>:scale-<id>', so old stars never move.
    allStars() adds every key up.
+   skins: {equipped: {memberId: {color, acc}}, seen: {memberId | '*': {skinId: true}}} (shared/skins.js).
    gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
    results, spar bests), kept apart from the shared progress shape above.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
@@ -163,6 +164,28 @@ window.Arcade = window.Arcade || {};
       return n;
     },
     starsForPlayer(memberId) { return this.allStars(memberId); },
+    /** the most stars any instrument has earned on one level of a game, in ANY mode (every progress key of that
+        game: '<gameId>' and '<gameId>:…'). Used by skin achievements ("clear The Golden Vault"). */
+    bestLevelStars(gameId, lvl) {
+      let best = 0;
+      Object.keys(data.games || {}).forEach(k => {
+        if (k !== gameId && k.indexOf(gameId + ':') !== 0) return;
+        Object.values(data.games[k] || {}).forEach(lv => { const p = lv && lv[lvl]; if (p && p.stars > best) best = p.stars; });
+      });
+      return best;
+    },
+    /** SKINS (shared/skins.js): the equipped color skin + accessory for one instrument member on this device */
+    skin(memberId) { const e = ((data.skins || {}).equipped || {})[memberId] || {}; return {color: e.color || 'classic', acc: e.acc || null}; },
+    setSkin(memberId, patch) {
+      const sk = data.skins || (data.skins = {}), eq = sk.equipped || (sk.equipped = {});
+      eq[memberId] = Object.assign(this.skin(memberId), patch); save();
+    },
+    /** skins whose UNLOCKED! card was already shown: key = a member id (star milestones) or '*' (achievements) */
+    skinsSeen(key) { return Object.assign({}, ((data.skins || {}).seen || {})[key]); },
+    markSkinsSeen(key, ids) {
+      const sk = data.skins || (data.skins = {}), seen = sk.seen || (sk.seen = {}), s = seen[key] || (seen[key] = {});
+      ids.forEach(id => { s[id] = true; }); save();
+    },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);

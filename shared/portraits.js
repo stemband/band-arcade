@@ -110,9 +110,12 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- Mat's artwork (shared/portraits/, see its README.md), with the drawn SVG as the fallback ----------
      Arcade.portraitHTML(memberId, {size, full, skin, label, cls, color})
+       skin: {color, acc} from shared/skins.js; left out = the instrument's equipped skin (Arcade.Skins.equipped),
+       false = none. Color skins become effects around/over the image (or a recolor of the SVG fallback), and
+       accessories are SVG overlays placed by Arcade.Skins.ANCHORS.
        A box holding the drawn SVG with the image on top. The image shows only once it has loaded; a missing or
        broken file tries the next candidate, and with none left the SVG stays, so a broken image never shows.
-       Candidates: the equipped skin's drawn variant ('<file>--<skin>'), then the base image. `full` (the big
+       Candidates: the color skin's drawn variant ('<file>--<skin>'), the accessory's, then the base image. `full` (the big
        Select Player preview) tries '<file>-full' first and falls back to the square image. For every name:
        optimized/<name>.webp when listed in OPTIMIZED, then <name>.png, then <name>.webp.
        `color` (a recolored CPU rival) or an id without a file ('cpu') gives the SVG alone. */
@@ -127,32 +130,69 @@ window.Arcade = window.Arcade || {};
   const OPTIMIZED = ['alto-sax', 'tenor-sax', 'bells', 'horn'];
   const here = document.currentScript && document.currentScript.src;
   const BASE = here ? new URL('portraits/', here).href : 'shared/portraits/';
-  const miss = new Set();                           // files that failed on this page: never asked for twice
+  /* files that failed: never asked for twice on this page. Skin variants and -full pictures (which usually don't
+     exist) are also remembered for this browser tab, so each costs one request per visit, not one per page. */
+  const MISS_KEY = 'bandarcade.pt-miss', miss = new Set();
+  try { JSON.parse(sessionStorage.getItem(MISS_KEY) || '[]').forEach(u => miss.add(u)); } catch (e) {}
+  const remember = (u, tag) => {
+    miss.add(u);
+    if (tag) try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss].filter(x => /--|-full\./.test(x)))); } catch (e) {}
+  };
   const variants = name => (OPTIMIZED.includes(name) ? [`optimized/${name}.webp`] : []).concat(`${name}.png`, `${name}.webp`);
-  function candidates(id, {full, skin}) {
+  /* each candidate is 'tag>url': tag f = a -full picture, c = the color skin's drawn variant, a = the accessory's */
+  function candidates(id, {full, vc, va}) {
     const names = [].concat(FILES[id] || []), list = [];
-    const add = suffix => names.forEach(n => list.push(...variants(n + suffix)));
-    if (full) { if (skin) add(`-full--${skin}`); add('-full'); }
-    if (skin) add(`--${skin}`);
-    add('');
-    return list.map(f => BASE + f).filter(u => !miss.has(u));
+    const add = (suffix, tag) => names.forEach(n => variants(n + suffix).forEach(f => list.push(tag + '>' + BASE + f)));
+    const set = (pre, tag) => { if (vc) add(`${pre}--${vc}`, tag + 'c'); if (va) add(`${pre}--${va}`, tag + 'a'); add(pre, tag); };
+    if (full) set('-full', 'f');
+    set('', '');
+    return list.filter(c => !miss.has(c.split('>')[1]));
   }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-  function portraitHTML(id, {size = 'tile', full = false, skin = null, label = '', cls = '', color} = {}) {
-    const m = A.memberById && A.memberById(id), alt = label || (m ? m.short : '');
-    const svg = portraitSVG(id, {size, color, label: alt});
-    const list = color ? [] : candidates(id, {full, skin});
-    if (!list.length) return `<span class="pt-box pt-box-${size} ${cls}">${svg}</span>`;
-    return `<span class="pt-box pt-box-${size} ${cls}" data-pt="${esc(id)}">${svg}` +
-      `<img class="pt-img" src="${esc(list[0])}" data-next="${esc(list.slice(1).join('|'))}" alt="${esc(alt)}" decoding="async" draggable="false"></span>`;
+  /* skin: {color, acc} (shared/skins.js); left out = the instrument's equipped skin on this device; false = none */
+  function portraitHTML(id, opts = {}) {
+    const {size = 'tile', full = false, label = '', cls = '', color} = opts;
+    const m = A.memberById && A.memberById(id), name = label || (m ? m.short : '');
+    const eq = color || opts.skin === false || !A.Skins || !P[id] ? null : opts.skin || A.Skins.equipped(id);
+    const d = eq ? A.Skins.decorate(id, eq, size) : null;
+    const alt = d && A.Skins.label(eq) ? `${name}, ${A.Skins.label(eq)}` : name;
+    const svg = portraitSVG(id, {size, color: color || (d && d.svgColor), glow: d && d.svgGlow, label: alt});
+    const list = color ? [] : candidates(id, {full, vc: d && d.variants.c, va: d && d.variants.a});
+    const box = `pt-box pt-box-${size} ${d ? d.cls : ''} ${cls}`;
+    const keep = esc(JSON.stringify({size, full, label, cls}));
+    if (!list.length) return `<span class="${box}" data-pt="${esc(id)}" data-opts="${keep}"${d && d.style ? ` style="${d.style}"` : ''}>` +
+      `${d ? d.parts.before + d.parts.cape : ''}${svg}${d ? d.parts.after : ''}</span>`;
+    const [tag, src] = list[0].split('>');
+    return `<span class="${box}" data-pt="${esc(id)}" data-opts="${keep}"${d && d.style ? ` style="${d.style}"` : ''}>` +
+      `${d ? d.parts.before + d.parts.cape : ''}${svg}` +
+      `<img class="pt-img" src="${esc(src)}" data-tag="${tag}" data-next="${esc(list.slice(1).join('|'))}" alt="${esc(alt)}" decoding="async" draggable="false">` +
+      `${d ? d.parts.after : ''}</span>`;
+  }
+  /* an image that loaded: show it; a drawn skin variant switches that effect off; Pixel redraws it pixelated */
+  function loaded(t) {
+    const box = t.parentNode, tag = t.dataset.tag || '';
+    box.classList.add('pt-ok');
+    box.classList.toggle('pt-full', tag.includes('f'));
+    box.classList.toggle('pt-var-c', tag.includes('c'));
+    box.classList.toggle('pt-var-a', tag.includes('a'));
+    box.style.setProperty('--sk-src', `url("${t.src}")`);            // masks the Chrome Gold sweep / Diamond shimmer to the art
+    if (box.classList.contains('sk-pixel') && !tag.includes('c') && !box.querySelector('.pt-pix')) pixelate(t, box);
+  }
+  function pixelate(img, box) {
+    const long = box.classList.contains('pt-box-big') ? 44 : box.classList.contains('pt-box-chip') ? 14 : 30;
+    const k = long / Math.max(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+    c.className = 'pt-pix'; c.setAttribute('aria-hidden', 'true');
+    try { c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); } catch (e) { return; }
+    img.after(c); box.classList.add('pt-pixd');
   }
   // load/error don't bubble (and never reach window), so the document listens in the capture phase for every portrait image
-  document.addEventListener('load', e => { const t = e.target; if (t.classList && t.classList.contains('pt-img')) t.parentNode.classList.add('pt-ok'); }, true);
+  document.addEventListener('load', e => { const t = e.target; if (t.classList && t.classList.contains('pt-img')) loaded(t); }, true);
   document.addEventListener('error', e => {
     const t = e.target; if (!t.classList || !t.classList.contains('pt-img')) return;
-    miss.add(t.src);
-    const next = (t.dataset.next || '').split('|').filter(u => u && !miss.has(u));
-    if (next.length) { t.dataset.next = next.slice(1).join('|'); t.src = next[0]; }
+    remember(t.src, t.dataset.tag);
+    const next = (t.dataset.next || '').split('|').filter(c => c && !miss.has(c.split('>')[1]));
+    if (next.length) { const [tag, src] = next[0].split('>'); t.dataset.next = next.slice(1).join('|'); t.dataset.tag = tag; t.src = src; }
     else { t.parentNode.classList.remove('pt-ok'); t.remove(); }         // nothing left: the drawn SVG stays
   }, true);
 

@@ -83,6 +83,9 @@
     $('hornToggle').hidden = id !== 'horn';
     $('hornToggle').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.horn === hornOf()));
     $('selectBtn').textContent = `Select ${m.short}`;
+    $('skinsBtn').hidden = false;
+    const have = A.Skins.LIST.filter(s => !s.unlock.always && A.Skins.isUnlocked(s, id)).length;
+    $('skinsCount').textContent = `${have} of ${A.Skins.LIST.length - 1}`;
   }
   function cpuCard() {
     const n = A.store.player ? A.store.allStars(A.store.player, game.id) : 0;
@@ -95,6 +98,7 @@
     $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on the ladder' : 'stars on the ladder';
     $('hornToggle').hidden = true;
     $('selectBtn').textContent = 'Select CPU';
+    $('skinsBtn').hidden = true;
   }
   function highlight(i, {focus = true, sound = true} = {}) {
     if (i < 0 || i >= ids.length || (phase === 1 && ids[i] === 'cpu')) return;       // CPU is only for Player 2
@@ -117,7 +121,7 @@
   /* Chromebooks: arrows move the highlight around the grid (as many columns as the layout shows), Enter selects */
   const cols = () => getComputedStyle($('grid')).gridTemplateColumns.split(' ').filter(Boolean).length || 5;
   addEventListener('keydown', e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || leaving) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden])')) return;   // the locker or an UNLOCKED! card is open
     const onButton = e.target.closest && e.target.closest('button, a');
     if (onButton && !onButton.classList.contains('tile') && (e.key === 'Enter' || e.key === ' ')) return;   // SELECT, horn toggle, sound…
     const c = cols(), step = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -c, ArrowDown: c}[e.key];
@@ -163,6 +167,55 @@
   }
   addEventListener('pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
 
+  /* ---------- the SKINS locker: live preview on the big portrait; equipped per instrument on this device ---------- */
+  let lockerFor = null;
+  function openLocker() {
+    const id = ids[cur]; if (!info(id)) return;
+    lockerFor = id;
+    $('lkTitle').textContent = info(id).short;
+    drawLocker();
+    $('locker').hidden = false;
+    ($('lkColors').querySelector('[aria-pressed="true"]') || $('lkDone')).focus();
+  }
+  function drawLocker() {
+    const id = lockerFor, eq = A.Skins.equipped(id), m = info(id);
+    $('lkPic').innerHTML = A.portraitHTML(id, {size: 'big', full: true});
+    $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}`;
+    const opt = (s, skin, pressed) => {
+      const open = A.Skins.isUnlocked(s, id), need = open ? '' : A.Skins.requirement(s), prog = open ? '' : A.Skins.progress(s, id);
+      const pic = s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.portraitHTML(id, {size: 'tile', skin, label: m.short});
+      return `<button type="button" class="sk-opt${open ? '' : ' locked'}" data-kind="${s.kind}" data-skin="${s.id}" aria-pressed="${pressed}"` +
+        ` aria-label="${s.name}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
+        `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>'}</span>` +
+        `<b>${s.name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
+    };
+    $('lkColors').innerHTML = A.Skins.colors().map(s => opt(s, {color: s.id, acc: eq.acc}, s.id === eq.color)).join('');
+    $('lkAcc').innerHTML = opt({id: 'none', kind: 'acc', name: 'None', unlock: {always: true}}, null, !eq.acc) +
+      A.Skins.accessories().map(s => opt(s, {color: eq.color, acc: s.id}, s.id === eq.acc)).join('');
+  }
+  function pickSkin(b) {
+    const s = b.dataset.skin, id = lockerFor;
+    if (b.classList.contains('locked')) { A.Sfx.event('note-wrong'); $('lkNow').textContent = `${b.querySelector('b').textContent}: ${A.Skins.requirement(A.Skins.get(s))}`; return; }
+    A.Skins.equip(id, b.dataset.kind === 'acc' ? {acc: s === 'none' ? null : s} : {color: s});
+    const keep = b.dataset.kind + ':' + s;
+    drawLocker(); refreshPortraits(id);
+    const again = document.querySelector(`#locker .sk-opt[data-kind="${keep.split(':')[0]}"][data-skin="${keep.split(':')[1]}"]`);
+    if (again) again.focus();
+  }
+  /** redraw every portrait of this instrument on the page (tile, preview, CONTINUE AS) with its new skin */
+  function refreshPortraits(id) {
+    A.Skins.refresh(id);
+    if (ids[cur] === id) card();
+  }
+  $('skinsBtn').addEventListener('click', openLocker);
+  ['lkColors', 'lkAcc'].forEach(g => $(g).addEventListener('click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); }));
+  const closeLocker = () => { $('locker').hidden = true; lockerFor = null; $('skinsBtn').focus({preventScroll: true}); };
+  $('lkDone').addEventListener('click', closeLocker);
+  $('locker').addEventListener('click', e => { if (e.target === $('locker')) closeLocker(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('locker').hidden) closeLocker(); });
+
   highlight(cur, {focus: false, sound: false});
   (saved ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
+  /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card */
+  if (saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)});
 })(window.Arcade);

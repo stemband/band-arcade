@@ -347,6 +347,7 @@
     $('resTitle').textContent = title; $('resMsg').textContent = msg; $('resBest').textContent = best;
     $('resBack').textContent = mode === 'review' ? 'Temple' : 'Chamber';
     $('results').hidden = false; $('resAgain').focus();
+    A.Skins.announce($('results').querySelector('.panel'), {members: [A.store.player]});
   }
   $('resAgain').addEventListener('click', () => { $('results').hidden = true; startQuiz(Q.mode); });
   $('resBack').addEventListener('click', () => { $('results').hidden = true; const m = Q && Q.mode; Q = null; if (m === 'review') showHub(); else openChamber(rank); });
@@ -458,6 +459,7 @@
     $('bdMedal').innerHTML = `<span class="medal-in" style="--belt:var(--${b.color})"><b>TEST</b><b>READY</b><small>Rank ${r}</small></span>`;
     $('bdMsg').textContent = `${first ? 'The Sensei presents your ' + b.name + ' TEST READY badge. ' : ''}You're ready to take your real Rank ${r} test in person!`;
     $('badge').hidden = false; $('bdOk').focus();
+    A.Skins.announce($('badge').querySelector('.panel'), {members: [A.store.player]});   // a TEST READY badge unlocks the Ninja Mask
   }
   $('bdOk').addEventListener('click', () => { $('badge').hidden = true; $('exSubmit').focus({preventScroll: true}); });
 

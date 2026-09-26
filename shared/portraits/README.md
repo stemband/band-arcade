@@ -1,6 +1,6 @@
 # Instrument portraits
 
-Mat's artwork for the 15 players. `shared/portraits.js` (`Arcade.portraitHTML`) shows these images wherever a
+Mat's artwork for the 15 players, and the skins drawn on it. `shared/portraits.js` (`Arcade.portraitHTML`) shows these images wherever a
 player's portrait appears: the Select Player tiles, the big preview, CONTINUE AS, the instrument chip in every
 game's top bar, the Button Masher fighter (HUD, the badge by the fighter, results) and the Neon Face-Off player
 sides and results. The drawn neon SVG portrait is always underneath: if a file is missing or broken, the SVG
@@ -45,11 +45,59 @@ The CPU in Neon Face-Off has no file: it keeps its drawn portrait, and CPU rival
 loaded when that instrument is highlighted. It can be tall (up to 1024 px). Without one, the preview uses the
 square portrait.
 
-### Optional: skin variants
+### Optional: drawn skin variants
 
-`<name>--<skin-id>.png` and `<name>-full--<skin-id>.png` (for example `trumpet--gold.png`) are tried first when
-a skin is passed to `Arcade.portraitHTML(id, {skin})`. There is no skins system yet (`shared/skins.js` doesn't
-exist), so nothing uses them today.
+Skins (`shared/skins.js`) are drawn in code on top of your pictures: color skins become a glow, a backdrop or an
+aura, and accessories are small drawings placed on the portrait. If you'd rather draw a skin yourself, save it as
+`<name>--<skin id>.png` (or `.webp`), for example `trumpet--flame.png` or `horn--crown.png`, with the skin id from
+the `SKINS` list in `shared/skins.js` (`sunset`, `ice`, `flame`, `galaxy`, `pixel`, `gold`, `diamond`, `ghostly`;
+accessories `headband`, `shades`, `visor`, `crown`, `cape`, `mask`). For the big preview, `<name>-full--<skin id>.png`.
+
+- A drawn **color** skin (`trumpet--flame.png`) replaces the code-drawn effect for that instrument. An accessory
+  the student wears with it is still drawn on top.
+- A drawn **accessory** (`trumpet--crown.png`) replaces the code-drawn accessory. The color skin's glow and
+  backdrop still go around it.
+- If a student wears both and you drew both, the color skin's picture wins.
+- If an instrument has no picture at all (the drawn SVG portrait shows), a color skin just recolors its neon lines.
+
+The site asks for each variant once per browser tab, so a variant you add shows up in a new tab.
+
+## Accessory positions (anchors)
+
+Where each accessory sits is set per instrument in `ANCHORS` in `shared/skins.js`. **Edit the numbers there**;
+this table is a copy, to show what they mean. Every number is a PERCENT of the square portrait (the square you see
+on a Select Player tile): x from the left edge, y from the top edge, and a width.
+
+- **head** `[x, y, width]`: the top of the instrument. The bottom edge of the **Crown** sits on this point.
+- **face** `[x, y, width, tilt]`: the instrument's "face". **Shades**, **Visor** and **Ninja Mask** are centered
+  here and the **Headband** sits just above. Tilt is in degrees (+ turns clockwise) to follow a slanted tube.
+- **back** `[x, y, width]` (optional): the top middle of the **Cape**, which hangs behind the instrument. Without
+  it, the Cape hangs from just above the face.
+- `img` numbers are for your picture, `svg` numbers for the drawn fallback portrait. A `-full` picture can get
+  its own `full: {head, face, back}`; without it, the `img` numbers are used for it too, which will be off for a
+  picture of a different shape.
+
+To nudge something: open `select-player/index.html?game=ghost-notes&demo&unlockall`, press **SKINS**, wear the
+accessory, change the numbers in `shared/skins.js`, and reload. For example, to move the trumpet's Crown up a
+little, make the trumpet's head `y` smaller.
+
+| Instrument | head (img) | face (img) | back (img) |
+|---|---|---|---|
+| `flute` | `[86, 7, 20]` | `[70, 31, 26, 38]` | (from face) |
+| `oboe` | `[77, 6, 15]` | `[63, 30, 22, 32]` | (from face) |
+| `clarinet` | `[66, 5, 15]` | `[60, 28, 22, 16]` | (from face) |
+| `basscl` | `[55, 5, 20]` | `[47, 30, 22, 4]` | (from face) |
+| `bassoon` | `[35, 5, 14]` | `[44, 26, 21, 22]` | (from face) |
+| `altosax` | `[69, 7, 20]` | `[58, 32, 24, 35]` | (from face) |
+| `tenorsax` | `[69, 7, 20]` | `[58, 32, 24, 35]` | (from face) |
+| `barisax` | `[52, 7, 17]` | `[66, 32, 24, 40]` | (from face) |
+| `trumpet` | `[42, 36, 22]` | `[88, 45, 20, -8]` | `[46, 40, 40]` |
+| `horn` | `[78, 19, 25]` | `[80, 48, 27, 0]` | `[52, 34, 46]` |
+| `trombone` | `[58, 21, 17]` | `[58, 34, 18, 0]` | `[44, 34, 34]` |
+| `baritonetc` | `[60, 6, 31]` | `[40, 42, 27, 0]` | (from face) |
+| `euphbc` | `[60, 6, 31]` | `[40, 42, 27, 0]` | (from face) |
+| `tuba` | `[88, 25, 20]` | `[26, 57, 27, 0]` | `[42, 42, 46]` |
+| `bells` | `[50, 23, 25]` | `[50, 42, 33, 0]` | `[50, 30, 44]` |
 
 ## Optimized copies
 

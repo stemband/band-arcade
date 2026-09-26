@@ -279,6 +279,7 @@
       $('resMsg').innerHTML = `Head to head: <b class="c1">${P[0].name} ${rec.p1}</b> – <b class="c2">${rec.p2} ${P[1].name}</b>`;
     }
     $('results').hidden = false; $('resAgain').focus();
+    if (vsCPU) A.Skins.announce($('results').querySelector('.panel'));     // Player 1's skins (two-player matches earn no stars)
   }
   $('resAgain').addEventListener('click', () => A.requireMic(startMatch));
   $('resNext').addEventListener('click', () => { setRival(P[1].rival + 1); showSetup(); });

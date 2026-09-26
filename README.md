@@ -16,6 +16,7 @@ shared/               The engine every game uses
   portraits.js        The instrument portraits: Mat's artwork from portraits/, with the neon SVG line art
                       (drawn in code) as the automatic fallback
   portraits/          Mat's portrait images, one per instrument (see portraits/README.md)
+  skins.js            Unlockable portrait skins: the list, how each is earned, accessory positions
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
@@ -167,6 +168,8 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 | `tile-move` | Select Player: the highlight moves | a short tick (blip) |
 | `player-select` | Select Player: a player is chosen | the blip |
 | `player-ready` | Select Player: PLAYER 1 READY | a low zap and a quick run up (blip) |
+| `skin-unlocked` | the UNLOCKED! card: a results screen, or Select Player's catch-up (only on pages that load `sfx.js`; Ghost Notes and Note Storm stay silent) | a sparkly run up (blip) |
+| `skin-equip` | a skin or accessory is put on (the locker, or **Equip now**) | a quick zip and a ping (blip) |
 | `puck-hit-soft` / `puck-hit-hard` / `puck-smash` | Neon Face-Off: a WEAK / GOOD or POWER / SMASH! shot | a soft tap / a harder knock / a swish and a crack (blip) |
 | `rail-bounce` | Neon Face-Off: the puck bounces off a rail (only while the microphone is muted, or toward the CPU) | a tiny tick (blip) |
 | `goal` | Neon Face-Off: a goal | a quick run up (blip) |
@@ -188,6 +191,30 @@ Any event without its own sound falls back to the blip (`select-…` events fall
 Each player's portrait is Mat's artwork in `shared/portraits/` (`trumpet.png`, `alto-sax.png`, …): the Select Player tiles and big preview, **Continue as …**, the instrument chip in every game's top bar, the Button Masher fighter and the Neon Face-Off player sides. Underneath each image is the drawn neon portrait from `portraits.js`; if a file is missing or broken, the drawing shows instead, so a broken image never appears.
 
 **To add or replace a portrait:** save a PNG or WebP with a transparent background as `shared/portraits/<name>.png`, using the name from the table in [`shared/portraits/README.md`](shared/portraits/README.md). Any shape works: it is fitted into a square, centered, never stretched. If that instrument has a smaller copy in `shared/portraits/optimized/` (alto sax, tenor sax, bells and horn do today), delete the copy and take its name off `OPTIMIZED` in `portraits.js`, or make a new copy. Optional `<name>-full.png` is a bigger picture used only in the Select Player preview. That README also covers skin variants and making optimized copies.
+
+## Skins
+
+Students earn **skins** for their instrument's portrait by playing: a **color skin** (Sunset Wave, Ice Crystal, Flame, Galaxy, Pixel, Chrome Gold, Diamond, Ghostly; Classic Neon is always there) and one **accessory** on top (Headband, Shades, Visor, Crown, Cape, Ninja Mask). On Select Player, the player card's **SKINS** button opens the locker: tap an unlocked skin to wear it (the big portrait shows it right away); locked ones are dark silhouettes that say what they take ("Earn 50 ★ to unlock", "Clear The Golden Vault in Chime Heist"). What a student wears is saved per instrument on this device and shows everywhere that instrument's portrait does: the tile, CONTINUE AS, every game's top-bar chip, Button Masher's fighter and the Neon Face-Off player sides (Player 2 wears their own instrument's skin).
+
+**How skins are earned** (all in `shared/skins.js`, easy to edit):
+
+| Skin | How |
+|---|---|
+| Sunset Wave, Headband, Ice Crystal, Shades, Flame, Galaxy, Pixel, Visor | 10, 25, 50, 100, 150, 200, 300, 500 ★ on THIS instrument, all games and all modes together (the same total as the player card) |
+| Chrome Gold | clear The Golden Vault in Chime Heist |
+| Diamond | earn the Diamond belt in Note Ninja |
+| Ghostly | 3 ★ on Ghost Run in Ghost Notes |
+| Crown | defeat The Conductor in Button Masher |
+| Cape | beat The Champ in Neon Face-Off (1 player vs CPU) |
+| Ninja Mask | earn any TEST READY badge in Ancient Ninja Scrolls |
+
+Star skins belong to the instrument that earned the stars. The special wins count in any NOTES × ORDER mode, on any instrument, and unlock that skin for every instrument on the device. Progress from before skins existed counts: the first time a student opens Select Player (or reaches any results screen) they get one **UNLOCKED!** card with everything they have already earned. After that, a new skin's card appears on the results screen that earned it, with **Equip now**. Nothing ever interrupts a game.
+
+**To add a skin:** add a line to `SKINS` in `shared/skins.js`: an `id` (never change it later), `kind` (`'color'` or `'acc'`), a `name`, how it `unlock`s, and how it looks (a color skin's `look`: two theme colors, plus any of a backdrop, aura, effect, pixel or ghost style; an accessory's drawing goes in `ACC_ART` and where it sits in `art`). **To change how a skin is earned**, edit its `unlock`: `{stars: 50}` for a star goal on the instrument, or `{game: 'chime-heist', level: 8, stars: 1, text: 'Clear The Golden Vault in Chime Heist'}` for a special win (`text` is what the locker says). A rule for a game that isn't in the arcade is skipped. The top of `skins.js` explains every field.
+
+**To draw a skin yourself** for one instrument, add `shared/portraits/<name>--<skin id>.png` (for example `trumpet--flame.png`); it replaces the code-drawn version. **If an accessory sits in the wrong place**, nudge that instrument's numbers in `ANCHORS` in `shared/skins.js`. Both are explained, with a table of every instrument's positions, in [`shared/portraits/README.md`](shared/portraits/README.md).
+
+**Testing:** `?demo&unlockall` (on Select Player or any game) previews every skin without earning it. Nothing is saved as earned, and without `?demo` the flag does nothing. Animated effects (flames, sparkles, the gold sweep, drifting stars, the ghost's float) play only on the big Select Player portraits, and not at all with reduced motion; tiles, chips and in-game portraits show the still version.
 
 ## Players and old saves
 
