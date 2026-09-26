@@ -32,4 +32,7 @@ window.MASHER_RULES = {
   maxMultiplier: 4,     // … up to ×4
   showCorrectMs: 1500,  // after a wrong combo or a timeout, the right keys glow this long
   afterHitMs: 650,      // pause after a correct STRIKE! before the next note
+  // more time per note by instrument family: woodwinds have many more keys to find than 3–4 valves or a slide.
+  // Each rival's `time` above is multiplied by this (Squeaky Reed 15 s -> 22.5 s for woodwinds). Snare and bells don't play.
+  timeByFamily: {woodwind: 1.5, brass: 1},
 };
