@@ -60,6 +60,50 @@
 .btn-select:hover{background:var(--t-hi)}
 .btn-select:active{transform:translateY(2px)}
 
+/* the SKINS button (opens the locker) */
+.btn-skins{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;min-height:44px;border-radius:999px;border:2px solid var(--cyan);
+  background:var(--deep);color:var(--cyan-hi);font-family:var(--display);font-size:17px;letter-spacing:.06em;text-transform:uppercase;box-shadow:var(--glow-cyan)}
+.btn-skins small{font-family:var(--text);font-size:13px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--text-lo)}
+.btn-skins:hover{background:var(--floor-lit)}
+
+/* ---------- the SKINS locker ---------- */
+.sk-locker{align-items:flex-start;overflow-y:auto;padding:12px}
+.sk-locker .panel{max-width:860px;width:100%;margin:auto;text-align:left;border-color:var(--cyan)}
+.lk-head{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:16px;align-items:center}
+.lk-stage{display:grid;place-items:center;aspect-ratio:1;border-radius:16px;background:radial-gradient(circle, color-mix(in srgb, var(--pc,var(--cyan)) 18%, var(--deep)), var(--deep) 70%)}
+.lk-pic{width:86%}
+.lk-pic .pt-box{display:grid}
+.lk-info h2{margin:2px 0 4px;font-family:var(--display);font-weight:400;font-size:clamp(24px,4vw,34px);text-transform:uppercase}
+.lk-now{margin:0 0 6px;font-weight:700;color:var(--yellow-hi)}
+.lk-how{margin:0;font-size:14px}
+.lk-sub{margin:16px 0 8px;font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan-hi)}
+.lk-sub small{font-family:var(--text);font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-lo)}
+.lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.sk-opt{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:14px;border:2px solid var(--floor-3);
+  background:var(--deep);color:var(--text-hi);text-align:center;min-width:0}
+.sk-opt b{font-size:14px;line-height:1.15}
+.sk-opt small{font-size:11.5px;line-height:1.2;color:var(--text-lo)}
+.sk-o-pic{position:relative;display:grid;place-items:center;width:78%;aspect-ratio:1}
+.sk-o-pic .pt-box{width:100%}
+.sk-opt[aria-pressed="true"]{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow),var(--glow-yellow)}
+.sk-opt[aria-pressed="true"]::after{content:"✓";position:absolute;top:4px;right:6px;font-weight:700;color:var(--yellow)}
+.sk-opt:not(.locked):hover{border-color:var(--cyan)}
+.sk-opt:focus-visible{outline:3px solid var(--text-hi);outline-offset:3px}
+/* locked: a dark silhouette with a thin outline, a lock, and what it takes */
+.sk-opt.locked{border-style:dashed;cursor:not-allowed}
+.sk-opt.locked .pt-box{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
+.sk-opt.locked b{color:var(--text-lo)}
+.lk-lock{position:absolute;width:26%;right:0;bottom:0;fill:var(--floor-3);stroke:var(--text-lo);stroke-width:2}
+.lk-none{font-size:40px;line-height:1;color:var(--text-lo)}
+@media (max-width:560px){
+  .lk-head{grid-template-columns:110px 1fr;gap:10px}
+  .lk-how{display:none}
+  .lk-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .sk-opt{padding:6px 4px}
+  .sk-opt b{font-size:12.5px}
+  .sk-opt small{font-size:10.5px}
+}
+
 /* ---------- the grid ---------- */
 .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;min-width:0;border-radius:14px;

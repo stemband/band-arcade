@@ -329,6 +329,7 @@
       const hasNext = lv < VAULTS.length && (stars > 0 || A.DEMO);
       $('resNext').hidden = !hasNext;
       $('results').hidden = false;
+      A.Skins.announce($('results').querySelector('.panel'), {members: ['bells'], member: 'bells'});   // the bells' stars; achievements count everywhere
       (hasNext ? $('resNext') : $('resRetry')).focus();
       if (stars) sfx('level-complete'); else if (!wasCaught) sfx('level-failed');
       let t = 520;

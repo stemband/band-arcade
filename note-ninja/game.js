@@ -272,6 +272,7 @@
     const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO || A.store.level(key, inst.id, lv + 1).stars > 0);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     // sounds, one after another
     sfx(stars ? 'level-complete' : 'level-failed');

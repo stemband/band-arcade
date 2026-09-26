@@ -381,6 +381,7 @@
     const hasNext = lv < RIVALS.length && (stars > 0 || A.DEMO);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     if (won) sfx('level-complete'); else if (result !== 'time') sfx('level-failed');
     let t = 520;

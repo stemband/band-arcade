@@ -107,11 +107,110 @@ h1,h2,h3{text-wrap:balance;margin:0}
 /* ---------- portraits (shared/portraits.js): the artwork over its drawn SVG fallback ----------
    The box is square; the image keeps its transparent background and fits inside it (object-fit: contain),
    centered, never stretched or cropped. Until the image has loaded (.pt-ok) only the SVG shows. */
-.pt-box{position:relative;display:inline-grid;grid-template:100% / 100%;place-items:center;width:100%;aspect-ratio:1;overflow:hidden;vertical-align:middle}
-.pt-box>svg,.pt-box>.pt-img{grid-area:1/1;width:100%;height:100%;min-width:0;min-height:0;display:block}
+.pt-box{position:relative;isolation:isolate;display:inline-grid;grid-template:100% / 100%;place-items:center;width:100%;aspect-ratio:1;min-height:0;vertical-align:middle}
+.pt-box>svg.portrait,.pt-box>.pt-img,.pt-box>.pt-pix{grid-area:1/1;width:100%;height:100%;min-width:0;min-height:0;display:block;position:relative;z-index:2}
 .pt-box>.pt-img{object-fit:contain;object-position:center;opacity:0;-webkit-user-select:none;user-select:none;pointer-events:none}
 .pt-box.pt-ok>.pt-img{opacity:1}
-.pt-box.pt-ok>svg{visibility:hidden}
+.pt-box.pt-ok>svg.portrait{visibility:hidden}
+
+/* ---------- Skins (shared/skins.js) on a portrait ----------
+   Layers, bottom to top: .sk-back (backdrop / aura / pixel frame), the Cape, the picture (or the SVG fallback,
+   recolored), .sk-fx (sparkles, sweep, shimmer), the accessory. Effects apply to Mat's pictures only: with the SVG
+   fallback (no .pt-ok) the skin is just the recolor, and a drawn variant picture (.pt-var-c) replaces the effects.
+   Animation: ONLY on the big portrait (.pt-box-big) and never under reduced motion. --sk1/--sk2 = the skin's colors. */
+.sk-back,.sk-fx{position:absolute;inset:0;pointer-events:none;display:none}
+.sk-back{z-index:0}.sk-fx{z-index:3}
+.pt-ok:not(.pt-var-c)>.sk-back,.pt-ok:not(.pt-var-c)>.sk-fx{display:block}
+/* rim light: follows the outline of the art */
+.pt-ok.sk-rim:not(.pt-var-c):not(.sk-pixel)>.pt-img{filter:drop-shadow(0 0 1.5px var(--sk1)) drop-shadow(0 0 5px var(--sk2))}
+.pt-box-chip.pt-ok.sk-rim:not(.pt-var-c)>.pt-img{filter:drop-shadow(0 0 1px var(--sk1))}
+/* Sunset Wave: a synthwave sun sliced by stripes, on a horizon */
+.sk-bg-horizon>.sk-back{border-radius:12%;overflow:hidden;
+  background:linear-gradient(to bottom,transparent 58%,color-mix(in srgb,var(--pink) 55%,transparent) 60%,transparent 61%),
+    repeating-linear-gradient(to bottom,transparent 0 5%,color-mix(in srgb,var(--pink) 22%,transparent) 5% 5.8%) 0 100%/100% 38% no-repeat,
+    radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--pink) 30%,transparent),transparent 65%)}
+.sk-bg-horizon>.sk-back::before{content:"";position:absolute;left:22%;right:22%;top:14%;aspect-ratio:1;border-radius:50%;
+  background:linear-gradient(var(--yellow),var(--amber) 45%,var(--pink));opacity:.75;
+  -webkit-mask:linear-gradient(#000 48%,transparent 48% 53%,#000 53% 62%,transparent 62% 68%,#000 68% 75%,transparent 75%);
+  mask:linear-gradient(#000 48%,transparent 48% 53%,#000 53% 62%,transparent 62% 68%,#000 68% 75%,transparent 75%)}
+/* Galaxy: stars and a purple nebula */
+.sk-bg-galaxy>.sk-back{border-radius:12%;
+  background:radial-gradient(circle,var(--white-hi) 0 .6px,transparent 1.2px) 3px 5px/19px 17px,
+    radial-gradient(circle,var(--cyan-hi) 0 .7px,transparent 1.3px) 11px 2px/31px 27px,
+    radial-gradient(circle,var(--white) 0 1px,transparent 1.6px) 7px 13px/43px 37px,
+    radial-gradient(ellipse at 30% 35%,color-mix(in srgb,var(--purple) 55%,transparent),transparent 55%),
+    radial-gradient(ellipse at 72% 70%,color-mix(in srgb,var(--pink) 40%,transparent),transparent 55%),
+    radial-gradient(circle,color-mix(in srgb,var(--purple-ink) 50%,transparent),transparent 72%)}
+/* Flame: fire tongues around the instrument (the SVG is in skins.js) */
+.sk-aura-flame>.sk-back{background:radial-gradient(ellipse at 50% 85%,color-mix(in srgb,var(--amber) 45%,transparent),transparent 62%)}
+.sk-aura{position:absolute;left:-4%;top:0;width:108%;height:102%;opacity:.62}
+.sk-tongue{transform-box:fill-box;transform-origin:50% 100%}
+/* sparkles (Ice Crystal) */
+.sk-sparks{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.sk-spark{fill:var(--white-hi)}
+.sk-sparks g:nth-child(odd) .sk-spark{fill:var(--sk1)}
+.pt-box-chip .sk-sparks{display:none}
+/* Chrome Gold sweep and Diamond shimmer: painted only on the art (masked by the picture itself) */
+.sk-fx-sweep>.sk-fx,.sk-fx-shimmer>.sk-fx{-webkit-mask:var(--sk-src) center/contain no-repeat;mask:var(--sk-src) center/contain no-repeat}
+.sk-fx-sweep>.sk-fx{background:linear-gradient(110deg,transparent 38%,color-mix(in srgb,var(--white-hi) 70%,transparent) 48%,color-mix(in srgb,var(--yellow) 40%,transparent) 52%,transparent 62%) 0 0/250% 100%;background-position:60% 0}
+.sk-fx-shimmer>.sk-fx{background:linear-gradient(120deg,var(--pink),var(--yellow),var(--green),var(--cyan),var(--purple),var(--pink)) 0 0/300% 300%;mix-blend-mode:color;opacity:.55}
+.sk-fx-shimmer>.sk-fx::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 26% 30%,var(--white-hi) 0 1.5%,transparent 3%),radial-gradient(circle at 70% 58%,var(--white-hi) 0 1.2%,transparent 2.6%),radial-gradient(circle at 44% 78%,var(--white-hi) 0 1%,transparent 2.2%)}
+/* Pixel: the art redrawn tiny and blown up (a canvas, portraits.js), in a chunky 8-bit frame */
+.pt-box>.pt-pix{object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+.pt-pixd>.pt-img{visibility:hidden}
+.sk-pixel>.sk-back{inset:5%;border:4px solid var(--sk1);outline:2px solid var(--sk2);outline-offset:2px;border-radius:0}
+.pt-box-big.sk-pixel>.sk-back{border-width:7px;outline-width:4px;outline-offset:4px}
+.pt-box-chip.sk-pixel>.sk-back{border-width:1px;outline:0}
+/* Ghostly: see-through, with a trailing glow */
+.pt-ok.sk-ghost:not(.pt-var-c)>.pt-img{opacity:.55;filter:drop-shadow(0 0 3px var(--sk1)) drop-shadow(0 7px 3px color-mix(in srgb,var(--sk2) 70%,transparent))}
+/* accessories: placed by Arcade.Skins.ANCHORS (percent of the square), the SVG-fallback numbers until the
+   picture loads, then the picture's (or the -full picture's) */
+.sk-acc{position:absolute;z-index:4;pointer-events:none;overflow:visible;height:auto;--x:var(--sx);--y:var(--sy);--w:var(--sw);--r:var(--sr);
+  left:calc(var(--x) * 1%);top:calc(var(--y) * 1%);width:calc(var(--w) * 1% * var(--acc-k,1));transform:translate(-50%,-50%) rotate(calc(var(--r) * 1deg))}
+.pt-ok>.sk-acc{--x:var(--ix);--y:var(--iy);--w:var(--iw);--r:var(--ir)}
+.pt-ok.pt-full>.sk-acc{--x:var(--fx);--y:var(--fy);--w:var(--fw);--r:var(--fr)}
+.sk-acc-head{transform:translate(-50%,-96%)}
+.sk-acc-back{z-index:1;transform:translate(-50%,0)}
+.pt-var-a>.sk-acc{display:none}                  /* a drawn accessory variant already wears it */
+.pt-box-chip{--acc-k:1.5}
+.sk-acc-solo{display:block;width:100%;height:auto;overflow:visible}
+/* the UNLOCKED! card (results screens and Select Player's catch-up): the new skin spins in */
+.sk-unlock{margin:10px auto;padding:10px 12px;max-width:520px;border-radius:16px;border:2px solid var(--yellow);background:var(--floor-2);box-shadow:var(--glow-yellow);text-align:center}
+.sk-u-title{margin:0 0 6px!important;font-family:var(--display);font-size:clamp(24px,5vw,34px);letter-spacing:.06em;color:var(--yellow)!important;
+  -webkit-text-stroke:1.5px var(--red-ink);text-shadow:0 3px 0 var(--red-ink),var(--glow-yellow);transform:skewX(-8deg)}
+.sk-u-list{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sk-u-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:150px}
+.sk-u-pic{display:grid;place-items:center;width:96px;height:96px;border-radius:14px;background:var(--deep)}
+.sk-u-pic .pt-box,.sk-u-pic .sk-acc-solo{width:84px}
+.sk-u-name{font-family:var(--display);font-weight:400;font-size:17px;text-transform:uppercase;color:var(--text-hi)}
+.sk-u-item small{font-size:12.5px;line-height:1.25;color:var(--text-lo)}
+.sk-u-equip{margin-top:4px}
+.sk-u-foot{margin:8px 0 0!important;font-size:14px}
+.sk-swatch{display:block;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,var(--sk1),transparent 70%)}
+.sk-catchup,.overlay.sk-tall{align-items:start;overflow-y:auto}
+.overlay.sk-tall>.panel{margin:auto}
+.panel .sk-unlock .sk-u-pic{width:80px;height:80px}.panel .sk-unlock .sk-u-pic .pt-box{width:70px}
+.sk-catchup .panel{max-width:640px;width:100%;margin:auto}
+@media (max-width:480px){.sk-unlock{padding:8px 6px}.sk-u-list{gap:8px 4px}.sk-u-item{width:128px}.sk-unlock .sk-u-pic,.panel .sk-unlock .sk-u-pic{width:70px;height:70px}.sk-unlock .sk-u-pic .pt-box,.panel .sk-unlock .sk-u-pic .pt-box{width:62px}.sk-u-name{font-size:15px}.sk-u-item small{font-size:11.5px}}
+@media (prefers-reduced-motion:no-preference){
+  .sk-u-pic{animation:sk-spin-in .9s cubic-bezier(.2,1.3,.4,1) both;animation-delay:.25s}
+  .sk-u-item:nth-child(2) .sk-u-pic{animation-delay:.45s}.sk-u-item:nth-child(3) .sk-u-pic{animation-delay:.65s}
+}
+@keyframes sk-spin-in{0%{transform:scale(.2) rotate(-540deg);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:no-preference){
+  .pt-box-big.sk-aura-flame .sk-tongue{animation:sk-flicker calc(.7s + var(--i) * .07s) ease-in-out infinite alternate}
+  .pt-box-big.sk-fx-sparkle .sk-sparks g{animation:sk-drift 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.45s)}
+  .pt-box-big.sk-fx-sweep>.sk-fx{animation:sk-sweep 2.8s ease-in-out infinite}
+  .pt-box-big.sk-fx-shimmer>.sk-fx{animation:sk-shimmer 4s linear infinite}
+  .pt-box-big.sk-bg-galaxy>.sk-back{animation:sk-stars 24s linear infinite}
+  .pt-box-big.sk-ghost>.pt-img,.pt-box-big.sk-ghost>.sk-acc{animation:sk-float 2.6s ease-in-out infinite}
+}
+@keyframes sk-flicker{from{transform:scaleY(.86) scaleX(1.04)}to{transform:scaleY(1.08) scaleX(.96)}}
+@keyframes sk-drift{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(-6px);opacity:1}}
+@keyframes sk-sweep{0%{background-position:100% 0}70%,100%{background-position:0 0}}
+@keyframes sk-shimmer{to{background-position:300% 300%}}
+@keyframes sk-stars{to{background-position:19px 22px,-31px 29px,43px -37px,0 0,0 0,0 0}}
+@keyframes sk-float{50%{translate:0 -5px}}
 a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 
 /* ---------- sound buttons (arcade floor + Select Player only; see shared/sfx.js) ---------- */
