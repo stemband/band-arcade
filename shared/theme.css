@@ -36,6 +36,10 @@
   --arena:#120a26; --arena-grid:rgba(77,141,255,.16);
   --fighter-skin:#e8b894; --fighter-hair:#2b1d16; --fighter-pants:#2e3170; --fighter-shoe:#f4f0ff;
   --key-open:#0e0a1c; --key-rim:#a6f5ff; --key-on:#ffe14d; --key-glow:#4dff88;
+  /* instrument portraits (shared/portraits.js): each instrument's signature neon */
+  --pt-flute:#e3f6ff; --pt-oboe:#c58bff; --pt-clarinet:#5aa9ff; --pt-basscl:#3ee0b0; --pt-bassoon:#ff9d5c;
+  --pt-altosax:#ffd23f; --pt-tenorsax:#ff7ac8; --pt-barisax:#ff5c7a; --pt-trumpet:#fff27a; --pt-horn:#ffb13b;
+  --pt-trombone:#ff7043; --pt-baritonetc:#7dffb0; --pt-euphbc:#c6ff4d; --pt-tuba:#a98bff; --pt-bells:#4de8ff;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */
@@ -95,7 +99,10 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .brand:hover{background:var(--pink);color:var(--deep)}
 .brand:active{transform:translateY(1px)}
 .topbar-right{display:flex;gap:8px;align-items:center;min-width:0}
-.chip{font-size:14px;color:var(--text-lo);border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:rgba(6,4,13,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;text-decoration:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--text-lo);border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 6px;min-height:34px;background:rgba(6,4,13,.5);white-space:nowrap;overflow:hidden;max-width:42vw;text-decoration:none}
+.chip-name{overflow:hidden;text-overflow:ellipsis}
+.chip-pic{flex:none;width:26px;height:26px;border-radius:50%;background:var(--deep);display:grid;place-items:center}
+.chip-pic svg{width:24px;height:24px;display:block}
 a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 
 /* ---------- sound buttons (arcade floor + Select Player only; see shared/sfx.js) ---------- */

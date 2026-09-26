@@ -303,7 +303,6 @@
     euphbc:     {diagram: 'euph',     notes: EUPHONIUM},
     tuba:       {diagram: 'tuba',     notes: TUBA},
     trombone:   {diagram: 'trombone', notes: TROMBONE},
-    tonebells:  {diagram: 'none',     notes: {}},
     bells:      {diagram: 'none',     notes: {}},
   };
 })();

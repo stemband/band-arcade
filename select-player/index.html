@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Select Player</title>
-<meta name="description" content="Choose your instrument.">
+<meta name="description" content="Select your player: choose your instrument.">
 <meta name="theme-color" content="#0b0716">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,34 +15,57 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap">
+<div class="wrap sp">
   <div class="topbar"><a class="brand" id="homeLink" href="../index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div></div>
 
   <header class="sp-head">
     <div class="sp-marquee" id="marquee"></div>
-    <p class="sp-skill" id="gameSkill"></p>
-    <h1 class="sp-title">Select player</h1>
+    <h1 class="sp-title">Select your player</h1>
   </header>
 
   <section class="continue" id="continue" hidden>
     <a class="btn-continue" id="continueBtn" href="#">
-      <span class="c-label">Continue as</span>
-      <span class="c-name" id="continueName"></span>
-      <span class="c-notes" id="continueNotes"></span>
+      <span class="c-pic" id="continuePic" aria-hidden="true"></span>
+      <span class="c-text"><span class="c-label">Continue as</span><span class="c-name" id="continueName"></span></span>
     </a>
-    <p class="or">or choose a different player</p>
   </section>
+  <p class="sp-msg" id="msg" role="status" hidden></p>
 
-  <section aria-labelledby="pickTitle">
-    <h2 class="sr" id="pickTitle">Choose your instrument</h2>
-    <p class="pick-help" id="pickHelp">Choose your instrument. Your five notes are on each card.</p>
-    <div class="roster" id="roster"></div>
-  </section>
+  <div class="sp-main">
+    <!-- the highlighted instrument, big, with its player card -->
+    <aside class="preview" id="preview" aria-live="polite">
+      <div class="pv-stage"><div class="pv-pic" id="pvPic"></div></div>
+      <div class="card">
+        <p class="card-fam" id="cFam"></p>
+        <h2 class="card-name" id="cName"></h2>
+        <p class="card-key" id="cKey"></p>
+        <p class="card-five" id="cFive"></p>
+        <p class="card-stars"><span class="star" aria-hidden="true">★</span> <b id="cStars">0</b> <span id="cStarsWord">stars on this device</span></p>
+        <div class="horn-toggle" id="hornToggle" role="group" aria-labelledby="hornLbl" hidden>
+          <span id="hornLbl">Starting notes:</span>
+          <button type="button" data-horn="F">F–C</button><button type="button" data-horn="C">C–G</button>
+        </div>
+        <button type="button" class="btn-select" id="selectBtn">Select</button>
+      </div>
+    </aside>
+
+    <section class="grid-wrap" aria-labelledby="gridTitle">
+      <h2 class="sr" id="gridTitle">Instruments</h2>
+      <div class="grid" id="grid" role="group" aria-label="Instruments. Arrow keys move, Enter selects"></div>
+      <ul class="legend" aria-label="Sections">
+        <li class="fam-woodwind">Woodwinds</li><li class="fam-brass">Brass</li><li class="fam-percussion">Percussion</li>
+      </ul>
+    </section>
+  </div>
 </div>
+
+<!-- PLAYER 1 READY: a flash across the screen, then the game -->
+<div class="ready" id="ready" hidden aria-live="assertive"><div class="flash"></div><p><span>Player 1</span><span>Ready</span></p></div>
 
 <script src="../shared/instruments.js"></script>
 <script src="../shared/storage.js"></script>
 <script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
 <script src="../shared/games.js"></script>
 <script src="../shared/cabinets.js"></script>
 <script src="../shared/sfx.js"></script>

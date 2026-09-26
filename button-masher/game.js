@@ -95,25 +95,11 @@
     stopTimers(); G = null;
     ['play', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('playing'); document.body.classList.remove('ww');
-    member = A.getMember(inst, A.store.memberFor(inst.id));
-    const pick = $('memberPick');
-    pick.hidden = !!member;
-    if (!member) {
-      $('hubMain').hidden = true; $('percussion').hidden = true;
-      A.Modes.memberPick(pick, inst, () => showHub(), 'Every instrument has its own fingerings.');
-      const f = pick.querySelector('.member-btn'); if (f) f.focus({preventScroll: true});
-      return;
-    }
+    member = A.currentMember();                                              // the instrument chosen on Select Player
     T = M.table(member); D = M.DIAGRAMS[T.diagram] || null;
-    const chip = document.querySelector('#topbar a.chip');                  // the chip names the instrument, not the group
-    if (chip) chip.innerHTML = `<span class="sr">Change instrument. Playing as </span>${member.name}`;
-    const change = inst.members.length > 1 ? `<p class="playing">Playing: <b>${member.name}</b> <button type="button" class="linkish" id="changeMember">change</button></p>` : '';
-    $('playingAs').innerHTML = change; $('percPlaying').innerHTML = change;
-    document.querySelectorAll('#changeMember').forEach(b => b.addEventListener('click', () => { A.store.setMember(inst.id, null); showHub(); }));
     if (isPerc()) {                                                          // bells: no fingerings, point to Chime Heist
       $('hubMain').hidden = true; $('percussion').hidden = false;
       $('chimeLink').href = A.linkTo('../chime-heist/index.html');
-      $('percOther').hidden = inst.members.length > 1;
       $('percOther').href = A.playerLink(GAME_ID);
       return;
     }

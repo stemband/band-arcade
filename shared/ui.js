@@ -174,22 +174,26 @@ window.Arcade = window.Arcade || {};
   /** For game pages: the saved instrument, or (if none) send the student to pick one for this game.
       Usage: const inst = A.requireInstrument(GAME_ID); if (!inst) return; */
   A.requireInstrument = function (gameId) {
-    const inst = A.currentInstrument();
+    const inst = A.store.player ? A.currentInstrument() : null;      // the exact instrument must be chosen (a member)
     if (!inst) location.replace(A.playerLink(gameId));
     return inst;
   };
 
   /** Standard game top bar: "← Arcade" back to the arcade floor on the left, instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
-  /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player */
-  A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed} = {}) {
+  /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player.
+     {portrait: 'bells'}: the portrait for a fixed label. The chip shows the saved instrument's tiny portrait
+     (shared/portraits.js, when the page loads it) and its name. */
+  A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed, portrait} = {}) {
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
+    const m = !fixed && A.currentMember ? A.currentMember() : null;
+    const pic = id => id && A.portraitSVG ? `<span class="chip-pic" aria-hidden="true">${A.portraitSVG(id, {size: 'chip'})}</span>` : '';
     el.innerHTML =
       `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +
-      (fixed ? `<span class="chip"><span class="sr">Playing </span>${fixed}</span></div>`
-             : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">` +
-               `<span class="sr">Change instrument. Playing as </span>${inst ? inst.shortName : 'Choose instrument'}</a></div>`);
+      (fixed ? `<span class="chip">${pic(portrait)}<span class="sr">Playing </span><span class="chip-name">${fixed}</span></span></div>`
+             : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">${pic(m && m.id)}` +
+               `<span class="sr">Change instrument. Playing as </span><span class="chip-name">${m ? m.short : inst ? inst.shortName : 'Choose instrument'}</span></a></div>`);
   };
 })(window.Arcade);

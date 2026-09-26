@@ -10,13 +10,18 @@
    with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move.
    gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
    results, spar bests), kept apart from the shared progress shape above.
-   migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts. */
+   migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
+   THE PLAYER: `player` is the saved INSTRUMENT MEMBER ('trumpet', 'oboe', 'horn'…, Arcade.PLAYERS), chosen on
+   Select Player. `inst` is kept as its player GROUP (Arcade.groupFor), which is what every game saves progress
+   under, so stars saved before members existed never move. `hornStart` ('F' | 'C') picks the horn's group.
+   `pending` (after the members migration): a group whose exact instrument the student must still pick
+   ({group: 'bb'}), or {reason: 'tonebells'}; Select Player shows it and clears it. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const KEY = 'bandarcade.v1';
   const CHECKER_MODES = ['five', 'Bb', 'Eb', 'F', 'Ab', 'full'];
-  let data = {inst: null, sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}};
+  let data = {inst: null, player: null, hornStart: 'F', sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}};
 
   try {
     const raw = localStorage.getItem(KEY);
@@ -49,13 +54,47 @@ window.Arcade = window.Arcade || {};
       done['ninja-10-belts'] = true;
       save();
     }
+    // One tile per instrument: the saved choice becomes a MEMBER. A group with one member maps straight to it
+    // (hornF / hornC -> horn, with the matching starting notes); a group with several uses the member the student
+    // already picked for "Which instrument do you play?"; otherwise Select Player asks for the exact instrument.
+    // Colored Tone Bells is gone: those students choose again.
+    if (!done['players-v1']) {
+      const g = data.inst && A.getInstrument(data.inst), picked = (data.members || {})[data.inst];
+      if (!data.player && g) {
+        if (g.id === 'hornF' || g.id === 'hornC') { data.player = 'horn'; data.hornStart = g.id === 'hornC' ? 'C' : 'F'; }
+        else if (picked === 'tonebells') { data.pending = {reason: 'tonebells'}; data.inst = null; }
+        else if (picked && g.members.some(m => m.id === picked)) data.player = picked;
+        else if (g.members.length === 1) data.player = g.members[0].id;
+        else data.pending = {group: g.id};                 // keep data.inst, so the old group's stars still show meanwhile
+      }
+      Object.keys(data.members || {}).forEach(k => { if (data.members[k] === 'tonebells') delete data.members[k]; });
+      done['players-v1'] = true;
+      save();
+    }
   }
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
 
   A.store = {
-    get instId() { return data.inst; },
-    setInstId(id) { data.inst = id; save(); },
+    /** the saved player GROUP id (what games save progress under), from the saved member */
+    get instId() { const g = data.player && A.groupFor(data.player, {hornStart: data.hornStart}); return g ? g.id : (data.pending && data.pending.group ? null : data.inst); },
+    /** the saved instrument MEMBER id ('trumpet'…), or null */
+    get player() { return data.player && A.memberById(data.player) ? data.player : null; },
+    /** save the player (a member id); its group follows (Arcade.groupFor) */
+    setPlayer(id) {
+      if (!A.memberById(id)) return;
+      data.player = id; data.pending = null;
+      const g = A.groupFor(id, {hornStart: data.hornStart}); data.inst = g.id;
+      data.members = Object.assign({}, data.members, {[g.id]: id});
+      save();
+    },
+    /** horn: 'F' (F G A B♭ C, group hornF) or 'C' (C D E F G, group hornC) */
+    get hornStart() { return data.hornStart === 'C' ? 'C' : 'F'; },
+    setHornStart(v) { data.hornStart = v === 'C' ? 'C' : 'F'; if (data.player === 'horn') data.inst = A.groupFor('horn', {hornStart: data.hornStart}).id; save(); },
+    /** after the members migration: {group} to pick an exact instrument from, {reason: 'tonebells'}, or null */
+    get pending() { return data.pending || null; },
+    /** old: saves a GROUP directly. Kept for old links/tests; prefer setPlayer(member id) */
+    setInstId(id) { data.inst = id; const g = A.getInstrument(id); if (g && g.members.length === 1) data.player = g.members[0].id; save(); },
     get sens() { return data.sens; },
     setSens(v) { data.sens = v; save(); },
     /** sound on the arcade floor and Select Player only (shared/sfx.js); games stay silent */
@@ -70,7 +109,10 @@ window.Arcade = window.Arcade || {};
     gameMode(gameId) { return Object.assign({mode: 'random', scale: 'Bb'}, (data.modes || {})[gameId]); },
     setGameMode(gameId, patch) { data.modes = Object.assign({}, data.modes, {[gameId]: Object.assign(this.gameMode(gameId), patch)}); save(); },
     /** which instrument in a player group this student plays (e.g. bb -> 'clarinet'); for full range only */
-    memberFor(groupId) { return (data.members || {})[groupId] || null; },
+    memberFor(groupId) {
+      if (data.player && A.groupsOf(data.player).some(g => g.id === groupId)) return data.player;   // the player IS the answer
+      return (data.members || {})[groupId] || null;
+    },
     setMember(groupId, id) { data.members = Object.assign({}, data.members, {[groupId]: id}); save(); },
     /** progress object for one game + instrument (created on demand) */
     levels(gameId, instId) {
@@ -87,6 +129,17 @@ window.Arcade = window.Arcade || {};
     /** a game's own extra saved object (created on demand); change it, then call saveGameData(gameId) */
     gameData(gameId) { const g = data.gameData || (data.gameData = {}); return g[gameId] || (g[gameId] = {}); },
     saveGameData() { save(); },
+    /** every star this device has for one instrument member, across all games and modes
+        (group-keyed games under each of its groups, member-keyed ones (Button Masher) under the member) */
+    starsForPlayer(memberId) {
+      const ids = A.groupsOf(memberId).map(g => g.id).concat(memberId);
+      let n = 0;
+      Object.keys(data.games || {}).forEach(k => {
+        const byMember = (A.GAMES || []).some(g => g.byMember && (k === g.id || k.startsWith(g.id + ':')));
+        (byMember ? [memberId] : ids.filter(i => i !== memberId)).forEach(i => { n += this.totalStars(k, i); });
+      });
+      return n;
+    },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);
@@ -99,4 +152,6 @@ window.Arcade = window.Arcade || {};
   /** build a link that keeps ?demo (and any other flags) */
   A.link = path => path + location.search;
   A.currentInstrument = () => A.getInstrument(A.store.instId);
+  /** the saved instrument member ({id, name, short, …}), or null */
+  A.currentMember = () => A.store.player ? A.getMember(A.currentInstrument(), A.store.player) : null;
 })(window.Arcade);

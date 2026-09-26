@@ -34,26 +34,10 @@
   const byWritten = new Map();        // written midi -> keys of the list places with that pitch, in order
   const isChromatic = () => mode === 'full';
 
-  function chooseMember(id) {
-    member = A.getMember(inst, id);
-    if (!member) return;
-    A.store.setMember(inst.id, member.id);
-    fullFound = new Set();
-    setupFull();
-  }
+  // the instrument is the one chosen on Select Player (a member): no "Which instrument do you play?" here
   function setupFull() {
-    const pick = !member;
-    $('memberPick').hidden = !pick; $('fullMain').hidden = pick;
-    if (pick) {
-      $('memberBtns').innerHTML = inst.members.map(m =>
-        `<button class="btn member-btn" type="button" data-id="${m.id}">${m.name}</button>`).join('');
-      $('memberBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => chooseMember(b.dataset.id)));
-      A.Pitch.setRange(null);
-      $('ckFound').textContent = '';
-      return;
-    }
+    if (!member) return;
     $('memberName').textContent = member.name;
-    $('memberChange').hidden = inst.members.length < 2;
     $('dirBtn').hidden = !isChromatic();
     scaleObj = isChromatic() ? null : A.Scales.build(member, mode);
     $('fullLede').innerHTML = isChromatic()
@@ -141,10 +125,9 @@
     hint('');
     if (was !== m) { fullFound = new Set(); heard = null; }
     if (m === 'five') { A.Pitch.setRange(null); draw(); }
-    else { member = A.getMember(inst, A.store.memberFor(inst.id)); setupFull(); }
+    else { member = A.currentMember(); setupFull(); }
   }
   document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => { if (b.dataset.mode !== mode) setMode(b.dataset.mode); }));
-  $('memberChange').addEventListener('click', () => { member = null; setupFull(); $('memberBtns').querySelector('button').focus(); });
   $('dirBtn').addEventListener('click', () => { down = !down; drawFull(); });
   let lastW = 0;
   addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
