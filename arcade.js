@@ -72,6 +72,7 @@
     aisle.innerHTML = ring.map((g, r) =>
       `<div class="slot" data-r="${r}">${A.cabinetHTML(g, {href: A.startLink(g, '')})}</div>`).join('');
     const slots = [...aisle.querySelectorAll('.slot')];
+    if (A.Marquee) A.Marquee.hydrate(aisle);                  // the marquees' still frames (shared/marquees.js)
     return {
       kind: '2d',
       get startLink() { return slots[cur].querySelector('.cab-start'); },

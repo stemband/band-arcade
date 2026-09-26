@@ -12,7 +12,9 @@
                 'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
-       marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff'  (styles in shared/cabinets.css)
+       marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
+                | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff' | 'showtime' | 'speedway' | 'quest'. The picture behind the
+                title is the game's own `marquee` entry (below)
        kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'insert'  (shared/cabinets.js, SCREENS)
      player     optional: a game with its own fixed instrument group (e.g. 'bells'), or 'all' for a game that needs
@@ -35,6 +37,15 @@
                 as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist).
                 + block: true = those instruments can't play it at all: the game sends them to Select Player, which
                 dims their tiles and shows `label` with links to `games` (Sustain Speedway: bells and snare)
+     marquee    the lit sign's themed, animated picture behind the title (shared/marquees.js draws it, for the 3D and
+                2D cabinets and Select Player). Optional: leave it out for a moving gradient in the game's color with
+                sparkles. {scene, colors, speed, still, every}:
+       scene    'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll' | 'versus' | 'hockey' | 'curtain' | 'synthwave'
+                | 'pixel' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
+       colors   theme tokens, in the scene's order (any left out use the scene's own)
+       speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
+       every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
+                Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
@@ -57,6 +68,7 @@ window.Arcade.GAMES = [
     maxStars: 0,
     color: 'cyan',
     unpitched: true,                     // the Snare Drum can use it (its ARTICULATION test)
+    marquee: {scene: 'vu', colors: ['green', 'amber', 'amber-hi']},
     cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', kicker: 'Sound check', screen: 'tuner'},
     cabinet3d: {profile: 'soundcheck', body: 'cab-face'},
   },
@@ -68,6 +80,7 @@ window.Arcade.GAMES = [
     maxStars: 24,
     noteModes: true,
     color: 'pink',
+    marquee: {scene: 'manor', colors: ['purple-ink', 'yellow', 'screen']},
     cabinet: {shape: 'haunted', trim: 'purple', trim2: 'cyan', marquee: 'haunt', screen: 'ghost'},
     cabinet3d: {profile: 'haunted', body: 'cab-side'},
   },
@@ -79,6 +92,7 @@ window.Arcade.GAMES = [
     maxStars: 24,
     noteModes: true,
     color: 'yellow',
+    marquee: {scene: 'storm', colors: ['yellow-hi', 'purple-ink', 'purple-hi'], every: 3.2},
     cabinet: {shape: 'storm', trim: 'yellow', trim2: 'pink', marquee: 'shade', screen: 'storm'},
     cabinet3d: {profile: 'storm', body: 'cab-side'},
   },
@@ -90,6 +104,7 @@ window.Arcade.GAMES = [
     maxStars: 30,
     noteModes: true,
     color: 'pink',
+    marquee: {scene: 'dojo', colors: ['red', 'pink-hi', 'amber']},
     cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
     cabinet3d: {profile: 'dojo', body: 'cab-side'},
   },
@@ -102,6 +117,7 @@ window.Arcade.GAMES = [
     color: 'cyan',
     player: 'bells', playerName: 'Bell Kit',        // always the bell kit: START skips Select Player
     noteModes: true,                                // NOTES × ORDER; its old FULL RANGE / CHROMATIC keys are kept (sequences.js)
+    marquee: {scene: 'vault', colors: ['green', 'red', 'cyan']},
     cabinet: {shape: 'vault', trim: 'green', trim2: 'red', marquee: 'heist', screen: 'heist'},
     cabinet3d: {profile: 'vault', body: 'cab-side'},
   },
@@ -114,6 +130,7 @@ window.Arcade.GAMES = [
     color: 'yellow',
     player: 'all',
     badge: {label: 'Test Ready', one: 'belt', many: 'belts'},
+    marquee: {scene: 'scroll', colors: ['temple-sky', 'amber']},
     cabinet: {shape: 'temple', trim: 'amber', trim2: 'red', marquee: 'scroll', screen: 'scrolls'},
     cabinet3d: {profile: 'temple', body: 'cab-side'},
   },
@@ -126,6 +143,7 @@ window.Arcade.GAMES = [
     color: 'pink',
     byMember: true,                                  // fingerings differ inside a group: stars are saved per instrument
     noPlay: {groups: ['bells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
+    marquee: {scene: 'versus', colors: ['blue', 'red', 'yellow-hi']},
     cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', kicker: '1P vs 2P', screen: 'versus'},
     cabinet3d: {profile: 'versus', body: 'cab-side'},
   },
@@ -138,6 +156,7 @@ window.Arcade.GAMES = [
     color: 'cyan',
     players: 2,                                      // Select Player asks Player 2 too (or CPU)
     byMember: true,                                  // CPU-ladder stars are saved under Player 1's instrument
+    marquee: {scene: 'hockey', colors: ['cyan', 'pink', 'white-hi']},
     cabinet: {shape: 'rink', trim: 'cyan', trim2: 'pink', marquee: 'faceoff', kicker: '1P vs 2P', screen: 'hockey'},
     cabinet3d: {profile: 'rink', body: 'cab-side'},
   },
@@ -151,6 +170,7 @@ window.Arcade.GAMES = [
     noteModes: true,                                 // NOTES × ORDER (the snare plays a single count mode)
     byMember: true,                                  // stars are saved per instrument member ('snare' included)
     unpitched: true,                                 // the Snare Drum plays it: count mode, any clean hit counts
+    marquee: {scene: 'curtain', colors: ['red', 'amber-hi', 'anim-eye-bad']},
     cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', kicker: 'The Showtime Band', screen: 'showtime'},
     cabinet3d: {profile: 'showtime', body: 'cab-side'},
   },
@@ -166,6 +186,7 @@ window.Arcade.GAMES = [
     // bells and snare can't hold a long tone: block: true sends them back to Select Player with this message
     noPlay: {groups: ['bells', 'snare'], label: 'Percussion: try Chime Heist or Showtime Malfunction!', game: 'chime-heist',
              games: ['chime-heist', 'showtime-malfunction'], block: true},
+    marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi']},
     cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', kicker: 'Long tones', screen: 'speedway'},
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
@@ -180,6 +201,7 @@ window.Arcade.GAMES = [
     // the floor's line instead of a hi-score: "Episode 1: 60% · 7 friends" (arcade-quest/engine/save.js keeps it up to date)
     summary: store => { const s = (store.gameData('arcade-quest') || {}).save, p = s && s.progress;
       return p ? `Episode 1: ${p.pct}% · ${p.friends} ${p.friends === 1 ? 'friend' : 'friends'}` : ''; },
+    marquee: {scene: 'pixel', colors: ['purple-ink', 'purple', 'cyan-hi']},
     cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', kicker: 'Episode 1: Ghost Notes Manor', screen: 'quest'},
     cabinet3d: {profile: 'quest', body: 'cab-side'},
   },

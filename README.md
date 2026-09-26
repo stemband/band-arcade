@@ -430,6 +430,32 @@ Every later change you save to the repository goes live at the same link within 
 7. The **Snare Drum** is an unpitched player (`pitched: false` in `shared/instruments.js`: no notes, only attacks). A game that works without pitch sets `unpitched: true` in `shared/games.js` (Showtime Malfunction, the Note Checker's ARTICULATION test) and checks `inst.pitched === false`; every other game automatically sends a snare player back to Select Player with "Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.", and on those games the snare tile is dimmed and the arcade floor links to Showtime Malfunction instead of a hi-score.
 8. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
 
+## Marquees (the lit signs)
+
+Every cabinet's marquee is an animated picture drawn in code (`shared/marquees.js`) with the game's title on top. The same drawing is used by the 3D cabinets, the 2D cabinets (`?flat`) and the sign above SELECT YOUR PLAYER.
+
+| Game | Scene |
+|---|---|
+| Note Checker | glowing VU meters and equalizer bars bouncing gently (amber/green) |
+| Ghost Notes | a foggy, moonlit manor on a hill; little ghosts drift behind the letters; fog along the bottom |
+| Note Storm | rolling storm clouds; a forked lightning bolt every few seconds lights the clouds near it; faint rain |
+| Note Ninja | a dojo roofline under a big red moon; cherry-blossom petals; swaying paper lanterns |
+| Chime Heist | a vault door with a slowly turning combination dial; green and red lasers sweeping |
+| Ancient Ninja Scrolls | an unrolled scroll, mountain temples, lanterns in the Band Ninja belt colors |
+| Button Masher | a fighting-game VS burst, two fighters facing off, sparks between their fists |
+| Neon Face-Off | an air hockey table in perspective; a glowing puck with a light trail |
+| Showtime Malfunction | a stage curtain, a row of bulbs (a few broken, two flickering slowly), red animatronic eyes blinking |
+| Sustain Speedway | a synthwave sunset, a grid road rushing toward the horizon, speed lines |
+| Arcade Quest | an 8-bit night landscape, a giant microphone looming behind the title, pixel static |
+| any new game | its neon color in a slowly moving gradient, with sparkles |
+
+- **Only the front cabinet's marquee moves** (20 frames a second), and the one on Select Player. Every other marquee shows a still frame. Nothing moves while the tab is hidden, or when the device asks for reduced motion (then every marquee is a still frame).
+- **Readable first:** the title always has a dark outline and a soft dark haze behind it, so the scene never gets in the way.
+- **No flashing:** nothing on a marquee flashes more than 3 times a second. Lightning, flickering bulbs and sparks light up only part of the sign and fade in and out; lightning strikes at most once every 1.2 seconds (3.2 s by default).
+- **Change a game's marquee** in `shared/games.js`: `marquee: {scene: 'storm', colors: ['yellow-hi', 'purple-ink', 'purple-hi'], every: 3.2}`. `scene` picks the picture, `colors` are theme colors (the list each scene uses is in `shared/marquees.js`), `speed` makes it faster or slower (1 = normal), `still` picks the moment shown as the still frame. Leave `marquee` out for the default.
+- **Your own art:** put `shared/marquees/<game-id>.png` (or `.webp`) there and it replaces the drawn scene (the title is still drawn on top), or `<game-id>-full.png` to replace the whole sign, title included. Recommended size 1200 × 300. See [`shared/marquees/README.md`](shared/marquees/README.md).
+- **A new scene:** add it to `SCENES` in `shared/marquees.js` (a `draw(ctx, W, H, t, colors)` function, its default `colors` and a `still` moment). Keep to the rules at the top of that file: theme colors only, and no flashing.
+
 ## Adding a cabinet
 
 Every game gets its own cabinet on the arcade floor. A game with no `cabinet` entry still works: it gets the plain "classic" cabinet in its `color`, with a blinking PRESS START screen.
@@ -442,7 +468,7 @@ cabinet: {shape: 'storm', trim: 'green', trim2: 'pink', marquee: 'shade', kicker
 
 - `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns), `'versus'` (wide two-player fighting cabinet: two joysticks, split red/blue face), `'rink'` (rounded top, two players, a puck light on top)
 - `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`, `'blue'`
-- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll), `'versus'` (slanted, outlined fighting-game letters on a split sign), `'faceoff'` (neon tube letters in two colors)
+- `marquee`: the lettering of the title on the marquee (the picture behind it is the game's own `marquee` entry: see *Marquees*): `'bungee'`, `'haunt'` (drippy), `'pixel'`, `'shade'` (3D block letters), `'versus'` (slanted), `'faceoff'` (neon tubes, two colors), `'showtime'` (two lines, one burnt-out letter), `'speedway'` (slanted), `'quest'` (pixel), and `'dojo'`, `'heist'`, `'scroll'` (the plain display font). In 2D it also sets the sign's frame shape.
 - `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'versus'`, `'hockey'` (a tiny air hockey table), `'insert'`
 
 For a brand-new look:
@@ -450,7 +476,8 @@ For a brand-new look:
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
 - **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate, `'versus'` wide with two joysticks and a lit VS sign, `'rink'` with a glowing puck on top); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
-- **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
+- **New marquee lettering:** add the name to `MARQUEES` in `shared/cabinets.js` (and a `.mq-<name>` frame style in `shared/cabinets.css` if the 2D sign needs a special shape), and its font to `FONTS` in `shared/marquees.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
+- **New marquee picture:** see *Marquees* above.
 
 ## Known limits
 

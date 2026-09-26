@@ -396,8 +396,10 @@ window.Arcade = window.Arcade || {};
   };
   const pos = ([x, y, w, h]) => `left:${x / 3}%;top:${y / 6}%;width:${w / 3}%;height:${h / 6}%`;
 
-  /** the lit marquee (game name, and the ghost mascot for the haunted style) */
+  /** the lit marquee: the animated canvas sign from shared/marquees.js (call Arcade.Marquee.hydrate on the element
+      after adding it); without that file, the older all-CSS sign (the name, and a mascot for some styles) */
   A.marqueeHTML = function (g, tag = 'p') {
+    if (A.Marquee) return A.Marquee.html(g, tag);
     const c = A.cabinetOf(g);
     return `<${tag} class="mq mq-${c.marquee}">` +
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
@@ -427,6 +429,7 @@ window.Arcade = window.Arcade || {};
   let attractTimer = 0;
   A.setAttract = function (cabEl, g) {
     clearInterval(attractTimer);
+    if (A.Marquee) A.Marquee.animate(cabEl ? cabEl.querySelector('.mq-live') : null, 'floor');   // only the front marquee moves
     document.querySelectorAll('.cab.attract').forEach(el => el.classList.remove('attract'));
     if (!cabEl || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cabEl.classList.add('attract');
