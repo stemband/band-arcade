@@ -81,7 +81,7 @@
   if (saved && canPlay(saved)) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;
-    $('continuePic').innerHTML = A.portraitHTML(saved, {size: 'tile'});
+    $('continuePic').innerHTML = A.avatarHTML({size: 'tile', member: saved, label: ''});         // the student's avatar (shared/avatar.js)
     $('continueBtn').href = gameLink;
     $('continueBtn').onclick = e => {
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
@@ -110,7 +110,12 @@
     if (id === 'cpu') return cpuCard();
     const m = info(id), g = group(id);
     $('preview').style.setProperty('--pc', `var(--pt-${id})`);
-    $('pvPic').innerHTML = A.portraitHTML(id, {size: 'big', full: true, label: m.short});   // <id>-full when there is one
+    // the player's AVATAR wearing this instrument's skins (Player 2: the guest), with the instrument as a badge
+    const guest = phase === 2;
+    $('pvPic').innerHTML = A.avatarHTML({size: 'big', member: guest ? null : id, guest, label: `${guest ? 'Guest' : 'You'}, ${m.short}`});
+    $('pvInst').innerHTML = A.portraitHTML(id, {size: 'tile', label: m.short});
+    $('pvInst').hidden = false;
+    playerLine();
     $('cFam').textContent = FAMILY[m.family]; $('cFam').className = 'card-fam fam-' + m.family;
     $('cName').textContent = m.short;
     $('cKey').textContent = keyText(id);
@@ -128,6 +133,8 @@
     const n = A.store.player ? A.store.allStars(A.store.player, game.id) : 0;
     $('preview').style.setProperty('--pc', 'var(--pt-cpu)');
     $('pvPic').innerHTML = A.portraitSVG('cpu', {size: 'big', label: 'CPU'});
+    $('pvInst').hidden = true; $('pvInst').innerHTML = '';
+    $('cpTag').textContent = '2P'; $('cPlayer').textContent = 'The computer'; $('cAvBtns').hidden = true;
     $('cFam').textContent = '1 player'; $('cFam').className = 'card-fam fam-cpu';
     $('cName').textContent = 'CPU';
     $('cKey').textContent = 'Play against the computer: 8 rivals on a ladder.';
@@ -137,6 +144,21 @@
     $('selectBtn').textContent = 'Select CPU';
     $('skinsBtn').hidden = true;
   }
+  /* the name line and the avatar buttons: EDIT PLAYER (Player 1), or SURPRISE ME / EDIT for Player 2's guest */
+  function playerLine() {
+    const guest = phase === 2;
+    $('cpTag').textContent = guest ? '2P' : '1P';
+    $('cPlayer').textContent = A.Avatar.nameOf(guest ? A.Avatar.guest() : A.Avatar.get());
+    $('cPlayer').dataset.avName = guest ? 'guest' : 'me';
+    $('cAvBtns').hidden = false;
+    $('editBtn').textContent = guest ? 'Edit guest' : 'Edit player';
+    $('guestRand').hidden = !guest;
+  }
+  on($('editBtn'), 'click', () => {
+    const guest = phase === 2, id = ids[cur];
+    A.AvatarCreator.open({guest, member: info(id) ? id : null, onClose: () => { card(); $('editBtn').focus({preventScroll: true}); }});
+  });
+  on($('guestRand'), 'click', () => { A.Avatar.setGuest(A.Avatar.random()); A.Sfx.event('avatar-randomize'); card(); });
   function highlight(i, {focus = true, sound = true} = {}) {
     if (i < 0 || i >= ids.length || (phase === 1 && ids[i] === 'cpu')) return;       // CPU is only for Player 2
     const moved = i !== cur;
@@ -171,7 +193,7 @@
     return best < 0 ? cur : best;
   }
   on(window, 'keydown', e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden])') || !$('pressStart').hidden) return;   // the locker or an UNLOCKED! card is open
+    if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden]), .av-creator') || !$('pressStart').hidden) return;   // the locker, an UNLOCKED! card or Create Your Player is open
     const onButton = e.target.closest && e.target.closest('button, a');
     if (onButton && !onButton.classList.contains('tile') && (e.key === 'Enter' || e.key === ' ')) return;   // SELECT, horn toggle, sound…
     const side = {ArrowLeft: -1, ArrowRight: 1}[e.key], up = {ArrowUp: -1, ArrowDown: 1}[e.key];
@@ -214,7 +236,7 @@
     if (opp) {
       $('continue').querySelector('.c-label').textContent = 'Same opponent';
       $('continueName').textContent = opp === 'cpu' ? 'CPU' : info(opp).short;
-      $('continuePic').innerHTML = A.portraitHTML(opp, {size: 'tile', label: opp === 'cpu' ? 'CPU' : ''});
+      $('continuePic').innerHTML = opp === 'cpu' ? A.portraitHTML(opp, {size: 'tile', label: 'CPU'}) : A.avatarHTML({size: 'tile', guest: true, member: null, label: ''});
       $('continueBtn').onclick = e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); confirm(opp, true); };
     }
     highlight(Math.max(0, ids.indexOf(opp || (p1 === 'flute' ? 'oboe' : 'flute'))), {sound: false});
@@ -235,11 +257,11 @@
   }
   function drawLocker() {
     const id = lockerFor, eq = A.Skins.equipped(id), m = info(id);
-    $('lkPic').innerHTML = A.portraitHTML(id, {size: 'big', full: true});
+    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id});                     // skins are worn by the avatar
     $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}`;
     const opt = (s, skin, pressed) => {
       const open = A.Skins.isUnlocked(s, id), need = open ? '' : A.Skins.requirement(s), prog = open ? '' : A.Skins.progress(s, id);
-      const pic = s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.portraitHTML(id, {size: 'tile', skin, label: m.short});
+      const pic = s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.avatarHTML({size: 'tile', member: id, skin, label: m.short});
       return `<button type="button" class="sk-opt${open ? '' : ' locked'}" data-kind="${s.kind}" data-skin="${s.id}" aria-pressed="${pressed}"` +
         ` aria-label="${s.name}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
         `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>'}</span>` +
@@ -273,8 +295,10 @@
 
   highlight(cur, {focus: false, sound: false});
   (saved && canPlay(saved) ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
-  /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card */
-  if (saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)});
+  /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card. On a
+     device's first visit, "Create your player?" comes first (once; skippable: the random avatar stays). */
+  const catchUp = () => { if (live === me && saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)}); };
+  if (!A.AvatarCreator.offer({onDone: still(() => { card(); catchUp(); })})) catchUp();
   }
 
   function close() {

@@ -89,7 +89,7 @@
         {id: 'harmonize', label: Q.text('harmonize'), sub: canHarm ? Q.text('harmonizeSub') : Q.text('harmonizeLocked'), cls: 'c-harm' + (canHarm ? ' ready' : ''), disabled: !canHarm},
       ], {cols: 4, label: 'Your turn', start: B.lastCmd || 0,
         onPick: (it, i) => { B.lastCmd = i; m.destroy(); cmd.hidden = true; done(it.id); },
-        onBack: () => { Q.settings.open().then(() => { B.player = Q.playerId(B.member.id, {tone: Q.settings.get().tone}); }); }});
+        onBack: () => { Q.settings.open().then(() => { B.player = Q.playerId(B.member.id); }); }});
       const p = Q.$('qPrompt'); p.hidden = false; p.textContent = Q.text('menuPrompt', {you: B.member.short});
     }).then(id => { Q.$('qPrompt').hidden = true; return id; });
   }
@@ -215,7 +215,7 @@
     if (B.e.opens) Q.save.setFlag(B.e.opens);                  // e.g. the Phantom Fermata opens the attic
     Q.save.achievements();                                      // skins: every kind of manor ghost befriended
     Q.save.write();
-    await Q.say([B.e.lines.befriend.replace(/\{you\}/g, B.member.short), Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
+    await Q.say([B.e.lines.befriend.replace(/\{you\}/g, B.member.short).replace(/\{hero\}/g, Q.hero()), Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
     await rewards('befriend');
   }
   async function fade() {
@@ -258,7 +258,7 @@
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
       B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
-        player: Q.playerId(member.id, {tone: Q.settings.get().tone})};
+        player: Q.playerId(member.id)};
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +
         `<div class="q-calm" id="qCalmBox"><span>CALM</span><div class="q-bar calm"><i id="qCalm"></i></div></div></div>` +
@@ -266,7 +266,7 @@
         `<p class="q-mictag" id="qMicTag" hidden><span class="q-dot"></span> The mic is listening</p>` +
         `<button type="button" class="q-gear" id="qGear" aria-label="Settings">⚙</button>` +
         `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>`;
-      Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id, {tone: Q.settings.get().tone}); }));
+      Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id); }));
       hud();
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(src.music || 'quest-battle');
       run();

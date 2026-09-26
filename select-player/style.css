@@ -203,3 +203,21 @@
 /* BACKUP / RESTORE (shared/backup.js): a small text button on the player card */
 .card-backup{display:block;margin:4px auto 0;min-height:32px;padding:2px 10px;border:0;background:none;color:var(--text-lo);font-family:var(--text);font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .card-backup:hover,.card-backup:focus-visible{color:var(--cyan-hi)}
+/* CREATE YOUR PLAYER (shared/avatar.js): the preview shows the student's avatar with the instrument as a badge;
+   the card names the player and has EDIT PLAYER (Player 2 in Neon Face-Off: the guest, with SURPRISE ME) */
+.pv-stage{position:relative}
+.pv-pic .av-box{width:100%}
+.pv-inst{position:absolute;right:3%;bottom:3%;width:32%;padding:3px;border-radius:12px;border:2px solid var(--pc);background:var(--deep);box-shadow:0 0 10px color-mix(in srgb,var(--pc) 45%,transparent);z-index:3}
+.pv-inst .pt-box{display:grid}
+.card-player{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-width:0;font-size:16px;color:var(--yellow)}
+.card-player b{overflow-wrap:anywhere;font-family:var(--display);font-weight:400;letter-spacing:.02em;text-shadow:var(--glow-yellow)}
+.cp-tag{flex:none;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--deep);background:var(--cyan)}
+.phase2 .cp-tag{background:var(--pink)}
+.card-avatar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.card-avatar[hidden]{display:none}
+.btn-edit{flex:1 1 auto;min-height:44px;padding:4px 14px;border-radius:999px;border:2px solid var(--yellow);background:var(--deep);color:var(--yellow-hi);
+  font-family:var(--display);font-size:14px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.btn-edit:hover{background:var(--floor-lit)}
+.btn-edit:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
+.phase2 .btn-edit{border-color:var(--pink);color:var(--pink-hi)}
+.c-pic .av-box{width:100%}

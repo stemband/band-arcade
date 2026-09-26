@@ -1,0 +1,545 @@
+/* Band Arcade: THE AVATAR (Create Your Player). One avatar per device, shown everywhere in the arcade.
+   The parts are in shared/avatar-parts.js, the name words in shared/avatar-names.js; this file saves avatars and
+   draws them. Load order: storage.js … portraits.js, skins.js, avatar-parts.js, avatar-names.js, avatar.js.
+
+     Arcade.Avatar.get()                the device's avatar (a random one is made and saved on the first visit)
+     Arcade.Avatar.set(av)              save it (every picture of it on the page is redrawn)
+     Arcade.Avatar.guest() / setGuest() Neon Face-Off's Player 2: a GUEST avatar, remembered separately
+     Arcade.Avatar.random({keep, only}) a random avatar (only: a list of fields to change, keep: the rest)
+     Arcade.Avatar.nameOf(av)           "Captain Brassy Blaze K."   (Arcade.Avatar.randomName())
+     Arcade.avatarHTML({size, member, avatar, guest, skin, label, cls})
+                                        THE PORTRAIT BUST in a .pt-box (theme.css): size 'big' | 'tile' | 'chip'.
+                                        member = the instrument whose equipped skin it wears (default the saved
+                                        player); skin {color, acc} overrides it, false = none. Color skins are the
+                                        same effects as on the instrument portraits (rim glow, aura, backdrop…);
+                                        accessories are drawn ON the avatar as pixels (a crown, a cape…).
+     Arcade.Avatar.bustURL(av, eq)      the bust as an image URL (cached: redrawn only when the avatar changes)
+     Arcade.Avatar.sprites(member, {avatar, eq})
+                                        THE FULL-BODY SPRITES for Arcade Quest (needs arcade-quest/sprites.js for
+                                        the instruments): {'': idle, '-walk', '-front', '-front-walk', '-back',
+                                        '-back-walk', '-play'} -> {w, h, fps, frames: [canvas…], strike?}. Layers,
+                                        back to front: legs (or the wheelchair and seated legs) → hair/cape/hood
+                                        behind → back arm → instrument parts behind → body and head → the
+                                        instrument → hands → front arm → sticks/mallets. A wheelchair rolls
+                                        (its spokes turn) where others walk.
+   Everything is drawn on small canvases from theme tokens (--av-*, --q-*, the neon colors), cached per avatar, and
+   scaled up with crisp pixels. */
+window.Arcade = window.Arcade || {};
+(function (A) {
+  "use strict";
+  const P = window.AVATAR_PARTS, NAMES = window.AVATAR_NAMES;
+  const VERSION = 1;
+  const byId = (list, id) => list.find(x => x.id === id);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const ids = list => list.map(x => x.id !== undefined ? x.id : x);
+
+  /* ---------- the avatar's fields (every choice) ---------- */
+  const FIELDS = {
+    skin: () => ids(P.SKIN), face: () => ids(P.FACES), eyes: () => ids(P.EYES), eyeColor: () => ids(P.EYE_COLORS), brows: () => ids(P.BROWS),
+    mouth: () => ids(P.MOUTHS), freckles: () => [false, true],
+    hair: () => ids(P.HAIRS), hairColor: () => ids(P.HAIR_COLORS),
+    head: () => ids(P.HEADS), headColor: () => ids(P.COLORS),
+    top: () => ids(P.TOPS), topColor: () => ids(P.COLORS), bottom: () => ids(P.BOTTOMS), bottomColor: () => P.BOTTOM_COLORS,
+    shoes: () => ids(P.SHOES), shoeColor: () => P.SHOE_COLORS,
+    glasses: () => ids(P.GLASSES), glassesColor: () => P.FRAME_COLORS, aids: () => ids(P.AIDS), aidColor: () => P.AID_COLORS,
+    chair: () => [false, true], chairColor: () => P.CHAIR_COLORS,
+  };
+  const NATURAL = ['black', 'darkbrown', 'brown', 'auburn', 'copper', 'blonde', 'platinum', 'gray', 'white'];
+  /** a random value for one field (weighted so most random players look like students, with fun ones mixed in) */
+  function randomField(k) {
+    const r = Math.random();
+    switch (k) {
+      case 'hairColor': return r < 0.8 ? pick(NATURAL.slice(0, 7)) : pick(FIELDS.hairColor());
+      case 'head': return r < 0.72 ? 'none' : pick(FIELDS.head().filter(x => x !== 'none'));
+      case 'glasses': return r < 0.72 ? 'none' : pick(FIELDS.glasses().filter(x => x !== 'none'));
+      case 'aids': return r < 0.9 ? 'none' : pick(FIELDS.aids().filter(x => x !== 'none'));
+      case 'freckles': return r < 0.2;
+      case 'chair': return r < 0.06;
+      case 'topColor': case 'headColor': return pick(FIELDS[k]().filter(x => x !== 'khaki' && x !== 'denim' && x !== 'tan'));
+      default: return pick(FIELDS[k]());
+    }
+  }
+  function randomName() {
+    return {title: pick(NAMES.titles), adj: pick(NAMES.adjectives), noun: pick(NAMES.nouns), initial: Math.random() < 0.3 ? pick('ABCDEFGHIJKLMNOPRSTW'.split('')) : ''};
+  }
+  /** a random avatar. only: change just these fields (a tab's SURPRISE ME); keep: the avatar they come from */
+  function random({keep, only} = {}) {
+    const av = Object.assign({v: VERSION}, keep ? clone(keep) : {});
+    Object.keys(FIELDS).forEach(k => { if (!only || only.includes(k)) av[k] = randomField(k); });
+    if (!only || only.includes('name')) av.name = randomName();
+    return normalize(av);
+  }
+  const clone = o => JSON.parse(JSON.stringify(o));
+  /** make any saved object a valid avatar: unknown or missing choices become the first one of their list */
+  function normalize(av) {
+    const out = {v: VERSION};
+    av = av && typeof av === 'object' ? av : {};
+    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : k === 'head' || k === 'glasses' || k === 'aids' ? 'none' : list[0]); });
+    const n = av.name || {};
+    out.name = {title: typeof n.title === 'string' && n.title ? n.title : NAMES.titles[0], adj: typeof n.adj === 'string' && n.adj ? n.adj : NAMES.adjectives[0],
+                noun: typeof n.noun === 'string' && n.noun ? n.noun : NAMES.nouns[0], initial: /^[A-Z]$/.test(n.initial || '') ? n.initial : ''};
+    return out;
+  }
+  const nameOf = av => { const n = (av || {}).name || {}; return [n.title, n.adj, n.noun].filter(Boolean).join(' ') + (n.initial ? ' ' + n.initial + '.' : ''); };
+
+  /* ---------- saving (storage.js keeps it in the device's data, so the Arcade Backup Code includes it) ---------- */
+  const st = () => A.store;
+  function get() {
+    let av = st().avatar;
+    if (!av) { av = random(); st().setAvatar(av); }
+    return normalize(av);
+  }
+  function set(av) { st().setAvatar(normalize(av)); redrawAll(); }
+  function guest() { let av = st().guestAvatar; if (!av) { av = random(); st().setGuestAvatar(av); } return normalize(av); }
+  function setGuest(av) { st().setGuestAvatar(normalize(av)); redrawAll(); }
+
+  /* ---------- colors: palette letters -> theme tokens -> [r, g, b] ---------- */
+  const rgbCache = {};
+  let probe = null;
+  function rgb(token) {
+    if (rgbCache[token]) return rgbCache[token];
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--' + token).trim() || '#ff00ff';
+    probe = probe || document.createElement('canvas').getContext('2d');
+    probe.fillStyle = '#000'; probe.fillStyle = raw;
+    const s = probe.fillStyle, out = s[0] === '#' ? [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16)) : (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+    return (rgbCache[token] = out);
+  }
+  const LIGHT = ['white', 'yellow', 'khaki', 'tan', 'pink', 'orange', 'teal', 'green'];
+  /** eq: {color, acc} (the instrument's equipped skins) */
+  function palette(av, eq, {bust = false} = {}) {
+    const sk = eq && eq.color && A.Skins ? A.Skins.get(eq.color) : null, look = (sk && sk.look) || {};
+    const top = byId(P.TOPS, av.top) || P.TOPS[0], hc = av.hairColor, tc = av.topColor;
+    const contrast = c => LIGHT.includes(c) ? 'av-black' : 'av-white';
+    const pal = {
+      o: !bust && look.colors ? (look.colors[0] === 'white' ? 'white-hi' : look.colors[0]) : 'av-out',   // Quest: the skin's color is the outline
+      s: `av-skin-${av.skin}`, S: `av-skin-${av.skin}-d`, F: `av-skin-${av.skin}-d`,
+      e: look.eyes ? look.colors[1] : `av-eye-${av.eyeColor}`, w: 'av-white', K: 'av-black', m: 'av-mouth', t: 'av-teeth', n: 'av-tongue',
+      h: `av-hair-${hc}`, H: `av-hair-${hc}-d`, l: `av-hair-${hc}-l`, b: av.hair === 'bald' ? 'av-hair-darkbrown' : `av-hair-${hc}-d`,
+      c: top.base === 'black' ? 'av-black' : `av-${tc}`, C: top.base === 'black' ? 'av-black' : `av-${tc}-d`,
+      d: top.base === 'black' ? `av-${tc}` : contrast(tc), g: 'av-gold', W: 'av-white',
+      p: `av-${av.bottomColor}`, P: `av-${av.bottomColor}-d`, q: `av-${av.shoeColor}`, Q: av.shoeColor === 'white' ? 'av-gray' : 'av-white',
+      u: `av-${av.headColor}`, U: `av-${av.headColor}-d`, j: av.headColor === 'white' || av.headColor === 'yellow' ? 'av-red' : 'av-white',
+      x: `av-${av.glassesColor}`, a: av.aidColor === 'aid' ? 'av-aid' : `av-${av.aidColor}`,
+      v: `av-${av.chairColor}`, V: 'av-tire', r: 'av-rim',
+    };
+    Object.entries(P.ACC_COLORS).forEach(([k, t]) => { pal[k] = t; });
+    return pal;
+  }
+
+  /* ---------- pixel grids ---------- */
+  const blank = (w, h) => Array.from({length: h}, () => Array(w).fill('.'));
+  /** stamp a part map onto a grid (see the top of avatar-parts.js); clipY: skip rows above it; mirrorX: flip it */
+  function stamp(g, map, {clipY = -99, only} = {}) {
+    if (!map) return;
+    const W = g[0].length, y0 = map.y || 0;
+    const put = (x, y, ch) => {
+      if (ch === '.' || ch === ' ' || y < clipY || y < 0 || y >= g.length || x < 0 || x >= W) return;
+      if (only && !only(x, y)) return;
+      g[y][x] = ch;
+    };
+    if (map.half) map.half.forEach((row, i) => {
+      const r = row.padEnd(W / 2, '.').slice(0, W / 2);
+      [...r].forEach((ch, x) => { put(x, y0 + i, ch); put(W - 1 - x, y0 + i, ch); });
+    });
+    else if (map.rows) map.rows.forEach((row, i) => [...row].forEach((ch, x) => put((map.x || 0) + x, y0 + i, ch)));
+  }
+  /** a small feature box at (x, y), and its mirror image at (mx, y) (eyes, brows) */
+  function feature(g, rows, x, y, mx) {
+    rows.forEach((row, i) => [...row].forEach((ch, j) => {
+      if (ch === '.') return;
+      g[y + i][x + j] = ch;
+      if (mx != null) g[y + i][mx + row.length - 1 - j] = ch;
+    }));
+  }
+  /** the dark outline around everything drawn (not where `mask` already has pixels) */
+  function outline(g, mask) {
+    const o = g.map(r => r.slice());
+    g.forEach((r, y) => r.forEach((ch, x) => {
+      if (ch !== '.' || (mask && mask[y] && mask[y][x] !== '.')) return;
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const c = g[y + dy] && g[y + dy][x + dx]; return c && c !== '.' && c !== 'o'; })) o[y][x] = 'o';
+    }));
+    return o;
+  }
+  /** draw layers [{g, pal, dy}] into one canvas */
+  function paint(w, h, layers) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d'), img = x.createImageData(w, h), d = img.data;
+    layers.forEach(({g, pal, dy = 0}) => g.forEach((row, yy) => row.forEach((ch, xx) => {
+      const y = yy + dy; if (ch === '.' || y < 0 || y >= h) return;
+      const tok = pal[ch]; if (!tok) return;
+      const [r, gg, b] = rgb(tok), i = (y * w + xx) * 4;
+      d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = 255;
+    })));
+    x.putImageData(img, 0, 0);
+    return c;
+  }
+
+  /* ---------- the head and body (sprite: 32 × 32; bust: 36 × 36) ---------- */
+  const partOf = (list, id) => byId(list, id) || list[0];
+  function coveringOf(av, eq) {
+    const head = partOf(P.HEADS, av.head);
+    const acc = eq && eq.acc ? P.ACCESSORIES[eq.acc] : null;
+    // a helmet hides the hair like a cap; a head covering and a helmet: the helmet wins on top
+    return {head, acc, accId: eq && eq.acc};
+  }
+  /** hair pixels to skip under a covering: {all: true} or {clipY} */
+  function hairClip(av, eq, view) {
+    const {head, acc} = coveringOf(av, eq);
+    if (head.hides === 'all') return null;
+    let clipY = -99;
+    if (head.hides === 'top') clipY = head.clip[view];
+    if (acc && acc.hides === 'top') clipY = Math.max(clipY, acc.clip[view]);
+    return {clipY};
+  }
+  /** the head's layers for one view: {behind, body} grids (W × H); view 'front' | 'side' | 'back' | 'bust' */
+  function headAndBody(av, eq, view) {
+    const W = view === 'bust' ? 36 : 32, H = W, bust = view === 'bust';
+    const behind = blank(W, H), body = blank(W, H), over = blank(W, H);
+    const faceShape = partOf(P.FACES, av.face), hair = partOf(P.HAIRS, av.hair), top = partOf(P.TOPS, av.top);
+    const {head, acc, accId} = coveringOf(av, eq);
+    const clip = hairClip(av, eq, view);
+    const v = view === 'back' ? 'front' : view;         // the back view uses the front's silhouettes
+    // --- behind the body ---
+    if (bust) {
+      if (clip && hair.bustBehind) stamp(behind, hair.bustBehind, {clipY: clip.clipY});
+      if (top.bustBehind && head.id !== 'hijab') stamp(behind, top.bustBehind);
+      if (head.bustBehind && head.id !== 'hijab') stamp(behind, head.bustBehind);
+      if (acc && acc.bustBehind) stamp(behind, acc.bustBehind);
+    } else if (view !== 'back') {
+      if (clip && hair.behind && hair.behind[view]) stamp(behind, hair.behind[view], {clipY: clip.clipY});
+      if (top.behind && top.behind[view] && head.id !== 'hijab') stamp(behind, top.behind[view]);
+      if (head.behind && head.behind[view] && head.id !== 'hijab') stamp(behind, head.behind[view]);
+      if (acc && acc.behind && acc.behind[view]) stamp(behind, acc.behind[view]);
+    }
+    // --- the head (skin) and the top ---
+    stamp(body, faceShape[bust ? 'bust' : v]);
+    if (bust) { stamp(body, top.bust); if (top.bustTop && head.id !== 'hijab') stamp(body, top.bustTop); }
+    else {
+      stamp(body, top[view]);
+      stamp(body, {y: 21, half: [view === 'side' ? '' : '...........ppppp']});   // the waist
+      if (view === 'side') stamp(body, {y: 21, rows: ['............ppppppp']});
+    }
+    // --- the face (not from behind) ---
+    if (view !== 'back') {
+      const eyes = partOf(P.EYES, av.eyes), brows = partOf(P.BROWS, av.brows), mouth = partOf(P.MOUTHS, av.mouth);
+      if (bust) {
+        feature(body, eyes.bust, 12, 15, 21); feature(body, brows.bust, 12, 13, 21); feature(body, mouth.bust, 15, 20);
+        stamp(body, P.NOSE.bust);
+        if (av.freckles) stamp(body, P.FRECKLES.bust);
+      } else if (view === 'front') {
+        feature(body, eyes.front, 12, 8, 18); feature(body, brows.front, 11, 6, 18); feature(body, mouth.front, 14, 10);
+        if (av.freckles) stamp(body, P.FRECKLES.front);
+      } else {
+        feature(body, eyes.side, 17, 8); feature(body, brows.side, 16, 6); feature(body, mouth.side, 16, 10);
+        if (av.freckles) stamp(body, P.FRECKLES.side);
+      }
+    }
+    // --- hair ---
+    if (clip) {
+      if (bust) stamp(body, hair.bust, {clipY: clip.clipY});
+      else if (view === 'back') {
+        if (hair.back) stamp(body, hair.back, {clipY: clip.clipY});
+        else if (hair.id !== 'bald') {
+          const shape = blank(W, H); stamp(shape, faceShape.front);
+          const tex = hair.backTex || hair.backCh || 'h';
+          for (let y = 2; y <= Math.min(hair.backTo || 9, 12); y++) for (let x = 0; x < W; x++) {
+            if (shape[y][x] !== '.' && y >= clip.clipY) body[y][x] = tex[x % tex.length];
+          }
+          stamp(body, hair.front, {clipY: clip.clipY, only: (x, y) => y < 8 || body[y][x] !== '.' || x < 11 || x > 20});
+        }
+        // long hair, a ponytail, braids: down the back, over the body
+        if (hair.behind) stamp(over, hair.behind.back || hair.behind.front, {clipY: clip.clipY});
+      } else stamp(body, hair[view], {clipY: clip.clipY});
+    }
+    // --- glasses, hearing aids ---
+    const gl = partOf(P.GLASSES, av.glasses);
+    if (view !== 'back' && gl[bust ? 'bust' : view]) stamp(body, gl[bust ? 'bust' : view]);
+    if (av.aids !== 'none' && head.id !== 'hijab') {
+      const a = P.AID[bust ? 'bust' : v === 'side' ? 'side' : 'front'];
+      const right = av.aids === 'right' || av.aids === 'both', left = av.aids === 'left' || av.aids === 'both';
+      if (view === 'side') { if (right) stamp(body, a); }
+      else {
+        const flip = m => ({y: m.y, rows: m.rows.map(r => [...r].reverse().join('')), x: W - m.x - m.rows[0].length});
+        // front and bust: the student's right ear is on YOUR left; from behind it's on your right
+        const yourLeft = view === 'back' ? left : right, yourRight = view === 'back' ? right : left;
+        if (yourLeft) stamp(body, a);
+        if (yourRight) stamp(body, flip(a));
+      }
+    }
+    // --- the head covering, then the accessory ---
+    const hv = bust ? 'bust' : view;
+    if (head[hv]) stamp(body, head[hv]);
+    else if (view === 'back' && head.front) stamp(body, head.front);
+    if (acc) {
+      const am = acc[hv] || (view === 'back' ? null : null);
+      if (am) stamp(body, am);
+      if (bust && acc.bust && acc.bust.after) stamp(body, acc.bust.after);
+      if (view === 'back' && acc.behind && acc.behind.back) stamp(over, acc.behind.back);
+    }
+    if (bust && top.bustDetail && head.id !== 'hijab') stamp(body, top.bustDetail);
+    // a hijab wraps the face: it is one shape with the head (no outline between them)
+    if (head.id === 'hijab') {
+      const hb = blank(W, H); stamp(hb, bust ? head.bustBehind : head.behind && head.behind[v]);
+      if (view === 'back') stamp(hb, head.back);
+      hb.forEach((row, y) => row.forEach((ch, x) => { if (ch !== '.' && body[y][x] === '.') body[y][x] = ch; }));
+    }
+    return {behind, body, over, accId};
+  }
+
+  /* ---------- THE BUST ---------- */
+  const bustCache = new Map();
+  function bustCanvas(av, eq) {
+    const pal = palette(av, eq, {bust: true});
+    const {behind, body} = headAndBody(av, eq, 'bust');
+    const o = outline(body), ob = outline(behind, o);
+    return paint(36, 36, [{g: ob, pal}, {g: o, pal}]);
+  }
+  function bustURL(av, eq) {
+    const key = JSON.stringify([av, eq && eq.color, eq && eq.acc]);
+    if (bustCache.has(key)) return bustCache.get(key);
+    let url = '';
+    try { url = bustCanvas(av, eq).toDataURL('image/png'); } catch (e) { url = ''; }
+    if (bustCache.size > 200) bustCache.clear();
+    bustCache.set(key, url);
+    return url;
+  }
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  /** the equipped skin {color, acc} to wear with an instrument (portraits.js rules: false = none) */
+  function eqFor(member, skin) {
+    if (skin === false || !A.Skins) return {color: 'classic', acc: null};
+    if (skin) return {color: skin.color || 'classic', acc: skin.acc || null};
+    return member ? A.Skins.equipped(member) : {color: 'classic', acc: null};
+  }
+  /** THE PORTRAIT BUST (see the top of this file) */
+  function avatarHTML({size = 'tile', member, avatar, guest: isGuest = false, skin, label, cls = ''} = {}) {
+    const av = avatar ? normalize(avatar) : isGuest ? guest() : get();
+    member = member === undefined ? st().player : member;
+    const eq = eqFor(member, skin);
+    const d = A.Skins ? A.Skins.decorate('avatar', {color: eq.color, acc: null}, size) : null;
+    const name = label != null ? label : nameOf(av);
+    const alt = [name, d && A.Skins.label(eq)].filter(Boolean).join(', ');
+    const keep = esc(JSON.stringify({size, member: member || null, guest: isGuest, skin: skin === undefined ? null : skin, label: label == null ? null : label, cls}));
+    return `<span class="pt-box pt-box-${size} av-box ${d ? d.cls : ''} ${cls}"${isGuest ? ' data-av-guest="1"' : ' data-av="1"'} data-av-opts="${keep}"${d && d.style ? ` style="${d.style}"` : ''}>` +
+      `${d ? d.parts.before : ''}<img class="pt-img av-img" src="${bustURL(av, eq)}" alt="${esc(alt)}" draggable="false">${d ? d.parts.after : ''}</span>`;
+  }
+  /** redraw every avatar picture on this page (after saving, or equipping a skin) */
+  function redrawAll() {
+    document.querySelectorAll('.av-box[data-av-opts]').forEach(box => {
+      let o; try { o = JSON.parse(box.dataset.avOpts); } catch (e) { return; }
+      if (box.dataset.avFixed) return;
+      const w = document.createElement('span');
+      w.innerHTML = avatarHTML({size: o.size, member: o.member, guest: o.guest, skin: o.skin === null ? undefined : o.skin, label: o.label === null ? undefined : o.label, cls: o.cls});
+      box.replaceWith(w.firstChild);
+    });
+    document.querySelectorAll('[data-av-name]').forEach(el => { el.textContent = nameOf(el.dataset.avName === 'guest' ? guest() : get()); });
+  }
+
+  /* ---------- THE FULL-BODY SPRITE (Arcade Quest) ---------- */
+  const PW = 32;
+  const put = (g, x, y, ch) => { if (x >= 0 && x < PW && y >= 0 && y < PW) g[y][x] = ch; };
+  /** an arm from the shoulder to the hand: a sleeve (sleeve = the share of the arm it covers), then skin */
+  function armGrid(sh, hand, withHand, mask, sleeve, sleeveCh = 'c') {
+    const g = blank(PW, PW);
+    let [x0, y0] = sh; const [x1, y1] = hand;
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, n = Math.max(dx, dy) || 1;
+    const wide = dy >= dx ? [1, 0] : [0, 1];
+    let err = dx - dy, i = 0;
+    for (;;) {
+      const ch = i / n < sleeve ? sleeveCh : 's';
+      put(g, x0, y0, ch); put(g, x0 + wide[0], y0 + wide[1], ch);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx) { err += dx; y0 += sy; }
+      i++;
+    }
+    if (withHand) [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([a, b]) => put(g, x1 + a, y1 + b, 's'));
+    return outline(g, mask);
+  }
+  const handOnly = hand => { const g = blank(PW, PW); [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([a, b]) => put(g, hand[0] + a, hand[1] + b, 's')); return outline(g); };
+  /** standing legs: bottoms + shoes. side: {back, front} steps; front/back: {left, right} lifts */
+  function legGrid(av, view, step) {
+    const L = LEGS, g = blank(PW, PW), bottom = partOf(P.BOTTOMS, av.bottom), shoe = partOf(P.SHOES, av.shoes);
+    const leg = (hx, dx, lift, side) => {
+      const foot = L.foot - lift, top = L.top;
+      for (let y = top; y < foot; y++) {
+        const x = hx + Math.round(dx * (y - top) / (L.foot - top)), k = y - top;
+        let ch = 'p';
+        if (bottom.legs === 'shorts' && k >= 3) ch = 's';
+        if (bottom.legs === 'skirt' && k >= 3) ch = 's';
+        if (bottom.cuff && y === foot - 1) ch = 'P';
+        if (shoe.rows === 3 && y === foot - 1) ch = 'q';
+        const w = bottom.legs === 'skirt' && k < 3 ? 2 : 1;
+        for (let xx = x - w; xx <= x + w; xx++) put(g, xx, y, ch);
+      }
+      const fx = hx + dx;
+      for (let y = foot; y <= foot + 1; y++) for (let x = fx - 1; x <= fx + (side ? 2 : 1); x++) put(g, x, y, shoe.sole && y === foot + 1 ? 'Q' : 'q');
+    };
+    if (view === 'side') { leg(L.side.back, step.back || 0, 0, true); leg(L.side.front, step.front || 0, 0, true); }
+    else { leg(L.front.left, 0, step.left || 0); leg(L.front.right, 0, step.right || 0); }
+    return outline(g);
+  }
+  const LEGS = {side: {back: 14, front: 16}, front: {left: 13, right: 18}, top: 22, foot: 29};
+  /* ---- the wheelchair: seated legs, the frame and turning wheels (spin = 0–3, the spokes' angle) ---- */
+  function circle(g, cx, cy, r, ch) {
+    for (let a = 0; a < 64; a++) { const t = a / 64 * Math.PI * 2; put(g, Math.round(cx + Math.cos(t) * r), Math.round(cy + Math.sin(t) * r), ch); }
+  }
+  function chairUnder(av, view, spin) {
+    const g = blank(PW, PW);
+    if (view === 'side') {
+      for (let y = 13; y <= 22; y++) { put(g, 10, y, 'v'); put(g, 11, y, 'v'); }        // the backrest and push handle
+      put(g, 9, 13, 'v'); put(g, 8, 13, 'v');
+      for (let x = 11; x <= 19; x++) put(g, x, 22, 'v');                                // the seat
+      circle(g, 13, 23, 6, 'V'); circle(g, 13, 23, 5, 'r');                             // tire + hand rim
+      for (let k = 0; k < 2; k++) {                                                     // spokes, turning
+        const t = (spin * Math.PI / 4) + k * Math.PI / 2;
+        for (let r = -4; r <= 4; r++) put(g, Math.round(13 + Math.cos(t) * r), Math.round(23 + Math.sin(t) * r), 'r');
+      }
+      put(g, 13, 23, 'v');
+      for (let y = 23; y <= 29; y++) put(g, 20, y, 'v');                                // the leg frame
+      for (let x = 19; x <= 23; x++) put(g, x, 30, 'v');                                // footrest
+      put(g, 21, 31, 'V'); put(g, 22, 31, 'V');                                         // caster
+    } else if (view === 'front') {
+      [7, 24].forEach(x0 => {
+        for (let y = 16; y <= 30; y++) { put(g, x0, y, 'V'); put(g, x0 + 1, y, (y + spin * 2) % 4 === 0 ? 'v' : 'r'); }
+      });
+      [10, 21].forEach(x => { for (let y = 12; y <= 14; y++) put(g, x, y, 'v'); });     // push handles
+      for (let x = 11; x <= 20; x++) put(g, x, 30, 'v');                                // footrest
+    }
+    return outline(g);
+  }
+  function chairOver(av, spin) {                                                          // from behind: the backrest covers your back
+    const g = blank(PW, PW);
+    [7, 24].forEach(x0 => { for (let y = 16; y <= 30; y++) { put(g, x0, y, 'V'); put(g, x0 + 1, y, (y + spin * 2) % 4 === 0 ? 'v' : 'r'); } });
+    for (let y = 12; y <= 23; y++) for (let x = 11; x <= 20; x++) put(g, x, y, y < 14 && x > 11 && x < 20 ? '.' : 'v');
+    for (let y = 24; y <= 29; y++) { put(g, 11, y, 'v'); put(g, 20, y, 'v'); }
+    return outline(g);
+  }
+  function seatedLegs(av, view) {
+    const g = blank(PW, PW), bottom = partOf(P.BOTTOMS, av.bottom), shoe = partOf(P.SHOES, av.shoes);
+    const bare = bottom.legs === 'shorts' || bottom.legs === 'skirt';
+    if (view === 'side') {
+      for (let x = 13; x <= 20; x++) for (let y = 21; y <= 22; y++) put(g, x, y, bare && x > 17 ? 's' : 'p');
+      if (bottom.legs === 'skirt') for (let x = 12; x <= 19; x++) put(g, x, 23, 'p');
+      for (let y = 23; y <= 28; y++) { put(g, 19, y, bare ? 's' : 'p'); put(g, 20, y, bare ? 's' : 'p'); }
+      if (bottom.cuff) { put(g, 19, 28, 'P'); put(g, 20, 28, 'P'); }
+      for (let x = 19; x <= 22; x++) put(g, x, 29, shoe.sole ? 'Q' : 'q');
+      for (let x = 19; x <= 22; x++) put(g, x, 28, 'q');
+      if (shoe.rows === 3) { put(g, 19, 27, 'q'); put(g, 20, 27, 'q'); }
+    } else {
+      for (let x = 12; x <= 19; x++) for (let y = 21; y <= 23; y++) put(g, x, y, bottom.legs === 'shorts' && y === 23 ? 's' : 'p');
+      if (bottom.legs === 'skirt') { put(g, 11, 23, 'p'); put(g, 20, 23, 'p'); }
+      [[12, 14], [17, 19]].forEach(([a, b]) => {
+        for (let y = 24; y <= 27; y++) for (let x = a; x <= b; x++) put(g, x, y, bare ? 's' : bottom.cuff && y === 27 ? 'P' : 'p');
+        for (let y = 28; y <= 29; y++) for (let x = a - 1; x <= b; x++) put(g, x, y, shoe.sole && y === 29 ? 'Q' : 'q');
+        if (shoe.rows === 3) for (let x = a; x <= b; x++) put(g, x, 27, 'q');
+      });
+    }
+    return outline(g);
+  }
+
+  /** one frame's layers (the same order as the old arcade-quest/engine/sprites.js, with the avatar's own body) */
+  function frameLayers(av, eq, pal, view, pose, bob, step, spin, parts) {
+    const ART = window.QUEST_ART, IP = ART.INSTRUMENT_PALETTE, S = ART.SHAPES;
+    const L = (g, palette, dy = 0) => ({g, pal: palette, dy});
+    const top = partOf(P.TOPS, av.top), sleeveCh = top.base === 'black' ? 'K' : 'c';
+    const partsGrid = z => {
+      const g = blank(PW, PW);
+      (pose.parts || []).forEach(([shape, x, y, pz = 'front']) => {
+        if (view === 'back' ? z === 'back' : pz === z) stamp(g, {y, x, rows: S[shape] || []});
+      });
+      return outline(g);
+    };
+    const out = [];
+    if (av.chair) {
+      if (view !== 'back') out.push(L(chairUnder(av, view, spin), pal));
+      if (view !== 'back') out.push(L(seatedLegs(av, view), pal));
+    } else out.push(L(legGrid(av, view === 'side' ? 'side' : 'front', step), pal));
+    const bodyG = outline(parts.body), behindG = outline(parts.behind, parts.body), overG = outline(parts.over, parts.body);
+    out.push(L(behindG, pal, bob));
+    const mask = parts.body;
+    const H = pose.hands || {};
+    if (view === 'side') {
+      const SH = ART.SHOULDERS.side, back = H.back === 'rest' || !H.back ? null : H.back, front = H.front === 'rest' || !H.front ? null : H.front;
+      const hang = sh => av.chair ? [sh[0] + 2, 21] : [sh[0], 22];
+      out.push(L(armGrid(SH.back, back || hang(SH.back), !back, mask, top.sleeve, sleeveCh), pal, bob));
+      out.push(L(partsGrid('back'), IP, bob));
+      out.push(L(bodyG, pal, bob));
+      out.push(L(partsGrid('front'), IP, bob));
+      if (back) out.push(L(handOnly(back), pal, bob));
+      out.push(L(armGrid(SH.front, front || hang(SH.front), true, mask, top.sleeve, sleeveCh), pal, bob));
+      out.push(L(partsGrid('top'), IP, bob));
+    } else {
+      const SH = ART.SHOULDERS.front, hang = sh => av.chair ? [sh[0] + (sh[0] < 16 ? 0 : 0), 21] : [sh[0], 22];
+      const arms = ['left', 'right'].map(k => armGrid(SH[k], H[k] && H[k] !== 'rest' ? H[k] : hang(SH[k]), true, mask, top.sleeve, sleeveCh));
+      if (view === 'back') {
+        out.push(L(partsGrid('back'), IP, bob));
+        arms.forEach(a => out.push(L(a, pal, bob)));
+        out.push(L(bodyG, pal, bob));
+        out.push(L(overG, pal, bob));
+        if (av.chair) out.push(L(chairOver(av, spin), pal));
+      } else {
+        out.push(L(partsGrid('back'), IP, bob));
+        out.push(L(bodyG, pal, bob));
+        out.push(L(partsGrid('front'), IP, bob));
+        arms.forEach(a => out.push(L(a, pal, bob)));
+        out.push(L(partsGrid('top'), IP, bob));
+      }
+    }
+    return out;
+  }
+  const spriteCache = new Map();
+  /** every sprite of the avatar holding `member`'s instrument (see the top of this file) */
+  function sprites(member, {avatar, eq} = {}) {
+    const ART = window.QUEST_ART;
+    if (!ART || !ART.POSES) return null;
+    const av = avatar ? normalize(avatar) : get();
+    eq = eq || eqFor(member);
+    const key = JSON.stringify([av, member, eq.color, eq.acc]);
+    if (spriteCache.has(key)) return spriteCache.get(key);
+    const pal = palette(av, eq);
+    const heads = {front: headAndBody(av, eq, 'front'), side: headAndBody(av, eq, 'side'), back: headAndBody(av, eq, 'back')};
+    const Pz = ART.POSES[member] || ART.POSES.trumpet;
+    const play = [].concat(Pz.play), percussion = play.length > 1;
+    const IDLE = [[0, {}, 0], [1, {}, 0]];
+    const WALK = av.chair
+      ? {side: [0, 1, 2, 3].map(s => [0, {}, s]), front: [0, 1, 2, 3].map(s => [0, {}, s])}           // rolling: the wheels turn
+      : {side: [[0, {back: -2, front: 2}, 0], [1, {}, 0], [0, {back: 2, front: -2}, 0], [1, {}, 0]],
+         front: [[0, {left: 2}, 0], [1, {}, 0], [0, {right: 2}, 0], [1, {}, 0]]};
+    const make = (view, pose, list, extra) => Object.assign({w: PW, h: PW, fps: 2,
+      frames: list.map(([bob, step, spin], i) => paint(PW, PW, frameLayers(av, eq, pal, view, typeof pose === 'function' ? pose(i) : pose, bob, step, spin, heads[view])))}, extra || {});
+    const out = {
+      '': make('side', Pz.side, IDLE),
+      '-walk': make('side', Pz.side, WALK.side, {fps: 8}),
+      '-front': make('front', Pz.front, IDLE),
+      '-front-walk': make('front', Pz.front, WALK.front, {fps: 8}),
+      '-back': make('back', Pz.front, IDLE),
+      '-back-walk': make('back', Pz.front, WALK.front, {fps: 8}),
+      '-play': make('side', i => play[i % play.length], percussion ? [[0, {}, 0], [0, {}, 0]] : IDLE, percussion ? {strike: true} : {}),
+    };
+    if (spriteCache.size > 40) spriteCache.clear();
+    spriteCache.set(key, out);
+    return out;
+  }
+
+  /** RESULTS SCREENS: the player's avatar and name at the top of a results panel (shared/skins.js's announce()
+      calls it on every results screen); the instrument is the one the result was for */
+  function stampResults(panel, member) {
+    if (!panel || !A.store) return;
+    let row = panel.querySelector(':scope > .av-res');
+    if (!row) { row = document.createElement('p'); row.className = 'av-res'; panel.insertBefore(row, panel.firstChild); }
+    const m = member && A.memberById ? A.memberById(member) : null;
+    const hasPic = [...panel.querySelectorAll('.av-box')].some(x => !row.contains(x));    // the game shows the avatar already (Button Masher)
+    row.innerHTML = (hasPic ? '' : `<span class="av-res-pic">${avatarHTML({size: 'tile', member: m ? member : null, label: ''})}</span>`) +
+      `<span class="av-res-txt"><b data-av-name="me">${esc(nameOf(get()))}</b>${m ? `<small>${esc(m.short)}</small>` : ''}</span>`;
+  }
+
+  A.Avatar = {
+    stampResults,
+    VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone,
+    bustURL, bustCanvas, sprites, redrawAll, eqFor,
+    /** the parts' lists (the creator reads them) */
+    parts: P, names: NAMES,
+  };
+  A.avatarHTML = avatarHTML;
+})(window.Arcade);

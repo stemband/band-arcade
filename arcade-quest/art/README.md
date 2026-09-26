@@ -11,28 +11,16 @@ Rules for every PNG:
 - Frames go **side by side, left to right**, each exactly the sprite's size. No gaps, no padding.
 - Keep the character's feet and the instrument inside the frame.
 
-## Band kids (the players): one sheet per instrument
+## The players: their own avatars (no PNG)
 
-`art/player-<instrument>.png`, frames **32 × 32 px**, **4 rows × 6 columns** (192 × 128 px in all):
+The hero is always the student's own **avatar** from Create Your Player (their skin tone, face, hair, head covering,
+clothes, glasses, hearing aids, wheelchair and name), holding their instrument. It's drawn in code from
+`shared/avatar-parts.js` (how to add a hair style, a hat, a top…: see the notes at the top of that file), so player
+sheets (`art/player-<instrument>.png`) are no longer used. Instrument positions and hand points are the POSES in
+`arcade-quest/sprites.js`.
 
-| Row | What | Columns 1–2 | Columns 3–6 |
-|---|---|---|---|
-| 1 (top) | CARRY, facing **right** (battle, title; walking left is this row mirrored) | idle (breathing) | walk cycle |
-| 2 | CARRY, facing **you** (walking down) | idle | walk cycle |
-| 3 | CARRY, facing **away** (walking up) | idle | walk cycle |
-| 4 | PLAYING, facing right (only during a playing challenge) | 2 frames: a breath, or for bells and snare **mallets up**, then **striking** | leave empty |
-
-The walk cycle is 4 frames: step, pass, other step, pass. Put the feet on the bottom rows (y 29–30) and keep the
-character in the same spot in every frame, or it will jitter.
-
-- **CARRY:** the instrument is held in the hands, not at the mouth.
-- **PLAYING:** the mouthpiece or reed is at the lips (bells and snare: striking).
-- **Skins:** your drawing replaces the code-drawn outline tint.
-
-Instrument ids: `flute`, `oboe`, `clarinet`, `basscl`, `bassoon`, `altosax`, `tenorsax`, `barisax`, `trumpet`, `horn`,
-`trombone`, `baritonetc`, `euphbc`, `tuba`, `bells`, `snare` (e.g. `art/player-trumpet.png`).
-
-You can check your sheet at `arcade-quest/index.html?sprites` (the sprite review page shows every frame).
+You can check every instrument at `arcade-quest/index.html?sprites` (the sprite review page shows every frame, as
+your avatar, a random one or in a wheelchair).
 
 ## Enemies, the mini-boss, NPCs and tiles
 

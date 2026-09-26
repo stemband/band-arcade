@@ -10,11 +10,13 @@
   const Q = A.Quest;
   const SPEED = {slow: 22, normal: 42, fast: 90, instant: 0};         // letters per second
 
+  /** the hero's name: the student's avatar name (Create Your Player, shared/avatar.js), e.g. "Captain Brassy Blaze" */
+  Q.hero = () => (A.Avatar ? A.Avatar.nameOf(A.Avatar.get()) : 'friend');
   Q.text = function (key, vars = {}) {
     let t = (window.QUEST_TEXT || {})[key];
     if (Array.isArray(t)) t = Q.pick(t);
     if (t == null) t = key;
-    return String(t).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
+    return String(t).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : k === 'hero' ? Q.hero() : m));
   };
 
   /** the text box: created in the scene's #ui on first use */

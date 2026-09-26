@@ -10,6 +10,7 @@
    First 5 + Random keeps the plain game id and scales in order keep '<gameId>:scale-<id>', so old stars never move.
    allStars() adds every key up.
    skins: {equipped: {memberId: {color, acc}}, seen: {memberId | '*': {skinId: true}}} (shared/skins.js).
+   avatar / guestAvatar: Create Your Player's avatars (shared/avatar.js, versioned by their `v`); avatarOffered.
    gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
    results, spar bests), kept apart from the shared progress shape above.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
@@ -205,6 +206,15 @@ window.Arcade = window.Arcade || {};
       const sk = data.skins || (data.skins = {}), seen = sk.seen || (sk.seen = {}), s = seen[key] || (seen[key] = {});
       ids.forEach(id => { s[id] = true; }); save();
     },
+    /** CREATE YOUR PLAYER (shared/avatar.js): the device's avatar ({v, skin, face, hair, … name}), or null before the
+        first visit; the Neon Face-Off GUEST (Player 2), kept apart so it never replaces the device's own */
+    get avatar() { return data.avatar && typeof data.avatar === 'object' ? JSON.parse(JSON.stringify(data.avatar)) : null; },
+    setAvatar(av) { data.avatar = av; save(); },
+    get guestAvatar() { return data.guestAvatar && typeof data.guestAvatar === 'object' ? JSON.parse(JSON.stringify(data.guestAvatar)) : null; },
+    setGuestAvatar(av) { data.guestAvatar = av; save(); },
+    /** Select Player asks "Create your player?" once per device */
+    get avatarOffered() { return !!data.avatarOffered; },
+    setAvatarOffered() { data.avatarOffered = true; save(); },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);
