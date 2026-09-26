@@ -52,6 +52,13 @@
   --q-green:#76d66a; --q-green-d:#2e7a3a; --q-sour:#c4e84a; --q-sour-d:#6f8c1c; --q-purple:#9d74ff; --q-purple-d:#4f3597; --q-orange:#ff9a3c;
   --q-orange-d:#a8541a; --q-blue:#58b4ff; --q-blue-d:#24578f; --q-grey:#8f93a8; --q-grey-d:#4d5064; --q-paper:#f1e8cc; --q-paper-d:#b9a877;
   --q-red:#ff5a6a; --q-pink:#ff7ec8; --q-cursor:#7ff6ff; --q-gold:#ffe066; --q-floor:#1d1830; --q-floor-2:#2a2342;
+  /* Arcade Quest, Ghost Notes Manor: walls, floors, furniture, ghosts, candlelight, fog */
+  --q-wall:#3b2a5c; --q-wall-d:#271c40; --q-wall-l:#5a4488; --q-trim:#8a6a3a; --q-trim-d:#553f1f; --q-void:#0c0914;
+  --q-plank:#6b4a2e; --q-plank-d:#4a321f; --q-plank-l:#8a6340; --q-carpet:#8c2a44; --q-carpet-d:#5e1a2e; --q-carpet-l:#c2465e;
+  --q-tile-a:#d9d2c3; --q-tile-b:#8f8aa3; --q-rug:#43307a; --q-rug-l:#6d52b8; --q-glass:#1b2a5a; --q-moon:#e8f0ff;
+  --q-ghost:#e9f1ff; --q-ghost-d:#a9b8e6; --q-ghost-2:#d9ccff; --q-cheek:#ff9ec4; --q-flame:#ffcf4a; --q-flame-d:#ff7a2a;
+  --q-fog:#c8c6e8; --q-book-1:#b8433b; --q-book-2:#3f6fb3; --q-book-3:#3f9a5a; --q-book-4:#d6a441; --q-steel:#9aa3b8; --q-steel-d:#5c647a;
+  --q-jelly:#7fe0c2; --q-jelly-d:#3a9e84; --q-tea:#f4f0e6; --q-tea-d:#bdb3a0; --q-wisp:#8fe8ff; --q-wisp-d:#3fa7d6;
   /* Sustain Speedway: the synthwave racetrack (canvas colors are read from these) */
   --sw-sky-top:#0c0420; --sw-sky-mid:#3a0b55; --sw-sky-low:#ff5a7a; --sw-dusk-low:#b0348c; --sw-night-low:#2a1060;
   --sw-sun-1:#ffd166; --sw-sun-2:#ff3fa4; --sw-moon:#e8e2ff; --sw-star:#fff4d8;

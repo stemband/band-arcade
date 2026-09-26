@@ -1,4 +1,6 @@
-/* ARCADE QUEST: the TITLE screen and the TEST ARENA (stage 1: no story, map or NPCs yet).
+/* ARCADE QUEST: the TITLE screen and the TEST ARENA.
+   TITLE: CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (Episode 1 from the Foyer),
+   TEST ARENA (only with ?demo or ?test) and SETTINGS. The title music is quest-title.
    TEST ARENA (index.html?test, or TEST ARENA on the title): pick any test enemy (one per challenge type) and fight it
    with your instrument. The card shows the challenge YOUR instrument gets (the Snare Drum: ARTICULATE or VOCAB).
    Your HP refills every time you come back to the arena. RESET SAVE starts the save slot over. */
@@ -13,14 +15,30 @@
   Q.scenes.title = {
     enter() {
       me();
+      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-title');
       Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest</small>The Mysterious Microphone</h1>` +
-        `<div id="qTitleMenu"></div><p class="q-soon">Episode 1 is on its way. For now, try the Test Arena!</p></div>`;
-      const m = Q.menu(Q.$('qTitleMenu'), [{id: 'arena', label: 'Test Arena'}, {id: 'settings', label: 'Settings'}],
-        {cols: 1, label: 'Title menu', onPick: it => {
-          if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
-          else Q.settings.open().then(me);
+        `<p class="q-ep">Episode 1: Ghost Notes Manor</p><div id="qTitleMenu"></div></div>`;
+      const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
+      const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
+      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}],
+        testing ? [{id: 'arena', label: 'Test Arena'}] : [], [{id: 'settings', label: 'Settings'}]);
+      const menu = () => {
+        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 1, label: 'Title menu', onPick: it => {
+          if (it.id === 'continue') { m.destroy(); Q.go('world', {continue: true}); }
+          else if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
+          else if (it.id === 'settings') Q.settings.open().then(me);
+          else if (!started) { m.destroy(); Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); }
+          else {                                                  // a new game over a saved one: ask first
+            m.destroy();
+            const c = Q.menu(Q.$('qTitleMenu'), [{id: 'yes', label: 'Yes, start over', sub: 'Level, items, tokens and friends reset'}, {id: 'no', label: 'No, go back'}],
+              {cols: 1, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') { Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); } else menu(); },
+                onBack: () => { c.destroy(); menu(); }});
+          }
         }});
+      };
+      menu();
     },
+    exit() { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(null); },
     draw(ctx, now) {
       // a starfield of pixels + the mysterious microphone, bobbing (still with reduced motion)
       ctx.fillStyle = Q.css('q-grey-d');
@@ -32,7 +50,8 @@
   };
 
   /* ---------- the test arena ---------- */
-  const slots = () => window.QUEST_ENEMIES.map((e, i, all) => ({e, x: Math.round(Q.W / (all.length + 1) * (i + 1)) - 16, y: 36}));
+  const TEST = () => window.QUEST_ENEMIES.filter(e => e.test);
+  const slots = () => TEST().map((e, i, all) => ({e, x: Math.round(Q.W / (all.length + 1) * (i + 1)) - 16, y: 36}));
   Q.scenes.arena = {
     enter({from} = {}) {
       const s = Q.save.get();
@@ -44,13 +63,13 @@
         `<p class="q-stats"><b>LV ${s.level}</b> · HP ${s.hp}/${s.maxHp} · XP ${s.xp}/${Q.save.xpToNext(s.level)} · ${s.tokens} Tokens</p>` +
         `<p class="q-stats q-small">Bag: ${items} · Band: ${s.roster.length ? s.roster.map(id => (window.QUEST_ENEMIES.find(e => e.id === id) || {name: id}).name).join(', ') : 'nobody yet'}</p>` +
         `<div id="qFoes"></div><div class="q-arena-foot" id="qFoot"></div></div>`;
-      const foes = window.QUEST_ENEMIES.map(e => {
+      const foes = TEST().map(e => {
         const t = Q.challenge.resolve(e.challenge);
         return {id: e.id, cls: 'q-foe' + (befriended(e.id) ? ' friend' : ''),
           label: `${e.name}${befriended(e.id) ? ' <span class="q-ok">✓ friend</span>' : ''}`,
           sub: `${e.test}${TYPE_NAME[t] !== e.test.replace(' (bonus)', '') ? ` → ${TYPE_NAME[t]} for you` : ''}`};
       });
-      const start = Math.max(0, window.QUEST_ENEMIES.findIndex(e => e.id === from));
+      const start = Math.max(0, TEST().findIndex(e => e.id === from));
       const m = Q.menu(Q.$('qFoes'), foes, {cols: foes.length, label: 'Test enemies', start, cls: 'q-foes',
         onPick: it => { m.destroy(); f.destroy(); Q.go('battle', {enemy: it.id, back: 'arena'}); },
         onBack: () => { m.destroy(); f.destroy(); Q.go('title'); }});

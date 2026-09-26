@@ -63,13 +63,18 @@ showtime-malfunction/ Game 8: articulation. Play each note N separate times (ton
 sustain-speedway/     Game 9: long tones and tuning. Your instrument is the engine: hold each lap's note in tune and steady to race
   levels.js           The 8 tracks (Downtown Loop … The Grand Prix): laps, lap length, rivals, and HOW SPEED WORKS. Edit here
   game.js             The race: the speed model, the canvas road, the tuning speedometer, pit stops, rivals, ghost car, results
-arcade-quest/         Arcade Quest: The Mysterious Microphone (stage 1: engine, battles, test arena; hidden unless ?demo)
+arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor; hidden unless ?demo)
   sprites.js          THE PIXEL ART: every sprite as a small pixel map + palette (theme tokens). Edit here
+  sprites-manor.js    Ghost Notes Manor's art: map tiles, the manor's ghosts (NPCs), Episode 1's enemies and the mini-boss
   engine/             core.js (screen, loop, scenes), input.js (keys, taps, touch pad), sprites.js (drawing, PNG hook,
                       player builder), text.js (text box, menus), save.js (save slot + settings)
+                      world.js (the overworld: rooms, walking, doors, wandering ghosts), talk.js (conversations,
+                      signs, Save Jukebox, Token Booth, shop, pause menu)
   data/               enemies.js, items.js, battle-text.js (every enemy, item and battle message: edit freely)
+  data/dialogue.js    EVERY LINE the manor's ghosts say, and every sign. Rewrite anything
+  data/maps/manor.js  Ghost Notes Manor's rooms as tile maps (readable rows of letters), with doors, ghosts and signs
   battle/             challenges.js (PLAY, LONG TONE, ARTICULATE, VOCAB, FINGERING, HARMONIZE), dodge.js, battle.js
-  scenes.js / main.js The title screen and the test arena; start-up
+  scenes.js / main.js The title screen (Continue, New game) and the test arena; start-up
   art/                (optional) your own PNGs: art/<sprite id>.png replaces a drawn sprite
 ```
 
@@ -185,9 +190,29 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **Achievements:** win The Grand Prix → the **Racing Stripes** skin; win any track on Virtuoso → the **Helmet**.
 - **Testing** (`?demo`): every track is open. Hold **Space** = the right note perfectly in tune, **D** = the right note drifting sharp (+25 to +35 cents, wobbling), **W** = a wrong note, **E** = the right note centered but wobbly; let go = breathing.
 
-## Arcade Quest: The Mysterious Microphone (stage 1)
+## Arcade Quest: The Mysterious Microphone
 
-**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Stage 1 is the engine, the battle system and a **test arena**: no story, map or characters yet. The cabinet only shows on the arcade floor with `?demo` (games.js `demoOnly: true`) until Episode 1 is ready; `arcade-quest/index.html?test` opens the arena directly.
+**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Built so far: the engine, the battle system, a **test arena**, and **Episode 1's world, Ghost Notes Manor** (the story intro, the final boss and save codes come next). The cabinet only shows on the arcade floor with `?demo` (games.js `demoOnly: true`) until Episode 1 is finished; `arcade-quest/index.html?test` opens the arena directly.
+
+### Episode 1: Ghost Notes Manor
+
+The first cabinet world, entered from inside the Ghost Notes cabinet (about 30–45 minutes). **NEW GAME** starts in the Foyer; **CONTINUE** goes back to your last Save Jukebox.
+
+- **Exploring:** a top-down tile map with a camera that follows you. Walk with the arrows/WASD or the on-screen D-pad, one tile per step; walk into a door (or onto the doormat at the bottom of a room) to change rooms. **A** talks to whoever you face or reads the sign or object in front of you (a speech bubble shows what you can talk to); **B** (or MENU on touch screens) opens the pause menu: your level, HP, tokens, bag, band and SETTINGS. Candles, the fireplace, the jukebox and the stove flicker; fog drifts (all still with reduced motion).
+- **Ghosts are visible** and wander near their spot. Bump into one (or let one drift into you) and a battle starts; there are no random battles. A ghost you **befriend or fade never comes back**, except in the **Practice Hall** (off the Foyer), where one of each kind is back every visit.
+- **The rooms:** 1. **The Foyer** (safe: Madame Mezzo, the Save Jukebox, Token Booth Terry and Rusty's shop), 2. **The Portrait Hall** (Wisps and a Squeaker: PLAY and LISTEN), 3. **The Library** (Hush: VOCAB, Orange belt), 4. **The Ballroom** (Wobbles: LONG TONE; the Butler), 5. **The Kitchen** (Chatterboxes: ARTICULATE), 6. **The Attic Stairs** (the mini-boss), 7. **The Attic** (locked until the mini-boss is harmonized; the final boss arrives next stage).
+- **The path:** Sir Reginald Rest sleeps in front of the attic stairs until you have helped **8 ghosts** (befriended or faded). At the top, **The Phantom Fermata** holds the attic door shut: its turns alternate LONG TONE and PLAY phases, its HP never drops below 1, and only **HARMONIZE** (hold its happy note for 4 seconds) makes it let go of the door.
+- **Notes:** your First 5 notes. After the Butler teaches you **the B♭ Blast** (play the concert B♭ scale from bottom to top for him; Snare Drum: 8 clean strokes), PLAY in battle offers a second attack that uses 4 notes of your B♭ scale and hits 30 % harder.
+- **Befriending:** the turn a ghost's CALM meter fills up it can't fade away, so you always get the choice: HARMONIZE (a friend, bigger rewards) or PLAY again (it fades away grumbling).
+- **Enemies:** Wisp (PLAY; each one loves a different note of the First 5), Squeaker (PLAY; LISTEN to it once and your clean notes calm it twice as much), Hush (VOCAB), Wobble (LONG TONE), Chatterbox (ARTICULATE), and the mini-boss. The **Snare Drum** gets ARTICULATE instead of any pitched challenge (VOCAB stays VOCAB).
+- **Token Booth:** Token Booth Terry turns the stars you earned in the other arcade games into **Arcade Tokens, 5 per star**: every star of your instrument (all games and modes), plus Chime Heist and Ancient Ninja Scrolls. Each star is turned in only once (the save remembers how many were turned in from each).
+- **Rusty's shop** (tokens): Valve Oil (15, heals 12), Cork Grease (20, blocks 3 sour notes), Metronome (20, slower dodge), Band Snack (8, heals 6), Tuning Slide (30, your next PLAY hits 50 % harder). Prices are in `data/items.js`.
+- **Saving:** your level, items, tokens, friends and story progress save as they happen. The **Save Jukebox** saves *where you are* and refills your HP; running out of breath in a battle takes you back to it (nothing is lost).
+- **Music:** `quest-title`, `quest-foyer` (Foyer and Practice Hall), `quest-manor` (the other rooms), `quest-battle`, `quest-miniboss`, each only when its file is uploaded; it stops while the microphone listens. Sounds: `quest-step`, `quest-door`, `quest-save`, `quest-encounter`, `quest-tokens` and the battle sounds.
+- **Editing:** every line of dialogue and every sign is in `arcade-quest/data/dialogue.js` (grouped by character and room, one line per text box; a test checks they all fit). The rooms are tile maps in `arcade-quest/data/maps/manor.js`: rows of letters, one per tile, with a legend at the top, plus each room's doors, ghosts (and which note a Wisp loves), people and signs. Enemies are in `data/enemies.js`.
+- **Testing:** `?demo&warp=<room>` starts in a room (`foyer`, `hall`, `library`, `ballroom`, `kitchen`, `stairs`, `attic`, `practice`); the battle demo keys below work everywhere.
+
+### The engine and battles
 
 - **Look:** a 320 × 180 pixel screen drawn in code, scaled up crisp (letterboxed on iPad portrait). Battles are on black with a white-bordered text box. Text is **Pixelify Sans** (OFL), bundled as `shared/fonts/pixelify.woff2`.
 - **Your hero** is the saved player: a pixel band kid holding their instrument (all 16 drawn in `arcade-quest/sprites.js`), shirt in the instrument's color, outlined in the equipped skin's color. SETTINGS picks the skin tone.
@@ -197,7 +222,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **The microphone listens only during PLAY, HARMONIZE and the playing challenges** (a red "The mic is listening" tag shows). Battle music (`quest-battle`, only if Mat adds the file) plays in menus and dodges and stops while listening.
 - **Settings:** text speed, dodging Easy/Normal (Easy = slower and fewer), **ASSIST MODE** (half damage), skin tone, and the arcade's own sound and music sliders. Reduced motion (device setting) = no screen shake or flashing.
 - **Rewards:** XP (level-ups raise max HP), Arcade Tokens, items. The save slot (level, HP, XP, tokens, items, band roster, version number) is on this device.
-- **Your own art:** put `arcade-quest/art/<sprite id>.png` (frames side by side, transparent background) and it replaces the drawn sprite: enemies by id (`squawk`…), players `player-<instrument>` (28 × 25, 2 frames).
+- **Your own art:** put `arcade-quest/art/<sprite id>.png` (frames side by side, transparent background) and it replaces the drawn sprite: enemies by id (`squawk`, `wisp`…; the mini-boss `fermata` is 56 × 40), players `player-<instrument>` (28 × 25, 2 frames; `player-<instrument>-back` walking away), the manor's ghosts `npc-mezzo`… (24 × 28, 2 frames) and map tiles `tile-floor`, `tile-candle`… (16 × 16). The ids are listed at the top of `sprites-manor.js`.
 - **Editing:** enemies (HP, challenge, happy note, dodge patterns, lines, rewards) in `data/enemies.js`, items in `data/items.js`, every battle message in `data/battle-text.js`.
 - **Testing** (`?demo&test`): hold **Space** = the right note(s), **W** = a wrong note, **S** = a steady long tone, **T** (or Space) taps = attacks, **V** = auto-answer VOCAB / FINGERING.
 

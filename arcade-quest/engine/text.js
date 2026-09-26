@@ -34,10 +34,10 @@
     const line = b.querySelector('.q-tline'), more = b.querySelector('.q-tmore'), sr = b.querySelector('.sr');
     b.querySelector('.q-tname').textContent = name; b.querySelector('.q-tname').hidden = !name;
     const pic = b.querySelector('.q-portrait'); pic.innerHTML = ''; pic.hidden = !portrait;
-    if (portrait) pic.appendChild(Q.spriteEl(portrait, {scale: 2}));
+    if (portrait) pic.appendChild(Q.spriteEl(portrait, {scale: 3}));
     return new Promise(done => {
       let i = -1, shown = 0, full = '', timer = 0, typing = false;
-      const cps = SPEED[Q.settings.get().textSpeed] || SPEED.normal;
+      const sp = Q.settings.get().textSpeed, cps = sp in SPEED ? SPEED[sp] : SPEED.normal;   // instant = 0
       const finishLine = () => { clearInterval(timer); typing = false; line.textContent = full; more.hidden = false; };
       const next = () => {
         i++;

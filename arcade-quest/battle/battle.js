@@ -5,11 +5,15 @@
      ITEM       Valve Oil (heal), Cork Grease (shield), Metronome (slower next dodge)… (data/items.js)
      HARMONIZE  only with a full CALM meter: its happy-note challenge. Success = it joins your band (bigger rewards).
    Enemy HP 0 = it fades away grumbling (smaller rewards). Your HP 0 = "out of breath": nothing is lost, HP refills.
-   Q.go('battle', {enemy: 'squawk', back: 'arena'}). All words: data/battle-text.js. Tuning: RULES below. */
+   Episode 1 adds: `phases` (a boss's challenge changes with each PLAY of it), the B♭ Blast (a second attack once the Butler
+   teaches it), the Tuning Slide (boost), `listenBoost`, `mustHarmonize` (HP stops at 1) and per-enemy `music`.
+   Q.go('battle', {enemy: 'squawk', back: 'arena'}) or, from the overworld,
+   Q.go('battle', {enemy: 'wisp', overrides: {happy: 2}, back: {scene: 'world', args: {...}}}): when it ends, the
+   back scene gets args.result = {kind: 'befriend' | 'fade' | 'rest', enemy}. All words: data/battle-text.js. */
 (function (A) {
   "use strict";
   const Q = A.Quest;
-  const RULES = {power: 10, powerPerLevel: 2, calmMax: 100, harmonizeMiss: 30, speedWeight: .45};
+  const RULES = {power: 10, powerPerLevel: 2, calmMax: 100, harmonizeMiss: 30, speedWeight: .45, blast: 1.3, breath: .3, calmSave: 60};
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
 
@@ -39,15 +43,21 @@
     if (B.calm > was) { float(`CALM +${Math.round(B.calm - was)}`, 150, 18, 'calm'); Q.sfx('quest-calm'); if (say) B.queue.push(Q.text('calmUp', {name: B.e.name})); }
     if (B.calm >= RULES.calmMax && was < RULES.calmMax) B.queue.push(Q.text('calmFull', {name: B.e.name}));
   }
-  const micReady = () => new Promise(res => {
-    if (A.Pitch.active || A.Pitch.demoReady) return res(true);
-    A.requireMic(() => res(true));
-    const iv = setInterval(() => {                               // the student tapped Cancel on the mic prompt
-      const gate = document.getElementById('micGateTitle'), box = gate && gate.closest('.overlay');
-      if (A.Pitch.active || A.Pitch.demoReady) { clearInterval(iv); }
-      else if (box && box.hidden) { clearInterval(iv); res(false); }
-    }, 250);
-  });
+  const micReady = () => Q.micReady();
+  const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
+  /** this turn's challenge: the enemy's own, or its phase (a boss changes challenge each turn) */
+  const challengeNow = () => (B.e.phases ? B.e.phases[B.phase % B.e.phases.length] : B.e.challenge);
+  /** PLAY: once the Butler taught the B♭ Blast, pick the enemy's challenge or the Blast */
+  function playMenu() {
+    if (!Q.save.flag('songBb')) return Promise.resolve('main');
+    return new Promise(done => {
+      const cmd = Q.$('qCmd'); cmd.hidden = false;
+      const t = Q.challenge.resolve(challengeNow());
+      const m = Q.menu(cmd, [{id: 'main', label: TYPE_NAME[t] || 'PLAY', sub: Q.text('playSub')}, {id: 'blast', label: Q.text('blast'), sub: Q.text('blastSub'), cls: 'c-play'},
+        {id: null, label: Q.text('back'), cls: 'c-back'}], {cols: 3, label: Q.text('playWhich'),
+        onPick: it => { m.destroy(); cmd.hidden = true; done(it.id); }, onBack: () => { m.destroy(); cmd.hidden = true; done(null); }});
+    });
+  }
   const sayQ = async (lines, opts) => { const l = [].concat(B.queue, lines || []); B.queue = []; if (l.length) await Q.say(l, opts); };
 
   /* ---------- the menu ---------- */
@@ -79,23 +89,39 @@
 
   /* ---------- actions ---------- */
   async function doPlay() {
-    if (Q.challenge.uses(B.e.challenge) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
-    const res = await Q.challenge.run(B.e.challenge, {enemy: B.e});
+    const which = await playMenu();
+    if (!which) return false;
+    const type = challengeNow(), blast = which === 'blast', wasCalm = B.calm >= RULES.calmMax;
+    if ((blast || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    if (B.e.phases && !blast) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
+    const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: B.e});
+    if (B === null) return false;
     const power = RULES.power + (B.save.level - 1) * RULES.powerPerLevel;
-    const dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed));
+    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
+    const boosted = B.boost && dmg > 0 ? B.boost : 0;
+    if (boosted) { dmg = Math.round(dmg * boosted); B.boost = 0; }
     if (dmg > 0) {
       B.e.hp -= dmg; B.hurtUntil = performance.now() + 450; Q.sfx('quest-enemy-hurt'); Q.shake(2, 180);
+      if (B.e.mustHarmonize && B.e.hp < 1) { B.e.hp = 1; B.queue.push(B.e.lines.hold); }
       float('-' + dmg, 170, 30, 'dmg'); hud();
-      B.queue.push(Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
-      if (B.e.hp > 0 && B.e.hp <= B.e.maxHp / 2 && !B.saidHurt) { B.saidHurt = true; B.queue.push(B.e.lines.hurt); }
+      B.queue.unshift(Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
+      if (boosted) B.queue.unshift(Q.text('boosted', {n: boosted}));
+      if (B.e.hp > 1 && B.e.hp <= B.e.maxHp / 2 && !B.saidHurt) { B.saidHurt = true; B.queue.push(B.e.lines.hurt); }
     } else B.queue.push(Q.text('miss'));
-    addCalm((B.e.calm.perNote || 0) * res.correct + (res.success ? B.e.calm.success || 0 : 0), true);
+    const perNote = (B.e.calm.perNote || 0) * (B.listened && B.e.listenBoost ? B.e.listenBoost : 1);
+    addCalm(perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0), true);
+    // a ghost that is getting calm can't fade: someone playing well always gets to HARMONIZE. The round its CALM fills
+    // up the student chooses: HARMONIZE (a friend) or PLAY again (it fades away). RULES.calmSave = "getting calm".
+    if (!wasCalm && B.e.hp < 1 && B.calm >= RULES.calmSave) {
+      B.e.hp = 1; hud(); B.queue.push(Q.text(B.calm >= RULES.calmMax ? 'tooCalm' : 'almostCalm', {name: B.e.name}));
+    }
     await sayQ();
     return true;
   }
   async function doListen() {
     const lines = B.e.listen.map(l => l.replace('{happy}', Q.happyLabel(B.e)));
     await Q.say(lines, {name: B.e.name, portrait: B.e.sprite});
+    B.listened = true;
     if (B.e.calm.listen) { addCalm(B.e.calm.listen); await sayQ(Q.text('listenCalm', {name: B.e.name})); }
     return true;
   }
@@ -109,13 +135,16 @@
     if (fx.heal) { const was = B.save.hp; B.save.hp = Math.min(B.save.maxHp, B.save.hp + fx.heal); lines.push(Q.text('itemHeal', {n: B.save.hp - was})); float('+' + (B.save.hp - was), 40, 60, 'heal'); }
     if (fx.shield) { B.shield += fx.shield; lines.push(Q.text('itemShield', {n: B.shield})); }
     if (fx.slow) { B.slow = fx.slow; lines.push(Q.text('itemSlow')); }
+    if (fx.boost) { B.boost = fx.boost; lines.push(Q.text('itemBoost')); }
     hud(); Q.save.write();
     await Q.say(lines);
     return true;
   }
   async function doHarmonize() {
-    if (Q.challenge.uses('play') && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    const h = B.e.harmonize || {};
+    if ((Q.challenge.uses('play') || h.type === 'articulate') && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     const res = await Q.challenge.run(null, {enemy: B.e, harmonize: true});
+    if (B === null) return false;
     if (res.success) { await befriend(); return 'over'; }
     B.calm = Math.max(0, B.calm - RULES.harmonizeMiss); hud();
     await Q.say(Q.text('harmonizeFail', {name: B.e.name}));
@@ -145,6 +174,8 @@
     s.xp += r.xp; s.tokens += r.tokens;
     const lines = [Q.text('rewards', {n: r.xp, tokens: r.tokens})];
     if (r.item && ITEMS()[r.item]) { s.items[r.item] = (s.items[r.item] || 0) + 1; lines.push(Q.text('gotItem', {item: ITEMS()[r.item].name})); }
+    const breath = Math.min(s.maxHp - s.hp, Math.ceil(s.maxHp * RULES.breath));   // a breather after every battle won
+    if (breath > 0) { s.hp += breath; lines.push(Q.text('breath', {n: breath})); }
     let up = false;
     while (s.xp >= Q.save.xpToNext(s.level)) { s.xp -= Q.save.xpToNext(s.level); s.level++; s.maxHp = Q.save.maxHpAt(s.level); s.hp = s.maxHp; up = true; }
     s.battles = s.battles || {won: 0, befriended: 0, faded: 0};
@@ -156,6 +187,7 @@
   async function befriend() {
     B.state = 'friend'; Q.sfx('quest-befriend');
     if (!B.save.roster.includes(B.e.id)) B.save.roster.push(B.e.id);
+    if (B.e.opens) Q.save.setFlag(B.e.opens);                  // e.g. the Phantom Fermata opens the attic
     Q.save.write();
     await Q.say([B.e.lines.befriend, Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
     await rewards('befriend');
@@ -178,6 +210,7 @@
       if (r === false) continue;                                  // backed out: still your turn
       if (b.e.hp <= 0) { await fade(); break; }
       await enemyTurn();
+      b.round++;
       if (B !== b) return;
       if (b.save.hp <= 0) {
         b.state = 'rest';
@@ -186,14 +219,17 @@
         break;
       }
     }
-    if (B === b) Q.go(b.back || 'arena', {from: b.e.id});
+    if (B !== b) return;
+    const result = {kind: b.state === 'friend' ? 'befriend' : b.state === 'fading' ? 'fade' : 'rest', enemy: b.e.id};
+    if (b.back && typeof b.back === 'object') Q.go(b.back.scene, Object.assign({}, b.back.args, {result}));
+    else Q.go(b.back || 'arena', {from: b.e.id, result});
   }
 
   Q.scenes.battle = {
-    enter({enemy, back}) {
-      const src = ENEMIES().find(e => e.id === enemy) || ENEMIES()[0];
+    enter({enemy, back, overrides}) {
+      const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
-      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, shield: 0, slow: null, queue: [], state: 'fight', hurtUntil: 0,
+      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, shield: 0, slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
         player: Q.playerId(member.id, {tone: Q.settings.get().tone})};
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +
@@ -204,7 +240,7 @@
         `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>`;
       Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id, {tone: Q.settings.get().tone}); }));
       hud();
-      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-battle');
+      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(src.music || 'quest-battle');
       run();
     },
     exit() {
@@ -223,8 +259,9 @@
       const hurt = now < B.hurtUntil && !Q.reduced() ? Math.round(Math.sin(now / 25) * 2) : 0;
       let alpha = 1;
       if (B.state === 'fading') alpha = Math.max(0, 1 - (now - B.fadeAt) / 1400);
-      const dodging = Q.dodge.active(), ey = dodging ? 12 : 30, es = dodging ? 2 : 2;
-      Q.draw(ctx, B.e.sprite, 160 - 16 * es + hurt, ey, {scale: es, t: now, alpha, frame: B.state === 'friend' ? 2 : undefined});
+      const d = Q.spriteDef(B.e.sprite) || {w: 32, h: 32}, dodging = Q.dodge.active(), big = d.h > 32;
+      const es = dodging && big ? 1 : 2, ey = dodging ? (big ? 26 : 12) : (big ? 24 : 30);
+      Q.draw(ctx, B.e.sprite, Math.round(160 - d.w * es / 2) + hurt, ey, {scale: es, t: now, alpha, frame: B.state === 'friend' ? 2 : undefined});
       // you
       if (!dodging) Q.draw(ctx, B.player, 22, 64, {scale: 2, t: now});
       Q.dodge.draw(ctx, now);
