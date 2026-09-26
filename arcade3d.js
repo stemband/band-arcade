@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | none). `dial: true`
                makes the coin door a round safe door with a combination dial.
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
    Marquee and screen are canvas textures drawn with the bundled fonts; only the front cabinet's
@@ -68,8 +68,16 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.62, 1.47], [0.62, 1.61]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.12, y1: 0.56}, start: [0.62, 0.68],
     },
+    /* temple: an upright cabinet under a temple gate (upswept top beam, tie beam, posts) with belt-color lanterns */
+    temple: {
+      width: 0.92, topper: 'gate',
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.84, 0.84], [0.84, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.62, 1.46], [0.62, 1.64], [0, 1.64]],
+      marquee: [[0.62, 1.47], [0.62, 1.63]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
+    },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple'};
+  const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
   /** a game's 3D cabinet settings, every default filled in from its 2D cabinet */
@@ -91,7 +99,8 @@ window.Arcade = window.Arcade || {};
   ['deep', 'floor', 'floor-2', 'floor-3', 'screen', 'ink', 'ink-2', 'text-hi', 'red', 'cab-side', 'cab-face', 'cab-panel', 'cab-metal',
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
    'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink',
-   'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off'].forEach(n => { tok[n] = cssVar(n); });
+   'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
+   'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -153,6 +162,17 @@ window.Arcade = window.Arcade || {};
         img.onload = () => { x.drawImage(img, W * .05, H * .08, H * .84 * 100 / 120, H * .84); done(); };
         img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(A.ninjaSVG({belt: 'belt-black'}).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
       }
+      x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
+      return;
+    } else if (k.marquee === 'scroll') {
+      // a paper hand scroll with wooden rods at both ends, ink-red letters (two lines for a long name)
+      const rod = H * .16;
+      x.fillStyle = tok['scroll-rod']; x.fillRect(0, 0, W, H);
+      x.fillStyle = tok['scroll-paper']; x.fillRect(rod, H * .06, W - 2 * rod, H * .88);
+      const words = name.split(' '), lines = words.length > 2 ? [words.slice(0, -1).join(' '), words[words.length - 1]] : [name];
+      const s = Math.min(...lines.map(l => fitText(x, l, '"GN Display", sans-serif', H * (lines.length > 1 ? .36 : .5), W * .76)));
+      x.fillStyle = tok['red-ink']; x.font = `${s}px "GN Display", sans-serif`;
+      lines.forEach((l, i) => x.fillText(l, W / 2, H * (lines.length > 1 ? .33 + i * .38 : .54)));
       x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
       return;
     } else if (k.marquee === 'heist') {
@@ -307,6 +327,23 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = lit ? thi : tok['cab-metal']; x.fillRect(W * .04 + k * bw * 1.03, H * .66 + (H * .3 - bh) / 2, bw * .86, bh);
         x.strokeStyle = tr; x.lineWidth = 1; x.strokeRect(W * .04 + k * bw * 1.03, H * .66 + (H * .3 - bh) / 2, bw * .86, bh);
       });
+    },
+    /* Ancient Ninja Scrolls: a scroll unrolls to a music term and its meaning, under belt lanterns (2.6 s loop, as 2D) */
+    scrolls(x, W, H, t) {
+      const T = [['Forte', 'Loud'], ['Allegro', 'Fast'], ['Legato', 'Smooth, connected'], ['Presto', 'Very fast'], ['Tempo', 'Speed of the beat'], ['Subito', 'Suddenly']];
+      const i = t == null ? 0 : Math.floor(t / 2.6), p = t == null ? 1 : Math.min(1, (t % 2.6) / 2.6 / .25);
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, tok['temple-sky']); g.addColorStop(1, tok.deep);
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      LANTERN_BELTS.forEach((b, k) => { x.fillStyle = tok[b]; x.beginPath(); x.ellipse(W * (.14 + k * .103), H * .12, W * .03, H * .055, 0, 0, 7); x.fill(); });
+      const top = H * .26, full = H * .66, h = full * ease(p), [term, mean] = T[i % T.length];
+      x.fillStyle = tok['scroll-rod']; x.fillRect(W * .08, top - H * .04, W * .84, H * .045);
+      x.fillStyle = tok['scroll-paper']; x.fillRect(W * .1, top, W * .8, h);
+      x.fillStyle = tok['scroll-rod']; x.fillRect(W * .08, top + h, W * .84, H * .045);
+      x.save(); x.beginPath(); x.rect(W * .1, top, W * .8, h); x.clip();
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok.ink;
+      x.font = `700 ${fitText(x, term, '"GN Text", sans-serif', H * .16, W * .7)}px "GN Text", sans-serif`; x.fillText(term, W / 2, top + full * .38);
+      x.fillStyle = tok['ink-2']; x.font = `${fitText(x, mean, '"GN Text", sans-serif', H * .08, W * .74)}px "GN Text", sans-serif`; x.fillText(mean, W / 2, top + full * .7);
+      x.restore();
     },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
@@ -464,6 +501,19 @@ window.Arcade = window.Arcade || {};
       const hub = new THREE.Mesh(face(new THREE.CylinderGeometry(r * .26, r * .26, .04, 20)), lambert(col('cab-panel'))); hub.position.set(0, cy, fz + .09); group.add(detail(hub));
       [0, Math.PI / 3, -Math.PI / 3].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(r * 1.1, .022, .022), lambert(col('cab-metal'))); sp.rotation.z = a; sp.position.set(0, cy, fz + .1); group.add(detail(sp)); });
       const knob = new THREE.Mesh(new THREE.SphereGeometry(.03, 10, 8), basic(col(k.trim2 + '-hi'))); knob.position.set(0, cy, fz + .12); group.add(detail(knob));
+    } else if (P.topper === 'gate') {
+      // a temple gate over the cabinet: two posts, a tie beam, an upswept top beam with a neon edge, belt lanterns between
+      const fz = frontTop + zc - .1, wood = lambert(col('temple-wood'));
+      [-1, 1].forEach(s => { const post = new THREE.Mesh(new THREE.BoxGeometry(.07, .44, .07), wood); post.position.set(s * (W / 2 - .02), topY + .22, fz); group.add(post); });
+      const nuki = new THREE.Mesh(new THREE.BoxGeometry(W + .28, .06, .06), wood); nuki.position.set(0, topY + .14, fz); group.add(nuki);
+      const beamShape = new THREE.Shape([[-W / 2 - .34, .1], [-W / 2 - .2, 0], [W / 2 + .2, 0], [W / 2 + .34, .1], [W / 2 + .3, .14], [0, .08], [-W / 2 - .3, .14]].map(([a, b]) => new THREE.Vector2(a, b)));
+      const bg = new THREE.ExtrudeGeometry(beamShape, {depth: .12, bevelEnabled: false}); bg.translate(0, topY + .4, fz - .06);
+      const beam = new THREE.Mesh(bg, [lambert(col(k.body)), wood]); beam.userData.pick = true; group.add(beam);
+      neon([[-W / 2 - .34, .1], [-W / 2 - .2, 0], [W / 2 + .2, 0], [W / 2 + .34, .1]].map(([a, b]) => new THREE.Vector3(a, topY + .4 + b, fz + .064)));
+      LANTERN_BELTS.forEach((b, i) => {
+        const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .06, 10), basic(col(b)));
+        lamp.position.set(-W * .36 + i * W * .72 / 7, topY + .3, fz + .05); group.add(detail(lamp));
+      });
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {

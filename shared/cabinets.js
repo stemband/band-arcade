@@ -20,7 +20,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
@@ -95,6 +95,23 @@ window.Arcade = window.Arcade || {};
               '<path class="s-laser" d="M58 452H242"/><path class="s-laser s-laser2" d="M58 578H242"/>' +
               '<circle class="s-lamp" cx="58" cy="452" r="4"/><circle class="s-lamp2" cx="242" cy="578" r="4"/>',
       slots: {marquee: [66, 116, 168, 52], screen: [72, 188, 156, 118], start: [80, 402, 140, 44]},
+    },
+    /* temple: a temple gate. An upswept top beam and a tie beam over two pillars, paper lanterns in the
+       Band Ninja belt colors hanging between the beams, the marquee a hand scroll hung from the tie beam */
+    temple: {
+      outline: 'M4 38Q22 50 44 50H256Q278 50 296 38L288 66H262V96H286V112H262V598H38V112H14V96H38V66H12Z',
+      face: 'M54 66H246V598H54Z', kick: [54, 246],
+      bezel: 'M66 196H234V336H66Z',
+      panel: 'M50 346H250L280 398H20Z', lip: 'M20 398H280V410H20Z',
+      joy: [72, 374], btns: [[180, 372], [208, 372], [236, 372]],
+      door: {x: 104, y: 478, w: 92, h: 100},
+      extras: ['orange', 'green', 'blue', 'purple', 'red', 'brown', 'black', 'diamond'].map((b, i) => {
+                const x = 69 + i * 23;
+                return `<line class="s-grille" x1="${x}" y1="66" x2="${x}" y2="70"/><circle cx="${x}" cy="80" r="11" style="fill:var(--belt-${b})" opacity=".25"/>` +
+                  `<rect class="s-lantern" x="${x - 6}" y="70" width="12" height="17" rx="5" style="fill:var(--belt-${b})"/>`;
+              }).join('') +
+              '<path class="s-grille" d="M96 112V122M204 112V122"/>',                                   // cords the scroll hangs from
+      slots: {marquee: [60, 120, 180, 62], screen: [74, 204, 152, 124], start: [80, 420, 140, 46]},
     },
   };
 
@@ -201,6 +218,17 @@ window.Arcade = window.Arcade || {};
           [0, 1, 2, 3, 4, 5].map(k => `<circle class="hs-led${k < i % 6 ? ' on' : k === i % 6 ? ' next' : ''}" cx="${55 + k * 10}" cy="70" r="3"/>`).join('') +
           [...L].map((l, k) => `<rect class="hs-bar${k === idx ? ' on' : ''}" x="${8 + k * 21}" y="${80 + k * 1.4}" width="18" height="${34 - k * 2.8}" rx="2"/>`).join('') +
           `</svg></div>`;
+      },
+    },
+    /* Ancient Ninja Scrolls: a scroll unrolls to show a music term and its meaning, under a row of belt lanterns */
+    scrolls: {
+      period: 2600,
+      html(g, i) {
+        const T = [['Forte', 'Loud'], ['Allegro', 'Fast'], ['Legato', 'Smooth, connected'], ['Presto', 'Very fast'], ['Tempo', 'Speed of the beat'], ['Subito', 'Suddenly']];
+        const [t, m] = T[i % T.length];
+        return `<div class="scr scr-scrolls"><span class="ss-lamps" aria-hidden="true">` +
+          ['orange', 'green', 'blue', 'purple', 'red', 'brown', 'black', 'diamond'].map(b => `<i style="background:var(--belt-${b})"></i>`).join('') + `</span>` +
+          `<span class="ss-scroll"><b>${esc(t)}</b><small>${esc(m)}</small></span></div>`;
       },
     },
     /* the default for a game with no custom screen: its name, blinking PRESS START */

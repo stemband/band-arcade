@@ -8,6 +8,8 @@
    page reads that shape to show star totals, so new games should use it too.
    SCALES mode saves each scale under its own game key, '<gameId>:scale-<scaleId>' (Arcade.Scales.progressKey),
    with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move.
+   gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
+   results, spar bests), kept apart from the shared progress shape above.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts. */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -82,6 +84,9 @@ window.Arcade = window.Arcade || {};
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).some(p => p && (p.stars > 0 || p.best > 0));
     },
+    /** a game's own extra saved object (created on demand); change it, then call saveGameData(gameId) */
+    gameData(gameId) { const g = data.gameData || (data.gameData = {}); return g[gameId] || (g[gameId] = {}); },
+    saveGameData() { save(); },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);
