@@ -131,14 +131,28 @@
     (phase === 2 ? A.store.setOpponentHornStart(b.dataset.horn) : A.store.setHornStart(b.dataset.horn)); A.Sfx.event('ui-toggle'); card();
   }));
 
-  /* Chromebooks: arrows move the highlight around the grid (as many columns as the layout shows), Enter selects */
-  const cols = () => getComputedStyle($('grid')).gridTemplateColumns.split(' ').filter(Boolean).length || 5;
+  /* Chromebooks: ←/→ move along the order, ↑/↓ to the nearest tile in the row above/below as laid out on screen
+     (the landscape grid's last row is centered, so rows don't line up column by column), Enter selects */
+  function vertical(dir) {
+    // layout positions (offsetTop/Left), not the screen box: the highlighted tile is scaled up a little
+    const box = t => ({top: t.offsetTop, left: t.offsetLeft, width: t.offsetWidth, height: t.offsetHeight}), here = box(tiles[cur]), cx = here.left + here.width / 2;
+    let best = -1, bestRow = Infinity, bestDx = Infinity;
+    tiles.forEach((t, k) => {
+      if (k === cur || !t.offsetParent || (phase === 1 && ids[k] === 'cpu')) return;
+      const b = box(t), dy = (b.top - here.top) * dir;
+      if (dy < here.height / 2) return;                                    // not in a row in that direction
+      const dx = Math.abs(b.left + b.width / 2 - cx);
+      if (dy < bestRow - here.height / 2 || (Math.abs(dy - bestRow) < here.height / 2 && dx < bestDx)) { best = k; bestRow = dy; bestDx = dx; }
+    });
+    return best < 0 ? cur : best;
+  }
   addEventListener('keydown', e => {
     if (e.altKey || e.ctrlKey || e.metaKey || leaving || document.querySelector('.overlay:not([hidden])')) return;   // the locker or an UNLOCKED! card is open
     const onButton = e.target.closest && e.target.closest('button, a');
     if (onButton && !onButton.classList.contains('tile') && (e.key === 'Enter' || e.key === ' ')) return;   // SELECT, horn toggle, sound…
-    const c = cols(), step = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -c, ArrowDown: c}[e.key];
-    if (step) { e.preventDefault(); highlight(Math.min(ids.length - 1, Math.max(0, cur + step))); }
+    const side = {ArrowLeft: -1, ArrowRight: 1}[e.key], up = {ArrowUp: -1, ArrowDown: 1}[e.key];
+    if (side) { e.preventDefault(); highlight(Math.min(ids.length - 1, Math.max(0, cur + side))); }
+    else if (up) { e.preventDefault(); highlight(vertical(up)); }
     else if (e.key === 'Enter') { e.preventDefault(); confirm(ids[cur]); }
   });
 
