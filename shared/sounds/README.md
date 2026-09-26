@@ -177,3 +177,4 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `reboot` | `reboot.m4a` or `reboot.mp3` | Showtime Malfunction: an animatronic reboots (eyes turn blue), or Maestro Moose finishes a phase. **during play: under 0.5 s** | under 0.5 s |
 | `spotlight-out` | `spotlight-out.m4a` or `spotlight-out.mp3` | Showtime Malfunction: an animatronic reaches the front and a spotlight goes out. **during play: under 0.5 s** | under 0.5 s |
 | `showtime-over` | `showtime-over.m4a` or `showtime-over.mp3` | Showtime Malfunction: all three spotlights are out, SHOWTIME'S OVER. Spooky-fun, never a scream. | 1–2 s |
+| `extra-spooky-unlocked` | `extra-spooky-unlocked.m4a` or `extra-spooky-unlocked.mp3` | Showtime Malfunction: the results screen the first time EXTRA SPOOKY unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream. falls back to `skin-unlocked` | 0.8–1.5 s |

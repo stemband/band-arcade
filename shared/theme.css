@@ -44,6 +44,7 @@
   --anim-walrus:#7f6f63; --anim-walrus-2:#b9a48c; --anim-owl:#80543a; --anim-owl-2:#d9bf92; --anim-gator:#3e7d47; --anim-gator-2:#9fbe68;
   --anim-raccoon:#6f727e; --anim-raccoon-2:#cfcfd6; --anim-moose:#6e4428; --anim-moose-2:#b08457; --anim-clone:#4f6e5e;
   --anim-metal:#8c95a6; --anim-metal-dark:#4a5060; --anim-tusk:#efe6d2; --anim-coat:#231d3a; --anim-brass:#d9a834; --anim-silver:#c9d2de;
+  --anim-chrome:#d9e1ec; --anim-crack:#262b36; --anim-emergency:#ff2a2a;
   --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6;
   --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
@@ -168,6 +169,21 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-bolts{position:absolute;inset:0;z-index:3;width:100%;height:100%;fill:var(--anim-metal);stroke:var(--anim-metal-dark);stroke-width:1;display:none}
 .pt-ok:not(.pt-var-c)>.sk-bolts{display:block}
 .sk-eyes{z-index:5}
+/* Nightmare Animatronic: cracked chrome (masked by the picture), bolts, a few loose wires, one red eye + one blue */
+.sk-fx-nightmare>.sk-fx{-webkit-mask:var(--sk-src) center/contain no-repeat;mask:var(--sk-src) center/contain no-repeat;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--white-hi) 40%,transparent) 0 18%,transparent 30% 55%,color-mix(in srgb,var(--anim-chrome) 45%,transparent) 64%,transparent 80%),
+  repeating-linear-gradient(90deg,transparent 0 9%,color-mix(in srgb,var(--white-hi) 16%,transparent) 9% 10%);mix-blend-mode:screen}
+.sk-cracks{position:absolute;inset:0;width:100%;height:100%}
+.sk-cracks path{fill:none;stroke:var(--anim-crack);stroke-width:1.3;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.pt-box-chip .sk-cracks path{stroke-width:.8}
+.pt-box-big .sk-cracks path{stroke-width:2.4}
+.sk-fx-nightmare>.sk-bolts{fill:var(--anim-chrome)}
+.sk-wires{position:absolute;inset:0;z-index:3;width:100%;height:100%;display:none;fill:none;stroke-width:2.2;stroke-linecap:round}
+.pt-ok:not(.pt-var-c)>.sk-wires{display:block}
+.sk-wires .w1{stroke:var(--red)}.sk-wires .w2{stroke:var(--yellow)}.sk-wires .w3{stroke:var(--cyan)}
+.sk-wires .wtip{fill:var(--anim-chrome);stroke:none}
+.pt-box-chip .sk-wires{display:none!important}
+.nm-a{fill:var(--anim-eye-bad)}.nm-b{fill:var(--anim-eye-good)}
 /* Pixel: the art redrawn tiny and blown up (a canvas, portraits.js), in a chunky 8-bit frame */
 .pt-box>.pt-pix{object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
 .pt-pixd>.pt-img{visibility:hidden}
@@ -215,10 +231,15 @@ h1,h2,h3{text-wrap:balance;margin:0}
   .pt-box-big.sk-fx-sparkle .sk-sparks g{animation:sk-drift 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.45s)}
   .pt-box-big.sk-fx-sweep>.sk-fx{animation:sk-sweep 2.8s ease-in-out infinite}
   .pt-box-big.sk-fx-animatronic>.sk-fx{animation:sk-sweep 3.6s ease-in-out infinite}
+  .pt-box-big .nm-a{animation:nm-swap-a 2.4s steps(1) infinite}.pt-box-big .nm-b{animation:nm-swap-b 2.4s steps(1) infinite}
+  .pt-box-big .sk-wires .w1{transform-origin:14% 30%;animation:nm-sway 3.2s ease-in-out infinite alternate}
   .pt-box-big.sk-fx-shimmer>.sk-fx{animation:sk-shimmer 4s linear infinite}
   .pt-box-big.sk-bg-galaxy>.sk-back{animation:sk-stars 24s linear infinite}
   .pt-box-big.sk-ghost>.pt-img,.pt-box-big.sk-ghost>.sk-acc{animation:sk-float 2.6s ease-in-out infinite}
 }
+@keyframes nm-swap-a{0%,46%{fill:var(--anim-eye-bad)}50%,96%{fill:var(--anim-eye-good)}}
+@keyframes nm-swap-b{0%,46%{fill:var(--anim-eye-good)}50%,96%{fill:var(--anim-eye-bad)}}
+@keyframes nm-sway{from{transform:rotate(-4deg)}to{transform:rotate(5deg)}}
 @keyframes sk-flicker{from{transform:scaleY(.86) scaleX(1.04)}to{transform:scaleY(1.08) scaleX(.96)}}
 @keyframes sk-drift{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(-6px);opacity:1}}
 @keyframes sk-sweep{0%{background-position:100% 0}70%,100%{background-position:0 0}}

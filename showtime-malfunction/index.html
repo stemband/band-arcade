@@ -23,6 +23,9 @@
       <h1 class="game-title"><span class="t1">Showtime</span> <span class="t2">Malfunction</span></h1>
       <p class="muted">The arcade's old animatronic band has powered back on, and it's glitching. Each one shows a note and a number: play that note that many times, <b>starting every note fresh</b> (tongue it, or strike it), to reboot them before they reach the front.</p>
       <div class="hub-tools">
+        <div class="diff-set" role="group" aria-labelledby="diffLbl"><span class="mp-lbl" id="diffLbl">Difficulty</span>
+          <button type="button" class="seg" data-diff="normal" aria-pressed="true">Normal</button><button type="button" class="seg x-seg" data-diff="extra" aria-pressed="false" aria-describedby="diffLock"><span class="lock" aria-hidden="true"></span>Extra Spooky</button>
+          <span class="diff-lock" id="diffLock" hidden>Clear The 5:00 Show to unlock</span></div>
         <button type="button" class="btn btn-ghost btn-small" id="storyBtn">The story</button>
         <div class="spooky-set" role="group" aria-labelledby="spookyLbl"><span class="mp-lbl" id="spookyLbl">Spooky level</span>
           <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button></div>
@@ -52,6 +55,7 @@
         <div class="cabs cabs-l"></div><div class="cabs cabs-r"></div>
         <div class="stage-back"><div class="curtain"></div><div class="band" id="band"></div><div class="stage-sign">The Showtime Band</div></div>
         <div class="floor"></div>
+        <div class="emergency"></div>
         <div class="static"></div>
         <div class="vignette"></div>
       </div>
@@ -84,6 +88,7 @@
   <div class="panel">
     <div class="res-band" id="resBand" aria-hidden="true"></div>
     <div class="bigstars" id="resStars"></div>
+    <p class="x-unlock" id="resUnlock" hidden><b>EXTRA SPOOKY unlocked!</b> The band is faster, and every voice box wants more plays. Pick it on the showtime screen.</p>
     <h2 id="resTitle">Show saved!</h2>
     <p id="resMsg"></p>
     <div class="stats">

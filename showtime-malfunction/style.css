@@ -1,6 +1,8 @@
 /* Showtime Malfunction: the Band Arcade after closing. Flicker is always slow and gentle (never a rapid or
    full-screen flash), and prefers-reduced-motion turns off every flicker, shake, twitch and lurch.
-   Mild (default) = glitches and static; body.spooky-mode = darker, more static, and a lean-in at game over. */
+   Mild (default) = glitches and static; body.spooky-mode = darker, more static, and a lean-in at game over.
+   body.extra-mode = the EXTRA SPOOKY difficulty: with Spooky visuals, a little darker still (red emergency lighting,
+   more static on the cabinets, eyes that flicker more). With Mild visuals it looks just like Mild. */
 .showtime{--st-red:var(--anim-eye-bad);--st-blue:var(--anim-eye-good)}
 .hub-head{margin-bottom:14px}
 .game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95}
@@ -9,7 +11,21 @@
 @keyframes title-glitch{0%,92%,100%{opacity:1;transform:none}93%{opacity:.7;transform:translateX(2px) skewX(-6deg)}95%{opacity:1;transform:none}96%{opacity:.8}}
 .hub-head p{max-width:64ch;margin:10px 0 0}
 .hub-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:12px}
-.spooky-set{display:flex;align-items:center;gap:6px}
+.spooky-set,.diff-set{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.x-seg{min-width:150px;display:inline-flex;align-items:center;justify-content:center;gap:6px;position:relative}
+.x-seg[aria-pressed="true"]{color:var(--st-red);border-color:var(--st-red)}
+.x-seg.locked{opacity:.6;border-style:dashed;cursor:not-allowed}
+.x-seg .lock{display:none;width:12px;height:14px;border-radius:2px;background:var(--text-lo);position:relative;margin-top:4px}
+.x-seg .lock::before{content:"";position:absolute;left:2px;right:2px;top:-6px;height:8px;border:2px solid var(--text-lo);border-bottom:0;border-radius:6px 6px 0 0}
+.x-seg.locked .lock{display:inline-block}
+.x-seg.new::after{content:"NEW";position:absolute;top:-9px;right:-6px;padding:1px 6px;border-radius:8px;background:var(--st-red);color:var(--white-hi);font-family:var(--text);font-size:10px;font-weight:700;letter-spacing:.08em}
+.diff-lock{font-size:14px;color:var(--text-lo)}
+.diff-lock.nudge{color:var(--text-hi)}
+@media (prefers-reduced-motion:no-preference){.diff-lock.nudge{animation:nudge .4s ease-out}}
+@keyframes nudge{0%,100%{transform:none}30%{transform:translateX(-4px)}60%{transform:translateX(4px)}}
+.x-unlock{margin:4px auto 10px;max-width:440px;padding:10px 12px;border-radius:12px;border:2px solid var(--st-red);background:var(--deep);color:var(--text-hi);
+  box-shadow:0 0 12px color-mix(in srgb,var(--st-red) 45%,transparent)}
+.x-unlock b{display:block;font-family:var(--display);font-weight:400;color:var(--st-red);letter-spacing:.04em}
 .seg{min-height:44px;min-width:82px;padding:6px 14px;border-radius:12px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);font-family:var(--display);font-size:15px;text-transform:uppercase}
 .seg[aria-pressed="true"]{border-color:var(--st-red);box-shadow:0 0 10px color-mix(in srgb,var(--st-red) 60%,transparent)}
 .snare-card{display:flex;align-items:center;gap:14px;padding:12px 14px;margin-bottom:14px;border-radius:16px;background:var(--floor-2);border:2px solid var(--pt-snare)}
@@ -28,7 +44,7 @@
 .lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
 .lvl .mini{grid-column:2;grid-row:1/3;width:40px;height:58px}
 .lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
-.lvl .stars{color:var(--yellow)}
+.lvl .stars{font-size:15px}              /* earned stars light up (theme.css .stars .on); the rest stay dim */
 .lvl[disabled]{cursor:not-allowed;opacity:.45}
 
 /* ---------- the animatronics (characters.js). Eyes: red while glitching, blue once rebooted ---------- */
@@ -117,6 +133,22 @@
 .spooky-mode .fluoro{opacity:.4}
 .spooky-mode .cabs{opacity:.3}
 .lights-out .fluoro{opacity:.15;animation:none}
+/* EXTRA SPOOKY + Spooky visuals: red emergency lighting (a slow, gentle pulse), more static on the cabinets, flickering eyes */
+.emergency{inset:0;opacity:0;background:radial-gradient(ellipse 70% 45% at 50% 0,color-mix(in srgb,var(--anim-emergency) 34%,transparent),transparent 75%),
+  linear-gradient(color-mix(in srgb,var(--anim-emergency) 10%,transparent),transparent 60%)}
+.spooky-mode.extra-mode .emergency{opacity:1;animation:emergency 5s ease-in-out infinite}
+@keyframes emergency{0%,100%{opacity:.75}50%{opacity:1}}
+.spooky-mode.extra-mode .vignette{background:radial-gradient(ellipse at 50% 60%,transparent 26%,rgba(8,1,4,.95))}
+.spooky-mode.extra-mode .fluoro{opacity:.25}
+.spooky-mode.extra-mode .static{opacity:.18}
+.spooky-mode.extra-mode .cabs{opacity:.35;background:
+  repeating-linear-gradient(0deg,color-mix(in srgb,var(--white) 30%,transparent) 0 1px,transparent 1px 3px),
+  radial-gradient(ellipse 60% 30% at 30% 35%,color-mix(in srgb,var(--anim-emergency) 30%,transparent),transparent 70%),
+  repeating-linear-gradient(90deg,var(--cab-side) 0 18%,var(--deep) 18% 22%)}
+.spooky-mode.extra-mode .stage-sign{color:var(--st-red);text-shadow:0 0 6px var(--st-red)}
+.spooky-mode.extra-mode .bots .bot.glitch .a-eye,.spooky-mode.extra-mode .bots .bot.glitch .a-eyeglow{animation:eye-flicker 2.6s steps(1) infinite}
+.spooky-mode.extra-mode .bots .bot.glitch:nth-child(2n) .a-eye,.spooky-mode.extra-mode .bots .bot.glitch:nth-child(2n) .a-eyeglow{animation-delay:-1.1s}
+@keyframes eye-flicker{0%,70%,100%{opacity:1}74%{opacity:.35}78%{opacity:1}84%{opacity:.5}88%{opacity:1}}
 
 /* the animatronics on the floor (game.js places them: translate + scale from the feet) */
 .bots{position:absolute;inset:0}
@@ -196,7 +228,7 @@
 
 /* reduced motion: no flicker, shake, twitch, strobe or lean-in; the band still walks (smoothly) */
 @media (prefers-reduced-motion:reduce){
-  .game-title .t2,.fluoro,.static,.bots .bot.glitch .body,.band-bot,.bulb.dying,.spot.dying::before,.sign.tick .vb-count,.sign.sour,.bots .bot.spark .a-spark,.bots .bot.fizzle{animation:none!important}
+  .game-title .t2,.fluoro,.static,.emergency,.bots .bot .a-eye,.bots .bot .a-eyeglow,.diff-lock,.bots .bot.glitch .body,.band-bot,.bulb.dying,.spot.dying::before,.sign.tick .vb-count,.sign.sour,.bots .bot.spark .a-spark,.bots .bot.fizzle{animation:none!important}
   .bots .bot.twitch .bot-head,.bots .bot.glitch:not(.twitch) .bot-head{transform:none}
   .bots .bot.walk-home,.bots .bot.lean-in{transition:none!important}
   .bots .bot.fizzle{opacity:0}

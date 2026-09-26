@@ -99,6 +99,7 @@ window.Arcade = window.Arcade || {};
     'reboot':          {file: 'reboot',        vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reboots (eyes turn blue), or Maestro Moose finishes a phase.', len: 'under 0.5 s'},
     'spotlight-out':   {file: 'spotlight-out', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reaches the front and a spotlight goes out.', len: 'under 0.5 s'},
     'showtime-over':   {file: 'showtime-over', vol: .8, mic: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: all three spotlights are out, SHOWTIME\'S OVER. Spooky-fun, never a scream.', len: '1–2 s'},
+    'extra-spooky-unlocked': {file: 'extra-spooky-unlocked', vol: .8, mic: true, fallback: 'skin-unlocked', screen: 'showtime-malfunction', when: 'Showtime Malfunction: the results screen the first time EXTRA SPOOKY unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream.', len: '0.8–1.5 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */
