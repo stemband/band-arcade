@@ -12,7 +12,9 @@
                 backdrop  'horizon' (synthwave sun + stripes) | 'galaxy' (stars + nebula)        drawn in CSS
                 aura      'flame' (fire around the instrument)                                  drawn in SVG below
                 fx        'sparkle' | 'sweep' (a band of light) | 'shimmer' (prismatic) | 'animatronic' (metal sheen + bolts)
-                eyes      true: a pair of glowing eyes on the instrument's "face" (ANCHORS), in the skin's second color
+                          | 'nightmare' (cracked chrome + a few loose wires)
+                eyes      true: a pair of glowing eyes on the instrument's "face" (ANCHORS), in the skin's second color;
+                          'flicker': one red, one blue, swapping slowly on the big portrait (still under reduced motion)
                 pixel     true: the art is redrawn pixelated with a chunky 8-bit frame
                 ghost     true: see-through, with a ghost-trail glow
               Animation (auras, sparkles, sweeps, floating) plays ONLY on the big Select Player portraits and
@@ -23,6 +25,8 @@
      {stars: 50}                          50 ★ on THIS instrument, all games and all modes (Arcade.store.allStars)
      {game, level, stars, text}           achievement: any instrument has `stars` on that level of that game, in
                                           any NOTES × ORDER mode. Unlocks for EVERY instrument on the device.
+                                          + suffix: only progress keys ending in it (':extra' = Showtime
+                                          Malfunction's EXTRA SPOOKY difficulty)
      {game, badge: true, text}            achievement: any Ancient Ninja Scrolls TEST READY badge
    A rule for a game that isn't in shared/games.js is skipped (the skin stays locked, with its text shown).
    DRAWN VARIANTS: shared/portraits/<file>--<skin id>.png (and <file>-full--<skin id>.png) replace the effect
@@ -46,6 +50,8 @@ window.Arcade = window.Arcade || {};
                                                                                   look: {colors: ['cyan', 'pink'], fx: 'shimmer'}},
     {id: 'animatronic', kind: 'color', name: 'Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, text: 'Defeat Maestro Moose in Showtime Malfunction'},
                                                                                   look: {colors: ['anim-metal', 'anim-eye-good'], fx: 'animatronic', eyes: true}},
+    {id: 'nightmare', kind: 'color', name: 'Nightmare Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, suffix: ':extra', text: 'Clear The Midnight Encore on EXTRA SPOOKY in Showtime Malfunction'},
+                                                                                  look: {colors: ['anim-chrome', 'anim-eye-bad'], fx: 'nightmare', eyes: 'flicker'}},
     {id: 'ghostly', kind: 'color', name: 'Ghostly',      unlock: {game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'},
                                                                                   look: {colors: ['cyan', 'purple'], ghost: true}},
     // ---- accessories (combine with any color skin) ---------------------------------------------------------
@@ -119,6 +125,12 @@ window.Arcade = window.Arcade || {};
       '<circle cx="30" cy="50" r="15" fill="var(--sk2)" opacity=".3"/><circle cx="70" cy="50" r="15" fill="var(--sk2)" opacity=".3"/>' +
       '<circle cx="30" cy="50" r="7.5" fill="var(--sk2)" stroke="var(--anim-metal-dark)" stroke-width="2"/><circle cx="70" cy="50" r="7.5" fill="var(--sk2)" stroke="var(--anim-metal-dark)" stroke-width="2"/>' +
       '<circle cx="32.5" cy="47.5" r="2.4" fill="var(--white-hi)"/><circle cx="72.5" cy="47.5" r="2.4" fill="var(--white-hi)"/>'},
+    // not a skin by itself: the Nightmare Animatronic's eyes (look.eyes 'flicker'): one red, one blue, cracked lenses
+    eyesNm: {vb: '0 0 100 100', svg:
+      '<circle class="nm-glow nm-a" cx="30" cy="50" r="15" opacity=".3"/><circle class="nm-glow nm-b" cx="70" cy="50" r="15" opacity=".3"/>' +
+      '<circle class="nm-eye nm-a" cx="30" cy="50" r="7.5" stroke="var(--anim-metal-dark)" stroke-width="2"/><circle class="nm-eye nm-b" cx="70" cy="50" r="7.5" stroke="var(--anim-metal-dark)" stroke-width="2"/>' +
+      '<circle cx="32.5" cy="47.5" r="2.2" fill="var(--white-hi)"/><circle cx="72.5" cy="47.5" r="2.2" fill="var(--white-hi)"/>' +
+      '<path d="M24 45L29 51L27 56M66 43L71 49" stroke="var(--anim-metal-dark)" stroke-width="1.2" fill="none"/>'},
     cape: {vb: '0 0 100 130', svg:
       '<path d="M30 4Q50 13 70 4L97 116Q74 102 50 124Q26 102 3 116Z" fill="var(--red)" fill-opacity=".9" stroke="var(--pink-hi)" stroke-width="2.6" stroke-linejoin="round"/>' +
       '<path d="M36 14Q50 20 64 14L84 106Q68 96 50 112Q32 96 16 106Z" fill="var(--purple)" fill-opacity=".55"/>' +
@@ -141,7 +153,14 @@ window.Arcade = window.Arcade || {};
     sparkle: `<svg class="sk-sparks" viewBox="0 0 100 100" aria-hidden="true">${SPARKS.map(([x, y, s], i) => `<g style="--i:${i}">${star4(x, y, s, 'sk-spark')}</g>`).join('')}</svg>`,
     sweep: '', shimmer: '',
     animatronic: '',
+    // cracks across the chrome (inside the masked layer, so they only show on the art)
+    nightmare: `<svg class="sk-cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">` +
+      `<path d="M58 4L52 20L60 28L49 44M52 20L42 24M60 28L72 34M18 62L30 66L27 78L38 90M30 66L40 60M80 70L72 80L78 92"/></svg>`,
   };
+  /* the Nightmare Animatronic's loose wires, dangling past the edges (outside the mask, like the bolts) */
+  const WIRES = `<svg class="sk-wires" viewBox="0 0 100 100" aria-hidden="true" overflow="visible">` +
+    `<path class="w1" d="M14 30Q4 40 9 52Q13 60 6 68"/><path class="w2" d="M86 22Q98 30 93 44"/><path class="w3" d="M78 84Q88 92 84 102"/>` +
+    `<circle class="wtip" cx="6" cy="68" r="1.8"/><circle class="wtip" cx="93" cy="44" r="1.8"/><circle class="wtip" cx="84" cy="102" r="1.8"/></svg>`;
   /* the Animatronic skin's four bolts: outside the masked effect layer, so they show at the corners */
   const BOLTS = `<svg class="sk-bolts" viewBox="0 0 100 100" aria-hidden="true">${[[9, 9], [91, 9], [9, 91], [91, 91]].map(([x, y]) =>
     `<circle cx="${x}" cy="${y}" r="3.2"/><path d="M${x - 2} ${y}h4"/>`).join('')}</svg>`;
@@ -161,7 +180,7 @@ window.Arcade = window.Arcade || {};
     if (milestone(s)) return !!member && st().allStars(member) >= u.stars;
     if (!u.game || !hasGame(u.game)) return false;
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
-    if (u.level) return st().bestLevelStars(u.game, u.level) >= (u.stars || 1);
+    if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
     return false;
   }
   /** what a locked skin asks for, in student words */
@@ -226,8 +245,8 @@ window.Arcade = window.Arcade || {};
       if (look.pixel) cls.push('sk-pixel');
       if (look.ghost) cls.push('sk-ghost');
       if (look.backdrop || look.aura || look.pixel) parts.before = `<span class="sk-back" aria-hidden="true">${look.aura ? AURA[look.aura] || '' : ''}</span>`;
-      if (look.fx) parts.after = `<span class="sk-fx" aria-hidden="true">${FX[look.fx] || ''}</span>` + (look.fx === 'animatronic' ? BOLTS : '');
-      if (look.eyes && ANCHORS[id]) parts.after += accHTML(id, {id: 'eyes', art: 'face'}).replace('class="sk-acc ', 'class="sk-acc sk-eyes ');
+      if (look.fx) parts.after = `<span class="sk-fx" aria-hidden="true">${FX[look.fx] || ''}</span>` + (look.fx === 'animatronic' ? BOLTS : look.fx === 'nightmare' ? BOLTS + WIRES : '');
+      if (look.eyes && ANCHORS[id]) parts.after += accHTML(id, {id: look.eyes === 'flicker' ? 'eyesNm' : 'eyes', art: 'face'}).replace('class="sk-acc ', 'class="sk-acc sk-eyes ');
       if (a && ACC_ART[a.id] && ANCHORS[id]) {
         cls.push('has-acc', 'acc-' + a.id);
         const html = accHTML(id, a);

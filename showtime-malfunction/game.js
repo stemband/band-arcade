@@ -4,11 +4,14 @@
    Notes: NOTES × ORDER (shared/mode-picker.js + sequences.js). The Snare Drum (an unpitched player) gets a count-only
    mode: no staff, any clean hit counts, and its animatronics are Snapjaw Sal and his clone units.
    Progress: per instrument MEMBER (games.js byMember): setLevel(<progress key>, member id, showtime, {stars, best});
-   the snare saves under 'showtime-malfunction:count'. Levels and rules: levels.js. Characters: characters.js. */
+   the snare saves under 'showtime-malfunction:count'. Levels and rules: levels.js. Characters: characters.js.
+   DIFFICULTY: Normal | EXTRA SPOOKY (levels.js column `x`: bigger counts, faster walk). EXTRA SPOOKY opens once this
+   instrument has cleared The 5:00 Show on Normal (any mode; ?demo: always) and saves under the same keys + ':extra'.
+   It is separate from the SPOOKY LEVEL (Mild | Spooky), which only changes the visuals. */
 (function (A) {
   "use strict";
   const {$} = A;
-  const GAME_ID = 'showtime-malfunction', SNARE_KEY = GAME_ID + ':count';
+  const GAME_ID = 'showtime-malfunction', SNARE_KEY = GAME_ID + ':count', EXTRA = ':extra';
   const LEVELS = window.SHOWTIMES, RULES = window.SHOWTIME_RULES, SHOW = A.Showtime;
 
   const inst = A.requireInstrument(GAME_ID);            // the snare is welcome here (games.js unpitched: true)
@@ -33,6 +36,41 @@
   document.querySelectorAll('[data-spooky]').forEach(b => b.addEventListener('click', () => { setSpooky(b.dataset.spooky); sfx('ui-toggle'); }));
   setSpooky(gd.spooky);
 
+  /* ---------- the difficulty (remembered): Normal | EXTRA SPOOKY, locked until The 5:00 Show is cleared on Normal ---------- */
+  const normalKeys = () => snare ? [SNARE_KEY] : A.progressKeys(GAME_ID);
+  const extraEarned = () => normalKeys().some(k => A.store.level(k, who, 1).stars > 0);    // for THIS instrument, any mode
+  const extraOpen = () => A.DEMO || extraEarned();
+  const isExtra = () => gd.diff === 'extra' && extraOpen();
+  const seenExtra = () => !!(gd.extraSeen || {})[who];
+  function markExtraSeen() { (gd.extraSeen || (gd.extraSeen = {}))[who] = true; save(); }
+  function drawDiff() {
+    const open = extraOpen(), x = isExtra();
+    document.body.classList.toggle('extra-mode', x);
+    document.querySelectorAll('[data-diff]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.diff === 'extra') === x));
+    const xb = document.querySelector('[data-diff="extra"]');
+    xb.classList.toggle('locked', !open); xb.setAttribute('aria-disabled', String(!open));
+    xb.classList.toggle('new', open && !A.DEMO && !seenExtra());
+    $('diffLock').hidden = open;
+  }
+  function setDiff(v) {
+    if (v === 'extra' && !extraOpen()) {                       // locked: say how to open it
+      const l = $('diffLock'); l.classList.remove('nudge'); void l.offsetWidth; l.classList.add('nudge'); return;
+    }
+    if (v === 'extra' && !gd.extraVisuals) { gd.extraVisuals = true; setSpooky('spooky'); }   // the first time: Spooky visuals (Mild still works)
+    if (v === 'extra' && extraEarned()) markExtraSeen();
+    gd.diff = v === 'extra' ? 'extra' : 'normal'; save();
+    drawDiff(); sfx('ui-toggle');
+    showHub();
+  }
+  document.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => setDiff(b.dataset.diff)));
+  /** a showtime's row for the chosen difficulty: Normal = levels.js as written; EXTRA SPOOKY = its `x` column */
+  function rowFor(lv, extra = isExtra()) {
+    const L = LEVELS[lv - 1], x = L.x;
+    if (!extra || !x) return L;
+    return Object.assign({}, L, {count: x.count || L.count, snare: x.snare || L.snare, walk: L.walk / (x.speed || 1), blurb: x.blurb || L.blurb,
+      boss: L.boss && Object.assign({}, L.boss, x.boss, {walk: L.boss.walk / (x.speed || 1)})});
+  }
+
   /* ---------- the story: before the first showtime, and any time from the level screen ---------- */
   $('storyArt').innerHTML = ['walrus', 'owl', 'moose', 'gator', 'raccoon'].map(k => `<span class="bot glitch">${SHOW.botSVG(k)}</span>`).join('');
   let afterStory = null;
@@ -41,19 +79,23 @@
   $('storyGo').addEventListener('click', () => { $('story').hidden = true; gd.storySeen = true; save(); if (afterStory) afterStory(); });
 
   /* ---------- modes: NOTES × ORDER for pitched instruments; count mode for the snare ---------- */
-  const picker = snare ? null : A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub()});
+  const picker = snare ? null : A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub(),
+    keySuffix: () => isExtra() ? EXTRA : '', max: LEVELS.length * 3});            // stars for the chosen difficulty, out of 24
   $('snareCard').hidden = !snare;
-  const progressKey = () => snare ? SNARE_KEY : picker.state.progressKey;
+  const progressKey = () => (snare ? SNARE_KEY : picker.state.progressKey) + (isExtra() ? EXTRA : '');
+  drawDiff();
 
   /* ---------- the showtime select ---------- */
   function showHub() {
     stopShow();
-    if (picker) A.ModePicker.useRange(picker.state);
+    if (picker) { picker.refresh(); A.ModePicker.useRange(picker.state); }   // star totals for the chosen difficulty
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
     document.body.classList.remove('in-show');
-    const key = progressKey();
-    $('levelGrid').innerHTML = LEVELS.map((L, i) => {
-      const lv = i + 1, p = A.store.level(key, who, lv);
+    drawDiff();
+    const key = progressKey(), x = isExtra();
+    $('levelsTitle').textContent = x ? 'Showtimes · Extra Spooky' : 'Showtimes';
+    $('levelGrid').innerHTML = LEVELS.map((_, i) => {
+      const lv = i + 1, L = rowFor(lv, x), p = A.store.level(key, who, lv);
       const open = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, who, lv - 1).stars > 0;
       const c = snare ? L.snare : L.count, times = c[0] === c[1] ? `× ${c[0]}` : `× ${c[0]}–${c[1]}`;
       const blurb = snare ? `${L.bots} animatronics, ${times} hits each${L.boss ? `, then Maestro Moose: ${L.boss.snare} hits, ${L.boss.phases} times` : ''}.`
@@ -81,7 +123,7 @@
 
   function startShow(lv) {
     stopShow();
-    const L = LEVELS[lv - 1], boss = L.boss, total = L.bots + (boss ? boss.phases : 0);
+    const extra = isExtra(), L = rowFor(lv, extra), boss = L.boss, total = L.bots + (boss ? boss.phases : 0);
     let items = [], seq = null;
     if (!snare) {
       A.ModePicker.useRange(picker.state);
@@ -92,12 +134,12 @@
     const kinds = ['walrus', 'owl', 'gator', 'raccoon'].sort(() => Math.random() - .5);
     const queue = [...Array(L.bots)].map((_, i) => ({kind: snare ? (i === 0 ? 'gator' : 'clone') : kinds[i % 4], unit: snare && i ? String(i + 1).padStart(2, '0') : null,
       count: randInt(snare ? L.snare : L.count), item: items[i] || null}));
-    G = {lv, L, key: progressKey(), queue, bots: [], sig: seq && seq.sig, fit: seq && seq.fit, name: seq ? seq.name : null,
+    G = {lv, L, extra, key: progressKey(), wasOpen: extraEarned(), queue, bots: [], sig: seq && seq.sig, fit: seq && seq.fit, name: seq ? seq.name : null,
       total: L.bots + (boss ? 1 : 0), rebooted: 0, lights: RULES.spotlights, score: 0, spawnAt: 0, over: false, band: [], nextId: 0,
       bossItems: boss ? items.slice(L.bots) : [], bossPending: !!boss};
     $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
-    $('hudLevelLabel').textContent = `Showtime ${lv}`; $('hudLevelName').textContent = L.name;
+    $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Extra Spooky' : ''}`; $('hudLevelName').textContent = L.name;
     $('bots').innerHTML = ''; $('band').innerHTML = ''; banner('');
     drawLights(); hud();
     window.scrollTo(0, 0);
@@ -334,10 +376,13 @@
     $('resBand').innerHTML = g.band.map(b => `<span class="bot fixed">${SHOW.botSVG(b.kind, {unit: b.unit})}</span>`).join('');
     const hasNext = g.lv < LEVELS.length && (stars > 0 || A.DEMO);
     $('resNext').hidden = !hasNext;
+    const unlockedNow = !g.extra && !g.wasOpen && extraEarned();       // The 5:00 Show cleared on Normal for the first time
+    $('resUnlock').hidden = !unlockedNow;
+    if (unlockedNow) markExtraSeen();
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
-    A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score']);
+    A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score', unlockedNow && 'extra-spooky-unlocked']);
     G = null;
     finished = g;
   }

@@ -155,7 +155,8 @@ window.Arcade = window.Arcade || {};
     /** THE STAR TOTAL: every star for one instrument across EVERY progress key (all NOTES × ORDER combinations,
         Chime Heist's modes, Button Masher's rivals…), for one game (gameId) or, without it, for all games.
         instrument: a member id ('trumpet': its group(s) for group-keyed games, the member for byMember games
-        like Button Masher) or a player id a game saves under directly ('bells', 'all'). */
+        like Button Masher) or a player id a game saves under directly ('bells', 'all'). Every key that starts with
+        '<gameId>:' counts for that game, so Showtime Malfunction's EXTRA SPOOKY keys (':extra') are included. */
     allStars(instrument, gameId) {
       const isMember = !!A.memberById(instrument);
       const groups = isMember ? A.groupsOf(instrument).map(g => g.id) : [instrument];
@@ -170,11 +171,13 @@ window.Arcade = window.Arcade || {};
     },
     starsForPlayer(memberId) { return this.allStars(memberId); },
     /** the most stars any instrument has earned on one level of a game, in ANY mode (every progress key of that
-        game: '<gameId>' and '<gameId>:…'). Used by skin achievements ("clear The Golden Vault"). */
-    bestLevelStars(gameId, lvl) {
+        game: '<gameId>' and '<gameId>:…'). Used by skin achievements ("clear The Golden Vault"). suffix: only keys
+        ending in it (Showtime Malfunction's EXTRA SPOOKY keys end in ':extra'). */
+    bestLevelStars(gameId, lvl, suffix) {
       let best = 0;
       Object.keys(data.games || {}).forEach(k => {
         if (k !== gameId && k.indexOf(gameId + ':') !== 0) return;
+        if (suffix && k.slice(-suffix.length) !== suffix) return;
         Object.values(data.games[k] || {}).forEach(lv => { const p = lv && lv[lvl]; if (p && p.stars > best) best = p.stars; });
       });
       return best;

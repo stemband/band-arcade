@@ -143,7 +143,7 @@ window.Arcade.GAMES = [
     name: 'Showtime Malfunction',
     skill: 'Articulation',
     blurb: "The arcade's old animatronic band has powered back on! Play each note as many times as its voice box shows, tonguing every one, to reboot them.",
-    maxStars: 24,
+    maxStars: 48,                                    // 8 showtimes × 3 on Normal + 8 × 3 on EXTRA SPOOKY (keys + ':extra')
     color: 'yellow',
     noteModes: true,                                 // NOTES × ORDER (the snare plays a single count mode)
     byMember: true,                                  // stars are saved per instrument member ('snare' included)
