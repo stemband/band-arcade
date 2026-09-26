@@ -92,6 +92,12 @@ window.Arcade = window.Arcade || {};
     /** horn: 'F' (F G A B♭ C, group hornF) or 'C' (C D E F G, group hornC) */
     get hornStart() { return data.hornStart === 'C' ? 'C' : 'F'; },
     setHornStart(v) { data.hornStart = v === 'C' ? 'C' : 'F'; if (data.player === 'horn') data.inst = A.groupFor('horn', {hornStart: data.hornStart}).id; save(); },
+    /** Player 2 for two-player games (Neon Face-Off): the last opponent, a member id or 'cpu'. Never touches
+        the saved player. Its own horn Starting notes: opponentHornStart. */
+    get opponent() { const o = data.opponent; return o === 'cpu' || (o && A.memberById(o)) ? o : null; },
+    setOpponent(id) { data.opponent = id === 'cpu' || A.memberById(id) ? id : null; save(); },
+    get opponentHornStart() { return data.opponentHornStart === 'C' ? 'C' : 'F'; },
+    setOpponentHornStart(v) { data.opponentHornStart = v === 'C' ? 'C' : 'F'; save(); },
     /** after the members migration: {group} to pick an exact instrument from, {reason: 'tonebells'}, or null */
     get pending() { return data.pending || null; },
     /** old: saves a GROUP directly. Kept for old links/tests; prefer setPlayer(member id) */

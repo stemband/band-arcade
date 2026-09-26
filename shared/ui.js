@@ -163,8 +163,12 @@ window.Arcade = window.Arcade || {};
     const q = p.toString().replace(/=(?=&|$)/g, '');          // "?demo=" -> "?demo"
     return path + (q ? '?' + q : '');
   };
-  /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../') */
-  A.playerLink = (gameId, root = '../') => A.linkTo(root + 'select-player/index.html', {game: gameId});
+  /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../').
+      A two-player game (games.js `players: 2`) gets &players=2, so Player 2 picks too. */
+  A.playerLink = (gameId, root = '../') => {
+    const g = (A.GAMES || []).find(x => x.id === gameId);
+    return A.linkTo(root + 'select-player/index.html', {game: gameId, players: g && g.players > 1 ? g.players : null});
+  };
   /** where a game's START goes: Select Player, or straight into a game with its own fixed player (games.js `player`:
       an instrument group like 'bells', or 'all' for a game that needs no instrument) */
   A.startLink = (g, root = '../') => g.player ? A.linkTo(root + g.id + '/index.html') : A.playerLink(g.id, root);

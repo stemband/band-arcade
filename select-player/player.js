@@ -2,7 +2,10 @@
    (Arcade.PLAYERS), each with its neon portrait (shared/portraits.js). The highlighted tile has a pulsing neon
    outline and a 1P marker; the big preview and player card show it. Tap a tile to highlight it, tap it again
    (or SELECT) to choose; arrow keys move, Enter selects. Choosing saves the instrument MEMBER
-   (Arcade.store.setPlayer); its player group follows (Arcade.groupFor), so every game's saved stars stay put. */
+   (Arcade.store.setPlayer); its player group follows (Arcade.groupFor), so every game's saved stars stay put.
+   Two-player games (games.js `players: 2`, or &players=2): after Player 1 (cyan 1P marker), "PLAYER 2 — PRESS
+   START": Player 2 picks with a magenta 2P marker, or CPU. That is saved as the last opponent
+   (Arcade.store.setOpponent) and never replaces Player 1's instrument. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -22,14 +25,17 @@
   document.body.className = A.trimClasses(game);          // this game's neon colors for the whole page
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
 
-  const ids = A.PLAYERS, info = id => A.memberById(id);
-  const group = id => A.groupFor(id, {hornStart: A.store.hornStart});
+  const two = game.players > 1 || A.params.get('players') === '2';
+  let phase = 1;                                                      // 1 = Player 1 picks, 2 = Player 2 picks
+  const ids = two ? A.PLAYERS.concat('cpu') : A.PLAYERS, info = id => A.memberById(id);
+  const hornOf = () => phase === 2 ? A.store.opponentHornStart : A.store.hornStart;
+  const group = id => A.groupFor(id, {hornStart: hornOf()});
 
   /* ---------- the grid ---------- */
   $('grid').innerHTML = ids.map(id => {
-    const m = info(id);
-    return `<button type="button" class="tile fam-${m.family}" data-id="${id}" style="--pc:var(--pt-${id})" tabindex="-1" aria-pressed="false" aria-label="${m.short}, ${FAMILY[m.family]}">` +
-      `<span class="p1" aria-hidden="true">1P</span>${A.portraitSVG(id, {size: 'tile'})}<span class="t-name">${m.short}</span></button>`;
+    const m = info(id) || {short: 'CPU', family: 'cpu'};
+    return `<button type="button" class="tile fam-${m.family}${id === 'cpu' ? ' cpu' : ''}" data-id="${id}" style="--pc:var(--pt-${id})" tabindex="-1" aria-pressed="false" aria-label="${m.short}${id === 'cpu' ? ', play against the computer' : ', ' + FAMILY[m.family]}">` +
+      `<span class="p1" aria-hidden="true">1P</span><span class="p2" aria-hidden="true">2P</span>${A.portraitSVG(id, {size: 'tile'})}<span class="t-name">${m.short}</span></button>`;
   }).join('');
   const tiles = [...$('grid').querySelectorAll('.tile')];
 
@@ -41,10 +47,10 @@
     $('continueName').textContent = info(saved).short;
     $('continuePic').innerHTML = A.portraitSVG(saved, {size: 'tile'});
     $('continueBtn').href = gameLink;
-    $('continueBtn').addEventListener('click', e => {
+    $('continueBtn').onclick = e => {
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
       e.preventDefault(); confirm(saved);
-    });
+    };
   } else if (pending && pending.group) {
     const g = A.getInstrument(pending.group), mine = g ? g.members.map(m => m.id) : [];
     tiles.forEach(t => t.classList.toggle('suggest', mine.includes(t.dataset.id)));
@@ -63,7 +69,9 @@
     return `${key} · ${g.clef === 'bass' ? 'Bass' : 'Treble'} clef`;
   }
   function card() {
-    const id = ids[cur], m = info(id), g = group(id);
+    const id = ids[cur];
+    if (id === 'cpu') return cpuCard();
+    const m = info(id), g = group(id);
     $('preview').style.setProperty('--pc', `var(--pt-${id})`);
     $('pvPic').innerHTML = A.portraitSVG(id, {size: 'big', label: m.short});
     $('cFam').textContent = FAMILY[m.family]; $('cFam').className = 'card-fam fam-' + m.family;
@@ -73,11 +81,23 @@
     const n = A.store.starsForPlayer(id);
     $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on this device' : 'stars on this device';
     $('hornToggle').hidden = id !== 'horn';
-    $('hornToggle').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.horn === A.store.hornStart));
+    $('hornToggle').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.horn === hornOf()));
     $('selectBtn').textContent = `Select ${m.short}`;
   }
+  function cpuCard() {
+    const n = A.store.player ? A.store.allStars(A.store.player, game.id) : 0;
+    $('preview').style.setProperty('--pc', 'var(--pt-cpu)');
+    $('pvPic').innerHTML = A.portraitSVG('cpu', {size: 'big', label: 'CPU'});
+    $('cFam').textContent = '1 player'; $('cFam').className = 'card-fam fam-cpu';
+    $('cName').textContent = 'CPU';
+    $('cKey').textContent = 'Play against the computer: 8 rivals on a ladder.';
+    $('cFive').textContent = 'The CPU plays silently, so only your notes count.';
+    $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on the ladder' : 'stars on the ladder';
+    $('hornToggle').hidden = true;
+    $('selectBtn').textContent = 'Select CPU';
+  }
   function highlight(i, {focus = true, sound = true} = {}) {
-    if (i < 0 || i >= ids.length) return;
+    if (i < 0 || i >= ids.length || (phase === 1 && ids[i] === 'cpu')) return;       // CPU is only for Player 2
     const moved = i !== cur;
     cur = i;
     tiles.forEach((t, k) => { t.classList.toggle('on', k === i); t.setAttribute('aria-pressed', k === i); t.tabIndex = k === i ? 0 : -1; });
@@ -91,7 +111,7 @@
   }));
   $('selectBtn').addEventListener('click', () => confirm(ids[cur]));
   $('hornToggle').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    A.store.setHornStart(b.dataset.horn); A.Sfx.event('tile-move'); card();
+    (phase === 2 ? A.store.setOpponentHornStart(b.dataset.horn) : A.store.setHornStart(b.dataset.horn)); A.Sfx.event('tile-move'); card();
   }));
 
   /* Chromebooks: arrows move the highlight around the grid (as many columns as the layout shows), Enter selects */
@@ -105,18 +125,41 @@
     else if (e.key === 'Enter') { e.preventDefault(); confirm(ids[cur]); }
   });
 
-  /* ---------- confirm: a flash, PLAYER 1 READY, then the game ---------- */
+  /* ---------- confirm: a flash, PLAYER n READY, then the game (or Player 2's turn to pick) ---------- */
   let leaving = false;
   function confirm(id) {
-    if (leaving) return;
+    if (leaving || (phase === 1 && id === 'cpu')) return;
     leaving = true;
-    A.store.setPlayer(id);
+    if (phase === 1) A.store.setPlayer(id); else A.store.setOpponent(id);
     tiles.forEach(t => t.classList.toggle('chosen', t.dataset.id === id));
     A.Sfx.event('player-select');
     const r = $('ready');
-    r.hidden = false; void r.offsetWidth; r.classList.add('go');
+    r.querySelector('span').textContent = `Player ${phase}`;
+    r.classList.toggle('p2', phase === 2);
+    r.hidden = false; r.classList.remove('go'); void r.offsetWidth; r.classList.add('go');
     setTimeout(() => A.Sfx.event('player-ready'), 260);
-    setTimeout(() => { location.href = gameLink; }, reduced.matches ? 700 : 1100);
+    const wait = reduced.matches ? 700 : 1100;
+    if (two && phase === 1) setTimeout(() => { r.hidden = true; startPlayer2(id); leaving = false; }, wait);
+    else setTimeout(() => { location.href = gameLink; }, wait);
+  }
+  /* Player 2: the 1P tile stays marked, the highlight becomes magenta 2P, and CPU joins the grid */
+  function startPlayer2(p1) {
+    phase = 2;
+    document.body.classList.add('phase2');
+    document.querySelector('.sp-title').textContent = 'Player 2 — Press Start';
+    tiles.forEach(t => { t.classList.toggle('p1-lock', t.dataset.id === p1); t.classList.remove('chosen', 'suggest'); });
+    $('msg').hidden = true;
+    const opp = A.store.opponent;
+    $('continue').hidden = !opp;
+    if (opp) {
+      $('continue').querySelector('.c-label').textContent = 'Same opponent';
+      $('continueName').textContent = opp === 'cpu' ? 'CPU' : info(opp).short;
+      $('continuePic').innerHTML = A.portraitSVG(opp, {size: 'tile'});
+      $('continueBtn').onclick = e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); confirm(opp); };
+    }
+    highlight(Math.max(0, ids.indexOf(opp || (p1 === 'flute' ? 'oboe' : 'flute'))), {sound: false});
+    (opp ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
+    window.scrollTo(0, 0);
   }
   addEventListener('pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
 

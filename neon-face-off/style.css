@@ -1,0 +1,113 @@
+/* Neon Face-Off: a neon air hockey table on the dark arcade floor. Player 1 cyan, Player 2 magenta (--pink).
+   Landscape: Player 1 left, the table, Player 2 right (students stand on either side of the device).
+   Portrait: Player 2 on top (their panel turned to face them), the table, Player 1 at the bottom. */
+.c1{color:var(--cyan-hi)} .c2{color:var(--pink-hi)}
+.faceoff .eyebrow{color:var(--cyan)}
+
+/* ---------- match setup ---------- */
+.hub-head{margin-bottom:14px}
+.game-title{font-family:var(--neon-font);font-weight:400;font-size:clamp(38px,8vw,68px);line-height:1;letter-spacing:.02em}
+.game-title .c1{text-shadow:var(--glow-cyan)} .game-title .c2{text-shadow:var(--glow-pink)}
+.hub-head p{max-width:60ch;margin:10px 0 0}
+.vs-line{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-lo)}
+.linkish{background:none;border:0;padding:4px 6px;color:var(--cyan-hi);text-decoration:underline;font-family:var(--text);font-size:15px;text-transform:none;letter-spacing:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.col{min-width:0;padding:14px;border-radius:18px;background:var(--floor-2);border:2px solid var(--pc);box-shadow:inset 0 0 0 1px var(--deep)}
+.col.p1{--pc:var(--cyan);--pc-hi:var(--cyan-hi)} .col.p2{--pc:var(--pink);--pc-hi:var(--pink-hi)}
+.col-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.col-pic{width:64px;height:64px;flex:none;border-radius:14px;background:var(--deep);display:grid;place-items:center}
+.col-pic svg{width:56px;height:56px}
+.col-head small{display:block;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--pc-hi)}
+.col-head b{font-family:var(--display);font-weight:400;font-size:24px;text-transform:uppercase}
+.col .mp-notes{grid-template-columns:repeat(3,1fr)}
+.col .mp-row{grid-template-columns:1fr;gap:6px}
+.col .mp-order{max-width:none}
+.col .mp-note{min-height:58px}
+.diff{margin-top:6px}
+.segs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.seg{flex:1;min-width:84px;min-height:52px;padding:6px 10px;border-radius:14px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700}
+.seg b{font-family:var(--display);font-weight:400;font-size:17px;text-transform:uppercase}
+.seg small{font-size:12px;color:var(--text-lo)}
+.seg[aria-pressed="true"]{border-color:var(--pc,var(--yellow));background:var(--floor-lit);box-shadow:0 0 12px var(--pc,var(--yellow))}
+.ladder{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.rung{display:grid;grid-template-columns:48px 1fr;grid-template-rows:auto auto;gap:0 8px;align-items:center;text-align:left;padding:6px 8px;border-radius:14px;
+  border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi)}
+.rung .r-pic{grid-row:1/3;width:48px;height:48px}
+.rung .r-pic svg{width:100%;height:100%}
+.rung .r-name{font-weight:700;font-size:15px;line-height:1.15}
+.rung .r-name small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
+.rung .stars{font-size:13px}
+.rung[aria-pressed="true"]{border-color:var(--rc);box-shadow:0 0 12px var(--rc)}
+.rung[disabled]{opacity:.45;cursor:not-allowed}
+.rung-line{margin:10px 0 0;color:var(--text-lo)}
+.shared-set{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.points .segs{justify-content:center}
+.points .seg{--pc:var(--yellow);min-width:64px;font-family:var(--display);font-size:20px}
+.record{margin:0;color:var(--text-lo)}
+.btn-start{min-height:60px;padding:12px 36px;font-family:var(--display);font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+
+/* ---------- the match ---------- */
+.in-match .wrap{max-width:none;padding-bottom:8px}
+.in-match .topbar{margin-bottom:8px}
+.arena{display:grid;grid-template-columns:minmax(190px,21%) 1fr minmax(190px,21%);gap:12px;height:calc(100vh - 136px);height:calc(100dvh - 136px);min-height:340px}
+.table-wrap{position:relative;min-width:0;min-height:0}
+#table{display:block;width:100%;height:100%}
+.side{display:flex;flex-direction:column;gap:8px;min-width:0;padding:10px;border-radius:18px;background:var(--floor-2);border:2px solid var(--pc);transition:opacity .2s}
+.side.p1{--pc:var(--cyan);--pc-hi:var(--cyan-hi);--pc-glow:var(--glow-cyan)} .side.p2{--pc:var(--pink);--pc-hi:var(--pink-hi);--pc-glow:var(--glow-pink)}
+.side.active{box-shadow:var(--pc-glow),0 0 30px var(--pc)}
+.side.dim{opacity:.45}
+.s-head{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:8px}
+.s-pic svg{width:48px;height:48px;display:block}
+.s-name{font-weight:700;font-size:16px;line-height:1.15;min-width:0}
+.s-score{font-family:var(--display);font-weight:400;font-size:44px;line-height:1;color:var(--pc-hi);text-shadow:var(--pc-glow)}
+.s-note{min-height:120px;display:flex;align-items:center;padding:6px 8px 0;border-color:var(--pc)}
+.s-note .staff{max-height:150px}
+.s-status{margin:0;min-height:1.4em;font-weight:700;font-size:16px;text-align:center;color:var(--text-lo)}
+.s-status.turn{font-family:var(--display);font-weight:400;font-size:clamp(22px,3vw,34px);color:var(--pc-hi);text-shadow:var(--pc-glow);animation:turn 1s ease-in-out infinite}
+.s-status.bad{color:var(--red-hi)}
+.s-status.goal{font-family:var(--display);font-weight:400;font-size:30px;color:var(--yellow);text-shadow:var(--glow-yellow)}
+.s-status.power{font-family:var(--display);font-weight:400;font-size:20px;color:var(--yellow-hi)}
+.s-status.smash{color:var(--yellow);text-shadow:var(--glow-yellow);font-size:24px}
+@keyframes turn{50%{transform:scale(1.06)}}
+.banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) skewX(-8deg);margin:0;padding:6px 18px;white-space:nowrap;pointer-events:none;
+  font-family:var(--display);font-size:clamp(26px,5vw,52px);text-transform:uppercase;color:var(--yellow);-webkit-text-stroke:2px var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-yellow)}
+.banner.p1{color:var(--cyan-hi);text-shadow:0 4px 0 var(--deep),var(--glow-cyan)} .banner.p2{color:var(--pink-hi);text-shadow:0 4px 0 var(--deep),var(--glow-pink)}
+.match-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.score-line{font-family:var(--display);font-weight:400;font-size:24px;color:var(--text-hi)}
+
+/* portrait: Player 2 on top, turned to face them; the table; Player 1 at the bottom */
+@media (orientation:portrait){
+  .arena{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;height:calc(100vh - 136px);height:calc(100dvh - 136px)}
+  .side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);grid-template-rows:auto auto;gap:4px 10px;padding:8px}
+  .side .s-head{grid-column:1;grid-row:1}
+  .side .s-status{grid-column:1;grid-row:2;align-self:center}
+  .side .s-note{grid-column:2;grid-row:1/3;min-height:96px}
+  .s-note .staff{max-height:110px}
+  .side.p2{order:-1;transform:rotate(180deg)}
+  .side.p1{order:1}
+  .s-score{font-size:36px}
+}
+@media (orientation:portrait) and (max-width:560px){
+  .side{grid-template-columns:1fr}
+  .side .s-note{grid-column:1;grid-row:3;min-height:80px}
+  .s-status.turn{font-size:20px}
+}
+
+/* ---------- results ---------- */
+.panel{border-color:var(--cyan);box-shadow:var(--glow-cyan),0 30px 80px rgba(0,0,0,.6)}
+.panel h2.c1{color:var(--cyan-hi)} .panel h2.c2{color:var(--pink-hi)}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:0 0 6px}
+.panel .bigstars .on{color:var(--yellow)}
+.res-score{font-family:var(--display);font-size:24px;color:var(--text-hi)!important}
+.res-stats{display:grid;gap:6px;margin:8px 0;font-size:15px;color:var(--text-lo)}
+.res-stats div{background:var(--deep);border-radius:12px;padding:8px}
+.res-stats small{display:block;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.res-stats .p1 small{color:var(--cyan-hi)} .res-stats .p2 small{color:var(--pink-hi)}
+.topbar-right .sound-ctl{flex-wrap:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .s-status.turn{animation:none}
+  .side{transition:none}
+}

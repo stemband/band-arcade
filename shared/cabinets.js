@@ -21,7 +21,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
@@ -111,6 +111,20 @@ window.Arcade = window.Arcade || {};
               '<path class="s-seam" d="M150 394L140 452L158 500L144 598"/>' +
               '<text class="s-plabel s-p1" x="36" y="318" text-anchor="middle">1P</text><text class="s-plabel s-p2" x="166" y="318" text-anchor="middle">2P</text>',
       slots: {marquee: [30, 28, 240, 76], screen: [64, 134, 172, 152], start: [80, 398, 140, 44]},
+    },
+    /* rink: an upright with a rounded, rink-shaped top edged in two neons (trim and trim2), a wide landscape screen
+       for the table, a puck-shaped light on top and a goal-slot stripe on the coin door */
+    rink: {
+      outline: 'M34 70Q34 28 76 28H224Q266 28 266 70V112H256L262 304L286 322V392H268V598H32V392H14V322L38 304L44 112H34Z',
+      face: 'M58 112H242L246 310H54ZM48 392H252V598H48Z', kick: [48, 252],
+      bezel: 'M64 128H236Q244 128 244 136V288Q244 296 236 296H64Q56 296 56 288V136Q56 128 64 128Z',
+      panel: 'M40 310H260L286 372H14Z', lip: 'M14 372H286V388H14Z',
+      joy: [48, 344], joy2: [252, 344],
+      btns: [[92, 340, 's-btn1'], [118, 336, 's-btn1'], [182, 336, 's-btn0'], [208, 340, 's-btn0']],
+      door: {x: 104, y: 464, w: 92, h: 104},
+      extras: '<ellipse class="s-lamp" cx="150" cy="18" rx="26" ry="8"/><ellipse class="s-lamp2" cx="150" cy="14" rx="18" ry="4"/>' +
+              '<path class="s-goal1" d="M60 440H100"/><path class="s-goal2" d="M200 440H240"/>',
+      slots: {marquee: [44, 38, 212, 70], screen: [62, 134, 176, 156], start: [80, 400, 140, 44]},
     },
     /* temple: a temple gate. An upswept top beam and a tie beam over two pillars, paper lanterns in the
        Band Ninja belt colors hanging between the beams, the marquee a hand scroll hung from the tie beam */
@@ -265,6 +279,17 @@ window.Arcade = window.Arcade || {};
           `</svg></div>`;
       },
     },
+    /* Neon Face-Off: a tiny air hockey table seen from above; the puck slides between a cyan and a magenta mallet */
+    hockey: {
+      html() {
+        return `<div class="scr scr-hockey"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<rect class="hk-table" x="8" y="10" width="144" height="90" rx="14"/><path class="hk-rail1" d="M80 10H22Q8 10 8 24V86Q8 100 22 100H80"/><path class="hk-rail2" d="M80 10H138Q152 10 152 24V86Q152 100 138 100H80"/>` +
+          `<line class="hk-line" x1="80" y1="10" x2="80" y2="100"/><circle class="hk-line" cx="80" cy="55" r="14"/>` +
+          `<line class="hk-goal1" x1="9" y1="40" x2="9" y2="70"/><line class="hk-goal2" x1="151" y1="40" x2="151" y2="70"/>` +
+          `<circle class="hk-m1" cx="22" cy="55" r="8"/><circle class="hk-m2" cx="138" cy="55" r="8"/>` +
+          `<g class="hk-puck"><circle cx="0" cy="0" r="5"/></g></svg></div>`;
+      },
+    },
     /* the default for a game with no custom screen: its name, blinking PRESS START */
     insert: {
       html(g) {
@@ -297,7 +322,7 @@ window.Arcade = window.Arcade || {};
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
       (c.marquee === 'dojo' && A.ninjaSVG ? `<span class="mq-mascot mq-ninja" aria-hidden="true">${A.ninjaSVG({belt: 'belt-black'})}</span>` : '') +
       `<span class="mq-text">${c.kicker ? `<span class="mq-kicker">${esc(c.kicker)}</span>` : ''}` +
-      `<span class="mq-name">${esc(g.name)}</span></span></${tag}>`;
+      `<span class="mq-name">${c.marquee === 'faceoff' ? esc(g.name).replace(/^(\S+) (.+)$/, '$1 <span class="fo2">$2</span>') : esc(g.name)}</span></span></${tag}>`;
   };
   /** class names that give an element this game's neon colors (--t…, --u…) */
   A.trimClasses = g => { const c = A.cabinetOf(g); return `trim-${c.trim} trim2-${c.trim2}`; };

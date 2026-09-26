@@ -59,6 +59,8 @@
 .s-lantern{stroke:var(--temple-wood);stroke-width:1.5}
 .s-ball2{fill:var(--t)}
 .s-side1{fill:var(--u);opacity:.2} .s-side2{fill:var(--t);opacity:.2}
+.s-goal1{stroke:var(--u);stroke-width:5;stroke-linecap:round} .s-goal2{stroke:var(--t);stroke-width:5;stroke-linecap:round}
+.shape-rink .s-tube-glow{stroke:var(--t)}
 .s-seam{fill:none;stroke:var(--yellow-hi);stroke-width:3;stroke-linejoin:round}
 .s-plabel{font-family:var(--display);font-size:13px} .s-p1{fill:var(--u-hi)} .s-p2{fill:var(--t-hi)}
 
@@ -106,6 +108,12 @@
 .mq-versus .mq-name{font-size:1.32em;font-style:italic;letter-spacing:.01em;transform:skewX(-12deg);-webkit-text-stroke:.05em var(--deep);
   text-shadow:.05em .08em 0 var(--red-ink),0 0 .35em var(--t)}
 .mq-versus .mq-kicker{color:var(--white-hi);letter-spacing:.3em}
+
+/* faceoff: neon tube letters, NEON in the trim, FACE-OFF in trim2, on a dark glass sign */
+.mq-faceoff{background:radial-gradient(ellipse at 50% 120%,var(--floor-3),var(--deep) 70%);border:.12em solid var(--t);border-radius:.5em;box-shadow:inset 0 0 0 .15em var(--deep),var(--t-glow)}
+.mq-faceoff .mq-name{font-family:var(--neon-font);font-size:1.02em;white-space:nowrap;letter-spacing:.02em;color:var(--t-hi);text-shadow:var(--t-glow)}
+.mq-faceoff .mq-name .fo2{margin-left:.35em;color:var(--u-hi);text-shadow:var(--u-glow)}
+.mq-faceoff .mq-kicker{color:var(--text-lo);letter-spacing:.3em}
 
 /* ---------- screen ---------- */
 .cab-screen{position:absolute;overflow:hidden;border-radius:.5em;background:var(--deep);box-shadow:0 0 0 .12em var(--deep),0 0 .8em var(--u)}
@@ -167,6 +175,18 @@
 .attract .scr-versus .vs-blast{animation:vs-blast 2.4s ease-in forwards}
 @keyframes vs-key{0%{opacity:0}10%,100%{opacity:1}}
 @keyframes vs-blast{0%,55%{opacity:0;transform:none}60%{opacity:1;transform:none}90%{opacity:1;transform:translateX(62px)}100%{opacity:0;transform:translateX(62px)}}
+/* Neon Face-Off: the puck slides back and forth on a tiny table */
+.scr-hockey{background:var(--deep)}
+.scr-hockey svg{width:100%;height:auto}
+.scr-hockey .hk-table{fill:var(--floor-2)}
+.scr-hockey .hk-rail1{fill:none;stroke:var(--t);stroke-width:2.5}
+.scr-hockey .hk-rail2{fill:none;stroke:var(--u);stroke-width:2.5}
+.scr-hockey .hk-line{fill:none;stroke:var(--text-lo);stroke-width:1;opacity:.4}
+.scr-hockey .hk-goal1{stroke:var(--t-hi);stroke-width:3} .scr-hockey .hk-goal2{stroke:var(--u-hi);stroke-width:3}
+.scr-hockey .hk-m1{fill:var(--deep);stroke:var(--t);stroke-width:2.5} .scr-hockey .hk-m2{fill:var(--deep);stroke:var(--u);stroke-width:2.5}
+.scr-hockey .hk-puck{fill:var(--yellow-hi);transform:translate(80px,55px)}
+.attract .scr-hockey .hk-puck{animation:hk-puck 2.4s ease-in-out infinite}
+@keyframes hk-puck{0%{transform:translate(32px,55px)}25%{transform:translate(80px,22px)}50%{transform:translate(128px,55px)}75%{transform:translate(80px,88px)}100%{transform:translate(32px,55px)}}
 /* default screen: the game's name and a blinking PRESS START */
 /* Note Ninja: paper scroll screen, the right letter lights, then a slash */
 .scr-ninja{background:var(--dojo-paper)}

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neon Face-Off</title>
+<meta name="description" content="Two-player air hockey played with your instruments. Play your note to strike the puck back.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="faceoff">
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- MATCH SETUP: one column per player -->
+  <section id="setup">
+    <div class="hub-head">
+      <h1 class="game-title"><span class="c1">Neon</span> <span class="c2">Face-Off</span></h1>
+      <p class="muted">Air hockey with your instruments! When the puck slides toward your goal, your note appears: play it to strike the puck back. The faster you play it, the harder you hit. First to the winning score takes the match.</p>
+      <p class="vs-line"><span id="vsLine"></span> <a class="linkish" id="changePlayers" href="../select-player/index.html?game=neon-face-off&amp;players=2">Change players</a></p>
+    </div>
+    <div class="cols">
+      <section class="col p1" id="col1" aria-label="Player 1"></section>
+      <section class="col p2" id="col2" aria-label="Player 2"></section>
+    </div>
+    <div class="shared-set">
+      <div class="points"><span class="mp-lbl" id="ptsLbl">Points to win</span><div class="segs" id="pointBtns" role="group" aria-labelledby="ptsLbl"></div></div>
+      <p class="record" id="record"></p>
+      <button type="button" class="btn btn-gold btn-start" id="startBtn">Start match</button>
+      <p class="demo-help" id="demoHelp" hidden>Demo: every CPU rival is unlocked. In a match, hold <b>Space</b> to play the active player's note (press it later for a slower, softer shot) or hold <b>W</b> to play a wrong note.</p>
+    </div>
+  </section>
+
+  <!-- THE MATCH -->
+  <section id="match" hidden>
+    <div class="arena">
+      <aside class="side p1" id="side1">
+        <div class="s-head"><span class="s-pic"></span><span class="s-name"></span><b class="s-score">0</b></div>
+        <div class="s-note stage"></div>
+        <p class="s-status" aria-live="polite"></p>
+      </aside>
+      <div class="table-wrap">
+        <canvas id="table" aria-label="The air hockey table"></canvas>
+        <p class="banner" id="banner" hidden aria-live="assertive"></p>
+      </div>
+      <aside class="side p2" id="side2">
+        <div class="s-head"><span class="s-pic"></span><span class="s-name"></span><b class="s-score">0</b></div>
+        <div class="s-note stage"></div>
+        <p class="s-status" aria-live="polite"></p>
+      </aside>
+    </div>
+    <div class="match-foot">
+      <b class="score-line" id="scoreLine" aria-live="polite">0 – 0</b>
+      <button type="button" class="btn btn-ghost btn-small" id="quitMatch">Leave match</button>
+    </div>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="bigstars" id="resStars" hidden></div>
+    <h2 id="resTitle">Player 1 wins!</h2>
+    <p class="res-score" id="resScore"></p>
+    <p id="resMsg"></p>
+    <div class="res-stats" id="resStats"></div>
+    <p class="best" id="resBest"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resAgain">Rematch</button>
+      <button class="btn btn-gold" id="resNext" hidden>Next rival</button>
+      <button class="btn btn-ghost" id="resSetup">Match setup</button>
+    </div>
+  </div>
+</div>
+
+<!-- A listening game WITH sounds: every sound mutes the detector while it plays (Arcade.Pitch.suppress). -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/mode-picker.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

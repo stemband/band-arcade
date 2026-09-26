@@ -79,6 +79,10 @@ window.Arcade = window.Arcade || {};
       ...[0, 1, 2, 3, 4, 5, 6].map(i => ({shape: `M${12 + i * 11.5} ${60 + i * 1.6}h8v${28 - i * 3.2}h-8Z`})),
       ...[0, 1, 3, 4, 5].map(i => ({shape: `M${18 + i * 11.5} ${37 + i * 1.4}h7v${18 - i * 2}h-7Z`})),
       {line: 'M64 22L84 6M72 26L92 12', w: 2.4}, {ring: [85, 5, 3.4]}, {ring: [93, 11, 3.4]}]},
+    /* not an instrument: the CPU opponent in two-player games (Select Player's CPU tile) */
+    cpu: {color: 'pt-cpu', rot: 0, parts: [
+      {shape: 'M24 30H76Q84 30 84 38V70Q84 78 76 78H24Q16 78 16 70V38Q16 30 24 30Z'}, {line: 'M50 30V16', w: 2.6}, {ring: [50, 12, 4]},
+      {shape: 'M30 44H44V56H30Z'}, {shape: 'M56 44H70V56H56Z'}, {line: 'M34 66H66'}, {line: 'M16 50H8M84 50H92', w: 3}]},
   };
   const FAMILY_COLOR = {woodwind: 'pink', brass: 'amber', percussion: 'cyan'};
 
