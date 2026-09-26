@@ -1,4 +1,5 @@
-/* Band Arcade: neon instrument portraits, drawn in SVG (no image files). One per instrument member
+/* Band Arcade: instrument portraits. Mat's artwork in shared/portraits/ (Arcade.portraitHTML, below) is shown when
+   it loads; these drawn SVG portraits are always underneath as the fallback. Drawn portraits: one per instrument member
    (Arcade.PLAYERS). Used big on Select Player, on its tiles, and tiny in every game's top-bar chip.
 
      Arcade.portraitSVG(id, {size, color, glow, style, cls, label})
@@ -107,7 +108,57 @@ window.Arcade = window.Arcade || {};
     return s + `</g></svg>`;
   }
 
+  /* ---------- Mat's artwork (shared/portraits/, see its README.md), with the drawn SVG as the fallback ----------
+     Arcade.portraitHTML(memberId, {size, full, skin, label, cls, color})
+       A box holding the drawn SVG with the image on top. The image shows only once it has loaded; a missing or
+       broken file tries the next candidate, and with none left the SVG stays, so a broken image never shows.
+       Candidates: the equipped skin's drawn variant ('<file>--<skin>'), then the base image. `full` (the big
+       Select Player preview) tries '<file>-full' first and falls back to the square image. For every name:
+       optimized/<name>.webp when listed in OPTIMIZED, then <name>.png, then <name>.webp.
+       `color` (a recolored CPU rival) or an id without a file ('cpu') gives the SVG alone. */
+  const FILES = {                                   // instrument member id -> image file name(s), first match wins
+    flute: 'flute', oboe: 'oboe', clarinet: 'clarinet', basscl: 'bass-clarinet', bassoon: 'bassoon',
+    altosax: 'alto-sax', tenorsax: 'tenor-sax', barisax: 'bari-sax',
+    trumpet: 'trumpet', horn: 'horn', trombone: 'trombone', baritonetc: 'baritone-tc', euphbc: ['euphonium', 'euphonium-bc'], tuba: 'tuba',
+    bells: 'bells',
+  };
+  /* smaller WebP copies made for files over 250 KB or 1024 px (the originals stay untouched). If you replace one
+     of these originals, delete its copy in optimized/ and take its name off this list (or make a new copy). */
+  const OPTIMIZED = ['alto-sax', 'tenor-sax', 'bells', 'horn'];
+  const here = document.currentScript && document.currentScript.src;
+  const BASE = here ? new URL('portraits/', here).href : 'shared/portraits/';
+  const miss = new Set();                           // files that failed on this page: never asked for twice
+  const variants = name => (OPTIMIZED.includes(name) ? [`optimized/${name}.webp`] : []).concat(`${name}.png`, `${name}.webp`);
+  function candidates(id, {full, skin}) {
+    const names = [].concat(FILES[id] || []), list = [];
+    const add = suffix => names.forEach(n => list.push(...variants(n + suffix)));
+    if (full) { if (skin) add(`-full--${skin}`); add('-full'); }
+    if (skin) add(`--${skin}`);
+    add('');
+    return list.map(f => BASE + f).filter(u => !miss.has(u));
+  }
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  function portraitHTML(id, {size = 'tile', full = false, skin = null, label = '', cls = '', color} = {}) {
+    const m = A.memberById && A.memberById(id), alt = label || (m ? m.short : '');
+    const svg = portraitSVG(id, {size, color, label: alt});
+    const list = color ? [] : candidates(id, {full, skin});
+    if (!list.length) return `<span class="pt-box pt-box-${size} ${cls}">${svg}</span>`;
+    return `<span class="pt-box pt-box-${size} ${cls}" data-pt="${esc(id)}">${svg}` +
+      `<img class="pt-img" src="${esc(list[0])}" data-next="${esc(list.slice(1).join('|'))}" alt="${esc(alt)}" decoding="async" draggable="false"></span>`;
+  }
+  // load/error don't bubble (and never reach window), so the document listens in the capture phase for every portrait image
+  document.addEventListener('load', e => { const t = e.target; if (t.classList && t.classList.contains('pt-img')) t.parentNode.classList.add('pt-ok'); }, true);
+  document.addEventListener('error', e => {
+    const t = e.target; if (!t.classList || !t.classList.contains('pt-img')) return;
+    miss.add(t.src);
+    const next = (t.dataset.next || '').split('|').filter(u => u && !miss.has(u));
+    if (next.length) { t.dataset.next = next.slice(1).join('|'); t.src = next[0]; }
+    else { t.parentNode.classList.remove('pt-ok'); t.remove(); }         // nothing left: the drawn SVG stays
+  }, true);
+
   A.PORTRAITS = P;
+  A.PORTRAIT_FILES = FILES;
   A.FAMILY_COLOR = FAMILY_COLOR;
   A.portraitSVG = portraitSVG;
+  A.portraitHTML = portraitHTML;
 })(window.Arcade);

@@ -35,7 +35,7 @@
   $('grid').innerHTML = ids.map(id => {
     const m = info(id) || {short: 'CPU', family: 'cpu'};
     return `<button type="button" class="tile fam-${m.family}${id === 'cpu' ? ' cpu' : ''}" data-id="${id}" style="--pc:var(--pt-${id})" tabindex="-1" aria-pressed="false" aria-label="${m.short}${id === 'cpu' ? ', play against the computer' : ', ' + FAMILY[m.family]}">` +
-      `<span class="p1" aria-hidden="true">1P</span><span class="p2" aria-hidden="true">2P</span>${A.portraitSVG(id, {size: 'tile'})}<span class="t-name">${m.short}</span></button>`;
+      `<span class="p1" aria-hidden="true">1P</span><span class="p2" aria-hidden="true">2P</span>${A.portraitHTML(id, {size: 'tile', label: m.short})}<span class="t-name">${m.short}</span></button>`;
   }).join('');
   const tiles = [...$('grid').querySelectorAll('.tile')];
 
@@ -45,7 +45,7 @@
   if (saved) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;
-    $('continuePic').innerHTML = A.portraitSVG(saved, {size: 'tile'});
+    $('continuePic').innerHTML = A.portraitHTML(saved, {size: 'tile'});
     $('continueBtn').href = gameLink;
     $('continueBtn').onclick = e => {
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
@@ -73,7 +73,7 @@
     if (id === 'cpu') return cpuCard();
     const m = info(id), g = group(id);
     $('preview').style.setProperty('--pc', `var(--pt-${id})`);
-    $('pvPic').innerHTML = A.portraitSVG(id, {size: 'big', label: m.short});
+    $('pvPic').innerHTML = A.portraitHTML(id, {size: 'big', full: true, label: m.short});   // <id>-full when there is one
     $('cFam').textContent = FAMILY[m.family]; $('cFam').className = 'card-fam fam-' + m.family;
     $('cName').textContent = m.short;
     $('cKey').textContent = keyText(id);
@@ -154,7 +154,7 @@
     if (opp) {
       $('continue').querySelector('.c-label').textContent = 'Same opponent';
       $('continueName').textContent = opp === 'cpu' ? 'CPU' : info(opp).short;
-      $('continuePic').innerHTML = A.portraitSVG(opp, {size: 'tile'});
+      $('continuePic').innerHTML = A.portraitHTML(opp, {size: 'tile', label: opp === 'cpu' ? 'CPU' : ''});
       $('continueBtn').onclick = e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); confirm(opp); };
     }
     highlight(Math.max(0, ids.indexOf(opp || (p1 === 'flute' ? 'oboe' : 'flute'))), {sound: false});
