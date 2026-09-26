@@ -66,7 +66,7 @@ window.Arcade.GAMES = [
     name: 'Note Ninja',
     skill: 'Note names',
     blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
-    maxStars: 24,
+    maxStars: 30,
     color: 'pink',
     cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
     cabinet3d: {profile: 'dojo', body: 'cab-side'},

@@ -33,7 +33,7 @@ note-storm/           Game 2: speed reading; notes march toward Tempo the robot,
   levels.js           Level design: counts, march speed, notes on screen at once, names on or off
   game.js             Game logic (the staff is drawn once; only the notes move)
 note-ninja/           Game 3: note names, no microphone; tap the name of the note on the scroll
-  levels.js           The belts (White … Black): notes, time, letter guides, read-ahead. Rename or reorder freely
+  levels.js           The 10 Band Ninja belts (White … Diamond): notes, time, letter guides, read-ahead
 chime-heist/          Game 4: mallet keyboard for percussion, no microphone; strike the bar on an on-screen bell kit
   levels.js           The vaults (Lemonade Stand Lockbox … The Golden Vault): notes, time, labels, read-ahead, alarm
   game.js             Game logic: the bell kit, the vault code, the alarm meter
@@ -55,7 +55,11 @@ A note-reading game that **doesn't use the microphone**, so students can play it
 
 - **Answering:** seven big letter buttons A–G. Above them, **♭ ♮ ♯** work like a Shift key: tap ♭, the letters change to A♭ B♭ …, tap the letter, and it goes back to ♮. The ♭ ♮ ♯ row only appears when the notes include sharps or flats. On a Chromebook: keys **A–G** answer, **1 / 2 / 3** pick ♭ / ♮ / ♯.
 - **The right answer is the real name of the note, key signature included.** In F major a B on the staff is B♭. In chromatic, the spelling shown counts: C♯ is not D♭.
-- **Belts** are the levels, White to Black, in `note-ninja/levels.js`. Each line is one belt; rename, reorder or recolor them to match your Band Ninja belts (colors are the `--belt-…` tokens in `shared/theme.css`). White belt uses the first three notes with letter guides on the staff; Blue and up are **read ahead**, with 2–4 notes on the staff answered left to right.
+- **Belts** are the levels, the 10 Band Ninja ranks in `note-ninja/levels.js`, one line each: White, Yellow, Orange, Green, Blue, Purple, Red, Brown, Black, Diamond. Change the numbers or colors freely (colors are the `--belt-…` tokens in `shared/theme.css`). Stars are saved by belt number, so reordering or removing belts would move students' stars.
+  - White: the first three notes, 8 notes, 10 s each, faint letter guides on the staff lines and spaces. Yellow: all five notes, fainter guides. Orange: no guides. Green: 12 notes, less time.
+  - Blue and up are **read ahead**, answered left to right: Blue 2 notes at once, Purple 3, Red 3 and faster, Brown 4, Black 20 notes with 4 at once.
+  - **Diamond:** 24 notes, 4 at once, fastest, and the letter buttons no longer change to A♭ B♭ … when ♭ or ♯ is tapped, so students have to know the note without the hint. The Diamond belt glints (not under reduced motion).
+  - Earlier versions had 8 belts. The first time a device loads this version, saved stars on the old Brown (7) and Black (8) move to the new Brown (8) and Black (9) in every mode and for every instrument; Red (7) and Diamond (10) start empty. A belt that has stars always stays playable, so those students can still play Brown and Black. This runs once (`migrated` in the saved data).
 - **Scoring:** points for each note, a speed bonus, and a **combo** multiplier (×2 at 5 in a row, up to ×4) that resets on a mistake or a timeout. A wrong answer is a mistake and the note stays; running out of time is a miss, shows the name, and moves on. Stars: 3 = no mistakes and no misses, 2 = 90%, 1 = 80% (clears the belt and unlocks the next).
 - Random notes and every scale work like the other games; progress is saved under `note-ninja` and `note-ninja:scale-…`.
 - In `?demo` all belts are unlocked and the answer shows in small text under the buttons.
@@ -90,6 +94,7 @@ A **mallet keyboard** game for percussionists, and it **doesn't use the micropho
 | `ninja-slash` | Note Ninja: a correct answer | a swish and a chirp |
 | `ninja-combo` | Note Ninja: every 5 in a row | a fast run up |
 | `belt-earned` | Note Ninja: a new belt unlocked | a gong and a run |
+| `belt-diamond` | Note Ninja: the Diamond belt unlocked | the belt sound plus a sparkle (belt-earned) |
 | `tumbler-click` | Chime Heist: a correct bar (quiet, under the bell) | two tiny clicks (blip) |
 | `alarm-buzz` | Chime Heist: a wrong bar or a timeout | a short two-tone buzz (blip) |
 | `caught` | Chime Heist: the alarm meter is full | a siren wail (blip) |

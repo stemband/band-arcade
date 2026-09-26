@@ -19,7 +19,8 @@
   --white:#f4f0ff; --white-hi:#ffffff; --white-ink:#b9b0d6;      /* white neon tube */
   /* Note Ninja: belt colors (named in note-ninja/levels.js) and the dojo */
   --belt-white:#f4f1e6; --belt-yellow:#ffd23a; --belt-orange:#ff8a2a; --belt-green:#3fcf6a;
-  --belt-blue:#3a7bff; --belt-purple:#a26bff; --belt-brown:#8b5a33; --belt-black:#16121d;
+  --belt-blue:#3a7bff; --belt-purple:#a26bff; --belt-red:#e0343f; --belt-brown:#8b5a33; --belt-black:#16121d;
+  --belt-diamond:#e6f7ff; --belt-diamond-2:#9fdcff;                /* white with an ice-blue glint */
   --dojo-wood:#2a1a14; --dojo-wood-2:#3a2419; --dojo-paper:#fff4dc; --dojo-paper-dim:#e8d3a8;
   --ninja-gi:#f4f1e6; --ninja-skin:#e8b894; --ninja-hair:#2b1d16; --ninja-band:#e0343f;
   /* Chime Heist: the steel vault, the metal bars of the chime lock, the security terminal, treasure */
