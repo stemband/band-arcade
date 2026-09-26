@@ -42,7 +42,7 @@ window.Arcade = window.Arcade || {};
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js
     // ---- Select Player --------------------------------------------------------------------------------------
-    'select-music':    {file: 'select-music', vol: .6, loop: true, mic: false, screen: 'select', when: 'Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays.', len: '30–90 s loop'},
+    'select-music':    {file: 'select-music', vol: .3, loop: true, mic: false, screen: 'select', when: 'Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays.', len: '30–90 s loop'},
     'tile-move':       {file: 'tile-move',       vol: .5, mic: false, screen: 'select', when: 'The highlight moves to another instrument.', len: '0.05–0.15 s'},
     'player-select':   {file: 'player-select',   vol: .8, mic: false, screen: 'select', when: 'An instrument tile is confirmed (SELECT, or tapping the highlighted tile).', len: '0.2–0.5 s'},
     'player-continue': {file: 'player-continue', vol: .8, mic: false, screen: 'select', when: 'The CONTINUE AS button (or Same opponent) is pressed.', len: '0.2–0.5 s'},
