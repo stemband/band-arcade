@@ -1,14 +1,14 @@
 /* Note Storm: notes march left along the staff toward Tempo (the defender).
    Play the front note to blast it; a note that reaches Tempo costs a life.
    The staff is drawn once; each frame only moves the note layers (CSS transforms).
-   Two modes (shared/modes.js): RANDOM NOTES (the first five, shuffled) and SCALES (the chosen scale in order,
-   up then down, with its key signature; the front note is always the next note of the scale). */
+   NOTES × ORDER (shared/mode-picker.js, notes from shared/sequences.js): First 5, a concert scale or Chromatic,
+   in Random or Scale Order (the front note is always the next note of the sequence). Levels keep their speed,
+   notes on screen and lives in every combination. */
 (function (A) {
   "use strict";
   const {$} = A;
   const GAME_ID = 'note-storm';
   const LEVELS = window.STORM_LEVELS, RULES = window.STORM_RULES;
-  const {noteLabel} = A.music;
 
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
@@ -16,11 +16,11 @@
   A.mountTopbar(inst, '', GAME_ID);
   $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
   $('demoHelp').hidden = !A.DEMO;
-  const picker = A.Modes.mount($('modePick'), {gameId: GAME_ID, inst, levels: LEVELS.length, onChange: () => showHub()});
+  const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub()});
 
   /* ---------- staff geometry (SVG units; the staff's middle line is y = 88) ---------- */
   const MID_Y = 88;
-  let DEF_X = 84;              // Tempo's center (moves right past a key signature in SCALES mode)
+  let DEF_X = 84;              // Tempo's center (moves right past a key signature in scale pools)
   let HIT_X = 124;             // a note that gets this far reaches Tempo
   const SLICE_L = -48, SLICE_W = 92;   // each note's own little drawing, centered on the note head
   let BEAM_X = DEF_X + 40;
@@ -46,21 +46,17 @@
     $('wrap').classList.remove('playing');
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('paused').hidden = true;
     const st = picker.state, key = st.progressKey;
-    A.Modes.useRange(st);
-    const card = A.Modes.hubCard(inst, st);
+    A.ModePicker.useRange(st);
+    const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap;
     $('hubConcert').textContent = card.sub;
     $('hubStaff').innerHTML = card.html;
-    $('hubStaff').closest('.stage').hidden = !st.ready;
-    $('levelsTitle').hidden = $('levelGrid').hidden = !st.ready;
     $('levelsTitle').textContent = st.scale ? `Levels: ${st.scale.name}` : 'Levels';
-    const scaleLen = st.scale ? st.scale.notes.length : 0;
-    $('levelGrid').innerHTML = !st.ready ? '' : LEVELS.map((L, i) => {
+    $('levelGrid').innerHTML = LEVELS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
-      const count = st.scale ? A.Scales.sequence(st.scale, L.count).length : L.count;
-      const blurb = st.scale ? A.Modes.scaleBlurb([count > scaleLen ? 'Up and down, then again.' : 'Up and down once.',
-        L.maxOn > 1 ? `Up to ${L.maxOn} notes at once.` : 'One note at a time.', L.names ? 'Names showing.' : 'No names.']) : L.blurb;
+      const count = A.ModePicker.sequence(st, L, lv).items.length;
+      const blurb = A.ModePicker.levelText(st, L, lv, [L.maxOn > 1 ? `Up to ${L.maxOn} notes at once.` : 'One note at a time.', L.names ? 'Names showing.' : 'No names.']);
       return `<button class="lvl" data-l="${lv}" ${unlocked ? '' : 'disabled'}>
         <span class="n">Level ${lv}</span>
         <span class="mini" aria-label="Up to ${L.maxOn} at once">${'<i>♩</i>'.repeat(L.maxOn)}</span>
@@ -76,29 +72,10 @@
 
   /* ---------- play ---------- */
   let G = null, raf = 0, last = 0;
-  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function buildSeq(count, pool) {           // every note appears evenly; never the same note twice in a row
-    const seq = [];
-    while (seq.length < count) {
-      const bag = shuffle([...Array(pool).keys()]);
-      if (seq.length && bag[0] === seq[seq.length - 1]) [bag[0], bag[1]] = [bag[1], bag[0]];
-      seq.push(...bag);
-    }
-    return seq.slice(0, count);
-  }
-
-  /* the notes of a level: random mode = the first five shuffled (as always); scales = the scale in order */
-  function levelNotes(L) {
-    const sc = picker.state.scale;
-    if (!sc) return buildSeq(L.count, L.pool).map(idx => ({show: inst.notes[idx], label: noteLabel(inst.notes[idx]), pc: inst.targetPc[idx], sounding: null}));
-    return A.Scales.sequence(sc, L.count).map(n => ({show: n.show, label: noteLabel(n), pc: n.pc, sounding: n.sounding}));
-  }
-
   function startLevel(lv) {
     stop();
-    const L = LEVELS[lv - 1], st = picker.state, items = levelNotes(L);
-    G = {lv, L, items, count: items.length, key: st.progressKey, sig: st.scale ? st.scale.sig : null,
-         fit: st.scale ? st.scale.notes.map(n => n.show) : inst.notes, name: A.Modes.nameFor(inst, st.scale),
+    const L = LEVELS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
+    G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
          spawned: 0, notes: [], front: null,
          clock: 0, nextSpawn: RULES.readyMs / 1000, lives: RULES.lives,
          score: 0, hits: 0, lost: 0, wrong: 0, paused: false, over: false};
@@ -345,7 +322,7 @@
   }
 
   // ?demo scales: Space plays the glowing (front) note
-  A.Modes.demoSpace(() => G && !G.paused && !G.over && G.front && G.front.it.sounding != null ? G.front.it.sounding : null);
+  A.ModePicker.demoSpace(() => G && !G.paused && !G.over && G.front && G.front.it.sounding != null ? G.front.it.sounding : null);
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
   $('resRetry').addEventListener('click', () => startLevel(G.lv));

@@ -1,6 +1,6 @@
 /* Note Ninja: a note appears on the scroll; tap its name. No microphone (no pitch.js / mic-gate.js).
-   Two modes (shared/modes.js): RANDOM NOTES (the first five notes, shuffled) and SCALES (the chosen scale
-   in order, up then down, with its key signature). The answer is always the note's real name,
+   NOTES × ORDER (shared/mode-picker.js, notes from shared/sequences.js): First 5, a concert scale or Chromatic,
+   in Random or Scale Order; scale pools show their key signature. The answer is always the note's real name,
    key signature included (a B in F major is B♭), spelled as shown (C♯ is not D♭).
    Answering: ♭ ♮ ♯ work like a Shift key for the next letter tap, then go back to ♮.
    Belts (levels) live in levels.js. Sounds are named events in shared/sfx.js. */
@@ -10,7 +10,6 @@
   const GAME_ID = 'note-ninja';
   const RULES = window.NINJA_RULES;
   const BELTS = window.NINJA_BELTS.map(L => Object.assign({}, A.belt(L.name), L));   // color and sparkle from shared/belts.js
-  const {noteLabel} = A.music;
   const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   const ACC_SIGN = {'-1': '♭', 0: '', 1: '♯'};
   const GOLD = '#c98a12', MISS = '#d0503f';          // same found / missed colors as the other games
@@ -24,7 +23,7 @@
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
 
-  const picker = A.Modes.mount($('modePick'), {gameId: GAME_ID, inst, levels: BELTS.length, onChange: () => showHub()});
+  const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: BELTS.length, onChange: () => showHub()});
 
   /* ---------- belt select ---------- */
   function showHub() {
@@ -33,21 +32,17 @@
     const st = picker.state, key = st.progressKey;
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
     $('wrap').classList.remove('playing');
-    const card = A.Modes.hubCard(inst, st);
+    const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap;
     $('hubConcert').textContent = card.sub;
     $('hubStaff').innerHTML = card.html;
-    $('hubCard').hidden = !st.ready;
-    $('levelsTitle').hidden = $('levelGrid').hidden = !st.ready;
     $('levelsTitle').textContent = st.scale ? `Belts: ${st.scale.name}` : 'Belts';
-    const scaleLen = st.scale ? st.scale.notes.length : 0;
-    $('levelGrid').innerHTML = !st.ready ? '' : BELTS.map((L, i) => {
+    $('levelGrid').innerHTML = BELTS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       // open: belt 1, the belt after a cleared one, or any belt that already has stars (e.g. moved up when Red was added)
       const unlocked = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, inst.id, lv - 1).stars > 0;
-      const count = st.scale ? A.Scales.sequence(st.scale, L.count).length : L.count;
-      const blurb = st.scale ? A.Modes.scaleBlurb([count > scaleLen ? 'Up and down, then again.' : 'Up and down once.',
-        L.onStaff > 1 ? `Read ahead: ${L.onStaff} notes at once.` : '', L.guides ? 'Letter guides.' : '', `${L.time} s per note.`]) : L.blurb;
+      const count = A.ModePicker.sequence(st, L, lv).items.length;
+      const blurb = A.ModePicker.levelText(st, L, lv, [L.onStaff > 1 ? `Read ahead: ${L.onStaff} notes at once.` : '', L.guides ? 'Letter guides.' : '', `${L.time} s per note.`]);
       return `<button class="lvl belt${L.sparkle ? ' sparkle' : ''}" data-l="${lv}" style="--belt:var(--${L.color})" ${unlocked ? '' : 'disabled'}>
         <span class="n">${L.name} belt</span>
         <span class="mini" aria-hidden="true"><i class="belt-knot"></i></span>
@@ -60,33 +55,15 @@
     window.scrollTo(0, 0);
   }
 
-  /* ---------- the notes of a belt ---------- */
-  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function buildSeq(count, pool) {           // every note appears evenly; never the same note twice in a row
-    const seq = [];
-    while (seq.length < count) {
-      const bag = shuffle([...Array(pool).keys()]);
-      if (seq.length && bag[0] === seq[seq.length - 1]) [bag[0], bag[1]] = [bag[1], bag[0]];
-      seq.push(...bag);
-    }
-    return seq.slice(0, count);
-  }
-  /* each item: the note as drawn (show) and its real name (letter + acc, key signature included) */
-  function beltNotes(L) {
-    const sc = picker.state.scale;
-    if (!sc) return buildSeq(L.count, L.pool).map(i => ({show: inst.notes[i], letter: inst.notes[i].letter, acc: inst.notes[i].acc, label: noteLabel(inst.notes[i])}));
-    return A.Scales.sequence(sc, L.count).map(n => ({show: n.show, letter: n.letter, acc: n.acc, label: noteLabel(n)}));
-  }
-
   /* ---------- play ---------- */
   let G = null, timerId = 0;
 
   function startLevel(lv) {
-    const L = BELTS[lv - 1], st = picker.state, items = beltNotes(L);
-    const pool = st.scale ? st.scale.notes : inst.notes;
-    G = {lv, L, items, count: items.length, key: st.progressKey, sig: st.scale ? st.scale.sig : null,
-         fit: st.scale ? st.scale.notes.map(n => n.show) : inst.notes,
-         accs: pool.some(n => n.acc),                // show ♭ ♮ ♯ only if this mode has any sharps or flats
+    const L = BELTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv);
+    // each item: the note as drawn (show) and its real name (letter + acc of n: key signature included)
+    const items = seq.items.map(it => ({show: it.show, letter: it.n.letter, acc: it.n.acc, label: it.label}));
+    G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit,
+         accs: seq.items.concat(seq.pool).some(it => it.n.acc),   // show ♭ ♮ ♯ only if these notes have any sharps or flats
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, combo: 0, bestCombo: 0,
          acc: 0, locked: true, noteStart: 0};
     $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false;

@@ -6,8 +6,9 @@
                 'ghost-notes:scale-Eb': { alto: { 1:{stars:2,best:900} } } } }
    Games store progress per instrument, per level, as {stars, best}. The arcade home
    page reads that shape to show star totals, so new games should use it too.
-   SCALES mode saves each scale under its own game key, '<gameId>:scale-<scaleId>' (Arcade.Scales.progressKey),
-   with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move.
+   Note-reading games save each NOTES × ORDER combination under its own key (Arcade.progressKey, sequences.js):
+   First 5 + Random keeps the plain game id and scales in order keep '<gameId>:scale-<id>', so old stars never move.
+   allStars() adds every key up.
    gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
    results, spar bests), kept apart from the shared progress shape above.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
@@ -105,9 +106,19 @@ window.Arcade = window.Arcade || {};
     /** Note Checker: 'five' (first five notes), 'full' (chromatic, full range) or a scale id ('Bb', 'Eb', 'F', 'Ab') */
     get checkerMode() { return CHECKER_MODES.includes(data.checkerMode) ? data.checkerMode : 'five'; },
     setCheckerMode(m) { data.checkerMode = CHECKER_MODES.includes(m) ? m : 'five'; save(); },
-    /** a game's RANDOM NOTES / SCALES choice: {mode: 'random'|'scales', scale: 'Bb'|'Eb'|'F'|'Ab'|'chrom'} */
-    gameMode(gameId) { return Object.assign({mode: 'random', scale: 'Bb'}, (data.modes || {})[gameId]); },
-    setGameMode(gameId, patch) { data.modes = Object.assign({}, data.modes, {[gameId]: Object.assign(this.gameMode(gameId), patch)}); save(); },
+    /** a note-reading game's NOTES × ORDER choice (shared/mode-picker.js): {notes: 'first5'|'Bb'|'Eb'|'F'|'Ab'|'chrom',
+        order: 'random'|'order'}. A choice saved by the older RANDOM NOTES / SCALES picker is read the same way:
+        random -> First 5 + Random, scales + X -> X + Scale Order, Chime Heist's full -> Chromatic + Random,
+        its chrom -> Chromatic + Scale Order. */
+    noteMode(gameId) {
+      const m = (data.modes || {})[gameId] || {};
+      if (m.notes) return {notes: m.notes, order: m.order === 'order' ? 'order' : 'random'};
+      if (m.mode === 'scales') return {notes: m.scale || 'Bb', order: 'order'};
+      if (m.mode === 'full') return {notes: 'chrom', order: 'random'};
+      if (m.mode === 'chrom') return {notes: 'chrom', order: 'order'};
+      return {notes: 'first5', order: 'random'};
+    },
+    setNoteMode(gameId, patch) { data.modes = Object.assign({}, data.modes, {[gameId]: Object.assign(this.noteMode(gameId), patch)}); save(); },
     /** which instrument in a player group this student plays (e.g. bb -> 'clarinet'); for full range only */
     memberFor(groupId) {
       if (data.player && A.groupsOf(data.player).some(g => g.id === groupId)) return data.player;   // the player IS the answer
@@ -129,17 +140,23 @@ window.Arcade = window.Arcade || {};
     /** a game's own extra saved object (created on demand); change it, then call saveGameData(gameId) */
     gameData(gameId) { const g = data.gameData || (data.gameData = {}); return g[gameId] || (g[gameId] = {}); },
     saveGameData() { save(); },
-    /** every star this device has for one instrument member, across all games and modes
-        (group-keyed games under each of its groups, member-keyed ones (Button Masher) under the member) */
-    starsForPlayer(memberId) {
-      const ids = A.groupsOf(memberId).map(g => g.id).concat(memberId);
+    /** THE STAR TOTAL: every star for one instrument across EVERY progress key (all NOTES × ORDER combinations,
+        Chime Heist's modes, Button Masher's rivals…), for one game (gameId) or, without it, for all games.
+        instrument: a member id ('trumpet': its group(s) for group-keyed games, the member for byMember games
+        like Button Masher) or a player id a game saves under directly ('bells', 'all'). */
+    allStars(instrument, gameId) {
+      const isMember = !!A.memberById(instrument);
+      const groups = isMember ? A.groupsOf(instrument).map(g => g.id) : [instrument];
       let n = 0;
       Object.keys(data.games || {}).forEach(k => {
-        const byMember = (A.GAMES || []).some(g => g.byMember && (k === g.id || k.startsWith(g.id + ':')));
-        (byMember ? [memberId] : ids.filter(i => i !== memberId)).forEach(i => { n += this.totalStars(k, i); });
+        const game = k.split(':')[0];
+        if (gameId && game !== gameId) return;
+        const byMember = (A.GAMES || []).some(g => g.byMember && g.id === game);
+        (byMember && isMember ? [instrument] : groups).forEach(i => { n += this.totalStars(k, i); });
       });
       return n;
     },
+    starsForPlayer(memberId) { return this.allStars(memberId); },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);
