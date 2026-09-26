@@ -43,7 +43,7 @@ window.Arcade = window.Arcade || {};
     'player-continue': {file: 'player-continue', vol: .8, mic: false, screen: 'select', when: 'The CONTINUE AS button (or Same opponent) is pressed.', len: '0.2–0.5 s'},
     'player-ready':    {file: 'player-ready',    vol: .9, mic: false, screen: 'select', when: 'The "PLAYER 1 READY" flash.', len: '0.6–1.2 s'},
     'player2-join':    {file: 'player2-join',    vol: .9, mic: false, screen: 'select', when: 'Neon Face-Off: "PLAYER 2 — PRESS START" appears.', len: '0.4–1 s'},
-    'skin-equip':      {file: 'skin-equip',      vol: .7, mic: true, screen: 'select', when: 'A skin or accessory is put on (the SKINS locker, or Equip now).', len: '0.2–0.4 s'},
+    'skin-equip':      {file: 'skin-equip',      vol: .4, mic: true, screen: 'select', when: 'A skin or accessory is put on (the SKINS locker, or Equip now).', len: '0.2–0.4 s'},
     'skin-unlocked':   {file: 'skin-unlocked',   vol: .8, mic: true, screen: 'select', when: 'An UNLOCKED! card appears (a results screen, or Select Player catch-up).', len: '0.4–0.5 s'},
     // ---- everywhere -------------------------------------------------------------------------------------------
     'ui-back':         {file: 'ui-back',   vol: .6, mic: true, screen: 'general', when: '"← ARCADE": back to the arcade floor.', len: '0.1–0.3 s'},
