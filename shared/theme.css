@@ -110,6 +110,33 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .stage{position:relative;background:var(--screen);color:var(--ink);border:3px solid var(--cyan);border-radius:var(--r);padding:8px 10px 0;overflow:hidden;box-shadow:0 0 0 4px var(--deep),var(--glow-cyan),inset 0 0 0 2px rgba(255,255,255,.6)}
 .stage .cap{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;color:var(--ink-2);padding:2px 6px 0}
 
+/* ---------- RANDOM NOTES / SCALES (shared/modes.js) and the instrument question ---------- */
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.mode-big{min-height:60px;padding:10px 14px;border-radius:16px;border:3px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);
+  font-family:var(--display);font-size:clamp(17px,3.6vw,22px);letter-spacing:.06em;text-transform:uppercase}
+.mode-big:hover{border-color:var(--cyan-ink);color:var(--text-hi)}
+.mode-big[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan-hi);color:var(--deep);box-shadow:var(--glow-cyan)}
+.scale-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 16px}
+@media (max-width:560px){ .scale-btns{grid-template-columns:repeat(3,1fr)} }
+.scale-btn{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:84px;padding:8px 4px;border-radius:14px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi)}
+.scale-btn b{font-family:var(--display),var(--music);font-weight:400;font-size:22px;line-height:1.1}
+.scale-btn small{font-size:13px;color:var(--text-lo)}
+.scale-btn .sb-stars{font-size:14px;font-weight:700;color:var(--text-lo)}
+.scale-btn .sb-stars span{color:var(--yellow)}
+.scale-btn:hover{border-color:var(--yellow-ink)}
+.scale-btn[aria-pressed="true"]{border-color:var(--yellow);background:var(--floor-lit);box-shadow:var(--glow-yellow)}
+.member-pick{background:var(--floor-2);border-radius:var(--r);padding:18px 16px;margin:14px 0 6px;text-align:center}
+.member-pick h2{font-family:var(--display);font-weight:400;font-size:clamp(22px,4.6vw,28px);line-height:1.15;margin-bottom:10px}
+.member-pick p{margin:0 0 12px}
+.member-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.member-btn{min-height:64px;font-size:19px;background:var(--floor-3);color:var(--text-hi);border:2px solid var(--cyan-ink);border-radius:16px}
+.member-btn:hover{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.playing{margin:0 0 10px;color:var(--text-lo)}
+.playing b{color:var(--text-hi)}
+.linkish{background:none;border:0;padding:4px 6px;min-height:32px;color:var(--cyan-hi);text-decoration:underline;font-size:15px}
+
+.demo-help{font-size:14px;color:var(--text-lo);margin:8px 0 0}
+
 /* ---------- stars ---------- */
 .stars{letter-spacing:2px;font-size:16px;color:var(--text-dim)}
 .stars .on{color:var(--yellow);text-shadow:0 0 6px rgba(255,225,77,.6)}

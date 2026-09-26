@@ -23,16 +23,18 @@
       <h1 class="game-title">Ghost <span>Notes</span></h1>
       <p class="muted">Read the note and play it on your instrument. Each level, the note names fade a little more until only the staff is left.</p>
     </div>
+    <div id="modePick"></div>
     <div class="stage fivecard">
-      <div class="cap"><span>Your first five notes</span><span id="hubConcert"></span></div>
+      <div class="cap"><span id="hubCap">Your first five notes</span><span id="hubConcert"></span></div>
       <div id="hubStaff"></div>
     </div>
     <div class="checker-cta">
       <p><b>New here, or on a new device?</b> Open the Note Checker first. Play all five notes and make sure each one lights up.</p>
       <a class="btn btn-ghost" id="checkerLink" href="#">Note Checker</a>
     </div>
-    <p class="eyebrow">Levels</p>
+    <p class="eyebrow" id="levelsTitle">Levels</p>
     <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: keys 1–5 play the first five notes. In Scales, hold Space to play the note on the staff.</p>
   </section>
 
   <!-- PLAY -->
@@ -81,6 +83,8 @@
 <script src="../shared/pitch.js"></script>
 <script src="../shared/mic-gate.js"></script>
 <script src="../shared/ui.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/modes.js"></script>
 <script src="levels.js"></script>
 <script src="game.js"></script>
 </body>

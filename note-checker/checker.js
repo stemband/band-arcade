@@ -1,8 +1,9 @@
 /* Note Checker: shows what the mic hears (in the student's written pitch), a tuning needle,
-   and lights up notes once they have been held. Shared by every game. Two modes:
-     FIRST 5 NOTES  the five notes the games use (letter names; any octave counts)
-     FULL RANGE     the student's whole chromatic scale (GMEA ranges in instruments.js). Octave-exact:
-                    a note lights only in the octave written on the staff. */
+   and lights up notes once they have been held. Shared by every game. Modes:
+     FIRST 5        the five notes the games use (letter names; any octave counts)
+     B♭ E♭ F A♭     the GMEA major scales for the student's instrument (scales.js), up and down, with key signature
+     CHROMATIC      the student's whole chromatic scale (GMEA ranges in instruments.js)
+   All but FIRST 5 are octave-exact: a note lights only in the octave written on the staff. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -25,9 +26,13 @@
     $('ckFound').textContent = found.size === 5 ? 'All 5 notes found. You’re ready to play!' : `${found.size} of 5 notes found`;
   }
 
-  /* ---------- FULL RANGE ---------- */
-  let member = null, down = false, scale = [], fullFound = new Set(), heard = null, cursor = 0;
-  const byWritten = new Map();        // written midi -> index in scale
+  /* ---------- FULL RANGE (mode 'full', chromatic) and SCALES ('Bb', 'Eb', 'F', 'Ab') ----------
+     Both show a list of written notes for the student's instrument member. Chromatic: one note per pitch,
+     "Going down" re-spells it with flats (found notes stay found). Scales: the scale up then down (15 notes);
+     a held pitch lights the first of its places still dark, so going up lights the way up, then the way down. */
+  let member = null, down = false, list = [], sig = null, fullFound = new Set(), heard = null, cursor = 0, scaleObj = null;
+  const byWritten = new Map();        // written midi -> keys of the list places with that pitch, in order
+  const isChromatic = () => mode === 'full';
 
   function chooseMember(id) {
     member = A.getMember(inst, id);
@@ -49,70 +54,92 @@
     }
     $('memberName').textContent = member.name;
     $('memberChange').hidden = inst.members.length < 2;
+    $('dirBtn').hidden = !isChromatic();
+    scaleObj = isChromatic() ? null : A.Scales.build(member, mode);
+    $('fullLede').innerHTML = isChromatic()
+      ? 'Play your whole chromatic scale. Hold each note until it turns gold. It has to be the <b>right octave</b>: the low D and the high D are different notes.'
+      : `<b>${scaleObj.label}.</b> Play it up and back down. Hold each note until it turns gold, in the <b>octave shown</b>.`;
     A.Pitch.setRange(member.soundLow, member.soundHigh);
     cursor = 0;
     drawFull();
   }
-  // lay the scale out in rows that fit the screen: at least 50px per note so sharps and flats never touch
+  function buildList() {
+    if (isChromatic()) {
+      sig = null;
+      list = A.chromaticScale(member, {down}).map(n => ({n, show: n, key: 'm' + n.midi, midi: n.midi, sounding: n.sounding, label: noteLabel(n)}));
+    } else {
+      sig = scaleObj.sig;
+      list = scaleObj.notes.map((n, i) => ({n, show: n.show, key: 'i' + i, midi: n.midi, sounding: n.sounding, label: noteLabel(n)}));
+    }
+    byWritten.clear();
+    list.forEach(it => { if (!byWritten.has(it.midi)) byWritten.set(it.midi, []); byWritten.get(it.midi).push(it.key); });
+  }
+  // lay the notes out in rows that fit the screen: at least 50px per note so sharps and flats never touch
   function drawFull() {
     if (!member) return;
-    scale = A.chromaticScale(member, {down});
-    byWritten.clear(); scale.forEach((n, i) => byWritten.set(n.midi, i));
+    buildList();
     const box = $('fullStaff'), W = Math.max(260, Math.floor(box.clientWidth || 340));
-    const CLEF = 72, per = Math.max(4, Math.min(12, Math.floor((W - CLEF - 16) / 50))), step = (W - CLEF - 16) / per;
+    const CLEF = 72 + A.keySigWidth(sig), per = Math.max(4, Math.min(12, Math.floor((W - CLEF - 16) / 50))), step = (W - CLEF - 16) / per;
     let html = '';
-    for (let r = 0; r < scale.length; r += per) {
-      const row = scale.slice(r, r + per);
-      html += A.staffSVG(member.clef, row.map((n, k) => ({n, x: CLEF + step * (k + .5), id: 'fr' + n.midi, caption: noteLabel(n)})),
-        {width: W, label: `Notes ${r + 1} to ${r + row.length}: ` + row.map(noteLabel).join(', ')});
+    for (let r = 0; r < list.length; r += per) {
+      const row = list.slice(r, r + per);
+      html += A.staffSVG(member.clef, row.map((it, k) => ({n: it.show, x: CLEF + step * (k + .5), id: 'fr' + it.key, caption: it.label})),
+        {width: W, keySig: sig, label: `Notes ${r + 1} to ${r + row.length}: ` + row.map(it => it.label).join(', ')});
     }
     box.innerHTML = html;
-    fullFound.forEach(w => A.colorNote('fr' + w, GOLD));
+    fullFound.forEach(k => A.colorNote('fr' + k, GOLD));
     markHeard(heard, true); markCursor();
     $('dirBtn').setAttribute('aria-pressed', down);
     fullCount();
   }
   function fullCount() {
-    const n = scale.length, f = fullFound.size;
-    $('ckFound').textContent = f === n ? `All ${n} notes found. Great range!` : `${f} of ${n} notes`;
+    const n = list.length, f = list.filter(it => fullFound.has(it.key)).length;
+    $('ckFound').textContent = f === n ? (isChromatic() ? `All ${n} notes found. Great range!` : `All ${n} notes. Scale complete!`) : `${f} of ${n} notes`;
   }
-  const nameOf = w => noteLabel(spell(w, down));   // spelled the way the staff shows it right now
+  /** a written pitch's name, spelled the way the staff shows it right now */
+  function nameOf(w) {
+    const it = list.find(x => mod12(x.midi - w) === 0);
+    return it && !isChromatic() ? noteLabel(it.n) : noteLabel(spell(w, down));
+  }
   /** outline the note being heard right now (written midi, or null) */
   function markHeard(w, force) {
     if (w === heard && !force) return;
-    const old = document.querySelector('#fullStaff .hearing'); if (old) old.classList.remove('hearing');
+    document.querySelectorAll('#fullStaff .hearing').forEach(g => g.classList.remove('hearing'));
     heard = w;
-    const g = w != null && document.getElementById('fr' + w); if (g) g.classList.add('hearing');
+    (w != null && byWritten.get(w) || []).forEach(k => { const g = document.getElementById('fr' + k); if (g) g.classList.add('hearing'); });
   }
   function markCursor() {
     const old = document.querySelector('#fullStaff .demo-cursor'); if (old) old.classList.remove('demo-cursor');
-    if (!A.DEMO || !scale[cursor]) return;
-    const g = document.getElementById('fr' + scale[cursor].midi); if (g) g.classList.add('demo-cursor');
+    if (!A.DEMO || !list[cursor]) return;
+    const g = document.getElementById('fr' + list[cursor].key); if (g) g.classList.add('demo-cursor');
   }
   function hint(text) { $('fullHint').textContent = text; }
 
   /* a held note (exact sounding midi, already moved into range by the pitch engine if it was an octave off) */
   function fullHeld(note) {
     const w = note + member.sounds;                     // what that is on the student's part
-    if (byWritten.has(w) && !fullFound.has(w)) {
-      fullFound.add(w); A.colorNote('fr' + w, GOLD); hint(''); fullCount();
+    const open = (byWritten.get(w) || []).find(k => !fullFound.has(k));
+    if (open) {
+      fullFound.add(open); A.colorNote('fr' + open, GOLD); hint(''); fullCount();
       return;
     }
     // same letter, another octave still to find: point the student at it
-    const sibs = scale.filter(n => mod12(n.midi - w) === 0 && n.midi !== w && !fullFound.has(n.midi));
+    const sibs = list.filter(it => mod12(it.midi - w) === 0 && it.midi !== w && !fullFound.has(it.key));
     if (!sibs.length) { hint(''); return; }
     const target = sibs.reduce((a, b) => Math.abs(b.midi - w) < Math.abs(a.midi - w) ? b : a);
-    const lower = w < target.midi;
-    hint(`That's ${/^[AEF]/.test(nameOf(w)) ? 'an' : 'a'} ${nameOf(w)}, but an octave ${lower ? 'lower' : 'higher'}. Try the ${lower ? 'higher' : 'lower'} one.`);
+    const lower = w < target.midi, nm = nameOf(w);
+    hint(`That's ${/^[AEF]/.test(nm) ? 'an' : 'a'} ${nm}, but an octave ${lower ? 'lower' : 'higher'}. Try the ${lower ? 'higher' : 'lower'} one.`);
   }
 
-  /* ---------- modes ---------- */
+  /* ---------- modes: FIRST 5 | B♭ | E♭ | F | A♭ | CHROMATIC ---------- */
   function setMode(m) {
+    const was = mode;
     mode = m; A.store.setCheckerMode(m);
     document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
-    $('fivePanel').hidden = m !== 'five'; $('fullPanel').hidden = m !== 'full';
+    $('fivePanel').hidden = m !== 'five'; $('fullPanel').hidden = m === 'five';
     $('demoHelp').hidden = !A.DEMO;
     hint('');
+    if (was !== m) { fullFound = new Set(); heard = null; }
     if (m === 'five') { A.Pitch.setRange(null); draw(); }
     else { member = A.getMember(inst, A.store.memberFor(inst.id)); setupFull(); }
   }
@@ -120,7 +147,7 @@
   $('memberChange').addEventListener('click', () => { member = null; setupFull(); $('memberBtns').querySelector('button').focus(); });
   $('dirBtn').addEventListener('click', () => { down = !down; drawFull(); });
   let lastW = 0;
-  addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode === 'full' && w !== lastW) { lastW = w; drawFull(); } });
+  addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
   setMode(mode);
 
   const start = () => { $('startRow').hidden = true; };
@@ -136,14 +163,14 @@
   $('sens').addEventListener('input', e => { A.store.setSens(+e.target.value); A.Pitch.setSensitivity(+e.target.value); });
 
   A.Pitch.onHeld((pc, now, note) => {
-    if (mode === 'full') { if (member) fullHeld(note); return; }
+    if (mode !== 'five') { if (member) fullHeld(note); return; }
     const i = inst.targetPc.indexOf(pc);
     if (i >= 0 && !found.has(i)) { found.add(i); draw(); }
   });
 
   A.Pitch.onFrame((r, level) => {
     const big = $('ckNote'), conc = $('ckConcert'), needle = $('needle'), verdict = $('ckVerdict');
-    const full = mode === 'full' && member;
+    const full = mode !== 'five' && member;
     if (r) {
       const w = full ? r.note + member.sounds : null;
       big.textContent = full ? nameOf(w) : inst.writtenName(r.pc);
@@ -171,15 +198,16 @@
   /* ---------- ?demo in full range: ↑/↓ pick a note, hold Space to "play" it (Shift+Space: an octave low) ---------- */
   if (A.DEMO) {
     addEventListener('keydown', e => {
-      if (mode !== 'full' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (mode === 'five' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
-        const higher = e.key === 'ArrowUp' ? 1 : -1, dirStep = down ? -higher : higher;   // the list runs downward when "Going down"
-        cursor = Math.max(0, Math.min(scale.length - 1, cursor + dirStep));
+        // ↑/↓ step through the list in order (it runs downward when "Going down", and a scale comes back down)
+        const step = e.key === 'ArrowUp' ? 1 : -1, dirStep = isChromatic() && down ? -step : step;
+        cursor = Math.max(0, Math.min(list.length - 1, cursor + dirStep));
         markCursor();
       } else if (e.key === ' ') {
         e.preventDefault();
-        if (scale[cursor]) A.Pitch.demoNote = scale[cursor].sounding - (e.shiftKey ? 12 : 0);
+        if (list[cursor]) A.Pitch.demoNote = list[cursor].sounding - (e.shiftKey ? 12 : 0);
       }
     });
     addEventListener('keyup', e => { if (e.key === ' ' && A.Pitch.demoNote !== null) { e.preventDefault(); A.Pitch.demoNote = null; } });

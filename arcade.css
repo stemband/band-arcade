@@ -93,6 +93,7 @@
 .hiscore b{font-family:var(--display);font-weight:400;color:var(--yellow);letter-spacing:.08em}
 .hiscore .star{color:var(--yellow);text-shadow:0 0 6px rgba(255,225,77,.6)}
 .hiscore .who{color:var(--text-lo);font-weight:400}
+.hiscore .scales-note{display:block;margin-top:2px;font-size:14px;font-weight:400;letter-spacing:0;color:var(--text-lo)}
 .note{color:var(--text-lo);font-size:15px;text-align:center;margin:0 16px 24px}
 
 /* one cabinet at a time on phones: the neighbors step out of view, the arrows sit beside it */

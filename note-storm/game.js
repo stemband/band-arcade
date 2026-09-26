@@ -1,6 +1,8 @@
 /* Note Storm: notes march left along the staff toward Tempo (the defender).
    Play the front note to blast it; a note that reaches Tempo costs a life.
-   The staff is drawn once; each frame only moves the note layers (CSS transforms). */
+   The staff is drawn once; each frame only moves the note layers (CSS transforms).
+   Two modes (shared/modes.js): RANDOM NOTES (the first five, shuffled) and SCALES (the chosen scale in order,
+   up then down, with its key signature; the front note is always the next note of the scale). */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -13,13 +15,16 @@
   A.Pitch.setInstrument(inst);
   A.mountTopbar(inst, '', GAME_ID);
   $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
+  $('demoHelp').hidden = !A.DEMO;
+  const picker = A.Modes.mount($('modePick'), {gameId: GAME_ID, inst, levels: LEVELS.length, onChange: () => showHub()});
 
   /* ---------- staff geometry (SVG units; the staff's middle line is y = 88) ---------- */
   const MID_Y = 88;
-  const DEF_X = 84;            // Tempo's center
-  const HIT_X = 124;           // a note that gets this far reaches Tempo
+  let DEF_X = 84;              // Tempo's center (moves right past a key signature in SCALES mode)
+  let HIT_X = 124;             // a note that gets this far reaches Tempo
   const SLICE_L = -48, SLICE_W = 92;   // each note's own little drawing, centered on the note head
-  const BEAM_X = DEF_X + 40, BEAM_Y = MID_Y + 5;
+  let BEAM_X = DEF_X + 40;
+  const BEAM_Y = MID_Y + 5;
   let W = 400, top = 0, H = 0, scale = 1;
   const spawnX = () => W - 34;
   const noteX = p => spawnX() - p * (spawnX() - HIT_X);
@@ -40,17 +45,28 @@
     G = null;
     $('wrap').classList.remove('playing');
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('paused').hidden = true;
-    $('hubConcert').textContent = 'Concert ' + inst.concertLabel;
-    $('hubStaff').innerHTML = A.fiveNoteStaff(inst);
-    $('levelGrid').innerHTML = LEVELS.map((L, i) => {
-      const lv = i + 1, p = A.store.level(GAME_ID, inst.id, lv);
-      const unlocked = A.DEMO || lv === 1 || A.store.level(GAME_ID, inst.id, lv - 1).stars > 0;
+    const st = picker.state, key = st.progressKey;
+    A.Modes.useRange(st);
+    const card = A.Modes.hubCard(inst, st);
+    $('hubCap').textContent = card.cap;
+    $('hubConcert').textContent = card.sub;
+    $('hubStaff').innerHTML = card.html;
+    $('hubStaff').closest('.stage').hidden = !st.ready;
+    $('levelsTitle').hidden = $('levelGrid').hidden = !st.ready;
+    $('levelsTitle').textContent = st.scale ? `Levels: ${st.scale.name}` : 'Levels';
+    const scaleLen = st.scale ? st.scale.notes.length : 0;
+    $('levelGrid').innerHTML = !st.ready ? '' : LEVELS.map((L, i) => {
+      const lv = i + 1, p = A.store.level(key, inst.id, lv);
+      const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
+      const count = st.scale ? A.Scales.sequence(st.scale, L.count).length : L.count;
+      const blurb = st.scale ? A.Modes.scaleBlurb([count > scaleLen ? 'Up and down, then again.' : 'Up and down once.',
+        L.maxOn > 1 ? `Up to ${L.maxOn} notes at once.` : 'One note at a time.', L.names ? 'Names showing.' : 'No names.']) : L.blurb;
       return `<button class="lvl" data-l="${lv}" ${unlocked ? '' : 'disabled'}>
         <span class="n">Level ${lv}</span>
         <span class="mini" aria-label="Up to ${L.maxOn} at once">${'<i>♩</i>'.repeat(L.maxOn)}</span>
         <span class="t">${L.name}</span>
-        <span class="d">${L.blurb}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : L.count + ' notes') : 'Locked'}</span></span>
+        <span class="d">${blurb}</span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : 'Locked'}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b =>
@@ -71,10 +87,19 @@
     return seq.slice(0, count);
   }
 
+  /* the notes of a level: random mode = the first five shuffled (as always); scales = the scale in order */
+  function levelNotes(L) {
+    const sc = picker.state.scale;
+    if (!sc) return buildSeq(L.count, L.pool).map(idx => ({show: inst.notes[idx], label: noteLabel(inst.notes[idx]), pc: inst.targetPc[idx], sounding: null}));
+    return A.Scales.sequence(sc, L.count).map(n => ({show: n.show, label: noteLabel(n), pc: n.pc, sounding: n.sounding}));
+  }
+
   function startLevel(lv) {
     stop();
-    const L = LEVELS[lv - 1];
-    G = {lv, L, seq: buildSeq(L.count, L.pool), spawned: 0, notes: [], front: null,
+    const L = LEVELS[lv - 1], st = picker.state, items = levelNotes(L);
+    G = {lv, L, items, count: items.length, key: st.progressKey, sig: st.scale ? st.scale.sig : null,
+         fit: st.scale ? st.scale.notes.map(n => n.show) : inst.notes, name: A.Modes.nameFor(inst, st.scale),
+         spawned: 0, notes: [], front: null,
          clock: 0, nextSpawn: RULES.readyMs / 1000, lives: RULES.lives,
          score: 0, hits: 0, lost: 0, wrong: 0, paused: false, over: false};
     $('results').hidden = true; $('paused').hidden = true; $('hub').hidden = true; $('play').hidden = false;
@@ -95,14 +120,16 @@
     if (!G) return;
     const fw = $('field').clientWidth;
     // aim for a big staff, but keep it short enough to leave room for the HUD on a landscape screen
-    const probe = A.staffSVG(inst.clef, [], {fit: inst.notes, captions: G.L.names});
+    const probe = A.staffSVG(inst.clef, [], {fit: G.fit, captions: G.L.names});
     const vb = probe.match(/viewBox="0 (\S+) \d+ (\S+)"/);
     top = +vb[1]; H = +vb[2];
     const want = Math.min(2, (innerHeight * 0.45) / H);
     const newW = Math.max(340, Math.round(fw / want));   // 340 keeps room for four notes on a phone-width screen
     if (!force && newW === W && Math.abs(fw / W - scale) < .001) return;
     W = newW; scale = fw / W;
-    $('stormStaff').innerHTML = A.staffSVG(inst.clef, [], {fit: inst.notes, captions: G.L.names, width: W,
+    const off = A.keySigWidth(G.sig);                 // Tempo stands after the key signature
+    DEF_X = 84 + off; HIT_X = 124 + off; BEAM_X = DEF_X + 40;
+    $('stormStaff').innerHTML = A.staffSVG(inst.clef, [], {fit: G.fit, captions: G.L.names, width: W, keySig: G.sig,
       label: 'Staff with notes marching toward Tempo'});
     const fx = $('fx');
     fx.setAttribute('viewBox', `0 ${top} ${W} ${H}`);
@@ -112,8 +139,8 @@
   let resizeT = 0;
   addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => layout(false), 120); });
 
-  function noteSVG(idx) {
-    const n = inst.notes[idx], y = A.noteY(inst.clef, n);
+  function noteSVG(it) {
+    const n = it.show, y = A.noteY(inst.clef, n);
     const capY = top + H - 10;
     const lx = n.acc ? -40 : -20;
     const b = `M${lx + 7} ${y - 19}H${lx}V${y + 19}H${lx + 7}M13 ${y - 19}H20V${y + 19}H13`;
@@ -124,19 +151,19 @@
     }
     return `<svg viewBox="${SLICE_L} ${top} ${SLICE_W} ${H}">` +
       `<rect class="halo" x="${lx - 4}" y="${y - 23}" width="${28 - lx}" height="46" rx="12"/>` +
-      `<g class="glyph">${A.noteGlyph(inst.clef, {n, x: 0, caption: G.L.names ? noteLabel(n) : ''}, capY)}</g>` +
+      `<g class="glyph">${A.noteGlyph(inst.clef, {n, x: 0, caption: G.L.names ? it.label : ''}, capY)}</g>` +
       `<path class="brackets" d="${b}"/>` +
       `<g class="burst"><circle cx="0" cy="${y}" r="9"/>${rays}</g></svg>`;
   }
 
   function spawn() {
-    const idx = G.seq[G.spawned++];
+    const it = G.items[G.spawned++];
     const el = document.createElement('div');
     el.className = 'sn';
     el.style.width = SLICE_W * scale + 'px';
-    el.innerHTML = noteSVG(idx);
+    el.innerHTML = noteSVG(it);
     $('noteLayer').appendChild(el);
-    const n = {idx, pc: inst.targetPc[idx], y: A.noteY(inst.clef, inst.notes[idx]), p: 0, el};
+    const n = {it, pc: it.pc, y: A.noteY(inst.clef, it.show), p: 0, el};
     G.notes.push(n);
     place(n);
     G.nextSpawn = G.clock + G.L.every;
@@ -187,14 +214,14 @@
     pop.style.left = (x * scale) + 'px'; pop.style.top = ((n.y - top - 30) * scale) + 'px';
     $('noteLayer').appendChild(pop);
     setTimeout(() => pop.remove(), 800);
-    setPrompt(`Blasted! That was ${noteLabel(inst.notes[n.idx])}.`, 'good');
+    setPrompt(`Blasted! That was ${n.it.label}.`, 'good');
     removeNote(n, 'boom');
   }
 
   function lose(n) {
     G.lost++; G.lives--;
     kick('ouch');
-    setPrompt(`That ${noteLabel(inst.notes[n.idx])} got through!`, 'bad');
+    setPrompt(`That ${n.it.label} got through!`, 'bad');
     removeNote(n, 'lost');
   }
 
@@ -205,14 +232,14 @@
 
   function checkEnd() {
     if (G.over) return;
-    if (G.lives <= 0 || (G.spawned >= G.L.count && !G.notes.length)) {
+    if (G.lives <= 0 || (G.spawned >= G.count && !G.notes.length)) {
       G.over = true;
       setTimeout(() => { if (G && G.over) finishLevel(); }, 750);
     }
   }
 
   function hud() {
-    $('hudLeft').textContent = G.L.count - G.hits - G.lost;
+    $('hudLeft').textContent = G.count - G.hits - G.lost;
     $('hudScore').textContent = G.score;
     $('hudLives').innerHTML = [...Array(RULES.lives)].map((_, i) => `<span class="${i < G.lives ? 'on' : ''}">♥</span>`).join('');
     $('hudLives').setAttribute('aria-label', `${G.lives} of ${RULES.lives} lives`);
@@ -237,7 +264,7 @@
       for (let i = 0; i < G.notes.length; i++) { G.notes[i].p += step; place(G.notes[i]); }
       const f = G.notes[0];
       if (f && f.p >= 1) lose(f);
-      if (!G.over && G.spawned < G.L.count && G.notes.length < G.L.maxOn && G.clock >= G.nextSpawn) spawn();
+      if (!G.over && G.spawned < G.count && G.notes.length < G.L.maxOn && G.clock >= G.nextSpawn) spawn();
     }
     raf = requestAnimationFrame(frame);
   }
@@ -273,14 +300,14 @@
     else {
       G.wrong++;
       const f = G.front.el; f.classList.remove('nope'); void f.getBoundingClientRect(); f.classList.add('nope');
-      setPrompt(`That's ${inst.writtenName(pc)}. Play the glowing note.`, 'bad');
+      setPrompt(`That's ${G.name(pc)}. Play the glowing note.`, 'bad');
     }
   });
 
   let lastHeard = null, lastBars = -1, lastMatch = null;
   A.Pitch.onFrame((r, level) => {
     if (!G) return;
-    const heard = r ? inst.writtenName(r.pc) : '–';
+    const heard = r ? G.name(r.pc) : '–';
     const match = !!(r && G.front && r.pc === G.front.pc);
     if (heard !== lastHeard) { $('hearNote').textContent = heard; lastHeard = heard; }
     if (match !== lastMatch) { $('hearNote').classList.toggle('match', match); lastMatch = match; }
@@ -291,12 +318,12 @@
   /* ---------- results ---------- */
   function finishLevel() {
     stop();
-    const {lv, L, hits, lost, wrong, score, lives} = G;
-    const need = Math.ceil(L.count * RULES.passRate);
+    const {lv, hits, lost, wrong, score, lives, count, key} = G;
+    const need = Math.ceil(count * RULES.passRate);
     const cleared = lives > 0 && hits >= need;
     const stars = !cleared ? 0 : lost === 0 && wrong === 0 ? 3 : lost <= 1 ? 2 : 1;
-    const old = A.store.level(GAME_ID, inst.id, lv);
-    A.store.setLevel(GAME_ID, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    const old = A.store.level(key, inst.id, lv);
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = stars === 3 ? 'Perfect!' : stars ? 'Level cleared' : lives <= 0 ? 'The storm got through' : 'So close';
     $('resMsg').textContent =
@@ -305,8 +332,8 @@
                             : 'Nothing got through! Play with no wrong notes for 3 stars.')
       : stars === 1 ? 'Let one note or fewer get through for 2 stars.'
       : lives <= 0 ? `${RULES.lives} notes got through. Read the glowing note and play it early. You've got this!`
-      : `Blast ${need} of ${L.count} notes to clear this level.`;
-    $('resHits').textContent = `${hits}/${L.count}`;
+      : `Blast ${need} of ${count} notes to clear this level.`;
+    $('resHits').textContent = `${hits}/${count}`;
     $('resLost').textContent = lost;
     $('resWrong').textContent = wrong;
     $('resScore').textContent = score;
@@ -316,6 +343,9 @@
     $('results').hidden = false;
     (hasNext ? $('resNext') : $('resRetry')).focus();
   }
+
+  // ?demo scales: Space plays the glowing (front) note
+  A.Modes.demoSpace(() => G && !G.paused && !G.over && G.front && G.front.it.sounding != null ? G.front.it.sounding : null);
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
   $('resRetry').addEventListener('click', () => startLevel(G.lv));

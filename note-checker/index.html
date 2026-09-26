@@ -18,8 +18,12 @@
 
   <h1 class="page-title">Note Checker</h1>
   <div class="modes" role="group" aria-label="What to check">
-    <button class="mode-btn" type="button" data-mode="five" aria-pressed="true">First 5 notes</button>
-    <button class="mode-btn" type="button" data-mode="full" aria-pressed="false">Full range</button>
+    <button class="mode-btn" type="button" data-mode="five" aria-pressed="true">First 5</button>
+    <button class="mode-btn" type="button" data-mode="Bb" aria-pressed="false" aria-label="Concert B flat scale">B♭</button>
+    <button class="mode-btn" type="button" data-mode="Eb" aria-pressed="false" aria-label="Concert E flat scale">E♭</button>
+    <button class="mode-btn" type="button" data-mode="F" aria-pressed="false" aria-label="Concert F scale">F</button>
+    <button class="mode-btn" type="button" data-mode="Ab" aria-pressed="false" aria-label="Concert A flat scale">A♭</button>
+    <button class="mode-btn" type="button" data-mode="full" aria-pressed="false">Chromatic</button>
   </div>
 
   <div id="fivePanel">
@@ -33,7 +37,7 @@
       <div class="member-btns" id="memberBtns"></div>
     </section>
     <div id="fullMain" hidden>
-      <p class="muted lede">Play your whole chromatic scale. Hold each note until it turns gold. It has to be the <b>right octave</b>: the low D and the high D are different notes.</p>
+      <p class="muted lede" id="fullLede"></p>
       <div class="full-head">
         <p class="playing">Playing: <b id="memberName"></b> <button class="linkish" type="button" id="memberChange">change</button></p>
         <button class="btn btn-ghost btn-small dir-btn" type="button" id="dirBtn" aria-pressed="false">Going down</button>
@@ -93,6 +97,7 @@
 <script src="../shared/mic-gate.js"></script>
 <script src="../shared/ui.js"></script>
 <script src="../shared/games.js"></script>
+<script src="../shared/scales.js"></script>
 <script src="checker.js"></script>
 </body>
 </html>
