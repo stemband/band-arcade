@@ -113,10 +113,13 @@ button{font:inherit}
 .q-demo{margin:0;flex:none;font-size:calc(var(--px) * 6);color:var(--text-lo)}
 
 /* ---------- title and arena ---------- */
-.q-title{inset:0;display:flex;flex-direction:column;align-items:center;padding-top:calc(var(--px) * 46);gap:calc(var(--px) * 6)}
+.q-title{inset:0;display:flex;flex-direction:column;align-items:center;padding-top:calc(var(--px) * 42);gap:calc(var(--px) * 4)}
 .q-title h1{margin:0;text-align:center;color:var(--q-cursor);font-family:"GN Quest",var(--text);font-size:calc(var(--px) * 16);line-height:1.05;font-weight:700}
 .q-title h1 small{display:block;color:var(--q-gold);font-size:calc(var(--px) * 9);letter-spacing:.2em;text-transform:uppercase}
-#qTitleMenu{width:calc(var(--px) * 110)}
+/* the title menu: two columns of short buttons, so up to 4 choices (or the "start over?" question) always fit */
+#qTitleMenu{width:calc(var(--px) * 190)}
+#qTitleMenu .q-btn{min-height:calc(var(--px) * 18);font-size:calc(var(--px) * 8)}
+#qTitleMenu .q-btn small{font-size:calc(var(--px) * 5)}
 .q-soon{margin:0;font-size:calc(var(--px) * 6.5);color:var(--text-lo);text-align:center;max-width:calc(var(--px) * 180)}
 .q-arena{inset:0;padding:calc(var(--px) * 4) calc(var(--px) * 8)}
 .q-ah{margin:0;text-align:center;font-size:calc(var(--px) * 9);color:var(--q-gold);font-weight:700}

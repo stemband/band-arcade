@@ -23,7 +23,7 @@
       const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}],
         testing ? [{id: 'arena', label: 'Test Arena'}] : [], [{id: 'settings', label: 'Settings'}]);
       const menu = () => {
-        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 1, label: 'Title menu', onPick: it => {
+        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: items.length > 2 ? 2 : 1, label: 'Title menu', onPick: it => {
           if (it.id === 'continue') { m.destroy(); Q.go('world', {continue: true}); }
           else if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
           else if (it.id === 'settings') Q.settings.open().then(me);
@@ -31,7 +31,7 @@
           else {                                                  // a new game over a saved one: ask first
             m.destroy();
             const c = Q.menu(Q.$('qTitleMenu'), [{id: 'yes', label: 'Yes, start over', sub: 'Level, items, tokens and friends reset'}, {id: 'no', label: 'No, go back'}],
-              {cols: 1, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') { Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); } else menu(); },
+              {cols: 2, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') { Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); } else menu(); },
                 onBack: () => { c.destroy(); menu(); }});
           }
         }});
@@ -45,7 +45,7 @@
       for (let i = 0; i < 40; i++) ctx.fillRect((i * 73) % Q.W, (i * 41) % 110, 1, 1);
       const bob = Q.reduced() ? 0 : Math.round(Math.sin(now / 500) * 2);
       Q.draw(ctx, 'mic', 160 - 9, 10 + bob, {scale: 2});
-      Q.draw(ctx, player, 40, 118, {scale: 2, t: now});
+      Q.draw(ctx, player, 8, 128, {scale: 2, t: now});
     },
   };
 
