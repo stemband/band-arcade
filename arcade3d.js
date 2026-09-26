@@ -9,7 +9,8 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | none).
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | none). `dial: true`
+               makes the coin door a round safe door with a combination dial.
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
    Marquee and screen are canvas textures drawn with the bundled fonts; only the front cabinet's
    screen animates (the attract loop).
@@ -60,8 +61,15 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.62, 1.48], [0.62, 1.66]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
+    /* vault: an upright cabinet with a round vault door (bolts, spoked handle) standing on top, a safe door below */
+    vault: {
+      width: 0.94, topper: 'vault', dial: true,
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.84, 0.84], [0.84, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.62, 1.46], [0.62, 1.62], [0, 1.62]],
+      marquee: [[0.62, 1.47], [0.62, 1.61]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.12, y1: 0.56}, start: [0.62, 0.68],
+    },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault'};
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
   /** a game's 3D cabinet settings, every default filled in from its 2D cabinet */
@@ -83,7 +91,7 @@ window.Arcade = window.Arcade || {};
   ['deep', 'floor', 'floor-2', 'floor-3', 'screen', 'ink', 'ink-2', 'text-hi', 'red', 'cab-side', 'cab-face', 'cab-panel', 'cab-metal',
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
    'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink',
-   'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink'].forEach(n => { tok[n] = cssVar(n); });
+   'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -147,6 +155,17 @@ window.Arcade = window.Arcade || {};
       }
       x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
       return;
+    } else if (k.marquee === 'heist') {
+      // a steel plate with rivets, laser-green letters, a red laser underline
+      const gr = x.createLinearGradient(0, 0, 0, H);
+      gr.addColorStop(0, tok['cab-panel']); gr.addColorStop(1, tok.deep);
+      x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.fillStyle = tok['cab-metal'];
+      [[.05, .2], [.95, .2], [.05, .8], [.95, .8]].forEach(([a, b]) => { x.beginPath(); x.arc(W * a, H * b, H * .05, 0, 7); x.fill(); });
+      x.fillStyle = u; x.shadowColor = u; x.shadowBlur = 10; x.fillRect(W * .1, H * .84, W * .8, H * .04);
+      const s = fitText(x, name, '"GN Display", sans-serif', H * .5, W * .8);
+      x.shadowColor = t; x.shadowBlur = 14; x.fillStyle = thi;
+      x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W / 2, H * .48);
     } else if (k.marquee === 'shade') {
       x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
       x.strokeStyle = u; x.lineWidth = H * .16;
@@ -265,6 +284,30 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = tok['white-hi']; x.fillText(l, bx + bw * .45, H * .845);
       });
     },
+    /* Chime Heist: a note on the terminal, its bar lights on a little bell kit, the next code light turns green (2.2 s loop, as 2D) */
+    heist(x, W, H, t) {
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      const i = t == null ? 0 : Math.floor(t / 2.2), p = t == null ? 1 : (t % 2.2) / 2.2, tr = tok[this.trim], thi = tok[this.trim + '-hi'];
+      const NOTES = ['G4', 'C5', 'E4', 'A4', 'F4', 'D5', 'B4'], n = A.music.parseNote(NOTES[i % NOTES.length]);
+      x.fillStyle = tok.screen; x.fillRect(W * .14, H * .05, W * .72, H * .47);
+      x.strokeStyle = tr; x.lineWidth = 2; x.strokeRect(W * .14, H * .05, W * .72, H * .47);
+      const gap = H * .067, top = H * .15;
+      staffLines(x, W, top, gap, W * .19, W * .81);
+      const ny = top + (A.noteY('treble', n) - 56) / 16 * gap, nx = W * .54, gold = p >= .5;
+      noteHead(x, nx, ny, gap, gold ? tok['gold-ink'] : tok.ink);
+      const up = A.noteY('treble', n) > 88;
+      x.beginPath(); x.moveTo(nx + (up ? 1 : -1) * gap * .52, ny); x.lineTo(nx + (up ? 1 : -1) * gap * .52, ny + (up ? -1 : 1) * gap * 3.2); x.stroke();
+      for (let k = 0; k < 6; k++) {
+        const on = k < i % 6 || (k === i % 6 && p >= .5);
+        x.fillStyle = on ? tr : tok['led-off']; x.beginPath(); x.arc(W * (.34 + k * .064), H * .59, H * .025, 0, 7); x.fill();
+      }
+      const L = 'EFGABCD', bw = W / 7.4;
+      [...L].forEach((l, k) => {
+        const lit = l === n.letter && p >= .45, bh = H * (.3 - k * .022);
+        x.fillStyle = lit ? thi : tok['cab-metal']; x.fillRect(W * .04 + k * bw * 1.03, H * .66 + (H * .3 - bh) / 2, bw * .86, bh);
+        x.strokeStyle = tr; x.lineWidth = 1; x.strokeRect(W * .04 + k * bw * 1.03, H * .66 + (H * .3 - bh) / 2, bw * .86, bh);
+      });
+    },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
       x.fillStyle = 'rgba(255,255,255,.04)'; for (let y = 0; y < H; y += 4) x.fillRect(0, y, W, 2);
@@ -342,16 +385,29 @@ window.Arcade = window.Arcade || {};
     const lip = new THREE.Mesh(new THREE.BoxGeometry(W + .04, .05, .02), basic(col(k.trim + '-ink')));
     lip.position.set(0, P.panel[0][1] - .03, P.panel[0][0] + zc + .005); group.add(lip);
 
-    // coin door
+    // coin door (or a round safe door with a combination dial)
     const D = P.door, dh = D.y1 - D.y0;
-    const door = new THREE.Mesh(new THREE.BoxGeometry(W * .38, dh, .02), lambert(col('cab-metal')));
-    door.position.set(0, (D.y0 + D.y1) / 2, D.z + zc + .01); group.add(door);
-    [-1, 1].forEach(s => {
-      const slot = new THREE.Mesh(new THREE.PlaneGeometry(W * .08, dh * .2), basic(col('red')));
-      slot.position.set(s * W * .07, D.y0 + dh * .62, D.z + zc + .021); group.add(detail(slot));
-    });
-    const ret = new THREE.Mesh(new THREE.PlaneGeometry(W * .14, dh * .08), basic(col('deep')));
-    ret.position.set(0, D.y0 + dh * .22, D.z + zc + .021); group.add(detail(ret));
+    if (P.dial) {
+      const r = Math.min(W * .24, dh / 2), cy = (D.y0 + D.y1) / 2, fz = D.z + zc;
+      const face = (geom) => { geom.rotateX(Math.PI / 2); return geom; };
+      const sd = new THREE.Mesh(face(new THREE.CylinderGeometry(r, r, .03, 28)), lambert(col('cab-metal'))); sd.position.set(0, cy, fz + .015); group.add(sd);
+      const dial = new THREE.Mesh(face(new THREE.CylinderGeometry(r * .45, r * .45, .03, 20)), lambert(col('cab-panel'))); dial.position.set(0, cy, fz + .04); group.add(detail(dial));
+      [0, Math.PI / 2].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(r * 1.3, .018, .018), basic(col(k.trim + '-hi'))); sp.rotation.z = a; sp.position.set(0, cy, fz + .06); group.add(detail(sp)); });
+      // laser beams across the body above and below the safe door
+      [[D.y1 + .04, k.trim], [D.y0 - .05, k.trim2]].forEach(([y, c]) => {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(W * .86, .01, .01), basic(col(c + '-hi'))); beam.position.set(0, y, fz + .01); group.add(beam);
+        const glow = new THREE.Mesh(new THREE.PlaneGeometry(W * .9, .06), additive(shared.glow(c), col(c), .5)); glow.position.set(0, y, fz + .012); group.add(glow);
+      });
+    } else {
+      const door = new THREE.Mesh(new THREE.BoxGeometry(W * .38, dh, .02), lambert(col('cab-metal')));
+      door.position.set(0, (D.y0 + D.y1) / 2, D.z + zc + .01); group.add(door);
+      [-1, 1].forEach(s => {
+        const slot = new THREE.Mesh(new THREE.PlaneGeometry(W * .08, dh * .2), basic(col('red')));
+        slot.position.set(s * W * .07, D.y0 + dh * .62, D.z + zc + .021); group.add(detail(slot));
+      });
+      const ret = new THREE.Mesh(new THREE.PlaneGeometry(W * .14, dh * .08), basic(col('deep')));
+      ret.position.set(0, D.y0 + dh * .22, D.z + zc + .021); group.add(detail(ret));
+    }
 
     // toppers: what makes each silhouette different from the front
     const topY = Math.max(...P.points.map(p => p[1])), frontTop = Math.max(...P.points.filter(p => p[1] > topY - .1).map(p => p[0]));
@@ -393,6 +449,21 @@ window.Arcade = window.Arcade || {};
         const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .09, 10), basic(col(k.trim + '-hi')));
         lamp.position.set(sd * (W / 2 + .18), topY + .02, fz - .04); group.add(detail(lamp));
       });
+    } else if (P.topper === 'vault') {
+      // a round vault door standing on the roof: steel disc, neon rim, a ring of bolts, a spoked handle
+      const r = W * .4, cy = topY + r * .66, fz = frontTop - .12 + zc;
+      const face = (geom) => { geom.rotateX(Math.PI / 2); return geom; };
+      const disc = new THREE.Mesh(face(new THREE.CylinderGeometry(r, r, .14, 36)), [lambert(col(k.body)), lambert(col('cab-metal')), lambert(col(k.body))]);
+      disc.position.set(0, cy, fz); disc.userData.pick = true; group.add(disc);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(r, .009, 6, 48), tubeMat); rim.position.set(0, cy, fz + .072); group.add(rim);
+      const rimGlow = new THREE.Mesh(new THREE.TorusGeometry(r, .03, 6, 48), glowMat); rimGlow.position.set(0, cy, fz + .072); group.add(rimGlow);
+      for (let i = 0; i < 10; i++) {
+        const a = Math.PI * 2 * i / 10, b = new THREE.Mesh(new THREE.SphereGeometry(.02, 8, 6), lambert(col('cab-metal')));
+        b.position.set(Math.cos(a) * r * .84, cy + Math.sin(a) * r * .84, fz + .07); group.add(detail(b));
+      }
+      const hub = new THREE.Mesh(face(new THREE.CylinderGeometry(r * .26, r * .26, .04, 20)), lambert(col('cab-panel'))); hub.position.set(0, cy, fz + .09); group.add(detail(hub));
+      [0, Math.PI / 3, -Math.PI / 3].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(r * 1.1, .022, .022), lambert(col('cab-metal'))); sp.rotation.z = a; sp.position.set(0, cy, fz + .1); group.add(detail(sp)); });
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.03, 10, 8), basic(col(k.trim2 + '-hi'))); knob.position.set(0, cy, fz + .12); group.add(detail(knob));
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {
@@ -651,7 +722,7 @@ window.Arcade = window.Arcade || {};
       startLink: start,
       place(cur, instant) {
         const g = ring[cur];
-        start.href = A.playerLink(g.id, '');
+        start.href = A.startLink(g, '');
         start.className = 'start3d ' + A.trimClasses(g);
         start.setAttribute('aria-label', 'Start ' + g.name);
         const target = pos + wrap(cur - pos);

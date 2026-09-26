@@ -5,6 +5,7 @@
    after the first tap or key press, so the AudioContext is created then, never on page load.
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   does nothing when muted or before the first tap
      Arcade.Sfx.event(name)                         a named game event (EVENTS below), with fallbacks
+     Arcade.Sfx.bell(soundingMidi)                  a bell bar's tone at its real pitch (always generated, never a file)
      Arcade.Sfx.playThenGo(name, href)              plays (a sound or an event), waits GO_DELAY ms, then navigates
      Arcade.Sfx.mountControls(el, {ambience})       SOUND (and AMBIENCE) buttons (saved via Arcade.store)
      Arcade.Sfx.allowAmbience(false)                a game page: never play the arcade-room hum here */
@@ -118,7 +119,27 @@ window.Arcade = window.Arcade || {};
     'ninja-slash':    () => { slash(); tone([1320, 1760], 0.02, 0.06, 0.25); },
     'ninja-combo':    () => arp([880, 1109, 1319, 1760], 0.045, 'square', 0.3),
     'belt-earned':    () => { tone(196, 0, 1.1, 0.35, 'sine'); tone(294, 0, 1.1, 0.25, 'sine'); arp([784, 988, 1175, 1568], 0.08, 'square', 0.3); },
+    // Chime Heist
+    'tumbler-click':  () => { tone(2600, 0, 0.018, 0.12, 'square'); tone(1800, 0.02, 0.015, 0.08, 'square'); },     // very short and quiet, under the bell
+    'alarm-buzz':     () => { tone([118, 104], 0, 0.22, 0.28, 'sawtooth'); tone([236, 208], 0, 0.22, 0.12, 'square'); },
+    'caught':         () => [0, 1, 2].forEach(i => { tone(660, i * 0.3, 0.15, 0.22, 'triangle'); tone(880, i * 0.3 + 0.15, 0.15, 0.22, 'triangle'); }),
+    'vault-open':     () => { tone([110, 220], 0, 0.7, 0.3, 'sine'); arp([1047, 1319, 1568, 2093], 0.09, 'triangle', 0.3); },
+    'vault-unlocked': () => arp([659, 880, 1319], 0.06, 'triangle', 0.3),
   };
+
+  /* ---------- bell tones (Chime Heist's bell kit): always generated, so every pitch is exact ----------
+     A glockenspiel bar: a bright attack and a quick decay, with its high, slightly out-of-tune partials. */
+  function bell(midi) {
+    const f = 440 * Math.pow(2, (midi - 69) / 12), t = ctx.currentTime;
+    [[1, 0.55, 1.1], [2.76, 0.2, 0.45], [5.4, 0.1, 0.2], [8.93, 0.05, 0.1]].forEach(([ratio, vol, len]) => {
+      const fr = f * ratio;
+      if (fr > 15000) return;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(fr, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + len + 0.02);
+    });
+  }
   const eventSound = name => EVENTS[name] || (/^select-/.test(name) ? SOUNDS.coin : SOUNDS.blip);
 
   /* ---------- the arcade-room ambience: a low electrical hum and a little room noise ---------- */
@@ -187,6 +208,11 @@ window.Arcade = window.Arcade || {};
       try { eventSound(name)(); return true; } catch (e) { return false; }
     },
     events: Object.keys(EVENTS),
+    /** a bell bar at a SOUNDING midi note (Chime Heist). Respects mute like every sound here. */
+    bell(midi) {
+      if (!ready()) return false;
+      try { bell(midi); return true; } catch (e) { return false; }
+    },
     allowAmbience(on) { ambienceAllowed = !!on; syncAmbience(); },
     /** play a sound, then go to href after GO_DELAY ms (straight away when muted) */
     playThenGo(name, href) {

@@ -20,7 +20,8 @@ shared/               The engine every game uses
   scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
   modes.js            RANDOM NOTES / SCALES picker every game shows on its level screen
   games.js            The list of games on the arcade floor, and how each cabinet looks
-  sfx.js              Sound effects for the arcade floor and Select Player (made in code, no audio files)
+  sfx.js              Sound effects for the arcade floor, Select Player and the mic-free games, and Chime Heist's
+                      bell tones (made in code, no audio files)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
   fonts.css + fonts/  Fonts bundled with the site (no outside font service needed)
@@ -29,10 +30,13 @@ ghost-notes/          Game 1: note reading with fading note names
   levels.js           Level design: counts, time per note, how visible the names are
   game.js             Game logic
 note-storm/           Game 2: speed reading; notes march toward Tempo the robot, play each one to blast it
-note-ninja/           Game 3: note names, no microphone; tap the name of the note on the scroll
-  levels.js           The belts (White … Black): notes, time, letter guides, read-ahead. Rename or reorder freely
   levels.js           Level design: counts, march speed, notes on screen at once, names on or off
   game.js             Game logic (the staff is drawn once; only the notes move)
+note-ninja/           Game 3: note names, no microphone; tap the name of the note on the scroll
+  levels.js           The belts (White … Black): notes, time, letter guides, read-ahead. Rename or reorder freely
+chime-heist/          Game 4: mallet keyboard for percussion, no microphone; strike the bar on an on-screen bell kit
+  levels.js           The vaults (Lemonade Stand Lockbox … The Golden Vault): notes, time, labels, read-ahead, alarm
+  game.js             Game logic: the bell kit, the vault code, the alarm meter
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.
@@ -56,9 +60,22 @@ A note-reading game that **doesn't use the microphone**, so students can play it
 - Random notes and every scale work like the other games; progress is saved under `note-ninja` and `note-ninja:scale-…`.
 - In `?demo` all belts are unlocked and the answer shows in small text under the buttons.
 
+## Chime Heist
+
+A **mallet keyboard** game for percussionists, and it **doesn't use the microphone**. A note of the vault code appears on the security terminal; the student strikes the matching bar on the chime lock, an on-screen bell kit (Orchestral Bells, written G3–C6). Every bar rings at its real pitch, two octaves above written, like real bells.
+
+- **Always the Bell Kit.** START on the arcade floor goes straight into the game (no Select Player), and it never changes the instrument saved for the other games.
+- **The bell kit:** natural bars on the lower row, sharps/flats raised above in groups of 2 and 3, bars shorter as the pitch goes up. Tap, click or use a pen; two fingers can strike at once. On a Chromebook: **← →** move the mallet, **↑ ↓** switch rows, **Enter** or **Space** strikes. On a phone held upright it asks you to turn it sideways.
+- **Modes:** FIRST FIVE (B♭ C D E♭ F), FULL RANGE (any bar, G3–C6), SCALES (Concert B♭, E♭, F, A♭, up then down with the key signature) and CHROMATIC (up in sharps, down in flats). The last choice is remembered.
+- **Rules:** only the exact bar counts, octave included ("Right note, wrong octave!" is a mistake). In scales the key signature counts: a B in F major is the B♭ bar. A wrong bar still rings, sets off the alarm, and the note stays. Running out of time: a guard's flashlight sweeps by, the right bar lights up, and the code moves on.
+- **Alarm meter** instead of lives: each mistake or miss fills one segment. Full = "CAUGHT! The alarm went off." and the vault isn't cleared. The **silent streak** multiplies points (×2 at 5 in a row, up to ×4).
+- **Vaults** (levels) are in `chime-heist/levels.js`, one line each: notes, seconds per note, bar labels (`all`, `faded`, `c` for C bars only, `none`), notes on the terminal at once (read ahead from the Museum Diamond Vault on), alarm segments, and the treasure behind the door. Stars: 3 = no mistakes and no misses, 2 = 90%, 1 = 80% without setting off the alarm (unlocks the next vault).
+- Progress: `chime-heist` (First five), `chime-heist:full`, `chime-heist:scale-Bb` … `chime-heist:scale-Ab`, `chime-heist:chromatic`, all under the `bells` player. The arcade floor's hi-score counts First five and shows "Other modes: n of 6 started".
+- In `?demo` all vaults are unlocked and the right bar has a faint dashed outline.
+
 ## Sounds
 
-`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player and Note Ninja only; games that listen to the microphone never load it.
+`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja and Chime Heist only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
 
 | Event | When | Sound (falls back to) |
 |---|---|---|
@@ -73,6 +90,13 @@ A note-reading game that **doesn't use the microphone**, so students can play it
 | `ninja-slash` | Note Ninja: a correct answer | a swish and a chirp |
 | `ninja-combo` | Note Ninja: every 5 in a row | a fast run up |
 | `belt-earned` | Note Ninja: a new belt unlocked | a gong and a run |
+| `tumbler-click` | Chime Heist: a correct bar (quiet, under the bell) | two tiny clicks (blip) |
+| `alarm-buzz` | Chime Heist: a wrong bar or a timeout | a short two-tone buzz (blip) |
+| `caught` | Chime Heist: the alarm meter is full | a siren wail (blip) |
+| `vault-open` | Chime Heist: a vault is cracked and the door swings open | a heavy clunk and a shimmer (blip) |
+| `vault-unlocked` | Chime Heist: a new vault becomes available | a rising chime (blip) |
+
+Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (bright attack, quick decay) at the exact pitch, so every bar is in tune. It is never replaced by an audio file, and it is silent when SOUND is off.
 
 Any event without its own sound falls back to the blip (`select-…` events fall back to the coin). New events go in `EVENTS` in `shared/sfx.js`.
 
@@ -132,6 +156,7 @@ Every later change you save to the repository goes live at the same link within 
 3. At the top of `game.js`, start with `const inst = Arcade.requireInstrument('echo-notes'); if (!inst) return;` and `Arcade.mountTopbar(inst, '', 'echo-notes');`. That sends students without an instrument to Select Player, and wires up the top bar.
 4. Add an entry to `shared/games.js` (see the comment at the top of that file).
 5. Save progress with `Arcade.store.setLevel(gameId, instrumentId, level, {stars, best})`, which lets the arcade floor show the hi-score automatically.
+6. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress.
 
 ## Adding a cabinet
 
@@ -143,22 +168,22 @@ To give it a look, add a `cabinet` field to its entry in `shared/games.js` and m
 cabinet: {shape: 'storm', trim: 'green', trim2: 'pink', marquee: 'shade', kicker: 'New!', screen: 'insert'},
 ```
 
-- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches)
-- `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`
-- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`
-- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'insert'`
+- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams)
+- `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`
+- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`
+- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'insert'`
 
 For a brand-new look:
 
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
-- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
+- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
 - **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
 
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player and Note Ninja (which doesn't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja and Chime Heist (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.

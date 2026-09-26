@@ -35,7 +35,7 @@
   function make2D() {
     aisle.classList.remove('is-3d', 'loading-3d');
     aisle.innerHTML = ring.map((g, r) =>
-      `<div class="slot" data-r="${r}">${A.cabinetHTML(g, {href: A.playerLink(g.id, '')})}</div>`).join('');
+      `<div class="slot" data-r="${r}">${A.cabinetHTML(g, {href: A.startLink(g, '')})}</div>`).join('');
     const slots = [...aisle.querySelectorAll('.slot')];
     return {
       kind: '2d',
@@ -82,14 +82,16 @@
     $('infoSkill').textContent = g.skill || '';
     $('infoName').textContent = g.name;
     $('infoBlurb').textContent = g.blurb || '';
-    const inst = A.currentInstrument(), hs = $('hiscore');
+    // a game with its own instrument (games.js `player`, e.g. Chime Heist's bell kit) always shows its score
+    const inst = g.player ? A.getInstrument(g.player) : A.currentInstrument(), hs = $('hiscore');
     hs.hidden = !(inst && g.maxStars);
     if (!hs.hidden) {
       hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, inst.id)} / ${g.maxStars} ` +
-        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span> <span class="who">(${inst.shortName})</span>`;
-      // SCALES mode saves each scale separately; just say how many have been tried
-      const started = A.Scales ? A.Scales.LIST.filter(sc => A.store.hasProgress(A.Scales.progressKey(g.id, sc.id), inst.id)).length : 0;
-      if (started) hs.innerHTML += `<span class="scales-note">Scales: ${started} of ${A.Scales.LIST.length} started</span>`;
+        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span> <span class="who">(${g.playerName || inst.shortName})</span>`;
+      // the other modes save separately; just say how many have been tried
+      const keys = g.modeKeys ? g.modeKeys.map(k => g.id + ':' + k) : A.Scales ? A.Scales.LIST.map(sc => A.Scales.progressKey(g.id, sc.id)) : [];
+      const started = keys.filter(k => A.store.hasProgress(k, inst.id)).length;
+      if (started) hs.innerHTML += `<span class="scales-note">${g.modeKeys ? 'Other modes' : 'Scales'}: ${started} of ${keys.length} started</span>`;
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));
     try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }

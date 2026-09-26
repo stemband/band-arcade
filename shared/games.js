@@ -15,6 +15,9 @@
        marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo'  (styles in shared/cabinets.css)
        kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'insert'  (shared/cabinets.js, SCREENS)
+     player     optional: a game with its own fixed instrument group (e.g. 'bells'): START skips Select Player,
+                the saved instrument is left alone, and progress is saved under that group. playerName: its label.
+     modeKeys   optional: a game's own extra progress keys ('<id>:<key>') for the home page's "n started" note
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
@@ -67,5 +70,17 @@ window.Arcade.GAMES = [
     color: 'pink',
     cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
     cabinet3d: {profile: 'dojo', body: 'cab-side'},
+  },
+  {
+    id: 'chime-heist',
+    name: 'Chime Heist',
+    skill: 'Mallet keyboard',
+    blurb: 'Crack the vault codes: read each note and strike its bar on the chime lock. No mic needed!',
+    maxStars: 24,
+    color: 'cyan',
+    player: 'bells', playerName: 'Bell Kit',        // always the bell kit: START skips Select Player
+    modeKeys: ['full', 'scale-Bb', 'scale-Eb', 'scale-F', 'scale-Ab', 'chromatic'],   // its other modes, for the home page
+    cabinet: {shape: 'vault', trim: 'green', trim2: 'red', marquee: 'heist', screen: 'heist'},
+    cabinet3d: {profile: 'vault', body: 'cab-side'},
   },
 ];

@@ -135,6 +135,8 @@ window.Arcade = window.Arcade || {};
   };
   /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../') */
   A.playerLink = (gameId, root = '../') => A.linkTo(root + 'select-player/index.html', {game: gameId});
+  /** where a game's START goes: Select Player, or straight into a game with its own fixed instrument (games.js `player`) */
+  A.startLink = (g, root = '../') => g.player ? A.linkTo(root + g.id + '/index.html') : A.playerLink(g.id, root);
   /** the arcade floor, turned to this game's cabinet */
   A.homeLink = (gameId, root = '../') => A.linkTo(root + 'index.html') + (gameId ? '#' + gameId : '');
 
@@ -148,13 +150,15 @@ window.Arcade = window.Arcade || {};
 
   /** Standard game top bar: "← Arcade" back to the arcade floor on the left, instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
-  A.mountTopbar = function (inst, extraRightHTML = '', gameId = '') {
+  /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player */
+  A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed} = {}) {
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     el.innerHTML =
       `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +
-      `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">` +
-      `<span class="sr">Change instrument. Playing as </span>${inst ? inst.shortName : 'Choose instrument'}</a></div>`;
+      (fixed ? `<span class="chip"><span class="sr">Playing </span>${fixed}</span></div>`
+             : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">` +
+               `<span class="sr">Change instrument. Playing as </span>${inst ? inst.shortName : 'Choose instrument'}</a></div>`);
   };
 })(window.Arcade);

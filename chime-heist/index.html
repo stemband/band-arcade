@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chime Heist</title>
+<meta name="description" content="Crack the vault codes: read each note and strike its bar on the chime lock.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="heist">
+<!-- the room: a laser grid in the dark, a guard's flashlight, the alarm flash -->
+<div class="heist-bg" aria-hidden="true">
+  <div class="lasers" id="lasers"></div>
+  <div class="flashlight" id="flashlight"></div>
+  <div class="alarm-flash" id="alarmFlash"></div>
+</div>
+
+<!-- phones held upright: the bell kit needs the long side -->
+<div class="rotate" role="alert">
+  <svg viewBox="0 0 120 90" aria-hidden="true"><rect class="ph" x="42" y="8" width="36" height="64" rx="7"/><path class="arr" d="M92 30a30 30 0 0 1-8 36M84 66l-2-9M84 66l9-2"/></svg>
+  <h2>Turn your device sideways</h2>
+  <p>The chime lock needs the whole width of the screen. Rotate to landscape to crack the vault!</p>
+</div>
+
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- VAULT SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Chime <span>Heist</span></h1>
+      <p class="muted">You're a master safecracker, and every vault is locked with a musical chime keypad. Read each note of the code on the terminal and strike its bar on the bell kit. Stay quiet: wrong bars set off the alarm!</p>
+    </div>
+    <div id="modePick"></div>
+    <div class="stage terminal-card fivecard" id="hubCard">
+      <div class="cap"><span id="hubCap"></span><span id="hubConcert"></span></div>
+      <div id="hubStaff"></div>
+    </div>
+    <p class="eyebrow" id="levelsTitle">Vaults</p>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: all vaults unlocked, and the right bar glows faintly. Keyboard: ← → move the mallet, ↑ ↓ switch rows, Enter or Space strikes.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div class="vault-name"><small>Vault <span id="hudNum">1</span></small><b id="hudVault">Lemonade Stand Lockbox</b></div>
+      <div class="c"><small>Code</small><b id="hudCount">1 / 8</b></div>
+      <div class="c"><small>Silent streak</small><b id="hudStreak" aria-live="polite">0</b></div>
+      <div class="c"><small>Alarm</small><b class="alarm-meter" id="alarmMeter" role="meter" aria-label="Alarm"></b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+
+    <div class="terminal" id="terminal">
+      <div class="term-screen" id="termScreen">
+        <div id="playStaff"></div>
+        <div class="ptr" id="ptr" aria-hidden="true"></div>
+      </div>
+      <div class="term-foot">
+        <div class="code-lights" id="codeLights" aria-hidden="true"></div>
+        <div class="timer" id="timer"><i></i></div>
+      </div>
+      <div class="bzzt" id="bzzt" aria-hidden="true">BZZT!</div>
+    </div>
+    <p class="prompt" id="prompt" aria-live="polite">Strike the bar for the note on the terminal</p>
+
+    <div class="lock" id="lock">
+      <div class="kit" id="kit" role="group" aria-label="Bell kit: ← → move the mallet, ↑ ↓ switch rows, Enter or Space strikes"></div>
+    </div>
+    <div class="play-foot">
+      <p class="demo-ans" id="demoAns" hidden></p>
+      <button class="btn btn-ghost btn-small" id="quitPlay">Leave vault</button>
+    </div>
+  </section>
+</div>
+
+<!-- THE VAULT DOOR (cleared) -->
+<div class="vault-open" id="vaultOpen" hidden aria-hidden="true">
+  <div class="vault-room">
+    <div class="treasure" id="treasure"></div>
+    <div class="vault-door"><svg viewBox="0 0 200 200"><circle class="vd-rim" cx="100" cy="100" r="96"/><circle class="vd-face" cx="100" cy="100" r="84"/>
+      <g class="vd-bolts"><circle cx="100" cy="24" r="6"/><circle cx="176" cy="100" r="6"/><circle cx="100" cy="176" r="6"/><circle cx="24" cy="100" r="6"/></g>
+      <circle class="vd-dial" cx="100" cy="100" r="30"/><path class="vd-spokes" d="M100 70V130M70 100H130M79 79L121 121M121 79L79 121"/></svg></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="res-treasure" id="resTreasure"></div>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Vault cracked</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Code</small><b id="resHits">0/0</b></div>
+      <div><small>Mistakes</small><b id="resWrong">0</b></div>
+      <div><small>Missed</small><b id="resMissed">0</b></div>
+      <div><small>Best streak</small><b id="resStreak">0</b></div>
+    </div>
+    <p class="res-score">Score <b id="resScore">0</b></p>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next vault</button>
+      <button class="btn btn-ghost" id="resRetry">Try again</button>
+      <button class="btn btn-ghost" id="resLevels">Vaults</button>
+    </div>
+  </div>
+</div>
+
+<!-- No microphone in this game: no pitch.js, no mic-gate.js. The bells and effects come from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/modes.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
