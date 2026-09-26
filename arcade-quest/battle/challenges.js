@@ -30,6 +30,17 @@
   A.Pitch.onFrame((r, level, now) => { if (onFrame) onFrame(r, level, now); });
   if (A.Pitch.onAttack) A.Pitch.onAttack(a => { if (onAttack) onAttack(a); });
 
+  /** the microphone is on (or ?demo stands in): true, or false if the student tapped Cancel on the mic prompt */
+  Q.micReady = () => new Promise(res => {
+    if (A.Pitch.active || A.Pitch.demoReady) return res(true);
+    A.requireMic(() => res(true));
+    const iv = setInterval(() => {
+      const gate = document.getElementById('micGateTitle'), box = gate && gate.closest('.overlay');
+      if (A.Pitch.active || A.Pitch.demoReady) clearInterval(iv);
+      else if (box && box.hidden) { clearInterval(iv); res(false); }
+    }, 250);
+  });
+
   /* ---------- which challenge ---------- */
   const hasFingering = () => !!(A.Masher && window.MASHER_FINGERINGS && window.MASHER_FINGERINGS[member.id]);
   function resolve(type) {
@@ -45,7 +56,8 @@
   function notes(enemy, count) {
     const pool = enemy.notes || 'first5';
     A.ModePicker.useRange({notes: pool, member});
-    return A.buildSequence({member, group: inst, notes: pool, order: 'random', level: 2, count, pool: 5});
+    const seq = A.buildSequence({member, group: inst, notes: pool, order: enemy.order || 'random', level: 2, count, pool: 5});
+    return Object.assign(seq, {items: seq.items.slice(0, count)});      // Scale Order gives the whole cycle: keep `count`
   }
   function happyNote(enemy) {
     A.Pitch.setRange(null);
@@ -103,9 +115,9 @@
   }
 
   /* ---------- PLAY: 1–4 notes on the staff ---------- */
-  function play(enemy, count = enemy.count || 3, secs = enemy.time || 9) {
+  function play(enemy, count = enemy.count || 3, secs = enemy.time || 9, title) {
     const seq = notes(enemy, count), items = seq.items;
-    const p = panel(Q.text('playIntro'), `<div class="q-staff" id="qStaff">${staff(seq, items, 0)}</div>`);
+    const p = panel(title || Q.text('playIntro'), `<div class="q-staff" id="qStaff">${staff(seq, items, 0)}</div>`);
     let i = 0, correct = 0, firstTry = true;
     const mark = () => items.forEach((_, k) => { const g = p.querySelector('#qn' + k); if (g) g.setAttribute('class', k < i ? 'q-done' : k === i ? 'q-cur' : ''); });
     mark(); say(p, `${items[0].label}…`);
@@ -277,5 +289,11 @@
       return play(enemy);
     },
     uses: t => ['play', 'longtone', 'articulate'].includes(resolve(t)),     // does this challenge use the mic?
+    /** the B♭ Blast (Episode 1's song, from the Butler): the concert B♭ scale. learn: the whole scale bottom to top
+        (the Snare Drum: 8 clean strokes); in battle: 4 scale notes in random order (snare: 6 strokes) */
+    blast(learn) {
+      if (unpitched) return articulate({taps: learn ? 8 : 6, time: learn ? 16 : 9}, {title: learn ? Q.text('blastDrum') : undefined});
+      return play({notes: 'Bb', order: learn ? 'order' : 'random', count: learn ? 8 : 4, time: learn ? 40 : 12}, undefined, undefined, learn ? Q.text('blastLearn') : Q.text('blastPlay'));
+    },
   };
 })(window.Arcade);

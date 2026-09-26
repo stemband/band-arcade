@@ -124,6 +124,17 @@ window.Arcade = window.Arcade || {};
     'quest-fade': {file: 'quest-fade', vol: .7, mic: true, screen: 'arcade-quest', gen: [[523, 0, .12, .25, 'triangle'], [392, .12, .12, .25, 'triangle'], [262, .24, .3, .25, 'triangle']], when: 'Arcade Quest: the enemy fades away grumbling (its HP ran out).', len: '0.5–1 s'},
     'quest-levelup': {file: 'quest-levelup', vol: .8, mic: true, screen: 'arcade-quest', gen: 'star-earned', when: 'Arcade Quest: LEVEL UP after a battle.', len: '0.8–1.5 s'},
     'quest-item': {file: 'quest-item', vol: .6, mic: false, screen: 'arcade-quest', gen: 'skin-equip', when: 'Arcade Quest: using an item.', len: 'under 0.5 s'},
+    // Arcade Quest music (the MUSIC slider): files only, no built-in version. Each loops; it plays while exploring,
+    // in menus and during dodges, and stops while the microphone listens.
+    'quest-title': {file: 'quest-title', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: title screen music. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-foyer': {file: 'quest-foyer', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: Ghost Notes Manor, the Foyer (the safe hub) and the Practice Hall. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-manor': {file: 'quest-manor', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: exploring Ghost Notes Manor (every room but the Foyer). Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-miniboss': {file: 'quest-miniboss', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the mini-boss battle (The Phantom Fermata), in menus and dodging; stops while listening. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-step': {file: 'quest-step', vol: .12, mic: false, screen: 'arcade-quest', gen: [[140, 0, .025, .08, 'triangle']], when: 'Arcade Quest: a footstep while exploring (every other step, very quiet).', len: 'under 0.08 s'},
+    'quest-door': {file: 'quest-door', vol: .55, mic: false, screen: 'arcade-quest', gen: [[196, 0, .12, .2, 'square'], [147, .1, .16, .2, 'square']], when: 'Arcade Quest: going through a door to another room (or a locked door rattling).', len: 'under 0.5 s'},
+    'quest-save': {file: 'quest-save', vol: .7, mic: false, screen: 'arcade-quest', gen: 'star-earned', when: 'Arcade Quest: saving at the Save Jukebox.', len: '0.5–1.5 s'},
+    'quest-encounter': {file: 'quest-encounter', vol: .7, mic: false, screen: 'arcade-quest', gen: [[523, 0, .06, .25, 'square'], [659, .06, .06, .25, 'square'], [784, .12, .06, .25, 'square'], [1047, .18, .14, .25, 'square']], when: 'Arcade Quest: you bump into a ghost and a battle starts.', len: '0.3–0.8 s'},
+    'quest-tokens': {file: 'quest-tokens', vol: .6, mic: false, screen: 'arcade-quest', gen: 'select-default', when: 'Arcade Quest: stars turned into Arcade Tokens at the Token Booth, or buying at the shop.', len: 'under 1 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */

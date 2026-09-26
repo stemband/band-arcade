@@ -26,6 +26,8 @@ window.QUEST_TEXT = {
   miss:            ['The notes didn\'t land this time. Try again next turn!', 'Not quite! You\'ll get it next time.'],
   wrongNote:       'That\'s {note}. Look for the one on the staff.',
   calmUp:          '{name}\'s CALM goes up!',
+  tooCalm:         '{name} is too calm to fade away. HARMONIZE to make a friend, or PLAY again.',
+  almostCalm:      '{name} is getting calm, so it won\'t fade away. Keep playing, then HARMONIZE!',
   calmFull:        '{name} is totally CALM. You can HARMONIZE now!',
   listenCalm:      '{name} likes that you listened. CALM goes up!',
 
@@ -44,11 +46,21 @@ window.QUEST_TEXT = {
   befriended:      '{name} joined your band!',
   faded:           '{name} fades away grumbling.',
   rewards:         'You earned {n} XP and {tokens} Arcade Tokens!',
+  breath:          'You catch your breath: +{n} HP.',
   gotItem:         'You found a {item}!',
   levelUp:         'LEVEL UP! You\'re level {n}. Max HP up!',
 
   outOfBreath:     'You\'re out of breath! Time to rest up and try again.',
   outOfBreath2:    'No worries: nothing is lost. Your HP is back to full.',
 
+  blastLearn:      'The B♭ Blast: play the concert B♭ scale, bottom to top!',
+  blastPlay:       'B♭ BLAST! Play these scale notes!',
+  blastDrum:       'The B♭ Blast: 8 clean, separate strokes!',
+  blast:           'B♭ BLAST',                     blastSub: 'Your B♭ scale: hits harder',
+  playWhich:       'Which attack?',
+  boosted:         'The Tuning Slide makes it ring! ×{n} power!',
+  phase:           'Phase {n}: {what}',
+  itemBoost:       'Your next PLAY will hit harder!',
+  bought:          'You bought a {item}!',
   micHint:         'Tap PLAY to use your instrument. The microphone only listens while you play.',
 };

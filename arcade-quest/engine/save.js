@@ -1,18 +1,28 @@
 /* ARCADE QUEST ENGINE: the save slot and the settings, both in Arcade.store.gameData('arcade-quest') on this device.
-   SAVE FORMAT (version 1; bump SAVE_VERSION and add a step to upgrade() whenever the shape changes):
-     {v: 1, level, xp, hp, maxHp, tokens, items: {itemId: count}, roster: [enemyId…] (befriended), battles: {won, befriended, faded}}
+   SAVE FORMAT (version 2; bump SAVE_VERSION and add a step to upgrade() whenever the shape changes):
+     {v: 2, level, xp, hp, maxHp, tokens, items: {itemId: count}, roster: [enemyId…] (befriended), battles: {won, befriended, faded},
+      world: {map, x, y, dir} (where you last saved at a Save Jukebox; null = never),
+      flags: {name: true} (story flags: met-mezzo, songBb, reginaldAwake, atticOpen…),
+      done: {'<room>:<ghost key>': 'befriend' | 'fade'} (manor ghosts already helped: they don't come back),
+      converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>')}
+   Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
    SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool, tone: 0–3 (skin tone)}.
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
    Q.settings.open() shows the SETTINGS panel. */
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 1;
+  const SAVE_VERSION = 2;
   const data = () => A.store.gameData(GAME);
   const write = () => A.store.saveGameData(GAME);
-  const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0}});
-  /** older saves -> the current version (nothing to do yet: version 1 is the first) */
-  function upgrade(s) { if (!s || typeof s !== 'object' || !s.v) return fresh(); return s; }
+  const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
+    world: null, flags: {}, done: {}, converted: {}});
+  /** older saves -> the current version, one step at a time */
+  function upgrade(s) {
+    if (!s || typeof s !== 'object' || !s.v) return fresh();
+    if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
+    return s;
+  }
 
   Q.save = {
     VERSION: SAVE_VERSION,
@@ -21,6 +31,10 @@
     reset() { data().save = fresh(); write(); return data().save; },
     xpToNext: level => 20 + (level - 1) * 15,
     maxHpAt: level => 20 + (level - 1) * 4,
+    flag: name => !!(Q.save.get().flags || {})[name],
+    setFlag(name, on = true) { const s = Q.save.get(); s.flags = s.flags || {}; if (on) s.flags[name] = true; else delete s.flags[name]; write(); },
+    /** manor ghosts helped (befriended or faded), outside the Practice Hall */
+    helped: () => Object.keys(Q.save.get().done || {}).length,
   };
 
   const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false, tone: 1};

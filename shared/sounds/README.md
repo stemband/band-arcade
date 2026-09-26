@@ -220,7 +220,9 @@ plays before GO (the race waits for it to end), and `pit-in` plays during the pi
 ### Arcade Quest
 
 The microphone listens only while a student plays a challenge (PLAY, a long tone, HARMONIZE…). Menus, text and
-dodging are quiet times for it, so these sounds play freely there; the battle music stops while it listens.
+dodging are quiet times for it, so these sounds play freely there; the music stops while it listens. The music
+(`quest-title`, `quest-foyer`, `quest-manor`, `quest-battle`, `quest-miniboss`) has no built-in version: until you
+upload a file, that part of the game is simply quiet.
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
@@ -235,3 +237,12 @@ dodging are quiet times for it, so these sounds play freely there; the battle mu
 | `quest-fade` | `quest-fade.m4a` or `quest-fade.mp3` | Arcade Quest: the enemy fades away grumbling (its HP ran out). | 0.5–1 s |
 | `quest-levelup` | `quest-levelup.m4a` or `quest-levelup.mp3` | Arcade Quest: LEVEL UP after a battle. | 0.8–1.5 s |
 | `quest-item` | `quest-item.m4a` or `quest-item.mp3` | Arcade Quest: using an item. | under 0.5 s |
+| `quest-title` | `quest-title.m4a` or `quest-title.mp3` | Arcade Quest: title screen music. Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-foyer` | `quest-foyer.m4a` or `quest-foyer.mp3` | Arcade Quest: Ghost Notes Manor, the Foyer (the safe hub) and the Practice Hall. Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-manor` | `quest-manor.m4a` or `quest-manor.mp3` | Arcade Quest: exploring Ghost Notes Manor (every room but the Foyer). Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-miniboss` | `quest-miniboss.m4a` or `quest-miniboss.mp3` | Arcade Quest: the mini-boss battle (The Phantom Fermata), in menus and dodging; stops while listening. Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-step` | `quest-step.m4a` or `quest-step.mp3` | Arcade Quest: a footstep while exploring (every other step, very quiet). | under 0.08 s |
+| `quest-door` | `quest-door.m4a` or `quest-door.mp3` | Arcade Quest: going through a door to another room (or a locked door rattling). | under 0.5 s |
+| `quest-save` | `quest-save.m4a` or `quest-save.mp3` | Arcade Quest: saving at the Save Jukebox. | 0.5–1.5 s |
+| `quest-encounter` | `quest-encounter.m4a` or `quest-encounter.mp3` | Arcade Quest: you bump into a ghost and a battle starts. | 0.3–0.8 s |
+| `quest-tokens` | `quest-tokens.m4a` or `quest-tokens.mp3` | Arcade Quest: stars turned into Arcade Tokens at the Token Booth, or buying at the shop. | under 1 s |

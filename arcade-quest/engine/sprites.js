@@ -1,9 +1,12 @@
 /* ARCADE QUEST ENGINE: sprites. The pixel maps live in arcade-quest/sprites.js (window.QUEST_ART).
-   Q.draw(ctx, id, x, y, {frame, t, scale, alpha, anim})   draw a sprite (top-left at x, y, in game pixels).
+   Q.draw(ctx, id, x, y, {frame, t, scale, alpha, anim, flip})   draw a sprite (top-left at x, y, in game pixels;
+       flip: mirrored left to right).
        frame: a fixed frame; otherwise it animates through `anim` (default: every idle frame but the last 'happy' one
        when there are 3) at the sprite's fps, using t (ms).
    Q.spriteEl(id, {frame, scale, label})                    the sprite as a crisp <canvas> element (text-box portraits)
-   Q.playerId(member, opts)                                 builds 'player-<member id>' from BODY + INSTRUMENTS
+   Q.playerId(member, opts)                                 builds 'player-<member id>' from BODY + INSTRUMENTS, and
+       'player-<member id>-back' (the back view, walking away: hair instead of a face, the instrument hidden)
+   Q.addSprite(id, def)                                     add or replace a sprite at run time
    PNG HOOK: the first time a sprite is drawn, arcade-quest/art/<id>.png is tried. If it loads, it is used instead
    (frames side by side, each the sprite's w × h). A missing file is remembered for this tab, so it is asked once. */
 (function (A) {
@@ -12,6 +15,7 @@
   const defs = Object.assign({}, ART.SPRITES);
   const frames = {};                                            // id -> [canvas per frame]
   Q.spriteDef = id => defs[id];
+  Q.addSprite = (id, def) => { defs[id] = def; delete frames[id]; };
 
   function render(rowsList, palette, w, h, layers) {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -63,6 +67,7 @@
     ctx.save();
     if (opts.alpha != null) ctx.globalAlpha = opts.alpha;
     ctx.imageSmoothingEnabled = false;
+    if (opts.flip) { ctx.translate(Math.round(x) * 2 + d.w * s, 0); ctx.scale(-1, 1); }
     if (img) ctx.drawImage(img, f * d.w, 0, d.w, d.h, Math.round(x), Math.round(y), d.w * s, d.h * s);
     else { const c = framesOf(id)[f] || framesOf(id)[0]; if (c) ctx.drawImage(c, Math.round(x), Math.round(y), d.w * s, d.h * s); }
     ctx.restore();
@@ -90,6 +95,11 @@
     const layer = (dy) => [{rows: ART.BODY, palette: pal, at: [6, 1 + dy]}].concat(ins ? [{rows: ins.rows, palette: ART.INSTRUMENT_PALETTE, at: [ins.at[0], ins.at[1] + dy]}] : []);
     defs[id] = {w: 28, h: 25, fps: 2, layers: [layer(0), layer(1)]};
     delete frames[id];
+    // the back view: the head is all hair, no instrument in front
+    const back = ART.BODY.map((row, y) => (y < 10 ? row.replace(/[sem]/g, 'h') : row));
+    const bl = dy => [{rows: back, palette: pal, at: [6, 1 + dy]}];
+    defs[id + '-back'] = {w: 28, h: 25, fps: 2, layers: [bl(0), bl(1)]};
+    delete frames[id + '-back'];
     return id;
   };
 })(window.Arcade);

@@ -166,3 +166,31 @@ body.q-touch .q-gear{display:block}
   .q-bar i{transition:none}
 }
 @keyframes q-fade{to{opacity:0}}
+
+/* ---------- the overworld (Ghost Notes Manor) ---------- */
+.q-whud{left:calc(var(--px) * 4);top:calc(var(--px) * 3);margin:0;padding:calc(var(--px) * 1) calc(var(--px) * 4);background:var(--q-black);
+  border:calc(var(--px) * 1) solid var(--q-grey-d);font-size:calc(var(--px) * 6.5);color:var(--q-white);display:flex;gap:calc(var(--px) * 5);align-items:center;z-index:2}
+.q-whud b{color:var(--q-gold)}
+.q-coin{display:inline-block;width:calc(var(--px) * 5);height:calc(var(--px) * 5);margin-right:calc(var(--px) * 1.5);vertical-align:-8%;background:var(--q-gold);
+  box-shadow:inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--q-brass-d);border-radius:30%}
+.q-area{left:50%;top:calc(var(--px) * 16);transform:translateX(-50%);margin:0;padding:calc(var(--px) * 2) calc(var(--px) * 8);background:var(--q-black);
+  border:calc(var(--px) * 1.5) solid var(--q-white);color:var(--q-gold);font-weight:700;font-size:calc(var(--px) * 9);white-space:nowrap;opacity:0;transition:opacity .4s;z-index:2}
+.q-area.on{opacity:1}
+.q-menu-btn{right:calc(var(--px) * 4);top:calc(var(--px) * 3);display:none;min-height:calc(var(--px) * 12);padding:0 calc(var(--px) * 5);background:var(--q-black);color:var(--q-white);
+  border:calc(var(--px) * 1) solid var(--q-grey);font-size:calc(var(--px) * 6.5);cursor:pointer;z-index:2}
+body.q-touch .q-menu-btn{display:block}
+.q-wpanel{width:calc(var(--px) * 280);font-size:calc(var(--px) * 7)}
+.q-wpanel p{margin:0 0 calc(var(--px) * 2);color:var(--q-white)}
+.q-wpanel .q-small{font-size:calc(var(--px) * 5.5);color:var(--text-lo)}
+.q-wpanel .q-good{color:var(--q-green)}.q-wpanel .q-bad{color:var(--q-orange)}
+.q-pmenu{margin-top:calc(var(--px) * 3)}
+.q-pmenu .q-btn{min-height:calc(var(--px) * 15);font-size:calc(var(--px) * 7)}
+.q-shop .q-pmenu .q-btn{min-height:calc(var(--px) * 20);font-size:calc(var(--px) * 6.5)}
+.q-shop .q-pmenu .q-btn small{font-size:calc(var(--px) * 5)}
+.q-ask{width:calc(var(--px) * 200)}
+.q-stars{width:100%;border-collapse:collapse;margin-bottom:calc(var(--px) * 3);font-size:calc(var(--px) * 6.5)}
+.q-stars th{color:var(--q-gold);text-align:left;font-weight:700}
+.q-stars td,.q-stars th{padding:calc(var(--px) * .5) calc(var(--px) * 2);border-bottom:calc(var(--px) * .5) solid var(--q-grey-d)}
+.q-stars td+td,.q-stars th+th{text-align:right}
+.q-ep{margin:0;color:var(--q-pink);font-size:calc(var(--px) * 8);text-align:center}
+@media (prefers-reduced-motion:reduce){.q-area{transition:none}}
