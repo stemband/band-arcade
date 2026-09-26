@@ -118,7 +118,10 @@
   /* ---------- a showtime ---------- */
   let G = null, raf = 0, lastT = 0, lastAttack = 0, heldSince = 0, W = 0, H = 0;
   const arena = $('arena');
-  function measure() { W = arena.clientWidth; H = arena.clientHeight; }
+  function measure() {
+    W = arena.clientWidth; H = arena.clientHeight;
+    panelSide = $('tpanel').getBoundingClientRect().left >= arena.getBoundingClientRect().right - 1;   // beside the arena, or below it
+  }
   addEventListener('resize', () => { measure(); if (G) G.bots.forEach(place); });
 
   function startShow(lv) {
@@ -137,10 +140,12 @@
     G = {lv, L, extra, key: progressKey(), wasOpen: extraEarned(), queue, bots: [], sig: seq && seq.sig, fit: seq && seq.fit, name: seq ? seq.name : null,
       total: L.bots + (boss ? 1 : 0), rebooted: 0, lights: RULES.spotlights, score: 0, spawnAt: 0, over: false, band: [], nextId: 0,
       bossItems: boss ? items.slice(L.bots) : [], bossPending: !!boss};
+    G.ext = extentOf(G.fit);
     $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
     $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Extra Spooky' : ''}`; $('hudLevelName').textContent = L.name;
     $('bots').innerHTML = ''; $('band').innerHTML = ''; banner('');
+    lastTarget = null; tpShown = null; drawPanel(null);
     drawLights(); hud();
     window.scrollTo(0, 0);
     measure();
@@ -169,21 +174,34 @@
       walk: isBoss ? L.boss.walk : L.walk, phase: 1, phases: isBoss ? L.boss.phases : 1}, spec);
     const el = document.createElement('div');
     el.className = 'bot glitch' + (b.boss ? ' boss' : '');
-    el.innerHTML = `<div class="sign"></div><div class="body">${SHOW.botSVG(b.kind, {unit: b.unit, label: SHOW.BAND[b.kind].name + (b.unit ? ' ' + b.unit : '')})}</div>`;
+    el.innerHTML = `<div class="ring" aria-hidden="true"></div><div class="sign"></div><div class="body">${SHOW.botSVG(b.kind, {unit: b.unit, label: SHOW.BAND[b.kind].name + (b.unit ? ' ' + b.unit : '')})}</div>`;
     b.el = el; b.sign = el.querySelector('.sign');
     $('bots').appendChild(el);
     G.bots.push(b);
     drawSign(b); place(b);
     return b;
   }
+  /* one note on a short staff: the voice box signs and the target panel (tight around the clef, key signature and note) */
+  function noteStaff(item, opts = {}) {
+    const sigW = A.keySigWidth(G.sig), w = 118 + sigW;
+    const svg = A.staffSVG(inst.clef, [{n: item.show, x: 88 + sigW}], {fit: G.fit, keySig: G.sig, width: w, label: `Play ${item.label}`});
+    if (!opts.fitted) return svg;
+    // the panel: the same box for every note of the pool, so the staff never jumps; a wide pool (Chromatic) would
+    // make every note tiny, so there each note gets its own box
+    const ext = G.ext.bot - G.ext.top <= 150 ? G.ext : extentOf([item.show]);
+    return svg.replace(/viewBox="[^"]*"/, `viewBox="0 ${ext.top} ${w} ${ext.bot - ext.top}"`);
+  }
+  /** the room notes need around the staff (the clef, stems and ledger lines) */
+  function extentOf(notes) {
+    let top = 38, bot = 138;
+    (notes || []).forEach(n => { const y = A.noteY(inst.clef, n); top = Math.min(top, y > 88 ? y - 56 : y - 12); bot = Math.max(bot, y > 88 ? y + 12 : y + 56); });
+    return {top, bot};
+  }
   function drawSign(b) {
     const n = b.left;
-    let staff = '';
-    if (!snare && b.item) {
-      const sigW = A.keySigWidth(G.sig), w = 230 + sigW;
-      staff = A.staffSVG(inst.clef, [{n: b.item.show, x: (84 + sigW + w - 30) / 2}], {fit: G.fit, keySig: G.sig, width: w, label: `Play ${b.item.label}`});
-    } else staff = '<span class="drum-ico big" aria-hidden="true"></span>';
-    b.sign.innerHTML = `<div class="vb-top">Voice box${b.boss ? ` · phase ${b.phase}/${b.phases}` : ''}</div><div class="vb-main">${staff}<b class="vb-count">× ${n}</b></div>`;
+    const staff = !snare && b.item ? noteStaff(b.item) : '<span class="drum-ico big" aria-hidden="true"></span>';
+    b.sign.innerHTML = `<div class="vb-top">Voice box${b.boss ? ` · phase ${b.phase}/${b.phases}` : ''}<span class="vb-next">Next</span></div><div class="vb-main">${staff}<b class="vb-count">× ${n}</b></div>`;
+    b.signH = b.sign.offsetHeight;
   }
   /* pseudo-3D: the back of the arcade (z 0) is small and near the horizon; the front (z 1) is big, at the bottom */
   function place(b) {
@@ -195,24 +213,72 @@
     b.el.style.width = baseW + 'px'; b.el.style.height = baseH + 'px';
     b.el.style.transform = `translate3d(${(cx - baseW / 2).toFixed(1)}px,${(feet - baseH).toFixed(1)}px,0) scale(${sc.toFixed(3)})`;
     b.el.style.zIndex = 10 + Math.round(z * 100);
-    b.sign.style.setProperty('--k', (Math.max(sc, .62) / sc).toFixed(3));   // far signs stay readable
+    const k = Math.max(sc, W < 500 ? .7 : .8) / sc;                       // far signs never shrink below a readable size
+    b.sign.style.setProperty('--k', k.toFixed(3));
+    // a far sign that would poke out of the top of the arena slides down over its own head instead
+    const top = feet - baseH * sc * .98 - (b.signH || 0) * k * sc;
+    b.sign.style.setProperty('--dy', (top < 4 ? (4 - top) / sc : 0).toFixed(1) + 'px');
   }
   function target() {
     let t = null;
     G.bots.forEach(b => { if (b.state === 'walk' && (!t || b.z > t.z)) t = b; });
     return t;
   }
-  let lastTarget = null;
+  let lastTarget = null, lastNext = null;
   function markTarget() {
     const t = target();
+    // the NEXT tag: the second-closest one still walking
+    let nx = null;
+    if (t) G.bots.forEach(b => { if (b !== t && b.state === 'walk' && (!nx || b.z > nx.z)) nx = b; });
+    if (nx !== lastNext) { if (lastNext) lastNext.el.classList.remove('next'); if (nx) nx.el.classList.add('next'); lastNext = nx; }
     if (t === lastTarget) return;
     if (lastTarget) lastTarget.el.classList.remove('target');
     lastTarget = t;
+    drawPanel(t);
     if (t) {
+      t.el.classList.remove('next');
       t.el.classList.add('target');
       setPrompt(snare ? `Hit ${t.left} times!` : `Play ${t.item.label} × ${t.left}. Tongue each one.`);
       heldSince = 0;
     }
+  }
+
+  /* ---------- THE TARGET PANEL: the current target's note and count, big and fixed, whatever its distance ---------- */
+  let tpShown = null;                                       // what the panel shows: '<bot id>:<phase>'
+  function drawPanel(t) {
+    const el = $('tpanel');
+    el.classList.toggle('idle', !t);
+    if (!t) { tpShown = null; $('tpWho').textContent = G && !G.over ? 'Get ready…' : ''; $('tpStaff').innerHTML = ''; $('tpCount').textContent = ''; tether(null); return; }
+    const key = t.id + ':' + t.phase;
+    if (key !== tpShown) {                                  // a new target (or the Maestro's next phase): redraw and flash
+      tpShown = key;
+      $('tpWho').textContent = SHOW.BAND[t.kind].name + (t.unit ? ' ' + t.unit : '') + (t.boss ? ` · phase ${t.phase}/${t.phases}` : '');
+      $('tpStaff').innerHTML = !snare && t.item ? noteStaff(t.item, {fitted: true}) : '<span class="drum-ico huge" aria-hidden="true"></span>';
+      el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
+    }
+    $('tpCount').textContent = `× ${t.left}`;
+    $('tpCount').setAttribute('aria-label', `${t.left} more`);
+  }
+  function tickPanel() {
+    const c = $('tpCount'); c.classList.remove('tick'); void c.offsetWidth; c.classList.add('tick');
+  }
+  /* the tether: a thin line from the target's voice box (side panel) or its feet (panel below) to the panel's edge */
+  let panelSide = true;
+  function tether(t) {
+    const svg = $('tether'), line = $('tetherLine');
+    if (!t || t.state !== 'walk') { svg.classList.remove('on'); return; }
+    const ar = arena.getBoundingClientRect();
+    let x1, y1, x2, y2;
+    if (panelSide) {
+      const r = t.sign.getBoundingClientRect();
+      x1 = r.right - ar.left; y1 = r.top + r.height / 2 - ar.top; x2 = W; y2 = Math.min(H - 20, Math.max(20, y1));
+    } else {
+      const r = t.el.querySelector('.ring').getBoundingClientRect();
+      x1 = r.left + r.width / 2 - ar.left; y1 = r.bottom - ar.top; x2 = x1; y2 = H;
+    }
+    line.setAttribute('x1', x1.toFixed(1)); line.setAttribute('y1', y1.toFixed(1));
+    line.setAttribute('x2', x2.toFixed(1)); line.setAttribute('y2', y2.toFixed(1));
+    svg.classList.add('on');
   }
 
   /* ---------- the loop: walk, spawn, knock out spotlights ---------- */
@@ -242,6 +308,7 @@
       });
     }
     markTarget();
+    tether(G.over ? null : lastTarget);
   }
   function reachFront(b) {
     if (G.over) return;
@@ -273,6 +340,7 @@
     t.el.classList.remove('spark'); void t.el.offsetWidth; t.el.classList.add('spark');
     if (t.left > 0) {
       drawSign(t); t.sign.classList.remove('tick'); void t.sign.offsetWidth; t.sign.classList.add('tick');
+      drawPanel(t); tickPanel();
       sfx('attack-tick');
       setPrompt(snare ? `${t.left} more!` : `${t.left} more ${t.item.label}${t.left > 1 ? 's' : ''}!`, 'good');
     } else if (t.boss && t.phase < t.phases) {                  // the Maestro: next phase, next note, a stagger back
@@ -344,6 +412,7 @@
   /* ---------- the end of a showtime ---------- */
   function gameOver(culprit) {
     G.over = true; A.Pitch.demoAttacks = false;
+    drawPanel(null);
     sfx('showtime-over');
     banner("SHOWTIME'S OVER", 'over');
     document.body.classList.add('lights-out');
