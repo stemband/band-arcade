@@ -121,7 +121,7 @@
     if (!view) return;
     const start = e.target.closest('a');
     if (start && start === view.startLink) {          // START: coin drop, then Select Player
-      if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('coin', start.href); }
+      if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('select-' + ring[cur].id, start.href); }
       return;
     }
     const d = view.pick(e);

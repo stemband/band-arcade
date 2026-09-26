@@ -15,6 +15,13 @@
   --purple:#b86bff; --purple-hi:#dcb8ff; --purple-ink:#7a2fd0;
   --amber:#ffab2e; --amber-hi:#ffd699; --amber-ink:#b86e00;
   --green:#4dff88; --green-hi:#b3ffcc; --green-ink:#00a347;
+  --red-hi:#ffb3b3;                                              /* red neon (with --red, --red-ink above) */
+  --white:#f4f0ff; --white-hi:#ffffff; --white-ink:#b9b0d6;      /* white neon tube */
+  /* Note Ninja: belt colors (named in note-ninja/levels.js) and the dojo */
+  --belt-white:#f4f1e6; --belt-yellow:#ffd23a; --belt-orange:#ff8a2a; --belt-green:#3fcf6a;
+  --belt-blue:#3a7bff; --belt-purple:#a26bff; --belt-brown:#8b5a33; --belt-black:#16121d;
+  --dojo-wood:#2a1a14; --dojo-wood-2:#3a2419; --dojo-paper:#fff4dc; --dojo-paper-dim:#e8d3a8;
+  --ninja-gi:#f4f1e6; --ninja-skin:#e8b894; --ninja-hair:#2b1d16; --ninja-band:#e0343f;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */
@@ -27,6 +34,8 @@
   --glow-purple:0 0 4px rgba(184,107,255,.9),0 0 14px rgba(184,107,255,.45);
   --glow-amber:0 0 4px rgba(255,171,46,.9),0 0 14px rgba(255,171,46,.4);
   --glow-green:0 0 4px rgba(77,255,136,.9),0 0 14px rgba(77,255,136,.4);
+  --glow-red:0 0 4px rgba(255,107,107,.9),0 0 14px rgba(255,80,80,.45);
+  --glow-white:0 0 4px rgba(255,255,255,.9),0 0 14px rgba(230,225,255,.4);
   /* cabinet woodwork: side panels, front face, control panel (darkest to lightest) */
   --cab-side:#120c22; --cab-face:#1b1433; --cab-panel:#2a2148; --cab-metal:#6d6590;
 

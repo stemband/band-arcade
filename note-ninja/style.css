@@ -1,0 +1,152 @@
+/* Note Ninja: a neon dojo at night. Dark wood, paper screens lit from behind, red and white neon,
+   belt-colored accents. Reading comes first: the staff sits large and still on a lit scroll;
+   the action (the ninja, the target) happens above it. */
+
+/* ---------- the dojo ---------- */
+.dojo-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    linear-gradient(180deg, transparent 0 38%, var(--dojo-wood) 38%),                        /* the floor boards start here */
+    var(--floor)}
+.dojo-bg::before{content:"";position:absolute;inset:38% 0 0;opacity:.55;                    /* floor boards */
+  background:repeating-linear-gradient(90deg, var(--dojo-wood) 0 70px, var(--dojo-wood-2) 70px 72px)}
+.dojo-bg::after{content:"";position:absolute;left:0;right:0;top:38%;height:3px;background:var(--red);box-shadow:var(--glow-red)}   /* red neon rail */
+/* paper screens (shoji) lit from behind: soft squares in a wooden lattice, kept dim so text stays readable */
+.shoji{position:absolute;left:0;right:0;top:0;height:38%;opacity:.13;
+  background:
+    repeating-linear-gradient(90deg, var(--dojo-wood) 0 4px, transparent 4px 48px),
+    repeating-linear-gradient(180deg, var(--dojo-wood) 0 4px, transparent 4px 60px),
+    radial-gradient(60% 90% at 50% 40%, var(--dojo-paper), var(--dojo-paper-dim) 70%, transparent)}
+
+/* ---------- belt select ---------- */
+.hub-head{margin-bottom:18px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92;color:var(--white-hi);text-shadow:var(--glow-white)}
+.game-title span{color:var(--red);text-shadow:var(--glow-red)}
+.hub-head p{max-width:52ch;margin:10px 0 0}
+.fivecard{padding-bottom:4px;margin-bottom:14px}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:150px}
+.lvl.belt{border-left:8px solid var(--belt)}
+.lvl:hover:not([disabled]){border-color:var(--red);border-left-color:var(--belt)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;width:40px;display:grid;place-items:center}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+/* a little tied belt in the belt's color */
+.belt-knot{position:relative;display:block;width:38px;height:10px;border-radius:3px;background:var(--belt);box-shadow:0 0 0 1.5px var(--text-dim)}
+.belt-knot::before,.belt-knot::after{content:"";position:absolute;top:6px;width:7px;height:16px;border-radius:2px;background:var(--belt);box-shadow:0 0 0 1.5px var(--text-dim)}
+.belt-knot::before{left:12px;transform:rotate(18deg)}
+.belt-knot::after{right:12px;transform:rotate(-18deg)}
+
+/* ---------- the scroll: paper lit from behind, wooden rollers, red neon ---------- */
+.scroll{background:var(--dojo-paper);color:var(--ink);border:3px solid var(--red);border-radius:6px;padding:14px 10px 6px;
+  box-shadow:0 0 0 4px var(--deep),var(--glow-red),inset 0 0 0 2px rgba(255,255,255,.5)}
+.scroll::before,.scroll::after{content:"";position:absolute;left:0;right:0;height:9px;background:var(--dojo-wood-2);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
+.scroll::before{top:0}
+.scroll::after{bottom:0}
+.scroll .cap{color:var(--ink-2)}
+
+/* ---------- play ---------- */
+.wrap.playing{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;padding-bottom:0}
+.wrap.playing #play{display:flex;flex-direction:column;flex:1}
+.hud{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:10px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.hud div{display:flex;flex-direction:column}
+.hud .c{text-align:center}
+.hud .r{text-align:right}
+.hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.hud b{font-size:22px;line-height:1.2;display:flex;align-items:center;gap:6px}
+.hud .c b,.hud .r b{justify-content:inherit}
+.hud .c b{justify-content:center}.hud .r b{justify-content:flex-end}
+.belt-chip{display:inline-block;width:22px;height:10px;border-radius:3px;background:var(--belt);box-shadow:0 0 0 1.5px var(--text-dim)}
+#hudCombo.hot{color:var(--yellow);text-shadow:var(--glow-yellow)}
+
+/* the action strip above the scroll: ninja, practice target, combo pop */
+.arena{position:relative;height:96px;display:flex;align-items:flex-end;gap:4px;margin:0 0 -6px 4px}
+.ninja-spot{width:82px;flex:none}
+.ninja-spot svg,.res-ninja svg{display:block;width:100%;height:auto;overflow:visible}
+.target{width:46px;flex:none}
+.target svg{display:block;width:100%;height:auto;overflow:visible}
+.t-post rect{fill:var(--dojo-wood-2)}
+.t-top rect,.t-bot rect{fill:var(--dojo-paper-dim);stroke:var(--dojo-wood);stroke-width:2}
+.t-top path,.t-bot path{stroke:var(--red);stroke-width:2.5}
+.t-slash{fill:none;stroke:var(--white-hi);stroke-width:4;stroke-linecap:round;stroke-dasharray:60;stroke-dashoffset:60;opacity:0}
+.combo-pop{position:absolute;left:150px;right:0;top:30px;text-align:center;font-family:var(--display);font-size:clamp(18px,4vw,26px);color:var(--yellow);text-shadow:var(--glow-yellow);opacity:0;pointer-events:none}
+
+/* the staff: large, still, crisp */
+.play-scroll{flex:none}
+.play-scroll .staff{max-height:min(36vh,330px);max-height:min(36svh,330px);margin:0 auto}
+.ptr{position:absolute;top:10px;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid var(--ninja-band);transform:translateX(-50%);transition:left .15s ease-out}
+.timer{height:10px;background:var(--dojo-paper-dim);margin:8px -10px -6px}
+.timer i{display:block;height:100%;background:var(--red-ink);transform-origin:left;transform:scaleX(1)}
+.timer.low i{background:var(--red)}
+.prompt{min-height:28px;text-align:center;margin:12px 0 8px;font-size:18px;font-weight:700}
+.prompt.bad{color:var(--red-hi)}
+.prompt.good{color:var(--yellow)}
+
+/* the answer pad: bottom of the screen, big enough for thumbs, one row even at 400 px */
+.pad{margin-top:auto;padding:8px 0 calc(12px + env(safe-area-inset-bottom,0px))}
+.acc-row{display:flex;justify-content:center;gap:10px;margin-bottom:8px}
+.acc{min-width:72px;min-height:48px;border-radius:14px;border:2px solid var(--white-ink);background:var(--deep);color:var(--text-hi);font-family:var(--music);font-size:28px;line-height:1}
+.acc[aria-pressed="true"]{background:var(--red);border-color:var(--red-hi);color:var(--deep);box-shadow:var(--glow-red)}
+.letters{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.letter{min-height:66px;padding:0;border-radius:14px;border:2px solid var(--red);background:var(--deep);color:var(--white-hi);
+  font-family:var(--display),var(--music);font-size:clamp(20px,5vw,30px);box-shadow:inset 0 -4px 0 rgba(255,255,255,.08)}
+.letter:hover{background:var(--floor-3)}
+.letter:active{transform:translateY(2px);background:var(--red-ink)}
+@media (max-width:420px){ .letters{gap:4px} .letter{min-height:60px;border-radius:12px} }
+.demo-ans{text-align:center;font-size:13px;color:var(--text-lo);margin:6px 0 0}
+.quit{position:absolute;right:0;top:4px}
+/* short screens (iPad landscape, small Chromebooks): tighter, so the staff and the buttons both fit */
+@media (max-height:820px){
+  .arena{height:78px}.ninja-spot{width:66px}.target{width:38px}
+  .hud{margin-bottom:2px}.hud b{font-size:19px}
+  .play-scroll .staff{max-height:min(33vh,300px);max-height:min(33svh,300px)}
+  .prompt{margin:8px 0 4px}
+  .letter{min-height:56px}.acc{min-height:44px}
+  .wrap.playing .topbar{margin-bottom:10px}
+}
+
+/* ---------- motion: strike, split, stumble, shake (all short; off for reduced motion) ---------- */
+.ninja-spot.strike svg{animation:nj-lunge .34s ease-out}
+.ninja-spot.strike .nj-arm{transform-box:view-box;transform-origin:65px 62px;animation:nj-swing .34s ease-out}
+.ninja-spot.stumble svg{animation:nj-stumble .42s ease-in-out}
+.target.split .t-top{transform-box:view-box;transform-origin:30px 44px;animation:t-split .5s ease-out}
+.target.split .t-slash{animation:t-slash .3s ease-out}
+.scroll.shake{animation:shake .26s ease-in-out}
+.combo-pop.go{animation:pop 1s ease-out}
+.res-ninja{width:92px;margin:0 auto 4px}
+.res-ninja .cheer{animation:cheer .6s ease-out 2}
+@keyframes nj-lunge{40%{transform:translateX(22px)}}
+@keyframes nj-swing{40%{transform:rotate(95deg)}}
+@keyframes nj-stumble{30%{transform:translateX(-8px) rotate(-9deg)}65%{transform:translateX(4px) rotate(4deg)}}
+@keyframes t-split{35%{transform:translate(7px,-8px) rotate(-18deg);opacity:1}100%{transform:translate(12px,-4px) rotate(-30deg);opacity:0}}
+@keyframes t-slash{0%{opacity:1;stroke-dashoffset:60}60%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes pop{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-18px)}}
+@keyframes cheer{50%{transform:translateY(-6px)}}
+
+/* ---------- results ---------- */
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+.res-score{margin:10px 0 0!important;color:var(--text-hi)!important;font-weight:700}
+.res-score b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--yellow)}
+.panel .best{font-size:14px;margin-top:8px}
+.panel{border-color:var(--red);box-shadow:var(--glow-red),0 30px 80px rgba(0,0,0,.6)}
+.panel h2{color:var(--white-hi)}
+
+.topbar-right .sound-ctl{flex-wrap:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .ninja-spot.strike svg,.ninja-spot.strike .nj-arm,.ninja-spot.stumble svg,.target.split .t-top,.scroll.shake,.res-ninja .cheer{animation:none}
+  .target.split .t-slash{animation:t-slash .01s}
+  .combo-pop.go{animation-duration:1.2s}
+  .ptr{transition:none}
+}

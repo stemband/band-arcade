@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Note Ninja</title>
+<meta name="description" content="A note appears on the scroll. Tap its name before time runs out.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="dojo">
+<div class="dojo-bg" aria-hidden="true"><div class="shoji"></div></div>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- BELT SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Note <span>Ninja</span></h1>
+      <p class="muted">A note appears on the scroll. Tap its name before time runs out. Fast, correct answers build your combo. No instrument needed!</p>
+    </div>
+    <div id="modePick"></div>
+    <div class="stage scroll fivecard" id="hubCard">
+      <div class="cap"><span id="hubCap">Your first five notes</span><span id="hubConcert"></span></div>
+      <div id="hubStaff"></div>
+    </div>
+    <p class="eyebrow" id="levelsTitle">Belts</p>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: all belts unlocked, and the answer shows under the buttons. Keys A–G answer; 1 / 2 / 3 pick ♭ / ♮ / ♯.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudBeltLabel">Belt</small><b id="hudBelt"><i class="belt-chip" id="hudChip"></i><span id="hudBeltName">White</span></b></div>
+      <div class="c"><small>Note</small><b id="hudCount">1 / 8</b></div>
+      <div class="c"><small>Combo</small><b id="hudCombo" aria-live="polite">0</b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+
+    <div class="arena">
+      <div class="ninja-spot" id="ninja" aria-hidden="true"></div>
+      <div class="combo-pop" id="comboPop" aria-hidden="true"></div>
+      <button class="btn btn-ghost btn-small quit" id="quitPlay">Quit belt</button>
+      <div class="target" id="target" aria-hidden="true">
+        <svg viewBox="0 0 60 110">
+          <g class="t-post"><rect x="27" y="70" width="6" height="40"/><rect x="18" y="104" width="24" height="6" rx="2"/></g>
+          <g class="t-bot"><rect x="14" y="44" width="32" height="32" rx="6"/><path d="M14 58H46M14 66H46"/></g>
+          <g class="t-top"><rect x="14" y="10" width="32" height="34" rx="6"/><path d="M14 22H46M14 30H46"/></g>
+          <path class="t-slash" d="M2 50L58 36"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stage scroll play-scroll" id="scroll">
+      <div id="playStaff"></div>
+      <div class="ptr" id="ptr" aria-hidden="true"></div>
+      <div class="timer" id="timer"><i></i></div>
+    </div>
+    <p class="prompt" id="prompt" aria-live="polite">Name the note</p>
+
+    <div class="pad" id="pad">
+      <div class="acc-row" id="accRow" role="group" aria-label="Sharp or flat">
+        <button type="button" class="acc" data-acc="-1" aria-pressed="false" aria-label="Flat (key 1)">♭</button>
+        <button type="button" class="acc" data-acc="0" aria-pressed="true" aria-label="Natural (key 2)">♮</button>
+        <button type="button" class="acc" data-acc="1" aria-pressed="false" aria-label="Sharp (key 3)">♯</button>
+      </div>
+      <div class="letters" id="letters" role="group" aria-label="Note names"></div>
+      <p class="demo-ans" id="demoAns" hidden></p>
+    </div>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="res-ninja" id="resNinja"></div>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Belt cleared</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Named</small><b id="resHits">0/0</b></div>
+      <div><small>Mistakes</small><b id="resWrong">0</b></div>
+      <div><small>Missed</small><b id="resMissed">0</b></div>
+      <div><small>Best combo</small><b id="resCombo">0</b></div>
+    </div>
+    <p class="res-score">Score <b id="resScore">0</b></p>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next belt</button>
+      <button class="btn btn-ghost" id="resRetry">Try again</button>
+      <button class="btn btn-ghost" id="resLevels">Belts</button>
+    </div>
+  </div>
+</div>
+
+<!-- No microphone in this game: no pitch.js, no mic-gate.js. Sound effects are allowed (shared/sfx.js). -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/modes.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

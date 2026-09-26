@@ -18,8 +18,8 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-  const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade'];
+  const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
@@ -67,6 +67,19 @@ window.Arcade = window.Arcade || {};
       door: {x: 100, y: 462, w: 100, h: 110},
       extras: '<path class="s-decal s-bolt" d="M60 420l-10 22h10l-6 22 18-28h-10l8-16z"/><path class="s-decal s-bolt" d="M240 420l10 22h-10l6 22-18-28h10l-8-16z"/>',
       slots: {marquee: [46, 57, 208, 60], screen: [66, 154, 168, 144], start: [78, 398, 144, 48]},
+    },
+    /* dojo: a pagoda roof with upturned eaves and hanging lanterns, a square paper-screen frame */
+    dojo: {
+      outline: 'M14 76Q42 72 62 52L112 22H188L238 52Q258 72 286 76L270 88H256V598H44V88H30Z',
+      face: 'M56 88H244V598H56Z', kick: [56, 244],
+      bezel: 'M66 164H234V322H66Z',
+      panel: 'M52 330H248L278 386H22Z', lip: 'M22 386H278V398H22Z',
+      joy: [72, 358], btns: [[180, 356], [208, 356], [236, 356]],
+      door: {x: 104, y: 470, w: 92, h: 106},
+      extras: '<path class="s-decal" d="M112 22L150 8L188 22M70 58H230M34 80V96M266 80V96"/>' +          // ridge, roof beam, lantern cords
+              '<rect class="s-lamp" x="27" y="96" width="14" height="18" rx="5"/><rect class="s-lamp" x="259" y="96" width="14" height="18" rx="5"/>' +
+              '<path class="s-grille" d="M66 243H234M150 164V322"/>',                                       // paper-screen lattice
+      slots: {marquee: [60, 92, 180, 64], screen: [74, 172, 152, 142], start: [80, 408, 140, 48]},
     },
   };
 
@@ -136,6 +149,21 @@ window.Arcade = window.Arcade || {};
           note(64, 0) + note(52, -1) + note(76, -2) + `</svg></div>`;
       },
     },
+    /* Note Ninja: a note on a scroll, its letter lights up on the row of buttons, then a slash */
+    ninja: {
+      period: 2400,
+      html(g, i) {
+        const n = noteOf(TREBLE[i % TREBLE.length]), L = 'ABCDEFG', y = 20 + (A.noteY('treble', n) - 56) / 16 * 10;
+        const lines = [0, 1, 2, 3, 4].map(k => `<line x1="8" y1="${20 + k * 10}" x2="152" y2="${20 + k * 10}"/>`).join('');
+        const up = A.noteY('treble', n) > 88;
+        return `<div class="scr scr-ninja"><svg viewBox="0 0 160 120" aria-hidden="true">` +
+          `<g class="nj-lines">${lines}</g>` +
+          `<g class="nj-note"><ellipse cx="96" cy="${y}" rx="6" ry="4.4" transform="rotate(-20 96 ${y})"/><line x1="${up ? 101.5 : 90.5}" y1="${y}" x2="${up ? 101.5 : 90.5}" y2="${up ? y - 32 : y + 32}"/></g>` +
+          `<path class="nj-slash" d="M78 ${y + 10}L116 ${y - 10}"/>` +
+          [...L].map((l, k) => `<g class="nj-key${l === n.letter ? ' on' : ''}"><rect x="${5 + k * 22}" y="92" width="18" height="20" rx="4"/><text x="${14 + k * 22}" y="107" text-anchor="middle">${l}</text></g>`).join('') +
+          `</svg></div>`;
+      },
+    },
     /* the default for a game with no custom screen: its name, blinking PRESS START */
     insert: {
       html(g) {
@@ -166,6 +194,7 @@ window.Arcade = window.Arcade || {};
     const c = A.cabinetOf(g);
     return `<${tag} class="mq mq-${c.marquee}">` +
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
+      (c.marquee === 'dojo' && A.ninjaSVG ? `<span class="mq-mascot mq-ninja" aria-hidden="true">${A.ninjaSVG({belt: 'belt-black'})}</span>` : '') +
       `<span class="mq-text">${c.kicker ? `<span class="mq-kicker">${esc(c.kicker)}</span>` : ''}` +
       `<span class="mq-name">${esc(g.name)}</span></span></${tag}>`;
   };
