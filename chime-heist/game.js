@@ -1,9 +1,10 @@
 /* Chime Heist: a mallet keyboard trainer. A note of the vault code appears on the terminal; strike its bar
    on the bell kit (the chime lock). No microphone (no pitch.js / mic-gate.js).
    Always the Orchestral Bells / Bell Kit member (written G3–C6, sounding two octaves higher); the saved
-   instrument for other games is never touched. Modes: FIRST FIVE, FULL RANGE, SCALES (Concert B♭ E♭ F A♭),
-   CHROMATIC. Correct = the exact bar, octave included; in scales the key signature applies (B in F major
-   = the B♭ bar). Vaults (levels) live in levels.js; bell tones and effects come from shared/sfx.js. */
+   instrument for other games is never touched. NOTES × ORDER (shared/mode-picker.js, notes from shared/sequences.js):
+   First 5, Concert B♭ E♭ F A♭ or Chromatic, in Random or Scale Order (the old FULL RANGE mode is Chromatic + Random,
+   still saved under 'chime-heist:full'). Correct = the exact bar, octave included; in scale pools the key signature
+   applies in both orders (B in F major = the B♭ bar). Vaults (levels) live in levels.js; bell tones and effects come from shared/sfx.js. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -22,13 +23,7 @@
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
 
-  const KEYS = {random: GAME_ID, full: GAME_ID + ':full', chrom: GAME_ID + ':chromatic'};
-  const picker = A.Modes.mount($('modePick'), {
-    gameId: GAME_ID, inst, member, levels: VAULTS.length, onChange: () => showHub(),
-    modes: [{id: 'random', label: 'First five'}, {id: 'full', label: 'Full range'}, {id: 'scales', label: 'Scales'}, {id: 'chrom', label: 'Chromatic'}],
-    scales: ['Bb', 'Eb', 'F', 'Ab'], fixed: {chrom: 'chrom'},
-    keyFor: (mode, sc) => mode === 'scales' ? A.Scales.progressKey(GAME_ID, sc) : KEYS[mode],
-  });
+  const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, group: inst, member, levels: VAULTS.length, onChange: () => showHub()});
 
   /* ---------- treasures: one for each vault ---------- */
   const TREASURES = {
@@ -44,27 +39,19 @@
   const treasureSVG = (id, cls = '') => `<svg class="tr ${cls}" viewBox="0 0 100 90" aria-hidden="true">${TREASURES[id] || TREASURES.coins}</svg>`;
 
   /* ---------- vault select ---------- */
-  function hubCard(st) {
-    if (st.mode !== 'full') return A.Modes.hubCard(inst, st);
-    const lo = member.low, hi = member.high;
-    return {cap: `Full range: ${noteLabel(lo)}${lo.oct} up to ${noteLabel(hi)}${hi.oct}`, sub: 'Random bars from the whole kit',
-      html: A.staffSVG('treble', [{n: lo, x: 150, caption: 'Lowest ' + noteLabel(lo)}, {n: hi, x: 290, caption: 'Highest ' + noteLabel(hi)}], {label: 'The whole bell kit'})};
-  }
   function showHub() {
     stopTimer(); G = null;
     const st = picker.state, key = st.progressKey;
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('vaultOpen').hidden = true;
     $('wrap').classList.remove('playing'); lasers(0);
-    const card = hubCard(st);
+    const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
-    const modeName = {random: 'First five', full: 'Full range', chrom: 'Chromatic'}[st.mode] || (st.scale ? st.scale.name : '');
-    $('levelsTitle').textContent = `Vaults: ${modeName}`;
-    const scaleLen = st.scale ? st.scale.notes.length : 0;
+    $('levelsTitle').textContent = `Vaults: ${st.scale ? st.scale.name : 'First five'}`;
     $('levelGrid').innerHTML = VAULTS.map((V, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
-      const count = st.scale ? A.Scales.sequence(st.scale, V.count).length : V.count;
-      const bits = [st.scale ? (count > scaleLen ? 'The scale up and down, then again.' : 'The scale up and down.') : `${count} notes.`,
+      const count = A.ModePicker.sequence(st, V, lv).items.length;
+      const bits = [A.ModePicker.levelText(st, {count: V.count, pool: V.pool, blurb: `${count} notes.`}, lv),
         V.onScreen > 1 ? `Read ahead: ${V.onScreen} at once.` : '', {all: 'Every bar labeled.', faded: 'Faint labels.', c: 'Only the C bars labeled.', none: 'No labels.'}[V.labels],
         `${V.time} s each. Alarm: ${V.alarm}.`];
       return `<button class="lvl vault" data-l="${lv}" ${unlocked ? '' : 'disabled'}>
@@ -146,39 +133,12 @@
     mal.classList.remove('hit'); void mal.offsetWidth; mal.classList.add('hit');
   }
 
-  /* ---------- the notes of a vault ---------- */
-  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function buildSeq(count, pool) {           // every note appears evenly; never the same note twice in a row
-    const seq = [];
-    while (seq.length < count) {
-      const bag = shuffle([...Array(pool).keys()]);
-      if (seq.length && bag[0] === seq[seq.length - 1]) [bag[0], bag[1]] = [bag[1], bag[0]];
-      seq.push(...bag);
-    }
-    return seq.slice(0, count);
-  }
-  const item = (n, show) => ({n, show: show || n, midi: n.midi != null ? n.midi : writtenMidi(n), label: noteLabel(n)});
-  function vaultNotes(V) {
-    const st = picker.state;
-    if (st.scale) return A.Scales.sequence(st.scale, V.count).map(n => item(n, n.show));
-    if (st.mode === 'full') {                                          // any bar; black bars spelled either way
-      const out = [];
-      while (out.length < V.count) {
-        const m = LOW + Math.floor(Math.random() * (HIGH - LOW + 1));
-        if (out.length && out[out.length - 1].midi === m) continue;
-        out.push(item(spell(m, Math.random() < .5)));
-      }
-      return out;
-    }
-    return buildSeq(V.count, V.pool).map(i => item(inst.notes[i]));
-  }
-
   /* ---------- play ---------- */
   let G = null, timerId = 0;
   function startLevel(lv) {
-    const V = VAULTS[lv - 1], st = picker.state, items = vaultNotes(V);
-    G = {lv, V, items, count: items.length, key: st.progressKey, sig: st.scale ? st.scale.sig : null,
-         fit: st.scale ? st.scale.notes.map(n => n.show) : st.mode === 'full' ? [member.low, member.high] : inst.notes,
+    const V = VAULTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, V, lv);
+    const items = seq.items.map(it => ({n: it.n, show: it.show, midi: it.midi, label: it.label}));   // midi: the exact written bar
+    G = {lv, V, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit,
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, alarm: 0, streak: 0, bestStreak: 0, locked: true, over: false};
     $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false; $('vaultOpen').hidden = true;
     $('wrap').classList.add('playing');

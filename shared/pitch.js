@@ -11,13 +11,13 @@
    onHeld(pc, now, note)  fires once when a note has been held for holdMs.
        A new onHeld needs a new attack (a short gap) or a different note.
 
-   Full range (Note Checker, and games in SCALES mode): setRange(lowMidi, highMidi) with a member's SOUNDING range
+   Full range (Note Checker, and games with a scale or Chromatic NOTES pool): setRange(lowMidi, highMidi) with a member's SOUNDING range
    (instruments.js) widens the search to that range and makes it octave-exact:
      - a new note is a new held note even if it has the same letter (D4 then D5 fires twice)
      - a reading outside the range whose octave above/below is inside is reported in that octave
        (built-in mics often hear low brass an octave off); reading.folded says by how much
    setRange(null) goes back to the default (the group's first-five range, letter names only).
-   Games call it only in SCALES mode (shared/modes.js); in RANDOM NOTES mode they behave exactly as before.
+   Games call it for scale and chromatic pools (ModePicker.useRange, shared/mode-picker.js); with First 5 they behave exactly as before.
 */
 window.Arcade = window.Arcade || {};
 (function (A) {

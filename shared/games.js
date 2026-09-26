@@ -20,8 +20,9 @@
                 saved under that id. playerName: its label on the home page (leave out for none).
      badge      optional: {label, one, many}: the home page adds "<label>: n <one|many>", counting the keys of
                 Arcade.store.gameData(id).badges (Ancient Ninja Scrolls: "Test Ready: 3 belts")
-     modeKeys   optional: a game's own extra progress keys ('<id>:<key>') for the home page's "n started" note
-                ([] = none: the home page shows no "Scales: n of 5 started")
+     noteModes  optional: true = a note-reading game with the NOTES × ORDER picker (shared/mode-picker.js): its stars are
+                spread over 12 progress keys (Arcade.progressKeys), so the home page shows the all-modes total
+                (Arcade.store.allStars) and "Modes played: n of 12"
      byMember   optional: true = progress is saved per instrument MEMBER (Button Masher: fingerings differ inside a
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
      noPlay     optional: {groups, members, label, game}: students whose instrument is one of these see `label`
@@ -56,6 +57,7 @@ window.Arcade.GAMES = [
     skill: 'Note reading',
     blurb: 'Read the note and play it. The note names fade away as you level up.',
     maxStars: 24,
+    noteModes: true,
     color: 'pink',
     cabinet: {shape: 'haunted', trim: 'purple', trim2: 'cyan', marquee: 'haunt', screen: 'ghost'},
     cabinet3d: {profile: 'haunted', body: 'cab-side'},
@@ -66,6 +68,7 @@ window.Arcade.GAMES = [
     skill: 'Speed reading',
     blurb: 'Notes march toward your robot. Read each one fast and play it to blast it.',
     maxStars: 24,
+    noteModes: true,
     color: 'yellow',
     cabinet: {shape: 'storm', trim: 'yellow', trim2: 'pink', marquee: 'shade', screen: 'storm'},
     cabinet3d: {profile: 'storm', body: 'cab-side'},
@@ -76,6 +79,7 @@ window.Arcade.GAMES = [
     skill: 'Note names',
     blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
     maxStars: 30,
+    noteModes: true,
     color: 'pink',
     cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
     cabinet3d: {profile: 'dojo', body: 'cab-side'},
@@ -88,7 +92,7 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'cyan',
     player: 'bells', playerName: 'Bell Kit',        // always the bell kit: START skips Select Player
-    modeKeys: ['full', 'scale-Bb', 'scale-Eb', 'scale-F', 'scale-Ab', 'chromatic'],   // its other modes, for the home page
+    noteModes: true,                                // NOTES × ORDER; its old FULL RANGE / CHROMATIC keys are kept (sequences.js)
     cabinet: {shape: 'vault', trim: 'green', trim2: 'red', marquee: 'heist', screen: 'heist'},
     cabinet3d: {profile: 'vault', body: 'cab-side'},
   },
@@ -112,7 +116,6 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'pink',
     byMember: true,                                  // fingerings differ inside a group: stars are saved per instrument
-    modeKeys: [],
     noPlay: {groups: ['bells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
     cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', kicker: '1P vs 2P', screen: 'versus'},
     cabinet3d: {profile: 'versus', body: 'cab-side'},

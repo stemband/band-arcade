@@ -19,7 +19,8 @@ shared/               The engine every game uses
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
   storage.js          Saved instrument, mic sensitivity, and progress (on this device only)
   scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
-  modes.js            RANDOM NOTES / SCALES picker every game shows on its level screen
+  sequences.js        The notes of every level in the note-reading games (NOTES × ORDER), and their progress keys
+  mode-picker.js      The NOTES × ORDER picker those games show on their level screen
   games.js            The list of games on the arcade floor, and how each cabinet looks
   belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
   sfx.js              Sound effects for the arcade floor, Select Player and the mic-free games, and Chime Heist's
@@ -71,7 +72,7 @@ A note-reading game that **doesn't use the microphone**, so students can play it
   - **Diamond:** 24 notes, 4 at once, fastest, and the letter buttons no longer change to A♭ B♭ … when ♭ or ♯ is tapped, so students have to know the note without the hint. The Diamond belt glints (not under reduced motion).
   - Earlier versions had 8 belts. The first time a device loads this version, saved stars on the old Brown (7) and Black (8) move to the new Brown (8) and Black (9) in every mode and for every instrument; Red (7) and Diamond (10) start empty. A belt that has stars always stays playable, so those students can still play Brown and Black. This runs once (`migrated` in the saved data).
 - **Scoring:** points for each note, a speed bonus, and a **combo** multiplier (×2 at 5 in a row, up to ×4) that resets on a mistake or a timeout. A wrong answer is a mistake and the note stays; running out of time is a miss, shows the name, and moves on. Stars: 3 = no mistakes and no misses, 2 = 90%, 1 = 80% (clears the belt and unlocks the next).
-- Random notes and every scale work like the other games; progress is saved under `note-ninja` and `note-ninja:scale-…`.
+- Every NOTES × ORDER combination works like the other games (see "Notes and order"); in a scale the right name follows the key signature, in Random and Scale Order alike.
 - In `?demo` all belts are unlocked and the answer shows in small text under the buttons.
 
 ## Chime Heist
@@ -80,11 +81,11 @@ A **mallet keyboard** game for percussionists, and it **doesn't use the micropho
 
 - **Always the Bell Kit.** START on the arcade floor goes straight into the game (no Select Player), and it never changes the instrument saved for the other games.
 - **The bell kit:** natural bars on the lower row, sharps/flats raised above in groups of 2 and 3, bars shorter as the pitch goes up. Tap, click or use a pen; two fingers can strike at once. On a Chromebook: **← →** move the mallet, **↑ ↓** switch rows, **Enter** or **Space** strikes. On a phone held upright it asks you to turn it sideways.
-- **Modes:** FIRST FIVE (B♭ C D E♭ F), FULL RANGE (any bar, G3–C6), SCALES (Concert B♭, E♭, F, A♭, up then down with the key signature) and CHROMATIC (up in sharps, down in flats). The last choice is remembered.
+- **Modes:** NOTES × ORDER like the other games: First 5 (B♭ C D E♭ F), Concert B♭ / E♭ / F / A♭, or Chromatic (the whole kit, G3–C6), in Random or Scale Order. The old FULL RANGE mode is Chromatic + Random.
 - **Rules:** only the exact bar counts, octave included ("Right note, wrong octave!" is a mistake). In scales the key signature counts: a B in F major is the B♭ bar. A wrong bar still rings, sets off the alarm, and the note stays. Running out of time: a guard's flashlight sweeps by, the right bar lights up, and the code moves on.
 - **Alarm meter** instead of lives: each mistake or miss fills one segment. Full = "CAUGHT! The alarm went off." and the vault isn't cleared. The **silent streak** multiplies points (×2 at 5 in a row, up to ×4).
 - **Vaults** (levels) are in `chime-heist/levels.js`, one line each: notes, seconds per note, bar labels (`all`, `faded`, `c` for C bars only, `none`), notes on the terminal at once (read ahead from the Museum Diamond Vault on), alarm segments, and the treasure behind the door. Stars: 3 = no mistakes and no misses, 2 = 90%, 1 = 80% without setting off the alarm (unlocks the next vault).
-- Progress: `chime-heist` (First five), `chime-heist:full`, `chime-heist:scale-Bb` … `chime-heist:scale-Ab`, `chime-heist:chromatic`, all under the `bells` player. The arcade floor's hi-score counts First five and shows "Other modes: n of 6 started".
+- Progress: the keys in "Notes and order", all under the `bells` player; its older keys stay (`chime-heist:full` = Chromatic + Random, `chime-heist:chromatic` = Chromatic + Scale Order).
 - In `?demo` all vaults are unlocked and the right bar has a faint dashed outline.
 
 ## Ancient Ninja Scrolls
@@ -173,20 +174,33 @@ The first time a device loads this version, its old choice moves over once:
 | A group with several instruments and no answer | Select Your Player opens with that group's tiles outlined and "Pick your exact instrument!" |
 | Colored Tone Bells | "Choose your player again!" (Colored Tone Bells has left the arcade) |
 
-## Random notes and scales
+## Notes and order
 
-Every game has two modes, picked with the big buttons on its level screen (remembered per game):
+Ghost Notes, Note Storm, Note Ninja and Chime Heist share one picker on their level screen (remembered per game) with two separate choices:
 
-- **Random notes**: the game as it has always been, with the first five notes in random order. Stars saved before scales existed stay right where they were.
-- **Scales**: pick **Concert B♭, E♭, F, A♭** or **Chromatic**. The notes come in scale order, up then down, with the key signature on the staff. Levels keep their difficulty (fading names and time in Ghost Notes; speed, notes on screen and lives in Note Storm). Each scale has its own levels and stars; the scale buttons show them (e.g. "E♭ ★ 9/24"). Each scale is written for the student's own instrument (the one chosen on Select Your Player).
+- **NOTES:** **First 5** (the player's first five notes), **Concert B♭, E♭, F or A♭** (one octave of that scale, written for the student's own instrument, with its key signature), or **Chromatic** (the student's whole range).
+- **ORDER:** **Random** (every note of the pool before any repeats, never the same note twice in a row) or **Scale Order** (up, then down).
+
+All 12 combinations work in every one of these games, and each has its own stars; the NOTES buttons show them for the chosen order (e.g. "E♭ ★ 9/24"). Level 1 in Random uses a smaller pool: the first three notes, the scale's first five notes, or one chromatic octave from the first-five tonic. Scales show the key signature in both orders, and in Note Ninja and Chime Heist the right answer follows it (a B in F major is B♭). First 5 + Random is the game exactly as it has always been. Each level keeps its own rules (timing, fading names, read-ahead, lives, the alarm).
 
 Each scale is written for the student's own instrument, e.g. Concert E♭ is **F Major** for trumpet, clarinet and tenor sax, **C Major** for alto and bari sax, **B♭ Major** for horn.
 
 **Starting notes.** The table at the top of `shared/scales.js` lists the written note every scale starts on, for every instrument, like `trumpet: { Bb: 'C4', Eb: 'F4', F: 'G3', Ab: 'Bb3' }`. These should match the GMEA scale sheets. To move a scale an octave, change that one note (e.g. `'Bb3'` to `'Bb4'`).
 
-**Where progress goes.** Random notes: `games['ghost-notes'][instrument][level]`, as always. Scales: the same shape under `ghost-notes:scale-Eb`, `note-storm:scale-chrom`, and so on. The home page's hi-score shows random-mode stars and a short "Scales: 3 of 5 started".
+**Where progress goes.** Every combination saves under its own key, in the usual shape (`games[key][instrument][level]`):
 
-**Testing:** in `?demo`, keys 1–5 still play the first five notes; in Scales, hold **Space** to play the note the game is asking for.
+| NOTES | ORDER | Progress key | Notes |
+|---|---|---|---|
+| First 5 | Random | `<game>` | the original key: every star from before scales still counts here |
+| First 5 | Scale Order | `<game>:order-first5` | new |
+| Concert B♭ / E♭ / F / A♭ | Scale Order | `<game>:scale-Bb` … `:scale-Ab` | the original SCALES keys |
+| Chromatic | Scale Order | `<game>:scale-chrom` (Chime Heist: `chime-heist:chromatic`) | the original keys |
+| Concert B♭ / E♭ / F / A♭ | Random | `<game>:random-Bb` … `:random-Ab` | new |
+| Chromatic | Random | `<game>:random-chromatic` (Chime Heist: `chime-heist:full`, its old FULL RANGE) | new (Chime Heist: kept) |
+
+`Arcade.store.allStars(instrument, game)` adds up every one of these (and every other game's keys), and is what the arcade floor ("Hi-score: 31 ★ all modes", plus "Modes played: 4 of 12") and the Select Player card show.
+
+**Testing:** in `?demo`, keys 1–5 still play the first five notes; with any NOTES choice, hold **Space** to play the note the game is asking for.
 
 ## Note Checker: full range
 

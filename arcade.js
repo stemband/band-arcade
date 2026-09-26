@@ -95,17 +95,20 @@
       const to = GAMES.find(x => x.id === np.game);
       hs.innerHTML = to ? `<a class="np-link" href="${A.startLink(to, '')}">${np.label}</a>` : np.label;
     } else if (!hs.hidden) {
-      hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, pid)} / ${g.maxStars} ` +
-        `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span>` + ((g.playerName || (member ? member.short : inst.shortName)) ? ` <span class="who">(${g.playerName || (member ? member.short : inst.shortName)})</span>` : '');
+      // the ALL-MODES total (Arcade.store.allStars): every NOTES × ORDER combination (games.js `noteModes`), or the game's one key
+      const total = A.store.allStars(member ? member.id : pid, g.id), who = g.playerName || (member ? member.short : inst.shortName);
+      hs.innerHTML = `<b>Hi-score:</b> ${total}${g.noteModes ? '' : ' / ' + g.maxStars} <span class="star" aria-hidden="true">★</span><span class="sr">stars</span>` +
+        (g.noteModes ? ' all modes' : '') + (who ? ` <span class="who">(${who})</span>` : '');
       // games.js `badge`: a count of badges the game keeps in store.gameData(id).badges (e.g. "Test Ready: 3 belts")
       if (g.badge) {
         const n = Object.keys(A.store.gameData(g.id).badges || {}).length;
         if (n) hs.innerHTML += `<span class="scales-note">${g.badge.label}: ${n} ${n === 1 ? g.badge.one : g.badge.many}</span>`;
       }
-      // the other modes save separately; just say how many have been tried
-      const keys = g.modeKeys ? g.modeKeys.map(k => g.id + ':' + k) : g.player === 'all' ? [] : A.Scales ? A.Scales.LIST.map(sc => A.Scales.progressKey(g.id, sc.id)) : [];
-      const started = keys.filter(k => A.store.hasProgress(k, pid)).length;
-      if (started) hs.innerHTML += `<span class="scales-note">${g.modeKeys ? 'Other modes' : 'Scales'}: ${started} of ${keys.length} started</span>`;
+      // how many of the 12 NOTES × ORDER combinations have been played (each saves separately)
+      if (g.noteModes && A.progressKeys) {
+        const keys = A.progressKeys(g.id), started = keys.filter(k => A.store.hasProgress(k, pid)).length;
+        if (started) hs.innerHTML += `<span class="scales-note">Modes played: ${started} of ${keys.length}</span>`;
+      }
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));
     try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }
