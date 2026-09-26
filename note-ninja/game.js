@@ -46,7 +46,7 @@
       const count = st.scale ? A.Scales.sequence(st.scale, L.count).length : L.count;
       const blurb = st.scale ? A.Modes.scaleBlurb([count > scaleLen ? 'Up and down, then again.' : 'Up and down once.',
         L.onStaff > 1 ? `Read ahead: ${L.onStaff} notes at once.` : '', L.guides ? 'Letter guides.' : '', `${L.time} s per note.`]) : L.blurb;
-      return `<button class="lvl belt" data-l="${lv}" style="--belt:var(--${L.color})" ${unlocked ? '' : 'disabled'}>
+      return `<button class="lvl belt${L.sparkle ? ' sparkle' : ''}" data-l="${lv}" style="--belt:var(--${L.color})" ${unlocked ? '' : 'disabled'}>
         <span class="n">${L.name} belt</span>
         <span class="mini" aria-hidden="true"><i class="belt-knot"></i></span>
         <span class="t">${L.onStaff > 1 ? `Read ahead ×${L.onStaff}` : count + ' notes'}</span>
@@ -92,6 +92,7 @@
     $('hudBeltLabel').textContent = `Belt ${lv}`;
     $('hudBeltName').textContent = L.name;
     $('hudChip').style.setProperty('--belt', `var(--${L.color})`);
+    $('hudChip').classList.toggle('sparkle', !!L.sparkle);
     $('ninja').innerHTML = A.ninjaSVG({belt: L.color});
     $('accRow').hidden = !G.accs;
     setAcc(0);
@@ -179,7 +180,7 @@
     if (G) G.acc = a;
     document.querySelectorAll('.acc').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.acc === a)));
     document.querySelectorAll('.letter').forEach(b => {
-      b.firstChild.textContent = b.dataset.letter + ACC_SIGN[a];
+      b.firstChild.textContent = b.dataset.letter + (G && G.L.relabel === false ? '' : ACC_SIGN[a]);   // Diamond: no hint on the buttons
       b.setAttribute('aria-label', b.dataset.letter + (a < 0 ? ' flat' : a > 0 ? ' sharp' : ''));
     });
   }
@@ -298,7 +299,7 @@
     let t = 520;
     if (stars > old.stars) { setTimeout(() => sfx('star-earned'), t); t += 380; }
     if (newBest) { setTimeout(() => sfx('new-high-score'), t); t += 500; }
-    if (newBelt) setTimeout(() => sfx('belt-earned'), t);
+    if (newBelt) setTimeout(() => sfx(BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned'), t);
   }
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));

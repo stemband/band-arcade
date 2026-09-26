@@ -7,7 +7,8 @@
    Games store progress per instrument, per level, as {stars, best}. The arcade home
    page reads that shape to show star totals, so new games should use it too.
    SCALES mode saves each scale under its own game key, '<gameId>:scale-<scaleId>' (Arcade.Scales.progressKey),
-   with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move. */
+   with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move.
+   migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
@@ -27,7 +28,26 @@ window.Arcade = window.Arcade || {};
       if (typeof o.sens === 'number') data.sens = o.sens;
       save();
     }
+    migrate();
   } catch (e) { /* private mode or blocked storage: everything still works, it just won't remember */ }
+
+  /* one-time moves of saved progress, each remembered in data.migrated so it never runs twice */
+  function migrate() {
+    const done = data.migrated || (data.migrated = {});
+    // Note Ninja went from 8 belts to 10 (Red added before Brown, Diamond after Black): old belt 8 (Black)
+    // becomes 9, old 7 (Brown) becomes 8; 7 (Red) and 10 (Diamond) start empty. Every Note Ninja key
+    // (random 'note-ninja', 'note-ninja:scale-…') and every instrument.
+    if (!done['ninja-10-belts']) {
+      Object.keys(data.games || {}).filter(k => k === 'note-ninja' || k.startsWith('note-ninja:')).forEach(k => {
+        Object.values(data.games[k] || {}).forEach(lv => {
+          if (!lv || typeof lv !== 'object') return;
+          [[8, 9], [7, 8]].forEach(([from, to]) => { if (lv[from]) lv[to] = lv[from]; else delete lv[to]; delete lv[from]; });
+        });
+      });
+      done['ninja-10-belts'] = true;
+      save();
+    }
+  }
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
 
