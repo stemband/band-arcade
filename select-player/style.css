@@ -47,6 +47,11 @@
   .preview .card-stars{margin-top:6px}
   .preview .btn-skins{min-height:40px;margin-top:8px}
   .preview .btn-select{margin-top:8px;min-height:50px;padding:6px 10px;font-size:clamp(15px,1.5vw,19px);line-height:1.1}
+  /* Horn's Starting notes toggle: the label on its own line, both buttons on one, and a smaller portrait to make room */
+  .preview .horn-toggle{margin-top:6px;gap:4px 6px}
+  .preview .horn-toggle>span{flex-basis:100%}
+  .preview .horn-toggle button{min-height:36px;padding:2px 14px}
+  .preview:has(.horn-toggle:not([hidden])) .pv-stage{width:min(100%,clamp(120px,calc(100vh - 600px),260px))}
 }
 /* short landscape screens (iPad landscape, 1366 × 768 Chromebooks): a slightly tighter header */
 @media (min-width:900px) and (orientation:landscape) and (max-height:860px){

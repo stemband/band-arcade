@@ -11,7 +11,9 @@
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
                                        preloaded after the first tap, two at a time (school Wi-Fi)
      Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS and AMBIENCE sliders (saved on the device)
-     Arcade.Sfx.allowAmbience(false)   a page where the lobby ambience never plays (every game page)
+     Arcade.Sfx.allowAmbience(false)   a page where the lobby ambience never plays (every game page, Select Player)
+     Arcade.Sfx.allowMusic(true)       a page where the character-select music plays (Select Player only): the
+                                       select-music file, or a built-in original chiptune loop until there is one
    THE MICROPHONE: a sound played while a game is listening (Arcade.Pitch.listening()) makes the detector ignore
    everything for the sound's length + ECHO_MS (Arcade.Pitch.suppress), and games pause their timers meanwhile
    (Arcade.Pitch.isSuppressed). Sounds marked mic: false in sounds.js never play while listening.
@@ -21,15 +23,16 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const GEN_LEVEL = 0.37;      // the generated sounds at 100 % effects (the default 60 % = their old level, 0.22)
   const AMB_GEN_LEVEL = 0.17;  // the generated room hum at 100 % ambience (the default 30 % = its old level, 0.05)
+  const MUS_GEN_LEVEL = 0.5;   // the built-in chiptune at 100 % music
   const ECHO_MS = 250;         // the detector stays deaf this long after a sound ends (room echo)
   const GO_MAX = 1500;         // playThenGo never waits longer than this
-  const DEFAULTS = {sfxVol: 0.6, ambVol: 0.3};
+  const DEFAULTS = {sfxVol: 0.6, ambVol: 0.3, musVol: 0.4};
 
   const AC = window.AudioContext || window.webkitAudioContext;
   const FILE_MODE = location.protocol === 'file:';   // a double-clicked page: Web Audio can't read files, use <audio>
   const here = document.currentScript && document.currentScript.src || (document.querySelector('script[src$="sfx.js"]') || {}).src;
   const BASE = here ? new URL('sounds/', here).href : '';
-  let ctx = null, master = null, fxBus = null, ambBus = null, analyser = null, amb = null, span = 0;
+  let ctx = null, master = null, fxBus = null, analyser = null, span = 0;
   const store = A.store;
   const vol = k => { const v = store && store[k]; return typeof v === 'number' ? v : DEFAULTS[k]; };
   const listening = () => !!(A.Pitch && A.Pitch.listening && A.Pitch.listening());
@@ -44,7 +47,7 @@ window.Arcade = window.Arcade || {};
         fxBus = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
         fxBus.connect(analyser); analyser.connect(ctx.destination);
         master = ctx.createGain(); master.gain.value = GEN_LEVEL; master.connect(fxBus);    // the generated sounds
-        ambBus = ctx.createGain(); ambBus.connect(ctx.destination);
+        Object.values(LOOPS).forEach(c => { c.bus = ctx.createGain(); c.bus.connect(ctx.destination); });
         applySettings();
       }
       if (ctx.state !== 'running') ctx.resume().then(unlocked, () => {}); else unlocked();
@@ -53,7 +56,7 @@ window.Arcade = window.Arcade || {};
   function unlocked() {
     if (ctx.state !== 'running') return;
     UNLOCK_EVENTS.forEach(t => removeEventListener(t, unlock, true));
-    syncAmbience();
+    syncLoops();
     preload();
   }
   // pointerdown/keydown are the first chance; touchend/click are backups for older iPads that only unlock on those
@@ -71,8 +74,10 @@ window.Arcade = window.Arcade || {};
     if (!ctx) return;
     const t = ctx.currentTime;
     fxBus.gain.setTargetAtTime(vol('sfxVol'), t, 0.02);
-    ambBus.gain.setTargetAtTime(store.sfx ? vol('ambVol') : 0, t, 0.05);
-    if (amb && amb.el) amb.el.volume = Math.min(1, (store.sfx ? vol('ambVol') : 0) * amb.level);
+    Object.values(LOOPS).forEach(c => {
+      c.bus.gain.setTargetAtTime(loopVol(c), t, 0.05);
+      if (c.cur && c.cur.el) c.cur.el.volume = Math.min(1, loopVol(c) * c.cur.level);
+    });
   }
 
   /* ---------- the built-in (generated) sounds: the fallbacks ---------- */
@@ -215,7 +220,8 @@ window.Arcade = window.Arcade || {};
   };
   /* the sound each action had before sound files: new names for old sounds */
   const CURRENT = {'wheel-left': SOUNDS.whoosh, 'wheel-right': SOUNDS.whoosh, 'select-default': SOUNDS.coin,
-                   'player-continue': EVENTS['player-select'], 'ui-toggle': SOUNDS.blip, 'lobby-ambience': () => {}};
+                   'player-continue': EVENTS['player-select'], 'ui-toggle': SOUNDS.blip, 'lobby-ambience': () => {},
+                   'select-music': () => {}};     // the loops' built-in versions play through the loop channels below
   /** the built-in sound for an event, and whether it is the action's own ('fallback') or a generic beep */
   function builtIn(name, e) {
     if (EVENTS[name]) return {fn: EVENTS[name], kind: 'fallback'};
@@ -272,7 +278,8 @@ window.Arcade = window.Arcade || {};
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
-          if (file === (entry('lobby-ambience') || {}).file && amb && amb.gen) { stopAmbience(true); syncAmbience(); }   // swap the hum for the file
+          const lc = Object.values(LOOPS).find(c => (entry(c.event) || {}).file === file);
+          if (lc && lc.cur && lc.cur.gen) { stopLoop(lc, true); syncLoops(); }   // swap the built-in loop for the file
           return rec;
         } catch (e) {
           miss.add(base);
@@ -367,7 +374,7 @@ window.Arcade = window.Arcade || {};
     A.Sounds.names().forEach(n => {
       const e = entry(n);
       if (!e || !e.file || !screens.has(e.screen) || files[e.file] || queue.includes(e.file)) return;
-      if (e.loop && !ambienceAllowed) return;
+      if (e.loop && !(loopOf(n) || {}).allowed) return;
       queue.push(e.file);
       if (e.fallback) { const f = entry(e.fallback); if (f && f.file && !queue.includes(f.file) && !files[f.file]) queue.push(f.file); }
     });
@@ -380,29 +387,64 @@ window.Arcade = window.Arcade || {};
     }
   }
 
-  /* ---------- the lobby ambience (arcade floor and Select Player): a seamless loop ---------- */
-  function startAmbience() {
-    if (amb || !ctx) return;
-    const e = entry('lobby-ambience') || {vol: 0.6}, rec = files[e.file];
+  /* ---------- background loops: the lobby AMBIENCE (arcade floor) and the character-select MUSIC (Select Player) ----------
+     Each channel has its event in sounds.js (loop: true), its own slider (ambVol / musVol) and output, where it may play
+     (allowAmbience / allowMusic) and a built-in version for when there is no file: the room hum, and an original chiptune
+     loop rendered once into a buffer (so it loops as seamlessly as a file). Files loop with a baked crossfade (above). */
+  const LOOPS = {
+    amb: {event: 'lobby-ambience', key: 'ambVol', allowed: true, cur: null, bus: null, gen: genHum},
+    mus: {event: 'select-music', key: 'musVol', allowed: false, cur: null, bus: null, gen: genMusic},
+  };
+  const loopOf = name => Object.values(LOOPS).find(c => c.event === name);
+  const loopVol = c => store.sfx ? vol(c.key) : 0;
+  function loopBuffer(c, buf, from, to, level, fadeIn) {
+    const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
+    s.buffer = buf; s.loop = true; s.loopStart = from; s.loopEnd = to;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + fadeIn);   // fades in, never pops
+    s.connect(g); g.connect(c.bus); s.start(t, from);
+    return {out: g, nodes: [s]};
+  }
+  function startLoop(c) {
+    if (c.cur || !ctx) return;
+    const e = entry(c.event) || {vol: 0.6}, rec = files[e.file], level = e.vol == null ? 0.6 : e.vol;
     if (rec && rec.state === 'ok') {
-      const level = e.vol == null ? 0.6 : e.vol;
       if (rec.el) {                                       // a double-clicked page: an <audio> loop
-        const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, vol('ambVol') * level); el.play().catch(() => {});
-        amb = {el, level}; return;
+        const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
+        c.cur = {el, level}; return;
       }
-      const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
-      s.buffer = rec.buf; s.loop = true; s.loopStart = rec.loopStart; s.loopEnd = rec.loopEnd;
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + 1.2);   // fades in, never pops
-      s.connect(g); g.connect(ambBus); s.start(t, rec.loopStart);
-      amb = {out: g, nodes: [s]}; return;
+      c.cur = loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, 1.2); return;
     }
-    if (!rec && e.file) load(e.file);                      // the hum now; the file as soon as it has loaded
-    // the generated room hum (the original ambience)
+    if (!rec && e.file) load(e.file);                      // the built-in loop now; the file as soon as it has loaded
+    c.cur = c.gen(c);
+  }
+  function stopLoop(c, quick) {
+    if (!c.cur) return;
+    const a = c.cur; c.cur = null;
+    if (a.el) { a.el.pause(); return; }
+    if (!a.out) return;                                    // the chiptune was still being rendered
+    const t = ctx.currentTime, fade = quick ? 0.4 : 0.3;
+    a.out.gain.cancelScheduledValues(t);
+    a.out.gain.setValueAtTime(Math.max(0.0001, a.out.gain.value), t);
+    a.out.gain.exponentialRampToValueAtTime(0.0001, t + fade);
+    a.nodes.forEach(o => o.stop(t + fade + 0.05));
+  }
+  function syncLoops() {
+    if (!ctx || ctx.state !== 'running') return;
+    Object.values(LOOPS).forEach(c => {
+      if (c.allowed && store.sfx && vol(c.key) > 0 && !document.hidden && !listening()) startLoop(c); else stopLoop(c);
+    });
+  }
+  document.addEventListener('visibilitychange', syncLoops);
+  addEventListener('pagehide', () => Object.values(LOOPS).forEach(c => stopLoop(c)));
+  addEventListener('pageshow', e => { if (e.persisted) syncLoops(); });   // back button restores the page
+
+  /* the generated room hum (the original ambience) */
+  function genHum(c) {
     const out = ctx.createGain(), lp = ctx.createBiquadFilter();
     out.gain.setValueAtTime(0.0001, ctx.currentTime);
     out.gain.exponentialRampToValueAtTime(AMB_GEN_LEVEL, ctx.currentTime + 1.5);
     lp.type = 'lowpass'; lp.frequency.value = 300;
-    lp.connect(out); out.connect(ambBus);
+    lp.connect(out); out.connect(c.bus);
     const hum = [60, 60.7, 120].map((f, i) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sawtooth'; o.frequency.value = f; g.gain.value = i === 2 ? 0.15 : 0.35;
@@ -411,26 +453,84 @@ window.Arcade = window.Arcade || {};
     const n = noise(), nf = ctx.createBiquadFilter(), ng = ctx.createGain();
     n.loop = true; nf.type = 'lowpass'; nf.frequency.value = 700; ng.gain.value = 0.25;
     n.connect(nf); nf.connect(ng); ng.connect(out); n.start();
-    amb = {out, nodes: [...hum, n], gen: true};
+    return {out, nodes: [...hum, n], gen: true};
   }
-  function stopAmbience(quick) {
-    if (!amb) return;
-    const a = amb; amb = null;
-    if (a.el) { a.el.pause(); return; }
-    const t = ctx.currentTime, fade = quick ? 0.4 : 0.3;
-    a.out.gain.cancelScheduledValues(t);
-    a.out.gain.setValueAtTime(Math.max(0.0001, a.out.gain.value), t);
-    a.out.gain.exponentialRampToValueAtTime(0.0001, t + fade);
-    a.nodes.forEach(o => o.stop(t + fade + 0.05));
+  /* the built-in character-select music: an original 8-bar chiptune (A minor, 132 bpm, about 14.5 s) with a pulse lead,
+     a 16th-note arpeggio, a triangle bass and noise drums. Rendered once per page (OfflineAudioContext), then looped. */
+  function genMusic(c) {
+    if (c.buf) return Object.assign(loopBuffer(c, c.buf, 0, c.buf.duration, MUS_GEN_LEVEL, 0.8), {gen: true});
+    const wait = {gen: true, rendering: true};
+    if (!c.rendering) c.rendering = renderChiptune().then(buf => {
+      c.buf = buf;
+      if (c.cur && c.cur.rendering) { c.cur = null; syncLoops(); }   // still wanted: start it now
+    }, () => { if (c.cur && c.cur.rendering) c.cur = null; });
+    return wait;
   }
-  let ambienceAllowed = true;
-  function syncAmbience() {
-    if (!ctx || ctx.state !== 'running') return;
-    if (ambienceAllowed && store.sfx && vol('ambVol') > 0 && !document.hidden && !listening()) startAmbience(); else stopAmbience();
+  const CHIP = {
+    bpm: 132,
+    chords: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62], [57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 56, 59]],   // Am F C G Am F G E
+    // the lead, one bar per line: [16th step, midi, length in 16ths]
+    lead: [[[0, 76, 4], [4, 81, 2], [6, 79, 2], [8, 76, 4], [12, 74, 2], [14, 72, 2]],
+           [[0, 72, 4], [4, 77, 2], [6, 76, 2], [8, 72, 6], [14, 69, 2]],
+           [[0, 67, 4], [4, 72, 2], [6, 74, 2], [8, 76, 4], [12, 79, 4]],
+           [[0, 74, 6], [6, 71, 2], [8, 67, 8]],
+           [[0, 76, 2], [2, 76, 2], [4, 81, 4], [8, 83, 2], [10, 84, 2], [12, 83, 2], [14, 81, 2]],
+           [[0, 81, 4], [4, 79, 2], [6, 77, 2], [8, 76, 4], [12, 72, 4]],
+           [[0, 74, 2], [2, 76, 2], [4, 79, 4], [8, 77, 2], [10, 76, 2], [12, 74, 4]],
+           [[0, 71, 4], [4, 76, 4], [8, 80, 4], [12, 83, 4]]],
+  };
+  function renderChiptune() {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) return Promise.reject(new Error('no OfflineAudioContext'));
+    const sr = 32000, step = 60 / CHIP.bpm / 4, bars = CHIP.chords.length, len = bars * 16 * step;
+    const oc = new OAC(1, Math.ceil(len * sr), sr);
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+    const out = oc.createGain(); out.gain.value = 1; out.connect(oc.destination);
+    const nb = oc.createBuffer(1, sr, sr), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    // one note: every note ends a little before its slot, so nothing rings across the loop point
+    const note = (type, m, t, dur, v, cut) => {
+      const o = oc.createOscillator(), g = oc.createGain(), end = t + Math.max(0.03, dur - 0.02);
+      o.type = type; o.frequency.value = hz(m);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.005);
+      g.gain.setTargetAtTime(v * 0.6, t + 0.01, 0.08); g.gain.setTargetAtTime(0, end - 0.015, 0.006);
+      let node = o;
+      if (cut) { const f = oc.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cut; o.connect(f); node = f; }
+      node.connect(g); g.connect(out); o.start(t); o.stop(end + 0.02);
+    };
+    const hit = (t, v, hp, dec) => {                     // noise drums
+      const s = oc.createBufferSource(), f = oc.createBiquadFilter(), g = oc.createGain();
+      s.buffer = nb; f.type = 'highpass'; f.frequency.value = hp;
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0005, t + dec);
+      s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * 0.5); s.stop(t + dec + 0.01);
+    };
+    const kick = t => {
+      const o = oc.createOscillator(), g = oc.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.16);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.17);
+    };
+    CHIP.chords.forEach((ch, bar) => {
+      const b0 = bar * 16 * step;
+      for (let i = 0; i < 16; i++) {
+        const t = b0 + i * step;
+        note('square', ch[i % 3] + 12 + (i % 6 === 5 ? 12 : 0), t, step, 0.035, 2600);                      // arpeggio
+        if (i % 2 === 0) note('triangle', ch[0] - 12 + (i % 4 === 2 ? 12 : 0), t, step * 2, 0.24);            // bass, 8ths
+        if (i % 2 === 0) hit(t, i % 4 === 2 ? 0.07 : 0.045, 7000, 0.04);                                       // hi-hat
+        if (i === 0 || i === 8 || (i === 10 && bar % 2)) kick(t);
+        if (i === 4 || i === 12) { hit(t, 0.2, 1500, 0.12); note('triangle', 50, t, 0.07, 0.12); }             // snare
+      }
+      CHIP.lead[bar].forEach(([st, m, l]) => note('square', m, b0 + st * step, l * step, 0.085, 3800));
+    });
+    const done = new Promise(res => { oc.oncomplete = e => res(e.renderedBuffer); });
+    const p = oc.startRendering();
+    return (p && p.then ? p : done).then(buf => {                 // normalized, so the MUSIC slider sets the level
+      const d = buf.getChannelData(0); let peak = 0;
+      for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+      if (peak > 0) for (let i = 0; i < d.length; i++) d[i] *= 0.9 / peak;
+      return buf;
+    });
   }
-  document.addEventListener('visibilitychange', syncAmbience);
-  addEventListener('pagehide', () => stopAmbience());
-  addEventListener('pageshow', e => { if (e.persisted) syncAmbience(); });   // back button restores the page
 
   /* ---------- the controls: a speaker button that opens SOUND ON/OFF and two volume sliders ---------- */
   let popId = 0;
@@ -444,8 +544,9 @@ window.Arcade = window.Arcade || {};
       `<div class="snd-pop" id="${id}" role="group" aria-label="Sound settings" hidden>` +
         `<button type="button" class="snd-btn snd-toggle">${SPK}<span class="snd-txt"></span></button>` +
         `<label class="snd-row"><span>Effects</span><input type="range" min="0" max="100" step="5" data-k="sfxVol" aria-label="Effects volume"><output></output></label>` +
+        `<label class="snd-row"><span>Music</span><input type="range" min="0" max="100" step="5" data-k="musVol" aria-label="Music volume"><output></output></label>` +
         `<label class="snd-row"><span>Ambience</span><input type="range" min="0" max="100" step="5" data-k="ambVol" aria-label="Ambience volume"><output></output></label>` +
-        `<p class="snd-note"${ambienceAllowed ? ' hidden' : ''}>Ambience plays on the arcade floor.</p>` +
+        `<p class="snd-note" hidden></p>` +
       `</div>`;
     const open = el.querySelector('.snd-open'), pop = el.querySelector('.snd-pop'), tg = el.querySelector('.snd-toggle');
     function draw() {
@@ -457,18 +558,21 @@ window.Arcade = window.Arcade || {};
         r.value = Math.round(vol(r.dataset.k) * 100); r.nextElementSibling.textContent = r.value + '%';
         r.disabled = !on;
       });
-      el.querySelector('.snd-note').hidden = ambienceAllowed;
+      // where the loops play, when it isn't here
+      const note = el.querySelector('.snd-note'), m = !LOOPS.mus.allowed, a = !LOOPS.amb.allowed;
+      note.hidden = !m && !a;
+      note.textContent = m && a ? 'Music plays on Select Player, ambience on the arcade floor.' : m ? 'Music plays on Select Player.' : a ? 'Ambience plays on the arcade floor.' : '';
     }
     const show = v => { pop.hidden = !v; open.setAttribute('aria-expanded', v); };
     open.addEventListener('click', () => { show(pop.hidden); if (!pop.hidden) tg.focus(); });
     tg.addEventListener('click', () => {
-      store.setSfx(!store.sfx); draw(); applySettings(); syncAmbience();
+      store.setSfx(!store.sfx); draw(); applySettings(); syncLoops();
       if (store.sfx) playEvent('ui-toggle', {force: true}); refreshAll();
     });
     el.querySelectorAll('input[type=range]').forEach(r => {
       r.addEventListener('input', () => {
         store.setVolume(r.dataset.k, r.value / 100); r.nextElementSibling.textContent = r.value + '%';
-        applySettings(); if (r.dataset.k === 'ambVol') syncAmbience();
+        applySettings(); if (r.dataset.k !== 'sfxVol') syncLoops();
       });
       r.addEventListener('change', () => { if (r.dataset.k === 'sfxVol') playEvent('ui-toggle'); refreshAll(); });
     });
@@ -501,7 +605,9 @@ window.Arcade = window.Arcade || {};
       if (!ready()) return false;
       try { bell(midi); return true; } catch (e) { return false; }
     },
-    allowAmbience(on) { ambienceAllowed = !!on; syncAmbience(); refreshAll(); },
+    allowAmbience(on) { LOOPS.amb.allowed = !!on; syncLoops(); refreshAll(); },
+    /** the character-select music may play on this page (Select Player); false fades it out (leaving the page) */
+    allowMusic(on) { LOOPS.mus.allowed = !!on; syncLoops(); refreshAll(); },
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */
@@ -527,7 +633,11 @@ window.Arcade = window.Arcade || {};
         return {kind: builtIn(name, e).kind === 'generated' && !(e && e.fallback) ? 'generated' : 'fallback'};
       },
       play: name => playEvent(name, {force: true}),
-      ambience(on) { if (on) { ambienceAllowed = true; startAmbience(); } else stopAmbience(); return amb; },
+      /** start / stop a loop event ('lobby-ambience', 'select-music') here, wherever it is normally allowed */
+      loop(name, on) { const c = loopOf(name); if (!c) return null; if (on) { c.allowed = true; startLoop(c); } else stopLoop(c); return c.cur; },
+      ambience(on) { return Sfx.board.loop('lobby-ambience', on); },
+      renderChiptune,                                     // the built-in music as an AudioBuffer (tests, listening)
+      loopState: name => { const c = loopOf(name); return c ? {allowed: c.allowed, playing: !!c.cur, gen: !!(c.cur && c.cur.gen), rendered: !!c.buf} : null; },
       analyser: () => analyser,
       bus: () => fxBus,                                   // the effects output (the board plays its loop test into it)
       entry,

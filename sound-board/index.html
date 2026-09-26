@@ -192,14 +192,16 @@
   async function loopTest(n, row, how) {
     const ctx = B.start(); if (!ctx) return;
     if (loop) { try { loop.stop(); } catch (x) {} loop = null; }
-    B.ambience(false);
+    ['lobby-ambience', 'select-music'].forEach(k => B.loop(k, false));
     const info = row.querySelector('[data-loopinfo]');
     if (how === 'stop') { info.textContent = ''; return; }
     const rec = await B.load(n, true); label(n);
     if (!rec || rec.state !== 'ok' || !rec.buf) {
-      B.ambience(true);
+      B.loop(n, true);                                   // the built-in version (room hum / chiptune), or the <audio> loop
+      const f = S.get(n).file;
       info.textContent = rec && rec.el ? 'Your file is playing as a plain <audio> loop (this page was opened from a file, so the seam can\'t be measured). Serve the site to test the seam.'
-        : 'No lobby-ambience file yet: this is the built-in room hum. Upload lobby-ambience.m4a or .mp3 and check again.';
+        : `No ${f} file yet: this is the built-in ${n === 'select-music' ? 'chiptune loop' : 'room hum'}. Upload ${f}.m4a or .mp3 and check again.`;
+      peakFor = row.querySelector('[data-peak]'); peakMax = 0; peakUntil = performance.now() + 20000;
       return;
     }
     const s = ctx.createBufferSource(), g = ctx.createGain();

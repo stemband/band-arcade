@@ -24,6 +24,7 @@
   $('homeLink').addEventListener('click', e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); A.Sfx.playThenGo('ui-back', e.currentTarget.href); });
   A.Sfx.mountControls($('soundCtl'));
   A.Sfx.use('select');                                  // this screen's sounds load after the first tap
+  A.Sfx.allowAmbience(false); A.Sfx.allowMusic(true);    // character select music here (the MUSIC slider), not the room ambience
   document.body.className = A.trimClasses(game);          // this game's neon colors for the whole page
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
 
@@ -172,7 +173,10 @@
     setTimeout(() => A.Sfx.event('player-ready'), 260);
     const wait = reduced.matches ? 700 : 1100;
     if (two && phase === 1) setTimeout(() => { r.hidden = true; startPlayer2(id); leaving = false; }, wait);
-    else setTimeout(() => { location.href = gameLink; }, wait);
+    else {
+      setTimeout(() => A.Sfx.allowMusic(false), Math.max(0, wait - 400));   // the music fades out as the game opens
+      setTimeout(() => { location.href = gameLink; }, wait);
+    }
   }
   /* Player 2: the 1P tile stays marked, the highlight becomes magenta 2P, and CPU joins the grid */
   function startPlayer2(p1) {
