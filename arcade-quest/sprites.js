@@ -4,12 +4,11 @@
    to a THEME TOKEN in shared/theme.css (without --), so no color is hard-coded here: 'q-brass', 'q-out'…
    Rows may be shorter than w (the rest is transparent).
 
-   PLAYERS (band kids, 32 × 32) are built in layers by the renderer (engine/sprites.js), from back to front:
-     legs → back arm → instrument parts marked 'back' → body and head → the instrument → hands → front arm.
-     Front-held instruments go over the torso (a character facing you would hide them otherwise); both hands are
-     drawn on top of the instrument so it reads as HELD. Arms are drawn in code from each SHOULDER to a hand point.
-     BODY: the three views (SIDE facing right, FRONT, BACK), palette slots o outline (the equipped skin's color),
-       h hair, s skin (the chosen tone), e eyes, m mouth, c shirt (the instrument's --pt-<id>), p pants, b shoes.
+   PLAYERS (32 × 32) are the student's AVATAR (Create Your Player: shared/avatar-parts.js + shared/avatar.js) holding
+     their instrument, drawn in layers, back to front: legs (or a wheelchair and seated legs) → hair/cape behind →
+     back arm → instrument parts marked 'back' → body and head → the instrument → hands → front arm → 'top' parts.
+     Front-held instruments go over the torso; both hands are drawn on top of the instrument so it reads as HELD.
+     Arms are drawn in code from each SHOULDER (below) to a hand point.
      SHAPES: every instrument's pixel maps (palette INSTRUMENT_PALETTE).
      POSES[memberId] = {side, front, play}: CARRY facing right / CARRY facing the viewer (the back view uses the front
        one, hidden behind the body) / PLAYING (side view). Each = {parts: [[shape, x, y, 'back'?]], hands}, or for
@@ -18,37 +17,19 @@
        hands = {back, front} (side view) or
        {left, right} (front view, as you look at it): [x, y] = the 2 × 2 hand's top-left pixel, 'rest' = arm down.
        NUDGE A HAND OR AN INSTRUMENT HERE: x grows to the right, y grows down, on the 32 × 32 canvas.
-     Handy spots: SIDE mouth (18, 11), shoulders back (13, 15) / front (16, 15), torso x 11–19, feet y 30.
-                  FRONT mouth (15–16, 11), shoulders left (11, 15) / right (20, 15), torso x 10–21.
+     Handy spots: SIDE mouth (18, 11), shoulders back (13, 15) / front (16, 15), torso x 12–18, feet y 30.
+                  FRONT mouth (15–16, 11), shoulders left (11, 15) / right (20, 15), torso x 11–20.
    YOUR OWN ART: put arcade-quest/art/<sprite id>.png (frames side by side, each w × h, transparent background)
-   and it replaces the drawn sprite. Players use ONE sheet per instrument, art/player-<member id>.png (rows for
-   views and poses: see arcade-quest/art/README.md); enemies their id, e.g. art/squawk.png (32 × 32 × 3 frames:
-   idle, idle, happy). */
+   and it replaces the drawn sprite, e.g. art/squawk.png (32 × 32 × 3 frames: idle, idle, happy). Players are
+   always the student's avatar (no PNG). */
 window.QUEST_ART = {};
 (function (Q) {
   "use strict";
-  const mirror = half => half.map(r => r + [...r].reverse().join(''));
 
-  /* ---------- the players ---------- */
-  const pad = rows => Array.from({length: 32}, (_, i) => rows[i] || '');
-  Q.BODY = {
-    // facing right (battle; walking left/right in the overworld, mirrored for left)
-    SIDE: pad(['', '', '............oooooo', '..........oohhhhhhoo', '.........ohhhhhhhhhho', '.........ohhhhhhhhhho',
-      '.........ohhhhhhsssso', '.........ohhhhhssssso', '.........ohhhhsssseso', '.........ohhhhssssssso', '.........ohhhssssssso',
-      '..........ohhsssssmo', '...........ohssssso', '............oossoo', '...........occccccco', '...........occccccco',
-      '...........occccccco', '...........occccccco', '...........occccccco', '...........occccccco', '...........occccccco',
-      '...........opppppppo']),
-    // facing the viewer (walking down)
-    FRONT: pad(mirror(['', '', '............oooo', '..........oohhhh', '.........ohhhhhh', '.........ohhhhhh', '.........ohhhhss',
-      '.........ohhssss', '.........ohsssss', '.........osssess', '.........ossssss', '.........osssssm', '..........osssss',
-      '...........oooss', '..........occcccc', '..........occcccc', '..........occcccc', '..........occcccc', '..........occcccc',
-      '..........occcccc', '..........occcccc', '..........oppppp'])),
-  };
-  Q.BODY.BACK = Q.BODY.FRONT.map((row, y) => (y < 14 ? row.replace(/[sem]/g, 'h') : row));      // the back of the head: all hair
+  /* ---------- the players ----------
+     Their bodies, faces, hair and clothes are the student's AVATAR (shared/avatar-parts.js, drawn by shared/avatar.js).
+     These are the arm SHOULDERS the avatar's arms start from (the hands go to each POSE's hand points). */
   Q.SHOULDERS = {side: {back: [13, 15], front: [16, 15]}, front: {left: [11, 15], right: [20, 15]}};
-  Q.LEGS = {side: {back: 14, front: 16}, front: {left: 13, right: 18}, top: 22, foot: 29};      // hip x, first leg row, shoe row
-  Q.BODY_PALETTE = {o: 'q-out', h: 'q-hair', s: 'q-skin-2', e: 'q-black', m: 'q-out', c: 'cyan', p: 'q-pants', b: 'q-shoe'};
-  Q.SKIN_TONES = ['q-skin-1', 'q-skin-2', 'q-skin-3', 'q-skin-4'];
 
   /* instrument pixels: g brass, G brass shadow, m silver, M silver shadow, k black (a dark grey, so it shows on black), w dark wood, W light wood,
      r reed, d drum shell, D drum head, 1–6 bell bars, s stick or mallet shaft, x mallet or stick tip */

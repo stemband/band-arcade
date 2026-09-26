@@ -54,6 +54,9 @@ window.Arcade = window.Arcade || {};
     // ---- everywhere -------------------------------------------------------------------------------------------
     'ui-back':         {file: 'ui-back',   vol: .6, mic: true, screen: 'general', when: '"← ARCADE": back to the arcade floor.', len: '0.1–0.3 s'},
     'ui-toggle':       {file: 'ui-toggle', vol: .5, mic: true, screen: 'general', when: 'SOUND ON, the horn\'s Starting notes, NOTES × ORDER and other toggles.', len: '0.05–0.15 s'},
+    'avatar-change':    {file: 'avatar-change',    vol: .45, mic: true, screen: 'general', gen: 'ui-toggle', when: 'Create Your Player: picking any option (a hair style, a color, a word of your name…).', len: '0.05–0.15 s'},
+    'avatar-randomize': {file: 'avatar-randomize', vol: .6, mic: true, screen: 'general', gen: [[523, 0, .06, .25], [784, .05, .06, .25], [659, .1, .06, .25], [1047, .15, .1, .25]], when: 'Create Your Player: SURPRISE ME (everything, one tab, or a random name).', len: '0.2–0.5 s'},
+    'avatar-save':      {file: 'avatar-save',      vol: .7, mic: true, screen: 'general', gen: 'skin-equip', when: 'Create Your Player: SAVE.', len: '0.3–0.6 s'},
     // ---- every game --------------------------------------------------------------------------------------------
     'level-start':     {file: 'level-start',    vol: .8, mic: true, screen: 'game', when: 'A level begins.', len: '0.3–0.8 s'},
     'note-hit':        {file: 'note-hit',       vol: .7, mic: true, play: true, screen: 'game', when: 'A correct note.', len: 'under 0.5 s (0.1–0.3 s)'},

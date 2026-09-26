@@ -223,6 +223,6 @@ window.QUEST_ENEMIES = [
     rewards: {fade: {xp: 30, tokens: 15}, befriend: {xp: 60, tokens: 40, item: 'baton'}},
     lines: {intro: 'The Ghost Conductor taps his baton on the podium. Tap. Tap. TAP.', turn: ['"FROM THE TOP!"', 'The Conductor slashes his baton through the air!', '"Watch. My. BATON!"', 'The Conductor beats a furious 4/4.'],
       hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting.',
-      befriend: '"My orchestra... I can hear them! Take my baton, {you}. You\'ve earned it."', hold: 'The Conductor won\'t give up his podium. Keep playing!'},
+      befriend: '"My orchestra... I can hear them! Take my baton, {hero}."', hold: 'The Conductor won\'t give up his podium. Keep playing!'},
   },
 ];

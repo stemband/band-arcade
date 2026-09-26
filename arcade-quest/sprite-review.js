@@ -2,7 +2,8 @@
    Every instrument's band kid in every pose and frame: CARRY facing right (idle ×2, walk ×4; walking left is the
    same, mirrored), facing the viewer and facing away (idle ×2, walk ×4 each), and PLAYING (2 frames: breathing,
    or for bells and snare mallets up / striking). Each frame is shown at 1× and at the chosen zoom, on a dark or a
-   light background (or both), with a live animated preview per character. Nothing is saved from this page.
+   light background (or both), with a live animated preview per character, drawn as your avatar (Create Your Player),
+   a random one or yours in a wheelchair (it rolls instead of walking). Nothing is saved from this page.
    To nudge a hand or an instrument: arcade-quest/sprites.js, POSES (then reload this page). */
 (function (A) {
   "use strict";
@@ -25,7 +26,7 @@
   }
 
   Q.spriteReview = function () {
-    const state = {zoom: 4, bg: 'both', tone: 1};
+    const state = {zoom: 4, bg: 'both', look: 'mine', avatar: null};
     document.body.classList.add('q-review');
     const root = Q.el('main', 'spr');
     root.innerHTML = `<header class="spr-head"><h1>Arcade Quest · Sprite review</h1>
@@ -33,7 +34,7 @@
       <div class="spr-controls">
         <span>Zoom</span>${[1, 2, 4].map(z => `<button type="button" data-zoom="${z}">${z}×</button>`).join('')}
         <span>Background</span>${[['dark', 'Dark'], ['light', 'Light'], ['both', 'Both']].map(([v, l]) => `<button type="button" data-bg="${v}">${l}</button>`).join('')}
-        <span>Skin tone</span>${[0, 1, 2, 3].map(t => `<button type="button" data-tone="${t}">${t + 1}</button>`).join('')}
+        <span>Look</span>${[['mine', 'Your player'], ['random', 'A random player'], ['chair', 'In a wheelchair']].map(([v, l]) => `<button type="button" data-look="${v}">${l}</button>`).join('')}
       </div></header><div id="srList"></div>`;
     document.body.prepend(root);
     const list = root.querySelector('#srList');
@@ -42,11 +43,11 @@
     function render() {
       root.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.zoom === state.zoom));
       root.querySelectorAll('[data-bg]').forEach(b => b.setAttribute('aria-pressed', b.dataset.bg === state.bg));
-      root.querySelectorAll('[data-tone]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.tone === state.tone));
+      root.querySelectorAll('[data-look]').forEach(b => b.setAttribute('aria-pressed', b.dataset.look === state.look));
       list.innerHTML = ''; previews.length = 0;
       const bgs = state.bg === 'both' ? ['dark', 'light'] : [state.bg];
       A.PLAYERS.forEach(mid => {
-        const m = A.memberById(mid), base = Q.playerId(mid, {tone: state.tone});
+        const m = A.memberById(mid), base = Q.playerId(mid, {avatar: state.avatar});
         const card = Q.el('section', 'spr-card');
         card.innerHTML = `<h2>${m.name}</h2>`;
         const pv = Q.el('div', 'spr-preview');
@@ -79,7 +80,10 @@
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.zoom) state.zoom = +b.dataset.zoom;
       if (b.dataset.bg) state.bg = b.dataset.bg;
-      if (b.dataset.tone) state.tone = +b.dataset.tone;
+      if (b.dataset.look) {                          // the players are avatars (Create Your Player): yours, a random one, or yours in a wheelchair
+        state.look = b.dataset.look;
+        state.avatar = state.look === 'random' ? A.Avatar.random() : state.look === 'chair' ? Object.assign(A.Avatar.get(), {chair: true}) : null;
+      }
       render();
     });
     render();

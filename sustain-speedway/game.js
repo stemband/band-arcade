@@ -88,7 +88,7 @@
     document.body.classList.add('racing');
     $('raceDiff').textContent = `${d.name} · full speed within ±${d.tol}¢`;
     $('hudOf').textContent = `of ${rivals.length + 1}`;
-    $('whoPic').innerHTML = A.portraitHTML(who, {size: 'tile', label: member.short});
+    $('whoPic').innerHTML = A.avatarHTML ? A.avatarHTML({size: 'tile', member: who}) : A.portraitHTML(who, {size: 'tile', label: member.short});   // the driver: the student's avatar
     drawGauge(); drawNote(); hud(); resize();
     window.scrollTo(0, 0);
     resetHearing();

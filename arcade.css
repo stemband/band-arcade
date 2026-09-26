@@ -132,6 +132,8 @@
    It covers the floor and scrolls by itself; the floor behind it is hidden (and the 3D view stops drawing). */
 .sp-view{position:fixed;inset:0;z-index:30;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background:linear-gradient(180deg,var(--deep),var(--floor) 60%,var(--deep))}
+/* overlays added to the page (the skins catch-up card, BACKUP / RESTORE, "Create your player?") go above the view */
+body.in-select>.overlay{z-index:40}
 .sp-view[hidden]{display:none}
 body.in-select{overflow:hidden}
 body.in-select>.sign,body.in-select>main,body.in-select>#soundCtl{visibility:hidden}

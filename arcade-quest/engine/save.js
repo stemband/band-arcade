@@ -11,7 +11,7 @@
    `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
    star sources the next time the Token Booth counts (engine/talk.js).
    Every write also stores `progress` = {pct, friends} for the arcade floor's line ("Episode 1: 60% · 7 friends").
-   SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool, tone: 0–3 (skin tone)}.
+   SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool} (your look and name: Create Your Player, EDIT PLAYER here).
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
    Q.settings.open() shows the SETTINGS panel. */
 (function (A) {
@@ -78,7 +78,7 @@
     helped: () => Object.keys(Q.save.get().done || {}).length,
   };
 
-  const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false, tone: 1};
+  const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false};
   Q.settings = {
     get() { const d = data(); d.settings = Object.assign({}, DEFAULTS, d.settings || {}); return d.settings; },
     set(patch) { Object.assign(this.get(), patch); write(); },
@@ -93,14 +93,14 @@
           `<div class="q-row"><span>Text speed</span>${seg('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']])}</div>` +
           `<div class="q-row"><span>Dodging</span>${seg('dodge', [['easy', 'Easy'], ['normal', 'Normal']])}</div>` +
           `<div class="q-row"><span>Assist mode</span>${seg('assist', [['false', 'Off'], ['true', 'On']])}<small>On: enemies' sour notes do half damage.</small></div>` +
-          `<div class="q-row"><span>Your look</span>${seg('tone', [[0, '<i class="q-tone t0"></i>'], [1, '<i class="q-tone t1"></i>'], [2, '<i class="q-tone t2"></i>'], [3, '<i class="q-tone t3"></i>']])}</div>` +
+          (A.AvatarCreator ? `<div class="q-row"><span>Your player</span><button type="button" class="q-chip q-edit-av">Edit player</button><small>Your look and your name, everywhere in the arcade.</small></div>` : '') +
           `<div class="q-row"><span>Sound &amp; music</span><div class="q-snd" id="qSnd"></div><small>The same settings as the rest of the arcade.</small></div>` +
           `<div class="q-row"><span>Motion</span><small>${Q.reduced() ? 'Reduced motion is on (from your device): no screen shake or flashing.' : 'Screen shake is on. Turn on "reduce motion" on your device to switch it off.'}</small></div>` +
           `<button type="button" class="q-btn q-close">Done</button></div>`;
         Q.ui.appendChild(p);
         if (A.Sfx) A.Sfx.mountControls(p.querySelector('#qSnd'));
         p.querySelectorAll('.q-seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-          const k = g.dataset.k, raw = b.dataset.v, v = k === 'assist' ? raw === 'true' : k === 'tone' ? +raw : raw;
+          const k = g.dataset.k, raw = b.dataset.v, v = k === 'assist' ? raw === 'true' : raw;
           this.set({[k]: v}); Q.sfx('quest-select');
           g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
           if (Q.onSettings) Q.onSettings();
@@ -108,6 +108,8 @@
         const close = () => { off(); p.remove(); done(); };
         const off = Q.input.on(btn => { if (btn === 'b') close(); return true; });   // arrows/Tab move between buttons
         p.querySelector('.q-close').addEventListener('click', close);
+        const ed = p.querySelector('.q-edit-av');                     // Create Your Player (shared/avatar-creator.js)
+        if (ed) ed.addEventListener('click', () => A.AvatarCreator.open({onClose: () => { if (Q.onSettings) Q.onSettings(); ed.focus(); }}));
         p.querySelector('.q-chip[aria-pressed="true"]').focus();
       });
     },

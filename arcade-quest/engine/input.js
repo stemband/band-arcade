@@ -24,6 +24,7 @@
   };
   addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (document.body.classList.contains('avc-open')) return;   // Create Your Player is open: its own keys
     const k = KEYS[e.key] || KEYS[e.key.toLowerCase && e.key.toLowerCase()];
     if (!k) return;
     if (input.blocked) return;                                  // a playing challenge: the keys are the demo notes

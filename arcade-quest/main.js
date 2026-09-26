@@ -15,7 +15,7 @@
   // the music manager (shared/sfx.js) starts each scene's track as soon as it has loaded; fetch the likely ones now
   A.Sfx.preloadMusic(['quest-title', 'quest-foyer', 'quest-manor', 'quest-battle']);
   Q.challengeSetup(inst, member);
-  const hero = () => Q.playerId(member.id, {tone: Q.settings.get().tone});   // your sprite (rebuilt when SETTINGS change)
+  const hero = () => Q.playerId(member.id);   // your avatar's sprite (rebuilt when SETTINGS / EDIT PLAYER change it)
   hero(); Q.onSettings = hero;
   Q.mountPad(Q.$('pad'));
   document.body.classList.toggle('q-touch', Q.input.touch);

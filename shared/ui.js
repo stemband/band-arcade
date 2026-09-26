@@ -214,13 +214,16 @@ window.Arcade = window.Arcade || {};
   /** Standard game top bar: "← Arcade" back to the arcade floor on the left, the sound button and instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
   /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player.
-     {portrait: 'bells'}: the portrait for a fixed label. The chip shows the saved instrument's tiny portrait
-     (shared/portraits.js, when the page loads it) and its name. */
+     {portrait: 'bells'}: the portrait for a fixed label. The chip shows the student's avatar (shared/avatar.js,
+     when the page loads it; else the instrument's tiny portrait) and the instrument's name. */
   A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed, portrait} = {}) {
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;
-    const pic = id => id && A.portraitHTML ? `<span class="chip-pic" aria-hidden="true">${A.portraitHTML(id, {size: 'chip'})}</span>` : '';
+    // the student's AVATAR (shared/avatar.js, Create Your Player) wearing this instrument's skins; a fixed-instrument
+    // game (Chime Heist) shows its instrument instead
+    const pic = id => !id ? '' : !fixed && A.avatarHTML ? `<span class="chip-pic" aria-hidden="true">${A.avatarHTML({size: 'chip', member: id})}</span>`
+      : A.portraitHTML ? `<span class="chip-pic" aria-hidden="true">${A.portraitHTML(id, {size: 'chip'})}</span>` : '';
     el.innerHTML =
       `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +

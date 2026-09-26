@@ -120,6 +120,9 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 |---|---|---|---|
 | `ui-back` | `ui-back.m4a` or `ui-back.mp3` | "← ARCADE": back to the arcade floor. | 0.1–0.3 s |
 | `ui-toggle` | `ui-toggle.m4a` or `ui-toggle.mp3` | SOUND ON, the horn's Starting notes, NOTES × ORDER and other toggles. | 0.05–0.15 s |
+| `avatar-change` | `avatar-change.m4a` or `avatar-change.mp3` | Create Your Player: picking any option (a hair style, a color, a word of your name…). Without it: the toggle blip. | 0.05–0.15 s |
+| `avatar-randomize` | `avatar-randomize.m4a` or `avatar-randomize.mp3` | Create Your Player: SURPRISE ME (everything, one tab, or a random name). Without it: a quick built-in arpeggio. | 0.2–0.5 s |
+| `avatar-save` | `avatar-save.m4a` or `avatar-save.mp3` | Create Your Player: SAVE. Without it: the skin-equip sound. | 0.3–0.6 s |
 
 ### Every game (shared events)
 

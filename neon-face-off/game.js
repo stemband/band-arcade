@@ -35,8 +35,11 @@
   const remember = () => A.store.saveGameData(GAME_ID);
 
   /* ---------- the two players ---------- */
+  /* a human player: Player 1 is this device's avatar, Player 2 the GUEST avatar (shared/avatar.js; SURPRISE ME
+     re-rolls it, and it never replaces the device's own). name = the avatar's name, inst = the instrument */
+  const avName = n => A.Avatar ? A.Avatar.nameOf(n === 1 ? A.Avatar.get() : A.Avatar.guest()) : '';
   function human(n, member, group) {
-    return {n, cpu: false, member, group, name: member.short, color: n === 1 ? 'cyan' : 'pink', pic: member.id, memory: `${GAME_ID}:p${n}`};
+    return {n, cpu: false, member, group, name: avName(n) || member.short, inst: member.short, color: n === 1 ? 'cyan' : 'pink', pic: member.id, memory: `${GAME_ID}:p${n}`};
   }
   const P = [human(1, A.currentMember(), inst1)];
   if (vsCPU) P.push({n: 2, cpu: true, color: 'pink', memory: `${GAME_ID}:p2`});
@@ -47,7 +50,9 @@
     saved.settings.rival = lv; remember();
   }
   if (vsCPU) setRival(Math.min(RIVALS.length, Math.max(1, saved.settings.rival || 1)));
-  const portrait = (p, size) => A.portraitHTML(p.pic, {size, color: p.cpu ? `var(--${p.R.color})` : undefined, label: p.name});
+  const portrait = (p, size) => !p.cpu && A.avatarHTML
+    ? A.avatarHTML({size, member: p.n === 1 ? p.member.id : null, guest: p.n === 2, label: `${p.name}, ${p.inst}`}) + `<span class="pmark" aria-hidden="true">${p.n}P</span>`
+    : A.portraitHTML(p.pic, {size, color: p.cpu ? `var(--${p.R.color})` : undefined, label: p.name});
   const pairKey = () => `${P[0].member.id}>${P[1].member.id}`;
 
   /* ---------- match setup ---------- */
@@ -84,12 +89,18 @@
       return;
     }
     const d = saved.settings['p' + (i + 1)].diff;
-    col.innerHTML = `<div class="col-head"><span class="col-pic">${portrait(p, 'tile')}</span><div><small>Player ${i + 1}</small><b>${p.name}</b></div></div>` +
+    col.innerHTML = `<div class="col-head"><span class="col-pic">${portrait(p, 'tile')}</span><div><small>Player ${i + 1} · ${p.inst}</small><b>${p.name}</b>` +
+      (i === 1 ? `<button type="button" class="guest-rand">Surprise me</button>` : '') + `</div></div>` +
       `<div class="col-modes"></div>` +
       `<div class="diff"><span class="mp-lbl">Difficulty</span><div class="segs">` +
       DIFF.map(x => `<button type="button" class="seg" data-diff="${x.id}" aria-pressed="${x.id === d}"><b>${x.label}</b><small>${x.window} s</small></button>`).join('') + `</div></div>`;
     pickers[i] = A.ModePicker.mount(col.querySelector('.col-modes'), {gameId: GAME_ID, group: p.group, member: p.member, levels: 8, memory: p.memory, stars: false, onChange: () => {}});
     col.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => { saved.settings['p' + (i + 1)].diff = b.dataset.diff; remember(); drawColumn(i); }));
+    const rr = col.querySelector('.guest-rand');
+    if (rr) rr.addEventListener('click', () => {                        // a new random guest look and name
+      A.Avatar.setGuest(A.Avatar.random()); p.name = avName(2); A.Sfx.event('avatar-randomize');
+      showSetup(); const again = $('col2').querySelector('.guest-rand'); if (again) again.focus();
+    });
   }
   $('startBtn').addEventListener('click', () => A.requireMic(startMatch));
 

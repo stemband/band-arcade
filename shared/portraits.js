@@ -181,7 +181,7 @@ window.Arcade = window.Arcade || {};
     box.classList.toggle('pt-var-c', tag.includes('c'));
     box.classList.toggle('pt-var-a', tag.includes('a'));
     box.style.setProperty('--sk-src', `url("${t.src}")`);            // masks the Chrome Gold sweep / Diamond shimmer to the art
-    if (box.classList.contains('sk-pixel') && !tag.includes('c') && !box.querySelector('.pt-pix')) pixelate(t, box);
+    if (box.classList.contains('sk-pixel') && !box.classList.contains('av-box') && !tag.includes('c') && !box.querySelector('.pt-pix')) pixelate(t, box);   // an avatar is already pixel art
   }
   function pixelate(img, box) {
     const long = box.classList.contains('pt-box-big') ? 44 : box.classList.contains('pt-box-chip') ? 14 : 30;

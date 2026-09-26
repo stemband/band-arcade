@@ -1,0 +1,78 @@
+/* Band Arcade: CREATE YOUR PLAYER (shared/avatar-creator.js). Neon arcade style, like Select Player: a big live
+   preview beside (landscape) or above (portrait, phones) a tabbed grid of big labeled buttons. Tokens only. */
+body.avc-open{overflow:hidden}
+.av-creator{position:fixed;inset:0;z-index:80;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--floor);
+  background-image:radial-gradient(ellipse at 20% 0%,color-mix(in srgb,var(--purple) 22%,transparent),transparent 60%),radial-gradient(ellipse at 90% 100%,color-mix(in srgb,var(--cyan) 14%,transparent),transparent 55%);color:var(--text-hi)}
+.avc-wrap{max-width:1280px;margin:0 auto;padding:10px 16px 20px;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+.avc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.avc-head h2{margin:0;font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.05em;font-size:clamp(20px,3.4vw,32px);color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+.avc-close{width:48px;height:48px;border-radius:12px;border:2px solid var(--pink);background:var(--deep);color:var(--pink-hi);font-size:30px;line-height:1;cursor:pointer;flex:none}
+.avc-main{display:grid;grid-template-columns:minmax(250px,32%) minmax(0,1fr);gap:18px;align-items:start;flex:1}
+.avc-preview{position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;border:2px solid var(--cyan);border-radius:16px;
+  background:var(--deep);box-shadow:var(--glow-cyan)}
+.avc-stage{display:flex;align-items:flex-end;justify-content:center;gap:10px;width:100%}
+.avc-bust{width:min(100%,clamp(150px,19vw,230px))}
+.avc-bust .pt-box{width:100%}
+.avc-body{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border:2px solid var(--floor-3);border-radius:12px;background:var(--floor-2);color:var(--text-lo);cursor:pointer}
+.avc-body canvas{width:clamp(72px,8vw,110px);aspect-ratio:1;image-rendering:pixelated;image-rendering:crisp-edges}
+.avc-body small{font-size:12px}
+.avc-name{margin:0;min-height:1.3em;text-align:center;font-family:var(--display);font-size:clamp(17px,2vw,22px);letter-spacing:.03em;color:var(--yellow);text-shadow:var(--glow-yellow)}
+.avc-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.avc-acts .btn{min-height:46px;padding:8px 10px;font-size:15px}
+.avc-acts .btn:disabled{opacity:.45}
+.avc-save{grid-column:1/-1}
+.avc-leave{width:100%;text-align:center;padding:10px;border:2px solid var(--pink);border-radius:12px;background:var(--floor-2)}
+.avc-leave p{margin:0 0 8px}
+.avc-leave .btn{margin:3px}
+.avc-edit{min-width:0}
+.avc-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.avc-tab{flex:1 1 auto;min-height:48px;padding:6px 12px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);
+  font-family:var(--display);font-size:clamp(14px,1.6vw,17px);letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.avc-tab.on{border-color:var(--pink);color:var(--pink-hi);background:var(--deep);box-shadow:var(--glow-pink)}
+.avc-panel{padding:4px 2px 30px}
+.avc-group{margin:0 0 14px}
+.avc-group h3{margin:0 0 6px;font-size:16px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--cyan-hi)}
+.avc-note{margin:0 0 6px;font-size:14px;color:var(--text-lo)}
+.avc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.avc-grid.avc-color{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
+.avc-grid.avc-word{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+.avc-opt{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:48px;padding:6px 4px;border-radius:12px;
+  border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);font:inherit;font-size:13px;line-height:1.15;text-align:center;cursor:pointer}
+.avc-word .avc-opt{font-size:15px;font-weight:700;min-height:48px}
+.avc-opt[aria-pressed="true"]{border-color:var(--yellow);background:var(--deep);box-shadow:var(--glow-yellow)}
+.avc-opt[aria-pressed="true"]::after{content:"✓";position:absolute;top:2px;right:6px;color:var(--yellow);font-weight:700;font-size:14px}
+.avc-opt:focus-visible,.avc-tab:focus-visible,.avc-close:focus-visible,.avc-body:focus-visible,.av-creator .btn:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
+.avc-lbl{overflow-wrap:anywhere}
+.avc-th{display:block;width:64px;aspect-ratio:1;border-radius:8px;background:var(--deep);overflow:hidden}
+.avc-th img{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.avc-th-face img{transform:scale(1.9);transform-origin:50% 48%}
+.avc-th-body img{transform:scale(1.25);transform-origin:50% 60%}
+.avc-eff{overflow:visible;background:none}
+.avc-eff .pt-box{width:100%}
+.avc-sw{display:block;width:40px;height:40px;border-radius:50%;background:var(--sw);border:2px solid var(--text-lo)}
+.avc-namebar{margin-bottom:10px}
+/* the one-time offer on Select Player */
+.avc-offer .panel{text-align:center;max-width:460px}
+.avc-offer-pic{width:150px;margin:0 auto 6px}
+.avc-offer-pic .pt-box{width:100%}
+/* portrait, tablets in portrait, phones: the preview on top (compact, stays in view), the choices below */
+@media (max-width:899px), (orientation:portrait){
+  .avc-main{grid-template-columns:minmax(0,1fr);gap:10px}
+  .avc-preview{position:sticky;top:0;z-index:2;flex-direction:row;flex-wrap:wrap;justify-content:center;padding:8px;gap:8px}
+  .avc-stage{width:auto}
+  .avc-bust{width:clamp(96px,22vw,150px)}
+  .avc-body canvas{width:clamp(64px,15vw,104px)}
+  .avc-name{flex-basis:100%;order:3}
+  .avc-acts{order:4;grid-template-columns:repeat(4,minmax(0,1fr));flex-basis:100%}
+  .avc-save{grid-column:auto}
+  .avc-acts .btn{font-size:14px;padding:6px 6px;min-height:46px}
+  .avc-body small{display:none}
+}
+@media (max-width:480px){
+  .avc-wrap{padding:8px 10px 16px}
+  .avc-grid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px}
+  .avc-th{width:54px}
+  .avc-acts{grid-template-columns:1fr 1fr}
+  .avc-tab{padding:6px 8px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){.avc-opt,.avc-tab{transition:none}}

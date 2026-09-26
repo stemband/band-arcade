@@ -45,7 +45,7 @@
     if (m) return Q.save.helped() >= +m[1];
     return Q.save.flag(c);
   }
-  const vars = () => ({you: A.currentMember().short, need: Math.max(0, REGINALD_NEEDS - Q.save.helped()), n: Q.save.helped()});
+  const vars = () => ({you: A.currentMember().short, hero: Q.hero(), need: Math.max(0, REGINALD_NEEDS - Q.save.helped()), n: Q.save.helped()});
   const fill = (t, v) => String(t).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m));
   /** say lines, switching name + portrait when a line starts with '@speaker ' */
   async function sayAs(D, lines) {

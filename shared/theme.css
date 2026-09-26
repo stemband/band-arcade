@@ -45,6 +45,21 @@
   --anim-raccoon:#6f727e; --anim-raccoon-2:#cfcfd6; --anim-moose:#6e4428; --anim-moose-2:#b08457; --anim-clone:#4f6e5e;
   --anim-metal:#8c95a6; --anim-metal-dark:#4a5060; --anim-tusk:#efe6d2; --anim-coat:#231d3a; --anim-brass:#d9a834; --anim-silver:#c9d2de;
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
+  /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
+  --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;
+  --av-skin-7:#bb7c4c; --av-skin-7-d:#9a6037; --av-skin-8:#a5683d; --av-skin-8-d:#84502c; --av-skin-9:#8e5634; --av-skin-9-d:#6f4025; --av-skin-10:#76452a; --av-skin-10-d:#5a331e; --av-skin-11:#5f3722; --av-skin-11-d:#462817; --av-skin-12:#482a1a; --av-skin-12-d:#331d11;
+  --av-hair-black:#1f1c26; --av-hair-black-d:#0f0d14; --av-hair-black-l:#3d3947; --av-hair-darkbrown:#3d281b; --av-hair-darkbrown-d:#27190f; --av-hair-darkbrown-l:#5c3e2b; --av-hair-brown:#6e4527; --av-hair-brown-d:#4f2f18; --av-hair-brown-l:#935f38;
+  --av-hair-auburn:#8f3b1f; --av-hair-auburn-d:#66260f; --av-hair-auburn-l:#b4582f; --av-hair-copper:#c75b21; --av-hair-copper-d:#963f12; --av-hair-copper-l:#e67f40; --av-hair-blonde:#e3bc5c; --av-hair-blonde-d:#b8913a; --av-hair-blonde-l:#f5dc90;
+  --av-hair-platinum:#efe5c6; --av-hair-platinum-d:#c9bb95; --av-hair-platinum-l:#fffbec; --av-hair-gray:#9d9ca6; --av-hair-gray-d:#77767f; --av-hair-gray-l:#c6c5cd; --av-hair-white:#ecebf2; --av-hair-white-d:#bdbdc8; --av-hair-white-l:#ffffff;
+  --av-hair-pink:#ff62b0; --av-hair-pink-d:#d03b86; --av-hair-pink-l:#ff9fd2; --av-hair-purple:#9d5eff; --av-hair-purple-d:#7137d6; --av-hair-purple-l:#c29dff; --av-hair-blue:#4290ff; --av-hair-blue-d:#2463cf; --av-hair-blue-l:#88b9ff;
+  --av-hair-teal:#24c9ba; --av-hair-teal-d:#11978a; --av-hair-teal-l:#70e7dc; --av-hair-green:#44d05e; --av-hair-green-d:#27a33f; --av-hair-green-l:#8aeb9a; --av-hair-orange:#ff8c2c; --av-hair-orange-d:#d6661a; --av-hair-orange-l:#ffb572;
+  --av-eye-darkbrown:#2d1b10; --av-eye-brown:#5c361c; --av-eye-hazel:#7c6a28; --av-eye-green:#2e7c46; --av-eye-blue:#2f70c6; --av-eye-gray:#6f7c8c; --av-eye-amber:#a9681c;
+  --av-red:#e8394f; --av-red-d:#b3243a; --av-orange:#ff8a2a; --av-orange-d:#cf661a; --av-yellow:#ffd23f; --av-yellow-d:#cfa626; --av-green:#35c46a; --av-green-d:#23954d;
+  --av-teal:#1fb5ad; --av-teal-d:#13857f; --av-blue:#3b7bff; --av-blue-d:#2556c4; --av-navy:#2b3872; --av-navy-d:#1b244d; --av-purple:#8a4dff; --av-purple-d:#6431c7;
+  --av-pink:#ff5fae; --av-pink-d:#d13b87; --av-maroon:#80233b; --av-maroon-d:#5a1426; --av-forest:#2f6b3a; --av-forest-d:#1f4a27; --av-black:#26242e; --av-black-d:#15131a;
+  --av-gray:#8c8c99; --av-gray-d:#696976; --av-white:#eeeef4; --av-white-d:#c3c3cf; --av-denim:#3e609f; --av-denim-d:#2c4676; --av-khaki:#bba16d; --av-khaki-d:#957f51;
+  --av-tan:#c9925a; --av-tan-d:#a4723f;
+  --av-gold:#ffcf3f; --av-gold-d:#c9951f; --av-white:#fbf8ff; --av-black:#1b1922; --av-out:#140f1f; --av-lens:#bfe9ff; --av-mouth:#5a1f2c; --av-tongue:#ff7a8e; --av-teeth:#ffffff; --av-tire:#2a2733; --av-rim:#b8c2d6; --av-aid:#d9b99a;
   --q-skin-1:#f6d2b0; --q-skin-2:#e0a878; --q-skin-3:#b0744a; --q-skin-4:#6e4630; --q-hair:#2e1f18; --q-hair-2:#6b3d22;
   --q-out:#140f1f; --q-pants:#2f3c78; --q-shoe:#1d1628; --q-white:#fbf8ff; --q-black:#161222;
   --q-brass:#f0c040; --q-brass-d:#a87a1c; --q-silver:#d8e0ec; --q-silver-d:#7f8ca6; --q-wood:#5b3a24; --q-wood-l:#9a6238; --q-reed:#e8d59a;
@@ -210,6 +225,16 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .nm-a{fill:var(--anim-eye-bad)}.nm-b{fill:var(--anim-eye-good)}
 /* Pixel: the art redrawn tiny and blown up (a canvas, portraits.js), in a chunky 8-bit frame */
 .pt-box>.pt-pix{object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+/* THE AVATAR BUST (shared/avatar.js): pixel art in the same .pt-box, so every skin effect works on it too */
+.av-box>.pt-img{image-rendering:pixelated;image-rendering:crisp-edges}
+.av-box.sk-pixel>.sk-back{display:block}
+/* results screens: the player's avatar + name at the top (shared/avatar.js stampResults) */
+.av-res{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 8px!important}
+.av-res-pic{width:56px;flex:none}
+.av-res-pic .pt-box{width:100%}
+.av-res-txt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;line-height:1.15}
+.av-res-txt b{font-family:var(--display);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--yellow)}
+.av-res-txt small{font-size:13px;color:var(--text-lo)}
 .pt-pixd>.pt-img{visibility:hidden}
 .sk-pixel>.sk-back{inset:5%;border:4px solid var(--sk1);outline:2px solid var(--sk2);outline-offset:2px;border-radius:0}
 .pt-box-big.sk-pixel>.sk-back{border-width:7px;outline-width:4px;outline-offset:4px}

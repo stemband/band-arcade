@@ -290,8 +290,9 @@ window.Arcade = window.Arcade || {};
     /** the UNLOCKED! card for newly earned skins, shown with `member`'s portrait (null: the skin by itself) */
     cardHTML(list, member) {
       const eq = member ? Skins.equipped(member) : {color: 'classic', acc: null};
-      const pic = s => member && A.portraitHTML
-        ? A.portraitHTML(member, {size: 'tile', skin: s.kind === 'acc' ? {color: eq.color, acc: s.id} : {color: s.id, acc: eq.acc}})
+      const skinOf = s => s.kind === 'acc' ? {color: eq.color, acc: s.id} : {color: s.id, acc: eq.acc};
+      const pic = s => member && A.avatarHTML ? A.avatarHTML({size: 'tile', member, skin: skinOf(s)})          // worn by the student's avatar
+        : member && A.portraitHTML ? A.portraitHTML(member, {size: 'tile', skin: skinOf(s)})
         : s.kind === 'acc' ? Skins.accSVG(s.id) : `<span class="sk-swatch" style="--sk1:var(--${((s.look || {}).colors || ['cyan'])[0]})"></span>`;
       const m = member && A.memberById ? A.memberById(member) : null;
       return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s =>
@@ -304,6 +305,7 @@ window.Arcade = window.Arcade || {};
         saved player). Returns the new skins. */
     announce(host, {members, member} = {}) {
       if (!host) return [];
+      if (A.Avatar && A.Avatar.stampResults) A.Avatar.stampResults(host, member || (members && members[0]) || st().player);   // the player's avatar + name (shared/avatar.js)
       host.querySelectorAll('.sk-unlock').forEach(el => el.remove());
       const list = (members || [st().player]).filter((m, i, a) => a.indexOf(m) === i);
       let found = [], shownFor = member || list.find(Boolean) || null;
@@ -357,7 +359,7 @@ window.Arcade = window.Arcade || {};
       const s = get(b.dataset.skin); if (!s || !member) return;
       Skins.equip(member, s.kind === 'acc' ? {acc: s.id} : {color: s.id});
       b.textContent = 'Equipped!'; b.disabled = true;
-      document.querySelectorAll('.pt-box[data-pt="' + member + '"]').forEach(refresh);
+      Skins.refresh(member);
       if (onEquip) onEquip(s);
     }));
   }
@@ -368,7 +370,7 @@ window.Arcade = window.Arcade || {};
     const w = document.createElement('span'); w.innerHTML = A.portraitHTML(box.dataset.pt, o);
     box.replaceWith(w.firstChild);
   }
-  Skins.refresh = member => document.querySelectorAll(`.pt-box[data-pt="${member}"]`).forEach(refresh);
+  Skins.refresh = member => { document.querySelectorAll(`.pt-box[data-pt="${member}"]`).forEach(refresh); if (A.Avatar) A.Avatar.redrawAll(); };   // avatars wear the skins too
   function sfx(name) {
     if (!A.Sfx) return;
     A.Sfx.event(name);                                           // sfx.js mutes the detector if a game is listening

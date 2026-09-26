@@ -9,7 +9,8 @@
      next   true = after these lines, carry on straight into the next choice below whose `if` is true
      yes / no   for 'teach': the lines after passing or not passing the song
    '@tally Hi!' = this line is said by another speaker listed in that character's `speakers`.
-   {you} = the student's instrument, {need} = how many more ghosts Sir Reginald wants calmed.
+   {you} = the student's instrument, {hero} = their player's name (Create Your Player), {need} = how many more ghosts
+   Sir Reginald wants calmed.
    FLAGS the game sets: songBb (learned the B♭ Blast), reginaldAwake, atticOpen (the Phantom Fermata harmonized),
    met-conductor (heard the Ghost Conductor's speech), ep1Done (the Ghost Conductor befriended: Episode 1 finished).
    THE STORY: the Band Arcade's own listening microphone has heard every squeak, cracked note and wrong fingering
@@ -307,7 +308,7 @@ window.QUEST_CUTSCENES = {
   ending: {music: 'quest-victory', shots: [
     {show: 'party', lines: ['The Ghost Conductor raises his baton... and the whole manor fills with music!',
       'Color floods back into every room. The candles glow gold again.']},
-    {show: 'party', lines: ['@conductor Listen! My orchestra has its sound back! Bravo, {you}! BRAVO!',
+    {show: 'party', lines: ['@conductor Listen! My orchestra has its sound back!', '@conductor Bravo, {hero}! BRAVO!',
       '@mezzo BRAVISSIMA! Encore! ENCORE! Darling, you did it!',
       'Every ghost you helped is dancing. Even Sir Reginald is awake. Mostly.']},
   ]},
@@ -330,7 +331,7 @@ window.QUEST_WHISPERS = ['...so much noise...', '...too loud... too many notes..
 window.QUEST_CREDITS = [
   {h: 'Arcade Quest', lines: ['The Mysterious Microphone', 'Episode 1: Ghost Notes Manor']},
   {h: 'Created by', lines: ['Mr. Graham']},
-  {h: 'Starring', lines: ['You, on {you}']},
+  {h: 'Starring', lines: ['{hero}, on {you}']},
   {h: 'Ghost Notes Manor', lines: ['Madame Mezzo', 'Rusty', 'Token Booth Terry', 'Loopy Lou', 'Sir Reginald Rest', 'Forgetful Fran', 'Tilly & Tally', 'The Butler', 'Dizzy Dot', 'Sous-Chef Sizzle']},
   {h: 'The ghosts', lines: ['Wisps, Squeakers, Hushes, Wobbles and Chatterboxes', 'The Phantom Fermata', 'The Ghost Conductor and his orchestra']},
   {h: 'Special cameo', lines: ['The Showtime Band: Tubby Tusk, Professor Hoot, Snapjaw Sal, Rico Bandit and Maestro Moose (from Showtime Malfunction)']},

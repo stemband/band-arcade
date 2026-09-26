@@ -1,7 +1,8 @@
 /* ARCADE QUEST: the TITLE screen and the TEST ARENA.
    TITLE: "ARCADE QUEST: THE MYSTERIOUS MICROPHONE" over the microphone's 8-bit silhouette in static.
    CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (the intro cutscene, then Episode 1 from
-   the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, and TEST
+   the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, YOUR PLAYER
+   (Create Your Player: your look and name, shared/avatar-creator.js), and TEST
    ARENA (only with ?demo or ?test). The title music is quest-title. While the audio is still locked (the first visit
    of this page load), the menu waits behind PRESS START, so the first tap starts the music instead of a new game.
    TEST ARENA (index.html?test, or TEST ARENA on the title): pick any test enemy (one per challenge type) and fight it
@@ -12,7 +13,7 @@
   const Q = A.Quest;
   const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
   let player = null;
-  const me = () => (player = Q.playerId(A.currentMember().id, {tone: Q.settings.get().tone}));
+  const me = () => (player = Q.playerId(A.currentMember().id));
 
   /* ---------- the title ---------- */
   Q.scenes.title = {
@@ -24,7 +25,7 @@
       const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
       const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
       const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
-        [{id: 'settings', label: 'Settings'}], testing ? [{id: 'arena', label: 'Test Arena'}] : []);
+        [{id: 'settings', label: 'Settings'}], A.AvatarCreator ? [{id: 'avatar', label: 'Your player'}] : [], testing ? [{id: 'arena', label: 'Test Arena'}] : []);
       // NEW GAME: the intro cutscene (skippable), then the Foyer
       const newGame = () => { Q.save.reset(); Q.save.setFlag('seen-intro'); Q.go('cutscene', {id: 'intro', next: {scene: 'world', args: {map: 'foyer', intro: true}}}); };
       const menu = () => {
@@ -32,6 +33,7 @@
           if (it.id === 'continue') { m.destroy(); Q.go('world', {continue: true}); }
           else if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
           else if (it.id === 'settings') Q.settings.open().then(me);
+          else if (it.id === 'avatar') A.AvatarCreator.open({onClose: () => { me(); const b = Q.$('qTitleMenu').querySelector('.q-btn:nth-child(' + (items.findIndex(x => x.id === 'avatar') + 1) + ')'); if (b) b.focus(); }});   // Create Your Player
           else if (it.id === 'code') Q.talk.enterCode().then(ok => { if (ok) { m.destroy(); Q.go('world', {continue: true}); } });
           else if (!started) { m.destroy(); newGame(); }
           else {                                                  // a new game over a saved one: ask first

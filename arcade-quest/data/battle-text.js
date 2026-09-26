@@ -1,8 +1,8 @@
-/* ARCADE QUEST: EVERY BATTLE MESSAGE. MAT: edit freely. {name} = the enemy, {you} = your instrument, {n} = a number,
+/* ARCADE QUEST: EVERY BATTLE MESSAGE. MAT: edit freely. {name} = the enemy, {you} = your instrument, {hero} = your player's name, {n} = a number,
    {note} = a note in your written pitch, {item} = an item. A list = one is picked at random each time.
    Keep it warm and funny, never violent: enemies fade away grumbling or become friends. */
 window.QUEST_TEXT = {
-  menuPrompt:      ['What will you do?', 'Your move, {you}!', 'Ready when you are.'],
+  menuPrompt:      ['What will you do?', 'Your move, {hero}!', 'Ready when you are.'],
   play:            'PLAY',                         playSub: 'Attack with your instrument',
   listen:          'LISTEN',                       listenSub: 'Learn what it likes',
   item:            'ITEM',                         itemSub: 'Use something from your bag',

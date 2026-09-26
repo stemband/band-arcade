@@ -17,7 +17,7 @@
   const SCREENS = ['q-bar-1', 'q-bar-5', 'q-bar-3', 'q-bar-4', 'q-bar-6', 'q-bar-2', 'q-bar-5'];
   let C = null;                                               // the cutscene playing: {shot, t0, skipped}
   const me = () => A.currentMember();
-  const fillYou = t => String(t).replace(/\{you\}/g, me().short);
+  const fillYou = t => String(t).replace(/\{you\}/g, me().short).replace(/\{hero\}/g, Q.hero());
 
   /* ---------- drawing helpers ---------- */
   // a repeatable pseudo-random number (static that stands still under reduced motion)
