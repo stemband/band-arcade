@@ -76,3 +76,10 @@ body.avc-open{overflow:hidden}
   .avc-tab{padding:6px 8px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){.avc-opt,.avc-tab{transition:none}}
+/* locked items (unlocks: avatar-parts.js): a dark silhouette, a lock and what earns it */
+.avc-opt.avc-locked{border-style:dashed;border-color:var(--text-lo);cursor:help}
+.avc-opt.avc-locked .avc-th img,.avc-opt.avc-locked .avc-sw{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
+.avc-opt.avc-locked .avc-lbl{color:var(--text-lo)}
+.avc-lock{position:absolute;top:3px;right:5px;font-size:13px;line-height:1}
+.avc-req{display:block;font-size:11px;line-height:1.2;color:var(--yellow-hi);margin-top:2px}
+.avc-lockmsg{width:100%;margin:6px 0 0;padding:8px 10px;border:2px solid var(--yellow);border-radius:10px;background:var(--floor-2);color:var(--text-hi);text-align:center}

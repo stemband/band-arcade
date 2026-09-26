@@ -9,8 +9,9 @@
      baton    a faint warning line, then his baton sweeps across the box around one corner (speed = how fast)
      measure  a row of falling measures of music (five lines and bar lines), with one gap
      sweep    small fermatas swooping across in a wave
-   Q.dodge.start({enemy, easy, slow, shield, assist, onHit}) -> Promise {damage, hits, blocked}
-   Easy: slower and fewer; Metronome (slow): slower still; Cork Grease (shield): blocks hits; Assist: half damage. */
+   Q.dodge.start({enemy, easy, slow, shield, assist, mute, charm, onHit}) -> Promise {damage, hits, blocked, muted}
+   Easy: slower and fewer; Metronome (slow): slower still; Cork Grease (shield): blocks hits; Assist: half damage.
+   Charms (ARCADE QUEST ONLY): charm = the Metronome Charm's speed factor; mute = the Silver Mute's blocks left. */
 (function (A) {
   "use strict";
   const Q = A.Quest;
@@ -48,12 +49,12 @@
   }
   Q.dodge = {
     active: () => !!D,
-    start({enemy, easy, slow, shield = 0, assist, onHit}) {
+    start({enemy, easy, slow, shield = 0, assist, mute = 0, charm = 1, onHit}) {
       const dd = enemy.dodge || {seconds: 6, patterns: [{kind: 'rain', sprite: 'sour', every: .6, speed: 45}]};
-      const mult = {speed: (easy ? .7 : 1) * (slow || 1), every: easy ? 1.45 : 1};
+      const mult = {speed: (easy ? .7 : 1) * (slow || 1) * (charm || 1), every: easy ? 1.45 : 1};
       return new Promise(done => {
         D = {t: 0, len: dd.seconds, pats: dd.patterns.map(p => Object.assign({next: 0.35 + Math.random() * .4}, p)), mult, shots: [], warn: [], batons: [],
-          cx: BOX.x + BOX.w / 2 - 3, cy: BOX.y + BOX.h / 2 - 4, inv: 0, damage: 0, hits: 0, blocked: 0, shield, assist, atk: enemy.atk || 2, onHit, done, drag: null};
+          cx: BOX.x + BOX.w / 2 - 3, cy: BOX.y + BOX.h / 2 - 4, inv: 0, damage: 0, hits: 0, blocked: 0, shield, mute, muted: 0, assist, atk: enemy.atk || 2, onHit, done, drag: null};
         const st = Q.stage;
         D.pd = e => { D.drag = {x: e.clientX, y: e.clientY}; };
         D.pm = e => {
@@ -101,8 +102,9 @@
           D.inv = 0.9; D.hits++;
           let dmg = 0;
           if (D.shield > 0) { D.shield--; D.blocked++; }
+          else if (D.mute > 0) { D.mute--; D.muted++; }
           else { dmg = Math.max(1, Math.round(D.atk * (D.assist ? .5 : 1))); D.damage += dmg; }
-          if (D.onHit && D.onHit(dmg, D.blocked && !dmg) === 'stop') D.t = D.len;
+          if (D.onHit && D.onHit(dmg, !dmg) === 'stop') D.t = D.len;
           Q.shake(2, 160);
         }
       }
@@ -113,7 +115,7 @@
       const d = D; D = null;
       Q.stage.removeEventListener('pointerdown', d.pd); removeEventListener('pointermove', d.pm); removeEventListener('pointerup', d.pu);
       Q.stage.classList.remove('q-dodging');
-      d.done({damage: d.damage, hits: d.hits, blocked: d.blocked, shieldLeft: d.shield});
+      d.done({damage: d.damage, hits: d.hits, blocked: d.blocked, muted: d.muted, shieldLeft: d.shield, muteLeft: d.mute});
     },
     draw(ctx, now) {
       if (!D) return;
@@ -153,6 +155,6 @@
       ctx.fillStyle = Q.css('q-grey-d'); ctx.fillRect(b.x, b.y + b.h + 4, b.w, 2);
       ctx.fillStyle = Q.css('q-cursor'); ctx.fillRect(b.x, b.y + b.h + 4, b.w * Math.max(0, 1 - D.t / D.len), 2);
     },
-    state: () => D && {t: D.t, len: D.len, shots: D.shots.length, batons: D.batons.length, hits: D.hits, cx: D.cx, cy: D.cy, damage: D.damage},   // tests
+    state: () => D && {t: D.t, len: D.len, speed: D.mult.speed, mute: D.mute, muted: D.muted, shots: D.shots.length, batons: D.batons.length, hits: D.hits, cx: D.cx, cy: D.cy, damage: D.damage},   // tests
   };
 })(window.Arcade);

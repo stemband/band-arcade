@@ -126,8 +126,8 @@
     $('hornToggle').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.horn === hornOf()));
     $('selectBtn').textContent = `Select ${m.short}`;
     $('skinsBtn').hidden = false;
-    const have = A.Skins.LIST.filter(s => !s.unlock.always && A.Skins.isUnlocked(s, id)).length;
-    $('skinsCount').textContent = `${have} of ${A.Skins.LIST.length - 1}`;
+    const lc = lockerCount(id);
+    $('skinsCount').textContent = `${lc.have} of ${lc.total}`;
   }
   function cpuCard() {
     const n = A.store.player ? A.store.allStars(A.store.player, game.id) : 0;
@@ -245,40 +245,97 @@
   }
   on(window, 'pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
 
-  /* ---------- the SKINS locker: live preview on the big portrait; equipped per instrument on this device ---------- */
-  let lockerFor = null;
+  /* ---------- THE LOCKER: avatar items (unlock rules in shared/avatar-parts.js; worn everywhere) and the instrument's
+     skins (shared/skins.js; per instrument). Tabs OUTFIT · HATS · EXTRAS · PETS · EFFECTS; locked = a dark silhouette
+     + what earns it. Live preview on the big avatar. Player 2's turn dresses the GUEST avatar. ---------- */
+  const P = window.AVATAR_PARTS, AV = A.Avatar;
+  const LK_TABS = {
+    outfit: [{field: 'top', label: 'Tops', list: () => P.TOPS}, {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
+    hats: [{field: 'head', label: 'Hats and head coverings', list: () => P.HEADS}],
+    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'back', label: 'On your back', list: () => P.BACKS},
+             {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
+    pets: [{field: 'pet', label: 'Pets', note: 'they float beside you', list: () => P.PETS}],
+    effects: [{skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
+  };
+  let lockerFor = null, lkTab = 'outfit';
+  const lkGuest = () => phase === 2;
+  const lkAvatar = () => lkGuest() ? AV.guest() : AV.get();
+  /** how many locker items are open: {have, total} (avatar items + this instrument's skins) */
+  function lockerCount(id) {
+    const items = AV.items(), skins = A.Skins.LIST.filter(s => !s.unlock.always);
+    return {have: items.filter(it => AV.isUnlocked(it.field, it.id)).length + skins.filter(s => A.Skins.isUnlocked(s, id)).length, total: items.length + skins.length};
+  }
   function openLocker() {
     const id = ids[cur]; if (!info(id)) return;
     lockerFor = id;
-    $('lkTitle').textContent = info(id).short;
+    $('lkTitle').textContent = lkGuest() ? `Guest · ${info(id).short}` : `${AV.nameOf(lkAvatar())} · ${info(id).short}`;
     drawLocker();
     $('locker').hidden = false;
-    ($('lkColors').querySelector('[aria-pressed="true"]') || $('lkDone')).focus();
+    $('lkTab-' + lkTab).focus();
+  }
+  const LOCK = '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>';
+  function lkButton({attrs, name, open, pressed, need, prog, pic}) {
+    return `<button type="button" class="sk-opt${open ? '' : ' locked'}" ${attrs} aria-pressed="${pressed}"` +
+      ` aria-label="${name}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
+      `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : LOCK}</span>` +
+      `<b>${name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
   }
   function drawLocker() {
-    const id = lockerFor, eq = A.Skins.equipped(id), m = info(id);
-    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id});                     // skins are worn by the avatar
-    $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}`;
-    const opt = (s, skin, pressed) => {
-      const open = A.Skins.isUnlocked(s, id), need = open ? '' : A.Skins.requirement(s), prog = open ? '' : A.Skins.progress(s, id);
-      const pic = s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.avatarHTML({size: 'tile', member: id, skin, label: m.short});
-      return `<button type="button" class="sk-opt${open ? '' : ' locked'}" data-kind="${s.kind}" data-skin="${s.id}" aria-pressed="${pressed}"` +
-        ` aria-label="${s.name}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
-        `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>'}</span>` +
-        `<b>${s.name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
-    };
-    $('lkColors').innerHTML = A.Skins.colors().map(s => opt(s, {color: s.id, acc: eq.acc}, s.id === eq.color)).join('');
-    $('lkAcc').innerHTML = opt({id: 'none', kind: 'acc', name: 'None', unlock: {always: true}}, null, !eq.acc) +
-      A.Skins.accessories().map(s => opt(s, {color: eq.color, acc: s.id}, s.id === eq.acc)).join('');
+    const id = lockerFor, eq = A.Skins.equipped(id), m = info(id), av = lkAvatar(), guest = lkGuest();
+    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id, guest});
+    $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}` +
+      (av.pet !== 'none' ? ` · Pet: ${(P.PETS.find(p => p.id === av.pet) || {}).name}` : '');
+    $('lkTabs').querySelectorAll('[role="tab"]').forEach(b => { const on = b.dataset.tab === lkTab; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+    $('lkBody').setAttribute('aria-labelledby', 'lkTab-' + lkTab);
+    $('lkBody').innerHTML = LK_TABS[lkTab].map((g, gi) => {
+      let html;
+      if (g.skin) {
+        const list = g.skin === 'color' ? A.Skins.colors() : [{id: 'none', kind: 'acc', name: 'None', unlock: {always: true}}].concat(A.Skins.accessories());
+        html = list.map(s => {
+          const open = A.Skins.isUnlocked(s, id), skin = g.skin === 'color' ? {color: s.id, acc: eq.acc} : {color: eq.color, acc: s.id === 'none' ? null : s.id};
+          const pressed = g.skin === 'color' ? s.id === eq.color : (s.id === 'none' ? !eq.acc : s.id === eq.acc);
+          return lkButton({attrs: `data-kind="${s.kind}" data-skin="${s.id}"`, name: s.name, open, pressed, need: open ? '' : A.Skins.requirement(s), prog: open ? '' : A.Skins.progress(s, id),
+            pic: s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.avatarHTML({size: 'tile', member: id, guest, skin, label: m.short})});
+        }).join('');
+      } else {
+        html = g.list().map(p => {
+          const open = AV.isUnlocked(g.field, p.id);
+          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"`, name: p.name, open, pressed: av[g.field] === p.id,
+            need: open ? '' : AV.requirement(g.field, p.id), prog: open ? '' : AV.progress(g.field, p.id),
+            pic: A.avatarHTML({size: 'tile', member: id, avatar: Object.assign({}, av, {[g.field]: p.id}), label: ''})});
+        }).join('');
+      }
+      return `<h3 class="lk-sub" id="lkG${gi}">${g.label}${g.note ? ` <small>(${g.note})</small>` : ''}</h3><div class="lk-grid" role="group" aria-labelledby="lkG${gi}">${html}</div>`;
+    }).join('');
+    const c = lockerCount(id); $('skinsCount').textContent = `${c.have} of ${c.total}`;
   }
   function pickSkin(b) {
-    const s = b.dataset.skin, id = lockerFor;
-    if (b.classList.contains('locked')) { A.Sfx.event('note-wrong'); $('lkNow').textContent = `${b.querySelector('b').textContent}: ${A.Skins.requirement(A.Skins.get(s))}`; return; }
-    A.Skins.equip(id, b.dataset.kind === 'acc' ? {acc: s === 'none' ? null : s} : {color: s});
-    const keep = b.dataset.kind + ':' + s;
+    const id = lockerFor, name = b.querySelector('b').textContent;
+    if (b.classList.contains('locked')) {
+      A.Sfx.event('note-wrong');
+      $('lkNow').textContent = `${name}: ${b.dataset.item ? AV.requirement(b.dataset.field, b.dataset.item) : A.Skins.requirement(A.Skins.get(b.dataset.skin))}`;
+      return;
+    }
+    let sel;
+    if (b.dataset.item) {                                        // an avatar item: the avatar wears it everywhere
+      const av = lkAvatar(); av[b.dataset.field] = b.dataset.item;
+      if (lkGuest()) AV.setGuest(av); else AV.set(av);
+      A.Sfx.event('skin-equip');
+      sel = `[data-field="${b.dataset.field}"][data-item="${b.dataset.item}"]`;
+    } else {
+      const s = b.dataset.skin;
+      A.Skins.equip(id, b.dataset.kind === 'acc' ? {acc: s === 'none' ? null : s} : {color: s});
+      sel = `[data-kind="${b.dataset.kind}"][data-skin="${s}"]`;
+    }
+    const scroll = $('locker').scrollTop;
     drawLocker(); refreshPortraits(id);
-    const again = document.querySelector(`#locker .sk-opt[data-kind="${keep.split(':')[0]}"][data-skin="${keep.split(':')[1]}"]`);
-    if (again) again.focus();
+    $('locker').scrollTop = scroll;
+    const again = document.querySelector('#locker .sk-opt' + sel);
+    if (again) again.focus({preventScroll: true});
+  }
+  function lkShow(tab, focus) {
+    lkTab = tab; drawLocker();
+    if (focus) { $('lkTab-' + tab).focus(); A.Sfx.event('ui-toggle'); }
   }
   /** redraw every portrait of this instrument on the page (tile, preview, CONTINUE AS) with its new skin */
   function refreshPortraits(id) {
@@ -287,7 +344,13 @@
   }
   on($('skinsBtn'), 'click', openLocker);
   on($('backupBtn'), 'click', () => A.Backup && A.Backup.open());       // shared/backup.js
-  ['lkColors', 'lkAcc'].forEach(g => on($(g), 'click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); }));
+  on($('lkBody'), 'click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); });
+  on($('lkTabs'), 'click', e => { const b = e.target.closest('[role="tab"]'); if (b) lkShow(b.dataset.tab, true); });
+  on($('lkTabs'), 'keydown', e => {                             // ←/→ between the tabs
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const list = Object.keys(LK_TABS), i = list.indexOf(lkTab);
+    e.preventDefault(); lkShow(list[(i + (e.key === 'ArrowRight' ? 1 : list.length - 1)) % list.length], true);
+  });
   const closeLocker = () => { $('locker').hidden = true; lockerFor = null; $('skinsBtn').focus({preventScroll: true}); };
   on($('lkDone'), 'click', closeLocker);
   on($('locker'), 'click', e => { if (e.target === $('locker')) closeLocker(); });

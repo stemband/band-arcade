@@ -4,7 +4,7 @@
    Codes ignore spaces, dashes and lower case, and every code has a checksum, so a typo is caught ("That code doesn't
    look right. Check each letter.") instead of loading the wrong progress.
 
-   1. THE ARCADE QUEST SAVE CODE (short: 25 characters, 5 groups of 5, e.g. K7PQM-2XRTA-...). Shown at every Save
+   1. THE ARCADE QUEST SAVE CODE (short: 40 characters, 8 groups of 5; the first ones were 25). Shown at every Save
       Jukebox and in the backup panel; ENTER SAVE CODE on Arcade Quest's title screen restores it.
       FORMAT (version 1): 125 bits, most significant bit first, 5 bits per character:
         version 4 · level 6 (1–63) · xp 9 (0–511) · tokens 11 (0–2047) · items 3 each (0–7, QUEST_V1.items order)
@@ -15,6 +15,12 @@
       adds a NEW version (4-bit version field) with its own lists, and keeps reading version 1.
       Not in the code (they come back fresh): HP (full), battle counts (rebuilt), which star source was turned in
       (the total is kept and spread over this device's star sources at the Token Booth), settings.
+      VERSION 2 (what the game makes now: 40 characters, 8 groups of 5; version 1 codes still load): 200 bits =
+        the version-1 fields in the same order (version = 2) · charms owned 1 each (QUEST_V2.charms, 8 places)
+        · charms equipped 3 + 3 (0 = empty slot, else 1 + the index in QUEST_V2.charms) · avatar items unlocked 1 each
+        (QUEST_V2.cosmetics: bought at the Token Booth or earned; they load as owned) · avatar items worn 1 each (same
+        list) · zero padding to 185 bits · checksum 15 (as above). Same rule: only ever ADD to the end of a list,
+        while it still fits in the padding (13 bits free today: 6 more avatar items).
    2. THE ARCADE BACKUP CODE (long: EVERYTHING on the device: stars and progress for every game and instrument,
       skins unlocked and equipped, settings, the Arcade Quest save). Too long to type comfortably, so the panel
       has a COPY button (and shows the short Quest code too).
@@ -24,7 +30,7 @@
       replaces everything (Arcade.store.importAll) and reloads the page.
    Arcade.Backup.open()            the BACKUP / RESTORE panel (arcade floor sound panel, Select Player's player card)
    Arcade.Backup.button(el, cls)   adds a BACKUP / RESTORE button to el
-   Arcade.Backup.questEncode(save) -> 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'
+   Arcade.Backup.questEncode(save) -> 40 characters in groups of 5 (version 2)
    Arcade.Backup.questDecode(code) -> {ok: true, fields} | {ok: false, error}   (arcade-quest/engine/save.js builds the save)
    Arcade.Backup.fullEncode() -> Promise<code>;  fullDecode(code) -> Promise<{ok, data} | {ok: false, error}> */
 window.Arcade = window.Arcade || {};
@@ -70,29 +76,55 @@ window.Arcade = window.Arcade || {};
     // where you stand after loading at each Save Jukebox (index 1, 2…; 0 = never saved)
     jukeboxes: [null, {map: 'foyer', x: 18, y: 3, dir: 'up'}, {map: 'attic', x: 2, y: 3, dir: 'up'}],
   };
+  const QUEST_V2 = {
+    version: 2,
+    charms: ['golden-mouthpiece', 'lucky-reed', 'metronome-charm', 'silver-mute', 'tuning-fork'],      // 8 places
+    cosmetics: ['eyes:stars', 'eyes:hearts', 'eyes:wink', 'mouth:tongue', 'mouth:whistle', 'hairColor:gold', 'hairColor:neon',
+      'hairColor:galaxy', 'hairColor:flametip', 'head:tophat', 'head:wizard', 'head:plumeshako', 'head:royalcrown', 'head:diamondband',
+      'top:rockstar', 'top:tuxedo', 'top:champion', 'top:sequin', 'pet:ghost', 'pet:animatronic', 'pet:note', 'pet:star', 'pet:metronome',
+      'back:pixelcape', 'back:jetpack', 'back:wings'],
+  };
   const QUEST_DATA_BITS = 110, QUEST_CHECK_BITS = 15, QUEST_CHARS = 25;
+  const QUEST_DATA_BITS_2 = 185, QUEST_CHARS_2 = 40, CHARM_SLOTS = 8;
   const questCheck = bits => crc32(new Uint8Array([66, 65, 81, ...bitsToBytes(bits)])) & (2 ** QUEST_CHECK_BITS - 1);
+  /** this device's avatar items for the code: {owned: {key}, worn: {key}} (unlocked = bought or earned) */
+  function cosmeticsNow() {
+    const owned = {}, worn = {}, AV = A.Avatar, av = A.store.avatar || {};
+    QUEST_V2.cosmetics.forEach(k => {
+      const [f, id] = k.split(':');
+      if (AV && AV.isUnlocked ? AV.isUnlocked(f, id) : (A.store.ownedItems || {})[k]) owned[k] = true;
+      if (av[f] === id) worn[k] = true;
+    });
+    return {owned, worn};
+  }
   function questEncode(s) {
     const L = QUEST_V1, w = writer();
     const conv = Object.values(s.converted || {}).reduce((n, v) => n + (+v || 0), 0) + (+s.convertedLeft || 0);
     const juke = s.world ? L.jukeboxes.findIndex(j => j && j.map === s.world.map) : 0;
-    w.put(L.version, 4); w.put(s.level || 1, 6); w.put(s.xp, 9); w.put(s.tokens, 11);
+    w.put(QUEST_V2.version, 4); w.put(s.level || 1, 6); w.put(s.xp, 9); w.put(s.tokens, 11);
     L.items.forEach(id => w.put((s.items || {})[id] || 0, 3));
     L.roster.forEach(id => w.put((s.roster || []).includes(id) ? 1 : 0, 1));
     L.flags.forEach(f => w.put((s.flags || {})[f] ? 1 : 0, 1));
     L.ghosts.forEach(([k]) => w.put((s.done || {})[k] ? 1 : 0, 1));
     w.put(Math.max(0, juke), 3); w.put(conv, 11);
-    while (w.bits.length < QUEST_DATA_BITS) w.bits.push(0);
+    while (w.bits.length < 106) w.bits.push(0);                   // the version-1 fields end here
+    const ch = s.charms || {}, cos = cosmeticsNow();
+    for (let i = 0; i < CHARM_SLOTS; i++) w.put((ch.owned || {})[QUEST_V2.charms[i]] ? 1 : 0, 1);
+    [0, 1].forEach(i => w.put((ch.equipped || [])[i] ? QUEST_V2.charms.indexOf(ch.equipped[i]) + 1 : 0, 3));
+    QUEST_V2.cosmetics.forEach(k => w.put(cos.owned[k] ? 1 : 0, 1));
+    QUEST_V2.cosmetics.forEach(k => w.put(cos.worn[k] ? 1 : 0, 1));
+    while (w.bits.length < QUEST_DATA_BITS_2) w.bits.push(0);
     w.put(questCheck(w.bits), QUEST_CHECK_BITS);
     return group(bitsToChars(w.bits));
   }
   function questDecode(code) {
     const c = clean(code);
-    if (!c || c.length !== QUEST_CHARS) return {ok: false, error: BAD};
-    const bits = charsToBits(c).slice(0, QUEST_DATA_BITS + QUEST_CHECK_BITS), data = bits.slice(0, QUEST_DATA_BITS);
-    if (reader(bits.slice(QUEST_DATA_BITS)).get(QUEST_CHECK_BITS) !== questCheck(data)) return {ok: false, error: BAD};
+    if (!c || (c.length !== QUEST_CHARS && c.length !== QUEST_CHARS_2)) return {ok: false, error: BAD};
+    const n = c.length === QUEST_CHARS ? QUEST_DATA_BITS : QUEST_DATA_BITS_2;
+    const bits = charsToBits(c).slice(0, n + QUEST_CHECK_BITS), data = bits.slice(0, n);
+    if (reader(bits.slice(n)).get(QUEST_CHECK_BITS) !== questCheck(data)) return {ok: false, error: BAD};
     const r = reader(data), version = r.get(4);
-    if (version !== 1) return {ok: false, error: 'That code is from a newer Arcade Quest. Try it on the website version of the arcade.'};
+    if (version > 2 || version !== (n === QUEST_DATA_BITS ? 1 : 2)) return {ok: false, error: 'That code is from a newer Arcade Quest. Try it on the website version of the arcade.'};
     const L = QUEST_V1, f = {level: Math.max(1, r.get(6)), xp: r.get(9), tokens: r.get(11), items: {}, roster: [], flags: {}, done: {}, world: null, convertedLeft: 0};
     L.items.forEach(id => { const n = r.get(3); if (n) f.items[id] = n; });
     L.roster.forEach(id => { if (r.get(1)) f.roster.push(id); });
@@ -100,6 +132,14 @@ window.Arcade = window.Arcade || {};
     L.ghosts.forEach(([k, type]) => { if (r.get(1)) f.done[k] = f.roster.includes(type) ? 'befriend' : 'fade'; });
     const j = r.get(3); f.world = L.jukeboxes[j] ? Object.assign({}, L.jukeboxes[j]) : null;
     f.convertedLeft = r.get(11);
+    f.charms = {owned: {}, equipped: [null, null]}; f.cosmetics = {owned: [], worn: []};
+    if (version === 2) {
+      const rr = reader(data.slice(106));
+      for (let i = 0; i < CHARM_SLOTS; i++) if (rr.get(1) && QUEST_V2.charms[i]) f.charms.owned[QUEST_V2.charms[i]] = true;
+      [0, 1].forEach(i => { const k = rr.get(3); f.charms.equipped[i] = k ? QUEST_V2.charms[k - 1] || null : null; });
+      QUEST_V2.cosmetics.forEach(k => { if (rr.get(1)) f.cosmetics.owned.push(k); });
+      QUEST_V2.cosmetics.forEach(k => { if (rr.get(1)) f.cosmetics.worn.push(k); });
+    }
     return {ok: true, fields: f};
   }
 
@@ -118,7 +158,7 @@ window.Arcade = window.Arcade || {};
   async function fullDecode(code) {
     const c = clean(code);
     if (!c) return {ok: false, error: BAD};
-    if (c.length === QUEST_CHARS && questDecode(c).ok) return {ok: false, quest: true, error: "That's an Arcade Quest save code. Enter it on Arcade Quest's title screen (ENTER SAVE CODE)."};
+    if ((c.length === QUEST_CHARS || c.length === QUEST_CHARS_2) && questDecode(c).ok) return {ok: false, quest: true, error: "That's an Arcade Quest save code. Enter it on Arcade Quest's title screen (ENTER SAVE CODE)."};
     if (c.slice(0, 3) !== HEAD || c.length < 14) return {ok: false, error: BAD};
     if (c[3] !== FORMAT) return {ok: false, error: 'That backup code is from a newer version of the arcade.'};
     const mode = c[4], body = c.slice(5, -7), bytes = bitsToBytes(charsToBits(body)).slice(0, Math.floor(body.length * 5 / 8));
@@ -212,5 +252,5 @@ window.Arcade = window.Arcade || {};
     return b;
   }
 
-  A.Backup = {ALPHA, QUEST_V1, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button};
+  A.Backup = {ALPHA, QUEST_V1, QUEST_V2, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button};
 })(window.Arcade);

@@ -56,6 +56,9 @@ window.Arcade = window.Arcade || {};
     'ui-toggle':       {file: 'ui-toggle', vol: .5, mic: true, screen: 'general', when: 'SOUND ON, the horn\'s Starting notes, NOTES × ORDER and other toggles.', len: '0.05–0.15 s'},
     'avatar-change':    {file: 'avatar-change',    vol: .45, mic: true, screen: 'general', gen: 'ui-toggle', when: 'Create Your Player: picking any option (a hair style, a color, a word of your name…).', len: '0.05–0.15 s'},
     'avatar-randomize': {file: 'avatar-randomize', vol: .6, mic: true, screen: 'general', gen: [[523, 0, .06, .25], [784, .05, .06, .25], [659, .1, .06, .25], [1047, .15, .1, .25]], when: 'Create Your Player: SURPRISE ME (everything, one tab, or a random name).', len: '0.2–0.5 s'},
+    'item-unlocked':    {file: 'item-unlocked',    vol: .8, mic: true, screen: 'general', fallback: 'skin-unlocked', when: 'An UNLOCKED! card with a new item for your player (a hat, a pet, a jacket…): a results screen or Select Player.', len: '0.5–1 s'},
+    'item-purchase':    {file: 'item-purchase',    vol: .7, mic: true, screen: 'arcade-quest', fallback: 'quest-tokens', gen: 'select-default', when: 'Arcade Quest: buying a player item or a charm at the Token Booth.', len: '0.3–0.8 s'},
+    'charm-equip':      {file: 'charm-equip',      vol: .6, mic: true, screen: 'arcade-quest', fallback: 'skin-equip', gen: 'skin-equip', when: 'Arcade Quest: putting on or taking off a charm (Menu: CHARMS), or a ghost giving you one.', len: '0.2–0.5 s'},
     'avatar-save':      {file: 'avatar-save',      vol: .7, mic: true, screen: 'general', gen: 'skin-equip', when: 'Create Your Player: SAVE.', len: '0.3–0.6 s'},
     // ---- every game --------------------------------------------------------------------------------------------
     'level-start':     {file: 'level-start',    vol: .8, mic: true, screen: 'game', when: 'A level begins.', len: '0.3–0.8 s'},

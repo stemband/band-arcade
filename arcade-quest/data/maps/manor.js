@@ -12,7 +12,8 @@
                need: a flag (locked until then; `locked` says why)}. x counts from 0 at the left, y from 0 at the top.
      npcs     {id (data/dialogue.js), at, sprite?, moved: {flag, at} (where they stand once that flag is set)}
      enemies  {key (unique in the room: saved when you help that ghost), type (data/enemies.js), at, happy?, wander (tiles)}
-     things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop'}
+     things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop',
+               charm?: a charm hidden here (data/items.js QUEST_CHARMS; it twinkles until found), found?: the sign said then}
      floor    the floor tile drawn under furniture (tiles with over: true), e.g. '_' in the Kitchen (default '.')
      music    a music event (shared/sounds.js); fog: true = drifting fog over the whole room; practice: true = its
               ghosts come back every visit (the Practice Hall). */
@@ -158,7 +159,7 @@ window.QUEST_MAPS = {
       {at: [2, 3], say: 'book-1'}, {at: [5, 3], say: 'book-2'}, {at: [8, 3], say: 'book-3'}, {at: [12, 3], say: 'book-4'}, {at: [15, 3], say: 'book-5'},
       {at: [2, 5], say: 'book-6'}, {at: [9, 5], say: 'book-7'}, {at: [16, 5], say: 'book-8'}, {at: [2, 9], say: 'book-9'}, {at: [13, 9], say: 'book-10'},
       {at: [3, 1], say: 'book-1'}, {at: [15, 1], say: 'book-4'}, {at: [9, 1], say: 'library-window'},
-      {at: [11, 7], say: 'library-table'}, {at: [15, 7], say: 'library-table'},
+      {at: [11, 7], say: 'library-table', charm: 'tuning-fork', found: 'library-table-found'}, {at: [15, 7], say: 'library-table'},
     ],
     enemies: [
       {key: 'h1', type: 'hush', at: [11, 4], wander: 2},
@@ -228,7 +229,7 @@ window.QUEST_MAPS = {
     npcs: [{id: 'sizzle', at: [8, 3]}],
     things: [
       {at: [4, 2], say: 'stove'}, {at: [5, 2], say: 'stove'}, {at: [10, 2], say: 'stove'}, {at: [11, 2], say: 'stove'},
-      {at: [1, 2], say: 'counter'}, {at: [7, 2], say: 'counter-2'}, {at: [13, 2], say: 'counter'}, {at: [8, 1], say: 'kitchen-clock'},
+      {at: [1, 2], say: 'counter'}, {at: [7, 2], say: 'counter-2', charm: 'lucky-reed', found: 'counter-2-found'}, {at: [13, 2], say: 'counter'}, {at: [8, 1], say: 'kitchen-clock'},
       {at: [4, 5], say: 'kitchen-table'}, {at: [5, 5], say: 'kitchen-table'}, {at: [13, 5], say: 'kitchen-table'}, {at: [14, 5], say: 'kitchen-table'},
     ],
     enemies: [
