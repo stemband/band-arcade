@@ -35,7 +35,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const LIST = {
     // ---- the arcade floor --------------------------------------------------------------------------------
-    'lobby-ambience':  {file: 'lobby-ambience', vol: .6, loop: true, mic: false, screen: 'floor', when: 'Background room sound on the arcade floor and Select Player (the AMBIENCE slider). Loops without a gap.', len: '20–60 s loop'},
+    'lobby-ambience':  {file: 'lobby-ambience', vol: .3, loop: true, mic: false, screen: 'floor', when: 'Background room sound on the arcade floor and Select Player (the AMBIENCE slider). Loops without a gap.', len: '20–60 s loop'},
     'wheel-left':      {file: 'wheel-left',  vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn left (◀, swipe, ← key).', len: '0.2–0.4 s'},
     'wheel-right':     {file: 'wheel-right', vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn right (▶, swipe, → key).', len: '0.2–0.4 s'},
     'cabinet-focus':   {file: 'cabinet-focus', vol: .35, mic: false, screen: 'floor', when: 'A new cabinet arrives at the front (quiet, after the turn).', len: '0.1–0.3 s'},
