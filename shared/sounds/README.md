@@ -11,16 +11,34 @@ sound for that moment, so nothing ever goes silent and students never see an err
    (lowercase, dashes, no spaces). If both exist, the `.m4a` is used.
 3. Upload it into this folder (`shared/sounds/`) on GitHub. To replace a sound, upload a new file with the same name.
 4. Open the **Sound Board** (`sound-board/index.html` on the site, e.g.
-   `https://stemband.github.io/band-arcade/sound-board/index.html`) and press **Check my files**. Your file shows
-   **YOUR FILE (m4a)** or **YOUR FILE (mp3)**. Press **Play** to hear it, and use the level meter to match its
-   loudness to the others.
+   `https://stemband.github.io/band-arcade/sound-board/index.html`). It checks every file when it opens; after an
+   upload, press **RELOAD ALL SOUNDS** (no need to reload the page). Your file shows **YOUR FILE (m4a, 0.42 s,
+   18 KB)** with its length and size, so you can tell a replaced file from the old one; a label that changed since
+   the last check gets a yellow outline, and "Checked at …" shows when the check ran. The Sound Board always asks
+   the server for the live files, never the browser's saved copies (GitHub Pages can take a minute to publish an
+   upload). Press **Play** to hear it, and use the level meter to match its loudness to the others.
+5. **After replacing sounds, bump `SOUNDS_VERSION` by 1** (the number at the very top of `shared/sounds.js`) **so
+   every student's device picks up the new files right away.** See *Caching* below.
+
+## Caching: SOUNDS_VERSION
+
+Browsers keep a saved copy of each sound so games start fast (GitHub Pages lets them keep files for about 10
+minutes, and a tab also remembers a missing file until it closes). That's why a replaced sound can keep playing
+the old version for a while. Every sound's address ends in `?v=<SOUNDS_VERSION>`, so when you add 1 to that
+number, the files count as new and every device downloads them the next time it loads the page; after that they're
+saved again, so students keep fast sounds. You don't need to bump it for a brand-new sound that nobody has heard
+yet, only when you replace or delete one. The games never skip the saved copies themselves (that would make
+students download every sound on every page).
+
+One catch: `shared/sounds.js` is itself a saved file, so a device that loaded a page in the last ~10 minutes may
+still have the old number until its copy of `sounds.js` refreshes (at most about 10 minutes on GitHub Pages).
 
 Tips:
 - Keep files short and small (under about 100 KB each; the ambience loop under about 1 MB). Students load them on
   school Wi-Fi, and each page only loads its own sounds, after the first tap.
 - Trim silence at the start, so the sound plays the moment it happens.
-- A browser remembers a missing file for the rest of that tab. If you just uploaded one, open a new tab (the Sound
-  Board always checks again).
+- A browser remembers a missing file for the rest of that tab. If you just uploaded one, open a new tab, or bump
+  `SOUNDS_VERSION` (the Sound Board always checks again).
 - Each sound's loudness can be adjusted without re-recording: change its `vol` (0–1) in `shared/sounds.js`.
 - Students set their own SOUND ON/OFF, EFFECTS and AMBIENCE volumes with the speaker button in every top bar.
 - Opening a page by double-clicking it (a local file) still plays your files, through the browser's plain audio

@@ -241,34 +241,41 @@ window.Arcade = window.Arcade || {};
     setTimeout(() => { if (!done) { done = true; rej(); } }, 8000);
     el.src = url; el.load();
   });
-  /** load a file (tries .m4a, then .mp3). fresh: ignore what failed before (the Sound Board) */
-  function load(file, {fresh = false} = {}) {
+  /* CACHING: games load <file>.<ext>?v=<SOUNDS_VERSION> (shared/sounds.js) with the browser's normal cache, so students
+     keep fast cached sounds; bumping SOUNDS_VERSION makes every device fetch the new files. The Sound Board passes
+     bust: it always asks the server again (cache: 'reload' + a unique ?t=), so it shows what is live right now. */
+  const VERSION = () => (A.Sounds && A.Sounds.VERSION) || 1;
+  /** load a file (tries .m4a, then .mp3). fresh: ignore what failed before. bust: skip every cache and load again
+      even if it loaded before (the Sound Board: a replaced or deleted file shows up at once) */
+  function load(file, {fresh = false, bust = false} = {}) {
     if (!file || !BASE) return Promise.resolve({state: 'missing'});
-    if (files[file] && !(fresh && files[file].state === 'missing')) return files[file].p;
+    if (files[file] && !bust && !(fresh && files[file].state === 'missing')) return files[file].p;
     const rec = files[file] = {state: 'loading', file};
     rec.p = (async () => {
       let asked = false;
       for (const ext of ['m4a', 'mp3']) {
-        const url = BASE + file + '.' + ext;
-        if (!fresh && miss.has(url)) continue;
+        const base = BASE + file + '.' + ext + '?v=' + VERSION();
+        const url = bust ? base + '&t=' + Date.now() : base;
+        if (!fresh && !bust && miss.has(base)) continue;
         asked = true;
         try {
           if (FILE_MODE || !ctx) {
             const el = await loadEl(url);
             Object.assign(rec, {state: 'ok', el, ext, url, dur: el.duration || 0.5});
           } else {
-            const r = await fetch(url);
+            const r = await fetch(url, bust ? {cache: 'reload'} : undefined);
             if (!r.ok) throw new Error(r.status);
-            let buf = await decode(await r.arrayBuffer());
+            const ab = await r.arrayBuffer(); rec.bytes = ab.byteLength;
+            let buf = await decode(ab);
             const pts = loopPoints(buf);
             if (loops(file)) buf = crossfaded(buf, pts);                     // a loop: bake a seamless wrap into the buffer
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
-          miss.delete(url);
+          miss.delete(base);
           if (file === (entry('lobby-ambience') || {}).file && amb && amb.gen) { stopAmbience(true); syncAmbience(); }   // swap the hum for the file
           return rec;
         } catch (e) {
-          miss.add(url);
+          miss.add(base);
           try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss])); } catch (x) {}
         }
       }
@@ -509,11 +516,13 @@ window.Arcade = window.Arcade || {};
     /* for the Sound Board (sound-board/index.html) */
     board: {
       start() { unlock(); return ctx; },
-      load: (name, fresh = true) => { const e = entry(name); return e && e.file ? load(e.file, {fresh}) : Promise.resolve({state: 'missing'}); },
+      /** fresh (default): load again, skipping every cache (what is live on the server right now); false: reuse the last load */
+      load: (name, fresh = true) => { const e = entry(name); return e && e.file ? load(e.file, {fresh, bust: fresh}) : Promise.resolve({state: 'missing'}); },
       /** 'file' (with .ext), 'fallback' (the action's own built-in sound, or select-default's file) or 'generated' */
       status(name) {
         const e = entry(name), rec = e && files[e.file];
-        if (rec && rec.state === 'ok') return {kind: 'file', ext: rec.ext, dur: rec.dur};
+        if (rec && rec.state === 'loading') return {kind: 'checking'};
+        if (rec && rec.state === 'ok') return {kind: 'file', ext: rec.ext, dur: rec.dur, bytes: rec.bytes};
         if (e && e.fallback) { const f = files[(entry(e.fallback) || {}).file]; if (f && f.state === 'ok') return {kind: 'fallback', via: e.fallback + '.' + f.ext}; }
         return {kind: builtIn(name, e).kind === 'generated' && !(e && e.fallback) ? 'generated' : 'fallback'};
       },

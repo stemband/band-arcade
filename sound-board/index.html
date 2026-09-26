@@ -21,6 +21,12 @@
   .sb-hold{position:absolute;top:0;bottom:0;width:2px;background:var(--white-hi);left:0}
   .sb-read{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text-hi);min-width:15ch}
   .sb-summary{margin:0;color:var(--text-lo);font-weight:700}
+  .sb-reload{display:grid;gap:4px;justify-items:start}
+  .sb-big{min-height:56px;padding:10px 24px;font-size:19px;text-transform:uppercase;letter-spacing:.04em}
+  .sb-big[aria-busy="true"]{opacity:.7}
+  .sb-reload small{font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums}
+  .sb-status.checking{border-style:dashed;color:var(--text-lo)}
+  .sb-status.changed{outline:2px solid var(--yellow);outline-offset:2px}
   .sb-group{margin:18px 0 6px;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--yellow)}
   .sb-list{display:grid;gap:6px}
   .sb-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,2fr) auto auto auto;gap:6px 12px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--floor-2);border:1px solid var(--floor-3)}
@@ -49,9 +55,10 @@
 <div class="wrap sb">
   <div class="topbar"><a class="brand" href="../index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="soundCtl"></div></div>
   <h1>Sound Board</h1>
-  <p class="sb-intro muted">Every sound in the Band Arcade, from <code>shared/sounds.js</code>. Upload a recording into <code>shared/sounds/</code> with the file name shown (<code>.m4a</code> or <code>.mp3</code>), then press <b>Check my files</b>. <b>YOUR FILE</b> = your recording plays. <b>FALLBACK</b> = the arcade's own built-in sound for that moment. <b>MISSING FILE, USING GENERATED</b> = a short generic beep until you add one. This page isn't linked from the arcade. The PLAY buttons play even when SOUND is off; the effects volume still applies.</p>
+  <p class="sb-intro muted">Every sound in the Band Arcade, from <code>shared/sounds.js</code>. Upload a recording into <code>shared/sounds/</code> with the file name shown (<code>.m4a</code> or <code>.mp3</code>), then press <b>RELOAD ALL SOUNDS</b>. This page always asks the server for the live files (it skips the browser's saved copies), so a file you just uploaded, replaced or deleted shows up right away; GitHub Pages can take a minute to publish an upload. Game pages keep their fast saved copies: after replacing sounds, add 1 to <code>SOUNDS_VERSION</code> at the top of <code>shared/sounds.js</code> so students get the new files. <b>YOUR FILE</b> = your recording plays. <b>FALLBACK</b> = the arcade's own built-in sound for that moment. <b>MISSING FILE, USING GENERATED</b> = a short generic beep until you add one. This page isn't linked from the arcade. The PLAY buttons play even when SOUND is off; the effects volume still applies.</p>
   <div class="sb-bar">
-    <button type="button" class="btn btn-gold" id="check">Check my files</button>
+    <div class="sb-reload"><button type="button" class="btn btn-gold sb-big" id="check">Reload all sounds</button>
+      <small id="checkedAt" aria-live="polite">Not checked yet</small></div>
     <div class="sb-meter" aria-live="off">
       <small>Level meter (compare loudness: aim for similar peaks)</small>
       <div class="sb-track"><div class="sb-fill" id="fill"></div><div class="sb-hold" id="hold"></div></div>
@@ -97,25 +104,52 @@
     }).join('') + `</div>`).join('');
 
   /* ---------- statuses ---------- */
-  function label(n) {
+  const kb = b => b ? (b < 1024 ? b + ' B' : (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB') : '';
+  /** a row's status label; a label that changed since the last check gets a yellow outline */
+  function label(n, mark) {
     const st = B.status(n), el = document.querySelector(`.sb-row[data-n="${n}"] [data-status]`);
-    el.className = 'sb-status ' + st.kind;
-    el.textContent = st.kind === 'file' ? `Your file (${st.ext})` : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
+    const text = st.kind === 'checking' ? 'Checking…'
+      : st.kind === 'file' ? `Your file (${st.ext}${st.dur ? ', ' + st.dur.toFixed(2) + ' s' : ''}${st.bytes ? ', ' + kb(st.bytes) : ''})`
+      : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
+    const changed = mark && el.dataset.last && el.dataset.last !== text;
+    el.className = 'sb-status ' + st.kind + (changed ? ' changed' : '');
+    el.textContent = text;
+    if (st.kind !== 'checking') el.dataset.last = text;
     return st.kind;
   }
+  /* RELOAD ALL SOUNDS: fetch every file again from the server (never a saved copy), four at a time, updating each
+     row as it lands, without reloading the page. Runs by itself when the page opens. */
+  let checking = false;
   async function check() {
+    if (checking) return;
     if (!B.start()) { $('summary').textContent = 'This browser has no Web Audio.'; return; }
+    checking = true; $('check').setAttribute('aria-busy', 'true'); $('check').textContent = 'Reloading…';
     $('summary').textContent = 'Checking…';
-    const counts = {file: 0, fallback: 0, generated: 0};
-    for (const n of names) {
-      const e = S.get(n);
-      await B.load(n, true);
-      if (e.fallback) await B.load(e.fallback, true);
-      counts[label(n)]++;
-    }
+    const counts = {file: 0, fallback: 0, generated: 0}, loaded = new Map();
+    const fetchOnce = name => {                      // one download per FILE per check (many select-* share select-default)
+      const e = S.get(name), f = e && e.file;
+      if (!loaded.has(f)) loaded.set(f, B.load(name, true));
+      return loaded.get(f);
+    };
+    names.forEach(n => label(n, false));             // keep the old text until each row is checked again
+    const queue = names.slice();
+    const worker = async () => {
+      while (queue.length) {
+        const n = queue.shift(), e = S.get(n);
+        await fetchOnce(n);
+        if (e.fallback) await fetchOnce(e.fallback);
+        counts[label(n, true)]++;
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    const t = new Date();
+    $('checkedAt').textContent = `Checked at ${t.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit', second: '2-digit'})} (live files, SOUNDS_VERSION ${S.VERSION})`;
     $('summary').textContent = `${counts.file} your files · ${counts.fallback} fallback · ${counts.generated} generated (${names.length} sounds)`;
+    $('check').removeAttribute('aria-busy'); $('check').textContent = 'Reload all sounds';
+    checking = false;
   }
   $('check').addEventListener('click', check);
+  check();
 
   /* ---------- play + measure each sound's peak ---------- */
   const an = () => B.analyser(), data = new Float32Array(1024);

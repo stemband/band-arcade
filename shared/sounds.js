@@ -1,3 +1,7 @@
+/* AFTER REPLACING SOUNDS in shared/sounds/, add 1 to this number, so every student's device loads the new files right
+   away instead of a copy it saved earlier (every sound URL ends in ?v=<this number>). */
+var SOUNDS_VERSION = 1;
+
 /* Band Arcade: THE SOUND LIST. Every sound the arcade plays, by event name. shared/sfx.js plays them.
 
    To use your own recording for an event, upload it into shared/sounds/ named exactly as `file` below, as
@@ -109,6 +113,7 @@ window.Arcade = window.Arcade || {};
 
   A.Sounds = {
     LIST, SCREENS,
+    VERSION: typeof SOUNDS_VERSION !== 'undefined' ? SOUNDS_VERSION : 1,   // added to every sound URL as ?v= (top of this file)
     /** add (or replace) sound events: {name: {file, vol, loop, mic, play, screen, when, len, gen}} */
     add(entries) { Object.keys(entries || {}).forEach(k => { LIST[k] = Object.assign({file: k, vol: .8, mic: true}, entries[k]); }); },
     /** the entry for an event; select-<game id> is made on the fly for any game */
