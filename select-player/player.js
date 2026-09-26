@@ -36,6 +36,7 @@
   $('spTitle').textContent = 'Select your player';
   $('ready').hidden = true; $('ready').classList.remove('go');
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
+  if (A.Marquee) A.Marquee.animate($('marquee').querySelector('.mq-live'), 'select');   // this game's sign, moving
   A.Sfx.use('select');                                      // this screen's sounds load after the first tap
   // the music manager: the room ambience fades out, the character-select music fades in (this game's own
   // select-music-<id> if Mat uploaded one, else select-music, else the built-in chiptune). No extra tap needed.
@@ -367,6 +368,7 @@
   function close() {
     if (!live) return;
     live.ac.abort(); live = null;
+    if (A.Marquee) A.Marquee.animate(null, 'select');
     const v = $('selectView');
     v.hidden = true; $('locker').hidden = true; $('ready').hidden = true;
     $('grid').innerHTML = '';

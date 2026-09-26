@@ -15,7 +15,7 @@
                and a gear stick instead (a sit-down racer).
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
    Marquee and screen are canvas textures drawn with the bundled fonts; only the front cabinet's
-   screen animates (the attract loop).
+   screen (the attract loop) and marquee (shared/marquees.js, at Arcade.Marquee.FPS) animate.
 
    Performance: renders only while something moves (a turn, the front cabinet's sway, its attract
    screen), at most ~30 fps when idle, never while the tab is hidden. Pixel ratio ≤ 1.5. If frames
@@ -167,149 +167,6 @@ window.Arcade = window.Arcade || {};
     g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
     x.fillStyle = g; x.fillRect(0, 0, size, size);
     return c;
-  }
-
-  /* ---------- marquees (match the .mq-* styles in shared/cabinets.css) ---------- */
-  function drawMarquee(c, g, k, done) {
-    const x = c.getContext('2d'), W = c.width, H = c.height, t = tok[k.trim], thi = tok[k.trim + '-hi'], tink = tok[k.trim + '-ink'], u = tok[k.trim2];
-    const name = g.name.toUpperCase();
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    if (k.marquee === 'haunt') {
-      const gr = x.createRadialGradient(W / 2, H * 1.2, 10, W / 2, H * 1.2, W * .7);
-      gr.addColorStop(0, tink); gr.addColorStop(1, tok.deep);
-      x.fillStyle = gr; x.fillRect(0, 0, W, H);
-      ghost(x, W * .05, H * .14, H * .58, tok.screen, tok.floor);
-      const s = fitText(x, name, '"GN Haunt", "GN Display", sans-serif', H * .62, W * .72);
-      x.shadowColor = u; x.shadowBlur = 14; x.fillStyle = thi;
-      x.font = `${s}px "GN Haunt", "GN Display", sans-serif`; x.fillText(name, W * .56, H * .54);
-    } else if (k.marquee === 'pixel') {
-      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
-      if (k.kicker) {
-        const ks = fitText(x, k.kicker.toUpperCase(), '"GN Pixel", monospace', H * .16, W * .8);
-        x.shadowColor = u; x.shadowBlur = 8; x.fillStyle = u; x.font = `${ks}px "GN Pixel", monospace`; x.fillText(k.kicker.toUpperCase(), W / 2, H * .3);
-      }
-      const s = fitText(x, name, '"GN Pixel", monospace', H * .3, W * .86);
-      x.shadowColor = t; x.shadowBlur = 12; x.fillStyle = t; x.font = `${s}px "GN Pixel", monospace`;
-      x.fillText(name, W / 2, k.kicker ? H * .64 : H / 2);
-    } else if (k.marquee === 'dojo') {
-      // a paper sign in a wooden frame, red letters, the ninja (the same drawing as the page, as an image)
-      const f = H * .1;
-      x.fillStyle = tok['dojo-wood-2']; x.fillRect(0, 0, W, H);
-      x.fillStyle = tok['dojo-paper']; x.fillRect(f, f, W - 2 * f, H - 2 * f);
-      const s = fitText(x, name, '"GN Display", sans-serif', H * .44, W * .66);
-      x.fillStyle = tok['red-ink']; x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W * .6, H * .54);
-      if (A.ninjaSVG && done) {
-        const img = new Image();
-        img.onload = () => { x.drawImage(img, W * .05, H * .08, H * .84 * 100 / 120, H * .84); done(); };
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(A.ninjaSVG({belt: 'belt-black'}).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
-      }
-      x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
-      return;
-    } else if (k.marquee === 'scroll') {
-      // a paper hand scroll with wooden rods at both ends, ink-red letters (two lines for a long name)
-      const rod = H * .16;
-      x.fillStyle = tok['scroll-rod']; x.fillRect(0, 0, W, H);
-      x.fillStyle = tok['scroll-paper']; x.fillRect(rod, H * .06, W - 2 * rod, H * .88);
-      const words = name.split(' '), lines = words.length > 2 ? [words.slice(0, -1).join(' '), words[words.length - 1]] : [name];
-      const s = Math.min(...lines.map(l => fitText(x, l, '"GN Display", sans-serif', H * (lines.length > 1 ? .36 : .5), W * .76)));
-      x.fillStyle = tok['red-ink']; x.font = `${s}px "GN Display", sans-serif`;
-      lines.forEach((l, i) => x.fillText(l, W / 2, H * (lines.length > 1 ? .33 + i * .38 : .54)));
-      x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
-      return;
-    } else if (k.marquee === 'heist') {
-      // a steel plate with rivets, laser-green letters, a red laser underline
-      const gr = x.createLinearGradient(0, 0, 0, H);
-      gr.addColorStop(0, tok['cab-panel']); gr.addColorStop(1, tok.deep);
-      x.fillStyle = gr; x.fillRect(0, 0, W, H);
-      x.fillStyle = tok['cab-metal'];
-      [[.05, .2], [.95, .2], [.05, .8], [.95, .8]].forEach(([a, b]) => { x.beginPath(); x.arc(W * a, H * b, H * .05, 0, 7); x.fill(); });
-      x.fillStyle = u; x.shadowColor = u; x.shadowBlur = 10; x.fillRect(W * .1, H * .84, W * .8, H * .04);
-      const s = fitText(x, name, '"GN Display", sans-serif', H * .5, W * .8);
-      x.shadowColor = t; x.shadowBlur = 14; x.fillStyle = thi;
-      x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W / 2, H * .48);
-    } else if (k.marquee === 'versus') {
-      // split blue / red with a bright seam, slanted yellow letters with a dark outline (match .mq-versus)
-      x.fillStyle = u; x.fillRect(0, 0, W, H);
-      x.fillStyle = t; x.beginPath(); x.moveTo(W * .54, 0); x.lineTo(W, 0); x.lineTo(W, H); x.lineTo(W * .46, H); x.fill();
-      x.strokeStyle = tok['yellow-hi']; x.lineWidth = H * .04; x.beginPath(); x.moveTo(W * .54, 0); x.lineTo(W * .46, H); x.stroke();
-      x.fillStyle = 'rgba(6,4,13,.72)'; x.fillRect(W * .05, H * .14, W * .9, H * .72);
-      const s = fitText(x, name, '"GN Display", sans-serif', H * .44, W * .8);
-      x.save(); x.translate(W / 2, H * .53); x.transform(1, 0, -.22, 1, 0, 0);
-      x.font = `italic ${s}px "GN Display", sans-serif`;
-      x.lineJoin = 'round'; x.lineWidth = s * .12; x.strokeStyle = tok.deep; x.strokeText(name, 0, 0);
-      x.fillStyle = tok['red-ink']; x.fillText(name, s * .05, s * .07);
-      x.fillStyle = tok.yellow; x.shadowColor = t; x.shadowBlur = 10; x.fillText(name, 0, 0);
-      x.restore();
-      x.shadowBlur = 0; x.strokeStyle = thi; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
-      return;
-    } else if (k.marquee === 'faceoff') {
-      // a dark glass sign with neon tube letters: the first word in trim, the rest in trim2 (match .mq-faceoff)
-      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
-      const [w1, ...rest] = g.name.toUpperCase().split(' '), w2 = rest.join(' ');
-      const s = fitText(x, w1 + ' ' + w2, '"GN Neon", "GN Display", sans-serif', H * .42, W * .86);
-      x.font = `${s}px "GN Neon", "GN Display", sans-serif`;
-      const a = x.measureText(w1).width + s * .35, b = x.measureText(w2).width, x0 = W / 2 - (a + b) / 2;   // the neon font has no space
-      x.textAlign = 'left'; x.shadowBlur = 14;
-      x.shadowColor = t; x.fillStyle = thi; x.fillText(w1, x0, H * .56);
-      x.shadowColor = u; x.fillStyle = tok[k.trim2 + '-hi']; x.fillText(w2, x0 + a, H * .56);
-      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
-      return;
-    } else if (k.marquee === 'quest') {
-      // a pixel sign (match .mq-quest): scanlines, a big 8-bit microphone, ARCADE QUEST in the pixel font
-      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
-      x.fillStyle = u; x.globalAlpha = .18; for (let y = 0; y < H; y += H * .06) x.fillRect(0, y, W, H * .03); x.globalAlpha = 1;
-      const mic = A.QUEST_MIC || [], ps = H * .8 / Math.max(1, mic.length), mx = W * .06, my = H * .1;
-      x.fillStyle = thi; x.shadowColor = t; x.shadowBlur = 8;
-      mic.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch === 'X') x.fillRect(mx + rx * ps, my + ry * ps, ps + .5, ps + .5); }));
-      x.shadowBlur = 0; x.textAlign = 'left';
-      const tx = mx + 9 * ps + W * .04, room = (W - tx - W * .05) * .9;   // fitText measures the regular weight: leave room for bold
-      if (k.kicker) { x.fillStyle = tok[k.trim2 + '-hi']; x.font = `600 ${fitText(x, k.kicker.toUpperCase(), '"GN Quest", sans-serif', H * .14, room)}px "GN Quest", sans-serif`; x.fillText(k.kicker.toUpperCase(), tx, H * .2); }
-      const s = fitText(x, name, '"GN Quest", sans-serif', H * .46, room);
-      x.font = `700 ${s}px "GN Quest", sans-serif`; x.fillStyle = tok[k.trim2 + '-ink']; x.fillText(name, tx + s * .08, H * .62 + s * .08);
-      x.fillStyle = thi; x.shadowColor = t; x.shadowBlur = 10; x.fillText(name, tx, H * .62);
-      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .08; x.strokeRect(0, 0, W, H); x.textAlign = 'center';
-    } else if (k.marquee === 'speedway') {
-      // sunset racing lettering: a sky gradient, italic name in a yellow-to-trim gradient, speed lines (match .mq-speedway)
-      const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, tok['sw-sky-mid']); bg.addColorStop(.7, tok['sw-sky-top']); bg.addColorStop(1, tok.deep);
-      x.fillStyle = bg; x.fillRect(0, 0, W, H);
-      x.fillStyle = u; x.fillRect(0, H * .9, W, H * .1);
-      if (k.kicker) { x.fillStyle = tok[k.trim2 + '-hi']; x.font = `italic ${H * .13}px "GN Display", sans-serif`; x.fillText(k.kicker.toUpperCase().split('').join(' '), W / 2, H * .2); }
-      const s = fitText(x, name, 'italic "GN Display", sans-serif', H * .36, W * .78);
-      x.save(); x.translate(W / 2, H * .56); x.transform(1, 0, -.2, 1, 0, 0);
-      const tg = x.createLinearGradient(0, -s / 2, 0, s / 2); tg.addColorStop(0, tok['yellow-hi']); tg.addColorStop(.55, u); tg.addColorStop(1, t);
-      x.font = `italic ${s}px "GN Display", sans-serif`; x.shadowColor = t; x.shadowBlur = 12; x.fillStyle = tg; x.fillText(name, 0, 0); x.restore();
-      x.strokeStyle = u; x.lineWidth = H * .03; [[.03, .1], [.87, .97]].forEach(([a, b]) => [.48, .56, .64].forEach(yy => { x.beginPath(); x.moveTo(W * a, H * yy); x.lineTo(W * b, H * yy); x.stroke(); }));
-      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
-    } else if (k.marquee === 'showtime') {
-      // a worn bulb-lit sign: SHOWTIME in the trim, MALFUNCTION in trim2, one bulb burnt out (match .mq-showtime)
-      x.fillStyle = tok['cab-panel']; x.fillRect(0, 0, W, H);
-      x.fillStyle = thi; for (let bx = H * .08; bx < W; bx += H * .16) { x.beginPath(); x.arc(bx, H * .07, H * .025, 0, 7); x.arc(bx, H * .93, H * .025, 0, 7); x.fill(); }
-      x.fillStyle = tok.deep; x.fillRect(W * .05, H * .15, W * .9, H * .7);
-      const [w1, ...rest] = g.name.toUpperCase().split(' '), w2 = rest.join(' ');
-      const s1 = fitText(x, w1, '"GN Display", sans-serif', H * .3, W * .8), s2 = fitText(x, w2, '"GN Display", sans-serif', H * .26, W * .84);
-      x.shadowBlur = 12; x.shadowColor = t; x.fillStyle = thi; x.font = `${s1}px "GN Display", sans-serif`; x.fillText(w1, W / 2, H * .35);
-      x.font = `${s2}px "GN Display", sans-serif`; x.textAlign = 'left';
-      const full = x.measureText(w2).width, x0 = W / 2 - full / 2, cut = w2.indexOf('F');
-      [...w2].forEach((ch, i) => {
-        const cx = x0 + x.measureText(w2.slice(0, i)).width, dead = i === cut;
-        x.shadowColor = dead ? 'rgba(0,0,0,0)' : u; x.fillStyle = dead ? tok['cab-metal'] : tok[k.trim2 + '-hi']; x.fillText(ch, cx, H * .66);
-      });
-      x.textAlign = 'center';
-    } else if (k.marquee === 'shade') {
-      x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
-      x.strokeStyle = u; x.lineWidth = H * .16;
-      for (let i = -H; i < W + H; i += H * .45) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + H, H); x.stroke(); }
-      const s = fitText(x, name, '"GN Shade", "GN Display", sans-serif', H * .56, W * .8);
-      x.font = `${s}px "GN Shade", "GN Display", sans-serif`;
-      const tw = x.measureText(name).width;
-      x.fillStyle = tok.deep; x.fillRect(W / 2 - tw / 2 - H * .12, H * .16, tw + H * .24, H * .68);
-      x.fillStyle = t; x.fillText(name, W / 2, H * .53);
-    } else {
-      x.fillStyle = t; x.fillRect(0, 0, W, H);
-      const s = fitText(x, name, '"GN Display", sans-serif', H * .5, W * .86);
-      x.fillStyle = tok.deep; x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W / 2, H * .54);
-    }
-    x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
   }
 
   /* ---------- attract screens (canvas versions of SCREENS in shared/cabinets.js) ----------
@@ -603,8 +460,9 @@ window.Arcade = window.Arcade || {};
     }
     const segLen = ([[z0, y0], [z1, y1]]) => Math.hypot(z1 - z0, y1 - y0);
 
-    // marquee: lit, drawn once
-    panel(P.marquee, W * .9, basic(new THREE.Color(1, 1, 1), {map: shared.marquee(g, k, W * .9 / segLen(P.marquee))}));
+    // marquee: lit; its scene animates only while this cabinet is in front (shared/marquees.js)
+    const mq = shared.marquee(g, k, W * .9 / segLen(P.marquee));
+    panel(P.marquee, W * .9, basic(new THREE.Color(1, 1, 1), {map: mq.texture}));
     // screen: dark bezel, the attract texture, and a soft glow around it
     const sw = W * .74, sl = segLen(P.screen);
     panel(P.screen, sw + .09, basic(col('deep')), .003);
@@ -793,7 +651,7 @@ window.Arcade = window.Arcade || {};
     const pool = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.6), additive(shared.glow(k.trim), col(k.trim), .55));
     pool.rotation.x = -Math.PI / 2; pool.position.set(0, .003, .5); group.add(pool);
 
-    return {group, mats, screen: scr, start: new THREE.Vector3(0, P.start[1], P.start[0] + zc + .02), game: g, k};
+    return {group, mats, screen: scr, marquee: mq, start: new THREE.Vector3(0, P.start[1], P.start[0] + zc + .02), game: g, k};
   }
 
   /* ---------- the scene ---------- */
@@ -837,9 +695,13 @@ window.Arcade = window.Arcade || {};
       marquee(g, k, aspect) {
         const id = 'm' + g.id;
         if (!cache[id]) {
-          const c = canvas(512, Math.round(512 / aspect));
-          drawMarquee(c, g, k, () => { cache[id].needsUpdate = true; kick(); });   // some marquees finish drawing a moment later
-          cache[id] = new THREE.CanvasTexture(c);
+          // pictures from shared/marquees/ can't go into WebGL on a page opened from a file (the browser forbids it)
+          const c = canvas(512, Math.round(512 / aspect)), art = location.protocol !== 'file:';
+          const tex = new THREE.CanvasTexture(c);
+          const m = {texture: tex, draw(t) { A.Marquee.draw(c.getContext('2d'), c.width, c.height, t, g, {art}); tex.needsUpdate = true; }};
+          m.draw(null);
+          A.Marquee.onArt(g, () => { m.draw(null); kick(); });   // a picture or a font arrived: draw again
+          cache[id] = m;
         }
         return cache[id];
       },
@@ -944,7 +806,7 @@ window.Arcade = window.Arcade || {};
     }
 
     /* ---------- rendering: only while something moves ---------- */
-    let raf = 0, lastFrame = 0, lastRender = 0, lastScreen = 0, animT0 = performance.now();
+    let raf = 0, lastFrame = 0, lastRender = 0, lastScreen = 0, lastMarquee = 0, animT0 = performance.now();
     let sample = [], sampleStart = 0;
     function render() {
       renderer.clear();
@@ -986,8 +848,9 @@ window.Arcade = window.Arcade || {};
       }
       const idle = !turning;
       if (!idle || now - lastRender >= IDLE_MS) {
-        const t = (now - animT0) / 1000;
+        const t = Math.max(0, now - animT0) / 1000;       // a frame can be stamped a moment before setup ended
         if (!reduced.matches && now - lastScreen > 60) { items[frontIdx()].screen.draw(t); lastScreen = now; }
+        if (!reduced.matches && now - lastMarquee > 1000 / (A.Marquee.FPS / (level ? 2 : 1)) - 2) { items[frontIdx()].marquee.draw(t); lastMarquee = now; }
         layout(now); placeStart(); render(); lastRender = now; stats.frames++;
       }
       if (turning || !reduced.matches) raf = requestAnimationFrame(frame);
@@ -1041,6 +904,7 @@ window.Arcade = window.Arcade || {};
         start.setAttribute('aria-label', 'Start ' + g.name);
         const target = pos + wrap(cur - pos);
         items[frontIdx()].screen.draw(null);             // the old front cabinet's screen goes still
+        items[frontIdx()].marquee.draw(null);            // and its marquee
         if (instant) { pos = from = to = target; turning = false; }
         else { from = pos; to = target; t0 = performance.now(); turning = true; }
         kick();
