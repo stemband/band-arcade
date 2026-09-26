@@ -21,7 +21,6 @@ window.Arcade = window.Arcade || {};
     //            Concert B♭         Concert E♭         Concert F          Concert A♭
     flute:      { Bb: 'Bb4',         Eb: 'Eb5',         F: 'F4',          Ab: 'Ab4' },
     oboe:       { Bb: 'Bb4',         Eb: 'Eb4',         F: 'F4',          Ab: 'Ab4' },
-    tonebells:  { Bb: 'Bb4',         Eb: 'Eb5',         F: 'F4',          Ab: 'Ab4' },
     bells:      { Bb: 'Bb4',         Eb: 'Eb4',         F: 'F4',          Ab: 'Ab4' },
     altosax:    { Bb: 'G4',          Eb: 'C5',          F: 'D4',          Ab: 'F4'  },
     barisax:    { Bb: 'G4',          Eb: 'C5',          F: 'D4',          Ab: 'F4'  },

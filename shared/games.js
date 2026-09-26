@@ -23,7 +23,7 @@
      modeKeys   optional: a game's own extra progress keys ('<id>:<key>') for the home page's "n started" note
                 ([] = none: the home page shows no "Scales: n of 5 started")
      byMember   optional: true = progress is saved per instrument MEMBER (Button Masher: fingerings differ inside a
-                group), under the member chosen for "Which instrument do you play?"; the hi-score reads that member
+                group), under the saved player (Arcade.store.player); the hi-score reads that member
      noPlay     optional: {groups, members, label, game}: students whose instrument is one of these see `label`
                 as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
@@ -113,7 +113,7 @@ window.Arcade.GAMES = [
     color: 'pink',
     byMember: true,                                  // fingerings differ inside a group: stars are saved per instrument
     modeKeys: [],
-    noPlay: {groups: ['bells'], members: ['tonebells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
+    noPlay: {groups: ['bells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
     cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', kicker: '1P vs 2P', screen: 'versus'},
     cabinet3d: {profile: 'versus', body: 'cab-side'},
   },

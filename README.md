@@ -9,10 +9,11 @@ index.html            The arcade floor (home page): pick a GAME from a carousel 
 arcade.css / .js      Arcade floor look and behavior (carousel, swipe, arrow keys, indicator lights)
 arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, glossy floor, haze
 shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
-select-player/        "Select Player": pick your instrument for the game you chose, then play
+select-player/        "Select Your Player": a fighting-game character select, one neon tile per instrument
 shared/               The engine every game uses
-  instruments.js      Instrument groups, transpositions, first five notes, and each group's instruments
-                      with their full chromatic ranges (single source of truth)
+  instruments.js      Instrument groups, transpositions, first five notes, each group's instruments with
+                      their full chromatic ranges, and groupFor(): instrument -> group (single source of truth)
+  portraits.js        The neon instrument portraits (SVG line art, drawn in code) used on every page
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
@@ -53,7 +54,7 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 ## How students move through it
 
 1. **Arcade floor** (`index.html`): choose a game. Turn the cabinets with the ◀ ▶ buttons, a swipe, the ←/→ keys, or the lights under the carousel. Press **START** on the front cabinet.
-2. **Select Player** (`select-player/index.html?game=<game-id>`): choose an instrument. If this device already has one, a big **Continue as …** button comes first. Choosing goes straight into the game.
+2. **Select Your Player** (`select-player/index.html?game=<game-id>`): a fighting-game character select. Fifteen neon portraits, one per instrument, tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
 3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
@@ -107,7 +108,7 @@ Saved: Train stars as the usual progress (`ancient-ninja-scrolls`, player `all`,
 
 A **fingering and slide-position trainer** dressed as a neon versus fighting game, and it **doesn't use the microphone**. A note appears on the staff between the student's fighter and a rival. The student builds the note's fingering on a diagram of their own instrument (the "special move combo") and hits **STRIKE!** A correct combo fires an energy blast and drains the rival's health; a wrong one lets the rival land a harmless cartoon "boing" counter that drains the student's energy.
 
-- **Which instrument.** It uses the saved instrument, and for groups with several instruments (Flute/Oboe/Tone Bells, Trumpet/Clarinet/Tenor Sax, Bass Clarinet/Baritone T.C., Trombone/Euphonium/Bassoon) it asks "Which instrument do you play?" (the same saved answer the Note Checker and scales use). Stars are saved **per instrument**, because a trumpet and a clarinet in the same group finger differently. Bells and Colored Tone Bells get "Percussion: try Chime Heist!" with a link, on the arcade floor and in the game.
+- **Which instrument.** It uses the player chosen on Select Player. Stars are saved **per instrument**, because a trumpet and a clarinet finger differently. Bells get "Percussion: try Chime Heist!" with a link, on the arcade floor and in the game.
 - **The diagrams.** Every key, valve and slide position is a real button: tap to press it (filled = pressed), tap again to let go. The oboe's and bassoon's first key cycles open → half-hole → closed. **CLEAR** resets, **STRIKE!** checks it. Trombone: tapping a slide position strikes right away. The **COMBO** bar shows what's pressed as fighting-game input icons. Woodwind diagrams need a phone turned sideways; brass and trombone fit a phone upright.
 - **Keyboard (Chromebooks):** brass **1–4** press valves (horn: **T** or **4** is the thumb trigger), trombone **1–7** pick a position, **Enter** = STRIKE!, **Backspace** = CLEAR. Woodwind keys are tap/click (Tab and Space also work).
 - **Rivals** (levels, `button-masher/levels.js`): Squeaky Reed (first three notes, note name shown, the right keys glow faintly after 5 s), Captain Clef (first five, name shown), Tempo Tornado (Concert B♭ scale), Sir Sharp (E♭), Lady Flat (F), Dr. Dissonance (A♭), The Metronome (all four scales mixed) and The Conductor (all four, fastest, most health). Scale levels show the key signature and use the same octave as the scales in every other game. Notes come in random order, never the same note twice in a row. Each line of the table sets the note pool, notes per match, seconds per note and rival health.
@@ -144,6 +145,9 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 | `scroll-unroll` | Ancient Ninja Scrolls: a term mastered | a paper swish and a run up (blip) |
 | `gong` | Ancient Ninja Scrolls: the Belt Exam is turned in | a low gong (blip) |
 | `test-ready` | Ancient Ninja Scrolls: a TEST READY badge | a warm fanfare (blip) |
+| `tile-move` | Select Player: the highlight moves | a short tick (blip) |
+| `player-select` | Select Player: a player is chosen | the blip |
+| `player-ready` | Select Player: PLAYER 1 READY | a low zap and a quick run up (blip) |
 | `fight-start` | Button Masher: "ROUND 1… FIGHT!" | two short beats and a long one (blip) |
 | `key-press` | Button Masher: each key, valve or slide tap | a soft click (blip) |
 | `special-move` | Button Masher: a correct STRIKE! | a rising zap and a sparkle (blip) |
@@ -155,12 +159,26 @@ Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (brig
 
 Any event without its own sound falls back to the blip (`select-…` events fall back to the coin). New events go in `EVENTS` in `shared/sfx.js`.
 
+## Players and old saves
+
+The saved choice is an **instrument** (Trumpet, Oboe, Horn…), picked on Select Your Player. Behind the scenes each instrument belongs to one of the original ten **player groups** (Trumpet, Clarinet and Tenor Sax share the "Trumpet, Clarinet, Tenor Saxophone" group), which sets the first five notes and is where the games save stars. So a trumpet player's stars from before this update are still there. The mapping is `Arcade.groupFor(instrument)` in `shared/instruments.js`; everything goes through it. Horn is one tile; its **Starting notes** toggle picks the F G A B♭ C group (F–C, the default) or the C D E F G group (C–G), and is remembered. Games no longer ask "Which instrument do you play?": the chosen instrument is the answer.
+
+The first time a device loads this version, its old choice moves over once:
+
+| Saved before | Becomes |
+|---|---|
+| A group with one instrument (Alto Sax, Bari Sax, Tuba, Bells) | that instrument, automatically |
+| French Horn (F, G, A, B♭, C) / French Horn (C, D, E, F, G) | Horn, with Starting notes F–C / C–G |
+| A group with several instruments, and an answer to "Which instrument do you play?" | that instrument, automatically |
+| A group with several instruments and no answer | Select Your Player opens with that group's tiles outlined and "Pick your exact instrument!" |
+| Colored Tone Bells | "Choose your player again!" (Colored Tone Bells has left the arcade) |
+
 ## Random notes and scales
 
 Every game has two modes, picked with the big buttons on its level screen (remembered per game):
 
 - **Random notes**: the game as it has always been, with the first five notes in random order. Stars saved before scales existed stay right where they were.
-- **Scales**: pick **Concert B♭, E♭, F, A♭** or **Chromatic**. The notes come in scale order, up then down, with the key signature on the staff. Levels keep their difficulty (fading names and time in Ghost Notes; speed, notes on screen and lives in Note Storm). Each scale has its own levels and stars; the scale buttons show them (e.g. "E♭ ★ 9/24"). Students in a group with several instruments are asked which one they play first, because the written scale depends on it.
+- **Scales**: pick **Concert B♭, E♭, F, A♭** or **Chromatic**. The notes come in scale order, up then down, with the key signature on the staff. Levels keep their difficulty (fading names and time in Ghost Notes; speed, notes on screen and lives in Note Storm). Each scale has its own levels and stars; the scale buttons show them (e.g. "E♭ ★ 9/24"). Each scale is written for the student's own instrument (the one chosen on Select Your Player).
 
 Each scale is written for the student's own instrument, e.g. Concert E♭ is **F Major** for trumpet, clarinet and tenor sax, **C Major** for alto and bari sax, **B♭ Major** for horn.
 
@@ -172,7 +190,7 @@ Each scale is written for the student's own instrument, e.g. Concert E♭ is **F
 
 ## Note Checker: full range
 
-The Note Checker's buttons at the top pick **First 5** (what the games' random mode uses), a scale (**B♭, E♭, F, A♭**: that scale up and down with its key signature, "11 of 15 notes") or **Chromatic**, the student's whole chromatic scale. Full range asks "Which instrument do you play?" when a player group has more than one (for example Trumpet / B♭ Clarinet / Tenor Sax) and remembers the answer.
+The Note Checker's buttons at the top pick **First 5** (what the games' random mode uses), a scale (**B♭, E♭, F, A♭**: that scale up and down with its key signature, "11 of 15 notes") or **Chromatic**, the student's whole chromatic scale. Scales and Chromatic use the instrument chosen on Select Player (no extra question).
 
 - **The ranges** come from the **GMEA All-State Middle School Chromatic Scale sheets**. They live in `MEMBERS` in `shared/instruments.js`: each instrument's lowest and highest written note, and `sounds`, how many half steps it sounds below what's written (bells: −24, two octaves higher). If GMEA changes a sheet, change it there. The games are not affected.
 - **The octave matters.** A note turns gold only when it's played in the octave written on the staff. Playing a low D doesn't count for the high D; the page says "That's a D, but an octave lower. Try the higher one." If the microphone hears a note a whole octave outside the instrument's range (common with tubas on built-in mics), it's moved into the range and counts.

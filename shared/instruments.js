@@ -30,7 +30,7 @@ window.Arcade = window.Arcade || {};
     The concert pitches the game listens for are computed from written + t.
   */
   const INSTRUMENTS = [
-    {id:'flute', name:'Flute, Oboe, Colored Tone Bells',          clef:'treble', t:0, written:['Bb4','C5','D5','Eb5','F5'], range:[70,89]},
+    {id:'flute', name:'Flute, Oboe',                              clef:'treble', t:0, written:['Bb4','C5','D5','Eb5','F5'], range:[70,89]},
     {id:'bells', name:'Orchestral Bells / Bell Kit',              clef:'treble', t:0, written:['Bb4','C5','D5','Eb5','F5'], range:[94,101]},
     {id:'alto',  name:'Alto Saxophone',                           clef:'treble', t:9, written:['G4','A4','B4','C5','D5'],   range:[58,65]},
     {id:'bari',  name:'Baritone Saxophone',                       clef:'treble', t:9, written:['G4','A4','B4','C5','D5'],   range:[46,53]},
@@ -53,7 +53,10 @@ window.Arcade = window.Arcade || {};
   });
 
   /*
-    Full-range members (used only by the Note Checker's FULL RANGE mode; the games use the first five notes).
+    Members: the real instruments in each group. The saved player choice is a MEMBER (Select Player shows one
+    tile per instrument); its group (below) decides the first five notes and where progress is saved.
+      short   the tile / chip label        family  'woodwind' | 'brass' | 'percussion' (tile color on Select Player)
+    Ranges (used by the Note Checker's CHROMATIC and SCALES, and by scales everywhere):
     Ranges come from the GMEA All-State Middle School Chromatic Scale sheets. If GMEA changes a range,
     update it here to match the new sheet.
       chromatic  [lowest, highest] WRITTEN note, scientific pitch notation (middle C = C4)
@@ -63,30 +66,29 @@ window.Arcade = window.Arcade || {};
   */
   const MEMBERS = {
     flute: [
-      {id: 'flute',     name: 'Flute',              chromatic: ['C4', 'F6'], sounds: 0},
-      {id: 'oboe',      name: 'Oboe',               chromatic: ['C4', 'C6'], sounds: 0},
-      {id: 'tonebells', name: 'Colored Tone Bells', chromatic: ['C4', 'F6'], sounds: 0},
+      {id: 'flute',     name: 'Flute',              short: 'Flute',   family: 'woodwind', chromatic: ['C4', 'F6'], sounds: 0},
+      {id: 'oboe',      name: 'Oboe',               short: 'Oboe',    family: 'woodwind', chromatic: ['C4', 'C6'], sounds: 0},
     ],
-    bells: [{id: 'bells', name: 'Orchestral Bells / Bell Kit', chromatic: ['G3', 'C6'], sounds: -24}],   // sounds two octaves higher than written
-    alto:  [{id: 'altosax', name: 'Alto Sax', chromatic: ['C4', 'D6'], sounds: 9}],
-    bari:  [{id: 'barisax', name: 'Baritone Sax', chromatic: ['C4', 'D6'], sounds: 21}],
+    bells: [{id: 'bells', name: 'Orchestral Bells / Bell Kit', short: 'Bells', family: 'percussion', chromatic: ['G3', 'C6'], sounds: -24}],   // sounds two octaves higher than written
+    alto:  [{id: 'altosax', name: 'Alto Sax', short: 'Alto Sax', family: 'woodwind', chromatic: ['C4', 'D6'], sounds: 9}],
+    bari:  [{id: 'barisax', name: 'Baritone Sax', short: 'Bari Sax', family: 'woodwind', chromatic: ['C4', 'D6'], sounds: 21}],
     bb: [
-      {id: 'trumpet',  name: 'Trumpet',     chromatic: ['F#3', 'G5'], sounds: 2},
-      {id: 'clarinet', name: 'B♭ Clarinet', chromatic: ['E3', 'D6'],  sounds: 2},
-      {id: 'tenorsax', name: 'Tenor Sax',   chromatic: ['C4', 'D6'],  sounds: 14},
+      {id: 'trumpet',  name: 'Trumpet',     short: 'Trumpet',   family: 'brass',    chromatic: ['F#3', 'G5'], sounds: 2},
+      {id: 'clarinet', name: 'B♭ Clarinet', short: 'Clarinet',  family: 'woodwind', chromatic: ['E3', 'D6'],  sounds: 2},
+      {id: 'tenorsax', name: 'Tenor Sax',   short: 'Tenor Sax', family: 'woodwind', chromatic: ['C4', 'D6'],  sounds: 14},
     ],
-    hornF: [{id: 'horn', name: 'Horn in F', chromatic: ['F3', 'F5'], sounds: 7}],
-    hornC: [{id: 'horn', name: 'Horn in F', chromatic: ['F3', 'F5'], sounds: 7}],
+    hornF: [{id: 'horn', name: 'Horn in F', short: 'Horn', family: 'brass', chromatic: ['F3', 'F5'], sounds: 7}],
+    hornC: [{id: 'horn', name: 'Horn in F', short: 'Horn', family: 'brass', chromatic: ['F3', 'F5'], sounds: 7}],
     bcl: [
-      {id: 'basscl',     name: 'Bass Clarinet', chromatic: ['E3', 'A5'],  sounds: 14},
-      {id: 'baritonetc', name: 'Baritone T.C.', chromatic: ['F#3', 'G5'], sounds: 14},   // the B.C. range E2–F4, written a 9th higher
+      {id: 'basscl',     name: 'Bass Clarinet', short: 'Bass Clarinet',  family: 'woodwind', chromatic: ['E3', 'A5'],  sounds: 14},
+      {id: 'baritonetc', name: 'Baritone T.C.', short: 'Baritone (T.C.)', family: 'brass',   chromatic: ['F#3', 'G5'], sounds: 14},   // the B.C. range E2–F4, written a 9th higher
     ],
     low: [
-      {id: 'trombone', name: 'Trombone',                 chromatic: ['E2', 'F4'],  sounds: 0},
-      {id: 'euphbc',   name: 'Baritone/Euphonium B.C.',  chromatic: ['E2', 'F4'],  sounds: 0},
-      {id: 'bassoon',  name: 'Bassoon',                  chromatic: ['Bb1', 'F4'], sounds: 0},
+      {id: 'trombone', name: 'Trombone',                 short: 'Trombone',         family: 'brass',    chromatic: ['E2', 'F4'],  sounds: 0},
+      {id: 'euphbc',   name: 'Baritone/Euphonium B.C.',  short: 'Euphonium (B.C.)', family: 'brass',    chromatic: ['E2', 'F4'],  sounds: 0},
+      {id: 'bassoon',  name: 'Bassoon',                  short: 'Bassoon',          family: 'woodwind', chromatic: ['Bb1', 'F4'], sounds: 0},
     ],
-    tuba: [{id: 'tuba', name: 'Tuba', chromatic: ['E1', 'F3'], sounds: 0}],
+    tuba: [{id: 'tuba', name: 'Tuba', short: 'Tuba', family: 'brass', chromatic: ['E1', 'F3'], sounds: 0}],
   };
   INSTRUMENTS.forEach(inst => {
     inst.members = (MEMBERS[inst.id] || []).map(m => Object.assign({}, m, {
@@ -123,7 +125,32 @@ window.Arcade = window.Arcade || {};
     return down ? out.reverse() : out;
   }
 
+  /*
+    PLAYERS: the Select Player tiles, one per instrument, in grid order (5 × 3). The saved player choice is one
+    of these ids. groupFor(id) maps it to its player GROUP (the old saved choice): first five notes, clef,
+    transposition and the id games save progress under, so stars saved before members existed stay put.
+    Horn is one tile in two groups (hornF: F G A B♭ C, hornC: C D E F G); hornStart 'F' | 'C' picks one.
+  */
+  const PLAYERS = ['flute', 'oboe', 'clarinet', 'basscl', 'bassoon',
+                   'altosax', 'tenorsax', 'barisax', 'trumpet', 'horn',
+                   'trombone', 'baritonetc', 'euphbc', 'tuba', 'bells'];
+  const HORN_GROUPS = {F: 'hornF', C: 'hornC'};
+  /** every group a member belongs to (horn: both horn groups) */
+  const groupsOf = id => INSTRUMENTS.filter(g => g.members.some(m => m.id === id));
+  /** THE member -> group helper: the player group for an instrument member ('trumpet' -> the bb group) */
+  function groupFor(id, {hornStart = 'F'} = {}) {
+    if (id === 'horn') return INSTRUMENTS.find(g => g.id === (HORN_GROUPS[hornStart] || 'hornF'));
+    return groupsOf(id)[0] || null;
+  }
+  /** a member by id (from its first group), or null */
+  const memberById = id => { const g = groupsOf(id)[0]; return g ? g.members.find(m => m.id === id) : null; };
+
   A.music = {NAMES, parseNote, noteLabel, writtenMidi, stepOf, mod12, mtof, spell};
+  A.PLAYERS = PLAYERS;
+  A.HORN_GROUPS = HORN_GROUPS;
+  A.groupFor = groupFor;
+  A.groupsOf = groupsOf;
+  A.memberById = memberById;
   A.INSTRUMENTS = INSTRUMENTS;
   A.getInstrument = id => INSTRUMENTS.find(i => i.id === id) || null;
   A.chromaticScale = chromaticScale;

@@ -4,7 +4,7 @@
    and reads picker.state:
      mode         'random' | 'scales'
      scale        the built scale (Arcade.Scales.build) in SCALES mode once an instrument is known, else null
-     member       the instrument member (Note Checker's "Which instrument do you play?" setting)
+     member       the instrument member: the player chosen on Select Player (Arcade.store.player)
      progressKey  where to save stars: the plain game id in RANDOM mode (existing stars stay put),
                   '<gameId>:scale-<id>' in SCALES mode
      ready        false while SCALES is waiting for the instrument choice (show no levels yet)
@@ -49,7 +49,6 @@ window.Arcade = window.Arcade || {};
         if (!state.member) {
           h += memberPickHTML(inst);
         } else {
-          if (!member && inst.members.length > 1) h += `<p class="playing">Playing: <b>${state.member.name}</b> <button type="button" class="linkish" data-change>change</button></p>`;
           h += `<div class="scale-btns n${scaleIds.length}" role="group" aria-label="Choose a scale">` + scaleIds.map(id => {
             const sc = S.build(state.member, id), stars = A.store.totalStars(key('scales', id), inst.id);
             return `<button type="button" class="scale-btn" data-scale="${id}" aria-pressed="${id === state.scale.id}" aria-label="${sc.label}. ${stars} of ${max} stars">` +
@@ -61,9 +60,7 @@ window.Arcade = window.Arcade || {};
       el.innerHTML = h;
       el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { saved.mode = b.dataset.mode; A.store.setGameMode(gameId, {mode: saved.mode}); update(); }));
       el.querySelectorAll('[data-scale]').forEach(b => b.addEventListener('click', () => { saved.scale = b.dataset.scale; A.store.setGameMode(gameId, {scale: saved.scale}); update(); }));
-      el.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => { A.store.setMember(inst.id, b.dataset.member); update(); }));
-      const ch = el.querySelector('[data-change]');
-      if (ch) ch.addEventListener('click', () => { A.store.setMember(inst.id, null); update(); const f = el.querySelector('.member-btn'); if (f) f.focus(); });
+      el.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => { A.store.setPlayer(b.dataset.member); update(); }));
     }
     function update() {
       const active = document.activeElement, k = active && el.contains(active) ? [...active.attributes].find(a => /^data-(mode|scale|member)$/.test(a.name)) : null;
@@ -75,21 +72,13 @@ window.Arcade = window.Arcade || {};
     return {state, refresh: render};
   }
 
-  /* "Which instrument do you play?": the same saved setting everywhere (Arcade.store.memberFor / setMember) */
+  /* "Which instrument do you play?": only a fallback now. The instrument chosen on Select Player (a member,
+     Arcade.store.player) is the answer, so games never show it; it only appears if no player is saved. */
   function memberPickHTML(inst, why = 'Your scales are written a little differently for each one.') {
     return `<section class="member-pick" aria-labelledby="mpQ"><h2 id="mpQ">Which instrument do you play?</h2>` +
       `<p class="muted">${why}</p><div class="member-btns">` +
       inst.members.map(m => `<button type="button" class="btn member-btn" data-member="${m.id}">${m.name}</button>`).join('') + `</div></section>`;
   }
-  /** the question on its own, for a game without RANDOM NOTES / SCALES (Button Masher): saves the answer, then onPick(member) */
-  function memberPick(el, inst, onPick, why) {
-    el.innerHTML = memberPickHTML(inst, why);
-    el.querySelectorAll('[data-member]').forEach(b => b.addEventListener('click', () => {
-      A.store.setMember(inst.id, b.dataset.member);
-      onPick(A.getMember(inst, b.dataset.member));
-    }));
-  }
-
   /** note names for what the mic hears: spelled like the scale's key in SCALES mode, else the group's usual names */
   function nameFor(inst, scale) {
     if (!scale) return pc => inst.writtenName(pc);
@@ -135,5 +124,5 @@ window.Arcade = window.Arcade || {};
   /** a level's description in SCALES mode (the random-mode blurbs talk about "the first three notes") */
   function scaleBlurb(parts) { return parts.filter(Boolean).join(' '); }
 
-  A.Modes = {mount, nameFor, useRange, demoSpace, hubCard, scaleBlurb, memberPick};
+  A.Modes = {mount, nameFor, useRange, demoSpace, hubCard, scaleBlurb};
 })(window.Arcade);
