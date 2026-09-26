@@ -177,11 +177,12 @@ window.Arcade = window.Arcade || {};
     const q = p.toString().replace(/=(?=&|$)/g, '');          // "?demo=" -> "?demo"
     return path + (q ? '?' + q : '');
   };
-  /** the "Select player" page for a game. root: path back to the site root from this page ('' or '../').
+  /** Select Player for a game: a view on the arcade floor page, index.html?game=<id> (select-player/player.js).
+      root: path back to the site root from this page ('' or '../').
       A two-player game (games.js `players: 2`) gets &players=2, so Player 2 picks too. */
   A.playerLink = (gameId, root = '../') => {
-    const g = (A.GAMES || []).find(x => x.id === gameId);
-    return A.linkTo(root + 'select-player/index.html', {game: gameId, players: g && g.players > 1 ? g.players : null});
+    const g = (A.ALL_GAMES || A.GAMES || []).find(x => x.id === gameId);
+    return A.linkTo(root + 'index.html', {game: gameId, players: g && g.players > 1 ? g.players : null, need: null});
   };
   /** where a game's START goes: Select Player, or straight into a game with its own fixed player (games.js `player`:
       an instrument group like 'bells', or 'all' for a game that needs no instrument) */
@@ -226,10 +227,10 @@ window.Arcade = window.Arcade || {};
       (fixed ? `<span class="chip">${pic(portrait)}<span class="sr">Playing </span><span class="chip-name">${fixed}</span></span></div>`
              : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">${pic(m && m.id)}` +
                `<span class="sr">Change instrument. Playing as </span><span class="chip-name">${m ? m.short : inst ? inst.shortName : 'Choose instrument'}</span></a></div>`);
-    /* sound (shared/sfx.js): the speaker button, this game's sounds preloaded after the first tap, no lobby
-       ambience on a game page, and "← ARCADE" plays ui-back before it leaves */
+    /* sound (shared/sfx.js): the speaker button, this game's sounds preloaded after the first tap, and "← ARCADE"
+       plays ui-back before it leaves. Nothing loops on a game page unless the game asks the music manager
+       (Arcade.Sfx.setMusic): the first tap (the mic prompt, START, a level button) unlocks the audio. */
     if (A.Sfx) {
-      A.Sfx.allowAmbience(false);
       A.Sfx.use('game', gameId);
       let ctl = el.querySelector('.sound-ctl');
       if (!ctl) { ctl = document.createElement('span'); ctl.className = 'sound-ctl'; el.querySelector('.topbar-right').prepend(ctl); }

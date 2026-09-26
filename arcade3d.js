@@ -962,7 +962,7 @@ window.Arcade = window.Arcade || {};
     }
     function frame(now) {
       raf = 0; lastTick = performance.now();
-      if (document.hidden) return;
+      if (document.hidden || A.floorPaused) return;            // hidden tab, or Select Player covers the floor
       // frame timing: the gap between animation frames, averaged over a few seconds
       if (lastFrame) {
         sample.push(now - lastFrame);

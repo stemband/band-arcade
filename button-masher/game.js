@@ -12,7 +12,6 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const inst = A.requireInstrument(GAME_ID); if (!inst) return;
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.allowAmbience(false);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
 

@@ -10,11 +10,19 @@
      Arcade.Sfx.playThenGo(name, href) play, then change page when the sound ends (never later than 1.5 s)
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
                                        preloaded after the first tap, two at a time (school Wi-Fi)
-     Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS and AMBIENCE sliders (saved on the device)
-     Arcade.Sfx.allowAmbience(false)   a page where the lobby ambience never plays (every game page, Select Player)
-     Arcade.Sfx.allowMusic(true, id)   a page where the character-select music plays (Select Player only): the game's own
-                                       select-music-<id> file if there is one, else select-music, else a built-in
-                                       original chiptune loop
+     Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE sliders (saved on the device)
+   THE MUSIC MANAGER (the only way background loops ever start; Arcade.sfx is the same object):
+     Arcade.Sfx.setMusic(name | [names] | null, {builtIn})     the track this page WANTS on the MUSIC channel
+     Arcade.Sfx.setAmbience(name | [names] | null, {builtIn})  the same for the AMBIENCE channel (the lobby room sound)
+       [names] = best first (['select-music-ghost-notes', 'select-music']: the first file that exists plays).
+       builtIn: true = if none of the files exist, play the built-in version (the chiptune / the room hum).
+       Call them any time, even before the first tap or while the file is still downloading: the manager remembers
+       the wish and starts the track (fading in) as soon as BOTH the audio is unlocked by the first tap/click/key AND
+       the file has loaded. Asking for the track that is already playing does nothing (no restart); a different one
+       crossfades (0.5 s). null fades the channel out. Mute and the MUSIC / AMBIENCE sliders are respected, loops stop
+       while a game listens to the microphone (Arcade.Sfx.sync() after listening starts/stops) and pause while the tab
+       is hidden (the AudioContext is suspended, so they carry on where they were).
+     Arcade.Sfx.preloadMusic([names])  fetch the likely next tracks now (Arcade Quest: the foyer, the manor, battle)
    THE MICROPHONE: a sound played while a game is listening (Arcade.Pitch.listening()) makes the detector ignore
    everything for the sound's length + ECHO_MS (Arcade.Pitch.suppress), and games pause their timers meanwhile
    (Arcade.Pitch.isSuppressed). Sounds marked mic: false in sounds.js never play while listening.
@@ -48,7 +56,7 @@ window.Arcade = window.Arcade || {};
         fxBus = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
         fxBus.connect(analyser); analyser.connect(ctx.destination);
         master = ctx.createGain(); master.gain.value = GEN_LEVEL; master.connect(fxBus);    // the generated sounds
-        Object.values(LOOPS).forEach(c => { c.bus = ctx.createGain(); c.bus.connect(ctx.destination); });
+        Object.values(CH).forEach(c => { c.bus = ctx.createGain(); c.bus.connect(ctx.destination); });
         applySettings();
       }
       if (ctx.state !== 'running') ctx.resume().then(unlocked, () => {}); else unlocked();
@@ -57,7 +65,8 @@ window.Arcade = window.Arcade || {};
   function unlocked() {
     if (ctx.state !== 'running') return;
     UNLOCK_EVENTS.forEach(t => removeEventListener(t, unlock, true));
-    syncLoops();
+    applyAll();
+    early.forEach(f => { if (!files[f]) load(f); });     // decode the music fetched before this tap, so it's ready
     preload();
   }
   // pointerdown/keydown are the first chance; touchend/click are backups for older iPads that only unlock on those
@@ -75,7 +84,7 @@ window.Arcade = window.Arcade || {};
     if (!ctx) return;
     const t = ctx.currentTime;
     fxBus.gain.setTargetAtTime(vol('sfxVol'), t, 0.02);
-    Object.values(LOOPS).forEach(c => {
+    Object.values(CH).forEach(c => {
       c.bus.gain.setTargetAtTime(loopVol(c), t, 0.05);
       if (c.cur && c.cur.el) c.cur.el.volume = Math.min(1, loopVol(c) * c.cur.level);
     });
@@ -279,8 +288,7 @@ window.Arcade = window.Arcade || {};
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
-          const lc = Object.values(LOOPS).find(c => loopFiles(c).includes(file)), fs = lc ? loopFiles(lc) : [];
-          if (lc && lc.cur && (lc.cur.gen || fs.indexOf(file) < fs.indexOf(lc.cur.file))) { stopLoop(lc, true); syncLoops(); }   // swap in the better loop
+          if (wanted(file)) setTimeout(applyAll, 0);         // a music file just loaded: the manager starts it now
           return rec;
         } catch (e) {
           miss.add(base);
@@ -288,6 +296,7 @@ window.Arcade = window.Arcade || {};
         }
       }
       rec.state = 'missing';
+      if (wanted(file)) setTimeout(applyAll, 0);           // it won't come: the manager falls back (a lesser file, built-in, or nothing)
       if (asked) console.info(`Band Arcade sound: no shared/sounds/${file}.m4a or ${file}.mp3 (or it would not play); using the built-in sound.`);
       return rec;
     })();
@@ -305,7 +314,10 @@ window.Arcade = window.Arcade || {};
     if (b <= n - lim) b = n - 1;
     return {loopStart: a / sr, loopEnd: (b + 1) / sr};
   }
-  const loops = file => A.Sounds && A.Sounds.names().some(n => { const e = entry(n); return e && e.loop && e.file === file; });
+  // a loop file: any loop event in sounds.js, plus the optional per-game select-music-<game id> (made on the fly)
+  const loops = file => /^select-music-/.test(file) || !!(A.Sounds && A.Sounds.names().some(n => { const e = entry(n); return e && e.loop && e.file === file; }));
+  /** is a channel waiting for this file? (the manager re-checks when it has loaded, or turned out to be missing) */
+  const wanted = file => Object.values(CH).some(c => c.want && c.want.events.some(n => fileOf(n) === file));
   /* the loop's last XF seconds are faded into its first ones, so the end runs straight into the start: no click, no
      gap, whatever the encoder did to the file's ends */
   function crossfaded(buf, {loopStart, loopEnd}) {
@@ -375,7 +387,7 @@ window.Arcade = window.Arcade || {};
     A.Sounds.names().forEach(n => {
       const e = entry(n);
       if (!e || !e.file || !screens.has(e.screen) || files[e.file] || queue.includes(e.file)) return;
-      if (e.loop && !(loopOf(n) || {}).allowed) return;
+      if (e.loop) return;                                  // music loads through the manager, when it's wanted
       queue.push(e.file);
       if (e.fallback) { const f = entry(e.fallback); if (f && f.file && !queue.includes(f.file) && !files[f.file]) queue.push(f.file); }
     });
@@ -388,19 +400,31 @@ window.Arcade = window.Arcade || {};
     }
   }
 
-  /* ---------- background loops: the lobby AMBIENCE (arcade floor) and the character-select MUSIC (Select Player) ----------
-     Each channel has its event in sounds.js (loop: true), its own slider (ambVol / musVol) and output, where it may play
-     (allowAmbience / allowMusic) and a built-in version for when there is no file: the room hum, and an original chiptune
-     loop rendered once into a buffer (so it loops as seamlessly as a file). Files loop with a baked crossfade (above). */
-  const LOOPS = {
-    amb: {event: 'lobby-ambience', key: 'ambVol', allowed: true, cur: null, bus: null, gen: genHum},
-    mus: {event: 'select-music', key: 'musVol', allowed: false, cur: null, bus: null, gen: genMusic},
+  /* ---------- THE MUSIC MANAGER: two background channels, MUSIC (musVol) and AMBIENCE (ambVol) ----------
+     Each channel holds the track the page WANTS ({id, events (best first), builtIn}) and what is playing now (cur).
+     apply(c) makes the sound match the wish whenever anything changes: the first tap unlocking the audio, a file
+     finishing loading (or turning out to be missing), mute/volume, listening to the mic, the wish itself. Files loop
+     with a baked crossfade (above); without any file, builtIn channels play the room hum / the original chiptune. */
+  const XF = 0.5, FADE_IN = 0.6;
+  const CH = {
+    mus: {name: 'music', key: 'musVol', want: null, cur: null, bus: null, gen: genMusic},
+    amb: {name: 'ambience', key: 'ambVol', want: null, cur: null, bus: null, gen: genHum},
   };
-  const loopOf = name => Object.values(LOOPS).find(c => c.event === name);
-  /** a channel's events, best first: Select Player's music tries select-music-<game id> (allowMusic(true, gameId)), then select-music */
-  const loopEvents = c => c.only ? [c.only] : [c.alt, c.event].filter(Boolean);
-  const loopFiles = c => loopEvents(c).map(n => (entry(n) || {}).file).filter(Boolean);
   const loopVol = c => store.sfx ? vol(c.key) : 0;
+  const fileOf = n => (entry(n) || {}).file;
+  /* before the first tap there is no AudioContext to decode with, so the wanted files are fetched early (they sit in
+     the browser's cache) and decoded the moment the audio unlocks */
+  const early = new Set();
+  function fetchEarly(file) {
+    if (!file || FILE_MODE || !BASE || early.has(file) || files[file]) return;
+    early.add(file);
+    if (ctx) { load(file); return; }
+    (async () => { for (const ext of ['m4a', 'mp3']) {
+      const url = BASE + file + '.' + ext + '?v=' + VERSION();
+      if (miss.has(url)) continue;
+      try { const r = await fetch(url); if (r.ok) { await r.arrayBuffer(); return; } } catch (e) { /* offline: load() tries again later */ }
+    } })();
+  }
   function loopBuffer(c, buf, from, to, level, fadeIn) {
     const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
     s.buffer = buf; s.loop = true; s.loopStart = from; s.loopEnd = to;
@@ -408,41 +432,67 @@ window.Arcade = window.Arcade || {};
     s.connect(g); g.connect(c.bus); s.start(t, from);
     return {out: g, nodes: [s]};
   }
-  function startLoop(c) {
-    if (c.cur || !ctx) return;
-    for (const n of loopEvents(c)) {                       // the best file that has loaded
-      const e = entry(n) || {vol: 0.6}, rec = files[e.file], level = e.vol == null ? 0.6 : e.vol;
-      if (!rec || rec.state !== 'ok') continue;
-      if (rec.el) {                                       // a double-clicked page: an <audio> loop
-        const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
-        c.cur = {el, level, file: e.file}; return;
-      }
-      c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, 1.2), {file: e.file}); return;
-    }
-    loopFiles(c).forEach(f => { if (!files[f]) load(f); });   // the built-in loop now; a file as soon as one has loaded
-    if (c.only) return;                                    // setMusic(): a file or nothing (no built-in version)
-    c.cur = c.gen(c);
-  }
-  function stopLoop(c, quick) {
+  function fadeOut(c, secs = XF) {
     if (!c.cur) return;
     const a = c.cur; c.cur = null;
     if (a.el) { a.el.pause(); return; }
-    if (!a.out) return;                                    // the chiptune was still being rendered
-    const t = ctx.currentTime, fade = quick ? 0.4 : 0.3;
+    if (!a.out) return;
+    const t = ctx.currentTime;
     a.out.gain.cancelScheduledValues(t);
     a.out.gain.setValueAtTime(Math.max(0.0001, a.out.gain.value), t);
-    a.out.gain.exponentialRampToValueAtTime(0.0001, t + fade);
-    a.nodes.forEach(o => o.stop(t + fade + 0.05));
+    a.out.gain.exponentialRampToValueAtTime(0.0001, t + secs);
+    a.nodes.forEach(o => { try { o.stop(t + secs + 0.05); } catch (e) { /* already stopped */ } });
   }
-  function syncLoops() {
-    if (!ctx || ctx.state !== 'running') return;
-    Object.values(LOOPS).forEach(c => {
-      if (c.allowed && store.sfx && vol(c.key) > 0 && !document.hidden && !listening()) startLoop(c); else stopLoop(c);
-    });
+  function startFile(c, rec, e) {
+    const level = e.vol == null ? 0.6 : e.vol;
+    if (rec.el) {                                         // a double-clicked page: an <audio> loop
+      const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
+      c.cur = {el, level, file: rec.file}; return;
+    }
+    c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, FADE_IN), {file: rec.file});
   }
-  document.addEventListener('visibilitychange', syncLoops);
-  addEventListener('pagehide', () => Object.values(LOOPS).forEach(c => stopLoop(c)));
-  addEventListener('pageshow', e => { if (e.persisted) syncLoops(); });   // back button restores the page
+  /** make channel c sound the way the page wants it */
+  function apply(c) {
+    if (!ctx || ctx.state !== 'running') return;          // not unlocked yet: the first tap calls applyAll()
+    const w = c.want;
+    if (!w || !store.sfx || vol(c.key) <= 0 || listening()) { fadeOut(c); return; }
+    let pick = null, waiting = false;
+    for (const n of w.events) {                           // the best file that exists (wait while a better one loads)
+      const e = entry(n), f = e && e.file;
+      if (!f) continue;
+      const rec = files[f];
+      if (!rec) { load(f); waiting = true; break; }
+      if (rec.state === 'loading') { waiting = true; break; }
+      if (rec.state === 'ok') { pick = {rec, e}; break; }
+    }
+    if (pick) {
+      if (c.cur && !c.cur.gen && c.cur.file === pick.rec.file) return;        // already playing it: never restart
+      fadeOut(c); startFile(c, pick.rec, pick.e); return;                       // a new track: crossfade
+    }
+    if (waiting) return;                                  // it starts the moment its file has loaded
+    if (!w.builtIn) { fadeOut(c); return; }               // file-only music (Arcade Quest) and no file: silence
+    if (c.cur && c.cur.gen) return;                       // the built-in version is already playing
+    fadeOut(c);
+    const g = c.gen(c);
+    if (g) c.cur = g;
+  }
+  function applyAll() { Object.values(CH).forEach(apply); }
+  function want(c, names, {builtIn = false} = {}) {
+    const events = [].concat(names || []).filter(Boolean);
+    const id = events.length ? events.join('|') + (builtIn ? '+' : '') : null;
+    if (id === (c.want ? c.want.id : null)) return;       // the same track again: nothing changes
+    c.want = id ? {id, events, builtIn} : null;
+    events.forEach(n => fetchEarly(fileOf(n)));
+    apply(c); refreshAll();
+  }
+  // a hidden tab pauses every sound where it is (the context is suspended) and carries on when it's visible again
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) { if (ctx.state === 'running') ctx.suspend().catch(() => {}); Object.values(CH).forEach(c => c.cur && c.cur.el && c.cur.el.pause()); }
+    else { ctx.resume().then(applyAll, () => {}); Object.values(CH).forEach(c => c.cur && c.cur.el && c.cur.el.play().catch(() => {})); }
+  });
+  addEventListener('pagehide', () => Object.values(CH).forEach(c => fadeOut(c, 0.15)));
+  addEventListener('pageshow', e => { if (e.persisted && ctx) ctx.resume().then(applyAll, () => {}); });   // back button restores the page
 
   /* the generated room hum (the original ambience) */
   function genHum(c) {
@@ -464,13 +514,9 @@ window.Arcade = window.Arcade || {};
   /* the built-in character-select music: an original 8-bar chiptune (A minor, 132 bpm, about 14.5 s) with a pulse lead,
      a 16th-note arpeggio, a triangle bass and noise drums. Rendered once per page (OfflineAudioContext), then looped. */
   function genMusic(c) {
-    if (c.buf) return Object.assign(loopBuffer(c, c.buf, 0, c.buf.duration, MUS_GEN_LEVEL, 0.8), {gen: true});
-    const wait = {gen: true, rendering: true};
-    if (!c.rendering) c.rendering = renderChiptune().then(buf => {
-      c.buf = buf;
-      if (c.cur && c.cur.rendering) { c.cur = null; syncLoops(); }   // still wanted: start it now
-    }, () => { if (c.cur && c.cur.rendering) c.cur = null; });
-    return wait;
+    if (c.buf) return Object.assign(loopBuffer(c, c.buf, 0, c.buf.duration, MUS_GEN_LEVEL, FADE_IN), {gen: true});
+    if (!c.rendering) c.rendering = renderChiptune().then(buf => { c.buf = buf; apply(c); }, () => {});   // still wanted? it starts now
+    return null;
   }
   const CHIP = {
     bpm: 132,
@@ -565,20 +611,20 @@ window.Arcade = window.Arcade || {};
         r.disabled = !on;
       });
       // where the loops play, when it isn't here
-      const note = el.querySelector('.snd-note'), m = !LOOPS.mus.allowed, a = !LOOPS.amb.allowed;
+      const note = el.querySelector('.snd-note'), m = !CH.mus.want, a = !CH.amb.want;
       note.hidden = !m && !a;
       note.textContent = m && a ? 'Music plays on Select Player, ambience on the arcade floor.' : m ? 'Music plays on Select Player.' : a ? 'Ambience plays on the arcade floor.' : '';
     }
     const show = v => { pop.hidden = !v; open.setAttribute('aria-expanded', v); };
     open.addEventListener('click', () => { show(pop.hidden); if (!pop.hidden) tg.focus(); });
     tg.addEventListener('click', () => {
-      store.setSfx(!store.sfx); draw(); applySettings(); syncLoops();
+      store.setSfx(!store.sfx); draw(); applySettings(); applyAll();
       if (store.sfx) playEvent('ui-toggle', {force: true}); refreshAll();
     });
     el.querySelectorAll('input[type=range]').forEach(r => {
       r.addEventListener('input', () => {
         store.setVolume(r.dataset.k, r.value / 100); r.nextElementSibling.textContent = r.value + '%';
-        applySettings(); if (r.dataset.k !== 'sfxVol') syncLoops();
+        applySettings(); if (r.dataset.k !== 'sfxVol') applyAll();
       });
       r.addEventListener('change', () => { if (r.dataset.k === 'sfxVol') playEvent('ui-toggle'); refreshAll(); });
     });
@@ -590,7 +636,8 @@ window.Arcade = window.Arcade || {};
   const refreshAll = () => document.querySelectorAll('.sound-ctl').forEach(c => c._draw && c._draw());
 
   let leaving = false;
-  const Sfx = A.Sfx = {
+  const chOf = name => (name === 'lobby-ambience' ? CH.amb : /^select-music|^quest-/.test(name) ? CH.mus : null);
+  const Sfx = A.Sfx = A.sfx = {
     /** the three original sounds by name ('whoosh' | 'coin' | 'blip') */
     play(name) {
       if (!ready() || !SOUNDS[name]) return 0;
@@ -611,21 +658,19 @@ window.Arcade = window.Arcade || {};
       if (!ready()) return false;
       try { bell(midi); return true; } catch (e) { return false; }
     },
-    allowAmbience(on) { LOOPS.amb.allowed = !!on; syncLoops(); refreshAll(); },
-    /** the character-select music may play on this page (Select Player); false fades it out (leaving the page) */
-    /** a game's own music loop on the MUSIC slider (Arcade Quest's battle music): plays `name`'s file if it exists,
-        nothing otherwise (no built-in version); stops while the mic listens, like every loop. null = off. */
-    setMusic(name) {
-      const c = LOOPS.mus;
-      if ((name || null) !== (c.only || null)) stopLoop(c, true);
-      c.only = name || null; c.allowed = !!name; syncLoops(); refreshAll();
-    },
-    /** re-check which loops should play (after Pitch.pauseListening, which changes Pitch.listening()) */
-    sync: () => syncLoops(),
-    allowMusic(on, gameId) {
-      if (gameId !== undefined) { const alt = gameId ? 'select-music-' + gameId : null; if (alt !== LOOPS.mus.alt) { stopLoop(LOOPS.mus, true); LOOPS.mus.alt = alt; } }
-      LOOPS.mus.allowed = !!on; syncLoops(); refreshAll();
-    },
+    /** THE MUSIC MANAGER (see the top of this file): the track this page wants on the MUSIC channel. Never start
+        audio any other way. */
+    setMusic: (names, opts) => want(CH.mus, names, opts),
+    /** the track this page wants on the AMBIENCE channel (the arcade floor's lobby-ambience) */
+    setAmbience: (names, opts) => want(CH.amb, names, opts),
+    /** fetch these music events' files now (the likely next tracks), so they start at once when wanted */
+    preloadMusic: names => [].concat(names || []).forEach(n => fetchEarly(fileOf(n))),
+    /** re-check what should play (after Pitch.pauseListening, which changes Pitch.listening()) */
+    sync: () => applyAll(),
+    /** tests: what each channel wants and plays */
+    musicState: () => Object.fromEntries(Object.values(CH).map(c => [c.name, {want: c.want ? c.want.events.join('|') : null, builtIn: !!(c.want && c.want.builtIn),
+      playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null}])).valueOf(),
+    get unlocked() { return !!ctx && ctx.state === 'running'; },
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */
@@ -651,11 +696,11 @@ window.Arcade = window.Arcade || {};
         return {kind: builtIn(name, e).kind === 'generated' && !(e && e.fallback) ? 'generated' : 'fallback'};
       },
       play: name => playEvent(name, {force: true}),
-      /** start / stop a loop event ('lobby-ambience', 'select-music') here, wherever it is normally allowed */
-      loop(name, on) { const c = loopOf(name); if (!c) return null; if (on) { c.allowed = true; startLoop(c); } else stopLoop(c); return c.cur; },
+      /** start / stop a loop event ('lobby-ambience', 'select-music') here, through the music manager */
+      loop(name, on) { const c = chOf(name); if (!c) return null; want(c, on ? name : null, {builtIn: true}); return c.cur; },
       ambience(on) { return Sfx.board.loop('lobby-ambience', on); },
       renderChiptune,                                     // the built-in music as an AudioBuffer (tests, listening)
-      loopState: name => { const c = loopOf(name); return c ? {allowed: c.allowed, playing: !!c.cur, gen: !!(c.cur && c.cur.gen), rendered: !!c.buf} : null; },
+      loopState: name => { const c = chOf(name); return c ? {allowed: !!c.want, playing: !!c.cur, gen: !!(c.cur && c.cur.gen), rendered: !!c.buf} : null; },
       analyser: () => analyser,
       bus: () => fxBus,                                   // the effects output (the board plays its loop test into it)
       entry,
