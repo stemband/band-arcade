@@ -42,7 +42,8 @@
     const scaleLen = st.scale ? st.scale.notes.length : 0;
     $('levelGrid').innerHTML = !st.ready ? '' : BELTS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
-      const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
+      // open: belt 1, the belt after a cleared one, or any belt that already has stars (e.g. moved up when Red was added)
+      const unlocked = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, inst.id, lv - 1).stars > 0;
       const count = st.scale ? A.Scales.sequence(st.scale, L.count).length : L.count;
       const blurb = st.scale ? A.Modes.scaleBlurb([count > scaleLen ? 'Up and down, then again.' : 'Up and down once.',
         L.onStaff > 1 ? `Read ahead: ${L.onStaff} notes at once.` : '', L.guides ? 'Letter guides.' : '', `${L.time} s per note.`]) : L.blurb;
@@ -290,7 +291,7 @@
     $('resScore').textContent = score;
     const newBest = score > old.best && old.best > 0;
     $('resBest').textContent = newBest ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
-    const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO);
+    const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO || A.store.level(key, inst.id, lv + 1).stars > 0);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
     (hasNext ? $('resNext') : $('resRetry')).focus();
