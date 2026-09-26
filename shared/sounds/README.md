@@ -36,6 +36,10 @@ time. After that, a note that is still ringing has to be played again to count.
 Sounds marked **during play** play in the middle of a game: keep them **under 0.5 s**, so the microphone is
 only deaf for a moment. The longer ones (results, fanfares) play when nobody is being timed.
 
+Showtime Malfunction's `attack-tick` plays after every counted note while the student is tonguing quickly, so it
+only keeps the microphone deaf for its own length + 60 ms (its `echo` in `shared/sounds.js`). **Keep that recording
+under 0.1 s**, or fast tonguing will start missing notes.
+
 The **ambience loop** (`lobby-ambience`) never plays while the microphone is listening. Make it loop cleanly: start
 and end at the same loudness. The arcade skips the tiny silence that .m4a and .mp3 encoders add at the ends, so it
 loops without a gap; use the Sound Board's **Loop test** to hear the seam.
@@ -65,6 +69,7 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `select-ancient-ninja-scrolls` | `select-ancient-ninja-scrolls.m4a` or `select-ancient-ninja-scrolls.mp3` | START on the arcade floor for Ancient Ninja Scrolls (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-button-masher` | `select-button-masher.m4a` or `select-button-masher.mp3` | START on the arcade floor for Button Masher (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-neon-face-off` | `select-neon-face-off.m4a` or `select-neon-face-off.mp3` | START on the arcade floor for Neon Face-Off (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
+| `select-showtime-malfunction` | `select-showtime-malfunction.m4a` or `select-showtime-malfunction.mp3` | START on the arcade floor for Showtime Malfunction (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 
 ### Select Player
 
@@ -162,3 +167,13 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `goal` | `goal.m4a` or `goal.mp3` | Neon Face-Off: a goal. | 0.5–1.5 s |
 | `match-win` | `match-win.m4a` or `match-win.mp3` | Neon Face-Off: the match is won. | 0.8–1.5 s |
 | `your-turn` | `your-turn.m4a` or `your-turn.mp3` | Neon Face-Off: the turn changes. **during play: under 0.5 s** | under 0.2 s |
+
+### Showtime Malfunction
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `showtime-start` | `showtime-start.m4a` or `showtime-start.mp3` | Showtime Malfunction: a showtime begins ("It's showtime!"). Without a file: level-start. | 0.6–1.2 s |
+| `attack-tick` | `attack-tick.m4a` or `attack-tick.mp3` | Showtime Malfunction: each counted note (tongued or struck) on the target's voice box. The mic is deaf only ~0.1 s after it, so fast tonguing still counts. **during play: under 0.5 s** | under 0.1 s (a tick) |
+| `reboot` | `reboot.m4a` or `reboot.mp3` | Showtime Malfunction: an animatronic reboots (eyes turn blue), or Maestro Moose finishes a phase. **during play: under 0.5 s** | under 0.5 s |
+| `spotlight-out` | `spotlight-out.m4a` or `spotlight-out.mp3` | Showtime Malfunction: an animatronic reaches the front and a spotlight goes out. **during play: under 0.5 s** | under 0.5 s |
+| `showtime-over` | `showtime-over.m4a` or `showtime-over.mp3` | Showtime Malfunction: all three spotlights are out, SHOWTIME'S OVER. Spooky-fun, never a scream. | 1–2 s |

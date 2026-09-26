@@ -179,9 +179,14 @@ window.Arcade = window.Arcade || {};
       Usage: const inst = A.requireInstrument(GAME_ID); if (!inst) return; */
   A.requireInstrument = function (gameId) {
     const inst = A.store.player ? A.currentInstrument() : null;      // the exact instrument must be chosen (a member)
-    if (!inst) location.replace(A.playerLink(gameId));
+    if (!inst) { location.replace(A.playerLink(gameId)); return null; }
+    // an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js
+    const g = (A.GAMES || []).find(x => x.id === gameId);
+    if (inst.pitched === false && !(g && g.unpitched)) { location.replace(A.playerLink(gameId) + '&need=pitched'); return null; }
     return inst;
   };
+  /** the line shown to a snare drummer where a game needs a pitched instrument */
+  A.SNARE_MSG = 'Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.';
 
   /** Standard game top bar: "← Arcade" back to the arcade floor on the left, the sound button and instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */

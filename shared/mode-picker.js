@@ -50,7 +50,7 @@ window.Arcade = window.Arcade || {};
         `<div class="mp" role="group" aria-label="Game mode">` +
         `<div class="mp-row"><span class="mp-lbl" id="mpNotes-${uid}">Notes</span><div class="mp-notes" role="group" aria-labelledby="mpNotes-${uid}">` +
         A.NOTE_CHOICES.map(c => {
-          const stars = A.store.totalStars(A.progressKey(gameId, c.id, state.order), g.id);
+          const stars = A.store.totalStars(A.progressKey(gameId, c.id, state.order), game && game.byMember ? state.member.id : g.id);   // games.js byMember: saved per member
           const sc = c.id === 'first5' || c.id === 'chrom' ? null : S.build(state.member, c.id);
           const sub = c.id === 'first5' ? g.notes.map(noteLabel).join(' ') : c.id === 'chrom' ? 'Full range' : 'your ' + sc.key;
           const name = c.id === 'first5' || c.id === 'chrom' ? c.short : 'Concert ' + c.short;

@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim).
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
@@ -83,6 +83,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.63, 1.48], [0.63, 1.64]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.88, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
+    /* showtime: the old cabinet from the back room (Showtime Malfunction): a classic body, and a broken stage spotlight
+       hanging askew on top */
+    showtime: {
+      width: 0.92, topper: 'lamp',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.78], [0, 1.78]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* versus: a wide two-player fighting cabinet with a long control panel and a lit VS sign on top */
     versus: {
       width: 1.08, topper: 'vs', twoPlayer: true,
@@ -91,7 +99,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -115,7 +123,7 @@ window.Arcade = window.Arcade || {};
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
    'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink', 'blue', 'blue-hi', 'blue-ink',
    'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
-   'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'].forEach(n => { tok[n] = cssVar(n); });
+   'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -228,6 +236,21 @@ window.Arcade = window.Arcade || {};
       x.shadowColor = u; x.fillStyle = tok[k.trim2 + '-hi']; x.fillText(w2, x0 + a, H * .56);
       x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
       return;
+    } else if (k.marquee === 'showtime') {
+      // a worn bulb-lit sign: SHOWTIME in the trim, MALFUNCTION in trim2, one bulb burnt out (match .mq-showtime)
+      x.fillStyle = tok['cab-panel']; x.fillRect(0, 0, W, H);
+      x.fillStyle = thi; for (let bx = H * .08; bx < W; bx += H * .16) { x.beginPath(); x.arc(bx, H * .07, H * .025, 0, 7); x.arc(bx, H * .93, H * .025, 0, 7); x.fill(); }
+      x.fillStyle = tok.deep; x.fillRect(W * .05, H * .15, W * .9, H * .7);
+      const [w1, ...rest] = g.name.toUpperCase().split(' '), w2 = rest.join(' ');
+      const s1 = fitText(x, w1, '"GN Display", sans-serif', H * .3, W * .8), s2 = fitText(x, w2, '"GN Display", sans-serif', H * .26, W * .84);
+      x.shadowBlur = 12; x.shadowColor = t; x.fillStyle = thi; x.font = `${s1}px "GN Display", sans-serif`; x.fillText(w1, W / 2, H * .35);
+      x.font = `${s2}px "GN Display", sans-serif`; x.textAlign = 'left';
+      const full = x.measureText(w2).width, x0 = W / 2 - full / 2, cut = w2.indexOf('F');
+      [...w2].forEach((ch, i) => {
+        const cx = x0 + x.measureText(w2.slice(0, i)).width, dead = i === cut;
+        x.shadowColor = dead ? 'rgba(0,0,0,0)' : u; x.fillStyle = dead ? tok['cab-metal'] : tok[k.trim2 + '-hi']; x.fillText(ch, cx, H * .66);
+      });
+      x.textAlign = 'center';
     } else if (k.marquee === 'shade') {
       x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
       x.strokeStyle = u; x.lineWidth = H * .16;
@@ -426,6 +449,22 @@ window.Arcade = window.Arcade || {};
       const px = W / 2 - Math.cos(a) * (W / 2 - L - W * .13), py = H / 2 - Math.sin(a) * (H / 2 - T - H * .12);
       const gr = x.createRadialGradient(px, py, 0, px, py, H * .1); gr.addColorStop(0, tok['white-hi']); gr.addColorStop(.4, tok.yellow); gr.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = gr; x.beginPath(); x.arc(px, py, H * .1, 0, 7); x.fill();
+    },
+    /* Showtime Malfunction: static, and a pair of red eyes glowing through it that blinks now and then (as 2D) */
+    showtime(x, W, H, t) {
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      const seed = t == null ? 1 : Math.floor(t * 8);
+      for (let i = 0; i < 160; i++) {                       // cheap static: a few small grey dashes, reshuffled 8 times a second
+        const r = Math.sin(seed * 97.1 + i * 12.9898) * 43758.5453, a = r - Math.floor(r), b = (r * 7.13) - Math.floor(r * 7.13);
+        x.fillStyle = `rgba(200,195,225,${.08 + a * .22})`; x.fillRect(a * W, b * H, W * .05, 1.5);
+      }
+      const blink = t != null && (t % 4.5) > 4.1, ey = H * .44, eye = tok['anim-eye-bad'];
+      if (!blink) [W * .4, W * .6].forEach(ex => {
+        const gr = x.createRadialGradient(ex, ey, 0, ex, ey, H * .14); gr.addColorStop(0, eye); gr.addColorStop(.3, eye); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = gr; x.beginPath(); x.arc(ex, ey, H * .14, 0, 7); x.fill();
+      });
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi']; x.globalAlpha = .8;
+      x.font = `${H * .09}px "GN Display", sans-serif`; x.fillText('SHOWTIME?', W / 2, H * .84); x.globalAlpha = 1;
     },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
@@ -630,6 +669,15 @@ window.Arcade = window.Arcade || {};
       const face = new THREE.Mesh(new THREE.PlaneGeometry(sw * .94, sh * .86), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
       face.position.set(0, topY + sh / 2 + .02, fz + .002); group.add(face);
       neon([new THREE.Vector3(-sw / 2, topY + sh + .02, fz + .004), new THREE.Vector3(sw / 2, topY + sh + .02, fz + .004)]);
+    } else if (P.topper === 'lamp') {
+      // a broken stage spotlight on a bracket, knocked askew, its lens still glowing (Showtime Malfunction)
+      const fz = frontTop + zc - .14, metal = lambert(col('cab-metal'));
+      const post = new THREE.Mesh(new THREE.BoxGeometry(.03, .16, .03), metal); post.position.set(W * .2, topY + .08, fz); group.add(post);
+      const lamp = new THREE.Group(); lamp.position.set(W * .2, topY + .17, fz); lamp.rotation.set(.5, 0, -.7);
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, .18, 14, 1, true), lambert(col('cab-side'))); can.rotation.x = Math.PI / 2; lamp.add(can);
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(.08, 16), basic(col(k.trim2 + '-hi'))); lens.position.z = .09; lamp.add(lens);
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(.16, 16), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .095; lamp.add(glow);
+      lamp.userData.pick = true; group.add(detail(lamp));
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {

@@ -80,6 +80,11 @@ window.Arcade = window.Arcade || {};
       ...[0, 1, 2, 3, 4, 5, 6].map(i => ({shape: `M${12 + i * 11.5} ${60 + i * 1.6}h8v${28 - i * 3.2}h-8Z`})),
       ...[0, 1, 3, 4, 5].map(i => ({shape: `M${18 + i * 11.5} ${37 + i * 1.4}h7v${18 - i * 2}h-7Z`})),
       {line: 'M64 22L84 6M72 26L92 12', w: 2.4}, {ring: [85, 5, 3.4]}, {ring: [93, 11, 3.4]}]},
+    // the snare drum: shell, top head, lugs, snare wires under the bottom head, and two crossed sticks
+    snare: {color: 'pt-snare', rot: 0, parts: [
+      {shape: 'M16 50V74A34 9 0 0 0 84 74V50A34 9 0 0 1 16 50Z'}, {shape: 'M16 50A34 9 0 1 0 84 50A34 9 0 1 0 16 50Z'},
+      {line: 'M27 57V81M40 59V83M60 59V83M73 57V81'}, {line: 'M24 86L76 86', w: 1.6}, {line: 'M16 72A34 9 0 0 0 84 72'},
+      {tube: 'M22 12L55 46', w: 3.4}, {tube: 'M80 14L47 44', w: 3.4}, {ring: [55.5, 46.5, 2.6]}, {ring: [46.5, 44.5, 2.6]}]},
     /* not an instrument: the CPU opponent in two-player games (Select Player's CPU tile) */
     cpu: {color: 'pt-cpu', rot: 0, parts: [
       {shape: 'M24 30H76Q84 30 84 38V70Q84 78 76 78H24Q16 78 16 70V38Q16 30 24 30Z'}, {line: 'M50 30V16', w: 2.6}, {ring: [50, 12, 4]},
@@ -123,7 +128,7 @@ window.Arcade = window.Arcade || {};
     flute: 'flute', oboe: 'oboe', clarinet: 'clarinet', basscl: 'bass-clarinet', bassoon: 'bassoon',
     altosax: 'alto-sax', tenorsax: 'tenor-sax', barisax: 'bari-sax',
     trumpet: 'trumpet', horn: 'horn', trombone: 'trombone', baritonetc: 'baritone-tc', euphbc: ['euphonium', 'euphonium-bc'], tuba: 'tuba',
-    bells: 'bells',
+    bells: 'bells', snare: 'snare',
   };
   /* smaller WebP copies made for files over 250 KB or 1024 px (the originals stay untouched). If you replace one
      of these originals, delete its copy in optimized/ and take its name off this list (or make a new copy). */

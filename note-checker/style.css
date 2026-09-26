@@ -49,3 +49,15 @@
 
 @media (max-width:420px){ .mode-btn{font-size:14px} }
 .full-head .playing{margin:0}
+
+/* ---------- ARTICULATION: the attack counter ---------- */
+.art-box{display:flex;align-items:center;justify-content:center;gap:22px;margin:8px 0 4px;padding:14px;border-radius:20px;background:var(--floor-2);border:2px solid var(--cyan);box-shadow:var(--glow-cyan)}
+.art-count{min-width:2.2ch;text-align:center;font-family:var(--display);font-size:clamp(84px,18vw,150px);line-height:1;color:var(--cyan-hi);text-shadow:var(--glow-cyan);font-variant-numeric:tabular-nums}
+.art-count.flash{animation:art-flash .35s ease-out}
+@keyframes art-flash{0%{color:var(--yellow);text-shadow:var(--glow-yellow);transform:scale(1.12)}100%{transform:none}}
+.art-side p{margin:0}
+.art-label{font-family:var(--display);font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-lo)}
+.art-note{font-family:var(--display);font-size:clamp(30px,6vw,46px);color:var(--yellow);min-height:1.2em}
+.art-rate{color:var(--text-lo);font-weight:700;min-height:1.3em}
+.art-tip{margin:6px 0;text-align:center;font-weight:700;font-size:18px;color:var(--text-hi)}
+@media (prefers-reduced-motion:reduce){.art-count.flash{animation:none;color:var(--yellow)}}

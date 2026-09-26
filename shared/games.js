@@ -27,6 +27,9 @@
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
      players    optional: 2 = a two-player game (Neon Face-Off): START opens Select Player with &players=2, so Player 2
                 picks too (or CPU); stored as Arcade.store.opponent, never replacing Player 1's instrument
+     unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
+                (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
+                Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
      noPlay     optional: {groups, members, label, game}: students whose instrument is one of these see `label`
                 as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
@@ -50,6 +53,7 @@ window.Arcade.GAMES = [
     blurb: 'Play a note and watch it light up. Tuning needle included.',
     maxStars: 0,
     color: 'cyan',
+    unpitched: true,                     // the Snare Drum can use it (its ARTICULATION test)
     cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', kicker: 'Sound check', screen: 'tuner'},
     cabinet3d: {profile: 'soundcheck', body: 'cab-face'},
   },
@@ -133,5 +137,18 @@ window.Arcade.GAMES = [
     byMember: true,                                  // CPU-ladder stars are saved under Player 1's instrument
     cabinet: {shape: 'rink', trim: 'cyan', trim2: 'pink', marquee: 'faceoff', kicker: '1P vs 2P', screen: 'hockey'},
     cabinet3d: {profile: 'rink', body: 'cab-side'},
+  },
+  {
+    id: 'showtime-malfunction',
+    name: 'Showtime Malfunction',
+    skill: 'Articulation',
+    blurb: "The arcade's old animatronic band has powered back on! Play each note as many times as its voice box shows, tonguing every one, to reboot them.",
+    maxStars: 24,
+    color: 'yellow',
+    noteModes: true,                                 // NOTES × ORDER (the snare plays a single count mode)
+    byMember: true,                                  // stars are saved per instrument member ('snare' included)
+    unpitched: true,                                 // the Snare Drum plays it: count mode, any clean hit counts
+    cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', kicker: 'The Showtime Band', screen: 'showtime'},
+    cabinet3d: {profile: 'showtime', body: 'cab-side'},
   },
 ];

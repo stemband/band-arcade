@@ -56,6 +56,10 @@ button-masher/        Game 6: fingerings and slide positions, no microphone; a v
   levels.js           The 8 rivals (Squeaky Reed … The Conductor): note pools, notes per match, time, rival health
   diagrams.js         The instrument diagrams (flute, oboe, clarinet, sax, bassoon, valves, trombone slide)
   game.js             Game logic: the match, the rivals and the fighter, the CHART view
+showtime-malfunction/ Game 8: articulation. Play each note N separate times (tongued or struck) to reboot animatronics
+  levels.js           The 8 showtimes (The 5:00 Show … The Midnight Encore): counts, lanes, speed, the boss. Edit here
+  characters.js       THE SHOWTIME BAND, drawn in SVG: Tubby Tusk, Professor Hoot, Snapjaw Sal, Rico Bandit, Maestro Moose
+  game.js             The show: the lanes, voice boxes, spotlights, the stage band, snare mode, results
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.
@@ -63,7 +67,7 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 ## How students move through it
 
 1. **Arcade floor** (`index.html`): choose a game. Turn the cabinets with the ◀ ▶ buttons, a swipe, the ←/→ keys, or the lights under the carousel. Press **START** on the front cabinet.
-2. **Select Your Player** (`select-player/index.html?game=<game-id>`): a fighting-game character select. Fifteen neon portraits, one per instrument, tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
+2. **Select Your Player** (`select-player/index.html?game=<game-id>`): a fighting-game character select. Sixteen portraits, one per instrument (woodwinds on the top row, brass and percussion below, including the **Snare Drum**), tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
 3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
@@ -140,6 +144,23 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **Testing** (`?demo`): all rivals unlocked; in a match hold **Space** to play the active player's note (press it later for a slower, softer shot) or **W** for a wrong note.
 - Rules you can change in `levels.js`: the first shot's speed, how much each return speeds up, the power thresholds, who serves after a goal (`serve: 'loser'`, like real air hockey, or `'alternate'`), the sound window.
 
+## Showtime Malfunction
+
+**An articulation game.** Years ago the Band Arcade had its own animatronic house band, THE SHOWTIME BAND. Tonight, after closing, they've powered back on, glitching, with sour voice boxes, and they're lurching across the arcade floor toward you. Each one's **voice box** shows a note and a count, like **E♭ × 4**: play that note that many **separate** times (tongue each one, or strike it) and it reboots: its eyes turn from red to friendly blue, it straightens up and shuffles back to the little stage, where the band slowly fills up. The closest one is always the target (outlined, with an arrow). A wrong note makes its voice box glitch and doesn't count; holding one long note without re-tonguing for a second shows **"Tongue each note!"**
+
+- **Spotlights:** you have 3. An animatronic that reaches the front knocks one out. All three out = **SHOWTIME'S OVER**. Stars: 3 = no spotlights lost, 2 = one lost, 1 = survived.
+- **The band:** Tubby Tusk (walrus, tuba), Professor Hoot (owl, flute), Snapjaw Sal (gator, snare), Rico Bandit (raccoon, sax), and Maestro Moose, the conductor and final boss of **The Midnight Encore** (× 8, three phases, while the band keeps coming). All original, cartoon-creepy machines: no gore, nothing like any existing franchise.
+- **Showtimes:** The 5:00 Show to The 11:00 Show, then The Midnight Encore, in `showtime-malfunction/levels.js`: how many animatronics, the count range, how many at once, lanes and walking speed. Notes come from **NOTES × ORDER**, like the other note games.
+- **Snare Drum players** play a count-only mode: no staff, the voice box shows a drum and a count (bigger counts, up to × 12), and any clean hit counts. They face Snapjaw Sal and his glitchy clone units (SAL-02, SAL-03…); Maestro Moose is still the boss.
+- **SPOOKY LEVEL** (remembered on the level screen): **Mild** (default) = glitches and static only; **Spooky** = darker, more static, and a sudden silent lean-in at SHOWTIME'S OVER. No screams, and the flicker is always slow and gentle; with reduced motion there's no flicker, twitching or lean-in at all.
+- **The microphone:** each played note or drum hit is an **attack** (see *Attack detection* below). While a sound plays the microphone is ignored and the band stands still, so sounds never cost time.
+- **Achievement:** defeat Maestro Moose to unlock the **Animatronic** skin for every instrument.
+- **Testing** (`?demo`): every showtime is unlocked; tap **Space** = one attack on the right note, tap **W** = one on a wrong note, hold **S** = a long note with no new attacks (shows the hint).
+
+### Attack detection (the engine)
+
+`shared/pitch.js` can report every separate **attack**: a tongued note, a new mallet strike, a drum hit (`Arcade.Pitch.onAttack`). It watches how loud the sound is about every 5–8 ms and counts a sharp rise after a dip, so quick tonguing (gaps as short as 40 ms), bells struck again while still ringing and snare hits all count, but a **slur** (a new pitch without a new attack) and vibrato don't. Each attack is reported with the pitch heard in the next ~150 ms (or none, for a drum). The numbers (how big a rise, how long before another attack can count) are at the top of that section of `pitch.js`, and the Note Checker's **ARTICULATION** test shows exactly what the detector counts on a real instrument. Only games that ask for attacks run it, so nothing else changes.
+
 ## Sounds
 
 Every sound in the arcade goes through `shared/sfx.js`, and each one can be **your own recording**. The full list of sounds, with the exact file name for each, when it plays and a suggested length, is in [`shared/sounds/README.md`](shared/sounds/README.md) (the same list, with volumes and rules, is `shared/sounds.js`).
@@ -179,6 +200,7 @@ Students earn **skins** for their instrument's portrait by playing: a **color sk
 | Crown | defeat The Conductor in Button Masher |
 | Cape | beat The Champ in Neon Face-Off (1 player vs CPU) |
 | Ninja Mask | earn any TEST READY badge in Ancient Ninja Scrolls |
+| Animatronic | defeat Maestro Moose (The Midnight Encore) in Showtime Malfunction: a metal sheen, bolts and glowing blue eyes |
 
 Star skins belong to the instrument that earned the stars. The special wins count in any NOTES × ORDER mode, on any instrument, and unlock that skin for every instrument on the device. Progress from before skins existed counts: the first time a student opens Select Player (or reaches any results screen) they get one **UNLOCKED!** card with everything they have already earned. After that, a new skin's card appears on the results screen that earned it, with **Equip now**. Nothing ever interrupts a game.
 
@@ -232,7 +254,9 @@ Each scale is written for the student's own instrument, e.g. Concert E♭ is **F
 
 ## Note Checker: full range
 
-The Note Checker's buttons at the top pick **First 5** (what the games' random mode uses), a scale (**B♭, E♭, F, A♭**: that scale up and down with its key signature, "11 of 15 notes") or **Chromatic**, the student's whole chromatic scale. Scales and Chromatic use the instrument chosen on Select Player (no extra question).
+The Note Checker's buttons at the top pick **First 5** (what the games' random mode uses), a scale (**B♭, E♭, F, A♭**: that scale up and down with its key signature, "11 of 15 notes"), **Chromatic**, the student's whole chromatic scale, or **Articulation**. Scales and Chromatic use the instrument chosen on Select Player (no extra question).
+
+- **Articulation** counts every attack the microphone catches, in big numbers with a flash, plus the note name (or "Hit!" on the snare) and how many per second. Play the same note again and again, "ta ta ta ta"; hold one long note and it says so. **Reset** starts over. This is the way to check attack detection on real instruments (Showtime Malfunction uses the same detector). It is the only Note Checker mode for the Snare Drum. In `?demo`: tap **Space**, tap **W**, hold **S**.
 
 - **The ranges** come from the **GMEA All-State Middle School Chromatic Scale sheets**. They live in `MEMBERS` in `shared/instruments.js`: each instrument's lowest and highest written note, and `sounds`, how many half steps it sounds below what's written (bells: −24, two octaves higher). If GMEA changes a sheet, change it there. The games are not affected.
 - **The octave matters.** A note turns gold only when it's played in the octave written on the staff. Playing a low D doesn't count for the high D; the page says "That's a D, but an octave lower. Try the higher one." If the microphone hears a note a whole octave outside the instrument's range (common with tubas on built-in mics), it's moved into the range and counts.
@@ -272,7 +296,8 @@ Every later change you save to the repository goes live at the same link within 
 4. Add an entry to `shared/games.js` (see the comment at the top of that file).
 5. Save progress with `Arcade.store.setLevel(gameId, instrumentId, level, {stars, best})`, which lets the arcade floor show the hi-score automatically.
 6. A game whose progress depends on the exact instrument (Button Masher's fingerings) sets `byMember: true`: it saves under the member id (`trumpet`, `clarinet`…) and the hi-score reads it. `noPlay` sends instruments the game can't use to another game (percussion → Chime Heist).
-7. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
+7. The **Snare Drum** is an unpitched player (`pitched: false` in `shared/instruments.js`: no notes, only attacks). A game that works without pitch sets `unpitched: true` in `shared/games.js` (Showtime Malfunction, the Note Checker's ARTICULATION test) and checks `inst.pitched === false`; every other game automatically sends a snare player back to Select Player with "Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.", and on those games the snare tile is dimmed and the arcade floor links to Showtime Malfunction instead of a hi-score.
+8. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
 
 ## Adding a cabinet
 

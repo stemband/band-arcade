@@ -40,9 +40,13 @@ window.Arcade = window.Arcade || {};
     {id:'bcl',   name:'Bass Clarinet & Baritone T.C.',            clef:'treble', t:2, written:['C4','D4','E4','F4','G4'],   range:[46,53]},
     {id:'low',   name:'Trombone, Baritone, Euphonium, Bassoon',   clef:'bass',   t:0, written:['Bb2','C3','D3','Eb3','F3'], range:[46,53]},
     {id:'tuba',  name:'Tuba',                                     clef:'bass',   t:0, written:['Bb1','C2','D2','Eb2','F2'], range:[34,41]},
+    // UNPITCHED (pitched: false): no notes, only attacks (Arcade.Pitch.onAttack). Only games with `unpitched: true`
+    // in games.js (Showtime Malfunction, the Note Checker's ARTICULATION test) take it; the others send it to Select Player.
+    {id:'snare', name:'Snare Drum',                               clef:'treble', t:0, written:[], range:[55,67], pitched:false},
   ];
 
   INSTRUMENTS.forEach(inst => {
+    inst.pitched  = inst.pitched !== false;
     inst.notes    = inst.written.map(parseNote);
     inst.targetPc = inst.notes.map(n => mod12(writtenMidi(n) - inst.t));  // concert pitch classes to listen for
     inst.minF     = mtof(inst.range[0]) * 0.78;
@@ -89,13 +93,15 @@ window.Arcade = window.Arcade || {};
       {id: 'bassoon',  name: 'Bassoon',                  short: 'Bassoon',          family: 'woodwind', chromatic: ['Bb1', 'F4'], sounds: 0},
     ],
     tuba: [{id: 'tuba', name: 'Tuba', short: 'Tuba', family: 'brass', chromatic: ['E1', 'F3'], sounds: 0}],
+    snare: [{id: 'snare', name: 'Snare Drum', short: 'Snare', family: 'percussion', pitched: false, chromatic: null, sounds: 0}],   // unpitched: no range
   };
   INSTRUMENTS.forEach(inst => {
     inst.members = (MEMBERS[inst.id] || []).map(m => Object.assign({}, m, {
-      group: inst.id, clef: inst.clef,
-      low: parseNote(m.chromatic[0]), high: parseNote(m.chromatic[1]),
+      group: inst.id, clef: inst.clef, pitched: m.pitched !== false,
+      low: m.chromatic ? parseNote(m.chromatic[0]) : null, high: m.chromatic ? parseNote(m.chromatic[1]) : null,
     }));
     inst.members.forEach(m => {
+      if (!m.chromatic) return;                                                     // unpitched: no range
       m.lowMidi = writtenMidi(m.low); m.highMidi = writtenMidi(m.high);             // written
       m.soundLow = m.lowMidi - m.sounds; m.soundHigh = m.highMidi - m.sounds;       // sounding (concert, exact octave)
     });
@@ -126,14 +132,13 @@ window.Arcade = window.Arcade || {};
   }
 
   /*
-    PLAYERS: the Select Player tiles, one per instrument, in grid order (5 × 3). The saved player choice is one
+    PLAYERS: the Select Player tiles, one per instrument, in grid order (8 × 2: woodwinds, then brass and percussion). The saved player choice is one
     of these ids. groupFor(id) maps it to its player GROUP (the old saved choice): first five notes, clef,
     transposition and the id games save progress under, so stars saved before members existed stay put.
     Horn is one tile in two groups (hornF: F G A B♭ C, hornC: C D E F G); hornStart 'F' | 'C' picks one.
   */
-  const PLAYERS = ['flute', 'oboe', 'clarinet', 'basscl', 'bassoon',
-                   'altosax', 'tenorsax', 'barisax', 'trumpet', 'horn',
-                   'trombone', 'baritonetc', 'euphbc', 'tuba', 'bells'];
+  const PLAYERS = ['flute', 'oboe', 'clarinet', 'basscl', 'bassoon', 'altosax', 'tenorsax', 'barisax',
+                   'trumpet', 'horn', 'trombone', 'baritonetc', 'euphbc', 'tuba', 'bells', 'snare'];
   const HORN_GROUPS = {F: 'hornF', C: 'hornC'};
   /** every group a member belongs to (horn: both horn groups) */
   const groupsOf = id => INSTRUMENTS.filter(g => g.members.some(m => m.id === id));

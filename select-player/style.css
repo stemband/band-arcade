@@ -105,7 +105,7 @@
 }
 
 /* ---------- the grid ---------- */
-.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}   /* 16 players: woodwinds, then brass + percussion */
 .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;min-width:0;border-radius:14px;
   background:linear-gradient(180deg, var(--deep), var(--floor-2));border:2px solid var(--floor-3);border:2px solid color-mix(in srgb, var(--fam) 55%, transparent);opacity:.72;
   transition:opacity .12s, transform .12s}
@@ -125,6 +125,9 @@
 .phase2 .tile.p1-lock{opacity:1;border-color:var(--cyan)}
 .phase2 .tile.on{--fam:var(--pink);--fam-hi:var(--pink-hi);--fam-glow:var(--glow-pink)}
 body:not(.phase2) .tile.cpu{display:none}
+/* the Snare Drum on a game that needs pitch: shown, dimmed, and choosing it explains why */
+.tile.no-play{opacity:.35;border-style:dashed}
+.tile.no-play .pt-box{filter:grayscale(1)}
 .fam-cpu{--fam:var(--white-ink);--fam-hi:var(--white);--fam-glow:var(--glow-white)}
 .phase2 .sp-title{color:var(--pink-hi);-webkit-text-stroke-color:var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-pink)}
 .ready.p2 p span+span{color:var(--pink-hi);text-shadow:0 6px 0 var(--deep),var(--glow-pink)}
@@ -135,7 +138,7 @@ body:not(.phase2) .tile.cpu{display:none}
 
 /* phones: three columns, the preview a short strip on top */
 @media (max-width:560px){
-  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .t-name{font-size:13px}
   .preview{grid-template-columns:96px 1fr;padding:8px 10px;gap:10px}
   .pv-stage{border-radius:12px}

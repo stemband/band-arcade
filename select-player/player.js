@@ -41,10 +41,20 @@
   }).join('');
   const tiles = [...$('grid').querySelectorAll('.tile')];
 
+  /* an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js */
+  const canPlay = id => game.unpitched || !(info(id) && info(id).pitched === false);
+  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: try Showtime Malfunction'); } });
+  const snareMsg = () => {
+    const sm = A.GAMES.find(g => g.id === 'showtime-malfunction');
+    $('msg').hidden = false;
+    $('msg').innerHTML = `<b>Snare drummers:</b> try ${sm ? `<a href="${A.playerLink(sm.id)}">Showtime Malfunction</a>` : 'Showtime Malfunction'}! Pick a pitched instrument for this game.`;
+  };
+
   /* returning students: CONTINUE AS, or (after the members update) a group to pick an exact instrument from */
   const saved = A.store.player, pending = A.store.pending;
-  let cur = Math.max(0, ids.indexOf(saved || 'flute'));
-  if (saved) {
+  let cur = Math.max(0, ids.indexOf(saved && canPlay(saved) ? saved : 'flute'));
+  if (A.params.get('need') === 'pitched' || (saved && !canPlay(saved))) snareMsg();
+  if (saved && canPlay(saved)) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;
     $('continuePic').innerHTML = A.portraitHTML(saved, {size: 'tile'});
@@ -67,6 +77,7 @@
   /* ---------- highlight + player card ---------- */
   function keyText(id) {
     const m = info(id), g = group(id);
+    if (m.pitched === false) return 'Unpitched · counts every hit';
     const key = m.sounds === -24 ? 'Sounds 2 octaves higher' : KEY[A.music.mod12(g.t)] || 'Transposing';
     return `${key} · ${g.clef === 'bass' ? 'Bass' : 'Treble'} clef`;
   }
@@ -79,7 +90,7 @@
     $('cFam').textContent = FAMILY[m.family]; $('cFam').className = 'card-fam fam-' + m.family;
     $('cName').textContent = m.short;
     $('cKey').textContent = keyText(id);
-    $('cFive').textContent = 'First five: ' + g.notes.map(noteLabel).join(' ');
+    $('cFive').textContent = m.pitched === false ? 'Plays: Showtime Malfunction, the Note Checker\'s Articulation test' : 'First five: ' + g.notes.map(noteLabel).join(' ');
     const n = A.store.starsForPlayer(id);
     $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on this device' : 'stars on this device';
     $('hornToggle').hidden = id !== 'horn';
@@ -134,6 +145,7 @@
   /* ---------- confirm: a flash, PLAYER n READY, then the game (or Player 2's turn to pick) ---------- */
   let leaving = false;
   function confirm(id, viaContinue) {
+    if (!canPlay(id)) { snareMsg(); A.Sfx.event('note-wrong'); $('msg').scrollIntoView({block: 'nearest'}); return; }
     if (leaving || (phase === 1 && id === 'cpu')) return;
     leaving = true;
     if (phase === 1) A.store.setPlayer(id); else A.store.setOpponent(id);
@@ -156,7 +168,7 @@
     document.querySelector('.sp-title').textContent = 'Player 2 — Press Start';
     tiles.forEach(t => { t.classList.toggle('p1-lock', t.dataset.id === p1); t.classList.remove('chosen', 'suggest'); });
     $('msg').hidden = true;
-    const opp = A.store.opponent;
+    const opp = A.store.opponent && canPlay(A.store.opponent) ? A.store.opponent : null;
     $('continue').hidden = !opp;
     if (opp) {
       $('continue').querySelector('.c-label').textContent = 'Same opponent';
