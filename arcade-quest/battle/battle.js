@@ -7,6 +7,10 @@
    Enemy HP 0 = it fades away grumbling (smaller rewards). Your HP 0 = "out of breath": nothing is lost, HP refills.
    Episode 1 adds: `phases` (a boss's challenge changes with each PLAY of it), the B♭ Blast (a second attack once the Butler
    teaches it), the Tuning Slide (boost), `listenBoost`, `mustHarmonize` (HP stops at 1) and per-enemy `music`.
+   The FINAL BOSS adds `stages` (the battle changes as its HP drops: each stage's challenge, notes, dodge and opening
+   line; quest-boss-phase plays between them), `finale` (at HP 1 its CALM fills and it says these lines: time to
+   HARMONIZE), `harmonizeKeep` (a missed HARMONIZE keeps the CALM) and harmonize {type: 'scale'} (the whole concert
+   B♭ scale). Key items (`keep` in data/items.js, the Conductor's Baton) aren't used up: once per battle.
    Q.go('battle', {enemy: 'squawk', back: 'arena'}) or, from the overworld,
    Q.go('battle', {enemy: 'wisp', overrides: {happy: 2}, back: {scene: 'world', args: {...}}}): when it ends, the
    back scene gets args.result = {kind: 'befriend' | 'fade' | 'rest', enemy}. All words: data/battle-text.js. */
@@ -45,8 +49,21 @@
   }
   const micReady = () => Q.micReady();
   const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
-  /** this turn's challenge: the enemy's own, or its phase (a boss changes challenge each turn) */
-  const challengeNow = () => (B.e.phases ? B.e.phases[B.phase % B.e.phases.length] : B.e.challenge);
+  /** the final boss's stage (data/enemies.js `stages`): the first whose `until` (a share of its HP) is still below it */
+  const stageIdx = () => { const st = B.e.stages; if (!st) return -1; const f = B.e.hp / B.e.maxHp, i = st.findIndex(s => f > s.until); return i < 0 ? st.length - 1 : i; };
+  const stage = () => (B.e.stages ? B.e.stages[stageIdx()] : null);
+  /** the enemy as this turn sees it: with its stage's challenge, notes and dodge */
+  const foe = () => (stage() ? Object.assign({}, B.e, stage()) : B.e);
+  /** this turn's challenge: the enemy's own, its stage's, or its phase (a boss changes challenge each turn) */
+  const challengeNow = () => (B.e.stages ? stage().challenge : B.e.phases ? B.e.phases[B.phase % B.e.phases.length] : B.e.challenge);
+  /** a new stage of the final boss: its sound and its opening words */
+  async function stageStart() {
+    const i = stageIdx();
+    if (i < 0 || i === B.stageShown) return;
+    const first = B.stageShown == null; B.stageShown = i;
+    if (!first) { Q.sfx('quest-boss-phase'); Q.shake(3, 300); float(`STAGE ${i + 1}`, 150, 18, 'calm'); }
+    await Q.say([].concat(stage().say || []), {name: B.e.name, portrait: B.e.sprite});
+  }
   /** PLAY: once the Butler taught the B♭ Blast, pick the enemy's challenge or the Blast */
   function playMenu() {
     if (!Q.save.flag('songBb')) return Promise.resolve('main');
@@ -94,7 +111,7 @@
     const type = challengeNow(), blast = which === 'blast', wasCalm = B.calm >= RULES.calmMax;
     if ((blast || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     if (B.e.phases && !blast) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
-    const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: B.e});
+    const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: foe()});
     if (B === null) return false;
     const power = RULES.power + (B.save.level - 1) * RULES.powerPerLevel;
     let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
@@ -102,12 +119,17 @@
     if (boosted) { dmg = Math.round(dmg * boosted); B.boost = 0; }
     if (dmg > 0) {
       B.e.hp -= dmg; B.hurtUntil = performance.now() + 450; Q.sfx('quest-enemy-hurt'); Q.shake(2, 180);
-      if (B.e.mustHarmonize && B.e.hp < 1) { B.e.hp = 1; B.queue.push(B.e.lines.hold); }
+      if (B.e.mustHarmonize && B.e.hp < 1) {
+        B.e.hp = 1;
+        if (B.e.finale && !B.finale) { B.finale = true; B.calm = RULES.calmMax; B.queue.push(...[].concat(B.e.finale)); Q.sfx('quest-boss-phase'); }
+        else B.queue.push(B.e.lines.hold);
+      }
       float('-' + dmg, 170, 30, 'dmg'); hud();
       B.queue.unshift(Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
       if (boosted) B.queue.unshift(Q.text('boosted', {n: boosted}));
       if (B.e.hp > 1 && B.e.hp <= B.e.maxHp / 2 && !B.saidHurt) { B.saidHurt = true; B.queue.push(B.e.lines.hurt); }
     } else B.queue.push(Q.text('miss'));
+    if (B.finale) hud();
     const perNote = (B.e.calm.perNote || 0) * (B.listened && B.e.listenBoost ? B.e.listenBoost : 1);
     addCalm(perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0), true);
     // a ghost that is getting calm can't fade: someone playing well always gets to HARMONIZE. The round its CALM fills
@@ -130,7 +152,9 @@
     if (!id) return false;
     const it = ITEMS()[id], fx = it.effect || {};
     if (fx.heal && !fx.shield && !fx.slow && B.save.hp >= B.save.maxHp) { await Q.say(Q.text('fullHp')); return false; }   // don't waste it
-    B.save.items[id]--; Q.save.write(); Q.sfx('quest-item');
+    if (it.keep && B.kept[id]) { await Q.say(Q.text('keptUsed', {item: it.name})); return false; }            // a key item: once per battle
+    if (it.keep) B.kept[id] = true; else B.save.items[id]--;
+    Q.save.write(); Q.sfx('quest-item');
     const lines = [Q.text('itemUsed', {item: it.name})];
     if (fx.heal) { const was = B.save.hp; B.save.hp = Math.min(B.save.maxHp, B.save.hp + fx.heal); lines.push(Q.text('itemHeal', {n: B.save.hp - was})); float('+' + (B.save.hp - was), 40, 60, 'heal'); }
     if (fx.shield) { B.shield += fx.shield; lines.push(Q.text('itemShield', {n: B.shield})); }
@@ -146,7 +170,8 @@
     const res = await Q.challenge.run(null, {enemy: B.e, harmonize: true});
     if (B === null) return false;
     if (res.success) { await befriend(); return 'over'; }
-    B.calm = Math.max(0, B.calm - RULES.harmonizeMiss); hud();
+    if (!B.e.harmonizeKeep) B.calm = Math.max(0, B.calm - RULES.harmonizeMiss);
+    hud();
     await Q.say(Q.text('harmonizeFail', {name: B.e.name}));
     return true;
   }
@@ -155,7 +180,7 @@
   async function enemyTurn() {
     await Q.say([Q.pick([].concat(B.e.lines.turn)), Q.text('dodgeStart')], {name: B.e.name});
     const st = Q.settings.get();
-    const res = await Q.dodge.start({enemy: B.e, easy: st.dodge === 'easy', slow: B.slow, shield: B.shield, assist: st.assist,
+    const res = await Q.dodge.start({enemy: foe(), easy: st.dodge === 'easy', slow: B.slow, shield: B.shield, assist: st.assist,
       onHit: (dmg, blocked) => {
         if (blocked) { float('Blocked!', 150, 80, 'calm'); return; }
         B.save.hp = Math.max(0, B.save.hp - dmg); float('-' + dmg, 40, 58, 'dmg'); Q.sfx('quest-hurt'); hud();
@@ -188,8 +213,9 @@
     B.state = 'friend'; Q.sfx('quest-befriend');
     if (!B.save.roster.includes(B.e.id)) B.save.roster.push(B.e.id);
     if (B.e.opens) Q.save.setFlag(B.e.opens);                  // e.g. the Phantom Fermata opens the attic
+    Q.save.achievements();                                      // skins: every kind of manor ghost befriended
     Q.save.write();
-    await Q.say([B.e.lines.befriend, Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
+    await Q.say([B.e.lines.befriend.replace(/\{you\}/g, B.member.short), Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
     await rewards('befriend');
   }
   async function fade() {
@@ -202,6 +228,8 @@
     const b = B;
     await Q.say(b.e.lines.intro);
     while (B === b) {
+      await stageStart();
+      if (B !== b) return;
       const id = await command();
       if (B !== b) return;
       let r = id === 'play' ? await doPlay() : id === 'listen' ? await doListen() : id === 'item' ? await doItem() : await doHarmonize();
@@ -229,7 +257,7 @@
     enter({enemy, back, overrides}) {
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
-      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, shield: 0, slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
+      B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
         player: Q.playerId(member.id, {tone: Q.settings.get().tone})};
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +

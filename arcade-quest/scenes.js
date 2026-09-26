@@ -1,6 +1,8 @@
 /* ARCADE QUEST: the TITLE screen and the TEST ARENA.
-   TITLE: CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (Episode 1 from the Foyer),
-   TEST ARENA (only with ?demo or ?test) and SETTINGS. The title music is quest-title.
+   TITLE: "ARCADE QUEST: THE MYSTERIOUS MICROPHONE" over the microphone's 8-bit silhouette in static.
+   CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (the intro cutscene, then Episode 1 from
+   the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, and TEST
+   ARENA (only with ?demo or ?test). The title music is quest-title.
    TEST ARENA (index.html?test, or TEST ARENA on the title): pick any test enemy (one per challenge type) and fight it
    with your instrument. The card shows the challenge YOUR instrument gets (the Snare Drum: ARTICULATE or VOCAB).
    Your HP refills every time you come back to the arena. RESET SAVE starts the save slot over. */
@@ -16,22 +18,25 @@
     enter() {
       me();
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-title');
-      Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest</small>The Mysterious Microphone</h1>` +
+      Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest:</small>The Mysterious Microphone</h1>` +
         `<p class="q-ep">Episode 1: Ghost Notes Manor</p><div id="qTitleMenu"></div></div>`;
       const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
       const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
-      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}],
-        testing ? [{id: 'arena', label: 'Test Arena'}] : [], [{id: 'settings', label: 'Settings'}]);
+      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
+        [{id: 'settings', label: 'Settings'}], testing ? [{id: 'arena', label: 'Test Arena'}] : []);
+      // NEW GAME: the intro cutscene (skippable), then the Foyer
+      const newGame = () => { Q.save.reset(); Q.save.setFlag('seen-intro'); Q.go('cutscene', {id: 'intro', next: {scene: 'world', args: {map: 'foyer', intro: true}}}); };
       const menu = () => {
-        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: items.length > 2 ? 2 : 1, label: 'Title menu', onPick: it => {
+        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 2, label: 'Title menu', onPick: it => {
           if (it.id === 'continue') { m.destroy(); Q.go('world', {continue: true}); }
           else if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
           else if (it.id === 'settings') Q.settings.open().then(me);
-          else if (!started) { m.destroy(); Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); }
+          else if (it.id === 'code') Q.talk.enterCode().then(ok => { if (ok) { m.destroy(); Q.go('world', {continue: true}); } });
+          else if (!started) { m.destroy(); newGame(); }
           else {                                                  // a new game over a saved one: ask first
             m.destroy();
             const c = Q.menu(Q.$('qTitleMenu'), [{id: 'yes', label: 'Yes, start over', sub: 'Level, items, tokens and friends reset'}, {id: 'no', label: 'No, go back'}],
-              {cols: 2, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') { Q.save.reset(); Q.go('world', {map: 'foyer', intro: true}); } else menu(); },
+              {cols: 2, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') newGame(); else menu(); },
                 onBack: () => { c.destroy(); menu(); }});
           }
         }});
@@ -40,11 +45,16 @@
     },
     exit() { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(null); },
     draw(ctx, now) {
-      // a starfield of pixels + the mysterious microphone, bobbing (still with reduced motion)
-      ctx.fillStyle = Q.css('q-grey-d');
-      for (let i = 0; i < 40; i++) ctx.fillRect((i * 73) % Q.W, (i * 41) % 110, 1, 1);
-      const bob = Q.reduced() ? 0 : Math.round(Math.sin(now / 500) * 2);
-      Q.draw(ctx, 'mic', 160 - 9, 10 + bob, {scale: 2});
+      // static (still with reduced motion) and the Mysterious Microphone's silhouette looming behind the title
+      const f = Q.reduced() ? 1 : Math.floor(now / 90);
+      for (let i = 0; i < 260; i++) {
+        const r = Math.sin((f * 977 + i) * 12.9898) * 43758.5453 % 1;
+        ctx.fillStyle = Q.css(Math.abs(r) > .7 ? 'q-grey' : 'q-grey-d'); ctx.globalAlpha = .45;
+        ctx.fillRect(Math.floor(Math.abs(Math.sin(i * 3.1 + f) * 10000) % Q.W), Math.floor(Math.abs(Math.sin(i * 7.7 + f * 1.3) * 10000) % Q.H), 1, 1);
+      }
+      ctx.globalAlpha = .5; ctx.fillStyle = Q.css('q-purple-d'); ctx.beginPath(); ctx.ellipse(160, 58, 60, 56, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = .75; Q.draw(ctx, 'mic-big', 128, 2, {scale: 2}); ctx.globalAlpha = 1;
+      if (!Q.reduced() && Math.floor(now / 700) % 2) { ctx.fillStyle = Q.css('q-out'); ctx.fillRect(156, 60, 4, 4); }   // its red light blinks
       Q.draw(ctx, player, 0, 118, {scale: 2, t: now});
     },
   };

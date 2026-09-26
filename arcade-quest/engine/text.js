@@ -28,6 +28,8 @@
     }
     return b;
   }
+  let skipNow = null;                                                  // the text box on screen: jump to its end (cutscene SKIP)
+  Q.skipText = () => { if (skipNow) skipNow(); };
   Q.say = function (lines, {name = '', portrait = null} = {}) {
     lines = [].concat(lines).filter(Boolean);
     const b = box(); b.hidden = false;
@@ -41,7 +43,7 @@
       const finishLine = () => { clearInterval(timer); typing = false; line.textContent = full; more.hidden = false; };
       const next = () => {
         i++;
-        if (i >= lines.length) { off(); b.removeEventListener('click', tap); b.hidden = true; done(); return; }
+        if (i >= lines.length) { off(); skipNow = null; b.removeEventListener('click', tap); b.hidden = true; done(); return; }
         full = lines[i]; shown = 0; more.hidden = true; sr.textContent = full;
         if (!cps) return finishLine();
         typing = true; line.textContent = '';
@@ -57,6 +59,7 @@
       const tap = e => { e.preventDefault(); advance(); };
       const off = Q.input.on(btn => { if (btn === 'a' || btn === 'b') { advance(); return true; } return true; });   // the box has the keys
       b.addEventListener('click', tap);
+      skipNow = () => { clearInterval(timer); typing = false; i = lines.length - 1; next(); };
       next();
     });
   };

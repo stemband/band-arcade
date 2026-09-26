@@ -21,6 +21,7 @@
   document.title = A.ARCADE_NAME;
   $('demoNote').hidden = !A.DEMO;
   A.Sfx.mountControls($('soundCtl'));
+  if (A.Backup) A.Backup.button($('soundCtl').querySelector('.snd-pop'), 'snd-backup');   // shared/backup.js: BACKUP / RESTORE
   A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
   if (!N) return;
 
@@ -95,7 +96,10 @@
     // an unpitched player (the Snare Drum) on a game that needs pitch: a link to Showtime Malfunction instead
     if (!redirect && !g.player && !g.unpitched && inst && inst.pitched === false) { np = {label: 'Snare drummers: try Showtime Malfunction!', game: 'showtime-malfunction'}; redirect = true; }
     hs.hidden = !(inst && g.maxStars && (pid || redirect));
-    if (redirect) {
+    // games.js `summary(store)`: a game with its own kind of progress (Arcade Quest) gives its own line
+    const sum = !redirect && g.summary ? g.summary(A.store) : '';
+    if (sum) { hs.hidden = false; hs.textContent = sum; }
+    else if (redirect) {
       const to = GAMES.find(x => x.id === np.game);
       hs.innerHTML = to ? `<a class="np-link" href="${A.startLink(to, '')}">${np.label}</a>` : np.label;
     } else if (!hs.hidden) {

@@ -135,6 +135,15 @@ window.Arcade = window.Arcade || {};
     'quest-save': {file: 'quest-save', vol: .7, mic: false, screen: 'arcade-quest', gen: 'star-earned', when: 'Arcade Quest: saving at the Save Jukebox.', len: '0.5–1.5 s'},
     'quest-encounter': {file: 'quest-encounter', vol: .7, mic: false, screen: 'arcade-quest', gen: [[523, 0, .06, .25, 'square'], [659, .06, .06, .25, 'square'], [784, .12, .06, .25, 'square'], [1047, .18, .14, .25, 'square']], when: 'Arcade Quest: you bump into a ghost and a battle starts.', len: '0.3–0.8 s'},
     'quest-tokens': {file: 'quest-tokens', vol: .6, mic: false, screen: 'arcade-quest', gen: 'select-default', when: 'Arcade Quest: stars turned into Arcade Tokens at the Token Booth, or buying at the shop.', len: 'under 1 s'},
+    // Episode 1's finale: cutscene and boss music (files only, like every quest-* loop) and three effects
+    'quest-intro': {file: 'quest-intro', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the intro cutscene (the arcade after hours, the glitch, the pull into Ghost Notes Manor). Nothing plays until you upload it.', len: '20–60 s loop'},
+    'quest-boss': {file: 'quest-boss', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the final boss battle (The Ghost Conductor), in menus and dodging; stops while listening. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-victory': {file: 'quest-victory', vol: .55, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the ending: the manor\'s color comes back and the ghosts celebrate. Nothing plays until you upload it.', len: '20–60 s loop'},
+    'quest-cliffhanger': {file: 'quest-cliffhanger', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the cliffhanger (the giant microphone, TO BE CONTINUED). Low and eerie. Nothing plays until you upload it.', len: '15–40 s loop'},
+    'quest-credits': {file: 'quest-credits', vol: .5, loop: true, mic: false, screen: 'arcade-quest', when: 'Arcade Quest: the credits roll after Episode 1. Nothing plays until you upload it.', len: '30–90 s loop'},
+    'quest-static': {file: 'quest-static', vol: .45, mic: false, screen: 'arcade-quest', gen: [[90, 0, .18, .12, 'sawtooth'], [70, .08, .22, .1, 'square']], when: 'Arcade Quest: static crackles (the intro glitch, color draining away).', len: '0.5–1.5 s'},
+    'quest-mic-crackle': {file: 'quest-mic-crackle', vol: .5, mic: false, screen: 'arcade-quest', gen: [[60, 0, .12, .14, 'sawtooth'], [1800, .05, .03, .06, 'square'], [55, .1, .2, .12, 'sawtooth']], when: 'Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening.', len: '0.5–2 s'},
+    'quest-boss-phase': {file: 'quest-boss-phase', vol: .7, mic: true, screen: 'arcade-quest', gen: [[392, 0, .08, .25, 'square'], [523, .08, .08, .25, 'square'], [784, .16, .2, .25, 'square']], when: 'Arcade Quest: the Ghost Conductor starts a new phase of the battle (never while listening).', len: '0.5–1 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */

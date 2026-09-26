@@ -250,6 +250,7 @@
     if (ids[cur] === id) card();
   }
   $('skinsBtn').addEventListener('click', openLocker);
+  $('backupBtn').addEventListener('click', () => A.Backup && A.Backup.open());       // shared/backup.js
   ['lkColors', 'lkAcc'].forEach(g => $(g).addEventListener('click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); }));
   const closeLocker = () => { $('locker').hidden = true; lockerFor = null; $('skinsBtn').focus({preventScroll: true}); };
   $('lkDone').addEventListener('click', closeLocker);

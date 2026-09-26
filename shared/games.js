@@ -173,12 +173,14 @@ window.Arcade.GAMES = [
     id: 'arcade-quest',
     name: 'Arcade Quest',
     skill: 'RPG adventure',
-    blurb: 'Arcade Quest: The Mysterious Microphone. An 8-bit adventure where your instrument calms the arcade\'s grumpy creatures. Coming soon!',
+    blurb: 'The Mysterious Microphone, Episode 1: Ghost Notes Manor. An 8-bit adventure: play your instrument to calm the manor\'s grumpy ghosts and win them over to your band.',
     maxStars: 0,                                     // no stars: the quest keeps its own save (level, tokens, band roster)
     color: 'cyan',
     unpitched: true,                                 // the Snare Drum plays too (rhythm, vocab and dodging challenges)
-    demoOnly: true,                                  // hidden on the floor unless ?demo, until Episode 1 is finished
-    cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', kicker: 'The Mysterious Microphone', screen: 'quest'},
+    // the floor's line instead of a hi-score: "Episode 1: 60% · 7 friends" (arcade-quest/engine/save.js keeps it up to date)
+    summary: store => { const s = (store.gameData('arcade-quest') || {}).save, p = s && s.progress;
+      return p ? `Episode 1: ${p.pct}% · ${p.friends} ${p.friends === 1 ? 'friend' : 'friends'}` : ''; },
+    cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', kicker: 'Episode 1: Ghost Notes Manor', screen: 'quest'},
     cabinet3d: {profile: 'quest', body: 'cab-side'},
   },
 ];

@@ -246,3 +246,11 @@ upload a file, that part of the game is simply quiet.
 | `quest-save` | `quest-save.m4a` or `quest-save.mp3` | Arcade Quest: saving at the Save Jukebox. | 0.5–1.5 s |
 | `quest-encounter` | `quest-encounter.m4a` or `quest-encounter.mp3` | Arcade Quest: you bump into a ghost and a battle starts. | 0.3–0.8 s |
 | `quest-tokens` | `quest-tokens.m4a` or `quest-tokens.mp3` | Arcade Quest: stars turned into Arcade Tokens at the Token Booth, or buying at the shop. | under 1 s |
+| `quest-intro` | `quest-intro.m4a` or `quest-intro.mp3` | Arcade Quest: the intro cutscene (the arcade after hours, the glitch, the pull into Ghost Notes Manor). Nothing plays until you upload it. | 20–60 s loop |
+| `quest-boss` | `quest-boss.m4a` or `quest-boss.mp3` | Arcade Quest: the final boss battle (The Ghost Conductor), in menus and dodging; stops while listening. Nothing plays until you upload it. | 30–90 s loop |
+| `quest-victory` | `quest-victory.m4a` or `quest-victory.mp3` | Arcade Quest: the ending: the manor's color comes back and the ghosts celebrate. Nothing plays until you upload it. | 20–60 s loop |
+| `quest-cliffhanger` | `quest-cliffhanger.m4a` or `quest-cliffhanger.mp3` | Arcade Quest: the cliffhanger (the giant microphone, TO BE CONTINUED). Low and eerie. Nothing plays until you upload it. | 15–40 s loop |
+| `quest-credits` | `quest-credits.m4a` or `quest-credits.mp3` | Arcade Quest: the credits roll after Episode 1. Nothing plays until you upload it. | 30–90 s loop |
+| `quest-static` | `quest-static.m4a` or `quest-static.mp3` | Arcade Quest: static crackles (the intro glitch, color draining away). | 0.5–1.5 s |
+| `quest-mic-crackle` | `quest-mic-crackle.m4a` or `quest-mic-crackle.mp3` | Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening. | 0.5–2 s |
+| `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: the Ghost Conductor starts a new phase of the battle (never while listening). | 0.5–1 s |
