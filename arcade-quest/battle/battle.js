@@ -263,7 +263,7 @@
       const es = dodging && big ? 1 : 2, ey = dodging ? (big ? 26 : 12) : (big ? 24 : 30);
       Q.draw(ctx, B.e.sprite, Math.round(160 - d.w * es / 2) + hurt, ey, {scale: es, t: now, alpha, frame: B.state === 'friend' ? 2 : undefined});
       // you
-      if (!dodging) Q.draw(ctx, B.player, 22, 64, {scale: 2, t: now});
+      if (!dodging) Q.draw(ctx, B.player, 6, 52, {scale: 2, t: now});      // switches to its PLAYING pose during a challenge
       Q.dodge.draw(ctx, now);
     },
   };

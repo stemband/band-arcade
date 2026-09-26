@@ -1,9 +1,11 @@
 /* ARCADE QUEST: start-up. The saved player (Select Player) is the hero; ?test opens the TEST ARENA directly,
-   ?demo&warp=<room> a room of Ghost Notes Manor.
+   ?demo&warp=<room> a room of Ghost Notes Manor, ?sprites the sprite review sheet (sprite-review.js).
    The microphone never listens outside a playing challenge (Pitch.pauseListening, see battle/challenges.js). */
 (function (A) {
   "use strict";
   const GAME_ID = 'arcade-quest', Q = A.Quest;
+  // ?sprites = the sprite review sheet (every character in every pose): no instrument needed, the game doesn't start
+  if (/[?&]sprites(=|&|$)/.test(location.search)) { Q.spriteReview(); return; }
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
   const member = A.currentMember();
