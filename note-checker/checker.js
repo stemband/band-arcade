@@ -105,6 +105,7 @@
     const open = (byWritten.get(w) || []).find(k => !fullFound.has(k));
     if (open) {
       fullFound.add(open); A.colorNote('fr' + open, GOLD); hint(''); fullCount();
+      if (fullFound.size === list.length) A.Sfx.event('all-notes-found');   // no sound per note: it would deafen the detector mid-scale
       return;
     }
     // same letter, another octave still to find: point the student at it
@@ -148,7 +149,7 @@
   A.Pitch.onHeld((pc, now, note) => {
     if (mode !== 'five') { if (member) fullHeld(note); return; }
     const i = inst.targetPc.indexOf(pc);
-    if (i >= 0 && !found.has(i)) { found.add(i); draw(); }
+    if (i >= 0 && !found.has(i)) { found.add(i); draw(); if (found.size === 5) A.Sfx.event('all-notes-found'); }
   });
 
   A.Pitch.onFrame((r, level) => {

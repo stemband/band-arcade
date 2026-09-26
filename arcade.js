@@ -1,7 +1,8 @@
 /* Arcade home page: the arcade floor. Students pick a GAME here (no instruments on this page).
    A carousel of cabinets: arrows, swipe, ←/→ keys, the indicator lights, or a tap on a side cabinet
    turn a cabinet to the front. START goes to select-player/index.html?game=<id>.
-   Sound (shared/sfx.js): a whoosh when the aisle turns, a coin drop on START.
+   Sound (shared/sfx.js): wheel-left / wheel-right when the aisle turns, cabinet-focus when it stops, select-<game id>
+   on START (the page changes when it ends, 1.5 s at most), and the lobby ambience loop.
 
    Two ways to draw the cabinets ("views"), one set of controls:
      3D   arcade3d.js + shared/vendor/three.min.js (loaded here only when WebGL works)
@@ -20,6 +21,7 @@
   document.title = A.ARCADE_NAME;
   $('demoNote').hidden = !A.DEMO;
   A.Sfx.mountControls($('soundCtl'));
+  A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
   if (!N) return;
 
   /* The ring of cabinets. With fewer than 5 games the list repeats (only visually) so both
@@ -114,13 +116,19 @@
     try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }
   }
 
-  const go = step => { cur = ((cur + step) % M + M) % M; place(); A.Sfx.play('whoosh'); };
+  /* the turn sound (wheel-left / wheel-right), then a quiet cabinet-focus once the new cabinet is at the front */
+  let focusT = 0;
+  function turnSound(dir) {
+    A.Sfx.event(dir < 0 ? 'wheel-left' : 'wheel-right');
+    clearTimeout(focusT); focusT = setTimeout(() => A.Sfx.event('cabinet-focus'), reduced.matches ? 120 : 450);
+  }
+  const go = step => { cur = ((cur + step) % M + M) % M; place(); turnSound(step); };
   /** turn game i to the front, taking the shortest way round */
   function goTo(i) {
     let best = cur, bestD = Infinity;
     for (let r = i; r < M; r += N) { const d = Math.abs(wrap(r - cur)); if (d < bestD) { bestD = d; best = r; } }
     if (best === cur) return;
-    cur = best; place(); A.Sfx.play('whoosh');
+    const dir = wrap(best - cur); cur = best; place(); turnSound(dir);
   }
 
   $('prevBtn').addEventListener('click', () => go(-1));
@@ -139,7 +147,7 @@
     if (swiped) { swiped = false; e.preventDefault(); e.stopPropagation(); return; }
     if (!view) return;
     const start = e.target.closest('a');
-    if (start && start === view.startLink) {          // START: coin drop, then Select Player
+    if (start && start === view.startLink) {          // START: the game's select-<id> sound HERE, then the page changes when it ends
       if (!(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); A.Sfx.playThenGo('select-' + ring[cur].id, start.href); }
       return;
     }

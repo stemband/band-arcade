@@ -105,11 +105,16 @@ window.Arcade = window.Arcade || {};
     setInstId(id) { data.inst = id; const g = A.getInstrument(id); if (g && g.members.length === 1) data.player = g.members[0].id; save(); },
     get sens() { return data.sens; },
     setSens(v) { data.sens = v; save(); },
-    /** sound on the arcade floor and Select Player only (shared/sfx.js); games stay silent */
+    /** SOUND ON/OFF for the whole arcade (shared/sfx.js) */
     get sfx() { return data.sfx !== false; },
     setSfx(on) { data.sfx = !!on; save(); },
-    get ambience() { return data.ambience === true; },
-    setAmbience(on) { data.ambience = !!on; save(); },
+    /** volumes 0–1 (shared/sfx.js's speaker button): effects (default 0.6) and the lobby ambience (default 0.3, 0 = off) */
+    get sfxVol() { return typeof data.sfxVol === 'number' ? data.sfxVol : 0.6; },
+    get ambVol() { return typeof data.ambVol === 'number' ? data.ambVol : 0.3; },
+    setVolume(k, v) { if (k === 'sfxVol' || k === 'ambVol') { data[k] = Math.max(0, Math.min(1, +v || 0)); save(); } },
+    /** the lobby ambience is on (its volume is above 0) */
+    get ambience() { return this.ambVol > 0; },
+    setAmbience(on) { data.ambVol = on ? (this.ambVol || 0.3) : 0; save(); },
     /** Note Checker: 'five' (first five notes), 'full' (chromatic, full range) or a scale id ('Bb', 'Eb', 'F', 'Ab') */
     get checkerMode() { return CHECKER_MODES.includes(data.checkerMode) ? data.checkerMode : 'five'; },
     setCheckerMode(m) { data.checkerMode = CHECKER_MODES.includes(m) ? m : 'five'; save(); },

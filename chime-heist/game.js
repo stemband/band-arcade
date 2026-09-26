@@ -18,7 +18,6 @@
   const member = A.getMember(inst, 'bells');
   const SOUNDS = -member.sounds;                        // bells sound 24 semitones (two octaves) above written
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Bell Kit', portrait: 'bells'});
-  A.Sfx.mountControls($('sndCtl'), {ambience: false});
   A.Sfx.allowAmbience(false);
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
@@ -331,11 +330,7 @@
       $('results').hidden = false;
       A.Skins.announce($('results').querySelector('.panel'), {members: ['bells'], member: 'bells'});   // the bells' stars; achievements count everywhere
       (hasNext ? $('resNext') : $('resRetry')).focus();
-      if (stars) sfx('level-complete'); else if (!wasCaught) sfx('level-failed');
-      let t = 520;
-      if (stars > old.stars) { setTimeout(() => sfx('star-earned'), t); t += 380; }
-      if (newBest) { setTimeout(() => sfx('new-high-score'), t); t += 500; }
-      if (unlocked) setTimeout(() => sfx('vault-unlocked'), t);
+      A.Sfx.sequence([stars ? 'level-complete' : !wasCaught && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score', unlocked && 'vault-unlocked']);
     };
     if (stars) {                                       // the vault door swings open on the treasure
       $('treasure').innerHTML = treasureSVG(V.treasure, 'glow');

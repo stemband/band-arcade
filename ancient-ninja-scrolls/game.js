@@ -20,7 +20,6 @@
   const pick = (a, n, not = []) => shuffle(a.filter(x => !not.includes(x))).slice(0, n);
 
   A.mountTopbar(null, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Band Ninja'});
-  A.Sfx.mountControls($('sndCtl'), {ambience: false});
   A.Sfx.allowAmbience(false);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
@@ -313,7 +312,7 @@
   function finishQuiz() {
     stopTimer();
     const b = A.belt(rank), mode = Q.mode;
-    let t = 520, title, msg, best = '', stars = null, mood = 'happy';
+    let title, msg, best = '', stars = null, mood = 'happy';
     if (mode === 'train') {
       const pct = Math.round(100 * Q.firstTry / Q.total), all = masteredIn(rank) === 15;
       stars = all ? 3 : pct >= RULES.twoStarRate * 100 ? 2 : 1;
@@ -323,9 +322,7 @@
       msg = `${Q.firstTry} of ${Q.total} right the first time (${pct}%). ${masteredIn(rank)} of 15 ${b.name} scrolls unrolled.` +
         (stars === 1 ? ' Get 90% right the first time for 2 stars.' : stars === 2 ? ' Master all 15 scrolls for 3 stars.' : '');
       best = old.best ? `Best: ${Math.max(pct, old.best)}% first try` : '';
-      sfx('level-complete');
-      if (stars > old.stars) { setTimeout(() => sfx('star-earned'), t); t += 380; }
-      if (pct > old.best && old.best > 0) setTimeout(() => sfx('new-high-score'), t);
+      A.Sfx.sequence(['level-complete', stars > old.stars && 'star-earned', pct > old.best && old.best > 0 && 'new-high-score']);
     } else if (mode === 'spar') {
       const old = gd.spar[rank] || 0;
       if (Q.score > old) { gd.spar[rank] = Q.score; save(); }
@@ -333,8 +330,7 @@
       msg = `${Q.right} right, ${Q.wrong} missed, best combo ${Q.bestCombo}. Score ${Q.score}.`;
       best = `Best: ${Math.max(old, Q.score)}`;
       mood = Q.right > Q.wrong ? 'happy' : 'hmm';
-      sfx('level-complete');
-      if (Q.score > old && old) setTimeout(() => sfx('new-high-score'), t);
+      A.Sfx.sequence(['level-complete', Q.score > old && old && 'new-high-score']);
     } else {
       title = 'Review complete';
       msg = `${Q.right} of ${Q.total} right. The scrolls you miss most will keep coming back until they stick.`;

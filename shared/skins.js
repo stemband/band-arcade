@@ -310,7 +310,6 @@ window.Arcade = window.Arcade || {};
   Skins.refresh = member => document.querySelectorAll(`.pt-box[data-pt="${member}"]`).forEach(refresh);
   function sfx(name) {
     if (!A.Sfx) return;
-    if (A.Pitch && A.Pitch.suppress) A.Pitch.suppress(600);     // a listening game (Neon Face-Off): mute the detector
-    A.Sfx.event(name);
+    A.Sfx.event(name);                                           // sfx.js mutes the detector if a game is listening
   }
 })(window.Arcade);

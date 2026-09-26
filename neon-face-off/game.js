@@ -6,8 +6,9 @@
    MICROPHONE RULES (one mic, two players): only the ACTIVE player's target counts. Every turn the detector is
    switched to that player's instrument and range, and ignoreCurrent() is called, so a note still ringing from the
    other player never counts. Each new target's concert pitch class differs from the note the other player just
-   played. Sounds: every sound mutes the detector while it plays (Arcade.Pitch.suppress, RULES.suppressMs), and the
-   receiver's reaction clock starts only when that window ends, so a sound never costs anyone time.
+   played. Sounds: every sound mutes the detector for its length + 250 ms (shared/sfx.js; at least RULES.suppressMs).
+   The receiver's note appears only when that window ends (their window is stretched if the wait was long), and the
+   puck and their reaction clock pause during any later window, so a sound never costs anyone time.
    The CPU plays silently (a flash on its panel), so it never reaches the mic.
 
    Notes come from shared/sequences.js (each player's own member and NOTES × ORDER, via the shared mode picker).
@@ -25,7 +26,6 @@
   if (!opp) { location.replace(A.playerLink(GAME_ID)); return; }       // Player 2 hasn't been chosen yet
   const vsCPU = opp === 'cpu';
   A.mountTopbar(inst1, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.mountControls($('sndCtl'), {ambience: false});
   A.Sfx.allowAmbience(false);
   $('demoHelp').hidden = !A.DEMO;
   $('changePlayers').href = A.playerLink(GAME_ID);
@@ -165,6 +165,15 @@
   function showNote(i) {
     if (!M || M.over || M.active !== i || (M.state !== 'serve' && M.state !== 'travel')) return;
     const p = P[i];
+    // a sound is still playing (a recording can be longer than suppressMs): the note waits until the detector hears again
+    if (!p.cpu && A.Pitch.isSuppressed()) { later(() => showNote(i), A.Pitch.suppressedUntil - now() + 10); return; }
+    if (!p.cpu && M.state === 'travel') {                               // …and the wait never eats into this player's window
+      const t = now(), left = M.puck.t0 + M.puck.T - t, need = p.window * 1000;
+      if (left < need) {                                                // same spot on the table, slower from here on
+        const f = Math.min(.999, (t - M.puck.t0) / M.puck.T);
+        M.puck.T = need / (1 - f); M.puck.t0 = t - f * M.puck.T;
+      }
+    }
     A.Pitch.ignoreCurrent();                                            // a note still ringing from before never counts
     M.noteAt = now();
     drawNote(i, p.target);
@@ -330,7 +339,9 @@
   function loop() {
     raf = requestAnimationFrame(loop);
     if (document.hidden || !M) return;
-    const t = now();
+    const t = now(), dt = t - (M.lastT || t); M.lastT = t;
+    // a sound while a player's note is up: the puck and their reaction clock wait (the detector is deaf meanwhile)
+    if (M.state === 'travel' && M.noteAt && !P[M.active].cpu && A.Pitch.isSuppressed(t)) { M.puck.t0 += dt; M.noteAt += dt; }
     if (M.state === 'travel') {
       const pos = puckAt(t);
       if (pos.seg !== M.puck.seg) { if (M.puck.seg && M.puck.path.pts[M.puck.seg].bounce && (t < A.Pitch.suppressedUntil || P[M.active].cpu)) sound('rail-bounce'); M.puck.seg = pos.seg; }

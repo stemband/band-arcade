@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sound Board</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* the Sound Board: Mat's page for checking recordings (not linked from the arcade) */
+  .sb h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,48px);margin:6px 0 4px;color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+  .sb-intro{max-width:70ch;margin:0 0 12px}
+  .sb-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 12px;margin:0 0 14px;border-radius:14px;background:var(--floor-2);border:2px solid var(--floor-3)}
+  .sb-meter{flex:1;min-width:220px;display:grid;gap:4px}
+  .sb-meter small{font-size:12px;color:var(--text-lo);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  .sb-track{position:relative;height:16px;border-radius:8px;background:var(--deep);overflow:hidden;border:1px solid var(--floor-3)}
+  .sb-fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--green),var(--yellow) 70%,var(--red))}
+  .sb-hold{position:absolute;top:0;bottom:0;width:2px;background:var(--white-hi);left:0}
+  .sb-read{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text-hi);min-width:15ch}
+  .sb-summary{margin:0;color:var(--text-lo);font-weight:700}
+  .sb-group{margin:18px 0 6px;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--yellow)}
+  .sb-list{display:grid;gap:6px}
+  .sb-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,2fr) auto auto auto;gap:6px 12px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--floor-2);border:1px solid var(--floor-3)}
+  .sb-name b{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:var(--text-hi)}
+  .sb-name small,.sb-when small{display:block;font-size:12px;color:var(--text-lo)}
+  .sb-when{font-size:13.5px;color:var(--text-hi)}
+  .sb-when code{font-size:12.5px;color:var(--cyan-hi)}
+  .sb-tag{display:inline-block;margin:2px 4px 0 0;padding:0 6px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--floor-3);color:var(--text-lo)}
+  .sb-tag.play{border-color:var(--pink);color:var(--pink-hi)}
+  .sb-status{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:8px;text-align:center;border:1px solid var(--floor-3);color:var(--text-lo);min-width:15ch}
+  .sb-status.file{border-color:var(--green);color:var(--green);box-shadow:0 0 8px color-mix(in srgb,var(--green) 40%,transparent)}
+  .sb-status.fallback{border-color:var(--amber);color:var(--amber-hi)}
+  .sb-status.generated{border-color:var(--red);color:var(--red-hi)}
+  .sb-peak{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text-lo);min-width:8ch;text-align:right}
+  .sb-play{min-height:40px;padding:6px 16px;font-size:15px}
+  .sb-loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0;padding:10px;border-radius:12px;background:var(--deep);border:1px dashed var(--cyan-ink)}
+  .sb-loop p{margin:0;flex-basis:100%;font-size:13.5px;color:var(--text-lo)}
+  @media (max-width:760px){
+    .sb-row{grid-template-columns:1fr auto;}
+    .sb-when{grid-column:1/-1}
+    .sb-status{grid-column:1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap sb">
+  <div class="topbar"><a class="brand" href="../index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="soundCtl"></div></div>
+  <h1>Sound Board</h1>
+  <p class="sb-intro muted">Every sound in the Band Arcade, from <code>shared/sounds.js</code>. Upload a recording into <code>shared/sounds/</code> with the file name shown (<code>.m4a</code> or <code>.mp3</code>), then press <b>Check my files</b>. <b>YOUR FILE</b> = your recording plays. <b>FALLBACK</b> = the arcade's own built-in sound for that moment. <b>MISSING FILE, USING GENERATED</b> = a short generic beep until you add one. This page isn't linked from the arcade. The PLAY buttons play even when SOUND is off; the effects volume still applies.</p>
+  <div class="sb-bar">
+    <button type="button" class="btn btn-gold" id="check">Check my files</button>
+    <div class="sb-meter" aria-live="off">
+      <small>Level meter (compare loudness: aim for similar peaks)</small>
+      <div class="sb-track"><div class="sb-fill" id="fill"></div><div class="sb-hold" id="hold"></div></div>
+    </div>
+    <span class="sb-read" id="read">Peak – dB</span>
+    <p class="sb-summary" id="summary" role="status"></p>
+  </div>
+  <div id="groups"></div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script>
+(function (A) {
+  "use strict";
+  const $ = id => document.getElementById(id), S = A.Sounds, B = A.Sfx.board;
+  A.Sfx.mountControls($('soundCtl'));
+  A.Sfx.allowAmbience(false);                           // the loop test below plays the ambience on demand
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+  /* ---------- the list, grouped by screen ---------- */
+  const names = S.names(), byScreen = {};
+  names.forEach(n => { const e = S.get(n); (byScreen[e.screen] = byScreen[e.screen] || []).push(n); });
+  $('groups').innerHTML = S.SCREENS.filter(([k]) => byScreen[k]).map(([k, label]) =>
+    `<h2 class="sb-group">${label}</h2><div class="sb-list">` + byScreen[k].map(n => {
+      const e = S.get(n);
+      const tags = [e.loop && '<span class="sb-tag">loops</span>', e.play && '<span class="sb-tag play">during play: under 0.5 s</span>',
+        e.mic === false && '<span class="sb-tag">never while the mic listens</span>', e.fallback && `<span class="sb-tag">else ${e.fallback}</span>`].filter(Boolean).join('');
+      return `<div class="sb-row" data-n="${n}">` +
+        `<div class="sb-name"><b>${n}</b><small>vol ${e.vol == null ? .8 : e.vol} · ${esc(e.len || '')}</small></div>` +
+        `<div class="sb-when">${esc(e.when || '')}<small><code>shared/sounds/${e.file}.m4a</code> or <code>.mp3</code></small>${tags}</div>` +
+        `<span class="sb-status" data-status>not checked</span>` +
+        `<span class="sb-peak" data-peak>–</span>` +
+        (e.loop ? `<button type="button" class="btn btn-ghost sb-play" data-loop>Loop test</button>` : `<button type="button" class="btn btn-ghost sb-play" data-play>Play</button>`) +
+        (e.loop ? `<div class="sb-loop" hidden><button type="button" class="btn btn-ghost btn-small" data-loopgo="start">Play from the start</button>` +
+          `<button type="button" class="btn btn-ghost btn-small" data-loopgo="seam">Jump to 3 s before the loop point</button>` +
+          `<button type="button" class="btn btn-ghost btn-small" data-loopgo="stop">Stop</button><p data-loopinfo></p></div>` : '') +
+        `</div>`;
+    }).join('') + `</div>`).join('');
+
+  /* ---------- statuses ---------- */
+  function label(n) {
+    const st = B.status(n), el = document.querySelector(`.sb-row[data-n="${n}"] [data-status]`);
+    el.className = 'sb-status ' + st.kind;
+    el.textContent = st.kind === 'file' ? `Your file (${st.ext})` : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
+    return st.kind;
+  }
+  async function check() {
+    if (!B.start()) { $('summary').textContent = 'This browser has no Web Audio.'; return; }
+    $('summary').textContent = 'Checking…';
+    const counts = {file: 0, fallback: 0, generated: 0};
+    for (const n of names) {
+      const e = S.get(n);
+      await B.load(n, true);
+      if (e.fallback) await B.load(e.fallback, true);
+      counts[label(n)]++;
+    }
+    $('summary').textContent = `${counts.file} your files · ${counts.fallback} fallback · ${counts.generated} generated (${names.length} sounds)`;
+  }
+  $('check').addEventListener('click', check);
+
+  /* ---------- play + measure each sound's peak ---------- */
+  const an = () => B.analyser(), data = new Float32Array(1024);
+  let peakFor = null, peakUntil = 0, peakMax = 0, hold = 0;
+  const db = v => v > 0 ? 20 * Math.log10(v) : -Infinity;
+  const pct = d => Math.max(0, Math.min(100, (d + 60) / 60 * 100));   // −60 dB … 0 dB
+  function meter() {
+    requestAnimationFrame(meter);
+    const a = an(); if (!a) return;
+    a.getFloatTimeDomainData(data);
+    let p = 0; for (let i = 0; i < data.length; i++) p = Math.max(p, Math.abs(data[i]));
+    const d = db(p);
+    $('fill').style.width = pct(d) + '%';
+    hold = Math.max(hold * 0.995, p); $('hold').style.left = pct(db(hold)) + '%';
+    if (peakFor && performance.now() < peakUntil) {
+      peakMax = Math.max(peakMax, p);
+      const txt = peakMax ? `${db(peakMax).toFixed(1)} dB` : '–';
+      peakFor.textContent = txt; $('read').textContent = `Peak ${txt}`;
+    }
+  }
+  requestAnimationFrame(meter);
+  document.addEventListener('click', async e => {
+    const row = e.target.closest('.sb-row'); if (!row) return;
+    const n = row.dataset.n;
+    if (e.target.closest('[data-play]')) {
+      if (!B.start()) return;
+      await B.load(n, false); const f = S.get(n).fallback; if (f) await B.load(f, false);
+      label(n);
+      const d = B.play(n);
+      peakFor = row.querySelector('[data-peak]'); peakMax = 0; hold = 0; peakUntil = performance.now() + d * 1000 + 150;
+    } else if (e.target.closest('[data-loop]')) {
+      row.querySelector('.sb-loop').hidden = false;
+    } else if (e.target.closest('[data-loopgo]')) {
+      loopTest(n, row, e.target.closest('[data-loopgo]').dataset.loopgo);
+    }
+  });
+
+  /* ---------- the loop test: hear the seam where the loop wraps around ---------- */
+  let loop = null;
+  async function loopTest(n, row, how) {
+    const ctx = B.start(); if (!ctx) return;
+    if (loop) { try { loop.stop(); } catch (x) {} loop = null; }
+    B.ambience(false);
+    const info = row.querySelector('[data-loopinfo]');
+    if (how === 'stop') { info.textContent = ''; return; }
+    const rec = await B.load(n, true); label(n);
+    if (!rec || rec.state !== 'ok' || !rec.buf) {
+      B.ambience(true);
+      info.textContent = rec && rec.el ? 'Your file is playing as a plain <audio> loop (this page was opened from a file, so the seam can\'t be measured). Serve the site to test the seam.'
+        : 'No lobby-ambience file yet: this is the built-in room hum. Upload lobby-ambience.m4a or .mp3 and check again.';
+      return;
+    }
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = rec.buf; s.loop = true; s.loopStart = rec.loopStart; s.loopEnd = rec.loopEnd;
+    g.gain.value = S.get(n).vol == null ? .6 : S.get(n).vol;
+    s.connect(g); g.connect(B.bus());
+    const from = how === 'seam' ? Math.max(rec.loopStart, rec.loopEnd - 3) : rec.loopStart;
+    s.start(0, from); loop = s;
+    info.textContent = `${rec.ext} file, ${rec.dur.toFixed(2)} s. The loop runs from ${rec.loopStart.toFixed(3)} s to ${rec.loopEnd.toFixed(3)} s ` +
+      `(${(rec.loopStart * 1000).toFixed(0)} ms of silence skipped at the start, ${((rec.dur - rec.loopEnd) * 1000).toFixed(0)} ms at the end). ` +
+      (how === 'seam' ? 'Listen 3 s from now for a click or gap where it wraps around.' : '');
+    peakFor = row.querySelector('[data-peak]'); peakMax = 0; peakUntil = performance.now() + 20000;
+  }
+})(window.Arcade);
+</script>
+</body>
+</html>

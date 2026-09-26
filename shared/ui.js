@@ -183,7 +183,7 @@ window.Arcade = window.Arcade || {};
     return inst;
   };
 
-  /** Standard game top bar: "← Arcade" back to the arcade floor on the left, instrument chip on the right.
+  /** Standard game top bar: "← Arcade" back to the arcade floor on the left, the sound button and instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
   /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player.
      {portrait: 'bells'}: the portrait for a fixed label. The chip shows the saved instrument's tiny portrait
@@ -199,5 +199,18 @@ window.Arcade = window.Arcade || {};
       (fixed ? `<span class="chip">${pic(portrait)}<span class="sr">Playing </span><span class="chip-name">${fixed}</span></span></div>`
              : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">${pic(m && m.id)}` +
                `<span class="sr">Change instrument. Playing as </span><span class="chip-name">${m ? m.short : inst ? inst.shortName : 'Choose instrument'}</span></a></div>`);
+    /* sound (shared/sfx.js): the speaker button, this game's sounds preloaded after the first tap, no lobby
+       ambience on a game page, and "← ARCADE" plays ui-back before it leaves */
+    if (A.Sfx) {
+      A.Sfx.allowAmbience(false);
+      A.Sfx.use('game', gameId);
+      let ctl = el.querySelector('.sound-ctl');
+      if (!ctl) { ctl = document.createElement('span'); ctl.className = 'sound-ctl'; el.querySelector('.topbar-right').prepend(ctl); }
+      A.Sfx.mountControls(ctl);
+      el.querySelector('.brand').addEventListener('click', e => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+        e.preventDefault(); A.Sfx.playThenGo('ui-back', e.currentTarget.href);
+      });
+    }
   };
 })(window.Arcade);
