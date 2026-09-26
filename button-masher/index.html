@@ -100,11 +100,11 @@
 </div>
 
 <!-- CHART (study mode, from the rival select screen only) -->
-<div class="overlay chart" id="chart" hidden>
+<div class="overlay chart" id="chart" tabindex="-1" hidden>
   <div class="panel chart-panel" role="dialog" aria-modal="true" aria-labelledby="chartTitle">
     <div class="chart-head">
       <h2 id="chartTitle">Fingering chart</h2>
-      <button type="button" class="btn btn-gold btn-small" id="chartClose">Close</button>
+      <button type="button" class="btn btn-gold chart-close" id="chartClose">Close</button>
     </div>
     <p class="muted chart-sub">The main fingering is filled in on each diagram. Other fingerings that also count are listed under it.</p>
     <div class="chart-body" id="chartBody"></div>

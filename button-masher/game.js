@@ -405,9 +405,13 @@
       const f = T.notes(+c.dataset.midi)[0];
       if (f) M.setState(c.querySelector('.diagram'), M.pressedOf(f.keys));
     });
-    $('chart').hidden = false; $('chartBody').scrollTop = 0;
-    $('chartClose').focus();
+    // the chart scrolls by itself (wheel, trackpad, swipe; arrows, Page Up/Down and Space once it has focus); the page
+    // behind it stays still until it closes
+    A.lockScroll(true);
+    $('chart').hidden = false; $('chart').scrollTop = 0;
+    $('chart').focus({preventScroll: true});
   }
+  function closeChart() { if ($('chart').hidden) return; $('chart').hidden = true; A.lockScroll(false); $('chartBtn').focus({preventScroll: true}); }
   function card(it) {
     const fs = T.notes(it.midi), sigW = A.keySigWidth(it.sig), W = 170 + sigW, name = noteLabel(it.n);
     const staff = A.staffSVG(member.clef, [{n: it.show, x: (84 + sigW + W - 20) / 2}], {keySig: it.sig, width: W, label: `${name}${it.n.oct} on the staff`});
@@ -416,9 +420,10 @@
       `<p class="ch-prim">${fs.length ? fs[0].text : 'Missing from fingerings.js'}</p>` +
       (fs.length > 1 ? `<p class="ch-alt">Also: ${fs.slice(1).map(f => f.text).join(' · ')}</p>` : '') + `</div></figure>`;
   }
+  A.Masher.game = () => G;                                   // tests: the match in progress
   $('chartBtn').addEventListener('click', showChart);
-  $('chartClose').addEventListener('click', () => { $('chart').hidden = true; $('chartBtn').focus(); });
-  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('chart').hidden) { $('chart').hidden = true; $('chartBtn').focus(); } });
+  $('chartClose').addEventListener('click', closeChart);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('chart').hidden) closeChart(); });
 
   showHub();
 })(window.Arcade);

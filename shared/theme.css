@@ -366,7 +366,13 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .lvlbars i.on{opacity:1;background:var(--cyan)}
 
 /* ---------- overlays (mic gate, results) ---------- */
-.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px 16px;background:rgba(6,4,13,.88)}
+/* Every overlay is its own scroll container: a panel taller than the screen scrolls inside it (wheel, trackpad,
+   touch swipe, keys once focused), never the page behind it. Short panels stay centered (the auto margins); a tall
+   one starts at the top instead of being cut off above it. */
+.overlay{position:fixed;inset:0;z-index:20;display:grid;justify-items:center;align-items:start;padding:20px 16px;background:rgba(6,4,13,.88);
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.overlay>*{margin-block:auto}
+.overlay:focus{outline:none}
 .panel{width:min(460px,100%);background:var(--floor-2);border:2px solid var(--pink);border-radius:22px;padding:26px 22px;text-align:center;box-shadow:var(--glow-pink),0 30px 80px rgba(0,0,0,.6)}
 .panel h2{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.1;margin-bottom:10px;color:var(--pink-hi)}
 .panel p{color:var(--text-lo);margin:0 0 12px}
