@@ -1,11 +1,13 @@
-/* Band Arcade — sound effects for the arcade floor and Select Player ONLY.
-   Never load this on a game page or the Note Checker: those pages listen to the microphone,
-   and any sound would be heard as a note.
+/* Band Arcade — sound effects for the arcade floor, Select Player, and games that DON'T use the
+   microphone (Note Ninja). Never load this on a page that listens to the mic (Ghost Notes, Note Storm,
+   the Note Checker): any sound would be heard as a note.
    Every sound is made here with the Web Audio API (no audio files). Browsers only allow sound
    after the first tap or key press, so the AudioContext is created then, never on page load.
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   does nothing when muted or before the first tap
-     Arcade.Sfx.playThenGo(name, href)              plays, waits GO_DELAY ms, then navigates
-     Arcade.Sfx.mountControls(el)                   SOUND and AMBIENCE buttons (saved via Arcade.store) */
+     Arcade.Sfx.event(name)                         a named game event (EVENTS below), with fallbacks
+     Arcade.Sfx.playThenGo(name, href)              plays (a sound or an event), waits GO_DELAY ms, then navigates
+     Arcade.Sfx.mountControls(el, {ambience})       SOUND (and AMBIENCE) buttons (saved via Arcade.store)
+     Arcade.Sfx.allowAmbience(false)                a game page: never play the arcade-room hum here */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
@@ -93,6 +95,32 @@ window.Arcade = window.Arcade || {};
     },
   };
 
+  /* ---------- named game events ----------
+     Each is a short synthesized sound. An event with no sound of its own falls back:
+     'select-<game>' -> the coin, anything else -> the blip. Add a new event here (and to README "Sounds"). */
+  const arp = (fs, step, type = 'square', vol = 0.4) => fs.forEach((f, i) => tone(f, i * step, step * 1.6, vol, type));
+  function slash() {                                    // a fast bright swish
+    const t = ctx.currentTime, n = noise(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type = 'bandpass'; f.Q.value = 2;
+    f.frequency.setValueAtTime(4200, t); f.frequency.exponentialRampToValueAtTime(900, t + 0.12);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + 0.16);
+  }
+  const EVENTS = {
+    'level-start':    () => arp([523, 659, 784], 0.07),
+    'note-hit':       () => SOUNDS.blip(),
+    'note-wrong':     () => tone([196, 147], 0, 0.18, 0.3, 'sawtooth'),
+    'note-missed':    () => tone([440, 220], 0, 0.28, 0.3, 'triangle'),
+    'level-complete': () => arp([523, 659, 784, 1047], 0.09),
+    'level-failed':   () => arp([392, 330, 262], 0.13, 'triangle'),
+    'star-earned':    () => { tone(1568, 0, 0.08, 0.3); tone(2093, 0.07, 0.14, 0.3); },
+    'new-high-score': () => arp([784, 988, 1175, 1568, 1976], 0.07),
+    'ninja-slash':    () => { slash(); tone([1320, 1760], 0.02, 0.06, 0.25); },
+    'ninja-combo':    () => arp([880, 1109, 1319, 1760], 0.045, 'square', 0.3),
+    'belt-earned':    () => { tone(196, 0, 1.1, 0.35, 'sine'); tone(294, 0, 1.1, 0.25, 'sine'); arp([784, 988, 1175, 1568], 0.08, 'square', 0.3); },
+  };
+  const eventSound = name => EVENTS[name] || (/^select-/.test(name) ? SOUNDS.coin : SOUNDS.blip);
+
   /* ---------- the arcade-room ambience: a low electrical hum and a little room noise ---------- */
   function startAmbience() {
     if (amb || !ctx) return;
@@ -122,28 +150,30 @@ window.Arcade = window.Arcade || {};
   }
   function syncAmbience() {
     if (!ctx || ctx.state !== 'running') return;
-    if (A.store.sfx && A.store.ambience && !document.hidden) startAmbience(); else stopAmbience();
+    if (ambienceAllowed && A.store.sfx && A.store.ambience && !document.hidden) startAmbience(); else stopAmbience();
   }
   document.addEventListener('visibilitychange', syncAmbience);
   addEventListener('pagehide', stopAmbience);
   addEventListener('pageshow', e => { if (e.persisted) syncAmbience(); });   // back button restores the page
 
   /* ---------- controls ---------- */
-  function mountControls(el) {
+  function mountControls(el, {ambience = true} = {}) {
     el.innerHTML =
       `<button class="snd-btn" type="button" data-k="sfx" aria-label="Sound effects"><svg class="snd-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l6 6M22 9l-6 6"/></svg><span class="snd-txt"></span></button>` +
-      `<button class="snd-btn" type="button" data-k="ambience" aria-label="Arcade ambience"><span class="snd-txt"></span></button>`;
+      (ambience ? `<button class="snd-btn" type="button" data-k="ambience" aria-label="Arcade ambience"><span class="snd-txt"></span></button>` : '');
     const [bs, ba] = el.querySelectorAll('button');
     function draw() {
       const on = A.store.sfx, amOn = A.store.ambience;
       bs.setAttribute('aria-pressed', on); bs.querySelector('.snd-txt').textContent = on ? 'Sound on' : 'Sound off';
+      if (!ba) return;
       ba.setAttribute('aria-pressed', amOn); ba.querySelector('.snd-txt').textContent = amOn ? 'Ambience on' : 'Ambience off';
       ba.classList.toggle('muted', !on);   // ambience follows the main switch
     }
     bs.addEventListener('click', () => { A.store.setSfx(!A.store.sfx); draw(); syncAmbience(); if (A.store.sfx) Sfx.play('blip'); });
-    ba.addEventListener('click', () => { A.store.setAmbience(!A.store.ambience); draw(); syncAmbience(); });
+    if (ba) ba.addEventListener('click', () => { A.store.setAmbience(!A.store.ambience); draw(); syncAmbience(); });
     draw();
   }
+  let ambienceAllowed = true;
 
   let leaving = false;
   const Sfx = A.Sfx = {
@@ -151,12 +181,19 @@ window.Arcade = window.Arcade || {};
       if (!ready() || !SOUNDS[name]) return false;
       try { SOUNDS[name](); return true; } catch (e) { return false; }
     },
+    /** a named game event: 'level-start', 'note-hit', 'ninja-slash', 'select-note-ninja'… (see EVENTS) */
+    event(name) {
+      if (!ready()) return false;
+      try { eventSound(name)(); return true; } catch (e) { return false; }
+    },
+    events: Object.keys(EVENTS),
+    allowAmbience(on) { ambienceAllowed = !!on; syncAmbience(); },
     /** play a sound, then go to href after GO_DELAY ms (straight away when muted) */
     playThenGo(name, href) {
       if (leaving) return;                 // a second tap during the wait does nothing
       leaving = true;
       setTimeout(() => { leaving = false; }, 2000);
-      if (Sfx.play(name)) setTimeout(() => { location.href = href; }, GO_DELAY);
+      if (SOUNDS[name] ? Sfx.play(name) : Sfx.event(name)) setTimeout(() => { location.href = href; }, GO_DELAY);
       else location.href = href;
     },
     mountControls,

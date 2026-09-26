@@ -53,14 +53,21 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.705, 1.55], [0.77, 1.85]], screen: [[0.475, 1.05], [0.425, 1.43]], panel: [[0.90, 0.92], [0.58, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* dojo: an upright cabinet under a wide pagoda roof with lanterns hanging from the eaves */
+    dojo: {
+      width: 0.94, topper: 'pagoda',
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.84, 0.84], [0.84, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.62, 1.46], [0.62, 1.68], [0, 1.68]],
+      marquee: [[0.62, 1.48], [0.62, 1.66]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
+    },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo'};
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
   /** a game's 3D cabinet settings, every default filled in from its 2D cabinet */
   A.cabinet3dOf = function (g) {
     const c2 = A.cabinetOf(g), c = g.cabinet3d || {};
-    const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green'];
+    const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
     return {
       profile: PROFILES[c.profile] ? c.profile : (SHAPE_TO_PROFILE[c2.shape] || 'classic'),
       trim: TRIMS.includes(c.trim) ? c.trim : c2.trim,
@@ -75,7 +82,8 @@ window.Arcade = window.Arcade || {};
   const tok = {};
   ['deep', 'floor', 'floor-2', 'floor-3', 'screen', 'ink', 'ink-2', 'text-hi', 'red', 'cab-side', 'cab-face', 'cab-panel', 'cab-metal',
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
-   'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink'].forEach(n => { tok[n] = cssVar(n); });
+   'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink',
+   'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -104,7 +112,7 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- marquees (match the .mq-* styles in shared/cabinets.css) ---------- */
-  function drawMarquee(c, g, k) {
+  function drawMarquee(c, g, k, done) {
     const x = c.getContext('2d'), W = c.width, H = c.height, t = tok[k.trim], thi = tok[k.trim + '-hi'], tink = tok[k.trim + '-ink'], u = tok[k.trim2];
     const name = g.name.toUpperCase();
     x.textAlign = 'center'; x.textBaseline = 'middle';
@@ -125,6 +133,20 @@ window.Arcade = window.Arcade || {};
       const s = fitText(x, name, '"GN Pixel", monospace', H * .3, W * .86);
       x.shadowColor = t; x.shadowBlur = 12; x.fillStyle = t; x.font = `${s}px "GN Pixel", monospace`;
       x.fillText(name, W / 2, k.kicker ? H * .64 : H / 2);
+    } else if (k.marquee === 'dojo') {
+      // a paper sign in a wooden frame, red letters, the ninja (the same drawing as the page, as an image)
+      const f = H * .1;
+      x.fillStyle = tok['dojo-wood-2']; x.fillRect(0, 0, W, H);
+      x.fillStyle = tok['dojo-paper']; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+      const s = fitText(x, name, '"GN Display", sans-serif', H * .44, W * .66);
+      x.fillStyle = tok['red-ink']; x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W * .6, H * .54);
+      if (A.ninjaSVG && done) {
+        const img = new Image();
+        img.onload = () => { x.drawImage(img, W * .05, H * .08, H * .84 * 100 / 120, H * .84); done(); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(A.ninjaSVG({belt: 'belt-black'}).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
+      }
+      x.strokeStyle = t; x.lineWidth = H * .05; x.strokeRect(0, 0, W, H);
+      return;
     } else if (k.marquee === 'shade') {
       x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
       x.strokeStyle = u; x.lineWidth = H * .16;
@@ -221,6 +243,27 @@ window.Arcade = window.Arcade || {};
         x.strokeStyle = tok['yellow-ink']; x.lineWidth = gap * .3; x.lineJoin = 'round';
         x.beginPath(); x.moveTo(rx + gap * 2.6, ry + gap); x.lineTo(rx + gap * 4, ry + gap * .5); x.lineTo(rx + gap * 3.6, ry + gap * 1.2); x.lineTo(rx + gap * 5.2, ry + gap * .9); x.stroke();
       }
+    },
+    /* Note Ninja: a note on a paper scroll, its letter lights on the button row, a slash (same 2.4 s loop as 2D) */
+    ninja(x, W, H, t) {
+      x.fillStyle = tok['dojo-paper']; x.fillRect(0, 0, W, H);
+      const i = t == null ? 0 : Math.floor(t / 2.4), p = t == null ? 1 : (t % 2.4) / 2.4;
+      const n = A.music.parseNote(TREBLE[i % TREBLE.length]);
+      const gap = H * .08, top = H * .14;
+      staffLines(x, W, top, gap);
+      const ny = top + (A.noteY('treble', n) - 56) / 16 * gap, nx = W * .6;
+      const gold = p >= .5;
+      noteHead(x, nx, ny, gap, gold ? tok['gold-ink'] : tok.ink);
+      const up = A.noteY('treble', n) > 88;
+      x.beginPath(); x.moveTo(nx + (up ? 1 : -1) * gap * .52, ny); x.lineTo(nx + (up ? 1 : -1) * gap * .52, ny + (up ? -1 : 1) * gap * 3.2); x.stroke();
+      if (p >= .5 && p < .7) { x.strokeStyle = tok.red; x.lineWidth = gap * .35; x.lineCap = 'round'; x.beginPath(); x.moveTo(nx - gap * 2.2, ny + gap); x.lineTo(nx + gap * 2.2, ny - gap); x.stroke(); }
+      const L = 'ABCDEFG', bw = W / 7.6;
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `${bw * .55}px "GN Display", sans-serif`;
+      [...L].forEach((l, k) => {
+        const bx = W * .04 + k * bw * 1.05, lit = l === n.letter && p >= .45;
+        x.fillStyle = lit ? tok.red : tok.deep; x.fillRect(bx, H * .74, bw * .9, H * .2);
+        x.fillStyle = tok['white-hi']; x.fillText(l, bx + bw * .45, H * .845);
+      });
     },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
@@ -338,6 +381,18 @@ window.Arcade = window.Arcade || {};
         const a = Math.PI * (.2 + i * .15), lamp = new THREE.Mesh(new THREE.SphereGeometry(.018, 8, 6), basic(col(i % 2 ? k.trim2 + '-hi' : k.trim + '-hi')));
         lamp.position.set(Math.cos(a) * r * .8, topY + Math.sin(a) * r * .8, fz); group.add(detail(lamp));
       }
+    } else if (P.topper === 'pagoda') {
+      // a wide roof with upturned eaves, a red neon edge, and two paper lanterns
+      const roof = new THREE.Shape([[-W / 2 - .24, .12], [-W / 2 - .06, 0], [W / 2 + .06, 0], [W / 2 + .24, .12], [.18, .34], [-.18, .34]].map(([a, b]) => new THREE.Vector2(a, b)));
+      const d = frontTop + .08, rg = new THREE.ExtrudeGeometry(roof, {depth: d, bevelEnabled: false});
+      rg.translate(0, topY, zc - .04);
+      const rm = new THREE.Mesh(rg, [lambert(col('dojo-wood-2')), lambert(col('dojo-wood'))]); rm.userData.pick = true; group.add(rm);
+      const fz = d + zc - .04 + .004;
+      neon([[-W / 2 - .24, .12], [-W / 2 - .06, 0], [W / 2 + .06, 0], [W / 2 + .24, .12]].map(([a, b]) => new THREE.Vector3(a, topY + b, fz)));
+      [-1, 1].forEach(sd => {
+        const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .09, 10), basic(col(k.trim + '-hi')));
+        lamp.position.set(sd * (W / 2 + .18), topY + .02, fz - .04); group.add(detail(lamp));
+      });
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {
@@ -396,7 +451,11 @@ window.Arcade = window.Arcade || {};
       glow(c) { return cache['g' + c] || (cache['g' + c] = new THREE.CanvasTexture(radial(128, '#ffffff'))); },
       marquee(g, k, aspect) {
         const id = 'm' + g.id;
-        if (!cache[id]) { const c = canvas(512, Math.round(512 / aspect)); drawMarquee(c, g, k); cache[id] = new THREE.CanvasTexture(c); }
+        if (!cache[id]) {
+          const c = canvas(512, Math.round(512 / aspect));
+          drawMarquee(c, g, k, () => { cache[id].needsUpdate = true; kick(); });   // some marquees finish drawing a moment later
+          cache[id] = new THREE.CanvasTexture(c);
+        }
         return cache[id];
       },
       screen(g, k, aspect) {

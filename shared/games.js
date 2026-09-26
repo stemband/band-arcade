@@ -9,16 +9,16 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm'   (drawn in shared/cabinets.js, SHAPES)
-       trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green'
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo'   (drawn in shared/cabinets.js, SHAPES)
+       trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white'
        trim2    second neon (screen glow, some buttons): same choices
-       marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade'  (styles in shared/cabinets.css)
+       marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo'  (styles in shared/cabinets.css)
        kicker   small line above the name on the marquee (optional)
-       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'insert'  (shared/cabinets.js, SCREENS)
+       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'insert'  (shared/cabinets.js, SCREENS)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
-                'classic' | 'haunted' (peaked roof) | 'soundcheck' (short, domed) | 'storm' (raked top, lightning fins)
+                'classic' | 'haunted' (peaked roof) | 'soundcheck' (short, domed) | 'storm' (raked top, lightning fins) | 'dojo' (pagoda roof)
                 (drawn in arcade3d.js, PROFILES)
        trim, trim2  neon colors, as above (default: the 2D cabinet's)
        body     side-panel color: 'cab-side' | 'cab-face' | 'cab-panel' | 'floor-3' (theme.css tokens)
@@ -57,5 +57,15 @@ window.Arcade.GAMES = [
     color: 'yellow',
     cabinet: {shape: 'storm', trim: 'yellow', trim2: 'pink', marquee: 'shade', screen: 'storm'},
     cabinet3d: {profile: 'storm', body: 'cab-side'},
+  },
+  {
+    id: 'note-ninja',
+    name: 'Note Ninja',
+    skill: 'Note names',
+    blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
+    maxStars: 24,
+    color: 'pink',
+    cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
+    cabinet3d: {profile: 'dojo', body: 'cab-side'},
   },
 ];

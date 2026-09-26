@@ -92,6 +92,35 @@ window.Arcade = window.Arcade || {};
       (text ? `<text x="40" y="74" text-anchor="middle" class="g-text">${text}</text>` : '') + `</svg>`;
   };
 
+  /* ---------- the Note Ninja mascot: an original kid martial artist ----------
+     White gi, red headband, a practice sword (bokken), and a belt in the current belt's color.
+     Face showing, no mask or hood, so it doesn't read as any existing ninja character.
+     Colors are theme tokens, resolved here, so the same drawing works inline and as a canvas image.
+     Parts with classes for animation: .nj-arm (sword arm), .nj-tails (headband tails), .nj-body. */
+  A.ninjaSVG = function ({belt = 'belt-white', cls = '', label = ''} = {}) {
+    const css = getComputedStyle(document.documentElement), c = n => css.getPropertyValue('--' + n).trim() || '#888';
+    const gi = c('ninja-gi'), line = c('ink'), skin = c('ninja-skin'), hair = c('ninja-hair'), band = c('ninja-band'), wood = c('belt-brown'), b = c(belt);
+    return `<svg class="ninja ${cls}" viewBox="0 0 100 120" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>` +
+      `<g class="nj-body" stroke="${line}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">` +
+        `<path d="M36 86L30 114H44L50 94L56 114H70L64 86Z" fill="${gi}"/>` +                                  // pants
+        `<path d="M32 58Q50 50 68 58L70 88H30Z" fill="${gi}"/>` +                                            // jacket
+        `<path d="M42 57L50 72L58 57" fill="none"/>` +                                                       // lapels
+        `<rect x="29" y="76" width="42" height="8" rx="2" fill="${b}"/>` +                                   // belt
+        `<path d="M46 84L42 97M54 84L58 96" stroke="${b}" stroke-width="5"/>` +                              // belt ends
+        `<path d="M34 62Q24 72 30 82" fill="none" stroke-width="7" stroke="${line}"/><path d="M34 62Q24 72 30 82" fill="none" stroke-width="4" stroke="${gi}"/>` +  // back arm
+        `<g class="nj-arm"><path d="M65 62Q76 66 80 56" fill="none" stroke-width="7" stroke="${line}"/><path d="M65 62Q76 66 80 56" fill="none" stroke-width="4" stroke="${gi}"/>` +
+          `<line x1="80" y1="57" x2="94" y2="16" stroke="${wood}" stroke-width="4"/><circle cx="80" cy="56" r="4" fill="${skin}"/></g>` +   // sword arm + bokken
+        `<circle cx="50" cy="36" r="17" fill="${skin}"/>` +                                                  // head
+        `<path d="M33 33Q34 16 50 17Q66 16 67 33Q60 26 50 27Q40 26 33 33Z" fill="${hair}"/>` +               // hair
+        `<path d="M47 17Q49 9 55 11Q51 14 52 18Z" fill="${hair}"/>` +                                        // tuft
+        `<path d="M33 30Q50 24 67 30L67 35Q50 29 33 35Z" fill="${band}"/>` +                                 // headband
+        `<path class="nj-tails" d="M34 32Q24 30 16 36M34 34Q25 38 20 46" fill="none" stroke="${band}" stroke-width="3.5"/>` +
+      `</g>` +
+      `<ellipse cx="44" cy="40" rx="2.2" ry="3" fill="${line}"/><ellipse cx="56" cy="40" rx="2.2" ry="3" fill="${line}"/>` +   // eyes
+      `<path d="M45 47Q50 51 55 47" fill="none" stroke="${line}" stroke-width="2" stroke-linecap="round"/>` +                  // smile
+      `</svg>`;
+  };
+
   A.starStr = n => [0, 1, 2].map(i => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
 
   /* ---------- links between pages ----------

@@ -29,6 +29,8 @@ ghost-notes/          Game 1: note reading with fading note names
   levels.js           Level design: counts, time per note, how visible the names are
   game.js             Game logic
 note-storm/           Game 2: speed reading; notes march toward Tempo the robot, play each one to blast it
+note-ninja/           Game 3: note names, no microphone; tap the name of the note on the scroll
+  levels.js           The belts (White … Black): notes, time, letter guides, read-ahead. Rename or reorder freely
   levels.js           Level design: counts, march speed, notes on screen at once, names on or off
   game.js             Game logic (the staff is drawn once; only the notes move)
 ```
@@ -42,6 +44,37 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
+
+## Note Ninja
+
+A note-reading game that **doesn't use the microphone**, so students can play it anywhere, even without their instrument. A note appears on a lit scroll in a neon dojo; they tap its name. Correct answers make the ninja strike the practice target; a wrong answer makes it stumble.
+
+- **Answering:** seven big letter buttons A–G. Above them, **♭ ♮ ♯** work like a Shift key: tap ♭, the letters change to A♭ B♭ …, tap the letter, and it goes back to ♮. The ♭ ♮ ♯ row only appears when the notes include sharps or flats. On a Chromebook: keys **A–G** answer, **1 / 2 / 3** pick ♭ / ♮ / ♯.
+- **The right answer is the real name of the note, key signature included.** In F major a B on the staff is B♭. In chromatic, the spelling shown counts: C♯ is not D♭.
+- **Belts** are the levels, White to Black, in `note-ninja/levels.js`. Each line is one belt; rename, reorder or recolor them to match your Band Ninja belts (colors are the `--belt-…` tokens in `shared/theme.css`). White belt uses the first three notes with letter guides on the staff; Blue and up are **read ahead**, with 2–4 notes on the staff answered left to right.
+- **Scoring:** points for each note, a speed bonus, and a **combo** multiplier (×2 at 5 in a row, up to ×4) that resets on a mistake or a timeout. A wrong answer is a mistake and the note stays; running out of time is a miss, shows the name, and moves on. Stars: 3 = no mistakes and no misses, 2 = 90%, 1 = 80% (clears the belt and unlocks the next).
+- Random notes and every scale work like the other games; progress is saved under `note-ninja` and `note-ninja:scale-…`.
+- In `?demo` all belts are unlocked and the answer shows in small text under the buttons.
+
+## Sounds
+
+`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player and Note Ninja only; games that listen to the microphone never load it.
+
+| Event | When | Sound (falls back to) |
+|---|---|---|
+| `select-<game>` | START on the arcade floor | the game's own sound if it has one, else the coin |
+| `level-start` | a level begins | three rising notes |
+| `note-hit` | a correct note | the blip |
+| `note-wrong` | a wrong note | a low buzz |
+| `note-missed` | time ran out | a falling tone |
+| `level-complete` / `level-failed` | results | a rising / falling arpeggio |
+| `star-earned` | more stars than before | a sparkle |
+| `new-high-score` | a new best score | a quick fanfare |
+| `ninja-slash` | Note Ninja: a correct answer | a swish and a chirp |
+| `ninja-combo` | Note Ninja: every 5 in a row | a fast run up |
+| `belt-earned` | Note Ninja: a new belt unlocked | a gong and a run |
+
+Any event without its own sound falls back to the blip (`select-…` events fall back to the coin). New events go in `EVENTS` in `shared/sfx.js`.
 
 ## Random notes and scales
 
@@ -125,7 +158,7 @@ For a brand-new look:
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor and Select Player make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player and Note Ninja (which doesn't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.
