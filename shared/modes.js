@@ -16,34 +16,45 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const S = A.Scales;
 
-  function mount(el, {gameId, inst, levels, onChange}) {
+  /* The defaults give every game RANDOM NOTES / SCALES. A game can pass its own set:
+       modes     [{id, label}] for the big toggle (default random + scales)
+       scales    scale ids shown under 'scales' (default all of Scales.LIST, chromatic included)
+       fixed     {modeId: scaleId} for a mode that IS one scale (e.g. {chrom: 'chrom'})
+       keyFor    (modeId, scaleId) -> progress key (default: gameId, or '<gameId>:scale-<id>')
+       member    a fixed instrument member (skips "Which instrument do you play?")
+     A mode that is neither 'scales' nor in `fixed` is a random mode (no scale). */
+  const DEFAULT_MODES = [{id: 'random', label: 'Random notes'}, {id: 'scales', label: 'Scales'}];
+  function mount(el, {gameId, inst, levels, onChange, modes = DEFAULT_MODES, scales, fixed = {}, keyFor, member}) {
     const state = {mode: 'random', scale: null, member: null, progressKey: gameId, ready: true};
     const saved = A.store.gameMode(gameId);
+    const scaleIds = scales || S.LIST.map(x => x.id);
+    const key = keyFor || ((m, sc) => sc ? S.progressKey(gameId, sc) : gameId);
+    const scaleOf = m => m === 'scales' ? (scaleIds.includes(saved.scale) ? saved.scale : scaleIds[0]) : fixed[m] || null;
 
     function compute() {
-      state.mode = saved.mode === 'scales' ? 'scales' : 'random';
-      state.member = A.getMember(inst, A.store.memberFor(inst.id));
-      state.ready = state.mode === 'random' || !!state.member;
-      state.scale = state.mode === 'scales' && state.member ? S.build(state.member, saved.scale) : null;
-      state.progressKey = state.scale ? S.progressKey(gameId, state.scale.id) : gameId;
+      state.mode = modes.some(m => m.id === saved.mode) ? saved.mode : modes[0].id;
+      state.member = member || A.getMember(inst, A.store.memberFor(inst.id));
+      const sc = scaleOf(state.mode);
+      state.ready = !sc || !!state.member;
+      state.scale = sc && state.member ? S.build(state.member, sc) : null;
+      state.progressKey = key(state.mode, state.scale ? state.scale.id : null);
     }
 
     function render() {
       compute();
       const max = levels * 3;
-      let h = `<div class="mode-toggle" role="group" aria-label="Game mode">` +
-        `<button type="button" class="mode-big" data-mode="random" aria-pressed="${state.mode === 'random'}">Random notes</button>` +
-        `<button type="button" class="mode-big" data-mode="scales" aria-pressed="${state.mode === 'scales'}">Scales</button></div>`;
+      let h = `<div class="mode-toggle${modes.length > 2 ? ' many' : ''}" role="group" aria-label="Game mode">` +
+        modes.map(m => `<button type="button" class="mode-big" data-mode="${m.id}" aria-pressed="${state.mode === m.id}">${m.label}</button>`).join('') + `</div>`;
       if (state.mode === 'scales') {
         if (!state.member) {
           h += `<section class="member-pick" aria-labelledby="mpQ"><h2 id="mpQ">Which instrument do you play?</h2>` +
             `<p class="muted">Your scales are written a little differently for each one.</p><div class="member-btns">` +
             inst.members.map(m => `<button type="button" class="btn member-btn" data-member="${m.id}">${m.name}</button>`).join('') + `</div></section>`;
         } else {
-          if (inst.members.length > 1) h += `<p class="playing">Playing: <b>${state.member.name}</b> <button type="button" class="linkish" data-change>change</button></p>`;
-          h += `<div class="scale-btns" role="group" aria-label="Choose a scale">` + S.LIST.map(s => {
-            const sc = S.build(state.member, s.id), stars = A.store.totalStars(S.progressKey(gameId, s.id), inst.id);
-            return `<button type="button" class="scale-btn" data-scale="${s.id}" aria-pressed="${s.id === state.scale.id}" aria-label="${sc.label}. ${stars} of ${max} stars">` +
+          if (!member && inst.members.length > 1) h += `<p class="playing">Playing: <b>${state.member.name}</b> <button type="button" class="linkish" data-change>change</button></p>`;
+          h += `<div class="scale-btns n${scaleIds.length}" role="group" aria-label="Choose a scale">` + scaleIds.map(id => {
+            const sc = S.build(state.member, id), stars = A.store.totalStars(key('scales', id), inst.id);
+            return `<button type="button" class="scale-btn" data-scale="${id}" aria-pressed="${id === state.scale.id}" aria-label="${sc.label}. ${stars} of ${max} stars">` +
               `<b>${sc.short}</b><small>${sc.key ? 'your ' + sc.key : 'Full range'}</small>` +
               `<span class="sb-stars"><span aria-hidden="true">★</span> ${stars}/${max}</span></button>`;
           }).join('') + `</div>`;
@@ -57,9 +68,9 @@ window.Arcade = window.Arcade || {};
       if (ch) ch.addEventListener('click', () => { A.store.setMember(inst.id, null); update(); const f = el.querySelector('.member-btn'); if (f) f.focus(); });
     }
     function update() {
-      const active = document.activeElement, key = active && el.contains(active) ? [...active.attributes].find(a => /^data-(mode|scale|member)$/.test(a.name)) : null;
+      const active = document.activeElement, k = active && el.contains(active) ? [...active.attributes].find(a => /^data-(mode|scale|member)$/.test(a.name)) : null;
       render();
-      if (key) { const again = el.querySelector(`[${key.name}="${key.value}"]`); if (again) again.focus(); }   // keep keyboard focus
+      if (k) { const again = el.querySelector(`[${k.name}="${k.value}"]`); if (again) again.focus(); }   // keep keyboard focus
       onChange(state);
     }
     render();

@@ -22,6 +22,10 @@
   --belt-blue:#3a7bff; --belt-purple:#a26bff; --belt-brown:#8b5a33; --belt-black:#16121d;
   --dojo-wood:#2a1a14; --dojo-wood-2:#3a2419; --dojo-paper:#fff4dc; --dojo-paper-dim:#e8d3a8;
   --ninja-gi:#f4f1e6; --ninja-skin:#e8b894; --ninja-hair:#2b1d16; --ninja-band:#e0343f;
+  /* Chime Heist: the steel vault, the metal bars of the chime lock, the security terminal, treasure */
+  --steel:#1a1d26; --steel-2:#262b38; --steel-3:#3a4152; --rivet:#5a6378;
+  --bar-metal:#c9ced8; --bar-metal-2:#8d94a3; --bar-metal-hi:#f2f5fa; --bar-ink:#1b2130;
+  --term:#07130d; --term-line:rgba(77,255,136,.18); --treasure-brown:#b07a4a;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */
@@ -125,7 +129,10 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
   font-family:var(--display);font-size:clamp(17px,3.6vw,22px);letter-spacing:.06em;text-transform:uppercase}
 .mode-big:hover{border-color:var(--cyan-ink);color:var(--text-hi)}
 .mode-big[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan-hi);color:var(--deep);box-shadow:var(--glow-cyan)}
+.mode-toggle.many{grid-template-columns:repeat(4,1fr)}
+@media (max-width:700px){ .mode-toggle.many{grid-template-columns:1fr 1fr} }
 .scale-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 16px}
+.scale-btns.n4{grid-template-columns:repeat(4,1fr)}
 @media (max-width:560px){ .scale-btns{grid-template-columns:repeat(3,1fr)} }
 .scale-btn{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:84px;padding:8px 4px;border-radius:14px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi)}
 .scale-btn b{font-family:var(--display),var(--music);font-weight:400;font-size:22px;line-height:1.1}

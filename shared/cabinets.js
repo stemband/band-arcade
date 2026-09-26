@@ -9,6 +9,7 @@
               panel    the control panel (a trapezoid; taller = steeper), lip = its front edge
               joy      joystick [x, y];  btns  buttons [[x, y], …]
               door     coin door {x, y, w, h} (and `doorPath` for an odd shape);  kick  kick plate [x1, x2]
+              dial     optional: the door is a round safe door with a combination dial instead of coin slots
               extras   optional extra SVG (decals, lights), drawn last
               slots    where the HTML parts go, as [x, y, w, h]: marquee, screen, start
      SCREENS  attract-mode loops for the screen: html(game, i) draws frame i; `period` (ms) is how
@@ -19,7 +20,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
@@ -81,12 +82,33 @@ window.Arcade = window.Arcade || {};
               '<path class="s-grille" d="M66 243H234M150 164V322"/>',                                       // paper-screen lattice
       slots: {marquee: [60, 92, 180, 64], screen: [74, 172, 152, 142], start: [80, 408, 140, 48]},
     },
+    /* vault: the top is a round vault door ringed with bolts, a round safe door with a combination dial below,
+       laser beams across the body (green and red, from the trims) */
+    vault: {
+      outline: 'M40 598V332L22 320V204A128 128 0 0 1 278 204V320L260 332V598Z',
+      face: 'M56 598V332L40 320V208A110 110 0 0 1 260 208V320L244 332V598Z', kick: [56, 244],
+      bezel: 'M74 178H226Q238 178 238 190V304Q238 316 226 316H74Q62 316 62 304V190Q62 178 74 178Z',
+      panel: 'M50 326H250L280 384H20Z', lip: 'M20 384H280V396H20Z',
+      joy: [72, 354], btns: [[180, 352], [208, 352], [236, 352]],
+      doorPath: 'M96 512A54 54 0 1 0 204 512A54 54 0 1 0 96 512Z', door: {x: 96, y: 458, w: 108, h: 108}, dial: true,
+      extras: [20, 43, 66, 90, 114, 137, 160].map(a => `<circle class="s-rivet" cx="${(150 + 119 * Math.cos(a * Math.PI / 180)).toFixed(1)}" cy="${(206 - 119 * Math.sin(a * Math.PI / 180)).toFixed(1)}" r="4"/>`).join('') +
+              '<path class="s-laser" d="M58 452H242"/><path class="s-laser s-laser2" d="M58 578H242"/>' +
+              '<circle class="s-lamp" cx="58" cy="452" r="4"/><circle class="s-lamp2" cx="242" cy="578" r="4"/>',
+      slots: {marquee: [66, 116, 168, 52], screen: [72, 188, 156, 118], start: [80, 402, 140, 44]},
+    },
   };
 
   function doorSVG(s) {
     const d = s.door, cx = d.x + d.w / 2;
     const body = s.doorPath ? `<path class="s-door" d="${s.doorPath}"/>` : `<rect class="s-door" x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" rx="5"/>`;
     const sy = d.y + d.h * .34;
+    if (s.dial) {                                     // a safe door: combination dial with ticks, a spoked handle
+      const cy = d.y + d.h / 2, r = d.w / 2;
+      return body + `<circle class="s-door" cx="${cx}" cy="${cy}" r="${r - 10}"/>` +
+        Array.from({length: 12}, (_, k) => `<line class="s-tick" x1="${cx}" y1="${cy - r + 12}" x2="${cx}" y2="${cy - r + 18}" transform="rotate(${k * 30} ${cx} ${cy})"/>`).join('') +
+        `<circle class="s-dial" cx="${cx}" cy="${cy}" r="${r * .42}"/><path class="s-spoke" d="M${cx} ${cy - r * .62}V${cy + r * .62}M${cx - r * .62} ${cy}H${cx + r * .62}"/>` +
+        `<circle class="s-ball" cx="${cx}" cy="${cy}" r="${r * .14}"/>`;
+    }
     return body +
       `<rect class="s-coin" x="${cx - 30}" y="${sy}" width="22" height="26" rx="3"/><rect class="s-coin" x="${cx + 8}" y="${sy}" width="22" height="26" rx="3"/>` +
       `<line class="s-slit" x1="${cx - 19}" y1="${sy + 6}" x2="${cx - 19}" y2="${sy + 20}"/><line class="s-slit" x1="${cx + 19}" y1="${sy + 6}" x2="${cx + 19}" y2="${sy + 20}"/>` +
@@ -161,6 +183,23 @@ window.Arcade = window.Arcade || {};
           `<g class="nj-note"><ellipse cx="96" cy="${y}" rx="6" ry="4.4" transform="rotate(-20 96 ${y})"/><line x1="${up ? 101.5 : 90.5}" y1="${y}" x2="${up ? 101.5 : 90.5}" y2="${up ? y - 32 : y + 32}"/></g>` +
           `<path class="nj-slash" d="M78 ${y + 10}L116 ${y - 10}"/>` +
           [...L].map((l, k) => `<g class="nj-key${l === n.letter ? ' on' : ''}"><rect x="${5 + k * 22}" y="92" width="18" height="20" rx="4"/><text x="${14 + k * 22}" y="107" text-anchor="middle">${l}</text></g>`).join('') +
+          `</svg></div>`;
+      },
+    },
+    /* Chime Heist: a note on the security terminal, the matching bar lights on a little bell kit,
+       and the next light of the vault code turns green */
+    heist: {
+      period: 2200,
+      html(g, i) {
+        const NOTES = ['G4', 'C5', 'E4', 'A4', 'F4', 'D5', 'B4'], n = noteOf(NOTES[i % NOTES.length]), y = 18 + (A.noteY('treble', n) - 56) / 16 * 8;
+        const L = 'EFGABCD', idx = L.indexOf(n.letter);
+        const lines = [0, 1, 2, 3, 4].map(k => `<line x1="30" y1="${18 + k * 8}" x2="130" y2="${18 + k * 8}"/>`).join('');
+        const up = A.noteY('treble', n) > 88;
+        return `<div class="scr scr-heist"><svg viewBox="0 0 160 120" aria-hidden="true">` +
+          `<rect class="hs-term" x="22" y="6" width="116" height="56" rx="4"/><g class="hs-lines">${lines}</g>` +
+          `<g class="hs-note"><ellipse cx="86" cy="${y}" rx="5" ry="3.6" transform="rotate(-20 86 ${y})"/><line x1="${up ? 90.6 : 81.4}" y1="${y}" x2="${up ? 90.6 : 81.4}" y2="${up ? y - 26 : y + 26}"/></g>` +
+          [0, 1, 2, 3, 4, 5].map(k => `<circle class="hs-led${k < i % 6 ? ' on' : k === i % 6 ? ' next' : ''}" cx="${55 + k * 10}" cy="70" r="3"/>`).join('') +
+          [...L].map((l, k) => `<rect class="hs-bar${k === idx ? ' on' : ''}" x="${8 + k * 21}" y="${80 + k * 1.4}" width="18" height="${34 - k * 2.8}" rx="2"/>`).join('') +
           `</svg></div>`;
       },
     },

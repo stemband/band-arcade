@@ -48,6 +48,12 @@
 .s-decal{fill:none;stroke:var(--u);stroke-width:2.5;stroke-linecap:round;opacity:.8}
 .s-bolt{fill:var(--u);stroke:none}
 .s-grille{stroke:var(--cab-metal);stroke-width:3;stroke-linecap:round}
+.s-rivet{fill:var(--cab-metal);stroke:var(--deep);stroke-width:1}
+.s-laser{stroke:var(--t-hi);stroke-width:2.5;stroke-linecap:round;filter:drop-shadow(0 0 3px var(--t))}
+.s-laser2{stroke:var(--u-hi);filter:drop-shadow(0 0 3px var(--u))}
+.s-tick{stroke:var(--cab-metal);stroke-width:2}
+.s-dial{fill:var(--cab-panel);stroke:var(--cab-metal);stroke-width:2.5}
+.s-spoke{stroke:var(--cab-metal);stroke-width:5;stroke-linecap:round}
 
 /* ---------- marquees (also used alone at the top of Select Player) ---------- */
 .cab-mq{position:absolute;display:flex}
@@ -76,6 +82,11 @@
 .mq-dojo .mq-name{font-size:1.5em;letter-spacing:.04em;text-shadow:0 .05em 0 var(--dojo-paper-dim)}
 .mq-dojo .mq-text{flex:1}
 .mq-ninja{width:2.3em;margin:0}
+/* heist: a brushed-steel plate with rivets, green laser letters, a red laser underline */
+.mq-heist{background:radial-gradient(circle at .5em 50%,var(--cab-metal) .12em,transparent .15em),radial-gradient(circle at calc(100% - .5em) 50%,var(--cab-metal) .12em,transparent .15em),
+  linear-gradient(180deg,var(--cab-panel),var(--deep));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:inset 0 -.14em 0 var(--u),var(--t-glow)}
+.mq-heist .mq-name{font-size:1.5em;letter-spacing:.06em;text-shadow:var(--t-glow)}
+.mq-heist .mq-kicker{color:var(--u-hi)}
 
 /* ---------- screen ---------- */
 .cab-screen{position:absolute;overflow:hidden;border-radius:.5em;background:var(--deep);box-shadow:0 0 0 .12em var(--deep),0 0 .8em var(--u)}
@@ -138,6 +149,22 @@
 @keyframes nj-key{0%{fill:var(--deep)}45%{fill:var(--red)}}
 @keyframes nj-gold{0%{fill:var(--ink);stroke:var(--ink)}50%{fill:var(--gold-ink);stroke:var(--gold-ink)}}
 @keyframes nj-slash{0%,49%{opacity:0}50%,70%{opacity:1}71%{opacity:0}}
+.scr-heist{background:var(--deep)}
+.scr-heist svg{width:100%;height:auto}
+.scr-heist .hs-term{fill:var(--screen);stroke:var(--t);stroke-width:1.5}
+.scr-heist .hs-lines line{stroke:var(--ink);stroke-width:1}
+.scr-heist .hs-note{fill:var(--ink);stroke:var(--ink);stroke-width:1.6}
+.scr-heist .hs-note ellipse{stroke:none}
+.scr-heist .hs-led{fill:var(--led-off)}
+.scr-heist .hs-led.on{fill:var(--t)}
+.scr-heist .hs-bar{fill:var(--cab-metal);stroke:var(--t);stroke-width:1}
+.scr-heist .hs-bar.on{fill:var(--text-hi)}
+.attract .scr-heist .hs-bar.on{animation:hs-bar 2.2s steps(1) forwards}
+.attract .scr-heist .hs-led.next{animation:hs-led 2.2s steps(1) forwards}
+.attract .scr-heist .hs-note{animation:nj-gold 2.2s steps(1) forwards}
+.cab:not(.attract) .scr-heist .hs-led.next{fill:var(--t)}
+@keyframes hs-bar{0%{fill:var(--cab-metal)}45%{fill:var(--t-hi)}}
+@keyframes hs-led{0%,49%{fill:var(--led-off)}50%{fill:var(--t)}}
 .scr-insert{gap:.8em;padding:.5em;text-align:center;background:repeating-linear-gradient(180deg,rgba(255,255,255,.04) 0 2px,transparent 2px 4px),var(--deep)}
 .att-title{font-family:var(--display);font-size:1.3em;line-height:1.1;text-transform:uppercase;color:var(--t-hi);text-shadow:var(--t-glow)}
 .att-blink{display:grid;font-family:var(--display);font-size:.8em;letter-spacing:.1em;text-transform:uppercase;color:var(--u-hi)}
