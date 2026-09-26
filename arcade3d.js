@@ -9,8 +9,9 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | none). `dial: true`
-               makes the coin door a round safe door with a combination dial.
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | none). `dial: true`
+               makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
+               and two sets of buttons on the control panel (1P in trim2, 2P in trim).
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
    Marquee and screen are canvas textures drawn with the bundled fonts; only the front cabinet's
    screen animates (the attract loop).
@@ -75,15 +76,22 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.62, 1.47], [0.62, 1.63]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
+    /* versus: a wide two-player fighting cabinet with a long control panel and a lit VS sign on top */
+    versus: {
+      width: 1.08, topper: 'vs', twoPlayer: true,
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.90, 0.84], [0.90, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.64, 1.46], [0.64, 1.68], [0, 1.68]],
+      marquee: [[0.64, 1.48], [0.64, 1.66]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.90, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
+    },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
   /** a game's 3D cabinet settings, every default filled in from its 2D cabinet */
   A.cabinet3dOf = function (g) {
     const c2 = A.cabinetOf(g), c = g.cabinet3d || {};
-    const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white'];
+    const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
     return {
       profile: PROFILES[c.profile] ? c.profile : (SHAPE_TO_PROFILE[c2.shape] || 'classic'),
       trim: TRIMS.includes(c.trim) ? c.trim : c2.trim,
@@ -98,7 +106,7 @@ window.Arcade = window.Arcade || {};
   const tok = {};
   ['deep', 'floor', 'floor-2', 'floor-3', 'screen', 'ink', 'ink-2', 'text-hi', 'red', 'cab-side', 'cab-face', 'cab-panel', 'cab-metal',
    'pink', 'pink-hi', 'pink-ink', 'cyan', 'cyan-hi', 'cyan-ink', 'yellow', 'yellow-hi', 'yellow-ink', 'purple', 'purple-hi', 'purple-ink',
-   'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink',
+   'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink', 'blue', 'blue-hi', 'blue-ink',
    'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
    'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'].forEach(n => { tok[n] = cssVar(n); });
 
@@ -186,6 +194,21 @@ window.Arcade = window.Arcade || {};
       const s = fitText(x, name, '"GN Display", sans-serif', H * .5, W * .8);
       x.shadowColor = t; x.shadowBlur = 14; x.fillStyle = thi;
       x.font = `${s}px "GN Display", sans-serif`; x.fillText(name, W / 2, H * .48);
+    } else if (k.marquee === 'versus') {
+      // split blue / red with a bright seam, slanted yellow letters with a dark outline (match .mq-versus)
+      x.fillStyle = u; x.fillRect(0, 0, W, H);
+      x.fillStyle = t; x.beginPath(); x.moveTo(W * .54, 0); x.lineTo(W, 0); x.lineTo(W, H); x.lineTo(W * .46, H); x.fill();
+      x.strokeStyle = tok['yellow-hi']; x.lineWidth = H * .04; x.beginPath(); x.moveTo(W * .54, 0); x.lineTo(W * .46, H); x.stroke();
+      x.fillStyle = 'rgba(6,4,13,.72)'; x.fillRect(W * .05, H * .14, W * .9, H * .72);
+      const s = fitText(x, name, '"GN Display", sans-serif', H * .44, W * .8);
+      x.save(); x.translate(W / 2, H * .53); x.transform(1, 0, -.22, 1, 0, 0);
+      x.font = `italic ${s}px "GN Display", sans-serif`;
+      x.lineJoin = 'round'; x.lineWidth = s * .12; x.strokeStyle = tok.deep; x.strokeText(name, 0, 0);
+      x.fillStyle = tok['red-ink']; x.fillText(name, s * .05, s * .07);
+      x.fillStyle = tok.yellow; x.shadowColor = t; x.shadowBlur = 10; x.fillText(name, 0, 0);
+      x.restore();
+      x.shadowBlur = 0; x.strokeStyle = thi; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
+      return;
     } else if (k.marquee === 'shade') {
       x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
       x.strokeStyle = u; x.lineWidth = H * .16;
@@ -345,6 +368,33 @@ window.Arcade = window.Arcade || {};
       x.fillStyle = tok['ink-2']; x.font = `${fitText(x, mean, '"GN Text", sans-serif', H * .08, W * .74)}px "GN Text", sans-serif`; x.fillText(mean, W / 2, top + full * .7);
       x.restore();
     },
+    /* Button Masher: two fighters under health bars, input icons light up, a blast flies (2.4 s loop, as 2D) */
+    versus(x, W, H, t) {
+      const i = t == null ? 0 : Math.max(0, Math.floor(t / 2.4)), p = t == null ? 1 : ((t % 2.4) + 2.4) % 2.4 / 2.4, u = tok[this.trim2], tr = tok[this.trim];
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, tok.deep); g.addColorStop(1, tok['floor-3']);
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      const hp = .38 - (i % 5) * .075;
+      x.fillStyle = tok['floor-3']; x.fillRect(W * .05, H * .07, W * .38, H * .06); x.fillRect(W * .57, H * .07, W * .38, H * .06);
+      x.fillStyle = u; x.fillRect(W * .05, H * .07, W * .38, H * .06);
+      x.fillStyle = tr; x.fillRect(W * (.95 - hp), H * .07, W * hp, H * .06);
+      x.fillStyle = tok.yellow; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `${H * .09}px "GN Display", sans-serif`; x.fillText('VS', W / 2, H * .1);
+      x.strokeStyle = u; x.lineWidth = 2; x.beginPath(); x.moveTo(0, H * .77); x.lineTo(W, H * .77); x.stroke();
+      const fig = (cx, col, s) => { x.fillStyle = col; x.beginPath(); x.arc(cx, H * .4, H * .075 * s, 0, 7); x.fill(); x.fillRect(cx - W * .05 * s, H * .48, W * .1 * s, H * .19); x.fillRect(cx - W * .04 * s, H * .67, W * .025, H * .1); x.fillRect(cx + W * .015 * s, H * .67, W * .025, H * .1); };
+      fig(W * .19, tok[this.trim2 + '-hi'], 1); fig(W * .81, tok[this.trim + '-hi'], 1.1);
+      const COMBOS = [['1', '3'], ['1', '2', '3'], ['2'], ['1', '2'], ['0'], ['2', '3']], c = COMBOS[i % COMBOS.length];
+      x.font = `${H * .07}px "GN Display", sans-serif`;
+      c.forEach((b, k) => {
+        if (p < k * .1) return;
+        const bx = W * (.39 + k * .11);
+        x.fillStyle = tok.yellow; x.beginPath(); x.arc(bx, H * .88, H * .055, 0, 7); x.fill();
+        x.fillStyle = tok.deep; x.fillText(b, bx, H * .885);
+      });
+      if (p > .55 && p < .95) {
+        const q = Math.min(1, (p - .55) / .35), bx = W * (.3 + q * .4);
+        x.fillStyle = tok['white-hi']; x.strokeStyle = u; x.lineWidth = W * .02;
+        x.beginPath(); x.arc(bx, H * .5, H * .05, 0, 7); x.fill(); x.stroke();
+      }
+    },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
       x.fillStyle = 'rgba(255,255,255,.04)'; for (let y = 0; y < H; y += 4) x.fillRect(0, y, W, 2);
@@ -411,13 +461,24 @@ window.Arcade = window.Arcade || {};
     const cp = panel(P.panel, W + .02, lambert(col('cab-panel')), .003);
     const pw = new THREE.Group(); pw.rotation.x = cp.rotation.x; pw.position.copy(cp.position); group.add(pw);
     const up = (geom) => { geom.rotateX(Math.PI / 2); return geom; };   // stand shapes up off the panel
-    const stick = new THREE.Mesh(up(new THREE.CylinderGeometry(.012, .012, .12, 8)), lambert(col('cab-metal'))); stick.position.set(-W * .26, 0, .06); pw.add(detail(stick));
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(.035, 12, 8), basic(col(k.trim2))); ball.position.set(-W * .26, 0, .13); pw.add(detail(ball));
-    const base = new THREE.Mesh(up(new THREE.CylinderGeometry(.06, .06, .012, 16)), basic(col('deep'))); base.position.set(-W * .26, 0, .006); pw.add(detail(base));
-    [k.trim, k.trim2, k.trim + '-hi'].forEach((c, i) => {
-      const b = new THREE.Mesh(up(new THREE.CylinderGeometry(.03, .03, .025, 14)), basic(col(c)));
-      b.position.set(W * (.1 + i * .12), (i - 1) * -.02, .012); pw.add(detail(b));
-    });
+    const joystick = (x, c) => {
+      const stick = new THREE.Mesh(up(new THREE.CylinderGeometry(.012, .012, .12, 8)), lambert(col('cab-metal'))); stick.position.set(x, 0, .06); pw.add(detail(stick));
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(.035, 12, 8), basic(col(c))); ball.position.set(x, 0, .13); pw.add(detail(ball));
+      const base = new THREE.Mesh(up(new THREE.CylinderGeometry(.06, .06, .012, 16)), basic(col('deep'))); base.position.set(x, 0, .006); pw.add(detail(base));
+    };
+    const button = (x, y, c, r = .03) => {
+      const b = new THREE.Mesh(up(new THREE.CylinderGeometry(r, r, .025, 14)), basic(col(c)));
+      b.position.set(x, y, .012); pw.add(detail(b));
+    };
+    if (P.twoPlayer) {                                  // 1P (trim2) on the left, 2P (trim) on the right
+      [[-W * .4, k.trim2], [W * .06, k.trim]].forEach(([x0, c]) => {
+        joystick(x0, c);
+        [0, 1, 2].forEach(i => button(x0 + W * (.12 + i * .075), (i === 1 ? .015 : -.005), c, .024));
+      });
+    } else {
+      joystick(-W * .26, k.trim2);
+      [k.trim, k.trim2, k.trim + '-hi'].forEach((c, i) => button(W * (.1 + i * .12), (i - 1) * -.02, c));
+    }
     // front lip of the panel in neon ink
     const lip = new THREE.Mesh(new THREE.BoxGeometry(W + .04, .05, .02), basic(col(k.trim + '-ink')));
     lip.position.set(0, P.panel[0][1] - .03, P.panel[0][0] + zc + .005); group.add(lip);
@@ -514,6 +575,18 @@ window.Arcade = window.Arcade || {};
         const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .06, 10), basic(col(b)));
         lamp.position.set(-W * .36 + i * W * .72 / 7, topY + .3, fz + .05); group.add(detail(lamp));
       });
+    } else if (P.topper === 'vs') {
+      // a lit VS sign standing on the roof: a dark box, its face split blue / red with the letters, neon along the top
+      const sw = W * .62, sh = .24, fz = frontTop + zc - .08;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, .08), lambert(col('cab-side'))); box.position.set(0, topY + sh / 2 + .02, fz - .04); box.userData.pick = true; group.add(box);
+      const c = canvas(256, 100), cx = c.getContext('2d');
+      cx.fillStyle = tok[k.trim2]; cx.fillRect(0, 0, 256, 100);
+      cx.fillStyle = tok[k.trim]; cx.beginPath(); cx.moveTo(140, 0); cx.lineTo(256, 0); cx.lineTo(256, 100); cx.lineTo(116, 100); cx.fill();
+      cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.font = 'italic 72px "GN Display", sans-serif';
+      cx.lineWidth = 9; cx.strokeStyle = tok.deep; cx.lineJoin = 'round'; cx.strokeText('VS', 128, 54); cx.fillStyle = tok.yellow; cx.fillText('VS', 128, 54);
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(sw * .94, sh * .86), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
+      face.position.set(0, topY + sh / 2 + .02, fz + .002); group.add(face);
+      neon([new THREE.Vector3(-sw / 2, topY + sh + .02, fz + .004), new THREE.Vector3(sw / 2, topY + sh + .02, fz + .004)]);
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {

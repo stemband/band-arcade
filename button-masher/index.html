@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Button Masher</title>
+<meta name="description" content="Build the fingering for each note like a special-move combo, then hit STRIKE!">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="masher">
+<!-- the arena: a neon versus stage, red on one side, blue on the other -->
+<div class="masher-bg" aria-hidden="true"></div>
+
+<!-- phones held upright with a woodwind: the key diagram needs the long side -->
+<div class="rotate" role="alert">
+  <svg viewBox="0 0 120 90" aria-hidden="true"><rect class="ph" x="42" y="8" width="36" height="64" rx="7"/><path class="arr" d="M92 30a30 30 0 0 1-8 36M84 66l-2-9M84 66l9-2"/></svg>
+  <h2>Turn your device sideways</h2>
+  <p>Your key diagram needs the whole width of the screen. Rotate to landscape to fight!</p>
+</div>
+
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- RIVAL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title"><span class="vs-l">Button</span> <span class="vs-r">Masher</span></h1>
+      <p class="muted">Every fingering is a special move. A note appears on the staff: press the right keys, valves or slide position on your instrument, then hit <b>STRIKE!</b> to blast your rival. Wrong combos let the rival counter.</p>
+    </div>
+    <div id="memberPick" hidden></div>
+    <section class="perc" id="percussion" hidden>
+      <div id="percPlaying"></div>
+      <h2>Percussion: try Chime Heist!</h2>
+      <p class="muted">Bells and mallet percussion don't use fingerings, so there's nothing to mash here. Chime Heist is your mallet keyboard game.</p>
+      <div class="acts">
+        <a class="btn btn-gold" id="chimeLink" href="../chime-heist/index.html">Play Chime Heist</a>
+        <a class="btn btn-ghost" id="percOther" href="../select-player/index.html?game=button-masher">I play a different instrument</a>
+      </div>
+    </section>
+    <div id="hubMain" hidden>
+      <div id="playingAs"></div>
+      <div class="hub-bar">
+        <p class="eyebrow">Choose your rival</p>
+        <button type="button" class="btn btn-ghost btn-small chart-btn" id="chartBtn">Chart</button>
+      </div>
+      <div class="levels" id="rivalGrid"></div>
+      <p class="demo-help" id="demoHelp" hidden>Demo: every rival unlocked, and the right keys have a faint dashed outline. The answer is written under the diagram.</p>
+    </div>
+  </section>
+
+  <!-- A MATCH -->
+  <section id="play" hidden>
+    <div class="bars">
+      <div class="bar-row rival-row">
+        <b class="who" id="rivalName">Rival</b>
+        <div class="hp" id="rivalHp" role="meter" aria-label="Rival health" aria-valuemin="0"><i></i></div>
+        <small id="rivalHits"></small>
+      </div>
+      <div class="bar-row you-row">
+        <b class="who">You</b>
+        <div class="energy" id="energy" role="meter" aria-label="Your energy" aria-valuemin="0"></div>
+        <div class="mini-hud">
+          <span><small>Note</small><b id="noteCount">1 / 10</b></span>
+          <span><small>Combo</small><b id="hudCombo" aria-live="polite">0</b></span>
+          <span><small>Score</small><b id="hudScore">0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arena" id="arena">
+      <div class="fighter" id="fighter"></div>
+      <div class="stage note-card">
+        <div id="playStaff"></div>
+        <p class="note-name" id="noteName" aria-live="polite"></p>
+      </div>
+      <div class="rival" id="rival"></div>
+      <p class="taunt" id="taunt" hidden></p>
+      <div class="fx" id="fx" aria-hidden="true"></div>
+      <div class="banner" id="banner" hidden aria-live="assertive"></div>
+    </div>
+    <div class="timer" id="timer"><i></i></div>
+    <p class="prompt" id="prompt" aria-live="polite"></p>
+
+    <div class="pad" id="pad"></div>
+    <div class="combo-row">
+      <div class="combo" id="combo" aria-label="Your combo"></div>
+      <button type="button" class="btn btn-ghost clear-btn" id="clearBtn">Clear</button>
+      <button type="button" class="btn strike-btn" id="strikeBtn">Strike!</button>
+    </div>
+    <div class="play-foot">
+      <p class="keys-help" id="keysHelp"></p>
+      <p class="demo-ans" id="demoAns" hidden></p>
+      <button type="button" class="btn btn-ghost btn-small" id="quitPlay">Leave match</button>
+    </div>
+  </section>
+</div>
+
+<!-- CHART (study mode, from the rival select screen only) -->
+<div class="overlay chart" id="chart" hidden>
+  <div class="panel chart-panel" role="dialog" aria-modal="true" aria-labelledby="chartTitle">
+    <div class="chart-head">
+      <h2 id="chartTitle">Fingering chart</h2>
+      <button type="button" class="btn btn-gold btn-small" id="chartClose">Close</button>
+    </div>
+    <p class="muted chart-sub">The main fingering is filled in on each diagram. Other fingerings that also count are listed under it.</p>
+    <div class="chart-body" id="chartBody"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="res-rival" id="resRival"></div>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">K.O.!</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Hits</small><b id="resHits">0/0</b></div>
+      <div><small>Mistakes</small><b id="resWrong">0</b></div>
+      <div><small>Best combo</small><b id="resCombo">0</b></div>
+    </div>
+    <p class="res-score">Score <b id="resScore">0</b></p>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next rival</button>
+      <button class="btn btn-ghost" id="resRetry">Rematch</button>
+      <button class="btn btn-ghost" id="resLevels">Rivals</button>
+    </div>
+  </div>
+</div>
+
+<!-- No microphone in this game: no pitch.js, no mic-gate.js. Sounds come from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/modes.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="fingerings.js"></script>
+<script src="diagrams.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

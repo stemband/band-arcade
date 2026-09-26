@@ -41,6 +41,11 @@ chime-heist/          Game 4: mallet keyboard for percussion, no microphone; str
 ancient-ninja-scrolls/ Game 5: Band Ninja music vocabulary (Ranks 3–10), no instrument, no microphone
   vocab.js            THE Band Ninja vocabulary tests: word banks, pass rules, all 120 items. Edit here
   game.js             Train, Spar, Belt Exam, Scroll Review, the scroll rack and the Sensei
+button-masher/        Game 6: fingerings and slide positions, no microphone; a versus fighting game
+  fingerings.js       THE fingering table: every accepted fingering for every instrument. Fix fingerings here
+  levels.js           The 8 rivals (Squeaky Reed … The Conductor): note pools, notes per match, time, rival health
+  diagrams.js         The instrument diagrams (flute, oboe, clarinet, sax, bassoon, valves, trombone slide)
+  game.js             Game logic: the match, the rivals and the fighter, the CHART view
 ```
 
 No build step and no installs. It's plain HTML, CSS and JavaScript, so any static web host can serve it.
@@ -98,9 +103,23 @@ The temple has one chamber per belt, each lit in its belt color. Every term is a
 
 Saved: Train stars as the usual progress (`ancient-ninja-scrolls`, player `all`, belts 1–8 = Orange–Diamond); mastered terms, misses, Spar bests, exam results and TEST READY badges in their own object, `gameData['ancient-ninja-scrolls']`.
 
+## Button Masher
+
+A **fingering and slide-position trainer** dressed as a neon versus fighting game, and it **doesn't use the microphone**. A note appears on the staff between the student's fighter and a rival. The student builds the note's fingering on a diagram of their own instrument (the "special move combo") and hits **STRIKE!** A correct combo fires an energy blast and drains the rival's health; a wrong one lets the rival land a harmless cartoon "boing" counter that drains the student's energy.
+
+- **Which instrument.** It uses the saved instrument, and for groups with several instruments (Flute/Oboe/Tone Bells, Trumpet/Clarinet/Tenor Sax, Bass Clarinet/Baritone T.C., Trombone/Euphonium/Bassoon) it asks "Which instrument do you play?" (the same saved answer the Note Checker and scales use). Stars are saved **per instrument**, because a trumpet and a clarinet in the same group finger differently. Bells and Colored Tone Bells get "Percussion: try Chime Heist!" with a link, on the arcade floor and in the game.
+- **The diagrams.** Every key, valve and slide position is a real button: tap to press it (filled = pressed), tap again to let go. The oboe's and bassoon's first key cycles open → half-hole → closed. **CLEAR** resets, **STRIKE!** checks it. Trombone: tapping a slide position strikes right away. The **COMBO** bar shows what's pressed as fighting-game input icons. Woodwind diagrams need a phone turned sideways; brass and trombone fit a phone upright.
+- **Keyboard (Chromebooks):** brass **1–4** press valves (horn: **T** or **4** is the thumb trigger), trombone **1–7** pick a position, **Enter** = STRIKE!, **Backspace** = CLEAR. Woodwind keys are tap/click (Tab and Space also work).
+- **Rivals** (levels, `button-masher/levels.js`): Squeaky Reed (first three notes, note name shown, the right keys glow faintly after 5 s), Captain Clef (first five, name shown), Tempo Tornado (Concert B♭ scale), Sir Sharp (E♭), Lady Flat (F), Dr. Dissonance (A♭), The Metronome (all four scales mixed) and The Conductor (all four, fastest, most health). Scale levels show the key signature and use the same octave as the scales in every other game. Notes come in random order, never the same note twice in a row. Each line of the table sets the note pool, notes per match, seconds per note and rival health.
+- **Rules:** a wrong combo costs energy, the right keys glow green for a moment, and the same note stays for one more try. A timeout costs energy and moves on. Win by landing enough hits before your energy (5) runs out or the notes run out ("Time over"). Stars: 3 = no mistakes, 2 = one or two, 1 = won. Winning unlocks the next rival. Points get a speed bonus and a combo multiplier (×2 at 5 in a row, up to ×4).
+- **CHART** (on the rival screen, never during a match): every note in the game for the chosen instrument, grouped by rival/scale, each with its staff note, name and the main fingering filled in on the diagram, with other accepted fingerings listed under it. Use it to study, and to check the fingerings.
+- In `?demo` every rival is unlocked, the right keys have a faint dashed outline, and the answer is written under the diagram.
+
+**Fixing a fingering (`button-masher/fingerings.js`).** Each instrument lists its written notes, and for each note every fingering the game accepts, main one first: `'D4': ['1-3']`, `'A4': ['1-2', '3']`, trombone `'F3': [1, 6]`, clarinet `'B4': ['Th Reg 1 2 3 LE | 4 5 6', …]`. The key names are explained at the top of the file (they're the labels on the diagrams). A combo is right only when it matches one of the listed fingerings exactly. To add an alternate, add it to the list; to change the main one, put it first. Trumpet and Baritone T.C. share a table, as do the two clarinets and the three saxophones. The comment block at the top of the file lists the fingerings I wasn't fully sure of: check those against the 6th Grade Honor Band charts first.
+
 ## Sounds
 
-`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist and Ancient Ninja Scrolls only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
+`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
 
 | Event | When | Sound (falls back to) |
 |---|---|---|
@@ -125,6 +144,12 @@ Saved: Train stars as the usual progress (`ancient-ninja-scrolls`, player `all`,
 | `scroll-unroll` | Ancient Ninja Scrolls: a term mastered | a paper swish and a run up (blip) |
 | `gong` | Ancient Ninja Scrolls: the Belt Exam is turned in | a low gong (blip) |
 | `test-ready` | Ancient Ninja Scrolls: a TEST READY badge | a warm fanfare (blip) |
+| `fight-start` | Button Masher: "ROUND 1… FIGHT!" | two short beats and a long one (blip) |
+| `key-press` | Button Masher: each key, valve or slide tap | a soft click (blip) |
+| `special-move` | Button Masher: a correct STRIKE! | a rising zap and a sparkle (blip) |
+| `combo-streak` | Button Masher: every 5 correct in a row | a fast run up (blip) |
+| `rival-counter` | Button Masher: a wrong combo or a timeout | a cartoon "boing" (blip) |
+| `ko` | Button Masher: the rival is defeated | a falling whoosh and a fanfare (blip) |
 
 Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (bright attack, quick decay) at the exact pitch, so every bar is in tune. It is never replaced by an audio file, and it is silent when SOUND is off.
 
@@ -186,7 +211,8 @@ Every later change you save to the repository goes live at the same link within 
 3. At the top of `game.js`, start with `const inst = Arcade.requireInstrument('echo-notes'); if (!inst) return;` and `Arcade.mountTopbar(inst, '', 'echo-notes');`. That sends students without an instrument to Select Player, and wires up the top bar.
 4. Add an entry to `shared/games.js` (see the comment at the top of that file).
 5. Save progress with `Arcade.store.setLevel(gameId, instrumentId, level, {stars, best})`, which lets the arcade floor show the hi-score automatically.
-6. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
+6. A game whose progress depends on the exact instrument (Button Masher's fingerings) sets `byMember: true`: it saves under the member id (`trumpet`, `clarinet`…) and the hi-score reads it. `noPlay` sends instruments the game can't use to another game (percussion → Chime Heist).
+7. A game for one instrument only (like Chime Heist) sets `player: '<group id>'` in `shared/games.js`: START skips Select Player, the saved instrument is left alone, and the hi-score reads that player's progress. A game that needs no instrument at all (Ancient Ninja Scrolls) uses `player: 'all'`.
 
 ## Adding a cabinet
 
@@ -198,22 +224,22 @@ To give it a look, add a `cabinet` field to its entry in `shared/games.js` and m
 cabinet: {shape: 'storm', trim: 'green', trim2: 'pink', marquee: 'shade', kicker: 'New!', screen: 'insert'},
 ```
 
-- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns)
-- `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`
-- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll)
-- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'insert'`
+- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns), `'versus'` (wide two-player fighting cabinet: two joysticks, split red/blue face)
+- `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`, `'blue'`
+- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll), `'versus'` (slanted, outlined fighting-game letters on a split sign)
+- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'versus'`, `'insert'`
 
 For a brand-new look:
 
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
-- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
+- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate, `'versus'` wide with two joysticks and a lit VS sign); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
 - **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
 
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist and Ancient Ninja Scrolls (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.
