@@ -40,8 +40,11 @@ You can check your sheet at `arcade-quest/index.html?sprites` (the sprite review
 |---|---|---|
 | `squawk`, `warble`, `clatterbox`, `quizzle`, `stickyvalve`, `wisp`, `squeaker`, `hush`, `wobble`, `chatterbox` | 32 × 32 | 3: idle, idle, happy (befriended) |
 | `fermata` (The Phantom Fermata) | 56 × 40 | 3: idle, idle, happy |
+| `conductor` (The Ghost Conductor, the final boss) | 48 × 48 | 3: baton up, downbeat, happy (both arms up) |
+| `mic-big` (the Mysterious Microphone: title screen and cliffhanger) | 32 × 56 | 1 (keep the red light at x 14–15, y 29–30: it blinks there) |
+| `mic-shadow` (the microphone glimpsed in windows) | 7 × 12 | 1 |
 | `npc-mezzo`, `npc-rusty`, `npc-terry`, `npc-reginald`, `npc-tilly`, `npc-tally`, `npc-butler`, `npc-lou`, `npc-fran`, `npc-dot`, `npc-sizzle` | 24 × 28 | 2 (a gentle bob) |
 | `tile-floor`, `tile-wall`, `tile-carpet`… (every `tile-*` in `sprites-manor.js`) | 16 × 16 | 1, or 2 for `tile-candle`, `tile-fireplace`, `tile-fog`, `tile-jukebox`, `tile-stove` (they flicker) |
-| `sour`, `static`, `rest` (dodge shapes), `cursor` (your note) | as in `sprites.js` | as drawn |
+| `sour`, `static`, `rest` (dodge shapes), `cursor` (your note), `fermata-sm`, `baton-tip` (the Conductor's) | as in `sprites.js` / `sprites-story.js` | as drawn |
 
 After adding or replacing files, reload the page (clearing the tab's memory of missing files: open a new tab).

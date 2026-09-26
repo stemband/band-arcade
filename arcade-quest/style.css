@@ -85,6 +85,11 @@ button{font:inherit}
 .q-staff.q-one{width:60%}
 .q-staff.q-small{width:40%;flex:none}
 .q-staff.q-small svg{max-height:calc(var(--px) * 30)}
+/* the staff is SVG in the HTML layer, so it is drawn sharp at the screen's full resolution (never pixel-scaled like the
+   canvas): thick staff lines, stems and ledger lines and outlined note heads, readable at arm's length on an iPad */
+.q-staff svg line{stroke-width:2.6px}
+.q-staff svg line.stem{stroke-width:3px}
+.q-staff svg ellipse.head{stroke:var(--ink);stroke-width:1.6px}
 .q-staff .q-cur{fill:var(--cyan-ink);stroke:var(--cyan-ink)}
 .q-staff .q-cur *{fill:var(--cyan-ink)}
 .q-staff .q-done,.q-staff .q-done *{fill:var(--green);opacity:.55}
@@ -224,3 +229,42 @@ body.q-review .q-wrap{display:none}
 .spr-cap{margin:4px 0 0;font-size:12px;color:var(--text-lo)}
 .spr-name{margin:4px 0 0;font-size:13px;font-weight:700;text-align:center}
 .spr-dark .spr-name{color:var(--text-hi)}
+
+/* ---------- Episode 1's finale: save codes, cutscenes, whispers, the Conductor's challenges, credits ---------- */
+.q-code{margin:calc(var(--px) * 2) 0;padding:calc(var(--px) * 3);text-align:center;font:700 calc(var(--px) * 11)/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;
+  color:var(--q-gold);background:var(--q-black);border:calc(var(--px) * 1) dashed var(--q-gold);user-select:all;-webkit-user-select:all;word-break:break-all}
+.q-codein{display:block;width:100%;box-sizing:border-box;margin:calc(var(--px) * 2) 0;padding:calc(var(--px) * 3);font:700 calc(var(--px) * 10)/1.2 ui-monospace,Menlo,Consolas,monospace;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--q-white);background:var(--q-black);border:calc(var(--px) * 1.5) solid var(--q-white);border-radius:0;user-select:text;-webkit-user-select:text}
+.q-codein:focus{outline:none;border-color:var(--q-cursor)}
+.q-codemsg{min-height:1.3em;margin:0;font-size:calc(var(--px) * 7)}
+.q-codemsg.q-bad{color:var(--q-orange)}.q-codemsg.q-warn{color:var(--q-gold)}
+.q-coderow{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--px) * 3)}
+.q-skip{right:calc(var(--px) * 4);top:calc(var(--px) * 4);z-index:8;padding:calc(var(--px) * 2) calc(var(--px) * 5);background:var(--q-black);color:var(--q-white);
+  border:calc(var(--px) * 1) solid var(--q-grey);font-size:calc(var(--px) * 7);cursor:pointer}
+.q-skip:hover,.q-skip:focus-visible{border-color:var(--q-cursor);color:var(--q-cursor);outline:none}
+.q-cutitle{left:0;right:0;top:calc(var(--px) * 64);margin:0;text-align:center;color:var(--q-white);font-size:calc(var(--px) * 15);font-weight:700;letter-spacing:.08em;
+  text-shadow:0 0 calc(var(--px) * 4) var(--q-purple)}
+.q-cutitle[hidden]{display:none}
+.q-whisper{left:0;right:0;top:calc(var(--px) * 34);margin:0;text-align:center;font-style:italic;color:var(--q-grey);font-size:calc(var(--px) * 9);opacity:0;pointer-events:none;
+  text-shadow:0 0 calc(var(--px) * 2) var(--q-purple-d)}
+.q-whisper.on{animation:q-whisper 4.5s ease-in-out forwards}
+@keyframes q-whisper{0%{opacity:0}15%,70%{opacity:1}100%{opacity:0}}
+.q-hold.q-cutoff{width:80%}
+.q-beat{margin:0;display:flex;justify-content:center}
+.q-beat i{display:block;width:calc(var(--px) * 10);height:calc(var(--px) * 10);border-radius:50%;background:var(--q-grey-d);border:calc(var(--px) * 1) solid var(--q-white)}
+.q-beat i.on{background:var(--q-gold);box-shadow:0 0 calc(var(--px) * 4) var(--q-gold)}
+.q-credits{inset:0;overflow:hidden;background:color-mix(in srgb,var(--q-black) 85%,transparent)}
+.q-roll{position:absolute;left:0;right:0;top:100%;text-align:center;animation:q-roll 26s linear forwards}
+.q-cr{margin-bottom:calc(var(--px) * 18)}
+.q-cr h3{margin:0 0 calc(var(--px) * 3);color:var(--q-gold);font-size:calc(var(--px) * 9);text-transform:uppercase;letter-spacing:.1em}
+.q-cr p{margin:0 auto calc(var(--px) * 2);max-width:calc(var(--px) * 250);color:var(--q-white);font-size:calc(var(--px) * 9)}
+.q-cr:first-child h3{font-size:calc(var(--px) * 15);color:var(--q-cursor)}
+@keyframes q-roll{from{transform:translateY(0)}to{transform:translateY(calc(-100% - var(--px) * 190))}}
+.q-complete .q-panel{max-height:calc(var(--px) * 172)}
+.q-complete .sk-unlock{margin:calc(var(--px) * 3) auto}
+@media (prefers-reduced-motion:reduce){
+  .q-roll{animation:none;position:static;padding:calc(var(--px) * 10) 0}
+  .q-credits{overflow-y:auto}
+  .q-whisper.on{animation:none;opacity:1}
+  .q-beat i.on{box-shadow:none}
+}

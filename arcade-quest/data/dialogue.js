@@ -10,14 +10,37 @@
      yes / no   for 'teach': the lines after passing or not passing the song
    '@tally Hi!' = this line is said by another speaker listed in that character's `speakers`.
    {you} = the student's instrument, {need} = how many more ghosts Sir Reginald wants calmed.
-   FLAGS the game sets: songBb (learned the B♭ Blast), reginaldAwake, atticOpen (the Phantom Fermata harmonized).
-   THE STORY SO FAR (hints only, no big reveal yet): "the static" is spreading, sounds are going missing, and
-   something up in the attic is listening. Some ghosts whisper about a big microphone nobody has ever seen. */
+   FLAGS the game sets: songBb (learned the B♭ Blast), reginaldAwake, atticOpen (the Phantom Fermata harmonized),
+   met-conductor (heard the Ghost Conductor's speech), ep1Done (the Ghost Conductor befriended: Episode 1 finished).
+   THE STORY: the Band Arcade's own listening microphone has heard every squeak, cracked note and wrong fingering
+   for years, and nobody ever played just for IT. It has come to believe music is only noise, so it is pulling the
+   sound out of the cabinets to make the noise stop. It is misunderstood, not evil. Episode 1 only HINTS at it: the
+   static, missing sounds, a giant microphone glimpsed in windows, crackling whispers, rumors, and the cliffhanger.
+   ALSO IN THIS FILE: QUEST_CUTSCENES (the intro, the ending, the cliffhanger), QUEST_WHISPERS (the microphone's
+   whispers while you explore) and QUEST_CREDITS. */
 window.QUEST_DIALOGUE = {
+
+  /* ================= THE ATTIC: the final boss's speech (before the battle, once) ================= */
+
+  conductor: {name: 'The Ghost Conductor', sprite: 'conductor', area: 'The Attic', talk: [
+    {if: '!met-conductor', set: 'met-conductor', lines: [
+      'SILENCE! Who dares make a sound in MY attic?',
+      'I am the Ghost Conductor. My orchestra played in this manor for a hundred years.',
+      'Then the static came. It swallowed their sound. Every note. Every last one.',
+      'Now there is only silence. And silence, I will conduct FOREVER!',
+      '...Unless you think you can play? Hmph. Show me. From the top!',
+    ]},
+    {lines: ['You again! Very well. From the top! And this time, WATCH MY BATON!']},
+  ]},
 
   /* ================= THE FOYER ================= */
 
   mezzo: {name: 'Madame Mezzo', sprite: 'npc-mezzo', area: 'The Foyer', talk: [
+    {if: 'ep1Done', cycle: [
+      ['Darling! The music is BACK! I have not stopped singing since. Nobody has asked me to.'],
+      ['That crackle at the end, though... Kssshhh. Something out there is still listening.'],
+      ['The Conductor rehearses every night now. Ghosts love a rehearsal. We have time.'],
+    ]},
     {if: 'atticOpen', cycle: [
       ['The Fermata let you pass? Magnificent! Bravissimo! Encore!',
         'But the attic... Something up there hums at night. Low. Steady. Listening.',
@@ -48,6 +71,7 @@ window.QUEST_DIALOGUE = {
       ['Sir Reginald is asleep on the attic stairs. Calm the manor down and he might move.'],
       ['Warm up, darling! Long tones first. Even legends do their long tones.'],
       ['Some nights, whole songs go missing. Just... gone. As if something swallowed them.'],
+      ['They say the arcade has a microphone that hears everything. Nobody has ever seen it.'],
     ]},
   ]},
 
@@ -63,6 +87,7 @@ window.QUEST_DIALOGUE = {
       ['Did the walls just go kssshh? That\'s not normal, right? RIGHT?'],
       ['Cork Grease keeps sour notes from sticking. Also great for stuck corks. Obviously.'],
       ['I heard a noise in the attic once. I hid in a trumpet case for three days.'],
+      ['Terry says the static comes from a giant microphone. I say we DON\'T go look.'],
       ['A Tuning Slide! Pull it out, push it in. Your next PLAY hits way harder.'],
     ]},
   ]},
@@ -78,6 +103,7 @@ window.QUEST_DIALOGUE = {
       ['Got stars? I got tokens. Let\'s do business.'],
       ['Earn more stars in Ghost Notes, Note Storm, Chime Heist... then come see Terry!'],
       ['Fun fact: the static started the same night the jukebox skipped a beat. Coincidence?'],
+      ['I heard it once, through the jukebox. A whisper: "...so much noise..." Brrr.'],
       ['Tokens buy supplies at Rusty\'s. Tell him Terry sent you. He\'ll scream. Then he\'ll help.'],
     ]},
   ]},
@@ -163,6 +189,7 @@ window.QUEST_DIALOGUE = {
       ['One more time from the top? Always. That is a butler\'s motto. And a band\'s.'],
       ['I polished the attic door once. It hummed at me. I have not gone back.'],
       ['The Wobbles adore a long tone. Hold it steady and they stop jiggling at once.'],
+      ['Every sour note ever played in the arcade... something heard them all. Poor thing.'],
     ]},
     {if: '!met-butler', set: 'met-butler', next: true, lines: [
       'Good evening. I am the Butler. I have buttled here for one hundred and twelve years.',
@@ -225,7 +252,7 @@ window.QUEST_SIGNS = {
   'hall-portrait-2': ['"Lady in Red." She played trumpet. She always warmed up first.'],
   'hall-portrait-3': ['A painting of the moon. Someone wrote "Moonlight Sonata" on the frame.'],
   'hall-portrait-4': ['A portrait of Sir Reginald, asleep. The painter did too.'],
-  'hall-portrait-5': ['"The Conductor." Her baton is raised. Everyone in the painting is holding their breath.'],
+  'hall-portrait-5': ['"The Conductor." His baton is raised. The whole orchestra holds its breath.'],
   'book-1': ['"Dynamics for Beginners": p = piano = soft. f = forte = loud.'],
   'book-2': ['"Tempo Tales": Largo is very slow. Allegro is fast and lively.'],
   'book-3': ['"The Staff and You": five lines, four spaces. Notes live on both.'],
@@ -254,7 +281,59 @@ window.QUEST_SIGNS = {
   'attic-sheet': ['Something huge under a dusty sheet. A thick cable snakes out from under it.', 'You hear a low hum. Kssshhh... It sounds like it\'s listening. Better not peek yet.'],
   'attic-cable': ['A thick black cable, humming with static. It runs from the sheet... into the wall. Into the arcade?'],
   'attic-window': ['From up here you can see the whole arcade, glowing in the dark.'],
-  'attic-end': ['A note, scribbled in shaky handwriting: "IT HEARS EVERYTHING."', 'TO BE CONTINUED... (The end of Episode 1 is on its way!)'],
+  'attic-end': ['A note, scribbled in shaky handwriting: "IT HEARS EVERYTHING."', 'Under it, in the Conductor\'s neat hand: "Then let us give it something worth hearing."'],
   'practice-sign': ['PRACTICE HALL: these ghosts come back every visit. Practice makes permanent!'],
   'practice-window': ['Rain on the window, perfectly in time. Even the weather practices here.'],
 };
+
+/* CUTSCENES (engine/story.js plays them; A or a tap = next line, SKIP skips the whole scene).
+   Each shot: {show: what's on screen, lines, name?/portrait? (who's talking), sfx?, music?, wait? (ms, no lines),
+   title? (big words on screen)}. show: 'arcade' (the arcade after hours, you practicing) | 'glitch' (screens
+   flickering) | 'drain' (the color draining into static) | 'pull' (the Ghost Notes cabinet pulling you in) |
+   'party' (the manor celebrating) | 'crackle' (every speaker crackles) | 'mic' (the giant microphone) | 'black'.
+   '@conductor ' / '@mezzo ' at the start of a line = that character says it. {you} = the student's instrument. */
+window.QUEST_CUTSCENES = {
+  intro: {music: 'quest-intro', shots: [
+    {show: 'arcade', lines: ['The Band Arcade, after closing. The lights are low. The cabinets hum.',
+      'Everyone else went home. You stayed late to practice your {you}.',
+      'One more time from the top. Just you, your music and the glowing screens.']},
+    {show: 'glitch', sfx: 'quest-static', lines: ['Then... kssshhh. The screens flicker. Every cabinet at once.',
+      'A low electronic hum fills the room. It almost sounds like... listening.']},
+    {show: 'drain', sfx: 'quest-mic-crackle', lines: ['The colors drain away into gray, crackling static.',
+      'Somewhere inside the static, a voice whispers: "...so... much... noise..."']},
+    {show: 'pull', sfx: 'quest-static', lines: ['The Ghost Notes cabinet glows bright. Its screen is pulling you in!',
+      'Hold on to your {you}! WHOOOOSH!']},
+  ]},
+  ending: {music: 'quest-victory', shots: [
+    {show: 'party', lines: ['The Ghost Conductor raises his baton... and the whole manor fills with music!',
+      'Color floods back into every room. The candles glow gold again.']},
+    {show: 'party', lines: ['@conductor Listen! My orchestra has its sound back! Bravo, {you}! BRAVO!',
+      '@mezzo BRAVISSIMA! Encore! ENCORE! Darling, you did it!',
+      'Every ghost you helped is dancing. Even Sir Reginald is awake. Mostly.']},
+  ]},
+  cliffhanger: {music: null, shots: [
+    {show: 'crackle', sfx: 'quest-mic-crackle', lines: ['Then every speaker in the manor crackles at once. KSSSSHHHHH.',
+      'The music stops. The ghosts freeze. Nobody breathes. (Ghosts don\'t, but still.)']},
+    {show: 'mic', music: 'quest-cliffhanger', sfx: 'quest-mic-crackle', lines: ['"...still... so much... noise..."']},
+    {show: 'black', wait: 900},
+    {show: 'black', title: 'TO BE CONTINUED IN EPISODE 2', wait: 3500},
+  ]},
+};
+window.QUEST_CUTSCENE_SPEAKERS = {conductor: {name: 'The Ghost Conductor', sprite: 'conductor'}, mezzo: {name: 'Madame Mezzo', sprite: 'npc-mezzo'}};
+
+/* THE MICROPHONE'S WHISPERS: now and then while you explore the manor, the static crackles, a giant microphone
+   shows in the windows for a moment, and one of these floats by. */
+window.QUEST_WHISPERS = ['...so much noise...', '...too loud... too many notes...', '...kssshhh... listening...', '...why won\'t it stop...',
+  '...every squeak... every crack...', '...nobody ever plays for me...'];
+
+/* THE CREDITS (a short roll after the cliffhanger; SKIP or A skips it). {you} = the student's instrument. */
+window.QUEST_CREDITS = [
+  {h: 'Arcade Quest', lines: ['The Mysterious Microphone', 'Episode 1: Ghost Notes Manor']},
+  {h: 'Created by', lines: ['Mr. Graham']},
+  {h: 'Starring', lines: ['You, on {you}']},
+  {h: 'Ghost Notes Manor', lines: ['Madame Mezzo', 'Rusty', 'Token Booth Terry', 'Loopy Lou', 'Sir Reginald Rest', 'Forgetful Fran', 'Tilly & Tally', 'The Butler', 'Dizzy Dot', 'Sous-Chef Sizzle']},
+  {h: 'The ghosts', lines: ['Wisps, Squeakers, Hushes, Wobbles and Chatterboxes', 'The Phantom Fermata', 'The Ghost Conductor and his orchestra']},
+  {h: 'Special cameo', lines: ['The Showtime Band: Tubby Tusk, Professor Hoot, Snapjaw Sal, Rico Bandit and Maestro Moose (from Showtime Malfunction)']},
+  {h: 'And', lines: ['The Mysterious Microphone, who is still listening']},
+  {h: 'Thank you for playing!', lines: ['Keep practicing. Every clean note counts.']},
+];

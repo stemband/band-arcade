@@ -143,11 +143,14 @@
   }
 
   /* ---------- LONG TONE (and HARMONIZE's happy note): hold one note steady and in tune ---------- */
-  function longtone(enemy, {item, seq, hold, tol = 25, secs, title}) {
+  function longtone(enemy, {item, seq, hold, tol = 25, secs, title, cutoff}) {
     if (!item) { seq = notes(enemy, 1); item = seq.items[0]; }
     secs = secs || hold + 7;
-    const p = panel(title || Q.text('longIntro', {note: item.label, n: hold}),
-      `<div class="q-staff q-one">${staff(seq, [item], 0)}</div><div class="q-hold"><i id="qHold"></i></div><p class="q-cents" id="qCents">–</p>`);
+    // cutoff (the Ghost Conductor): the hold length is a secret (the bar is measured against a longer one) and he
+    // "cuts you off" when it's reached
+    const barLen = cutoff ? hold * 1.6 : hold;
+    const p = panel(title || Q.text(cutoff ? 'cutoffIntro' : 'longIntro', {note: item.label, n: hold}),
+      `<div class="q-staff q-one">${staff(seq, [item], 0)}</div><div class="q-hold${cutoff ? ' q-cutoff' : ''}"><i id="qHold"></i></div><p class="q-cents" id="qCents">–</p>`);
     let got = 0, lastT = 0;
     return new Promise(done => {
       const end = () => { c.stop(); finish(p, stop, {acc: Math.min(1, got / hold), speed: c.left() / secs, correct: got >= hold ? 1 : 0, total: 1}).then(done); };
@@ -156,13 +159,14 @@
         const dev = r ? (((r.midi - item.pc) % 12 + 18) % 12 - 6) * 100 : null;
         const on = r && r.pc === item.pc && Math.abs(dev) <= tol;
         got = on ? got + dt : Math.max(0, got - dt * .5);          // off or silent: it slowly drains
-        p.querySelector('#qHold').style.width = Math.min(100, got / hold * 100) + '%';
+        p.querySelector('#qHold').style.width = Math.min(100, got / barLen * 100) + '%';
+        if (cutoff && on && got < hold) say(p, got < hold / 2 ? 'Hold it...' : 'Hold... hold...', '');
         const ce = p.querySelector('#qCents');
         if (!r) ce.textContent = '–';
         else if (r.pc !== item.pc) ce.textContent = `That's ${seq.name(r.pc)}`;
         else { const a = Math.round(Math.abs(dev)); ce.textContent = a <= tol ? `IN TUNE ${a ? (dev > 0 ? '+' : '−') + a + '¢' : ''}` : `${dev > 0 ? '+' : '−'}${a}¢ ${dev > 0 ? 'sharp' : 'flat'}`; }
         ce.className = 'q-cents ' + (on ? 'good' : r ? 'bad' : '');
-        if (got >= hold) { say(p, 'Steady! Beautiful.', 'good'); onFrame = null; end(); }
+        if (got >= hold) { say(p, cutoff ? 'CUT OFF! (He swipes his baton.) Perfectly held.' : 'Steady! Beautiful.', 'good'); onFrame = null; end(); }
       };
       const stop = demoKeys({
         s: [() => { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = item.sounding; }, () => { A.Pitch.demoNote = null; }],
@@ -175,20 +179,31 @@
   }
 
   /* ---------- ARTICULATE: one note × N separate times (the Snare Drum: any clean hit) ---------- */
-  function articulate(enemy, {taps = enemy.taps || 4, secs = enemy.time || 7, title} = {}) {
+  function articulate(enemy, {taps = enemy.taps || 4, secs = enemy.time || 7, title, bpm = enemy.bpm} = {}) {
     let seq = null, item = null;
     if (!unpitched) { seq = notes(enemy, 1); item = seq.items[0]; }
-    const p = panel(title || (unpitched ? Q.text('tapIntroDrum', {n: taps}) : Q.text('tapIntro', {note: item.label, n: taps})),
+    const intro = bpm ? (unpitched ? Q.text('beatIntroDrum', {n: taps}) : Q.text('beatIntro', {note: item.label, n: taps}))
+      : unpitched ? Q.text('tapIntroDrum', {n: taps}) : Q.text('tapIntro', {note: item.label, n: taps});
+    const p = panel(title || intro,
       (item ? `<div class="q-staff q-one">${staff(seq, [item], 0)}</div>` : '<div class="q-drum" aria-hidden="true"></div>') +
-      `<p class="q-taps" id="qTaps">${'<i></i>'.repeat(taps)}</p>`);
-    let hits = 0, wrong = 0;
+      (bpm ? `<p class="q-beat" aria-hidden="true"><i></i></p>` : '') + `<p class="q-taps" id="qTaps">${'<i></i>'.repeat(taps)}</p>`);
+    let hits = 0, wrong = 0, onBeat = 0;
+    // bpm (the Ghost Conductor): his baton light flashes on every beat (silently: a click would deafen the mic);
+    // notes played near a beat count more
+    const period = bpm ? 60000 / bpm : 0, t0 = performance.now(), light = p.querySelector('.q-beat i');
+    const beatIv = bpm ? setInterval(() => { if (light) { light.classList.add('on'); setTimeout(() => light.classList.remove('on'), 140); } }, period) : 0;
     return new Promise(done => {
-      const end = () => { c.stop(); finish(p, stop, {acc: Q.clamp(hits / taps - wrong * .1, 0, 1), speed: c.left() / secs, correct: hits, total: taps}).then(done); };
+      const end = () => {
+        c.stop(); clearInterval(beatIv);
+        const acc = bpm ? hits / taps * (0.6 + 0.4 * (hits ? onBeat / hits : 0)) : hits / taps;
+        finish(p, stop, {acc: Q.clamp(acc - wrong * .1, 0, 1), speed: c.left() / secs, correct: hits, total: taps}).then(done);
+      };
       A.Pitch.demoTarget = () => item ? {pc: item.pc, midi: item.sounding} : null;
       A.Pitch.demoAttacks = true;
       onAttack = a => {
         if (unpitched || a.pc === item.pc) {
           hits++;
+          if (bpm) { const ph = ((a.time - t0) % period + period) % period / period; if (ph < .25 || ph > .75 || A.DEMO) onBeat++; }
           p.querySelectorAll('#qTaps i').forEach((d, k) => d.classList.toggle('on', k < hits));
           if (hits >= taps) { say(p, 'Clean and separate!', 'good'); onAttack = null; end(); }
           else { say(p, `${taps - hits} more!`, 'good'); Q.sfx('attack-tick'); }
@@ -268,6 +283,10 @@
   /* ---------- HARMONIZE: the enemy's happy note (or happy rhythm) ---------- */
   function harmonize(enemy) {
     const h = enemy.harmonize || {type: 'note', hold: 1.5};
+    if (h.type === 'scale') {                                  // the final HARMONIZE: the whole concert B♭ scale (snare: 8 strokes)
+      if (unpitched) return articulate({taps: 8, time: 16}, {title: Q.text('harmonizeScaleDrum')});
+      return play({notes: 'Bb', order: 'order', count: 8, time: h.time || 40}, undefined, undefined, Q.text('harmonizeScale'));
+    }
     if (unpitched || h.type === 'articulate') {
       const taps = h.taps || 5;
       return articulate(enemy, {taps, secs: taps + 5, title: unpitched ? Q.text('harmonizeDrum', {n: taps}) : undefined});
@@ -282,7 +301,10 @@
       if (harm) return harmonize(enemy);
       const t = resolve(type);
       if (t === 'play') return play(enemy);
-      if (t === 'longtone') return longtone(enemy, {hold: enemy.hold || 3});
+      if (t === 'longtone') {
+        const hold = Array.isArray(enemy.hold) ? Math.round(Q.rand(enemy.hold[0], enemy.hold[1]) * 2) / 2 : enemy.hold || 3;
+        return longtone(enemy, {hold, cutoff: !!enemy.cutoff, secs: enemy.cutoff ? enemy.time : undefined});
+      }
       if (t === 'articulate') return articulate(enemy);
       if (t === 'vocab') return vocab(enemy);
       if (t === 'fingering') return fingering(enemy);

@@ -63,4 +63,10 @@ window.QUEST_TEXT = {
   itemBoost:       'Your next PLAY will hit harder!',
   bought:          'You bought a {item}!',
   micHint:         'Tap PLAY to use your instrument. The microphone only listens while you play.',
+  keptUsed: 'You already used the {item} this battle. It needs a rest too!',
+  harmonizeScale: 'HARMONIZE! Play the whole concert B♭ scale, bottom to top. Give the orchestra its sound!',
+  harmonizeScaleDrum: 'HARMONIZE! 8 clean, separate strokes. Give the orchestra its beat back!',
+  cutoffIntro: 'LONG TONE! Hold {note} steady... until the Conductor cuts you off!',
+  beatIntro: '{note} × {n}, ON THE BEAT! Watch the baton light.',
+  beatIntroDrum: '{n} clean strokes, ON THE BEAT! Watch the baton light.',
 };

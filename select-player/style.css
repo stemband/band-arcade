@@ -200,3 +200,6 @@ body:not(.phase2) .tile.cpu{display:none}
   .pv-pic,.tile.on,.ready.go p,.ready.go .flash{animation:none}
   .tile,.tile.on{transition:none;transform:none}
 }
+/* BACKUP / RESTORE (shared/backup.js): a small text button on the player card */
+.card-backup{display:block;margin:4px auto 0;min-height:32px;padding:2px 10px;border:0;background:none;color:var(--text-lo);font-family:var(--text);font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.card-backup:hover,.card-backup:focus-visible{color:var(--cyan-hi)}

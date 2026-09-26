@@ -65,6 +65,7 @@
       move: null, wait: Q.rand(0.4, 1.6)}));
     prerender();
     setTimeout(() => { if (W && W.def === def) prerender(); }, 800);     // again, once any PNG art has loaded
+    W.whisperAt = Q.rand(25, 45); W.whisper = null;
     if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(def.music || 'quest-manor');
     Q.talk.hud(); Q.talk.banner(def.name);
   }
@@ -122,9 +123,11 @@
     g.move = {fx: g.x, fy: g.y, t: 0};
     g.x = nx; g.y = ny;
   }
-  function encounter(g) {
+  async function encounter(g) {
     if (W.busy) return;
     W.busy = true; W.fighting = g.key;
+    const E = (window.QUEST_ENEMIES || []).find(e => e.id === g.type);
+    if (E && E.talk) { await Q.talk.npc(E.talk); if (!W || W.fighting !== g.key) return; }   // the final boss's speech first
     Q.sfx('quest-encounter');
     W.flash = {t: 0};
     setTimeout(() => {
@@ -144,6 +147,28 @@
     W.ghosts = W.ghosts.filter(x => x !== g);
     if (!W.def.practice) { Q.save.get().done[W.map + ':' + g.key] = result.kind; Q.save.write(); }
     if (result.enemy === 'fermata' && result.kind === 'befriend') prerender();   // the attic door opens
+    if (result.enemy === 'conductor' && result.kind === 'befriend') {             // THE END of Episode 1 (engine/story.js)
+      const first = !Q.save.flag('ep1Done');
+      Q.save.setFlag('ep1Done'); Q.save.achievements();
+      W.busy = true;
+      Q.go('cutscene', {id: 'ending', next: {id: 'cliffhanger', next: {credits: true, first}}});
+    }
+  }
+
+  /* ---------- the microphone's whispers (Episode 1's hints): now and then, while exploring (not in the Foyer or the
+     Practice Hall), the static crackles, a microphone shows in the windows and a whisper floats by ---------- */
+  function whisperTick(dt) {
+    if (W.whisper) { W.whisper.t += dt; if (W.whisper.t > 4.5) { W.whisper = null; const el = Q.$('qWhisper'); if (el) el.classList.remove('on'); } return; }
+    if (W.busy || W.def.practice || W.def.safe || W.map === 'foyer') return;
+    W.whisperAt -= dt;
+    if (W.whisperAt > 0) return;
+    W.whisperAt = Q.rand(55, 95);
+    W.whisper = {t: 0};
+    Q.sfx('quest-mic-crackle');
+    let el = Q.$('qWhisper');
+    if (!el) { el = Q.el('p', 'q-whisper'); el.id = 'qWhisper'; el.setAttribute('aria-live', 'polite'); Q.ui.appendChild(el); }
+    el.textContent = Q.pick(window.QUEST_WHISPERS || ['...so much noise...']);
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
   }
 
   /* ---------- A and B ---------- */
@@ -166,6 +191,8 @@
     /** move an NPC somewhere (Sir Reginald stepping aside) */
     moveNpc(id, at) { W.npcs.filter(n => n.id === id).forEach(n => { n.x = at[0]; n.y = at[1]; n.px = at[0] * T; n.py = at[1] * T; }); },
     here: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir},
+    /** tests: a whisper right now */
+    whisperNow() { if (W) { W.whisper = null; W.whisperAt = 0; } },
     /** tests: stand on a tile (demo only) */
     warp(x, y, dir) { if (!A.DEMO || !W) return; W.x = x; W.y = y; W.px = x * T; W.py = y * T; W.move = null; if (dir) W.dir = dir; },
   };
@@ -204,6 +231,7 @@
       if (!W.busy && !W.move && !W.fade) { const d = heldDir() || W.tap; if (d) tryStep(d); }
       W.tap = null;
       if (!W.busy) W.ghosts.forEach(g => ghostThink(g, dt));
+      whisperTick(dt);
       W.px = W.move ? (W.move.fx + (W.x - W.move.fx) * Math.min(1, W.move.t)) * T : W.x * T;
       W.py = W.move ? (W.move.fy + (W.y - W.move.fy) * Math.min(1, W.move.t)) * T : W.y * T;
       W.ghosts.forEach(g => {
@@ -246,6 +274,14 @@
       if (!W.busy && !W.move) {
         const [fx, fy] = facing(), n = npcAt(fx, fy), th = thingAt(fx, fy);
         if (n || th) Q.draw(ctx, 'talk', fx * T + 4 - cx, (n ? fy * T - 24 : fy * T - 8) - cy - (Q.reduced() ? 0 : Math.round(Math.abs(Math.sin(now / 250)) * 2)));
+      }
+      // a whisper: faint static bands, and the microphone's silhouette in every window for a moment
+      if (W.whisper) {
+        const a = Math.min(1, W.whisper.t / .5, (4.5 - W.whisper.t) / .8);
+        W.def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => { if (ch === 'w') { ctx.globalAlpha = a; Q.draw(ctx, 'mic-shadow', tx * T + 5 - cx, ty * T + 2 - cy); } }));
+        ctx.globalAlpha = a * .12; ctx.fillStyle = Q.css('q-grey');
+        for (let i = 0; i < 6; i++) ctx.fillRect(0, (Q.reduced() ? i * 31 : (i * 31 + Math.floor(now / 90) * 7) % Q.H), Q.W, 1);
+        ctx.globalAlpha = 1;
       }
       // drifting fog over the whole room (static with reduced motion)
       if (W.def.fog) {

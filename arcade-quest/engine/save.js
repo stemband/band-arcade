@@ -6,6 +6,11 @@
       done: {'<room>:<ghost key>': 'befriend' | 'fade'} (manor ghosts already helped: they don't come back),
       converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>')}
    Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
+   SAVE CODES (shared/backup.js, format version 1): Q.save.code() = the 25-character code shown at the jukebox;
+   Q.save.fromCode(code) -> {ok, error} replaces this device's save with it (ENTER SAVE CODE on the title screen).
+   `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
+   star sources the next time the Token Booth counts (engine/talk.js).
+   Every write also stores `progress` = {pct, friends} for the arcade floor's line ("Episode 1: 60% · 7 friends").
    SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool, tone: 0–3 (skin tone)}.
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
    Q.settings.open() shows the SETTINGS panel. */
@@ -14,13 +19,23 @@
   const Q = A.Quest, GAME = 'arcade-quest';
   const SAVE_VERSION = 2;
   const data = () => A.store.gameData(GAME);
-  const write = () => A.store.saveGameData(GAME);
+  /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10,
+     the Ghost Conductor 20 */
+  function progress(s) {
+    const maps = window.QUEST_MAPS || {}, keys = [];
+    Object.keys(maps).forEach(id => { if (!maps[id].practice) (maps[id].enemies || []).forEach(e => keys.push(id + ':' + e.key)); });
+    const helped = keys.filter(k => (s.done || {})[k]).length, f = s.flags || {};
+    const pct = Math.round((keys.length ? helped / keys.length * 50 : 0) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen ? 10 : 0) + (f.ep1Done ? 20 : 0));
+    return {pct: Math.min(100, pct), friends: (s.roster || []).length};
+  }
+  const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
     world: null, flags: {}, done: {}, converted: {}});
   /** older saves -> the current version, one step at a time */
   function upgrade(s) {
     if (!s || typeof s !== 'object' || !s.v) return fresh();
     if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
+    s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
     return s;
   }
 
@@ -29,6 +44,32 @@
     get() { const d = data(); d.save = upgrade(d.save); return d.save; },
     write,
     reset() { data().save = fresh(); write(); return data().save; },
+    /** this save as a 25-character save code (shared/backup.js) */
+    code: () => A.Backup ? A.Backup.questEncode(Q.save.get()) : '',
+    /** replace this device's save with a save code: {ok: true} or {ok: false, error} */
+    fromCode(code) {
+      const r = A.Backup ? A.Backup.questDecode(code) : {ok: false, error: 'Save codes need shared/backup.js.'};
+      if (!r.ok) return r;
+      const f = r.fields, s = fresh(), friends = f.roster.filter(id => !['squawk', 'warble', 'clatterbox', 'quizzle', 'stickyvalve'].includes(id));
+      Object.assign(s, {level: f.level, xp: f.xp, tokens: f.tokens, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world: f.world,
+        convertedLeft: f.convertedLeft, maxHp: Q.save.maxHpAt(f.level)});
+      s.hp = s.maxHp;
+      const done = Object.values(f.done);
+      s.battles = {won: done.length, befriended: done.filter(k => k === 'befriend').length || friends.length, faded: done.filter(k => k === 'fade').length};
+      data().save = s; write();
+      return {ok: true};
+    },
+    progress,
+    /** skins (shared/skins.js rules {game: 'arcade-quest', achievement}): 'ep1' = Episode 1 finished (Pixel Hero);
+        'manor-friends' = every kind of manor ghost befriended (the Baton). Saved in gameData('arcade-quest').achievements. */
+    achievements() {
+      const s = Q.save.get(), d = data(), a = d.achievements || (d.achievements = {});
+      if ((s.flags || {}).ep1Done) a.ep1 = true;
+      const manor = (window.QUEST_ENEMIES || []).filter(e => e.area === 'manor').map(e => e.id);
+      if (manor.length && manor.every(id => (s.roster || []).includes(id))) a['manor-friends'] = true;
+      write();
+      return a;
+    },
     xpToNext: level => 20 + (level - 1) * 15,
     maxHpAt: level => 20 + (level - 1) * 4,
     flag: name => !!(Q.save.get().flags || {})[name],

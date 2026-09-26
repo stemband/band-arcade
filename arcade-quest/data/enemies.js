@@ -32,6 +32,17 @@
                music        its battle music event (shared/sounds.js); leave out for quest-battle
                opens        a story flag set when it's befriended (the Phantom Fermata: 'atticOpen')
                size (maps)  how many tiles wide it stands in the overworld
+   ALSO (the FINAL BOSS, the Ghost Conductor):
+               talk         a character in data/dialogue.js whose speech plays before the battle
+               stages       the battle changes as its HP drops: [{until (share of HP where the NEXT stage starts),
+                            say (its words when the stage starts), challenge + notes/count/hold/taps/time/bpm/cutoff,
+                            dodge}]. hold: [min, max] = a random length; cutoff: true = the length is a secret ("hold
+                            it until I cut you off"); bpm: the baton beats this tempo (notes on the beat count more)
+               finale       at HP 1 (mustHarmonize) its CALM fills and it says these lines
+               harmonizeKeep  a missed HARMONIZE doesn't empty the CALM meter
+               harmonize {type: 'scale', time}  the whole concert B♭ scale, bottom to top (snare: 8 clean strokes)
+   DODGE KINDS for the final boss: 'baton' (a warning line, then the baton sweeps across the box), 'measure' (falling
+   measures of music: a row with one gap), 'sweep' (small fermatas swooping across in a wave).
    Where each ghost wanders: data/maps/manor.js (a wisp's happy note can be set there per ghost). */
 window.QUEST_ENEMIES = [
   {
@@ -185,5 +196,33 @@ window.QUEST_ENEMIES = [
     lines: {intro: 'The Phantom Fermata rises over the attic door. "HOLLLLLLD..."', turn: ['"HOLD... THAT... NOTE..."', 'The Fermata\'s eye glows. Static crackles.', 'The Fermata stretches. Everything slows down.'],
       hurt: 'The Fermata wavers... but it holds on.', calm: 'The Fermata\'s eye softens.', fade: 'The Fermata shrinks back, still holding the door.',
       befriend: 'The Fermata sighs a long, happy note... and lets go of the attic door.', hold: 'The Fermata clings to the door. It won\'t let go. Try to HARMONIZE with it!'},
+  },
+  {
+    id: 'conductor', name: 'The Ghost Conductor', sprite: 'conductor', hp: 96, atk: 2, area: 'manor', boss: true, final: true, music: 'quest-boss', talk: 'conductor',
+    challenge: 'play', notes: 'first5', count: 4, time: 12, mustHarmonize: true, harmonizeKeep: true,
+    happy: 0,
+    calm: {perNote: 0, listen: 0, success: 0},
+    stages: [
+      {until: .66, say: ['Play! PLAY! Your first five notes. Crisp! Clean! No squeaks in MY orchestra!'],
+        challenge: 'play', notes: 'first5', count: 4, time: 12,
+        dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.1, speed: 1}, {kind: 'rain', sprite: 'sour', every: 0.9, speed: 44}]}},
+      {until: .33, say: ['Enough! Now a LONG TONE. Hold it... until I cut you off!', 'Breathe first. A conductor always sees who didn\'t.'],
+        challenge: 'longtone', notes: 'first5', hold: [3, 5], cutoff: true, time: 13,
+        dodge: {seconds: 8, patterns: [{kind: 'measure', every: 1.7, speed: 34}, {kind: 'baton', every: 2.8, speed: 1}]}},
+      {until: 0, say: ['Faster! FASTER! Every note separate. Watch my baton: ON the beat!'],
+        challenge: 'articulate', notes: 'first5', taps: 6, bpm: 96, time: 11,
+        dodge: {seconds: 8, patterns: [{kind: 'sweep', sprite: 'fermata-sm', every: 1.2, speed: 44}, {kind: 'measure', every: 2.3, speed: 36}, {kind: 'baton', every: 3.1, speed: 1.2}]}},
+    ],
+    finale: ['...Wait. That sound. That is... music. REAL music.', 'My orchestra... Can you give them back their sound?',
+      'Play the B♭ scale, the whole thing, bottom to top. HARMONIZE with us!'],
+    harmonize: {type: 'scale', time: 40},
+    listen: ['THE GHOST CONDUCTOR. He led the manor\'s orchestra for a hundred years, until the static stole its sound.',
+      'Now he conducts silence, and he is FURIOUS about it. His baton never stops moving.',
+      'He can\'t be pushed aside. Play your best until he hears real music again... then HARMONIZE.'],
+    dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.2, speed: 1}]},
+    rewards: {fade: {xp: 30, tokens: 15}, befriend: {xp: 60, tokens: 40, item: 'baton'}},
+    lines: {intro: 'The Ghost Conductor taps his baton on the podium. Tap. Tap. TAP.', turn: ['"FROM THE TOP!"', 'The Conductor slashes his baton through the air!', '"Watch. My. BATON!"', 'The Conductor beats a furious 4/4.'],
+      hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting.',
+      befriend: '"My orchestra... I can hear them! Take my baton, {you}. You\'ve earned it."', hold: 'The Conductor won\'t give up his podium. Keep playing!'},
   },
 ];

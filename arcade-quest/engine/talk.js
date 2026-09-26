@@ -110,7 +110,57 @@
     s.world = here; s.hp = s.maxHp; Q.save.write();
     Q.sfx('quest-save'); Q.talk.hud();
     await Q.say(['Saved! The jukebox plays your theme song. Your HP is full again.']);
+    await Q.talk.showCode();
   }
+  /** the SAVE CODE panel: this save as 25 characters (shared/backup.js), to write down or copy */
+  Q.talk.showCode = function () {
+    const code = Q.save.code();
+    if (!code) return Promise.resolve();
+    return new Promise(done => {
+      const p = panel('Your save code', `<p class="q-code" aria-label="Save code: ${code.split('').join(' ')}">${code}</p>` +
+        `<p class="q-small">Write it down! On any device, pick ENTER SAVE CODE on the title screen to carry on from here.</p><p class="q-small q-copied" aria-live="polite"></p>`,
+        [{id: 'copy', label: 'Copy'}, {id: null, label: 'Done'}], {cols: 2, cls: 'q-codep', onPick: (it, i, api) => {
+          if (it.id === 'copy') {
+            const ok = () => { api.el.querySelector('.q-copied').textContent = 'Copied!'; };
+            if (navigator.clipboard) navigator.clipboard.writeText(code).then(ok, () => {}); return;
+          }
+          api.close(); done();
+        }});
+    });
+  };
+  /** ENTER SAVE CODE (the title screen): type a code, check it, ask before replacing a save. Resolves true = loaded */
+  Q.talk.enterCode = function () {
+    return new Promise(done => {
+      const p = Q.el('div', 'q-overlay');
+      p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
+        `<label class="q-small" for="qCodeIn">25 letters and numbers (spaces and dashes don't matter)</label>` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button><button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
+      Q.ui.appendChild(p);
+      const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
+      let confirming = false;
+      const close = ok => { off(); p.remove(); done(ok); };
+      const off = Q.input.on(btn => { if (btn === 'b') close(false); return true; });
+      inp.addEventListener('input', () => {                   // tidy as they type: upper case, groups of 5
+        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 25);
+        inp.value = (raw.match(/.{1,5}/g) || []).join('-'); msg.textContent = ''; confirming = false;
+      });
+      const load = () => {
+        const check = A.Backup && A.Backup.questDecode(inp.value);
+        if (!check || !check.ok) { msg.textContent = check ? check.error : 'Save codes are not available.'; msg.className = 'q-codemsg q-bad'; Q.sfx('note-wrong'); return; }
+        const s = Q.save.get(), started = !!(s.world || (s.battles && s.battles.won) || Object.keys(s.flags || {}).length);
+        if (started && !confirming) {
+          confirming = true; msg.className = 'q-codemsg q-warn';
+          msg.textContent = 'This will replace your Arcade Quest save on this device. Press Load again to continue.'; return;
+        }
+        Q.save.fromCode(inp.value); Q.sfx('quest-save'); close(true);
+      };
+      p.querySelector('[data-a="load"]').addEventListener('click', load);
+      p.querySelector('[data-a="back"]').addEventListener('click', () => close(false));
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); load(); } else if (e.key === 'Escape') close(false); });
+      setTimeout(() => inp.focus(), 30);
+    });
+  };
 
   /* ---------- Token Booth Terry ---------- */
   function starSources() {
@@ -120,7 +170,11 @@
       if (!g.player || !g.maxStars || groups.includes(g.player)) return;           // bells already count Chime Heist
       list.push({key: 'g:' + g.id, label: g.name, stars: st.allStars(g.player, g.id)});
     });
-    const conv = Q.save.get().converted || {};
+    const s = Q.save.get(), conv = s.converted || (s.converted = {});
+    if (s.convertedLeft > 0) {                           // a save code's turned-in stars: spread over this device's sources
+      list.forEach(x => { const n = Math.min(s.convertedLeft, Math.max(0, x.stars - (conv[x.key] || 0))); conv[x.key] = (conv[x.key] || 0) + n; s.convertedLeft -= n; });
+      Q.save.write();
+    }
     list.forEach(s => { s.done = Math.min(s.stars, conv[s.key] || 0); s.fresh = Math.max(0, s.stars - (conv[s.key] || 0)); });
     return list;
   }

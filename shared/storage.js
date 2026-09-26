@@ -78,6 +78,14 @@ window.Arcade = window.Arcade || {};
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
 
   A.store = {
+    /** THE BACKUP (shared/backup.js): everything this device remembers, as a plain object (a deep copy) */
+    exportAll() { return JSON.parse(JSON.stringify(data)); },
+    /** replace everything with a backup (the caller asks first and reloads the page afterwards) */
+    importAll(obj) {
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+      data = Object.assign({inst: null, player: null, hornStart: 'F', sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}}, obj);
+      migrate(); save(); return true;
+    },
     /** the saved player GROUP id (what games save progress under), from the saved member */
     get instId() { const g = data.player && A.groupFor(data.player, {hornStart: data.hornStart}); return g ? g.id : (data.pending && data.pending.group ? null : data.inst); },
     /** the saved instrument MEMBER id ('trumpet'…), or null */

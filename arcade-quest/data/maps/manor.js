@@ -273,13 +273,15 @@ window.QUEST_MAPS = {
     ],
   },
 
-  /* 7. THE ATTIC: locked until the Phantom Fermata is HARMONIZED. The final boss arrives in the next stage. */
+  /* 7. THE ATTIC: locked until the Phantom Fermata is HARMONIZED. THE GHOST CONDUCTOR (the final boss) waits at his
+     podium. Befriending him ends Episode 1 (the ending, the cliffhanger and the credits: engine/story.js). The
+     dusty sheet hides something big with a cable... (Episode 2). A Save Jukebox by the door. */
   attic: {
     name: 'The Attic', music: 'quest-manor', fog: true,
     tiles: [
       'XXXXXXXXXXXXXXXX',
       'X#w##c####c##w#X',
-      'X..............X',
+      'X.j............X',
       'X....ee........X',
       'X....eezzzzzzz.X',
       'X..............X',
@@ -293,8 +295,9 @@ window.QUEST_MAPS = {
     things: [
       {at: [5, 3], say: 'attic-sheet'}, {at: [6, 3], say: 'attic-sheet'}, {at: [5, 4], say: 'attic-sheet'}, {at: [6, 4], say: 'attic-sheet'},
       {at: [2, 1], say: 'attic-window'}, {at: [13, 1], say: 'attic-window'}, {at: [3, 6], say: 'attic-end'}, {at: [10, 4], say: 'attic-cable'},
+      {at: [2, 2], say: 'jukebox', use: 'jukebox'},
     ],
-    enemies: [],
+    enemies: [{key: 'boss', type: 'conductor', at: [10, 6], wander: 0, size: 3}],
   },
 
   /* THE PRACTICE HALL (off the Foyer): one ghost of each kind, back every visit. Replay any challenge. */

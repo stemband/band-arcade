@@ -17,6 +17,7 @@
                 eyes      true: a pair of glowing eyes on the instrument's "face" (ANCHORS), in the skin's second color;
                           'flicker': one red, one blue, swapping slowly on the big portrait (still under reduced motion)
                 pixel     true: the art is redrawn pixelated with a chunky 8-bit frame
+                          (fx 'pixelsparks': chunky square pixel sparkles too: Pixel Hero)
                 ghost     true: see-through, with a ghost-trail glow
               Animation (auras, sparkles, sweeps, floating) plays ONLY on the big Select Player portraits and
               never under prefers-reduced-motion; tiles, chips and in-game portraits get the still version.
@@ -59,6 +60,8 @@ window.Arcade = window.Arcade || {};
                                                                                   look: {colors: ['pink', 'amber'], fx: 'stripes', stripes: true}},
     {id: 'ghostly', kind: 'color', name: 'Ghostly',      unlock: {game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'},
                                                                                   look: {colors: ['cyan', 'purple'], ghost: true}},
+    {id: 'pixelhero', kind: 'color', name: 'Pixel Hero', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'},
+                                                                                  look: {colors: ['yellow', 'cyan'], pixel: true, fx: 'pixelsparks'}},
     // ---- accessories (combine with any color skin) ---------------------------------------------------------
     {id: 'headband', kind: 'acc', name: 'Headband',   unlock: {stars: 25},  art: 'face'},
     {id: 'shades',   kind: 'acc', name: 'Shades',     unlock: {stars: 100}, art: 'face'},
@@ -67,6 +70,7 @@ window.Arcade = window.Arcade || {};
     {id: 'cape',     kind: 'acc', name: 'Cape',       unlock: {game: 'neon-face-off', level: 8, stars: 1, text: 'Beat The Champ in Neon Face-Off (1 player vs CPU)'}, art: 'back'},
     {id: 'helmet',   kind: 'acc', name: 'Helmet',     unlock: {game: 'sustain-speedway', achievement: 'virtuoso-win', text: 'Win any track on Virtuoso in Sustain Speedway'}, art: 'head'},
     {id: 'mask',     kind: 'acc', name: 'Ninja Mask', unlock: {game: 'ancient-ninja-scrolls', badge: true, text: 'Earn a TEST READY badge in Ancient Ninja Scrolls'}, art: 'face'},
+    {id: 'baton',    kind: 'acc', name: 'Baton',      unlock: {game: 'arcade-quest', achievement: 'manor-friends', text: 'Befriend every kind of ghost in Ghost Notes Manor (Arcade Quest)'}, art: 'head'},
   ];
 
   /* ACCESSORY ANCHORS: where each accessory sits on each instrument's portrait, in PERCENT of the square
@@ -127,6 +131,14 @@ window.Arcade = window.Arcade || {};
       '<path d="M44 7Q50 5 56 7L58 66H42Z" fill="var(--amber-hi)" opacity=".9"/>' +
       '<path d="M14 50Q50 34 86 50L84 62Q50 52 16 62Z" fill="var(--deep)" stroke="var(--cyan)" stroke-width="2.4"/>' +
       '<path d="M22 50Q50 40 78 50" stroke="var(--cyan-hi)" stroke-width="2" fill="none" opacity=".8"/>'},
+    // the Ghost Conductor's baton (original): a white stick with a cork grip, tilted, a gold sparkle at the tip
+    baton: {vb: '0 0 100 64', svg:
+      '<path d="M18 58L86 12" stroke="var(--deep)" stroke-width="14" stroke-linecap="round"/>' +
+      '<path d="M18 58L86 12" stroke="var(--white-hi)" stroke-width="8" stroke-linecap="round"/>' +
+      '<path d="M10 64L32 48" stroke="var(--deep)" stroke-width="20" stroke-linecap="round"/>' +
+      '<path d="M10 64L32 48" stroke="var(--amber)" stroke-width="15" stroke-linecap="round"/>' +
+      '<path d="M12 60L28 49" stroke="var(--amber-hi)" stroke-width="4" stroke-linecap="round" opacity=".7"/>' +
+      '<path transform="translate(90 9)" d="M0 -13L3 -3L13 0L3 3L0 13L-3 3L-13 0L-3 -3Z" fill="var(--yellow)" stroke="var(--amber)" stroke-width="1.5"/>'},
     crown: {vb: '0 0 100 64', svg:
       '<path d="M8 60L3 16L28 36L50 5L72 36L97 16L92 60Z" fill="var(--yellow)" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round"/>' +
       '<path d="M10 50H90" stroke="var(--amber)" stroke-width="3"/>' +
@@ -163,6 +175,9 @@ window.Arcade = window.Arcade || {};
   const SPARKS = [[18, 22, .9], [82, 18, .7], [88, 62, 1], [12, 70, .75], [50, 8, .6], [64, 88, .8], [30, 46, .5]];
   const FX = {
     sparkle: `<svg class="sk-sparks" viewBox="0 0 100 100" aria-hidden="true">${SPARKS.map(([x, y, s], i) => `<g style="--i:${i}">${star4(x, y, s, 'sk-spark')}</g>`).join('')}</svg>`,
+    // Pixel Hero: chunky square pixel sparkles (a plus of squares), animated like Sparkle on the big portrait
+    pixelsparks: `<svg class="sk-sparks sk-psparks" viewBox="0 0 100 100" aria-hidden="true" shape-rendering="crispEdges">${SPARKS.map(([x, y, s], i) =>
+      `<g style="--i:${i}"><path class="sk-spark" transform="translate(${x} ${y}) scale(${s})" d="M-1.5 -6H1.5V-1.5H6V1.5H1.5V6H-1.5V1.5H-6V-1.5H-1.5Z"/></g>`).join('')}</svg>`,
     sweep: '', shimmer: '', stripes: '',
     animatronic: '',
     // cracks across the chrome (inside the masked layer, so they only show on the art)
