@@ -17,6 +17,8 @@ shared/               The engine every game uses
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
   storage.js          Saved instrument, mic sensitivity, and progress (on this device only)
+  scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
+  modes.js            RANDOM NOTES / SCALES picker every game shows on its level screen
   games.js            The list of games on the arcade floor, and how each cabinet looks
   sfx.js              Sound effects for the arcade floor and Select Player (made in code, no audio files)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
@@ -41,9 +43,24 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
 
+## Random notes and scales
+
+Every game has two modes, picked with the big buttons on its level screen (remembered per game):
+
+- **Random notes**: the game as it has always been, with the first five notes in random order. Stars saved before scales existed stay right where they were.
+- **Scales**: pick **Concert B♭, E♭, F, A♭** or **Chromatic**. The notes come in scale order, up then down, with the key signature on the staff. Levels keep their difficulty (fading names and time in Ghost Notes; speed, notes on screen and lives in Note Storm). Each scale has its own levels and stars; the scale buttons show them (e.g. "E♭ ★ 9/24"). Students in a group with several instruments are asked which one they play first, because the written scale depends on it.
+
+Each scale is written for the student's own instrument, e.g. Concert E♭ is **F Major** for trumpet, clarinet and tenor sax, **C Major** for alto and bari sax, **B♭ Major** for horn.
+
+**Starting notes.** The table at the top of `shared/scales.js` lists the written note every scale starts on, for every instrument, like `trumpet: { Bb: 'C4', Eb: 'F4', F: 'G3', Ab: 'Bb3' }`. These should match the GMEA scale sheets. To move a scale an octave, change that one note (e.g. `'Bb3'` to `'Bb4'`).
+
+**Where progress goes.** Random notes: `games['ghost-notes'][instrument][level]`, as always. Scales: the same shape under `ghost-notes:scale-Eb`, `note-storm:scale-chrom`, and so on. The home page's hi-score shows random-mode stars and a short "Scales: 3 of 5 started".
+
+**Testing:** in `?demo`, keys 1–5 still play the first five notes; in Scales, hold **Space** to play the note the game is asking for.
+
 ## Note Checker: full range
 
-The Note Checker has two modes, switched at the top: **First 5 notes** (what the games use) and **Full range**, the student's whole chromatic scale. Full range asks "Which instrument do you play?" when a player group has more than one (for example Trumpet / B♭ Clarinet / Tenor Sax) and remembers the answer.
+The Note Checker's buttons at the top pick **First 5** (what the games' random mode uses), a scale (**B♭, E♭, F, A♭**: that scale up and down with its key signature, "11 of 15 notes") or **Chromatic**, the student's whole chromatic scale. Full range asks "Which instrument do you play?" when a player group has more than one (for example Trumpet / B♭ Clarinet / Tenor Sax) and remembers the answer.
 
 - **The ranges** come from the **GMEA All-State Middle School Chromatic Scale sheets**. They live in `MEMBERS` in `shared/instruments.js`: each instrument's lowest and highest written note, and `sounds`, how many half steps it sounds below what's written (bells: −24, two octaves higher). If GMEA changes a sheet, change it there. The games are not affected.
 - **The octave matters.** A note turns gold only when it's played in the octave written on the staff. Playing a low D doesn't count for the high D; the page says "That's a D, but an octave lower. Try the higher one." If the microphone hears a note a whole octave outside the instrument's range (common with tubas on built-in mics), it's moved into the range and counts.

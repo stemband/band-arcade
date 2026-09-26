@@ -1,15 +1,19 @@
 /* Band Arcade — saved settings and progress (this device only, via localStorage).
    Shape:
      { inst: 'alto', sens: 50, sfx: true, ambience: false,
-       checkerMode: 'five', members: {bb: 'clarinet'},
-       games: { 'ghost-notes': { alto: { 1:{stars:3,best:1480}, 2:{...} } } } }
+       checkerMode: 'five', members: {bb: 'clarinet'}, modes: {'ghost-notes': {mode: 'scales', scale: 'Eb'}},
+       games: { 'ghost-notes': { alto: { 1:{stars:3,best:1480}, 2:{...} } },
+                'ghost-notes:scale-Eb': { alto: { 1:{stars:2,best:900} } } } }
    Games store progress per instrument, per level, as {stars, best}. The arcade home
-   page reads that shape to show star totals, so new games should use it too. */
+   page reads that shape to show star totals, so new games should use it too.
+   SCALES mode saves each scale under its own game key, '<gameId>:scale-<scaleId>' (Arcade.Scales.progressKey),
+   with the same shape; RANDOM NOTES mode keeps the plain game id, so existing stars never move. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const KEY = 'bandarcade.v1';
-  let data = {inst: null, sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, games: {}};
+  const CHECKER_MODES = ['five', 'Bb', 'Eb', 'F', 'Ab', 'full'];
+  let data = {inst: null, sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}};
 
   try {
     const raw = localStorage.getItem(KEY);
@@ -37,9 +41,12 @@ window.Arcade = window.Arcade || {};
     setSfx(on) { data.sfx = !!on; save(); },
     get ambience() { return data.ambience === true; },
     setAmbience(on) { data.ambience = !!on; save(); },
-    /** Note Checker: 'five' (first five notes) or 'full' (full chromatic range) */
-    get checkerMode() { return data.checkerMode === 'full' ? 'full' : 'five'; },
-    setCheckerMode(m) { data.checkerMode = m === 'full' ? 'full' : 'five'; save(); },
+    /** Note Checker: 'five' (first five notes), 'full' (chromatic, full range) or a scale id ('Bb', 'Eb', 'F', 'Ab') */
+    get checkerMode() { return CHECKER_MODES.includes(data.checkerMode) ? data.checkerMode : 'five'; },
+    setCheckerMode(m) { data.checkerMode = CHECKER_MODES.includes(m) ? m : 'five'; save(); },
+    /** a game's RANDOM NOTES / SCALES choice: {mode: 'random'|'scales', scale: 'Bb'|'Eb'|'F'|'Ab'|'chrom'} */
+    gameMode(gameId) { return Object.assign({mode: 'random', scale: 'Bb'}, (data.modes || {})[gameId]); },
+    setGameMode(gameId, patch) { data.modes = Object.assign({}, data.modes, {[gameId]: Object.assign(this.gameMode(gameId), patch)}); save(); },
     /** which instrument in a player group this student plays (e.g. bb -> 'clarinet'); for full range only */
     memberFor(groupId) { return (data.members || {})[groupId] || null; },
     setMember(groupId, id) { data.members = Object.assign({}, data.members, {[groupId]: id}); save(); },
@@ -50,6 +57,11 @@ window.Arcade = window.Arcade || {};
     },
     level(gameId, instId, lvl) { return this.levels(gameId, instId)[lvl] || {stars: 0, best: 0}; },
     setLevel(gameId, instId, lvl, p) { this.levels(gameId, instId)[lvl] = p; save(); },
+    /** true once any level of this game key has been played by this instrument */
+    hasProgress(gameId, instId) {
+      const lv = (data.games[gameId] || {})[instId] || {};
+      return Object.values(lv).some(p => p && (p.stars > 0 || p.best > 0));
+    },
     totalStars(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
       return Object.values(lv).reduce((s, p) => s + (p.stars || 0), 0);

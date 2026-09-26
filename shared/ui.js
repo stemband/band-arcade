@@ -10,8 +10,9 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- staff ----------
      Lines at y = 56..120 (16px per space). One diatonic step = 8px.
-     items: [{n, x, id?, color?, caption?}]
-     opts:  {label, fit: notes[] to size the drawing for (default: items), width} */
+     items: [{n, x, id?, color?, caption?}]   (n.natural: draw a natural sign, for a note the key signature would change)
+     opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count}}
+     With a key signature, start the notes keySigWidth(sig) further right so nothing collides. */
   const STAFF_BOTTOM = 120, MID_LINE = 88;
   function noteY(clef, n) {
     const base = clef === 'treble' ? 30 /* E4 */ : 18 /* G2 */;
@@ -26,6 +27,7 @@ window.Arcade = window.Arcade || {};
     for (let ly = 136; ly <= y; ly += 16) g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
     for (let ly = 40; ly >= y; ly -= 16)  g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
     if (it.n.acc) g += `<text class="head" x="${x - 31}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">${it.n.acc < 0 ? '♭' : '♯'}</text>`;
+    else if (it.n.natural) g += `<text class="head" x="${x - 27}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">♮</text>`;
     g += `<ellipse class="head" cx="${x}" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y})" fill="${col}"/>`;
     g += y > MID_LINE
       ? `<line class="stem" x1="${x + 8.3}" y1="${y - 2}" x2="${x + 8.3}" y2="${y - 52}" stroke="${col}" stroke-width="2"/>`
@@ -33,6 +35,21 @@ window.Arcade = window.Arcade || {};
     if (it.caption && capY) g += `<text class="ncap" x="${x}" y="${capY}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="15" fill="#4b5570">${it.caption}</text>`;
     return g;
   };
+  /* ---------- key signatures: the standard positions (sharps F C G D A E B, flats B E A D G C F) ---------- */
+  const SIG_STEPS = {
+    treble: {'#': ['F5', 'C5', 'G5', 'D5', 'A4', 'E5', 'B4'], b: ['B4', 'E5', 'A4', 'D5', 'G4', 'C5', 'F4']},
+    bass:   {'#': ['F3', 'C3', 'G3', 'D3', 'A2', 'E3', 'B2'], b: ['B2', 'E3', 'A2', 'D3', 'G2', 'C3', 'F2']},
+  };
+  const SIG_X = {treble: 54, bass: 60}, SIG_GAP = 12;
+  /** extra room a key signature takes after the clef (add it to the first note's x) */
+  A.keySigWidth = sig => sig && sig.count ? 14 + sig.count * SIG_GAP : 0;
+  function keySigSVG(clef, sig) {
+    if (!sig || !sig.count) return '';
+    return SIG_STEPS[clef][sig.type].slice(0, sig.count).map((nm, i) =>
+      `<text class="ksig" x="${SIG_X[clef] + i * SIG_GAP}" y="${noteY(clef, A.music.parseNote(nm)) + 5}" ${MUSIC_FONT} font-size="48" fill="${INK}">${sig.type === 'b' ? '♭' : '♯'}</text>`).join('');
+  }
+  A.keySigSVG = keySigSVG;
+
   /* opts.captions: leave room for captions even when no item has one yet (for notes drawn on another layer) */
   A.staffSVG = function (clef, items, opts = {}) {
     const W = opts.width || 400;
@@ -49,6 +66,7 @@ window.Arcade = window.Arcade || {};
     s += clef === 'treble'
       ? `<text x="14" y="119" ${MUSIC_FONT} font-size="64" fill="${INK}">𝄞</text>`
       : `<text x="16" y="111" ${MUSIC_FONT} font-size="62" fill="${INK}">𝄢</text>`;
+    s += keySigSVG(clef, opts.keySig);
     items.forEach(it => { s += `<g${it.id ? ` id="${it.id}"` : ''}>${A.noteGlyph(clef, it, capY)}</g>`; });
     return s + `</svg>`;
   };

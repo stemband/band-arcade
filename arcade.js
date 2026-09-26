@@ -87,6 +87,9 @@
     if (!hs.hidden) {
       hs.innerHTML = `<b>Hi-score:</b> ${A.store.totalStars(g.id, inst.id)} / ${g.maxStars} ` +
         `<span class="star" aria-hidden="true">★</span><span class="sr">stars</span> <span class="who">(${inst.shortName})</span>`;
+      // SCALES mode saves each scale separately; just say how many have been tried
+      const started = A.Scales ? A.Scales.LIST.filter(sc => A.store.hasProgress(A.Scales.progressKey(g.id, sc.id), inst.id)).length : 0;
+      if (started) hs.innerHTML += `<span class="scales-note">Scales: ${started} of ${A.Scales.LIST.length} started</span>`;
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));
     try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ }
