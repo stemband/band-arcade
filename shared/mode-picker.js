@@ -9,6 +9,8 @@
        progressKey  where this combination's stars live (Arcade.progressKey)
        label  one line explaining the choice ("Random notes from Concert E♭ (your F Major)")
      group, member: the player group and instrument member (default: the saved player). Chime Heist passes its bells.
+     memory: where the choice is remembered (default gameId; Neon Face-Off keeps one per player: 'neon-face-off:p2').
+     stars: false hides the star totals (a game whose stars aren't per NOTES × ORDER, like Neon Face-Off).
    The last NOTES + ORDER choice is remembered per game (Arcade.store.noteMode). The NOTES buttons show each
    combination's stars for the chosen ORDER, out of the game's maxStars from games.js ("E♭ ★ 9/24").
 
@@ -25,13 +27,14 @@ window.Arcade = window.Arcade || {};
   const S = A.Scales, {noteLabel} = A.music;
   const nm = n => `${noteLabel(n)}${n.oct}`;
 
-  function mount(el, {gameId, group, member, levels, onChange}) {
+  function mount(el, {gameId, group, member, levels, onChange, memory = gameId, stars: showStars = true}) {
+    const uid = memory.replace(/[^a-z0-9]/gi, '-');
     const state = {notes: 'first5', order: 'random', member: null, group: null, scale: null, progressKey: gameId, label: ''};
     const game = (A.GAMES || []).find(g => g.id === gameId);
     const max = game && game.maxStars ? game.maxStars : levels * 3;
 
     function compute() {
-      const saved = A.store.noteMode(gameId);
+      const saved = A.store.noteMode(memory);
       state.group = group || A.currentInstrument();
       state.member = member || A.currentMember();
       state.notes = A.NOTE_CHOICES.some(n => n.id === saved.notes) ? saved.notes : 'first5';
@@ -45,21 +48,21 @@ window.Arcade = window.Arcade || {};
       const g = state.group;
       el.innerHTML =
         `<div class="mp" role="group" aria-label="Game mode">` +
-        `<div class="mp-row"><span class="mp-lbl" id="mpNotes-${gameId}">Notes</span><div class="mp-notes" role="group" aria-labelledby="mpNotes-${gameId}">` +
+        `<div class="mp-row"><span class="mp-lbl" id="mpNotes-${uid}">Notes</span><div class="mp-notes" role="group" aria-labelledby="mpNotes-${uid}">` +
         A.NOTE_CHOICES.map(c => {
           const stars = A.store.totalStars(A.progressKey(gameId, c.id, state.order), g.id);
           const sc = c.id === 'first5' || c.id === 'chrom' ? null : S.build(state.member, c.id);
           const sub = c.id === 'first5' ? g.notes.map(noteLabel).join(' ') : c.id === 'chrom' ? 'Full range' : 'your ' + sc.key;
           const name = c.id === 'first5' || c.id === 'chrom' ? c.short : 'Concert ' + c.short;
           return `<button type="button" class="mp-note${c.id === 'first5' || c.id === 'chrom' ? ' wide' : ''}" data-notes="${c.id}" aria-pressed="${c.id === state.notes}" ` +
-            `aria-label="${name}${sc ? ', your ' + sc.key : ''}. ${stars} of ${max} stars">` +
-            `<b>${c.short}</b><small>${sub}</small><span class="mp-stars"><span aria-hidden="true">★</span> ${stars}/${max}</span></button>`;
+            `aria-label="${name}${sc ? ', your ' + sc.key : ''}${showStars ? `. ${stars} of ${max} stars` : ''}">` +
+            `<b>${c.short}</b><small>${sub}</small>${showStars ? `<span class="mp-stars"><span aria-hidden="true">★</span> ${stars}/${max}</span>` : ''}</button>`;
         }).join('') + `</div></div>` +
-        `<div class="mp-row"><span class="mp-lbl" id="mpOrder-${gameId}">Order</span><div class="mp-order" role="group" aria-labelledby="mpOrder-${gameId}">` +
+        `<div class="mp-row"><span class="mp-lbl" id="mpOrder-${uid}">Order</span><div class="mp-order" role="group" aria-labelledby="mpOrder-${uid}">` +
         A.ORDER_CHOICES.map(o => `<button type="button" class="mp-ord" data-order="${o.id}" aria-pressed="${o.id === state.order}">${o.label}</button>`).join('') +
         `</div></div><p class="mp-say" aria-live="polite">${state.label}</p></div>`;
-      el.querySelectorAll('[data-notes]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(gameId, {notes: b.dataset.notes}); update(b); }));
-      el.querySelectorAll('[data-order]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(gameId, {order: b.dataset.order}); update(b); }));
+      el.querySelectorAll('[data-notes]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {notes: b.dataset.notes}); update(b); }));
+      el.querySelectorAll('[data-order]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {order: b.dataset.order}); update(b); }));
     }
     function update(btn) {
       const k = btn && [...btn.attributes].find(a => /^data-(notes|order)$/.test(a.name));

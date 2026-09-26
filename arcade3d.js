@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim).
      colors    the 2D cabinet's trim/trim2 neon (theme.css tokens), so both versions match.
@@ -76,6 +76,13 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.62, 1.47], [0.62, 1.63]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
+    /* rink: an upright for Neon Face-Off, two players at its panel, a glowing air hockey puck standing on top */
+    rink: {
+      width: 1.0, topper: 'puck', twoPlayer: true,
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.88, 0.84], [0.88, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.63, 1.46], [0.63, 1.66], [0, 1.66]],
+      marquee: [[0.63, 1.48], [0.63, 1.64]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.88, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
+    },
     /* versus: a wide two-player fighting cabinet with a long control panel and a lit VS sign on top */
     versus: {
       width: 1.08, topper: 'vs', twoPlayer: true,
@@ -84,7 +91,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -208,6 +215,18 @@ window.Arcade = window.Arcade || {};
       x.fillStyle = tok.yellow; x.shadowColor = t; x.shadowBlur = 10; x.fillText(name, 0, 0);
       x.restore();
       x.shadowBlur = 0; x.strokeStyle = thi; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
+      return;
+    } else if (k.marquee === 'faceoff') {
+      // a dark glass sign with neon tube letters: the first word in trim, the rest in trim2 (match .mq-faceoff)
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      const [w1, ...rest] = g.name.toUpperCase().split(' '), w2 = rest.join(' ');
+      const s = fitText(x, w1 + ' ' + w2, '"GN Neon", "GN Display", sans-serif', H * .42, W * .86);
+      x.font = `${s}px "GN Neon", "GN Display", sans-serif`;
+      const a = x.measureText(w1).width + s * .35, b = x.measureText(w2).width, x0 = W / 2 - (a + b) / 2;   // the neon font has no space
+      x.textAlign = 'left'; x.shadowBlur = 14;
+      x.shadowColor = t; x.fillStyle = thi; x.fillText(w1, x0, H * .56);
+      x.shadowColor = u; x.fillStyle = tok[k.trim2 + '-hi']; x.fillText(w2, x0 + a, H * .56);
+      x.shadowBlur = 0; x.strokeStyle = t; x.lineWidth = H * .06; x.strokeRect(0, 0, W, H);
       return;
     } else if (k.marquee === 'shade') {
       x.fillStyle = tok['pink-ink']; x.fillRect(0, 0, W, H);
@@ -395,6 +414,19 @@ window.Arcade = window.Arcade || {};
         x.beginPath(); x.arc(bx, H * .5, H * .05, 0, 7); x.fill(); x.stroke();
       }
     },
+    /* Neon Face-Off: the puck slides between a cyan and a magenta mallet on a tiny table (2.4 s loop, as 2D) */
+    hockey(x, W, H, t) {
+      x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
+      const L = W * .06, T = H * .1, R = W * .94, B = H * .9, u = tok[this.trim], v = tok[this.trim2];
+      x.fillStyle = tok['floor-2']; x.fillRect(L, T, R - L, B - T);
+      x.lineWidth = W * .018; x.strokeStyle = u; x.strokeRect(L, T, (R - L) / 2, B - T); x.strokeStyle = v; x.strokeRect(W / 2, T, (R - L) / 2, B - T);
+      x.strokeStyle = tok['text-hi']; x.globalAlpha = .3; x.lineWidth = 1; x.beginPath(); x.arc(W / 2, H / 2, H * .14, 0, 7); x.stroke(); x.globalAlpha = 1;
+      [[L + W * .08, u], [R - W * .08, v]].forEach(([mx, c]) => { x.strokeStyle = c; x.lineWidth = W * .02; x.beginPath(); x.arc(mx, H / 2, H * .08, 0, 7); x.stroke(); });
+      const p = t == null ? .5 : (t % 2.4) / 2.4, a = p * Math.PI * 2;
+      const px = W / 2 - Math.cos(a) * (W / 2 - L - W * .13), py = H / 2 - Math.sin(a) * (H / 2 - T - H * .12);
+      const gr = x.createRadialGradient(px, py, 0, px, py, H * .1); gr.addColorStop(0, tok['white-hi']); gr.addColorStop(.4, tok.yellow); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = gr; x.beginPath(); x.arc(px, py, H * .1, 0, 7); x.fill();
+    },
     insert(x, W, H, t, g) {
       x.fillStyle = tok.deep; x.fillRect(0, 0, W, H);
       x.fillStyle = 'rgba(255,255,255,.04)'; for (let y = 0; y < H; y += 4) x.fillRect(0, y, W, 2);
@@ -575,6 +607,17 @@ window.Arcade = window.Arcade || {};
         const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .06, 10), basic(col(b)));
         lamp.position.set(-W * .36 + i * W * .72 / 7, topY + .3, fz + .05); group.add(detail(lamp));
       });
+    } else if (P.topper === 'puck') {
+      // a big air hockey puck standing on the roof: a dark disc with a neon rim in each player's color
+      const r = W * .26, cy = topY + r + .02, fz = frontTop + zc - .1;
+      const face = geom => { geom.rotateX(Math.PI / 2); return geom; };
+      const disc = new THREE.Mesh(face(new THREE.CylinderGeometry(r, r, .08, 32)), [lambert(col('cab-side')), lambert(col('deep')), lambert(col('cab-side'))]);
+      disc.position.set(0, cy, fz); disc.userData.pick = true; group.add(disc);
+      [[r, k.trim], [r * .62, k.trim2]].forEach(([rr, c]) => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(rr, .01, 6, 40), basic(col(c + '-hi'))); ring.position.set(0, cy, fz + .042); group.add(ring);
+        const glow = new THREE.Mesh(new THREE.TorusGeometry(rr, .032, 6, 40), basic(col(c), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false}));
+        glow.position.set(0, cy, fz + .042); group.add(glow);
+      });
     } else if (P.topper === 'vs') {
       // a lit VS sign standing on the roof: a dark box, its face split blue / red with the letters, neon along the top
       const sw = W * .62, sh = .24, fz = frontTop + zc - .08;
@@ -610,7 +653,7 @@ window.Arcade = window.Arcade || {};
     create(aisle, opts) {
       const THREE = window.THREE;
       if (!THREE || !THREE.WebGLRenderer) return Promise.reject(new Error('three.js missing'));
-      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
+      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text', 'GN Neon'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
       const fontWait = Promise.race([Promise.all(fonts).catch(() => {}), new Promise(ok => setTimeout(ok, 2500))]);
       return fontWait.then(() => setup(THREE, aisle, opts));
     },

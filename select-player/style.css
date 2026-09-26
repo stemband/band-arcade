@@ -71,9 +71,19 @@
 .tile.suggest{opacity:1;border-style:dashed;border-color:var(--yellow)}
 .tile.on{opacity:1;z-index:1;border-color:var(--fam-hi);box-shadow:0 0 0 4px var(--fam),var(--fam-glow),0 0 26px var(--fam);animation:pulse 1.2s ease-in-out infinite;transform:scale(1.04)}
 .tile.on:focus-visible{outline:3px solid var(--text-hi);outline-offset:6px}
-.tile .p1{position:absolute;left:-6px;top:-8px;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--white-hi);
-  background:var(--red);box-shadow:var(--glow-red);opacity:0;transform:rotate(-8deg)}
+.tile .p1,.tile .p2{position:absolute;left:-6px;top:-8px;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--deep);
+  background:var(--cyan);box-shadow:var(--glow-cyan);opacity:0;transform:rotate(-8deg)}
+.tile .p2{left:auto;right:-6px;background:var(--pink);box-shadow:var(--glow-pink);transform:rotate(8deg)}
 .tile.on .p1{opacity:1}
+/* two-player select: Player 1's tile keeps its 1P marker, Player 2's highlight is magenta with a 2P marker */
+.phase2 .tile.on .p1{opacity:0}
+.phase2 .tile.on .p2,.phase2 .tile.p1-lock .p1{opacity:1}
+.phase2 .tile.p1-lock{opacity:1;border-color:var(--cyan)}
+.phase2 .tile.on{--fam:var(--pink);--fam-hi:var(--pink-hi);--fam-glow:var(--glow-pink)}
+body:not(.phase2) .tile.cpu{display:none}
+.fam-cpu{--fam:var(--white-ink);--fam-hi:var(--white);--fam-glow:var(--glow-white)}
+.phase2 .sp-title{color:var(--pink-hi);-webkit-text-stroke-color:var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-pink)}
+.ready.p2 p span+span{color:var(--pink-hi);text-shadow:0 6px 0 var(--deep),var(--glow-pink)}
 @keyframes pulse{50%{box-shadow:0 0 0 6px var(--fam-hi),var(--fam-glow),0 0 40px var(--fam)}}
 .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;list-style:none;margin:14px 0 0;padding:0;font-size:14px;font-weight:700;color:var(--text-lo)}
 .legend li{display:flex;align-items:center;gap:6px}

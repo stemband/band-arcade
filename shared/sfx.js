@@ -1,6 +1,7 @@
 /* Band Arcade — sound effects for the arcade floor, Select Player, and games that DON'T use the
    microphone (Note Ninja, Chime Heist, Ancient Ninja Scrolls, Button Masher). Never load this on a page that
    listens to the mic (Ghost Notes, Note Storm, the Note Checker): any sound would be heard as a note.
+   The one exception is Neon Face-Off: it mutes the detector for each sound it plays (Arcade.Pitch.suppress).
    Every sound is made here with the Web Audio API (no audio files). Browsers only allow sound
    after the first tap or key press, so the AudioContext is created then, never on page load.
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   does nothing when muted or before the first tap
@@ -136,6 +137,14 @@ window.Arcade = window.Arcade || {};
     'tile-move':      () => tone(1175, 0, 0.03, 0.16, 'square'),                                                     // the highlight moves
     'player-select':  () => SOUNDS.blip(),                                                                          // a player is chosen
     'player-ready':   () => { tone(262, 0, 0.35, 0.22, 'sawtooth'); arp([523, 659, 784, 1047], 0.06, 'square', 0.3); },   // PLAYER 1 READY
+    // Neon Face-Off: every sound under 0.5 s; the game mutes the detector while they play (Arcade.Pitch.suppress)
+    'puck-hit-soft':  () => { tone(330, 0, 0.06, 0.22, 'triangle'); tone([180, 120], 0, 0.08, 0.2, 'sine'); },
+    'puck-hit-hard':  () => { tone(520, 0, 0.07, 0.3, 'square'); tone([240, 140], 0, 0.1, 0.28, 'sine'); },
+    'puck-smash':     () => { slash(); tone([900, 300], 0, 0.14, 0.32, 'sawtooth'); tone([200, 90], 0.01, 0.2, 0.34, 'sine'); },
+    'rail-bounce':    () => tone(1400, 0, 0.02, 0.07, 'square'),                                                    // a quiet tick, too short to be heard as a note
+    'goal':           () => arp([392, 523, 659, 784], 0.08, 'square', 0.3),
+    'match-win':      () => arp([523, 659, 784, 1047, 1319], 0.08, 'square', 0.32),
+    'your-turn':      () => tone(1760, 0, 0.04, 0.12, 'triangle'),
     // Button Masher
     'key-press':      () => tone(1500, 0, 0.018, 0.1, 'square'),                                                       // a soft button click
     'special-move':   () => { tone([220, 1320], 0, 0.2, 0.28, 'sawtooth'); [1047, 1319, 1568].forEach((f, i) => tone(f, 0.16 + i * 0.05, 0.1, 0.22, 'square')); },

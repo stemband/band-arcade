@@ -42,11 +42,18 @@ window.Arcade = window.Arcade || {};
     range = lowMidi == null ? null : {lo: lowMidi, hi: highMidi, minF: mtof(lowMidi) * 0.78, maxF: Math.min(7000, mtof(highMidi) * 2.3)};
     H.pc = H.note = null; H.fired = false;
   };
+  P.instrument = () => inst;                  // read-only: the group being listened for, and the range (null = default)
+  P.range = () => range;
   P.demoNote = null;   // ?demo: a SOUNDING midi note the page wants "played" right now (Note Checker full range)
   P.onFrame = fn => frameFns.push(fn);
   P.onHeld  = fn => heldFns.push(fn);
   /** treat whatever is sounding right now as already counted (use when a new target appears) */
   P.ignoreCurrent = () => { H.fired = true; };
+  /** hear nothing for ms (a sound effect is playing through the speaker), then ignore whatever is still
+      sounding. Neon Face-Off, the one listening game with sounds, calls it with every sound it plays,
+      and starts the next player's clock only after the window ends (P.suppressedUntil). */
+  P.suppressedUntil = 0;
+  P.suppress = ms => { P.suppressedUntil = Math.max(P.suppressedUntil, performance.now() + ms); H.fired = true; };
   P.heldPc = () => H.pc;
 
   /* sensitivity slider 0–100 -> loudness gate. 0 ignores quiet sounds, 100 hears almost anything */
@@ -192,6 +199,9 @@ window.Arcade = window.Arcade || {};
       } else if (H.pc !== null && now - H.last > 110) { H.pc = null; H.fired = false; }
     }
 
+    // a sound effect is playing: keep tracking what is heard but count none of it. Anything still sounding when the
+    // window ends stays counted too, so only a NEW note (a new attack or a different pitch) can fire afterwards.
+    if (now < P.suppressedUntil) H.fired = true;
     P.reading = reading; P.level = level;
     if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {
       H.fired = true;

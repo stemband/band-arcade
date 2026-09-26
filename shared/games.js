@@ -9,12 +9,12 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
-       marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo' | 'heist' | 'scroll' | 'versus'  (styles in shared/cabinets.css)
+       marquee  lettering on the lit marquee: 'bungee' | 'haunt' | 'pixel' | 'shade' | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff'  (styles in shared/cabinets.css)
        kicker   small line above the name on the marquee (optional)
-       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'insert'  (shared/cabinets.js, SCREENS)
+       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'insert'  (shared/cabinets.js, SCREENS)
      player     optional: a game with its own fixed instrument group (e.g. 'bells'), or 'all' for a game that needs
                 no instrument: START skips Select Player, the saved instrument is left alone, and progress is
                 saved under that id. playerName: its label on the home page (leave out for none).
@@ -25,13 +25,15 @@
                 (Arcade.store.allStars) and "Modes played: n of 12"
      byMember   optional: true = progress is saved per instrument MEMBER (Button Masher: fingerings differ inside a
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
+     players    optional: 2 = a two-player game (Neon Face-Off): START opens Select Player with &players=2, so Player 2
+                picks too (or CPU); stored as Arcade.store.opponent, never replacing Player 1's instrument
      noPlay     optional: {groups, members, label, game}: students whose instrument is one of these see `label`
                 as a link to `game` instead of a hi-score (Button Masher: percussion -> Chime Heist)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
                 'classic' | 'haunted' (peaked roof) | 'soundcheck' (short, domed) | 'storm' (raked top, lightning fins) | 'dojo' (pagoda roof)
-                | 'vault' (vault door) | 'temple' (temple gate) | 'versus' (wide, two players, a VS sign)
+                | 'vault' (vault door) | 'temple' (temple gate) | 'versus' (wide, two players, a VS sign) | 'rink' (a glowing puck on top)
                 (drawn in arcade3d.js, PROFILES)
        trim, trim2  neon colors, as above (default: the 2D cabinet's)
        body     side-panel color: 'cab-side' | 'cab-face' | 'cab-panel' | 'floor-3' (theme.css tokens)
@@ -119,5 +121,17 @@ window.Arcade.GAMES = [
     noPlay: {groups: ['bells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
     cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', kicker: '1P vs 2P', screen: 'versus'},
     cabinet3d: {profile: 'versus', body: 'cab-side'},
+  },
+  {
+    id: 'neon-face-off',
+    name: 'Neon Face-Off',
+    skill: '2-Player duel',
+    blurb: 'Air hockey with your instruments! Play your note to strike the puck back. Two players on one device, or you vs the CPU.',
+    maxStars: 24,
+    color: 'cyan',
+    players: 2,                                      // Select Player asks Player 2 too (or CPU)
+    byMember: true,                                  // CPU-ladder stars are saved under Player 1's instrument
+    cabinet: {shape: 'rink', trim: 'cyan', trim2: 'pink', marquee: 'faceoff', kicker: '1P vs 2P', screen: 'hockey'},
+    cabinet3d: {profile: 'rink', body: 'cab-side'},
   },
 ];

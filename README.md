@@ -43,6 +43,9 @@ chime-heist/          Game 4: mallet keyboard for percussion, no microphone; str
 ancient-ninja-scrolls/ Game 5: Band Ninja music vocabulary (Ranks 3–10), no instrument, no microphone
   vocab.js            THE Band Ninja vocabulary tests: word banks, pass rules, all 120 items. Edit here
   game.js             Train, Spar, Belt Exam, Scroll Review, the scroll rack and the Sensei
+neon-face-off/        Game 7: two-player air hockey played with instruments (or you vs the CPU ladder)
+  levels.js           The 8 CPU rivals (Rookie Robo … The Champ), difficulties and rules (power, speed, sounds)
+  game.js             The match: turns, the microphone rules, the canvas table, results
 button-masher/        Game 6: fingerings and slide positions, no microphone; a versus fighting game
   fingerings.js       THE fingering table: every accepted fingering for every instrument. Fix fingerings here
   levels.js           The 8 rivals (Squeaky Reed … The Conductor): note pools, notes per match, time, rival health
@@ -119,9 +122,22 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 **Fixing a fingering (`button-masher/fingerings.js`).** Each instrument lists its written notes, and for each note every fingering the game accepts, main one first: `'D4': ['1-3']`, `'A4': ['1-2', '3']`, trombone `'F3': [1, 6]`, clarinet `'B4': ['Th Reg 1 2 3 LE | 4 5 6', …]`. The key names are explained at the top of the file (they're the labels on the diagrams). A combo is right only when it matches one of the listed fingerings exactly. To add an alternate, add it to the list; to change the main one, put it first. Trumpet and Baritone T.C. share a table, as do the two clarinets and the three saxophones. The comment block at the top of the file lists the fingerings I wasn't fully sure of: check those against the 6th Grade Honor Band charts first.
 
+## Neon Face-Off
+
+**Air hockey with instruments**, for two players on one device (one microphone), or one player against the CPU. When the puck slides toward your goal, your note appears on your panel with a big **YOUR TURN**; play it and hold it, and your mallet strikes. The faster you play it, the harder the shot: **WEAK**, **GOOD**, **POWER** or **SMASH!** (a harder shot crosses faster, leaving your opponent less time). Every return also speeds the rally up a little. If the puck reaches your goal first, your opponent scores. First to 5, 7 or 11 wins.
+
+- **Players:** START on the arcade floor opens Select Your Player for two: Player 1 picks as usual, then **PLAYER 2 — PRESS START** (magenta 2P marker), or **CPU**. Player 2's choice is remembered as the last opponent and never changes Player 1's instrument.
+- **Match setup:** one column per player with **NOTES** and **ORDER** (the same picker as the other games; each player's own notes, clef and key) and **DIFFICULTY**: Rookie (at least 4 s to play every note, and a smaller set of notes), Pro (2.5 s), All-Star (1.5 s). Nobody ever gets less than their own minimum time, so every shot can be returned. Points to win are shared. Two-player matches show the head-to-head record for that pairing on this device ("Trumpet 3 – 2 Flute").
+- **The microphone:** only the player whose turn it is can hit. Every turn the detector switches to that player's instrument and range (a tuba and a flute are listened for very differently), and a note still ringing from the other player never counts. A new note is never the same pitch the other player just played. A wrong note shows "That's a D" and the clock keeps running.
+- **Sounds:** Neon Face-Off is the only listening game that makes sounds. Each one is under half a second, the microphone ignores everything while it plays, and your clock starts only after it ends, so a sound never costs anyone time. Turn them off with SOUND, or for good with `sounds: false` in `neon-face-off/levels.js`.
+- **1 player vs CPU:** 8 rivals on a ladder in `neon-face-off/levels.js` (Rookie Robo, Slide Rule, Puckster, Rim Shot, Glide, Blitz, Zero Gravity, The Champ), each with a reaction-time range and an accuracy. The CPU "plays" silently (its note lights up), so it never confuses the microphone. Stars: win = 1, win by 4 or more = 2, shutout = 3; beating a rival unlocks the next. Stars are saved under Player 1's instrument; the arcade floor shows them.
+- **Layout:** landscape puts Player 1 on the left and Player 2 on the right (stand on either side of the device); portrait puts Player 1 at the bottom and Player 2 at the top, with Player 2's panel turned to face them.
+- **Testing** (`?demo`): all rivals unlocked; in a match hold **Space** to play the active player's note (press it later for a slower, softer shot) or **W** for a wrong note.
+- Rules you can change in `levels.js`: the first shot's speed, how much each return speeds up, the power thresholds, who serves after a goal (`serve: 'loser'`, like real air hockey, or `'alternate'`), the sound window.
+
 ## Sounds
 
-`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher only; games that listen to the microphone never load it. (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
+`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher; games that listen to the microphone never load it, except Neon Face-Off, which mutes the microphone during each of its sounds (see Neon Face-Off). (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
 
 | Event | When | Sound (falls back to) |
 |---|---|---|
@@ -149,6 +165,11 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 | `tile-move` | Select Player: the highlight moves | a short tick (blip) |
 | `player-select` | Select Player: a player is chosen | the blip |
 | `player-ready` | Select Player: PLAYER 1 READY | a low zap and a quick run up (blip) |
+| `puck-hit-soft` / `puck-hit-hard` / `puck-smash` | Neon Face-Off: a WEAK / GOOD or POWER / SMASH! shot | a soft tap / a harder knock / a swish and a crack (blip) |
+| `rail-bounce` | Neon Face-Off: the puck bounces off a rail (only while the microphone is muted, or toward the CPU) | a tiny tick (blip) |
+| `goal` | Neon Face-Off: a goal | a quick run up (blip) |
+| `match-win` | Neon Face-Off: the match is won | a longer run up (blip) |
+| `your-turn` | Neon Face-Off: the turn changes | a very short ping (blip) |
 | `fight-start` | Button Masher: "ROUND 1… FIGHT!" | two short beats and a long one (blip) |
 | `key-press` | Button Masher: each key, valve or slide tap | a soft click (blip) |
 | `special-move` | Button Masher: a correct STRIKE! | a rising zap and a sparkle (blip) |
@@ -256,22 +277,22 @@ To give it a look, add a `cabinet` field to its entry in `shared/games.js` and m
 cabinet: {shape: 'storm', trim: 'green', trim2: 'pink', marquee: 'shade', kicker: 'New!', screen: 'insert'},
 ```
 
-- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns), `'versus'` (wide two-player fighting cabinet: two joysticks, split red/blue face)
+- `shape`: the silhouette: `'classic'`, `'haunted'` (peaked roof, tombstone screen), `'soundcheck'` (small, domed), `'storm'` (slanted top, lightning notches), `'dojo'` (pagoda roof), `'vault'` (round vault-door top, combination-dial door, laser beams), `'temple'` (temple gate with belt-color lanterns), `'versus'` (wide two-player fighting cabinet: two joysticks, split red/blue face), `'rink'` (rounded top, two players, a puck light on top)
 - `trim` / `trim2`: the neon tubes: `'pink'`, `'cyan'`, `'yellow'`, `'purple'`, `'amber'`, `'green'`, `'red'`, `'white'`, `'blue'`
-- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll), `'versus'` (slanted, outlined fighting-game letters on a split sign)
-- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'versus'`, `'insert'`
+- `marquee`: the lettering: `'bungee'`, `'haunt'`, `'pixel'`, `'shade'`, `'dojo'`, `'heist'`, `'scroll'` (a hanging hand scroll), `'versus'` (slanted, outlined fighting-game letters on a split sign), `'faceoff'` (neon tube letters in two colors)
+- `screen`: the attract-mode loop the front cabinet plays: `'ghost'`, `'tuner'`, `'storm'`, `'ninja'`, `'heist'`, `'scrolls'`, `'versus'`, `'hockey'` (a tiny air hockey table), `'insert'`
 
 For a brand-new look:
 
 - **New silhouette:** add an entry to `SHAPES` in `shared/cabinets.js`. It's drawn on a 300 × 600 grid: `outline` (whole cabinet), `face`, `bezel`, `panel`/`lip` (control panel), joystick and button positions, coin `door`, and `slots` for where the marquee, screen and START button go. Copy `classic` and change the numbers.
 - **New attract screen:** add an entry to `SCREENS` in `shared/cabinets.js` (`html(game, frame)` draws it; `period` redraws it every so many ms) and style it in `shared/cabinets.css` under `.attract` so only the front cabinet moves. Keep it small and light, and let the reduced-motion rule at the bottom of that file stop it.
-- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate, `'versus'` wide with two joysticks and a lit VS sign); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
+- **3D cabinet:** add a `cabinet3d` field next to `cabinet`, e.g. `cabinet3d: {profile: 'haunted', body: 'cab-side'}`. Leave it out and the game gets a 3D cabinet that matches its 2D one. `profile` picks the side silhouette (`'classic'`, `'haunted'` with a peaked roof, `'soundcheck'` short and domed, `'storm'` with a raked top and lightning fins, `'dojo'` under a pagoda roof, `'vault'` with a round vault door on top, `'temple'` under a temple gate, `'versus'` wide with two joysticks and a lit VS sign, `'rink'` with a glowing puck on top); colors come from `trim`/`trim2`. A new silhouette goes in `PROFILES` in `arcade3d.js`: a list of side-view points (depth, height in meters, front is bigger depth) that is extruded into the body, plus where the marquee, screen, control panel, coin door and START sit on it.
 - **New marquee lettering:** add a `.mq-<name>` style in `shared/cabinets.css`, and add the name to `MARQUEES` in `shared/cabinets.js`. A new font goes in `shared/fonts/` as a subset `.woff2` with its license, declared in `shared/fonts.css`.
 
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The listening games make **no sounds**. A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- The listening games make **no sounds** (except Neon Face-Off, which mutes the microphone while each of its short sounds plays). A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.
