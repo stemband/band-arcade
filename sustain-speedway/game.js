@@ -319,7 +319,8 @@
     const n = $('gNeedle'); if (!n) return;
     n.classList.toggle('off', c === null);
     n.setAttribute('transform', `rotate(${((c === null ? 0 : clamp(c, -50, 50)) * 0.9).toFixed(1)} ${GA.cx} ${GA.cy})`);
-    const sp = $('gSpeed'); if (sp) sp.setAttribute('stroke-dasharray', `${(S.state === 'on' ? S.score * 100 : 0).toFixed(1)} 100`);
+    const sp = $('gSpeed'), fill = S.state === 'on' ? S.score * 100 : 0;
+    if (sp) { sp.setAttribute('stroke-dasharray', `${fill.toFixed(1)} 100`); sp.style.opacity = fill > 0.5 ? 1 : 0; }   // no round-cap dot at zero
     const t = $('centsTxt'), tol = G ? G.diff.tol : 20;
     if (c === null) { t.textContent = S.state === 'wrong' ? 'Wrong note' : '–'; t.className = 'cents' + (S.state === 'wrong' ? ' bad' : ''); return; }
     const a = Math.round(Math.abs(c));
