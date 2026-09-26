@@ -103,10 +103,11 @@
       return;
     }
     $('percussion').hidden = true; $('hubMain').hidden = false;
+    const secs = V => Math.round(timeFor(V) * 10) / 10;
     $('rivalGrid').innerHTML = RIVALS.map((V, i) => {
       const lv = i + 1, p = A.store.level(GAME_ID, member.id, lv);
       const unlocked = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(GAME_ID, member.id, lv - 1).stars > 0;
-      const bits = [POOL_TEXT[V.pool] + '.', V.showName ? 'Note names shown.' : 'Staff only.', V.hint ? `Hint glow after ${V.hint} s.` : '', `${V.time} s each.`];
+      const bits = [POOL_TEXT[V.pool] + '.', V.showName ? 'Note names shown.' : 'Staff only.', V.hint ? `Hint glow after ${V.hint} s.` : '', `${secs(V)} s each.`];
       return `<button class="lvl rival-card${V.boss ? ' boss' : ''}" data-l="${lv}" ${unlocked ? '' : 'disabled'} style="--r1:var(--${V.colors[0]});--r2:var(--${V.colors[1]})">
         <span class="n">${V.boss ? 'Final boss' : 'Rival ' + lv}</span>
         <span class="mini">${unlocked ? rivalSVG(V) : '<svg class="rival-svg" viewBox="0 -10 120 160" aria-hidden="true"><text class="r-lock" x="60" y="100" text-anchor="middle" font-size="80">?</text></svg>'}</span>
@@ -147,10 +148,12 @@
   const later = (fn, ms) => { const id = setTimeout(fn, ms); timeouts.push(id); return id; };
   function stopTimers() { clearInterval(timerId); timerId = 0; timeouts.forEach(clearTimeout); timeouts = []; }
 
+  /** seconds per note for this rival on this instrument (MASHER_RULES.timeByFamily: woodwinds get longer) */
+  function timeFor(V) { return V.time * ((RULES.timeByFamily || {})[member.family] || 1); }
   function startLevel(lv) {
     stopTimers();
     const V = RIVALS[lv - 1], pool = poolFor(V);
-    G = {lv, V, items: deck(pool, V.notes), fit: pool.map(it => it.show), i: 0, tries: 0, pressed: {}, order: [], glow: null, hintOn: false,
+    G = {lv, V, time: timeFor(V), items: deck(pool, V.notes), fit: pool.map(it => it.show), i: 0, tries: 0, pressed: {}, order: [], glow: null, hintOn: false,
          hp: V.health, energy: RULES.energy, score: 0, hits: 0, mistakes: 0, combo: 0, bestCombo: 0, locked: true};
     ['hub', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('play').hidden = false; $('wrap').classList.add('playing');
@@ -266,7 +269,7 @@
       if (document.hidden) { G.noteStart += now - last; last = now; return; }
       last = now;
       if (!G || G.locked) return;
-      const el = (now - G.noteStart) / 1000, frac = 1 - el / G.V.time;
+      const el = (now - G.noteStart) / 1000, frac = 1 - el / G.time;
       bar.style.transform = `scaleX(${Math.max(0, frac)})`;
       $('timer').classList.toggle('low', frac < .3);
       if (G.V.hint && !G.hintOn && el >= G.V.hint) { G.hintOn = true; render(); }
@@ -282,7 +285,7 @@
   }
   function hit() {
     G.locked = true; clearInterval(timerId);
-    const frac = Math.max(0, 1 - (performance.now() - G.noteStart) / (G.V.time * 1000));
+    const frac = Math.max(0, 1 - (performance.now() - G.noteStart) / (G.time * 1000));
     const mult = Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
     const pts = Math.round((RULES.base + frac * RULES.speedBonus) * mult);
     G.score += pts; G.hits++; G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo); G.hp--;
