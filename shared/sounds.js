@@ -16,6 +16,8 @@
      screen  where it plays (groups the README and the Sound Board; also which sounds a page preloads)
      when    when it plays, in words
      len     a suggested length for your recording
+     echo    (optional) ms the microphone stays deaf after the sound (default 250, for room echo). attack-tick uses a short
+             tail so quick tonguing keeps counting; keep that recording under 0.1 s
 
    A GAME CAN ADD ITS OWN SOUNDS without touching sfx.js: in its own script (before it plays them),
      Arcade.Sounds.add({'bonus-round': {file: 'bonus-round', vol: .8, mic: true, screen: 'my-game', when: '…', len: '0.5 s',
@@ -91,12 +93,18 @@ window.Arcade = window.Arcade || {};
     'goal':            {file: 'goal',          vol: .9, mic: true, screen: 'neon-face-off', when: 'Neon Face-Off: a goal.', len: '0.5–1.5 s'},
     'match-win':       {file: 'match-win',     vol: .9, mic: true, screen: 'neon-face-off', when: 'Neon Face-Off: the match is won.', len: '0.8–1.5 s'},
     'your-turn':       {file: 'your-turn',     vol: .5, mic: true, play: true, screen: 'neon-face-off', when: 'Neon Face-Off: the turn changes.', len: 'under 0.2 s'},
+    // ---- Showtime Malfunction (listening: each sound mutes the detector while it plays, and the band stands still) ----
+    'showtime-start':  {file: 'showtime-start', vol: .9, mic: true, gen: 'level-start', screen: 'showtime-malfunction', when: 'Showtime Malfunction: a showtime begins ("It\'s showtime!"). Without a file: level-start.', len: '0.6–1.2 s'},
+    'attack-tick':     {file: 'attack-tick',   vol: .6, mic: true, play: true, echo: 60, screen: 'showtime-malfunction', when: 'Showtime Malfunction: each counted note (tongued or struck) on the target\'s voice box. The mic is deaf only ~0.1 s after it, so fast tonguing still counts.', len: 'under 0.1 s (a tick)'},
+    'reboot':          {file: 'reboot',        vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reboots (eyes turn blue), or Maestro Moose finishes a phase.', len: 'under 0.5 s'},
+    'spotlight-out':   {file: 'spotlight-out', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reaches the front and a spotlight goes out.', len: 'under 0.5 s'},
+    'showtime-over':   {file: 'showtime-over', vol: .8, mic: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: all three spotlights are out, SHOWTIME\'S OVER. Spooky-fun, never a scream.', len: '1–2 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction']];
 
   A.Sounds = {
     LIST, SCREENS,

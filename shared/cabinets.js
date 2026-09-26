@@ -21,10 +21,25 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime'];
 
   /* ---------- silhouettes ---------- */
   const SHAPES = {
+    /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
+       control panel and one button missing (Showtime Malfunction) */
+    showtime: {
+      outline: 'M30 30L270 14V112H258V598H42V112H30Z',
+      face: 'M54 112H246V598H54Z', kick: [54, 246],
+      bezel: 'M66 122H234Q242 122 242 130V294Q242 302 234 302H66Q58 302 58 294V130Q58 122 66 122Z',
+      panel: 'M50 310H250L280 372H20Z', lip: 'M20 372H280V386H20Z',
+      joy: [74, 342], btns: [[178, 338], [208, 338]],
+      door: {x: 100, y: 464, w: 100, h: 110},
+      extras: '<circle class="s-hole" cx="238" cy="338" r="8"/>' +                                      // the missing button
+              '<path class="s-tape" d="M112 322l46 20M114 342l42-22"/>' +                               // tape across the panel
+              '<path class="s-crack" d="M250 410l-9 18 7 10-10 20 5 12M241 428l-8 4"/>' +               // a cracked side panel
+              '<path class="s-wire" d="M262 112q12 34-4 60q-6 12 4 22"/><circle class="s-lamp" cx="262" cy="194" r="3"/>',   // a loose wire
+      slots: {marquee: [40, 34, 220, 68], screen: [70, 134, 160, 156], start: [78, 398, 144, 48]},
+    },
     /* the default: flat top with an overhanging marquee, straight sides */
     classic: {
       outline: 'M30 22H270V112H258V598H42V112H30Z',
@@ -290,6 +305,12 @@ window.Arcade = window.Arcade || {};
           `<g class="hk-puck"><circle cx="0" cy="0" r="5"/></g></svg></div>`;
       },
     },
+    /* Showtime Malfunction: static fills the screen and a pair of red eyes glows through it, blinking now and then */
+    showtime: {
+      html() {
+        return `<div class="scr scr-showtime"><span class="st-static"></span><span class="st-eyes"><i></i><i></i></span><span class="st-label">SHOWTIME?</span></div>`;
+      },
+    },
     /* the default for a game with no custom screen: its name, blinking PRESS START */
     insert: {
       html(g) {
@@ -322,7 +343,9 @@ window.Arcade = window.Arcade || {};
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
       (c.marquee === 'dojo' && A.ninjaSVG ? `<span class="mq-mascot mq-ninja" aria-hidden="true">${A.ninjaSVG({belt: 'belt-black'})}</span>` : '') +
       `<span class="mq-text">${c.kicker ? `<span class="mq-kicker">${esc(c.kicker)}</span>` : ''}` +
-      `<span class="mq-name">${c.marquee === 'faceoff' ? esc(g.name).replace(/^(\S+) (.+)$/, '$1 <span class="fo2">$2</span>') : esc(g.name)}</span></span></${tag}>`;
+      `<span class="mq-name">${c.marquee === 'faceoff' ? esc(g.name).replace(/^(\S+) (.+)$/, '$1 <span class="fo2">$2</span>')
+        : c.marquee === 'showtime' ? esc(g.name).replace(/^(\S+) (.+)$/, (m, a, b) => `<span class="st1">${a}</span> <span class="st2">${b.replace('F', '<i class="dead">F</i>')}</span>`)   // one bulb is out
+        : esc(g.name)}</span></span></${tag}>`;
   };
   /** class names that give an element this game's neon colors (--t…, --u…) */
   A.trimClasses = g => { const c = A.cabinetOf(g); return `trim-${c.trim} trim2-${c.trim2}`; };

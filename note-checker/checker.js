@@ -3,7 +3,10 @@
      FIRST 5        the five notes the games use (letter names; any octave counts)
      B♭ E♭ F A♭     the GMEA major scales for the student's instrument (scales.js), up and down, with key signature
      CHROMATIC      the student's whole chromatic scale (GMEA ranges in instruments.js)
-   All but FIRST 5 are octave-exact: a note lights only in the octave written on the staff. */
+     ARTICULATION   counts every separate attack (tongued note, mallet strike, drum hit: Arcade.Pitch.onAttack), with
+                    the note name when it has one. Mat's check of attack detection on real instruments. The only mode
+                    for the Snare Drum (an unpitched player).
+   All but FIRST 5 and ARTICULATION are octave-exact: a note lights only in the octave written on the staff. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -18,6 +21,7 @@
     ? `<a class="btn btn-ghost btn-small" href="${A.linkTo('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '', 'note-checker');
 
   A.Pitch.setInstrument(inst);
+  const unpitched = inst.pitched === false;                             // the snare drum
   let mode = A.store.checkerMode, found = new Set(), smooth = 0;
 
   /* ---------- FIRST 5 NOTES (unchanged) ---------- */
@@ -118,17 +122,40 @@
 
   /* ---------- modes: FIRST 5 | B♭ | E♭ | F | A♭ | CHROMATIC ---------- */
   function setMode(m) {
+    if (unpitched) m = 'art';                                          // the snare drum: articulation only
     const was = mode;
-    mode = m; A.store.setCheckerMode(m);
-    document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
-    $('fivePanel').hidden = m !== 'five'; $('fullPanel').hidden = m === 'five';
-    $('demoHelp').hidden = !A.DEMO;
+    mode = m; if (!unpitched) A.store.setCheckerMode(m);
+    document.querySelectorAll('.mode-btn').forEach(b => { b.setAttribute('aria-pressed', b.dataset.mode === m); b.hidden = unpitched && b.dataset.mode !== 'art'; });
+    $('fivePanel').hidden = m !== 'five'; $('fullPanel').hidden = m === 'five' || m === 'art'; $('artPanel').hidden = m !== 'art';
+    $('foundRow').hidden = m === 'art';
+    document.querySelector('.readout').hidden = m === 'art' && unpitched;
+    $('demoHelp').hidden = !A.DEMO; $('artDemo').hidden = !A.DEMO;
+    A.Pitch.demoAttacks = m === 'art';
     hint('');
     if (was !== m) { fullFound = new Set(); heard = null; }
-    if (m === 'five') { A.Pitch.setRange(null); draw(); }
+    if (m === 'five' || m === 'art') { A.Pitch.setRange(null); if (m === 'five') draw(); else artReset(); }
     else { member = A.currentMember(); setupFull(); }
   }
-  document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => { if (b.dataset.mode !== mode) setMode(b.dataset.mode); }));
+  document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.mode !== mode) setMode(b.dataset.mode);
+    if (A.DEMO && mode === 'art') b.blur();                            // ?demo: Space is an attack here, not a button press
+  }));
+
+  /* ---------- ARTICULATION: count every attack ---------- */
+  let artN = 0, artTimes = [], artHeldSince = 0, lastAttackAt = 0;
+  function artReset() { artN = 0; artTimes = []; $('artCount').textContent = '0'; $('artNote').innerHTML = '&nbsp;'; $('artRate').innerHTML = '&nbsp;'; $('artHint').innerHTML = '&nbsp;'; }
+  if (unpitched) { $('artLede').textContent = 'Play single strokes on the snare. Every hit the mic catches counts.'; $('artTip').textContent = 'Strike each hit cleanly, and let the drum ring between hits.'; }
+  $('artReset').addEventListener('click', artReset);
+  A.Pitch.demoTarget = () => unpitched ? null : {pc: inst.targetPc[0], midi: 60 + inst.targetPc[0]};   // ?demo: Space plays the first of the five
+  A.Pitch.onAttack(a => {
+    if (mode !== 'art') return;
+    artN++; lastAttackAt = a.time;
+    const c = $('artCount'); c.textContent = artN; c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+    $('artNote').textContent = unpitched ? 'Hit!' : a.pc === null ? 'no clear pitch' : inst.writtenName(a.pc);
+    artTimes.push(a.time); artTimes = artTimes.filter(t => a.time - t < 2000);
+    $('artRate').textContent = artTimes.length > 1 ? `${(1000 * (artTimes.length - 1) / (a.time - artTimes[0])).toFixed(1)} per second` : '\u00a0';
+    $('artHint').innerHTML = '&nbsp;';
+  });
   $('dirBtn').addEventListener('click', () => { down = !down; drawFull(); });
   let lastW = 0;
   addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
@@ -152,7 +179,12 @@
     if (i >= 0 && !found.has(i)) { found.add(i); draw(); if (found.size === 5) A.Sfx.event('all-notes-found'); }
   });
 
-  A.Pitch.onFrame((r, level) => {
+  A.Pitch.onFrame((r, level, now) => {
+    if (mode === 'art') {
+      const held = r || A.Pitch.demoHeld();
+      if (held) { if (!artHeldSince) artHeldSince = now; } else artHeldSince = 0;
+      if (held && now - Math.max(artHeldSince, lastAttackAt) > 1000) $('artHint').textContent = unpitched ? 'Hit again!' : 'Tongue each note: ta ta ta ta.';
+    }
     const big = $('ckNote'), conc = $('ckConcert'), needle = $('needle'), verdict = $('ckVerdict');
     const full = mode !== 'five' && member;
     if (r) {
@@ -182,7 +214,7 @@
   /* ---------- ?demo in full range: ↑/↓ pick a note, hold Space to "play" it (Shift+Space: an octave low) ---------- */
   if (A.DEMO) {
     addEventListener('keydown', e => {
-      if (mode === 'five' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (mode === 'five' || mode === 'art' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         // ↑/↓ step through the list in order (it runs downward when "Going down", and a scale comes back down)

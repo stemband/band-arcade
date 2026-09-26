@@ -39,7 +39,13 @@
   /* instrument portraits (shared/portraits.js): each instrument's signature neon */
   --pt-flute:#e3f6ff; --pt-oboe:#c58bff; --pt-clarinet:#5aa9ff; --pt-basscl:#3ee0b0; --pt-bassoon:#ff9d5c;
   --pt-altosax:#ffd23f; --pt-tenorsax:#ff7ac8; --pt-barisax:#ff5c7a; --pt-trumpet:#fff27a; --pt-horn:#ffb13b;
-  --pt-cpu:#b9b0d6; --pt-trombone:#ff7043; --pt-baritonetc:#7dffb0; --pt-euphbc:#c6ff4d; --pt-tuba:#a98bff; --pt-bells:#4de8ff;
+  --pt-cpu:#b9b0d6; --pt-trombone:#ff7043; --pt-baritonetc:#7dffb0; --pt-euphbc:#c6ff4d; --pt-tuba:#a98bff; --pt-bells:#4de8ff; --pt-snare:#ff6b8b;
+  /* Showtime Malfunction: the animatronic house band (worn felt, metal, glowing eyes) and the after-hours arcade */
+  --anim-walrus:#7f6f63; --anim-walrus-2:#b9a48c; --anim-owl:#80543a; --anim-owl-2:#d9bf92; --anim-gator:#3e7d47; --anim-gator-2:#9fbe68;
+  --anim-raccoon:#6f727e; --anim-raccoon-2:#cfcfd6; --anim-moose:#6e4428; --anim-moose-2:#b08457; --anim-clone:#4f6e5e;
+  --anim-metal:#8c95a6; --anim-metal-dark:#4a5060; --anim-tusk:#efe6d2; --anim-coat:#231d3a; --anim-brass:#d9a834; --anim-silver:#c9d2de;
+  --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6;
+  --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;
   /* the lit staff "screen": light glass, dark notation */
@@ -155,6 +161,13 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-fx-sweep>.sk-fx{background:linear-gradient(110deg,transparent 38%,color-mix(in srgb,var(--white-hi) 70%,transparent) 48%,color-mix(in srgb,var(--yellow) 40%,transparent) 52%,transparent 62%) 0 0/250% 100%;background-position:60% 0}
 .sk-fx-shimmer>.sk-fx{background:linear-gradient(120deg,var(--pink),var(--yellow),var(--green),var(--cyan),var(--purple),var(--pink)) 0 0/300% 300%;mix-blend-mode:color;opacity:.55}
 .sk-fx-shimmer>.sk-fx::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 26% 30%,var(--white-hi) 0 1.5%,transparent 3%),radial-gradient(circle at 70% 58%,var(--white-hi) 0 1.2%,transparent 2.6%),radial-gradient(circle at 44% 78%,var(--white-hi) 0 1%,transparent 2.2%)}
+/* Animatronic: a brushed-metal sheen on the art (masked by the picture), four bolts, glowing eyes on its face */
+.sk-fx-animatronic>.sk-fx{-webkit-mask:var(--sk-src) center/contain no-repeat;mask:var(--sk-src) center/contain no-repeat;
+  background:repeating-linear-gradient(100deg,transparent 0 6%,color-mix(in srgb,var(--white-hi) 22%,transparent) 6% 7%),linear-gradient(120deg,transparent 30%,color-mix(in srgb,var(--white-hi) 45%,transparent) 48%,transparent 60%) 0 0/250% 100%;
+  background-position:0 0,60% 0;mix-blend-mode:screen}
+.sk-bolts{position:absolute;inset:0;z-index:3;width:100%;height:100%;fill:var(--anim-metal);stroke:var(--anim-metal-dark);stroke-width:1;display:none}
+.pt-ok:not(.pt-var-c)>.sk-bolts{display:block}
+.sk-eyes{z-index:5}
 /* Pixel: the art redrawn tiny and blown up (a canvas, portraits.js), in a chunky 8-bit frame */
 .pt-box>.pt-pix{object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
 .pt-pixd>.pt-img{visibility:hidden}
@@ -201,6 +214,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
   .pt-box-big.sk-aura-flame .sk-tongue{animation:sk-flicker calc(.7s + var(--i) * .07s) ease-in-out infinite alternate}
   .pt-box-big.sk-fx-sparkle .sk-sparks g{animation:sk-drift 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.45s)}
   .pt-box-big.sk-fx-sweep>.sk-fx{animation:sk-sweep 2.8s ease-in-out infinite}
+  .pt-box-big.sk-fx-animatronic>.sk-fx{animation:sk-sweep 3.6s ease-in-out infinite}
   .pt-box-big.sk-fx-shimmer>.sk-fx{animation:sk-shimmer 4s linear infinite}
   .pt-box-big.sk-bg-galaxy>.sk-back{animation:sk-stars 24s linear infinite}
   .pt-box-big.sk-ghost>.pt-img,.pt-box-big.sk-ghost>.sk-acc{animation:sk-float 2.6s ease-in-out infinite}

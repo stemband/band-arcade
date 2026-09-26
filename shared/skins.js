@@ -11,7 +11,8 @@
                 colors    two theme tokens (without --): the rim light / glow, and the SVG-portrait recolor
                 backdrop  'horizon' (synthwave sun + stripes) | 'galaxy' (stars + nebula)        drawn in CSS
                 aura      'flame' (fire around the instrument)                                  drawn in SVG below
-                fx        'sparkle' | 'sweep' (a band of light) | 'shimmer' (prismatic)         over the art
+                fx        'sparkle' | 'sweep' (a band of light) | 'shimmer' (prismatic) | 'animatronic' (metal sheen + bolts)
+                eyes      true: a pair of glowing eyes on the instrument's "face" (ANCHORS), in the skin's second color
                 pixel     true: the art is redrawn pixelated with a chunky 8-bit frame
                 ghost     true: see-through, with a ghost-trail glow
               Animation (auras, sparkles, sweeps, floating) plays ONLY on the big Select Player portraits and
@@ -43,6 +44,8 @@ window.Arcade = window.Arcade || {};
                                                                                   look: {colors: ['yellow', 'amber'], fx: 'sweep'}},
     {id: 'diamond', kind: 'color', name: 'Diamond',      unlock: {game: 'note-ninja', level: 10, stars: 1, text: 'Earn the Diamond belt in Note Ninja'},
                                                                                   look: {colors: ['cyan', 'pink'], fx: 'shimmer'}},
+    {id: 'animatronic', kind: 'color', name: 'Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, text: 'Defeat Maestro Moose in Showtime Malfunction'},
+                                                                                  look: {colors: ['anim-metal', 'anim-eye-good'], fx: 'animatronic', eyes: true}},
     {id: 'ghostly', kind: 'color', name: 'Ghostly',      unlock: {game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'},
                                                                                   look: {colors: ['cyan', 'purple'], ghost: true}},
     // ---- accessories (combine with any color skin) ---------------------------------------------------------
@@ -79,6 +82,7 @@ window.Arcade = window.Arcade || {};
     baritonetc: {img: {head: [60, 6, 31],  face: [40, 42, 27, 0]},   svg: {head: [71, 16, 25], face: [38, 56, 18, 0]}},
     euphbc:     {img: {head: [60, 6, 31],  face: [40, 42, 27, 0]},   svg: {head: [72, 10, 31], face: [36, 56, 18, 0]}},
     tuba:       {img: {head: [88, 25, 20], face: [26, 57, 27, 0], back: [42, 42, 46]},   svg: {head: [71, 4, 34],  face: [34, 60, 21, 0]}},
+    snare:      {img: {head: [50, 43, 26], face: [50, 64, 34, 0], back: [50, 52, 60]},   svg: {head: [50, 43, 26], face: [50, 64, 34, 0], back: [50, 52, 60]}},
     bells:      {img: {head: [50, 23, 25], face: [50, 42, 33, 0], back: [50, 30, 44]},   svg: {head: [50, 30, 28], face: [50, 52, 30, 0]}},
   };
 
@@ -110,6 +114,11 @@ window.Arcade = window.Arcade || {};
       '<path d="M10 50H90" stroke="var(--amber)" stroke-width="3"/>' +
       '<circle cx="3" cy="15" r="4" fill="var(--yellow)"/><circle cx="50" cy="5" r="4.5" fill="var(--yellow)"/><circle cx="97" cy="15" r="4" fill="var(--yellow)"/>' +
       '<circle cx="30" cy="55" r="3.4" fill="var(--pink)"/><circle cx="50" cy="55" r="3.8" fill="var(--cyan)"/><circle cx="70" cy="55" r="3.4" fill="var(--pink)"/>'},
+    // not a skin by itself: the Animatronic skin's glowing eyes (look.eyes), on the face anchor
+    eyes: {vb: '0 0 100 100', svg:
+      '<circle cx="30" cy="50" r="15" fill="var(--sk2)" opacity=".3"/><circle cx="70" cy="50" r="15" fill="var(--sk2)" opacity=".3"/>' +
+      '<circle cx="30" cy="50" r="7.5" fill="var(--sk2)" stroke="var(--anim-metal-dark)" stroke-width="2"/><circle cx="70" cy="50" r="7.5" fill="var(--sk2)" stroke="var(--anim-metal-dark)" stroke-width="2"/>' +
+      '<circle cx="32.5" cy="47.5" r="2.4" fill="var(--white-hi)"/><circle cx="72.5" cy="47.5" r="2.4" fill="var(--white-hi)"/>'},
     cape: {vb: '0 0 100 130', svg:
       '<path d="M30 4Q50 13 70 4L97 116Q74 102 50 124Q26 102 3 116Z" fill="var(--red)" fill-opacity=".9" stroke="var(--pink-hi)" stroke-width="2.6" stroke-linejoin="round"/>' +
       '<path d="M36 14Q50 20 64 14L84 106Q68 96 50 112Q32 96 16 106Z" fill="var(--purple)" fill-opacity=".55"/>' +
@@ -131,7 +140,11 @@ window.Arcade = window.Arcade || {};
   const FX = {
     sparkle: `<svg class="sk-sparks" viewBox="0 0 100 100" aria-hidden="true">${SPARKS.map(([x, y, s], i) => `<g style="--i:${i}">${star4(x, y, s, 'sk-spark')}</g>`).join('')}</svg>`,
     sweep: '', shimmer: '',
+    animatronic: '',
   };
+  /* the Animatronic skin's four bolts: outside the masked effect layer, so they show at the corners */
+  const BOLTS = `<svg class="sk-bolts" viewBox="0 0 100 100" aria-hidden="true">${[[9, 9], [91, 9], [9, 91], [91, 91]].map(([x, y]) =>
+    `<circle cx="${x}" cy="${y}" r="3.2"/><path d="M${x - 2} ${y}h4"/>`).join('')}</svg>`;
 
   const byId = {}; SKINS.forEach(s => { byId[s.id] = s; });
   const get = id => byId[id] || null;
@@ -213,7 +226,8 @@ window.Arcade = window.Arcade || {};
       if (look.pixel) cls.push('sk-pixel');
       if (look.ghost) cls.push('sk-ghost');
       if (look.backdrop || look.aura || look.pixel) parts.before = `<span class="sk-back" aria-hidden="true">${look.aura ? AURA[look.aura] || '' : ''}</span>`;
-      if (look.fx) parts.after = `<span class="sk-fx" aria-hidden="true">${FX[look.fx] || ''}</span>`;
+      if (look.fx) parts.after = `<span class="sk-fx" aria-hidden="true">${FX[look.fx] || ''}</span>` + (look.fx === 'animatronic' ? BOLTS : '');
+      if (look.eyes && ANCHORS[id]) parts.after += accHTML(id, {id: 'eyes', art: 'face'}).replace('class="sk-acc ', 'class="sk-acc sk-eyes ');
       if (a && ACC_ART[a.id] && ANCHORS[id]) {
         cls.push('has-acc', 'acc-' + a.id);
         const html = accHTML(id, a);

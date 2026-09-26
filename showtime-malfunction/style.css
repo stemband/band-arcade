@@ -1,0 +1,203 @@
+/* Showtime Malfunction: the Band Arcade after closing. Flicker is always slow and gentle (never a rapid or
+   full-screen flash), and prefers-reduced-motion turns off every flicker, shake, twitch and lurch.
+   Mild (default) = glitches and static; body.spooky-mode = darker, more static, and a lean-in at game over. */
+.showtime{--st-red:var(--anim-eye-bad);--st-blue:var(--anim-eye-good)}
+.hub-head{margin-bottom:14px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95}
+.game-title .t1{color:var(--yellow);text-shadow:var(--glow-yellow)}
+.game-title .t2{color:var(--st-red);text-shadow:0 0 4px var(--st-red),0 0 14px color-mix(in srgb,var(--st-red) 50%,transparent);animation:title-glitch 7s steps(1) infinite}
+@keyframes title-glitch{0%,92%,100%{opacity:1;transform:none}93%{opacity:.7;transform:translateX(2px) skewX(-6deg)}95%{opacity:1;transform:none}96%{opacity:.8}}
+.hub-head p{max-width:64ch;margin:10px 0 0}
+.hub-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:12px}
+.spooky-set{display:flex;align-items:center;gap:6px}
+.seg{min-height:44px;min-width:82px;padding:6px 14px;border-radius:12px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);font-family:var(--display);font-size:15px;text-transform:uppercase}
+.seg[aria-pressed="true"]{border-color:var(--st-red);box-shadow:0 0 10px color-mix(in srgb,var(--st-red) 60%,transparent)}
+.snare-card{display:flex;align-items:center;gap:14px;padding:12px 14px;margin-bottom:14px;border-radius:16px;background:var(--floor-2);border:2px solid var(--pt-snare)}
+.snare-card p{margin:2px 0 0;color:var(--text-lo)}
+.drum-ico{display:inline-block;width:46px;height:40px;flex:none;border-radius:6px 6px 14px 14px;background:linear-gradient(var(--anim-drumhead) 0 22%,var(--anim-drum) 22% 100%);
+  box-shadow:inset 0 -6px 0 var(--anim-metal-dark),0 0 10px color-mix(in srgb,var(--pt-snare) 50%,transparent)}
+.drum-ico.big{width:64px;height:54px}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:760px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);border:2px solid var(--floor-3);border-radius:16px;padding:12px;min-height:160px;color:var(--text-hi)}
+.lvl:hover:not([disabled]){border-color:var(--st-red)}
+.lvl.boss{border-color:color-mix(in srgb,var(--st-red) 60%,transparent)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;width:40px;height:58px}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl .stars{color:var(--yellow)}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+
+/* ---------- the animatronics (characters.js). Eyes: red while glitching, blue once rebooted ---------- */
+.bot{--eye:var(--st-red);display:inline-block}
+.bot.fixed{--eye:var(--st-blue)}
+.bot-svg{display:block;width:100%;height:100%;overflow:visible}
+.a-felt{fill:var(--felt);stroke:var(--anim-metal-dark);stroke-width:1.5}
+.a-felt2{fill:var(--felt2);stroke:var(--anim-metal-dark);stroke-width:1.2}
+.a-patch{fill:var(--anim-metal-dark);opacity:.35}
+.a-seam{fill:none;stroke:var(--anim-metal-dark);stroke-width:1.2;stroke-dasharray:3 3;opacity:.7}
+.a-rod{fill:none;stroke:var(--anim-metal);stroke-width:5;stroke-linecap:round}
+.a-bolt{fill:var(--anim-metal);stroke:var(--anim-metal-dark);stroke-width:1}
+.a-boltx{stroke:var(--anim-metal-dark);stroke-width:.9}
+.a-boot{fill:var(--anim-metal-dark)}
+.a-eye{fill:var(--eye)}
+.a-eyeglow{fill:var(--eye);opacity:.28}
+.a-pupil{fill:var(--white-hi);opacity:.8}
+.a-dark{fill:var(--ink);stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.a-nose{fill:var(--ink)}
+.a-tusk{fill:var(--anim-tusk);stroke:var(--anim-metal-dark);stroke-width:1}
+.a-teeth{fill:var(--anim-tusk);stroke:var(--anim-metal-dark);stroke-width:.8}
+.a-beak{fill:var(--amber);stroke:var(--anim-metal-dark);stroke-width:1}
+.a-cap{fill:var(--ink);stroke:var(--anim-metal-dark);stroke-width:1}
+.a-mask{fill:var(--ink);opacity:.85}
+.a-antler{fill:none;stroke:var(--anim-moose-2);stroke-width:5;stroke-linecap:round}
+.a-brass{fill:none;stroke:var(--anim-brass);stroke-width:7;stroke-linecap:round}
+.a-brass-fill{fill:var(--anim-brass);stroke:var(--anim-metal-dark);stroke-width:1}
+.a-silver{fill:none;stroke:var(--anim-silver);stroke-width:5;stroke-linecap:round}
+.a-drum{fill:var(--anim-drum);stroke:var(--anim-metal-dark);stroke-width:1.5}
+.a-drumhead{fill:var(--anim-drumhead);stroke:var(--anim-metal);stroke-width:2}
+.a-stick{fill:none;stroke:var(--anim-tusk);stroke-width:3.5;stroke-linecap:round}
+.a-coat{fill:var(--anim-coat);stroke:var(--anim-metal-dark);stroke-width:1.2}
+.a-bow{fill:var(--red)}
+.a-tag{fill:var(--screen);stroke:var(--anim-metal-dark)}
+.a-tagtxt{font:700 8px var(--text);fill:var(--ink)}
+.a-spark{fill:none;stroke:var(--yellow);stroke-width:2.5;stroke-linejoin:round;opacity:0}
+.bot-head{transform-origin:70px 70px;transition:transform .08s steps(2)}
+.bot.fixed .bot-head{transform:none}
+
+/* ---------- a showtime ---------- */
+.in-show .wrap{max-width:1180px;padding-bottom:8px}
+.in-show .topbar{margin-bottom:8px}
+.hud{display:grid;grid-template-columns:auto auto auto auto;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.hud div{display:flex;flex-direction:column}
+.hud .c{text-align:center}
+.hud .r{text-align:right}
+.hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.hud b{font-size:20px;line-height:1.2}
+.lights{flex-direction:row!important;gap:8px}
+.bulb{width:22px;height:22px;border-radius:50%;background:var(--floor-3);border:2px solid var(--anim-metal-dark)}
+.bulb.on{background:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+.bulb.dying{animation:bulb-die 1s ease-out}
+@keyframes bulb-die{0%{background:var(--yellow-hi)}30%{background:var(--floor-3)}45%{background:var(--yellow)}100%{background:var(--floor-3)}}
+
+.arena{position:relative;height:calc(100vh - 222px);height:calc(100dvh - 222px);min-height:340px;border-radius:18px;overflow:hidden;background:var(--floor);border:2px solid var(--floor-3)}
+.scene,.scene>*{position:absolute;pointer-events:none}
+.scene{inset:0}
+/* the arcade floor after closing: fluorescent tubes, cabinets glowing along the walls, the band's little stage at the back */
+.floor{left:0;right:0;top:36%;bottom:0;background:
+  repeating-linear-gradient(90deg,transparent 0 12.3%,color-mix(in srgb,var(--purple) 16%,transparent) 12.3% 12.6%),
+  repeating-linear-gradient(0deg,transparent 0 9%,color-mix(in srgb,var(--purple) 14%,transparent) 9% 9.5%),
+  linear-gradient(var(--floor-2),var(--floor));
+  transform:perspective(420px) rotateX(58deg);transform-origin:50% 0}
+.fluoro{top:3%;height:2.2%;width:18%;border-radius:4px;background:var(--fluoro);opacity:.75;box-shadow:0 0 24px color-mix(in srgb,var(--fluoro) 55%,transparent)}
+.fluoro.f1{left:12%}.fluoro.f2{left:41%;animation:fluoro 6.5s infinite}.fluoro.f3{left:70%;animation:fluoro 9s 2s infinite}
+@keyframes fluoro{0%,88%,100%{opacity:.75}90%{opacity:.35}92%{opacity:.7}94%{opacity:.3}}
+.cabs{top:18%;bottom:40%;width:26%;background:
+  radial-gradient(ellipse 60% 30% at 30% 35%,color-mix(in srgb,var(--cyan) 30%,transparent),transparent 70%),
+  radial-gradient(ellipse 50% 26% at 75% 45%,color-mix(in srgb,var(--pink) 26%,transparent),transparent 70%),
+  repeating-linear-gradient(90deg,var(--cab-side) 0 18%,var(--deep) 18% 22%)}
+.cabs-l{left:0;clip-path:polygon(0 0,100% 25%,100% 100%,0 100%);opacity:.55}
+.cabs-r{right:0;clip-path:polygon(0 25%,100% 0,100% 100%,0 100%);opacity:.55}
+.stage-back{left:30%;right:30%;top:14%;height:24%;border-radius:8px 8px 0 0;background:linear-gradient(transparent 0 70%,var(--stage-wood) 70%)}
+.curtain{position:absolute;inset:0 0 30% 0;border-radius:8px 8px 0 0;background:repeating-linear-gradient(90deg,var(--stage-curtain) 0 7%,color-mix(in srgb,var(--stage-curtain) 70%,var(--deep)) 7% 10%);opacity:.8}
+.band{position:absolute;left:4%;right:4%;bottom:26%;height:62%;display:flex;justify-content:center;align-items:flex-end;gap:1%}
+.band-bot{height:100%;width:auto;aspect-ratio:.7;flex:none;animation:band-in .6s ease-out}
+.band-bot.boss{height:118%}
+@keyframes band-in{from{opacity:0;transform:translateY(20%)}to{opacity:1;transform:none}}
+.stage-sign{left:50%;top:-14%;transform:translateX(-50%);font-family:var(--neon-font);font-size:clamp(10px,1.6vw,16px);white-space:nowrap;color:var(--pink-hi);text-shadow:var(--glow-pink);opacity:.8}
+.static{inset:0;opacity:.07;background:repeating-linear-gradient(0deg,var(--white) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,transparent 0 5px,color-mix(in srgb,var(--white) 30%,transparent) 5px 6px);
+  animation:static-drift 1.4s steps(4) infinite}
+@keyframes static-drift{to{background-position:0 9px,7px 0}}
+.vignette{inset:0;background:radial-gradient(ellipse at 50% 60%,transparent 45%,rgba(4,2,10,.75))}
+.spooky-mode .vignette{background:radial-gradient(ellipse at 50% 60%,transparent 30%,rgba(4,2,10,.92))}
+.spooky-mode .static{opacity:.14}
+.spooky-mode .fluoro{opacity:.4}
+.spooky-mode .cabs{opacity:.3}
+.lights-out .fluoro{opacity:.15;animation:none}
+
+/* the animatronics on the floor (game.js places them: translate + scale from the feet) */
+.bots{position:absolute;inset:0}
+.bots .bot{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform}
+.bots .body{position:absolute;inset:0}
+.bots .bot.glitch .body{animation:glitch-flicker 3.2s infinite}
+@keyframes glitch-flicker{0%,90%,100%{opacity:1}92%{opacity:.75}94%{opacity:1}}
+.bots .bot.twitch .bot-head{transform:rotate(-6deg) translateY(1px)}
+.bots .bot.glitch:not(.twitch) .bot-head{transform:rotate(3deg)}
+.bots .bot.spark .a-spark{animation:spark .35s ease-out}
+@keyframes spark{0%{opacity:1}100%{opacity:0}}
+.bots .bot.target .a-felt,.bots .bot.target .a-felt2{stroke:var(--st-red);stroke-width:2.6}          /* the target: outlined in red (no blur filters) */
+.bots .bot.fixed .a-felt,.bots .bot.fixed .a-felt2{stroke:var(--st-blue);stroke-width:2.2}
+.bots .bot.walk-home{transition:transform 1.1s ease-in,opacity 1.1s ease-in;opacity:.4}
+.bots .bot.fizzle{animation:fizzle .8s ease-in forwards}
+@keyframes fizzle{0%{opacity:1}40%{opacity:.5}60%{opacity:.8}100%{opacity:0}}
+.bots .bot.powered-down{--eye:var(--anim-metal-dark)}
+.bots .bot.powered-down .body{animation:none;opacity:.7}
+.bots .bot.lean-in{transition:transform .35s cubic-bezier(.2,.9,.3,1);z-index:500!important}
+.bots .bot.lean-in .sign{display:none}
+.bots .bot.lean-in .a-eyeglow{opacity:.6}
+/* the voice box sign over each one: its note (or a drum) and how many plays are left */
+.sign{position:absolute;left:50%;bottom:98%;transform:translateX(-50%) scale(var(--k,1));transform-origin:50% 100%;min-width:118px;padding:4px 6px 6px;border-radius:10px;
+  background:var(--deep);border:2px solid color-mix(in srgb,var(--st-red) 55%,transparent);text-align:center;opacity:.92}
+.vb-top{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);white-space:nowrap}
+.vb-main{display:flex;align-items:center;gap:6px}
+.vb-main .staff{width:140px;height:auto;background:var(--screen);border-radius:6px}
+.vb-count{font-family:var(--display);font-weight:400;font-size:34px;line-height:1;color:var(--yellow);text-shadow:var(--glow-yellow);white-space:nowrap}
+.bot.target .sign{opacity:1;border-color:var(--st-red);box-shadow:0 0 14px color-mix(in srgb,var(--st-red) 70%,transparent)}
+.bot.target .sign::after{content:"▼";position:absolute;left:50%;top:100%;transform:translateX(-50%);color:var(--st-red);font-size:14px}
+.bot.fixed .sign{border-color:var(--st-blue)}
+.sign.tick .vb-count{animation:tick .3s ease-out}
+@keyframes tick{0%{transform:scale(1.35);color:var(--white-hi)}100%{transform:none}}
+.sign.sour{animation:sour .35s steps(3)}
+@keyframes sour{0%{transform:translateX(-50%) scale(var(--k,1)) skewX(8deg)}50%{transform:translateX(-52%) scale(var(--k,1)) skewX(-8deg);border-color:var(--amber)}100%{transform:translateX(-50%) scale(var(--k,1))}}
+/* the student's three spotlights along the front */
+.spots{position:absolute;left:0;right:0;bottom:0;height:26%;display:flex;justify-content:space-around;align-items:flex-end;z-index:2}
+.spot{position:relative;width:26%;height:100%}
+.spot i{position:absolute;left:50%;bottom:4px;width:22px;height:14px;margin-left:-11px;border-radius:6px 6px 2px 2px;background:var(--anim-metal-dark)}
+.spot.on::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 100%,color-mix(in srgb,var(--yellow-hi) 22%,transparent),transparent 70%)}
+.spot.on i{background:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+.spot.dying::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 100%,color-mix(in srgb,var(--yellow-hi) 22%,transparent),transparent 70%);animation:spot-die 1s ease-out forwards}
+@keyframes spot-die{0%{opacity:1}25%{opacity:.2}40%{opacity:.7}100%{opacity:0}}
+.banner{position:absolute;left:50%;top:44%;width:92%;transform:translate(-50%,-50%) skewX(-8deg);margin:0;padding:6px 0;text-align:center;line-height:1.05;pointer-events:none;z-index:600;
+  font-family:var(--display);font-size:clamp(26px,min(6vw,7vh),56px);text-transform:uppercase;color:var(--yellow);-webkit-text-stroke:2px var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-yellow)}
+.banner.over{color:var(--st-red);text-shadow:0 4px 0 var(--deep),0 0 16px var(--st-red)}
+.prompt{min-height:26px;text-align:center;margin:10px 0 6px;font-size:18px;font-weight:700;color:var(--text-hi)}
+.prompt.bad{color:var(--red-hi)}
+.prompt.good{color:var(--yellow)}
+.prompt.hint{color:var(--cyan-hi)}
+.play-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.play-foot .hear{margin:0}
+
+/* the story and results */
+.story-panel{max-width:620px;text-align:left;border-color:var(--st-red);box-shadow:0 0 18px color-mix(in srgb,var(--st-red) 45%,transparent),0 30px 80px rgba(0,0,0,.6)}
+.story-panel h2{text-align:center;font-family:var(--display);font-weight:400;color:var(--yellow)}
+.story-panel p{color:var(--text-hi);line-height:1.5}
+.story-art,.res-band{display:flex;justify-content:center;align-items:flex-end;gap:6px;height:110px;margin-bottom:8px}
+.story-art .bot,.res-band .bot{height:100%;aspect-ratio:.7}
+.res-band{height:84px}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+
+@media (max-width:560px){
+  .arena{height:calc(100dvh - 235px);min-height:420px}
+  .hud b{font-size:17px}
+  .bulb{width:16px;height:16px}
+  .sign{min-width:96px}
+  .vb-main .staff{width:104px}
+  .vb-count{font-size:26px}
+}
+@media (orientation:portrait) and (min-width:561px){ .arena{height:min(calc(100dvh - 210px),900px)} }
+
+/* reduced motion: no flicker, shake, twitch, strobe or lean-in; the band still walks (smoothly) */
+@media (prefers-reduced-motion:reduce){
+  .game-title .t2,.fluoro,.static,.bots .bot.glitch .body,.band-bot,.bulb.dying,.spot.dying::before,.sign.tick .vb-count,.sign.sour,.bots .bot.spark .a-spark,.bots .bot.fizzle{animation:none!important}
+  .bots .bot.twitch .bot-head,.bots .bot.glitch:not(.twitch) .bot-head{transform:none}
+  .bots .bot.walk-home,.bots .bot.lean-in{transition:none!important}
+  .bots .bot.fizzle{opacity:0}
+}

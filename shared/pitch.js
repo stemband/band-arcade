@@ -37,9 +37,10 @@ window.Arcade = window.Arcade || {};
   const frameFns = [], heldFns = [];
   const H = {pc: null, note: null, since: 0, last: 0, fired: false};   // hold tracker
 
-  P.setInstrument = i => { inst = i; };
+  P.setInstrument = i => { inst = i; sizeEnvelope(); };
   P.setRange = function (lowMidi, highMidi) {
     range = lowMidi == null ? null : {lo: lowMidi, hi: highMidi, minF: mtof(lowMidi) * 0.78, maxF: Math.min(7000, mtof(highMidi) * 2.3)};
+    sizeEnvelope();
     H.pc = H.note = null; H.fired = false;
   };
   P.instrument = () => inst;                  // read-only: the group being listened for, and the range (null = default)
@@ -86,8 +87,9 @@ window.Arcade = window.Arcade || {};
       an.fftSize = 4096;               // ~85 ms window: enough for tuba low B♭
       an.smoothingTimeConstant = 0;
       src.connect(an);                 // not connected to the speakers
-      mic = {ctx, an, stream, buf: new Float32Array(an.fftSize), sr: ctx.sampleRate};
+      mic = {ctx, an, stream, src, buf: new Float32Array(an.fftSize), sr: ctx.sampleRate};
       P.active = true;
+      if (attackFns.length) startEnvelope();
     } catch (e) {
       try { ctx.close(); } catch (_) {}
       throw e;
@@ -150,6 +152,109 @@ window.Arcade = window.Arcade || {};
     addEventListener('keyup',   e => { if (/^[1-5]$/.test(e.key)) demoKey = null; });
   }
 
+  /* ---------- ATTACK DETECTION (opt-in: only pages that call onAttack pay for it) ----------
+     onAttack(fn): fn({time, pc, midi}) once per new articulation: a tongued note, a new mallet strike, a drum hit.
+     A small separate analyser is read every ENV.every ms (5 ms for short windows). Its window follows the instrument:
+     ENV.periods cycles of its lowest note (a power of two, ENV.minWin–ENV.maxWin samples): long enough that a tuba's
+     slow wave doesn't ripple, short enough that a bell's mallet click stands out (bells 256, trumpet 512, tuba 2048). An attack is a sharp RISE of that loudness envelope after a dip, not a start from silence:
+       loud enough (ENV.gateK × the sensitivity gate), rising, and either ENV.rise × the quietest point of the last
+       ENV.dipMs (tonguing with a 40 ms gap, a snare hit), or ENV.jump × the level ENV.jumpMs ago AND ENV.above × the
+       loudest point 40–120 ms ago (a bell struck again while it still rings: it climbs ABOVE its decaying ring).
+       A slur (new pitch, no new attack) doesn't rise, and a slur's little dip only comes back to the same level,
+       so neither fires. Mat can tune these numbers with the Note Checker's ARTICULATION test.
+     After an attack nothing fires for ENV.refractoryMs (no double counts from one attack, bell shimmer, brass blips).
+     Its pitch: the stable reading (two agreeing detector frames) from ENV.pitchFrom to ENV.pitchBy ms after the
+     attack; none = pc null (a drum). Nothing counts while a sound plays (suppress), like every other detection.
+     ?demo on a page that uses attacks: tap Space = an attack on P.demoTarget() (the right note), tap W = an attack
+     on a wrong note, hold S = a steady note with no new attacks. */
+  const ENV = {periods: 1.5, minWin: 256, maxWin: 2048, every: 8, gateK: 1.2, rise: 2.2, dipMs: 70, jump: 1.35, jumpMs: 24, above: 1.25, refractoryMs: 90, pitchFrom: 50, pitchBy: 170};
+  P.ENV = ENV;
+  const attackFns = [], pend = [];
+  let env = null, lastAttack = -1e9;
+  P.onAttack = fn => { attackFns.push(fn); if (mic) startEnvelope(); };
+  /** ?demo: the game says which note is "right" now ({pc, midi} concert, or null = unpitched) */
+  P.demoTarget = () => null;
+  /** ?demo: turn the Space / W / S attack keys on (a page's own Space key keeps working while this is false) */
+  P.demoAttacks = false;
+  function envWin(sr) {
+    const f = range ? range.minF : inst ? inst.minF : 80;
+    const want = ENV.periods * sr / f;
+    let w = ENV.minWin; while (w < want && w < ENV.maxWin) w *= 2;
+    return w;
+  }
+  function startEnvelope(source, minF) {
+    if (env) return;
+    const ctx = source ? source.context : mic.ctx, an = ctx.createAnalyser();
+    an.smoothingTimeConstant = 0;
+    (source || mic.src).connect(an);
+    env = {an, sr: ctx.sampleRate, minF, hist: [], timer: 0};
+    sizeEnvelope();
+  }
+  /* (re)size the envelope window for the instrument / range being listened for */
+  function sizeEnvelope() {
+    if (!env) return;
+    const w = env.minF ? (() => { let x = ENV.minWin; while (x < ENV.periods * env.sr / env.minF && x < ENV.maxWin) x *= 2; return x; })() : envWin(env.sr);
+    if (env.an.fftSize !== w || !env.buf) { env.an.fftSize = w; env.buf = new Float32Array(w); env.hist = []; }
+    const every = w <= 256 ? 5 : ENV.every;
+    if (!env.timer || env.every !== every) { clearInterval(env.timer); env.every = every; env.timer = setInterval(envTick, every); }
+  }
+  function envTick() {
+    const now = performance.now();
+    env.an.getFloatTimeDomainData(env.buf);
+    let s = 0; const b = env.buf; for (let i = 0; i < b.length; i++) s += b[i] * b[i];
+    const e = Math.sqrt(s / b.length), h = env.hist;
+    h.push([now, e]); while (h.length && now - h[0][0] > Math.max(ENV.dipMs, 120) + 20) h.shift();
+    if (h.length < 3 || e < P.gate * ENV.gateK || now - lastAttack < ENV.refractoryMs || now < P.suppressedUntil) return;
+    const prev = h[h.length - 2][1];
+    if (e <= prev) return;                                          // only on the way up
+    let dip = Infinity, ago = null, before = 0;
+    for (const [t, v] of h) {
+      const d = now - t;
+      if (d <= ENV.dipMs && d >= env.every) dip = Math.min(dip, v);
+      if (ago === null && d <= ENV.jumpMs + env.every) ago = v;
+      if (d >= 40 && d <= 120) before = Math.max(before, v);
+    }
+    if (e >= dip * ENV.rise || (ago !== null && e >= ago * ENV.jump && e >= before * ENV.above)) attackAt(now);
+  }
+  function attackAt(time, pitch) {
+    lastAttack = time;
+    if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null});
+    pend.push({time, seen: []});
+  }
+  function fireAttack(a) { attackFns.forEach(fn => fn(a)); }
+  /* called by the main loop with each reading: settle the pitch of pending attacks */
+  function settleAttacks(reading, now) {
+    for (let i = pend.length - 1; i >= 0; i--) {
+      const a = pend[i], dt = now - a.time;
+      if (dt < ENV.pitchFrom) continue;
+      if (reading) a.seen.push({pc: reading.pc, midi: reading.note});
+      const n = a.seen.length, two = n >= 2 && a.seen[n - 1].pc === a.seen[n - 2].pc;
+      if (two || dt >= ENV.pitchBy) {
+        pend.splice(i, 1);
+        let pick = two ? a.seen[n - 1] : null;
+        if (!pick && n) { const c = {}; a.seen.forEach(x => { c[x.pc] = (c[x.pc] || 0) + 1; }); const best = +Object.keys(c).sort((x, y) => c[y] - c[x])[0]; pick = a.seen.filter(x => x.pc === best).pop(); }
+        fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null});
+      }
+    }
+  }
+  /** tests only: run attack detection on any audio node (a synthetic signal) instead of the mic */
+  P._attackSource = (node, minF) => { if (env) { clearInterval(env.timer); env = null; } startEnvelope(node, minF); };
+  if (A.DEMO) {
+    let heldS = false;
+    const wrongOf = t => t ? {pc: mod12(t.pc + 2), midi: t.midi + 2} : null;
+    addEventListener('keydown', e => {
+      if (!attackFns.length || !P.demoAttacks || e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && e.key === ' ') return;
+      const t = P.demoTarget(), k = e.key.toLowerCase();
+      if (k === ' ') { e.preventDefault(); if (performance.now() >= P.suppressedUntil) attackAt(performance.now(), t); }
+      else if (k === 'w') { if (performance.now() >= P.suppressedUntil) attackAt(performance.now(), t ? wrongOf(t) : {pc: 1, midi: 61}); }
+      else if (k === 's' && !heldS) { heldS = true; if (t) { P.demoNote = t.midi; demoHeldPc = t.pc; } else demoHeldPc = 'drum'; }
+    });
+    addEventListener('keyup', e => { if (e.key.toLowerCase() === 's' && heldS) { heldS = false; P.demoNote = null; demoHeldPc = null; } });
+  }
+  let demoHeldPc = null;
+  /** ?demo: a note (or drum roll) is being held with S (no new attacks): games use it for "Tongue each note!" */
+  P.demoHeld = () => demoHeldPc;
+
   /* ---------- main loop ---------- */
   function tick() {
     const now = performance.now();
@@ -209,6 +314,7 @@ window.Arcade = window.Arcade || {};
     const quiet = now < P.suppressedUntil;
     if (quiet) { H.fired = true; reading = null; }       // …and nothing heard during the window is reported at all
     P.reading = reading; P.level = level;
+    if (pend.length) settleAttacks(reading, now);
     if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {
       H.fired = true;
       heldFns.forEach(fn => fn(H.pc, now, H.note));

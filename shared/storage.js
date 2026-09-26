@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const KEY = 'bandarcade.v1';
-  const CHECKER_MODES = ['five', 'Bb', 'Eb', 'F', 'Ab', 'full'];
+  const CHECKER_MODES = ['five', 'Bb', 'Eb', 'F', 'Ab', 'full', 'art'];
   let data = {inst: null, player: null, hornStart: 'F', sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}};
 
   try {

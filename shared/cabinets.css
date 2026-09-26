@@ -115,6 +115,22 @@
 .mq-faceoff .mq-name .fo2{margin-left:.35em;color:var(--u-hi);text-shadow:var(--u-glow)}
 .mq-faceoff .mq-kicker{color:var(--text-lo);letter-spacing:.3em}
 
+/* showtime: a worn bulb-lit sign hanging slightly crooked; SHOWTIME in the trim, MALFUNCTION in trim2 flickering
+   now and then (slow and gentle), and one bulb burnt out */
+.mq-showtime{background:radial-gradient(circle,var(--t-hi) .06em,transparent .08em) 0 0/.5em .5em,linear-gradient(180deg,var(--cab-panel),var(--deep));
+  border:.12em solid var(--t-ink);border-radius:.3em;box-shadow:inset 0 0 0 .2em var(--deep),var(--t-glow);transform:rotate(-2deg)}
+.mq-showtime .mq-text{background:var(--deep);border-radius:.2em;padding:.1em .3em}
+.mq-showtime .mq-name{font-size:1.02em;line-height:1.02;letter-spacing:.03em;white-space:normal}
+.mq-showtime .st1{color:var(--t-hi);text-shadow:var(--t-glow)}
+.mq-showtime .st2{display:block;color:var(--u-hi);text-shadow:var(--u-glow);animation:mq-flicker 6s infinite}
+.mq-showtime .dead{font-style:normal;color:var(--cab-metal);text-shadow:none}
+.mq-showtime .mq-kicker{color:var(--text-lo);letter-spacing:.2em}
+@keyframes mq-flicker{0%,86%,100%{opacity:1}88%{opacity:.45}90%{opacity:.95}92%{opacity:.55}}
+.shape-showtime .s-hole{fill:var(--deep);stroke:var(--cab-metal);stroke-width:2}
+.shape-showtime .s-tape{stroke:var(--cab-metal);stroke-width:7;stroke-linecap:round;opacity:.75}
+.shape-showtime .s-crack{fill:none;stroke:var(--deep);stroke-width:2;stroke-linecap:round;opacity:.9}
+.shape-showtime .s-wire{fill:none;stroke:var(--cab-metal);stroke-width:2.5;stroke-linecap:round}
+
 /* ---------- screen ---------- */
 .cab-screen{position:absolute;overflow:hidden;border-radius:.5em;background:var(--deep);box-shadow:0 0 0 .12em var(--deep),0 0 .8em var(--u)}
 .shape-haunted .cab-screen{border-radius:50% 50% .4em .4em / 34% 34% .4em .4em}
@@ -248,6 +264,15 @@
 .cab-start:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px;box-shadow:0 0 0 9px var(--deep),var(--t-glow)}
 .attract .cab-start{animation:att-start 1.4s steps(1) infinite}
 @keyframes att-start{50%{background:var(--t-hi)}}
+
+.scr-showtime{position:relative;background:var(--deep)}
+.scr-showtime .st-static{position:absolute;inset:0;opacity:.35;background:repeating-linear-gradient(0deg,var(--text-lo) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,transparent 0 3px,color-mix(in srgb,var(--text-lo) 40%,transparent) 3px 4px);animation:st-static 1.2s steps(4) infinite}
+@keyframes st-static{to{background-position:0 7px,5px 0}}
+.scr-showtime .st-eyes{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;gap:1.1em;animation:st-blink 4.5s infinite}
+.scr-showtime .st-eyes i{width:.9em;height:.9em;border-radius:50%;background:var(--anim-eye-bad);box-shadow:0 0 .3em var(--anim-eye-bad),0 0 .9em var(--anim-eye-bad)}
+@keyframes st-blink{0%,90%,100%{opacity:1}92%,95%{opacity:.1}}
+.scr-showtime .st-label{position:absolute;left:0;right:0;bottom:10%;text-align:center;font-family:var(--display);font-size:.8em;color:var(--t-hi);letter-spacing:.1em;opacity:.8}
 
 @media (prefers-reduced-motion:reduce){
   .cab *,.cab{animation:none!important}

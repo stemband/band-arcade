@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Showtime Malfunction</title>
+<meta name="description" content="The arcade's old animatronic band has powered back on. Play each note the number of times shown, tonguing or striking every one, to reboot them.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="showtime">
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- SHOWTIME SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title"><span class="t1">Showtime</span> <span class="t2">Malfunction</span></h1>
+      <p class="muted">The arcade's old animatronic band has powered back on, and it's glitching. Each one shows a note and a number: play that note that many times, <b>starting every note fresh</b> (tongue it, or strike it), to reboot them before they reach the front.</p>
+      <div class="hub-tools">
+        <button type="button" class="btn btn-ghost btn-small" id="storyBtn">The story</button>
+        <div class="spooky-set" role="group" aria-labelledby="spookyLbl"><span class="mp-lbl" id="spookyLbl">Spooky level</span>
+          <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button></div>
+      </div>
+    </div>
+    <div id="modePick"></div>
+    <div class="snare-card" id="snareCard" hidden>
+      <span class="drum-ico" aria-hidden="true"></span>
+      <div><b>Count mode</b><p>Snare drummers face Snapjaw Sal and his glitchy clone units. No notes: every clean hit counts. Play single strokes and let each one ring.</p></div>
+    </div>
+    <p class="eyebrow" id="levelsTitle">Showtimes</p>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks.</p>
+  </section>
+
+  <!-- A SHOWTIME -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Showtime 1</small><b id="hudLevelName">The 5:00 Show</b></div>
+      <div class="c"><small>Rebooted</small><b id="hudCount">0 / 5</b></div>
+      <div class="lights" id="hudLights" role="img" aria-label="3 of 3 spotlights"></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <div class="arena" id="arena">
+      <div class="scene" aria-hidden="true">
+        <div class="fluoro f1"></div><div class="fluoro f2"></div><div class="fluoro f3"></div>
+        <div class="cabs cabs-l"></div><div class="cabs cabs-r"></div>
+        <div class="stage-back"><div class="curtain"></div><div class="band" id="band"></div><div class="stage-sign">The Showtime Band</div></div>
+        <div class="floor"></div>
+        <div class="static"></div>
+        <div class="vignette"></div>
+      </div>
+      <div class="bots" id="bots"></div>
+      <div class="spots" id="spots" aria-hidden="true"></div>
+      <p class="banner" id="banner" hidden aria-live="assertive"></p>
+    </div>
+    <p class="prompt" id="prompt" aria-live="polite">Play the note on the glowing voice box, once for each count.</p>
+    <div class="play-foot">
+      <div class="hear"><small>Hearing</small><b id="hearNote">–</b><span class="lvlbars" id="hearBars"><i></i><i></i><i></i><i></i><i></i></span></div>
+      <button class="btn btn-ghost btn-small" id="quitPlay">Leave the show</button>
+    </div>
+  </section>
+</div>
+
+<!-- THE STORY (before the first showtime, and from the level screen) -->
+<div class="overlay" id="story" hidden>
+  <div class="panel story-panel" role="dialog" aria-modal="true" aria-labelledby="storyTitle">
+    <div class="story-art" id="storyArt" aria-hidden="true"></div>
+    <h2 id="storyTitle">Showtime Malfunction</h2>
+    <p>Years ago, the Band Arcade had its own animatronic house band, <b>THE SHOWTIME BAND</b>, playing on a little stage between the cabinets. One day they were switched off and wheeled into the back room.</p>
+    <p>Tonight, after closing, they've powered back on. They're glitching, their voice boxes are sour and off-key, and they're lurching across the arcade floor toward you.</p>
+    <p><b>Only clean, in-tune notes can reboot them.</b> Play each note as many times as the voice box shows, starting every note fresh, and they'll shuffle back to the stage where they belong.</p>
+    <div class="acts"><button class="btn btn-gold" id="storyGo">Let's go</button></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel">
+    <div class="res-band" id="resBand" aria-hidden="true"></div>
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Show saved!</h2>
+    <p id="resMsg"></p>
+    <div class="stats">
+      <div><small>Rebooted</small><b id="resHits">0/0</b></div>
+      <div><small>Spotlights</small><b id="resLights">3</b></div>
+      <div><small>Score</small><b id="resScore">0</b></div>
+    </div>
+    <p id="resBest" class="best"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next showtime</button>
+      <button class="btn btn-ghost" id="resRetry">Try again</button>
+      <button class="btn btn-ghost" id="resLevels">Showtimes</button>
+    </div>
+  </div>
+</div>
+
+<!-- The microphone listens during a showtime: every sound mutes it for a moment (shared/sfx.js), and the band stands still meanwhile. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/mode-picker.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="levels.js"></script>
+<script src="characters.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

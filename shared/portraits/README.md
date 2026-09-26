@@ -25,6 +25,7 @@ shows instead, never a broken image.
 | `euphonium.png` (or `euphonium-bc.png`) | `euphbc` | Euphonium (B.C.) |
 | `tuba.png` | `tuba` | Tuba |
 | `bells.png` | `bells` | Bells |
+| `snare.png` | `snare` | Snare (not uploaded yet: the drawn snare drum shows) |
 
 The map lives in `FILES` at the bottom of `shared/portraits.js`. Each name can be `.png` or `.webp`.
 For the euphonium, `euphonium.png` is tried first, so if you rename it to `euphonium-bc.png`, delete the old one.
@@ -98,6 +99,7 @@ little, make the trumpet's head `y` smaller.
 | `euphbc` | `[60, 6, 31]` | `[40, 42, 27, 0]` | (from face) |
 | `tuba` | `[88, 25, 20]` | `[26, 57, 27, 0]` | `[42, 42, 46]` |
 | `bells` | `[50, 23, 25]` | `[50, 42, 33, 0]` | `[50, 30, 44]` |
+| `snare` | `[50, 43, 26]` | `[50, 64, 34, 0]` | `[50, 52, 60]` |
 
 ## Optimized copies
 

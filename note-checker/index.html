@@ -24,6 +24,7 @@
     <button class="mode-btn" type="button" data-mode="F" aria-pressed="false" aria-label="Concert F scale">F</button>
     <button class="mode-btn" type="button" data-mode="Ab" aria-pressed="false" aria-label="Concert A flat scale">A♭</button>
     <button class="mode-btn" type="button" data-mode="full" aria-pressed="false">Chromatic</button>
+    <button class="mode-btn" type="button" data-mode="art" aria-pressed="false">Articulation</button>
   </div>
 
   <div id="fivePanel">
@@ -42,6 +43,22 @@
       <p class="octave-hint" id="fullHint" aria-live="polite"></p>
       <p class="demo-help" id="demoHelp" hidden>Demo: <b>↑</b>/<b>↓</b> pick a note, hold <b>Space</b> to play it. <b>Shift+Space</b> plays it an octave low.</p>
     </div>
+  </div>
+
+  <!-- ARTICULATION: counts every separate attack (shared/pitch.js onAttack) -->
+  <div id="artPanel" hidden>
+    <p class="muted lede" id="artLede">Play the same note again and again, starting each one fresh. Every attack the mic catches counts.</p>
+    <div class="art-box">
+      <div class="art-count" id="artCount" aria-live="polite" aria-atomic="true">0</div>
+      <div class="art-side">
+        <p class="art-label">attacks</p>
+        <p class="art-note" id="artNote">&nbsp;</p>
+        <p class="art-rate" id="artRate">&nbsp;</p>
+      </div>
+    </div>
+    <p class="art-tip" id="artTip">Tongue each note: ta ta ta ta.</p>
+    <div class="found"><span class="muted" id="artHint" aria-live="polite">&nbsp;</span><button class="btn btn-ghost btn-small" id="artReset">Reset</button></div>
+    <p class="demo-help" id="artDemo" hidden>Demo: tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note (no new attacks).</p>
   </div>
 
   <div class="startrow" id="startRow">
@@ -74,7 +91,7 @@
     </div>
   </div>
 
-  <div class="found">
+  <div class="found" id="foundRow">
     <b id="ckFound" aria-live="polite">0 of 5 notes found</b>
     <button class="btn btn-ghost btn-small" id="ckReset">Reset</button>
   </div>

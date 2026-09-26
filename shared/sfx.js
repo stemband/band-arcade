@@ -207,6 +207,11 @@ window.Arcade = window.Arcade || {};
     'game-over':       () => arp([523, 392, 330, 262, 196], 0.14, 'square', 0.3),
     'all-notes-found': () => { arp([523, 659, 784, 1047, 1319, 1568], 0.07, 'square', 0.3); tone(2093, 0.45, 0.25, 0.18, 'triangle'); },
     'retro':           () => tone([880, 1175], 0, 0.08, 0.3, 'square'),
+    // Showtime Malfunction
+    'attack-tick':     () => tone(1760, 0, 0.025, 0.2, 'square'),                                                     // tiny: fast tonguing keeps counting
+    'reboot':          () => { tone([220, 880], 0, 0.18, 0.28, 'sawtooth'); tone(1319, 0.16, 0.14, 0.22, 'triangle'); },     // a power-up whirr
+    'spotlight-out':   () => { tone([392, 98], 0, 0.3, 0.28, 'square'); tone(60, 0.02, 0.25, 0.18, 'sawtooth'); },      // a bulb dying
+    'showtime-over':   () => { arp([392, 370, 349, 330], 0.18, 'triangle', 0.26); tone([165, 82], 0.7, 0.6, 0.2, 'sawtooth'); },   // a slow wind-down, never a scream
   };
   /* the sound each action had before sound files: new names for old sounds */
   const CURRENT = {'wheel-left': SOUNDS.whoosh, 'wheel-right': SOUNDS.whoosh, 'select-default': SOUNDS.coin,
@@ -340,7 +345,7 @@ window.Arcade = window.Arcade || {};
     let dur = 0, how = '';
     try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, r.e) : playGen(r.fn); }
     catch (x) { dur = 0; }
-    if (dur && listening()) A.Pitch.suppress(dur * 1000 + ECHO_MS);
+    if (dur && listening()) A.Pitch.suppress(dur * 1000 + (e && e.echo != null ? e.echo : ECHO_MS));   // sounds.js `echo`: a shorter tail
     if (dur) { played.push({name, how, dur: +dur.toFixed(3), at: Math.round(performance.now()), muted: listening()}); if (played.length > 60) played.shift(); }
     return dur;
   }
