@@ -60,7 +60,7 @@
         <small id="rivalHits"></small>
       </div>
       <div class="bar-row you-row">
-        <b class="who">You</b>
+        <b class="who"><span class="who-pic" id="youPic"></span>You</b>
         <div class="energy" id="energy" role="meter" aria-label="Your energy" aria-valuemin="0"></div>
         <div class="mini-hud">
           <span><small>Note</small><b id="noteCount">1 / 10</b></span>
@@ -113,7 +113,7 @@
 <!-- RESULTS -->
 <div class="overlay" id="results" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="res-rival" id="resRival"></div>
+    <div class="res-faces"><span class="res-you" id="resYou"></span><div class="res-rival" id="resRival"></div></div>
     <div class="bigstars" id="resStars"></div>
     <h2 id="resTitle">K.O.!</h2>
     <p id="resMsg"></p>

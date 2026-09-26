@@ -192,7 +192,7 @@ window.Arcade = window.Arcade || {};
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;
-    const pic = id => id && A.portraitSVG ? `<span class="chip-pic" aria-hidden="true">${A.portraitSVG(id, {size: 'chip'})}</span>` : '';
+    const pic = id => id && A.portraitHTML ? `<span class="chip-pic" aria-hidden="true">${A.portraitHTML(id, {size: 'chip'})}</span>` : '';
     el.innerHTML =
       `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +

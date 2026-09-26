@@ -156,7 +156,8 @@
     ['hub', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('play').hidden = false; $('wrap').classList.add('playing');
     document.body.classList.toggle('ww', !D.brass && !D.slide);             // woodwind diagrams need the long side of a phone
-    $('fighter').innerHTML = fighterSVG(FIGHTER_COLOR[T.diagram] || 'cyan');
+    $('fighter').innerHTML = fighterSVG(FIGHTER_COLOR[T.diagram] || 'cyan') + `<span class="f-pic">${A.portraitHTML(member.id, {size: 'tile', label: member.short})}</span>`;
+    $('youPic').innerHTML = A.portraitHTML(member.id, {size: 'chip', label: member.short});
     $('rival').innerHTML = rivalSVG(V);
     $('rival').className = 'rival' + (V.boss ? ' boss' : '');
     $('fighter').className = 'fighter';
@@ -365,6 +366,7 @@
     A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
     const unlocked = won && old.stars === 0 && lv < RIVALS.length;
     $('resRival').innerHTML = rivalSVG(V, won ? 'bowing' : '');
+    $('resYou').innerHTML = A.portraitHTML(member.id, {size: 'tile', label: member.short});
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = won ? (stars === 3 ? 'Perfect K.O.!' : 'K.O.! You win!') : result === 'time' ? 'Time over' : 'Out of energy';
     $('resMsg').textContent = won

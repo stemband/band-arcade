@@ -48,7 +48,7 @@
     saved.settings.rival = lv; remember();
   }
   if (vsCPU) setRival(Math.min(RIVALS.length, Math.max(1, saved.settings.rival || 1)));
-  const portrait = (p, size) => A.portraitSVG(p.pic, {size, color: p.cpu ? `var(--${p.R.color})` : undefined, label: p.name});
+  const portrait = (p, size) => A.portraitHTML(p.pic, {size, color: p.cpu ? `var(--${p.R.color})` : undefined, label: p.name});
   const pairKey = () => `${P[0].member.id}>${P[1].member.id}`;
 
   /* ---------- match setup ---------- */
@@ -256,8 +256,8 @@
     $('resTitle').textContent = `${w.cpu ? w.name : 'Player ' + (winner + 1)} wins!`;
     $('resTitle').className = winner === 0 ? 'c1' : 'c2';
     $('resScore').innerHTML = `<span class="c1">${P[0].name} ${P[0].score}</span> – <span class="c2">${P[1].score} ${P[1].name}</span>`;
-    $('resStats').innerHTML = P.map((p, i) => `<div class="p${i + 1}"><small>${p.name}</small><b>${p.returns}</b> returns · <b>${p.smashes}</b> smashes` +
-      (p.best != null ? ` · fastest <b>${p.best.toFixed(2)} s</b>` : '') + `</div>`).join('');
+    $('resStats').innerHTML = P.map((p, i) => `<div class="p${i + 1}"><span class="res-pic">${portrait(p, 'tile')}</span><small>${p.name}</small><span><b>${p.returns}</b> returns · <b>${p.smashes}</b> smashes` +
+      (p.best != null ? ` · fastest <b>${p.best.toFixed(2)} s</b>` : '') + `</span></div>`).join('');
     $('resStars').hidden = !vsCPU; $('resNext').hidden = true; $('resBest').textContent = '';
     if (vsCPU) {
       const lv = P[1].rival, won = winner === 0, margin = P[0].score - P[1].score;

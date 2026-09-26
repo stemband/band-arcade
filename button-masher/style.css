@@ -88,7 +88,13 @@
 .bar-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
 .who{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .rival-row .who{color:var(--red-hi);text-shadow:var(--glow-red)}
-.you-row .who{color:var(--blue-hi);text-shadow:var(--glow-blue)}
+.you-row .who{color:var(--blue-hi);text-shadow:var(--glow-blue);display:flex;align-items:center;gap:6px}
+.who-pic{width:26px;height:26px;border-radius:50%;background:var(--deep);border:1px solid var(--blue);display:grid;place-items:center;flex:none}
+.who-pic .pt-box{width:22px;height:22px}
+/* the player's instrument portrait: a badge by the fighter's feet */
+.fighter{position:relative}
+.f-pic{position:absolute;left:0;bottom:0;width:38%;max-width:84px;padding:3px;border-radius:12px;background:var(--deep);border:2px solid var(--blue);box-shadow:var(--glow-blue)}
+.f-pic .pt-box{display:grid}
 .hp{height:18px;border-radius:4px;background:var(--deep);border:2px solid var(--red);box-shadow:var(--glow-red);overflow:hidden;transform:skewX(-14deg)}
 .hp i{display:block;height:100%;background:linear-gradient(90deg,var(--red-ink),var(--red),var(--yellow));transform-origin:right;transition:transform .35s ease-out}
 .rival-row small{font-size:13px;color:var(--text-lo);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -107,7 +113,7 @@
   padding:0 4px;border-bottom:3px solid var(--blue);background:linear-gradient(180deg,transparent 70%,rgba(77,141,255,.12));
   box-shadow:0 3px 0 -1px var(--red)}
 .fighter,.rival{height:92%;min-width:0;align-self:end}
-.fighter svg,.rival svg{width:100%;height:100%}
+.fighter>svg,.rival svg{width:100%;height:100%}
 .rival.boss{height:100%}
 .note-card{align-self:center;max-height:100%;padding:6px 8px 0;border-color:var(--yellow);box-shadow:0 0 0 4px var(--deep),var(--glow-yellow),inset 0 0 0 2px rgba(255,255,255,.6);text-align:center}
 .note-card .staff{max-height:calc(clamp(140px,25vh,230px) - 44px);margin:0 auto}
@@ -127,15 +133,15 @@
 @keyframes bn-in{0%{transform:translate(-50%,-50%) skewX(-10deg) scale(2.4);opacity:0}100%{transform:translate(-50%,-50%) skewX(-10deg) scale(1);opacity:1}}
 
 /* idle bob, strike, hit, counter, dizzy, K.O. */
-.fighter svg,.rival svg{animation:bob 1.8s ease-in-out infinite}
+.fighter>svg,.rival svg{animation:bob 1.8s ease-in-out infinite}
 .rival svg{animation-delay:-.9s}
-.fighter.strike svg{animation:lunge .35s ease-out}
+.fighter.strike>svg{animation:lunge .35s ease-out}
 @keyframes lunge{40%{transform:translateX(14px) scale(1.04)}}
 .rival.hit svg{animation:hit .45s ease-out}
 @keyframes hit{0%,100%{transform:none;opacity:1}15%{transform:translateX(10px) rotate(4deg);opacity:.5}30%{opacity:1}45%{transform:translateX(-6px);opacity:.6}60%{opacity:1}}
 .rival.counter svg{animation:counter .45s ease-out}
 @keyframes counter{40%{transform:translateX(-18px) scale(1.05)}}
-.fighter.dizzy svg{animation:wobble .8s ease-in-out}
+.fighter.dizzy>svg{animation:wobble .8s ease-in-out}
 .fighter.dizzy .dizzy{animation:stars-in .8s ease-out}
 @keyframes wobble{20%{transform:rotate(-6deg)}45%{transform:rotate(5deg)}70%{transform:rotate(-3deg)}}
 @keyframes stars-in{0%,100%{opacity:0}20%,80%{opacity:1}}
@@ -294,7 +300,10 @@
 .ch-foot{margin-top:14px!important}
 
 /* ---------- results ---------- */
-.res-rival{width:96px;height:120px;margin:0 auto 2px;--r1:var(--red)}
+.res-faces{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:0 auto 2px}
+.res-you{width:84px;padding:4px;border-radius:14px;background:var(--deep);border:2px solid var(--blue);box-shadow:var(--glow-blue)}
+.res-you .pt-box{display:grid}
+.res-rival{width:96px;height:120px;--r1:var(--red)}
 .panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
 .panel .bigstars .on{color:var(--yellow)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
@@ -311,7 +320,7 @@
 .topbar-right .sound-ctl{flex-wrap:nowrap}
 
 @media (prefers-reduced-motion:reduce){
-  .fighter svg,.rival svg,.rotate svg,.banner.go,.fighter.strike svg,.rival.hit svg,.rival.counter svg,.fighter.dizzy svg,.rival.ko .dizzy{animation:none}
+  .fighter>svg,.rival svg,.rotate svg,.banner.go,.fighter.strike>svg,.rival.hit svg,.rival.counter svg,.fighter.dizzy>svg,.rival.ko .dizzy{animation:none}
   .rival.ko svg{animation:none;transform:rotate(18deg);transform-origin:50% 95%}
   .fighter.dizzy .dizzy{animation:stars-in .8s steps(1)}
   .fx.go .blast{animation:flash-at .5s steps(1)}

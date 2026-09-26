@@ -24,7 +24,7 @@
 .btn-continue:active{transform:translateY(2px)}
 .btn-continue:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px}
 .c-pic{width:50px;height:50px;border-radius:50%;background:var(--deep);display:grid;place-items:center;flex:none}
-.c-pic svg{width:44px;height:44px}
+.c-pic .pt-box{width:44px;height:44px}
 .c-text{display:flex;flex-direction:column;line-height:1.1}
 .c-label{font-family:var(--display);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
 .c-name{font-family:var(--display);font-size:clamp(20px,4vw,26px);text-transform:uppercase}
@@ -42,7 +42,7 @@
 .pv-stage{display:grid;place-items:center;aspect-ratio:1;border-radius:16px;background:var(--deep);background:radial-gradient(circle, color-mix(in srgb, var(--pc) 18%, var(--deep)), var(--deep) 70%);
   border-bottom:3px solid var(--pc);box-shadow:0 10px 30px -12px var(--pc)}
 .pv-pic{width:86%;animation:idle 2.6s ease-in-out infinite}
-.pv-pic svg{display:block;width:100%;height:auto}
+.pv-pic .pt-box{display:grid}
 @keyframes idle{50%{transform:translateY(-5px) rotate(-1.5deg)}}
 .card{min-width:0}
 .card-fam{margin:0;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fam-hi)}
@@ -65,13 +65,13 @@
 .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;min-width:0;border-radius:14px;
   background:linear-gradient(180deg, var(--deep), var(--floor-2));border:2px solid var(--floor-3);border:2px solid color-mix(in srgb, var(--fam) 55%, transparent);opacity:.72;
   transition:opacity .12s, transform .12s}
-.tile svg{width:78%;height:auto;aspect-ratio:1}
+.tile .pt-box{width:78%}
 .t-name{font-weight:700;font-size:14px;line-height:1.15;text-align:center;color:var(--text-hi);min-height:2.3em;display:flex;align-items:center}
 .tile:hover{opacity:.95}
 .tile.suggest{opacity:1;border-style:dashed;border-color:var(--yellow)}
 .tile.on{opacity:1;z-index:1;border-color:var(--fam-hi);box-shadow:0 0 0 4px var(--fam),var(--fam-glow),0 0 26px var(--fam);animation:pulse 1.2s ease-in-out infinite;transform:scale(1.04)}
 .tile.on:focus-visible{outline:3px solid var(--text-hi);outline-offset:6px}
-.tile .p1,.tile .p2{position:absolute;left:-6px;top:-8px;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--deep);
+.tile .p1,.tile .p2{position:absolute;z-index:2;left:-6px;top:-8px;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--deep);
   background:var(--cyan);box-shadow:var(--glow-cyan);opacity:0;transform:rotate(-8deg)}
 .tile .p2{left:auto;right:-6px;background:var(--pink);box-shadow:var(--glow-pink);transform:rotate(8deg)}
 .tile.on .p1{opacity:1}

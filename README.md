@@ -13,7 +13,9 @@ select-player/        "Select Your Player": a fighting-game character select, on
 shared/               The engine every game uses
   instruments.js      Instrument groups, transpositions, first five notes, each group's instruments with
                       their full chromatic ranges, and groupFor(): instrument -> group (single source of truth)
-  portraits.js        The neon instrument portraits (SVG line art, drawn in code) used on every page
+  portraits.js        The instrument portraits: Mat's artwork from portraits/, with the neon SVG line art
+                      (drawn in code) as the automatic fallback
+  portraits/          Mat's portrait images, one per instrument (see portraits/README.md)
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
@@ -180,6 +182,12 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (bright attack, quick decay) at the exact pitch, so every bar is in tune. It is never replaced by an audio file, and it is silent when SOUND is off.
 
 Any event without its own sound falls back to the blip (`select-…` events fall back to the coin). New events go in `EVENTS` in `shared/sfx.js`.
+
+## Instrument portraits
+
+Each player's portrait is Mat's artwork in `shared/portraits/` (`trumpet.png`, `alto-sax.png`, …): the Select Player tiles and big preview, **Continue as …**, the instrument chip in every game's top bar, the Button Masher fighter and the Neon Face-Off player sides. Underneath each image is the drawn neon portrait from `portraits.js`; if a file is missing or broken, the drawing shows instead, so a broken image never appears.
+
+**To add or replace a portrait:** save a PNG or WebP with a transparent background as `shared/portraits/<name>.png`, using the name from the table in [`shared/portraits/README.md`](shared/portraits/README.md). Any shape works: it is fitted into a square, centered, never stretched. If that instrument has a smaller copy in `shared/portraits/optimized/` (alto sax, tenor sax, bells and horn do today), delete the copy and take its name off `OPTIMIZED` in `portraits.js`, or make a new copy. Optional `<name>-full.png` is a bigger picture used only in the Select Player preview. That README also covers skin variants and making optimized copies.
 
 ## Players and old saves
 
