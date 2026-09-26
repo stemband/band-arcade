@@ -89,6 +89,7 @@
     layout(true);
     setPrompt('Get ready…', '');
     A.Pitch.ignoreCurrent();                 // whatever is already sounding doesn't count
+    A.Sfx.event('level-start');              // the storm waits while it plays
     run();
   }
 
@@ -192,6 +193,7 @@
     $('noteLayer').appendChild(pop);
     setTimeout(() => pop.remove(), 800);
     setPrompt(`Blasted! That was ${n.it.label}.`, 'good');
+    A.Sfx.event('note-hit');
     removeNote(n, 'boom');
   }
 
@@ -199,6 +201,7 @@
     G.lost++; G.lives--;
     kick('ouch');
     setPrompt(`That ${n.it.label} got through!`, 'bad');
+    A.Sfx.event(G.lives > 0 ? 'life-lost' : 'game-over');
     removeNote(n, 'lost');
   }
 
@@ -235,7 +238,8 @@
     if (!G || G.paused) return;
     const dt = Math.min(0.1, (now - last) / 1000);   // cap the step so a slow frame never jumps a note past Tempo
     last = now;
-    if (!G.over) {
+    // the storm stands still while a sound plays (the detector is deaf then, shared/pitch.js), so no sound costs time
+    if (!G.over && !A.Pitch.isSuppressed(now)) {
       G.clock += dt;
       const step = dt / G.L.march;
       for (let i = 0; i < G.notes.length; i++) { G.notes[i].p += step; place(G.notes[i]); }
@@ -278,6 +282,7 @@
       G.wrong++;
       const f = G.front.el; f.classList.remove('nope'); void f.getBoundingClientRect(); f.classList.add('nope');
       setPrompt(`That's ${G.name(pc)}. Play the glowing note.`, 'bad');
+      A.Sfx.event('note-wrong');
     }
   });
 
@@ -320,6 +325,8 @@
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
+    // game-over already played when the last heart went
+    A.Sfx.sequence([stars ? 'level-complete' : lives > 0 && 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best > 0 && 'new-high-score']);
   }
 
   // ?demo scales: Space plays the glowing (front) note

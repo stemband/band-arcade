@@ -12,7 +12,6 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const inst = A.requireInstrument(GAME_ID); if (!inst) return;
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.mountControls($('sndCtl'), {ambience: false});
   A.Sfx.allowAmbience(false);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
@@ -383,10 +382,7 @@
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
-    if (won) sfx('level-complete'); else if (result !== 'time') sfx('level-failed');
-    let t = 520;
-    if (stars > old.stars) { later(() => sfx('star-earned'), t); t += 380; }
-    if (newBest) later(() => sfx('new-high-score'), t);
+    A.Sfx.sequence([won ? 'level-complete' : result !== 'time' && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score']);
   }
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
   $('resRetry').addEventListener('click', () => startLevel(G.lv));

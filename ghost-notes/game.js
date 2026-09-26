@@ -60,6 +60,7 @@
     $('hudScore').textContent = '0';
     window.scrollTo(0, 0);
     A.Pitch.ignoreCurrent();                 // whatever is already sounding doesn't count
+    A.Sfx.event('level-start');              // the note's clock waits while it plays (shared/sfx.js mutes the detector)
     nextNote();
   }
 
@@ -77,7 +78,7 @@
     if (vis === 'flash') G.flashT = setTimeout(() => { slot.style.opacity = 0; }, RULES.flashMs);
     setPrompt(vis === 0 ? 'Read the staff and play the note' : 'Play the note on the staff', '');
     const t = $('timer'); t.firstElementChild.style.transform = 'scaleX(1)'; t.classList.remove('low');
-    G.noteStart = performance.now(); G.locked = false;
+    G.noteStart = G.lastFrame = performance.now(); G.locked = false;
     const held = A.Pitch.heldPc();
     if (held !== null && held !== G.target) A.Pitch.ignoreCurrent();   // a note still ringing isn't a wrong note
   }
@@ -99,10 +100,12 @@
       A.colorNote('pn', '#c98a12'); revealGhost('gold');
       const pop = $('pop'); pop.textContent = '+' + pts; pop.classList.remove('go'); void pop.offsetWidth; pop.classList.add('go');
       setPrompt(`Yes! That's ${G.note.label}.`, 'good');
+      A.Sfx.event('note-hit');
       setTimeout(advance, RULES.afterHitMs);
     } else {
       G.wrong++;
       setPrompt(`That's ${G.name(pc)}. Look again.`, 'bad');
+      A.Sfx.event('note-wrong');             // while it plays, nothing heard counts and the clock stops
     }
   });
 
@@ -114,13 +117,16 @@
     const bars = A.Pitch.bars(level);
     $('hearBars').querySelectorAll('i').forEach((b, i) => b.classList.toggle('on', i < bars));
     if (G.locked) return;
-    if (document.hidden) { G.noteStart += 40; return; }   // pause the clock while the tab is hidden
+    const dt = now - (G.lastFrame || now); G.lastFrame = now;
+    // the clock stops while the tab is hidden and while a sound plays (the detector is deaf then, shared/pitch.js)
+    if (document.hidden || A.Pitch.isSuppressed(now)) { G.noteStart += dt; return; }
     const frac = 1 - (now - G.noteStart) / (G.L.time * 1000);
     const t = $('timer'); t.firstElementChild.style.transform = `scaleX(${Math.max(0, frac)})`; t.classList.toggle('low', frac < .3);
     if (frac <= 0) {
       G.locked = true;
       A.colorNote('pn', '#d0503f'); revealGhost('coral');
       setPrompt(`Time! That note was ${G.note.label}.`, 'bad');
+      A.Sfx.event('note-missed');
       setTimeout(advance, RULES.afterMissMs);
     }
   });
@@ -154,6 +160,7 @@
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
+    A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best > 0 && 'new-high-score']);
   }
 
   A.ModePicker.demoSpace(() => G && !G.locked && G.note && G.note.sounding != null ? G.note.sounding : null);   // ?demo scales: Space plays the note

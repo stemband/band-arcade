@@ -10,6 +10,7 @@ arcade.css / .js      Arcade floor look and behavior (carousel, swipe, arrow key
 arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, glossy floor, haze
 shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
 select-player/        "Select Your Player": a fighting-game character select, one neon tile per instrument
+sound-board/          The Sound Board: plays every sound and shows which are your files (for Mat; not linked from the arcade)
 shared/               The engine every game uses
   instruments.js      Instrument groups, transpositions, first five notes, each group's instruments with
                       their full chromatic ranges, and groupFor(): instrument -> group (single source of truth)
@@ -26,8 +27,9 @@ shared/               The engine every game uses
   mode-picker.js      The NOTES × ORDER picker those games show on their level screen
   games.js            The list of games on the arcade floor, and how each cabinet looks
   belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
-  sfx.js              Sound effects for the arcade floor, Select Player and the mic-free games, and Chime Heist's
-                      bell tones (made in code, no audio files)
+  sounds.js           THE SOUND LIST: every sound event, its file name, volume and rules (see sounds/README.md)
+  sounds/             Mat's recorded sounds (.m4a / .mp3), and the list of file names to use (README.md)
+  sfx.js              Plays every sound: your files, else the built-in sounds; volumes; mutes the mic while sounds play
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
   fonts.css + fonts/  Fonts bundled with the site (no outside font service needed)
@@ -132,7 +134,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **Players:** START on the arcade floor opens Select Your Player for two: Player 1 picks as usual, then **PLAYER 2 — PRESS START** (magenta 2P marker), or **CPU**. Player 2's choice is remembered as the last opponent and never changes Player 1's instrument.
 - **Match setup:** one column per player with **NOTES** and **ORDER** (the same picker as the other games; each player's own notes, clef and key) and **DIFFICULTY**: Rookie (at least 4 s to play every note, and a smaller set of notes), Pro (2.5 s), All-Star (1.5 s). Nobody ever gets less than their own minimum time, so every shot can be returned. Points to win are shared. Two-player matches show the head-to-head record for that pairing on this device ("Trumpet 3 – 2 Flute").
 - **The microphone:** only the player whose turn it is can hit. Every turn the detector switches to that player's instrument and range (a tuba and a flute are listened for very differently), and a note still ringing from the other player never counts. A new note is never the same pitch the other player just played. A wrong note shows "That's a D" and the clock keeps running.
-- **Sounds:** Neon Face-Off is the only listening game that makes sounds. Each one is under half a second, the microphone ignores everything while it plays, and your clock starts only after it ends, so a sound never costs anyone time. Turn them off with SOUND, or for good with `sounds: false` in `neon-face-off/levels.js`.
+- **Sounds:** the microphone ignores everything while a sound plays (and 250 ms after it). The next player's note appears only once the microphone is listening again, their time is never shortened by the wait, and the puck and their reaction clock stop during any sound while their note is up, so a sound never costs anyone time. Turn them off with SOUND, or for good with `sounds: false` in `neon-face-off/levels.js`.
 - **1 player vs CPU:** 8 rivals on a ladder in `neon-face-off/levels.js` (Rookie Robo, Slide Rule, Puckster, Rim Shot, Glide, Blitz, Zero Gravity, The Champ), each with a reaction-time range and an accuracy. The CPU "plays" silently (its note lights up), so it never confuses the microphone. Stars: win = 1, win by 4 or more = 2, shutout = 3; beating a rival unlocks the next. Stars are saved under Player 1's instrument; the arcade floor shows them.
 - **Layout:** landscape puts Player 1 on the left and Player 2 on the right (stand on either side of the device); portrait puts Player 1 at the bottom and Player 2 at the top, with Player 2's panel turned to face them.
 - **Testing** (`?demo`): all rivals unlocked; in a match hold **Space** to play the active player's note (press it later for a slower, softer shot) or **W** for a wrong note.
@@ -140,51 +142,21 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 ## Sounds
 
-`shared/sfx.js` makes every sound in code (no audio files) and always respects the SOUND button. It's used on the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher; games that listen to the microphone never load it, except Neon Face-Off, which mutes the microphone during each of its sounds (see Neon Face-Off). (There is no separate `sounds.js` or sound-file folder: every event below lives in `EVENTS` in `shared/sfx.js`.)
+Every sound in the arcade goes through `shared/sfx.js`, and each one can be **your own recording**. The full list of sounds, with the exact file name for each, when it plays and a suggested length, is in [`shared/sounds/README.md`](shared/sounds/README.md) (the same list, with volumes and rules, is `shared/sounds.js`).
 
-| Event | When | Sound (falls back to) |
-|---|---|---|
-| `select-<game>` | START on the arcade floor | the game's own sound if it has one, else the coin |
-| `level-start` | a level begins | three rising notes |
-| `note-hit` | a correct note | the blip |
-| `note-wrong` | a wrong note | a low buzz |
-| `note-missed` | time ran out | a falling tone |
-| `level-complete` / `level-failed` | results | a rising / falling arpeggio |
-| `star-earned` | more stars than before | a sparkle |
-| `new-high-score` | a new best score | a quick fanfare |
-| `ninja-slash` | Note Ninja: a correct answer | a swish and a chirp |
-| `ninja-combo` | Note Ninja: every 5 in a row | a fast run up |
-| `belt-earned` | Note Ninja: a new belt unlocked | a gong and a run |
-| `belt-diamond` | Note Ninja: the Diamond belt unlocked | the belt sound plus a sparkle (belt-earned) |
-| `tumbler-click` | Chime Heist: a correct bar (quiet, under the bell) | two tiny clicks (blip) |
-| `alarm-buzz` | Chime Heist: a wrong bar or a timeout | a short two-tone buzz (blip) |
-| `caught` | Chime Heist: the alarm meter is full | a siren wail (blip) |
-| `vault-open` | Chime Heist: a vault is cracked and the door swings open | a heavy clunk and a shimmer (blip) |
-| `vault-unlocked` | Chime Heist: a new vault becomes available | a rising chime (blip) |
-| `answer-right` / `answer-wrong` | Ancient Ninja Scrolls: an answer | two bright notes / a soft falling tone (blip) |
-| `scroll-unroll` | Ancient Ninja Scrolls: a term mastered | a paper swish and a run up (blip) |
-| `gong` | Ancient Ninja Scrolls: the Belt Exam is turned in | a low gong (blip) |
-| `test-ready` | Ancient Ninja Scrolls: a TEST READY badge | a warm fanfare (blip) |
-| `tile-move` | Select Player: the highlight moves | a short tick (blip) |
-| `player-select` | Select Player: a player is chosen | the blip |
-| `player-ready` | Select Player: PLAYER 1 READY | a low zap and a quick run up (blip) |
-| `skin-unlocked` | the UNLOCKED! card: a results screen, or Select Player's catch-up (only on pages that load `sfx.js`; Ghost Notes and Note Storm stay silent) | a sparkly run up (blip) |
-| `skin-equip` | a skin or accessory is put on (the locker, or **Equip now**) | a quick zip and a ping (blip) |
-| `puck-hit-soft` / `puck-hit-hard` / `puck-smash` | Neon Face-Off: a WEAK / GOOD or POWER / SMASH! shot | a soft tap / a harder knock / a swish and a crack (blip) |
-| `rail-bounce` | Neon Face-Off: the puck bounces off a rail (only while the microphone is muted, or toward the CPU) | a tiny tick (blip) |
-| `goal` | Neon Face-Off: a goal | a quick run up (blip) |
-| `match-win` | Neon Face-Off: the match is won | a longer run up (blip) |
-| `your-turn` | Neon Face-Off: the turn changes | a very short ping (blip) |
-| `fight-start` | Button Masher: "ROUND 1… FIGHT!" | two short beats and a long one (blip) |
-| `key-press` | Button Masher: each key, valve or slide tap | a soft click (blip) |
-| `special-move` | Button Masher: a correct STRIKE! | a rising zap and a sparkle (blip) |
-| `combo-streak` | Button Masher: every 5 correct in a row | a fast run up (blip) |
-| `rival-counter` | Button Masher: a wrong combo or a timeout | a cartoon "boing" (blip) |
-| `ko` | Button Masher: the rival is defeated | a falling whoosh and a fanfare (blip) |
+**To add or replace a sound:** record it, save it as `.m4a` (best) or `.mp3`, name it exactly as in that list (for example `select-ghost-notes.m4a`, `note-hit.mp3`, `lobby-ambience.m4a`), and upload it into `shared/sounds/`. That's all: the arcade uses your file from then on. Without a file (or if a file won't play), each sound falls back to the arcade's own built-in sound for that moment, so nothing ever goes silent and students never see an error; a missing file is only noted in the browser console. To make one sound louder or softer without re-recording, change its `vol` in `shared/sounds.js`.
 
-Chime Heist's bars use `Arcade.Sfx.bell(soundingMidi)`: a synthesized bell (bright attack, quick decay) at the exact pitch, so every bar is in tune. It is never replaced by an audio file, and it is silent when SOUND is off.
+**The Sound Board** (`sound-board/index.html`, for example `https://stemband.github.io/band-arcade/sound-board/index.html`; it isn't linked from the arcade): press **Check my files** and every sound gets a label: **YOUR FILE (m4a/mp3)**, **FALLBACK** (the arcade's built-in sound for that moment) or **MISSING FILE, USING GENERATED** (a short generic beep until you add one). Press **Play** to hear any sound, and watch the level meter and the peak (dB) next to each sound to match loudness between recordings. The ambience has a **Loop test** that jumps to just before the loop point, so you can hear whether it wraps around cleanly.
 
-Any event without its own sound falls back to the blip (`select-…` events fall back to the coin). New events go in `EVENTS` in `shared/sfx.js`.
+What students hear:
+- **The arcade floor:** a turn sound each way (`wheel-left`, `wheel-right`), a quiet `cabinet-focus`, the room ambience loop, and on START the game's own `select-<game>` sound, which plays on the floor before the page changes (the page changes as soon as it ends, never more than 1.5 s later). A new game gets its `select-<game>` automatically, falling back to `select-default` (the old coin).
+- **Select Player:** `tile-move`, `player-select`, `player-continue`, `player-ready`, `player2-join`, and the skin sounds.
+- **The games:** the shared events (`level-start`, `note-hit`, `note-wrong`, `note-missed`, `level-complete`, `level-failed`, `star-earned`, `new-high-score`) and each game's own. Chime Heist's bell bars are always made by the arcade so every pitch is exactly in tune; they are never replaced by files.
+- **Controls:** the speaker button in every top bar opens **SOUND ON/OFF**, an **EFFECTS** volume and an **AMBIENCE** volume (the room sound plays on the arcade floor and Select Player only). Defaults: effects on at 60 %, ambience on at 30 %. The device remembers them on every page. Browsers only allow sound after the first tap on each page, and an iPad with its silent switch on stays silent.
+
+**Sounds and the microphone:** the listening games (Ghost Notes, Note Storm, the Note Checker, Neon Face-Off) play sounds too. While a sound plays, and for 250 ms after it (room echo), the arcade ignores the microphone: nothing heard counts as a right note, a wrong note, or toward holding a note, and the game's timer stops (Ghost Notes' note timer, the Note Storm notes, Neon Face-Off's puck and reaction clock), so a sound never costs a student time. A note still ringing afterwards has to be played again. So keep the **during play** sounds (marked in the list) under half a second. The Note Checker only plays a sound when every note is found, never per note, so a scale can be played straight through.
+
+Each page loads only its own sounds, after the first tap, two at a time (school Wi-Fi). A page opened by double-clicking still plays your files, but the ambience loop and exact timings are only right on the served site.
 
 ## Instrument portraits
 
@@ -327,7 +299,7 @@ For a brand-new look:
 ## Known limits
 
 - Pitch matching accepts the right note **in any octave**. Low brass is often read an octave off on built-in mics, so this is on purpose.
-- The listening games make **no sounds** (except Neon Face-Off, which mutes the microphone while each of its short sounds plays). A sound effect would be picked up by the mic and counted as a note. Only the arcade floor, Select Player, Note Ninja, Chime Heist, Ancient Ninja Scrolls and Button Masher (which don't use the mic) make sounds (a whoosh when the cabinets turn, a coin drop on START, a blip when you pick an instrument, and an optional arcade-room hum). The **SOUND** and **AMBIENCE** buttons in the top corner turn them off; the device remembers the choice. Sound starts only after the first tap, and on an iPad with the silent switch on you won't hear it.
+- Sounds start only after the first tap on each page (a browser rule), and an iPad with the silent switch on stays silent. While a sound plays, a listening game ignores the microphone (see Sounds).
 - Other players nearby can be heard. Turn Mic sensitivity (on the Note Checker) toward *Less* in busy practice rooms.
 - The arcade floor has no instrument picker on purpose: students pick a game first, then a player.
 - Progress is saved in each device's browser. Clearing browser data, or using a different device, starts fresh.

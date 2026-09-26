@@ -49,11 +49,16 @@ window.Arcade = window.Arcade || {};
   P.onHeld  = fn => heldFns.push(fn);
   /** treat whatever is sounding right now as already counted (use when a new target appears) */
   P.ignoreCurrent = () => { H.fired = true; };
-  /** hear nothing for ms (a sound effect is playing through the speaker), then ignore whatever is still
-      sounding. Neon Face-Off, the one listening game with sounds, calls it with every sound it plays,
-      and starts the next player's clock only after the window ends (P.suppressedUntil). */
+  /** SOUND AND THE MICROPHONE: hear nothing for ms (a sound is playing through the speaker), then ignore whatever
+      is still sounding, so only a fresh note (a new attack or a different pitch) can count afterwards.
+      shared/sfx.js calls it for EVERY sound played while listening (the sound's length + 250 ms of room echo).
+      Meanwhile onHeld never fires, onFrame gets reading = null, and games pause their timers: they check
+      P.isSuppressed(now) each frame (Ghost Notes, Note Storm), or wait for P.suppressedUntil (Neon Face-Off). */
   P.suppressedUntil = 0;
   P.suppress = ms => { P.suppressedUntil = Math.max(P.suppressedUntil, performance.now() + ms); H.fired = true; };
+  P.isSuppressed = (t = performance.now()) => t < P.suppressedUntil;
+  /** true while a game is listening (the mic is running, or ?demo is standing in for it) */
+  P.listening = () => P.active || P.demoReady;
   P.heldPc = () => H.pc;
 
   /* sensitivity slider 0–100 -> loudness gate. 0 ignores quiet sounds, 100 hears almost anything */
@@ -201,7 +206,8 @@ window.Arcade = window.Arcade || {};
 
     // a sound effect is playing: keep tracking what is heard but count none of it. Anything still sounding when the
     // window ends stays counted too, so only a NEW note (a new attack or a different pitch) can fire afterwards.
-    if (now < P.suppressedUntil) H.fired = true;
+    const quiet = now < P.suppressedUntil;
+    if (quiet) { H.fired = true; reading = null; }       // …and nothing heard during the window is reported at all
     P.reading = reading; P.level = level;
     if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {
       H.fired = true;

@@ -18,7 +18,6 @@
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
-  A.Sfx.mountControls($('sndCtl'), {ambience: false});
   A.Sfx.allowAmbience(false);                       // no arcade-room hum inside a game
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
@@ -274,12 +273,9 @@
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
-    // sounds, one after another
-    sfx(stars ? 'level-complete' : 'level-failed');
-    let t = 520;
-    if (stars > old.stars) { setTimeout(() => sfx('star-earned'), t); t += 380; }
-    if (newBest) { setTimeout(() => sfx('new-high-score'), t); t += 500; }
-    if (newBelt) setTimeout(() => sfx(BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned'), t);
+    // sounds, one after another (each when the one before ends, whatever its length)
+    A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score',
+      newBelt && (BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned')]);
   }
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));

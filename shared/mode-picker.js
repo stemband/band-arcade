@@ -61,8 +61,8 @@ window.Arcade = window.Arcade || {};
         `<div class="mp-row"><span class="mp-lbl" id="mpOrder-${uid}">Order</span><div class="mp-order" role="group" aria-labelledby="mpOrder-${uid}">` +
         A.ORDER_CHOICES.map(o => `<button type="button" class="mp-ord" data-order="${o.id}" aria-pressed="${o.id === state.order}">${o.label}</button>`).join('') +
         `</div></div><p class="mp-say" aria-live="polite">${state.label}</p></div>`;
-      el.querySelectorAll('[data-notes]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {notes: b.dataset.notes}); update(b); }));
-      el.querySelectorAll('[data-order]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {order: b.dataset.order}); update(b); }));
+      el.querySelectorAll('[data-notes]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {notes: b.dataset.notes}); update(b); if (A.Sfx) A.Sfx.event('ui-toggle'); }));
+      el.querySelectorAll('[data-order]').forEach(b => b.addEventListener('click', () => { A.store.setNoteMode(memory, {order: b.dataset.order}); update(b); if (A.Sfx) A.Sfx.event('ui-toggle'); }));
     }
     function update(btn) {
       const k = btn && [...btn.attributes].find(a => /^data-(notes|order)$/.test(a.name));
