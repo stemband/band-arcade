@@ -31,9 +31,9 @@
   const gameLink = A.linkTo(ROOT + game.id + '/index.html', {need: null});
   view.className = 'sp-view ' + A.trimClasses(game);        // this game's neon colors for the whole screen
   view.hidden = false; view.scrollTop = 0;
-  document.title = `Select Player · ${game.name}`;
+  document.title = `Select Instrument · ${game.name}`;
   $('spMsg').hidden = true; $('spMsg').innerHTML = '';
-  $('spTitle').textContent = 'Select your player';
+  $('spTitle').textContent = 'Select your instrument';
   $('ready').hidden = true; $('ready').classList.remove('go');
   $('marquee').innerHTML = A.marqueeHTML(game, 'p');
   if (A.Marquee) A.Marquee.animate($('marquee').querySelector('.mq-live'), 'select');   // this game's sign, moving
