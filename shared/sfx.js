@@ -13,6 +13,9 @@
                                        tap they are downloaded and decoded on unlock)
      Arcade.Sfx.eventSoon(name, ms)    like event(), but if its file is still downloading, wait for it (up to ms,
                                        default 600) instead of playing the fallback: the floor's START uses it
+     Arcade.Sfx.duck(ms, {level, down, up})  dip the music + ambience to level (0.4) over down s (0.2), hold ms, back
+                                       up over up s (0.5): voice lines (Select Player's choose-instrument)
+     Arcade.Sfx.busy()                 ms until the last effect played has finished (0 = quiet)
      Arcade.Sfx.whenReady(names, ms)   a Promise: these events' files are loaded (or missing), or ms (default 1500)
                                        passed; Dojo Duel's first countdown waits for it so the voices are on time
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
@@ -66,7 +69,7 @@ window.Arcade = window.Arcade || {};
         fxBus = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
         fxBus.connect(analyser); analyser.connect(ctx.destination);
         master = ctx.createGain(); master.gain.value = GEN_LEVEL; master.connect(fxBus);    // the generated sounds
-        Object.values(CH).forEach(c => { c.bus = ctx.createGain(); c.bus.connect(ctx.destination); });
+        Object.values(CH).forEach(c => { c.bus = ctx.createGain(); c.duck = ctx.createGain(); c.bus.connect(c.duck); c.duck.connect(ctx.destination); });   // bus = the slider, duck = duck()
         applySettings();
         // the audio can stop again (iPad: another app, a call, the tab in the background, a resume refused without a
         // tap): then the next tap/key unlocks it again, and the music carries on
@@ -463,6 +466,22 @@ window.Arcade = window.Arcade || {};
 
   const played = [];       // the last 60 sounds played on this page (tests and the Sound Board): {name, how, dur, at, muted}
 
+  /* ---------- DUCKING: a voice line dips the music and the ambience, then brings them back ----------
+     Its own gain node after each channel's slider (the sliders and mute never undo a dip, and a dip never touches them).
+     A second duck while one is on keeps the later end. (The <audio> loops of file:// testing are not dipped.) */
+  function duck(ms, {level = 0.4, down = 0.2, up = 0.5} = {}) {
+    if (!ctx || !(ms > 0)) return;
+    const t = ctx.currentTime;
+    Object.values(CH).forEach(c => {
+      if (!c.duck) return;
+      const g = c.duck.gain, end = c.duckEnd = Math.max(c.duckEnd > t ? c.duckEnd : 0, t + Math.max(down, ms / 1000));
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(level, t + down); g.setValueAtTime(level, end); g.linearRampToValueAtTime(1, end + up);
+    });
+  }
+  /** ms until the last effect played with event() has finished (0 = quiet) */
+  const busyFor = () => Math.max(0, ...played.map(p => p.at + p.dur * 1000 - performance.now()));
+
   /* ---------- preloading: only this page's sounds, after the first tap, two at a time ---------- */
   const screens = new Set(['general']);
   let queue = [], busy = 0, preferred = [];
@@ -770,7 +789,7 @@ window.Arcade = window.Arcade || {};
       // where the loops play, when it isn't here
       const note = el.querySelector('.snd-note'), m = !CH.mus.want, a = !CH.amb.want;
       note.hidden = !m && !a;
-      note.textContent = m && a ? 'Music plays on Select Player, ambience on the arcade floor.' : m ? 'Music plays on Select Player.' : a ? 'Ambience plays on the arcade floor.' : '';
+      note.textContent = m && a ? 'Music plays on Choose Your Instrument, ambience on the arcade floor.' : m ? 'Music plays on Choose Your Instrument.' : a ? 'Ambience plays on the arcade floor.' : '';
     }
     const show = v => { pop.hidden = !v; open.setAttribute('aria-expanded', v); };
     open.addEventListener('click', () => { show(pop.hidden); if (!pop.hidden) tg.focus(); });
@@ -832,8 +851,11 @@ window.Arcade = window.Arcade || {};
     sync: () => applyAll(),
     /** tests: what each channel wants and plays */
     musicState: () => Object.fromEntries(Object.values(CH).map(c => [c.name, {want: c.want ? c.want.events.join('|') : null, builtIn: !!(c.want && c.want.builtIn),
-      playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null}])).valueOf(),
+      playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null, duck: c.duck ? +c.duck.gain.value.toFixed(2) : 1}])).valueOf(),
     get unlocked() { return !!ctx && ctx.state === 'running'; },
+    /** a tap or key on this page has started the audio (it may still be unlocking) */
+    get started() { return !!ctx; },
+    duck, busy: busyFor,
     /** ?debug: the music log (also shown on the page) */
     musicLog,
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */

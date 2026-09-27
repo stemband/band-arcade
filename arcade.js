@@ -1,7 +1,7 @@
 /* Arcade home page (index.html): PRESS START, then the ZONE LOBBY, the ZONES and ALL GAMES, all on this one page (so
    the audio the student unlocked stays unlocked, and the lobby sound never restarts between them).
      PRESS START   the first visit of a browser session: an attract screen; the gesture that dismisses it unlocks the
-                   audio, then SELECT YOUR INSTRUMENT (Select Player in pick mode, index.html?pick) opens once.
+                   audio, then CHOOSE YOUR INSTRUMENT (Select Player in pick mode, index.html?pick) opens once.
      LOBBY         index.html (no hash): one neon sign per zone, CONTINUE, ASSIGNED (lobby.js draws it)
      A ZONE        index.html#zone=<zone id>[&game=<game id>]: the cabinet carousel with only that zone's cabinets
      ALL GAMES     index.html#all-games: every game as a card (lobby.js)
@@ -35,6 +35,7 @@
   $('demoNote').hidden = !A.DEMO;
   A.Sfx.mountControls($('soundCtl'));
   if (A.Backup) A.Backup.button($('soundCtl').querySelector('.snd-pop'), 'snd-backup');   // shared/backup.js: BACKUP / RESTORE
+  A.Sfx.prefer('choose-instrument');                    // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)
   A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
   A.Sfx.mountControls($('spSound'));                     // the select view's own speaker button (same settings)
   $('tuneBtn').href = A.linkTo('note-checker/index.html');
@@ -59,7 +60,7 @@
       setTimeout(() => {
         ps.hidden = true; ps.classList.remove('go');
         ['pointerdown', 'keydown', 'click'].forEach(t => removeEventListener(t, dismiss, true));
-        if (pickAfterStart && !A.SelectView.isOpen) openPick(null);        // then: SELECT YOUR INSTRUMENT (CONTINUE AS is one tap)
+        if (pickAfterStart && !A.SelectView.isOpen) openPick(null);        // then: CHOOSE YOUR INSTRUMENT (CONTINUE AS is one tap)
         else focusView();
       }, 320);
     };
@@ -373,7 +374,7 @@
     floorSound();
     const r = route();
     render(r);
-    // no instrument yet (and no PRESS START to lead there): SELECT YOUR INSTRUMENT, once per page load
+    // no instrument yet (and no PRESS START to lead there): CHOOSE YOUR INSTRUMENT, once per page load
     if (!A.store.player && !pressStart() && !autoPicked && r.view === 'lobby') { autoPicked = true; openPick(null); return; }
     if (afterPick) { const pg = afterPick; afterPick = null; if (fitOf(pg).ok) openGame(pg, current); }
     if (lastSelectGame && r.view === 'zone') { const i = ring.indexOf(lastSelectGame); if (i >= 0 && i !== cur) { cur = i; place(true); } }
@@ -437,7 +438,7 @@
     const el = current === 'zone' ? view && view.startLink : current === 'all' ? $('allGrid').querySelector('.gcard') : $('zones').querySelector('.zsign');
     if (el) el.focus({preventScroll: true});
   }
-  /** the player chip in the top bar: the avatar and instrument (tap: SELECT YOUR INSTRUMENT) */
+  /** the player chip in the top bar: the avatar and instrument (tap: CHOOSE YOUR INSTRUMENT) */
   function chip() {
     const m = A.store.player ? A.memberById(A.store.player) : null;
     $('instChip').innerHTML = m ? `<span class="chip-pic" aria-hidden="true">${A.avatarHTML({size: 'chip', member: m.id, label: ''})}</span><span class="chip-name">${esc(m.short)}</span>`

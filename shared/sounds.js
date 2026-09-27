@@ -48,14 +48,15 @@ window.Arcade = window.Arcade || {};
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js
     // ---- Select Player --------------------------------------------------------------------------------------
-    'select-music':    {file: 'select-music', vol: .3, loop: true, mic: false, screen: 'select', when: 'Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays.', len: '30–90 s loop'},
+    'select-music':    {file: 'select-music', vol: .3, loop: true, mic: false, screen: 'select', when: 'Character select music on Choose Your Instrument (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays.', len: '30–90 s loop'},
+    'choose-instrument': {file: 'choose-instrument', vol: .9, mic: false, screen: 'select', gen: [[523, 0, .09, .2, 'square'], [659, .1, .09, .2, 'square'], [784, .2, .22, .2, 'square'], [392, .2, .22, .12, 'triangle']], when: 'Announcer says "Choose your instrument" when the Choose Your Instrument screen opens.', len: '0.8–2 s'},
     'tile-move':       {file: 'tile-move',       vol: .5, mic: false, screen: 'select', when: 'The highlight moves to another instrument.', len: '0.05–0.15 s'},
     'player-select':   {file: 'player-select',   vol: .8, mic: false, screen: 'select', when: 'An instrument tile is confirmed (SELECT, or tapping the highlighted tile).', len: '0.2–0.5 s'},
     'player-continue': {file: 'player-continue', vol: .8, mic: false, screen: 'select', when: 'The CONTINUE AS button (or Same opponent) is pressed.', len: '0.2–0.5 s'},
     'player-ready':    {file: 'player-ready',    vol: .9, mic: false, screen: 'select', when: 'The "PLAYER 1 READY" flash.', len: '0.6–1.2 s'},
     'player2-join':    {file: 'player2-join',    vol: .9, mic: false, screen: 'select', when: 'Neon Face-Off: "PLAYER 2 — PRESS START" appears.', len: '0.4–1 s'},
     'skin-equip':      {file: 'skin-equip',      vol: .4, mic: true, screen: 'select', when: 'A skin or accessory is put on (the SKINS locker, or Equip now).', len: '0.2–0.4 s'},
-    'skin-unlocked':   {file: 'skin-unlocked',   vol: .8, mic: true, screen: 'select', when: 'An UNLOCKED! card appears (a results screen, or Select Player catch-up).', len: '0.4–0.5 s'},
+    'skin-unlocked':   {file: 'skin-unlocked',   vol: .8, mic: true, screen: 'select', when: 'An UNLOCKED! card appears (a results screen, or Choose Your Instrument catch-up).', len: '0.4–0.5 s'},
     // ---- everywhere -------------------------------------------------------------------------------------------
     'ui-back':         {file: 'ui-back',   vol: .6, mic: true, screen: 'general', when: '"← ARCADE": back to the arcade floor.', len: '0.1–0.3 s'},
     'ui-toggle':       {file: 'ui-toggle', vol: .5, mic: true, screen: 'general', when: 'SOUND ON, the horn\'s Starting notes, NOTES × ORDER and other toggles.', len: '0.05–0.15 s'},
@@ -218,7 +219,7 @@ window.Arcade = window.Arcade || {};
   };
 
   /** the screens, in README / Sound Board order, with their headings */
-  const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
+  const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
     ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['arcade-quest', 'Arcade Quest']];
 
@@ -233,7 +234,7 @@ window.Arcade = window.Arcade || {};
       if (/^select-music-/.test(name)) {                   // a game's own character-select music (optional)
         const g = (A.GAMES || []).find(x => 'select-music-' + x.id === name);
         return g ? {file: name, vol: .6, loop: true, mic: false, screen: 'select', fallback: 'select-music', auto: true,
-                    when: `Select Player music for ${g.name} only (instead of select-music).`, len: '30–90 s loop'} : null;
+                    when: `Choose Your Instrument music for ${g.name} only (instead of select-music).`, len: '30–90 s loop'} : null;
       }
       if (/^select-/.test(name)) {
         const g = (A.GAMES || []).find(x => 'select-' + x.id === name);

@@ -64,7 +64,7 @@ Showtime Malfunction's `attack-tick` plays after every counted note while the st
 only keeps the microphone deaf for its own length + 60 ms (its `echo` in `shared/sounds.js`). **Keep that recording
 under 0.1 s**, or fast tonguing will start missing notes.
 
-The **character select music** (`select-music`) plays only on Select Player, instead of the room ambience; until you
+The **character select music** (`select-music`) plays only on Choose Your Instrument, instead of the room ambience; until you
 upload one, the arcade plays its own short original chiptune loop. Make it loop cleanly, like the ambience below, and
 use the Sound Board's **Loop test** to hear the seam.
 
@@ -104,19 +104,25 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `select-showtime-malfunction` | `select-showtime-malfunction.m4a` or `select-showtime-malfunction.mp3` | START on the arcade floor for Showtime Malfunction (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-sustain-speedway` | `select-sustain-speedway.m4a` or `select-sustain-speedway.mp3` | START on the arcade floor for Sustain Speedway (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 
-### Select Player
+### Choose Your Instrument (Select Player)
+
+The **`choose-instrument`** voice line plays about half a second after the screen opens (later if the START sound
+is still playing), at most once a minute, only when the audio is already unlocked by a tap, and never if the student
+taps an instrument first. While it plays, the music dips to about 40% and comes back up over half a second. Trim the
+file so the voice starts at the very beginning.
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `select-music` | `select-music.m4a` or `select-music.mp3` | Character select music on Select Player (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays. **loops** | 30–90 s loop |
-| `select-music-<game id>` | e.g. `select-music-sustain-speedway.m4a` or `.mp3` | Optional: Select Player music for ONE game (when a student picks their instrument for that game), instead of `select-music`. Any game works: use its folder name. Without the file, `select-music` plays. **loops** | 30–90 s loop |
+| `select-music` | `select-music.m4a` or `select-music.mp3` | Character select music on Choose Your Instrument (the MUSIC slider). It replaces the room ambience there. Loops without a gap; without a file, a built-in original chiptune loop plays. **loops** | 30–90 s loop |
+| `select-music-<game id>` | e.g. `select-music-sustain-speedway.m4a` or `.mp3` | Optional: Choose Your Instrument music for ONE game (when a student picks their instrument for that game), instead of `select-music`. Any game works: use its folder name. Without the file, `select-music` plays. **loops** | 30–90 s loop |
+| `choose-instrument` | `choose-instrument.m4a` or `choose-instrument.mp3` | Announcer says "Choose your instrument" when the Choose Your Instrument screen opens. | 0.8–2 s |
 | `tile-move` | `tile-move.m4a` or `tile-move.mp3` | The highlight moves to another instrument. | 0.05–0.15 s |
 | `player-select` | `player-select.m4a` or `player-select.mp3` | An instrument tile is confirmed (SELECT, or tapping the highlighted tile). | 0.2–0.5 s |
 | `player-continue` | `player-continue.m4a` or `player-continue.mp3` | The CONTINUE AS button (or Same opponent) is pressed. | 0.2–0.5 s |
 | `player-ready` | `player-ready.m4a` or `player-ready.mp3` | The "PLAYER 1 READY" flash. | 0.6–1.2 s |
 | `player2-join` | `player2-join.m4a` or `player2-join.mp3` | Neon Face-Off: "PLAYER 2 — PRESS START" appears. | 0.4–1 s |
 | `skin-equip` | `skin-equip.m4a` or `skin-equip.mp3` | A skin or accessory is put on (the SKINS locker, or Equip now). | 0.2–0.4 s |
-| `skin-unlocked` | `skin-unlocked.m4a` or `skin-unlocked.mp3` | An UNLOCKED! card appears (a results screen, or Select Player catch-up). | 0.4–0.5 s |
+| `skin-unlocked` | `skin-unlocked.m4a` or `skin-unlocked.mp3` | An UNLOCKED! card appears (a results screen, or Choose Your Instrument catch-up). | 0.4–0.5 s |
 
 ### Everywhere
 
