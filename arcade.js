@@ -5,6 +5,11 @@
      LOBBY         index.html (no hash): one neon sign per zone, CONTINUE, ASSIGNED (lobby.js draws it)
      A ZONE        index.html#zone=<zone id>[&game=<game id>]: the cabinet carousel with only that zone's cabinets
      ALL GAMES     index.html#all-games: every game as a card (lobby.js)
+     FULL ARCADE   index.html#full-arcade[&game=<game id>]: EVERY game's cabinet in one carousel (each once, zone by
+                   zone in the lobby's order, then the zone's own order), a zone tag under each cabinet and the QUICK
+                   JUMP strip of marquee thumbnails below (a tap spins straight there). It opens on the ASSIGNED game,
+                   else the last game played here, else the first. The same carousel as a zone (arcade.js treats it as
+                   one: `zone` is FULL).
      SELECT PLAYER index.html?game=<id> (select-player/player.js; a two-player game, or no instrument saved yet)
    Every step is a browser history entry, so Back (and the iPad back-swipe) goes game → zone → lobby, and a zone can be
    linked straight to. A game page's "← ARCADE" comes back as index.html#<game id>: the student returns to the zone
@@ -67,7 +72,18 @@
     ['pointerdown', 'keydown', 'click'].forEach(t => addEventListener(t, dismiss, true));
   }
 
-  /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows) ---------- */
+  /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows), or the FULL ARCADE ---------- */
+  const FULL = {id: 'full-arcade', name: 'Full Arcade', full: true};
+  /** every floor game once, zone by zone (the lobby's order, then each zone's own), then any game in no zone; its zone */
+  function fullGames() {
+    const list = [], zoneOf = {};
+    A.zoneList().forEach(z => A.zoneGames(z.id).forEach(g => { if (!zoneOf[g.id]) { zoneOf[g.id] = z; list.push(g); } }));
+    A.floorGames().forEach(g => { if (!list.includes(g)) list.push(g); });
+    return {list, zoneOf};
+  }
+  let fullZoneOf = {};
+  const tagOf = g => { const z = fullZoneOf[g.id]; return z ? {text: z.name, color: z.color} : null; };
+  const isFull = () => zone === FULL;
   let zone = null, ring = [], N = 0, cur = 0, view = null, v3 = null, loading3D = false;
   let use3D = !A.params.has('flat') && hasWebGL() && !!A.Floor3D;
   const aisle = $('aisle');
@@ -82,7 +98,7 @@
   function make2D() {
     aisle.classList.remove('is-3d', 'loading-3d');
     aisle.innerHTML = ring.map((g, r) =>
-      `<div class="slot${fitOf(g).ok ? '' : ' nofit'}" data-r="${r}">${A.cabinetHTML(g, {href: gameHref(g)})}</div>`).join('');
+      `<div class="slot${fitOf(g).ok ? '' : ' nofit'}" data-r="${r}">${A.cabinetHTML(g, {href: gameHref(g)})}${isFull() && tagOf(g) ? zoneTagHTML(g) : ''}</div>`).join('');
     const slots = [...aisle.querySelectorAll('.slot')];
     if (A.Marquee) A.Marquee.hydrate(aisle);                  // the marquees' still frames (shared/marquees.js)
     return {
@@ -106,6 +122,7 @@
       destroy() { A.setAttract(null); slots.forEach(el => el.remove()); },
     };
   }
+  const zoneTagHTML = g => { const z = fullZoneOf[g.id]; return `<span class="ztag cab-ztag" style="${A.Lobby.zoneStyle(z)}" aria-hidden="true">${esc(z.name)}</span>`; };
   function useView(v) {
     if (view && view !== v) view.destroy();
     view = v;
@@ -113,8 +130,9 @@
   }
   /** show this zone's cabinets in the current view (3D keeps its renderer and swaps the cabinets) */
   function showCabinets() {
-    if (v3) { v3.setRing(ring, wrap, cur, fade); useView(v3); }
-    else { useView(make2D()); if (use3D && !loading3D) load3D(); }
+    if (v3) { v3.setRing(ring, wrap, cur, fade, isFull() ? tagOf : null); useView(v3); }
+    else if (use3D) { if (view) { view.destroy(); view = null; } aisle.classList.add('loading-3d'); if (!loading3D) load3D(); }   // 3D on its way: no 2D cabinets to build and throw away
+    else useView(make2D());
     place(true);
   }
   /** leaving a zone: the 3D cabinets are disposed (the renderer waits, paused); the 2D ones removed */
@@ -126,12 +144,14 @@
 
   function place(instant) {
     const g = ring[cur];
-    if (!view || !g) return;
-    const hadFocus = aisle.contains(document.activeElement);
-    view.place(cur, instant || reduced.matches);
-    if (hadFocus && view.startLink) view.startLink.focus({preventScroll: true});
-    if (reduced.matches && !instant) { aisle.classList.remove('fade'); void aisle.offsetWidth; aisle.classList.add('fade'); }
-    if (view.startLink) { view.startLink.href = gameHref(g); view.startLink.classList.toggle('nofit', !fitOf(g).ok); }
+    if (!g) return;
+    if (view) {                                           // (none yet while the 3D view loads: the words still show)
+      const hadFocus = aisle.contains(document.activeElement);
+      view.place(cur, instant || reduced.matches);
+      if (hadFocus && view.startLink) view.startLink.focus({preventScroll: true});
+      if (reduced.matches && !instant) { aisle.classList.remove('fade'); void aisle.offsetWidth; aisle.classList.add('fade'); }
+    }
+    if (view && view.startLink) { view.startLink.href = gameHref(g); view.startLink.classList.toggle('nofit', !fitOf(g).ok); }
 
     $('infoSkill').textContent = g.skill || '';
     $('infoName').textContent = g.name;
@@ -140,15 +160,18 @@
     const F = A.featuredGame(), f = fitOf(g);
     $('infoTags').innerHTML = (F === g ? `<span class="badge b-assigned">Assigned</span>${A.FEATURED.note ? ` <span class="as-note">${esc(A.FEATURED.note)}</span>` : ''}` : '') +
       (g.players === 2 ? ' <span class="badge b-2p">2 players</span>' : '') + (f.ok ? '' : ` <span class="fit-tag">${esc(f.tag)}</span>`);
+    if (isFull() && tagOf(g)) $('infoTags').innerHTML = `<span class="ztag" style="${A.Lobby.zoneStyle(fullZoneOf[g.id])}">${esc(fullZoneOf[g.id].name)}</span> ` + $('infoTags').innerHTML;
     $('aisleFlags').innerHTML = (F === g ? '<span class="badge b-assigned">Assigned</span>' : '') + (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`);
     hiscore(g);
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur ? 'true' : 'false'));
+    jumps.forEach((b, i) => b.setAttribute('aria-current', i === cur ? 'true' : 'false'));
+    if (jumps[cur]) centerJump(jumps[cur], instant);
     $('prevBtn').disabled = LINE() && cur === 0;                     // a straight row: the arrow at an end rests
     $('nextBtn').disabled = LINE() && cur === N - 1;
     // its START sound (and the next cabinets' either side) download before every other sound
     A.Sfx.prefer([g, ring[(cur + 1) % N], ring[(cur - 1 + N) % N]].filter(Boolean).map(x => 'select-' + x.id));
     // the address says which zone and cabinet (Back from a game comes here); the history entry stays the same
-    setHash('#zone=' + zone.id + '&game=' + g.id, true);
+    setHash((isFull() ? '#full-arcade' : '#zone=' + zone.id) + '&game=' + g.id, true);
   }
   /** the HI-SCORE line (as on the old floor): stars for the saved instrument, a game's own summary, or a link */
   function hiscore(g) {
@@ -200,6 +223,37 @@
     $('lights').innerHTML = N > 1 ? ring.map((g, i) => `<button class="light" data-i="${i}" aria-label="${esc(g.name)}"><i></i></button>`).join('') : '';
     lights = [...$('lights').querySelectorAll('.light')];
     lights.forEach(b => b.addEventListener('click', () => goTo(+b.dataset.i)));
+  }
+  /* the Full Arcade's QUICK JUMP strip: every game's marquee thumbnail, zone by zone (a thin zone-color line + name); the
+     front game's is lit; a tap spins the carousel straight there (arcade3d.js builds only both ends of a long spin) */
+  let jumps = [];
+  function drawJumps() {
+    const strip = $('jumpStrip');
+    strip.hidden = !isFull();
+    if (!isFull()) { strip.innerHTML = ''; jumps = []; return; }
+    const groups = [];
+    ring.forEach((g, i) => {
+      const z = fullZoneOf[g.id] || null, last = groups[groups.length - 1];
+      if (last && last.z === z) last.items.push([g, i]); else groups.push({z, items: [[g, i]]});
+    });
+    strip.innerHTML = groups.map(({z, items}) => `<div class="jg" style="${A.Lobby.zoneStyle(z)}"><span class="jg-name" aria-hidden="true">${z ? esc(z.name) : 'More games'}</span><div class="jg-row">` +
+      items.map(([g, i]) => `<button type="button" class="jump${fitOf(g).ok ? '' : ' nofit'}" data-i="${i}" aria-label="${esc(g.name)}${z ? ' (' + esc(z.name) + ')' : ''}"><span class="mq-thumb mq-wait"></span></button>`).join('') +
+      `</div></div>`).join('');
+    // the marquee pictures a few at a time once the cabinets are up (the 3D view comes first on a slow Chromebook)
+    const set = ring, idle = window.requestIdleCallback || (fn => setTimeout(fn, 60));
+    const fill = () => {
+      if (ring !== set) return;
+      const todo = jumps.filter(b => b.querySelector('.mq-wait')).slice(0, 3);
+      todo.forEach(b => { b.innerHTML = A.Lobby.thumb(ring[+b.dataset.i]); });
+      if (todo.length) idle(fill, {timeout: 400});
+    };
+    setTimeout(() => idle(fill, {timeout: 400}), 300);
+    jumps = [...strip.querySelectorAll('.jump')];
+    jumps.forEach(b => b.addEventListener('click', () => goTo(+b.dataset.i)));
+  }
+  function centerJump(b, instant) {
+    const s = $('jumpStrip'), left = b.offsetLeft - (s.clientWidth - b.offsetWidth) / 2;
+    if (s.scrollWidth > s.clientWidth) s.scrollTo({left, behavior: instant || reduced.matches ? 'auto' : 'smooth'});
   }
   $('prevBtn').addEventListener('click', () => go(-1));
   $('nextBtn').addEventListener('click', () => go(1));
@@ -264,13 +318,13 @@
     const timer = setTimeout(giveUp, 8000);
     let made = null;                       // the cabinets it was made with (a zone change while loading: swap them)
     (window.THREE ? Promise.resolve() : loadScript('shared/vendor/three.min.js'))
-      .then(() => { made = ring; return A.Floor3D.create(aisle, {ring, wrap, cur, fade, onGiveUp: giveUp}); })
+      .then(() => { made = ring; return A.Floor3D.create(aisle, {ring, wrap, cur, fade, tag: isFull() ? tagOf : null, onGiveUp: giveUp}); })
       .then(v => {
         clearTimeout(timer); loading3D = false;
         if (settled) { v.destroy(); return; }
         aisle.classList.remove('loading-3d');
         v3 = v;
-        if (current === 'zone') { if (made !== ring) v.setRing(ring, wrap, cur, fade); useView(v); place(true); }
+        if (current === 'zone') { if (made !== ring) v.setRing(ring, wrap, cur, fade, isFull() ? tagOf : null); useView(v); place(true); }
         else v.setRing([], wrap, 0);
       })
       .catch(err => { clearTimeout(timer); if (window.console) console.warn('3D arcade off:', err); giveUp(); });
@@ -284,7 +338,7 @@
     const f = fitOf(g);
     if (!f.ok) { openFit(g); return; }
     A.Lobby.remember(g);                                          // the lobby's CONTINUE card
-    ss.set(FROM, JSON.stringify({view: from, zone: from === 'zone' && zone ? zone.id : null}));
+    ss.set(FROM, JSON.stringify(from === 'zone' && isFull() ? {view: 'full'} : {view: from, zone: from === 'zone' && zone ? zone.id : null}));
     // a two-player game with its own Select Player (Player 2 picks there too), or no instrument chosen yet: Select Player
     if (!g.player && (g.players === 2 || !A.store.player || A.store.pending)) { A.Sfx.eventSoon('select-' + g.id); openSelect(g); return; }
     A.Sfx.playThenGo('select-' + g.id, gameHref(g));              // its START sound, then the game (the saved instrument)
@@ -332,6 +386,7 @@
     if (!raw || raw === 'lobby') return {view: 'lobby'};
     if (raw === 'all-games') return {view: 'all'};
     const p = new URLSearchParams(raw);
+    if (p.has('full-arcade')) return {view: 'zone', zone: FULL, game: p.get('game') || fullStart()};
     if (p.has('zone')) {
       const z = A.zoneById(p.get('zone'));
       return z && A.zoneGames(z.id).length ? {view: 'zone', zone: z, game: p.get('game')} : {view: 'lobby'};
@@ -342,14 +397,21 @@
     let from = {};
     try { from = JSON.parse(ss.get(FROM) || '{}') || {}; } catch (e) { /* none */ }
     const z = from.zone && (g.zones || []).includes(from.zone) ? A.zoneById(from.zone) : A.zonesOf(g)[0];
-    const to = from.view === 'all' ? {view: 'all', game: g.id} : from.view === 'lobby' || !z ? {view: 'lobby'} : {view: 'zone', zone: z, game: g.id};
+    const to = from.view === 'all' ? {view: 'all', game: g.id} : from.view === 'full' ? {view: 'zone', zone: FULL, game: g.id}
+      : from.view === 'lobby' || !z ? {view: 'lobby'} : {view: 'zone', zone: z, game: g.id};
     // the lobby goes underneath, so Back from here goes to the lobby (then back to the game)
     setHash('');
-    if (to.view === 'zone') push('#zone=' + z.id + '&game=' + g.id, {from: 'lobby'});
+    if (to.zone === FULL) push('#full-arcade&game=' + g.id, {from: 'lobby'});
+    else if (to.view === 'zone') push('#zone=' + z.id + '&game=' + g.id, {from: 'lobby'});
     if (to.view === 'all') push('#all-games', {from: 'lobby'});
     return to;
   }
 
+  /** where the Full Arcade opens: the ASSIGNED game, else the last game played on this device, else the first */
+  function fullStart() {
+    const g = A.featuredGame() || A.Lobby.lastGame();
+    return g ? g.id : null;
+  }
   let current = null, lastSelectGame = null, afterPick = null, autoPicked = false, shownFor;
   /** the lobby's sound through the music manager: the room ambience, no music (the same track in every view here) */
   const floorSound = () => { A.Sfx.setMusic(null); A.Sfx.setAmbience('lobby-ambience', {builtIn: true}); A.Sfx.preloadMusic('select-music'); };
@@ -385,16 +447,18 @@
     current = r.view;
     document.body.classList.toggle('v-lobby', r.view === 'lobby');
     document.body.classList.toggle('v-zone', r.view === 'zone');
+    document.body.classList.toggle('v-full', r.view === 'zone' && r.zone === FULL);
     document.body.classList.toggle('v-all', r.view === 'all');
     $('lobby').hidden = r.view !== 'lobby';
     $('zoneView').hidden = r.view !== 'zone';
     $('allView').hidden = r.view !== 'all';
     chip();
     const bar = $('fbar');
-    bar.style.cssText = r.view === 'zone' ? A.Lobby.zoneStyle(r.zone) : '';
+    bar.style.cssText = r.view === 'zone' && r.zone !== FULL ? A.Lobby.zoneStyle(r.zone) : '';
     $('backBtn').hidden = r.view === 'lobby';
     $('fbTitle').hidden = r.view === 'lobby';
     $('allBtn').hidden = r.view === 'all';
+    $('fullBtn').hidden = r.view === 'zone' && r.zone === FULL;
     if (r.view !== 'zone') { A.floorPaused = true; if (zone) { hideCabinets(); zone = null; } }
     if (r.view === 'lobby') {
       document.title = A.ARCADE_NAME;
@@ -408,29 +472,32 @@
     } else {
       document.title = `${r.zone.name} · ${A.ARCADE_NAME}`;
       $('fbTitle').textContent = r.zone.name;
-      $('backLbl').textContent = 'Lobby';
-      $('backBtn').setAttribute('aria-label', 'Back to the lobby');
+      $('backLbl').textContent = r.zone === FULL ? backLabel() : 'Lobby';
+      $('backBtn').setAttribute('aria-label', 'Back to the ' + (r.zone === FULL ? backLabel() : 'lobby'));
       A.floorPaused = false;
-      const games = A.zoneGames(r.zone.id), instChanged = shownFor !== undefined && shownFor !== A.store.player;
+      let games;
+      if (r.zone === FULL) { const f = fullGames(); games = f.list; fullZoneOf = f.zoneOf; } else games = A.zoneGames(r.zone.id);
+      const instChanged = shownFor !== undefined && shownFor !== A.store.player;
       shownFor = A.store.player;
       if (!zone || zone.id !== r.zone.id || instChanged) {
         zone = r.zone; ring = games; N = ring.length;
         cur = Math.max(0, ring.findIndex(g => g.id === r.game));
         $('zoneView').classList.toggle('single', N < 2);
-        drawLights();
+        drawLights(); drawJumps();
         showCabinets();
       } else {
         const i = ring.findIndex(g => g.id === r.game);
         if (i >= 0 && i !== cur) { cur = i; place(true); } else place(true);
       }
       if (v3) v3.refade(fade);
+      jumps.forEach(b => b.classList.toggle('nofit', !fitOf(ring[+b.dataset.i]).ok));
       if (was !== 'zone') window.scrollTo(0, 0);
     }
     if (was && was !== current) focusView();
   }
   function backLabel() {
     const st = history.state || {};
-    if (st.from === 'zone' && st.zone) { const z = A.zoneById(st.zone); if (z) return z.name; }
+    if (st.from === 'zone' && st.zone) { const z = st.zone === FULL.id ? FULL : A.zoneById(st.zone); if (z) return z.name; }
     return 'Lobby';
   }
   function focusView() {
@@ -452,6 +519,12 @@
     showView();
     setTimeout(() => A.Sfx.event('zone-enter'), 160);
   }
+  function openFull() {
+    A.Sfx.event('zone-select');
+    push('#full-arcade', {from: current, zone: zone && zone.id});
+    showView();
+    setTimeout(() => A.Sfx.event('zone-enter'), 160);
+  }
   function openAll() {
     A.Sfx.event('all-games-open');
     push('#all-games', {from: current, zone: zone && zone.id});
@@ -465,6 +538,7 @@
   }
   $('backBtn').addEventListener('click', goBack);
   $('allBtn').addEventListener('click', openAll);
+  $('fullBtn').addEventListener('click', openFull);
   $('instChip').addEventListener('click', () => openPick(null));
 
   function openPick(g) {
@@ -507,5 +581,5 @@
   });
 
   showView();                              // the address decides: lobby, a zone, ALL GAMES or Select Player
-  A.Arcade = {state: () => ({view: current, zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
+  A.Arcade = {state: () => ({view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
 })(window.Arcade);

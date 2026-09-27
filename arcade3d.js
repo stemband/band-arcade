@@ -24,7 +24,7 @@
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
-  const TURN_MS = 500, SWAY = 0.14, SLOW_MS = 40, SAMPLE_MS = 3000, IDLE_MS = 32;
+  const TURN_MS = 500, SPIN_MS = 650, SPIN_FROM = 2.5, SWAY = 0.14, SLOW_MS = 40, SAMPLE_MS = 3000, IDLE_MS = 32;
   const ARC_R = 3.2, ARC_STEP = 0.46, SINK = 0.9;   // cabinets stand on an arc (radius, angle between neighbors); SINK pushes neighbors back
 
   /* ---------- side profiles ---------- */
@@ -813,7 +813,7 @@ window.Arcade = window.Arcade || {};
 
   function setup(THREE, aisle, opts) {
     const {onGiveUp} = opts;
-    let ring = opts.ring, wrap = opts.wrap, M = ring.length, fadeOf = opts.fade || (() => 1);
+    let ring = opts.ring, wrap = opts.wrap, M = ring.length, fadeOf = opts.fade || (() => 1), tagOf = opts.tag || null;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     let level = 0;                                                  // 0 = full, 1 = downgraded (dpr 1, no haze, no sway)
     const dpr = () => level ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
@@ -916,7 +916,22 @@ window.Arcade = window.Arcade || {};
       mesh.position.set(0, H / 2, .1); mesh.userData.pick = true;
       return {mesh, mats, tex};
     }
+    /* what a slot shows: 'full' | 'flat' | 'none' (too far round the ring to be seen: nothing built at all, so a big
+       ring like the Full Arcade costs no more than a zone). The zone tag comes and goes with the flat/full cabinet. */
+    const VIS = 2.6;                                     // layout(): nothing farther than 2.5 places is visible
+    function dropSlot(S) {
+      if (S.full) { S.holder.remove(S.full.group); disposeTree(S.full.group); S.full = null; stats.disposed++; }
+      if (S.flat) { S.holder.remove(S.flat.mesh); disposeTree(S.flat.mesh); S.flat.tex.dispose(); S.flat = null; }
+      if (S.tag) { S.holder.remove(S.tag.mesh); disposeTree(S.tag.mesh); S.tag.tex.dispose(); S.tag = null; }
+    }
+    function ensureTag(S) {
+      if (S.tag || S.noTag) return;
+      S.tag = zoneTag(S.g); S.noTag = !S.tag;
+      if (S.tag) { S.holder.add(S.tag.mesh); S.dim = undefined; }
+    }
     function setFull(S, on) {
+      if (on === null) { dropSlot(S); return; }
+      ensureTag(S);
       if (on && !S.full) {
         S.full = build(THREE, S.g, shared); S.holder.add(S.full.group);
         if (S.flat) { S.holder.remove(S.flat.mesh); disposeTree(S.flat.mesh); S.flat.tex.dispose(); S.flat = null; }
@@ -926,23 +941,49 @@ window.Arcade = window.Arcade || {};
         S.flat = flatCab(S.g); S.holder.add(S.flat.mesh); S.dim = undefined;
       }
     }
-    /** full cabinets where the carousel is and where it's going (and every place in between) */
+    /** full cabinets where the carousel is and where it's going (and every place in between). A FAST SPIN to a far
+        cabinet (more than SPIN_FROM places: the Full Arcade's jump strip) builds only both ends: the cabinets it flies
+        past stay flat stand-ins. */
     function sync(a, b) {
+      const ends = Math.abs(b - a) > SPIN_FROM;
       slots.forEach((S, r) => {
-        let near = false;
-        for (let p = Math.min(a, b); p <= Math.max(a, b) + 1e-6; p += .5) if (Math.abs(wrap(r - p)) <= NEAR) near = true;
-        setFull(S, near);
+        let near = false, seen = false;
+        if (ends) near = Math.abs(wrap(r - a)) <= NEAR || Math.abs(wrap(r - b)) <= NEAR;
+        for (let p = Math.min(a, b); p <= Math.max(a, b) + 1e-6; p += .5) {
+          const d = Math.abs(wrap(r - p));
+          if (!ends && d <= NEAR) near = true;
+          if (d <= VIS) seen = true;
+        }
+        // a fast spin: the cabinets it flies past get their flat stand-in only as they come into view (layout())
+        if (ends && !near && seen) seen = Math.abs(wrap(r - a)) <= VIS || Math.abs(wrap(r - b)) <= VIS || !!S.flat;
+        setFull(S, near ? true : seen ? false : null);
       });
       stats.full = slots.filter(S => S.full).length; stats.flat = slots.filter(S => S.flat).length;
     }
+    /* the ZONE TAG under a cabinet (the Full Arcade: which zone the game lives in): a small lit plate standing on the
+       floor in front of it, in the zone's color. A detail (layer 1), so it stays out of the floor reflection. */
+    function zoneTag(g) {
+      const t = tagOf && tagOf(g);
+      if (!t) return null;
+      const P = PROFILES[A.cabinet3dOf(g).profile], W = Math.max(.8, P.width), front = Math.max(...P.points.map(p => p[0]));
+      const c = canvas(512, 72), x = c.getContext('2d'), col = tok[t.color] || tok.cyan, hi = tok[t.color + '-hi'] || col;
+      x.fillStyle = tok.deep; x.strokeStyle = col; x.lineWidth = 6;
+      x.beginPath(); x.roundRect ? x.roundRect(4, 4, 504, 64, 30) : x.rect(4, 4, 504, 64); x.fill(); x.stroke();
+      x.fillStyle = hi; x.textAlign = 'center'; x.textBaseline = 'middle';
+      fitText(x, t.text.toUpperCase(), '"GN Display", sans-serif', 38, 470); x.fillText(t.text.toUpperCase(), 256, 38);
+      const tex = new THREE.CanvasTexture(c), m = new THREE.MeshBasicMaterial({map: tex, color: new THREE.Color(1, 1, 1), transparent: true});
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, W * 72 / 512), m);
+      mesh.position.set(0, W * 36 / 512 + .01, front - .4 + .14); mesh.layers.set(1);
+      return {mesh, tex, mats: [[m, m.color.clone(), 'color']]};
+    }
     function clearSlots() {
-      slots.forEach(S => { if (S.full) disposeTree(S.full.group); if (S.flat) { disposeTree(S.flat.mesh); S.flat.tex.dispose(); } ringGroup.remove(S.holder); });
+      slots.forEach(S => { if (S.full) disposeTree(S.full.group); if (S.flat) { disposeTree(S.flat.mesh); S.flat.tex.dispose(); } if (S.tag) { disposeTree(S.tag.mesh); S.tag.tex.dispose(); } ringGroup.remove(S.holder); });
       slots = [];
       // this zone's marquee and screen textures go too (the round glow textures are tiny and shared: they stay)
       Object.keys(cache).forEach(id => { if (id[0] !== 'g') { if (cache[id].dead === false) cache[id].dead = true; (cache[id].texture || cache[id]).dispose(); delete cache[id]; } });
     }
     function makeSlots() {
-      slots = ring.map(g => { const holder = new THREE.Group(); ringGroup.add(holder); return {g, holder, full: null, flat: null, fade: fadeOf(g)}; });
+      slots = ring.map(g => { const holder = new THREE.Group(); ringGroup.add(holder); return {g, holder, full: null, flat: null, tag: null, fade: fadeOf(g)}; });
     }
     const frontSlot = () => slots[frontIdx()];
 
@@ -973,7 +1014,7 @@ window.Arcade = window.Arcade || {};
     }
 
     /* ---------- the carousel ---------- */
-    let pos = opts.cur, from = pos, to = pos, t0 = 0, turning = false;
+    let pos = opts.cur, from = pos, to = pos, t0 = 0, turning = false, turnMs = TURN_MS;
     const easeIO = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
     const frontIdx = () => ((Math.round(pos) % M) + M) % M;
 
@@ -985,13 +1026,14 @@ window.Arcade = window.Arcade || {};
         it.ad = ad;
         it.holder.visible = dim > .01;
         if (!it.holder.visible) return;
+        if (!it.full && !it.flat) { setFull(it, false); stats.flat = slots.filter(S => S.flat).length; }   // a fast spin brings it into view
         const phi = d * ARC_STEP;
         it.holder.position.set(Math.sin(phi) * ARC_R, 0, -ARC_R + Math.cos(phi) * ARC_R - SINK * Math.min(ad, 2.5));
         it.phi = phi;
         it.holder.rotation.y = phi + sway * Math.max(0, 1 - ad);
         if (it.dim !== dim) {
           it.dim = dim;
-          (it.full ? it.full.mats : it.flat.mats).forEach(([m, c, kind, op]) => {
+          (it.full ? it.full.mats : it.flat.mats).concat(it.tag ? it.tag.mats : []).forEach(([m, c, kind, op]) => {
             if (kind === 'add') m.opacity = (op || 1) * dim;
             else m.color.copy(c).multiplyScalar(dim);
           });
@@ -1046,7 +1088,7 @@ window.Arcade = window.Arcade || {};
       lastFrame = now;
 
       if (turning) {
-        const p = Math.min(1, (now - t0) / TURN_MS);
+        const p = Math.min(1, (now - t0) / turnMs);
         pos = from + (to - from) * easeIO(p);
         if (p >= 1) { turning = false; pos = to; sync(to, to); }    // the turn is over: far cabinets go flat
       }
@@ -1104,9 +1146,9 @@ window.Arcade = window.Arcade || {};
       kind: '3d',
       startLink: start,
       /** a new set of cabinets (entering a zone); [] = none (the lobby): everything is disposed */
-      setRing(newRing, newWrap, cur = 0, fade) {
+      setRing(newRing, newWrap, cur = 0, fade, tag) {
         clearSlots();
-        ring = newRing; wrap = newWrap || wrap; M = ring.length; if (fade) fadeOf = fade;
+        ring = newRing; wrap = newWrap || wrap; M = ring.length; if (fade) fadeOf = fade; tagOf = tag || null;
         pos = from = to = cur; turning = false;
         makeSlots(); if (M) sync(pos, pos);
         stats.full = slots.filter(S => S.full).length; stats.flat = slots.filter(S => S.flat).length;
@@ -1125,7 +1167,7 @@ window.Arcade = window.Arcade || {};
         if (fr) { fr.screen.draw(null); fr.marquee.draw(null); }    // the old front cabinet's screen and marquee go still
         sync(pos, target);
         if (instant) { pos = from = to = target; turning = false; sync(pos, pos); }
-        else { from = pos; to = target; t0 = performance.now(); turning = true; }
+        else { from = pos; to = target; t0 = performance.now(); turning = true; turnMs = Math.abs(target - pos) > SPIN_FROM ? SPIN_MS : TURN_MS; }
         kick();
         if (instant && reduced.matches) { layout(performance.now()); placeStart(); render(); }
       },
@@ -1135,7 +1177,7 @@ window.Arcade = window.Arcade || {};
         ray.setFromCamera({x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1}, camera);
         // only the solid bodies count (not the glow planes, which spread over the neighbors)
         const bodies = [];
-        slots.forEach((it, r) => { if (it.holder.visible) (it.full ? it.full.group.children : [it.flat.mesh]).forEach(o => { if (o.userData.pick) { o.userData.ring = r; bodies.push(o); } }); });
+        slots.forEach((it, r) => { if (it.holder.visible && (it.full || it.flat)) (it.full ? it.full.group.children : [it.flat.mesh]).forEach(o => { if (o.userData.pick) { o.userData.ring = r; bodies.push(o); } }); });
         const hit = ray.intersectObjects(bodies, false)[0];
         return hit ? Math.round(wrap(hit.object.userData.ring - pos)) : null;
       },
