@@ -9,11 +9,11 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
-                | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff' | 'showtime' | 'speedway' | 'quest'. The picture behind the
+                | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink'. The picture behind the
                 title is the game's own `marquee` entry (below)
        kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'insert'  (shared/cabinets.js, SCREENS)
@@ -49,7 +49,7 @@
                 2D cabinets and Select Player). Optional: leave it out for a moving gradient in the game's color with
                 sparkles. {scene, colors, speed, still, every}:
        scene    'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll' | 'versus' | 'hockey' | 'curtain' | 'synthwave'
-                | 'pixel' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
+                | 'pixel' | 'radio' | 'duel' | 'ink' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
@@ -143,6 +143,20 @@ window.Arcade.GAMES = [
     marquee: {scene: 'dojo', colors: ['red', 'pink-hi', 'amber']},
     cabinet: {shape: 'dojo', trim: 'red', trim2: 'white', marquee: 'dojo', screen: 'ninja'},
     cabinet3d: {profile: 'dojo', body: 'cab-side'},
+  },
+  {
+    id: 'vanishing-ink',
+    zones: ['note-reading', 'ninja-dojo'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Vanishing Ink listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
+    name: 'Vanishing Ink',
+    skill: 'Reading in groups',
+    blurb: 'Notes appear on the Ink Master\'s scroll, then the magic ink fades away. Play them back from memory!',
+    maxStars: 24,
+    color: 'pink',
+    noteModes: true,                                 // NOTES × ORDER: the note set the scrolls are made from
+    marquee: {scene: 'ink', colors: ['vi-paper', 'pink', 'dd-night'], titleFit: 'max', titleLayouts: [['VANISHING INK'], ['VANISHING', 'INK']]},
+    cabinet: {shape: 'ink', trim: 'pink', trim2: 'amber', marquee: 'ink', kicker: 'Read it, remember it', screen: 'ink'},
+    cabinet3d: {profile: 'ink', body: 'cab-side'},
   },
   {
     id: 'chime-heist',

@@ -52,7 +52,7 @@ Tips:
 
 ## Sounds and the microphone
 
-The games that listen (Ghost Notes, Note Storm, the Note Checker, Neon Face-Off) play sounds too. While a sound
+The games that listen (Ghost Notes, Note Storm, the Note Checker, Neon Face-Off, Vanishing Ink) play sounds too. While a sound
 plays, and for 250 ms after it (room echo), the arcade **ignores the microphone**: nothing heard counts as a
 right note, a wrong note, or toward holding a note, and the game's timer stops, so a sound never costs a student
 time. After that, a note that is still ringing has to be played again to count.
@@ -199,6 +199,30 @@ except the two tiny echo clicks. Until you upload a file, a built-in version mad
 | `lost-signal-life-lost` | `lost-signal-life-lost.m4a` or `lost-signal-life-lost.mp3` | Lost Signal: Deep Space Scan: a round missed, a heart lost. | 0.3–0.8 s |
 | `lost-signal-game-over` | `lost-signal-game-over.m4a` or `lost-signal-game-over.mp3` | Lost Signal: Deep Space Scan: GAME OVER. | 0.8–1.5 s |
 | `lost-signal-high-score` | `lost-signal-high-score.m4a` or `lost-signal-high-score.mp3` | Lost Signal: Deep Space Scan: GAME OVER with a new #1 (after lost-signal-game-over). | 0.5–1.5 s |
+
+### Vanishing Ink
+
+**No Vanishing Ink sound may be a pitched tone** (a hum, a beep with a clear note, a chime): the microphone listens while
+most of them play (from the moment the ink appears), and could take a tone for a note. Use brush swishes, paper, wood
+clicks, puffs and noise. The ones marked **during play** play while the microphone listens: keep them short (the
+detector ignores them, and the answer clock waits). The rest are `mic: false`. Until you upload a file, a built-in
+version made of filtered noise plays (the music: nothing, until you upload it).
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `vanishing-ink-music` | `vanishing-ink-music.m4a` or `vanishing-ink-music.mp3` | Vanishing Ink: the level screens only, never while a scroll is on (a loop). Nothing plays until you upload it: no built-in tune, since nothing pitched is generated for this game. | 30–90 s loop |
+| `ink-brush` | `ink-brush.m4a` or `ink-brush.mp3` | Vanishing Ink: each note brushes onto the scroll (one per note, 0.1 s apart). **during play: a soft brush swish, never a tone.** | under 0.1 s |
+| `ink-fade` | `ink-fade.m4a` or `ink-fade.mp3` | Vanishing Ink: the ink starts to fade (FADE levels). **during play: a soft breathy hush, never a tone.** | under 0.5 s |
+| `ink-vanish` | `ink-vanish.m4a` or `ink-vanish.mp3` | Vanishing Ink: the ink vanishes all at once in a puff (VANISH levels). **during play: a "poof", never a tone.** | under 0.4 s |
+| `ink-your-turn` | `ink-your-turn.m4a` or `ink-your-turn.mp3` | Vanishing Ink: PLAY IT FROM MEMORY (the ink is gone). **during play: two wood-block taps, never a tone.** | under 0.3 s |
+| `ink-note-correct` | `ink-note-correct.m4a` or `ink-note-correct.mp3` | Vanishing Ink: a note played back was right. **Plays while the microphone listens: a tiny click, never a tone.** | under 0.1 s |
+| `ink-note-wrong` | `ink-note-wrong.m4a` or `ink-note-wrong.mp3` | Vanishing Ink: a note played back was wrong. **Plays while the microphone listens: a short dull thud, never a tone.** | under 0.15 s |
+| `ink-reveal-scroll` | `ink-reveal-scroll.m4a` or `ink-reveal-scroll.mp3` | Vanishing Ink: REVEAL SCROLL (the ink shows again for a moment). **during play: a paper rustle, never a tone.** | under 0.4 s |
+| `ink-round-complete` | `ink-round-complete.m4a` or `ink-round-complete.mp3` | Vanishing Ink: a round's result (the ink comes back on the scroll, marked). | 0.3–0.8 s |
+| `ink-level-clear` | `ink-level-clear.m4a` or `ink-level-clear.mp3` | Vanishing Ink: the level results with at least 1 star, and the Ink Master's last words. | 0.8–2 s |
+| `ink-life-lost` | `ink-life-lost.m4a` or `ink-life-lost.mp3` | Vanishing Ink: Endless Scroll, a round with a wrong or missed note: a life lost. | 0.3–0.8 s |
+| `ink-game-over` | `ink-game-over.m4a` or `ink-game-over.mp3` | Vanishing Ink: Endless Scroll, GAME OVER. | 0.8–1.5 s |
+| `ink-high-score` | `ink-high-score.m4a` or `ink-high-score.mp3` | Vanishing Ink: Endless Scroll, GAME OVER with a new #1 (after ink-game-over). | 0.5–1.5 s |
 
 ### Dojo Duel
 

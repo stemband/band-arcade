@@ -30,6 +30,8 @@ shared/               The engine every game uses
   scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
   sequences.js        The notes of every level in the note-reading games (NOTES × ORDER), and their progress keys
   mode-picker.js      The NOTES × ORDER picker those games show on their level screen
+  patterns.js         The pattern generator (short melodies: steps, then skips) for Lost Signal and Vanishing Ink
+  echo.js             The echo flow for Lost Signal and Vanishing Ink: answer slots filled note by note, results on the staff
   games.js            The list of games and the lobby's ZONES, which zone(s) each game is in, which instruments it
                       suits, and how each cabinet looks
   featured.js         The ASSIGNED game (edit it by hand: see "The zone lobby" below)
@@ -70,6 +72,11 @@ showtime-malfunction/ Game 8: articulation. Play each note N separate times (ton
 sustain-speedway/     Game 9: long tones and tuning. Your instrument is the engine: hold each lap's note in tune and steady to race
   levels.js           The 8 tracks (Downtown Loop … The Grand Prix): laps, lap length, rivals, and HOW SPEED WORKS. Edit here
   game.js             The race: the speed model, the canvas road, the tuning speedometer, pit stops, rivals, ghost car, results
+lost-signal/          Pitch memory: an alien probe plays a melody, echo it back on your instrument
+  levels.js           The 8 levels, rules, the pattern weights and Deep Space Scan (endless). Edit here
+vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
+  levels.js           The 8 levels (First Stroke … Invisible Master), rules, the pattern weights and Endless Scroll. Edit here
+  game.js             The round (brush in, study, fade/vanish, answer, results), the Ink Master, reveals, Endless Scroll
 arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor)
   sprites.js          THE PIXEL ART: every sprite as a small pixel map + palette (theme tokens). Edit here
   sprites-manor.js    Ghost Notes Manor's art: map tiles, the manor's ghosts (NPCs), Episode 1's enemies and the mini-boss
@@ -101,12 +108,12 @@ Opening a game with no instrument saved sends the student to Select Player for t
 
 ## The zone lobby
 
-After PRESS START and the instrument, students land in the **zone lobby**: a dark arcade wall with a glowing neon sign for each zone. Each sign shows the zone's name, a short line, little outlines of its cabinets and the student's stars there (for the instrument they chose). Tapping a sign walks into that zone: the same 3D cabinets as always, but only that zone's games. A game can be in two zones (Dojo Duel is in the Band Ninja Dojo and the 2-Player Corner).
+After PRESS START and the instrument, students land in the **zone lobby**: a dark arcade wall with a glowing neon sign for each zone. Each sign shows the zone's name, a short line, little outlines of its cabinets and the student's stars there (for the instrument they chose). Tapping a sign walks into that zone: the same 3D cabinets as always, but only that zone's games. A game can be in two zones (Dojo Duel is in the Band Ninja Dojo and the 2-Player Corner; Vanishing Ink is in Note Reading and the Band Ninja Dojo).
 
 | Zone | Games |
 |---|---|
-| Note Reading | Ghost Notes, Note Storm |
-| Band Ninja Dojo | Note Ninja, Ancient Ninja Scrolls, Dojo Duel |
+| Note Reading | Ghost Notes, Note Storm, Vanishing Ink |
+| Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
 | Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
 | Ear Training | Lost Signal |
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
@@ -117,7 +124,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 - **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
 - **Addresses:** each view has its own address, so the browser's Back button and the iPad's back-swipe work, and you can share a zone: `index.html#zone=technique-lab`, `index.html#all-games`. (`?demo` stays on.)
 - **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself. A zone's `order` line picks which cabinet is in front when it opens (Technique Lab opens on Showtime Malfunction, which every instrument can play).
-- **Two-cabinet zones** (Note Reading, 2-Player Corner) are a straight row: the arrows go back and forth between the two (no wrapping around), and the arrow at an end rests.
+- **Two-cabinet zones** (2-Player Corner) are a straight row: the arrows go back and forth between the two (no wrapping around), and the arrow at an end rests.
 
 ### The ASSIGNED game (change it yourself)
 
@@ -140,7 +147,7 @@ A game that doesn't work for the student's instrument stays visible but dimmed, 
 
 | Game | Suits | Tag |
 |---|---|---|
-| Ghost Notes, Note Storm, Note Ninja, Neon Face-Off, Lost Signal | every instrument except Snare Drum | Not for snare |
+| Ghost Notes, Note Storm, Note Ninja, Neon Face-Off, Lost Signal, Vanishing Ink | every instrument except Snare Drum | Not for snare |
 | Chime Heist | Bells only | Bells only |
 | Button Masher, Sustain Speedway | woodwinds and brass (not Bells or Snare Drum) | Winds & brass only |
 | Ancient Ninja Scrolls, Showtime Malfunction, Dojo Duel, Arcade Quest | every instrument | — |
@@ -180,7 +187,47 @@ microphone is switched off while a transmission plays and listens again only onc
 - **Deep Space Scan** (the ENDLESS card): the same signal comes back each round with one new note on the end; 3 hearts,
   no replays; Top 5 per instrument and note set on the device.
 - **Signal check:** the first visit plays a test tone and asks "Can you hear the signal?" (turn the volume up!).
-- **Tuning:** every number is in `lost-signal/levels.js` (levels, rules, the pattern generator, Deep Space Scan).
+- **Tuning:** every number is in `lost-signal/levels.js` (levels, rules, the pattern generator's weights, Deep Space Scan).
+- **Shared with Vanishing Ink:** the pattern generator (`shared/patterns.js`) and the echo flow (the slots, how a note
+  counts, the result on the staff: `shared/echo.js`). A fix there reaches both games.
+
+## Vanishing Ink
+
+A **reading-memory** game in the Band Ninja dojo: the next step after Ghost Notes. A short line of notes is brushed
+onto the Ink Master's scroll; the magic ink fades away; the student plays the notes back, in order, from memory. It
+trains reading notes in groups and seeing the shape of a melody (steps, skips, repeated notes).
+
+- **A round:** STUDY THE SCROLL (the notes brush in left to right, then stay for the level's study time; a thin line with
+  an ink drop shows the time left) → the ink **fades** (all notes together, over the last part of the study time) or
+  **vanishes** (all at once, in a puff of ink) → PLAY IT FROM MEMORY (empty ink circles, one per note; each note played
+  fills the next one, right or wrong; 6 s per note) → the ink comes back on the scroll: right notes gold, wrong notes
+  coral with "you played D", missed notes coral in a dotted box, and "4 of 5 notes remembered".
+- **Read, don't play yet:** the microphone listens while the ink shows, but nothing counts; playing brings up
+  "READ, DON'T PLAY YET". The answer starts fresh the moment the ink is gone.
+- **Reveal scroll** (before the first note, limited per level, costs 15% of that round's points): the ink shows again
+  for 1.5 s.
+- **Notes:** from the note set picked above the levels (First 5, a scale or Chromatic), in the student's written pitch and
+  clef, as plain quarter notes; any octave counts. *Scale Order* keeps every scroll stepwise.
+- **Levels** (6 scrolls each; 70% of notes = 1 star, 85% = 2, every note with no reveals = 3; a star opens the next):
+
+  | # | Name | Notes | Moves | Study | Ink | Reveals |
+  |---|---|---|---|---|---|---|
+  | 1 | First Stroke | 2 | steps | 5 s | fades | 2 |
+  | 2 | Wet Ink | 3 | steps | 5 s | fades | 2 |
+  | 3 | Brush Skips | 3 | small skips (3rds) | 4 s | fades | 2 |
+  | 4 | Quick Brush | 4 | small skips | 4 s | fades | 1 |
+  | 5 | Fading Fast | 4 | steps and skips (up to a 4th) | 3 s | fades faster | 1 |
+  | 6 | Vanishing Point | 5 | steps and skips | 3 s | vanishes | 1 |
+  | 7 | Shadow Ink | 5 | larger skips (up to a 5th) | 2 s | vanishes | 0 |
+  | 8 | Invisible Master | 6 | the whole note set, repeated notes | 1.5 s | vanishes | 0 |
+
+- **Endless Scroll** (the ENDLESS card): starts with 2 notes; each perfect round the SAME scroll comes back with one new
+  note on the end. Study time = 2.5 s + 0.5 s a note, a little shorter every round (never under 1 s + 0.3 s a note).
+  The ink fades for the first 5 rounds, then vanishes. 3 lives: a round with any wrong or missed note costs one and the
+  same scroll comes back. GAME OVER shows the longest scroll, the score and the rounds survived; Top 5 per instrument
+  and note set on the device.
+- **Sounds:** every one is unpitched (brush swishes, puffs, clicks); the menu music plays only on the level screens.
+- **Tuning:** every number is in `vanishing-ink/levels.js` (levels, rules, the pattern weights, Endless Scroll).
 
 ## Dojo Duel
 
@@ -552,6 +599,9 @@ Every cabinet's marquee is an animated picture drawn in code (`shared/marquees.j
 | Neon Face-Off | an air hockey table in perspective; a glowing puck with a light trail |
 | Showtime Malfunction | a stage curtain, a row of bulbs (a few broken, two flickering slowly), red animatronic eyes blinking |
 | Sustain Speedway | a synthwave sunset, a grid road rushing toward the horizon, speed lines |
+| Lost Signal | deep space: a starfield, two radar screens with slow sweeps, a glowing waveform |
+| Dojo Duel | a night dojo: crossed bamboo swords, belt ribbons, swaying paper lanterns |
+| Vanishing Ink | an unrolled parchment scroll with brush-ink notes (the last one slowly fades and returns), ink splashes with neon rims, a falling drop; the title in a brush script |
 | Arcade Quest | an 8-bit night landscape, a giant microphone looming behind the title, pixel static |
 | any new game | its neon color in a slowly moving gradient, with sparkles |
 

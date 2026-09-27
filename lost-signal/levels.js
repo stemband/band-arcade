@@ -62,8 +62,9 @@ window.SIGNAL_RULES = {
                         // block, into this range (so a tuba player hears it higher); matching ignores the octave
 };
 
-/* THE PATTERN GENERATOR: how likely each move is (bigger = more likely). A pattern starts on a random note of the
-   set and then picks each next note from these weights, within the level's `leap`. */
+/* THE PATTERN GENERATOR (shared/patterns.js, shared with Vanishing Ink): how likely each move is in Lost Signal
+   (bigger = more likely). A pattern starts on a random note of the set and then picks each next note from these
+   weights, within the level's `leap`. */
 window.SIGNAL_GEN = {
   step: 4,              // up or down a half or whole step
   third: 2.2,           // a 3rd (3–4 half steps)

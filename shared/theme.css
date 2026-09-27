@@ -48,6 +48,11 @@
   /* Lost Signal: the radio console (the scope's screen, grid, waveform, radar pings and sweep; static is --ls-static*) */
   --ls-scope:#03110d; --ls-grid:rgba(77,255,136,.22); --ls-wave:#4dff88; --ls-ping:#3ae8ff; --ls-sweep:rgba(58,232,255,.28);
   --ls-panel:#0a1a1f; --ls-static:#5d6b73; --ls-static-2:#27323a;
+  /* Vanishing Ink: the Ink Master's parchment scroll (paper, its edge, the rods), black brush ink, the red seal, and the
+     Ink Master himself (a friendly old octopus) */
+  --vi-paper:#f7ecd2; --vi-paper-2:#e6d3a6; --vi-paper-edge:#b9985c; --vi-rod:#5b3520; --vi-rod-cap:#241509;
+  --vi-ink:#0f0c0a; --vi-ink-2:#3b332b; --vi-seal:#c43a3a; --vi-glow:#ff4fb3;
+  --vi-master:#7d68d9; --vi-master-2:#a996f0; --vi-master-ink:#3a2a7a; --vi-brow:#f4f0ff; --vi-band:#16121d;
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;

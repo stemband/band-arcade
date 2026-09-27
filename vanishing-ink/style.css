@@ -1,0 +1,151 @@
+/* Vanishing Ink: a neon night dojo (Dojo Duel's lanterns and floor) with the Ink Master's parchment scroll.
+   Colors: theme tokens only (--vi-* for the scroll and the Ink Master, --dd-* for the dojo).
+   The notes are black brush ink on light parchment, large, readable from arm's length.
+   Motion is light and slow; nothing flashes; brush-in, puffs and the lantern sway stop under prefers-reduced-motion. */
+body.vi-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(--dd-night) 62%)}
+.vi-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.vi-bg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30vh;opacity:.5;
+  background:linear-gradient(to bottom,var(--dd-night),transparent 40%),repeating-linear-gradient(90deg,var(--dd-wood) 0 58px,var(--dd-wood-line) 58px 60px,var(--dd-wood-2) 60px 118px,var(--dd-wood-line) 118px 120px)}
+.lantern{position:absolute;top:-10px;width:40px;height:54px;border-radius:45%;background:radial-gradient(ellipse at 50% 45%,var(--dd-paper),var(--dd-lantern) 70%,var(--belt-red));
+  box-shadow:0 0 22px var(--dd-lantern),0 0 60px color-mix(in srgb,var(--dd-lantern) 40%,transparent);opacity:.7;transform-origin:50% -40px;animation:vi-sway 7s ease-in-out infinite alternate}
+.lantern::before,.lantern::after{content:"";position:absolute;left:30%;right:30%;height:6px;background:var(--dd-wood-line);border-radius:2px}
+.lantern::before{top:-3px}.lantern::after{bottom:-3px}
+.lantern.l1{left:3%;top:30px}.lantern.l2{left:20%;animation-delay:-2s;transform:scale(.75)}
+.lantern.l3{right:20%;animation-delay:-4s;transform:scale(.75)}.lantern.l4{right:3%;top:30px;animation-delay:-1s}
+@keyframes vi-sway{from{rotate:-3deg}to{rotate:3deg}}
+
+/* ---------- the Ink Master ---------- */
+.vi-master svg{display:block;width:100%;height:auto;overflow:visible}
+.im-skin{fill:var(--vi-master);stroke:var(--vi-master-ink);stroke-width:2}
+.im-arm{fill:var(--vi-master-2);stroke:var(--vi-master-ink);stroke-width:2;stroke-linejoin:round}
+.im-spot{fill:var(--vi-master-2)}
+.im-band{fill:var(--vi-band);stroke:var(--vi-master-ink);stroke-width:1}
+.im-brow,.im-stache{fill:none;stroke:var(--vi-brow);stroke-width:3.2;stroke-linecap:round}
+.im-stache{stroke-width:2.4}
+.im-eye{fill:var(--vi-ink)}.im-glint{fill:var(--vi-brow)}
+.im-lid,.im-mouth{fill:none;stroke:var(--vi-ink);stroke-width:2.6;stroke-linecap:round}
+.im-handle{stroke:var(--vi-rod);stroke-width:4;stroke-linecap:round}
+.im-ferrule{stroke:var(--amber);stroke-width:3}
+.im-tip{fill:var(--vi-ink)}
+
+/* ---------- level select ---------- */
+.hub-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px}
+.hub-head .vi-master{width:92px;flex:none}
+.game-title{font-family:"GN Brush",var(--display);font-weight:400;font-size:clamp(42px,9vw,76px);line-height:1.05;margin:0 0 .12em}
+.game-title span{color:var(--pink);text-shadow:var(--glow-pink)}
+.hub-head p{max-width:58ch;margin:10px 0 0}
+.fivecard{padding-bottom:4px;margin-bottom:14px}
+.checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--text-dim);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
+.checker-cta p{margin:0;max-width:52ch;color:var(--text-lo);font-size:15px}
+.checker-cta b{color:var(--text-hi)}
+.cta-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+.levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:150px}
+.lvl:hover:not([disabled]){border-color:var(--pink)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+/* the mini scroll: one ink dot per note (faded on FADE levels, solid on VANISH levels) */
+.lvl .mini{grid-column:2;grid-row:1/3;display:flex;align-items:center;gap:3px;height:22px;padding:0 6px;border-radius:4px;background:var(--vi-paper);border-left:3px solid var(--vi-rod);border-right:3px solid var(--vi-rod)}
+.lvl .mini i{width:6px;height:6px;border-radius:50%;background:var(--vi-ink)}
+.lvl.fade .mini i:nth-child(n+2){opacity:.7}.lvl.fade .mini i:nth-child(n+3){opacity:.45}.lvl.fade .mini i:nth-child(n+4){opacity:.25}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+
+/* ---------- play ---------- */
+.wrap.in-play{max-width:1040px}
+.hud{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:10px;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.hud div{display:flex;flex-direction:column;min-width:0}
+.hud .c{text-align:center}
+.hud .r{text-align:right}
+.hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700;white-space:nowrap}
+.hud b{font-size:22px;line-height:1.2}
+@media (max-width:480px){.hud small{font-size:10px;letter-spacing:.08em}.hud b{font-size:18px}}
+
+/* THE SCROLL: an unrolled parchment between two wooden rods, a neon pink glow around it */
+.scroll{display:flex;align-items:stretch;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--vi-glow) 35%,transparent))}
+.scroll .rod{flex:none;width:18px;border-radius:9px;background:linear-gradient(90deg,var(--vi-rod-cap),var(--vi-rod) 40%,var(--vi-rod-cap));position:relative;margin:-10px 0}
+.scroll .rod::before,.scroll .rod::after{content:"";position:absolute;left:-3px;right:-3px;height:12px;border-radius:5px;background:var(--vi-rod-cap)}
+.scroll .rod::before{top:-4px}.scroll .rod::after{bottom:-4px}
+.paper{position:relative;flex:1;min-width:0;padding:10px clamp(8px,2vw,22px) 16px;color:var(--vi-ink);
+  background:radial-gradient(ellipse at 50% 40%,var(--vi-paper) 60%,var(--vi-paper-2)),var(--vi-paper);
+  box-shadow:inset 0 6px 0 var(--vi-paper-2),inset 0 -6px 0 var(--vi-paper-2)}
+.paper::after{content:"";position:absolute;right:14px;top:12px;width:30px;height:30px;border-radius:6px;border:2px solid var(--vi-seal);opacity:.7;
+  background:radial-gradient(circle,var(--vi-seal) 0 5px,transparent 6px)}   /* the red seal in the corner */
+.status{margin:0 0 2px;text-align:center;font-family:"GN Brush",var(--display);font-size:clamp(22px,3.6vw,32px);line-height:1.2;color:var(--vi-ink)}
+.staff-box svg{display:block;width:100%;height:auto;max-height:clamp(210px,40vh,330px);margin:0 auto}
+/* the ink: thick black brush strokes (the staff stays the same, only the notes are ink) */
+.staff-box svg.staff>line{stroke-width:2.2}
+.staff-box .ink-note .head{fill:var(--vi-ink);stroke:var(--vi-ink);stroke-width:1.2}
+.staff-box .ink-note .stem{stroke:var(--vi-ink);stroke-width:3.2}
+.staff-box .ink-note line:not(.stem){stroke:var(--vi-ink);stroke-width:2.2}
+.staff-box .ink-note{transform-box:fill-box;transform-origin:center}
+.staff-box .stem{stroke-width:3}
+.staff-box .puff circle{fill:var(--vi-ink-2);transform-box:fill-box;transform-origin:center}
+.scroll.back .staff-box svg{animation:vi-back .5s ease-out}
+@keyframes vi-back{from{opacity:0}to{opacity:1}}
+/* READ, DON'T PLAY YET: a banner over the scroll (no flashing) */
+.nope{position:absolute;left:50%;top:50%;translate:-50% -50%;margin:0;padding:10px 18px;border-radius:12px;background:var(--deep);color:var(--yellow);
+  border:2px solid var(--yellow);box-shadow:var(--glow-yellow);font-family:var(--display);font-size:clamp(16px,3vw,24px);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+.nope[hidden]{display:none}
+/* the ink-drop timer: a thin brush line that dries from the right, a drop of ink at its end */
+.inkdrop{position:relative;height:6px;margin:6px 8% 0;border-radius:3px;background:var(--vi-paper-2)}
+.inkdrop i{position:absolute;inset:0;border-radius:3px;background:var(--vi-ink-2);transform-origin:left;transform:scaleX(1)}
+.inkdrop b{position:absolute;top:50%;left:100%;width:12px;height:15px;margin:-10px 0 0 -6px;background:var(--vi-ink);border-radius:50% 50% 50% 50%/60% 60% 40% 40%;rotate:180deg}
+.inkdrop.empty b{opacity:0}
+
+/* the answer: empty ink circles, one per note */
+.answer{margin-top:16px}
+.slots{display:flex;justify-content:center;flex-wrap:wrap;gap:clamp(8px,1.6vw,16px)}
+.slot{width:clamp(40px,7vw,58px);aspect-ratio:1;border-radius:50%;border:3px solid var(--text-dim);background:var(--deep);display:grid;place-items:center;transition:border-color .2s,opacity .2s}
+.slot i{width:46%;aspect-ratio:1;border-radius:50%;background:transparent}
+.slots.wait .slot{opacity:.45}
+.slot.cur{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.slot.ok{border-color:var(--yellow)}.slot.ok i{background:var(--yellow)}
+.slot.bad{border-color:var(--red)}.slot.bad i{background:var(--red)}
+.slot.miss{border-style:dashed;border-color:var(--red)}
+.slot-timer{height:6px;max-width:420px;margin:10px auto 0;border-radius:3px;background:var(--floor-3);overflow:hidden}
+.slot-timer i{display:block;height:100%;background:var(--cyan);transform-origin:left;transform:scaleX(0)}
+.slot-timer.low i{background:var(--red)}
+.demo-ans{margin:6px 0 0;font-size:13px;color:var(--amber);text-align:center}
+
+.prompt{min-height:28px;text-align:center;margin:12px 0 6px;font-size:18px;font-weight:700}
+.prompt.bad{color:var(--red-hi)}
+.prompt.good{color:var(--yellow)}
+.round-res{text-align:center;margin:4px 0 8px}
+.rr-line{font-size:20px;font-weight:700;margin:6px 0 4px}
+.rr-line.good{color:var(--yellow)}.rr-line.bad{color:var(--red-hi)}
+.acts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.play-actions{display:flex;justify-content:center;gap:10px;margin:4px 0 10px}
+.hear.off{opacity:.45}
+.play-foot{display:flex;justify-content:center;margin-top:16px}
+
+/* ---------- overlays ---------- */
+.im-talk{display:flex;align-items:flex-end;gap:12px;margin-bottom:8px}
+.im-talk .vi-master{width:100px;flex:none}
+.im-talk .say{margin:0;padding:10px 14px;border-radius:14px 14px 14px 4px;background:var(--vi-paper);color:var(--vi-ink);font-size:17px;line-height:1.4;font-weight:700}
+.panel .kicker{margin:0;font-family:var(--display);font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--pink)}
+.panel h2{font-family:"GN Brush",var(--display);font-weight:400}
+.panel .now{color:var(--cyan-hi);font-weight:700}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+.panel .best{font-size:14px;margin-top:8px}
+#endText p{color:var(--text-hi);font-size:17px;line-height:1.5}
+
+@media (max-width:560px){
+  .scroll .rod{width:12px}
+  .paper::after{display:none}
+  .hub-head .vi-master{width:70px}
+}
+@media (prefers-reduced-motion:reduce){
+  .lantern{animation:none}
+  .scroll.back .staff-box svg{animation:none}
+  .slot{transition:none}
+}

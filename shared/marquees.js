@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -581,6 +581,53 @@ window.Arcade = window.Arcade || {};
         x.stroke();
       },
     },
+    /* VANISHING INK. colors: [parchment, the ink splash's neon rim, night]. A night dojo: an unrolled parchment scroll
+       between two wooden rods, a staff of brush-ink notes on it (the last note slowly fades away and comes back: a
+       4-second breath, never a flash), ink splashes with neon rims and drips, and one ink drop that slowly falls. */
+    ink: {
+      colors: ['vi-paper', 'pink', 'dd-night'], still: .6,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [1, tok(c[2])]]); x.fillRect(0, 0, W, H);
+        glow(x, W / 2, H * .5, W * .45, c[1], .16);
+        // the scroll: parchment between two rods
+        const px0 = W * .08, px1 = W * .92, py0 = H * .14, py1 = H * .86;
+        x.fillStyle = vGrad(x, H, [[0, tok('vi-paper-2')], [.15, tok(c[0])], [.85, tok(c[0])], [1, tok('vi-paper-2')]]);
+        x.fillRect(px0, py0, px1 - px0, py1 - py0);
+        const rw = H * .07;
+        [px0 - rw * .7, px1 - rw * .3].forEach(rx => {
+          x.fillStyle = tok('vi-rod'); x.fillRect(rx, py0 - H * .07, rw, py1 - py0 + H * .14);
+          x.fillStyle = tok('vi-rod-cap'); x.fillRect(rx - rw * .15, py0 - H * .09, rw * 1.3, H * .04); x.fillRect(rx - rw * .15, py1 + H * .05, rw * 1.3, H * .04);
+        });
+        // the staff and three brush-ink notes (the third one fades out and back in, slowly)
+        const gap = H * .085, top = H * .5 - gap * 2, sx0 = px0 + W * .04, sx1 = px1 - W * .04;
+        x.strokeStyle = rgba('vi-ink-2', .45); x.lineWidth = Math.max(1, H * .01);
+        for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(sx0, top + i * gap); x.lineTo(sx1, top + i * gap); x.stroke(); }
+        const fade = .5 + .5 * Math.cos(t * Math.PI * 2 / 4);
+        [[.2, 3, 1], [.5, 2, 1], [.8, 1, fade]].forEach(([u, step, a]) => {
+          const nx = sx0 + (sx1 - sx0) * u, ny = top + step * gap;
+          x.fillStyle = rgba('vi-ink', .85 * a); x.strokeStyle = rgba('vi-ink', .85 * a); x.lineWidth = Math.max(1.5, gap * .16);
+          x.beginPath(); x.ellipse(nx, ny, gap * .62, gap * .44, -.35, 0, 7); x.fill();
+          x.beginPath(); x.moveTo(nx + gap * .56, ny - gap * .1); x.lineTo(nx + gap * .56, ny - gap * 3.2); x.stroke();
+        });
+        // ink splashes: dark blobs with a neon rim and a few drips, on two corners of the scroll
+        const splash = (cx, cy, r, seed) => {
+          x.beginPath();
+          for (let k = 0; k <= 14; k++) {
+            const a = k / 14 * Math.PI * 2, rr = r * (.7 + .45 * hash(seed + k % 14));
+            k ? x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * .8) : x.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * .8);
+          }
+          x.closePath();
+          x.save(); x.shadowColor = tok(c[1]); x.shadowBlur = H * .06; x.fillStyle = tok('vi-ink'); x.fill(); x.restore();
+          x.strokeStyle = rgba(c[1], .8); x.lineWidth = Math.max(1, H * .012); x.stroke();
+          for (let k = 0; k < 4; k++) { x.fillStyle = tok('vi-ink'); x.beginPath(); x.arc(cx + r * (1.3 + .5 * hash(seed + 20 + k)) * Math.cos(k * 1.7 + seed), cy + r * (1.1 + .4 * hash(seed + 30 + k)) * Math.sin(k * 1.7 + seed) * .8, r * (.08 + .1 * hash(seed + 40 + k)), 0, 7); x.fill(); }
+        };
+        splash(px0 + W * .05, py1 - H * .12, H * .13, 3);
+        splash(px1 - W * .06, py0 + H * .1, H * .09, 11);
+        // one ink drop falls slowly from the upper splash and fades
+        const d = wrap(t / 3, 1), dy = py0 + H * .16 + d * H * .5;
+        x.fillStyle = rgba('vi-ink', .9 * (1 - d)); x.beginPath(); x.ellipse(px1 - W * .06, dy, H * .018, H * .028, 0, 0, 7); x.fill();
+      },
+    },
     /* ARCADE QUEST. colors: [sky, microphone outline, static]. An 8-bit landscape at night with a giant
        microphone silhouette looming behind the title, crackling with pixel static (each speck fades in and out). */
     pixel: {
@@ -649,7 +696,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
   function fit(x, text, font, size, maxW) {
     let s = size; x.font = `${font.w || ''} ${s}px ${font.f}`;
     while (s > 6 && x.measureText(text).width > maxW) { s -= 1; x.font = `${font.w || ''} ${s}px ${font.f}`; }
@@ -884,7 +931,7 @@ window.Arcade = window.Arcade || {};
   if (reduced.addEventListener) reduced.addEventListener('change', onReduce); else if (reduced.addListener) reduced.addListener(onReduce);
   // the lettering fonts may arrive after the first drawing: draw again once they're in
   if (document.fonts) {
-    ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Neon', 'GN Quest'].forEach(f => document.fonts.load(`40px "${f}"`, 'AZ').catch(() => {}));
+    ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Neon', 'GN Quest', 'GN Brush'].forEach(f => document.fonts.load(`40px "${f}"`, 'AZ').catch(() => {}));
     document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => { mounted.forEach(el => paint(el)); Object.keys(listeners).forEach(id => listeners[id].forEach(fn => fn())); });
   }
 
