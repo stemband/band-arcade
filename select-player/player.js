@@ -264,7 +264,7 @@
     if (two && phase === 1) setTimeout(still(() => { r.hidden = true; startPlayer2(id); leaving = false; }), wait);
     else if (pick) setTimeout(still(() => { leaving = false; if (opts.onDone) opts.onDone(id); }), wait);   // back to the lobby
     else {
-      setTimeout(still(() => A.Sfx.setMusic(null)), Math.max(0, wait - 400));      // the music fades out as the game opens
+      setTimeout(still(() => A.Sfx.setMusic(null, {fade: .8})), Math.max(0, wait - 800));   // the music fades out (0.8 s) as the game opens
       setTimeout(still(() => { location.href = gameLink; }), wait);
     }
   }

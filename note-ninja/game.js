@@ -31,6 +31,7 @@
 
   /* ---------- belt select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimer();
     G = null;
     const st = picker.state, key = st.progressKey;
@@ -67,6 +68,7 @@
   let G = null, timerId = 0;
 
   function startLevel(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const L = BELTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv);
     // each item: the note as drawn (show) and its real name (letter + acc of n: key signature included)
     const items = seq.items.map(it => ({show: it.show, letter: it.n.letter, acc: it.n.acc, label: it.label}));
@@ -84,6 +86,7 @@
     return A.ModePicker.sequence(picker.state, {count: 24, pool: small ? 3 : 5}, small ? 1 : 2);
   }
   function startEndless() {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const st = picker.state, seq = chunk(0), full = A.ModePicker.sequence(st, {count: 8, pool: 5}, 2);
     G = {endless: true, L: {name: 'Endless', color: 'belt-white'}, items: seq.items.map(itemOf), count: Infinity,
          key: st.progressKey, sig: seq.sig, fit: seq.fit,
@@ -149,6 +152,7 @@
     A.Endless.gameOver(Object.assign(endKey(), {
       run: {score: G.score, notes: G.hits, speed: G.topSpeed, combo: G.bestCombo},
       onAgain: () => startEndless(), onBack: showHub, backLabel: 'Belts'}));
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // GAME OVER is a menu too
   }
 
   function begin(label, name, L, sound) {
@@ -374,6 +378,7 @@
     const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO || A.store.level(key, inst.id, lv + 1).stars > 0);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     // sounds, one after another (each when the one before ends, whatever its length)

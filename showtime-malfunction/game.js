@@ -87,6 +87,7 @@
 
   /* ---------- the showtime select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopShow();
     if (picker) { picker.refresh(); A.ModePicker.useRange(picker.state); }   // star totals for the chosen difficulty
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
@@ -125,6 +126,7 @@
   addEventListener('resize', () => { measure(); if (G) G.bots.forEach(place); });
 
   function startShow(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopShow();
     const extra = isExtra(), L = rowFor(lv, extra), boss = L.boss, total = L.bots + (boss ? boss.phases : 0);
     let items = [], seq = null;
@@ -449,6 +451,7 @@
     $('resUnlock').hidden = !unlockedNow;
     if (unlockedNow) markExtraSeen();
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score', unlockedNow && 'nightmare-unlocked']);

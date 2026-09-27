@@ -38,6 +38,7 @@
 
   /* ---------- vault select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimer(); G = null;
     const st = picker.state, key = st.progressKey;
     $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('vaultOpen').hidden = true;
@@ -134,6 +135,7 @@
   /* ---------- play ---------- */
   let G = null, timerId = 0;
   function startLevel(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const V = VAULTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, V, lv);
     const items = seq.items.map(it => ({n: it.n, show: it.show, midi: it.midi, label: it.label}));   // midi: the exact written bar
     G = {lv, V, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit,
@@ -327,6 +329,7 @@
       const hasNext = lv < VAULTS.length && (stars > 0 || A.DEMO);
       $('resNext').hidden = !hasNext;
       $('results').hidden = false;
+      A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
       A.Skins.announce($('results').querySelector('.panel'), {members: ['bells'], member: 'bells'});   // the bells' stars; achievements count everywhere
       (hasNext ? $('resNext') : $('resRetry')).focus();
       A.Sfx.sequence([stars ? 'level-complete' : !wasCaught && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score', unlocked && 'vault-unlocked']);

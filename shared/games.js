@@ -56,6 +56,10 @@
                 2 stacked lines. EVERY marquee shows ONLY the game's name, as large as it fits without clipping: no
                 subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
+     menuMusic  the game's MENU MUSIC (a loop event in shared/sounds.js, file shared/sounds/<name>.m4a): its level select,
+                mode picker, intro panels and results screens play it through Arcade.Sfx.gameMenuMusic (the arcade's
+                select-music until the file is uploaded). A new game only needs this line (+ its sounds.js entry).
+                menuMusicOwn: the game runs its own music (it doesn't call gameMenuMusic): what plays without the file
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
        profile  the side silhouette that is extruded into a 3D body, plus its topper:
@@ -107,6 +111,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Ghost Notes listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Ghost Notes',
+    menuMusic: 'ghost-notes-menu',
     skill: 'Note reading',
     blurb: 'Read the note and play it. The note names fade away as you level up.',
     maxStars: 24,
@@ -121,6 +126,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Storm listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Storm',
+    menuMusic: 'note-storm-menu',
     skill: 'Speed reading',
     blurb: 'Notes march toward your robot. Read each one fast and play it to blast it.',
     maxStars: 24,
@@ -135,6 +141,7 @@ window.Arcade.GAMES = [
     zones: ['ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Ninja shows the notes your instrument reads, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Ninja',
+    menuMusic: 'note-ninja-menu',
     skill: 'Note names',
     blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
     maxStars: 30,
@@ -149,6 +156,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading', 'ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Vanishing Ink listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Vanishing Ink',
+    menuMusic: 'vanishing-ink-music', menuMusicOwn: "silent until uploaded (menus only)",
     skill: 'Reading in groups',
     blurb: 'Notes appear on the Ink Master\'s scroll, then the magic ink fades away. Play them back from memory!',
     maxStars: 24,
@@ -163,6 +171,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {only: ['bells'], tag: 'Bells only', why: 'Chime Heist is played on the bell kit. Switch your instrument to Bells to play it.'},
     name: 'Chime Heist',
+    menuMusic: 'chime-heist-menu',
     skill: 'Mallet keyboard',
     blurb: 'Crack the vault codes: read each note and strike its bar on the chime lock. No mic needed!',
     maxStars: 24,
@@ -177,6 +186,7 @@ window.Arcade.GAMES = [
     id: 'ancient-ninja-scrolls',
     zones: ['ninja-dojo'],
     name: 'Ancient Ninja Scrolls',
+    menuMusic: 'ancient-ninja-scrolls-menu',
     skill: 'Music vocabulary',
     blurb: 'Study the Band Ninja vocabulary scrolls for Ranks 3–10, then pass the practice Belt Exam. No instrument needed!',
     maxStars: 24,
@@ -192,6 +202,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'Button Masher is about fingerings and slide positions, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Button Masher',
+    menuMusic: 'button-masher-menu',
     skill: 'Fingerings',
     blurb: 'A note appears: press its fingering on your instrument like a special-move combo, then STRIKE! No mic needed!',
     maxStars: 24,
@@ -207,6 +218,7 @@ window.Arcade.GAMES = [
     zones: ['two-player'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Neon Face-Off listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Neon Face-Off',
+    menuMusic: 'neon-face-off-menu',
     skill: '2-Player duel',
     blurb: 'Air hockey with your instruments! Play your note to strike the puck back. Two players on one device, or you vs the CPU.',
     maxStars: 24,
@@ -221,6 +233,7 @@ window.Arcade.GAMES = [
     id: 'showtime-malfunction',
     zones: ['technique-lab'],
     name: 'Showtime Malfunction',
+    menuMusic: 'showtime-malfunction-menu',
     skill: 'Articulation',
     blurb: "The arcade's old animatronic band has powered back on! Play each note as many times as its voice box shows, tonguing every one, to reboot them.",
     maxStars: 48,                                    // 8 showtimes × 3 on Normal + 8 × 3 on NIGHTMARE (keys + ':extra')
@@ -237,6 +250,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'In Sustain Speedway you hold long notes, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Sustain Speedway',
+    menuMusic: 'sustain-speedway-menu',
     skill: 'Long tones & tuning',
     blurb: 'Your instrument is the engine! Hold each lap\'s note in tune and steady to race; breathe in the pit stops.',
     maxStars: 24,
@@ -255,6 +269,7 @@ window.Arcade.GAMES = [
     zones: ['ear-training'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Lost Signal listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Lost Signal',
+    menuMusic: 'lost-signal-music', menuMusicOwn: "its built-in chiptune until uploaded (level screens only)",
     skill: 'Playing by ear',
     blurb: 'An alien probe is sending melodies across the galaxy. Listen to each transmission, then echo it back on your instrument to make contact.',
     maxStars: 24,
@@ -268,6 +283,7 @@ window.Arcade.GAMES = [
     id: 'dojo-duel',
     zones: ['ninja-dojo', 'two-player'],
     name: 'Dojo Duel',
+    menuMusic: 'dojo-music', menuMusicOwn: "its built-in chiptune until uploaded (setup screen; dojo-match-music in a match)",
     skill: '2-Player duel',
     blurb: 'Two ninjas, one screen! A note appears for each of you: the first to tap its name wins the point. Or duel the Sensei. No instrument needed!',
     maxStars: 0,                                     // no stars: a friendly duel (a win count per player name, below)
@@ -285,6 +301,7 @@ window.Arcade.GAMES = [
     id: 'arcade-quest',
     zones: ['adventure'],
     name: 'Arcade Quest',
+    menuMusic: 'quest-title', menuMusicOwn: "silent until uploaded (the title screen; every scene and room has its own track)",
     skill: 'RPG adventure',
     blurb: 'The Mysterious Microphone, Episode 1: Ghost Notes Manor. An 8-bit adventure: play your instrument to calm the manor\'s grumpy ghosts and win them over to your band.',
     maxStars: 0,                                     // no stars: the quest keeps its own save (level, tokens, band roster)

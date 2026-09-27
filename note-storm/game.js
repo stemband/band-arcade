@@ -55,6 +55,7 @@
 
   /* ---------- level select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stop();
     G = null;
     $('wrap').classList.remove('playing');
@@ -91,6 +92,7 @@
   /* ---------- play ---------- */
   let G = null, raf = 0, last = 0;
   function startLevel(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stop();
     const L = LEVELS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
@@ -102,6 +104,7 @@
 
   /* ---------- ENDLESS MODE ---------- */
   function startEndless() {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stop();
     const st = picker.state, seq = chunk(0);
     G = {endless: true, L: endlessRow(END.start), items: seq.items, count: Infinity, sig: seq.sig, fit: seq.fit, name: seq.name,
@@ -411,6 +414,7 @@
       A.Endless.gameOver(Object.assign(endKey(), {
         run: {score: G.score, notes: G.hits, speed: G.topSpeed, combo: G.bestCombo},
         onAgain: () => startEndless(), onBack: showHub, backLabel: 'Levels'}));
+      A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // GAME OVER is a menu too
       return;
     }
     const {lv, hits, lost, wrong, score, lives, count, key} = G;
@@ -436,6 +440,7 @@
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     // game-over already played when the last heart went

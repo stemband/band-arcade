@@ -58,6 +58,7 @@
   /* ---------- match setup ---------- */
   const pickers = [];
   function showSetup() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopMatch();
     $('setup').hidden = false; $('match').hidden = true; $('results').hidden = true;
     document.body.classList.remove('in-match');
@@ -112,6 +113,7 @@
   function stopMatch() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0; if (M) M.over = true; A.Pitch.demoNote = null; }
 
   function startMatch() {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopMatch();
     P.forEach((p, i) => {
       const d = p.cpu ? {window: RULES.cpuWindow, level: 2} : DIFF.find(x => x.id === saved.settings['p' + (i + 1)].diff) || DIFF[0];
@@ -298,6 +300,7 @@
       $('resMsg').innerHTML = `Head to head: <b class="c1">${P[0].name} ${rec.p1}</b> – <b class="c2">${rec.p2} ${P[1].name}</b>`;
     }
     $('results').hidden = false; $('resAgain').focus();
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     if (vsCPU) A.Skins.announce($('results').querySelector('.panel'));     // Player 1's skins (two-player matches earn no stars)
   }
   $('resAgain').addEventListener('click', () => A.requireMic(startMatch));

@@ -47,6 +47,7 @@
 
   /* ---------- the track select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopRace();
     A.ModePicker.useRange(picker.state);
     picker.refresh();
@@ -73,6 +74,7 @@
   const S = {state: 'silent', cents: null, hist: [], wrongRun: 0, zoneSince: 0, I: 0, P: 0, V: 0, score: 0};   // what the mic hears
 
   function startRace(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopRace();
     const L = TRACKS[lv - 1], d = diffOf(gd.diff);
     A.ModePicker.useRange(picker.state);
@@ -569,6 +571,7 @@
     const hasNext = g.lv < TRACKS.length && (pos === 1 || A.DEMO);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));     // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([pos <= 3 && stars ? 'podium' : 'level-failed', stars > old.stars && 'star-earned', newLap && oldLap && 'new-best-lap']);

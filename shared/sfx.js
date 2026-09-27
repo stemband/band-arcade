@@ -19,6 +19,8 @@
      Arcade.Sfx.busy(['voice'])        ms until the last effect (or the last voice line) played has finished (0 = quiet)
      Arcade.Sfx.cancelAll(channel)     drop every pending Sfx.sequence (of that channel): Dojo Duel when a match ends;
                                        Sfx.pending(channel) = how many still have sounds to play
+     Arcade.Sfx.gameMenuMusic(gameId, on, {afterEffects})  a game's menu music (games.js menuMusic, else select-music):
+                                       true on every menu screen (pauses the mic), false as a level starts (0.5 s fade)
      Arcade.Sfx.hush(fade)             fade out (0.15 s) any VOICE line still speaking (effects always finish)
      Arcade.Sfx.preloadScreen(screen)  load + decode every effect of a sounds.js screen now (a game's setup screen)
      Arcade.Sfx.whenReady(names, ms)   a Promise: these events' files are loaded (or missing), or ms (default 1500)
@@ -646,14 +648,14 @@ window.Arcade = window.Arcade || {};
     }
     nextFetch();
   }
-  function loopBuffer(c, buf, from, to, level, fadeIn) {
+  function loopBuffer(c, buf, from, to, level, fadeIn = c.fade || FADE_IN) {
     const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
     s.buffer = buf; s.loop = true; s.loopStart = from; s.loopEnd = to;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + fadeIn);   // fades in, never pops
     s.connect(g); g.connect(c.bus); s.start(t, from);
     return {out: g, nodes: [s]};
   }
-  function fadeOut(c, secs = XF) {
+  function fadeOut(c, secs = c.fade || XF) {
     if (!c.cur) return;
     const a = c.cur; c.cur = null;
     mdbg(`${c.name}: stop ${a.gen ? 'the built-in loop' : a.file}`);
@@ -671,7 +673,7 @@ window.Arcade = window.Arcade || {};
       const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
       c.cur = {el, level, file: rec.file}; mdbg(`${c.name}: START ${rec.file}.${rec.ext} (<audio>)`); return;
     }
-    c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, FADE_IN), {file: rec.file});
+    c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level), {file: rec.file});
     c.why = ''; mdbg(`${c.name}: START ${rec.file}.${rec.ext}`);
   }
   /** make channel c sound the way the page wants it */
@@ -704,7 +706,8 @@ window.Arcade = window.Arcade || {};
   }
   function applyAll() { Object.values(CH).forEach(apply); }
   function why(c, text) { if (c.why !== text) { c.why = text; mdbg(c.name + ': ' + text); } }
-  function want(c, names, {builtIn = false} = {}) {
+  function want(c, names, {builtIn = false, fade = null} = {}) {
+    c.fade = fade;                                        // this change's fade (s): the next fade out / fade in; default XF / FADE_IN
     const events = [].concat(names || []).filter(Boolean);
     const id = events.length ? events.join('|') + (builtIn ? '+' : '') : null;
     if (id === (c.want ? c.want.id : null)) return;       // the same track again: nothing changes
@@ -743,7 +746,7 @@ window.Arcade = window.Arcade || {};
   /* the built-in character-select music: an original 8-bar chiptune (A minor, 132 bpm, about 14.5 s) with a pulse lead,
      a 16th-note arpeggio, a triangle bass and noise drums. Rendered once per page (OfflineAudioContext), then looped. */
   function genMusic(c) {
-    if (c.buf) return Object.assign(loopBuffer(c, c.buf, 0, c.buf.duration, MUS_GEN_LEVEL, FADE_IN), {gen: true});
+    if (c.buf) return Object.assign(loopBuffer(c, c.buf, 0, c.buf.duration, MUS_GEN_LEVEL), {gen: true});
     if (!c.rendering) c.rendering = renderChiptune().then(buf => { c.buf = buf; apply(c); }, () => {});   // still wanted? it starts now
     return null;
   }
@@ -864,6 +867,42 @@ window.Arcade = window.Arcade || {};
   }
   const refreshAll = () => document.querySelectorAll('.sound-ctl').forEach(c => c._draw && c._draw());
 
+  /* ---------- GAME MENU MUSIC (games.js `menuMusic`): one call whenever a game changes screen ----------
+     gameMenuMusic(gameId)          a MENU screen (level select, mode picker, intro panels, results): the game's
+                                    menuMusic, else the arcade's select-music (else its built-in tune), fading in over
+                                    MENU_XF s. A game that listens pauses the microphone here (nothing counts on a
+                                    menu, and music never plays while the mic listens).
+     gameMenuMusic(gameId, false)   a level / round starts: the music fades out over MENU_FADE s; the mic is back on at
+                                    once but hears nothing new until the fade has ended (Pitch.suppress), so no game
+                                    ever hears its music.
+     {afterEffects: true}           (results) wait until the result sounds (and any queued Sfx.sequence) have ended
+     Games that run their own music (Dojo Duel, Lost Signal, Vanishing Ink, Arcade Quest: games.js `menuMusicOwn`)
+     don't call it. */
+  const MENU_FADE = 0.5, MENU_XF = 0.8;
+  let menuT = 0, menuPaused = false;
+  function gameMenuMusic(gameId, on = true, {afterEffects = false} = {}) {
+    clearTimeout(menuT); menuT = 0;
+    const P = A.Pitch;
+    if (!on) {
+      if (menuPaused && P && P.pauseListening) { if (P.suppress) P.suppress(MENU_FADE * 1000); P.pauseListening(false); }
+      menuPaused = false;
+      want(CH.mus, null, {fade: MENU_FADE});
+      applyAll();
+      return;
+    }
+    if (P && P.pauseListening && !P.paused) { P.pauseListening(true); menuPaused = true; }
+    const g = (A.ALL_GAMES || A.GAMES || []).find(x => x.id === gameId);
+    const go = () => {
+      menuT = 0;
+      const wait = afterEffects ? Math.max(busyFor(), seqs.size ? 200 : 0) : 0;
+      if (wait > 30) { menuT = setTimeout(go, Math.min(wait + 100, 1000)); return; }
+      want(CH.mus, [g && g.menuMusic, 'select-music'], {builtIn: true, fade: MENU_XF});
+      applyAll();
+    };
+    if (afterEffects) menuT = setTimeout(go, 150);          // the result sounds start in the same moment: let them register
+    else go();
+  }
+
   let leaving = false;
   const seqs = new Set();                                 // sequences still playing (Sfx.sequence handles)
   // a channel and its sub-channels: 'dojo' also means 'dojo:voice'
@@ -925,6 +964,7 @@ window.Arcade = window.Arcade || {};
     /** THE MUSIC MANAGER (see the top of this file): the track this page wants on the MUSIC channel. Never start
         audio any other way. */
     setMusic: (names, opts) => want(CH.mus, names, opts),
+    gameMenuMusic,
     /** the track this page wants on the AMBIENCE channel (the arcade floor's lobby-ambience) */
     setAmbience: (names, opts) => want(CH.amb, names, opts),
     /** fetch these music events' files now (the likely next tracks), so they start at once when wanted */
@@ -948,6 +988,9 @@ window.Arcade = window.Arcade || {};
       if (leaving) return;                 // a second tap during the wait does nothing
       leaving = true;
       setTimeout(() => { leaving = false; }, GO_MAX + 500);
+      // the music and ambience fade out (0.8 s) as the page changes, instead of stopping dead; the wish stays, so a page
+      // brought back with the Back button starts them again
+      if (ctx) Object.values(CH).forEach(c => { if (c.cur) fadeOut(c, MENU_XF); });
       const go = d => { if (d) setTimeout(() => { location.href = href; }, Math.min(GO_MAX, Math.max(120, d * 1000))); else location.href = href; };
       if (SOUNDS[name]) go(Sfx.play(name)); else eventSoon(name).then(go);
     },

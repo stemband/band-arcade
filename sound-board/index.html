@@ -48,6 +48,12 @@
   .sb-play{min-height:40px;padding:6px 16px;font-size:15px}
   .sb-loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0;padding:10px;border-radius:12px;background:var(--deep);border:1px dashed var(--cyan-ink)}
   .sb-loop p{margin:0;flex-basis:100%;font-size:13.5px;color:var(--text-lo)}
+  .sb-music{margin-bottom:10px}
+  .sb-mrow .sb-status.file{text-transform:none}
+  .sb-mrow .sb-status.missing{border-color:var(--amber);color:var(--amber-hi);text-transform:none}
+  .sb-mbtns{display:flex;gap:6px}
+  .sb-mrow [data-loopinfo]{grid-column:1/-1;margin:0;font-size:13px;color:var(--text-lo)}
+  .sb-mrow [data-loopinfo]:empty{display:none}
   @media (max-width:760px){
     .sb-row{grid-template-columns:1fr auto;}
     .sb-when{grid-column:1/-1}
@@ -70,6 +76,12 @@
     <span class="sb-read" id="read">Peak – dB</span>
     <p class="sb-summary" id="summary" role="status"></p>
   </div>
+  <section class="sb-music" aria-labelledby="musicH">
+    <h2 class="sb-group" id="musicH">Music</h2>
+    <p class="muted">Every game's menu music (games.js <code>menuMusic</code>) and the arcade's own loops. Record each as a seamless loop,
+      30–90 s, exported as <code>.m4a</code>, named exactly as shown. Until a game's file is uploaded, its menus play the arcade's select music.</p>
+    <div class="sb-list" id="music"></div>
+  </section>
   <div id="groups"></div>
 </div>
 
@@ -106,11 +118,32 @@
         `</div>`;
     }).join('') + `</div>`).join('');
 
+  /* ---------- MUSIC: every game's menu track + the arcade's loops, with "uploaded" or what plays instead ---------- */
+  const MUSIC = [{who: 'The arcade: Choose Your Instrument', n: 'select-music', instead: 'using the built-in chiptune'},
+    {who: 'The arcade: the lobby (ambience)', n: 'lobby-ambience', instead: 'using the built-in room hum'}]
+    .concat((A.ALL_GAMES || A.GAMES).filter(g => g.menuMusic && S.get(g.menuMusic)).map(g => ({who: g.name, n: g.menuMusic,
+      instead: g.menuMusicOwn || 'using select music', fallback: g.menuMusicOwn ? '' : 'select-music'})));
+  $('music').innerHTML = MUSIC.map(m => `<div class="sb-row sb-mrow" data-n="${m.n}" data-fallback="${m.fallback || ''}">` +
+    `<div class="sb-name"><b>${esc(m.who)}</b></div>` +
+    `<div class="sb-when"><code>shared/sounds/${m.n}.m4a</code></div>` +
+    `<span class="sb-status" data-mstatus>not checked</span><span class="sb-peak" data-peak>–</span>` +
+    `<span class="sb-mbtns"><button type="button" class="btn btn-ghost sb-play" data-loopgo="start">Play</button>` +
+    `<button type="button" class="btn btn-ghost sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`).join('');
+  function musicStatus() {
+    MUSIC.forEach(m => {
+      const el = document.querySelector(`.sb-mrow[data-n="${m.n}"] [data-mstatus]`), st = B.status(m.n);
+      if (st.kind === 'checking') return;
+      const ok = st.kind === 'file';
+      el.className = 'sb-status ' + (ok ? 'file' : 'missing');
+      el.textContent = ok ? `✓ uploaded (${st.ext}${st.dur ? ', ' + Math.round(st.dur) + ' s' : ''})` : `missing — ${m.instead}`;
+    });
+  }
+
   /* ---------- statuses ---------- */
   const kb = b => b ? (b < 1024 ? b + ' B' : (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB') : '';
   /** a row's status label; a label that changed since the last check gets a yellow outline */
   function label(n, mark) {
-    const st = B.status(n), el = document.querySelector(`.sb-row[data-n="${n}"] [data-status]`);
+    const st = B.status(n), el = document.querySelector(`#groups .sb-row[data-n="${n}"] [data-status]`);
     const text = st.kind === 'checking' ? 'Checking…'
       : st.kind === 'file' ? `Your file (${st.ext}${st.dur ? ', ' + st.dur.toFixed(2) + ' s' : ''}${st.fileDur && st.fileDur - st.dur > .5 ? ` of sound + ${(st.fileDur - st.dur).toFixed(1)} s of silence at the end: trim it` : ''}${st.bytes ? ', ' + kb(st.bytes) : ''})`
       : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
@@ -148,6 +181,7 @@
     const t = new Date();
     $('checkedAt').textContent = `Checked at ${t.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit', second: '2-digit'})} (live files, SOUNDS_VERSION ${S.VERSION})`;
     $('summary').textContent = `${counts.file} your files · ${counts.fallback} fallback · ${counts.generated} generated (${names.length} sounds)`;
+    musicStatus();
     $('check').removeAttribute('aria-busy'); $('check').textContent = 'Reload all sounds';
     checking = false;
   }
@@ -198,7 +232,13 @@
     ['lobby-ambience', 'select-music'].forEach(k => B.loop(k, false));
     const info = row.querySelector('[data-loopinfo]');
     if (how === 'stop') { info.textContent = ''; return; }
-    const rec = await B.load(n, true); label(n);
+    const rec = await B.load(n, true); label(n); musicStatus();
+    // a game's menu track that isn't uploaded yet: its menus play the arcade's select music, so that's what plays here
+    if ((!rec || rec.state !== 'ok') && row.dataset.fallback && row.dataset.fallback !== n) {
+      await loopTest(row.dataset.fallback, row, how);
+      info.textContent = `No ${n} file yet: this is what its menus play instead (select-music). ` + info.textContent;
+      return;
+    }
     if (!rec || rec.state !== 'ok' || !rec.buf) {
       B.loop(n, true);                                   // the built-in version (room hum / chiptune), or the <audio> loop
       const f = S.get(n).file;
