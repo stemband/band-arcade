@@ -49,6 +49,7 @@ window.Arcade = window.Arcade || {};
     'zone-enter':      {file: 'zone-enter', vol: .6, mic: false, screen: 'floor', gen: [[[220, 660], 0, .35, .18, 'triangle'], [[1200, 3000], .05, .3, .08, 'noise', 1.2]], when: 'A zone opens: its cabinets appear.', len: '0.3–0.8 s'},
     'zone-back':       {file: 'zone-back', vol: .6, mic: false, screen: 'floor', gen: [[[660, 220], 0, .3, .18, 'triangle']], when: 'BACK TO LOBBY (leaving a zone or ALL GAMES).', len: '0.2–0.6 s'},
     'all-games-open':  {file: 'all-games-open', vol: .6, mic: false, screen: 'floor', gen: [[523, 0, .05, .2, 'square'], [659, .05, .05, .2, 'square'], [784, .1, .08, .2, 'square']], when: 'ALL GAMES opens (the grid of every game).', len: '0.2–0.6 s'},
+    'press-start':     {file: 'press-start', vol: .8, mic: false, screen: 'general', gen: [[392, 0, .07, .25, 'square'], [523, .07, .07, .25, 'square'], [784, .14, .18, .25, 'square'], [1047, .14, .18, .12, 'triangle']], when: 'A game\'s PRESS START title screen is tapped (any key or tap). A game can have its own: press-start-<game id>.', len: '0.3–0.8 s'},
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js
     // ---- Select Player --------------------------------------------------------------------------------------
@@ -251,6 +252,11 @@ window.Arcade = window.Arcade || {};
         return g ? {file: name, vol: .6, loop: true, mic: false, screen: 'select', fallback: 'select-music', auto: true,
                     when: `Choose Your Instrument music for ${g.name} only (instead of select-music).`, len: '30–90 s loop'} : null;
       }
+      if (/^press-start-/.test(name)) {                    // a game's own PRESS START sound (optional)
+        const g = (A.GAMES || []).find(x => 'press-start-' + x.id === name);
+        return g ? {file: name, vol: .8, mic: false, screen: 'general', fallback: 'press-start', auto: true,
+                    when: `${g.name}'s PRESS START title screen is tapped (instead of press-start).`, len: '0.3–0.8 s'} : null;
+      }
       if (/^select-/.test(name)) {
         const g = (A.GAMES || []).find(x => 'select-' + x.id === name);
         return {file: name, vol: .8, mic: false, screen: 'floor', fallback: 'select-default', auto: true,
@@ -259,6 +265,7 @@ window.Arcade = window.Arcade || {};
       return null;
     },
     /** every event name, including one select-<id> per game in shared/games.js (if loaded) */
-    names() { return Object.keys(LIST).concat((A.GAMES || []).map(g => 'select-' + g.id).filter(n => !LIST[n])); },
+    names() { return Object.keys(LIST).concat((A.GAMES || []).map(g => 'select-' + g.id).filter(n => !LIST[n]),
+      (A.GAMES || []).filter(g => !g.tool && g.pressStart !== false).map(g => 'press-start-' + g.id)); },
   };
 })(window.Arcade);

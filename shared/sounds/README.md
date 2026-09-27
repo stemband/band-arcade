@@ -156,6 +156,7 @@ file so the voice starts at the very beginning.
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
+| `press-start` | `press-start.m4a` or `press-start.mp3` | A game's PRESS START title screen is tapped (any tap or key): the first sound on every game page. A game can have its own: upload `press-start-<game id>.m4a` (e.g. `press-start-note-storm.m4a`); without it, `press-start` plays. | 0.3–0.8 s |
 | `ui-back` | `ui-back.m4a` or `ui-back.mp3` | "← ARCADE": back to the arcade floor. | 0.1–0.3 s |
 | `ui-toggle` | `ui-toggle.m4a` or `ui-toggle.mp3` | SOUND ON, the horn's Starting notes, NOTES × ORDER and other toggles. | 0.05–0.15 s |
 | `avatar-change` | `avatar-change.m4a` or `avatar-change.mp3` | Create Your Player: picking any option (a hair style, a color, a word of your name…). Without it: the toggle blip. | 0.05–0.15 s |
