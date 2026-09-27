@@ -280,6 +280,8 @@ body.q-review .q-wrap{display:none}
 .q-cosshop .q-pmenu .q-btn{min-height:calc(var(--px) * 30)}
 .q-cos{display:block;width:calc(var(--px) * 20);height:calc(var(--px) * 20);margin:0 auto calc(var(--px) * 1);image-rendering:pixelated;image-rendering:crisp-edges}
 .q-cos-bg{background:center/cover no-repeat;border-radius:calc(var(--px) * 2)}
+.q-cos-fx{display:grid}.q-cos-fx>img{grid-area:1/1;width:100%;height:100%;image-rendering:pixelated}
+.q-cos-plate{display:grid;place-items:center;width:auto;font-size:calc(var(--px) * 5)}
 .q-btn.q-owned small{color:var(--q-green);font-weight:700}
 .q-only{display:inline-block;margin:0 0 calc(var(--px) * 3);padding:calc(var(--px) * 1) calc(var(--px) * 3);border:calc(var(--px) * 1) solid var(--yellow);color:var(--yellow);font-size:calc(var(--px) * 5.5);letter-spacing:.08em}
 .q-slots{display:flex;gap:calc(var(--px) * 4);flex-wrap:wrap}

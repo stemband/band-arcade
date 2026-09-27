@@ -213,6 +213,9 @@ window.Arcade = window.Arcade || {};
     if (u.stars && !u.game) return !!member && st().allStars(member) >= u.stars;
     if (!u.game || !hasGame(u.game)) return false;
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
+    if (u.badges) return Object.keys((st().gameData(u.game) || {}).badges || {}).length >= u.badges;
+    if (u.perfect) { for (let lv = 1; lv <= u.perfect; lv++) if (st().bestLevelStars(u.game, lv, u.suffix) < 3) return false; return true; }
+    if (u.endless) return endlessBest(u.game) >= u.endless;
     if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
     if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
     if (u.wins) return winsOn(u.game) >= u.wins;
@@ -227,8 +230,17 @@ window.Arcade = window.Arcade || {};
       Math.max(+d.cpuWins || 0, [1, 2, 3, 4, 5, 6, 7, 8].filter(lv => st().bestLevelStars('neon-face-off', lv) >= 1).length),
   };
   function winsOn(game) { const f = WINS[game]; return f ? f(st().gameData(game) || {}) : 0; }
+  /** the longest Endless run on this device (its `notes`: Lost Signal's longest signal, Vanishing Ink's longest scroll…):
+      shared/endless.js remembers the best of every run, and the Top 5 lists count too (runs from before that) */
+  function endlessBest(game) {
+    let best = +((st().gameData('endless-best') || {})[game] || 0);
+    const g = st().endlessRuns ? st().endlessRuns(game) : {};
+    Object.values(g).forEach(inst => Object.values(inst).forEach(list => (list || []).forEach(e => { best = Math.max(best, +e.notes || 0); })));
+    return best;
+  }
   const AV = () => A.Avatar && A.Avatar.freshItems ? A.Avatar : null;
-  const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item', bg: 'Background'};
+  const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item', bg: 'Background',
+    hand: 'Held item', effect: 'Effect', plate: 'Name plate', shoes: 'Shoes'};
   /** what a locked skin asks for, in student words */
   function requirement(skin) {
     const u = skin.unlock || {};
@@ -244,7 +256,7 @@ window.Arcade = window.Arcade || {};
   const seenKey = (skin, member) => milestone(skin) ? member : '*';
 
   const Skins = A.Skins = {
-    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, winsOn, requirement, progress, milestone,
+    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, winsOn, endlessBest, requirement, progress, milestone,
     colors: () => SKINS.filter(s => s.kind === 'color'),
     accessories: () => SKINS.filter(s => s.kind === 'acc'),
     /** the equipped {color, acc} for a member (a locked choice falls back to Classic Neon / none) */
@@ -313,7 +325,8 @@ window.Arcade = window.Arcade || {};
         : member && A.portraitHTML ? A.portraitHTML(member, {size: 'tile', skin: skinOf(s)})
         : s.kind === 'acc' ? Skins.accSVG(s.id) : `<span class="sk-swatch" style="--sk1:var(--${((s.look || {}).colors || ['cyan'])[0]})"></span>`;
       const m = member && A.memberById ? A.memberById(member) : null;
-      const itemPic = it => A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
+      const itemPic = it => it.field === 'plate' ? `<span class="sk-u-plate"><span class="av-plate av-plate-${it.id}">${A.Avatar.nameOf(A.Avatar.get()).split(' ').slice(-1)[0]}</span></span>`
+        : A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
       return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s => s.item ?
         `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
         `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.text || ''}</small>` +

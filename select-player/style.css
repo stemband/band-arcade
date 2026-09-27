@@ -231,3 +231,9 @@
 .btn-edit:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
 .phase2 .btn-edit{border-color:var(--pink);color:var(--pink-hi)}
 .c-pic .av-box{width:100%}
+/* the LOCKER's name plates and shoes (shared/avatar-parts.js PLATES, SHOES) */
+.lk-plate{display:grid;place-items:center;width:100%;aspect-ratio:1;font-weight:700;font-size:13px;color:var(--text-hi)}
+.lk-body{display:block;width:100%;aspect-ratio:1;border-radius:12%;background:var(--deep);overflow:hidden}
+.lk-body img{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;transform:scale(1.35);transform-origin:50% 88%}
+.sk-opt.locked[data-lk-bg] .lk-plate{filter:brightness(.5) saturate(.6)}
+.sk-opt.locked .lk-body img{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}

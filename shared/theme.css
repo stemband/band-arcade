@@ -63,6 +63,9 @@
   --av-hair-pink:#ff62b0; --av-hair-pink-d:#d03b86; --av-hair-pink-l:#ff9fd2; --av-hair-purple:#9d5eff; --av-hair-purple-d:#7137d6; --av-hair-purple-l:#c29dff; --av-hair-blue:#4290ff; --av-hair-blue-d:#2463cf; --av-hair-blue-l:#88b9ff;
   --av-hair-teal:#24c9ba; --av-hair-teal-d:#11978a; --av-hair-teal-l:#70e7dc; --av-hair-green:#44d05e; --av-hair-green-d:#27a33f; --av-hair-green-l:#8aeb9a; --av-hair-orange:#ff8c2c; --av-hair-orange-d:#d6661a; --av-hair-orange-l:#ffb572;
   --av-hair-gold:#f5c542; --av-hair-gold-d:#c9951f; --av-hair-gold-l:#fff1b0; --av-hair-neon:#3dffa0; --av-hair-neon-d:#12b86a; --av-hair-neon-l:#c4ffe4;
+  --av-hair-cherry:#ff3b4e; --av-hair-cherry-d:#c81f33; --av-hair-cherry-l:#ff8a96; --av-hair-lavender:#b99cff; --av-hair-lavender-d:#8a6ad8; --av-hair-lavender-l:#ddd0ff;
+  --av-hair-sky:#6cc4ff; --av-hair-sky-d:#3f94d6; --av-hair-sky-l:#b8e4ff; --av-hair-mint:#5fe3b1; --av-hair-mint-d:#2fb385; --av-hair-mint-l:#b3f5dc;
+  --av-hair-sunny:#ffdf3b; --av-hair-sunny-d:#d6ad16; --av-hair-sunny-l:#fff3a8; --av-hair-magenta:#e0319d; --av-hair-magenta-d:#a8166f; --av-hair-magenta-l:#ff85cc;
   --av-hair-galaxy:#4b2a8f; --av-hair-galaxy-d:#241552; --av-hair-galaxy-l:#ff9bf0; --av-hair-flametip:#e2402a; --av-hair-flametip-d:#9e2415; --av-hair-flametip-l:#ffd23f;
   --av-eye-darkbrown:#2d1b10; --av-eye-brown:#5c361c; --av-eye-hazel:#7c6a28; --av-eye-green:#2e7c46; --av-eye-blue:#2f70c6; --av-eye-gray:#6f7c8c; --av-eye-amber:#a9681c;
   --av-red:#e8394f; --av-red-d:#b3243a; --av-orange:#ff8a2a; --av-orange-d:#cf661a; --av-yellow:#ffd23f; --av-yellow-d:#cfa626; --av-green:#35c46a; --av-green-d:#23954d;
@@ -70,6 +73,8 @@
   --av-pink:#ff5fae; --av-pink-d:#d13b87; --av-maroon:#80233b; --av-maroon-d:#5a1426; --av-forest:#2f6b3a; --av-forest-d:#1f4a27; --av-black:#26242e; --av-black-d:#15131a;
   --av-gray:#8c8c99; --av-gray-d:#696976; --av-white:#eeeef4; --av-white-d:#c3c3cf; --av-denim:#3e609f; --av-denim-d:#2c4676; --av-khaki:#bba16d; --av-khaki-d:#957f51;
   --av-tan:#c9925a; --av-tan-d:#a4723f;
+  --av-lavender:#b59bff; --av-lavender-d:#8a6ad8; --av-mint:#62e0b0; --av-mint-d:#33ae83; --av-coral:#ff7a66; --av-coral-d:#d4533f; --av-mustard:#dcae2a; --av-mustard-d:#ab8414;
+  --av-cream:#f3e7c9; --av-cream-d:#cdbd97; --av-brown:#7a4a2a; --av-brown-d:#58331b; --av-sky:#7cc6ff; --av-sky-d:#4b98d6; --av-olive:#7a8a3a; --av-olive-d:#58652a;
   --av-gold:#ffcf3f; --av-gold-d:#c9951f; --av-white:#fbf8ff; --av-black:#1b1922; --av-out:#140f1f; --av-lens:#bfe9ff; --av-mouth:#5a1f2c; --av-tongue:#ff7a8e; --av-teeth:#ffffff; --av-tire:#2a2733; --av-rim:#b8c2d6; --av-aid:#d9b99a;
   --q-skin-1:#f6d2b0; --q-skin-2:#e0a878; --q-skin-3:#b0744a; --q-skin-4:#6e4630; --q-hair:#2e1f18; --q-hair-2:#6b3d22;
   --q-out:#140f1f; --q-pants:#2f3c78; --q-shoe:#1d1628; --q-white:#fbf8ff; --q-black:#161222;
@@ -245,6 +250,14 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-bg>.av-bg-live{position:absolute;inset:0;width:100%;height:100%;display:block}
 .av-bg>.av-bg-live[hidden]{display:none}
 .pt-box-chip>.av-bg{border-radius:50%}
+/* EFFECTS and ANIMATED ITEMS (shared/avatar-fx.js): the effect's still pictures / live canvases behind (z 1) and in front
+   (z 3) of the bust; the live box draws its bust frames in .av-live over the still picture (hidden while it plays) */
+.av-box>.av-fx-still,.av-box>.av-fx,.av-box>.av-live{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
+.av-box>.av-fx-b{z-index:1}.av-box>.av-fx-f{z-index:3}
+.av-box>.av-live{z-index:2;image-rendering:pixelated;image-rendering:crisp-edges}
+.av-box>[hidden]{display:none}
+.av-box.av-anim-body>.av-img{visibility:hidden}
+.av-box.av-anim-fx>.av-fx-still{display:none}
 .av-box.sk-pixel>.sk-back{display:block}
 /* results screens: the player's avatar + name at the top (shared/avatar.js stampResults) */
 .av-res{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 8px!important}
@@ -254,6 +267,18 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-res-txt{min-width:0}
 .av-res-txt b{text-wrap:balance;overflow-wrap:break-word;font-family:var(--display);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--yellow)}
 .av-res-txt small{font-size:13px;color:var(--text-lo)}
+/* NAME PLATES (the avatar's 'plate' slot): a frame around the name on results screens, score lists and the creator */
+.av-plate{display:inline-block;padding:1px 8px;border-radius:8px;border:2px solid transparent;line-height:1.25;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.av-plate-simple{border-color:var(--text-lo)}
+.av-plate-gold{border-color:var(--yellow);background:linear-gradient(180deg,color-mix(in srgb,var(--yellow) 30%,transparent),color-mix(in srgb,var(--amber) 16%,transparent));box-shadow:0 0 0 1px var(--amber-ink) inset}
+.av-plate-neon{border-color:var(--cyan);box-shadow:var(--glow-cyan);background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+.av-plate-flames{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--red) 45%,transparent),color-mix(in srgb,var(--amber) 22%,transparent) 55%,transparent)}
+.av-plate-notes{border-color:var(--pink)}
+.av-plate-notes::before,.av-plate-notes::after{content:"♪";color:var(--pink-hi);margin:0 4px}
+[class*="av-plate-belt-"]{border-width:2px 2px 2px 8px;border-color:var(--pb)}
+.av-plate-belt-white{--pb:var(--belt-white)}.av-plate-belt-yellow{--pb:var(--belt-yellow)}.av-plate-belt-orange{--pb:var(--belt-orange)}.av-plate-belt-green{--pb:var(--belt-green)}
+.av-plate-belt-blue{--pb:var(--belt-blue)}.av-plate-belt-purple{--pb:var(--belt-purple)}.av-plate-belt-red{--pb:var(--belt-red)}.av-plate-belt-brown{--pb:var(--belt-brown)}
+.av-plate-belt-black{--pb:var(--belt-black);outline:1px solid var(--text-lo);outline-offset:-1px}.av-plate-belt-diamond{--pb:var(--belt-diamond);box-shadow:0 0 6px var(--cyan-hi)}
 .pt-pixd>.pt-img{visibility:hidden}
 .sk-pixel>.sk-back{inset:5%;border:4px solid var(--sk1);outline:2px solid var(--sk2);outline-offset:2px;border-radius:0}
 .pt-box-big.sk-pixel>.sk-back{border-width:7px;outline-width:4px;outline-offset:4px}
@@ -279,6 +304,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-u-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:150px}
 .sk-u-pic{display:grid;place-items:center;width:96px;height:96px;border-radius:14px;background:var(--deep)}
 .sk-u-pic .pt-box,.sk-u-pic .sk-acc-solo{width:84px}
+.sk-u-plate{display:grid;place-items:center;min-height:70px;font-weight:700;color:var(--text-hi)}
 .sk-u-name{font-family:var(--display);font-weight:400;font-size:17px;text-transform:uppercase;color:var(--text-hi)}
 .sk-u-item small{font-size:12.5px;line-height:1.25;color:var(--text-lo)}
 .sk-u-equip{margin-top:4px}

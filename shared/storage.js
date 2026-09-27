@@ -171,6 +171,8 @@ window.Arcade = window.Arcade || {};
       const e = ((data.endless || {})[gameId] || {})[instKey] || {};
       return (e[setKey] || []).map(x => Object.assign({}, x));
     },
+    /** every Endless Top 5 of one game: {instKey: {setKey: [runs]}} (a copy) */
+    endlessRuns(gameId) { return JSON.parse(JSON.stringify(((data.endless || {})[gameId]) || {})); },
     /** add a finished run; keeps the best 5. Returns its place (0 = #1) or -1 if it didn't make the Top 5 */
     addEndless(gameId, instKey, setKey, entry) {
       const all = data.endless || (data.endless = {}), g = all[gameId] || (all[gameId] = {}), i = g[instKey] || (g[instKey] = {});

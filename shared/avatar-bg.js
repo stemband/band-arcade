@@ -1,4 +1,4 @@
-/* Band Arcade: AVATAR BACKGROUNDS (the avatar's 'bg' field: the list and the unlock rules are P.BGS at the end of
+/* Band Arcade: AVATAR BACKGROUNDS (and the loop that animates the one LIVE avatar on screen: see the end) (the avatar's 'bg' field: the list and the unlock rules are P.BGS at the end of
    shared/avatar-parts.js). Drawn in code behind the avatar's bust wherever it shows (Arcade.avatarHTML puts one in
    every .av-box): basics (solid colors, two-color fades, patterns) and ANIMATED SCENES, which are the very same art
    as the game menus' backgrounds (shared/bg-scenes.js), drawn brighter (`lift`) because the avatar sits in a small
@@ -127,7 +127,10 @@ window.Arcade = window.Arcade || {};
       (canMove ? `<canvas class="av-bg-live" data-bg="${b.id}" hidden></canvas>` : '') + `</span>`;
   }
 
-  /* ---------- the one animated background ---------- */
+  /* ---------- THE ONE LIVE AVATAR: its background, its animated items and its effect ----------
+     Every box Arcade.avatarHTML made with `live` and something that moves has data-live. Each frame (≤ FPS) the
+     LARGEST visible one (not covered by an overlay) is drawn: its background here, its animated items and effect by
+     shared/avatar-fx.js; every other live box shows its still pictures. */
   let raf = 0, last = 0, t0 = performance.now(), slow = false, frames = 0, spent = 0, current = null;
   const states = new WeakMap();
   function wake() { if (!raf && !document.hidden) raf = requestAnimationFrame(tick); }
@@ -136,38 +139,47 @@ window.Arcade = window.Arcade || {};
     if (!r.width || !r.height || r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return 0;
     return r.width * r.height;
   }
+  /** a box goes back to its still pictures */
+  function still(box) {
+    box.querySelectorAll('canvas.av-bg-live').forEach(c => { c.hidden = true; });
+    if (A.AvatarFx) A.AvatarFx.stop(box);
+  }
   function tick(now) {
     raf = 0;
-    const all = [...document.querySelectorAll('canvas.av-bg-live')];
+    const all = [...document.querySelectorAll('.av-box[data-live]')];
     if (!all.length || document.hidden) { current = null; return; }
-    if (!motionOK()) { all.forEach(c => { c.hidden = true; }); current = null; return; }
+    if (!motionOK()) { all.forEach(still); current = null; return; }
     raf = requestAnimationFrame(tick);
     if (now - last < 1000 / FPS - 2) return;
     last = now;
     // the largest visible one moves; the rest show their still frame (a covered page's avatar isn't "visible":
     // an overlay on top of it hides it from elementFromPoint)
     let best = null, bestA = 0;
-    all.forEach(c => {
-      const box = c.closest('.pt-box'); let a = box ? visibleArea(box) : 0;
-      if (a && box) {
+    all.forEach(box => {
+      let a = visibleArea(box);
+      if (a) {
         const r = box.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         if (hit && !box.contains(hit) && !hit.contains(box)) a = 0;
       }
-      if (a > bestA) { bestA = a; best = c; }
+      if (a > bestA) { bestA = a; best = box; }
     });
-    all.forEach(c => { if (c !== best) c.hidden = true; });
+    all.forEach(box => { if (box !== best) still(box); });
     current = best;
     if (!best) return;
-    const r = best.getBoundingClientRect(), px = Math.max(32, Math.min(MAX_PX, Math.round(r.width * Math.min(1.5, devicePixelRatio || 1))));
-    if (best.width !== px) { best.width = best.height = px; states.delete(best); }
-    let st = states.get(best); if (!st) { st = {}; states.set(best, st); }
-    const s = performance.now();
-    draw(best.getContext('2d'), best.dataset.bg, px, px, (now - t0) / 1000 + 4, {state: st});
+    const s = performance.now(), sec = (now - t0) / 1000 + 4;
+    const c = best.querySelector('canvas.av-bg-live');
+    if (c) {
+      const r = best.getBoundingClientRect(), px = Math.max(32, Math.min(MAX_PX, Math.round(r.width * Math.min(1.5, devicePixelRatio || 1))));
+      if (c.width !== px) { c.width = c.height = px; states.delete(c); }
+      let st = states.get(c); if (!st) { st = {}; states.set(c, st); }
+      draw(c.getContext('2d'), c.dataset.bg, px, px, sec, {state: st});
+      c.hidden = false;
+    }
+    if (A.AvatarFx) A.AvatarFx.drawLive(best, sec);
     const ms = performance.now() - s;
-    best.hidden = false;
     frames++; spent += ms;
     if (frames >= SLOW_FRAMES) {                          // too slow for this device: still frames from now on (this page)
-      if (spent / frames > SLOW_MS) { slow = true; all.forEach(c => { c.hidden = true; }); }
+      if (spent / frames > SLOW_MS) { slow = true; all.forEach(still); }
       stat.avgMs = +(spent / frames).toFixed(2); frames = 0; spent = 0;
     }
   }
@@ -176,8 +188,11 @@ window.Arcade = window.Arcade || {};
   reduced.addEventListener && reduced.addEventListener('change', wake);
 
   A.AvatarBg = {
-    list, get, main, animated, draw, stillURL, html, wake, FPS, MAX_PX,
-    stats: () => ({running: !!raf, animating: current ? current.dataset.bg : null, frames, avgMs: stat.avgMs || (frames ? +(spent / frames).toFixed(2) : 0), slow,
-      live: document.querySelectorAll('canvas.av-bg-live').length, motion: motionOK()}),
+    list, get, main, animated, draw, stillURL, html, wake, FPS, MAX_PX, motionOK,
+    stats: () => {
+      const c = current && current.querySelector('canvas.av-bg-live:not([hidden])');
+      return {running: !!raf, animating: c ? c.dataset.bg : null, box: current ? current.dataset.live : null, fx: current && A.AvatarFx ? A.AvatarFx.state(current) : null,
+        frames, avgMs: stat.avgMs || (frames ? +(spent / frames).toFixed(2) : 0), slow, live: document.querySelectorAll('.av-box[data-live]').length, motion: motionOK()};
+    },
   };
 })(window.Arcade);

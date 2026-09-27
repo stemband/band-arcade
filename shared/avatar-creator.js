@@ -36,7 +36,9 @@ window.Arcade = window.Arcade || {};
       {k: 'eyeColor', label: 'Eye color', kind: 'color', list: () => P().EYE_COLORS.map(c => ({id: c.id, name: c.name, token: 'av-eye-' + c.id}))},
       {k: 'brows', label: 'Eyebrows', kind: 'part', list: () => P().BROWS, thumb: 'face'},
       {k: 'mouth', label: 'Mouth', kind: 'part', list: () => P().MOUTHS, thumb: 'face'},
-      {k: 'freckles', label: 'Freckles', kind: 'toggle', list: () => [{id: false, name: 'No freckles'}, {id: true, name: 'Freckles'}], thumb: 'face'},
+      {k: 'freckles', label: 'Freckles', kind: 'part', list: () => P().FRECKLE_STYLES, thumb: 'face'},
+      {k: 'paint', label: 'Face paint', kind: 'part', list: () => P().PAINTS, thumb: 'face'},
+      {k: 'paintColor', label: 'Face paint color', kind: 'color', list: () => colorList(P().PAINT_COLORS, 'av-'), show: av => av.paint !== 'none'},
     ]},
     {id: 'hair', label: 'Hair', groups: [
       {k: 'hair', label: 'Hair style', kind: 'part', list: () => P().HAIRS, thumb: 'bust', note: av => { const h = P().HEADS.find(x => x.id === av.head); return h && h.hides === 'all' ? `Your ${h.name.toLowerCase()} covers your hair. Pick "Nothing" on HEAD to see it.` : ''; }},
@@ -61,10 +63,19 @@ window.Arcade = window.Arcade || {};
       {k: 'aidColor', label: 'Hearing aid color', kind: 'color', list: () => colorList(P().AID_COLORS, 'av-'), show: av => av.aids !== 'none'},
       {k: 'chair', label: 'Wheelchair', kind: 'toggle', list: () => [{id: false, name: 'No wheelchair'}, {id: true, name: 'Wheelchair'}], thumb: 'body'},
       {k: 'chairColor', label: 'Wheelchair color', kind: 'color', list: () => colorList(P().CHAIR_COLORS, 'av-'), show: av => av.chair},
-      {k: 'pet', label: 'Pet', kind: 'part', list: () => P().PETS, thumb: 'bust'},
       {k: 'back', label: 'On your back', kind: 'part', list: () => P().BACKS, thumb: 'bust'},
       {k: 'gear.acc', label: 'Gear you earned', kind: 'gear', list: () => gearList('acc'), thumb: 'bust', show: () => !!S.member && !S.guest},
       {k: 'gear.color', label: 'Glow effect', kind: 'gear', list: () => gearList('color'), thumb: 'effect', show: () => !!S.member && !S.guest},
+    ]},
+    {id: 'hand', label: 'Held item', groups: [
+      {k: 'hand', label: 'In your hand', kind: 'part', list: () => P().HANDS, thumb: 'hand', note: () => 'Held up beside your portrait (in Arcade Quest you hold your instrument).'},
+    ]},
+    {id: 'pets', label: 'Pets', groups: [
+      {k: 'pet', label: 'Pet', kind: 'part', list: () => P().PETS, thumb: 'pet', note: () => 'Your pet floats beside you and does a little dance now and then.'},
+    ]},
+    {id: 'effects', label: 'Effects', groups: [
+      {k: 'effect', label: 'Effect', kind: 'part', list: () => P().EFFECTS, thumb: 'fx', note: () => 'Effects move around you (never over your face) on the biggest picture of you.'},
+      {k: 'effectColor', label: 'Aura color', kind: 'color', list: () => P().EFFECT_COLORS.map(c => ({id: c, name: c[0].toUpperCase() + c.slice(1), token: c})), show: av => av.effect === 'aura'},
     ]},
     {id: 'bg', label: 'Background', groups: [
       {k: 'bg', label: 'Background', kind: 'part', list: () => P().BGS || [], thumb: 'bg', note: () => 'The ones that come to life move behind your player. Unlock more by playing!'},
@@ -73,11 +84,13 @@ window.Arcade = window.Arcade || {};
       {k: 'name.title', label: 'Title', kind: 'word', list: () => V().words('title').map(w => ({id: w, name: w}))},
       {k: 'name.adj', label: 'Adjective', kind: 'word', list: () => V().words('adj').map(w => ({id: w, name: w}))},
       {k: 'name.noun', label: 'Noun', kind: 'word', list: () => V().words('noun').map(w => ({id: w, name: w}))},
+      {k: 'plate', label: 'Name plate', kind: 'part', list: () => P().PLATES, thumb: 'plate', note: () => 'The frame around your name on results screens and score lists.'},
     ]},
   ];
   // the fields each tab's SURPRISE ME changes
-  const TAB_FIELDS = {face: ['skin', 'face', 'eyes', 'eyeColor', 'brows', 'mouth', 'freckles'], hair: ['hair', 'hairColor'], head: ['head', 'headColor'],
-    clothes: ['top', 'topColor', 'bottom', 'bottomColor', 'shoes', 'shoeColor'], extras: ['glasses', 'glassesColor', 'aids', 'aidColor', 'chairColor'], bg: ['bg'], name: ['name']};
+  const TAB_FIELDS = {face: ['skin', 'face', 'eyes', 'eyeColor', 'brows', 'mouth', 'freckles', 'paint', 'paintColor'], hair: ['hair', 'hairColor'], head: ['head', 'headColor'],
+    clothes: ['top', 'topColor', 'bottom', 'bottomColor', 'shoes', 'shoeColor'], extras: ['glasses', 'glassesColor', 'aids', 'aidColor', 'chairColor'], bg: ['bg'], name: ['name'],
+    hand: ['hand'], pets: ['pet'], effects: ['effect', 'effectColor']};
 
   /* the unlocked accessories / color skins for the preview's instrument (earned in the games; SKINS locker too) */
   function gearList(kind) {
@@ -223,7 +236,8 @@ window.Arcade = window.Arcade || {};
     const root = S.root;
     root.querySelector('.avc-bust').innerHTML = A.avatarHTML({size: 'big', avatar: S.av, member: S.member, skin: S.gear, cls: 'avc-live', live: true});
     const box = root.querySelector('.avc-bust .av-box'); if (box) box.dataset.avFixed = '1';
-    root.querySelector('.avc-name').textContent = V().nameOf(S.av);
+    const nm = V().nameOf(S.av);                             // with its name plate
+    root.querySelector('.avc-name').innerHTML = S.av.plate && S.av.plate !== 'none' ? `<span class="av-plate av-plate-${esc(S.av.plate)}">${esc(nm)}</span>` : esc(nm);
     root.querySelector('.avc-undo').disabled = !S.history.length;
     drawSprite();
     fillPanel();
@@ -256,6 +270,11 @@ window.Arcade = window.Arcade || {};
       const you = locked(g, opt.id) ? '' : `<img alt="" src="${V().bustURL(V().normalize(av), eq)}">`;
       return `<span class="avc-th avc-th-bg"${opt.id !== 'none' && url ? ` style="background-image:url(${url})"` : ''}>${you}</span>`;
     }
+    if (g.thumb === 'plate') return `<span class="avc-th avc-th-plate"><span class="av-plate av-plate-${esc(String(opt.id))}">Name</span></span>`;
+    if (g.thumb === 'fx') {                                      // the effect's still pictures behind and in front of you
+      const fx = opt.id !== 'none' && A.AvatarFx ? A.AvatarFx.stillURLs(opt.id, av.effectColor, 96) : null;
+      return `<span class="avc-th avc-th-fx">${fx ? `<img alt="" src="${fx.back}">` : ''}<img alt="" src="${V().bustURL(V().normalize(av), eq)}">${fx ? `<img alt="" src="${fx.front}">` : ''}</span>`;
+    }
     if (g.thumb === 'body') {
       const sp = V().sprites(S.member || 'trumpet', {avatar: av, eq});
       return sp ? `<span class="avc-th avc-th-body"><img alt="" src="${sp['-front'].frames[0].toDataURL()}"></span>` : '';
@@ -282,11 +301,13 @@ window.Arcade = window.Arcade || {};
         `<div class="avc-grid avc-${g.kind}${g.thumb === 'body' ? ' avc-bodies' : ''}" role="group" aria-labelledby="${gid}" data-k="${g.k}">` +
         list.map(o => {
           const on = o.id === cur || (o.id === null && !cur);
-          if (locked(g, o.id)) {                                 // a dark silhouette + what unlocks it
+          const moving = animatedOpt(g, o), anim = moving ? `<span class="avc-anim" title="Animated" aria-hidden="true">${ANIM_ICON}</span>` : '', animSay = moving ? ', animated' : '';
+          if (locked(g, o.id)) {                                 // a dark silhouette (backgrounds, effects, plates: dimmed) + what unlocks it
             const req = V().requirement(g.k, o.id);
-            return `<button type="button" class="avc-opt avc-locked${g.thumb === 'bg' ? ' avc-bglock' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + ', locked. ' + req)}">${thumbHTML(g, o)}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span>${V().progress(g.k, o.id) ? `<span class="avc-req avc-prog">${esc(V().progress(g.k, o.id))}</span>` : ''}</button>`;
+            return `<button type="button" class="avc-opt avc-locked${['bg', 'fx', 'plate'].includes(g.thumb) ? ' avc-bglock' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + animSay + ', locked. ' + req)}">${thumbHTML(g, o)}${anim}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span>${V().progress(g.k, o.id) ? `<span class="avc-req avc-prog">${esc(V().progress(g.k, o.id))}</span>` : ''}</button>`;
           }
-          return `<button type="button" class="avc-opt" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name)}">${thumbHTML(g, o)}<span class="avc-lbl">${esc(o.name)}</span></button>`;
+          const fresh = S.fresh && S.fresh.has(V().itemKey(g.k, o.id)) ? '<span class="avc-newi">NEW!</span>' : '';
+          return `<button type="button" class="avc-opt" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name + animSay + (fresh ? ', new' : ''))}">${thumbHTML(g, o)}${anim}${fresh}<span class="avc-lbl">${esc(o.name)}</span></button>`;
         }).join('') + `</div></div>`;
     });
     panel.innerHTML = html;
@@ -302,11 +323,39 @@ window.Arcade = window.Arcade || {};
       if (b) b.focus({preventScroll: true});
     }
   }
+  /* ---------- ANIMATED items get a small icon; NEW! = unlocked but not looked at here yet ---------- */
+  const ANIM_ICON = '<svg viewBox="0 0 16 16"><path d="M2 9c2-4 4-4 6 0s4 4 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="13" cy="4" r="1.3" fill="currentColor"/></svg>';
+  function animatedOpt(g, o) {
+    if (g.k === 'effect') return o.id !== 'none';
+    if (g.k === 'bg') return !!(A.AvatarBg && A.AvatarBg.animated(o.id));
+    return !!(o && (o.anim || o.frames));
+  }
+  const viewed = () => { const d = A.store.gameData('avatar'); return d.viewed || (d.viewed = {}); };
+  /** the unlocked items in a tab that the student hasn't looked at in the creator yet (never with ?unlockall) */
+  function freshIn(tabId) {
+    if (A.Skins && A.Skins.UNLOCK_ALL) return [];
+    const tab = TABS().find(t => t.id === tabId), fields = tab.groups.map(g => g.k), seen = viewed();
+    return V().items().filter(it => fields.includes(it.field) && !seen[it.key] && V().isUnlocked(it.field, it.id)).map(it => it.key);
+  }
+  function newDots() {
+    S.root.querySelectorAll('.avc-tab').forEach(b => {
+      const has = freshIn(b.dataset.tab).length > 0;
+      let d = b.querySelector('.avc-new');
+      if (has && !d) { d = document.createElement('span'); d.className = 'avc-new'; d.textContent = 'NEW!'; b.appendChild(d); }
+      if (!has && d) d.remove();
+      b.setAttribute('aria-label', b.textContent.replace('NEW!', '').trim() + (has ? ', something new' : ''));
+    });
+  }
   function showTab(id, focus) {
     S.tab = id;
+    // what's new here is marked NEW! on its button this time, and counts as seen from now on
+    const fresh = freshIn(id);
+    S.fresh = new Set(fresh);
+    if (fresh.length) { const seen = viewed(); fresh.forEach(k => { seen[k] = true; }); A.store.saveGameData('avatar'); }
     S.root.querySelectorAll('.avc-tab').forEach(b => { const on = b.dataset.tab === id; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; b.classList.toggle('on', on); });
     const panel = S.root.querySelector('.avc-panel'); panel.scrollTop = 0;
     fillPanel();
+    newDots();
     if (focus) S.root.querySelector('#avcTab-' + id).focus();
     if (focus) sfx('ui-toggle');
   }

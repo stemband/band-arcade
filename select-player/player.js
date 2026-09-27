@@ -282,13 +282,15 @@
      + what earns it. Live preview on the big avatar. Player 2's turn dresses the GUEST avatar. ---------- */
   const P = window.AVATAR_PARTS, AV = A.Avatar;
   const LK_TABS = {
-    outfit: [{field: 'top', label: 'Tops', list: () => P.TOPS}, {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
+    outfit: [{field: 'top', label: 'Tops', list: () => P.TOPS}, {field: 'shoes', label: 'Shoes', note: 'in Arcade Quest and the full-body picture', list: () => P.SHOES},
+             {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
     hats: [{field: 'head', label: 'Hats and head coverings', list: () => P.HEADS}],
-    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'back', label: 'On your back', list: () => P.BACKS},
+    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'hand', label: 'Held item', list: () => P.HANDS || []}, {field: 'back', label: 'On your back', list: () => P.BACKS},
+             {field: 'plate', label: 'Name plates', note: 'around your name on results and score lists', list: () => P.PLATES || []},
              {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
     pets: [{field: 'pet', label: 'Pets', note: 'they float beside you', list: () => P.PETS}],
     backgrounds: [{field: 'bg', label: 'Backgrounds', note: 'behind your player', list: () => P.BGS || []}],
-    effects: [{skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
+    effects: [{field: 'effect', label: 'Effects around you', note: 'they move on the biggest picture of you', list: () => P.EFFECTS || []}, {skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
   };
   let lockerFor = null, lkTab = 'outfit';
   const lkGuest = () => phase === 2;
@@ -313,6 +315,13 @@
       `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : LOCK}</span>` +
       `<b>${name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
   }
+  /** an item's picture in the LOCKER: your avatar wearing it; a name plate: its frame around your name; shoes: your full body */
+  function lkPic(field, itemId, member, av) {
+    const worn = Object.assign({}, av, {[field]: itemId});
+    if (field === 'plate') return `<span class="lk-plate"><span class="av-plate av-plate-${itemId}">${AV.nameOf(av).split(' ').slice(-1)[0]}</span></span>`;
+    if (field === 'shoes') { const sp = AV.sprites(member, {avatar: worn}); if (sp) return `<span class="lk-body"><img alt="" src="${sp['-front'].frames[0].toDataURL()}"></span>`; }
+    return A.avatarHTML({size: 'tile', member, avatar: worn, label: ''});
+  }
   function drawLocker() {
     const id = lockerFor, eq = A.Skins.equipped(id), m = info(id), av = lkAvatar(), guest = lkGuest();
     $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id, guest, live: true});
@@ -333,9 +342,10 @@
       } else {
         html = g.list().map(p => {
           const open = AV.isUnlocked(g.field, p.id);
-          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"${g.field === 'bg' ? ' data-lk-bg="1"' : ''}`, name: p.name, open, pressed: av[g.field] === p.id,
+          const dim = ['bg', 'effect', 'plate'].includes(g.field) ? ' data-lk-bg="1"' : '';          // a locked one: its dimmed picture, not a silhouette
+          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"${dim}`, name: p.name, open, pressed: av[g.field] === p.id,
             need: open ? '' : AV.requirement(g.field, p.id), prog: open ? '' : AV.progress(g.field, p.id),
-            pic: A.avatarHTML({size: 'tile', member: id, avatar: Object.assign({}, av, {[g.field]: p.id}), label: ''})});
+            pic: lkPic(g.field, p.id, id, av)});
         }).join('');
       }
       return `<h3 class="lk-sub" id="lkG${gi}">${g.label}${g.note ? ` <small>(${g.note})</small>` : ''}</h3><div class="lk-grid" role="group" aria-labelledby="lkG${gi}">${html}</div>`;

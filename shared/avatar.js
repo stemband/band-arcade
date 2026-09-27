@@ -45,7 +45,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the avatar's fields (every choice) ---------- */
   const FIELDS = {
     skin: () => ids(P.SKIN), face: () => ids(P.FACES), eyes: () => ids(P.EYES), eyeColor: () => ids(P.EYE_COLORS), brows: () => ids(P.BROWS),
-    mouth: () => ids(P.MOUTHS), freckles: () => [false, true],
+    mouth: () => ids(P.MOUTHS), freckles: () => ids(P.FRECKLE_STYLES), paint: () => ids(P.PAINTS), paintColor: () => P.PAINT_COLORS,
     hair: () => ids(P.HAIRS), hairColor: () => ids(P.HAIR_COLORS),
     head: () => ids(P.HEADS), headColor: () => ids(P.COLORS),
     top: () => ids(P.TOPS), topColor: () => ids(P.COLORS), bottom: () => ids(P.BOTTOMS), bottomColor: () => P.BOTTOM_COLORS,
@@ -53,12 +53,14 @@ window.Arcade = window.Arcade || {};
     glasses: () => ids(P.GLASSES), glassesColor: () => P.FRAME_COLORS, aids: () => ids(P.AIDS), aidColor: () => P.AID_COLORS,
     chair: () => [false, true], chairColor: () => P.CHAIR_COLORS,
     pet: () => ids(P.PETS), back: () => ids(P.BACKS), bg: () => ids(P.BGS || [{id: 'none'}]),
+    hand: () => ids(P.HANDS), effect: () => ids(P.EFFECTS), effectColor: () => P.EFFECT_COLORS, plate: () => ids(P.PLATES),
   };
 
   /* ---------- UNLOCKS (the rules are on the parts in avatar-parts.js) ----------
      A part without `unlock` is free. IDENTITY items are ALWAYS free, whatever a rule says (never lock them). */
-  const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS, bg: () => P.BGS || []};
-  const IDENTITY = {head: ['none', 'hijab', 'headwrap', 'turban'], aids: '*', chair: '*', glasses: '*', glassesColor: '*', aidColor: '*', chairColor: '*'};
+  const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS, bg: () => P.BGS || [],
+    hand: () => P.HANDS, effect: () => P.EFFECTS, plate: () => P.PLATES, shoes: () => P.SHOES};
+  const IDENTITY = {head: ['none', 'hijab', 'headwrap', 'turban', 'patka', 'kufi', 'tichel', 'durag'], aids: '*', chair: '*', glasses: '*', glassesColor: '*', aidColor: '*', chairColor: '*'};
   const itemKey = (field, id) => field + ':' + id;
   const partFor = (field, id) => LOCKABLE[field] ? byId(LOCKABLE[field](), id) : null;
   const identity = (field, id) => IDENTITY[field] === '*' || (IDENTITY[field] || []).includes(id);
@@ -114,11 +116,13 @@ window.Arcade = window.Arcade || {};
       case 'head': return r < 0.72 ? 'none' : pick(open(k).filter(x => x !== 'none'));
       case 'glasses': return r < 0.72 ? 'none' : pick(FIELDS.glasses().filter(x => x !== 'none'));
       case 'aids': return r < 0.9 ? 'none' : pick(FIELDS.aids().filter(x => x !== 'none'));
-      case 'freckles': return r < 0.2;
+      case 'freckles': return r < 0.2 ? pick([true, true, 'cheeks', 'nose', 'dusting']) : false;
+      case 'paint': return r < 0.08 ? pick(FIELDS.paint().filter(x => x !== 'none')) : 'none';
       case 'chair': return r < 0.06;
       case 'topColor': case 'headColor': return pick(FIELDS[k]().filter(x => x !== 'khaki' && x !== 'denim' && x !== 'tan'));
       case 'pet': return r < 0.8 ? 'none' : pick(open(k));
-      case 'back': return 'none';
+      case 'back': case 'plate': return 'none';
+      case 'hand': case 'effect': return r < 0.85 ? 'none' : pick(open(k).filter(x => x !== 'none')) || 'none';
       case 'bg': return r < 0.4 ? 'none' : pick(open(k).filter(x => !(P.BGS || []).find(b => b.id === x && b.unlock)));
       default: return pick(open(k));
     }
@@ -139,7 +143,7 @@ window.Arcade = window.Arcade || {};
   function normalize(av) {
     const out = {v: VERSION};
     av = av && typeof av === 'object' ? av : {};
-    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back', 'bg'].includes(k) ? 'none' : list[0]); });
+    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back', 'bg', 'paint', 'hand', 'effect', 'plate'].includes(k) ? 'none' : list[0]); });
     out.name = cleanName(av.name).name;
     return out;
   }
@@ -204,7 +208,7 @@ window.Arcade = window.Arcade || {};
   }
   const LIGHT = ['white', 'yellow', 'khaki', 'tan', 'pink', 'orange', 'teal', 'green'];
   /** eq: {color, acc} (the instrument's equipped skins) */
-  function palette(av, eq, {bust = false} = {}) {
+  function palette(av, eq, {bust = false, f = 0} = {}) {
     const sk = eq && eq.color && A.Skins ? A.Skins.get(eq.color) : null, look = (sk && sk.look) || {};
     const top = byId(P.TOPS, av.top) || P.TOPS[0], hc = av.hairColor, tc = av.topColor;
     const contrast = c => LIGHT.includes(c) ? 'av-black' : 'av-white';
@@ -214,14 +218,35 @@ window.Arcade = window.Arcade || {};
       e: look.eyes ? look.colors[1] : `av-eye-${av.eyeColor}`, w: 'av-white', K: 'av-black', m: 'av-mouth', t: 'av-teeth', n: 'av-tongue',
       h: `av-hair-${hc}`, H: `av-hair-${hc}-d`, l: `av-hair-${hc}-l`, b: av.hair === 'bald' ? 'av-hair-darkbrown' : `av-hair-${hc}-d`,
       c: top.base === 'black' ? 'av-black' : `av-${tc}`, C: top.base === 'black' ? 'av-black' : `av-${tc}-d`,
-      d: top.base === 'black' ? `av-${tc}` : contrast(tc), g: 'av-gold', W: 'av-white',
+      d: top.base === 'black' ? `av-${tc}` : contrast(tc), g: 'av-gold', W: 'av-white', T: `av-${av.paintColor || 'black'}`,
       p: `av-${av.bottomColor}`, P: `av-${av.bottomColor}-d`, q: `av-${av.shoeColor}`, Q: av.shoeColor === 'white' ? 'av-gray' : 'av-white',
       u: `av-${av.headColor}`, U: `av-${av.headColor}-d`, j: av.headColor === 'white' || av.headColor === 'yellow' ? 'av-red' : 'av-white',
       x: `av-${av.glassesColor}`, a: av.aidColor === 'aid' ? 'av-aid' : `av-${av.aidColor}`,
       v: `av-${av.chairColor}`, V: 'av-tire', r: 'av-rim', '*': 'white-hi',
     };
     Object.entries(P.ACC_COLORS).forEach(([k, t]) => { pal[k] = t; });
+    // the colors a worn part always has (its `pal`), then this frame of any slow color cycle (anim.pal)
+    worn(av).forEach(part => {
+      if (part.pal) Object.assign(pal, part.pal);
+      if (part.anim && part.anim.pal) Object.entries(part.anim.pal).forEach(([k, list]) => { pal[k] = list[f % list.length]; });
+    });
     return pal;
+  }
+
+  /** the parts the avatar wears that can carry colors or animations */
+  const worn = av => [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back), partOf(P.SHOES, av.shoes)];
+  /** a part's map for a view key ('bust', 'front', 'behind.front'…) in animation frame f (anim.maps) */
+  function am(part, key, f = 0) {
+    if (!part) return null;
+    const alt = f && part.anim && part.anim.maps && part.anim.maps[key];
+    if (alt) return alt[f % alt.length];
+    return key.split('.').reduce((o, k) => o && o[k], part);
+  }
+  /** is anything the avatar wears animated? bust: in the portrait (shoes don't show there) */
+  function isAnimated(av, eq, {bust = true} = {}) {
+    const parts = [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back)].concat(bust ? [] : [partOf(P.SHOES, av.shoes)]);
+    const acc = eq && eq.acc ? P.ACCESSORIES[eq.acc] : null, pet = partOf(P.PETS, av.pet);
+    return parts.concat(acc ? [acc] : []).some(p => p && p.anim) || !!(pet && pet.frames);
   }
 
   /* ---------- pixel grids ---------- */
@@ -301,15 +326,22 @@ window.Arcade = window.Arcade || {};
     if (fx === 'sparkle') g.forEach((row, y) => row.forEach((ch, x) => { if (hairy(ch) && (x * 7 + y * 11) % (bust ? 13 : 9) === 0) row[x] = (x + y) % 2 ? '*' : 'l'; }));
   }
   /** the pet's own layer: its picture floating beside the avatar (bob: 0/1), with a dark outline */
-  function petLayer(av, bust, bob = 0) {
+  function petLayer(av, bust, bob = 0, f = 0) {
     const pet = partOf(P.PETS, av.pet);
     if (!pet.rows) return null;
     const W = bust ? 36 : 32, g = blank(W, W), [x, y] = P.PET_AT[bust ? 'bust' : 'sprite'];
-    stamp(g, {x, y: y + bob, rows: pet.rows});
+    const rows = pet.frames && pet.seq ? pet.frames[pet.seq[f % pet.seq.length]] || pet.rows : pet.rows;   // its idle animation
+    stamp(g, {x, y: y + bob, rows});
     return {g: outline(g), pal: Object.assign({o: 'av-out'}, pet.pal)};
   }
+  /** freckles (a style, or true = the classic ones) and face paint, for one view */
+  function faceMarks(g, av, view) {
+    if (av.freckles) stamp(g, av.freckles === true ? P.FRECKLES[view] : (partOf(P.FRECKLE_STYLES, av.freckles) || {})[view]);
+    const paint = (P.PAINTS || []).find(x => x.id === av.paint);
+    if (paint && paint[view]) stamp(g, paint[view]);
+  }
   /** the head's layers for one view: {behind, body} grids (W × H); view 'front' | 'side' | 'back' | 'bust' */
-  function headAndBody(av, eq, view) {
+  function headAndBody(av, eq, view, f = 0) {
     const W = view === 'bust' ? 36 : 32, H = W, bust = view === 'bust';
     const behind = blank(W, H), body = blank(W, H), over = blank(W, H);
     const faceShape = partOf(P.FACES, av.face), hair = partOf(P.HAIRS, av.hair), top = partOf(P.TOPS, av.top);
@@ -322,20 +354,20 @@ window.Arcade = window.Arcade || {};
       if (clip && hair.bustBehind) stamp(behind, hair.bustBehind, {clipY: clip.clipY});
       if (top.bustBehind && head.id !== 'hijab') stamp(behind, top.bustBehind);
       if (head.bustBehind && head.id !== 'hijab') stamp(behind, head.bustBehind);
-      if (acc && acc.bustBehind) stamp(behind, acc.bustBehind);
-      if (backItem.bustBehind) stamp(behind, backItem.bustBehind);
+      if (acc && acc.bustBehind) stamp(behind, am(acc, 'bustBehind', f));
+      if (backItem.bustBehind) stamp(behind, am(backItem, 'bustBehind', f));
     } else if (view !== 'back') {
-      if (backItem.behind && backItem.behind[view]) stamp(behind, backItem.behind[view]);
+      if (backItem.behind && backItem.behind[view]) stamp(behind, am(backItem, 'behind.' + view, f));
       if (clip && hair.behind && hair.behind[view]) stamp(behind, hair.behind[view], {clipY: clip.clipY});
       if (top.behind && top.behind[view] && head.id !== 'hijab') stamp(behind, top.behind[view]);
       if (head.behind && head.behind[view] && head.id !== 'hijab') stamp(behind, head.behind[view]);
-      if (acc && acc.behind && acc.behind[view]) stamp(behind, acc.behind[view]);
+      if (acc && acc.behind && acc.behind[view]) stamp(behind, am(acc, 'behind.' + view, f));
     }
     // --- the head (skin) and the top ---
     stamp(body, faceShape[bust ? 'bust' : v]);
-    if (bust) { stamp(body, top.bust); if (top.bustTop && head.id !== 'hijab') stamp(body, top.bustTop); }
+    if (bust) { stamp(body, am(top, 'bust', f)); if (top.bustTop && head.id !== 'hijab') stamp(body, top.bustTop); }
     else {
-      stamp(body, top[view]);
+      stamp(body, am(top, view, f));
       stamp(body, {y: 21, half: [view === 'side' ? '' : '...........ppppp']});   // the waist
       if (view === 'side') stamp(body, {y: 21, rows: ['............ppppppp']});
     }
@@ -346,14 +378,14 @@ window.Arcade = window.Arcade || {};
         if (eyes.bustR) { feature(body, eyes.bust, 12, 15); feature(body, eyes.bustR, 21, 15); } else feature(body, eyes.bust, 12, 15, 21);
         feature(body, brows.bust, 12, 13, 21); feature(body, mouth.bust, 15, 20);
         stamp(body, P.NOSE.bust);
-        if (av.freckles) stamp(body, P.FRECKLES.bust);
+        faceMarks(body, av, 'bust');
       } else if (view === 'front') {
         if (eyes.frontR) { feature(body, eyes.front, 12, 8); feature(body, eyes.frontR, 18, 8); } else feature(body, eyes.front, 12, 8, 18);
         feature(body, brows.front, 11, 6, 18); feature(body, mouth.front, 14, 10);
-        if (av.freckles) stamp(body, P.FRECKLES.front);
+        faceMarks(body, av, 'front');
       } else {
         feature(body, eyes.side, 17, 8); feature(body, brows.side, 16, 6); feature(body, mouth.side, 16, 10);
-        if (av.freckles) stamp(body, P.FRECKLES.side);
+        faceMarks(body, av, 'side');
       }
     }
     // --- hair ---
@@ -391,15 +423,16 @@ window.Arcade = window.Arcade || {};
     }
     // --- the head covering, then the accessory ---
     const hv = bust ? 'bust' : view;
-    if (head[hv]) stamp(body, head[hv]);
+    if (head[hv]) stamp(body, am(head, hv, f));
     else if (view === 'back' && head.front) stamp(body, head.front);
+    if (bust && head.bustAfter) stamp(body, head.bustAfter);
     if (acc) {
-      const am = acc[hv] || (view === 'back' ? null : null);
-      if (am) stamp(body, am);
+      const accMap = acc[hv];
+      if (accMap) stamp(body, accMap);
       if (bust && acc.bust && acc.bust.after) stamp(body, acc.bust.after);
-      if (view === 'back' && acc.behind && acc.behind.back) stamp(over, acc.behind.back);
+      if (view === 'back' && acc.behind && acc.behind.back) stamp(over, am(acc, 'behind.back', f));
     }
-    if (view === 'back' && backItem.behind && backItem.behind.back) stamp(over, backItem.behind.back);
+    if (view === 'back' && backItem.behind && backItem.behind.back) stamp(over, am(backItem, 'behind.back', f));
     if (bust && top.bustDetail && head.id !== 'hijab') stamp(body, top.bustDetail);
     // a hijab wraps the face: it is one shape with the head (no outline between them)
     if (head.id === 'hijab') {
@@ -407,16 +440,37 @@ window.Arcade = window.Arcade || {};
       if (view === 'back') stamp(hb, head.back);
       hb.forEach((row, y) => row.forEach((ch, x) => { if (ch !== '.' && body[y][x] === '.') body[y][x] = ch; }));
     }
+    // a HAND item, held up beside the portrait: the item, then the hand and an arm in the top's sleeve color
+    const hand = partOf(P.HANDS || [{}], av.hand);
+    if (bust && hand && hand.bust) {
+      const put = (x, y, ch) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && x < W && y >= 0 && y < H) body[y][x] = ch; };
+      const api = {px(x, y, ch) { put(x, y, ch); return api; }, line(x0, y0, x1, y1, ch) {
+        const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); for (let i = 0; i <= n; i++) put(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, ch); return api; }};
+      hand.bust(api, f);
+      const sl = top.sleeveCh || (top.base === 'black' ? 'K' : 'c');
+      [[29, 21], [30, 21], [29, 22], [30, 22], [29, 23], [30, 23], [29, 24], [30, 24]].forEach(([x, y]) => put(x, y, 's'));
+      [[29, 25], [30, 25], [28, 26], [29, 26], [30, 26], [31, 26]].forEach(([x, y]) => put(x, y, sl));
+    }
     return {behind, body, over, accId};
   }
 
   /* ---------- THE BUST ---------- */
   const bustCache = new Map();
-  function bustCanvas(av, eq) {
-    const pal = palette(av, eq, {bust: true});
-    const {behind, body} = headAndBody(av, eq, 'bust');
-    const o = outline(body), ob = outline(behind, o), pet = petLayer(av, true);
+  function bustCanvas(av, eq, f = 0) {
+    const pal = palette(av, eq, {bust: true, f});
+    const {behind, body} = headAndBody(av, eq, 'bust', f);
+    const o = outline(body), ob = outline(behind, o), pet = petLayer(av, true, 0, f);
     return paint(36, 36, [{g: ob, pal}, {g: o, pal}].concat(pet ? [pet] : []));
+  }
+  /** the portrait's animation frames: 4 canvases when something worn is animated, else just the still one */
+  const framesCache = new Map();
+  function bustFrames(av, eq) {
+    const key = JSON.stringify([av, eq && eq.color, eq && eq.acc]);
+    if (framesCache.has(key)) return framesCache.get(key);
+    const out = isAnimated(av, eq) ? [0, 1, 2, 3].map(f => bustCanvas(av, eq, f)) : [bustCanvas(av, eq, 0)];
+    if (framesCache.size > 30) framesCache.clear();
+    framesCache.set(key, out);
+    return out;
   }
   function bustURL(av, eq) {
     const key = JSON.stringify([av, eq && eq.color, eq && eq.acc]);
@@ -444,10 +498,25 @@ window.Arcade = window.Arcade || {};
     const alt = [name, d && A.Skins.label(eq)].filter(Boolean).join(', ');
     const keep = esc(JSON.stringify({size, member: member || null, guest: isGuest, skin: skin === undefined ? null : skin, label: label == null ? null : label, cls, live, bg}));
     // the background behind the bust (shared/avatar-bg.js): a still frame, or (live) the one that may move
-    const back = bg && A.AvatarBg ? A.AvatarBg.html(bg === true ? av.bg : bg, size, {live}) : '';
-    return `<span class="pt-box pt-box-${size} av-box ${d ? d.cls : ''} ${cls}"${isGuest ? ' data-av-guest="1"' : ' data-av="1"'} data-av-opts="${keep}"${d && d.style ? ` style="${d.style}"` : ''}>` +
-      `${back}${d ? d.parts.before : ''}<img class="pt-img av-img" src="${bustURL(av, eq)}" alt="${esc(alt)}" draggable="false">${d ? d.parts.after : ''}</span>`;
+    const bgId = bg === true ? av.bg : bg, back = bg && A.AvatarBg ? A.AvatarBg.html(bgId, size, {live}) : '';
+    // an EFFECT around the avatar (shared/avatar-fx.js): still pictures behind and in front of it (never on the chip)
+    const fxOn = size !== 'chip' && av.effect && av.effect !== 'none' && A.AvatarFx;
+    const fx = fxOn ? A.AvatarFx.stillURLs(av.effect, av.effectColor, size === 'big' ? 192 : 96) : null;
+    // LIVE: the largest live avatar on screen plays its animations (shared/avatar-bg.js's loop picks it)
+    const anim = size !== 'chip' && isAnimated(av, eq);
+    const moves = live && (anim || fxOn || (bg && A.AvatarBg && A.AvatarBg.animated(bgId)));
+    let liveId = '';
+    if (moves) { liveId = String(++liveN); LIVE.set(liveId, {av, eq}); if (LIVE.size > 60) LIVE.delete(LIVE.keys().next().value); if (A.AvatarBg) A.AvatarBg.wake(); }
+    return `<span class="pt-box pt-box-${size} av-box ${d ? d.cls : ''} ${cls}"${isGuest ? ' data-av-guest="1"' : ' data-av="1"'} data-av-opts="${keep}"` +
+      `${moves ? ` data-live="${liveId}"` : ''}${d && d.style ? ` style="${d.style}"` : ''}>` +
+      `${back}${d ? d.parts.before : ''}${fx ? `<img class="av-fx-still av-fx-b" alt="" src="${fx.back}">` : ''}` +
+      `<img class="pt-img av-img" src="${bustURL(av, eq)}" alt="${esc(alt)}" draggable="false">` +
+      (moves && (anim || fxOn) ? `<canvas class="av-live" hidden></canvas>${fxOn ? '<canvas class="av-fx av-fx-b" hidden></canvas><canvas class="av-fx av-fx-f" hidden></canvas>' : ''}` : '') +
+      `${fx ? `<img class="av-fx-still av-fx-f" alt="" src="${fx.front}">` : ''}${d ? d.parts.after : ''}</span>`;
   }
+  // the live boxes' avatars (for shared/avatar-fx.js): data-live id -> {av, eq}
+  const LIVE = new Map();
+  let liveN = 0;
   /** redraw every avatar picture on this page (after saving, or equipping a skin) */
   function redrawAll() {
     document.querySelectorAll('.av-box[data-av-opts]').forEach(box => {
@@ -497,9 +566,11 @@ window.Arcade = window.Arcade || {};
         if (shoe.rows === 3 && y === foot - 1) ch = 'q';
         const w = bottom.legs === 'skirt' && k < 3 ? 2 : 1;
         for (let xx = x - w; xx <= x + w; xx++) put(g, xx, y, ch);
+        if (bottom.pocket && (k === 3 || k === 4)) put(g, x - 1, y, 'P');              // cargo pockets
       }
       const fx = hx + dx;
-      for (let y = foot; y <= foot + 1; y++) for (let x = fx - 1; x <= fx + (side ? 2 : 1); x++) put(g, x, y, shoe.sole && y === foot + 1 ? 'Q' : 'q');
+      for (let y = foot; y <= foot + 1; y++) for (let x = fx - 1; x <= fx + (side ? 2 : 1); x++)
+        put(g, x, y, shoe.sandal ? (y === foot ? ((x - fx) % 2 ? 's' : 'q') : 'Q') : shoe.sole && y === foot + 1 ? 'Q' : 'q');
     };
     if (view === 'side') { leg(L.side.back, step.back || 0, 0, true); leg(L.side.front, step.front || 0, 0, true); }
     else { leg(L.front.left, 0, step.left || 0); leg(L.front.right, 0, step.right || 0); }
@@ -550,14 +621,14 @@ window.Arcade = window.Arcade || {};
       for (let y = 23; y <= 28; y++) { put(g, 19, y, bare ? 's' : 'p'); put(g, 20, y, bare ? 's' : 'p'); }
       if (bottom.cuff) { put(g, 19, 28, 'P'); put(g, 20, 28, 'P'); }
       for (let x = 19; x <= 22; x++) put(g, x, 29, shoe.sole ? 'Q' : 'q');
-      for (let x = 19; x <= 22; x++) put(g, x, 28, 'q');
+      for (let x = 19; x <= 22; x++) put(g, x, 28, shoe.sandal && x % 2 ? 's' : 'q');
       if (shoe.rows === 3) { put(g, 19, 27, 'q'); put(g, 20, 27, 'q'); }
     } else {
       for (let x = 12; x <= 19; x++) for (let y = 21; y <= 23; y++) put(g, x, y, bottom.legs === 'shorts' && y === 23 ? 's' : 'p');
       if (bottom.legs === 'skirt') { put(g, 11, 23, 'p'); put(g, 20, 23, 'p'); }
       [[12, 14], [17, 19]].forEach(([a, b]) => {
         for (let y = 24; y <= 27; y++) for (let x = a; x <= b; x++) put(g, x, y, bare ? 's' : bottom.cuff && y === 27 ? 'P' : 'p');
-        for (let y = 28; y <= 29; y++) for (let x = a - 1; x <= b; x++) put(g, x, y, shoe.sole && y === 29 ? 'Q' : 'q');
+        for (let y = 28; y <= 29; y++) for (let x = a - 1; x <= b; x++) put(g, x, y, shoe.sandal ? (y === 29 ? 'Q' : x % 2 ? 's' : 'q') : shoe.sole && y === 29 ? 'Q' : 'q');
         if (shoe.rows === 3) for (let x = a; x <= b; x++) put(g, x, 27, 'q');
       });
     }
@@ -623,17 +694,21 @@ window.Arcade = window.Arcade || {};
     eq = eq || eqFor(member);
     const key = JSON.stringify([av, member, eq.color, eq.acc]);
     if (spriteCache.has(key)) return spriteCache.get(key);
-    const pal = palette(av, eq);
-    const heads = {front: headAndBody(av, eq, 'front'), side: headAndBody(av, eq, 'side'), back: headAndBody(av, eq, 'back')};
+    // animated items play their 4 frames here too (none with reduced motion: every frame is frame 0)
+    const moving = isAnimated(av, eq, {bust: false}) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const F = moving ? [0, 1, 2, 3] : [0];
+    const pals = F.map(f => palette(av, eq, {f}));
+    const heads = F.map(f => ({front: headAndBody(av, eq, 'front', f), side: headAndBody(av, eq, 'side', f), back: headAndBody(av, eq, 'back', f)}));
     const Pz = ART.POSES[member] || ART.POSES.trumpet;
     const play = [].concat(Pz.play), percussion = play.length > 1;
-    const IDLE = [[0, {}, 0], [1, {}, 0]];
+    const IDLE = moving ? [[0, {}, 0], [1, {}, 0], [0, {}, 0], [1, {}, 0]] : [[0, {}, 0], [1, {}, 0]];
     const WALK = av.chair
       ? {side: [0, 1, 2, 3].map(s => [0, {}, s]), front: [0, 1, 2, 3].map(s => [0, {}, s])}           // rolling: the wheels turn
       : {side: [[0, {back: -2, front: 2}, 0], [1, {}, 0], [0, {back: 2, front: -2}, 0], [1, {}, 0]],
          front: [[0, {left: 2}, 0], [1, {}, 0], [0, {right: 2}, 0], [1, {}, 0]]};
     const make = (view, pose, list, extra) => Object.assign({w: PW, h: PW, fps: 2,
-      frames: list.map(([bob, step, spin], i) => { const pet = petLayer(av, false, i % 2); return paint(PW, PW, frameLayers(av, eq, pal, view, typeof pose === 'function' ? pose(i) : pose, bob, step, spin, heads[view]).concat(pet ? [pet] : [])); })}, extra || {});
+      frames: list.map(([bob, step, spin], i) => { const f = F[i % F.length], pet = petLayer(av, false, i % 2, f);
+        return paint(PW, PW, frameLayers(av, eq, pals[i % F.length], view, typeof pose === 'function' ? pose(i) : pose, bob, step, spin, heads[i % F.length][view]).concat(pet ? [pet] : [])); })}, extra || {});
     const out = {
       '': make('side', Pz.side, IDLE),
       '-walk': make('side', Pz.side, WALK.side, {fps: 8}),
@@ -648,6 +723,8 @@ window.Arcade = window.Arcade || {};
     return out;
   }
 
+  /** the NAME PLATE (the 'plate' slot, CSS .av-plate-<id> in theme.css) as a class attribute, or '' */
+  const plateAttr = av => (av && av.plate && av.plate !== 'none' ? ` class="av-plate av-plate-${esc(av.plate)}"` : '');
   /** RESULTS SCREENS: the player's avatar and name at the top of a results panel (shared/skins.js's announce()
       calls it on every results screen); the instrument is the one the result was for */
   function stampResults(panel, member) {
@@ -657,7 +734,7 @@ window.Arcade = window.Arcade || {};
     const m = member && A.memberById ? A.memberById(member) : null;
     const hasPic = [...panel.querySelectorAll('.av-box')].some(x => !row.contains(x));    // the game shows the avatar already (Button Masher)
     row.innerHTML = (hasPic ? '' : `<span class="av-res-pic">${avatarHTML({size: 'tile', member: m ? member : null, label: '', live: true})}</span>`) +
-      `<span class="av-res-txt"><b data-av-name="me">${esc(nameOf(get()))}</b>${m ? `<small>${esc(m.short)}</small>` : ''}</span>`;
+      `<span class="av-res-txt"><b data-av-name="me"${plateAttr(get())}>${esc(nameOf(get()))}</b>${m ? `<small>${esc(m.short)}</small>` : ''}</span>`;
   }
 
   A.Avatar = {
@@ -667,7 +744,9 @@ window.Arcade = window.Arcade || {};
     VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone, nameNote, cleanName,
     /** the builder's words for 'title' | 'adj' | 'noun' (A–Z, no repeats, no NEVER-USE words) */
     words: k => NAMES[NAME_PARTS[k] || k] || [], banned,
-    bustURL, bustCanvas, sprites, redrawAll, eqFor,
+    bustURL, bustCanvas, bustFrames, isAnimated, sprites, redrawAll, eqFor,
+    /** a live box's avatar {av, eq} (its data-live id) */
+    liveInfo: id => LIVE.get(String(id)), plateAttr,
     /** the parts' lists (the creator reads them) */
     parts: P, names: NAMES,
   };
