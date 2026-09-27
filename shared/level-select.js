@@ -180,7 +180,7 @@ window.Arcade = window.Arcade || {};
     const go = S.row.querySelector('.ls-go'), was = S.ready;
     S.ready = S.sel !== null;
     if (!S.ready) {
-      go.innerHTML = `<p class="ls-need">Select your notes and level</p>`;
+      go.innerHTML = `<p class="ls-need">${S.picker ? 'Select your notes and level' : 'Select your level'}</p>`;
       S.start = null;
     } else {
       S.summary = [levelName(S.sel), noteSet()].filter(Boolean).join(' · ');

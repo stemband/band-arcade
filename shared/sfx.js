@@ -419,7 +419,8 @@ window.Arcade = window.Arcade || {};
     return {loopStart: a / sr, loopEnd: (b + 1) / sr};
   }
   // a loop file: any loop event in sounds.js, plus the optional per-game select-music-<game id> (made on the fly)
-  const loops = file => /^select-music-/.test(file) || !!(A.Sounds && A.Sounds.names().some(n => { const e = entry(n); return e && e.loop && e.file === file; }));
+  const selMusic = n => /^select-music-/.test(n) && (A.GAMES || []).some(g => 'select-music-' + g.id === n);   // not select-music-highway (Music Highway's START)
+  const loops = file => selMusic(file) || !!(A.Sounds && A.Sounds.names().some(n => { const e = entry(n); return e && e.loop && e.file === file; }));
   /** is a channel waiting for this file? (the manager re-checks when it has loaded, or turned out to be missing) */
   const wanted = file => Object.values(CH).some(c => c.want && c.want.events.some(n => fileOf(n) === file));
   /* the loop's last XF seconds are faded into its first ones, so the end runs straight into the start: no click, no
@@ -983,7 +984,7 @@ window.Arcade = window.Arcade || {};
   const seqs = new Set();                                 // sequences still playing (Sfx.sequence handles)
   // a channel and its sub-channels: 'dojo' also means 'dojo:voice'
   const inCh = (h, channel) => !channel || h.channel === channel || h.channel.startsWith(channel + ':');
-  const chOf = name => (name === 'lobby-ambience' ? CH.amb : /^select-music|^quest-/.test(name) ? CH.mus : null);
+  const chOf = name => (name === 'lobby-ambience' ? CH.amb : name === 'select-music' || selMusic(name) || /^quest-/.test(name) ? CH.mus : null);
   const Sfx = A.Sfx = A.sfx = {
     /** a page's option: the longest part of a sound (ms) that mutes the microphone (null = the whole sound).
         Note Storm sets it so a long hit sound never leaves the detector deaf; the echo margin is added after it. */
@@ -1032,6 +1033,14 @@ window.Arcade = window.Arcade || {};
     /** the arcade's audio output for shared/tones.js (Lost Signal's pitched tones): {ctx, out} once the audio is
         unlocked and sound is on (out = the EFFECTS bus: mute and the EFFECTS slider apply), else null */
     output() { return ready() ? {ctx, out: fxBus} : null; },
+    /** an event's uploaded FILE as a decoded AudioBuffer, or null (no file, not decoded yet, sound off, or a file://
+        page, which can't decode). Music Highway schedules its backing-drums file (mh-drums-<song>) on the audio clock
+        with it; nothing here plays it. */
+    buffer(name) {
+      const e = entry(name);
+      if (!e || !e.file || !ready() || FILE_MODE) return Promise.resolve(null);
+      return load(e.file).then(r => (r && r.state === 'ok' && r.buf) || null, () => null);
+    },
     /** a bell bar at a SOUNDING midi note (Chime Heist). Respects mute like every sound here. */
     bell(midi) {
       if (!ready()) return false;

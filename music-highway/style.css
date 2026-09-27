@@ -1,0 +1,130 @@
+/* Music Highway: the song select, the highway, the staff, calibration and results. Colors are theme tokens only. */
+.hub-head{margin-bottom:14px}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
+.game-title span{color:var(--cyan);text-shadow:var(--glow-cyan)}
+.hub-head p{max-width:56ch;margin:10px 0 0}
+
+/* ---------- options: speed, headphones, calibration, horn side ---------- */
+.mh-opts{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:4px 0 6px}
+.mh-opt{display:inline-flex;align-items:center;gap:0;border:2px solid var(--floor-3);border-radius:12px;overflow:hidden}
+.mh-ol{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:0 10px}
+.mh-seg{min-height:44px;padding:0 14px;background:var(--floor-2);color:var(--text-lo);border:0;border-left:1px solid var(--floor-3);font:700 15px var(--text);cursor:pointer}
+.mh-seg[aria-pressed="true"]{background:var(--cyan);color:var(--deep)}
+.mh-hp{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:700 15px var(--text);cursor:pointer}
+.mh-hp.on{border-color:var(--green);color:var(--green-hi);box-shadow:var(--glow-green)}
+.mh-optnote{margin:0 0 12px;font-size:14px;color:var(--text-lo);min-height:1.3em}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:900px){.levels{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);color:var(--text-hi);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:136px;font:inherit;cursor:pointer}
+.lvl:hover:not([disabled]){border-color:var(--cyan)}
+.lvl .n{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan-hi);font-weight:700}
+.lvl .t{font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+.mh-songs .lvl.t2 .n{color:var(--amber-hi)}
+.mh-songs .lvl.t3 .n{color:var(--pink-hi)}
+.mh-foot{margin:18px 0 26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* ---------- the highway (full screen while a song plays) ---------- */
+html.mh-playing,html.mh-playing body{overflow:hidden}
+#play{position:fixed;inset:0;z-index:40;background:var(--deep);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+#play[hidden]{display:none}
+#road{position:absolute;left:0;top:0;display:block}
+#cards,#pads{position:absolute;left:0;top:0;width:100%;height:0}
+.mh-card{position:absolute;left:0;top:0;width:var(--cardw);height:var(--cardh);transform-origin:50% 100%;box-sizing:border-box;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:6px 5px 5px;
+  background:var(--screen);border:3px solid var(--mh-c);box-shadow:0 0 12px var(--mh-c);will-change:transform,opacity;overflow:hidden}
+.mh-card.mc-c{--mc:var(--mh-c)} .mh-card.mc-d{--mc:var(--mh-d)} .mh-card.mc-e{--mc:var(--mh-e)} .mh-card.mc-f{--mc:var(--mh-f)}
+.mh-card.mc-g{--mc:var(--mh-g)} .mh-card.mc-a{--mc:var(--mh-a)} .mh-card.mc-b{--mc:var(--mh-b)}
+.mh-card{border-color:var(--mc);box-shadow:0 0 12px var(--mc),inset 0 -8px 0 color-mix(in srgb,var(--mc) 55%,transparent)}
+.mh-card.acc{background:repeating-linear-gradient(135deg,var(--screen) 0 10px,color-mix(in srgb,var(--mc) 16%,var(--screen)) 10px 20px)}
+.mh-note{font-family:var(--display);font-weight:400;font-size:calc(var(--cardw) * .26);line-height:1;color:var(--ink)}
+.mh-dg{width:100%;flex:1;min-height:0;display:flex;align-items:center}
+.mh-dg .diagram{width:100%;height:100%;max-height:100%}
+.mh-dg .dg-hand,.mh-dg .dg-cap,.mh-dg .k-lbl{display:none}
+.mh-dg .valve .k-lbl,.mh-dg .pos .k-lbl{display:inline}
+.mh-card .dg-body,.mh-card .dg-bell{fill:var(--ink-2)}
+.mh-card .k-base{fill:var(--screen);stroke:var(--ink)}
+.mh-card .key[data-state="1"] .k-fill,.mh-card .key[data-state="h"] .k-half{fill:var(--ink)}
+.mh-card .key[data-state="1"] .k-lbl{fill:var(--screen)}
+.mh-ft{font:700 calc(var(--cardw) * .1)/1.1 var(--text);color:var(--ink);text-align:center;max-width:100%;overflow-wrap:break-word}
+.mh-nochart{margin-top:6px;color:var(--text-dim)}
+.mh-bells{width:92%;flex:1;min-height:0}
+.mh-bells rect{fill:var(--screen);stroke:var(--ink);stroke-width:1.2}
+.mh-bells rect.acc{fill:var(--ink)}
+.mh-bells rect.on{fill:var(--mc);stroke:var(--ink);stroke-width:2.4}
+.mh-card.snare{justify-content:center}
+.mh-stick{font-family:var(--display);font-weight:400;font-size:calc(var(--cardw) * .34);line-height:1;color:var(--ink)}
+.mh-drum{width:52%;fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+.mh-card.hit{border-color:var(--yellow-hi);box-shadow:0 0 18px var(--yellow)}
+.mh-card.missed{filter:grayscale(1) brightness(.6);box-shadow:none}
+/* the pads on the strike line: a hit lights its lane's pad once (a soft fade, never a strobe) */
+.mh-pad{position:absolute;height:14px;transform:translate(-50%,-50%);border-radius:10px;background:transparent;border:2px solid color-mix(in srgb,var(--cyan) 50%,transparent)}
+.mh-pad.lit{animation:mhPad .45s ease-out}
+.mh-pad.lit.perfect{animation-name:mhPadP}
+@keyframes mhPad{from{background:color-mix(in srgb,var(--cyan) 70%,transparent);box-shadow:0 0 22px var(--cyan)}to{background:transparent;box-shadow:none}}
+@keyframes mhPadP{from{background:color-mix(in srgb,var(--yellow) 75%,transparent);box-shadow:0 0 26px var(--yellow)}to{background:transparent;box-shadow:none}}
+.mh-hud{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr auto 1fr auto;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:linear-gradient(var(--deep),transparent)}
+.mh-hud small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mh-hud b{font-family:var(--display);font-weight:400;font-size:clamp(18px,3.4vw,28px);color:var(--text-hi);font-variant-numeric:tabular-nums}
+.mh-hud .c{text-align:center} .mh-hud .c b{color:var(--yellow-hi)} .mh-hud .r{text-align:right}
+.mh-pause{width:48px;height:48px;border-radius:12px;border:2px solid var(--pink);background:var(--floor-2);cursor:pointer;display:grid;place-items:center}
+.mh-pause svg{width:22px;fill:var(--pink-hi)}
+.mh-judge{position:absolute;left:0;right:0;top:calc(var(--sy) + 16px);text-align:center;font-family:var(--display);font-size:clamp(26px,6vw,48px);line-height:1;pointer-events:none;color:var(--text-hi)}
+.mh-judge small{display:block;font-family:var(--text);font-weight:700;font-size:15px;letter-spacing:.1em;color:var(--text-lo);margin-top:4px}
+.mh-judge.perfect{color:var(--yellow-hi);text-shadow:var(--glow-yellow)} .mh-judge.good{color:var(--green-hi)} .mh-judge.ok{color:var(--cyan-hi)}
+.mh-judge.early,.mh-judge.late{color:var(--amber-hi)} .mh-judge.miss{color:var(--text-dim)}
+.mh-judge.wrong{color:var(--red);font-size:clamp(20px,4vw,30px)}
+.mh-judge.pop{animation:mhPop .22s ease-out}
+@keyframes mhPop{from{transform:scale(1.25)}to{transform:none}}
+.mh-count{position:absolute;left:0;right:0;top:calc(var(--sy) * .32);text-align:center;font-family:var(--display);font-size:clamp(60px,16vw,140px);color:var(--cyan-hi);text-shadow:var(--glow-cyan);pointer-events:none}
+.mh-count.pop{animation:mhPop .25s ease-out}
+.mh-tip{position:absolute;left:50%;top:70px;transform:translateX(-50%);max-width:min(92vw,560px);text-align:center;background:color-mix(in srgb,var(--deep) 85%,transparent);border:1px solid var(--floor-3);border-radius:12px;padding:8px 14px;color:var(--text-hi);font-size:15px}
+.mh-tip[hidden]{display:none}
+/* the scrolling staff */
+.mh-staff{position:absolute;left:0;right:0;bottom:0;background:var(--screen);border-top:3px solid var(--cyan);box-shadow:0 -4px 18px color-mix(in srgb,var(--cyan) 35%,transparent);overflow:hidden;padding-bottom:env(safe-area-inset-bottom)}
+.mh-strip{position:absolute;left:0;top:5px;will-change:transform}
+.mh-strip svg,.mh-pin svg{display:block}
+.mh-pin{position:absolute;left:0;top:5px;background:var(--screen);box-shadow:6px 0 8px -4px color-mix(in srgb,var(--ink) 30%,transparent)}
+.mh-playhead{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.mh-strip g.hit .head,.mh-strip g.hit .ncap{fill:var(--mh-gold)} .mh-strip g.hit .stem{stroke:var(--mh-gold)}
+.mh-tstaff g.miss .head,.mh-tstaff g.miss .ncap{fill:var(--mh-miss)} .mh-tstaff g.miss .stem{stroke:var(--mh-miss)}
+.mh-strip g.miss .head,.mh-strip g.miss .ncap{fill:var(--mh-miss)} .mh-strip g.miss .stem{stroke:var(--mh-miss)}
+
+/* ---------- calibration + headphones check ---------- */
+.mh-cal p{color:var(--text-lo)}
+.mh-caldots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.mh-caldots i{width:22px;height:22px;border-radius:50%;border:2px solid var(--cyan);opacity:.5}
+.mh-caldots i.lead{border-style:dashed}
+.mh-caldots i.on{background:var(--cyan);opacity:1;box-shadow:0 0 10px var(--cyan)}
+.mh-caldots i.lead.on{background:var(--text-dim);box-shadow:none}
+.mh-calsay{font-family:var(--display);font-size:22px;color:var(--yellow-hi);min-height:1.2em;text-align:center}
+.mh-hpmeter{height:12px;border-radius:6px;background:var(--floor-3);overflow:hidden;margin:14px 0}
+.mh-hpmeter i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
+
+/* ---------- results ---------- */
+.mh-stats{grid-template-columns:repeat(3,1fr)}
+.mh-counts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
+.mh-counts span{display:flex;flex-direction:column;align-items:center;min-width:54px;padding:6px 8px;border-radius:10px;background:var(--floor-2);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-lo)}
+.mh-counts b{font-family:var(--display);font-weight:400;font-size:22px;color:var(--text-hi)}
+.mh-counts .mc-perfect b{color:var(--yellow-hi)} .mh-counts .mc-good b{color:var(--green-hi)} .mh-counts .mc-miss b{color:var(--red)} .mh-counts .mc-bonus b{color:var(--pink-hi)}
+.mh-trouble{border:1px dashed var(--floor-3);border-radius:14px;padding:12px;margin:12px 0}
+.mh-trouble h3{margin:0 0 4px;font-family:var(--display);font-weight:400;color:var(--amber-hi)}
+.mh-tstaff{margin:8px 0}
+.mh-sticks{font-family:var(--display);font-size:24px;color:var(--ink);letter-spacing:.2em;text-align:center;margin:6px}
+.mh-sticks .miss{color:var(--mh-miss)}
+
+@media (prefers-reduced-motion:reduce){
+  .mh-pad.lit{animation:none;background:color-mix(in srgb,var(--cyan) 40%,transparent)}
+  .mh-judge.pop,.mh-count.pop{animation:none}
+  .mh-hpmeter i{transition:none}
+}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.panel .best{font-size:14px;margin-top:8px}

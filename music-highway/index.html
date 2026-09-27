@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Music Highway</title>
+<meta name="description" content="Play along with the band: your fingerings fly down a neon highway. Play each note as it reaches the line.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="../shared/diagrams.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- SONG SELECT (the level select: songs are the levels) -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Music <span>Highway</span></h1>
+      <p class="muted" id="hubBlurb">Your fingerings fly down the highway with the band. Play each note on your instrument as its card reaches the glowing line.</p>
+    </div>
+    <div class="mh-opts" id="opts">
+      <div class="mh-opt" role="group" aria-label="Speed">
+        <span class="mh-ol">Speed</span>
+        <button class="mh-seg" id="spdNormal" aria-pressed="true">Normal</button>
+        <button class="mh-seg" id="spdSlow" aria-pressed="false">Slow 75%</button>
+      </div>
+      <button class="mh-hp" id="hpBtn" aria-pressed="false"><span aria-hidden="true">🎧</span> I'm wearing headphones</button>
+      <button class="btn btn-ghost btn-small" id="calBtn">Recalibrate</button>
+      <div class="mh-opt" role="group" aria-label="Horn fingerings" id="hornOpt" hidden>
+        <span class="mh-ol">Horn</span>
+        <button class="mh-seg" id="hornF" aria-pressed="true">F side</button>
+        <button class="mh-seg" id="hornBb" aria-pressed="false">B♭ side</button>
+      </div>
+    </div>
+    <p class="mh-optnote" id="optNote"></p>
+    <div class="levels mh-songs" id="songGrid"></div>
+    <p class="mh-foot"><a class="btn btn-ghost btn-small" id="boardLink" href="songs.html">Song Board</a> <span class="muted">every song on a staff, for any instrument</span></p>
+    <p class="demo-help" id="demoHelp" hidden>Demo: Space = play the note on the line (T too), W = a wrong note, hold S = hold it, 1–5 = your first five. Every song is open.</p>
+  </section>
+</div>
+
+<!-- PLAY: the highway -->
+<section id="play" hidden aria-label="Music Highway">
+  <canvas id="road" aria-hidden="true"></canvas>
+  <div id="tails" aria-hidden="true"></div>
+  <div id="cards" aria-hidden="true"></div>
+  <div id="pads" aria-hidden="true"></div>
+  <div class="mh-hud">
+    <div><small id="hudSong">Song</small><b id="hudScore">0</b></div>
+    <div class="c"><small>Combo</small><b id="hudCombo">0</b></div>
+    <div class="r"><small id="hudAccL">Accuracy</small><b id="hudAcc">–</b></div>
+    <button class="mh-pause" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+  </div>
+  <div class="mh-judge" id="judge" aria-live="polite"></div>
+  <div class="mh-count" id="count" aria-live="assertive"></div>
+  <div class="mh-tip" id="tip"></div>
+  <div class="mh-staff" id="staffBox" aria-hidden="true">
+    <div class="mh-strip" id="staffStrip"></div>
+    <div class="mh-pin" id="staffPin"></div>
+    <div class="mh-playhead" id="playhead"></div>
+  </div>
+</section>
+
+<!-- PAUSE -->
+<div class="overlay" id="pausePanel" hidden>
+  <div class="panel">
+    <h2>Paused</h2>
+    <p class="muted">The band waits for you. RESUME counts you in again from the start of this measure.</p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resumeBtn">Resume</button>
+      <button class="btn btn-ghost" id="restartBtn">Restart song</button>
+      <button class="btn btn-ghost" id="quitBtn">Songs</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALIBRATION -->
+<div class="overlay" id="calPanel" hidden>
+  <div class="panel mh-cal">
+    <h2 id="calTitle">Timing check</h2>
+    <p id="calMsg">Every microphone and speaker adds a tiny delay. Let's measure yours once, so the game judges your timing fairly.</p>
+    <div class="mh-caldots" id="calDots"></div>
+    <p class="mh-calsay" id="calSay"></p>
+    <div class="acts">
+      <button class="btn btn-gold" id="calGo">Start</button>
+      <button class="btn btn-ghost" id="calSkip">Not now</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADPHONES: THE SPEAKER CHECK -->
+<div class="overlay" id="hpPanel" hidden>
+  <div class="panel mh-cal">
+    <h2>Headphones check</h2>
+    <p id="hpMsg">In headphones mode the band plays the melody, bass and chords too. The microphone must not hear them, so let's check.</p>
+    <div class="mh-hpmeter" id="hpMeter" aria-hidden="true"><i></i></div>
+    <div class="acts">
+      <button class="btn btn-gold" id="hpGo">Check now</button>
+      <button class="btn btn-ghost" id="hpCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="overlay" id="results" hidden>
+  <div class="panel mh-res">
+    <div class="bigstars" id="resStars"></div>
+    <h2 id="resTitle">Song complete</h2>
+    <p id="resMsg"></p>
+    <div class="stats mh-stats">
+      <div><small>Score</small><b id="resScore">0</b></div>
+      <div><small>Accuracy</small><b id="resAcc">0%</b></div>
+      <div><small>Max combo</small><b id="resCombo">0</b></div>
+    </div>
+    <div class="mh-counts" id="resCounts"></div>
+    <p id="resBest" class="best"></p>
+    <div class="mh-trouble" id="trouble" hidden>
+      <h3>Trouble spot</h3>
+      <p class="muted" id="troubleMsg"></p>
+      <div class="stage mh-tstaff" id="troubleStaff"></div>
+      <button class="btn btn-ghost" id="practiceBtn">Practice this part</button>
+    </div>
+    <div class="acts">
+      <button class="btn btn-gold" id="resNext">Next song</button>
+      <button class="btn btn-ghost" id="resRetry">Play again</button>
+      <button class="btn btn-ghost" id="resSongs">Songs</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/mode-picker.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="../shared/fingerings.js"></script>
+<script src="../shared/diagrams.js"></script>
+<script src="songs.js"></script>
+<script src="song-map.js"></script>
+<script src="settings.js"></script>
+<script src="backing.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

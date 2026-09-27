@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -92,6 +92,20 @@ window.Arcade = window.Arcade || {};
                                      `<rect class="s-bar s-bar2" x="${226 + i * 9}" y="${440 - i * 10}" width="6" height="${14 + i * 10}" rx="2"/>`).join('') +
               '<path class="s-wave" d="M48 530q8-14 16 0t16 0t16 0t16 0M188 530q8-14 16 0t16 0t16 0t16 0"/>',
       slots: {marquee: [36, 22, 228, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
+    },
+    /* highway: the Music Highway cabinet. A flat top with a road sign-style marquee, the neon highway painted down both
+       side panels (lane lines running to a horizon), a strike line across the control panel and three colored buttons */
+    highway: {
+      outline: 'M26 18H274V112H264V300L286 318V380H270V598H30V380H14V318L36 300V112H26Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338, 's-btn0'], [210, 342, 's-btn1'], [240, 346, 's-btn0']],
+      door: {x: 104, y: 470, w: 92, h: 90},
+      extras: '<path class="s-road" d="M130 398H170L250 596H50Z"/><path class="s-roadedge" d="M130 398L50 596M170 398L250 596"/>' +
+              '<path class="s-roadlane" d="M143 398L117 596M157 398L183 596"/><path class="s-strike" d="M26 360H274"/>' +
+              '<rect class="s-card s-c1" x="118" y="420" width="16" height="16" rx="2"/><rect class="s-card s-c2" x="162" y="440" width="20" height="20" rx="2"/>',
+      slots: {marquee: [34, 24, 232, 82], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
     },
     /* ink: the Ink Master's cabinet (Vanishing Ink). The marquee is an unrolled scroll with wooden rods standing out at
        both ends; an ink splash with drips on the lower left side, a fading note on the right, a brush on the kick plate */
@@ -438,6 +452,16 @@ window.Arcade = window.Arcade || {};
           `<g class="sg-sweep"><path d="M80 52L80 10A42 42 0 0 1 110 22Z"/><line x1="80" y1="52" x2="80" y2="10"/></g>` +
           `<circle class="sg-blip b1" cx="104" cy="34" r="3"/><circle class="sg-blip b2" cx="62" cy="74" r="3"/><circle class="sg-blip b3" cx="96" cy="78" r="3"/>` +
           `<text class="sg-cap" x="80" y="106" text-anchor="middle">INCOMING…</text></svg></div>`;
+      },
+    },
+    /* Music Highway: three note cards gliding down a little highway to the strike line, "PLAY ALONG!" */
+    highway: {
+      html() {
+        return `<div class="scr scr-highway"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<path class="hw-road" d="M72 14H88L150 96H10Z"/><path class="hw-edge" d="M72 14L10 96M88 14L150 96"/><path class="hw-lane" d="M77.3 14L56 96M82.7 14L104 96"/>` +
+          `<path class="hw-strike" d="M18 84H142"/>` +
+          [['c', 0], ['e', 1], ['g', 2]].map(([c, i]) => `<g class="hw-card hw-${c} hw-k${i}"><rect x="-8" y="-16" width="16" height="16" rx="2"/><ellipse cx="-1" cy="-5" rx="3" ry="2.2" transform="rotate(-20 -1 -5)"/><path d="M1.8 -6V-13"/></g>`).join('') +
+          `<text class="hw-cap" x="80" y="106" text-anchor="middle">PLAY ALONG!</text></svg></div>`;
       },
     },
     /* Vanishing Ink: three notes brush onto a little scroll one by one, stay, then the ink fades away (slow, never a

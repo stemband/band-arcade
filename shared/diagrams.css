@@ -1,5 +1,5 @@
-/* Button Masher's fingering diagrams (diagrams.js): the instrument drawing and its tappable keys.
-   Loaded by Button Masher and by Arcade Quest's FINGERING challenge, so both draw the diagrams the same way. */
+/* THE FINGERING DIAGRAMS (shared/diagrams.js): the instrument drawing and its tappable keys.
+   Loaded by Button Masher, Arcade Quest's FINGERING challenge and Music Highway's cards, so all draw them the same way. */
 .diagram{display:block;overflow:visible;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .dg-body{fill:var(--floor-3);stroke:var(--cab-metal);stroke-width:2}
 .dg-pipe{fill:none;stroke:var(--cab-metal);stroke-width:12;stroke-linecap:round}

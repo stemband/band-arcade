@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -115,6 +115,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* highway: the Music Highway cabinet: a classic body leaning forward a little, with a lit highway sign on two posts
+       on the roof (a road running to the horizon, a note on it) */
+    highway: {
+      width: 0.96, topper: 'road',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.82, 0.84], [0.82, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.66, 1.50], [0.66, 1.72], [0.60, 1.76], [0, 1.76]],
+      marquee: [[0.66, 1.52], [0.66, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.82, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* ink: the Ink Master's cabinet (Vanishing Ink): a classic body with an unrolled scroll standing on the roof */
     ink: {
       width: 0.94, topper: 'scroll',
@@ -138,7 +146,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -165,7 +173,8 @@ window.Arcade = window.Arcade || {};
    'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad',
    'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail',
    'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep', 'dd-night', 'dd-wood', 'dd-wood-2', 'dd-wood-line', 'dd-paper', 'dd-lantern',
-   'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2'].forEach(n => { tok[n] = cssVar(n); });
+   'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2',
+   'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -435,6 +444,24 @@ window.Arcade = window.Arcade || {};
       x.globalAlpha = 1;
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok['ls-wave'];
       x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('INCOMING…', W / 2, H * .93);
+    },
+    /* Music Highway: note cards gliding down a small highway to the strike line, "PLAY ALONG!" (as 2D) */
+    highway(x, W, H, t) {
+      const tt = t == null ? .8 : t, vx = W / 2, hz = H * .14, sy = H * .78, half = W * .46, far = 4;
+      x.fillStyle = tok['mh-sky']; x.fillRect(0, 0, W, H);
+      const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
+      x.fillStyle = tok['mh-road']; x.beginPath(); x.moveTo(X(-1, far), Y(far)); x.lineTo(X(1, far), Y(far)); x.lineTo(X(1, .86), H); x.lineTo(X(-1, .86), H); x.fill();
+      for (let l = 0; l <= 3; l++) { const u = -1 + l * 2 / 3; x.strokeStyle = l % 3 ? tok['mh-lane'] : tok[this.trim2]; x.lineWidth = l % 3 ? 1.5 : 3; x.beginPath(); x.moveTo(X(u, far), Y(far)); x.lineTo(X(u, .86), H); x.stroke(); }
+      x.strokeStyle = tok[this.trim]; x.lineWidth = 4; x.beginPath(); x.moveTo(X(-1, 1), sy); x.lineTo(X(1, 1), sy); x.stroke();
+      ['mh-c', 'mh-e', 'mh-g'].forEach((c, i) => {
+        const f = ((tt * .45 + i / 3) % 1), d = far - (far - 1) * f, u = -2 / 3 + i * 2 / 3, w = half * .42 / d, cx = X(u, d), by = Y(d);
+        x.globalAlpha = Math.min(1, f * 4); x.fillStyle = tok.screen; x.fillRect(cx - w / 2, by - w, w, w);
+        x.strokeStyle = tok[c]; x.lineWidth = 3; x.strokeRect(cx - w / 2, by - w, w, w);
+        x.fillStyle = tok.ink; x.beginPath(); x.ellipse(cx - w * .08, by - w * .32, w * .14, w * .1, -.35, 0, 7); x.fill(); x.fillRect(cx + w * .04, by - w * .8, Math.max(1, w * .04), w * .48);
+      });
+      x.globalAlpha = 1;
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi'];
+      x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('PLAY ALONG!', W / 2, H * .92);
     },
     /* Vanishing Ink: three notes brush onto a small scroll, stay, then fade away slowly; "PLAY IT BACK!" (4.2 s loop, as 2D) */
     ink(x, W, H, t) {
@@ -747,6 +774,22 @@ window.Arcade = window.Arcade || {};
         const grip = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .1, 8), wood); grip.rotation.z = a;
         grip.position.set(Math.sin(-a) * .16, topY + .17 + Math.cos(a) * -.16, fz + .02); group.add(detail(grip));
       });
+    } else if (P.topper === 'road') {
+      // a highway sign on two posts: a road to the horizon between neon edges, a note card on it (Music Highway)
+      const fz = frontTop + zc - .14, sw = W * .7, sh = .26, metal = lambert(col('cab-metal'));
+      [-1, 1].forEach(sd => { const post = new THREE.Mesh(new THREE.BoxGeometry(.03, .12, .03), metal); post.position.set(sd * sw * .35, topY + .06, fz); group.add(detail(post)); });
+      const box = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, .05), lambert(col('cab-side'))); box.position.set(0, topY + .12 + sh / 2, fz - .03); box.userData.pick = true; group.add(box);
+      const c = canvas(256, 96), cx = c.getContext('2d');
+      cx.fillStyle = tok['mh-sky']; cx.fillRect(0, 0, 256, 96);
+      cx.fillStyle = tok['mh-road']; cx.beginPath(); cx.moveTo(116, 20); cx.lineTo(140, 20); cx.lineTo(236, 96); cx.lineTo(20, 96); cx.fill();
+      cx.strokeStyle = tok[k.trim2]; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(116, 20); cx.lineTo(20, 96); cx.moveTo(140, 20); cx.lineTo(236, 96); cx.stroke();
+      cx.strokeStyle = tok['mh-lane']; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(128, 20); cx.lineTo(128, 96); cx.stroke();
+      cx.fillStyle = tok.screen; cx.fillRect(140, 44, 30, 30); cx.strokeStyle = tok['mh-g']; cx.lineWidth = 3; cx.strokeRect(140, 44, 30, 30);
+      cx.fillStyle = tok.ink; cx.beginPath(); cx.ellipse(152, 64, 6, 4.5, -.35, 0, 7); cx.fill(); cx.fillRect(157, 48, 2, 16);
+      cx.fillStyle = tok['text-hi']; [[30, 10], [70, 6], [200, 12], [230, 4], [100, 8]].forEach(([a2, b2]) => cx.fillRect(a2, b2, 2, 2));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(sw * .94, sh * .88), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
+      face.position.set(0, topY + .12 + sh / 2, fz + .002); group.add(face);
+      neon([new THREE.Vector3(-sw / 2, topY + .12 + sh, fz + .004), new THREE.Vector3(sw / 2, topY + .12 + sh, fz + .004)]);
     } else if (P.topper === 'dish') {
       // a radio dish on a mast, tilted up at the sky, its rim in the trim neon and a glowing receiver tip (Lost Signal)
       const fz = frontTop + zc - .22, metal = lambert(col('cab-metal'));

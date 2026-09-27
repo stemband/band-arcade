@@ -384,3 +384,31 @@
 @media (prefers-reduced-motion:reduce){
   .cab *,.cab{animation:none!important}
 }
+/* highway: Music Highway: a road-sign marquee frame, the neon highway painted down the front, cards gliding to the strike line */
+.mq-highway{background:linear-gradient(180deg,var(--deep),var(--mh-sky));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:var(--t-glow)}
+.mq-highway .mq-name{font-family:"GN Neon",var(--display)}
+.shape-highway .s-road{fill:var(--mh-road)}
+.shape-highway .s-roadedge{fill:none;stroke:var(--u);stroke-width:4;stroke-linecap:round;opacity:.9}
+.shape-highway .s-roadlane{fill:none;stroke:var(--mh-lane);stroke-width:2;opacity:.7}
+.shape-highway .s-strike{fill:none;stroke:var(--t);stroke-width:3;opacity:.9}
+.shape-highway .s-card{fill:var(--screen);stroke-width:2.5}
+.shape-highway .s-c1{stroke:var(--mh-e)}.shape-highway .s-c2{stroke:var(--mh-g)}
+.scr-highway{background:var(--mh-sky)}
+.scr-highway svg{width:100%;height:auto}
+.scr-highway .hw-road{fill:var(--mh-road)}
+.scr-highway .hw-edge{fill:none;stroke:var(--pink);stroke-width:2}
+.scr-highway .hw-lane{fill:none;stroke:var(--mh-lane);stroke-width:1}
+.scr-highway .hw-strike{fill:none;stroke:var(--cyan);stroke-width:2.5}
+.scr-highway .hw-card rect{fill:var(--screen);stroke-width:2}
+.scr-highway .hw-card ellipse{fill:var(--ink)}.scr-highway .hw-card path{stroke:var(--ink);stroke-width:1.4}
+.scr-highway .hw-c rect{stroke:var(--mh-c)}.scr-highway .hw-e rect{stroke:var(--mh-e)}.scr-highway .hw-g rect{stroke:var(--mh-g)}
+.scr-highway .hw-k0{transform:translate(58px,60px)}.scr-highway .hw-k1{transform:translate(80px,40px) scale(.75)}.scr-highway .hw-k2{transform:translate(102px,78px) scale(1.1)}
+.scr-highway .hw-cap{fill:var(--cyan-hi);font:700 9px var(--display);letter-spacing:.1em}
+.attract .scr-highway .hw-k0{animation:hw-glide 2.4s linear infinite}
+.attract .scr-highway .hw-k1{animation:hw-glide1 2.4s linear infinite}
+.attract .scr-highway .hw-k2{animation:hw-glide2 2.4s linear infinite}
+@keyframes hw-glide{from{transform:translate(77px,20px) scale(.35);opacity:0}15%{opacity:1}to{transform:translate(52px,84px) scale(1.15);opacity:1}}
+@keyframes hw-glide1{from{transform:translate(80px,20px) scale(.35);opacity:0}15%{opacity:1}to{transform:translate(80px,84px) scale(1.15);opacity:1}}
+@keyframes hw-glide2{from{transform:translate(83px,20px) scale(.35);opacity:0}15%{opacity:1}to{transform:translate(108px,84px) scale(1.15);opacity:1}}
+.attract .scr-highway .hw-k1{animation-delay:-.8s}.attract .scr-highway .hw-k2{animation-delay:-1.6s}
+@media (prefers-reduced-motion:reduce){.attract .scr-highway .hw-card{animation:none}}

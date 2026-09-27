@@ -51,7 +51,7 @@ window.Arcade = window.Arcade || {};
     ["chairColor", 6, ["gray", "black", "red", "blue", "purple", "pink", "teal", "green", "yellow"]],
     ["pet", 6, ["none", "ghost", "animatronic", "note", "star", "metronome", "cat", "penguin", "narwhal", "robot", "dragon", "owl"]],
     ["back", 5, ["none", "pixelcape", "jetpack", "wings", "featherwings"]],
-    ["bg", 8, ["none", "midnight", "berry", "ocean", "grape", "ember", "sunset", "lagoon", "lime", "stripes", "dots", "staff", "checker", "starry", "thunderstorm", "hauntedhall", "bamboomoon", "inkbloom", "laservault", "lanterntemple", "comboarena", "airrink", "spotlight", "nighttrack", "deepspace", "dojonight", "pixelcastle", "neoncity", "synthwave", "aurora", "galaxyswirl", "goldrecords", "bubbles", "fireflies", "lavalamp", "confetti", "bndojo"]],
+    ["bg", 8, ["none", "midnight", "berry", "ocean", "grape", "ember", "sunset", "lagoon", "lime", "stripes", "dots", "staff", "checker", "starry", "thunderstorm", "hauntedhall", "bamboomoon", "inkbloom", "laservault", "lanterntemple", "comboarena", "airrink", "spotlight", "nighttrack", "deepspace", "dojonight", "pixelcastle", "neoncity", "synthwave", "aurora", "galaxyswirl", "goldrecords", "bubbles", "fireflies", "lavalamp", "confetti", "bndojo", "neonhighway"]],
     ["hand", 5, ["none", "baton", "drumsticks", "glowstick", "mic", "wand", "trophy"]],
     ["effect", 6, ["none", "notes", "orbit", "aura", "sparkles", "sparks", "bubbles", "snow", "confetti", "bndiamond"]],
     ["effectColor", 5, ["cyan", "pink", "yellow", "purple", "green", "amber"]],

@@ -99,6 +99,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Neon Face-Off | `neon-face-off-menu` | `neon-face-off-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Showtime Malfunction | `showtime-malfunction-menu` | `showtime-malfunction-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Sustain Speedway | `sustain-speedway-menu` | `sustain-speedway-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Music Highway | `music-highway-menu` | `music-highway-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -385,6 +386,40 @@ plays before GO (the race waits for it to end), and `pit-in` plays during the pi
 | `race-finish` | `race-finish.m4a` or `race-finish.mp3` | Sustain Speedway: crossing the finish line. | 0.8–1.5 s |
 | `podium` | `podium.m4a` or `podium.mp3` | Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd. | 1–2 s |
 | `new-best-lap` | `new-best-lap.m4a` or `new-best-lap.mp3` | Sustain Speedway: the results screen, a new best lap on this track (after the podium). | 0.5–1 s |
+
+### Music Highway
+
+Music Highway is the one game whose backing plays WHILE the microphone listens, and it does NOT mute the microphone
+(a song can't stop for its own drums). That's safe because the drums are unpitched (a note only counts with the right
+PITCH, and a snare player's hits must be louder than the drums the mic hears back). So a backing-drums file must be
+**drums and unpitched percussion only: no bass, no chords, no melody, no toms tuned to notes.** No sound effects play
+during a song; the menu music and the results sounds play only before and after.
+
+**Recording backing drums (optional):** one file per song, `mh-drums-<song id>.m4a`. Start **exactly on beat 1 of the
+song** (the game plays its own one-measure count-in first, then starts your file on the downbeat), at the song's tempo,
+and make it last the whole song. Slow mode and PRACTICE THIS PART always use the generated groove. The song ids and
+tempos are in `music-highway/songs.js`; the Song Board (`music-highway/songs.html`) plays every song with the generated
+groove so you can hear what to match.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `music-highway-menu` | `music-highway-menu.m4a` or `music-highway-menu.mp3` | Music Highway: menu music (song select, the timing check, results). Never during a song. | 30–90 s loop |
+| `mh-drums-hot-cross-buns` | `mh-drums-hot-cross-buns.m4a` or `mh-drums-hot-cross-buns.mp3` | Music Highway: the backing drums for Hot Cross Buns (88 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-mary-lamb` | `mh-drums-mary-lamb.m4a` or `mh-drums-mary-lamb.mp3` | Music Highway: the backing drums for Mary Had a Little Lamb (96 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-aunt-rhody` | `mh-drums-aunt-rhody.m4a` or `mh-drums-aunt-rhody.mp3` | Music Highway: the backing drums for Go Tell Aunt Rhody (96 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-lightly-row` | `mh-drums-lightly-row.m4a` or `mh-drums-lightly-row.mp3` | Music Highway: the backing drums for Lightly Row (100 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-ode-to-joy` | `mh-drums-ode-to-joy.m4a` or `mh-drums-ode-to-joy.mp3` | Music Highway: the backing drums for Ode to Joy (100 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-jingle-bells` | `mh-drums-jingle-bells.m4a` or `mh-drums-jingle-bells.mp3` | Music Highway: the backing drums for Jingle Bells (108 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-saints` | `mh-drums-saints.m4a` or `mh-drums-saints.mp3` | Music Highway: the backing drums for When the Saints Go Marching In (104 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-twinkle` | `mh-drums-twinkle.m4a` or `mh-drums-twinkle.mp3` | Music Highway: the backing drums for Twinkle, Twinkle, Little Star (100 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-frere-jacques` | `mh-drums-frere-jacques.m4a` or `mh-drums-frere-jacques.mp3` | Music Highway: the backing drums for Frère Jacques (100 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-yankee-doodle` | `mh-drums-yankee-doodle.m4a` or `mh-drums-yankee-doodle.mp3` | Music Highway: the backing drums for Yankee Doodle (108 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-oh-susanna` | `mh-drums-oh-susanna.m4a` or `mh-drums-oh-susanna.mp3` | Music Highway: the backing drums for Oh! Susanna (104 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-camptown-races` | `mh-drums-camptown-races.m4a` or `mh-drums-camptown-races.mp3` | Music Highway: the backing drums for Camptown Races (112 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-aura-lee` | `mh-drums-aura-lee.m4a` or `mh-drums-aura-lee.mp3` | Music Highway: the backing drums for Aura Lee (84 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-shenandoah` | `mh-drums-shenandoah.m4a` or `mh-drums-shenandoah.mp3` | Music Highway: the backing drums for Shenandoah (76 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-scarborough-fair` | `mh-drums-scarborough-fair.m4a` or `mh-drums-scarborough-fair.mp3` | Music Highway: the backing drums for Scarborough Fair (104 beats a minute). Optional: without it, the generated groove. | the whole song |
+| `mh-drums-the-entertainer` | `mh-drums-the-entertainer.m4a` or `mh-drums-the-entertainer.mp3` | Music Highway: the backing drums for The Entertainer (76 beats a minute). Optional: without it, the generated groove. | the whole song |
 
 ### Arcade Quest
 

@@ -75,10 +75,10 @@ neon-face-off/        Game 7: two-player air hockey played with instruments (or 
   levels.js           The 8 CPU rivals (Rookie Robo … The Champ), difficulties and rules (power, speed, sounds)
   game.js             The match: turns, the microphone rules, the canvas table, results
 button-masher/        Game 6: fingerings and slide positions, no microphone; a versus fighting game
-  fingerings.js       THE fingering table: every accepted fingering for every instrument. Fix fingerings here
   levels.js           The 8 rivals (Squeaky Reed … The Conductor): note pools, notes per match, time, rival health
-  diagrams.js         The instrument diagrams (flute, oboe, clarinet, sax, bassoon, valves, trombone slide)
   game.js             Game logic: the match, the rivals and the fighter, the CHART view
+                      (THE fingering table is shared/fingerings.js, the diagrams shared/diagrams.js + diagrams.css:
+                      Button Masher, Arcade Quest and Music Highway all use them. Fix fingerings there)
 showtime-malfunction/ Game 8: articulation. Play each note N separate times (tongued or struck) to reboot animatronics
   levels.js           The 8 showtimes (The 5:00 Show … The Midnight Encore): counts, lanes, speed, the boss. Edit here
   characters.js       THE SHOWTIME BAND, drawn in SVG: Tubby Tusk, Professor Hoot, Snapjaw Sal, Rico Bandit, Maestro Moose
@@ -86,6 +86,13 @@ showtime-malfunction/ Game 8: articulation. Play each note N separate times (ton
 sustain-speedway/     Game 9: long tones and tuning. Your instrument is the engine: hold each lap's note in tune and steady to race
   levels.js           The 8 tracks (Downtown Loop … The Grand Prix): laps, lap length, rivals, and HOW SPEED WORKS. Edit here
   game.js             The race: the speed model, the canvas road, the tuning speedometer, pit stops, rivals, ghost car, results
+music-highway/        Play-along rhythm game: your fingerings fly down a neon highway with the band; play each note on the line
+  songs.js            THE SONG LIST (16 songs in 3 tiers, as concert B♭ scale degrees). Edit here; never reorder (stars = song number)
+  song-map.js         Songs -> each instrument's written notes, octave, chords · settings.js: judging windows, stars, volumes
+  backing.js          The generated drums (and the headphones-mode band), on the audio clock
+  game.js             The highway, the judge, calibration, the headphones check, results, PRACTICE THIS PART
+  songs.html          The Song Board: every song on a staff (concert + any instrument) with ▶ PLAY
+  README.md           The song format (and notes for a future MIDI importer)
 lost-signal/          Pitch memory: an alien probe plays a melody, echo it back on your instrument
   levels.js           The 8 levels, rules, the pattern weights and Deep Space Scan (endless). Edit here
 vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
@@ -326,7 +333,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **CHART** (on the rival screen, never during a match): every note in the game for the chosen instrument, grouped by rival/scale, each with its staff note, name and the main fingering filled in on the diagram, with other accepted fingerings listed under it. Use it to study, and to check the fingerings. It scrolls with the mouse wheel, a trackpad, a finger, or the keyboard (arrows, Page Up/Down, Space); the instrument's name and a big CLOSE stay at the top, and Esc closes it.
 - In `?demo` every rival is unlocked, the right keys have a faint dashed outline, and the answer is written under the diagram.
 
-**Fixing a fingering (`button-masher/fingerings.js`).** Each instrument lists its written notes, and for each note every fingering the game accepts, main one first: `'D4': ['1-3']`, `'A4': ['1-2', '3']`, trombone `'F3': [1, 6]`, clarinet `'B4': ['Th Reg 1 2 3 LE | 4 5 6', …]`. The key names are explained at the top of the file (they're the labels on the diagrams). A combo is right only when it matches one of the listed fingerings exactly. To add an alternate, add it to the list; to change the main one, put it first. Trumpet and Baritone T.C. share a table, as do the two clarinets and the three saxophones. The comment block at the top of the file lists the fingerings I wasn't fully sure of: check those against the 6th Grade Honor Band charts first.
+**Fixing a fingering (`shared/fingerings.js`).** Each instrument lists its written notes, and for each note every fingering the game accepts, main one first: `'D4': ['1-3']`, `'A4': ['1-2', '3']`, trombone `'F3': [1, 6]`, clarinet `'B4': ['Th Reg 1 2 3 LE | 4 5 6', …]`. The key names are explained at the top of the file (they're the labels on the diagrams). A combo is right only when it matches one of the listed fingerings exactly. To add an alternate, add it to the list; to change the main one, put it first. Trumpet and Baritone T.C. share a table, as do the two clarinets and the three saxophones. The comment block at the top of the file lists the fingerings I wasn't fully sure of: check those against the 6th Grade Honor Band charts first.
 
 ## Neon Face-Off
 
@@ -432,7 +439,7 @@ The first cabinet world, entered from inside the Ghost Notes cabinet (about 30�
 - **Look:** a 320 × 180 pixel screen drawn in code, scaled up crisp (letterboxed on iPad portrait). Battles are on black with a white-bordered text box. Text is **Pixelify Sans** (OFL), bundled as `shared/fonts/pixelify.woff2`.
 - **Your hero** is the student's own **avatar** (Create Your Player: their look, their name, their wheelchair if they use one, which rolls instead of walking), 32 × 32 pixels, who **holds** their instrument in their hands (flute across the chest, clarinet upright, sax on its strap, trumpet at the side, tuba hugged with the bell over the shoulder, sticks and mallets in hand…) and only brings it to the lips while actually playing a challenge (PLAY, LONG TONE, ARTICULATE, HARMONIZE, FINGERING); bells and snare strike on every hit the microphone hears. Walking works in 4 directions. Outlined in the equipped skin's color; the characters call the hero by their player name. Every pose's hand and instrument positions are in one table in `arcade-quest/sprites.js` (POSES), and **`arcade-quest/index.html?sprites`** shows every character in every pose and frame (1×/2×/4×, dark and light) to check them.
 - **A battle:** your HP, the enemy's HP and its **CALM** meter. Your turn: **PLAY** (the enemy's challenge; damage = accuracy × speed, right notes raise CALM), **LISTEN** (what it is, what it likes; some calm down just from being listened to), **ITEM** (Valve Oil heals, Cork Grease blocks the next 3 sour notes, Metronome slows the next dodge), **HARMONIZE** (only with a full CALM meter: play its happy note or rhythm and it **joins your band**, with bigger rewards). At 0 HP an enemy **fades away grumbling** (smaller rewards). Out of HP = "out of breath": nothing is lost.
-- **Challenges:** PLAY (1–4 notes from sequences.js), **LONG TONE** (hold a note in tune: cents shown), **ARTICULATE** (one note N separate times, `Pitch.onAttack`), **VOCAB** (an Orange-belt question from Ancient Ninja Scrolls' `vocab.js`), **FINGERING** (Button Masher's diagram and `fingerings.js`). A challenge the instrument can't do falls back: Snare Drum → ARTICULATE (VOCAB stays VOCAB); Bells → no long tones; no fingering chart → PLAY.
+- **Challenges:** PLAY (1–4 notes from sequences.js), **LONG TONE** (hold a note in tune: cents shown), **ARTICULATE** (one note N separate times, `Pitch.onAttack`), **VOCAB** (an Orange-belt question from Ancient Ninja Scrolls' `vocab.js`), **FINGERING** (the shared `diagrams.js` and `fingerings.js`). A challenge the instrument can't do falls back: Snare Drum → ARTICULATE (VOCAB stays VOCAB); Bells → no long tones; no fingering chart → PLAY.
 - **The enemy's turn is a dodge** (no instrument, a rest for the lips): steer a glowing note for 5–8 s (arrows/WASD, the on-screen pad, or drag anywhere) around sour notes, static bursts and falling rests (the Ghost Conductor adds baton swipes with a warning line, falling measures and sweeping fermatas).
 - **The staff** in every playing challenge is drawn sharp at the screen's full resolution (not pixel-scaled like the rest), large, with thick staff lines and clear ledger lines, so it reads at arm's length on an iPad.
 - **The microphone listens only during PLAY, HARMONIZE and the playing challenges** (a red "The mic is listening" tag shows). Battle music (`quest-battle`, only if Mat adds the file) plays in menus and dodges and stops while listening.
