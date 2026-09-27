@@ -1,0 +1,234 @@
+/* Dojo Duel: a neon night dojo. Colors: theme tokens only (--dd-* for the dojo, --belt-* for the belts).
+   Motion is light and slow; nothing flashes; everything stops under prefers-reduced-motion. */
+body.dd-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(--dd-night) 62%)}
+.dd-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.dd-bg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34vh;opacity:.55;
+  background:linear-gradient(to bottom,var(--dd-night),transparent 40%),repeating-linear-gradient(90deg,var(--dd-wood) 0 58px,var(--dd-wood-line) 58px 60px,var(--dd-wood-2) 60px 118px,var(--dd-wood-line) 118px 120px)}
+.lantern{position:absolute;top:-10px;width:44px;height:58px;border-radius:45%;background:radial-gradient(ellipse at 50% 45%,var(--dd-paper),var(--dd-lantern) 70%,var(--belt-red));
+  box-shadow:0 0 22px var(--dd-lantern),0 0 60px color-mix(in srgb,var(--dd-lantern) 45%,transparent);opacity:.8;transform-origin:50% -40px;animation:dd-sway 6s ease-in-out infinite alternate}
+.lantern::before,.lantern::after{content:"";position:absolute;left:30%;right:30%;height:6px;background:var(--dd-wood-line);border-radius:2px}
+.lantern::before{top:-3px}.lantern::after{bottom:-3px}
+.lantern.l1{left:4%;top:30px}.lantern.l2{left:22%;animation-delay:-2s;transform:scale(.8)}
+.lantern.l3{right:22%;animation-delay:-4s;transform:scale(.8)}.lantern.l4{right:4%;top:30px;animation-delay:-1s}
+@keyframes dd-sway{from{rotate:-3deg}to{rotate:3deg}}
+
+/* ---------- setup ---------- */
+.hub-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:14px}
+.dd-sensei{width:86px;flex:none}
+.dd-sensei svg{display:block;width:100%;height:auto;overflow:visible}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92;margin:0}
+.game-title span{color:var(--pink);text-shadow:var(--glow-pink)}
+.hub-head p{max-width:58ch;margin:10px 0 0}
+.dd-row{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-end}
+.dd-field{display:flex;flex-direction:column;gap:6px}
+.dd-field[hidden]{display:none}
+.dd-lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700;margin:0}
+.dd-note{color:var(--text-lo);font-size:15px;margin:10px 0 16px;max-width:70ch}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid var(--line);background:var(--floor-2);color:var(--text-hi);font-weight:700;font-size:15px}
+.seg button:hover{border-color:var(--cyan-ink)}
+.seg button[aria-pressed="true"]{border-color:var(--yellow);background:var(--floor-3);box-shadow:var(--glow-yellow)}
+.seg-sm button{min-height:40px;padding:6px 12px;font-size:14px;max-width:16em;overflow-wrap:anywhere}
+.seg-pic button{display:flex;align-items:center;gap:8px}
+.lay{display:inline-grid;width:22px;height:30px;gap:2px;border:2px solid var(--text-lo);border-radius:4px;padding:2px}
+.lay b{background:var(--cyan);border-radius:1px}.lay b:first-child{background:var(--pink)}
+.lay-ico-side{width:30px;height:22px;grid-template-columns:1fr 1fr}
+.clef{font-family:var(--music);font-style:normal;font-size:22px;line-height:0;vertical-align:-3px}
+.seg-notes button{display:flex;flex-direction:column;align-items:center;line-height:1.15;padding:6px 10px;min-width:74px}
+.seg-notes small{font-size:11px;color:var(--text-lo);font-weight:400}
+
+.dd-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+@media (max-width:820px){.dd-players{grid-template-columns:minmax(0,1fr)}}
+.pcard{background:var(--floor-2);border:2px solid var(--cyan-ink);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pcard.p1{box-shadow:0 0 14px color-mix(in srgb,var(--cyan) 30%,transparent)}
+.pcard.p2{border-color:var(--pink-ink);box-shadow:0 0 14px color-mix(in srgb,var(--pink) 30%,transparent)}
+.pc-head{display:flex;align-items:center;gap:12px}
+.pmark{font-family:var(--display);font-size:14px;padding:3px 8px;border-radius:8px;background:var(--cyan);color:var(--deep)}
+.p2 .pmark{background:var(--pink)}
+.pc-pic{width:72px;height:72px;flex:none;padding:0;border:0;background:var(--deep);border-radius:14px;display:grid;place-items:center;cursor:pointer}
+.pc-pic .pt-box{width:66px}
+.sensei-pic{display:block;width:100%}
+.sensei-pic svg{display:block;width:100%;height:auto;overflow:visible}
+.pc-name{display:flex;flex-direction:column;min-width:0}
+.pc-name b{font-size:20px;line-height:1.2;overflow-wrap:anywhere}
+.pc-name small{color:var(--text-lo);font-size:13px}
+.pc-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pc-row{display:flex;flex-direction:column;gap:6px}
+.pc-note{margin:0;color:var(--text-lo);font-size:14px}
+.pc-note b{color:var(--text-hi)}
+.belts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.bchip{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px 6px;border-radius:10px;border:2px solid var(--line);background:var(--deep);color:var(--text-hi);font-size:12px;font-weight:700;min-height:52px}
+.bchip i{display:block;width:80%;height:9px;border-radius:3px;background:var(--belt);box-shadow:0 0 0 1px var(--dd-wood-line)}
+.bchip.sparkle i{background:linear-gradient(110deg,var(--belt-diamond),var(--belt-diamond-2),var(--belt-diamond))}
+.bchip[aria-pressed="true"]{border-color:var(--yellow);box-shadow:var(--glow-yellow)}
+.bchip[disabled]{opacity:.42;cursor:not-allowed}
+.bchip em{position:absolute;top:2px;right:3px;font-style:normal;font-size:11px}
+.keymap{background:var(--floor-2);border:1px dashed var(--text-dim);border-radius:var(--r);padding:12px 14px;margin-bottom:18px}
+.km{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0}
+.km>b{min-width:9em}
+.km-keys{display:flex;flex-wrap:wrap;gap:6px 10px}
+.km-keys span{display:inline-flex;align-items:center;gap:4px;font-family:var(--music),var(--text);font-weight:700}
+kbd{display:inline-block;min-width:24px;padding:2px 6px;border-radius:6px;border:1px solid var(--text-dim);border-bottom-width:3px;background:var(--deep);color:var(--text-hi);font:700 13px var(--text);text-align:center}
+.km-note{margin:8px 0 0;color:var(--text-lo);font-size:14px}
+.dd-go{display:flex;justify-content:center;margin:6px 0 20px}
+.btn-big{min-height:60px;padding:14px 34px;font-size:20px}
+.demo-help{color:var(--amber);font-size:14px;text-align:center}
+
+/* ---------- the duel (full screen, nothing scrolls or zooms) ---------- */
+body.dueling{overflow:hidden;overscroll-behavior:none;position:fixed;inset:0}
+body.dueling #wrap{display:none}
+.duel{position:fixed;inset:0;z-index:10;display:grid;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  background:linear-gradient(color-mix(in srgb,var(--dd-night) 60%,transparent),color-mix(in srgb,var(--dd-night) 60%,transparent)),
+    repeating-linear-gradient(90deg,var(--dd-wood) 0 70px,var(--dd-wood-line) 70px 72px,var(--dd-wood-2) 72px 140px,var(--dd-wood-line) 140px 142px);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.duel[hidden]{display:none}
+.duel.lay-table,.duel.lay-stack{grid-template:"h2" minmax(0,1fr) "mid" auto "h1" minmax(0,1fr)/minmax(0,1fr)}
+.duel.lay-side{grid-template:"h1 mid h2" minmax(0,1fr)/minmax(0,1fr) auto minmax(0,1fr)}
+.duel.solo.lay-side{grid-template:"h1 mid h2" minmax(0,1fr)/minmax(0,1.25fr) auto minmax(0,.9fr)}
+.duel.solo.lay-stack{grid-template:"h2" minmax(0,.8fr) "mid" auto "h1" minmax(0,1.2fr)/minmax(0,1fr)}
+.half{position:relative;min-width:0;min-height:0;container-type:inline-size}
+.h1{grid-area:h1;--me:var(--cyan)}
+.h2{grid-area:h2;--me:var(--pink)}
+.lay-table .h2{transform:rotate(180deg)}   /* faces the player across the table */
+
+/* the center line: a neon stripe with the scores (each facing its player in Tabletop) */
+.mid{grid-area:mid;position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;z-index:2}
+.mid::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:var(--yellow);box-shadow:var(--glow-yellow);border-radius:2px;opacity:.9}
+.lay-side .mid{flex-direction:column;justify-content:center;padding:10px 6px;width:clamp(96px,11vw,140px)}
+.lay-side .mid::before{left:50%;right:auto;top:0;bottom:0;width:4px;height:auto;margin:0 0 0 -2px}
+.lay-table .sc2{transform:rotate(180deg)}
+.lay-side .sc1{order:0}.lay-side .mid-c{order:1}.lay-side .sc2{order:2}
+.mid-c{position:relative;display:flex;align-items:center;gap:8px}
+.lay-side .mid-c{flex-direction:column}
+.mid-sensei{width:clamp(38px,6vmin,58px)}
+.mid-sensei svg{display:block;width:100%;height:auto;overflow:visible}
+.pause{min-width:44px;min-height:44px;border-radius:50%;border:2px solid var(--text-dim);background:var(--deep);color:var(--text-hi);font-size:15px;letter-spacing:-2px}
+.sc{position:relative;display:flex;align-items:center;gap:8px;background:var(--deep);border:2px solid var(--belt);border-radius:14px;padding:4px 12px 4px 4px;min-width:0;
+  box-shadow:0 0 0 2px var(--deep),0 0 12px color-mix(in srgb,var(--belt) 50%,transparent)}
+.lay-side .sc{flex-direction:column;padding:6px;text-align:center;width:100%}
+.sc-pic{width:clamp(30px,5vmin,42px);flex:none}
+.sc-pic .pt-box{width:100%}
+.sc-txt{display:flex;flex-direction:column;line-height:1;min-width:0}
+.sc-txt small{font-size:11px;color:var(--text-lo);font-weight:700;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-txt b{font-family:var(--display);font-weight:400;font-size:clamp(26px,5vmin,40px);color:var(--text-hi)}
+.sc-to{font-size:11px;color:var(--text-dim)}
+.sc em{display:none;position:absolute;left:50%;top:-12px;translate:-50% 0;white-space:nowrap;font:400 10px var(--display);letter-spacing:.08em;color:var(--deep);background:var(--yellow);padding:2px 6px;border-radius:6px}
+.sc.mp em{display:block}
+.sc.pop{animation:dd-pop .45s ease-out}
+@keyframes dd-pop{40%{transform:scale(1.14)}}
+.lay-table .sc2.pop{animation-name:dd-pop2}
+@keyframes dd-pop2{from{transform:rotate(180deg)}40%{transform:rotate(180deg) scale(1.14)}to{transform:rotate(180deg)}}
+
+/* one player's half */
+.hf-in{height:100%;display:flex;flex-direction:column;gap:clamp(4px,1vmin,10px);padding:clamp(6px,1.4vmin,14px)}
+.hf-top{display:flex;align-items:center;gap:10px;flex:none;min-height:0}
+.hf-who{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.hf-who b{font-size:clamp(15px,2.4vmin,20px);color:var(--me);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf-who small{color:var(--text-lo);font-size:13px;display:flex;align-items:center;gap:6px}
+.bdot{display:inline-block;width:18px;height:7px;border-radius:2px;background:var(--belt);box-shadow:0 0 0 1px var(--text-dim)}
+.mpt{margin-left:auto;font:400 clamp(13px,2.4vmin,19px) var(--display);letter-spacing:.06em;color:var(--yellow);text-shadow:var(--glow-yellow);font-style:normal;white-space:nowrap;animation:dd-glow 1.6s ease-in-out infinite alternate}
+.mpt[hidden]{display:none}
+@keyframes dd-glow{from{opacity:.75}to{opacity:1}}
+.hf-body{flex:1;display:flex;flex-direction:column;gap:clamp(4px,1vmin,8px);min-height:0}
+.hf-body[hidden]{display:none}
+.hf-stage{flex:1 1 auto;min-height:70px;display:flex;flex-direction:column;padding:4px 8px 0;border-color:var(--me);box-shadow:0 0 0 3px var(--deep),0 0 14px color-mix(in srgb,var(--me) 55%,transparent)}
+.hf-staff{flex:1;min-height:0}
+.hf-staff svg{display:block;width:100%;height:100%}
+.tbar{height:6px;margin:0 -8px;background:color-mix(in srgb,var(--ink) 15%,transparent)}
+.tbar i{display:block;height:100%;background:var(--me);transform-origin:left;transform:scaleX(1)}
+.tbar.low i{background:var(--red)}
+.hf-call{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font:400 clamp(26px,7vmin,60px) var(--display);color:var(--deep);
+  background:color-mix(in srgb,var(--screen) 82%,transparent);pointer-events:none;transition:opacity .25s}
+.hf-call:empty{opacity:0}
+.hf-call.begin{color:var(--belt-red)}
+.say{margin:0;min-height:1.35em;text-align:center;font-weight:700;font-size:clamp(14px,2.4vmin,19px);color:var(--text-hi);line-height:1.3}
+.say.good{color:var(--yellow)}.say.bad{color:var(--red-hi)}.say.mp{color:var(--yellow);font-family:var(--display);font-weight:400}
+.hf-pad{flex:none}
+.hf-pad .apad-letter{min-height:clamp(46px,min(9vh,10vw),84px);font-size:clamp(22px,4vmin,32px)}
+.lay-table .hf-pad .apad-letter,.lay-stack .hf-pad .apad-letter{min-height:clamp(46px,8.4vh,84px)}
+.hf-pad .apad-acc{min-height:clamp(38px,6vh,52px)}
+.hf-pad.cpu{pointer-events:none}
+.hf-pad.cpu .apad-letter,.hf-pad.cpu .apad-acc{opacity:.85}
+.hf-pad.cpu.locked .apad-letter{opacity:.6}
+@container (max-width:380px){.hf-pad .apad-letters{grid-template-columns:repeat(4,minmax(0,1fr))}.hf-pad .apad-letter{min-height:48px}}
+.demo-ans{margin:0;font-size:12px;color:var(--amber);text-align:center}
+/* stunned: the pad dims and sways a little (dizzy) */
+.stunned .hf-pad{animation:dd-dizzy .5s ease-in-out infinite alternate}
+@keyframes dd-dizzy{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+
+/* the ninja (the player's avatar with a belt-colored headband) */
+.ninja{position:relative;width:clamp(44px,8vmin,72px);flex:none}
+.nj-pic{display:block}
+.nj-pic .pt-box{width:100%}
+.band{position:absolute;left:12%;right:12%;top:22%;height:10%;background:var(--belt);border-radius:2px;box-shadow:0 0 0 1px var(--dd-wood-line),0 0 8px color-mix(in srgb,var(--belt) 60%,transparent)}
+.band b{position:absolute;right:-14%;top:30%;width:22%;height:140%;background:var(--belt);border-radius:1px;transform:rotate(28deg);transform-origin:left top;box-shadow:0 0 0 1px var(--dd-wood-line)}
+.ninja .stars{position:absolute;left:0;right:0;top:-8%;height:30%;display:none;pointer-events:none}
+.ninja .stars i{position:absolute;font-style:normal;color:var(--yellow);font-size:clamp(11px,2vmin,16px);text-shadow:0 0 4px var(--yellow-ink)}
+.stars i:nth-child(1){left:6%}.stars i:nth-child(2){left:42%;top:-20%}.stars i:nth-child(3){right:6%}
+.ninja.dizzy .stars{display:block;animation:dd-orbit 1s linear infinite}
+@keyframes dd-orbit{to{rotate:360deg}}
+.ninja.dizzy .nj-pic{animation:dd-wobble .5s ease-in-out infinite alternate}
+@keyframes dd-wobble{from{rotate:-7deg}to{rotate:7deg}}
+.ninja.ready .nj-pic{animation:dd-bob 1.8s ease-in-out infinite}
+@keyframes dd-bob{50%{translate:0 -3px}}
+.ninja.jump .nj-pic{animation:dd-jump .5s ease-out}
+@keyframes dd-jump{35%{translate:0 -30%;scale:1.06}70%{translate:0 0}}
+.ninja.sad .nj-pic{translate:0 4%;opacity:.8}
+.ninja.win .nj-pic{animation:dd-jump .6s ease-out 2}
+.ninja.bow .nj-pic{animation:dd-bow 2.4s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes dd-bow{0%,20%{rotate:0deg}45%,70%{rotate:16deg;translate:0 6%}100%{rotate:0deg}}
+
+/* results (inside each half, so the top half's results face the far player; the name row goes away to make room) */
+.half.done .hf-top{display:none}
+.hf-res{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.hf-res[hidden]{display:none}
+.res-in{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:4px}
+.res-a,.res-b{display:flex;flex-direction:column;align-items:center;gap:inherit;width:100%}
+/* a wide, short half (Tabletop on a landscape screen): the two parts side by side */
+@media (min-aspect-ratio:5/4){.lay-table .res-in{flex-direction:row;align-items:center;gap:16px}.lay-table .res-a,.lay-table .res-b{flex:1;min-width:0}}
+.res-k{margin:0;font:400 clamp(24px,5.4vmin,46px) var(--display);color:var(--text-hi);line-height:1}
+.res-k.win{color:var(--yellow);text-shadow:var(--glow-yellow)}
+.bows{display:flex;align-items:flex-end;justify-content:center;gap:12px}
+.bow-n{position:relative;display:flex;flex-direction:column;align-items:center;width:clamp(52px,9vmin,84px)}
+.bow-n .nj-pic{width:100%;animation:dd-bow 2.4s ease-in-out infinite;transform-origin:50% 100%}
+.bow-n small{font-size:11px;color:var(--text-lo);max-width:8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bow-n.champ{width:clamp(64px,11vmin,100px)}
+.bow-n.champ .nj-pic{filter:drop-shadow(0 0 8px var(--yellow))}
+.bow-n.champ::before{content:"🏆";position:absolute;top:-22px;font-size:18px}
+.bow-vs{font-style:normal;font-size:20px;align-self:center}
+.res-say{margin:0;color:var(--text-hi);font-size:clamp(14px,2.4vmin,18px);max-width:34ch}
+.res-score{margin:0;font:400 34px var(--display)}
+.res-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(420px,100%)}
+.res-stats div{background:var(--deep);border-radius:12px;padding:6px 4px}
+.res-stats small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.res-stats b{font-size:clamp(17px,3vmin,24px)}
+.res-rec{margin:0;color:var(--amber);font-weight:700;font-size:14px}
+.res-prac{width:min(420px,100%)}
+.res-prac .stage{padding:2px 6px 0}
+.res-prac svg{display:block;width:100%;max-height:clamp(90px,17vh,150px)}
+.res-prac-none{margin:0;color:var(--text-lo)}
+.res-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.res-acts .btn{min-height:46px}
+
+/* short screens (iPad landscape in Tabletop: each half is about 350 px tall) */
+@media (max-height:820px){
+  .lay-table .hf-top,.lay-stack .hf-top{gap:8px}
+  .lay-table .ninja,.lay-stack .ninja{width:clamp(38px,6vmin,56px)}
+  .lay-table .hf-in,.lay-stack .hf-in{gap:4px;padding:6px 10px}
+  .lay-table .res-prac svg{max-height:80px}
+}
+.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(70px,11vh,120px)}
+.lay-table .bow-n,.lay-stack .bow-n{width:clamp(44px,7vmin,64px)}
+.lay-table .bow-n.champ,.lay-stack .bow-n.champ{width:clamp(54px,8.5vmin,76px)}
+.lay-table .res-in,.lay-stack .res-in{gap:5px}
+
+@media (prefers-reduced-motion:reduce){
+  .lantern,.mpt,.stunned .hf-pad,.ninja .nj-pic,.ninja.dizzy .stars,.bow-n .nj-pic,.sc.pop{animation:none!important}
+  .ninja.bow .nj-pic,.bow-n .nj-pic{rotate:10deg}
+  .hf-call{transition:none}
+}
+/* Tabletop / stacked: each half is short, so the results get compact */
+.lay-table .res-k,.lay-stack .res-k{font-size:clamp(22px,4.4vmin,38px)}
+.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(64px,9vh,110px)}
+.lay-table .res-stats div,.lay-stack .res-stats div{padding:4px}
+.lay-table .res-acts .btn,.lay-stack .res-acts .btn{min-height:44px;padding-block:8px}

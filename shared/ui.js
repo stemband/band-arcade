@@ -141,6 +141,48 @@ window.Arcade = window.Arcade || {};
       (text ? `<text x="40" y="74" text-anchor="middle" class="g-text">${text}</text>` : '') + `</svg>`;
   };
 
+  /** faint letter names just after the clef, for reading practice (Note Ninja's White/Yellow belts, Dojo Duel):
+      the lines in one column, the spaces in the next (treble lines E G B D F, spaces F A C E; bass lines G B D F A,
+      spaces A C E G). Returns an SVG <g> to put inside a staffSVG; x = the lines' column, alpha = how faint. */
+  A.staffGuides = function (clef, x, alpha) {
+    const names = clef === 'treble' ? ['E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5'] : ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3'];
+    return `<g class="guides" opacity="${alpha}">` + names.map((nm, i) => {
+      const n = A.music.parseNote(nm), onLine = i % 2 === 0;
+      return `<text x="${x + (onLine ? 0 : 14)}" y="${A.noteY(clef, n) + 4.5}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="12.5" fill="#4b5570">${n.letter}</text>`;
+    }).join('') + `</g>`;
+  };
+
+  /* THE SENSEI (Band Ninja world: Ancient Ninja Scrolls, Dojo Duel): an original, kind old teacher (topknot, round
+     glasses, long beard, indigo robe). mood: 'calm' | 'happy' | 'hmm' | 'present' (holding a scroll); belt = a --belt-* token.
+     Styles: .ss-* in theme.css. */
+  A.senseiSVG = function (mood = 'calm', belt = 'belt-black') {
+    const happy = mood === 'happy' || mood === 'present';
+    const eyes = happy
+      ? '<path class="ss-line" d="M47 53q4-4 8 0M65 53q4-4 8 0"/>'
+      : '<circle class="ss-ink" cx="51" cy="53" r="2.2"/><circle class="ss-ink" cx="69" cy="53" r="2.2"/>';
+    const brows = mood === 'hmm'
+      ? '<path class="ss-brow" d="M56 44q-8-6-18 1M64 42q8-4 18 3"/>'
+      : '<path class="ss-brow" d="M56 45q-8-4-18 5M64 45q8-4 18 5"/>';
+    const mouth = mood === 'hmm' ? '<path class="ss-line" d="M55 72h10"/>'
+      : happy ? '<path class="ss-mouth" d="M53 70q7 7 14 0z"/>' : '<path class="ss-line" d="M54 71q6 4 12 0"/>';
+    const hands = mood === 'present'
+      ? '<rect class="ss-scroll" x="34" y="102" width="52" height="12" rx="3"/><circle class="ss-rod" cx="34" cy="108" r="6"/><circle class="ss-rod" cx="86" cy="108" r="6"/>' +
+        '<ellipse class="ss-skin" cx="38" cy="112" rx="7" ry="5"/><ellipse class="ss-skin" cx="82" cy="112" rx="7" ry="5"/>'
+      : '<path class="ss-sleeve" d="M38 104q22 12 44 0v10q-22 10-44 0z"/>';
+    return `<svg class="sensei ${mood}" viewBox="0 0 120 150" aria-hidden="true">` +
+      '<path class="ss-robe" d="M20 150q2-52 40-62q38 10 40 62z"/>' +
+      '<path class="ss-robe2" d="M60 88l-16 20 16 30 16-30z"/>' +
+      `<rect class="ss-belt" x="28" y="124" width="64" height="8" rx="2" style="fill:var(--${belt})"/>` +
+      '<circle class="ss-hair" cx="60" cy="22" r="7"/><rect class="ss-tie" x="55" y="27" width="10" height="3" rx="1.5"/>' +
+      '<ellipse class="ss-hair" cx="36" cy="54" rx="5" ry="9"/><ellipse class="ss-hair" cx="84" cy="54" rx="5" ry="9"/>' +
+      '<circle class="ss-skin" cx="60" cy="52" r="24"/>' +
+      brows + eyes +
+      '<circle class="ss-glass" cx="51" cy="53" r="7"/><circle class="ss-glass" cx="69" cy="53" r="7"/><path class="ss-line" d="M58 53h4"/>' +
+      '<path class="ss-hair" d="M40 62q20 14 40 0q2 28-20 48q-22-20-20-48z"/>' +
+      '<path class="ss-hair" d="M47 66q13-6 26 0q-6 5-13 3q-7 2-13-3z"/>' +
+      mouth + hands + '</svg>';
+  };
+
   /* ---------- the Note Ninja mascot: an original kid martial artist ----------
      White gi, red headband, a practice sword (bokken), and a belt in the current belt's color.
      Face showing, no mask or hood, so it doesn't read as any existing ninja character.

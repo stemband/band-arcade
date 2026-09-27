@@ -196,6 +196,26 @@ except the two tiny echo clicks. Until you upload a file, a built-in version mad
 | `lost-signal-game-over` | `lost-signal-game-over.m4a` or `lost-signal-game-over.mp3` | Lost Signal: Deep Space Scan: GAME OVER. | 0.8–1.5 s |
 | `lost-signal-high-score` | `lost-signal-high-score.m4a` or `lost-signal-high-score.mp3` | Lost Signal: Deep Space Scan: GAME OVER with a new #1 (after lost-signal-game-over). | 0.5–1.5 s |
 
+### Dojo Duel
+
+Dojo Duel never uses the microphone, so pitched sounds (a gong, chimes, a melody) are fine here. Every entry is
+`mic: false`. Until you upload a file, a built-in beep version plays (the two music loops: the built-in chiptune).
+The three `sensei-*` voice lines are optional: they stay silent until you record them (the Sensei's words always
+show on screen).
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `dojo-music` | `dojo-music.m4a` or `dojo-music.mp3` | Dojo Duel: the setup screen (a loop). | 30–90 s loop |
+| `dojo-match-music` | `dojo-match-music.m4a` or `dojo-match-music.mp3` | Dojo Duel: during a match, quieter under the taps (a loop). | 30–90 s loop |
+| `dojo-begin` | `dojo-begin.m4a` or `dojo-begin.mp3` | Dojo Duel: BEGIN! at the start of a match (a gong). | 1–2 s |
+| `dojo-point` | `dojo-point.m4a` or `dojo-point.mp3` | Dojo Duel: a player wins the point. | under 0.5 s |
+| `dojo-wrong` | `dojo-wrong.m4a` or `dojo-wrong.mp3` | Dojo Duel: a wrong tap (that player is dizzy for a second). | under 0.5 s |
+| `dojo-match-point` | `dojo-match-point.m4a` or `dojo-match-point.mp3` | Dojo Duel: MATCH POINT (a player is one point from winning; after dojo-point). | 0.5–1 s |
+| `dojo-victory` | `dojo-victory.m4a` or `dojo-victory.mp3` | Dojo Duel: the match is won (the victory screen). | 1–2.5 s |
+| `sensei-begin` | `sensei-begin.m4a` or `sensei-begin.mp3` | Dojo Duel (optional voice): the Sensei starts the match, after dojo-begin ("Bow to your opponent… begin!"). | 1–2 s |
+| `sensei-point` | `sensei-point.m4a` or `sensei-point.mp3` | Dojo Duel (optional voice): after a very quick point ("Swift and sharp!"). | under 1 s |
+| `sensei-victory` | `sensei-victory.m4a` or `sensei-victory.mp3` | Dojo Duel (optional voice): after dojo-victory ("A worthy duel! Bow, ninjas."). | 1–2 s |
+
 ### Chime Heist
 
 | Event | File to upload | When it plays | Suggested length |

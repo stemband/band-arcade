@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Dojo Duel</title>
+<meta name="description" content="Two ninjas, one screen: the first to tap the note's name wins the point.">
+<meta name="theme-color" content="#0b0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="../shared/avatar.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="dd-body">
+<div class="dd-bg" aria-hidden="true"><i class="lantern l1"></i><i class="lantern l2"></i><i class="lantern l3"></i><i class="lantern l4"></i></div>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="hub-head">
+      <div class="dd-sensei" id="setupSensei" aria-hidden="true"></div>
+      <div>
+        <h1 class="game-title">Dojo <span>Duel</span></h1>
+        <p class="muted">Two ninjas, one screen. A note appears for each of you: the first to tap its name wins the point. A wrong tap makes you dizzy for a second! No instrument needed.</p>
+      </div>
+    </div>
+
+    <div class="dd-row">
+      <div class="dd-field"><span class="dd-lbl" id="lblMode">Mode</span>
+        <div class="seg" role="group" aria-labelledby="lblMode" id="segMode">
+          <button type="button" data-v="2p">2 Players</button><button type="button" data-v="cpu">Solo vs. Sensei</button>
+        </div></div>
+      <div class="dd-field" id="fieldCpu"><span class="dd-lbl" id="lblCpu">Sensei</span>
+        <div class="seg" role="group" aria-labelledby="lblCpu" id="segCpu"></div></div>
+      <div class="dd-field"><span class="dd-lbl" id="lblTo">Match length</span>
+        <div class="seg" role="group" aria-labelledby="lblTo" id="segTo"></div></div>
+      <div class="dd-field" id="fieldLayout"><span class="dd-lbl" id="lblLayout">Layout</span>
+        <div class="seg seg-pic" role="group" aria-labelledby="lblLayout" id="segLayout">
+          <button type="button" data-v="table"><i class="lay lay-ico-table" aria-hidden="true"><b></b><b></b></i>Tabletop</button>
+          <button type="button" data-v="side"><i class="lay lay-ico-side" aria-hidden="true"><b></b><b></b></i>Side by side</button>
+        </div></div>
+    </div>
+    <p class="dd-note" id="modeNote"></p>
+
+    <div class="dd-players">
+      <div class="pcard p1" id="card1"></div>
+      <div class="pcard p2" id="card2"></div>
+    </div>
+
+    <div class="keymap" id="keymap"></div>
+
+    <div class="dd-go">
+      <button class="btn btn-gold btn-big" id="goBtn">Begin the duel</button>
+    </div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every belt is open and the answers show under each staff.</p>
+  </section>
+</div>
+
+<!-- THE DUEL (full screen): two halves and the center line -->
+<div class="duel" id="duel" hidden>
+  <div class="half h2" id="h2"></div>
+  <div class="mid" id="mid">
+    <div class="sc sc1" id="sc1"></div>
+    <div class="mid-c">
+      <div class="mid-sensei" id="midSensei" aria-hidden="true"></div>
+      <button type="button" class="pause" id="pauseBtn" aria-label="Pause">❚❚</button>
+    </div>
+    <div class="sc sc2" id="sc2"></div>
+  </div>
+  <div class="half h1" id="h1"></div>
+  <div class="dd-call" id="call" aria-live="assertive"><span class="c1"></span><span class="c2"></span></div>
+</div>
+
+<!-- PAUSE -->
+<div class="overlay" id="paused" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+    <h2 id="pauseTitle">Paused</h2>
+    <p>Take a breath. The note clock is stopped.</p>
+    <div class="acts">
+      <button class="btn btn-gold" id="resumeBtn">Resume</button>
+      <button class="btn btn-ghost" id="pauseSetup">Change setup</button>
+      <button class="btn btn-ghost" id="pauseExit">Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- No microphone in this game: no pitch.js, no mic-gate.js. Sound effects and music are fine (shared/sfx.js). -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/belts.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-creator.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/answer-pad.js"></script>
+<script src="../arcade-quest/sprites.js"></script>
+<script src="../note-ninja/levels.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

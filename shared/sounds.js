@@ -94,6 +94,18 @@ window.Arcade = window.Arcade || {};
     'lost-signal-life-lost': {file: 'lost-signal-life-lost', vol: .7, mic: false, screen: 'lost-signal', gen: [[[3000, 300], 0, .4, .25, 'noise', .7]], when: 'Lost Signal: Deep Space Scan, a round missed: a heart is lost. No pitched tones.', len: '0.3–0.8 s'},
     'lost-signal-game-over': {file: 'lost-signal-game-over', vol: .8, mic: false, screen: 'lost-signal', gen: [[[2500, 150], 0, 1.1, .25, 'noise', .5]], when: 'Lost Signal: Deep Space Scan, GAME OVER (the signal fades out). No pitched tones.', len: '0.8–1.5 s'},
     'lost-signal-high-score': {file: 'lost-signal-high-score', vol: .8, mic: false, screen: 'lost-signal', gen: [[[500, 6000], 0, .5, .25, 'noise', 1.2], [5000, .55, .06, .25, 'noise', 1.5], [5000, .7, .06, .25, 'noise', 1.5]], when: 'Lost Signal: Deep Space Scan, GAME OVER with a new #1 (after lost-signal-game-over). No pitched tones.', len: '0.5–1.5 s'},
+    // ---- Dojo Duel (no microphone: pitched sounds are fine; every entry is mic: false) ---------------------------
+    'dojo-music':       {file: 'dojo-music', vol: .5, loop: true, mic: false, screen: 'dojo-duel', when: 'Dojo Duel: the setup screen (a loop). Until you upload it: the built-in chiptune.', len: '30–90 s loop'},
+    'dojo-match-music': {file: 'dojo-match-music', vol: .3, loop: true, mic: false, screen: 'dojo-duel', when: 'Dojo Duel: during a match, quieter under the taps (a loop). Until you upload it: the built-in chiptune.', len: '30–90 s loop'},
+    'dojo-begin':       {file: 'dojo-begin', vol: .8, mic: false, screen: 'dojo-duel', gen: [[98, 0, 1.4, .3, 'triangle'], [147, 0, 1.2, .18, 'sine'], [196, 0, 1, .12, 'sine'], [392, .02, .5, .06, 'sine']], when: 'Dojo Duel: BEGIN! (a gong).', len: '1–2 s'},
+    'dojo-point':       {file: 'dojo-point', vol: .7, mic: false, play: true, screen: 'dojo-duel', gen: [[784, 0, .06, .3, 'square'], [1175, .06, .12, .3, 'square']], when: 'Dojo Duel: a player wins the point.', len: 'under 0.5 s'},
+    'dojo-wrong':       {file: 'dojo-wrong', vol: .6, mic: false, play: true, screen: 'dojo-duel', gen: [[[330, 165], 0, .25, .25, 'sawtooth'], [[1400, 700], .05, .2, .12, 'noise', 2]], when: 'Dojo Duel: a wrong tap: that player is stunned for a moment (dizzy).', len: 'under 0.5 s'},
+    'dojo-match-point': {file: 'dojo-match-point', vol: .8, mic: false, screen: 'dojo-duel', gen: [[523, 0, .12, .3, 'square'], [523, .16, .12, .3, 'square'], [784, .32, .3, .3, 'square']], when: 'Dojo Duel: MATCH POINT (one point from winning).', len: '0.5–1 s'},
+    'dojo-victory':     {file: 'dojo-victory', vol: .9, mic: false, screen: 'dojo-duel', gen: [[523, 0, .12, .3, 'square'], [659, .12, .12, .3, 'square'], [784, .24, .12, .3, 'square'], [1047, .36, .5, .3, 'square'], [98, .36, 1.2, .25, 'triangle']], when: 'Dojo Duel: the match is won (the victory screen).', len: '1–2.5 s'},
+    // the Sensei's voice (optional): silent until you upload a recording; the words show on screen either way
+    'sensei-begin':     {file: 'sensei-begin', vol: .9, mic: false, screen: 'dojo-duel', gen: [], when: 'Dojo Duel (optional voice): the Sensei starts the match ("Bow to your opponent… begin!"). Silent until uploaded.', len: '1–2 s'},
+    'sensei-point':     {file: 'sensei-point', vol: .9, mic: false, screen: 'dojo-duel', gen: [], when: 'Dojo Duel (optional voice): the Sensei praises a quick point ("Swift and sharp!"). Silent until uploaded.', len: 'under 1 s'},
+    'sensei-victory':   {file: 'sensei-victory', vol: .9, mic: false, screen: 'dojo-duel', gen: [], when: 'Dojo Duel (optional voice): the Sensei at the end ("A worthy duel! Bow, ninjas."). Silent until uploaded.', len: '1–2 s'},
     // ---- Note Ninja ---------------------------------------------------------------------------------------------
     'ninja-slash':     {file: 'ninja-slash', vol: .7, mic: true, play: true, screen: 'note-ninja', when: 'Note Ninja: a correct answer.', len: '0.1–0.3 s'},
     'ninja-combo':     {file: 'ninja-combo', vol: .8, mic: true, play: true, screen: 'note-ninja', when: 'Note Ninja: every 5 right in a row.', len: '0.3–0.5 s'},
@@ -175,7 +187,7 @@ window.Arcade = window.Arcade || {};
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
-    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['chime-heist', 'Chime Heist'],
+    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
     ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {

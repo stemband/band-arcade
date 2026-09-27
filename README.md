@@ -132,6 +132,24 @@ microphone is switched off while a transmission plays and listens again only onc
 - **Signal check:** the first visit plays a test tone and asks "Can you hear the signal?" (turn the volume up!).
 - **Tuning:** every number is in `lost-signal/levels.js` (levels, rules, the pattern generator, Deep Space Scan).
 
+## Dojo Duel
+
+A **two-player note-reading race** on one iPad or Chromebook, in a neon night dojo. No microphone and no instrument
+needed. Each player gets their own half of the screen with their own note and their own answer buttons (the same
+♭ ♮ ♯ + A–G layout as Note Ninja); the first to tap the right name wins the point.
+
+- **Setup:** 2 PLAYERS or SOLO VS. SENSEI (Easy about 3 s, Medium about 2 s, Hard about 1.3 s); first to 7, 10 or 15;
+  TABLETOP (the iPad lies flat between the players, the far half turned to face them) or SIDE BY SIDE. Each player picks
+  a look (Player 2 is a guest avatar), a name (Player 1 / Player 2, or their avatar's name), a clef, a note set and a
+  **belt**: any Note Ninja belt they've earned on this device. The belt is a handicap: White gets the first three notes
+  and letter guides, higher belts get the whole set with no guides.
+- **A point:** READY… BEGIN! Both notes appear at once. A wrong tap makes you dizzy for 1 second. Nobody right in
+  6 seconds (or both wrong) = no point. Both answers show for a moment, then the next note.
+- **Results** face each player: accuracy, average answer time and "Practice these" (the notes they missed or were
+  slowest on). No stars; the device keeps a **dojo record** of wins for each player name (in the Arcade Backup Code).
+- **Keyboards:** Player 1 Q–U = A–G (A = ♭, S = ♯); Player 2 1–7 = A–G (8 = ♭, 9 = ♯).
+- **Tuning:** `dojo-duel/levels.js` (point time, stun, reveal, the Sensei's speed and lines).
+
 ## Note Ninja
 
 A note-reading game that **doesn't use the microphone**, so students can play it anywhere, even without their instrument. A note appears on a lit scroll in a neon dojo; they tap its name. Correct answers make the ninja strike the practice target; a wrong answer makes it stumble.

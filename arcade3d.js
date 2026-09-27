@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -100,6 +100,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.66, 1.54], [0.66, 1.72]], screen: [[0.455, 1.07], [0.405, 1.45]], panel: [[0.86, 0.96], [0.56, 1.02]],
       door: {z: 0.98, y0: 0.1, y1: 0.44}, start: [0.66, 0.71],
     },
+    /* duel: a wide two-player dojo cabinet (Dojo Duel): two players at its panel, and a dojo gate on top with two
+       glowing paper lanterns and crossed bamboo practice swords */
+    duel: {
+      width: 1.08, topper: 'lanterns', twoPlayer: true,
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.90, 0.84], [0.90, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.64, 1.46], [0.64, 1.68], [0, 1.68]],
+      marquee: [[0.64, 1.48], [0.64, 1.66]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.90, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
+    },
     /* signal: a deep-space radio console (Lost Signal): a classic body with a radio dish on a mast on top */
     signal: {
       width: 0.94, topper: 'dish',
@@ -123,7 +131,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -149,7 +157,8 @@ window.Arcade = window.Arcade || {};
    'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
    'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad',
    'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail',
-   'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep'].forEach(n => { tok[n] = cssVar(n); });
+   'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep', 'dd-night', 'dd-wood', 'dd-wood-2', 'dd-wood-line', 'dd-paper', 'dd-lantern',
+   'belt-white', 'belt-yellow'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -377,6 +386,31 @@ window.Arcade = window.Arcade || {};
       x.font = `700 ${H * .09}px "GN Quest", sans-serif`; x.fillText('?? ??? ??', W / 2, H * .86);
     },
     /* Sustain Speedway: a synthwave road to a striped sun, lane lines rushing toward you, a car in the middle (as 2D) */
+    /* Dojo Duel: two little ninjas across a glowing center line, a note card between them; they take turns hopping
+       and the score ticks up (as 2D) */
+    duel(x, W, H, t) {
+      const tt = t == null ? .3 : t, ph = tt % 2.4;
+      x.fillStyle = tok['dd-night']; x.fillRect(0, 0, W, H);
+      x.fillStyle = tok['dd-wood']; x.fillRect(0, H * .72, W, H * .28);
+      x.strokeStyle = tok.yellow; x.lineWidth = 3; x.beginPath(); x.moveTo(W / 2, H * .2); x.lineTo(W / 2, H); x.stroke();
+      x.fillStyle = tok.screen; x.fillRect(W * .36, H * .16, W * .28, H * .28);
+      x.strokeStyle = tok.ink; x.lineWidth = 1.5;
+      for (let i = 0; i < 4; i++) { const y = H * (.22 + i * .055); x.beginPath(); x.moveTo(W * .39, y); x.lineTo(W * .61, y); x.stroke(); }
+      x.fillStyle = tok.ink; x.beginPath(); x.ellipse(W * .51, H * .3, W * .022, H * .025, -.35, 0, 7); x.fill();
+      x.fillRect(W * .528, H * .18, 2, H * .12);
+      const hop = p => (p > .19 && p < .72 ? -Math.sin((p - .19) / .53 * Math.PI) * H * .1 : 0);
+      [[.21, this.trim2, 'belt-red', hop(ph)], [.79, this.trim, 'belt-blue', hop((ph + 1.2) % 2.4)]].forEach(([u, c, b, dy]) => {
+        const cx = W * u, cy = H * .56 + dy;
+        x.fillStyle = tok[c + '-hi']; x.beginPath(); x.arc(cx, cy, H * .08, 0, 7); x.fill();
+        x.fillRect(cx - W * .05, cy + H * .09, W * .1, H * .18);
+        x.fillStyle = tok[b]; x.fillRect(cx - H * .08, cy - H * .035, H * .16, H * .03);
+      });
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `${H * .12}px "GN Display", sans-serif`;
+      const s1 = 1 + Math.floor(tt / 2.4) % 6, s2 = Math.floor((tt + 1.2) / 2.4) % 6;
+      x.fillStyle = tok[this.trim2 + '-hi']; x.fillText(String(s1), W * .21, H * .12);
+      x.fillStyle = tok[this.trim + '-hi']; x.fillText(String(s2), W * .79, H * .12);
+      x.fillStyle = tok.yellow; x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('FIRST TO TAP!', W / 2, H * .92);
+    },
     /* Lost Signal: a radar screen, the sweep turning, blips fading in and out as it passes (never a flash) */
     signal(x, W, H, t) {
       const tt = t == null ? 1.1 : t, cx = W / 2, cy = H * .47, R = H * .38;
@@ -662,6 +696,28 @@ window.Arcade = window.Arcade || {};
       const lens = new THREE.Mesh(new THREE.CircleGeometry(.08, 16), basic(col(k.trim2 + '-hi'))); lens.position.z = .09; lamp.add(lens);
       const glow = new THREE.Mesh(new THREE.CircleGeometry(.16, 16), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .095; lamp.add(glow);
       lamp.userData.pick = true; group.add(detail(lamp));
+    } else if (P.topper === 'lanterns') {
+      // a small dojo gate on the roof: a wooden beam with upturned ends on two posts, two paper lanterns hanging from
+      // it (steady glow), and two bamboo practice swords crossed in the middle (Dojo Duel)
+      const fz = frontTop + zc - .1, wood = lambert(col('dd-wood-2'));
+      [-1, 1].forEach(sd => { const post = new THREE.Mesh(new THREE.BoxGeometry(.05, .34, .05), wood); post.position.set(sd * W * .44, topY + .17, fz); group.add(post); });
+      const beamShape = new THREE.Shape([[-W / 2 - .12, .08], [-W / 2, 0], [W / 2, 0], [W / 2 + .12, .08], [W / 2 + .1, .11], [0, .06], [-W / 2 - .1, .11]].map(([a, b]) => new THREE.Vector2(a, b)));
+      const bg = new THREE.ExtrudeGeometry(beamShape, {depth: .1, bevelEnabled: false}); bg.translate(0, topY + .34, fz - .05);
+      const beam = new THREE.Mesh(bg, [lambert(col(k.body)), wood]); beam.userData.pick = true; group.add(beam);
+      neon([[-W / 2 - .12, .08], [-W / 2, 0], [W / 2, 0], [W / 2 + .12, .08]].map(([a, b]) => new THREE.Vector3(a, topY + .34 + b, fz + .054)));
+      [-1, 1].forEach(sd => {
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(.07, 14, 10), basic(col('dd-lantern'))); lamp.scale.set(1, 1.3, 1);
+        lamp.position.set(sd * W * .3, topY + .2, fz + .03); group.add(detail(lamp));
+        const glow = new THREE.Mesh(new THREE.CircleGeometry(.17, 18), basic(col('dd-paper'), {transparent: true, opacity: .28, blending: THREE.AdditiveBlending, depthWrite: false}));
+        glow.position.set(sd * W * .3, topY + .2, fz + .11); group.add(glow);
+        [.105, -.105].forEach(dy => { const cap = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .02, 10), lambert(col('dd-wood-line'))); cap.position.set(sd * W * .3, topY + .2 + dy * .87, fz + .03); group.add(detail(cap)); });
+      });
+      [-.6, .6].forEach(a => {
+        const bam = new THREE.Mesh(new THREE.CylinderGeometry(.016, .016, .42, 8), lambert(col('belt-green'))); bam.rotation.z = a;
+        bam.position.set(0, topY + .17, fz + .02); group.add(detail(bam));
+        const grip = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .1, 8), wood); grip.rotation.z = a;
+        grip.position.set(Math.sin(-a) * .16, topY + .17 + Math.cos(a) * -.16, fz + .02); group.add(detail(grip));
+      });
     } else if (P.topper === 'dish') {
       // a radio dish on a mast, tilted up at the sky, its rim in the trim neon and a glowing receiver tip (Lost Signal)
       const fz = frontTop + zc - .22, metal = lambert(col('cab-metal'));

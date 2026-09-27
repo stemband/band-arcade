@@ -29,6 +29,7 @@
   --bar-metal:#c9ced8; --bar-metal-2:#8d94a3; --bar-metal-hi:#f2f5fa; --bar-ink:#1b2130;
   --term:#07130d; --term-line:rgba(77,255,136,.18); --treasure-brown:#b07a4a;
   /* Ancient Ninja Scrolls: the mountain temple library at night, its scrolls, and the Sensei */
+  --dd-night:#0c0818; --dd-wood:#3a2317; --dd-wood-2:#4a2e1d; --dd-wood-line:#23140c; --dd-paper:#ffd9a0; --dd-lantern:#ff7a3a;   /* Dojo Duel */
   --temple-sky:#0d0a24; --temple-stone:#262235; --temple-stone-2:#34304a; --temple-wood:#3b2419; --temple-mist:rgba(196,186,255,.10);
   --scroll-paper:#fbf1d6; --scroll-paper-2:#ecdcb0; --scroll-rod:#6b3f22; --scroll-seal:#c43a3a;
   --sensei-robe:#2e3170; --sensei-robe-2:#474c9e; --sensei-hair:#efebf7;
@@ -475,3 +476,28 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .ed-demo{margin:8px 0 0;font-weight:700;color:var(--amber)}
 .ed-over .ed-top-h{margin-top:14px}
 .ed-over .ed-list{text-align:left;max-width:440px;margin:0 auto}
+
+/* ---------- THE SENSEI (Arcade.senseiSVG, shared/ui.js: Ancient Ninja Scrolls, Dojo Duel) ---------- */
+.ss-robe{fill:var(--sensei-robe)} .ss-robe2{fill:var(--sensei-robe-2)} .ss-sleeve{fill:var(--sensei-robe-2)}
+.ss-skin{fill:var(--ninja-skin)} .ss-hair{fill:var(--sensei-hair)} .ss-tie{fill:var(--scroll-seal)}
+.ss-ink{fill:var(--ink)} .ss-mouth{fill:var(--ink)}
+.ss-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.ss-brow{fill:none;stroke:var(--sensei-hair);stroke-width:4;stroke-linecap:round}
+.ss-glass{fill:rgba(255,255,255,.18);stroke:var(--ink);stroke-width:1.8}
+.ss-scroll{fill:var(--scroll-paper)} .ss-rod{fill:var(--scroll-rod)}
+
+/* ---------- THE ANSWER PAD (shared/answer-pad.js: Note Ninja's layout, used by Dojo Duel) ----------
+   --pad = the pad's neon color (a token); big thumb-sized buttons in one row */
+.apad{--pad:var(--red);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.apad button{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.apad-accs{display:flex;justify-content:center;gap:10px;margin-bottom:8px}
+.apad-accs[hidden]{display:none}
+.apad-acc{min-width:64px;min-height:44px;border-radius:14px;border:2px solid var(--white-ink);background:var(--deep);color:var(--text-hi);font-family:var(--music);font-size:26px;line-height:1}
+.apad-acc[aria-pressed="true"]{background:var(--pad);border-color:var(--text-hi);color:var(--deep)}
+.apad-letters{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.apad-letter{min-height:clamp(50px,9vh,76px);padding:0;border-radius:14px;border:2px solid var(--pad);background:var(--deep);color:var(--white-hi);
+  font-family:var(--display),var(--music);font-size:clamp(18px,4.2vw,30px);box-shadow:inset 0 -4px 0 rgba(255,255,255,.08)}
+.apad-letter:active{transform:translateY(2px);background:var(--floor-3)}
+.apad-letter.good{background:var(--yellow);color:var(--deep);border-color:var(--yellow-hi)}
+.apad-letter.bad{background:var(--red-ink);border-color:var(--red)}
+.apad.locked .apad-letter,.apad.locked .apad-acc{opacity:.4}
