@@ -81,13 +81,13 @@
       blurb: 'The same scroll comes back each round with one new note on the end. How long a scroll can you remember? 3 lives, no reveals.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
-    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
-      stars: i => A.store.level(key, inst.id, i + 1).stars,
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0});
   }
 
   /* ---------- the level intro: the Ink Master's line + one plain sentence about what's new ---------- */
   function intro(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
     $('introMaster').innerHTML = inkMasterSVG(lv === LEVELS.length ? 'happy' : 'calm');
     $('introSay').textContent = `“${L.say}”`;
@@ -102,12 +102,14 @@
 
   /* ---------- play ---------- */
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
     G = {lv, L, ns: noteSet(L.pool), r: 0, score: 0, hits: 0, total: 0, reveals: 0, key: picker.state.progressKey};
     enterPlay(`Level ${lv}`, L.name);
     nextRound();
   }
   function startEndless() {
+    A.LevelSelect.played('endless');
     const ns = noteSet(END.pool);
     G = {endless: true, ns, round: 0, lives: END.lives, score: 0, longest: 0, hits: 0, total: 0, reveals: 0};
     G.pattern = generate(ns.set, END.startLen, endlessRules(END.startLen));

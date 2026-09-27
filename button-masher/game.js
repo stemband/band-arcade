@@ -119,7 +119,6 @@
     $('rivalGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
     window.scrollTo(0, 0);
     A.LevelSelect.show({screen: $('hub'), grid: $('rivalGrid'), cards: $('rivalGrid').querySelectorAll('.lvl'),
-      stars: i => A.store.level(GAME_ID, member.id, i + 1).stars,
       unlocked: i => A.DEMO || i === 0 || A.store.level(GAME_ID, member.id, i + 1).stars > 0 || A.store.level(GAME_ID, member.id, i).stars > 0,
       lockText: i => `Beat Rival ${i} to unlock`});
   }
@@ -155,6 +154,7 @@
   /** seconds per note for this rival on this instrument (MASHER_RULES.timeByFamily: woodwinds get longer) */
   function timeFor(V) { return V.time * ((RULES.timeByFamily || {})[member.family] || 1); }
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopTimers();
     const V = RIVALS[lv - 1], pool = poolFor(V);

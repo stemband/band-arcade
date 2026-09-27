@@ -60,6 +60,8 @@
 .scroll::before{top:0}
 .scroll::after{bottom:0}
 .scroll .cap{color:var(--ink-2)}
+.scroll.ls-mini{padding:10px 6px 8px}                           /* the half-size staff: room for the rods */
+@media (min-width:700px){ .ls-notes .scroll.ls-mini{width:210px} }
 
 /* ---------- play ---------- */
 .wrap.playing{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;padding-bottom:0}

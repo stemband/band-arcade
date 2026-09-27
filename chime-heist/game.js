@@ -63,7 +63,7 @@
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
     window.scrollTo(0, 0);
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
-      stars: i => A.store.level(key, inst.id, i + 1).stars, unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0,
       lockText: i => `Clear Vault ${i} to unlock`});
   }
 
@@ -137,6 +137,7 @@
   /* ---------- play ---------- */
   let G = null, timerId = 0;
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const V = VAULTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, V, lv);
     const items = seq.items.map(it => ({n: it.n, show: it.show, midi: it.midi, label: it.label}));   // midi: the exact written bar

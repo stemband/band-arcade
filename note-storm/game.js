@@ -86,13 +86,14 @@
       blurb: 'Play until the storm gets you. The notes keep speeding up, and more of them come at once. 3 hearts.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
-    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
-      stars: i => A.store.level(key, inst.id, i + 1).stars, unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0});
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0});
   }
 
   /* ---------- play ---------- */
   let G = null, raf = 0, last = 0;
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stop();
     const L = LEVELS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
@@ -105,6 +106,7 @@
 
   /* ---------- ENDLESS MODE ---------- */
   function startEndless() {
+    A.LevelSelect.played('endless');
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stop();
     const st = picker.state, seq = chunk(0);

@@ -92,13 +92,13 @@
       blurb: 'The same signal comes back each round with one new note on the end. How long a signal can you echo? 3 hearts, no replays.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
-    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
-      stars: i => A.store.level(key, inst.id, i + 1).stars,
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0});
   }
 
   /* ---------- the level intro (one plain sentence about what's new) ---------- */
   function intro(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
     $('introKicker').textContent = `Level ${lv} · ${L.count} transmissions`;
     $('introTitle').textContent = L.name;
@@ -118,6 +118,7 @@
 
   /* ---------- play ---------- */
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
     const ns = noteSet(L.pool);
     G = {lv, L, ns, t: 0, score: 0, hits: 0, total: 0, replays: 0, key: picker.state.progressKey};
@@ -125,6 +126,7 @@
     nextTransmission();
   }
   function startEndless() {
+    A.LevelSelect.played('endless');
     const ns = noteSet(END.pool);
     G = {endless: true, L: {count: Infinity, label: true, find: false, replays: 0, noteMs: END.noteMs, gapMs: END.gapMs},
          ns, round: 0, lives: END.lives, score: 0, longest: 0, hits: 0, total: 0, replays: 0, pattern: null};

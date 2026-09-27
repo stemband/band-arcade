@@ -114,7 +114,6 @@
       if (!gd.storySeen && RULES.storyOnce) showStory(go); else go();
     }));
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: picker ? $('modePick') : null,
-      stars: i => A.store.level(key, who, i + 1).stars,
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars > 0,
       lockText: i => `Clear Showtime ${i} to unlock`});
   }
@@ -129,6 +128,7 @@
   addEventListener('resize', () => { measure(); if (G) G.bots.forEach(place); });
 
   function startShow(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopShow();
     const extra = isExtra(), L = rowFor(lv, extra), boss = L.boss, total = L.bots + (boss ? boss.phases : 0);

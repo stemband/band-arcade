@@ -6,7 +6,7 @@
 .showtime{--st-red:var(--anim-eye-bad);--st-blue:var(--anim-eye-good)}
 .hub-head{margin-bottom:14px}
 .game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95}
-@media (orientation:landscape) and (max-height:800px){ .game-title{font-size:clamp(32px,4vw,50px)} }   /* one line, so the level cards fit a Chromebook screen */
+@media (orientation:landscape) and (max-height:860px){ .game-title{font-size:clamp(32px,4vw,50px)} }   /* one line, so the level cards fit a Chromebook screen */
 .game-title .t1{color:var(--yellow);text-shadow:var(--glow-yellow)}
 .game-title .t2{color:var(--st-red);text-shadow:0 0 4px var(--st-red),0 0 14px color-mix(in srgb,var(--st-red) 50%,transparent);animation:title-glitch 7s steps(1) infinite}
 @keyframes title-glitch{0%,92%,100%{opacity:1;transform:none}93%{opacity:.7;transform:translateX(2px) skewX(-6deg)}95%{opacity:1;transform:none}96%{opacity:.8}}
