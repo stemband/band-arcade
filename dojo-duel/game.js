@@ -12,6 +12,8 @@
   const $ = id => document.getElementById(id);
   const GAME_ID = 'dojo-duel', R = window.DUEL_RULES, PACE = window.DUEL_PACING, CPUS = window.DUEL_SENSEI, LINES = window.DUEL_LINES;
   const BELTS = window.NINJA_BELTS;
+  // every sound of a countdown (preloaded on the setup screen; their fallbacks dojo-count and dojo-reveal come too)
+  const COUNT_SOUNDS = ['sensei-begin', 'dojo-count-3', 'dojo-count-2', 'dojo-count-1', 'dojo-count', 'dojo-begin', 'dojo-count-go'];
   const REF = {treble: 'trumpet', bass: 'trombone'};           // whose notes a clef reads when the player's own instrument doesn't fit
   const KEYS = [
     {letters: ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU'], flat: 'KeyA', sharp: 'KeyS', show: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U'], fs: ['A', 'S']},
@@ -167,6 +169,8 @@
     $('duel').hidden = true; $('paused').hidden = true; $('wrap').hidden = false;
     holdOrientation();
     A.Sfx.setMusic(['dojo-music'], {builtIn: true});
+    // the countdown's sounds load (and decode) now, so the first countdown of a match is on time
+    A.Sfx.prefer(COUNT_SOUNDS);
     renderSetup();
     window.scrollTo(0, 0);
   }
@@ -299,7 +303,11 @@
 
   /* ---------- a point: COUNTDOWN → the NOTE (both sides, one frame) → a tap → the RESULT MOMENT ---------- */
   /** the countdown before a note: buttons locked (a little dimmed), empty staffs, 3-2-1 over both staffs.
-      QUICK / CLASSIC / OFF from the setup; the first note of a match and the note after a new MATCH POINT: CLASSIC */
+      QUICK / CLASSIC / OFF from the setup; the first note of a match and the note after a new MATCH POINT: CLASSIC.
+      SOUNDS: CLASSIC = the spoken numbers dojo-count-3/-2/-1 (each falls back to the dojo-count tick); QUICK = the
+      tick (a spoken number is too long for its steps); OFF = none. Every style: dojo-count-go when the note appears
+      (showNote). The first countdown of a match waits for sensei-begin to end first. Nothing ever stops a sound:
+      each one plays to its end (sfx.js gives every play its own voice). */
   function countdown() {
     if (!M) return;
     M.phase = 'count';
@@ -318,18 +326,35 @@
     const kind = first || M.tense ? 'classic' : S.count;
     M.tense = false;
     M.countKind = kind;
-    if (kind === 'off') { call(''); later(PACE.offMs, () => showNote(false)); return; }
+    call('');
+    if (kind === 'off') { later(PACE.offMs, showNote); return; }
     const step = kind === 'classic' ? PACE.classicStep : PACE.quickStep;
-    [3, 2, 1].forEach((n, k) => later(k * step, () => { call(String(n), 'count'); A.Sfx.event('dojo-count'); }));
-    later(3 * step, () => {
-      if (!first) { showNote(false); return; }
-      call(line('begin'), 'begin'); A.Sfx.sequence(['dojo-begin', 'sensei-begin']);
-      later(PACE.beginMs, () => showNote(true));
+    const run = at => {
+      [3, 2, 1].forEach((n, k) => later(at + k * step, () => {
+        call(String(n), 'count');
+        A.Sfx.event(kind === 'classic' ? 'dojo-count-' + n : 'dojo-count');
+      }));
+      later(at + 3 * step, () => {
+        if (!first) { showNote(); return; }
+        call(line('begin'), 'begin'); A.Sfx.event('dojo-begin');
+        later(PACE.beginMs, showNote);
+      });
+    };
+    if (!first) { run(0); return; }
+    // a match starts with the Sensei's line, once the countdown's sounds are decoded (on time from the very first
+    // number, even right after a fresh page load); the 3 comes after the line has finished (at once when muted)
+    const m = M;
+    A.Sfx.whenReady(COUNT_SOUNDS).then(() => {
+      if (M !== m) return;
+      later(0, () => {
+        const d = A.Sfx.event('sensei-begin');
+        run(d ? Math.min(d * 1000 + 250, PACE.senseiWaitMs) : 0);
+      });
     });
   }
   /** the note appears on BOTH sides and both pads unlock, in this one call (one animation frame: the game-clock
       timers run inside requestAnimationFrame). The note clock (and the Sensei's reaction time) starts now. */
-  function showNote(first) {
+  function showNote() {
     if (!M) return;
     call('');
     M.pt = {t0: M.clock, done: false, hits: [], wrong: [false, false], tapped: [null, null], tie: null, cpu: null};
@@ -343,7 +368,7 @@
     });
     M.phase = 'play';
     sayBoth('');
-    if (!first) A.Sfx.event('dojo-reveal');
+    A.Sfx.event('dojo-count-go');          // "go!" (falls back to dojo-reveal): never both
     if (M.cpu) planCpu();
   }
 
