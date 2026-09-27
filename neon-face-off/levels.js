@@ -35,9 +35,17 @@ window.FACEOFF_RULES = {
   serveTime: 6.0,       // seconds the first shot of a rally takes to cross the table (before power)
   rallySpeedUp: 0.92,   // each return multiplies the rally's base crossing time by this (RALLY ESCALATION)
   serveMax: 8,          // a serve not played within this many seconds goes as a WEAK serve
-  suppressMs: 480,      // after each hit the detector hears nothing this long (the hit sound); the opponent's clock starts after it
-  /* STRIKE POWER from reaction time (seconds from the note appearing to the note registering). The shot's crossing
-     time = base × factor, but never shorter than the receiver's minimum window (+ suppressMs). */
+  /* HIT → NOTE. The receiver's note appears THE MOMENT the puck is hit (reading time is never wasted), with its panel
+     dimmed and "…" while the hit sound still mutes the microphone. When the microphone really listens again (the end of
+     the mute, from the sound manager: never a guess) the panel lights up, and their reaction clock AND the puck's
+     travel start from then, so a sound never shortens anyone's window. */
+  maxHitSuppressMs: 300, // the most an in-rally sound (puck-hit-soft, puck-hit-hard, puck-smash, your-turn) mutes the
+                         // microphone, its echo included. The rest of a longer file keeps playing over the turn; the
+                         // detector's normal hold time (0.28 s of one steady pitch) ignores a short tail. Trim those files
+                         // to under 0.3 s anyway (the Sound Board warns).
+  /* STRIKE POWER from reaction time (seconds from the microphone listening to the note registering). The shot's
+     crossing time = base × factor, but never shorter than the receiver's minimum window (the puck only starts moving
+     once the receiver's microphone listens, so the window is all theirs). */
   power: [
     {label: 'SMASH!', under: 1.0, factor: 0.55, sound: 'puck-smash'},
     {label: 'POWER',  under: 1.8, factor: 0.70, sound: 'puck-hit-hard'},
@@ -45,6 +53,17 @@ window.FACEOFF_RULES = {
     {label: 'WEAK',   under: Infinity, factor: 1.0, sound: 'puck-hit-soft'},
   ],
   serve: 'loser',       // who serves after a goal: 'loser' (the player who was scored on, like real air hockey) or 'alternate'
-  celebrateMs: 1700,    // the goal celebration before the next serve
+  celebrateMs: 1300,    // the goal celebration before the next serve's countdown. With READY-GO (2 × countdown.ready
+                        // + the "Go!" voice, about 0.9 s) a point's break takes about 2.2 s in all
+  /* COUNTDOWNS (shared/countdown.js, voicePrefix 'faceoff'): CLASSIC 3-2-1-GO before the first serve of a match and
+     before the serve after a point that leaves either player ONE point from winning (match point); READY-GO before
+     every other serve after a point; never between rally hits. The microphone is paused during a countdown (nothing
+     played counts, no note shows); the "GO!" voice is the last beat and the serve note appears as it ends. */
+  countdown: {
+    classic: 1000,      // CLASSIC: each of 3, 2, 1 shows this long (then GO!)
+    ready: 450,         // READY-GO: "READY…" this long, then "GO!" at least this long (longer if the Go! voice is longer)
+    goMax: 1000,        // the serve never waits longer than this for the "Go!" voice to finish
+  },
+  tipMs: 2600,          // the first match on a device: the smash tip shows this long on the rink before the countdown
   sounds: true,         // hit, goal and turn sounds (each one mutes the detector while it plays); false = a silent game
 };

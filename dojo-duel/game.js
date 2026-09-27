@@ -313,7 +313,7 @@
   /* ---------- a point: COUNTDOWN → the NOTE (both sides, one frame) → a tap → the RESULT MOMENT ---------- */
   /** the countdown before a note: buttons locked (a little dimmed), empty staffs, 3-2-1 over both staffs.
       QUICK / CLASSIC / OFF from the setup; the first note of a match and the note after a new MATCH POINT: CLASSIC.
-      SOUNDS: CLASSIC = the spoken numbers dojo-count-3/-2/-1 (each falls back to the dojo-count tick); QUICK = the
+      The beats come from shared/countdown.js (Arcade.countdown, voicePrefix 'dojo'). SOUNDS: CLASSIC = the spoken numbers dojo-count-3/-2/-1 (each falls back to the dojo-count tick); QUICK = the
       tick (a spoken number is too long for its steps); OFF = none. Every style: dojo-count-go when the note appears
       (showNote). MATCH START: the gong (dojo-begin) + the Sensei's line (sensei-begin, "Begin!") together, then the
       3-2-1 once both have finished (+introGapMs, at most introMaxMs). A countdown never starts while a voice line
@@ -340,15 +340,9 @@
     M.tense = false;
     M.countKind = kind;
     call('');
-    if (kind === 'off') { later(PACE.offMs, showNote); return; }
-    const step = kind === 'classic' ? PACE.classicStep : PACE.quickStep;
-    const run = at => {
-      [3, 2, 1].forEach((n, k) => later(at + k * step, () => {
-        call(String(n), 'count');
-        A.Sfx.event(kind === 'classic' ? 'dojo-count-' + n : 'dojo-count');
-      }));
-      later(at + 3 * step, showNote);
-    };
+    // the beats and their sounds: shared/countdown.js (the numbers are drawn here, on the game clock)
+    const run = at => A.countdown({style: kind, voicePrefix: 'dojo', later, show: (text, k) => call(text, k), onGo: showNote, delay: at,
+      steps: {classic: PACE.classicStep, quick: PACE.quickStep, off: PACE.offMs}});
     if (!first) { run(0); return; }
     // the match starts once its sounds are decoded (a moment, only on a slow first load): gong + "Begin!" together
     const m = M;

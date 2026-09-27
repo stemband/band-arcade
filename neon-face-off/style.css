@@ -76,6 +76,24 @@
 .banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) skewX(-8deg);margin:0;padding:6px 18px;white-space:nowrap;pointer-events:none;
   font-family:var(--display);font-size:clamp(26px,5vw,52px);text-transform:uppercase;color:var(--yellow);-webkit-text-stroke:2px var(--deep);text-shadow:0 4px 0 var(--deep),var(--glow-yellow)}
 .banner.p1{color:var(--cyan-hi);text-shadow:0 4px 0 var(--deep),var(--glow-cyan)} .banner.p2{color:var(--pink-hi);text-shadow:0 4px 0 var(--deep),var(--glow-pink)}
+/* the receiver's note shows at once; its panel stays dim with "…" until the microphone is live, then glows once */
+.side.waiting .s-note{border-color:color-mix(in srgb,var(--pc) 35%,transparent);opacity:.72}
+.s-status.wait{font-family:var(--display);font-size:28px;letter-spacing:.2em;color:var(--text-lo)}
+.side.live .s-note{animation:live-glow .5s ease-out}
+@keyframes live-glow{from{box-shadow:0 0 0 0 var(--pc)}40%{box-shadow:0 0 18px 2px var(--pc)}to{box-shadow:0 0 0 0 transparent}}
+/* the COUNTDOWN on the rink (shared/countdown.js): big neon beats, scaled in (no flash); portrait: one each way */
+.count{position:absolute;inset:0;display:grid;pointer-events:none;z-index:3}
+.count[hidden]{display:none}
+.count .c-half{display:grid;place-items:center;min-width:0;min-height:0;overflow:hidden}
+.count .c-top{display:none}
+.cn{font-family:var(--display);font-size:clamp(64px,14vmin,150px);line-height:1;color:var(--yellow);-webkit-text-stroke:3px var(--deep);text-shadow:0 5px 0 var(--deep),var(--glow-yellow)}
+.cn.k-ready{font-size:clamp(40px,9vmin,96px);color:var(--cyan-hi);text-shadow:0 5px 0 var(--deep),var(--glow-cyan)}
+.cn.k-go{color:var(--green-hi);text-shadow:0 5px 0 var(--deep),0 0 18px var(--green)}
+.cn.in{animation:cn-in .32s ease-out}
+@keyframes cn-in{from{transform:scale(.55);opacity:.35}to{transform:scale(1);opacity:1}}
+.banner.tip{white-space:normal;max-width:88%;text-align:center;font-size:clamp(18px,2.6vw,28px);line-height:1.2;color:var(--yellow-hi);text-transform:none}
+.smash-tip{margin:0;color:var(--text-hi);font-size:16px;text-align:center}
+.smash-tip b{color:var(--yellow)}
 .match-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
 .score-line{font-family:var(--display);font-weight:400;font-size:24px;color:var(--text-hi)}
 
@@ -88,6 +106,9 @@
   .side .s-note{grid-column:2;grid-row:1/3;min-height:96px}
   .s-note .staff{max-height:110px}
   .side.p2{order:-1;transform:rotate(180deg)}
+  .count{grid-template-rows:1fr 1fr}
+  .count .c-top{display:grid;transform:rotate(180deg)}
+  .cn{font-size:clamp(48px,11vmin,120px)}
   .side.p1{order:1}
   .s-score{font-size:36px}
 }
@@ -113,6 +134,7 @@
 
 @media (prefers-reduced-motion:reduce){
   .s-status.turn{animation:none}
+  .cn.in,.side.live .s-note{animation:none}
   .side{transition:none}
 }
 /* the players' avatars (shared/avatar.js): Player 1 the device's own, Player 2 a GUEST with the magenta 2P marker */

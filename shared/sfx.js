@@ -3,7 +3,8 @@
    (<file>.m4a, else <file>.mp3). A missing or broken file falls back to the sound the arcade already had for that
    action (the generated sounds below), or a short generated retro beep, so nothing ever goes silent; a missing file
    is only noted in the console.
-     Arcade.Sfx.event(name)            play an event (sounds.js). Returns its length in seconds (0 = not played)
+     Arcade.Sfx.event(name, {muteCap})  play an event (sounds.js). Returns its length in seconds (0 = not played).
+                                       muteCap (ms): the most this play may mute the microphone, echo included
      Arcade.Sfx.sequence([names], gap, {channel})  play events one after another, each when the last one ends (its real
                                        length); a voice line waits for any voice still speaking; returns {cancel()}
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   the three original generated sounds
@@ -498,7 +499,7 @@ window.Arcade = window.Arcade || {};
     played.forEach(p => { if (p.voice && p.at + p.dur * 1000 > now) p.dur = Math.max(0, (now - p.at) / 1000 + fade); });
     Object.keys(live).forEach(n => { if (isVoice(n)) live[n] = []; });
   }
-  function playEvent(name, {force = false} = {}) {
+  function playEvent(name, {force = false, muteCap} = {}) {
     if (!force && !ready()) return 0;
     if (force && !ctx) return 0;
     const e = entry(name);
@@ -513,7 +514,8 @@ window.Arcade = window.Arcade || {};
     try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, r.e) : playGen(r.fn); }
     catch (x) { dur = 0; }
     // sounds.js `echo`: a shorter tail. Sfx.muteMax (a page's option, ms): mute only for the first part of a longer sound
-    if (dur && listening()) A.Pitch.suppress(Math.min(dur * 1000, Sfx.muteMax || Infinity) + (e && e.echo != null ? e.echo : ECHO_MS));
+    // muteCap (ms, per play: Neon Face-Off's in-rally sounds): the WHOLE mute, echo included, is never longer; the rest of the sound plays on
+    if (dur && listening()) A.Pitch.suppress(Math.min(Math.min(dur * 1000, Sfx.muteMax || Infinity) + (e && e.echo != null ? e.echo : ECHO_MS), muteCap != null ? muteCap : Infinity));
     if (dur) {
       live[name].push(now + dur * 1000);
       played.push({name, how, dur: +dur.toFixed(3), at: Math.round(now), muted: listening(), voice: isVoice(name)}); if (played.length > 60) played.shift();
@@ -992,7 +994,7 @@ window.Arcade = window.Arcade || {};
       try { return playGen(SOUNDS[name]); } catch (e) { return 0; }
     },
     /** play an event from sounds.js; returns its length in seconds (0 when muted, before the first tap, or not allowed) */
-    event: name => playEvent(name),
+    event: (name, opts) => playEvent(name, opts && opts.muteCap != null ? {muteCap: opts.muteCap} : undefined),
     /** play events one after another (each starts `gap` ms after the one before ends, by its real length); falsy
         names are skipped. A VOICE line (sounds.js voice: true) waits until any voice already speaking has finished,
         so two voices never talk at once. maxStep (ms): the next never waits longer than this (a long recording

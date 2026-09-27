@@ -6,10 +6,14 @@
    MICROPHONE RULES (one mic, two players): only the ACTIVE player's target counts. Every turn the detector is
    switched to that player's instrument and range, and ignoreCurrent() is called, so a note still ringing from the
    other player never counts. Each new target's concert pitch class differs from the note the other player just
-   played. Sounds: every sound mutes the detector for its length + 250 ms (shared/sfx.js; at least RULES.suppressMs).
-   The receiver's note appears only when that window ends (their window is stretched if the wait was long), and the
-   puck and their reaction clock pause during any later window, so a sound never costs anyone time.
-   The CPU plays silently (a flash on its panel), so it never reaches the mic.
+   played. HIT → NOTE: a hit shows the receiver's note AT ONCE (dimmed, "…") while its sound mutes the detector
+   (shared/sfx.js; in a rally at most RULES.maxHitSuppressMs, echo included). The moment the detector really listens
+   again (Pitch.suppressedUntil, checked every frame: `goLive`) the panel lights up and the receiver's reaction clock
+   AND the puck's travel start, so a sound never costs anyone time; the puck and the clock also pause during any later
+   mute. The CPU plays silently (a flash on its panel), so it never reaches the mic.
+   COUNTDOWNS (shared/countdown.js): CLASSIC 3-2-1-GO before the first serve and before a match-point serve, READY-GO
+   after every other point, none between rally hits. The microphone is PAUSED during a countdown and the goal before it
+   (nothing counts, no note shows); the "GO!" voice ends before the serve note appears.
 
    Notes come from shared/sequences.js (each player's own member and NOTES × ORDER, via the shared mode picker).
    Progress (vs CPU only): Arcade.store.setLevel('neon-face-off', <Player 1's member id>, rival 1–8, {stars, best}).
@@ -120,8 +124,11 @@
   let M = null, raf = 0, timers = [];
   const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
   const now = () => performance.now();
-  const sound = name => { if (RULES.sounds) A.Sfx.event(name); };
-  function stopMatch() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0; if (M) M.over = true; A.Pitch.demoNote = null; }
+  const sound = (name, opts) => (RULES.sounds ? A.Sfx.event(name, opts) : 0);
+  const rally = () => ({muteCap: RULES.maxHitSuppressMs});                 // an in-rally sound mutes the mic at most this long
+  /* the microphone pauses for the goal + the countdown (nothing counts), and listens again as the serve note appears */
+  function micPause(on) { if (A.Pitch.pauseListening) A.Pitch.pauseListening(on); A.Sfx.sync(); }
+  function stopMatch() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0; if (M) M.over = true; A.Pitch.demoNote = null; showCount(''); }
 
   function startMatch() {
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
@@ -145,8 +152,36 @@
     });
     score();
     resize();
-    startPoint(0);
+    // this device's first match: the smash tip on the rink first (it is on the setup screen too), then the countdown
+    const firstTime = !saved.smashTip;
+    if (firstTime) { saved.smashTip = true; remember(); banner('', SMASH_TIP, 'tip'); later(() => banner(), RULES.tipMs); }
+    countdownTo(0, 'classic', firstTime ? RULES.tipMs : 0);
     loop();
+  }
+  const SMASH_TIP = 'Play your note FAST to smash: faster notes hit harder and speed up the rally!';
+
+  /* ---------- COUNTDOWNS: before a serve (never between rally hits) ---------- */
+  /** style 'classic' (the match's first serve, a match point) or 'readygo' (after any other point). The mic is paused
+      (nothing counts, no note shows); the "GO!" voice is the last beat, and the serve note appears as it ends. */
+  function countdownTo(server, style, delay = 0) {
+    M.state = 'count'; M.active = null; M.noteAt = 0; M.live = false; M.countStyle = style;
+    (M.countLog = M.countLog || []).push({style, at: Math.round(now())});
+    micPause(true);
+    const u = server === 0 ? .12 : .88;
+    M.puck = {u, v: 0, path: null, t0: now(), T: 1, seg: 0}; M.trail = [];
+    P.forEach((q, k) => { $('side' + (k + 1)).classList.remove('active', 'dim', 'waiting', 'live'); $('side' + (k + 1)).querySelector('.s-note').innerHTML = ''; setStatus(k, '', ''); });
+    setStatus(server, `${P[server].cpu ? P[server].name : 'Player ' + (server + 1)} serves`, '');
+    const m = M;
+    A.countdown({style, voicePrefix: 'faceoff', go: true, delay, steps: RULES.countdown,
+      later: (ms, fn) => later(() => { if (M === m && !m.over) fn(); }, ms),
+      show: (text, kind) => { showCount(text, kind); if (text) M.countLog.push({beat: text, at: Math.round(now())}); },
+      onGo: () => { showCount(''); micPause(false); startPoint(server); }});
+  }
+  /** the countdown's big neon beat, centered on the rink (in portrait twice: one each way, so both players read it) */
+  function showCount(text, kind) {
+    const box = $('count'); if (!box) return;
+    box.hidden = !text;
+    box.querySelectorAll('span').forEach(s => { s.textContent = text || ''; s.className = 'cn' + (kind ? ' k-' + kind : ''); void s.offsetWidth; s.classList.add('in'); });
   }
 
   /* a point: the server's puck waits at their mallet; their note appears; playing it serves */
@@ -154,17 +189,16 @@
     M.server = server; M.rally = 0; M.base = RULES.serveTime; M.state = 'serve';
     const u = server === 0 ? .12 : .88;
     M.puck = {u, v: 0, path: null, t0: now(), T: 1, seg: 0}; M.trail = [];
-    banner(server === 0 ? 'p1' : 'p2', `${P[server].cpu ? P[server].name : 'Player ' + (server + 1)} serves`);
-    later(() => banner(), 1100);
     beginTurn(server, true);
   }
 
-  /* the receiver's turn: switch the detector to them, wait out the sound window, then show their note */
+  /* a turn: switch the detector to this player and show their note AT ONCE (dimmed, "…"); the loop lights it up and
+     starts their clock and the puck when the detector really listens (goLive). A serve comes straight after the
+     countdown's "GO!" (nothing mutes the mic then), so it is live at once. */
   function beginTurn(i, serve) {
     const p = P[i], other = P[1 - i];
-    M.active = i; M.noteAt = 0; M.serveTurn = serve;
-    sound('your-turn');
-    A.Pitch.suppress(RULES.suppressMs);
+    M.active = i; M.noteAt = 0; M.serveTurn = serve; M.live = false;
+    if (!serve) sound('your-turn', rally());
     if (!p.cpu) {
       A.Pitch.setInstrument(p.group);
       if (p.notes === 'first5') A.Pitch.setRange(null); else A.Pitch.setRange(p.member.soundLow, p.member.soundHigh);
@@ -173,10 +207,13 @@
     pickTarget(p, other.lastPc);
     P.forEach((q, k) => $('side' + (k + 1)).classList.toggle('active', k === i));
     P.forEach((q, k) => $('side' + (k + 1)).classList.toggle('dim', k !== i));
-    setStatus(i, serve ? 'Get ready to serve…' : 'Get ready…', '');
     setStatus(1 - i, '', '');
-    $('side' + (i + 1)).querySelector('.s-note').innerHTML = '';
-    later(() => showNote(i), RULES.suppressMs);
+    drawNote(i, p.target);
+    $('side' + (i + 1)).classList.remove('live');
+    $('side' + (i + 1)).classList.add('waiting');
+    setStatus(i, '…', 'wait');
+    M.pendingAt = now();
+    goLiveIfReady(now());                            // nothing is muting the mic: live right away
   }
   function pickTarget(p, avoid) {
     if (p.idx >= p.seq.items.length - 1) { p.seq = A.buildSequence({member: p.member, group: p.group, notes: p.notes, order: p.order, level: 2, count: 400}); p.idx = 0; }
@@ -185,21 +222,17 @@
     if (j > p.idx) [it[p.idx], it[j]] = [it[j], it[p.idx]];
     p.target = it[p.idx++];
   }
-  function showNote(i) {
-    if (!M || M.over || M.active !== i || (M.state !== 'serve' && M.state !== 'travel')) return;
-    const p = P[i];
-    // a sound is still playing (a recording can be longer than suppressMs): the note waits until the detector hears again
-    if (!p.cpu && A.Pitch.isSuppressed()) { later(() => showNote(i), A.Pitch.suppressedUntil - now() + 10); return; }
-    if (!p.cpu && M.state === 'travel') {                               // …and the wait never eats into this player's window
-      const t = now(), left = M.puck.t0 + M.puck.T - t, need = p.window * 1000;
-      if (left < need) {                                                // same spot on the table, slower from here on
-        const f = Math.min(.999, (t - M.puck.t0) / M.puck.T);
-        M.puck.T = need / (1 - f); M.puck.t0 = t - f * M.puck.T;
-      }
-    }
-    A.Pitch.ignoreCurrent();                                            // a note still ringing from before never counts
-    M.noteAt = now();
-    drawNote(i, p.target);
+  /* THE MIC IS LIVE (the real end of the hit sound's mute, from the sound manager): the panel lights up (a short glow),
+     and this player's reaction clock and the puck's travel start NOW. The puck's crossing time was set at the hit
+     (never shorter than this player's window), so however long the mute was, they get all of it. */
+  function goLiveIfReady(t) {
+    if (!M || M.over || M.live || M.active === null || (M.state !== 'serve' && M.state !== 'travel')) return;
+    if (A.Pitch.isSuppressed(t)) return;
+    const i = M.active, p = P[i];
+    M.live = true; M.noteAt = t; M.liveWait = Math.round(t - M.pendingAt);
+    if (M.state === 'travel') { M.puck.t0 = t; M.puck.hold = false; }
+    const side = $('side' + (i + 1));
+    side.classList.remove('waiting'); side.classList.add('live');
     setStatus(i, p.cpu ? (M.serveTurn ? 'Serving…' : 'Coming back…') : M.serveTurn ? 'YOUR SERVE' : 'YOUR TURN', p.cpu ? '' : 'turn');
     if (p.cpu) cpuTurn(i);
     else if (M.serveTurn) later(() => { if (M.active === i && M.state === 'serve' && M.noteAt) strike(i, RULES.serveMax, true); }, RULES.serveMax * 1000);
@@ -219,7 +252,7 @@
 
   /* the microphone: only the active (human) player's note counts */
   A.Pitch.onHeld((pc, t) => {
-    if (!M || M.over || M.active === null || !M.noteAt || (M.state !== 'serve' && M.state !== 'travel')) return;
+    if (!M || M.over || M.active === null || !M.live || !M.noteAt || (M.state !== 'serve' && M.state !== 'travel')) return;
     const p = P[M.active]; if (p.cpu) return;
     if (pc === p.target.pc) { A.colorNote('nt' + M.active, cssVar('--yellow-ink')); strike(M.active, (t - M.noteAt) / 1000); }
     else setStatus(M.active, `That's ${p.seq.name(pc)}. Look again!`, 'bad');   // nothing happens to the puck; time keeps running
@@ -230,14 +263,15 @@
     const p = P[i], q = P[1 - i], pw = auto ? RULES.power[RULES.power.length - 1] : RULES.power.find(x => reaction < x.under);
     const wasServe = M.state === 'serve';
     if (!wasServe) M.base *= RULES.rallySpeedUp;                          // each return speeds the rally up
-    const T = Math.max(M.base * pw.factor, q.window + RULES.suppressMs / 1000);
+    const T = Math.max(M.base * pw.factor, q.window);                     // the puck starts when the receiver's mic listens
     p.lastPc = p.target.pc; p.returns += wasServe ? 0 : 1; if (pw.label === 'SMASH!') p.smashes++;
     if (!auto && (p.best === null || reaction < p.best)) p.best = reaction;
     M.rally++;
-    sound(pw.sound);
+    sound(pw.sound, rally());                                               // mutes the mic at most maxHitSuppressMs
     const from = {u: M.puck.u, v: M.puck.v}, goalU = i === 0 ? 1 : 0;
-    M.puck = {u: from.u, v: from.v, path: makePath(from, goalU), t0: now(), T: T * 1000, seg: 0, power: pw.label};
-    M.state = 'travel'; M.noteAt = 0;
+    M.puck = {u: from.u, v: from.v, path: makePath(from, goalU), t0: now(), T: T * 1000, seg: 0, power: pw.label, hold: true};
+    M.state = 'travel'; M.noteAt = 0; M.live = false;
+    $('side' + (i + 1)).classList.remove('waiting', 'live');
     M.fx.push({u: from.u, v: from.v, t0: now(), label: pw.label, color: p.color, big: pw.label === 'SMASH!' || pw.label === 'POWER'});
     if (pw.label === 'SMASH!' && !reduced.matches) M.shake = now() + 260;
     setStatus(i, `${pw.label}${auto ? '' : ' ' + reaction.toFixed(2) + ' s'}`, 'power ' + pw.label.replace('!', '').toLowerCase());
@@ -264,21 +298,23 @@
   /* a goal: the other player scores; a short celebration, then the next serve */
   function goal(conceder) {
     const scorer = 1 - conceder;
-    P[scorer].score++; M.state = 'celebrate'; M.active = null; M.noteAt = 0;
-    sound('goal'); A.Pitch.suppress(RULES.celebrateMs);
+    P[scorer].score++; M.state = 'celebrate'; M.active = null; M.noteAt = 0; M.live = false;
+    micPause(true);                                  // nothing counts from the goal until the next serve's "GO!"
+    sound('goal');
     score();
-    P.forEach((q, k) => { $('side' + (k + 1)).classList.remove('active', 'dim'); setStatus(k, k === scorer ? 'GOAL!' : '', k === scorer ? 'goal' : ''); });
+    P.forEach((q, k) => { $('side' + (k + 1)).classList.remove('active', 'dim', 'waiting', 'live'); setStatus(k, k === scorer ? 'GOAL!' : '', k === scorer ? 'goal' : ''); });
     banner(scorer === 0 ? 'p1' : 'p2', `Goal! ${P[scorer].cpu ? P[scorer].name : 'Player ' + (scorer + 1)}`);
     if (P[scorer].score >= M.points) { later(() => finish(scorer), RULES.celebrateMs); return; }
     const next = RULES.serve === 'alternate' ? 1 - M.server : conceder;
-    later(() => { banner(); startPoint(next); }, RULES.celebrateMs);
+    const matchPoint = P.some(p => p.score === M.points - 1);             // either player one point from winning: CLASSIC
+    later(() => { banner(); countdownTo(next, matchPoint ? 'classic' : 'readygo'); }, RULES.celebrateMs);
   }
   function score() {
     P.forEach((p, i) => { $('side' + (i + 1)).querySelector('.s-score').textContent = p.score; });
     $('scoreLine').textContent = `${P[0].score} – ${P[1].score}`;
   }
   function setStatus(i, text, cls) { const s = $('side' + (i + 1)).querySelector('.s-status'); s.textContent = text; s.className = 's-status ' + (cls || ''); }
-  function banner(cls, text) { const b = $('banner'); b.hidden = !text; b.textContent = text || ''; b.className = 'banner ' + (cls || ''); }
+  function banner(cls, text, extra) { const b = $('banner'); b.hidden = !text; b.textContent = text || ''; b.className = 'banner ' + (cls || '') + (extra ? ' ' + extra : ''); }
 
   /* ---------- results ---------- */
   function finish(winner) {
@@ -369,8 +405,10 @@
     raf = requestAnimationFrame(loop);
     if (document.hidden || !M) return;
     const t = now(), dt = t - (M.lastT || t); M.lastT = t;
-    // a sound while a player's note is up: the puck and their reaction clock wait (the detector is deaf meanwhile)
-    if (M.state === 'travel' && M.noteAt && !P[M.active].cpu && A.Pitch.isSuppressed(t)) { M.puck.t0 += dt; M.noteAt += dt; }
+    goLiveIfReady(t);                                                   // the hit sound's mute is over: the receiver's turn starts
+    // a later sound while a player's note is live: the puck and their reaction clock wait (the detector is deaf meanwhile)
+    if (M.state === 'travel' && M.live && !P[M.active].cpu && A.Pitch.isSuppressed(t)) { M.puck.t0 += dt; M.noteAt += dt; }
+    if (M.state === 'travel' && M.puck.hold) M.puck.t0 = t;             // the puck waits at the mallet until the receiver's mic is live
     if (M.state === 'travel') {
       const pos = puckAt(t);
       if (pos.seg !== M.puck.seg) { if (M.puck.seg && M.puck.path.pts[M.puck.seg].bounce && (t < A.Pitch.suppressedUntil || P[M.active].cpu)) sound('rail-bounce'); M.puck.seg = pos.seg; }
@@ -437,6 +475,8 @@
   }
   function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
-  A.FaceOff = {P, get M() { return M; }};                                // for tests
+  A.FaceOff = {P, get M() { return M; },                                  // for tests
+    state: () => M && {state: M.state, active: M.active, live: M.live, noteAt: M.noteAt, liveWait: M.liveWait, countStyle: M.countStyle, countLog: M.countLog,
+      hold: !!M.puck.hold, T: M.puck.T, score: P.map(p => p.score), paused: !!A.Pitch.paused, suppressedFor: Math.max(0, Math.round(A.Pitch.suppressedUntil - now()))}};
   showSetup();
 })(window.Arcade);

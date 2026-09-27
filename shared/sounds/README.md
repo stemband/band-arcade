@@ -344,13 +344,23 @@ silence at the end (today, for example, `dojo-point` is a 10 s file: about 5 s o
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `puck-hit-soft` | `puck-hit-soft.m4a` or `puck-hit-soft.mp3` | Neon Face-Off: a WEAK shot. **during play: under 0.5 s** | under 0.5 s (0.1–0.2 s) |
-| `puck-hit-hard` | `puck-hit-hard.m4a` or `puck-hit-hard.mp3` | Neon Face-Off: a GOOD or POWER shot. **during play: under 0.5 s** | under 0.5 s (0.1–0.25 s) |
-| `puck-smash` | `puck-smash.m4a` or `puck-smash.mp3` | Neon Face-Off: a SMASH! shot. **during play: under 0.5 s** | under 0.5 s (0.2–0.35 s) |
+| `puck-hit-soft` | `puck-hit-soft.m4a` or `puck-hit-soft.mp3` | Neon Face-Off: a WEAK shot. **during play: trim to under 0.3 s** | under 0.3 s (0.1–0.2 s) |
+| `puck-hit-hard` | `puck-hit-hard.m4a` or `puck-hit-hard.mp3` | Neon Face-Off: a GOOD or POWER shot. **during play: trim to under 0.3 s** | under 0.3 s (0.1–0.25 s) |
+| `puck-smash` | `puck-smash.m4a` or `puck-smash.mp3` | Neon Face-Off: a SMASH! shot. **during play: trim to under 0.3 s** | under 0.3 s (0.15–0.3 s) |
 | `rail-bounce` | `rail-bounce.m4a` or `rail-bounce.mp3` | Neon Face-Off: the puck bounces off a rail (only while the microphone is already muted, or on the CPU's turn). **during play: under 0.5 s** | under 0.1 s |
 | `goal` | `goal.m4a` or `goal.mp3` | Neon Face-Off: a goal. | 0.5–1.5 s |
 | `match-win` | `match-win.m4a` or `match-win.mp3` | Neon Face-Off: the match is won. | 0.8–1.5 s |
-| `your-turn` | `your-turn.m4a` or `your-turn.mp3` | Neon Face-Off: the turn changes. **during play: under 0.5 s** | under 0.2 s |
+| `your-turn` | `your-turn.m4a` or `your-turn.mp3` | Neon Face-Off: the turn changes (the receiver's note appears). In a rally it mutes the microphone for at most 0.3 s. **during play: under 0.5 s** | under 0.2 s |
+| `faceoff-count-3` | `faceoff-count-3.m4a` or `faceoff-count-3.mp3` | Neon Face-Off: the spoken "3!" of a CLASSIC countdown (before the first serve of a match, and before the serve after a point that leaves someone at MATCH POINT). Missing: `dojo-count-3`, then the `dojo-count` tick. **voice** | under 0.8 s |
+| `faceoff-count-2` | `faceoff-count-2.m4a` or `faceoff-count-2.mp3` | Neon Face-Off: the spoken "2!", 1 second after the 3. Missing: `dojo-count-2`, then the tick. **voice** | under 0.8 s |
+| `faceoff-count-1` | `faceoff-count-1.m4a` or `faceoff-count-1.mp3` | Neon Face-Off: the spoken "1!", 1 second after the 2. Missing: `dojo-count-1`, then the tick. **voice** | under 0.8 s |
+| `faceoff-ready` | `faceoff-ready.m4a` or `faceoff-ready.mp3` | Neon Face-Off: the spoken "Ready…" of a READY-GO countdown (before the serve after every point). Missing: the `dojo-count` tick. **voice** | under 0.45 s |
+| `faceoff-count-go` | `faceoff-count-go.m4a` or `faceoff-count-go.mp3` | Neon Face-Off: the spoken "Go!" on the LAST beat of every countdown; the serve note appears (and the microphone listens) as it ends. Missing: `dojo-count-go`, then `dojo-reveal`. **voice** | under 0.45 s |
+
+**Neon Face-Off timing.** The puck sounds (`puck-hit-soft`, `puck-hit-hard`, `puck-smash`) and `your-turn` play in the
+middle of a rally: the microphone is muted for at most 0.3 s of each (`maxHitSuppressMs` in `neon-face-off/levels.js`),
+so **trim them to under 0.3 s** (the Sound Board warns about longer ones). The countdown voices play while the
+microphone is paused, so they never mute anything; trim them so each word starts at once.
 
 ### Showtime Malfunction
 
