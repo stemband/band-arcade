@@ -25,8 +25,9 @@ window.Arcade = window.Arcade || {};
   /* ---------- staff ----------
      Lines at y = 56..120 (16px per space). One diatonic step = 8px.
      items: [{n, x, id?, color?, caption?}]   (n.natural: draw a natural sign, for a note the key signature would change)
-     opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count}}
-     With a key signature, start the notes keySigWidth(sig) further right so nothing collides. */
+     opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count},
+             sigStyle: 'big' (the Note Checker: the key signature further from the clef, larger ♯/♭)}
+     With a key signature, start the notes keySigWidth(sig, sigStyle) further right so nothing collides. */
   const STAFF_BOTTOM = 120, MID_LINE = 88;
   function noteY(clef, n) {
     const base = clef === 'treble' ? 30 /* E4 */ : 18 /* G2 */;
@@ -55,12 +56,16 @@ window.Arcade = window.Arcade || {};
     bass:   {'#': ['F3', 'C3', 'G3', 'D3', 'A2', 'E3', 'B2'], b: ['B2', 'E3', 'A2', 'D3', 'G2', 'C3', 'F2']},
   };
   const SIG_X = {treble: 54, bass: 60}, SIG_GAP = 12;
+  // sizes of a key signature: normal (every game) and 'big' (the Note Checker: more room after the clef, larger signs)
+  const SIG_STYLES = {normal: {dx: 0, size: 48, gap: SIG_GAP, dy: 5, after: 14}, big: {dx: 14, size: 62, gap: 17, dy: 6.5, after: 26}};
+  const sigStyle = st => SIG_STYLES[st] || SIG_STYLES.normal;
   /** extra room a key signature takes after the clef (add it to the first note's x) */
-  A.keySigWidth = sig => sig && sig.count ? 14 + sig.count * SIG_GAP : 0;
-  function keySigSVG(clef, sig) {
+  A.keySigWidth = (sig, style) => { const S = sigStyle(style); return sig && sig.count ? S.dx + S.after + sig.count * S.gap : 0; };
+  function keySigSVG(clef, sig, style) {
     if (!sig || !sig.count) return '';
+    const S = sigStyle(style);
     return SIG_STEPS[clef][sig.type].slice(0, sig.count).map((nm, i) =>
-      `<text class="ksig" x="${SIG_X[clef] + i * SIG_GAP}" y="${noteY(clef, A.music.parseNote(nm)) + 5}" ${MUSIC_FONT} font-size="48" fill="${INK}">${sig.type === 'b' ? '♭' : '♯'}</text>`).join('');
+      `<text class="ksig" x="${SIG_X[clef] + S.dx + i * S.gap}" y="${noteY(clef, A.music.parseNote(nm)) + S.dy}" ${MUSIC_FONT} font-size="${S.size}" fill="${INK}">${sig.type === 'b' ? '♭' : '♯'}</text>`).join('');
   }
   A.keySigSVG = keySigSVG;
 
@@ -80,7 +85,7 @@ window.Arcade = window.Arcade || {};
     s += clef === 'treble'
       ? `<text x="14" y="119" ${MUSIC_FONT} font-size="64" fill="${INK}">𝄞</text>`
       : `<text x="16" y="111" ${MUSIC_FONT} font-size="62" fill="${INK}">𝄢</text>`;
-    s += keySigSVG(clef, opts.keySig);
+    s += keySigSVG(clef, opts.keySig, opts.sigStyle);
     items.forEach(it => { s += `<g${it.id ? ` id="${it.id}"` : ''}>${A.noteGlyph(clef, it, capY)}</g>`; });
     return s + `</svg>`;
   };
