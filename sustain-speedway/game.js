@@ -63,10 +63,14 @@
         <span class="n">Track ${lv}</span><span class="t">${L.name}</span>
         <span class="d">${L.blurb}</span>
         <span class="facts">${L.laps} laps · ${lapTxt} a lap${L.tunnels ? ' · tunnels' : ''}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${!open ? 'Win the track before to open' : p.best ? 'Best ' + fmt(p.best / 10) + (bl ? ` · lap ${bl.toFixed(1)} s` : '') : ''}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${!open ? '' : p.best ? 'Best ' + fmt(p.best / 10) + (bl ? ` · lap ${bl.toFixed(1)} s` : '') : ''}</span></span>
       </button>`;
     }).join('');
     $('trackGrid').querySelectorAll('.trk').forEach(b => b.addEventListener('click', () => { const lv = +b.dataset.l; A.requireMic(() => startRace(lv)); }));
+    A.LevelSelect.show({screen: $('hub'), grid: $('trackGrid'), cards: $('trackGrid').querySelectorAll('.trk'), picker: $('modePick'),
+      stars: i => A.store.level(key, who, i + 1).stars,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars >= 3,
+      lockText: i => `Win Track ${i} to unlock`});
   }
 
   /* ---------- a race ---------- */

@@ -177,6 +177,7 @@
     A.Sfx.preloadScreen('dojo-duel');
     renderSetup();
     window.scrollTo(0, 0);
+    A.LevelSelect.highlight({screen: $('wrap'), el: $('goBtn')});   // BEGIN THE DUEL glows, has the focus, and gets the idle hint
   }
 
   /* ---------- the duel ---------- */

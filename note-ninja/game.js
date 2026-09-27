@@ -41,7 +41,6 @@
     $('hubCap').textContent = card.cap;
     $('hubConcert').textContent = card.sub;
     $('hubStaff').innerHTML = card.html;
-    $('levelsTitle').textContent = st.scale ? `Belts: ${st.scale.name}` : 'Belts';
     $('levelGrid').innerHTML = BELTS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       // open: belt 1, the belt after a cleared one, or any belt that already has stars (e.g. moved up when Red was added)
@@ -53,7 +52,7 @@
         <span class="mini" aria-hidden="true"><i class="belt-knot"></i></span>
         <span class="t">${L.onStaff > 1 ? `Read ahead ×${L.onStaff}` : count + ' notes'}</span>
         <span class="d">${blurb}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : ''}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
@@ -62,6 +61,10 @@
       blurb: 'Name notes until your 3 hearts are gone. The timer keeps getting shorter, and more notes come at once. A wrong answer or running out of time costs a heart.',
       onPlay: startEndless}));
     window.scrollTo(0, 0);
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
+      stars: i => A.store.level(key, inst.id, i + 1).stars,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0,
+      lockText: i => `Clear the ${BELTS[i - 1].name} Belt to unlock`});
   }
 
   /* ---------- play ---------- */

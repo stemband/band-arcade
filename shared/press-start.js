@@ -68,7 +68,7 @@ window.Arcade = window.Arcade || {};
       `<button type="button" class="ps-go">Press start</button>` +
       `<p class="ps-hint">${touchFirst() ? 'Tap anywhere or press any key' : 'Click anywhere or press any key'}</p>` +
       (line ? `<p class="ps-stars">${esc(line)}</p>` : '');
-    const place = () => { const r = bar && bar.getBoundingClientRect(); el.style.setProperty('--ps-top', Math.max(0, r ? r.bottom + 6 : 0) + 'px'); };
+    const place = () => { if (!el) return; const r = bar && bar.getBoundingClientRect(); el.style.setProperty('--ps-top', Math.max(0, r ? r.bottom + 6 : 0) + 'px'); };
     place(); requestAnimationFrame(place); addEventListener('resize', place);   // again once the top bar is built
     document.body.appendChild(el);
     if (A.Marquee) { A.Marquee.hydrate(el); A.Marquee.animate(el.querySelector('.ps-mq'), 'title'); }

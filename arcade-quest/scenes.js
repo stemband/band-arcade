@@ -43,6 +43,9 @@
                 onBack: () => { c.destroy(); menu(); }});
           }
         }});
+        // CONTINUE (or NEW GAME) glows, has the focus and gets the idle hint (shared/level-select.js)
+        const first = Q.$('qTitleMenu').querySelector('.q-btn');
+        if (A.LevelSelect && first) A.LevelSelect.highlight({screen: Q.$('qTitleMenu'), el: first});
       };
       // PRESS START while the audio is still locked: browsers allow sound only after a tap, so the first tap on this
       // page starts the title music (shared/sfx.js unlocks on that same tap) instead of leaving the title at once

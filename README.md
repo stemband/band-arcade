@@ -475,6 +475,22 @@ bar (← Arcade, sound) still works on the title screen. It shows only when the 
 and never turns on the microphone (that still happens when a level starts). Arcade Quest keeps its own title screen;
 the Note Checker has none. Add `?nostart` to a game's address to skip it while testing.
 
+## Select a level (every game's first screen)
+
+After PRESS START, every game's first screen makes the next step obvious:
+
+- **SELECT A LEVEL** in big announcer letters right above the level cards (with **① PICK YOUR NOTES** on the note
+  picker and **② SELECT A LEVEL** on the heading, in games that have a note picker). The announcer says "Select a level"
+  (the `select-level` sound, at most once a minute).
+- **The next level to play glows** and says **▶ PLAY**: the first level without stars (Level 1 for a new student), or
+  once every open level has stars, the first one without all three. It has the keyboard focus, so Enter starts it.
+- If nobody taps for 5 seconds, a **bouncing arrow** points at it.
+- **Locked levels** are dimmed with a lock and what opens them ("Clear Level 3 to unlock").
+- The level cards now come right after the note picker; the "Your first five notes" staff, the Note Checker link and
+  other extras moved below them.
+
+Dojo Duel's BEGIN THE DUEL, Neon Face-Off's START MATCH and Arcade Quest's CONTINUE / NEW GAME glow the same way.
+
 ## Menu backgrounds
 
 Every game's menu screens (level select, mode picker, level intros, results, setup and title screens) have a moving

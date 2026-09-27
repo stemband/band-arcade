@@ -62,7 +62,6 @@
     $('hub').hidden = false; $('wrap').classList.remove('in-play');
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
-    $('levelsTitle').textContent = st.scale ? `Levels: ${st.scale.name}` : 'Levels';
     $('levelGrid').innerHTML = LEVELS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const open = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, inst.id, lv - 1).stars > 0;
@@ -72,7 +71,7 @@
         <span class="mini" aria-hidden="true">${'<i></i>'.repeat(L.len)}</span>
         <span class="t">${L.name}</span>
         <span class="d">${bits.join(' · ')}${stepOnly() ? ' · stepwise' : ''}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${open ? (p.best ? 'Best ' + p.best : L.rounds + ' scrolls') : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${open ? (p.best ? 'Best ' + p.best : L.rounds + ' scrolls') : ''}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => intro(+b.dataset.l)));
@@ -82,6 +81,9 @@
       blurb: 'The same scroll comes back each round with one new note on the end. How long a scroll can you remember? 3 lives, no reveals.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
+      stars: i => A.store.level(key, inst.id, i + 1).stars,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0});
   }
 
   /* ---------- the level intro: the Ink Master's line + one plain sentence about what's new ---------- */

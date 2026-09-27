@@ -113,11 +113,15 @@
         <span class="mini">${unlocked ? rivalSVG(V) : '<svg class="rival-svg" viewBox="0 -10 120 160" aria-hidden="true"><text class="r-lock" x="60" y="100" text-anchor="middle" font-size="80">?</text></svg>'}</span>
         <span class="t">${unlocked ? V.name : '???'}</span>
         <span class="d">${bits.filter(Boolean).join(' ')}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : `${V.health} hits to win`) : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : `${V.health} hits to win`) : ''}</span></span>
       </button>`;
     }).join('');
     $('rivalGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
     window.scrollTo(0, 0);
+    A.LevelSelect.show({screen: $('hub'), grid: $('rivalGrid'), cards: $('rivalGrid').querySelectorAll('.lvl'),
+      stars: i => A.store.level(GAME_ID, member.id, i + 1).stars,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(GAME_ID, member.id, i + 1).stars > 0 || A.store.level(GAME_ID, member.id, i).stars > 0,
+      lockText: i => `Beat Rival ${i} to unlock`});
   }
 
   /* ---------- the notes of a match ---------- */

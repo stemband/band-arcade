@@ -34,30 +34,12 @@
      late, on the first tap). A tap on an instrument (or the arrows, CONTINUE, SELECT) before it starts cancels it.
      A panel over the screen (the first visit's "Create your player?", an UNLOCKED! card) holds it until it closes. */
   function announce(me, view, on) {
-    let heard = 0; try { heard = +sessionStorage.getItem(VOICE_KEY) || 0; } catch (e) { /* private mode */ }
-    if (!A.Sfx.started || Date.now() - heard < VOICE_GAP) return;
-    let off = false;
-    const cancel = () => { off = true; };
-    on(view, 'pointerdown', e => { if (e.target.closest('.tile, #continueBtn, #selectBtn')) cancel(); }, {capture: true});
-    on(window, 'keydown', e => { if (/^(Arrow|Enter$| $)/.test(e.key)) cancel(); }, {capture: true});
-    const t0 = performance.now();
-    const go = () => {
-      if (off || live !== me) return;
-      const wait = Math.max(VOICE_DELAY - (performance.now() - t0), A.Sfx.busy());
-      if (wait > 20) { setTimeout(go, wait); return; }
+    const h = A.Sfx.announce('choose-instrument', {key: VOICE_KEY, gap: VOICE_GAP, delay: VOICE_DELAY, alive: () => live === me,
       // a panel on top ("Create your player?", an UNLOCKED! card, the creator, the LOCKER): the line waits for it
-      if (document.body.classList.contains('avc-open') || document.querySelector('body>.overlay:not([hidden]), #locker:not([hidden])')) { setTimeout(go, 300); return; }
-      if (!A.Sfx.unlocked) return;
-      A.Sfx.whenReady('choose-instrument', 400).then(() => {
-        if (off || live !== me) return;
-        const d = A.Sfx.event('choose-instrument');
-        if (!d) return;                                               // muted: not heard, so not counted
-        try { sessionStorage.setItem(VOICE_KEY, String(Date.now())); } catch (e) { /* private mode */ }
-        A.Sfx.duck(d * 1000);
-        const h = $('spTitle'); h.classList.remove('say'); void h.offsetWidth; h.classList.add('say');
-      });
-    };
-    setTimeout(go, VOICE_DELAY);
+      hold: () => document.body.classList.contains('avc-open') || !!document.querySelector('body>.overlay:not([hidden]), #locker:not([hidden])'),
+      onPlay: () => { const t = $('spTitle'); t.classList.remove('say'); void t.offsetWidth; t.classList.add('say'); }});
+    on(view, 'pointerdown', e => { if (e.target.closest('.tile, #continueBtn, #selectBtn')) h.cancel(); }, {capture: true});
+    on(window, 'keydown', e => { if (/^(Arrow|Enter$| $)/.test(e.key)) h.cancel(); }, {capture: true});
   }
 
   function open(game, opts = {}) {

@@ -158,3 +158,5 @@
 @keyframes pop{from{transform:translate(-50%,-50%) skewX(-8deg) scale(1.6);opacity:0}}
 @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @media (prefers-reduced-motion:reduce){ .g-needle,.bar i{transition:none} }
+
+.hub-more{margin:16px 0 4px}

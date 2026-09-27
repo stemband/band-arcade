@@ -45,7 +45,6 @@
     $('wrap').classList.remove('playing'); lasers(0);
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
-    $('levelsTitle').textContent = `Vaults: ${st.scale ? st.scale.name : 'First five'}`;
     $('levelGrid').innerHTML = VAULTS.map((V, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
@@ -58,11 +57,14 @@
         <span class="mini">${unlocked ? treasureSVG(V.treasure) : '<svg class="tr" viewBox="0 0 100 90" aria-hidden="true"><circle class="tr-steel" cx="50" cy="45" r="34"/><circle class="tr-line" cx="50" cy="45" r="12"/></svg>'}</span>
         <span class="t">${V.name}</span>
         <span class="d">${bits.filter(Boolean).join(' ')}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : ''}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
     window.scrollTo(0, 0);
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
+      stars: i => A.store.level(key, inst.id, i + 1).stars, unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0,
+      lockText: i => `Clear Vault ${i} to unlock`});
   }
 
   /* ---------- the bell kit: G3–C6, naturals below, sharps/flats raised above in groups of 2 and 3 ---------- */
