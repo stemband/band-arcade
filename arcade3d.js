@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -100,6 +100,13 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.66, 1.54], [0.66, 1.72]], screen: [[0.455, 1.07], [0.405, 1.45]], panel: [[0.86, 0.96], [0.56, 1.02]],
       door: {z: 0.98, y0: 0.1, y1: 0.44}, start: [0.66, 0.71],
     },
+    /* signal: a deep-space radio console (Lost Signal): a classic body with a radio dish on a mast on top */
+    signal: {
+      width: 0.94, topper: 'dish',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
     quest: {
       width: 0.94,
@@ -116,7 +123,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -141,7 +148,8 @@ window.Arcade = window.Arcade || {};
    'amber', 'amber-hi', 'amber-ink', 'green', 'green-hi', 'green-ink', 'red-hi', 'red-ink', 'white', 'white-hi', 'white-ink', 'blue', 'blue-hi', 'blue-ink',
    'dojo-wood', 'dojo-wood-2', 'dojo-paper', 'dojo-paper-dim', 'gold-ink', 'led-off', 'scroll-paper', 'scroll-rod', 'temple-wood', 'temple-sky',
    'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad',
-   'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail'].forEach(n => { tok[n] = cssVar(n); });
+   'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail',
+   'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -369,6 +377,24 @@ window.Arcade = window.Arcade || {};
       x.font = `700 ${H * .09}px "GN Quest", sans-serif`; x.fillText('?? ??? ??', W / 2, H * .86);
     },
     /* Sustain Speedway: a synthwave road to a striped sun, lane lines rushing toward you, a car in the middle (as 2D) */
+    /* Lost Signal: a radar screen, the sweep turning, blips fading in and out as it passes (never a flash) */
+    signal(x, W, H, t) {
+      const tt = t == null ? 1.1 : t, cx = W / 2, cy = H * .47, R = H * .38;
+      x.fillStyle = tok['ls-scope']; x.fillRect(0, 0, W, H);
+      x.strokeStyle = tok['ls-grid']; x.lineWidth = 2;
+      for (let k = 1; k <= 3; k++) { x.beginPath(); x.arc(cx, cy, R * k / 3, 0, Math.PI * 2); x.stroke(); }
+      x.beginPath(); x.moveTo(cx - R, cy); x.lineTo(cx + R, cy); x.moveTo(cx, cy - R); x.lineTo(cx, cy + R); x.stroke();
+      const ang = tt * 2.1 - Math.PI / 2;
+      x.fillStyle = tok['ls-sweep']; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R, ang - .5, ang); x.closePath(); x.fill();
+      x.strokeStyle = tok['ls-ping']; x.lineWidth = 3; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R); x.stroke();
+      [[.6, .55], [2.4, .8], [4.1, .4]].forEach(([ba, br]) => {
+        const since = (((ang - ba) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / 2.1, a = Math.max(0, 1 - since / 1.3);
+        x.globalAlpha = a; x.fillStyle = tok['ls-ping']; x.beginPath(); x.arc(cx + Math.cos(ba) * br * R, cy + Math.sin(ba) * br * R, H * .025, 0, 7); x.fill();
+      });
+      x.globalAlpha = 1;
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok['ls-wave'];
+      x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('INCOMING…', W / 2, H * .93);
+    },
     speedway(x, W, H, t) {
       const hor = H * .47, tt = t == null ? 0 : t;
       x.fillStyle = tok['sw-sky-mid']; x.fillRect(0, 0, W, hor);
@@ -636,6 +662,19 @@ window.Arcade = window.Arcade || {};
       const lens = new THREE.Mesh(new THREE.CircleGeometry(.08, 16), basic(col(k.trim2 + '-hi'))); lens.position.z = .09; lamp.add(lens);
       const glow = new THREE.Mesh(new THREE.CircleGeometry(.16, 16), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .095; lamp.add(glow);
       lamp.userData.pick = true; group.add(detail(lamp));
+    } else if (P.topper === 'dish') {
+      // a radio dish on a mast, tilted up at the sky, its rim in the trim neon and a glowing receiver tip (Lost Signal)
+      const fz = frontTop + zc - .22, metal = lambert(col('cab-metal'));
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(.018, .024, .2, 8), metal); mast.position.set(-W * .18, topY + .1, fz); group.add(detail(mast));
+      const dish = new THREE.Group(); dish.position.set(-W * .18, topY + .24, fz); dish.rotation.set(-.55, .35, 0);
+      const bowlMat = lambert(col('cab-side')); bowlMat.side = THREE.DoubleSide;
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 10, 0, Math.PI * 2, 0, .9), bowlMat);
+      bowl.rotation.x = -Math.PI / 2; bowl.position.z = .16; dish.add(bowl);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.157, .01, 6, 32), basic(col(k.trim + '-hi'))); rim.position.z = .035; dish.add(rim);
+      const glow = new THREE.Mesh(new THREE.TorusGeometry(.157, .03, 6, 32), basic(col(k.trim), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .035; dish.add(glow);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .16, 6), metal); arm.rotation.x = Math.PI / 2; arm.position.z = .1; dish.add(arm);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(.024, 10, 8), basic(col(k.trim2 + '-hi'))); tip.position.z = .19; dish.add(tip);
+      dish.userData.pick = true; group.add(detail(dish));
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {

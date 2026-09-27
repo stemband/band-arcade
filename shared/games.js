@@ -193,6 +193,18 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
   {
+    id: 'lost-signal',
+    name: 'Lost Signal',
+    skill: 'Playing by ear',
+    blurb: 'An alien probe is sending melodies across the galaxy. Listen to each transmission, then echo it back on your instrument to make contact.',
+    maxStars: 24,
+    color: 'cyan',
+    noteModes: true,                                 // NOTES × ORDER: the note set the transmissions are made from
+    marquee: {scene: 'radio', colors: ['ls-wave', 'ls-ping', 'text-hi'], titleFit: 'max', titleLayouts: [['LOST  SIGNAL'], ['LOST', 'SIGNAL']]},
+    cabinet: {shape: 'signal', trim: 'cyan', trim2: 'green', marquee: 'signal', kicker: 'Play by ear', screen: 'signal'},
+    cabinet3d: {profile: 'signal', body: 'cab-side'},
+  },
+  {
     id: 'arcade-quest',
     name: 'Arcade Quest',
     skill: 'RPG adventure',

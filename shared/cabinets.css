@@ -286,6 +286,23 @@
 .shape-speedway .s-sun2{stroke:var(--u);stroke-width:5;stroke-linecap:round;opacity:.85}
 .shape-speedway .s-flag{stroke:var(--white-hi);stroke-width:5;stroke-dasharray:6 6;opacity:.7}
 
+/* signal: a deep-space radio console (Lost Signal) */
+.mq-signal{background:linear-gradient(180deg,var(--deep),var(--ls-scope));border:.12em solid var(--t);border-radius:.9em .9em .2em .2em;box-shadow:var(--t-glow)}
+.shape-signal .s-bar{fill:var(--t);opacity:.8}.shape-signal .s-bar2{fill:var(--u)}
+.shape-signal .s-wave{fill:none;stroke:var(--u);stroke-width:4;stroke-linecap:round;opacity:.8}
+.scr-signal{background:var(--ls-scope)}
+.scr-signal svg{width:100%;height:auto}
+.scr-signal .sg-ring{fill:none;stroke:var(--ls-grid);stroke-width:1.2}
+.scr-signal .sg-sweep path{fill:var(--ls-sweep)}.scr-signal .sg-sweep line{stroke:var(--ls-ping);stroke-width:2}
+.scr-signal .sg-sweep{transform-origin:80px 52px;transform-box:view-box}
+.scr-signal .sg-blip{fill:var(--ls-ping);opacity:.6}
+.scr-signal .sg-cap{fill:var(--ls-wave);font:700 9px var(--display);letter-spacing:.1em}
+.attract .scr-signal .sg-sweep{animation:sg-turn 3s linear infinite}
+.attract .scr-signal .sg-blip{opacity:0;animation:sg-blip 3s ease-out infinite}
+.attract .scr-signal .b2{animation-delay:1.3s}.attract .scr-signal .b3{animation-delay:2.1s}
+@keyframes sg-turn{to{transform:rotate(360deg)}}
+@keyframes sg-blip{0%{opacity:0}8%{opacity:1}60%,100%{opacity:0}}
+
 /* quest: a pixel-art marquee: a big 8-bit microphone beside ARCADE QUEST in the pixel font, on a dark scanline sign */
 .mq-quest{background:repeating-linear-gradient(0deg,var(--deep) 0 .12em,color-mix(in srgb,var(--u) 18%,var(--deep)) .12em .24em);border:.18em solid var(--t);
   border-radius:0;box-shadow:inset 0 0 0 .12em var(--deep),var(--t-glow);gap:.35em}

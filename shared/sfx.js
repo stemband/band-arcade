@@ -147,6 +147,19 @@ window.Arcade = window.Arcade || {};
     o.connect(g); g.connect(master);
     o.start(t); o.stop(t + len + 0.02);
   }
+  /** UNPITCHED: band-passed noise around freq (or sweeping [from, to]), width q (low = wide, no pitch to hear).
+      sounds.js `gen` entries with type 'noise' use it: static, clicks and sweeps the microphone can't take for a note. */
+  function noiseBurst(freq, at, len, vol = 0.3, q = 0.8) {
+    const t = ctx.currentTime + at, n = noise(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    const [f0, f1] = Array.isArray(freq) ? freq : [freq, freq];
+    f.type = 'bandpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + len);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.01, len / 4)); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    n.connect(f); f.connect(g); g.connect(master);
+    n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02);
+    span = Math.max(span, at + len);
+  }
   let noiseBuf = null;
   function noise() {
     if (!noiseBuf) {
@@ -280,7 +293,7 @@ window.Arcade = window.Arcade || {};
     if (CURRENT[name]) return {fn: CURRENT[name], kind: 'fallback'};
     if (e && e.gen) {
       if (typeof e.gen === 'string') return {fn: EVENTS[e.gen] || GENERIC[e.gen] || CURRENT[e.gen] || GENERIC.retro, kind: 'fallback'};
-      return {fn: () => e.gen.forEach(([f, at, len, v = 0.3, type]) => tone(f, at, len, v, type)), kind: 'fallback'};
+      return {fn: () => e.gen.forEach(([f, at, len, v = 0.3, type, q]) => type === 'noise' ? noiseBurst(f, at, len, v, q) : tone(f, at, len, v, type)), kind: 'fallback'};
     }
     return {fn: GENERIC[name] || GENERIC.retro, kind: 'generated'};
   }
@@ -791,6 +804,9 @@ window.Arcade = window.Arcade || {};
     },
     get events() { return A.Sounds ? A.Sounds.names() : Object.keys(EVENTS); },
     history: played,
+    /** the arcade's audio output for shared/tones.js (Lost Signal's pitched tones): {ctx, out} once the audio is
+        unlocked and sound is on (out = the EFFECTS bus: mute and the EFFECTS slider apply), else null */
+    output() { return ready() ? {ctx, out: fxBus} : null; },
     /** a bell bar at a SOUNDING midi note (Chime Heist). Respects mute like every sound here. */
     bell(midi) {
       if (!ready()) return false;

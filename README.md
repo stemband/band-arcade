@@ -111,6 +111,27 @@ order are picked above it, and plays until your 3 hearts are gone while the spee
 - **Tuning:** every number is in one commented block at the bottom of `note-storm/levels.js` (`STORM_ENDLESS`) and
   `note-ninja/levels.js` (`NINJA_ENDLESS`). The shared parts live in `shared/endless.js`.
 
+## Lost Signal
+
+A **pitch memory** game in deep space. An alien probe plays a short melody (a *transmission*); the student echoes it back
+on their instrument, note by note, in order. It's the one game that plays pitched tones, so it takes turns: the
+microphone is switched off while a transmission plays and listens again only once the last tone has faded.
+
+- **A transmission:** INCOMING TRANSMISSION (the tones play, the radar pings each note) → YOUR TURN · ECHO THE SIGNAL
+  (a row of signal slots; each note played fills the next one, right or wrong; 6 s per note) → the result on the staff in
+  the student's written pitch: right notes gold, wrong notes coral with "you played D", missed notes in a dotted box.
+  **Replay signal** (limited, costs a little) before answering; **Hear it again** after (free).
+- **Notes:** from the note set picked above the levels (First 5, a scale or Chromatic), played in a comfortable register
+  (concert G3–G5, the whole pattern moved by octaves, so a tuba player hears it higher; the octave doesn't matter when
+  answering). *Scale Order* keeps every transmission stepwise.
+- **Levels:** First Contact, Moon Relay, Asteroid Belt, Ringed Giant, Static Storm, Nebula, Deep Space, The Source.
+  From Static Storm the first note's name is hidden by static; in Static Storm and Nebula the student first *finds* it
+  by ear. Stars: 70% of notes = 1, 85% = 2, every note with no replays = 3. Clearing The Source ends the story.
+- **Deep Space Scan** (the ENDLESS card): the same signal comes back each round with one new note on the end; 3 hearts,
+  no replays; Top 5 per instrument and note set on the device.
+- **Signal check:** the first visit plays a test tone and asks "Can you hear the signal?" (turn the volume up!).
+- **Tuning:** every number is in `lost-signal/levels.js` (levels, rules, the pattern generator, Deep Space Scan).
+
 ## Note Ninja
 
 A note-reading game that **doesn't use the microphone**, so students can play it anywhere, even without their instrument. A note appears on a lit scroll in a neon dojo; they tap its name. Correct answers make the ninja strike the practice target; a wrong answer makes it stumble.

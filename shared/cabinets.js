@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -60,6 +60,20 @@ window.Arcade = window.Arcade || {};
               '<path class="s-sun1" d="M34 396H96M34 410H90M34 424H84"/><path class="s-sun2" d="M266 396H204M266 410H210M266 424H216"/>' +
               '<path class="s-flag" d="M36 100H264"/>',                                                                   // a checkered strip under the marquee
       slots: {marquee: [34, 24, 232, 76], screen: [62, 134, 176, 154], start: [80, 386, 140, 44]},
+    },
+    /* signal: a deep-space radio console (Lost Signal). A rounded top, a round-cornered radar screen, signal-strength
+       bars and a waveform painted on the lower sides, and three console buttons */
+    signal: {
+      outline: 'M30 42Q30 14 62 14H238Q270 14 270 42V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H30Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M96 122H204Q246 122 246 164V254Q246 296 204 296H96Q54 296 54 254V164Q54 122 96 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 104, y: 462, w: 92, h: 96},
+      extras: [0, 1, 2, 3].map(i => `<rect class="s-bar" x="${50 + i * 9}" y="${440 - i * 10}" width="6" height="${14 + i * 10}" rx="2"/>` +
+                                     `<rect class="s-bar s-bar2" x="${226 + i * 9}" y="${440 - i * 10}" width="6" height="${14 + i * 10}" rx="2"/>`).join('') +
+              '<path class="s-wave" d="M48 530q8-14 16 0t16 0t16 0t16 0M188 530q8-14 16 0t16 0t16 0t16 0"/>',
+      slots: {marquee: [36, 22, 228, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
     },
     /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
        control panel and one button missing (Showtime Malfunction) */
@@ -363,6 +377,17 @@ window.Arcade = window.Arcade || {};
           `<g class="sw-car"><rect x="66" y="92" width="28" height="10" rx="2"/><rect class="sw-glass" x="71" y="87" width="18" height="6" rx="2"/>` +
           `<rect class="sw-tail" x="67" y="95" width="6" height="2.5"/><rect class="sw-tail" x="87" y="95" width="6" height="2.5"/></g>` +
           `<text class="sw-cap" x="80" y="20" text-anchor="middle">HOLD THE NOTE</text></svg></div>`;
+      },
+    },
+    /* Lost Signal: a radar screen, the sweep turning, blips fading in and out, "INCOMING…" */
+    signal: {
+      html() {
+        return `<div class="scr scr-signal"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<circle class="sg-ring" cx="80" cy="52" r="14"/><circle class="sg-ring" cx="80" cy="52" r="28"/><circle class="sg-ring" cx="80" cy="52" r="42"/>` +
+          `<path class="sg-ring" d="M38 52H122M80 10V94"/>` +
+          `<g class="sg-sweep"><path d="M80 52L80 10A42 42 0 0 1 110 22Z"/><line x1="80" y1="52" x2="80" y2="10"/></g>` +
+          `<circle class="sg-blip b1" cx="104" cy="34" r="3"/><circle class="sg-blip b2" cx="62" cy="74" r="3"/><circle class="sg-blip b3" cx="96" cy="78" r="3"/>` +
+          `<text class="sg-cap" x="80" y="106" text-anchor="middle">INCOMING…</text></svg></div>`;
       },
     },
     /* Arcade Quest: glitchy static, and an 8-bit microphone flickering through it (something is waking up) */
