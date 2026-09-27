@@ -12,8 +12,10 @@
   const $ = id => document.getElementById(id);
   const GAME_ID = 'dojo-duel', R = window.DUEL_RULES, PACE = window.DUEL_PACING, CPUS = window.DUEL_SENSEI, LINES = window.DUEL_LINES;
   const BELTS = window.NINJA_BELTS;
-  // every sound of a countdown (preloaded on the setup screen; their fallbacks dojo-count and dojo-reveal come too)
-  const COUNT_SOUNDS = ['sensei-begin', 'dojo-count-3', 'dojo-count-2', 'dojo-count-1', 'dojo-count', 'dojo-begin', 'dojo-count-go'];
+  // the sounds of a match's start and its countdowns: the intro waits (briefly) until they are decoded
+  const COUNT_SOUNDS = ['dojo-begin', 'sensei-begin', 'dojo-count-3', 'dojo-count-2', 'dojo-count-1', 'dojo-count', 'dojo-count-go'];
+  const SFX = {channel: 'dojo', maxStep: 900}, VOICE = {channel: 'dojo:voice'};   // a match's Sfx.sequences (effects, the Sensei's voice):
+                                                   // Sfx.cancelAll('dojo') drops what's left of both
   const REF = {treble: 'trumpet', bass: 'trombone'};           // whose notes a clef reads when the player's own instrument doesn't fit
   const KEYS = [
     {letters: ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU'], flat: 'KeyA', sharp: 'KeyS', show: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U'], fs: ['A', 'S']},
@@ -165,12 +167,13 @@
 
   function showSetup() {
     stopLoop(); M = null;
+    A.Sfx.cancelAll('dojo'); A.Sfx.hush();                        // nothing from the last match plays later
     document.body.classList.remove('dueling');
     $('duel').hidden = true; $('paused').hidden = true; $('wrap').hidden = false;
     holdOrientation();
     A.Sfx.setMusic(['dojo-music'], {builtIn: true});
-    // the countdown's sounds load (and decode) now, so the first countdown of a match is on time
-    A.Sfx.prefer(COUNT_SOUNDS);
+    // every dojo-* and sensei-* sound loads (and decodes) now, so none is late or missing in the match
+    A.Sfx.preloadScreen('dojo-duel');
     renderSetup();
     window.scrollTo(0, 0);
   }
@@ -235,6 +238,7 @@
 
   function startMatch() {
     stopLoop();
+    A.Sfx.cancelAll('dojo'); A.Sfx.hush();                        // REMATCH: the last match's sounds never carry over
     saveSetup();
     M = {to: S.to, clock: 0, last: 0, paused: false, running: false, phase: 'count', first: true, pt: null, P: [makePlayer(0), makePlayer(1)], mpShown: [false, false],
          cpu: cpuOn() ? CPUS.find(c => c.id === S.cpu) : null, angle0: angle(), timers: []};
@@ -255,7 +259,7 @@
     A.Sfx.setMusic(['dojo-match-music'], {builtIn: true});
     if (screen.orientation && screen.orientation.lock && M.layout === 'table') screen.orientation.lock(screen.orientation.type).catch(() => {});
     M.running = true;
-    countdown();                                   // the first note: always a CLASSIC 3-2-1 and BEGIN!
+    countdown();                                   // the gong + the Sensei's line, then a CLASSIC 3-2-1
     M.last = performance.now(); raf = requestAnimationFrame(loop);
   }
   /** a game-clock timeout (stops while paused) */
@@ -306,10 +310,14 @@
       QUICK / CLASSIC / OFF from the setup; the first note of a match and the note after a new MATCH POINT: CLASSIC.
       SOUNDS: CLASSIC = the spoken numbers dojo-count-3/-2/-1 (each falls back to the dojo-count tick); QUICK = the
       tick (a spoken number is too long for its steps); OFF = none. Every style: dojo-count-go when the note appears
-      (showNote). The first countdown of a match waits for sensei-begin to end first. Nothing ever stops a sound:
-      each one plays to its end (sfx.js gives every play its own voice). */
+      (showNote). MATCH START: the gong (dojo-begin) + the Sensei's line (sensei-begin, "Begin!") together, then the
+      3-2-1 once both have finished (+introGapMs, at most introMaxMs). A countdown never starts while a voice line
+      (the last point's sensei-fast…) is still speaking, so two voices never overlap. */
   function countdown() {
     if (!M) return;
+    // after a point: the Sensei's line finishes first (a voice never overlaps the next 3-2-1 or "Go!"); effects may ring on
+    // (a match-point countdown also waits until the MATCH POINT sound has started)
+    if (!M.first && (A.Sfx.pending(M.tense ? 'dojo' : 'dojo:voice') || A.Sfx.busy('voice') > 0)) { later(PACE.voiceWaitMs, countdown); return; }
     M.phase = 'count';
     const first = M.first; M.first = false;
     M.P.forEach(P => {
@@ -334,21 +342,20 @@
         call(String(n), 'count');
         A.Sfx.event(kind === 'classic' ? 'dojo-count-' + n : 'dojo-count');
       }));
-      later(at + 3 * step, () => {
-        if (!first) { showNote(); return; }
-        call(line('begin'), 'begin'); A.Sfx.event('dojo-begin');
-        later(PACE.beginMs, showNote);
-      });
+      later(at + 3 * step, showNote);
     };
     if (!first) { run(0); return; }
-    // a match starts with the Sensei's line, once the countdown's sounds are decoded (on time from the very first
-    // number, even right after a fresh page load); the 3 comes after the line has finished (at once when muted)
+    // the match starts once its sounds are decoded (a moment, only on a slow first load): gong + "Begin!" together
     const m = M;
-    A.Sfx.whenReady(COUNT_SOUNDS).then(() => {
+    A.Sfx.whenReady(COUNT_SOUNDS, 800).then(() => {
       if (M !== m) return;
-      later(0, () => {
-        const d = A.Sfx.event('sensei-begin');
-        run(d ? Math.min(d * 1000 + 250, PACE.senseiWaitMs) : 0);
+      later(0, function intro() {
+        if (A.Sfx.busy('voice') > 0) { later(PACE.voiceWaitMs, intro); return; }   // REMATCH: the last line has faded out
+        call(line('begin'), 'begin');
+        const gong = A.Sfx.event('dojo-begin') * 1000, voice = A.Sfx.event('sensei-begin') * 1000;
+        M.introMs = Math.max(Math.min(Math.max(gong, voice) + PACE.introGapMs, PACE.introMaxMs), voice ? voice + PACE.voiceWaitMs : 0);
+        later(Math.max(0, M.introMs - 250), () => call(''));   // "Begin!" clears just before the 3
+        run(M.introMs);
       });
     });
   }
@@ -468,8 +475,11 @@
       M.tense = M.P.some(Q => Q.score === M.to - 1) && P.score < M.to;   // the next countdown is CLASSIC
       if (mp && P.score < M.to) { $('mpb' + mp.pi).hidden = false; say(mp.pi, (mp.pi === w ? 'POINT! ' : '') + line('matchPoint', mp.name), 'mp'); }
       // the Sensei's voice: sensei-point when the computer Sensei scores (Solo only; never together with sensei-fast),
-      // sensei-fast after a player's very fast point (any mode)
-      A.Sfx.sequence(['dojo-strike', 'dojo-point', mp && P.score < M.to && 'dojo-match-point', P.cpu ? 'sensei-point' : fast && 'sensei-fast']);
+      // sensei-fast after a player's very fast point (any mode). Not on the match's last point: sensei-victory speaks next
+      // the voice starts with the strike (as soon as the "Go!" has finished), so the next countdown isn't held up
+      const last = P.score >= M.to;
+      A.Sfx.sequence(['dojo-strike', 'dojo-point', mp && !last && 'dojo-match-point'], 80, SFX);
+      if (!last) A.Sfx.sequence([P.cpu ? 'sensei-point' : fast && 'sensei-fast'], 80, VOICE);
       hold = PACE.resultMs;
     } else {
       const text = line(why === 'timeout' ? 'timeout' : 'bothWrong');
@@ -527,6 +537,7 @@
     return fresh;
   }
   function drawScores(scored) {
+    if (!M) return;                                // the match was left while the "+1" was still flying
     M.P.forEach(P => {
       const el = $('sc' + (P.pi + 1));
       el.style.setProperty('--belt', `var(--${P.belt.color})`);
@@ -573,7 +584,8 @@
     if (!W.cpu) { const rec = d.record || (d.record = {}); rec[W.name] = (rec[W.name] || 0) + 1; }
     A.store.saveGameData(GAME_ID);
     A.Sfx.setMusic(null);
-    A.Sfx.sequence(['dojo-victory', 'sensei-victory']);
+    A.Sfx.cancelAll('dojo');                        // whatever the last point still had to say: dropped
+    A.Sfx.sequence(['dojo-victory', 'sensei-victory'], 80, VOICE);
     $('mpt0').hidden = $('mpt1').hidden = true;
     $('mpb0').hidden = $('mpb1').hidden = true;
     M.P.forEach(P => $('h' + (P.pi + 1)).classList.remove('won'));
@@ -585,7 +597,7 @@
       res.innerHTML = resultsHTML(P, W, Lz);
       res.querySelector('[data-act="rematch"]').addEventListener('click', () => startMatch());
       res.querySelector('[data-act="setup"]').addEventListener('click', () => { A.Sfx.event('ui-back'); showSetup(); });
-      res.querySelector('[data-act="exit"]').addEventListener('click', () => A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)));
+      res.querySelector('[data-act="exit"]').addEventListener('click', () => { A.Sfx.cancelAll('dojo'); A.Sfx.hush(); A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)); });
       ninja(P.pi, P === W ? 'win' : 'bow');
     });
     later(1400, () => M.P.forEach(P => ninja(P.pi, 'bow')));
@@ -643,7 +655,7 @@
   $('pauseBtn').addEventListener('click', () => { if (M && M.running) pause(true); });
   $('resumeBtn').addEventListener('click', () => pause(false));
   $('pauseSetup').addEventListener('click', () => showSetup());
-  $('pauseExit').addEventListener('click', () => A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)));
+  $('pauseExit').addEventListener('click', () => { stopLoop(); A.Sfx.cancelAll('dojo'); A.Sfx.hush(); A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && M && M.running && !M.paused) pause(true); });
 
   /* ---------- keyboards: each player has their own key group ---------- */
@@ -693,7 +705,7 @@
 
   /* tests (?demo) */
   A.Duel = {
-    state: () => M && {running: M.running, paused: M.paused, clock: M.clock, layout: M.layout, to: M.to, phase: M.phase, countKind: M.countKind,
+    state: () => M && {running: M.running, paused: M.paused, clock: M.clock, layout: M.layout, to: M.to, phase: M.phase, countKind: M.countKind, introMs: M.introMs,
       pt: M.pt && {done: M.pt.done, wrong: M.pt.wrong.slice(), t0: M.pt.t0},
       players: M.P.map(P => ({name: P.name, cpu: P.cpu, clef: P.clef, notes: P.notes, belt: P.L.name, score: P.score, stunned: M.clock < P.stunUntil,
         it: P.it && {letter: P.it.n.letter, acc: P.it.n.acc || 0, oct: P.it.n.oct, midi: P.it.midi, label: P.it.label},
