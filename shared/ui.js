@@ -302,6 +302,21 @@ window.Arcade = window.Arcade || {};
   /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player.
      {portrait: 'bells'}: the portrait for a fixed label. The chip shows the student's avatar (shared/avatar.js,
      when the page loads it; else the instrument's tiny portrait) and the instrument's name. */
+  /** HOLD GUARD: on-screen controls that are held (a D-pad, fingering keys, pads) must never select text, show the iPad
+      callout / magnifier, flash a tap highlight, zoom or scroll on a long press. Adds `.hold-guard` (theme.css: no
+      selection, no callout, no tap highlight; `lock: true` also `touch-action: none` = no scroll/zoom) and blocks
+      contextmenu, selectstart and dragstart there. `touch: true` also cancels touchstart (non-passive): use it only where
+      every control is driven by pointer events, because it stops the browser making click events from taps. */
+  A.holdGuard = function (el, {lock = false, touch = false} = {}) {
+    if (!el || el._holdGuard) return el;
+    el._holdGuard = true;
+    el.classList.add('hold-guard');
+    if (lock) el.classList.add('hold-lock');
+    ['contextmenu', 'selectstart', 'dragstart'].forEach(t => el.addEventListener(t, e => e.preventDefault()));
+    if (touch) el.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, {passive: false});
+    return el;
+  };
+
   A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed, portrait} = {}) {
     if (A.Bg && gameId) A.Bg.mount(gameId);                // the game's menu background (shared/backgrounds.js)
     if (A.PressStart && gameId) A.PressStart.show(gameId);   // the PRESS START title screen, once per page (shared/press-start.js)

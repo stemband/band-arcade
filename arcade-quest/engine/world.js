@@ -49,6 +49,15 @@
     const d = def.doors[0], last = def.tiles.length - 1;
     return d.at[1] === last ? [d.at[0], d.at[1] - 1] : [d.at[0], d.at[1] + 1];
   }
+  /* ROOM MUSIC (data/music.js QUEST_ROOM_MUSIC: room → its 'quest-room-…' track). Until that file is uploaded the room
+     plays what it did before (its map's `music`: quest-foyer / quest-manor), never silence. Rooms that end up on the same
+     track keep it playing; a different one crossfades in about a second; a track comes back where it stopped (sounds.js
+     `resume`), so after a battle the room's music carries on, fading back in. The music manager fades it out while the
+     microphone listens (the Butler's lesson) and back in after. */
+  const ROOM_XF = 1;
+  const musicFor = id => { const def = MAPS()[id] || {}; return [(window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, def.music || 'quest-manor']; };
+  function roomMusic(id) { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(musicFor(id), {fade: ROOM_XF}); }
+
   function load(mapId, at, dir) {
     const def = MAPS()[mapId] || MAPS().foyer, id = MAPS()[mapId] ? mapId : 'foyer';
     const [x, y] = at || spawnFor(def);
@@ -67,10 +76,11 @@
     setTimeout(() => { if (W && W.def === def) prerender(); }, 800);     // again, once any PNG art has loaded
     W.whisperAt = Q.rand(25, 45); W.whisper = null;
     // the room's track, through the music manager: it starts as soon as it's loaded, the FIRST time too. Its ghosts'
-    // battle music is fetched now, so a battle starts with music
+    // battle music and the rooms next door are fetched now, so a battle or the next room starts with music
     if (A.Sfx && A.Sfx.setMusic) {
-      A.Sfx.setMusic(def.music || 'quest-manor');
-      A.Sfx.preloadMusic(def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle'));
+      roomMusic(id);
+      A.Sfx.preloadMusic(def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle')
+        .concat(...(def.doors || []).map(d => MAPS()[d.to] ? musicFor(d.to) : [])));
     }
     Q.talk.hud(); Q.talk.banner(def.name);
   }
@@ -207,7 +217,7 @@
       Q.listen(false);
       Q.talk.mount();
       if (args.resume && W) {
-        if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(W.def.music || 'quest-manor');
+        roomMusic(W.map);                                // the room's music again, from where it stopped
         Q.talk.hud();
         afterBattle(args.result);
       } else if (args.continue) {

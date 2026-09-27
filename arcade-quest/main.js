@@ -13,11 +13,13 @@
   A.Pitch.setInstrument(inst);
   A.Pitch.pauseListening(true);
   // the music manager (shared/sfx.js) starts each scene's track as soon as it has loaded; fetch the likely ones now
-  A.Sfx.preloadMusic(['quest-title', 'quest-foyer', 'quest-manor', 'quest-battle']);
+  A.Sfx.preloadMusic(['quest-title', 'quest-room-foyer', 'quest-foyer', 'quest-manor', 'quest-battle']);
   Q.challengeSetup(inst, member);
   const hero = () => Q.playerId(member.id);   // your avatar's sprite (rebuilt when SETTINGS / EDIT PLAYER change it)
   hero(); Q.onSettings = hero;
   Q.mountPad(Q.$('pad'));
+  // the whole game area: a long press on a menu, a dialogue box or a battle button never selects, calls out or highlights
+  if (A.holdGuard) A.holdGuard(document.querySelector('.q-wrap'));
   document.body.classList.toggle('q-touch', Q.input.touch);
   Q.init();
   // ?test = the test arena; ?demo&warp=<room> = straight into a room of Ghost Notes Manor (foyer, hall, library,

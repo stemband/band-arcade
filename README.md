@@ -391,7 +391,23 @@ The first cabinet world, entered from inside the Ghost Notes cabinet (about 30�
 - **Token Booth:** Token Booth Terry turns the stars you earned in the other arcade games into **Arcade Tokens, 5 per star**: every star of your instrument (all games and modes), plus Chime Heist and Ancient Ninja Scrolls. Each star is turned in only once (the save remembers how many were turned in from each).
 - **Rusty's shop** (tokens): Valve Oil (15, heals 12), Cork Grease (20, blocks 3 sour notes), Metronome (20, slower dodge), Band Snack (8, heals 6), Tuning Slide (30, your next PLAY hits 50 % harder). Prices are in `data/items.js`.
 - **Saving:** your level, items, tokens, friends and story progress save as they happen. The **Save Jukebox** saves *where you are* and refills your HP; running out of breath in a battle takes you back to it (nothing is lost).
-- **Music:** the title waits behind a PRESS START the first time, so that first tap starts the title music. `quest-title`, `quest-intro` (the intro), `quest-foyer` (Foyer and Practice Hall), `quest-manor` (the other rooms), `quest-battle`, `quest-miniboss`, `quest-boss` (the Ghost Conductor), `quest-victory` (the celebration and Episode 1 complete), `quest-cliffhanger`, `quest-credits`, each only when its file is uploaded; it stops while the microphone listens. Sounds: `quest-step`, `quest-door`, `quest-save`, `quest-encounter`, `quest-tokens`, `quest-static` (the intro's glitch), `quest-mic-crackle` (the microphone's whispers), `quest-boss-phase` (the Conductor's next stage) and the battle sounds.
+- **Room music (Episode 1):** every room has its own slot. Upload `shared/sounds/<track>.m4a` (seamless loop, 30–90 s):
+
+  | Room | Track (file name) | Until it's uploaded |
+  |---|---|---|
+  | The Foyer | `quest-room-foyer` | `quest-foyer` |
+  | The Portrait Hall | `quest-room-hall` | `quest-manor` |
+  | The Library | `quest-room-library` | `quest-manor` |
+  | The Ballroom | `quest-room-ballroom` | `quest-manor` |
+  | The Kitchen | `quest-room-kitchen` | `quest-manor` |
+  | The Attic Stairs | `quest-room-stairs` | `quest-manor` |
+  | The Attic | `quest-room-attic` | `quest-manor` |
+  | The Practice Hall | `quest-room-practice` | `quest-foyer` |
+
+  To let several rooms share one track, edit `arcade-quest/data/music.js` (instructions at its top). Rooms on the same
+  track keep it playing as you walk; a different track crossfades in about a second; after a battle the room's music
+  carries on from where it stopped. The Sound Board's "Arcade Quest — Episode 1 Rooms" section shows which are uploaded.
+- **Music:** the title waits behind a PRESS START the first time, so that first tap starts the title music. `quest-title`, `quest-intro` (the intro), each room's own music (below; until it's uploaded, `quest-foyer` in the Foyer and Practice Hall and `quest-manor` in the other rooms), `quest-battle`, `quest-miniboss`, `quest-boss` (the Ghost Conductor), `quest-victory` (the celebration and Episode 1 complete), `quest-cliffhanger`, `quest-credits`, each only when its file is uploaded; it stops while the microphone listens. Sounds: `quest-step`, `quest-door`, `quest-save`, `quest-encounter`, `quest-tokens`, `quest-static` (the intro's glitch), `quest-mic-crackle` (the microphone's whispers), `quest-boss-phase` (the Conductor's next stage) and the battle sounds.
 - **Editing:** every line of dialogue and every sign is in `arcade-quest/data/dialogue.js` (grouped by character and room, one line per text box; a test checks they all fit). The rooms are tile maps in `arcade-quest/data/maps/manor.js`: rows of letters, one per tile, with a legend at the top, plus each room's doors, ghosts (and which note a Wisp loves), people and signs. Enemies are in `data/enemies.js`.
 - **Testing:** `?demo&warp=<room>` starts in a room (`foyer`, `hall`, `library`, `ballroom`, `kitchen`, `stairs`, `attic`, `practice`; `?demo&warp=attic` = straight to the Ghost Conductor); the battle demo keys below work everywhere.
 

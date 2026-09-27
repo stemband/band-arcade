@@ -661,16 +661,27 @@ window.Arcade = window.Arcade || {};
     }
     nextFetch();
   }
-  function loopBuffer(c, buf, from, to, level, fadeIn = c.fade || FADE_IN) {
+  function loopBuffer(c, buf, from, to, level, fadeIn = c.fade || FADE_IN, at = from) {
     const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
     s.buffer = buf; s.loop = true; s.loopStart = from; s.loopEnd = to;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + fadeIn);   // fades in, never pops
-    s.connect(g); g.connect(c.bus); s.start(t, from);
-    return {out: g, nodes: [s]};
+    s.connect(g); g.connect(c.bus); s.start(t, at);
+    return {out: g, nodes: [s], t0: t, at, loopStart: from, loopEnd: to};
+  }
+  /* RESUMING (sounds.js `resume: true`: Arcade Quest's room music): where each such track was when it stopped, for this
+     page's session, so a room's music picks up where it left off after a battle or the microphone */
+  const trackPos = {};
+  function posOf(a) {
+    if (!a || a.t0 == null || !ctx) return null;
+    const len = a.loopEnd - a.loopStart;
+    let p = a.at + (ctx.currentTime - a.t0);
+    if (p >= a.loopEnd && len > 0) p = a.loopStart + ((p - a.loopStart) % len);
+    return p;
   }
   function fadeOut(c, secs = c.fade || XF) {
     if (!c.cur) return;
     const a = c.cur; c.cur = null;
+    if (a.resume) { const p = posOf(a); if (p != null) trackPos[a.file] = p; }
     mdbg(`${c.name}: stop ${a.gen ? 'the built-in loop' : a.file}`);
     if (a.el) { a.el.pause(); return; }
     if (!a.out) return;
@@ -686,8 +697,9 @@ window.Arcade = window.Arcade || {};
       const el = rec.el.cloneNode(); el.loop = true; el.volume = Math.min(1, loopVol(c) * level); el.play().catch(() => {});
       c.cur = {el, level, file: rec.file}; mdbg(`${c.name}: START ${rec.file}.${rec.ext} (<audio>)`); return;
     }
-    c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level), {file: rec.file});
-    c.why = ''; mdbg(`${c.name}: START ${rec.file}.${rec.ext}`);
+    const from = e.resume && trackPos[rec.file] != null && trackPos[rec.file] < rec.loopEnd ? trackPos[rec.file] : rec.loopStart;
+    c.cur = Object.assign(loopBuffer(c, rec.buf, rec.loopStart, rec.loopEnd, level, undefined, from), {file: rec.file, resume: !!e.resume});
+    c.why = ''; mdbg(`${c.name}: START ${rec.file}.${rec.ext}${from !== rec.loopStart ? ` (resuming at ${from.toFixed(1)} s)` : ''}`);
   }
   /** make channel c sound the way the page wants it */
   function apply(c) {
@@ -1033,7 +1045,10 @@ window.Arcade = window.Arcade || {};
     sync: () => applyAll(),
     /** tests: what each channel wants and plays */
     musicState: () => Object.fromEntries(Object.values(CH).map(c => [c.name, {want: c.want ? c.want.events.join('|') : null, builtIn: !!(c.want && c.want.builtIn),
-      playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null, duck: c.duck ? +c.duck.gain.value.toFixed(2) : 1}])).valueOf(),
+      playing: c.cur ? (c.cur.gen ? 'built-in' : c.cur.file) : null, duck: c.duck ? +c.duck.gain.value.toFixed(2) : 1,
+      pos: c.cur && c.cur.t0 != null ? +posOf(c.cur).toFixed(2) : null}])).valueOf(),
+    /** tests: where each resuming track stopped */
+    trackPos: () => Object.assign({}, trackPos),
     get unlocked() { return !!ctx && ctx.state === 'running'; },
     /** a tap or key on this page has started the audio (it may still be unlocking) */
     get started() { return !!ctx; },

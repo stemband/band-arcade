@@ -38,17 +38,55 @@
   addEventListener('keyup', e => { const k = KEYS[e.key] || KEYS[e.key.toLowerCase && e.key.toLowerCase()]; if (k) held[k] = false; });
   addEventListener('blur', () => input.clear());
 
-  /** the on-screen pad (touch screens): a D-pad and A/B buttons around the screen */
+  /** the on-screen pad (touch screens): a D-pad and A/B buttons around the screen.
+      HOLDING never selects, calls out, highlights, zooms or scrolls (Arcade.holdGuard + no text in the buttons: the
+      arrows are drawn, the letters are CSS content). THE D-PAD is one control: the finger that presses it is captured
+      (setPointerCapture), its direction follows the finger's angle from the pad's center, so a finger that drifts off
+      the button keeps walking and one that slides onto another arrow turns; lifting it (or the browser cancelling it)
+      stops. A and B are their own pointers, so a direction held with one thumb and A tapped with the other both work. */
+  const ARROW = {up: 'M12 5l8 12H4z', down: 'M12 19L4 7h16z', left: 'M5 12l12-8v16z', right: 'M19 12L7 4v16z'};
   Q.mountPad = function (el) {
     if (!el) return;
     el.hidden = !input.touch;
-    el.innerHTML = `<div class="dpad" aria-label="Direction pad">` +
-      ['up', 'left', 'right', 'down'].map(d => `<button type="button" class="pb pb-${d}" data-b="${d}" aria-label="${d}"><span aria-hidden="true">${{up: '▲', down: '▼', left: '◀', right: '▶'}[d]}</span></button>`).join('') +
-      `</div><div class="abpad"><button type="button" class="pb pb-b" data-b="b" aria-label="B (back)">B</button><button type="button" class="pb pb-a" data-b="a" aria-label="A (OK)">A</button></div>`;
-    el.querySelectorAll('[data-b]').forEach(b => {
+    el.innerHTML = `<div class="dpad" role="group" aria-label="Direction pad">` +
+      ['up', 'left', 'right', 'down'].map(d => `<button type="button" class="pb pb-${d}" data-b="${d}" aria-label="${d}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ARROW[d]}"/></svg></button>`).join('') +
+      `</div><div class="abpad"><button type="button" class="pb pb-b" data-b="b" aria-label="B (back)"></button><button type="button" class="pb pb-a" data-b="a" aria-label="A (OK)"></button></div>`;
+    if (A.holdGuard) A.holdGuard(el, {lock: true, touch: true});
+    const dpad = el.querySelector('.dpad'), btn = d => dpad.querySelector(`[data-b="${d}"]`);
+    let ptr = null, dir = null;
+    const dirAt = e => {
+      const r = dpad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      if (Math.hypot(dx, dy) < r.width * 0.12) return dir;            // the middle: keep going the same way
+      return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    };
+    const setDir = d => {
+      if (d === dir) return;
+      if (dir) { held[dir] = false; btn(dir).classList.remove('on'); }
+      dir = d;
+      if (d) { held[d] = true; btn(d).classList.add('on'); input.press(d); }
+    };
+    const endDir = e => { if (e.pointerId !== ptr) return; ptr = null; setDir(null); };
+    dpad.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (ptr !== null) return;                                       // one finger steers
+      ptr = e.pointerId;
+      try { dpad.setPointerCapture(e.pointerId); } catch (x) { /* not capturable: moves still arrive over the pad */ }
+      setDir(dirAt(e));
+    });
+    dpad.addEventListener('pointermove', e => { if (e.pointerId === ptr) setDir(dirAt(e)); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => dpad.addEventListener(t, endDir));
+    el.querySelectorAll('.abpad [data-b]').forEach(b => {
       const k = b.dataset.b;
-      b.addEventListener('pointerdown', e => { e.preventDefault(); held[k] = true; b.classList.add('on'); input.press(k); });
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => b.addEventListener(t, () => { held[k] = false; b.classList.remove('on'); }));
+      let bp = null;
+      b.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        if (bp !== null) return;
+        bp = e.pointerId;
+        try { b.setPointerCapture(e.pointerId); } catch (x) { /* fine */ }
+        held[k] = true; b.classList.add('on'); input.press(k);
+      });
+      const up = e => { if (e.pointerId !== bp) return; bp = null; held[k] = false; b.classList.remove('on'); };
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, up));
     });
   };
 })(window.Arcade);

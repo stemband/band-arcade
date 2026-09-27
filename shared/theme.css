@@ -633,3 +633,7 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 @media (max-width:640px){ .avb-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} .avb-btn{padding-right:10px} }
 /* during play (html.in-play: shared/backgrounds.js Bg.menu(false)) the badge can't be tapped by accident */
 html.in-play .avb{visibility:hidden;pointer-events:none}
+
+/* ---------- HOLD GUARD (Arcade.holdGuard, ui.js): held on-screen controls never select, call out, highlight or zoom ---------- */
+.hold-guard,.hold-guard *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.hold-guard.hold-lock,.hold-guard.hold-lock button{touch-action:none}
