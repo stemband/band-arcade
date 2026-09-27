@@ -573,11 +573,19 @@ Open `index.html` in **Chrome** by double-clicking it. Chrome allows the microph
 
 1. Create a free GitHub account, then a new **public** repository named `band-arcade`.
 2. On the repository page choose **Add file → Upload files**. Drag in everything inside this folder (keep the folder structure), then **Commit changes**.
-3. Go to **Settings → Pages**. Under *Build and deployment*, set Source to **Deploy from a branch**, set Branch to **main** and **/(root)**, then **Save**.
+3. Go to **Settings → Pages**. Under *Build and deployment*, set Source to **GitHub Actions**. The workflow in
+   `.github/workflows/pages.yml` then publishes the site every time something is saved to `main`.
 4. After about a minute your arcade is live at `https://<your-username>.github.io/band-arcade/`.
 5. Open that link on a school iPad and a Chromebook before sharing it. District web filters sometimes block `github.io`; if so, ask IT to allow your address.
 
 Every later change you save to the repository goes live at the same link within about a minute.
+
+**The version number (why updates show up right away).** Browsers keep the arcade's files for a while, so after an
+update a student could get the old game, or a mix of old and new files that breaks a page. Every time `main` changes,
+the publishing workflow stamps a new **site version** (the commit's short id) into `shared/version.js` and onto every
+file each page loads (`game.js?v=a1b2c3d`), so browsers fetch the new files at once; a page that was itself cached
+reloads once to catch up. You never set it: in the repository it just says `'dev'` (which switches it off when you open
+the arcade from your own computer). Sounds keep their own number, `SOUNDS_VERSION` at the top of `shared/sounds.js`.
 
 ## Adding a game
 

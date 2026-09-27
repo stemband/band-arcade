@@ -1,0 +1,42 @@
+# Publishes the arcade to GitHub Pages on every push to main (every merged pull request), with a fresh SITE VERSION
+# (the commit's short id) stamped into shared/version.js and into every page's script and stylesheet addresses, so
+# students' browsers load the new files at once instead of a cached mix of old and new (see shared/version.js).
+#
+# The stamp is made on the deploy's own copy of the files: nothing is committed back to main, so there is no loop
+# and nothing for anyone to remember. In the repository the version stays 'dev'.
+#
+# ONE-TIME SETUP (Mat): repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# (While it still says "Deploy from a branch", Pages keeps publishing main as-is, with version 'dev': the site works
+#  exactly as before, just without the cache fix, and this workflow's deploy step shows a red X.)
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # "Run workflow" on the Actions tab re-publishes by hand
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:                  # one deploy at a time; a newer merge waits for the one in progress
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stamp the site version (the commit's short id)
+        run: python3 tools/stamp-version.py "${GITHUB_SHA::7}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

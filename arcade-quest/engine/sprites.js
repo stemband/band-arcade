@@ -51,7 +51,7 @@
     const img = new Image();
     img.onload = () => { art[file] = img; delete frames[id]; };        // redraw from the picture from now on
     img.onerror = () => { miss[file] = 1; try { sessionStorage.setItem(MISS, JSON.stringify(miss)); } catch (e) {} };
-    img.src = 'art/' + file + '.png';
+    img.src = A.v ? A.v('art/' + file + '.png') : 'art/' + file + '.png';   // ?v=<site version> (shared/version.js)
   }
   const artOf = id => { const d = defs[id]; return d && !d.canvases && art[d.art || id]; };
 

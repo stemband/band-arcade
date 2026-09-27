@@ -247,7 +247,7 @@
   function loadScript(src) {
     return new Promise((ok, fail) => {
       const s = document.createElement('script');
-      s.src = src; s.onload = ok; s.onerror = fail;
+      s.src = A.v ? A.v(src) : src; s.onload = ok; s.onerror = fail;   // ?v=<site version> (shared/version.js)
       document.head.appendChild(s);
     });
   }

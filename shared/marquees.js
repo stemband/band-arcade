@@ -848,11 +848,12 @@ window.Arcade = window.Arcade || {};
   function loadArt(g) {
     if (art[g.id]) return art[g.id];
     const a = art[g.id] = {state: 'loading', img: null, full: false, waiting: []};
-    const tries = [[g.id + '-full.webp', true], [g.id + '-full.png', true], [g.id + '.webp', false], [g.id + '.png', false]].filter(([f]) => !misses.has(BASE + f));
+    const ver = u => (A.v ? A.v(u) : u);            // ?v=<site version> (shared/version.js)
+    const tries = [[g.id + '-full.webp', true], [g.id + '-full.png', true], [g.id + '.webp', false], [g.id + '.png', false]].filter(([f]) => !misses.has(ver(BASE + f)));
     const next = () => {
       const t = tries.shift();
       if (!t) { a.state = 'done'; return; }
-      const img = new Image(), url = BASE + t[0];
+      const img = new Image(), url = ver(BASE + t[0]);
       img.onload = () => { a.img = img; a.full = t[1]; a.state = 'done'; a.waiting.splice(0).forEach(fn => fn()); redrawGame(g.id); };
       img.onerror = () => { misses.add(url); try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...misses])); } catch (e) {} next(); };
       img.src = url;
