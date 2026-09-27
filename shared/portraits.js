@@ -135,6 +135,7 @@ window.Arcade = window.Arcade || {};
   const OPTIMIZED = ['alto-sax', 'tenor-sax', 'bells', 'horn'];
   const here = document.currentScript && document.currentScript.src;
   const BASE = here ? new URL('portraits/', here).href : 'shared/portraits/';
+  const ver = u => (A.v ? A.v(u) : u);            // ?v=<site version> (shared/version.js): a replaced picture shows after the next update
   /* files that failed: never asked for twice on this page. Skin variants and -full pictures (which usually don't
      exist) are also remembered for this browser tab, so each costs one request per visit, not one per page. */
   const MISS_KEY = 'bandarcade.pt-miss', miss = new Set();
@@ -147,7 +148,7 @@ window.Arcade = window.Arcade || {};
   /* each candidate is 'tag>url': tag f = a -full picture, c = the color skin's drawn variant, a = the accessory's */
   function candidates(id, {full, vc, va}) {
     const names = [].concat(FILES[id] || []), list = [];
-    const add = (suffix, tag) => names.forEach(n => variants(n + suffix).forEach(f => list.push(tag + '>' + BASE + f)));
+    const add = (suffix, tag) => names.forEach(n => variants(n + suffix).forEach(f => list.push(tag + '>' + ver(BASE + f))));
     const set = (pre, tag) => { if (vc) add(`${pre}--${vc}`, tag + 'c'); if (va) add(`${pre}--${va}`, tag + 'a'); add(pre, tag); };
     if (full) set('-full', 'f');
     set('', '');
