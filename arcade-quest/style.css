@@ -158,7 +158,10 @@ button{font:inherit}
 .q-pad[hidden]{display:none}
 .dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px)}
 @media (min-height:900px){.dpad{grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px)}}
-.pb{background:var(--floor-2);color:var(--text-hi);border:2px solid var(--floor-3);font-size:20px;touch-action:none;cursor:pointer;padding:0}
+.pb{background:var(--floor-2);color:var(--text-hi);border:2px solid var(--floor-3);font-size:20px;touch-action:none;cursor:pointer;padding:0;display:grid;place-items:center}
+.pb svg{width:55%;height:55%;fill:currentColor;pointer-events:none}
+.pb-a::after{content:"A"}.pb-b::after{content:"B"}               /* letters as CSS content: nothing to select */
+.dpad{touch-action:none}
 .pb.on{background:var(--cyan-ink);border-color:var(--cyan)}
 .pb-up{grid-area:1/2}.pb-left{grid-area:2/1}.pb-right{grid-area:2/3}.pb-down{grid-area:3/2}
 .abpad{display:flex;gap:14px;align-items:center}

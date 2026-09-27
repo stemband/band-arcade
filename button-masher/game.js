@@ -216,7 +216,7 @@
     e.preventDefault();
     press(k.dataset.k);
   });
-  $('pad').addEventListener('contextmenu', e => e.preventDefault());
+  A.holdGuard($('pad'), {lock: true});               // holding a key never selects, calls out or scrolls (ui.js)
   function press(id) {
     if (!G || G.locked || !keyOf(id)) return;
     sfx('key-press');

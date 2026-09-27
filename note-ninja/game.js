@@ -261,6 +261,7 @@
   $('letters').innerHTML = LETTERS.map(l => `<button type="button" class="letter" data-letter="${l}"><span>${l}</span></button>`).join('');
   $('letters').querySelectorAll('.letter').forEach(b => b.addEventListener('click', () => answer(b.dataset.letter)));
   document.querySelectorAll('.acc').forEach(b => b.addEventListener('click', () => { if (G) setAcc(+b.dataset.acc === G.acc ? 0 : +b.dataset.acc); }));
+  A.holdGuard($('pad'));                             // a long press on an answer never selects or calls out (ui.js)
 
   function answer(letter) {
     if (!G || G.locked) return;

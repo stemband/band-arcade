@@ -81,6 +81,11 @@
     <p class="muted">Every game's menu music (games.js <code>menuMusic</code>) and the arcade's own loops. Record each as a seamless loop,
       30–90 s, exported as <code>.m4a</code>, named exactly as shown. Until a game's file is uploaded, its menus play the arcade's select music.</p>
     <div class="sb-list" id="music"></div>
+    <h2 class="sb-group" id="roomsH">Arcade Quest — Episode 1 Rooms</h2>
+    <p class="muted">Each explorable room of Ghost Notes Manor has its own music slot (which room plays which:
+      <code>arcade-quest/data/music.js</code>; several rooms may share one). Until a room's file is uploaded, it plays what it
+      always has (the fallback shown). Seamless loops, 30–90 s, <code>.m4a</code>.</p>
+    <div class="sb-list" id="rooms"></div>
   </section>
   <div id="groups"></div>
 </div>
@@ -91,6 +96,8 @@
 <script src="../shared/games.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../arcade-quest/data/maps/manor.js"></script>
+<script src="../arcade-quest/data/music.js"></script>
 <script>
 (function (A) {
   "use strict";
@@ -123,19 +130,31 @@
     {who: 'The arcade: the lobby (ambience)', n: 'lobby-ambience', instead: 'using the built-in room hum'}]
     .concat((A.ALL_GAMES || A.GAMES).filter(g => g.menuMusic && S.get(g.menuMusic)).map(g => ({who: g.name, n: g.menuMusic,
       instead: g.menuMusicOwn || 'using select music', fallback: g.menuMusicOwn ? '' : 'select-music'})));
-  $('music').innerHTML = MUSIC.map(m => `<div class="sb-row sb-mrow" data-n="${m.n}" data-fallback="${m.fallback || ''}">` +
-    `<div class="sb-name"><b>${esc(m.who)}</b></div>` +
+  // Arcade Quest's Episode 1 rooms: every room, its track (data/music.js) and the fallback it plays until then
+  const ROOMS = Object.keys(window.QUEST_MAPS || {}).map(id => {
+    const def = window.QUEST_MAPS[id], n = (window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, fb = def.music || 'quest-manor';
+    return {who: `Episode 1: ${def.name}`, n, instead: `plays ${fb} (what this room played before)`, fallback: fb, room: id};
+  }).filter(m => S.get(m.n));
+  const mrow = m => `<div class="sb-row sb-mrow" data-n="${m.n}" data-fallback="${m.fallback || ''}">` +
+    `<div class="sb-name"><b>${esc(m.who)}</b>${m.room ? `<small>track <code>${esc(m.n)}</code></small>` : ''}</div>` +
     `<div class="sb-when"><code>shared/sounds/${m.n}.m4a</code></div>` +
     `<span class="sb-status" data-mstatus>not checked</span><span class="sb-peak" data-peak>–</span>` +
     `<span class="sb-mbtns"><button type="button" class="btn btn-ghost sb-play" data-loopgo="start">Play</button>` +
-    `<button type="button" class="btn btn-ghost sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`).join('');
+    `<button type="button" class="btn btn-ghost sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`;
+  $('rooms').innerHTML = ROOMS.map(mrow).join('');
+  MUSIC.push(...ROOMS.filter(m => !MUSIC.some(x => x.n === m.n)));
+  $('music').innerHTML = MUSIC.filter(m => !m.room).map(mrow).join('');
   function musicStatus() {
     MUSIC.forEach(m => {
-      const el = document.querySelector(`.sb-mrow[data-n="${m.n}"] [data-mstatus]`), st = B.status(m.n);
+      const st = B.status(m.n);
       if (st.kind === 'checking') return;
       const ok = st.kind === 'file';
-      el.className = 'sb-status ' + (ok ? 'file' : 'missing');
-      el.textContent = ok ? `✓ uploaded (${st.ext}${st.dur ? ', ' + Math.round(st.dur) + ' s' : ''})` : `missing — ${m.instead}`;
+      // (rooms sharing a track: every row of it)
+      document.querySelectorAll(`.sb-mrow[data-n="${m.n}"] [data-mstatus]`).forEach(el => {
+        const row = el.closest('.sb-mrow'), mm = ROOMS.find(x => x.n === m.n && row.parentNode.id === 'rooms' && row.querySelector('b').textContent === x.who) || m;
+        el.className = 'sb-status ' + (ok ? 'file' : 'missing');
+        el.textContent = ok ? `✓ uploaded (${st.ext}${st.dur ? ', ' + Math.round(st.dur) + ' s' : ''})` : `missing — ${mm.instead}`;
+      });
     });
   }
 
@@ -236,7 +255,7 @@
     // a game's menu track that isn't uploaded yet: its menus play the arcade's select music, so that's what plays here
     if ((!rec || rec.state !== 'ok') && row.dataset.fallback && row.dataset.fallback !== n) {
       await loopTest(row.dataset.fallback, row, how);
-      info.textContent = `No ${n} file yet: this is what its menus play instead (select-music). ` + info.textContent;
+      info.textContent = `No ${n} file yet: this is what plays instead (${row.dataset.fallback}). ` + info.textContent;
       return;
     }
     if (!rec || rec.state !== 'ok' || !rec.buf) {
