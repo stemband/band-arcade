@@ -73,7 +73,6 @@
 .mq-live .mq-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
 .mq-text{display:flex;flex-direction:column;align-items:center;min-width:0}
 .mq-name{font-size:1.45em;line-height:1;letter-spacing:.02em}
-.mq-kicker{font-size:.62em;letter-spacing:.14em;margin-bottom:.35em}
 /* haunted: an arched, purple-lit sign with drippy letters and the ghost */
 .mq-haunt{background:radial-gradient(ellipse at 50% 110%,var(--t-ink),var(--deep) 75%);color:var(--t-hi);border:.12em solid var(--t);
   border-radius:50% 50% .35em .35em / 70% 70% .35em .35em;padding-top:.5em;box-shadow:inset 0 0 .8em var(--t-ink)}
@@ -84,7 +83,6 @@
 .mq-pixel{background:var(--deep);color:var(--t);border:.12em solid var(--t);border-radius:.9em .9em .3em .3em;
   box-shadow:inset 0 0 0 .2em var(--cab-side)}
 .mq-pixel .mq-name{font-family:"GN Pixel",var(--display);font-size:.9em;line-height:1.35;text-shadow:var(--t-glow)}
-.mq-pixel .mq-kicker{font-family:"GN Pixel",var(--display);font-size:.58em;letter-spacing:.06em;color:var(--u);text-shadow:var(--u-glow);margin-bottom:.6em}
 /* storm: a slanted sign with chunky shaded letters */
 .mq-shade{background:repeating-linear-gradient(135deg,var(--u) 0 .5em,var(--pink-ink) .5em 1em);color:var(--t);border:.12em solid var(--t);border-radius:.2em;transform:skewY(7.4deg)}
 .mq-shade .mq-text{background:var(--deep);padding:.2em .45em;border-radius:.2em}
@@ -102,7 +100,6 @@
 .mq-heist{background:radial-gradient(circle at .5em 50%,var(--cab-metal) .12em,transparent .15em),radial-gradient(circle at calc(100% - .5em) 50%,var(--cab-metal) .12em,transparent .15em),
   linear-gradient(180deg,var(--cab-panel),var(--deep));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:inset 0 -.14em 0 var(--u),var(--t-glow)}
 .mq-heist .mq-name{font-size:1.5em;letter-spacing:.06em;text-shadow:var(--t-glow)}
-.mq-heist .mq-kicker{color:var(--u-hi)}
 
 /* versus: a split blue/red sign with slanted, outlined fighting-game letters */
 .mq-versus{background:linear-gradient(100deg,var(--u) 0 49%,var(--yellow-hi) 49% 51%,var(--t) 51%);color:var(--yellow);border:.12em solid var(--t-hi);border-radius:.2em;
@@ -110,13 +107,11 @@
 .mq-versus .mq-text{background:rgba(6,4,13,.72);border-radius:.2em;padding:.12em .3em .2em}
 .mq-versus .mq-name{font-size:1.32em;font-style:italic;letter-spacing:.01em;transform:skewX(-12deg);-webkit-text-stroke:.05em var(--deep);
   text-shadow:.05em .08em 0 var(--red-ink),0 0 .35em var(--t)}
-.mq-versus .mq-kicker{color:var(--white-hi);letter-spacing:.3em}
 
 /* faceoff: neon tube letters, NEON in the trim, FACE-OFF in trim2, on a dark glass sign */
 .mq-faceoff{background:radial-gradient(ellipse at 50% 120%,var(--floor-3),var(--deep) 70%);border:.12em solid var(--t);border-radius:.5em;box-shadow:inset 0 0 0 .15em var(--deep),var(--t-glow)}
 .mq-faceoff .mq-name{font-family:var(--neon-font);font-size:1.02em;white-space:nowrap;letter-spacing:.02em;color:var(--t-hi);text-shadow:var(--t-glow)}
 .mq-faceoff .mq-name .fo2{margin-left:.35em;color:var(--u-hi);text-shadow:var(--u-glow)}
-.mq-faceoff .mq-kicker{color:var(--text-lo);letter-spacing:.3em}
 
 /* showtime: a worn bulb-lit sign hanging slightly crooked; SHOWTIME in the trim, MALFUNCTION in trim2 flickering
    now and then (slow and gentle), and one bulb burnt out */
@@ -127,7 +122,6 @@
 .mq-showtime .st1{color:var(--t-hi);text-shadow:var(--t-glow)}
 .mq-showtime .st2{display:block;color:var(--u-hi);text-shadow:var(--u-glow);animation:mq-flicker 6s infinite}
 .mq-showtime .dead{font-style:normal;color:var(--cab-metal);text-shadow:none}
-.mq-showtime .mq-kicker{color:var(--text-lo);letter-spacing:.2em}
 @keyframes mq-flicker{0%,86%,100%{opacity:1}88%{opacity:.45}90%{opacity:.95}92%{opacity:.55}}
 .shape-showtime .s-hole{fill:var(--deep);stroke:var(--cab-metal);stroke-width:2}
 .shape-showtime .s-tape{stroke:var(--cab-metal);stroke-width:7;stroke-linecap:round;opacity:.75}
@@ -271,7 +265,6 @@
 .mq-speedway .mq-name{font-size:1.18em;line-height:1;font-style:italic;letter-spacing:.02em;transform:skewX(-12deg);white-space:normal;
   background:linear-gradient(180deg,var(--yellow-hi),var(--u) 55%,var(--t));-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:none;text-shadow:none;-webkit-text-stroke:.02em var(--deep)}
-.mq-speedway .mq-kicker{color:var(--u-hi);letter-spacing:.3em;font-style:italic}
 .mq-speedway .mq-text{position:relative}
 .mq-speedway .mq-text::before,.mq-speedway .mq-text::after{content:"";position:absolute;top:58%;width:.9em;height:.08em;background:var(--u);box-shadow:0 .18em 0 var(--t),0 -.18em 0 var(--t)}
 .mq-speedway .mq-text::before{right:100%;margin-right:.2em}.mq-speedway .mq-text::after{left:100%;margin-left:.2em}
@@ -346,7 +339,6 @@
 .mq-quest .mq-mic{height:82%;aspect-ratio:9/14;flex:none}
 .mq-quest .mq-micsvg{display:block;width:100%;height:100%;fill:var(--t-hi);filter:none}
 .mq-quest .mq-name{font-family:"GN Quest","GN Pixel",var(--display);font-weight:700;font-size:1.6em;line-height:.95;letter-spacing:.04em;color:var(--t-hi);text-shadow:.08em .08em 0 var(--u-ink)}
-.mq-quest .mq-kicker{font-family:"GN Quest",var(--text);font-weight:600;color:var(--u-hi);letter-spacing:.06em;text-transform:uppercase;font-size:.72em}
 .shape-quest .s-ab{font:700 14px "GN Quest",var(--display);fill:var(--deep)}
 .shape-quest .s-coinpix{fill:var(--yellow)}.shape-quest .s-coinpix2{fill:var(--yellow-hi)}
 

@@ -151,7 +151,7 @@ window.Arcade = window.Arcade || {};
       trim: TRIMS.includes(c.trim) ? c.trim : c2.trim,
       trim2: TRIMS.includes(c.trim2) ? c.trim2 : c2.trim2,
       body: BODIES.includes(c.body) ? c.body : 'cab-side',
-      marquee: c2.marquee, kicker: c2.kicker, screen: c2.screen,
+      marquee: c2.marquee, screen: c2.screen,
     };
   };
 

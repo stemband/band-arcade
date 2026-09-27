@@ -15,7 +15,6 @@
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
                 | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink'. The picture behind the
                 title is the game's own `marquee` entry (below)
-       kicker   small line above the name on the marquee (optional)
        screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'insert'  (shared/cabinets.js, SCREENS)
      player     optional: a game with its own fixed instrument group (e.g. 'bells'), or 'all' for a game that needs
                 no instrument: START skips Select Player, the saved instrument is left alone, and progress is
@@ -53,8 +52,9 @@
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
-       titleFit 'max' = the sign shows only the title (no kicker), as big as it fits without clipping, trying every
-                way to break it into 1–3 lines (or titleLayouts: [['ONE LINE'], ['TWO', 'LINES']]) and keeping the largest
+       titleLayouts optional: the ways to break the title ([['ONE LINE'], ['TWO', 'LINES']]); left out = 1 line or
+                2 stacked lines. EVERY marquee shows ONLY the game's name, as large as it fits without clipping: no
+                subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      cabinet3d  the same cabinet in the 3D arcade (arcade3d.js). Optional; leave it out and the game
                gets a 3D cabinet matching its 2D `cabinet` (profile from `shape`, colors from `trim`/`trim2`).
@@ -99,7 +99,7 @@ window.Arcade.GAMES = [
     color: 'cyan',
     unpitched: true,                     // the Snare Drum can use it (its ARTICULATION test)
     marquee: {scene: 'vu', colors: ['green', 'amber', 'amber-hi']},
-    cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', kicker: 'Sound check', screen: 'tuner'},
+    cabinet: {shape: 'soundcheck', trim: 'amber', trim2: 'green', marquee: 'pixel', screen: 'tuner'},
     cabinet3d: {profile: 'soundcheck', body: 'cab-face'},
   },
   {
@@ -154,8 +154,8 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'pink',
     noteModes: true,                                 // NOTES × ORDER: the note set the scrolls are made from
-    marquee: {scene: 'ink', colors: ['vi-paper', 'pink', 'dd-night'], titleFit: 'max', titleLayouts: [['VANISHING INK'], ['VANISHING', 'INK']]},
-    cabinet: {shape: 'ink', trim: 'pink', trim2: 'amber', marquee: 'ink', kicker: 'Read it, remember it', screen: 'ink'},
+    marquee: {scene: 'ink', colors: ['vi-paper', 'pink', 'dd-night']},
+    cabinet: {shape: 'ink', trim: 'pink', trim2: 'amber', marquee: 'ink', screen: 'ink'},
     cabinet3d: {profile: 'ink', body: 'cab-side'},
   },
   {
@@ -183,7 +183,7 @@ window.Arcade.GAMES = [
     color: 'yellow',
     player: 'all',
     badge: {label: 'Test Ready', one: 'belt', many: 'belts'},
-    marquee: {scene: 'scroll', colors: ['temple-sky', 'amber'], titleFit: 'max'},
+    marquee: {scene: 'scroll', colors: ['temple-sky', 'amber']},
     cabinet: {shape: 'temple', trim: 'amber', trim2: 'red', marquee: 'scroll', screen: 'scrolls'},
     cabinet3d: {profile: 'temple', body: 'cab-side'},
   },
@@ -199,7 +199,7 @@ window.Arcade.GAMES = [
     byMember: true,                                  // fingerings differ inside a group: stars are saved per instrument
     noPlay: {groups: ['bells'], label: 'Percussion: try Chime Heist!', game: 'chime-heist'},
     marquee: {scene: 'versus', colors: ['blue', 'red', 'yellow-hi']},
-    cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', kicker: '1P vs 2P', screen: 'versus'},
+    cabinet: {shape: 'versus', trim: 'red', trim2: 'blue', marquee: 'versus', screen: 'versus'},
     cabinet3d: {profile: 'versus', body: 'cab-side'},
   },
   {
@@ -214,7 +214,7 @@ window.Arcade.GAMES = [
     players: 2,                                      // Select Player asks Player 2 too (or CPU)
     byMember: true,                                  // CPU-ladder stars are saved under Player 1's instrument
     marquee: {scene: 'hockey', colors: ['cyan', 'pink', 'white-hi']},
-    cabinet: {shape: 'rink', trim: 'cyan', trim2: 'pink', marquee: 'faceoff', kicker: '1P vs 2P', screen: 'hockey'},
+    cabinet: {shape: 'rink', trim: 'cyan', trim2: 'pink', marquee: 'faceoff', screen: 'hockey'},
     cabinet3d: {profile: 'rink', body: 'cab-side'},
   },
   {
@@ -228,8 +228,8 @@ window.Arcade.GAMES = [
     noteModes: true,                                 // NOTES × ORDER (the snare plays a single count mode)
     byMember: true,                                  // stars are saved per instrument member ('snare' included)
     unpitched: true,                                 // the Snare Drum plays it: count mode, any clean hit counts
-    marquee: {scene: 'curtain', colors: ['red', 'amber-hi', 'anim-eye-bad'], titleFit: 'max'},
-    cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', kicker: 'The Showtime Band', screen: 'showtime'},
+    marquee: {scene: 'curtain', colors: ['red', 'amber-hi', 'anim-eye-bad']},
+    cabinet: {shape: 'showtime', trim: 'red', trim2: 'amber', marquee: 'showtime', screen: 'showtime'},
     cabinet3d: {profile: 'showtime', body: 'cab-side'},
   },
   {
@@ -246,8 +246,8 @@ window.Arcade.GAMES = [
     // bells and snare can't hold a long tone: block: true sends them back to Select Player with this message
     noPlay: {groups: ['bells', 'snare'], label: 'Percussion: try Chime Heist or Showtime Malfunction!', game: 'chime-heist',
              games: ['chime-heist', 'showtime-malfunction'], block: true},
-    marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi'], titleFit: 'max'},
-    cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', kicker: 'Long tones', screen: 'speedway'},
+    marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi']},
+    cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', screen: 'speedway'},
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
   },
   {
@@ -260,8 +260,8 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'cyan',
     noteModes: true,                                 // NOTES × ORDER: the note set the transmissions are made from
-    marquee: {scene: 'radio', colors: ['ls-wave', 'green', 'text-hi'], titleFit: 'max', titleLayouts: [['LOST  SIGNAL'], ['LOST', 'SIGNAL']]},
-    cabinet: {shape: 'signal', trim: 'green', trim2: 'green', marquee: 'signal', kicker: 'Play by ear', screen: 'signal'},
+    marquee: {scene: 'radio', colors: ['ls-wave', 'green', 'text-hi']},
+    cabinet: {shape: 'signal', trim: 'green', trim2: 'green', marquee: 'signal', screen: 'signal'},
     cabinet3d: {profile: 'signal', body: 'cab-side'},
   },
   {
@@ -277,8 +277,8 @@ window.Arcade.GAMES = [
     // the floor's line instead of a hi-score: the dojo record on this device
     summary: store => { const r = (store.gameData('dojo-duel') || {}).record || {}, n = Object.values(r).reduce((a, b) => a + b, 0);
       return n ? `Dojo record: ${n} ${n === 1 ? 'duel' : 'duels'} won on this device` : ''; },
-    marquee: {scene: 'duel', colors: ['temple-sky', 'belt-red', 'amber'], titleFit: 'max'},
-    cabinet: {shape: 'duel', trim: 'pink', trim2: 'amber', marquee: 'duel', kicker: '1P vs 2P', screen: 'duel'},
+    marquee: {scene: 'duel', colors: ['temple-sky', 'belt-red', 'amber']},
+    cabinet: {shape: 'duel', trim: 'pink', trim2: 'amber', marquee: 'duel', screen: 'duel'},
     cabinet3d: {profile: 'duel', body: 'cab-side'},
   },
   {
@@ -294,7 +294,7 @@ window.Arcade.GAMES = [
     summary: store => { const s = (store.gameData('arcade-quest') || {}).save, p = s && s.progress;
       return p ? `Episode 1: ${p.pct}% · ${p.friends} ${p.friends === 1 ? 'friend' : 'friends'}` : ''; },
     marquee: {scene: 'pixel', colors: ['purple-ink', 'purple', 'cyan-hi']},
-    cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', kicker: 'Episode 1: Ghost Notes Manor', screen: 'quest'},
+    cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', screen: 'quest'},
     cabinet3d: {profile: 'quest', body: 'cab-side'},
   },
 ];
