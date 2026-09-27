@@ -199,11 +199,11 @@
       };
       let r = render();
       const items = () => (r.fresh ? [{id: 'turn', label: `Turn in ${r.fresh} ★`}] : []).concat([{id: 'looks', label: 'Player items', sub: 'For your avatar'},
-        {id: 'charms', label: 'Charms', sub: 'Arcade Quest only'}, {id: null, label: 'Done'}]);
+        {id: 'charms', label: 'Charms', sub: 'Arcade Quest only'}].concat(A.BandNinja ? [{id: 'code', label: 'Enter a code', sub: 'Band Ninja belt codes'}] : []).concat([{id: null, label: 'Done'}]));
       panel('Token Booth', r.html, items(), {cols: 2, cls: 'q-booth', onPick: async (it, i, api) => {
-        if (it.id === 'looks' || it.id === 'charms') {
+        if (it.id === 'looks' || it.id === 'charms' || it.id === 'code') {
           api.el.hidden = true;
-          await (it.id === 'looks' ? cosmeticShop() : charmShop());
+          await (it.id === 'looks' ? cosmeticShop() : it.id === 'code' ? Q.talk.beltCode() : charmShop());
           api.el.hidden = false; r = render(); api.body.innerHTML = r.html; api.rebuild(items());
           return;
         }
@@ -218,6 +218,45 @@
       }});
     });
   }
+
+  /* ---------- ENTER A CODE: a Band Ninja belt code (shared/bandninja.js) opens that belt's OFFICIAL BAND NINJA GEAR.
+     Nothing is sent anywhere: the code is checked right here. Wrong codes: 10 tries a minute. ---------- */
+  Q.talk.beltCode = function () {
+    const BN = A.BandNinja;
+    if (!BN) return Promise.resolve(false);
+    return new Promise(done => {
+      const p = Q.el('div', 'q-overlay');
+      p.innerHTML = `<div class="q-panel q-wpanel q-codep q-beltcode" role="dialog" aria-modal="true" aria-labelledby="qBeltT"><h2 id="qBeltT">Enter a code</h2>` +
+        `<label class="q-small" for="qBeltIn">A belt code from your Band Ninja page, like ABC-1234. It opens official Band Ninja gear for your player.</label>` +
+        `<input id="qBeltIn" class="q-codein" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-XXXX">` +
+        `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="go">Check</button><button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
+      Q.ui.appendChild(p);
+      const inp = p.querySelector('#qBeltIn'), msg = p.querySelector('.q-codemsg');
+      const close = ok => { off(); p.remove(); done(ok); };
+      const off = Q.input.on(btn => { if (btn === 'b' && !p.hidden) close(false); return true; });
+      inp.addEventListener('input', () => { msg.textContent = ''; });
+      const check = () => {
+        const r = BN.redeem(inp.value);
+        msg.textContent = r.msg; msg.className = 'q-codemsg ' + (r.ok ? 'q-good' : 'q-bad');
+        if (!r.ok) { Q.sfx('note-wrong'); return; }
+        if (r.again) return;
+        const keys = A.Avatar.items().filter(it => it.unlock.bandninja === r.belt).map(it => it.key);
+        inp.value = '';
+        if (A.Skins && A.Skins.catchUp) {                   // the arcade's own UNLOCKED! card (+ item-unlocked)
+          p.hidden = true;
+          A.Skins.catchUp(A.store.player, {only: keys});
+          const card = document.querySelector('body>.overlay.sk-catchup');
+          const back = () => { p.hidden = false; setTimeout(() => inp.focus(), 30); if (Q.onSettings) Q.onSettings(); };
+          if (card) new MutationObserver((l, o) => { if (!card.isConnected) { o.disconnect(); back(); } }).observe(document.body, {childList: true});
+          else back();
+        } else Q.sfx('item-unlocked');
+      };
+      p.querySelector('[data-a="go"]').addEventListener('click', check);
+      p.querySelector('[data-a="back"]').addEventListener('click', () => close(false));
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); check(); } else if (e.key === 'Escape') close(false); e.stopPropagation(); });
+      setTimeout(() => inp.focus(), 30);
+    });
+  };
 
   /* ---------- the Token Booth's shelves: avatar items and charms ---------- */
   const tokensLine = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${Q.save.get().tokens}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');

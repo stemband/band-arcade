@@ -421,6 +421,7 @@
     const gid = A.params.get('game');
     const g = gid ? (A.ALL_GAMES || A.GAMES).find(x => x.id === gid) || null : null;
     if (g && g.player) { location.replace(A.startLink(g, '')); return; }        // a game with its own player: no choosing
+    if (g && A.BandNinja && A.BandNinja.skipSelect()) return;                   // a Band Ninja link gave the instrument
     if (g || A.params.has('pick')) {
       closeFit();
       document.body.classList.add('in-select'); A.floorPaused = true;          // the 3D floor stops drawing meanwhile

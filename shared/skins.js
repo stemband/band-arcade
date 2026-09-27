@@ -240,7 +240,7 @@ window.Arcade = window.Arcade || {};
   }
   const AV = () => A.Avatar && A.Avatar.freshItems ? A.Avatar : null;
   const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item', bg: 'Background',
-    hand: 'Held item', effect: 'Effect', plate: 'Name plate', shoes: 'Shoes'};
+    hand: 'Held item', effect: 'Effect', plate: 'Name plate', shoes: 'Shoes', belt: 'Belt'};
   /** what a locked skin asks for, in student words */
   function requirement(skin) {
     const u = skin.unlock || {};
@@ -329,7 +329,7 @@ window.Arcade = window.Arcade || {};
         : A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
       return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s => s.item ?
         `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
-        `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.text || ''}</small>` +
+        (s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.text || ''}</small>`) +
         `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
         `<div class="sk-u-item"><span class="sk-u-pic">${pic(s)}</span><b class="sk-u-name">${s.name}</b>` +
         `<small>${s.kind === 'acc' ? 'Accessory' : 'Skin'}${milestone(s) ? (m ? ` for ${m.short}` : '') : ' for every instrument'} · ${milestone(s) ? `${s.unlock.stars} ★` : s.unlock.text}</small>` +
@@ -358,8 +358,9 @@ window.Arcade = window.Arcade || {};
       return items.map(item => ({item})).concat(found);
     },
     /** Select Player: a card for everything unlocked since the student last looked (existing progress included) */
-    catchUp(member, {onEquip} = {}) {
-      const skins = Skins.fresh(member), items = AV() ? AV().freshItems() : [];
+    catchUp(member, {onEquip, only} = {}) {
+      // only: item keys (a Band Ninja belt code's gear): just those, no skins
+      const skins = only ? [] : Skins.fresh(member), items = AV() ? AV().freshItems().filter(it => !only || only.includes(it.key)) : [];
       if (!skins.length && !items.length) return [];
       Skins.markSeen(member, skins);
       if (items.length) AV().markSeen(items);
@@ -367,7 +368,7 @@ window.Arcade = window.Arcade || {};
       const ov = document.createElement('div');
       ov.className = 'overlay sk-catchup';
       ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${Skins.cardHTML(found, member)}` +
-        `<p class="muted sk-u-foot">Find everything in the <b>LOCKER</b> on the player card.</p>` +
+        `<p class="muted sk-u-foot">${only ? 'Find it in <b>Create Your Player</b>, on the <b>BAND NINJA</b> tab.' : 'Find everything in the <b>LOCKER</b> on the player card.'}</p>` +
         `<div class="acts"><button type="button" class="btn btn-ghost" data-close>OK</button></div></div>`;
       document.body.appendChild(ov);
       wire(ov, member, onEquip);

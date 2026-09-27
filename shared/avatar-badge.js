@@ -59,6 +59,7 @@ window.Arcade = window.Arcade || {};
     el.innerHTML = `<button type="button" class="avb-btn" aria-haspopup="true" aria-expanded="false"></button>` +
       `<div class="avb-menu" role="group" aria-label="Your player" hidden>` +
       `<button type="button" class="avb-item avb-edit">${PENCIL}<span>Edit avatar</span></button>` +
+      `<button type="button" class="avb-item avb-share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg><span>Share to Band Ninja</span></button>` +
       (opts.changeInstrument ? `<button type="button" class="avb-item avb-inst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg><span>Change instrument</span></button>` : '') +
       `</div>`;
     const btn = el.querySelector('.avb-btn'), menu = el.querySelector('.avb-menu');
@@ -88,6 +89,10 @@ window.Arcade = window.Arcade || {};
       close(false);
       const done = opts.onEdit ? opts.onEdit() : edit({member: opts.member, onClose: () => btn.focus({preventScroll: true})});
       return done;
+    });
+    el.querySelector('.avb-share').addEventListener('click', () => {      // the avatar code (shared/avatar-code.js)
+      close(false);
+      if (A.avatarCode) A.avatarCode.share(A.Avatar.get(), {onClose: () => btn.focus({preventScroll: true})});
     });
     const inst = el.querySelector('.avb-inst');
     if (inst) inst.addEventListener('click', () => {

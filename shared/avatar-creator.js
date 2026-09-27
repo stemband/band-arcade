@@ -28,6 +28,11 @@ window.Arcade = window.Arcade || {};
   /* the tabs: each a list of choice groups. A group: {k (the avatar field), label, kind: 'part' | 'color' | 'toggle' |
      'word', list(), show(av)?, thumb: 'bust' | 'body' | 'swatch'} */
   const colorList = (ids, prefix = '') => ids.map(id => ({id, name: (P().COLORS.find(c => c.id === id) || {name: id === 'aid' ? 'Skin beige' : id}).name, token: prefix + id}));
+  /* OFFICIAL BAND NINJA GEAR (earned in class: a belt code at the Token Booth) lives on its own tab, apart from the
+     arcade's own items, and that tab only shows once a code has opened something (or with ?demo&unlockall) */
+  const own = list => list.filter(o => !o.official);
+  const official = list => list.filter(o => o.official);
+  const bnTab = () => (A.Skins && A.Skins.UNLOCK_ALL) || !!(A.BandNinja && Object.keys(A.BandNinja.belts()).length);
   const TABS = () => [
     {id: 'face', label: 'Face', groups: [
       {k: 'skin', label: 'Skin tone', kind: 'color', list: () => P().SKIN.map(s => ({id: s.id, name: s.name, token: 'av-skin-' + s.id}))},
@@ -49,7 +54,7 @@ window.Arcade = window.Arcade || {};
       {k: 'headColor', label: 'Color', kind: 'color', list: () => colorList(P().COLORS.map(c => c.id), 'av-'), show: av => av.head !== 'none'},
     ]},
     {id: 'clothes', label: 'Clothes', groups: [
-      {k: 'top', label: 'Top', kind: 'part', list: () => P().TOPS, thumb: 'bust'},
+      {k: 'top', label: 'Top', kind: 'part', list: () => own(P().TOPS), thumb: 'bust'},
       {k: 'topColor', label: 'Top color', kind: 'color', list: () => colorList(P().COLORS.map(c => c.id), 'av-'), labelFor: av => av.top === 'concert' ? 'Bow tie color' : 'Top color'},
       {k: 'bottom', label: 'Bottoms', kind: 'part', list: () => P().BOTTOMS, thumb: 'body'},
       {k: 'bottomColor', label: 'Bottoms color', kind: 'color', list: () => colorList(P().BOTTOM_COLORS, 'av-')},
@@ -74,23 +79,29 @@ window.Arcade = window.Arcade || {};
       {k: 'pet', label: 'Pet', kind: 'part', list: () => P().PETS, thumb: 'pet', note: () => 'Your pet floats beside you and does a little dance now and then.'},
     ]},
     {id: 'effects', label: 'Effects', groups: [
-      {k: 'effect', label: 'Effect', kind: 'part', list: () => P().EFFECTS, thumb: 'fx', note: () => 'Effects move around you (never over your face) on the biggest picture of you.'},
+      {k: 'effect', label: 'Effect', kind: 'part', list: () => own(P().EFFECTS), thumb: 'fx', note: () => 'Effects move around you (never over your face) on the biggest picture of you.'},
       {k: 'effectColor', label: 'Aura color', kind: 'color', list: () => P().EFFECT_COLORS.map(c => ({id: c, name: c[0].toUpperCase() + c.slice(1), token: c})), show: av => av.effect === 'aura'},
     ]},
     {id: 'bg', label: 'Background', groups: [
-      {k: 'bg', label: 'Background', kind: 'part', list: () => P().BGS || [], thumb: 'bg', note: () => 'The ones that come to life move behind your player. Unlock more by playing!'},
+      {k: 'bg', label: 'Background', kind: 'part', list: () => own(P().BGS || []), thumb: 'bg', note: () => 'The ones that come to life move behind your player. Unlock more by playing!'},
     ]},
     {id: 'name', label: 'Name', groups: [                // A–Z, no repeats, never a NEVER-USE word (Avatar.words)
       {k: 'name.title', label: 'Title', kind: 'word', list: () => V().words('title').map(w => ({id: w, name: w}))},
       {k: 'name.adj', label: 'Adjective', kind: 'word', list: () => V().words('adj').map(w => ({id: w, name: w}))},
       {k: 'name.noun', label: 'Noun', kind: 'word', list: () => V().words('noun').map(w => ({id: w, name: w}))},
-      {k: 'plate', label: 'Name plate', kind: 'part', list: () => P().PLATES, thumb: 'plate', note: () => 'The frame around your name on results screens and score lists.'},
+      {k: 'plate', label: 'Name plate', kind: 'part', list: () => own(P().PLATES), thumb: 'plate', note: () => 'The frame around your name on results screens and score lists.'},
     ]},
-  ];
+  ].concat(bnTab() ? [{id: 'bandninja', label: 'Band Ninja', groups: [
+    {k: 'belt', label: 'Belt', kind: 'part', list: () => P().BN_BELTS || [], thumb: 'body', note: () => 'Official Band Ninja gear: earned in class. Enter your belt codes from Band Ninja at the Token Booth in Arcade Quest.'},
+    {k: 'plate', label: 'Belt name frame', kind: 'part', list: () => [P().PLATES[0]].concat(official(P().PLATES)), thumb: 'plate', note: () => 'Official Band Ninja gear: earned in class.'},
+    {k: 'top', label: 'Gi', kind: 'part', list: () => official(P().TOPS), thumb: 'bust', note: () => 'Official Band Ninja gear: earned in class (the Black belt code).'},
+    {k: 'effect', label: 'Effect', kind: 'part', list: () => [P().EFFECTS[0]].concat(official(P().EFFECTS)), thumb: 'fx', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code).'},
+    {k: 'bg', label: 'Background', kind: 'part', list: () => [(P().BGS || [])[0]].concat(official(P().BGS || [])), thumb: 'bg', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code).'},
+  ]}] : []);
   // the fields each tab's SURPRISE ME changes
   const TAB_FIELDS = {face: ['skin', 'face', 'eyes', 'eyeColor', 'brows', 'mouth', 'freckles', 'paint', 'paintColor'], hair: ['hair', 'hairColor'], head: ['head', 'headColor'],
     clothes: ['top', 'topColor', 'bottom', 'bottomColor', 'shoes', 'shoeColor'], extras: ['glasses', 'glassesColor', 'aids', 'aidColor', 'chairColor'], bg: ['bg'], name: ['name'],
-    hand: ['hand'], pets: ['pet'], effects: ['effect', 'effectColor']};
+    hand: ['hand'], pets: ['pet'], effects: ['effect', 'effectColor'], bandninja: ['belt']};
 
   /* the unlocked accessories / color skins for the preview's instrument (earned in the games; SKINS locker too) */
   function gearList(kind) {
@@ -130,6 +141,10 @@ window.Arcade = window.Arcade || {};
             <button type="button" class="btn btn-ghost avc-cancel">Cancel</button>
             <button type="button" class="btn btn-gold avc-save">Done</button>
           </div>
+          <div class="avc-codes"${S.guest ? ' hidden' : ''}>
+            <button type="button" class="btn btn-ghost btn-small avc-share">Share to Band Ninja</button>
+            <button type="button" class="btn btn-ghost btn-small avc-loadcode">Load avatar code</button>
+          </div>
           <div class="avc-leave" hidden><p>Leave without saving?</p><button type="button" class="btn btn-ghost avc-stay">Keep editing</button><button type="button" class="btn btn-gold avc-go">Leave</button></div>
           <p class="avc-lockmsg" role="status" hidden></p>
         </section>
@@ -150,6 +165,18 @@ window.Arcade = window.Arcade || {};
     $('.avc-save').addEventListener('click', save);
     $('.avc-cancel').addEventListener('click', () => { sfx('ui-back'); close(false); });
     $('.avc-undo').addEventListener('click', undo);
+    // THE AVATAR CODE (shared/avatar-code.js): share this look, or bring one from another device
+    $('.avc-share').addEventListener('click', () => { if (A.avatarCode) A.avatarCode.share(S.av); });
+    $('.avc-loadcode').addEventListener('click', () => {
+      if (!A.avatarCode) return;
+      A.avatarCode.load({onLoad: (av, locked) => {
+        change(() => { S.av = av; });
+        sfx('avatar-randomize');
+        const n = S.root.querySelector('.avc-lockmsg');
+        n.textContent = locked.length ? `Avatar loaded! Not unlocked on this device yet, so left out: ${locked.join(', ')}.` : 'Avatar loaded! Press DONE to keep it.';
+        n.hidden = false; clearTimeout(S.lockT); S.lockT = setTimeout(() => { if (S) n.hidden = true; }, 6000);
+      }});
+    });
     $('.avc-rand-all').addEventListener('click', () => { change(() => { const keepChair = S.av.chair; S.av = V().random({keep: S.av}); S.av.chair = keepChair; }); sfx('avatar-randomize'); });
     $('.avc-rand-tab').addEventListener('click', () => { change(() => { S.av = V().random({keep: S.av, only: TAB_FIELDS[S.tab]}); }); sfx('avatar-randomize'); });
     $('.avc-body').addEventListener('click', () => { S.view = (S.view + 1) % 4; drawSprite(); });
@@ -334,8 +361,11 @@ window.Arcade = window.Arcade || {};
   /** the unlocked items in a tab that the student hasn't looked at in the creator yet (never with ?unlockall) */
   function freshIn(tabId) {
     if (A.Skins && A.Skins.UNLOCK_ALL) return [];
-    const tab = TABS().find(t => t.id === tabId), fields = tab.groups.map(g => g.k), seen = viewed();
-    return V().items().filter(it => fields.includes(it.field) && !seen[it.key] && V().isUnlocked(it.field, it.id)).map(it => it.key);
+    const tab = TABS().find(t => t.id === tabId), seen = viewed();
+    if (!tab) return [];
+    // the items this tab really shows (official Band Ninja gear only on its own tab)
+    const here = new Set([].concat(...tab.groups.filter(g => g.kind === 'part').map(g => g.list().map(o => V().itemKey(g.k, o.id)))));
+    return V().items().filter(it => here.has(it.key) && !seen[it.key] && V().isUnlocked(it.field, it.id)).map(it => it.key);
   }
   function newDots() {
     S.root.querySelectorAll('.avc-tab').forEach(b => {

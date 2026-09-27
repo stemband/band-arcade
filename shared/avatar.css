@@ -29,6 +29,9 @@ body.avc-open{overflow:hidden}
 .avc-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .avc-acts .btn{min-height:46px;padding:8px 10px;font-size:15px}
 .avc-acts .btn:disabled{opacity:.45}
+.avc-codes{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:8px;padding-top:8px;border-top:1px solid var(--floor-3)}
+.avc-codes .btn{min-height:44px;padding:6px 8px;font-size:13.5px;line-height:1.2}
+.avc-codes[hidden]{display:none}
 .avc-save{grid-column:1/-1}
 .avc-leave{width:100%;text-align:center;padding:10px;border:2px solid var(--pink);border-radius:12px;background:var(--floor-2)}
 .avc-leave p{margin:0 0 8px}

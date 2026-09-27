@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Avatar Card</title>
+<meta name="description" content="A Band Arcade avatar, drawn from its avatar code.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<!-- THE AVATAR CARD (Band Ninja's Progress page shows it in an iframe, about 260 × 280 px):
+     avatar-card/index.html?code=<avatar code>&frame=<css color>&still=1&name=0
+     The avatar exactly as the arcade draws it (background, items, pet, effect, animation), from the code alone: no top
+     bar, PRESS START, sound, microphone, saved progress or unlock checks, and it never reads or writes storage.
+     frame = the border color (default: the arcade's gold), still=1 (or reduced motion) = a still picture, name=0 = no
+     name. It fills its container's width (and fits its height). A missing or broken code = a silhouette + "Avatar not
+     found". Nothing here stops it from being shown in an iframe on another site. -->
+<style>
+  /* see-through in any host page (a color-scheme different from the host's would paint an opaque backdrop) */
+  :root { color-scheme: normal; }
+  html, body { margin: 0; height: 100%; background: transparent; }
+  body { display: grid; place-items: center; overflow: hidden; font-family: var(--text); color: var(--text-hi); }
+  .card { --frame: var(--yellow); --s: 240px; display: flex; flex-direction: column; align-items: center; gap: calc(var(--s) * .04); }
+  .frame { box-sizing: border-box; width: var(--s); height: var(--s); padding: 0; border: calc(var(--s) * .045 + 2px) solid var(--frame);
+    border-radius: calc(var(--s) * .12); overflow: hidden; background: var(--floor); box-shadow: 0 0 calc(var(--s) * .05) color-mix(in srgb, var(--frame) 55%, transparent); }
+  .frame .pt-box { width: 100%; height: 100%; }
+  .name { max-width: calc(100vw - 8px); margin: 0; text-align: center; font-family: var(--display); font-size: clamp(10px, calc(var(--s) * .07), 24px);
+    line-height: 1.15; color: var(--text-hi); text-wrap: balance; overflow-wrap: break-word; text-shadow: 0 1px 2px var(--deep); }
+  .name b { font-weight: 400; word-spacing: .22em; }
+  /* the name sits on the arcade's dark floor, so it reads on any host page (light or dark) */
+  .name { padding: .25em .45em; border-radius: .55em; background: var(--floor); }
+  .name .av-plate { margin: .1em 0 .25em; }
+  .name .av-plate { display: inline-block; }
+  .missing { display: grid; place-items: center; align-content: center; gap: 6%; width: 100%; height: 100%; background: var(--floor-2); color: var(--text-lo); }
+  .missing svg { width: 55%; height: auto; fill: var(--floor-3); }
+  .missing p { margin: 0; font-weight: 700; font-size: clamp(11px, calc(var(--s) * .07), 22px); color: var(--text-hi); }
+</style>
+</head>
+<body>
+<div class="card" id="card"><div class="frame" id="frame"></div><p class="name" id="name" hidden></p></div>
+<script>
+  /* before the drawing code: still=1 (and reduced motion) = a still frame (shared/avatar-bg.js reads Arcade.avatarStill) */
+  window.Arcade = window.Arcade || {};
+  Arcade.cardParams = new URLSearchParams(location.search);
+  Arcade.avatarStill = Arcade.cardParams.get('still') === '1';
+</script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script>
+(function (A) {
+  const p = A.cardParams, card = document.getElementById('card'), frame = document.getElementById('frame'), nameEl = document.getElementById('name');
+  // the frame color: any CSS color (default: the arcade's gold)
+  const fc = (p.get('frame') || '').trim();
+  if (fc && window.CSS && CSS.supports('color', fc)) card.style.setProperty('--frame', fc);
+  const showName = p.get('name') !== '0';
+  const av = A.avatarCode.decode(p.get('code') || '');
+  if (av) {
+    // exactly what the code says: no member (no instrument skins), no unlock checks, nothing saved
+    frame.innerHTML = A.avatarHTML({size: 'big', member: null, avatar: av, skin: false, label: A.Avatar.nameOf(av), live: true});
+    frame.querySelectorAll('.pt-box').forEach(b => b.classList.add('pt-ok'));   // the picture is ready at once (portraits.js does this on other pages)
+    if (showName) { nameEl.innerHTML = `<b${A.Avatar.plateAttr(av)}></b>`; nameEl.firstChild.textContent = A.Avatar.nameOf(av); nameEl.hidden = false; }
+    document.title = A.Avatar.nameOf(av) + ' · Avatar Card';
+  } else {
+    frame.innerHTML = `<div class="missing" role="img" aria-label="Avatar not found"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.5"/><path d="M3.5 22c0-5 3.8-8 8.5-8s8.5 3 8.5 8z"/></svg><p>Avatar not found</p></div>`;
+  }
+  // fill the width, fit the height (the name gets its own room underneath)
+  function fit() {
+    const W = innerWidth, H = innerHeight;
+    let s = Math.max(60, Math.min(W - 8, H - 8));
+    card.style.setProperty('--s', s + 'px');
+    if (!nameEl.hidden) {
+      for (let i = 0; i < 6 && card.getBoundingClientRect().height > H - 4; i++) {
+        s = Math.max(60, s - (card.getBoundingClientRect().height - (H - 4)));
+        card.style.setProperty('--s', s + 'px');
+      }
+    }
+  }
+  fit();
+  addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})(window.Arcade);
+</script>
+</body>
+</html>

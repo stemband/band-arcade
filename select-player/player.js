@@ -281,23 +281,26 @@
      skins (shared/skins.js; per instrument). Tabs OUTFIT · HATS · EXTRAS · PETS · EFFECTS; locked = a dark silhouette
      + what earns it. Live preview on the big avatar. Player 2's turn dresses the GUEST avatar. ---------- */
   const P = window.AVATAR_PARTS, AV = A.Avatar;
+  // official Band Ninja gear (earned in class: a belt code) shows only once it's been earned
+  const earned = (field, list) => list.filter(o => !o.official || AV.isUnlocked(field, o.id));
   const LK_TABS = {
-    outfit: [{field: 'top', label: 'Tops', list: () => P.TOPS}, {field: 'shoes', label: 'Shoes', note: 'in Arcade Quest and the full-body picture', list: () => P.SHOES},
+    outfit: [{field: 'top', label: 'Tops', list: () => earned('top', P.TOPS)}, {field: 'shoes', label: 'Shoes', note: 'in Arcade Quest and the full-body picture', list: () => P.SHOES},
              {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
     hats: [{field: 'head', label: 'Hats and head coverings', list: () => P.HEADS}],
     extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'hand', label: 'Held item', list: () => P.HANDS || []}, {field: 'back', label: 'On your back', list: () => P.BACKS},
-             {field: 'plate', label: 'Name plates', note: 'around your name on results and score lists', list: () => P.PLATES || []},
+             {field: 'belt', label: 'Band Ninja belts', note: 'official Band Ninja gear: earned in class', list: () => { const l = earned('belt', P.BN_BELTS || []); return l.length > 1 ? l : []; }},
+             {field: 'plate', label: 'Name plates', note: 'around your name on results and score lists', list: () => earned('plate', P.PLATES || [])},
              {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
     pets: [{field: 'pet', label: 'Pets', note: 'they float beside you', list: () => P.PETS}],
-    backgrounds: [{field: 'bg', label: 'Backgrounds', note: 'behind your player', list: () => P.BGS || []}],
-    effects: [{field: 'effect', label: 'Effects around you', note: 'they move on the biggest picture of you', list: () => P.EFFECTS || []}, {skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
+    backgrounds: [{field: 'bg', label: 'Backgrounds', note: 'behind your player', list: () => earned('bg', P.BGS || [])}],
+    effects: [{field: 'effect', label: 'Effects around you', note: 'they move on the biggest picture of you', list: () => earned('effect', P.EFFECTS || [])}, {skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
   };
   let lockerFor = null, lkTab = 'outfit';
   const lkGuest = () => phase === 2;
   const lkAvatar = () => lkGuest() ? AV.guest() : AV.get();
   /** how many locker items are open: {have, total} (avatar items + this instrument's skins) */
   function lockerCount(id) {
-    const items = AV.items(), skins = A.Skins.LIST.filter(s => !s.unlock.always);
+    const items = AV.items().filter(it => !it.official || AV.isUnlocked(it.field, it.id)), skins = A.Skins.LIST.filter(s => !s.unlock.always);
     return {have: items.filter(it => AV.isUnlocked(it.field, it.id)).length + skins.filter(s => A.Skins.isUnlocked(s, id)).length, total: items.length + skins.length};
   }
   function openLocker() {
@@ -331,6 +334,7 @@
     $('lkBody').setAttribute('aria-labelledby', 'lkTab-' + lkTab);
     $('lkBody').innerHTML = LK_TABS[lkTab].map((g, gi) => {
       let html;
+      if (!g.skin && !g.list().length) return '';                // nothing to show (Band Ninja belts before a code)
       if (g.skin) {
         const list = g.skin === 'color' ? A.Skins.colors() : [{id: 'none', kind: 'acc', name: 'None', unlock: {always: true}}].concat(A.Skins.accessories());
         html = list.map(s => {

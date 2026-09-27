@@ -94,6 +94,22 @@ window.Arcade = window.Arcade || {};
         x.globalAlpha = a; x.drawImage(o.silhouette, 0, 0, 36 * u, 36 * u); x.globalAlpha = 1;
       }
     },
+    /* OFFICIAL BAND NINJA GEAR (the Diamond belt code): a slow diamond-blue aura with the avatar's rim, and a few
+       small diamonds drifting beside the head, fading in and out (never a blink) */
+    bndiamond(x, u, t, layer, o) {
+      if (layer === 'back') { FX.aura(x, u, t, 'back', Object.assign({}, o, {color: 'bn-diamond'})); return; }
+      [[4, 8], [31, 6], [3, 27], [32, 25], [18, 2]].forEach(([dx, dy], i) => {
+        const P = 3.2 + hash(i) * 1.2, s = Math.pow(Math.max(0, Math.sin(t * TAU / P + i * 1.9)), 2);
+        if (s < .03) return;
+        const cx = dx + Math.sin(t * .6 + i) * .6, cy = dy - s * 1.2, r = 1.3 + s * .9;
+        if (inFace(cx, cy)) return;
+        x.globalAlpha = s * .9;
+        x.fillStyle = col('bn-diamond'); x.beginPath();
+        x.moveTo(cx * u, (cy - r) * u); x.lineTo((cx + r * .7) * u, cy * u); x.lineTo(cx * u, (cy + r) * u); x.lineTo((cx - r * .7) * u, cy * u); x.closePath(); x.fill();
+        x.fillStyle = col('white-hi', .8); x.fillRect((cx - r * .25) * u, (cy - r * .45) * u, Math.max(1, u * .5), Math.max(1, u * .5));
+      });
+      x.globalAlpha = 1;
+    },
     snow(x, u, t, layer) {
       const n = layer === 'back' ? 16 : 6;
       for (let i = 0; i < n; i++) {
@@ -201,7 +217,7 @@ window.Arcade = window.Arcade || {};
     const eff = info.av.effect;
     const layers = box.querySelectorAll('canvas.av-fx');
     if (eff && eff !== 'none' && layers.length) {
-      const silo = eff === 'aura' ? silhouette(frames[frames.length > 1 ? f : 0], info.av.effectColor || 'cyan') : null;
+      const silo = eff === 'aura' || eff === 'bndiamond' ? silhouette(frames[frames.length > 1 ? f : 0], eff === 'bndiamond' ? 'bn-diamond' : info.av.effectColor || 'cyan') : null;
       const burst = box.closest('.av-res') ? sec - st.start : null;
       layers.forEach(c => {
         if (c.width !== px) { c.width = c.height = px; }

@@ -317,6 +317,15 @@ window.Arcade = window.Arcade || {};
     if (!st.appeared) {                                            // the screen appears: the remembered choice
       const v = recall(st.gameId);
       st.sel = valid(v) ? v : null;
+      // a Band Ninja link (shared/bandninja.js: ?belt= / ?rank=) asks for a level: that one if it's open, else the
+      // highest open one below it, with a short line saying so
+      const w = A.BandNinja && A.BandNinja.levelWish(st.gameId);
+      if (w && Number.isInteger(w.index) && w.index >= 0 && w.index < cards.length) {
+        let pick = w.index;
+        while (pick > 0 && !valid(pick)) pick--;
+        if (valid(pick)) { st.sel = pick; remember(st.gameId, pick); }
+        bnNote(st, pick === w.index ? '' : w.note());
+      }
     } else if (st.sel !== null && !valid(st.sel)) st.sel = null;
     mark(); drawStart(false);
     if (st.appeared) { if (st.hint) placeHint(); return; }         // a redraw (a new note set)
@@ -336,6 +345,16 @@ window.Arcade = window.Arcade || {};
       }
       armHint();
     });
+  }
+
+  /** the Band Ninja line under the level heading ('' = none) */
+  function bnNote(st, text) {
+    const old = st.grid.parentNode && st.grid.parentNode.querySelector(':scope>.ls-bn');
+    if (old) old.remove();
+    if (!text) return;
+    const p = document.createElement('p');
+    p.className = 'ls-bn'; p.setAttribute('role', 'status'); p.textContent = text;
+    st.grid.parentNode.insertBefore(p, st.grid);
   }
 
   /** a game started level i (0-based) or 'endless': the screen comes back with it selected */
