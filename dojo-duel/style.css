@@ -178,6 +178,35 @@ body.dueling #wrap{display:none}
 .ninja.bow .nj-pic{animation:dd-bow 2.4s ease-in-out infinite;transform-origin:50% 100%}
 @keyframes dd-bow{0%,20%{rotate:0deg}45%,70%{rotate:16deg;translate:0 6%}100%{rotate:0deg}}
 
+/* ---------- pacing: the countdown and the result moment (no flashing: numbers scale in, glows fade in once) ---------- */
+.hf-call.count{font-size:clamp(46px,13vmin,110px);color:var(--belt-red);animation:dd-count .28s ease-out}
+@keyframes dd-count{from{scale:1.45}to{scale:1}}
+.hf-call.begin{animation:dd-count .3s ease-out}
+/* the countdown: buttons locked and only a little dimmed (a stun dims them more) */
+.hf-pad.waiting.locked .apad-letter,.hf-pad.waiting.locked .apad-acc{opacity:.72}
+/* the right answer glows on both sides; a wrong tap stays coral (.bad) */
+.hf-pad .apad-letter.good.answer{box-shadow:0 0 0 3px var(--deep),0 0 16px var(--yellow);opacity:1}
+.hf-pad.locked .apad-letter.bad{opacity:1}
+/* the winner's half glows in their belt color (one fade in) */
+.half.won::after{content:"";position:absolute;inset:3px;border-radius:18px;pointer-events:none;z-index:3;
+  box-shadow:inset 0 0 0 4px var(--belt),inset 0 0 46px color-mix(in srgb,var(--belt) 50%,transparent);animation:dd-won .35s ease-out}
+@keyframes dd-won{from{opacity:0}to{opacity:1}}
+/* the strike: toward the other player (--sx/--sy = that direction in this half's own frame); the other staggers back */
+.half{--sx:0;--sy:-1}                               /* Tabletop: up is toward the middle for both halves (the far one is turned) */
+.lay-side .h1{--sx:1;--sy:0}.lay-side .h2{--sx:-1;--sy:0}
+.lay-stack .h1{--sx:0;--sy:-1}.lay-stack .h2{--sx:0;--sy:1}
+.ninja.strike .nj-pic{animation:dd-strike .5s ease-out}
+@keyframes dd-strike{30%{translate:calc(var(--sx) * 55%) calc(var(--sy) * 55%);scale:1.14}60%{translate:calc(var(--sx) * 20%) calc(var(--sy) * 20%)}100%{translate:0 0}}
+.ninja.stagger .nj-pic{animation:dd-stagger .6s ease-out .12s}
+@keyframes dd-stagger{25%{translate:calc(var(--sx) * -14%) calc(var(--sy) * -14%);rotate:-9deg}55%{translate:calc(var(--sx) * 6%) calc(var(--sy) * 6%);rotate:5deg}100%{translate:0 0;rotate:0deg}}
+/* "+1" flying from the winner to their score */
+.fly{position:absolute;z-index:6;pointer-events:none;font:400 clamp(28px,6vmin,48px) var(--display);color:var(--belt);
+  -webkit-text-stroke:.06em var(--deep);paint-order:stroke;text-shadow:0 0 12px var(--belt)}
+/* MATCH POINT banner on that player's half during the result moment */
+.mpb{position:absolute;left:50%;top:44%;z-index:4;translate:-50% -50%;pointer-events:none;white-space:nowrap;font:400 clamp(22px,6vmin,46px) var(--display);
+  font-style:normal;letter-spacing:.06em;color:var(--deep);background:var(--yellow);padding:.15em .5em;border-radius:12px;box-shadow:0 0 0 3px var(--deep),var(--glow-yellow);animation:dd-count .35s ease-out}
+.mpb[hidden]{display:none}
+
 /* results (inside each half, so the top half's results face the far player; the name row goes away to make room) */
 .half.done .hf-top{display:none}
 .hf-res{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
@@ -223,7 +252,7 @@ body.dueling #wrap{display:none}
 .lay-table .res-in,.lay-stack .res-in{gap:5px}
 
 @media (prefers-reduced-motion:reduce){
-  .lantern,.mpt,.stunned .hf-pad,.ninja .nj-pic,.ninja.dizzy .stars,.bow-n .nj-pic,.sc.pop{animation:none!important}
+  .lantern,.mpt,.stunned .hf-pad,.ninja .nj-pic,.ninja.dizzy .stars,.bow-n .nj-pic,.sc.pop,.hf-call,.half.won::after,.mpb{animation:none!important}
   .ninja.bow .nj-pic,.bow-n .nj-pic{rotate:10deg}
   .hf-call{transition:none}
 }

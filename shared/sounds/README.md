@@ -238,6 +238,10 @@ show on screen).
 | `dojo-begin` | `dojo-begin.m4a` or `dojo-begin.mp3` | Dojo Duel: BEGIN! at the start of a match (a gong). | 1–2 s |
 | `dojo-point` | `dojo-point.m4a` or `dojo-point.mp3` | Dojo Duel: a player wins the point. | under 0.5 s |
 | `dojo-wrong` | `dojo-wrong.m4a` or `dojo-wrong.mp3` | Dojo Duel: a wrong tap (that player is dizzy for a second). | under 0.5 s |
+| `dojo-count` | `dojo-count.m4a` or `dojo-count.mp3` | Dojo Duel: each number of the countdown before a note (3, 2, 1). QUICK plays three in about one second. | under 0.2 s |
+| `dojo-reveal` | `dojo-reveal.m4a` or `dojo-reveal.mp3` | Dojo Duel: the note appears on both sides (every note after the first; the first gets dojo-begin). | under 0.3 s |
+| `dojo-strike` | `dojo-strike.m4a` or `dojo-strike.mp3` | Dojo Duel: the winner's ninja does a quick strike (a playful bump), before dojo-point. | under 0.3 s |
+| `dojo-no-point` | `dojo-no-point.m4a` or `dojo-no-point.mp3` | Dojo Duel: nobody scores (both wrong, or "Too slow, ninjas!"). | under 0.5 s |
 | `dojo-match-point` | `dojo-match-point.m4a` or `dojo-match-point.mp3` | Dojo Duel: MATCH POINT (a player is one point from winning; after dojo-point). | 0.5–1 s |
 | `dojo-victory` | `dojo-victory.m4a` or `dojo-victory.mp3` | Dojo Duel: the match is won (the victory screen). | 1–2.5 s |
 | `sensei-begin` | `sensei-begin.m4a` or `sensei-begin.mp3` | Dojo Duel (optional voice): the Sensei starts the match, after dojo-begin ("Bow to your opponent… begin!"). | 1–2 s |

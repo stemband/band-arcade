@@ -1,14 +1,16 @@
 /* DOJO DUEL: a two-player note-reading race on one device (Band Ninja world). NO microphone.
    Each player has their own half of the screen: their own note (their own clef, note set and Note Ninja belt),
    their own answer pad (shared/answer-pad.js, Note Ninja's layout). The first correct tap wins the point; a wrong
-   tap stuns that player for a second. Settings: levels.js (DUEL_RULES, DUEL_SENSEI, DUEL_LINES). Belts and their
+   tap stuns that player for a second. Every point: a COUNTDOWN (QUICK / CLASSIC / OFF, chosen on the setup screen),
+   the note on both sides at the same instant, then a RESULT MOMENT (the strike, "+1", both answers shown).
+   Settings: levels.js (DUEL_PACING = every timing, DUEL_RULES, DUEL_SENSEI, DUEL_LINES). Belts and their
    note pools: note-ninja/levels.js (NINJA_BELTS) + shared/sequences.js; nothing is copied here.
    Saved: store.gameData('dojo-duel') = {setup, record: {'<player name>': wins}, sensei: {easy|medium|hard: {w, l}}}
    (part of the Arcade Backup Code, which saves all gameData). No stars, no effect on Note Ninja. */
 (function (A) {
   "use strict";
   const $ = id => document.getElementById(id);
-  const GAME_ID = 'dojo-duel', R = window.DUEL_RULES, CPUS = window.DUEL_SENSEI, LINES = window.DUEL_LINES;
+  const GAME_ID = 'dojo-duel', R = window.DUEL_RULES, PACE = window.DUEL_PACING, CPUS = window.DUEL_SENSEI, LINES = window.DUEL_LINES;
   const BELTS = window.NINJA_BELTS;
   const REF = {treble: 'trumpet', bass: 'trombone'};           // whose notes a clef reads when the player's own instrument doesn't fit
   const KEYS = [
@@ -31,13 +33,14 @@
   const savedMember = () => { const m = A.store.player && A.memberById(A.store.player); return m && m.pitched !== false && m.id !== 'bells' ? m : null; };
   function defaults() {
     const m = savedMember();
-    return {mode: '2p', cpu: 'medium', to: R.length, layout: touchFirst ? 'table' : 'side',
+    return {mode: '2p', cpu: 'medium', to: R.length, layout: touchFirst ? 'table' : 'side', count: 'quick',
             p: [{clef: m ? m.clef : 'treble', notes: 'first5', belt: 1, named: false}, {clef: 'treble', notes: 'first5', belt: 1, named: false}]};
   }
   const S = Object.assign(defaults(), data().setup || {});
   S.p = [0, 1].map(i => Object.assign(defaults().p[i], (S.p || [])[i] || {}));
   if (!R.lengths.includes(S.to)) S.to = R.length;
   if (!CPUS.some(c => c.id === S.cpu)) S.cpu = 'medium';
+  if (!R.countdowns.includes(S.count)) S.count = 'quick';
   function saveSetup() { data().setup = JSON.parse(JSON.stringify(S)); A.store.saveGameData(GAME_ID); }
 
   const beltOpen = lv => lv === 1 || A.DEMO || A.store.bestLevelStars('note-ninja', lv - 1) > 0 || A.store.bestLevelStars('note-ninja', lv) > 0;
@@ -127,6 +130,7 @@
     $('segCpu').innerHTML = seg(CPUS.map(c => ({v: c.id, html: c.name})), S.cpu);
     $('segTo').innerHTML = seg(R.lengths.map(n => ({v: n, html: `First to ${n}`})), S.to);
     $('segLayout').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.layout)));
+    $('segCount').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.count)));
     $('fieldCpu').hidden = !cpuOn();
     $('fieldLayout').hidden = cpuOn();
     $('modeNote').textContent = cpuOn()
@@ -134,6 +138,8 @@
       : S.layout === 'table'
         ? 'Tabletop: lay the device flat between you. The far half turns to face Player 2. Tip: turn on Rotation Lock so the screen stays put.'
         : 'Side by side: Player 1 on the left, Player 2 on the right, both facing the screen.';
+    $('countNote').textContent = {quick: 'Quick: a fast 3-2-1 before each note.', classic: 'Classic: a slow 3-2-1 (one second a number) before each note.',
+      off: 'Off: no countdown, just a short pause before each note.'}[S.count] + ' The first note, and the one after a match point, always get the slow 3-2-1.';
     renderCard(0); renderCard(1);
     renderKeymap();
   }
@@ -152,6 +158,7 @@
   $('segCpu').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.cpu = b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
   $('segTo').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.to = +b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
   $('segLayout').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.layout = b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
+  $('segCount').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.count = b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
   $('goBtn').addEventListener('click', () => startMatch());
 
   function showSetup() {
@@ -218,13 +225,14 @@
         (A.DEMO ? `<p class="demo-ans" id="demo${pi}"></p>` : '') +
       `</div>` +
       `<div class="hf-res" id="res${pi}" hidden></div>` +
+      `<em class="mpb" id="mpb${pi}" hidden>MATCH POINT</em>` +
     `</div>`;
   }
 
   function startMatch() {
     stopLoop();
     saveSetup();
-    M = {to: S.to, clock: 0, last: 0, paused: false, running: false, pt: null, P: [makePlayer(0), makePlayer(1)], mpShown: [false, false],
+    M = {to: S.to, clock: 0, last: 0, paused: false, running: false, phase: 'count', first: true, pt: null, P: [makePlayer(0), makePlayer(1)], mpShown: [false, false],
          cpu: cpuOn() ? CPUS.find(c => c.id === S.cpu) : null, angle0: angle(), timers: []};
     $('wrap').hidden = true; $('paused').hidden = true;
     document.body.classList.add('dueling');
@@ -242,21 +250,20 @@
     drawScores();
     A.Sfx.setMusic(['dojo-match-music'], {builtIn: true});
     if (screen.orientation && screen.orientation.lock && M.layout === 'table') screen.orientation.lock(screen.orientation.type).catch(() => {});
-    M.P.forEach(P => { P.pad.lock(true); ninja(P.pi, 'ready'); drawStaff(P, true); });
-    // READY… then BEGIN! (two word changes, no flashing)
-    call(line('ready'), 'ready');
-    later(R.readyMs, () => {
-      call(line('begin'), 'begin'); A.Sfx.sequence(['dojo-begin', 'sensei-begin']);
-      later(R.beginMs, () => { call(''); M.running = true; nextPoint(); });
-    });
+    M.running = true;
+    countdown();                                   // the first note: always a CLASSIC 3-2-1 and BEGIN!
     M.last = performance.now(); raf = requestAnimationFrame(loop);
   }
   /** a game-clock timeout (stops while paused) */
   function later(ms, fn) { M.timers.push({at: M.clock + ms, fn}); }
   function stopLoop() { cancelAnimationFrame(raf); raf = 0; }
 
+  /** the big word over both staffs (each half faces its own player, so this reads right on both sides) */
   function call(text, cls = '') {
-    [0, 1].forEach(pi => { const c = $('call' + pi); if (c) { c.textContent = text; c.className = 'hf-call ' + cls; } });
+    [0, 1].forEach(pi => {
+      const c = $('call' + pi); if (!c) return;
+      c.textContent = text; c.className = 'hf-call'; void c.offsetWidth; c.className = 'hf-call ' + cls;   // restart the scale-in
+    });
   }
   function say(pi, text, cls = '') {
     const el = $('say' + pi); if (!el) return;
@@ -265,10 +272,10 @@
   function sayBoth(text, cls) { say(0, text, cls); say(1, text, cls); }
   function ninja(pi, mood) {
     const el = $('nj' + pi); if (!el) return;
-    el.classList.remove('ready', 'jump', 'dizzy', 'sad', 'bow', 'win');
+    el.classList.remove('ready', 'jump', 'dizzy', 'sad', 'bow', 'win', 'strike', 'stagger');
     void el.offsetWidth;
     if (mood) el.classList.add(mood);
-    if (M && M.P[pi].cpu) el.querySelector('.nj-pic').innerHTML = `<span class="sensei-pic">${A.senseiSVG(mood === 'jump' || mood === 'win' ? 'happy' : mood === 'dizzy' ? 'hmm' : 'calm')}</span>`;
+    if (M && M.P[pi].cpu) el.querySelector('.nj-pic').innerHTML = `<span class="sensei-pic">${A.senseiSVG(mood === 'jump' || mood === 'win' || mood === 'strike' ? 'happy' : mood === 'dizzy' || mood === 'stagger' ? 'hmm' : 'calm')}</span>`;
   }
 
   /* one note on this player's staff, in their clef, with their set's key signature and their belt's guides */
@@ -281,26 +288,62 @@
     if (guides) svg = svg.replace('</svg>', A.staffGuides(P.clef, 66 + sigW, P.L.guides) + '</svg>');
     $('st' + P.pi).innerHTML = svg;
   }
+  /** the result: the note turns gold (this player won it) or coral, and its name appears right next to it */
   function reveal(P, color) {
     A.colorNote('ddn' + P.pi, color);
-    const g = document.getElementById('ddn' + P.pi), svg = $('st' + P.pi).querySelector('svg');
-    if (!g || !svg) return;
-    const vb = svg.viewBox.baseVal;
-    g.insertAdjacentHTML('beforeend', `<text class="ncap" x="${P.x}" y="${vb.y + vb.height - 10}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="19" fill="${color}">${P.it.label}</text>`);
+    const g = document.getElementById('ddn' + P.pi);
+    if (!g) return;
+    const y = A.noteY(P.clef, P.it.show);
+    g.insertAdjacentHTML('beforeend', `<text class="ncap ans" x="${P.x + 24}" y="${y + 10}" text-anchor="start" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="30" fill="${color}" stroke="${tok('screen')}" stroke-width="5" paint-order="stroke">${P.it.label}</text>`);
   }
 
-  function nextPoint() {
+  /* ---------- a point: COUNTDOWN → the NOTE (both sides, one frame) → a tap → the RESULT MOMENT ---------- */
+  /** the countdown before a note: buttons locked (a little dimmed), empty staffs, 3-2-1 over both staffs.
+      QUICK / CLASSIC / OFF from the setup; the first note of a match and the note after a new MATCH POINT: CLASSIC */
+  function countdown() {
     if (!M) return;
-    M.pt = {t0: M.clock, done: false, hits: [], wrong: [false, false], tie: null, cpu: null};
+    M.phase = 'count';
+    const first = M.first; M.first = false;
+    M.P.forEach(P => {
+      P.pad.lock(true);
+      $('pad' + P.pi).classList.add('waiting');
+      $('pad' + P.pi).querySelectorAll('.good,.bad,.answer').forEach(b => b.classList.remove('good', 'bad', 'answer'));
+      $('h' + (P.pi + 1)).classList.remove('won');
+      $('mpb' + P.pi).hidden = true;
+      drawStaff(P, true);
+      if (M.clock >= P.stunUntil) ninja(P.pi, 'ready');
+      const d = $('demo' + P.pi); if (d) d.textContent = '';
+    });
+    sayBoth(first ? line('ready') : '');
+    const kind = first || M.tense ? 'classic' : S.count;
+    M.tense = false;
+    M.countKind = kind;
+    if (kind === 'off') { call(''); later(PACE.offMs, () => showNote(false)); return; }
+    const step = kind === 'classic' ? PACE.classicStep : PACE.quickStep;
+    [3, 2, 1].forEach((n, k) => later(k * step, () => { call(String(n), 'count'); A.Sfx.event('dojo-count'); }));
+    later(3 * step, () => {
+      if (!first) { showNote(false); return; }
+      call(line('begin'), 'begin'); A.Sfx.sequence(['dojo-begin', 'sensei-begin']);
+      later(PACE.beginMs, () => showNote(true));
+    });
+  }
+  /** the note appears on BOTH sides and both pads unlock, in this one call (one animation frame: the game-clock
+      timers run inside requestAnimationFrame). The note clock (and the Sensei's reaction time) starts now. */
+  function showNote(first) {
+    if (!M) return;
+    call('');
+    M.pt = {t0: M.clock, done: false, hits: [], wrong: [false, false], tapped: [null, null], tie: null, cpu: null};
     M.P.forEach(P => {
       nextItem(P); drawStaff(P);
       P.pad.set({accs: P.accs, relabel: P.L.relabel});
+      $('pad' + P.pi).classList.remove('waiting');
       P.pad.lock(P.cpu || M.clock < P.stunUntil);
-      $('pad' + P.pi).querySelectorAll('.good,.bad').forEach(b => b.classList.remove('good', 'bad'));
       if (M.clock >= P.stunUntil) ninja(P.pi, 'ready');
       const d = $('demo' + P.pi); if (d) d.textContent = 'Demo answer: ' + P.it.label;
     });
+    M.phase = 'play';
     sayBoth('');
+    if (!first) A.Sfx.event('dojo-reveal');
     if (M.cpu) planCpu();
   }
 
@@ -316,7 +359,7 @@
     if (c.wrong) {
       const others = A.AnswerPad.LETTERS.filter(l => l !== it.n.letter);
       const l = pick(others);
-      pt.cpu = {at: M.clock + R.stunMs + c.react * .5, wrong: false};
+      pt.cpu = {at: M.clock + PACE.stunMs + c.react * .5, wrong: false};
       answer(1, l, it.n.acc || 0, {timeStamp: performance.now()}, true);
     } else {
       pt.cpu = null;
@@ -332,7 +375,7 @@
 
   /** a tap: pi = the player, letter + acc (-1/0/1), ev.timeStamp decides ties */
   function answer(pi, letter, acc, ev, fromCpu) {
-    if (!M || !M.running || M.paused || !M.pt || M.pt.done) return;
+    if (!M || !M.running || M.paused || M.phase !== 'play' || !M.pt || M.pt.done) return;   // countdown / result: taps do nothing
     const P = M.P[pi], it = P.it;
     if (M.clock < P.stunUntil) return;
     if (P.cpu && !fromCpu) return;
@@ -349,7 +392,8 @@
     P.pad.mark(letter, 'bad');
     P.stats.wrong++; noteRec(P, it).wrong++;
     M.pt.wrong[pi] = true;
-    P.stunUntil = M.clock + R.stunMs;
+    M.pt.tapped[pi] = {letter, label: letter + (A.AnswerPad.SIGN[acc] || '')};
+    P.stunUntil = M.clock + PACE.stunMs;
     P.pad.lock(true);
     $('h' + (pi + 1)).classList.add('stunned');
     ninja(pi, 'dizzy');
@@ -364,34 +408,84 @@
     endPoint(w.pi, 'hit', w.t);
   }
 
+  /** THE RESULT MOMENT: both answers on both sides (the right button glows, a wrong one stays coral), the winner's
+      half glows in their belt color, their ninja strikes (a playful bump), "+1" flies to the score. Buttons stay
+      locked. Then the next countdown, or the victory screen after the winning point. */
   function endPoint(w, why, t) {
     const pt = M.pt; pt.done = true;
+    M.phase = 'result';
     clearTimeout(pt.tie);
     const gold = tok('gold-ink'), red = tok('red-ink');
     M.P.forEach(P => {
       P.pad.lock(true);
+      const right = P.pad.el.querySelector(`.apad-letter[data-letter="${P.it.n.letter}"]`);
+      if (right) right.classList.remove('bad');
       P.pad.mark(P.it.n.letter, 'good');
+      if (right) right.classList.add('answer');
       reveal(P, P.pi === w ? gold : red);
       if (w == null) { if (why === 'timeout' && !pt.wrong[P.pi]) noteRec(P, P.it).missed++; }
       else if (P.pi !== w && !pt.wrong[P.pi]) noteRec(P, P.it).lost++;
     });
+    const answerLine = P => { const tp = pt.tapped[P.pi]; return tp && tp.label !== P.it.label ? `You tapped ${tp.label}. It's ${P.it.label}.` : `It's ${P.it.label}.`; };
+    let hold = PACE.noPointMs;
     if (w != null) {
       const P = M.P[w], ms = (t != null ? t : M.clock) - pt.t0, O = M.P[1 - w];
       P.score++; P.stats.right++; P.stats.times.push(ms); noteRec(P, P.it).times.push(ms);
-      ninja(w, 'jump'); if (M.clock >= O.stunUntil) ninja(1 - w, 'sad');
-      const text = line(ms < R.fastMs ? 'fast' : 'point', P.name);
-      sayBoth(text, 'good');
-      drawScores(w);
+      const half = $('h' + (w + 1));
+      half.style.setProperty('--belt', `var(--${P.belt.color})`);
+      half.classList.add('won');
+      ninja(w, 'strike'); ninja(1 - w, 'stagger');
+      say(w, 'POINT! ' + line(ms < R.fastMs ? 'fast' : 'point', P.name), 'good');
+      say(1 - w, O.cpu ? line('wrong') : answerLine(O), '');
+      flyPoint(w, () => drawScores(w));
       const mp = matchPointCheck();
-      A.Sfx.sequence(mp ? ['dojo-point', 'dojo-match-point'] : ['dojo-point', ...(ms < R.fastMs ? ['sensei-point'] : [])]);
-      if (mp) later(500, () => sayBoth(line('matchPoint', mp.name), 'mp'));
+      M.tense = M.P.some(Q => Q.score === M.to - 1) && P.score < M.to;   // the next countdown is CLASSIC
+      if (mp && P.score < M.to) { $('mpb' + mp.pi).hidden = false; say(mp.pi, (mp.pi === w ? 'POINT! ' : '') + line('matchPoint', mp.name), 'mp'); }
+      A.Sfx.sequence(['dojo-strike', 'dojo-point', mp && P.score < M.to && 'dojo-match-point', ms < R.fastMs && 'sensei-point']);
+      hold = PACE.resultMs;
     } else {
-      sayBoth(line(why === 'timeout' ? 'timeout' : 'bothWrong'), '');
+      const text = line(why === 'timeout' ? 'timeout' : 'bothWrong');
+      M.P.forEach(P => say(P.pi, P.cpu ? text : `${text} ${answerLine(P)}`, ''));
+      A.Sfx.event('dojo-no-point');
+      M.tense = M.P.some(Q => Q.score === M.to - 1);
     }
-    later(R.revealMs, () => {
+    later(hold, () => {
       if (w != null && M.P[w].score >= M.to) victory(w);
-      else nextPoint();
+      else countdown();
     });
+  }
+  /** "+1" flies from the winner's ninja to their score, reading upright for that player (the top half in Tabletop
+      is turned around); the score ticks up when it lands. Positions are layout positions inside the duel, so a
+      counter-rotated duel (holdOrientation) still works. Reduced motion: the score just ticks up. */
+  function flyPoint(w, done) {
+    const from = $('nj' + w), to = $('sc' + (w + 1)), duel = $('duel');
+    if (reduced() || !from || !to) { done(); return; }
+    const a = centerIn(from), b = centerIn(to), turned = M.layout === 'table' && w === 1;
+    const f = document.createElement('b');
+    f.className = 'fly'; f.textContent = '+1';
+    f.style.setProperty('--belt', `var(--${M.P[w].belt.color})`);
+    f.style.left = a.x + 'px'; f.style.top = a.y + 'px';
+    duel.appendChild(f);
+    const r = turned ? ' rotate(180deg)' : '';
+    const anim = f.animate([
+      {transform: `translate(-50%, -50%)${r} scale(.6)`, opacity: 0},
+      {transform: `translate(-50%, -50%)${r} scale(1.25)`, opacity: 1, offset: .25},
+      {transform: `translate(calc(-50% + ${b.x - a.x}px), calc(-50% + ${b.y - a.y}px))${r} scale(.8)`, opacity: 1}],
+      {duration: PACE.flyMs, easing: 'ease-in'});
+    const end = () => { f.remove(); done(); };
+    anim.onfinish = end; anim.oncancel = end;
+  }
+  /** an element's center in the duel's own layout (offsets, so no transform on the duel matters), counting the
+      half-turn of the far half and its score in Tabletop */
+  function centerIn(el) {
+    const duel = $('duel');
+    let x = el.offsetWidth / 2, y = el.offsetHeight / 2, n = el;
+    while (n && n !== duel) {
+      if (M.layout === 'table' && (n.id === 'h2' || n.id === 'sc2')) { x = n.offsetWidth - x; y = n.offsetHeight - y; }
+      x += n.offsetLeft; y += n.offsetTop;
+      n = n.offsetParent;
+    }
+    return {x, y};
   }
   function matchPointCheck() {
     let fresh = null;
@@ -428,14 +522,15 @@
       if (P.stunUntil && M.clock >= P.stunUntil) {
         P.stunUntil = 0;
         $('h' + (P.pi + 1)).classList.remove('stunned');
-        if (pt && !pt.done) { if (!P.cpu) P.pad.lock(false); ninja(P.pi, 'ready'); say(P.pi, ''); }
+        if (M.phase === 'play' && pt && !pt.done) { if (!P.cpu) P.pad.lock(false); ninja(P.pi, 'ready'); say(P.pi, ''); }
       }
     });
-    if (!M.running || !pt) return;
-    const left = pt.done ? 0 : Math.max(0, 1 - (M.clock - pt.t0) / R.pointMs);
+    if (!M.running) return;
+    const left = M.phase === 'count' ? 1 : !pt || pt.done ? 0 : Math.max(0, 1 - (M.clock - pt.t0) / PACE.noteMs);
     M.P.forEach(P => { const b = $('tb' + P.pi); if (b) { b.style.transform = `scaleX(${left})`; b.parentNode.classList.toggle('low', left < .3); } });
+    if (M.phase !== 'play' || !pt) return;
     if (M.cpu) cpuStep();
-    if (!pt.done && !pt.hits.length && M.clock - pt.t0 >= R.pointMs) endPoint(null, 'timeout');
+    if (!pt.done && !pt.hits.length && M.clock - pt.t0 >= PACE.noteMs) endPoint(null, 'timeout');
   }
 
   /* ---------- match over ---------- */
@@ -452,6 +547,8 @@
     A.Sfx.setMusic(null);
     A.Sfx.sequence(['dojo-victory', 'sensei-victory']);
     $('mpt0').hidden = $('mpt1').hidden = true;
+    $('mpb0').hidden = $('mpb1').hidden = true;
+    M.P.forEach(P => $('h' + (P.pi + 1)).classList.remove('won'));
     ['sc1', 'sc2'].forEach(id => $(id).classList.remove('mp'));
     M.P.forEach(P => {
       $('body' + P.pi).hidden = true;
@@ -532,7 +629,7 @@
       if (li >= 0) { e.preventDefault(); P.pad.press(A.AnswerPad.LETTERS[li], e); return; }
       if (e.code === K.flat || e.code === K.sharp) {
         e.preventDefault();
-        if (P.accs && M.clock >= P.stunUntil) { const a = e.code === K.flat ? -1 : 1; P.pad.setAcc(P.pad.el.querySelector(`.apad-acc[data-acc="${a}"]`).getAttribute('aria-pressed') === 'true' ? 0 : a); }
+        if (P.accs && M.phase === 'play' && M.clock >= P.stunUntil) { const a = e.code === K.flat ? -1 : 1; P.pad.setAcc(P.pad.el.querySelector(`.apad-acc[data-acc="${a}"]`).getAttribute('aria-pressed') === 'true' ? 0 : a); }
         return;
       }
     }
@@ -568,12 +665,14 @@
 
   /* tests (?demo) */
   A.Duel = {
-    state: () => M && {running: M.running, paused: M.paused, clock: M.clock, layout: M.layout, to: M.to, pt: M.pt && {done: M.pt.done, wrong: M.pt.wrong.slice()},
+    state: () => M && {running: M.running, paused: M.paused, clock: M.clock, layout: M.layout, to: M.to, phase: M.phase, countKind: M.countKind,
+      pt: M.pt && {done: M.pt.done, wrong: M.pt.wrong.slice(), t0: M.pt.t0},
       players: M.P.map(P => ({name: P.name, cpu: P.cpu, clef: P.clef, notes: P.notes, belt: P.L.name, score: P.score, stunned: M.clock < P.stunUntil,
         it: P.it && {letter: P.it.n.letter, acc: P.it.n.acc || 0, oct: P.it.n.oct, midi: P.it.midi, label: P.it.label},
         pool: P.seq.pool.map(it => it.midi), stats: {right: P.stats.right, wrong: P.stats.wrong}}))},
     setup: () => JSON.parse(JSON.stringify(S)),
     rotate: a => { angleOverride = a; holdOrientation(); },
+    tap: (pi, letter, ts) => M && M.P[pi].pad.press(letter, {timeStamp: ts}),   // a tap with a chosen time stamp (tie tests)
   };
 
   showSetup();

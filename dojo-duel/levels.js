@@ -4,15 +4,30 @@
    (its `pool` = the first three notes on White, then the whole note set; `guides` = the faint letter names;
    `relabel: false` = the buttons stop hinting ♭/♯). A player may choose any belt they have a star on in Note Ninja
    on this device (or the next one up), so the belts work as a handicap: each player reads their own notes. */
+/* PACING: every timing of a point, in one place (milliseconds). A point goes:
+     COUNTDOWN (3-2-1 in the middle of each player's staff, buttons locked and dimmed)
+     → the NOTE appears on both sides at the same instant, buttons unlock
+     → a tap (or nobody within noteMs)
+     → the RESULT MOMENT (both answers shown, buttons locked) → the next countdown.
+   With QUICK, a point takes about resultMs + 3 × quickStep ≈ 2.6 s plus the players' own answer time. */
+window.DUEL_PACING = {
+  quickStep: 350,         // QUICK countdown (the default): each of 3, 2, 1 shows this long
+  classicStep: 1000,      // CLASSIC countdown: each number this long. Always used for the first note of a match
+                          // (followed by BEGIN!) and for the note after a point that makes someone's MATCH POINT
+  offMs: 400,             // OFF: no numbers, just this short "ready" gap with an empty staff
+  beginMs: 600,           // the first note: "BEGIN!" shows this long after 3-2-1
+  resultMs: 1500,         // the RESULT MOMENT after a point (the strike, +1, both answers shown)
+  noPointMs: 1500,        // the same moment when nobody scores (both wrong, or too slow)
+  flyMs: 650,             // the "+1" flies to the score this long (inside the result moment)
+  stunMs: 1000,           // a wrong tap: that player's buttons rest this long (dizzy)
+  noteMs: 6000,           // nobody answers in this long = no point ("Too slow, ninjas!")
+};
+
 window.DUEL_RULES = {
   lengths: [7, 10, 15],   // MATCH LENGTH choices: first to this many points
   length: 10,             // …the default
-  pointMs: 6000,          // nobody answers in this long = no point
-  stunMs: 1000,           // a wrong tap: that player's buttons rest this long (dizzy)
-  revealMs: 800,          // both answers stay on screen this long before the next note
+  countdowns: ['quick', 'classic', 'off'],   // COUNTDOWN choices on the setup screen (remembered on this device)
   tieMs: 24,              // taps this close together are compared by their exact time stamp
-  readyMs: 900,           // "READY…" shows this long, then "BEGIN!" (a word change, never a flash)
-  beginMs: 700,
   fastMs: 1500,           // a point won faster than this = a "fast" Sensei line
 };
 
@@ -31,7 +46,7 @@ window.DUEL_LINES = {
   fast:       ['Swift and sharp!', 'Lightning fingers, {name}!', 'Too quick to see!'],
   point:      ['A point for {name}!', 'Well read, {name}!', 'Clean and true!'],
   wrong:      ['Patience, ninja…', 'Steady. Read it again.', 'Slow is smooth, smooth is fast.'],
-  timeout:    ['A tricky one! Here are the answers.', 'The notes win this round. Next!'],
+  timeout:    ['Too slow, ninjas!', 'Too slow, ninjas! Here are the answers.', 'The notes win this round!'],
   bothWrong:  ['Both of you, breathe. Next note!', 'A tangle! Look at the answers.'],
   matchPoint: ['Match point for {name}!', '{name} needs one more point!'],
   comeback:   ['The duel is not over yet!', 'Never give up, ninja!'],
