@@ -55,9 +55,13 @@ window.Arcade = window.Arcade || {};
       is still sounding, so only a fresh note (a new attack or a different pitch) can count afterwards.
       shared/sfx.js calls it for EVERY sound played while listening (the sound's length + 250 ms of room echo).
       Meanwhile onHeld never fires, onFrame gets reading = null, and games pause their timers: they check
-      P.isSuppressed(now) each frame (Ghost Notes, Note Storm), or wait for P.suppressedUntil (Neon Face-Off). */
+      P.isSuppressed(now) each frame (Ghost Notes; Note Storm never pauses), or wait for P.suppressedUntil (Neon Face-Off). */
   P.suppressedUntil = 0;
-  P.suppress = ms => { P.suppressedUntil = Math.max(P.suppressedUntil, performance.now() + ms); H.fired = true; };
+  /** SOFT SUPPRESSION (opt-in, Note Storm): nothing counts during the window either, but a note STARTED during it
+      counts as soon as the window ends (held for holdMs from its start), so a fast player never has to re-tongue.
+      A note already counted before the window and still held never counts twice (one note = one hit). */
+  P.softSuppress = false;
+  P.suppress = ms => { P.suppressedUntil = Math.max(P.suppressedUntil, performance.now() + ms); if (!P.softSuppress) H.fired = true; };
   P.isSuppressed = (t = performance.now()) => t < P.suppressedUntil;
   /** true while a game is listening (the mic is running, or ?demo is standing in for it) */
   P.listening = () => (P.active || P.demoReady) && !P.paused;
@@ -323,7 +327,7 @@ window.Arcade = window.Arcade || {};
     // a sound effect is playing: keep tracking what is heard but count none of it. Anything still sounding when the
     // window ends stays counted too, so only a NEW note (a new attack or a different pitch) can fire afterwards.
     const quiet = now < P.suppressedUntil;
-    if (quiet) { H.fired = true; reading = null; }       // …and nothing heard during the window is reported at all
+    if (quiet) { if (!P.softSuppress) H.fired = true; reading = null; }   // …and nothing heard during the window is reported at all
     P.reading = reading; P.level = level;
     if (pend.length) settleAttacks(reading, now);
     if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {

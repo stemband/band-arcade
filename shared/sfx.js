@@ -27,7 +27,8 @@
      after a browser once got "404" for it still plays. ?debug on any page shows the MUSIC LOG (console + a box).
    THE MICROPHONE: a sound played while a game is listening (Arcade.Pitch.listening()) makes the detector ignore
    everything for the sound's length + ECHO_MS (Arcade.Pitch.suppress), and games pause their timers meanwhile
-   (Arcade.Pitch.isSuppressed). Sounds marked mic: false in sounds.js never play while listening.
+   (Arcade.Pitch.isSuppressed). Note Storm never pauses: it caps the muted part (Sfx.muteMax) and uses
+   Arcade.Pitch.softSuppress. Sounds marked mic: false in sounds.js never play while listening.
    Browsers allow sound only after a tap or key press on each page: the AudioContext starts then, never on load. */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -425,7 +426,8 @@ window.Arcade = window.Arcade || {};
     let dur = 0, how = '';
     try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, r.e) : playGen(r.fn); }
     catch (x) { dur = 0; }
-    if (dur && listening()) A.Pitch.suppress(dur * 1000 + (e && e.echo != null ? e.echo : ECHO_MS));   // sounds.js `echo`: a shorter tail
+    // sounds.js `echo`: a shorter tail. Sfx.muteMax (a page's option, ms): mute only for the first part of a longer sound
+    if (dur && listening()) A.Pitch.suppress(Math.min(dur * 1000, Sfx.muteMax || Infinity) + (e && e.echo != null ? e.echo : ECHO_MS));
     if (dur) { played.push({name, how, dur: +dur.toFixed(3), at: Math.round(performance.now()), muted: listening()}); if (played.length > 60) played.shift(); }
     return dur;
   }
@@ -708,6 +710,9 @@ window.Arcade = window.Arcade || {};
   let leaving = false;
   const chOf = name => (name === 'lobby-ambience' ? CH.amb : /^select-music|^quest-/.test(name) ? CH.mus : null);
   const Sfx = A.Sfx = A.sfx = {
+    /** a page's option: the longest part of a sound (ms) that mutes the microphone (null = the whole sound).
+        Note Storm sets it so a long hit sound never leaves the detector deaf; the echo margin is added after it. */
+    muteMax: null,
     /** the three original sounds by name ('whoosh' | 'coin' | 'blip') */
     play(name) {
       if (!ready() || !SOUNDS[name]) return 0;
