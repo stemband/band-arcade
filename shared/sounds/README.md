@@ -228,25 +228,29 @@ version made of filtered noise plays (the music: nothing, until you upload it).
 
 Dojo Duel never uses the microphone, so pitched sounds (a gong, chimes, a melody) are fine here. Every entry is
 `mic: false`. Until you upload a file, a built-in beep version plays (the two music loops: the built-in chiptune).
-The three `sensei-*` voice lines are optional: they stay silent until you record them (the Sensei's words always
-show on screen).
+The four `sensei-*` lines are the Sensei's voice (the announcer); the Sensei's words always show on screen too.
+**`sensei-fast` and `sensei-point` are different moments:** `sensei-fast` praises any player's very fast answer
+(under 1.5 s, `fastMs` in `DUEL_PACING` at the top of `dojo-duel/levels.js`); `sensei-point` is the computer Sensei
+itself scoring, so it only happens in SOLO VS. SENSEI. A recording that says "Swift and sharp!" belongs in
+`sensei-fast`; `sensei-point` wants something like "A point for the Sensei!".
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `dojo-music` | `dojo-music.m4a` or `dojo-music.mp3` | Dojo Duel: the setup screen (a loop). | 30–90 s loop |
-| `dojo-match-music` | `dojo-match-music.m4a` or `dojo-match-music.mp3` | Dojo Duel: during a match, quieter under the taps (a loop). | 30–90 s loop |
-| `dojo-begin` | `dojo-begin.m4a` or `dojo-begin.mp3` | Dojo Duel: BEGIN! at the start of a match (a gong). | 1–2 s |
-| `dojo-point` | `dojo-point.m4a` or `dojo-point.mp3` | Dojo Duel: a player wins the point. | under 0.5 s |
-| `dojo-wrong` | `dojo-wrong.m4a` or `dojo-wrong.mp3` | Dojo Duel: a wrong tap (that player is dizzy for a second). | under 0.5 s |
-| `dojo-count` | `dojo-count.m4a` or `dojo-count.mp3` | Dojo Duel: each number of the countdown before a note (3, 2, 1). QUICK plays three in about one second. | under 0.2 s |
+| `dojo-music` | `dojo-music.m4a` or `dojo-music.mp3` | Dojo Duel: the setup screen, before a match (a loop). Until you upload it: the built-in chiptune. | 30–90 s loop |
+| `dojo-match-music` | `dojo-match-music.m4a` or `dojo-match-music.mp3` | Dojo Duel: during a match, quieter under the taps (a loop). Until you upload it: the built-in chiptune. | 30–90 s loop |
+| `dojo-begin` | `dojo-begin.m4a` or `dojo-begin.mp3` | Dojo Duel: BEGIN! after the slow 3-2-1 before the FIRST note of a match (a gong). Followed by sensei-begin. | 1–2 s |
+| `dojo-count` | `dojo-count.m4a` or `dojo-count.mp3` | Dojo Duel: each number of the countdown before a note (3, 2, 1). QUICK plays three in about one second, CLASSIC one a second, OFF none. | under 0.2 s |
 | `dojo-reveal` | `dojo-reveal.m4a` or `dojo-reveal.mp3` | Dojo Duel: the note appears on both sides (every note after the first; the first gets dojo-begin). | under 0.3 s |
-| `dojo-strike` | `dojo-strike.m4a` or `dojo-strike.mp3` | Dojo Duel: the winner's ninja does a quick strike (a playful bump), before dojo-point. | under 0.3 s |
-| `dojo-no-point` | `dojo-no-point.m4a` or `dojo-no-point.mp3` | Dojo Duel: nobody scores (both wrong, or "Too slow, ninjas!"). | under 0.5 s |
-| `dojo-match-point` | `dojo-match-point.m4a` or `dojo-match-point.mp3` | Dojo Duel: MATCH POINT (a player is one point from winning; after dojo-point). | 0.5–1 s |
-| `dojo-victory` | `dojo-victory.m4a` or `dojo-victory.mp3` | Dojo Duel: the match is won (the victory screen). | 1–2.5 s |
-| `sensei-begin` | `sensei-begin.m4a` or `sensei-begin.mp3` | Dojo Duel (optional voice): the Sensei starts the match, after dojo-begin ("Bow to your opponent… begin!"). | 1–2 s |
-| `sensei-point` | `sensei-point.m4a` or `sensei-point.mp3` | Dojo Duel (optional voice): after a very quick point ("Swift and sharp!"). | under 1 s |
-| `sensei-victory` | `sensei-victory.m4a` or `sensei-victory.mp3` | Dojo Duel (optional voice): after dojo-victory ("A worthy duel! Bow, ninjas."). | 1–2 s |
+| `dojo-wrong` | `dojo-wrong.m4a` or `dojo-wrong.mp3` | Dojo Duel: a wrong tap by any player (or the Sensei): that player is dizzy for 1 second. | under 0.5 s |
+| `dojo-strike` | `dojo-strike.m4a` or `dojo-strike.mp3` | Dojo Duel: any point won (players or the Sensei): the winner's ninja does a quick strike (a playful bump). First sound of the result moment, before dojo-point. | under 0.3 s |
+| `dojo-point` | `dojo-point.m4a` or `dojo-point.mp3` | Dojo Duel: any point won (players or the Sensei), right after dojo-strike. | under 0.5 s |
+| `dojo-match-point` | `dojo-match-point.m4a` or `dojo-match-point.mp3` | Dojo Duel: MATCH POINT: a point that leaves someone one point from winning (after dojo-point). | 0.5–1 s |
+| `dojo-no-point` | `dojo-no-point.m4a` or `dojo-no-point.mp3` | Dojo Duel: nobody scores (both wrong, or no right answer in 6 s: "Too slow, ninjas!"). | under 0.5 s |
+| `dojo-victory` | `dojo-victory.m4a` or `dojo-victory.mp3` | Dojo Duel: the match is won (the victory screen), in every mode. Followed by sensei-victory. | 1–2.5 s |
+| `sensei-begin` | `sensei-begin.m4a` or `sensei-begin.mp3` | Dojo Duel (the Sensei's voice): the start of every match, right after dojo-begin ("Bow to your opponent… begin!"). | 1–2 s |
+| `sensei-fast` | `sensei-fast.m4a` or `sensei-fast.mp3` | Dojo Duel (the announcer's voice): after any very fast correct answer by a PLAYER (a point won in under 1.5 s: fastMs in DUEL_PACING), in 2-player and Solo ("Swift and sharp!"). Never for the Sensei's own points. | under 1 s |
+| `sensei-point` | `sensei-point.m4a` or `sensei-point.mp3` | Dojo Duel (the Sensei's voice): SOLO VS. SENSEI only, when the computer Sensei wins a point (fast or not). Never in a 2-player game. | under 1 s |
+| `sensei-victory` | `sensei-victory.m4a` or `sensei-victory.mp3` | Dojo Duel (the Sensei's voice): the end of every match, right after dojo-victory ("A worthy duel! Bow, ninjas."). | 1–2 s |
 
 ### Chime Heist
 

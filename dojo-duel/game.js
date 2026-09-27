@@ -435,13 +435,16 @@
       half.style.setProperty('--belt', `var(--${P.belt.color})`);
       half.classList.add('won');
       ninja(w, 'strike'); ninja(1 - w, 'stagger');
-      say(w, 'POINT! ' + line(ms < R.fastMs ? 'fast' : 'point', P.name), 'good');
+      const fast = !P.cpu && ms < PACE.fastMs;           // a player's very quick answer (never the Sensei's)
+      say(w, 'POINT! ' + line(fast ? 'fast' : 'point', P.name), 'good');
       say(1 - w, O.cpu ? line('wrong') : answerLine(O), '');
       flyPoint(w, () => drawScores(w));
       const mp = matchPointCheck();
       M.tense = M.P.some(Q => Q.score === M.to - 1) && P.score < M.to;   // the next countdown is CLASSIC
       if (mp && P.score < M.to) { $('mpb' + mp.pi).hidden = false; say(mp.pi, (mp.pi === w ? 'POINT! ' : '') + line('matchPoint', mp.name), 'mp'); }
-      A.Sfx.sequence(['dojo-strike', 'dojo-point', mp && P.score < M.to && 'dojo-match-point', ms < R.fastMs && 'sensei-point']);
+      // the Sensei's voice: sensei-point when the computer Sensei scores (Solo only; never together with sensei-fast),
+      // sensei-fast after a player's very fast point (any mode)
+      A.Sfx.sequence(['dojo-strike', 'dojo-point', mp && P.score < M.to && 'dojo-match-point', P.cpu ? 'sensei-point' : fast && 'sensei-fast']);
       hold = PACE.resultMs;
     } else {
       const text = line(why === 'timeout' ? 'timeout' : 'bothWrong');
