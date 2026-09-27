@@ -124,6 +124,7 @@
 /* locked: a dark silhouette with a thin outline, a lock, and what it takes */
 .sk-opt.locked{border-style:dashed;cursor:not-allowed}
 .sk-opt.locked .pt-box{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
+.sk-opt.locked[data-lk-bg] .pt-box{filter:brightness(.5) saturate(.6)}              /* a locked background: its own dimmed picture */
 .sk-opt.locked b{color:var(--text-lo)}
 .lk-lock{position:absolute;width:26%;right:0;bottom:0;fill:var(--floor-3);stroke:var(--text-lo);stroke-width:2}
 .lk-none{font-size:40px;line-height:1;color:var(--text-lo)}
@@ -219,7 +220,7 @@
 .pv-inst{position:absolute;right:3%;bottom:3%;width:32%;padding:3px;border-radius:12px;border:2px solid var(--pc);background:var(--deep);box-shadow:0 0 10px color-mix(in srgb,var(--pc) 45%,transparent);z-index:3}
 .pv-inst .pt-box{display:grid}
 .card-player{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-width:0;font-size:16px;color:var(--yellow)}
-.card-player b{overflow-wrap:anywhere;font-family:var(--display);font-weight:400;letter-spacing:.02em;text-shadow:var(--glow-yellow)}
+.card-player b{overflow-wrap:break-word;text-wrap:balance;font-family:var(--display);font-weight:400;letter-spacing:.02em;text-shadow:var(--glow-yellow)}
 .cp-tag{flex:none;padding:1px 7px;border-radius:6px;font-family:var(--display);font-size:13px;color:var(--deep);background:var(--cyan)}
 .phase2 .cp-tag{background:var(--pink)}
 .card-avatar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}

@@ -559,4 +559,55 @@ window.AVATAR_PARTS = {};
      bustBehind: {y: 12, half: ['.9................', '990...............', '9900..............', '99900.............', '999900............', '.99990............', '.999900...........', '..99990...........',
                               '..999900..........', '...99990..........', '...999900.........', '....99990.........', '.....9999.........', '......99..........']}},
   ];
+
+  /* ---- BACKGROUNDS (the 'bg' field): drawn in code behind the avatar by shared/avatar-bg.js ----
+     kind 'solid' (one color) | 'grad' (two colors, top to bottom) | 'pattern' (pat: stripes, dots, staff, checker,
+     stars; on colors[0], drawn in colors[1]) | 'scene' (scene: an animated scene from shared/bg-scenes.js, the same
+     art as the game menus; lift = how much brighter than on a menu, 1–2). main = the one color the top-bar badge
+     shows. Free ones have no `unlock`. Unlock rules as above, plus {game, wins: 5, text} = matches won on this
+     device (Neon Face-Off, Dojo Duel: shared/skins.js WINS). HOW TO ADD ONE: add it here (a new id, never rename
+     one), draw a new scene in bg-scenes.js if it needs one, and for a {shop} one add 'bg:<id>' to the END of
+     QUEST_V2.cosmetics in shared/backup.js. */
+  const clear = n => ({game: n[0], level: n[1], stars: 1, text: n[2]});
+  P.BGS = [
+    {id: 'none', name: 'None', kind: 'none', main: 'floor-3'},
+    {id: 'midnight', name: 'Midnight', kind: 'solid', colors: ['floor-3'], main: 'floor-3'},
+    {id: 'berry', name: 'Berry', kind: 'solid', colors: ['pink-ink'], main: 'pink-ink'},
+    {id: 'ocean', name: 'Ocean', kind: 'solid', colors: ['cyan-ink'], main: 'cyan-ink'},
+    {id: 'grape', name: 'Grape', kind: 'solid', colors: ['purple-ink'], main: 'purple-ink'},
+    {id: 'ember', name: 'Ember', kind: 'solid', colors: ['amber-ink'], main: 'amber-ink'},
+    {id: 'sunset', name: 'Sunset fade', kind: 'grad', colors: ['pink-ink', 'amber'], main: 'pink-ink'},
+    {id: 'lagoon', name: 'Lagoon fade', kind: 'grad', colors: ['cyan-ink', 'purple-ink'], main: 'cyan-ink'},
+    {id: 'lime', name: 'Lime fade', kind: 'grad', colors: ['green-ink', 'blue-ink'], main: 'green-ink'},
+    {id: 'stripes', name: 'Stripes', kind: 'pattern', pat: 'stripes', colors: ['purple-ink', 'purple'], main: 'purple-ink'},
+    {id: 'dots', name: 'Polka dots', kind: 'pattern', pat: 'dots', colors: ['pink-ink', 'pink-hi'], main: 'pink-ink'},
+    {id: 'staff', name: 'Staff lines', kind: 'pattern', pat: 'staff', colors: ['floor-2', 'cyan'], main: 'floor-2'},
+    {id: 'checker', name: 'Checkerboard', kind: 'pattern', pat: 'checker', colors: ['floor-2', 'floor-lit'], main: 'floor-2'},
+    {id: 'starry', name: 'Starry', kind: 'pattern', pat: 'stars', colors: ['blue-ink', 'yellow'], main: 'blue-ink'},
+    // ---- a game's background: clear its final level (or the goal given) ----
+    {id: 'thunderstorm', name: 'Thunderstorm', kind: 'scene', scene: 'storm', lift: 1.6, main: 'purple-ink', unlock: clear(['note-storm', 8, 'Clear Note Storm Level 8'])},
+    {id: 'hauntedhall', name: 'Haunted Hall', kind: 'scene', scene: 'manor', lift: 1.7, main: 'purple-ink', unlock: clear(['ghost-notes', 8, 'Clear Ghost Notes Level 8'])},
+    {id: 'bamboomoon', name: 'Bamboo Moon', kind: 'scene', scene: 'bamboo', lift: 1.9, main: 'green-ink', unlock: clear(['note-ninja', 10, 'Earn the Diamond belt in Note Ninja'])},
+    {id: 'inkbloom', name: 'Ink Bloom', kind: 'scene', scene: 'ink', lift: 1.5, main: 'floor-3', unlock: clear(['vanishing-ink', 8, 'Clear Vanishing Ink Level 8'])},
+    {id: 'laservault', name: 'Laser Vault', kind: 'scene', scene: 'vault', lift: 1.9, main: 'blue-ink', unlock: clear(['chime-heist', 8, 'Clear The Golden Vault in Chime Heist'])},
+    {id: 'lanterntemple', name: 'Lantern Temple', kind: 'scene', scene: 'temple', lift: 1.9, main: 'amber-ink', unlock: clear(['ancient-ninja-scrolls', 8, 'Earn a star on the Diamond scroll in Ancient Ninja Scrolls'])},
+    {id: 'comboarena', name: 'Combo Arena', kind: 'scene', scene: 'arena', lift: 1.8, main: 'purple-ink', unlock: clear(['button-masher', 8, 'Defeat The Conductor in Button Masher'])},
+    {id: 'airrink', name: 'Air Rink', kind: 'scene', scene: 'rink', lift: 2, main: 'cyan-ink', unlock: {game: 'neon-face-off', wins: 5, text: 'Win 5 matches in Neon Face-Off on this device'}},
+    {id: 'spotlight', name: 'Spotlight Stage', kind: 'scene', scene: 'stage', lift: 2, main: 'red-ink', unlock: clear(['showtime-malfunction', 8, 'Clear Showtime Malfunction Level 8'])},
+    {id: 'nighttrack', name: 'Night Track', kind: 'scene', scene: 'track', lift: 1.9, main: 'purple-ink', unlock: clear(['sustain-speedway', 8, 'Finish The Grand Prix in the top 3 in Sustain Speedway'])},
+    {id: 'deepspace', name: 'Deep Space Radar', kind: 'scene', scene: 'space', lift: 2, main: 'blue-ink', unlock: clear(['lost-signal', 8, 'Clear Lost Signal Level 8'])},
+    {id: 'dojonight', name: 'Dojo Night', kind: 'scene', scene: 'night-dojo', lift: 2, main: 'red-ink', unlock: {game: 'dojo-duel', wins: 5, text: 'Win 5 matches in Dojo Duel on this device'}},
+    {id: 'pixelcastle', name: 'Pixel Castle', kind: 'scene', scene: 'pixel-night', lift: 1.7, main: 'purple-ink', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}},
+    // ---- star milestones (every star on this device) ----
+    {id: 'neoncity', name: 'Neon City', kind: 'scene', scene: 'city', lift: 1.8, main: 'purple-ink', unlock: {stars: 50}},
+    {id: 'synthwave', name: 'Synthwave Sunset', kind: 'scene', scene: 'synthwave', lift: 1.1, main: 'pink-ink', unlock: {stars: 100}},
+    {id: 'aurora', name: 'Aurora', kind: 'scene', scene: 'aurora', lift: 2, main: 'green-ink', unlock: {stars: 150}},
+    {id: 'galaxyswirl', name: 'Galaxy Swirl', kind: 'scene', scene: 'galaxy', lift: 1.6, main: 'purple-ink', unlock: {stars: 250}},
+    {id: 'goldrecords', name: 'Gold Record Wall', kind: 'scene', scene: 'records', lift: 1, main: 'amber-ink', unlock: {stars: 400}},
+    // ---- the Token Booth (Arcade Quest) ----
+    {id: 'bubbles', name: 'Underwater Bubbles', kind: 'scene', scene: 'bubbles', lift: 1.2, main: 'cyan-ink', unlock: {shop: 150}},
+    {id: 'fireflies', name: 'Fireflies Night', kind: 'scene', scene: 'fireflies', lift: 1.2, main: 'blue-ink', unlock: {shop: 200}},
+    {id: 'lavalamp', name: 'Lava Lamp', kind: 'scene', scene: 'lavalamp', lift: 1.1, main: 'purple-ink', unlock: {shop: 250}},
+    {id: 'confetti', name: 'Confetti Party', kind: 'scene', scene: 'confetti', lift: 1.2, main: 'purple-ink', unlock: {shop: 300}},
+  ];
 })(window.AVATAR_PARTS);

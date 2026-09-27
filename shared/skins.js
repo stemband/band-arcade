@@ -215,10 +215,20 @@ window.Arcade = window.Arcade || {};
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
     if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
     if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
+    if (u.wins) return winsOn(u.game) >= u.wins;
     return false;
   }
+  /** matches won on this device ({game, wins} rules), counted from what each game already saves, so old wins count:
+      Dojo Duel = every player's dojo record (Solo wins over the Sensei included); Neon Face-Off = two-player wins
+      (h2h) + wins over the CPU (its cpuWins counter, or at least one per rival beaten before the counter existed) */
+  const WINS = {
+    'dojo-duel': d => Object.values(d.record || {}).reduce((n, v) => n + (+v || 0), 0),
+    'neon-face-off': d => Object.values(d.h2h || {}).reduce((n, r) => n + (+r.p1 || 0) + (+r.p2 || 0), 0) +
+      Math.max(+d.cpuWins || 0, [1, 2, 3, 4, 5, 6, 7, 8].filter(lv => st().bestLevelStars('neon-face-off', lv) >= 1).length),
+  };
+  function winsOn(game) { const f = WINS[game]; return f ? f(st().gameData(game) || {}) : 0; }
   const AV = () => A.Avatar && A.Avatar.freshItems ? A.Avatar : null;
-  const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item'};
+  const ITEM_KIND = {eyes: 'Expression', mouth: 'Expression', hairColor: 'Hair color', head: 'Hat', top: 'Outfit', pet: 'Pet', back: 'Back item', bg: 'Background'};
   /** what a locked skin asks for, in student words */
   function requirement(skin) {
     const u = skin.unlock || {};
@@ -234,7 +244,7 @@ window.Arcade = window.Arcade || {};
   const seenKey = (skin, member) => milestone(skin) ? member : '*';
 
   const Skins = A.Skins = {
-    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, requirement, progress, milestone,
+    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, winsOn, requirement, progress, milestone,
     colors: () => SKINS.filter(s => s.kind === 'color'),
     accessories: () => SKINS.filter(s => s.kind === 'acc'),
     /** the equipped {color, acc} for a member (a locked choice falls back to Classic Neon / none) */

@@ -238,13 +238,21 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .pt-box>.pt-pix{object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
 /* THE AVATAR BUST (shared/avatar.js): pixel art in the same .pt-box, so every skin effect works on it too */
 .av-box>.pt-img{image-rendering:pixelated;image-rendering:crisp-edges}
+/* the avatar's BACKGROUND (shared/avatar-bg.js): under everything in the box (skin backdrops and effects go on top);
+   a still frame as the layer's picture, and (the largest one on screen) a canvas that moves over it. The chip size
+   (the top-bar badge) is only the background's main color. */
+.av-box>.av-bg{position:absolute;inset:0;z-index:0;border-radius:12%;overflow:hidden;background:var(--floor-3) center/cover no-repeat;pointer-events:none}
+.av-bg>.av-bg-live{position:absolute;inset:0;width:100%;height:100%;display:block}
+.av-bg>.av-bg-live[hidden]{display:none}
+.pt-box-chip>.av-bg{border-radius:50%}
 .av-box.sk-pixel>.sk-back{display:block}
 /* results screens: the player's avatar + name at the top (shared/avatar.js stampResults) */
 .av-res{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 8px!important}
 .av-res-pic{width:56px;flex:none}
 .av-res-pic .pt-box{width:100%}
 .av-res-txt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;line-height:1.15}
-.av-res-txt b{font-family:var(--display);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--yellow)}
+.av-res-txt{min-width:0}
+.av-res-txt b{text-wrap:balance;overflow-wrap:break-word;font-family:var(--display);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--yellow)}
 .av-res-txt small{font-size:13px;color:var(--text-lo)}
 .pt-pixd>.pt-img{visibility:hidden}
 .sk-pixel>.sk-back{inset:5%;border:4px solid var(--sk1);outline:2px solid var(--sk2);outline-offset:2px;border-radius:0}
@@ -460,7 +468,7 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .ed-top li.me{outline:2px solid var(--yellow);background:var(--floor-2)}
 .ed-rank{font-family:var(--display);color:var(--cyan)}
 .ed-top li:first-child .ed-rank{color:var(--yellow)}
-.ed-name{overflow-wrap:anywhere}
+.ed-name{overflow-wrap:break-word;text-wrap:balance}
 .ed-score{font-weight:700}
 .ed-date{color:var(--text-lo);font-size:12px}
 .ed-hearts{letter-spacing:2px;color:var(--text-dim)}
@@ -620,7 +628,14 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .avb-pic .pt-box{width:36px}
 .avb-sil{width:30px;height:30px;fill:var(--text-lo)}
 .avb-txt{display:flex;flex-direction:column;min-width:0;line-height:1.15}
-.avb-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avb-name{font-size:13px;font-weight:700;line-height:1.1;text-wrap:balance;overflow-wrap:normal}          /* a long name: two even lines, never cut off */
+/* the one-time name-upgrade note (after the name migration), under the badge */
+.avb-up{position:absolute;right:0;top:calc(100% + 8px);z-index:74;display:flex;align-items:flex-start;gap:4px;width:max-content;max-width:min(300px,86vw);padding:6px;border-radius:14px;
+  background:var(--floor-2);border:2px solid var(--yellow);box-shadow:var(--glow-yellow),0 10px 30px rgba(0,0,0,.55)}
+.avb-up::before{content:"";position:absolute;right:26px;top:-8px;border:7px solid transparent;border-top:0;border-bottom:8px solid var(--yellow)}
+.avb-up-go{flex:1;min-height:44px;padding:6px 10px;border:0;border-radius:10px;background:none;color:var(--text-hi);font:inherit;font-size:15px;line-height:1.25;text-align:left;cursor:pointer}
+.avb-up-go:hover,.avb-up-go:focus-visible{background:var(--floor-lit);outline:2px solid var(--cyan-hi)}
+.avb-up-x{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--text-lo);font-size:24px;cursor:pointer}
 .avb-sub{font-size:12px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .avb-pen{flex:none;width:16px;height:16px;fill:none;stroke:var(--cyan-hi);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .avb-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:75;display:grid;gap:8px;width:max-content;min-width:230px;padding:10px;border-radius:16px;

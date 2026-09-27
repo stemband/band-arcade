@@ -50,7 +50,7 @@ body.dd-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(-
 .sensei-pic{display:block;width:100%}
 .sensei-pic svg{display:block;width:100%;height:auto;overflow:visible}
 .pc-name{display:flex;flex-direction:column;min-width:0}
-.pc-name b{font-size:20px;line-height:1.2;overflow-wrap:anywhere}
+.pc-name b{font-size:20px;line-height:1.2;overflow-wrap:break-word;text-wrap:balance}
 .pc-name small{color:var(--text-lo);font-size:13px}
 .pc-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pc-row{display:flex;flex-direction:column;gap:6px}
@@ -109,7 +109,9 @@ body.dueling #wrap{display:none}
 .sc-pic{width:clamp(30px,5vmin,42px);flex:none}
 .sc-pic .pt-box{width:100%}
 .sc-txt{display:flex;flex-direction:column;line-height:1;min-width:0}
-.sc-txt small{font-size:11px;color:var(--text-lo);font-weight:700;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-txt small{font-size:11px;line-height:1.1;color:var(--text-lo);font-weight:700;max-width:9em;text-wrap:balance;overflow-wrap:normal}   /* a long name: short lines, never cut */
+/* narrow screens: the scoreboard has no room for a long name, and each half's header shows it in full right beside it */
+@media (max-width:600px){ .sc-txt small{display:none} }
 .sc-txt b{font-family:var(--display);font-weight:400;font-size:clamp(26px,5vmin,40px);color:var(--text-hi)}
 .sc-to{font-size:11px;color:var(--text-dim)}
 .sc em{display:none;position:absolute;left:50%;top:-12px;translate:-50% 0;white-space:nowrap;font:400 10px var(--display);letter-spacing:.08em;color:var(--deep);background:var(--yellow);padding:2px 6px;border-radius:6px}
@@ -123,7 +125,7 @@ body.dueling #wrap{display:none}
 .hf-in{height:100%;display:flex;flex-direction:column;gap:clamp(4px,1vmin,10px);padding:clamp(6px,1.4vmin,14px)}
 .hf-top{display:flex;align-items:center;gap:10px;flex:none;min-height:0}
 .hf-who{display:flex;flex-direction:column;min-width:0;line-height:1.2}
-.hf-who b{font-size:clamp(15px,2.4vmin,20px);color:var(--me);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf-who b{font-size:clamp(15px,2.4vmin,20px);line-height:1.15;color:var(--me);text-wrap:balance;overflow-wrap:break-word}
 .hf-who small{color:var(--text-lo);font-size:13px;display:flex;align-items:center;gap:6px}
 .bdot{display:inline-block;width:18px;height:7px;border-radius:2px;background:var(--belt);box-shadow:0 0 0 1px var(--text-dim)}
 .mpt{margin-left:auto;font:400 clamp(13px,2.4vmin,19px) var(--display);letter-spacing:.06em;color:var(--yellow);text-shadow:var(--glow-yellow);font-style:normal;white-space:nowrap;animation:dd-glow 1.6s ease-in-out infinite alternate}
@@ -220,7 +222,7 @@ body.dueling #wrap{display:none}
 .bows{display:flex;align-items:flex-end;justify-content:center;gap:12px}
 .bow-n{position:relative;display:flex;flex-direction:column;align-items:center;width:clamp(52px,9vmin,84px)}
 .bow-n .nj-pic{width:100%;animation:dd-bow 2.4s ease-in-out infinite;transform-origin:50% 100%}
-.bow-n small{font-size:11px;color:var(--text-lo);max-width:8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bow-n small{font-size:11px;line-height:1.15;color:var(--text-lo);text-align:center;min-width:6.6em;margin:2px -1.2em 0;text-wrap:balance;overflow-wrap:break-word}   /* a long name: short lines, never cut off */
 .bow-n.champ{width:clamp(64px,11vmin,100px)}
 .bow-n.champ .nj-pic{filter:drop-shadow(0 0 8px var(--yellow))}
 .bow-n.champ::before{content:"🏆";position:absolute;top:-22px;font-size:18px}

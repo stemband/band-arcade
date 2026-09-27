@@ -16,7 +16,16 @@ body.avc-open{overflow:hidden}
 .avc-body{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border:2px solid var(--floor-3);border-radius:12px;background:var(--floor-2);color:var(--text-lo);cursor:pointer}
 .avc-body canvas{width:clamp(72px,8vw,110px);aspect-ratio:1;image-rendering:pixelated;image-rendering:crisp-edges}
 .avc-body small{font-size:12px}
-.avc-name{margin:0;min-height:1.3em;text-align:center;font-family:var(--display);font-size:clamp(17px,2vw,22px);letter-spacing:.03em;color:var(--yellow);text-shadow:var(--glow-yellow)}
+.avc-name{margin:0;min-height:1.3em;max-width:100%;padding:2px 8px 4px;border:0;border-bottom:2px dashed color-mix(in srgb,var(--yellow) 45%,transparent);border-radius:6px;background:none;cursor:pointer;
+  text-align:center;text-wrap:balance;overflow-wrap:break-word;font-family:var(--display);font-size:clamp(17px,2vw,22px);line-height:1.2;letter-spacing:.03em;color:var(--yellow);text-shadow:var(--glow-yellow)}
+.avc-name:hover{background:var(--floor-2)}
+.avc-name:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
+.avc-upgrade{width:100%;margin:0;padding:8px 10px;border:2px solid var(--cyan);border-radius:10px;background:var(--floor-2);color:var(--text-hi);text-align:center;font-size:15px}
+/* BACKGROUND tab: each background with you in front; a locked one is its own dimmed picture */
+.avc-th-bg{background:var(--deep) center/cover no-repeat}
+.avc-th-bg img{transform:scale(.74);transform-origin:50% 100%}
+.avc-opt.avc-bglock .avc-th-bg{filter:brightness(.5) saturate(.6)}
+.avc-prog{color:var(--text-lo)}
 .avc-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .avc-acts .btn{min-height:46px;padding:8px 10px;font-size:15px}
 .avc-acts .btn:disabled{opacity:.45}
@@ -63,6 +72,7 @@ body.avc-open{overflow:hidden}
   .avc-bust{width:clamp(96px,22vw,150px)}
   .avc-body canvas{width:clamp(64px,15vw,104px)}
   .avc-name{flex-basis:100%;order:3}
+  .avc-upgrade{order:3}
   .avc-acts{order:4;grid-template-columns:repeat(4,minmax(0,1fr));flex-basis:100%}
   .avc-save{grid-column:1/-1}
   .avc-acts .btn{font-size:14px;padding:6px 6px;min-height:46px}

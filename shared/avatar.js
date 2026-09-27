@@ -6,7 +6,10 @@
      Arcade.Avatar.set(av)              save it (every picture of it on the page is redrawn)
      Arcade.Avatar.guest() / setGuest() Neon Face-Off's Player 2: a GUEST avatar, remembered separately
      Arcade.Avatar.random({keep, only}) a random avatar (only: a list of fields to change, keep: the rest)
-     Arcade.Avatar.nameOf(av)           "Captain Brassy Blaze K."   (Arcade.Avatar.randomName())
+     Arcade.Avatar.nameOf(av)           "Captain Brassy Blaze"   (Arcade.Avatar.randomName(), Arcade.Avatar.words(kind))
+     A saved name with a NEVER-USE word (avatar-names.js) or an old first initial is fixed once when it's read: the
+     word becomes a random one from the same list, the initial is dropped, it's saved, and the badge shows "Your name
+     got an upgrade!" once (Arcade.Avatar.nameNote()).
      Arcade.avatarHTML({size, member, avatar, guest, skin, label, cls})
                                         THE PORTRAIT BUST in a .pt-box (theme.css): size 'big' | 'tile' | 'chip'.
                                         member = the instrument whose equipped skin it wears (default the saved
@@ -27,7 +30,13 @@
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
-  const P = window.AVATAR_PARTS, NAMES = window.AVATAR_NAMES;
+  const P = window.AVATAR_PARTS, RAW_NAMES = window.AVATAR_NAMES;
+  /* the name builder's words: A–Z, no repeats, never a NEVER-USE word (even if one is added to a list by mistake) */
+  const NEVER = (RAW_NAMES.never || []).map(w => w.toLowerCase());
+  const banned = w => NEVER.includes(String(w).trim().toLowerCase());
+  const cleanList = list => [...new Set((list || []).map(w => String(w).trim()).filter(w => w && !banned(w)))].sort((a, b) => a.localeCompare(b));
+  const NAMES = {titles: cleanList(RAW_NAMES.titles), adjectives: cleanList(RAW_NAMES.adjectives), nouns: cleanList(RAW_NAMES.nouns), never: RAW_NAMES.never || []};
+  const NAME_PARTS = {title: 'titles', adj: 'adjectives', noun: 'nouns'};
   const VERSION = 1;
   const byId = (list, id) => list.find(x => x.id === id);
   const pick = list => list[Math.floor(Math.random() * list.length)];
@@ -43,12 +52,12 @@ window.Arcade = window.Arcade || {};
     shoes: () => ids(P.SHOES), shoeColor: () => P.SHOE_COLORS,
     glasses: () => ids(P.GLASSES), glassesColor: () => P.FRAME_COLORS, aids: () => ids(P.AIDS), aidColor: () => P.AID_COLORS,
     chair: () => [false, true], chairColor: () => P.CHAIR_COLORS,
-    pet: () => ids(P.PETS), back: () => ids(P.BACKS),
+    pet: () => ids(P.PETS), back: () => ids(P.BACKS), bg: () => ids(P.BGS || [{id: 'none'}]),
   };
 
   /* ---------- UNLOCKS (the rules are on the parts in avatar-parts.js) ----------
      A part without `unlock` is free. IDENTITY items are ALWAYS free, whatever a rule says (never lock them). */
-  const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS};
+  const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS, bg: () => P.BGS || []};
   const IDENTITY = {head: ['none', 'hijab', 'headwrap', 'turban'], aids: '*', chair: '*', glasses: '*', glassesColor: '*', aidColor: '*', chairColor: '*'};
   const itemKey = (field, id) => field + ':' + id;
   const partFor = (field, id) => LOCKABLE[field] ? byId(LOCKABLE[field](), id) : null;
@@ -70,10 +79,13 @@ window.Arcade = window.Arcade || {};
     if (u.stars && !u.game) return `Earn ${u.stars} ★`;
     return u.text || 'Keep playing to unlock';
   }
-  /** "37 of 150 ★ (every instrument and game)" for a locked star item, else '' */
+  /** "37 of 150 ★ so far" for a locked star item ("3 of 5 wins so far" for a wins goal), else '' */
   function progress(field, id) {
     const u = (partFor(field, id) || {}).unlock;
-    return u && u.stars && !u.game && !isUnlocked(field, id) ? `${st().allStars("*")} of ${u.stars} ★ so far` : '';
+    if (!u || isUnlocked(field, id)) return '';
+    if (u.stars && !u.game) return `${st().allStars("*")} of ${u.stars} ★ so far`;
+    if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
+    return '';
   }
   /** every item that has to be earned or bought: {key, field, id, name, unlock, shop} */
   function items() {
@@ -107,12 +119,13 @@ window.Arcade = window.Arcade || {};
       case 'topColor': case 'headColor': return pick(FIELDS[k]().filter(x => x !== 'khaki' && x !== 'denim' && x !== 'tan'));
       case 'pet': return r < 0.8 ? 'none' : pick(open(k));
       case 'back': return 'none';
+      case 'bg': return r < 0.4 ? 'none' : pick(open(k).filter(x => !(P.BGS || []).find(b => b.id === x && b.unlock)));
       default: return pick(open(k));
     }
   }
   const open = k => FIELDS[k]().filter(id => isUnlocked(k, id));
   function randomName() {
-    return {title: pick(NAMES.titles), adj: pick(NAMES.adjectives), noun: pick(NAMES.nouns), initial: Math.random() < 0.3 ? pick('ABCDEFGHIJKLMNOPRSTW'.split('')) : ''};
+    return {title: pick(NAMES.titles), adj: pick(NAMES.adjectives), noun: pick(NAMES.nouns)};
   }
   /** a random avatar. only: change just these fields (a tab's SURPRISE ME); keep: the avatar they come from */
   function random({keep, only} = {}) {
@@ -126,23 +139,56 @@ window.Arcade = window.Arcade || {};
   function normalize(av) {
     const out = {v: VERSION};
     av = av && typeof av === 'object' ? av : {};
-    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back'].includes(k) ? 'none' : list[0]); });
-    const n = av.name || {};
-    out.name = {title: typeof n.title === 'string' && n.title ? n.title : NAMES.titles[0], adj: typeof n.adj === 'string' && n.adj ? n.adj : NAMES.adjectives[0],
-                noun: typeof n.noun === 'string' && n.noun ? n.noun : NAMES.nouns[0], initial: /^[A-Z]$/.test(n.initial || '') ? n.initial : ''};
+    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back', 'bg'].includes(k) ? 'none' : list[0]); });
+    out.name = cleanName(av.name).name;
     return out;
   }
-  const nameOf = av => { const n = (av || {}).name || {}; return [n.title, n.adj, n.noun].filter(Boolean).join(' ') + (n.initial ? ' ' + n.initial + '.' : ''); };
+  /** a valid name {title, adj, noun}: a missing word = the list's first; a NEVER-USE word = a random one from the same
+      list; an old first initial is dropped. changed = something had to be fixed (the migration saves it) */
+  function cleanName(n) {
+    n = n && typeof n === 'object' ? n : {};
+    let changed = !!n.initial;
+    const name = {};
+    Object.keys(NAME_PARTS).forEach(k => {
+      const list = NAMES[NAME_PARTS[k]], w = n[k];
+      if (typeof w !== 'string' || !w) name[k] = list[0];
+      else if (banned(w)) { name[k] = pick(list); changed = true; }
+      else name[k] = w;
+    });
+    return {name, changed};
+  }
+  const nameOf = av => { const n = (av || {}).name || {}; return [n.title, n.adj, n.noun].filter(w => w && !banned(w)).join(' '); };
 
   /* ---------- saving (storage.js keeps it in the device's data, so the Arcade Backup Code includes it) ---------- */
   const st = () => A.store;
+  /* THE NAME MIGRATION: a saved name with a NEVER-USE word or a first initial is fixed and saved the first time it's
+     read, and the device's own avatar gets the one-time note (gameData('avatar').nameNote: 'new' → 'shown') */
+  function migrateName(av, save, own) {
+    if (!av || !av.name || !cleanName(av.name).changed) return av;
+    const fixed = Object.assign({}, av, {name: cleanName(av.name).name});
+    save(normalize(fixed));
+    if (own && A.store.gameData) { const d = A.store.gameData('avatar'); d.nameNote = 'new'; A.store.saveGameData('avatar'); }
+    return fixed;
+  }
+  /** the one-time "Your name got an upgrade!" note: 'new' until shown (seen() marks it shown) */
+  const nameNote = {
+    pending: () => !!(A.store.gameData && A.store.gameData('avatar').nameNote === 'new'),
+    seen: () => { if (!A.store.gameData) return; const d = A.store.gameData('avatar'); if (d.nameNote === 'new') { d.nameNote = 'shown'; A.store.saveGameData('avatar'); } },
+    TEXT: 'Your name got an upgrade! Tap your name to change it.',
+  };
   function get() {
     let av = st().avatar;
     if (!av) { av = random(); st().setAvatar(av); }
+    av = migrateName(av, x => st().setAvatar(x), true);
     return effective(normalize(av));
   }
   function set(av) { st().setAvatar(normalize(av)); redrawAll(); }
-  function guest() { let av = st().guestAvatar; if (!av) { av = random(); st().setGuestAvatar(av); } return effective(normalize(av)); }
+  function guest() {
+    let av = st().guestAvatar;
+    if (!av) { av = random(); st().setGuestAvatar(av); }
+    av = migrateName(av, x => st().setGuestAvatar(x), false);
+    return effective(normalize(av));
+  }
   function setGuest(av) { st().setGuestAvatar(normalize(av)); redrawAll(); }
 
   /* ---------- colors: palette letters -> theme tokens -> [r, g, b] ---------- */
@@ -389,16 +435,18 @@ window.Arcade = window.Arcade || {};
     return member ? A.Skins.equipped(member) : {color: 'classic', acc: null};
   }
   /** THE PORTRAIT BUST (see the top of this file) */
-  function avatarHTML({size = 'tile', member, avatar, guest: isGuest = false, skin, label, cls = ''} = {}) {
+  function avatarHTML({size = 'tile', member, avatar, guest: isGuest = false, skin, label, cls = '', live = false, bg = true} = {}) {
     const av = avatar ? normalize(avatar) : isGuest ? guest() : get();
     member = member === undefined ? st().player : member;
     const eq = eqFor(member, skin);
     const d = A.Skins ? A.Skins.decorate('avatar', {color: eq.color, acc: null}, size) : null;
     const name = label != null ? label : nameOf(av);
     const alt = [name, d && A.Skins.label(eq)].filter(Boolean).join(', ');
-    const keep = esc(JSON.stringify({size, member: member || null, guest: isGuest, skin: skin === undefined ? null : skin, label: label == null ? null : label, cls}));
+    const keep = esc(JSON.stringify({size, member: member || null, guest: isGuest, skin: skin === undefined ? null : skin, label: label == null ? null : label, cls, live, bg}));
+    // the background behind the bust (shared/avatar-bg.js): a still frame, or (live) the one that may move
+    const back = bg && A.AvatarBg ? A.AvatarBg.html(bg === true ? av.bg : bg, size, {live}) : '';
     return `<span class="pt-box pt-box-${size} av-box ${d ? d.cls : ''} ${cls}"${isGuest ? ' data-av-guest="1"' : ' data-av="1"'} data-av-opts="${keep}"${d && d.style ? ` style="${d.style}"` : ''}>` +
-      `${d ? d.parts.before : ''}<img class="pt-img av-img" src="${bustURL(av, eq)}" alt="${esc(alt)}" draggable="false">${d ? d.parts.after : ''}</span>`;
+      `${back}${d ? d.parts.before : ''}<img class="pt-img av-img" src="${bustURL(av, eq)}" alt="${esc(alt)}" draggable="false">${d ? d.parts.after : ''}</span>`;
   }
   /** redraw every avatar picture on this page (after saving, or equipping a skin) */
   function redrawAll() {
@@ -406,7 +454,7 @@ window.Arcade = window.Arcade || {};
       let o; try { o = JSON.parse(box.dataset.avOpts); } catch (e) { return; }
       if (box.dataset.avFixed) return;
       const w = document.createElement('span');
-      w.innerHTML = avatarHTML({size: o.size, member: o.member, guest: o.guest, skin: o.skin === null ? undefined : o.skin, label: o.label === null ? undefined : o.label, cls: o.cls});
+      w.innerHTML = avatarHTML({size: o.size, member: o.member, guest: o.guest, skin: o.skin === null ? undefined : o.skin, label: o.label === null ? undefined : o.label, cls: o.cls, live: !!o.live, bg: o.bg === undefined ? true : o.bg});
       box.replaceWith(w.firstChild);
     });
     document.querySelectorAll('[data-av-name]').forEach(el => { el.textContent = nameOf(el.dataset.avName === 'guest' ? guest() : get()); });
@@ -608,7 +656,7 @@ window.Arcade = window.Arcade || {};
     if (!row) { row = document.createElement('p'); row.className = 'av-res'; panel.insertBefore(row, panel.firstChild); }
     const m = member && A.memberById ? A.memberById(member) : null;
     const hasPic = [...panel.querySelectorAll('.av-box')].some(x => !row.contains(x));    // the game shows the avatar already (Button Masher)
-    row.innerHTML = (hasPic ? '' : `<span class="av-res-pic">${avatarHTML({size: 'tile', member: m ? member : null, label: ''})}</span>`) +
+    row.innerHTML = (hasPic ? '' : `<span class="av-res-pic">${avatarHTML({size: 'tile', member: m ? member : null, label: '', live: true})}</span>`) +
       `<span class="av-res-txt"><b data-av-name="me">${esc(nameOf(get()))}</b>${m ? `<small>${esc(m.short)}</small>` : ''}</span>`;
   }
 
@@ -616,7 +664,9 @@ window.Arcade = window.Arcade || {};
     stampResults, isUnlocked, requirement, progress, items, LOCKABLE: Object.keys(LOCKABLE), freshItems, effective, itemKey,
     /** mark items' UNLOCKED! cards as shown */
     markSeen: list => st().markItemsSeen(list.map(it => it.key)),
-    VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone,
+    VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone, nameNote, cleanName,
+    /** the builder's words for 'title' | 'adj' | 'noun' (A–Z, no repeats, no NEVER-USE words) */
+    words: k => NAMES[NAME_PARTS[k] || k] || [], banned,
     bustURL, bustCanvas, sprites, redrawAll, eqFor,
     /** the parts' lists (the creator reads them) */
     parts: P, names: NAMES,

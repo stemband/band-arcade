@@ -143,7 +143,7 @@
     $('preview').style.setProperty('--pc', `var(--pt-${id})`);
     // the player's AVATAR wearing this instrument's skins (Player 2: the guest), with the instrument as a badge
     const guest = phase === 2;
-    $('pvPic').innerHTML = A.avatarHTML({size: 'big', member: guest ? null : id, guest, label: `${guest ? 'Guest' : 'You'}, ${m.short}`});
+    $('pvPic').innerHTML = A.avatarHTML({size: 'big', member: guest ? null : id, guest, label: `${guest ? 'Guest' : 'You'}, ${m.short}`, live: true});
     $('pvInst').innerHTML = A.portraitHTML(id, {size: 'tile', label: m.short});
     $('pvInst').hidden = false;
     playerLine();
@@ -287,6 +287,7 @@
     extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'back', label: 'On your back', list: () => P.BACKS},
              {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
     pets: [{field: 'pet', label: 'Pets', note: 'they float beside you', list: () => P.PETS}],
+    backgrounds: [{field: 'bg', label: 'Backgrounds', note: 'behind your player', list: () => P.BGS || []}],
     effects: [{skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
   };
   let lockerFor = null, lkTab = 'outfit';
@@ -314,7 +315,7 @@
   }
   function drawLocker() {
     const id = lockerFor, eq = A.Skins.equipped(id), m = info(id), av = lkAvatar(), guest = lkGuest();
-    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id, guest});
+    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id, guest, live: true});
     $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}` +
       (av.pet !== 'none' ? ` · Pet: ${(P.PETS.find(p => p.id === av.pet) || {}).name}` : '');
     $('lkTabs').querySelectorAll('[role="tab"]').forEach(b => { const on = b.dataset.tab === lkTab; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
@@ -332,7 +333,7 @@
       } else {
         html = g.list().map(p => {
           const open = AV.isUnlocked(g.field, p.id);
-          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"`, name: p.name, open, pressed: av[g.field] === p.id,
+          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"${g.field === 'bg' ? ' data-lk-bg="1"' : ''}`, name: p.name, open, pressed: av[g.field] === p.id,
             need: open ? '' : AV.requirement(g.field, p.id), prog: open ? '' : AV.progress(g.field, p.id),
             pic: A.avatarHTML({size: 'tile', member: id, avatar: Object.assign({}, av, {[g.field]: p.id}), label: ''})});
         }).join('');

@@ -1,15 +1,17 @@
 /* Band Arcade: THE CREATE YOUR PLAYER SCREEN (styles: shared/avatar.css). Opened from Select Player's player card
    (EDIT PLAYER), its one-time "Create your player?" offer, and Arcade Quest's title and SETTINGS.
 
-     Arcade.AvatarCreator.open({guest, member, onClose})
+     Arcade.AvatarCreator.open({guest, member, onClose, tab})
        guest   true: edit Neon Face-Off's GUEST avatar (Player 2) instead of the device's own
        member  the instrument shown in the preview and whose GEAR (accessory + effect skins) EXTRAS changes
                (default the saved player)
        onClose(saved) runs after it closes (saved = true after SAVE)
+       tab     the tab to open on ('name': "Tap your name to change it")
      Arcade.AvatarCreator.offer({onDone})   the one-time "Create your player?" card (skippable)
 
    A big live preview (the portrait bust, and the full-body sprite holding the instrument, which turns when you tap
-   it), tabs FACE · HAIR · HEAD · CLOTHES · EXTRAS · NAME, a grid of big labeled buttons per choice, SURPRISE ME (all,
+   it; the background behind the bust moves: shared/avatar-bg.js), tabs FACE · HAIR · HEAD · CLOTHES · EXTRAS ·
+   BACKGROUND · NAME (tapping the name under the preview opens NAME), a grid of big labeled buttons per choice, SURPRISE ME (all,
    or this tab), UNDO, CANCEL and DONE. Keyboard: ←/→ on the tabs, arrows move inside a grid, Enter/Space picks, Esc
    closes (asks first when something changed). Nothing is saved until DONE (the name is only ever built from the word
    lists: no typing). It is an overlay on the current page (the avatar badge opens it from any screen: shared/
@@ -64,16 +66,18 @@ window.Arcade = window.Arcade || {};
       {k: 'gear.acc', label: 'Gear you earned', kind: 'gear', list: () => gearList('acc'), thumb: 'bust', show: () => !!S.member && !S.guest},
       {k: 'gear.color', label: 'Glow effect', kind: 'gear', list: () => gearList('color'), thumb: 'effect', show: () => !!S.member && !S.guest},
     ]},
-    {id: 'name', label: 'Name', groups: [
-      {k: 'name.title', label: 'Title', kind: 'word', list: () => N().titles.map(w => ({id: w, name: w}))},
-      {k: 'name.adj', label: 'Adjective', kind: 'word', list: () => N().adjectives.map(w => ({id: w, name: w}))},
-      {k: 'name.noun', label: 'Noun', kind: 'word', list: () => N().nouns.map(w => ({id: w, name: w}))},
-      {k: 'name.initial', label: 'First initial (optional)', kind: 'word', list: () => [{id: '', name: 'None'}].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => ({id: c, name: c + '.'})))},
+    {id: 'bg', label: 'Background', groups: [
+      {k: 'bg', label: 'Background', kind: 'part', list: () => P().BGS || [], thumb: 'bg', note: () => 'The ones that come to life move behind your player. Unlock more by playing!'},
+    ]},
+    {id: 'name', label: 'Name', groups: [                // A–Z, no repeats, never a NEVER-USE word (Avatar.words)
+      {k: 'name.title', label: 'Title', kind: 'word', list: () => V().words('title').map(w => ({id: w, name: w}))},
+      {k: 'name.adj', label: 'Adjective', kind: 'word', list: () => V().words('adj').map(w => ({id: w, name: w}))},
+      {k: 'name.noun', label: 'Noun', kind: 'word', list: () => V().words('noun').map(w => ({id: w, name: w}))},
     ]},
   ];
   // the fields each tab's SURPRISE ME changes
   const TAB_FIELDS = {face: ['skin', 'face', 'eyes', 'eyeColor', 'brows', 'mouth', 'freckles'], hair: ['hair', 'hairColor'], head: ['head', 'headColor'],
-    clothes: ['top', 'topColor', 'bottom', 'bottomColor', 'shoes', 'shoeColor'], extras: ['glasses', 'glassesColor', 'aids', 'aidColor', 'chairColor'], name: ['name']};
+    clothes: ['top', 'topColor', 'bottom', 'bottomColor', 'shoes', 'shoeColor'], extras: ['glasses', 'glassesColor', 'aids', 'aidColor', 'chairColor'], bg: ['bg'], name: ['name']};
 
   /* the unlocked accessories / color skins for the preview's instrument (earned in the games; SKINS locker too) */
   function gearList(kind) {
@@ -86,7 +90,7 @@ window.Arcade = window.Arcade || {};
   const getK = (o, k) => k.split('.').reduce((x, p) => x && x[p], o);
   const setK = (o, k, v) => { const ps = k.split('.'); const last = ps.pop(); ps.reduce((x, p) => x[p], o)[last] = v; };
 
-  function open({guest = false, member, onClose} = {}) {
+  function open({guest = false, member, onClose, tab} = {}) {
     if (S) close(false);
     member = member === undefined ? A.store.player : member;
     const av = guest ? V().guest() : V().get();
@@ -104,7 +108,8 @@ window.Arcade = window.Arcade || {};
             <div class="avc-bust"></div>
             <button type="button" class="avc-body" aria-label="Turn your player around"><canvas width="32" height="32"></canvas><small aria-hidden="true">Tap to turn</small></button>
           </div>
-          <p class="avc-name" aria-live="polite"></p>
+          <button type="button" class="avc-name" aria-describedby="avcNameHint"></button><span id="avcNameHint" hidden>Change your name</span>
+          <p class="avc-upgrade" role="status" hidden></p>
           <div class="avc-acts">
             <button type="button" class="btn btn-ghost avc-rand-all">Surprise me</button>
             <button type="button" class="btn btn-ghost avc-rand-tab">Shuffle this tab</button>
@@ -135,6 +140,10 @@ window.Arcade = window.Arcade || {};
     $('.avc-rand-all').addEventListener('click', () => { change(() => { const keepChair = S.av.chair; S.av = V().random({keep: S.av}); S.av.chair = keepChair; }); sfx('avatar-randomize'); });
     $('.avc-rand-tab').addEventListener('click', () => { change(() => { S.av = V().random({keep: S.av, only: TAB_FIELDS[S.tab]}); }); sfx('avatar-randomize'); });
     $('.avc-body').addEventListener('click', () => { S.view = (S.view + 1) % 4; drawSprite(); });
+    $('.avc-name').addEventListener('click', () => showTab('name', true));
+    if (!guest && V().nameNote.pending()) {                    // the name migration's one-time note
+      const n = $('.avc-upgrade'); n.textContent = V().nameNote.TEXT; n.hidden = false; V().nameNote.seen();
+    }
     root.querySelectorAll('.avc-tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
     $('.avc-tabs').addEventListener('keydown', e => {
       if (!/^Arrow(Left|Right)$|^Home$|^End$/.test(e.key)) return;
@@ -144,10 +153,11 @@ window.Arcade = window.Arcade || {};
       showTab(list[n], true);
     });
     root.addEventListener('keydown', onKey);
-    showTab('face');
+    const first = TABS().some(t => t.id === tab) ? tab : 'face';
+    showTab(first);
     render();
     animate();
-    setTimeout(() => $('#avcTab-face').focus(), 0);
+    setTimeout(() => $('#avcTab-' + first).focus(), 0);
   }
 
   /* ---------- editing ---------- */
@@ -211,7 +221,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- drawing ---------- */
   function render() {
     const root = S.root;
-    root.querySelector('.avc-bust').innerHTML = A.avatarHTML({size: 'big', avatar: S.av, member: S.member, skin: S.gear, cls: 'avc-live'});
+    root.querySelector('.avc-bust').innerHTML = A.avatarHTML({size: 'big', avatar: S.av, member: S.member, skin: S.gear, cls: 'avc-live', live: true});
     const box = root.querySelector('.avc-bust .av-box'); if (box) box.dataset.avFixed = '1';
     root.querySelector('.avc-name').textContent = V().nameOf(S.av);
     root.querySelector('.avc-undo').disabled = !S.history.length;
@@ -241,6 +251,11 @@ window.Arcade = window.Arcade || {};
     let eq = S.gear;
     if (g.kind === 'gear') eq = Object.assign({}, S.gear, {acc: opt.id});
     else setK(av, g.k, opt.id);
+    if (g.thumb === 'bg') {                                      // the background with you in front (a locked one: just its dimmed picture)
+      const url = A.AvatarBg ? A.AvatarBg.stillURL(opt.id, 128) : '';
+      const you = locked(g, opt.id) ? '' : `<img alt="" src="${V().bustURL(V().normalize(av), eq)}">`;
+      return `<span class="avc-th avc-th-bg"${opt.id !== 'none' && url ? ` style="background-image:url(${url})"` : ''}>${you}</span>`;
+    }
     if (g.thumb === 'body') {
       const sp = V().sprites(S.member || 'trumpet', {avatar: av, eq});
       return sp ? `<span class="avc-th avc-th-body"><img alt="" src="${sp['-front'].frames[0].toDataURL()}"></span>` : '';
@@ -269,7 +284,7 @@ window.Arcade = window.Arcade || {};
           const on = o.id === cur || (o.id === null && !cur);
           if (locked(g, o.id)) {                                 // a dark silhouette + what unlocks it
             const req = V().requirement(g.k, o.id);
-            return `<button type="button" class="avc-opt avc-locked" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + ', locked. ' + req)}">${thumbHTML(g, o)}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span></button>`;
+            return `<button type="button" class="avc-opt avc-locked${g.thumb === 'bg' ? ' avc-bglock' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + ', locked. ' + req)}">${thumbHTML(g, o)}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span>${V().progress(g.k, o.id) ? `<span class="avc-req avc-prog">${esc(V().progress(g.k, o.id))}</span>` : ''}</button>`;
           }
           return `<button type="button" class="avc-opt" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name)}">${thumbHTML(g, o)}<span class="avc-lbl">${esc(o.name)}</span></button>`;
         }).join('') + `</div></div>`;
