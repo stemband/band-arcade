@@ -32,8 +32,8 @@
 </button>
 <div class="room" aria-hidden="true"></div>
 
-<!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES; arcade.js): back, where you are, TUNE UP (the Note Checker),
-     ALL GAMES, your player (tap to change instrument) and the sound button -->
+<!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES, the FULL ARCADE; arcade.js): back, where you are, TUNE UP (the
+     Note Checker), ALL GAMES, FULL ARCADE, your player (tap to change instrument) and the sound button -->
 <nav class="fbar" id="fbar" aria-label="Arcade">
   <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
   <h2 class="fb-title" id="fbTitle" hidden></h2>
@@ -42,6 +42,8 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M5.5 11.5l1.2 1M12 8v1.6M18.5 11.5l-1.2 1"/></svg><span>Tune up</span></a>
     <button type="button" class="fb-btn fb-all" id="allBtn">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><span>All games</span></button>
+    <button type="button" class="fb-btn fb-full" id="fullBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span>Full arcade</span></button>
     <button type="button" class="fb-chip" id="instChip"></button>
     <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
   </div>
@@ -58,7 +60,7 @@
   <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
 </section>
 
-<!-- ONE ZONE: the cabinet carousel with only that zone's games -->
+<!-- ONE ZONE: the cabinet carousel with only that zone's games (or, #full-arcade, every game's) -->
 <main class="zone" id="zoneView" hidden>
   <section class="carousel" aria-roledescription="carousel" aria-label="Games">
     <button class="nav nav-prev" id="prevBtn" aria-label="Previous game">
@@ -72,6 +74,8 @@
   </section>
 
   <div class="lights" id="lights" role="group" aria-label="Choose a game"></div>
+  <!-- the FULL ARCADE's quick jump strip: every game's marquee, zone by zone (arcade.js) -->
+  <div class="jump-strip" id="jumpStrip" role="group" aria-label="Jump to a game" hidden></div>
 
   <section class="info" aria-live="polite">
     <p class="info-skill" id="infoSkill"></p>

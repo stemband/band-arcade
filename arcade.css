@@ -43,6 +43,7 @@
 .fb-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .fb-tune{border-color:var(--green-ink);color:var(--green-hi)}
 .fb-all{border-color:var(--yellow-ink);color:var(--yellow-hi)}
+.fb-full{border-color:var(--pink-ink);color:var(--pink-hi)}
 .fb-btn:hover,.fb-back:hover,.fb-chip:hover{background:var(--floor-3)}
 .fb-chip{border-color:var(--line);padding:4px 14px 4px 4px}
 .fb-chip .chip-pic{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--floor-3);display:grid;place-items:center}
@@ -68,6 +69,29 @@
 .zone.single .nav,.zone.single .lights{display:none}
 .aisle-flags{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:6px;pointer-events:none}
 .slot.nofit .cab{filter:brightness(.5) saturate(.45)}
+
+/* ---------- THE FULL ARCADE (#full-arcade): every cabinet in one carousel, a zone tag under each, the jump strip ---------- */
+.floor-page.v-full{--cab-w:clamp(170px, min(60vw, calc((100vh - 380px) / 2.1)), 280px)}
+@supports (height:100svh){ .floor-page.v-full{--cab-w:clamp(170px, min(60vw, calc((100svh - 380px) / 2.1)), 280px)} }
+.v-full .aisle{height:calc(var(--cab-w) * 2.2)}
+.v-full .lights{display:none}
+.cab-ztag{position:absolute;left:50%;top:calc(var(--cab-w) * 2.02);transform:translateX(-50%);white-space:nowrap;pointer-events:none}
+.info-tags .ztag{font-size:13px}
+.jump-strip{display:flex;align-items:stretch;gap:6px;max-width:100%;margin:6px auto 0;padding:6px 16px 10px;overflow-x:auto;overscroll-behavior-x:contain;
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.jump-strip[hidden]{display:none}
+.jump-strip::before,.jump-strip::after{content:"";flex:1 0 0}          /* centered when it fits, scrolls when it doesn't */
+.jg{flex:none;display:flex;flex-direction:column;gap:3px;padding-left:6px;border-left:3px solid var(--z)}
+.jg-name{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--z-hi);white-space:nowrap;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.jg-row{display:flex;gap:5px}
+.jump{flex:none;width:90px;min-height:44px;padding:3px;border-radius:10px;border:2px solid var(--floor-3);background:var(--deep);cursor:pointer;display:grid;place-items:center}
+.jump .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:6px}
+.jump .mq-wait{background:var(--floor-2)}
+.jump:hover{border-color:var(--z)}
+.jump.nofit .mq-thumb{opacity:.5;filter:saturate(.35)}
+.jump[aria-current="true"]{border-color:var(--z-hi);box-shadow:0 0 0 2px var(--z),0 0 14px var(--z)}
+.jump:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+@media (max-width:640px){ .jump{width:74px} .jg-name{font-size:10px} .jump-strip{padding:4px 12px 8px} }
 .start3d.nofit,.cab-start.nofit{filter:saturate(.35) brightness(.8)}
 .info-tags{margin:0 0 8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
 .info-tags:empty{display:none}
