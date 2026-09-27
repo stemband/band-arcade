@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Song Board</title>
+<meta name="description" content="Every Music Highway song on a staff, in concert pitch and for any instrument, with letter names and a play button.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .sbd h1{font-family:var(--display);font-weight:400;font-size:clamp(32px,7vw,54px);margin:10px 0 4px;color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+  .sbd-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 18px}
+  .sbd-bar label{font-weight:700;color:var(--text-lo)}
+  .sbd-bar select{min-height:44px;font:700 16px var(--text);border-radius:10px;background:var(--floor-2);color:var(--text-hi);border:2px solid var(--cyan);padding:0 10px}
+  .song{background:var(--floor-2);border-radius:16px;padding:14px 16px;margin:0 0 18px;border:2px solid var(--floor-3)}
+  .song.playing{border-color:var(--cyan)}
+  .song-h{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+  .song-h h2{margin:0;font-family:var(--display);font-weight:400;font-size:24px;color:var(--text-hi)}
+  .song-h .meta{color:var(--text-lo);font-size:14px}
+  .tier{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan-hi)}
+  .tier.t2{color:var(--amber-hi)} .tier.t3{color:var(--pink-hi)}
+  .song .btns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .song h3{margin:12px 0 4px;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+  .rows{display:grid;gap:6px}
+  .rows .stage{padding:4px 6px}
+  .rows svg{width:100%;height:auto;display:block}
+  .letters{font:15px/1.6 var(--text);color:var(--text-lo);margin:6px 0 0;padding-left:0;list-style:none}
+  .letters li{display:inline-block;margin:0 12px 2px 0}
+  .letters b{color:var(--text-dim);font-weight:700;margin-right:4px}
+  .warn{color:var(--red);font-weight:700}
+  .note-hl .head{fill:var(--mh-gold)}
+</style>
+</head>
+<body>
+<div class="wrap sbd">
+  <div class="topbar"><a class="brand" id="back" href="index.html" aria-label="Back to Music Highway"><span aria-hidden="true">←</span><span>Music Highway</span></a><div class="sound-ctl" id="soundCtl"></div></div>
+  <h1>Song Board</h1>
+  <p class="muted">Every Music Highway song, from <code>music-highway/songs.js</code>: in concert pitch and written for the instrument you pick, with letter names and the tempo. ▶ PLAY plays the melody with a soft synth and the song's drum groove (the microphone is never on here). A tier-1 song always uses the instrument's first five notes; higher tiers pick the octave that fits the instrument.</p>
+  <div class="sbd-bar">
+    <label for="inst">Show written for</label>
+    <select id="inst"></select>
+    <label><input type="checkbox" id="drums" checked> Drums</label>
+    <button class="btn btn-ghost btn-small" id="stopAll">Stop</button>
+  </div>
+  <div id="list"></div>
+</div>
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="songs.js"></script>
+<script src="song-map.js"></script>
+<script src="settings.js"></script>
+<script src="backing.js"></script>
+<script>
+(function (A) {
+  'use strict';
+  const $ = id => document.getElementById(id), SM = A.SongMap, SONGS = window.MH_SONGS, R = window.MH_RULES;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  A.Sfx.mountControls($('soundCtl'));
+  $('back').href = A.link('index.html');
+  // the instrument picker: every member (A.PLAYERS order), horn twice (its two starting-note groups)
+  const opts = [];
+  A.PLAYERS.forEach(id => {
+    A.groupsOf(id).forEach(g => {
+      const m = g.members.find(x => x.id === id);
+      opts.push({v: id + '|' + g.id, label: m.name + (id === 'horn' ? (g.id === 'hornC' ? ' (C–G start)' : ' (F–C start)') : ''), m, g});
+    });
+  });
+  $('inst').innerHTML = opts.map(o => `<option value="${o.v}">${esc(o.label)}</option>`).join('');
+  const want = new URLSearchParams(location.search).get('m') || A.store.player || 'trumpet';
+  const pre = opts.find(o => o.m.id === want && (want !== 'horn' || o.g.id === (A.store.hornStart === 'C' ? 'hornC' : 'hornF'))) || opts[0];
+  $('inst').value = pre.v;
+  $('inst').onchange = draw;
+
+  const concertGroup = {clef: 'treble', notes: [A.music.parseNote('Bb4')], targetPc: [10], pitched: true};
+  const concertMember = {id: 'concert', sounds: 0, lowMidi: 58, highMidi: 84, pitched: true};
+  const bassConcert = {id: 'concert', sounds: 0, lowMidi: 36, highMidi: 64, pitched: true};
+
+  /** a song's notes on staff rows, 4 measures a row, bar lines drawn */
+  function rows(map) {
+    if (map.unpitched) return `<p class="letters">${map.notes.map(n => n.stick).join(' ')}</p>`;
+    const per = map.beatsPerMeasure, minB = Math.min(...map.notes.map(n => n.beats)), PPB = Math.max(44, Math.min(120, 28 / minB)),
+      lead = 70 + A.keySigWidth(map.sig), mPerRow = Math.max(1, Math.round(720 / (per * PPB))), out = [];
+    for (let r0 = 1; r0 <= map.measures; r0 += mPerRow) {
+      const r1 = Math.min(map.measures, r0 + mPerRow - 1);
+      const inRow = map.notes.filter(n => n.measure >= r0 && n.measure <= r1);
+      const x = n => lead + (n.t - (r0 - 1) * per) * PPB + 14;
+      const W = lead + mPerRow * per * PPB + 20;
+      let svg = A.staffSVG(map.clef, inRow.map(n => ({n: n.show, x: x(n), caption: n.label})), {width: W, keySig: map.sig, fit: map.notes.map(n => n.show), label: `Measures ${r0}–${r1}`});
+      let bars = '';
+      for (let m = r0; m <= r1; m++) { const bx = lead + (m - r0 + 1) * per * PPB; bars += `<line x1="${bx}" y1="56" x2="${bx}" y2="120" stroke="#18203a" stroke-width="1.6"/>`; }
+      out.push(`<div class="stage">${svg.replace('</svg>', bars + '</svg>')}</div>`);
+    }
+    return `<div class="rows">${out.join('')}</div>`;
+  }
+  /** letter names, measure by measure */
+  function letters(map) {
+    const by = {};
+    map.notes.forEach(n => { (by[n.measure] = by[n.measure] || []).push(map.unpitched ? n.stick : n.label); });
+    return `<ul class="letters">${Array.from({length: map.measures}, (_, k) => `<li><b>${k + 1}</b>${(by[k + 1] || ['rest']).join(' ')}</li>`).join('')}</ul>`;
+  }
+  function draw() {
+    const o = opts.find(x => x.v === $('inst').value) || opts[0];
+    $('list').innerHTML = SONGS.map((s, i) => {
+      const probs = SM.check(s);
+      const c = SM.forMember(s, concertMember, concertGroup), w = SM.forMember(s, o.m, o.g);
+      return `<article class="song" data-i="${i}">
+        <div class="song-h"><h2>${i + 1}. ${esc(s.title)}</h2><span class="tier t${s.tier}">Tier ${s.tier}</span></div>
+        <p class="meta">${esc(s.source)} · ${s.tempo} beats a minute · ${s.timeSig[0]}/${s.timeSig[1]} · ${s.style} groove · ${c.keyName} · ${c.notes.length} notes · id <code>${s.id}</code></p>
+        ${probs.length ? `<p class="warn">⚠ ${probs.map(esc).join('<br>')}</p>` : ''}
+        <div class="btns"><button class="btn btn-gold btn-small" data-play="1">▶ Play</button><button class="btn btn-ghost btn-small" data-play=".75">▶ Slow (75%)</button></div>
+        <h3>Concert pitch (${c.keyName})</h3>${rows(c)}${letters(c)}
+        <h3>Written for ${esc(o.label)}${w.unpitched ? ' (rhythm only)' : ` (${w.writtenKey})`}</h3>${rows(w)}${letters(w)}
+      </article>`;
+    }).join('');
+  }
+  draw();
+
+  /* ▶ PLAY: the melody (a soft synth, concert pitch in the chosen instrument's octave) + the drum groove, on the audio clock */
+  let cur = null;
+  function stop() { if (cur) { cur.kit.stopAll(); clearInterval(cur.iv); document.querySelectorAll('.song.playing').forEach(e => e.classList.remove('playing')); cur = null; } }
+  function play(i, rate) {
+    stop();
+    const out = A.Sfx.output();
+    if (!out) { alert('Sound is off (or not started yet). Turn the sound on with the speaker button, then press Play again.'); return; }
+    const o = opts.find(x => x.v === $('inst').value) || opts[0], s = SONGS[i];
+    const map = o.m.pitched === false ? SM.forMember(s, concertMember, concertGroup) : SM.forMember(s, o.m, o.g);
+    const kit = A.MHBacking.create(out.ctx, out.out), spb = 60 / (s.tempo * rate), per = map.beatsPerMeasure;
+    const t0 = out.ctx.currentTime + .2 + per * spb;
+    for (let b = 0; b < per; b++) kit.click(t0 - (per - b) * spb, R.clickVol, b === 0);
+    map.notes.forEach(n => kit.tone(t0 + n.t * spb, n.concert, Math.max(.12, n.beats * spb * .9), .3, 'guide'));
+    if ($('drums').checked) {
+      const g = A.MHBacking.groove(s.style, per);
+      for (let m = 0; m < map.measures; m++) g.forEach(([at, d, v]) => kit[d](t0 + (m * per + at) * spb, v * R.drumVol));
+    }
+    const el = document.querySelector(`.song[data-i="${i}"]`); el.classList.add('playing');
+    const end = t0 + map.measures * per * spb + .5;
+    cur = {kit, iv: setInterval(() => { if (out.ctx.currentTime > end) stop(); }, 250)};
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-play]'); if (b) play(+b.closest('.song').dataset.i, +b.dataset.play); });
+  $('stopAll').onclick = stop;
+  A.SongBoard = {play, stop, draw};
+})(window.Arcade);
+</script>
+</body>
+</html>

@@ -166,7 +166,9 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- ATTACK DETECTION (opt-in: only pages that call onAttack pay for it) ----------
-     onAttack(fn): fn({time, pc, midi}) once per new articulation: a tongued note, a new mallet strike, a drum hit.
+     onAttack(fn): fn({time, pc, midi, level}) once per new articulation: a tongued note, a new mallet strike, a drum hit.
+     level = the loudness (RMS of the attack window) when it fired (null for ?demo keys): Music Highway tells a snare
+     player's hits from its own drums coming back through the speakers with it.
      A small separate analyser is read every ENV.every ms (5 ms for short windows). Its window follows the instrument:
      ENV.periods cycles of its lowest note (a power of two, ENV.minWin–ENV.maxWin samples): long enough that a tuba's
      slow wave doesn't ripple, short enough that a bell's mallet click stands out (bells 256, trumpet 512, tuba 2048). An attack is a sharp RISE of that loudness envelope after a dip, not a start from silence:
@@ -228,12 +230,12 @@ window.Arcade = window.Arcade || {};
       if (ago === null && d <= ENV.jumpMs + env.every) ago = v;
       if (d >= 40 && d <= 120) before = Math.max(before, v);
     }
-    if (e >= dip * ENV.rise || (ago !== null && e >= ago * ENV.jump && e >= before * ENV.above)) attackAt(now);
+    if (e >= dip * ENV.rise || (ago !== null && e >= ago * ENV.jump && e >= before * ENV.above)) attackAt(now, undefined, e);
   }
-  function attackAt(time, pitch) {
+  function attackAt(time, pitch, level) {
     lastAttack = time;
-    if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null});
-    pend.push({time, seen: []});
+    if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null, level: level == null ? null : level});
+    pend.push({time, seen: [], level});
   }
   function fireAttack(a) { attackFns.forEach(fn => fn(a)); }
   /* called by the main loop with each reading: settle the pitch of pending attacks */
@@ -247,7 +249,7 @@ window.Arcade = window.Arcade || {};
         pend.splice(i, 1);
         let pick = two ? a.seen[n - 1] : null;
         if (!pick && n) { const c = {}; a.seen.forEach(x => { c[x.pc] = (c[x.pc] || 0) + 1; }); const best = +Object.keys(c).sort((x, y) => c[y] - c[x])[0]; pick = a.seen.filter(x => x.pc === best).pop(); }
-        fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null});
+        fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null, level: a.level == null ? null : a.level});
       }
     }
   }

@@ -102,6 +102,10 @@
   --sw-ground:#0a0314; --sw-grid:#ff3fa4; --sw-road:#150b26; --sw-road-2:#1d1133; --sw-lane:#f4ecff;
   --sw-far:#1b0a31; --sw-near:#28104a; --sw-window:#ffcf5a; --sw-water:#0d2346; --sw-tunnel:#040209;
   --sw-tail:#ff2a55; --sw-glass:#23305e; --sw-tire:#07050c; --sw-nitro:#5ef0ff;
+  /* Music Highway: the night highway (canvas colors are read from these) and one card color per note letter */
+  --mh-sky:#1a0838; --mh-road:#12061f; --mh-lane:#8a5cff; --mh-sun1:#ffd166; --mh-sun2:#ff3fa4;
+  --mh-c:#ff5a6e; --mh-d:#ff9a3c; --mh-e:#ffe14d; --mh-f:#4dff88; --mh-g:#3ae8ff; --mh-a:#5b8cff; --mh-b:#c77dff;
+  --mh-gold:#c98a12; --mh-miss:#c0392b;
   --anim-chrome:#d9e1ec; --anim-crack:#262b36; --anim-emergency:#ff2a2a;
   --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6;
   --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;

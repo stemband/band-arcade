@@ -338,6 +338,44 @@ window.Arcade = window.Arcade || {};
     x.restore();
   };
 
+  /* MUSIC HIGHWAY: a neon highway at night: five lanes running to the horizon under a starfield, beat lines rolling
+     toward you and faint note cards drifting down the lanes. Dark and slow; the brightest parts are thin lines */
+  S.highway = (x, W, H, t) => {
+    const hz = H * .38, vx = W / 2, far = 5, half = W * .42, sy = H * 1.02;
+    vgrad(x, W, H, [[0, col('deep')], [.3, col('mh-sky')], [.38, mix('mh-sky', 'purple-ink', .5)], [.38, col('deep')], [1, col('mh-road')]]);
+    for (let i = 0; i < 70; i++) {                                 // stars, twinkling slowly
+      const sx = hash(i) * W, syy = hash(i + 50) * hz * .95, a = .15 + .35 * tri(hash(i + 9) + t * (.05 + .05 * hash(i + 4)));
+      x.fillStyle = col('text-hi', a); x.fillRect(sx, syy, 1.4, 1.4);
+    }
+    const r = Math.min(W, H) * .16;                                // the sun behind the horizon
+    x.save(); x.beginPath(); x.rect(0, 0, W, hz); x.clip();
+    const g = x.createLinearGradient(0, hz - r, 0, hz); g.addColorStop(0, col('mh-sun1', .35)); g.addColorStop(1, col('mh-sun2', .35));
+    x.fillStyle = g; x.beginPath(); x.arc(vx, hz, r, 0, TAU); x.fill();
+    x.fillStyle = col('deep'); for (let k = 0; k < 4; k++) x.fillRect(vx - r, hz - r * (.12 + k * .2), r * 2, 2 + k);
+    x.restore();
+    const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
+    x.fillStyle = col('mh-road', .9); x.beginPath(); x.moveTo(X(-1, far), Y(far)); x.lineTo(X(1, far), Y(far)); x.lineTo(X(1, 1), Y(1)); x.lineTo(X(-1, 1), Y(1)); x.fill();
+    for (let l = 0; l <= 5; l++) {                                 // the lanes (the edges glow pink)
+      const u = -1 + l * .4, edge = l === 0 || l === 5;
+      x.strokeStyle = edge ? col('pink', .75) : col('mh-lane', .3); x.lineWidth = edge ? Math.max(2, W / 400) : 1;
+      x.beginPath(); x.moveTo(X(u, far), Y(far)); x.lineTo(X(u, 1), Y(1)); x.stroke();
+    }
+    for (let k = 0; k < 8; k++) {                                  // beat lines rolling toward you
+      const f = fract(k / 8 + t * .12), d = far - (far - 1) * f;
+      x.strokeStyle = col('mh-lane', .45 * f); x.lineWidth = 1 + f;
+      x.beginPath(); x.moveTo(X(-1, d), Y(d)); x.lineTo(X(1, d), Y(d)); x.stroke();
+    }
+    const cols = ['mh-c', 'mh-d', 'mh-e', 'mh-f', 'mh-g', 'mh-a', 'mh-b'];
+    for (let i = 0; i < 6; i++) {                                  // faint note cards drifting down the lanes
+      const f = fract(hash(i + 20) + t * .07), d = far - (far - 1.2) * f, lane = Math.floor(hash(i + 31) * 5), u = -.8 + lane * .4;
+      const w = half * .28 / d, h = w * 1.1, cx = X(u, d), by = Y(d);
+      x.fillStyle = col('screen', .1 + .25 * f); x.strokeStyle = col(cols[i % 7], .25 + .45 * f); x.lineWidth = 1.5;
+      x.beginPath(); x.rect(cx - w / 2, by - h, w, h); x.fill(); x.stroke();
+    }
+    x.strokeStyle = col('cyan', .35); x.lineWidth = 2;               // a dim strike line near the bottom
+    x.beginPath(); x.moveTo(X(-1, 1.12), Y(1.12)); x.lineTo(X(1, 1.12), Y(1.12)); x.stroke();
+  };
+
   /* LOST SIGNAL: a slow starfield, a radar sweep in the corner, a faint distant signal pulse */
   S.space = (x, W, H, t) => {
     vgrad(x, W, H, [[0, col('deep')], [1, mix('deep', 'ls-panel', .4)]]);
@@ -630,7 +668,7 @@ window.Arcade = window.Arcade || {};
 
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
-    city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
+    highway: 4, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

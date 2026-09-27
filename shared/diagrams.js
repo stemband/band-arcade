@@ -1,4 +1,5 @@
-/* Button Masher: the fingering diagrams (drawn in SVG, no images) and the fingering table reader.
+/* THE FINGERING DIAGRAMS (drawn in SVG, no images) and the fingering table reader (shared/fingerings.js).
+   Used by Button Masher, Arcade Quest's FINGERING challenge and Music Highway's fingering cards: never copy them.
    A diagram is a picture of the instrument turned sideways, left hand on the left, with every key a real
    tappable button. Chart-style: finger holes are circles, keys are rounded bars, pressed = filled.
      DIAGRAMS[id]   viewBox, the drawing behind the keys (`body`), and `keys`:
@@ -233,7 +234,8 @@ window.Arcade = window.Arcade || {};
     });
     return (cache[member.id] = {diagram, notes: midi => byMidi[midi] || [], has: midi => !!byMidi[midi]});
   }
-  function warn(msg) { if (window.console) console.warn('Button Masher fingerings.js: ' + msg); }
+  function warn(msg) { if (window.console) console.warn('shared/fingerings.js: ' + msg); }
 
   A.Masher = {DIAGRAMS, diagramSVG, setState, table, canon, describe, ordinal, pressedOf};
+  A.Fingerings = A.Masher;                                          // the same API under a game-neutral name
 })(window.Arcade);

@@ -142,6 +142,8 @@ window.Arcade = window.Arcade || {};
     'button-masher-menu': {file: 'button-masher-menu', vol: .45, loop: true, mic: false, screen: 'button-masher', when: 'Button Masher: menu music: rival select, the chart and results screens. Fades out (0.5 s) when a level starts; comes back on the results screen after its sounds. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'neon-face-off-menu': {file: 'neon-face-off-menu', vol: .45, loop: true, mic: false, screen: 'neon-face-off', when: 'Neon Face-Off: menu music: the setup screen (players, difficulty, rival) and results. Fades out (0.5 s) when a level starts and before the microphone listens; comes back on the results screen after its sounds. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'showtime-malfunction-menu': {file: 'showtime-malfunction-menu', vol: .45, loop: true, mic: false, screen: 'showtime-malfunction', when: 'Showtime Malfunction: menu music: show select, mode picker, the story and results screens. Fades out (0.5 s) when a level starts and before the microphone listens; comes back on the results screen after its sounds. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
+    'music-highway-menu': {file: 'music-highway-menu', vol: .45, loop: true, mic: false, screen: 'music-highway', when: 'Music Highway: menu music: the song select, the timing check and results screens. Fades out (0.5 s) before a song\'s count-in; never during a song. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
+    // mh-drums-<song id>: made below for every song in music-highway/songs.js (optional backing-drums recordings)
     'sustain-speedway-menu': {file: 'sustain-speedway-menu', vol: .45, loop: true, mic: false, screen: 'sustain-speedway', when: 'Sustain Speedway: menu music: track select, mode picker and results screens. Fades out (0.5 s) when a level starts and before the microphone listens; comes back on the results screen after its sounds. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     // ---- Note Ninja ---------------------------------------------------------------------------------------------
     'ninja-slash':     {file: 'ninja-slash', vol: .7, mic: true, play: true, screen: 'note-ninja', when: 'Note Ninja: a correct answer.', len: '0.1–0.3 s'},
@@ -259,7 +261,7 @@ window.Arcade = window.Arcade || {};
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['arcade-quest', 'Arcade Quest']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['music-highway', 'Music Highway'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {
     LIST, SCREENS,
@@ -269,8 +271,9 @@ window.Arcade = window.Arcade || {};
     /** the entry for an event; select-<game id> is made on the fly for any game */
     get(name) {
       if (LIST[name]) return LIST[name];
-      if (/^select-music-/.test(name)) {                   // a game's own character-select music (optional)
-        const g = (A.GAMES || []).find(x => 'select-music-' + x.id === name);
+      const sm = /^select-music-/.test(name) && (A.GAMES || []).find(x => 'select-music-' + x.id === name);
+      if (sm) {                                            // a game's own character-select music (optional)
+        const g = sm;                                      // (select-music-highway is Music Highway's START sound, below)
         return g ? {file: name, vol: .6, loop: true, mic: false, screen: 'select', fallback: 'select-music', auto: true,
                     when: `Choose Your Instrument music for ${g.name} only (instead of select-music).`, len: '30–90 s loop'} : null;
       }
@@ -278,6 +281,12 @@ window.Arcade = window.Arcade || {};
         const g = (A.GAMES || []).find(x => 'press-start-' + x.id === name);
         return g ? {file: name, vol: .8, mic: false, screen: 'general', fallback: 'press-start', auto: true,
                     when: `${g.name}'s PRESS START title screen is tapped (instead of press-start).`, len: '0.3–0.8 s'} : null;
+      }
+      if (/^mh-drums-/.test(name)) {                       // Music Highway: a song's backing drums (optional; songs.js)
+        const sg = (window.MH_SONGS || []).find(x => 'mh-drums-' + x.id === name);
+        return sg ? {file: name, vol: 1, mic: true, drums: true, screen: 'music-highway', auto: true, gen: [[3000, 0, .03, .3, 'noise', 3]],
+                     when: `Music Highway: the backing DRUMS for "${sg.title}" (optional; drums and unpitched percussion only, nothing pitched). Start exactly on beat 1 of the song (the game plays its own count-in first) at ${sg.tempo} beats a minute, and last the whole song. Without it: the game's generated ${sg.style} groove (hear it on the Song Board). The Play button here only plays your file.`,
+                     len: 'the whole song'} : null;
       }
       if (/^select-/.test(name)) {
         const g = (A.GAMES || []).find(x => 'select-' + x.id === name);
@@ -288,6 +297,7 @@ window.Arcade = window.Arcade || {};
     },
     /** every event name, including one select-<id> per game in shared/games.js (if loaded) */
     names() { return Object.keys(LIST).concat((A.GAMES || []).map(g => 'select-' + g.id).filter(n => !LIST[n]),
-      (A.GAMES || []).filter(g => !g.tool && g.pressStart !== false).map(g => 'press-start-' + g.id)); },
+      (A.GAMES || []).filter(g => !g.tool && g.pressStart !== false).map(g => 'press-start-' + g.id),
+      (window.MH_SONGS || []).map(x => 'mh-drums-' + x.id)); },
   };
 })(window.Arcade);

@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -544,6 +544,40 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
+    /* MUSIC HIGHWAY. colors: [lanes + beat lines, road edges, stars]. A neon road running into a starfield: five lanes
+       from the horizon, beat lines rolling toward you, small note cards drifting down the lanes (slow; nothing flashes). */
+    highway: {
+      colors: ['mh-lane', 'pink', 'cyan'], still: .6,
+      draw(x, W, H, t, c) {
+        const hz = H * .3, vx = W / 2, far = 4, half = W * .5, sy = H * 1.05;
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [.3, tok('mh-sky')], [.3, tok('deep')], [1, tok('mh-road')]]); x.fillRect(0, 0, W, H);
+        const n = Math.round(W / H * 24);
+        for (let i = 0; i < n; i++) {                                // the starfield: slow, smooth twinkles
+          const a = .25 + .55 * (.5 + .5 * Math.sin(t * (.5 + hash(i + 3)) + hash(i + 4) * 6.28));
+          x.fillStyle = rgba(c[2], a); x.fillRect(W * hash(i + 1), hz * .95 * hash(i + 2), Math.max(1, H * .012), Math.max(1, H * .012));
+        }
+        const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
+        x.fillStyle = tok('mh-road'); x.beginPath(); x.moveTo(X(-1, far), Y(far)); x.lineTo(X(1, far), Y(far)); x.lineTo(X(1, 1), Y(1)); x.lineTo(X(-1, 1), Y(1)); x.fill();
+        for (let l = 0; l <= 5; l++) {
+          const u = -1 + l * .4, edge = l === 0 || l === 5;
+          x.strokeStyle = edge ? tok(c[1]) : rgba(c[0], .55); x.lineWidth = Math.max(1, H * (edge ? .022 : .01));
+          if (edge) glow(x, X(u, 1.6), Y(1.6), H * .12, c[1], .25);
+          x.beginPath(); x.moveTo(X(u, far), Y(far)); x.lineTo(X(u, 1), Y(1)); x.stroke();
+        }
+        for (let k = 0; k < 6; k++) {                                // beat lines rolling toward you
+          const f = wrap(k / 6 + t * .3, 1), d = far - (far - 1) * f;
+          x.strokeStyle = rgba(c[0], .25 + .5 * f); x.lineWidth = Math.max(1, H * .01);
+          x.beginPath(); x.moveTo(X(-1, d), Y(d)); x.lineTo(X(1, d), Y(d)); x.stroke();
+        }
+        const cols = ['mh-c', 'mh-e', 'mh-g', 'mh-b', 'mh-d'];
+        for (let i = 0; i < 5; i++) {                                // note cards drifting down the lanes
+          const f = wrap(hash(i + 20) + t * .18, 1), d = far - (far - 1.3) * f, u = -.8 + (i % 5) * .4;
+          const w = half * .22 / d, h = w * 1.05, cx = X(u, d), by = Y(d);
+          x.fillStyle = rgba('screen', .25 + .5 * f); x.strokeStyle = tok(cols[i]); x.lineWidth = Math.max(1, H * .012);
+          x.beginPath(); x.rect(cx - w / 2, by - h, w, h); x.fill(); x.stroke();
+        }
+      },
+    },
     /* LOST SIGNAL. colors: [waveform, radar + blips, stars]. Deep space: a starfield, radar rings with a slowly turning
        sweep, blips that fade in as the sweep passes and fade out over a second (never a flash), and a glowing
        waveform along the bottom. */
@@ -699,7 +733,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)

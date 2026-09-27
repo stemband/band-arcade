@@ -991,6 +991,7 @@ window.AVATAR_PARTS = {};
     {id: 'spotlight', name: 'Spotlight Stage', kind: 'scene', scene: 'stage', lift: 2, main: 'red-ink', unlock: clear(['showtime-malfunction', 8, 'Clear Showtime Malfunction Level 8'])},
     {id: 'nighttrack', name: 'Night Track', kind: 'scene', scene: 'track', lift: 1.9, main: 'purple-ink', unlock: clear(['sustain-speedway', 8, 'Finish The Grand Prix in the top 3 in Sustain Speedway'])},
     {id: 'deepspace', name: 'Deep Space Radar', kind: 'scene', scene: 'space', lift: 2, main: 'blue-ink', unlock: clear(['lost-signal', 8, 'Clear Lost Signal Level 8'])},
+    {id: 'neonhighway', name: 'Neon Highway', kind: 'scene', scene: 'highway', lift: 1.8, main: 'purple-ink', unlock: clear(['music-highway', 16, 'Earn a star on The Entertainer in Music Highway'])},
     {id: 'dojonight', name: 'Dojo Night', kind: 'scene', scene: 'night-dojo', lift: 2, main: 'red-ink', unlock: {game: 'dojo-duel', wins: 5, text: 'Win 5 matches in Dojo Duel on this device'}},
     {id: 'pixelcastle', name: 'Pixel Castle', kind: 'scene', scene: 'pixel-night', lift: 1.7, main: 'purple-ink', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}},
     // ---- star milestones (every star on this device) ----

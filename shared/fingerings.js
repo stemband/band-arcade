@@ -1,4 +1,5 @@
-/* Button Masher: THE FINGERING TABLE. Every fingering the game accepts, for every instrument.
+/* THE FINGERING TABLE (shared: Button Masher checks combos against it, Arcade Quest's FINGERING challenge and
+   Music Highway's fingering cards draw from it). Every fingering Button Masher accepts, for every instrument.
    Verify against the 6th Grade Honor Band fingering charts.
 
    HOW TO READ IT

@@ -92,7 +92,7 @@ window.Arcade.ZONES = [
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, words and duels.'},
   {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.',
    // Showtime Malfunction first: every instrument can play it (Chime Heist, bells only, was in front for everyone)
-   order: ['showtime-malfunction', 'button-masher', 'sustain-speedway', 'chime-heist']},
+   order: ['showtime-malfunction', 'music-highway', 'button-masher', 'sustain-speedway', 'chime-heist']},
   {id: 'ear-training',  name: 'Ear Training',     color: 'green',  tagline: 'Listen closely, then play it back.'},
   {id: 'two-player',    name: '2-Player Corner',  color: 'pink',   tagline: 'Grab a friend and face off.'},
   {id: 'adventure',     name: 'Adventure',        color: 'purple', tagline: 'A story you play with your instrument.'},
@@ -280,6 +280,22 @@ window.Arcade.GAMES = [
     marquee: {scene: 'synthwave', colors: ['sw-grid', 'sw-sun-1', 'text-hi']},
     cabinet: {shape: 'speedway', trim: 'pink', trim2: 'amber', marquee: 'speedway', screen: 'speedway'},
     cabinet3d: {profile: 'speedway', body: 'cab-side'},
+  },
+  {
+    id: 'music-highway',
+    zones: ['technique-lab'],
+    name: 'Music Highway',
+    bg: {scene: 'highway', dim: .4, focus: .35},
+    menuMusic: 'music-highway-menu',
+    skill: 'Play-along rhythm',
+    blurb: 'Your fingerings fly down a neon highway with the band. Play each note right as its card reaches the line: the microphone judges your pitch and your timing.',
+    maxStars: 48,                                    // 16 songs × 3 (music-highway/songs.js; never reorder the songs)
+    color: 'cyan',
+    byMember: true,                                  // stars are saved per instrument member (song number = level)
+    unpitched: true,                                 // the Snare Drum plays each song's rhythm (any clean hit counts)
+    marquee: {scene: 'highway', colors: ['mh-lane', 'pink', 'cyan']},
+    cabinet: {shape: 'highway', trim: 'cyan', trim2: 'pink', marquee: 'highway', screen: 'highway'},
+    cabinet3d: {profile: 'highway', body: 'cab-side'},
   },
   {
     id: 'lost-signal',
