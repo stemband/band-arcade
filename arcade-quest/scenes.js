@@ -15,6 +15,9 @@
   let player = null;
   const me = () => (player = Q.playerId(A.currentMember().id));
 
+  // a new look from the avatar badge's editor (the top bar): the title's hero is redrawn
+  addEventListener('arcade:avatar', e => { if (!e.detail.guest && Q.scene && Q.scene() === Q.scenes.title) me(); });
+
   /* ---------- the title ---------- */
   Q.scenes.title = {
     enter() {

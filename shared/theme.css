@@ -609,3 +609,27 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
   .ls-notes .mp-say{margin-right:242px}
 }
 @media (prefers-reduced-motion:reduce){ .ls-hint,.ls-start.ls-in,.ls-head.say{animation:none} }
+
+/* ---------- THE AVATAR BADGE (shared/avatar-badge.js): top bar, every screen; hidden during play ---------- */
+.avb{position:relative;display:inline-flex}
+.avb-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:min(260px,46vw);padding:4px 12px 4px 4px;border-radius:999px;cursor:pointer;
+  border:2px solid var(--line);background:rgba(6,4,13,.55);color:var(--text-hi);font:inherit;text-align:left}
+.avb-btn:hover,.avb.open .avb-btn{border-color:var(--cyan);background:var(--floor-3)}
+.avb-btn:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+.avb-pic{flex:none;width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--floor-3);display:grid;place-items:center}
+.avb-pic .pt-box{width:36px}
+.avb-sil{width:30px;height:30px;fill:var(--text-lo)}
+.avb-txt{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.avb-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avb-sub{font-size:12px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avb-pen{flex:none;width:16px;height:16px;fill:none;stroke:var(--cyan-hi);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.avb-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:75;display:grid;gap:8px;width:max-content;min-width:230px;padding:10px;border-radius:16px;
+  background:var(--floor-2);border:2px solid var(--cyan);box-shadow:var(--glow-cyan),0 10px 30px rgba(0,0,0,.55)}
+.avb-menu[hidden]{display:none}
+.avb-item{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 16px;border-radius:12px;cursor:pointer;border:2px solid var(--floor-3);background:var(--deep);
+  color:var(--text-hi);font:400 17px/1.1 var(--display);letter-spacing:.05em;text-transform:uppercase;text-align:left}
+.avb-item svg{flex:none;width:22px;height:22px;fill:none;stroke:var(--cyan-hi);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.avb-item:hover,.avb-item:focus-visible{border-color:var(--yellow);background:var(--floor-lit);outline:none;box-shadow:var(--glow-yellow)}
+@media (max-width:640px){ .avb-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} .avb-btn{padding-right:10px} }
+/* during play (html.in-play: shared/backgrounds.js Bg.menu(false)) the badge can't be tapped by accident */
+html.in-play .avb{visibility:hidden;pointer-events:none}

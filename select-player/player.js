@@ -64,6 +64,11 @@
   A.Sfx.setAmbience(null); A.Sfx.setMusic(pick ? ['select-music'] : ['select-music-' + game.id, 'select-music'], {builtIn: true});
 
   announce(me, view, on);
+  // THE AVATAR BADGE (shared/avatar-badge.js): EDIT AVATAR here edits the device's own avatar (the card redraws);
+  // no CHANGE INSTRUMENT: this screen is where that happens
+  if (A.AvatarBadge) A.AvatarBadge.mount($('spBadge'), {member: A.store.player || null,
+    instLabel: () => { const m = A.store.player && A.memberById(A.store.player); return m ? m.short : ''; },
+    onEdit: () => A.AvatarBadge.edit({member: A.store.player || null, onClose: still(() => card())})});
 
   const two = !pick && (game.players > 1 || String(opts.players) === '2');
   let phase = 1;                                                      // 1 = Player 1 picks, 2 = Player 2 picks

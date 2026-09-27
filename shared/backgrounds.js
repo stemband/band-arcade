@@ -10,7 +10,8 @@
    extra darkness in the middle, where the menu is).
 
    Arcade.Bg.mount(gameId)   once per page (mountTopbar does it for every game page)
-   Arcade.Bg.menu(on)        true on a menu screen, false when play starts (Sfx.gameMenuMusic calls it for most games)
+   Arcade.Bg.menu(on)        true on a menu screen, false when play starts (Sfx.gameMenuMusic calls it for most games);
+                             it also sets html.in-play during play (the avatar badge hides)
    Arcade.Bg.motion / setMotion(on)   the MOTION switch (Sfx.mountControls shows it), saved on this device
    Arcade.Bg.state()         tests: {game, scene, image, on, running, still, why, fps, avgMs}
 
@@ -98,6 +99,8 @@ window.Arcade = window.Arcade || {};
   /* ---------- menu screens on, gameplay off ---------- */
   function menu(show) {
     on = !!show;
+    // play: html.in-play hides the avatar badge (shared/avatar-badge.js) so it can't be tapped by accident mid-level
+    document.documentElement.classList.toggle('in-play', !on);
     if (!layer) return;
     clearTimeout(hideT);
     if (on) {
