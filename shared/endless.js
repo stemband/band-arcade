@@ -8,8 +8,11 @@
      Arcade.Endless.instKey(inst, member), setKey(pickerState)   where a run's Top 5 lives: game + instrument + note set
      Arcade.Endless.top(gameId, instKey, setKey)                 the Top 5 (Arcade.store.endlessTop)
      Arcade.Endless.tile(el, {gameId, instKey, setKey, label, blurb, onPlay})   the ENDLESS card on the level screen
-     Arcade.Endless.gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel})   the GAME OVER panel:
-                                     saves the run (never in ?demo: "Demo run — score not saved"), shows the Top 5
+     Arcade.Endless.gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds})
+                                     the GAME OVER panel: saves the run (never in ?demo: "Demo run — score not
+                                     saved"), shows the Top 5. run = {score, notes, speed, combo, stats?}: stats =
+                                     [[label, value], …] replaces the four standard boxes (Lost Signal: longest signal,
+                                     score, rounds); sounds = {over, top} replaces endless-game-over/-high-score.
      Arcade.Endless.hearts(lives, max)   the HUD's hearts
      Arcade.Endless.flash(el, text)      the short "SPEED UP!" banner (one gentle fade in and out, never a strobe)
    Endless gives no stars: runs are saved in Arcade.store `endless` (storage.js), never in `games`, so they never
@@ -55,12 +58,12 @@ window.Arcade = window.Arcade || {};
       }).join('') + '</ol>';
     },
     /** the ENDLESS card on a level screen: always unlocked, the Top 5 for this instrument + note set */
-    tile(el, {gameId, instKey, setKey, label, blurb, onPlay}) {
+    tile(el, {gameId, instKey, setKey, label, blurb, onPlay, title}) {
       const list = E.top(gameId, instKey, setKey);
       el.innerHTML = `<section class="ed-tile" aria-labelledby="edTileTitle">
         <div class="ed-tile-main">
           <span class="ed-inf" aria-hidden="true">∞</span>
-          <div><h2 class="ed-title" id="edTileTitle">Endless</h2>
+          <div><h2 class="ed-title" id="edTileTitle">${esc(title || 'Endless')}</h2>
             <p class="ed-blurb">${esc(blurb)}</p>
             <p class="ed-set">${esc(label)}</p></div>
           <button type="button" class="btn btn-gold ed-go">Play Endless</button>
@@ -75,10 +78,10 @@ window.Arcade = window.Arcade || {};
       el.classList.remove('go'); void el.getBoundingClientRect(); el.classList.add('go');
     },
     /** GAME OVER: save the run (not in ?demo), show the stats and the Top 5, play the sounds. Returns its place (0 = #1, -1 = none). */
-    gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel}) {
+    gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds}) {
       const demo = A.DEMO && !E.saveInDemo;
       const before = E.top(gameId, instKey, setKey);
-      const entry = {score: Math.round(run.score), name: E.playerName(), date: today(), notes: run.notes, speed: +run.speed.toFixed(1), combo: run.combo};
+      const entry = {score: Math.round(run.score), name: E.playerName(), date: today(), notes: run.notes, speed: +(+run.speed || 0).toFixed(1), combo: run.combo};
       let rank = -1, list = before;
       if (demo) {                                   // where it WOULD have placed, without saving it
         const at = before.findIndex(x => entry.score > x.score);
@@ -92,10 +95,11 @@ window.Arcade = window.Arcade || {};
       ov.querySelector('.ed-new').hidden = demo || !(rank >= 0 && entry.score > 0);
       ov.querySelector('.ed-new').textContent = rank < 0 ? '' : newTop ? (before.length ? 'NEW HIGH SCORE!' : 'FIRST HIGH SCORE!') : `#${rank + 1} on your Top 5!`;
       ov.querySelector('.ed-new').classList.toggle('top', newTop);
-      ov.querySelector('#edScore').textContent = entry.score.toLocaleString();
-      ov.querySelector('#edNotes').textContent = run.notes;
-      ov.querySelector('#edSpeed').textContent = run.speed.toFixed(1);
-      ov.querySelector('#edCombo').textContent = run.combo;
+      const stats = run.stats || [['Score', entry.score.toLocaleString()], ['Notes cleared', run.notes],
+        ['Top speed', (+run.speed || 0).toFixed(1)], ['Longest combo', run.combo]];
+      ov.querySelector('.stats').innerHTML = stats.map(([k, v]) => `<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
+      ov.querySelector('#edOverTitle').textContent = title || 'Game Over';
+      ov.querySelector('.ed-kicker').innerHTML = `<span aria-hidden="true">∞</span> ${esc(kicker || 'Endless')}`;
       ov.querySelector('.ed-demo').hidden = !demo;
       ov.querySelector('.ed-list').innerHTML = E.listHTML(demo ? before : list, demo ? null : (rank >= 0 ? rank : null));
       const again = ov.querySelector('.ed-again'), back = ov.querySelector('.ed-back');
@@ -105,7 +109,8 @@ window.Arcade = window.Arcade || {};
       ov.hidden = false;
       if (A.Skins) A.Skins.announce(ov.querySelector('.panel'));     // the player's avatar and name at the top
       again.focus();
-      A.Sfx.sequence(['endless-game-over', newTop && !demo && 'endless-high-score']);
+      const snd = Object.assign({over: 'endless-game-over', top: 'endless-high-score'}, sounds);
+      A.Sfx.sequence([snd.over, newTop && !demo && snd.top]);
       return rank;
     },
   };

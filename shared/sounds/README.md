@@ -175,6 +175,27 @@ for a sound: keep the "during play" ones short.
 | `endless-game-over` | `endless-game-over.m4a` or `endless-game-over.mp3` | Endless mode: the last heart is gone, the GAME OVER panel (falls back to `game-over`). | 0.8–1.5 s |
 | `endless-high-score` | `endless-high-score.m4a` or `endless-high-score.mp3` | Endless mode: GAME OVER with a new #1 on the Top 5, after `endless-game-over` (falls back to `new-high-score`). | 0.5–1.5 s |
 
+### Lost Signal
+
+**No Lost Signal sound may be a pitched tone** (a hum, a beep with a clear note, a chime): the microphone could take it for
+a note. Use static, clicks, sweeps and noise. Every one of them is `mic: false` (it never plays while the game listens),
+except the two tiny echo clicks. Until you upload a file, a built-in version made of filtered noise plays.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `lost-signal-music` | `lost-signal-music.m4a` or `lost-signal-music.mp3` | Lost Signal: The Lost Signal menu and level screens only, never during a transmission (a loop; until you upload it, the built-in chiptune). | 30–90 s loop |
+| `lost-signal-incoming` | `lost-signal-incoming.m4a` or `lost-signal-incoming.mp3` | Lost Signal: INCOMING TRANSMISSION, before the pattern plays. | 0.5–1.2 s |
+| `lost-signal-your-turn` | `lost-signal-your-turn.m4a` or `lost-signal-your-turn.mp3` | Lost Signal: YOUR TURN: ECHO THE SIGNAL, just before the microphone listens. | under 0.4 s |
+| `lost-signal-correct` | `lost-signal-correct.m4a` or `lost-signal-correct.mp3` | Lost Signal: An echoed note was right. **Plays while the microphone listens: a tiny click, never a tone.** | under 0.05 s |
+| `lost-signal-wrong` | `lost-signal-wrong.m4a` or `lost-signal-wrong.mp3` | Lost Signal: An echoed note was wrong (or a wrong try in FIND THE SIGNAL). **Plays while the microphone listens: a short static burst, never a tone.** | under 0.15 s |
+| `lost-signal-decoded` | `lost-signal-decoded.m4a` or `lost-signal-decoded.mp3` | Lost Signal: TRANSMISSION DECODED (every note right), and the end of the story. | 0.5–1.2 s |
+| `lost-signal-partial` | `lost-signal-partial.m4a` or `lost-signal-partial.mp3` | Lost Signal: A transmission with some notes wrong or missed; the level results without a star. | 0.4–1 s |
+| `lost-signal-found` | `lost-signal-found.m4a` or `lost-signal-found.mp3` | Lost Signal: FIND THE SIGNAL: the hidden first note found. | 0.3–0.8 s |
+| `lost-signal-level-clear` | `lost-signal-level-clear.m4a` or `lost-signal-level-clear.mp3` | Lost Signal: The level results with at least 1 star. | 0.8–2 s |
+| `lost-signal-life-lost` | `lost-signal-life-lost.m4a` or `lost-signal-life-lost.mp3` | Lost Signal: Deep Space Scan: a round missed, a heart lost. | 0.3–0.8 s |
+| `lost-signal-game-over` | `lost-signal-game-over.m4a` or `lost-signal-game-over.mp3` | Lost Signal: Deep Space Scan: GAME OVER. | 0.8–1.5 s |
+| `lost-signal-high-score` | `lost-signal-high-score.m4a` or `lost-signal-high-score.mp3` | Lost Signal: Deep Space Scan: GAME OVER with a new #1 (after lost-signal-game-over). | 0.5–1.5 s |
+
 ### Chime Heist
 
 | Event | File to upload | When it plays | Suggested length |

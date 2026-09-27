@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -489,6 +489,46 @@ window.Arcade = window.Arcade || {};
         x.globalAlpha = 1;
       },
     },
+    /* LOST SIGNAL. colors: [waveform, radar + blips, stars]. Deep space: a starfield, radar rings with a slowly turning
+       sweep, blips that fade in as the sweep passes and fade out over a second (never a flash), and a glowing
+       waveform along the bottom. */
+    radio: {
+      colors: ['ls-wave', 'ls-ping', 'text-hi'], still: 1.1,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [1, tok('ls-scope')]]); x.fillRect(0, 0, W, H);
+        // stars: each twinkles slowly and smoothly
+        const n = Math.round(W / H * 22);
+        for (let i = 0; i < n; i++) {
+          const a = .25 + .55 * (.5 + .5 * Math.sin(t * (0.6 + hash(i + 3)) + hash(i + 4) * 6.28));
+          x.fillStyle = rgba(c[2], a); x.fillRect(W * hash(i + 1), H * hash(i + 2), Math.max(1, H * .012), Math.max(1, H * .012));
+        }
+        // radar rings (two: left and right of the title), the sweep and its blips
+        [[W * .12, H * .55], [W * .88, H * .5]].forEach(([ox, oy], side) => {
+          const R = H * .46;
+          x.strokeStyle = rgba(c[1], .35); x.lineWidth = Math.max(1, H * .012);
+          for (let k = 1; k <= 3; k++) { x.beginPath(); x.arc(ox, oy, R * k / 3, 0, Math.PI * 2); x.stroke(); }
+          const ang = t * 1.6 * (side ? -1 : 1) + side;
+          x.strokeStyle = rgba(c[1], .8); x.lineWidth = Math.max(1.5, H * .02);
+          x.beginPath(); x.moveTo(ox, oy); x.lineTo(ox + Math.cos(ang) * R, oy + Math.sin(ang) * R); x.stroke();
+          for (let b = 0; b < 3; b++) {
+            const ba = hash(b + side * 9 + 20) * Math.PI * 2, br = R * (.3 + .6 * hash(b + side * 9 + 21));
+            const since = wrap((ang - ba) * (side ? -1 : 1), Math.PI * 2) / 1.6;       // seconds since the sweep passed it
+            const a = Math.max(0, 1 - since / 1.2);
+            if (a > 0) { glow(x, ox + Math.cos(ba) * br, oy + Math.sin(ba) * br, H * .1, c[1], a * .7); x.fillStyle = rgba(c[1], a); x.beginPath(); x.arc(ox + Math.cos(ba) * br, oy + Math.sin(ba) * br, H * .03, 0, 7); x.fill(); }
+          }
+        });
+        // the waveform
+        const y0 = H * .86, A0 = H * .07;
+        x.strokeStyle = rgba(c[0], .85); x.lineWidth = Math.max(1.5, H * .02);
+        x.beginPath();
+        for (let px = 0; px <= W; px += 3) {
+          const u = px / W, env = .45 + .55 * Math.sin(Math.PI * wrap(u + t * .15, 1));
+          const y = y0 + Math.sin(u * 30 + t * 4) * A0 * env;
+          px ? x.lineTo(px, y) : x.moveTo(px, y);
+        }
+        x.stroke();
+      },
+    },
     /* ARCADE QUEST. colors: [sky, microphone outline, static]. An 8-bit landscape at night with a giant
        microphone silhouette looming behind the title, crackling with pixel static (each speck fades in and out). */
     pixel: {
@@ -556,7 +596,7 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
-    faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif'};
+    faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif'};
   function fit(x, text, font, size, maxW) {
     let s = size; x.font = `${font.w || ''} ${s}px ${font.f}`;
     while (s > 6 && x.measureText(text).width > maxW) { s -= 1; x.font = `${font.w || ''} ${s}px ${font.f}`; }
