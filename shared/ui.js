@@ -262,8 +262,12 @@ window.Arcade = window.Arcade || {};
   /** the games with a cabinet (every game except tools like the Note Checker) */
   A.floorGames = () => (A.GAMES || []).filter(g => !g.tool);
   A.zoneById = id => (A.ZONES || []).find(z => z.id === id) || null;
-  /** a zone's games, in games.js order */
-  A.zoneGames = id => A.floorGames().filter(g => (g.zones || []).includes(id));
+  /** a zone's games: the zone's own `order` first (games.js ZONES), then the rest in games.js order */
+  A.zoneGames = function (id) {
+    const games = A.floorGames().filter(g => (g.zones || []).includes(id)), z = A.zoneById(id), order = (z && z.order) || [];
+    const rank = g => { const i = order.indexOf(g.id); return i < 0 ? order.length + games.indexOf(g) : i; };
+    return games.slice().sort((a, b) => rank(a) - rank(b));
+  };
   /** the zones that have at least one game (an empty zone is hidden) */
   A.zoneList = () => (A.ZONES || []).filter(z => A.zoneGames(z.id).length);
   /** a game's zones (only ones that exist) */

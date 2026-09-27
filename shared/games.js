@@ -74,11 +74,15 @@ window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
      id       the zone's id (used in the address: index.html#zone=technique-lab); never rename one
      name     the sign's words
      color    the sign's neon: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'blue' | 'white'
-     tagline  one short line under the name */
+     tagline  one short line under the name
+     order    optional: game ids in the order the zone shows them (the first one is in front when the zone opens);
+              games left out follow in games.js order */
 window.Arcade.ZONES = [
   {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, words and duels.'},
-  {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.'},
+  {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.',
+   // Showtime Malfunction first: every instrument can play it (Chime Heist, bells only, was in front for everyone)
+   order: ['showtime-malfunction', 'button-masher', 'sustain-speedway', 'chime-heist']},
   {id: 'ear-training',  name: 'Ear Training',     color: 'green',  tagline: 'Listen closely, then play it back.'},
   {id: 'two-player',    name: '2-Player Corner',  color: 'pink',   tagline: 'Grab a friend and face off.'},
   {id: 'adventure',     name: 'Adventure',        color: 'purple', tagline: 'A story you play with your instrument.'},

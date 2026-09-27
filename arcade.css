@@ -114,6 +114,9 @@
 .nav svg{width:26px;height:26px;fill:currentColor}
 .nav:hover{background:var(--cyan);color:var(--deep)}
 .nav:active{transform:scale(.94)}
+.nav:disabled{opacity:.3;cursor:default;box-shadow:none}
+.nav:disabled:hover{background:var(--deep);color:var(--cyan-hi)}
+.nav:disabled:active{transform:none}
 .nav-prev{left:max(16px, calc(50% - var(--cab-w) * 1.55))}
 .nav-next{right:max(16px, calc(50% - var(--cab-w) * 1.55))}
 
