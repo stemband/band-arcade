@@ -1030,7 +1030,7 @@ window.AVATAR_PARTS = {};
     pts.forEach(([x, y, ch]) => { const r = y - (m.y || 0); if (r < 0) return; while (rows.length <= r) rows.push(''); rows[r] = rows[r].padEnd(x + 1, '.'); rows[r] = rows[r].slice(0, x) + ch + rows[r].slice(x + 1); });
     return {y: m.y || 0, rows};
   };
-  const bngi = gi({D: 'bn-black', E: 'bn-black-d', G: 'bn-gold'}, 'bngi', 'Black Belt Gi', bnRule('black'));
+  const bngi = gi({D: 'av-black', E: 'bn-black-d', G: 'bn-gold'}, 'bngi', 'Black Belt Gi', bnRule('black'));
   bngi.official = true;
   bngi.bust = setPx(bngi.bust, [[8, 30, 'G'], [9, 30, 'G'], [8, 31, 'G'], [9, 31, 'G']]);            // the Band Ninja crest
   bngi.front = setPx(bngi.front, [[13, 15, 'G']]);

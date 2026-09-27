@@ -698,7 +698,7 @@ html.in-play .avb{visibility:hidden;pointer-events:none}
 .acode{max-width:460px;width:100%}
 .acode h2{margin:0 0 10px;font-family:var(--display);color:var(--yellow);font-size:22px}
 .acode-lbl{display:block;margin:0 0 6px;color:var(--text-hi);font-weight:700}
-.acode-in{width:100%;box-sizing:border-box;padding:12px;border:2px solid var(--cyan);border-radius:10px;background:var(--deep);color:var(--text-hi);font:700 17px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.02em}
+.acode-in{width:100%;box-sizing:border-box;padding:12px;border:2px solid var(--cyan);border-radius:10px;background:var(--deep);color:var(--text-hi);font:700 clamp(11px,3vw,13.5px)/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:0}
 .acode-in:focus{outline:3px solid var(--yellow);outline-offset:2px}
 .acode-say{margin:10px 0 0;color:var(--text-hi)}
 .acode-msg{min-height:1.3em;margin:6px 0 0;color:var(--text-lo);font-weight:700}
