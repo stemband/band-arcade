@@ -112,7 +112,7 @@
   function label(n, mark) {
     const st = B.status(n), el = document.querySelector(`.sb-row[data-n="${n}"] [data-status]`);
     const text = st.kind === 'checking' ? 'Checking…'
-      : st.kind === 'file' ? `Your file (${st.ext}${st.dur ? ', ' + st.dur.toFixed(2) + ' s' : ''}${st.bytes ? ', ' + kb(st.bytes) : ''})`
+      : st.kind === 'file' ? `Your file (${st.ext}${st.dur ? ', ' + st.dur.toFixed(2) + ' s' : ''}${st.fileDur && st.fileDur - st.dur > .5 ? ` of sound + ${(st.fileDur - st.dur).toFixed(1)} s of silence at the end: trim it` : ''}${st.bytes ? ', ' + kb(st.bytes) : ''})`
       : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
     const changed = mark && el.dataset.last && el.dataset.last !== text;
     el.className = 'sb-status ' + st.kind + (changed ? ' changed' : '');

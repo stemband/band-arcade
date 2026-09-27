@@ -4,7 +4,8 @@
    action (the generated sounds below), or a short generated retro beep, so nothing ever goes silent; a missing file
    is only noted in the console.
      Arcade.Sfx.event(name)            play an event (sounds.js). Returns its length in seconds (0 = not played)
-     Arcade.Sfx.sequence([names])      play events one after another, each when the last one ends (results screens)
+     Arcade.Sfx.sequence([names], gap, {channel})  play events one after another, each when the last one ends (its real
+                                       length); a voice line waits for any voice still speaking; returns {cancel()}
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   the three original generated sounds
      Arcade.Sfx.bell(soundingMidi)     a bell bar's tone at its real pitch (Chime Heist; always generated, never a file)
      Arcade.Sfx.playThenGo(name, href) play, then change page when the sound ends (never later than 1.5 s)
@@ -15,7 +16,11 @@
                                        default 600) instead of playing the fallback: the floor's START uses it
      Arcade.Sfx.duck(ms, {level, down, up})  dip the music + ambience to level (0.4) over down s (0.2), hold ms, back
                                        up over up s (0.5): voice lines (Select Player's choose-instrument)
-     Arcade.Sfx.busy()                 ms until the last effect played has finished (0 = quiet)
+     Arcade.Sfx.busy(['voice'])        ms until the last effect (or the last voice line) played has finished (0 = quiet)
+     Arcade.Sfx.cancelAll(channel)     drop every pending Sfx.sequence (of that channel): Dojo Duel when a match ends;
+                                       Sfx.pending(channel) = how many still have sounds to play
+     Arcade.Sfx.hush(fade)             fade out (0.15 s) any VOICE line still speaking (effects always finish)
+     Arcade.Sfx.preloadScreen(screen)  load + decode every effect of a sounds.js screen now (a game's setup screen)
      Arcade.Sfx.whenReady(names, ms)   a Promise: these events' files are loaded (or missing), or ms (default 1500)
                                        passed; Dojo Duel's first countdown waits for it so the voices are on time
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
@@ -76,10 +81,10 @@ window.Arcade = window.Arcade || {};
         ctx.onstatechange = () => { mdbg('audio ' + ctx.state); if (ctx.state === 'running') unlocked(); else if (ctx.state !== 'closed') arm(true); };
         mdbg('audio unlocking (' + (e && e.type || 'tap') + ')');
       }
-      if (ctx.state !== 'running') ctx.resume().then(unlocked, () => {}); else unlocked();
+      if (ctx.state !== 'running') { resumeAt = performance.now(); ctx.resume().then(unlocked, () => {}); } else unlocked();
     } catch (e) { /* no sound on this browser; everything else still works */ }
   }
-  let wasUnlocked = false;
+  let wasUnlocked = false, resumeAt = 0;          // resumeAt: when a tap last asked a stopped AudioContext to start
   function unlocked() {
     if (ctx.state !== 'running') return;
     arm(false);
@@ -362,7 +367,9 @@ window.Arcade = window.Arcade || {};
             try { buf = await decode(ab); } catch (x) { throw Object.assign(new Error('decode'), {status: 'could not decode'}); }
             const pts = loopPoints(buf);
             if (loops(file)) buf = crossfaded(buf, pts);                     // a loop: bake a seamless wrap into the buffer
-            Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
+            // an effect's length = where its sound ENDS (the silence many recordings trail is not counted): what
+            // sequence() spacing, busy() and voice overlaps go by
+            Object.assign(rec, {state: 'ok', buf, ext, url, dur: loops(file) ? buf.duration : audibleEnd(buf), fileDur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
           mdbg(`${file}.${ext}: loaded (${rec.dur.toFixed(1)} s)`);
@@ -386,6 +393,13 @@ window.Arcade = window.Arcade || {};
       return rec;
     })();
     return rec.p;
+  }
+  /** seconds until the last sample louder than about -50 dB (+ 30 ms), at least 0.05 s */
+  function audibleEnd(buf) {
+    const ch = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
+    let i = buf.length - 1;
+    while (i > 0 && !ch.some(d => Math.abs(d[i]) > 0.003)) i--;
+    return Math.max(0.05, Math.min(buf.duration, i / buf.sampleRate + 0.03));
   }
   /* a seamless loop: skip the silence encoders add at the start and end of .m4a/.mp3 files */
   function loopPoints(buf) {
@@ -420,15 +434,25 @@ window.Arcade = window.Arcade || {};
     }
     return out;
   }
+  const speaking = [];                                     // voice lines playing now: {stop(fade)} (Sfx.hush)
   function playFile(rec, e) {
     const level = e.vol == null ? 0.8 : e.vol;
     if (rec.el) {
-      const el = rec.el.cloneNode(); el.volume = Math.min(1, level * vol('sfxVol'));
-      el.play().catch(() => {}); return rec.dur;
+      // file:// (<audio>): the loaded element itself when it's free; a copy otherwise, which must start at once or
+      // not at all (a copy that is still loading would play late, when everything piles up)
+      const free = rec.el.paused || rec.el.ended, el = free ? rec.el : rec.el.cloneNode();
+      el.volume = Math.min(1, level * vol('sfxVol'));
+      if (free) { try { el.currentTime = 0; } catch (x) { /* not seekable yet */ } }
+      let started = false; el.addEventListener('playing', () => { started = true; }, {once: true});
+      el.play().catch(() => {});
+      setTimeout(() => { if (!started) el.pause(); }, NOW_MS);
+      if (e.voice) track(() => el.pause(), rec.dur);
+      return rec.dur;
     }
     const s = ctx.createBufferSource(), g = ctx.createGain();
     s.buffer = rec.buf; g.gain.value = level;
     s.connect(g); g.connect(fxBus); s.start();
+    if (e.voice) track(fade => { const t = ctx.currentTime; g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); try { s.stop(t + fade + .02); } catch (x) {} }, rec.dur);
     return rec.dur;
   }
 
@@ -449,18 +473,47 @@ window.Arcade = window.Arcade || {};
     if (b.kind === 'generated' && e && e.fallback) return {how: 'gen', fn: builtIn(e.fallback, entry(e.fallback)).fn, kind: 'fallback'};
     return {how: 'gen', fn: b.fn, kind: b.kind};
   }
+  /* NOTHING PLAYS LATE. A sound either starts now or is skipped (a file that isn't decoded yet plays its generated
+     fallback at once, above). While the AudioContext is stopped (an iPad interrupted by another app, a call, the lock
+     screen, or a resume refused without a tap), a sound started now would wait on the stopped clock and every one of
+     them would burst out together when it runs again: so they are skipped, except in the first NOW_MS after a tap
+     asked it to start (the unlocking tap's own sound). */
+  const NOW_MS = 400;
+  const isVoice = name => { const e = entry(name); return !!(e && e.voice); };
+  const live = {};                                         // event -> end times (performance.now ms) of its plays still sounding
+  function track(stop, dur) {
+    const v = {stop, end: performance.now() + dur * 1000};
+    speaking.push(v);
+    setTimeout(() => { const i = speaking.indexOf(v); if (i >= 0) speaking.splice(i, 1); }, dur * 1000 + 50);
+  }
+  /** fade out every voice line still speaking (fade s): a new scene that must not talk over the last one (Dojo Duel's
+      REMATCH while the Sensei's victory line plays). Only voices (sounds.js voice: true); effects always finish */
+  function hush(fade = 0.15) {
+    speaking.splice(0).forEach(v => v.stop(fade));
+    const now = performance.now();
+    played.forEach(p => { if (p.voice && p.at + p.dur * 1000 > now) p.dur = Math.max(0, (now - p.at) / 1000 + fade); });
+    Object.keys(live).forEach(n => { if (isVoice(n)) live[n] = []; });
+  }
   function playEvent(name, {force = false} = {}) {
     if (!force && !ready()) return 0;
     if (force && !ctx) return 0;
     const e = entry(name);
     if (e && e.loop) return 0;                             // the loop plays through the ambience controls
     if (e && e.mic === false && listening()) return 0;
+    if (ctx.state !== 'running' && performance.now() - resumeAt > NOW_MS) { mdbg(`${name}: skipped (audio is ${ctx.state})`); return 0; }
+    // sounds.js maxInstances (voice: true = 1): never more copies of this sound at once (a voice never talks over itself)
+    const max = e && (e.maxInstances || (e.voice ? 1 : 0)), now = performance.now();
+    live[name] = (live[name] || []).filter(end => end > now);
+    if (max && live[name].length >= max) { mdbg(`${name}: skipped (already playing)`); return 0; }
     let dur = 0, how = '';
     try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, r.e) : playGen(r.fn); }
     catch (x) { dur = 0; }
     // sounds.js `echo`: a shorter tail. Sfx.muteMax (a page's option, ms): mute only for the first part of a longer sound
     if (dur && listening()) A.Pitch.suppress(Math.min(dur * 1000, Sfx.muteMax || Infinity) + (e && e.echo != null ? e.echo : ECHO_MS));
-    if (dur) { played.push({name, how, dur: +dur.toFixed(3), at: Math.round(performance.now()), muted: listening()}); if (played.length > 60) played.shift(); }
+    if (dur) {
+      live[name].push(now + dur * 1000);
+      played.push({name, how, dur: +dur.toFixed(3), at: Math.round(now), muted: listening(), voice: isVoice(name)}); if (played.length > 60) played.shift();
+    }
     return dur;
   }
 
@@ -479,8 +532,8 @@ window.Arcade = window.Arcade || {};
       g.linearRampToValueAtTime(level, t + down); g.setValueAtTime(level, end); g.linearRampToValueAtTime(1, end + up);
     });
   }
-  /** ms until the last effect played with event() has finished (0 = quiet) */
-  const busyFor = () => Math.max(0, ...played.map(p => p.at + p.dur * 1000 - performance.now()));
+  /** ms until the last effect played with event() has finished (0 = quiet); busy('voice'): the last VOICE line */
+  const busyFor = (what) => Math.max(0, ...played.filter(p => what !== 'voice' || p.voice).map(p => p.at + p.dur * 1000 - performance.now()));
 
   /* ---------- preloading: only this page's sounds, after the first tap, two at a time ---------- */
   const screens = new Set(['general']);
@@ -812,6 +865,9 @@ window.Arcade = window.Arcade || {};
   const refreshAll = () => document.querySelectorAll('.sound-ctl').forEach(c => c._draw && c._draw());
 
   let leaving = false;
+  const seqs = new Set();                                 // sequences still playing (Sfx.sequence handles)
+  // a channel and its sub-channels: 'dojo' also means 'dojo:voice'
+  const inCh = (h, channel) => !channel || h.channel === channel || h.channel.startsWith(channel + ':');
   const chOf = name => (name === 'lobby-ambience' ? CH.amb : /^select-music|^quest-/.test(name) ? CH.mus : null);
   const Sfx = A.Sfx = A.sfx = {
     /** a page's option: the longest part of a sound (ms) that mutes the microphone (null = the whole sound).
@@ -824,11 +880,37 @@ window.Arcade = window.Arcade || {};
     },
     /** play an event from sounds.js; returns its length in seconds (0 when muted, before the first tap, or not allowed) */
     event: name => playEvent(name),
-    /** play events one after another (each starts when the one before ends); falsy names are skipped */
-    sequence(names, gap = 80) {
+    /** play events one after another (each starts `gap` ms after the one before ends, by its real length); falsy
+        names are skipped. A VOICE line (sounds.js voice: true) waits until any voice already speaking has finished,
+        so two voices never talk at once. maxStep (ms): the next never waits longer than this (a long recording
+        overlaps the next effect instead of delaying it). Returns a handle: handle.cancel() drops the rest; `channel` groups
+        sequences so a page can drop them all with cancelAll(channel) (Dojo Duel: 'dojo', when a match ends) */
+    sequence(names, gap = 80, {channel = 'page', maxStep = Infinity} = {}) {
       const list = names.filter(Boolean);
-      const next = () => { if (!list.length) return; const d = playEvent(list.shift()); setTimeout(next, (d || 0.05) * 1000 + gap); };
+      const h = {channel, timer: 0, done: false, cancelled: false,
+        cancel() { if (h.done) return; h.cancelled = h.done = true; clearTimeout(h.timer); seqs.delete(h); }};
+      const next = () => {
+        if (h.done) return;
+        if (!list.length) { h.done = true; seqs.delete(h); return; }
+        const wait = isVoice(list[0]) ? busyFor('voice') : 0;
+        if (wait > 20) { h.timer = setTimeout(next, wait + gap); return; }
+        const d = playEvent(list.shift());
+        h.timer = setTimeout(next, Math.min((d || 0.05) * 1000 + gap, maxStep));
+      };
+      seqs.add(h);
       next();
+      return h;
+    },
+    /** drop every sequence still waiting to play (one channel, or all): nothing from before plays later */
+    cancelAll(channel) { [...seqs].forEach(h => { if (inCh(h, channel)) h.cancel(); }); },
+    /** how many sequences (of that channel) still have sounds to play */
+    pending: channel => [...seqs].filter(h => inCh(h, channel)).length,
+    hush,
+    /** preload (and decode, once unlocked) every effect of these screens now, ahead of the rest (sounds.js `screen`):
+        a game's setup screen calls it so its sounds are ready before play */
+    preloadScreen(...names) {
+      names.forEach(n => screens.add(n));
+      prefer(A.Sounds ? A.Sounds.names().filter(n => { const e = entry(n); return e && e.file && !e.loop && names.includes(e.screen); }) : []);
     },
     get events() { return A.Sounds ? A.Sounds.names() : Object.keys(EVENTS); },
     history: played,
@@ -879,7 +961,7 @@ window.Arcade = window.Arcade || {};
       status(name) {
         const e = entry(name), rec = e && files[e.file];
         if (rec && rec.state === 'loading') return {kind: 'checking'};
-        if (rec && rec.state === 'ok') return {kind: 'file', ext: rec.ext, dur: rec.dur, bytes: rec.bytes};
+        if (rec && rec.state === 'ok') return {kind: 'file', ext: rec.ext, dur: rec.dur, fileDur: rec.fileDur, bytes: rec.bytes};
         if (e && e.fallback) { const f = files[(entry(e.fallback) || {}).file]; if (f && f.state === 'ok') return {kind: 'fallback', via: e.fallback + '.' + f.ext}; }
         return {kind: builtIn(name, e).kind === 'generated' && !(e && e.fallback) ? 'generated' : 'fallback'};
       },
