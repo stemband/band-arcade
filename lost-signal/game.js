@@ -5,17 +5,18 @@
    echo clicks), and listens again only when the last tone has fully faded (+ RULES.listenAfterMs) and the "your
    turn" sound has ended, starting fresh (a note already sounding never counts). Music plays only on the menu screens.
    Notes: the NOTES × ORDER note set (shared/mode-picker.js + sequences.js) of the student's instrument; patterns are
-   made from it by the generator below (SIGNAL_GEN in levels.js) in SOUNDING pitch, played shifted by whole octaves
-   into RULES.register, and answers match by pitch class (any octave). Scale Order = stepwise transmissions only.
-   Input: each new articulation (Pitch.onAttack, with its pitch) fills the next slot; a held note (onHeld) counts
-   too when no attack was heard for it (soft entries), never twice for one note. A long note fills one slot.
+   made from it by THE PATTERN GENERATOR (shared/patterns.js, Arcade.patterns, with SIGNAL_GEN from levels.js) in
+   SOUNDING pitch, played shifted by whole octaves into RULES.register, and answers match by pitch class (any
+   octave). Scale Order = stepwise transmissions only.
+   Input and answers: THE ECHO FLOW (shared/echo.js, Arcade.Echo, shared with Vanishing Ink): each new articulation
+   (Pitch.onAttack, with its pitch) fills the next slot; a held note (onHeld) counts too when no attack was heard for
+   it (soft entries), never twice for one note. A long note fills one slot. Results are drawn on the staff by it too.
    Levels: SIGNAL_LEVELS; DEEP SPACE SCAN (the ENDLESS card, shared/endless.js): SIGNAL_ENDLESS. */
 (function (A) {
   "use strict";
   const {$} = A;
   const GAME_ID = 'lost-signal';
   const LEVELS = window.SIGNAL_LEVELS, RULES = window.SIGNAL_RULES, GEN = window.SIGNAL_GEN, END = window.SIGNAL_ENDLESS;
-  const GOLD = '#c98a12', CORAL = '#d0503f';            // the same found / missed colors as the other games
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -43,54 +44,11 @@
   const snd = name => wait(Math.max(0, A.Sfx.event(name) || 0) * 1000);
   const menuMusic = on => A.Sfx.setMusic(on ? ['lost-signal-music'] : null, {builtIn: true});
 
-  /* ---------- the note set and THE PATTERN GENERATOR ---------- */
-  function noteSet(pool) {
-    const st = picker.state, seq = A.ModePicker.sequence(st, {count: 8, pool}, pool < 5 ? 1 : 2);
-    const seen = new Set(), set = [];
-    seq.pool.slice().sort((a, b) => a.sounding - b.sounding).forEach(it => { if (!seen.has(it.sounding)) { seen.add(it.sounding); set.push(it); } });
-    return {set, sig: seq.sig, fit: seq.fit, name: seq.name};
-  }
+  /* ---------- the note set and THE PATTERN GENERATOR (shared/patterns.js) ---------- */
+  const noteSet = pool => A.patterns.noteSet(picker.state, pool);
   const stepOnly = () => picker.state.order === 'order';
-  function weight(a) {
-    return a === 0 ? GEN.repeat : a <= 2 ? GEN.step : a <= 4 ? GEN.third : a === 5 ? GEN.fourth : a <= 7 ? GEN.fifth : a < 12 ? GEN.wide : GEN.octave;
-  }
-  /** the next note after pattern (a list of set items), within rules {leap, repeats} */
-  function nextNote(set, pattern, rules) {
-    const cur = pattern[pattern.length - 1], prev = pattern[pattern.length - 2], prev2 = pattern[pattern.length - 3];
-    const prevInt = prev ? cur.sounding - prev.sounding : null;
-    const opts = [];
-    set.forEach(it => {
-      const d = it.sounding - cur.sounding, a = Math.abs(d);
-      if (a > rules.leap) return;
-      if (a === 0 && (!rules.repeats || (prev && prev.sounding === cur.sounding))) return;   // never three in a row
-      let w = weight(a);
-      if (prevInt !== null && Math.abs(prevInt) > 4) {
-        if (a > 4 && GEN.noBigInARow) return;                     // no leaping around
-        if (a > 0 && a <= 2 && Math.sign(d) !== Math.sign(prevInt)) w *= GEN.recover;   // a step back after a skip
-      }
-      if (prev && a > 0 && it.sounding === prev.sounding && prev2 !== undefined) w *= GEN.noPingPong;
-      if (w > 0) opts.push([it, w]);
-    });
-    if (!opts.length) {                                           // nothing fits (a tiny set): the nearest other note
-      const other = set.filter(it => it.sounding !== cur.sounding).sort((a, b) => Math.abs(a.sounding - cur.sounding) - Math.abs(b.sounding - cur.sounding));
-      return other[0] || cur;
-    }
-    let r = Math.random() * opts.reduce((s, [, w]) => s + w, 0);
-    for (const [it, w] of opts) { r -= w; if (r <= 0) return it; }
-    return opts[opts.length - 1][0];
-  }
-  function generate(set, len, rules) {
-    let best = null;
-    for (let tries = 0; tries < 16; tries++) {
-      const p = [set[Math.floor(Math.random() * set.length)]];
-      while (p.length < len) p.push(nextNote(set, p, rules));
-      const skip = p.some((it, i) => i && Math.abs(it.sounding - p[i - 1].sounding) > 2);
-      best = p;
-      if (GEN.mustSkip && rules.leap > 2 && len >= 3 && !skip && set.length > 3) continue;   // this level is about skips
-      break;
-    }
-    return best;
-  }
+  const nextNote = (set, pattern, rules) => A.patterns.next(set, pattern, rules, GEN);
+  const generate = (set, len, rules) => A.patterns.generate(set, len, rules, GEN);
   /** playback register: the whole pattern moves by whole octaves (its shape never changes) into RULES.register */
   function shiftFor(midis) {
     const [lo, hi] = RULES.register, a = Math.min(...midis), b = Math.max(...midis);
@@ -206,11 +164,11 @@
       G.noteMs = L.noteMs; G.gapMs = L.gapMs;
     }
     const labeled = G.endless ? G.round <= END.labelRounds : L.label;
-    G.tx = {pattern, i: -1, res: [], replays: 0, tries: 0, labeled, found: !(L.find && !G.endless), phase: 'incoming',
-            shift: shiftFor(pattern.map(it => it.sounding)), lastIn: null};
+    G.tx = {pattern, replays: 0, tries: 0, labeled, found: !(L.find && !G.endless), phase: 'incoming',
+            shift: shiftFor(pattern.map(it => it.sounding))};
     mic(false);
     $('txResult').hidden = true; $('replayBtn').hidden = true; $('revealBtn').hidden = true;
-    drawSlots(); drawFirst(); hud(); setPrompt('', '');
+    echo.begin(pattern); input.reset(); drawFirst(); hud(); setPrompt('', '');
     setStatus(G.endless ? `INCOMING SIGNAL · ${pattern.length} notes` : 'INCOMING TRANSMISSION');
     await snd('lost-signal-incoming');
     if (tok !== run) return;
@@ -227,7 +185,7 @@
     mic(false);
     $('replayBtn').hidden = true;
     const h = tonesNow = A.tones.play(tx.pattern.map(it => it.sounding + tx.shift), {noteMs: G.noteMs, gapMs: G.gapMs,
-      onNote: i => { if (tok === run) { scope.ping(i, tx.pattern.length, tx.pattern[i].sounding, tx.pattern); pulseSlot(i); } }});
+      onNote: i => { if (tok === run) { scope.ping(i, tx.pattern.length, tx.pattern[i].sounding, tx.pattern); echo.pulse(i); } }});
     if (h.muted) setPrompt('Sound is off, so you can\'t hear the transmission. Turn it on with the speaker button (top right).', 'bad');
     scope.active(true);
     await h.done;
@@ -248,9 +206,7 @@
     if (tok !== run) return;
     tx.phase = phase;
     if (phase === 'echo') {
-      if (tx.i < 0) tx.i = 0;
-      tx.slotStart = performance.now();
-      markCurrent();
+      echo.start();
       setPrompt(tx.found && !tx.labeled && G.L.find ? 'Now echo the whole transmission, starting with the note you found.' : 'Play the notes back, in order.', '');
     }
     updateReplay();
@@ -294,60 +250,32 @@
       return;
     }
     if (tx.phase !== 'echo') return;
-    fill(pc);
+    echo.fill(pc);
   }
-  A.Pitch.onAttack(a => {
-    if (a.pc == null || !G || !G.tx) return;
-    G.tx.lastIn = {pc: a.pc, t: performance.now()};
-    heard(a.pc, a.time);
-  });
-  A.Pitch.onHeld((pc, now) => {
-    if (!G || !G.tx) return;
-    const l = G.tx.lastIn;
-    if (l && l.pc === pc && performance.now() - l.t < 700) return;   // the note an attack already counted
-    G.tx.lastIn = {pc, t: performance.now()};
-    heard(pc, now);
-  });
+  const input = A.Echo.input({enabled: () => !!(G && G.tx), onNote: heard});
   A.Pitch.demoAttacks = true;                              // ?demo: Space = the note the game wants, W = a wrong one
   A.Pitch.demoTarget = () => {
     if (!G || !G.tx || !listening) return null;
-    const it = G.tx.phase === 'find' ? G.tx.pattern[0] : G.tx.pattern[G.tx.i];
+    const it = G.tx.phase === 'find' ? G.tx.pattern[0] : echo.want();
     return it ? {pc: it.pc, midi: it.sounding} : null;
   };
 
-  /** fill the current slot (pc = what was played; null = the time ran out) and move on */
-  function fill(pc) {
-    const tx = G.tx, i = tx.i, want = tx.pattern[i];
-    if (!want) return;
-    const ok = pc === want.pc;
-    tx.res[i] = {pc, ok};
-    const s = $('slots').children[i];
-    s.classList.remove('cur'); s.classList.add(pc == null ? 'miss' : ok ? 'ok' : 'bad');
-    s.setAttribute('aria-label', `Note ${i + 1}: ${pc == null ? 'missed' : ok ? 'right' : 'wrong'}`);
-    if (pc != null) A.Sfx.event(ok ? 'lost-signal-correct' : 'lost-signal-wrong');   // tiny, unpitched: allowed while listening
-    tx.i++;
-    updateReplay();
-    if (tx.i >= tx.pattern.length) { finishTx(); return; }
-    tx.slotStart = performance.now();
-    markCurrent();
-  }
-
-  /* the slot clock: RULES.slotMs for each note (paused while the tab is hidden) */
-  let lastTick = performance.now();
-  setInterval(() => {
-    const now = performance.now(), dt = now - lastTick; lastTick = now;
-    if (!G || !G.tx || G.tx.phase !== 'echo' || !listening) { $('slotTimer').firstElementChild.style.transform = 'scaleX(0)'; return; }
-    if (document.hidden) { G.tx.slotStart += dt; return; }
-    const frac = 1 - (now - G.tx.slotStart) / RULES.slotMs;
-    $('slotTimer').firstElementChild.style.transform = `scaleX(${Math.max(0, frac)})`;
-    $('slotTimer').classList.toggle('low', frac < .3);
-    if (frac <= 0) fill(null);
-  }, 100);
+  /* THE ECHO FLOW (shared/echo.js): the slots, each note heard fills the next one; RULES.slotMs for each note
+     (the clock pauses while the tab is hidden) */
+  const echo = A.Echo.create({
+    slots: $('slots'), slotHTML: '<i></i><i></i><i></i><i></i>', timer: $('slotTimer'), slotMs: RULES.slotMs,
+    running: () => !!(G && G.tx && G.tx.phase === 'echo' && listening),
+    answering: () => !!(G && G.tx && G.tx.phase === 'echo'),
+    sounds: {ok: 'lost-signal-correct', bad: 'lost-signal-wrong'},
+    onFill: () => updateReplay(),
+    onDone: () => finishTx(),
+    onMark: () => markCurrent(),
+  });
 
   /* ---------- REPLAY SIGNAL (before answering; costs a little) ---------- */
   function replaysLeft() { return G && !G.endless ? G.L.replays - G.tx.replays : 0; }
   function updateReplay() {
-    const tx = G && G.tx, can = tx && !G.endless && replaysLeft() > 0 && (tx.phase === 'find' || (tx.phase === 'echo' && tx.i === 0));
+    const tx = G && G.tx, can = tx && !G.endless && replaysLeft() > 0 && (tx.phase === 'find' || (tx.phase === 'echo' && echo.i === 0));
     $('replayBtn').hidden = !can;
     if (can) $('replayBtn').textContent = `Replay signal (${replaysLeft()} left)`;
   }
@@ -367,8 +295,8 @@
     const tok = run, tx = G.tx, n = tx.pattern.length;
     tx.phase = 'result';
     mic(false);
-    markCurrent();
-    const right = tx.res.filter(r => r && r.ok).length, perfect = right === n;
+    echo.mark();
+    const right = echo.res.filter(r => r && r.ok).length, perfect = right === n;
     G.hits += right; G.total += n;
     let pts;
     if (G.endless) pts = right * END.base + (perfect ? END.perfectBonus * n : 0);
@@ -407,31 +335,16 @@
     const tok = run;
     stopTones();
     tonesNow = A.tones.play(G.tx.pattern.map(it => it.sounding + G.tx.shift), {noteMs: G.noteMs, gapMs: G.gapMs,
-      onNote: i => { if (tok === run) { scope.ping(i, G.tx.pattern.length, G.tx.pattern[i].sounding, G.tx.pattern); pulseSlot(i); } }});
+      onNote: i => { if (tok === run) { scope.ping(i, G.tx.pattern.length, G.tx.pattern[i].sounding, G.tx.pattern); echo.pulse(i); } }});
     scope.active(true);
     await tonesNow.done; tonesNow = null; scope.active(false);
   });
 
   /* the transmission on the staff, in the student's written pitch and clef: right = gold, wrong = coral + what they
-     played, missed = coral in a dotted box */
+     played, missed = coral in a dotted box (shared/echo.js) */
   function drawResult(tx) {
-    const n = tx.pattern.length, sig = G.ns.sig, sigW = A.keySigWidth(sig), gap = 66, W = Math.max(88 + sigW + n * gap + 16, 520);
-    const start = (W - n * gap) / 2 + sigW / 2 + 20;                     // centered after the clef and key signature
-    const items = tx.pattern.map((it, k) => ({n: it.show, x: start + k * gap + gap / 2, id: 'rn' + k}));
-    let svg = A.staffSVG(inst.clef, items, {fit: G.ns.fit, keySig: sig, width: W, captions: true, label: 'The transmission on the staff'});
-    const m = svg.match(/viewBox="(\S+) (\S+) (\S+) (\S+)"/), vy = +m[2], vh = +m[4] + 22;
-    svg = svg.replace(m[0], `viewBox="${m[1]} ${vy} ${m[3]} ${vh}"`);
-    const capY = vy + vh - 30, font = `font-family='"GN Text",system-ui,sans-serif' font-weight="700" text-anchor="middle"`;
-    let extra = '';
-    tx.pattern.forEach((it, k) => {
-      const r = tx.res[k] || {pc: null, ok: false}, x = items[k].x, y = A.noteY(inst.clef, it.show);
-      extra += `<text x="${x}" y="${capY}" ${font} font-size="17" fill="${r.ok ? GOLD : CORAL}">${it.label}</text>`;
-      if (!r.ok && r.pc != null) extra += `<text x="${x}" y="${capY + 18}" ${font} font-size="12" fill="${CORAL}">you played ${G.ns.name(r.pc)}</text>`;
-      if (r.pc == null) extra += `<rect x="${x - 17}" y="${y - 13}" width="34" height="26" rx="8" fill="none" stroke="${CORAL}" stroke-width="2" stroke-dasharray="4 3"/>` +
-        `<text x="${x}" y="${capY + 18}" ${font} font-size="12" fill="${CORAL}">missed</text>`;
-    });
-    $('resStaff').innerHTML = svg.replace('</svg>', extra + '</svg>');
-    tx.pattern.forEach((it, k) => A.colorNote('rn' + k, (tx.res[k] || {}).ok ? GOLD : CORAL));
+    A.Echo.drawResult($('resStaff'), {clef: inst.clef, pattern: tx.pattern, res: echo.res, sig: G.ns.sig, fit: G.ns.fit,
+      name: G.ns.name, label: 'The transmission on the staff'});
   }
 
   /* ---------- level results ---------- */
@@ -488,22 +401,12 @@
       onAgain: () => A.requireMic(startEndless), onBack: showHub, backLabel: 'Levels'}));
   }
 
-  /* ---------- the console: slots, the first-note box, HUD ---------- */
-  function drawSlots() {
-    const n = G.tx.pattern.length;
-    $('slots').innerHTML = Array.from({length: n}, (_, i) => `<div class="slot" role="listitem" aria-label="Note ${i + 1}"><i></i><i></i><i></i><i></i></div>`).join('');
-    $('slots').style.setProperty('--n', n);
-  }
+  /* ---------- the console: the demo answer, the first-note box, HUD ---------- */
   function markCurrent() {
     const tx = G.tx;
-    [...$('slots').children].forEach((s, i) => s.classList.toggle('cur', tx.phase === 'echo' && i === tx.i));
     $('demoAns').hidden = !A.DEMO;
-    const it = tx.phase === 'find' ? tx.pattern[0] : tx.pattern[tx.i];
+    const it = tx.phase === 'find' ? tx.pattern[0] : echo.want();
     if (A.DEMO) $('demoAns').textContent = it ? `Demo: the game wants ${it.label}` : '';
-  }
-  function pulseSlot(i) {
-    const s = $('slots').children[i]; if (!s) return;
-    s.classList.remove('rx'); void s.offsetWidth; s.classList.add('rx');
   }
   function drawFirst(found) {
     const tx = G.tx, show = tx.labeled || found;

@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -115,6 +115,13 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* ink: the Ink Master's cabinet (Vanishing Ink): a classic body with an unrolled scroll standing on the roof */
+    ink: {
+      width: 0.94, topper: 'scroll',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
     quest: {
       width: 0.94,
@@ -131,7 +138,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -158,7 +165,7 @@ window.Arcade = window.Arcade || {};
    'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond', 'anim-eye-bad',
    'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail',
    'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep', 'dd-night', 'dd-wood', 'dd-wood-2', 'dd-wood-line', 'dd-paper', 'dd-lantern',
-   'belt-white', 'belt-yellow'].forEach(n => { tok[n] = cssVar(n); });
+   'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -428,6 +435,28 @@ window.Arcade = window.Arcade || {};
       x.globalAlpha = 1;
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok['ls-wave'];
       x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('INCOMING…', W / 2, H * .93);
+    },
+    /* Vanishing Ink: three notes brush onto a small scroll, stay, then fade away slowly; "PLAY IT BACK!" (4.2 s loop, as 2D) */
+    ink(x, W, H, t) {
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, tok['dd-night']); g.addColorStop(1, tok.deep);
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      const L = W * .12, R = W * .88, T = H * .14, B = H * .72;
+      x.fillStyle = tok['vi-paper']; x.fillRect(L, T, R - L, B - T);
+      x.fillStyle = tok['vi-rod']; x.fillRect(L - W * .05, T - H * .04, W * .05, B - T + H * .08); x.fillRect(R, T - H * .04, W * .05, B - T + H * .08);
+      const gap = (B - T) / 8, top = T + gap * 2;
+      x.strokeStyle = tok['vi-ink-2']; x.lineWidth = 1.5;
+      for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(L + W * .03, top + i * gap); x.lineTo(R - W * .03, top + i * gap); x.stroke(); }
+      const tt = t == null ? 1.5 : t % 4.2;
+      [[.28, 3.5], [.5, 2.5], [.72, 1.5]].forEach(([u, st], i) => {
+        const p = (tt - i * .25) / 4.2, a = p < 0 ? 0 : p < .06 ? p / .06 : p < .5 ? 1 : p < .74 ? 1 - (p - .5) / .24 : 0;
+        const nx = W * u, ny = top + st * gap;
+        x.globalAlpha = a; noteHead(x, nx, ny, gap, tok['vi-ink']);
+        x.strokeStyle = tok['vi-ink']; x.lineWidth = 2.5; x.beginPath(); x.moveTo(nx + gap * .55, ny); x.lineTo(nx + gap * .55, ny - gap * 3.2); x.stroke();
+      });
+      x.globalAlpha = tt / 4.2 > .62 ? 1 : 0;
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi'];
+      x.font = `${H * .075}px "GN Display", sans-serif`; x.fillText('READ IT… PLAY IT BACK!', W / 2, H * .88);
+      x.globalAlpha = 1;
     },
     speedway(x, W, H, t) {
       const hor = H * .47, tt = t == null ? 0 : t;
@@ -731,6 +760,28 @@ window.Arcade = window.Arcade || {};
       const arm = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .16, 6), metal); arm.rotation.x = Math.PI / 2; arm.position.z = .1; dish.add(arm);
       const tip = new THREE.Mesh(new THREE.SphereGeometry(.024, 10, 8), basic(col(k.trim2 + '-hi'))); tip.position.z = .19; dish.add(tip);
       dish.userData.pick = true; group.add(detail(dish));
+    } else if (P.topper === 'scroll') {
+      // an unrolled scroll standing on the roof: parchment with brush-ink notes (the last one faded) between two wooden
+      // rods, a neon edge along its top (Vanishing Ink)
+      const fz = frontTop + zc - .12, sw = W * .9, sh = .24, cy = topY + sh / 2 + .05;
+      const c = canvas(256, 72), cx = c.getContext('2d');
+      cx.fillStyle = tok['vi-paper']; cx.fillRect(0, 0, 256, 72);
+      cx.strokeStyle = tok['vi-ink-2']; cx.lineWidth = 1.5;
+      for (let i = 0; i < 5; i++) { cx.beginPath(); cx.moveTo(14, 18 + i * 9); cx.lineTo(242, 18 + i * 9); cx.stroke(); }
+      [[64, 49.5, 1], [128, 40.5, 1], [192, 31.5, .35]].forEach(([nx, ny, a]) => {
+        cx.globalAlpha = a; noteHead(cx, nx, ny, 9, tok['vi-ink']);
+        cx.strokeStyle = tok['vi-ink']; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(nx + 5, ny); cx.lineTo(nx + 5, ny - 28); cx.stroke();
+      });
+      cx.globalAlpha = 1;
+      const paper = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
+      paper.position.set(0, cy, fz); paper.userData.pick = true; group.add(paper);
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), lambert(col('vi-paper-2'))); back.rotation.y = Math.PI; back.position.set(0, cy, fz - .002); group.add(back);
+      [-1, 1].forEach(sd => {
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(.028, .028, sh + .1, 10), lambert(col('vi-rod'))); rod.position.set(sd * sw / 2, cy, fz); group.add(detail(rod));
+        [1, -1].forEach(e => { const cap = new THREE.Mesh(new THREE.CylinderGeometry(.036, .036, .03, 10), lambert(col('vi-rod-cap'))); cap.position.set(sd * sw / 2, cy + e * (sh / 2 + .06), fz); group.add(detail(cap)); });
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(.03, .06, .03), lambert(col('vi-rod-cap'))); leg.position.set(sd * sw / 2, topY + .02, fz); group.add(detail(leg));
+      });
+      neon([new THREE.Vector3(-sw / 2, cy + sh / 2 + .01, fz + .004), new THREE.Vector3(sw / 2, cy + sh / 2 + .01, fz + .004)]);
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {
@@ -754,7 +805,7 @@ window.Arcade = window.Arcade || {};
     create(aisle, opts) {
       const THREE = window.THREE;
       if (!THREE || !THREE.WebGLRenderer) return Promise.reject(new Error('three.js missing'));
-      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text', 'GN Neon', 'GN Quest'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
+      const fonts = ['GN Display', 'GN Haunt', 'GN Pixel', 'GN Shade', 'GN Music', 'GN Text', 'GN Neon', 'GN Quest', 'GN Brush'].map(f => document.fonts ? document.fonts.load(`40px "${f}"`, 'AZ𝄞♭') : null);
       const fontWait = Promise.race([Promise.all(fonts).catch(() => {}), new Promise(ok => setTimeout(ok, 2500))]);
       return fontWait.then(() => setup(THREE, aisle, opts));
     },

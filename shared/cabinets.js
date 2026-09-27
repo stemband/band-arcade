@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -92,6 +92,24 @@ window.Arcade = window.Arcade || {};
                                      `<rect class="s-bar s-bar2" x="${226 + i * 9}" y="${440 - i * 10}" width="6" height="${14 + i * 10}" rx="2"/>`).join('') +
               '<path class="s-wave" d="M48 530q8-14 16 0t16 0t16 0t16 0M188 530q8-14 16 0t16 0t16 0t16 0"/>',
       slots: {marquee: [36, 22, 228, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
+    },
+    /* ink: the Ink Master's cabinet (Vanishing Ink). The marquee is an unrolled scroll with wooden rods standing out at
+       both ends; an ink splash with drips on the lower left side, a fading note on the right, a brush on the kick plate */
+    ink: {
+      outline: 'M24 16H276V30H268V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H32V30H24Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 104, y: 462, w: 92, h: 96},
+      extras: '<rect class="s-rod" x="12" y="10" width="18" height="100" rx="8"/><rect class="s-rod" x="270" y="10" width="18" height="100" rx="8"/>' +
+              '<rect class="s-rodcap" x="10" y="6" width="22" height="9" rx="4"/><rect class="s-rodcap" x="10" y="105" width="22" height="9" rx="4"/>' +
+              '<rect class="s-rodcap" x="268" y="6" width="22" height="9" rx="4"/><rect class="s-rodcap" x="268" y="105" width="22" height="9" rx="4"/>' +
+              '<path class="s-ink" d="M58 488q10-14 22-4q12-6 14 8q12 4 4 14q6 12-8 12q-4 14-14 6q-12 8-16-6q-12-2-6-14q-8-10 4-16z"/>' +
+              '<path class="s-ink" d="M64 520v26q0 5 3.5 5t3.5-5v-22zM82 514v14q0 4 3 4t3-4v-12z"/><circle class="s-ink" cx="98" cy="482" r="3"/><circle class="s-ink" cx="50" cy="514" r="2.5"/>' +
+              '<g class="s-fnote"><ellipse cx="228" cy="530" rx="10" ry="7" transform="rotate(-20 228 530)"/><path d="M237 528V484"/></g>' +
+              '<path class="s-brush" d="M120 582H176"/><path class="s-brushtip" d="M176 578q14 2 18 4q-4 2-18 4z"/>',
+      slots: {marquee: [34, 22, 232, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
     },
     /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
        control panel and one button missing (Showtime Malfunction) */
@@ -420,6 +438,17 @@ window.Arcade = window.Arcade || {};
           `<g class="sg-sweep"><path d="M80 52L80 10A42 42 0 0 1 110 22Z"/><line x1="80" y1="52" x2="80" y2="10"/></g>` +
           `<circle class="sg-blip b1" cx="104" cy="34" r="3"/><circle class="sg-blip b2" cx="62" cy="74" r="3"/><circle class="sg-blip b3" cx="96" cy="78" r="3"/>` +
           `<text class="sg-cap" x="80" y="106" text-anchor="middle">INCOMING…</text></svg></div>`;
+      },
+    },
+    /* Vanishing Ink: three notes brush onto a little scroll one by one, stay, then the ink fades away (slow, never a
+       flash) and "PLAY IT BACK!" */
+    ink: {
+      html() {
+        return `<div class="scr scr-ink"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<rect class="vk-paper" x="20" y="16" width="120" height="62"/><rect class="vk-rod" x="13" y="12" width="8" height="70" rx="4"/><rect class="vk-rod" x="139" y="12" width="8" height="70" rx="4"/>` +
+          [32, 39, 46, 53, 60].map(y => `<path class="vk-staff" d="M26 ${y}H134"/>`).join('') +
+          [[56, 56.5], [84, 49.5], [112, 42.5]].map(([x, y], i) => `<g class="vk-n vk-n${i + 1}"><ellipse cx="${x}" cy="${y}" rx="4.4" ry="3.3" transform="rotate(-20 ${x} ${y})"/><path d="M${x + 3.9} ${y - 1}V${y - 20}"/></g>`).join('') +
+          `<text class="vk-cap" x="80" y="100" text-anchor="middle">READ IT… PLAY IT BACK!</text></svg></div>`;
       },
     },
     /* Arcade Quest: glitchy static, and an 8-bit microphone flickering through it (something is waking up) */

@@ -13,3 +13,6 @@
 /* Pixelify Sans (SIL OFL, see fonts/OFL-PixelifySans.txt; a variable font, weights 400–700): Arcade Quest's pixel
    text. Basic Latin, Latin-1, curly quotes, dashes, … and •. Readable at large sizes, so it is used for its body text. */
 @font-face{font-family:"GN Quest";src:url("fonts/pixelify.woff2") format("woff2");font-weight:400 700;font-display:swap}
+/* Kaushan Script (SIL OFL, see fonts/OFL-KaushanScript.txt): a brush script, Vanishing Ink's marquee and titles only.
+   Subset to Basic Latin (A–Z, a–z, 0–9, punctuation), so it is only for signs, never body text. */
+@font-face{font-family:"GN Brush";src:url("fonts/kaushan.woff2") format("woff2");font-display:swap}
