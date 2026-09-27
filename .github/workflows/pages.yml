@@ -8,6 +8,11 @@
 # ONE-TIME SETUP (Mat): repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
 # (While it still says "Deploy from a branch", Pages keeps publishing main as-is, with version 'dev': the site works
 #  exactly as before, just without the cache fix, and this workflow's deploy step shows a red X.)
+#
+# CUSTOM DOMAIN (https://bandarcade.org): set in Settings -> Pages -> Custom domain. With this workflow as the source,
+# GitHub keeps that setting in the repository's settings, so no deploy can drop it (the CNAME file in the repository
+# is uploaded with the site but isn't what sets the domain). Every address in the site is relative, so the same
+# files work at a domain root, in a subfolder (<user>.github.io/band-arcade/) and from a double-clicked file.
 name: Deploy to GitHub Pages
 
 on:
