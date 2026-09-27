@@ -66,7 +66,6 @@
     $('hubCap').textContent = card.cap;
     $('hubConcert').textContent = card.sub;
     $('hubStaff').innerHTML = card.html;
-    $('levelsTitle').textContent = st.scale ? `Levels: ${st.scale.name}` : 'Levels';
     $('levelGrid').innerHTML = LEVELS.map((L, i) => {
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const unlocked = A.DEMO || lv === 1 || A.store.level(key, inst.id, lv - 1).stars > 0;
@@ -77,7 +76,7 @@
         <span class="mini" aria-label="Up to ${L.maxOn} at once">${'<i>♩</i>'.repeat(L.maxOn)}</span>
         <span class="t">${L.name}</span>
         <span class="d">${blurb}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : ''}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b =>
@@ -87,6 +86,8 @@
       blurb: 'Play until the storm gets you. The notes keep speeding up, and more of them come at once. 3 hearts.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
+      stars: i => A.store.level(key, inst.id, i + 1).stars, unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i).stars > 0});
   }
 
   /* ---------- play ---------- */

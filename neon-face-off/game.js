@@ -71,6 +71,7 @@
     $('record').innerHTML = rec ? `Head to head on this device: <b class="c1">${P[0].name} ${rec.p1}</b> – <b class="c2">${rec.p2} ${P[1].name}</b>` : `First match for ${P[0].name} vs ${P[1].name} on this device.`;
     $('startBtn').textContent = vsCPU ? `Face off vs ${P[1].R.name}` : 'Start match';
     window.scrollTo(0, 0);
+    A.LevelSelect.highlight({screen: $('setup'), el: $('startBtn')});   // START MATCH glows, has the focus, and gets the idle hint
   }
   function drawColumn(i) {
     const p = P[i], col = $('col' + (i + 1));

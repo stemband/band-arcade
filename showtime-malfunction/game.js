@@ -94,7 +94,6 @@
     document.body.classList.remove('in-show');
     drawDiff();
     const key = progressKey(), x = isExtra();
-    $('levelsTitle').textContent = x ? 'Showtimes · Nightmare' : 'Showtimes';
     $('levelGrid').innerHTML = LEVELS.map((_, i) => {
       const lv = i + 1, L = rowFor(lv, x), p = A.store.level(key, who, lv);
       const open = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, who, lv - 1).stars > 0;
@@ -106,7 +105,7 @@
         <span class="mini bot glitch">${SHOW.botSVG(L.boss ? 'moose' : snare ? 'gator' : ['walrus', 'owl', 'gator', 'raccoon'][i % 4])}</span>
         <span class="t">${L.name}</span>
         <span class="d">${blurb}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${open ? (p.best ? 'Best ' + p.best : times) : 'Locked'}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${open ? (p.best ? 'Best ' + p.best : times) : ''}</span></span>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => {
@@ -114,6 +113,10 @@
       const go = () => A.requireMic(() => startShow(lv));
       if (!gd.storySeen && RULES.storyOnce) showStory(go); else go();
     }));
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: picker ? $('modePick') : null,
+      stars: i => A.store.level(key, who, i + 1).stars,
+      unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars > 0,
+      lockText: i => `Clear Showtime ${i} to unlock`});
   }
 
   /* ---------- a showtime ---------- */

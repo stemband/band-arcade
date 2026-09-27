@@ -57,6 +57,9 @@
       </button>`;
     }).join('');
     $('chambers').querySelectorAll('.chamber-card').forEach(b => b.addEventListener('click', () => openChamber(+b.dataset.r)));
+    // SELECT A LEVEL (shared/level-select.js): every chamber is open; the next one = the lowest belt without stars
+    A.LevelSelect.show({screen: $('hub'), grid: $('chambers'), cards: $('chambers').querySelectorAll('.chamber-card'),
+      stars: i => A.store.level(GAME_ID, 'all', beltNo(RANKS[i])).stars, unlocked: () => true});
     const open = RANKS.filter(r => masteredIn(r) > 0), total = RANKS.reduce((s, r) => s + masteredIn(r), 0);
     $('reviewBtn').disabled = !open.length;
     $('reviewInfo').textContent = open.length

@@ -170,6 +170,7 @@ file so the voice starts at the very beginning.
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
+| `select-level` | `select-level.m4a` or `select-level.mp3` | Announcer says "Select a level" when a game's level select appears (after PRESS START, or back from a level). At most once a minute, the music dips while it speaks. | 0.8–2 s |
 | `level-start` | `level-start.m4a` or `level-start.mp3` | A level begins. | 0.3–0.8 s |
 | `note-hit` | `note-hit.m4a` or `note-hit.mp3` | A correct note. **during play: under 0.5 s** | under 0.5 s (0.1–0.3 s) |
 | `note-wrong` | `note-wrong.m4a` or `note-wrong.mp3` | A wrong note. **during play: under 0.5 s** | under 0.5 s (0.1–0.3 s) |

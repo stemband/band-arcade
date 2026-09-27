@@ -26,22 +26,21 @@
     <div class="hub-head">
       <h1 class="game-title"><span class="t1">Showtime</span> <span class="t2">Malfunction</span></h1>
       <p class="muted">The arcade's old animatronic band has powered back on, and it's glitching. Each one shows a note and a number: play that note that many times, <b>starting every note fresh</b> (tongue it, or strike it), to reboot them before they reach the front.</p>
-      <div class="hub-tools">
-        <div class="diff-set" role="group" aria-labelledby="diffLbl"><span class="mp-lbl" id="diffLbl">Difficulty</span>
-          <button type="button" class="seg" data-diff="normal" aria-pressed="true">Normal</button><button type="button" class="seg x-seg" data-diff="extra" aria-pressed="false" aria-describedby="diffLock"><span class="lock" aria-hidden="true"></span>Nightmare</button>
-          <span class="diff-lock" id="diffLock" hidden>Clear The 5:00 Show to unlock</span></div>
-        <button type="button" class="btn btn-ghost btn-small" id="storyBtn">The story</button>
-        <div class="spooky-set" role="group" aria-labelledby="spookyLbl"><span class="mp-lbl" id="spookyLbl">Spooky level</span>
-          <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button></div>
-      </div>
     </div>
     <div id="modePick"></div>
     <div class="snare-card" id="snareCard" hidden>
       <span class="drum-ico" aria-hidden="true"></span>
       <div><b>Count mode</b><p>Snare drummers face Snapjaw Sal and his glitchy clone units. No notes: every clean hit counts. Play single strokes and let each one ring.</p></div>
     </div>
-    <p class="eyebrow" id="levelsTitle">Showtimes</p>
     <div class="levels" id="levelGrid"></div>
+    <div class="hub-tools hub-more">
+      <div class="diff-set" role="group" aria-labelledby="diffLbl"><span class="mp-lbl" id="diffLbl">Difficulty</span>
+          <button type="button" class="seg" data-diff="normal" aria-pressed="true">Normal</button><button type="button" class="seg x-seg" data-diff="extra" aria-pressed="false" aria-describedby="diffLock"><span class="lock" aria-hidden="true"></span>Nightmare</button>
+          <span class="diff-lock" id="diffLock" hidden>Clear The 5:00 Show to unlock</span></div>
+      <button type="button" class="btn btn-ghost btn-small" id="storyBtn">The story</button>
+      <div class="spooky-set" role="group" aria-labelledby="spookyLbl"><span class="mp-lbl" id="spookyLbl">Spooky level</span>
+        <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button></div>
+    </div>
     <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks.</p>
   </section>
 
@@ -139,6 +138,7 @@
 <script src="../shared/cabinets.js"></script>
 <script src="../shared/marquees.js"></script>
 <script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
 <script src="levels.js"></script>
 <script src="characters.js"></script>
 <script src="game.js"></script>

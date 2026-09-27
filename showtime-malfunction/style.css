@@ -6,11 +6,13 @@
 .showtime{--st-red:var(--anim-eye-bad);--st-blue:var(--anim-eye-good)}
 .hub-head{margin-bottom:14px}
 .game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95}
+@media (orientation:landscape) and (max-height:800px){ .game-title{font-size:clamp(32px,4vw,50px)} }   /* one line, so the level cards fit a Chromebook screen */
 .game-title .t1{color:var(--yellow);text-shadow:var(--glow-yellow)}
 .game-title .t2{color:var(--st-red);text-shadow:0 0 4px var(--st-red),0 0 14px color-mix(in srgb,var(--st-red) 50%,transparent);animation:title-glitch 7s steps(1) infinite}
 @keyframes title-glitch{0%,92%,100%{opacity:1;transform:none}93%{opacity:.7;transform:translateX(2px) skewX(-6deg)}95%{opacity:1;transform:none}96%{opacity:.8}}
 .hub-head p{max-width:64ch;margin:10px 0 0}
 .hub-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:12px}
+.hub-more{margin:16px 0 4px}
 .spooky-set,.diff-set{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .x-seg{min-width:150px;display:inline-flex;align-items:center;justify-content:center;gap:6px;position:relative}
 .x-seg[aria-pressed="true"]{color:var(--st-red);border-color:var(--st-red)}

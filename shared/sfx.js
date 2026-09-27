@@ -919,6 +919,37 @@ window.Arcade = window.Arcade || {};
     });
   }
 
+  /** THE ANNOUNCER: a voice line as a screen appears ("Choose your instrument!", "Select a level!"). It plays `delay` ms
+      in, or when the last effect (a START or PRESS START sound) has ended, whichever is later; at most once per `gap`
+      ms (sessionStorage `key`, set when it is heard, so also across pages in this tab); only once a tap has started the
+      audio (a page loaded straight onto the screen stays quiet rather than speak late). While `hold()` is true (a panel
+      covers the screen) it waits; once `alive()` is false (the screen closed) or cancel() was called (the student
+      already tapped a choice) it never plays. The music and ambience dip while it speaks (duck). onPlay(seconds) runs
+      as it starts (the heading's swell). Returns {cancel()}. */
+  function announce(name, {key, gap = 60000, delay = 500, alive = () => true, hold = () => false, onPlay} = {}) {
+    let heard = 0; try { heard = +sessionStorage.getItem(key) || 0; } catch (e) { /* private mode */ }
+    const h = {off: false, cancel() { h.off = true; }};
+    if (!ctx || Date.now() - heard < gap) { h.off = true; return h; }
+    const t0 = performance.now();
+    const go = () => {
+      if (h.off || !alive()) return;
+      const wait = Math.max(delay - (performance.now() - t0), busyFor());
+      if (wait > 20) { setTimeout(go, wait); return; }
+      if (hold()) { setTimeout(go, 300); return; }
+      if (!ctx || ctx.state !== 'running') return;
+      whenReady(name, 400).then(() => {
+        if (h.off || !alive()) return;
+        const d = Sfx.event(name);
+        if (!d) return;                                               // muted: not heard, so not counted
+        try { sessionStorage.setItem(key, String(Date.now())); } catch (e) { /* private mode */ }
+        duck(d * 1000);
+        if (onPlay) onPlay(d);
+      });
+    };
+    setTimeout(go, delay);
+    return h;
+  }
+
   let leaving = false;
   const seqs = new Set();                                 // sequences still playing (Sfx.sequence handles)
   // a channel and its sub-channels: 'dojo' also means 'dojo:voice'
@@ -980,7 +1011,7 @@ window.Arcade = window.Arcade || {};
     /** THE MUSIC MANAGER (see the top of this file): the track this page wants on the MUSIC channel. Never start
         audio any other way. */
     setMusic: (names, opts) => want(CH.mus, names, opts),
-    gameMenuMusic, autoStart,
+    gameMenuMusic, autoStart, announce,
     /** the track this page wants on the AMBIENCE channel (the arcade floor's lobby-ambience) */
     setAmbience: (names, opts) => want(CH.amb, names, opts),
     /** fetch these music events' files now (the likely next tracks), so they start at once when wanted */
