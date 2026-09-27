@@ -197,13 +197,6 @@
 @keyframes medal{from{transform:scale(.4) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
 
 /* the Sensei */
-.ss-robe{fill:var(--sensei-robe)} .ss-robe2{fill:var(--sensei-robe-2)} .ss-sleeve{fill:var(--sensei-robe-2)}
-.ss-skin{fill:var(--ninja-skin)} .ss-hair{fill:var(--sensei-hair)} .ss-tie{fill:var(--scroll-seal)}
-.ss-ink{fill:var(--ink)} .ss-mouth{fill:var(--ink)}
-.ss-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
-.ss-brow{fill:none;stroke:var(--sensei-hair);stroke-width:4;stroke-linecap:round}
-.ss-glass{fill:rgba(255,255,255,.18);stroke:var(--ink);stroke-width:1.8}
-.ss-scroll{fill:var(--scroll-paper)} .ss-rod{fill:var(--scroll-rod)}
 .sensei.happy,.sensei.present{animation:bow .8s ease-in-out}
 @keyframes bow{40%{transform:translateY(4px)}}
 

@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -60,6 +60,24 @@ window.Arcade = window.Arcade || {};
               '<path class="s-sun1" d="M34 396H96M34 410H90M34 424H84"/><path class="s-sun2" d="M266 396H204M266 410H210M266 424H216"/>' +
               '<path class="s-flag" d="M36 100H264"/>',                                                                   // a checkered strip under the marquee
       slots: {marquee: [34, 24, 232, 76], screen: [62, 134, 176, 154], start: [80, 386, 140, 44]},
+    },
+    /* duel: a two-player dojo cabinet (Dojo Duel). A dojo roof with upturned eaves over the marquee, a long two-player
+       panel (1P left, 2P right), a neon center line down the front and a paper lantern painted on each side */
+    duel: {
+      outline: 'M2 44Q26 40 40 16H260Q274 40 298 44L286 56H272V112H266L270 298L296 314V394H274V598H26V394H4V314L30 298L34 112H28V56H14Z',
+      face: 'M48 112H252L256 304H44ZM40 394H260V598H40Z', kick: [40, 260],
+      bezel: 'M62 124H238Q246 124 246 132V288Q246 296 238 296H62Q54 296 54 288V132Q54 124 62 124Z',
+      panel: 'M34 304H266L296 370H4Z', lip: 'M4 370H296V386H4Z',
+      joy: [36, 340], joy2: [166, 340],
+      btns: [[76, 338, 's-btn1'], [100, 334, 's-btn1'], [124, 338, 's-btn1'], [206, 338, 's-btn0'], [230, 334, 's-btn0'], [254, 338, 's-btn0']],
+      door: {x: 104, y: 462, w: 92, h: 104},
+      extras: '<path class="s-dline" d="M150 394V598"/>' +
+              [[74, 1], [226, 2]].map(([cx, k]) => `<path class="s-lstring" d="M${cx} 400V414"/><ellipse class="s-lantern s-l${k}" cx="${cx}" cy="440" rx="20" ry="26"/>` +
+                `<path class="s-lrib" d="M${cx - 18} 432H${cx + 18}M${cx - 18} 448H${cx + 18}"/><rect class="s-lcap" x="${cx - 9}" y="412" width="18" height="4"/><rect class="s-lcap" x="${cx - 9}" y="464" width="18" height="4"/>`).join('') +
+              ['belt-white', 'belt-yellow', 'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond']
+                .map((b, i) => `<rect class="s-belt" x="${56 + i * 19}" y="104" width="15" height="6" rx="1.5" style="fill:var(--${b})"/>`).join('') +
+              '<text class="s-plabel s-p1" x="36" y="318" text-anchor="middle">1P</text><text class="s-plabel s-p2" x="166" y="318" text-anchor="middle">2P</text>',
+      slots: {marquee: [36, 28, 228, 74], screen: [64, 134, 172, 152], start: [80, 398, 140, 44]},
     },
     /* signal: a deep-space radio console (Lost Signal). A rounded top, a round-cornered radar screen, signal-strength
        bars and a waveform painted on the lower sides, and three console buttons */
@@ -377,6 +395,20 @@ window.Arcade = window.Arcade || {};
           `<g class="sw-car"><rect x="66" y="92" width="28" height="10" rx="2"/><rect class="sw-glass" x="71" y="87" width="18" height="6" rx="2"/>` +
           `<rect class="sw-tail" x="67" y="95" width="6" height="2.5"/><rect class="sw-tail" x="87" y="95" width="6" height="2.5"/></g>` +
           `<text class="sw-cap" x="80" y="20" text-anchor="middle">HOLD THE NOTE</text></svg></div>`;
+      },
+    },
+    /* Dojo Duel: two little ninjas face each other across a glowing center line, a note between them; they take
+       turns hopping (a point!) while the score ticks up */
+    duel: {
+      html() {
+        return `<div class="scr scr-duel"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<rect class="dd-floor" x="0" y="80" width="160" height="30"/><path class="dd-line" d="M80 20V110"/>` +
+          `<rect class="dd-card" x="58" y="18" width="44" height="30" rx="3"/>` + [24, 30, 36, 42].map(y => `<path class="dd-staff" d="M62 ${y}H98"/>`).join('') +
+          `<ellipse class="dd-note" cx="82" cy="33" rx="4" ry="3" transform="rotate(-20 82 33)"/><path class="dd-stem" d="M85.6 32V20"/>` +
+          `<g class="dd-n1"><circle cx="34" cy="60" r="9"/><rect class="dd-band1" x="25" y="56" width="18" height="3.5"/><path d="M26 70H42L44 90H24Z"/></g>` +
+          `<g class="dd-n2"><circle cx="126" cy="60" r="9"/><rect class="dd-band2" x="117" y="56" width="18" height="3.5"/><path d="M118 70H134L136 90H116Z"/></g>` +
+          `<text class="dd-sc dd-s1" x="34" y="18" text-anchor="middle">3</text><text class="dd-sc dd-s2" x="126" y="18" text-anchor="middle">2</text>` +
+          `<text class="dd-cap" x="80" y="104" text-anchor="middle">FIRST TO TAP!</text></svg></div>`;
       },
     },
     /* Lost Signal: a radar screen, the sweep turning, blips fading in and out, "INCOMING…" */

@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -489,6 +489,58 @@ window.Arcade = window.Arcade || {};
         x.globalAlpha = 1;
       },
     },
+    /* DOJO DUEL. colors: [night sky, the center belt ribbon, lantern light]. A neon night dojo: a wooden floor with a
+       glowing center line, two crossed bamboo practice swords behind the title, paper lanterns swaying slowly at both
+       ends, and a string of Band Ninja belt-color ribbons fluttering along the top. Lanterns glow steadily (a slow,
+       gentle breathing, never a flash). */
+    duel: {
+      colors: ['temple-sky', 'belt-red', 'amber'], still: 1.4,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [.55, tok(c[0])], [.72, tok('dd-wood')], [1, tok('dd-wood-line')]]); x.fillRect(0, 0, W, H);
+        // floorboards (in perspective) and the neon center line
+        x.strokeStyle = rgba('dd-wood-line', .9); x.lineWidth = Math.max(1, H * .01);
+        for (let i = -6; i <= 6; i++) { x.beginPath(); x.moveTo(W / 2 + i * W * .05, H * .72); x.lineTo(W / 2 + i * W * .16, H); x.stroke(); }
+        glow(x, W / 2, H * .86, H * .5, 'yellow', .25);
+        x.strokeStyle = tok('yellow'); x.lineWidth = Math.max(2, H * .025);
+        x.beginPath(); x.moveTo(W / 2, H * .72); x.lineTo(W / 2, H); x.stroke();
+        // two crossed bamboo practice swords (with node rings), behind the title
+        const bam = (ang) => {
+          x.save(); x.translate(W / 2, H * .5); x.rotate(ang);
+          const L = H * 1.1, r = H * .035;
+          x.fillStyle = tok('belt-green'); x.fillRect(-L / 2, -r, L, r * 2);
+          x.fillStyle = rgba('deep', .45); for (let k = -3; k <= 3; k++) x.fillRect(k * L / 7 - r * .2, -r, r * .4, r * 2);
+          x.fillStyle = tok('dd-wood-2'); x.fillRect(L / 2 - L * .18, -r * 1.2, L * .18, r * 2.4);       // the grip
+          x.restore();
+        };
+        bam(-.5); bam(Math.PI + .5);
+        // the belt ribbons along the top (every Band Ninja belt color), fluttering gently
+        const belts = ['belt-white', 'belt-yellow', 'belt-orange', 'belt-green', 'belt-blue', 'belt-purple', c[1], 'belt-brown', 'belt-black', 'belt-diamond'];
+        const n = belts.length, span = W * .64, x0 = W * .18;
+        x.strokeStyle = rgba('text-lo', .5); x.lineWidth = Math.max(1, H * .008);
+        x.beginPath(); x.moveTo(x0 - W * .02, H * .04); x.quadraticCurveTo(W / 2, H * .14, x0 + span + W * .02, H * .04); x.stroke();
+        belts.forEach((b, i) => {
+          const u = (i + .5) / n, bx = x0 + span * u, by = H * .04 + Math.sin(u * Math.PI) * H * .05, sw = Math.sin(t * 1.4 + i * .8) * H * .015;
+          x.fillStyle = tok(b); x.beginPath(); x.moveTo(bx - H * .03, by); x.lineTo(bx + H * .03, by);
+          x.lineTo(bx + H * .02 + sw, by + H * .15); x.lineTo(bx + sw, by + H * .12); x.lineTo(bx - H * .02 + sw, by + H * .15); x.fill();
+          x.strokeStyle = rgba('deep', .6); x.lineWidth = 1; x.stroke();
+        });
+        // paper lanterns at both ends (glowing, swaying slowly)
+        [[.07, 0], [.93, 1.3], [.19, 2.2], [.81, .6]].forEach(([p, ph], i) => {
+          const len = H * (i < 2 ? .16 : .06), ang = Math.sin(t * .9 + ph) * .1, lw = H * (i < 2 ? .2 : .15), lh = lw * 1.3;
+          const breathe = .32 + .08 * Math.sin(t * .8 + ph);
+          x.save(); x.translate(W * p, 0); x.rotate(ang);
+          x.strokeStyle = rgba('text-lo', .6); x.lineWidth = Math.max(1, H * .008); x.beginPath(); x.moveTo(0, 0); x.lineTo(0, len); x.stroke();
+          glow(x, 0, len + lh / 2, lh * 1.4, c[2], breathe);
+          const lg = x.createRadialGradient(0, len + lh * .45, lw * .05, 0, len + lh / 2, lw * .6);
+          lg.addColorStop(0, tok('dd-paper')); lg.addColorStop(.7, tok('dd-lantern')); lg.addColorStop(1, tok(c[1]));
+          x.fillStyle = lg; x.beginPath(); x.ellipse(0, len + lh / 2, lw / 2, lh / 2, 0, 0, 7); x.fill();
+          x.strokeStyle = rgba('red-ink', .6); x.lineWidth = Math.max(1, H * .006);
+          [.25, .5, .75].forEach(q => { x.beginPath(); x.ellipse(0, len + lh * q, lw / 2 * Math.sin(Math.PI * q), lh * .04, 0, 0, 7); x.stroke(); });
+          x.fillStyle = tok('dd-wood-line'); x.fillRect(-lw * .28, len - lh * .03, lw * .56, lh * .09); x.fillRect(-lw * .28, len + lh * .94, lw * .56, lh * .09);
+          x.restore();
+        });
+      },
+    },
     /* LOST SIGNAL. colors: [waveform, radar + blips, stars]. Deep space: a starfield, radar rings with a slowly turning
        sweep, blips that fade in as the sweep passes and fade out over a second (never a flash), and a glowing
        waveform along the bottom. */
@@ -596,7 +648,8 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
-    faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif'};
+    faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
+    duel: '"GN Neon", "GN Display", sans-serif'};
   function fit(x, text, font, size, maxW) {
     let s = size; x.font = `${font.w || ''} ${s}px ${font.f}`;
     while (s > 6 && x.measureText(text).width > maxW) { s -= 1; x.font = `${font.w || ''} ${s}px ${font.f}`; }

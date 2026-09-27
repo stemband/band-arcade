@@ -31,34 +31,8 @@
   const mastered = id => (gd.terms[id] || {}).c >= RULES.masterAfter;
   const masteredIn = rank => itemsOf(rank).filter(it => mastered(it.id)).length;
 
-  /* ---------- the Sensei: an original, kind old teacher (topknot, round glasses, long beard, indigo robe) ---------- */
-  function senseiSVG(mood = 'calm', belt = 'belt-black') {
-    const happy = mood === 'happy' || mood === 'present';
-    const eyes = happy
-      ? '<path class="ss-line" d="M47 53q4-4 8 0M65 53q4-4 8 0"/>'
-      : '<circle class="ss-ink" cx="51" cy="53" r="2.2"/><circle class="ss-ink" cx="69" cy="53" r="2.2"/>';
-    const brows = mood === 'hmm'
-      ? '<path class="ss-brow" d="M56 44q-8-6-18 1M64 42q8-4 18 3"/>'
-      : '<path class="ss-brow" d="M56 45q-8-4-18 5M64 45q8-4 18 5"/>';
-    const mouth = mood === 'hmm' ? '<path class="ss-line" d="M55 72h10"/>'
-      : happy ? '<path class="ss-mouth" d="M53 70q7 7 14 0z"/>' : '<path class="ss-line" d="M54 71q6 4 12 0"/>';
-    const hands = mood === 'present'
-      ? '<rect class="ss-scroll" x="34" y="102" width="52" height="12" rx="3"/><circle class="ss-rod" cx="34" cy="108" r="6"/><circle class="ss-rod" cx="86" cy="108" r="6"/>' +
-        '<ellipse class="ss-skin" cx="38" cy="112" rx="7" ry="5"/><ellipse class="ss-skin" cx="82" cy="112" rx="7" ry="5"/>'
-      : '<path class="ss-sleeve" d="M38 104q22 12 44 0v10q-22 10-44 0z"/>';
-    return `<svg class="sensei ${mood}" viewBox="0 0 120 150" aria-hidden="true">` +
-      '<path class="ss-robe" d="M20 150q2-52 40-62q38 10 40 62z"/>' +
-      '<path class="ss-robe2" d="M60 88l-16 20 16 30 16-30z"/>' +
-      `<rect class="ss-belt" x="28" y="124" width="64" height="8" rx="2" style="fill:var(--${belt})"/>` +
-      '<circle class="ss-hair" cx="60" cy="22" r="7"/><rect class="ss-tie" x="55" y="27" width="10" height="3" rx="1.5"/>' +
-      '<ellipse class="ss-hair" cx="36" cy="54" rx="5" ry="9"/><ellipse class="ss-hair" cx="84" cy="54" rx="5" ry="9"/>' +
-      '<circle class="ss-skin" cx="60" cy="52" r="24"/>' +
-      brows + eyes +
-      '<circle class="ss-glass" cx="51" cy="53" r="7"/><circle class="ss-glass" cx="69" cy="53" r="7"/><path class="ss-line" d="M58 53h4"/>' +
-      '<path class="ss-hair" d="M40 62q20 14 40 0q2 28-20 48q-22-20-20-48z"/>' +
-      '<path class="ss-hair" d="M47 66q13-6 26 0q-6 5-13 3q-7 2-13-3z"/>' +
-      mouth + hands + '</svg>';
-  }
+  /* the Sensei (an original, kind old teacher) is shared with Dojo Duel: Arcade.senseiSVG in shared/ui.js */
+  const senseiSVG = A.senseiSVG;
 
   /* ---------- the temple (hub) ---------- */
   $('lanternRow').innerHTML = RANKS.map(r => `<i class="lantern${A.belt(r).sparkle ? ' sparkle' : ''}" style="--belt:var(--${A.belt(r).color})"></i>`).join('');

@@ -286,6 +286,24 @@
 .shape-speedway .s-sun2{stroke:var(--u);stroke-width:5;stroke-linecap:round;opacity:.85}
 .shape-speedway .s-flag{stroke:var(--white-hi);stroke-width:5;stroke-dasharray:6 6;opacity:.7}
 
+/* duel: a two-player dojo cabinet (Dojo Duel) */
+.mq-duel{background:radial-gradient(ellipse at 50% 120%,var(--dd-wood),var(--deep) 70%);color:var(--t-hi);border:.14em solid var(--t);border-radius:.25em;box-shadow:var(--t-glow)}
+.shape-duel .s-dline{stroke:var(--yellow);stroke-width:4;opacity:.8}
+.shape-duel .s-lantern{fill:var(--dd-lantern);opacity:.85}.shape-duel .s-lstring{stroke:var(--text-lo);stroke-width:1.5}
+.shape-duel .s-lrib{stroke:var(--red-ink);stroke-width:1.5;fill:none}.shape-duel .s-lcap{fill:var(--dd-wood-line)}
+.shape-duel .s-belt{stroke:var(--deep);stroke-width:1}
+.scr-duel{background:linear-gradient(180deg,var(--deep),var(--dd-night))}
+.scr-duel svg{width:100%;height:auto}
+.scr-duel .dd-floor{fill:var(--dd-wood)}.scr-duel .dd-line{stroke:var(--yellow);stroke-width:2;opacity:.8}
+.scr-duel .dd-card{fill:var(--screen)}.scr-duel .dd-staff{stroke:var(--ink);stroke-width:1}
+.scr-duel .dd-note{fill:var(--ink)}.scr-duel .dd-stem{stroke:var(--ink);stroke-width:1.4}
+.scr-duel .dd-n1{fill:var(--u-hi)}.scr-duel .dd-n2{fill:var(--t-hi)}
+.scr-duel .dd-band1{fill:var(--belt-red)}.scr-duel .dd-band2{fill:var(--belt-blue)}
+.scr-duel .dd-sc{font:400 13px var(--display)}.scr-duel .dd-s1{fill:var(--u-hi)}.scr-duel .dd-s2{fill:var(--t-hi)}
+.scr-duel .dd-cap{font:400 8px var(--display);fill:var(--yellow);letter-spacing:.08em}
+.attract .scr-duel .dd-n1{animation:dd-hop 2.4s ease-out infinite}
+.attract .scr-duel .dd-n2{animation:dd-hop 2.4s ease-out 1.2s infinite}
+@keyframes dd-hop{0%,8%{transform:none}18%{transform:translateY(-12px)}30%,100%{transform:none}}
 /* signal: a deep-space radio console (Lost Signal) */
 .mq-signal{background:linear-gradient(180deg,var(--deep),var(--ls-scope));border:.12em solid var(--t);border-radius:.9em .9em .2em .2em;box-shadow:var(--t-glow)}
 .shape-signal .s-bar{fill:var(--t);opacity:.8}.shape-signal .s-bar2{fill:var(--u)}

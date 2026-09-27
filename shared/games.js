@@ -205,6 +205,22 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'signal', body: 'cab-side'},
   },
   {
+    id: 'dojo-duel',
+    name: 'Dojo Duel',
+    skill: '2-Player duel',
+    blurb: 'Two ninjas, one screen! A note appears for each of you: the first to tap its name wins the point. Or duel the Sensei. No instrument needed!',
+    maxStars: 0,                                     // no stars: a friendly duel (a win count per player name, below)
+    color: 'pink',
+    player: 'all',                                   // no instrument: START goes straight to the game
+    players: 2,                                      // a 2-player game (like Neon Face-Off): both choose on its own setup screen
+    // the floor's line instead of a hi-score: the dojo record on this device
+    summary: store => { const r = (store.gameData('dojo-duel') || {}).record || {}, n = Object.values(r).reduce((a, b) => a + b, 0);
+      return n ? `Dojo record: ${n} ${n === 1 ? 'duel' : 'duels'} won on this device` : ''; },
+    marquee: {scene: 'duel', colors: ['temple-sky', 'belt-red', 'amber'], titleFit: 'max'},
+    cabinet: {shape: 'duel', trim: 'pink', trim2: 'amber', marquee: 'duel', kicker: '1P vs 2P', screen: 'duel'},
+    cabinet3d: {profile: 'duel', body: 'cab-side'},
+  },
+  {
     id: 'arcade-quest',
     name: 'Arcade Quest',
     skill: 'RPG adventure',

@@ -188,15 +188,8 @@
     G.locked = false;
     nextNote();
   }
-  /* faint letter names just after the clef: the lines in one column, the spaces in the next
-     (treble lines E G B D F, spaces F A C E; bass lines G B D F A, spaces A C E G) */
-  function guideSVG(x, alpha) {
-    const names = inst.clef === 'treble' ? ['E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5'] : ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3'];
-    return `<g class="guides" opacity="${alpha}">` + names.map((nm, i) => {
-      const n = A.music.parseNote(nm), onLine = i % 2 === 0;
-      return `<text x="${x + (onLine ? 0 : 14)}" y="${A.noteY(inst.clef, n) + 4.5}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="12.5" fill="#4b5570">${n.letter}</text>`;
-    }).join('') + `</g>`;
-  }
+  /* faint letter names just after the clef (shared with Dojo Duel: Arcade.staffGuides in shared/ui.js) */
+  const guideSVG = (x, alpha) => A.staffGuides(inst.clef, x, alpha);
 
   function current() { return G.items[G.i]; }
   function nextNote() {
