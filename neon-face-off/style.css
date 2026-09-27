@@ -119,8 +119,8 @@
 .col-pic,.s-pic,.res-pic{position:relative}
 .pmark{position:absolute;top:-6px;left:-6px;z-index:3;padding:0 5px;border-radius:6px;font-family:var(--display);font-size:12px;line-height:1.5;color:var(--deep);background:var(--cyan)}
 .p2 .pmark{background:var(--pink)}
-.col-head b{font-size:clamp(17px,2.2vw,22px);overflow-wrap:anywhere}
-.guest-rand{display:inline-block;margin-top:6px;min-height:40px;padding:4px 14px;border-radius:999px;border:2px solid var(--pink);background:var(--deep);color:var(--pink-hi);
+.col-head b{font-size:clamp(17px,2.2vw,22px);overflow-wrap:break-word;text-wrap:balance}
+.guest-rand{display:table;margin-top:6px;min-height:40px;padding:4px 14px;border-radius:999px;border:2px solid var(--pink);background:var(--deep);color:var(--pink-hi);
   font-family:var(--display);font-size:13px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
 .guest-rand:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
-.s-name{overflow-wrap:anywhere}
+.s-name{overflow-wrap:break-word;text-wrap:balance}

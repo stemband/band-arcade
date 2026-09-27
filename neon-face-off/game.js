@@ -13,7 +13,8 @@
 
    Notes come from shared/sequences.js (each player's own member and NOTES × ORDER, via the shared mode picker).
    Progress (vs CPU only): Arcade.store.setLevel('neon-face-off', <Player 1's member id>, rival 1–8, {stars, best}).
-   Two-player matches award no stars; store.gameData('neon-face-off').h2h keeps the record for each pairing. */
+   Two-player matches award no stars; store.gameData('neon-face-off').h2h keeps the record for each pairing, and
+   cpuWins counts every win over the CPU on this device (for the Air Rink avatar background). */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -295,6 +296,10 @@
       const stars = !won ? 0 : P[1].score === 0 ? 3 : margin >= 4 ? 2 : 1;
       const pts = P[0].score * 100 + P[0].returns * 10 + P[0].smashes * 25;
       const old = A.store.level(GAME_ID, P[0].member.id, lv);
+      if (won) {                                   // wins over the CPU on this device (the Air Rink background counts them)
+        if (saved.cpuWins == null) saved.cpuWins = [1, 2, 3, 4, 5, 6, 7, 8].filter(n => A.store.bestLevelStars(GAME_ID, n) >= 1).length;
+        saved.cpuWins++; remember();
+      }
       A.store.setLevel(GAME_ID, P[0].member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pts, old.best)});
       $('resStars').innerHTML = A.starStr(stars);
       $('resMsg').textContent = !won ? `${P[1].name} took this one. Play your notes a little sooner and try again!`
@@ -312,6 +317,7 @@
     $('results').hidden = false; $('resAgain').focus();
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     if (vsCPU) A.Skins.announce($('results').querySelector('.panel'));     // Player 1's skins (two-player matches earn no stars)
+    else if (A.Avatar && A.Avatar.freshItems().length) later(() => A.Skins.catchUp(A.store.player), 1200);   // a player item a two-player win unlocked (Air Rink)
   }
   $('resAgain').addEventListener('click', () => A.requireMic(startMatch));
   $('resNext').addEventListener('click', () => { setRival(P[1].rival + 1); showSetup(); });

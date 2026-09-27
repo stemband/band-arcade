@@ -20,7 +20,7 @@
         · charms equipped 3 + 3 (0 = empty slot, else 1 + the index in QUEST_V2.charms) · avatar items unlocked 1 each
         (QUEST_V2.cosmetics: bought at the Token Booth or earned; they load as owned) · avatar items worn 1 each (same
         list) · zero padding to 185 bits · checksum 15 (as above). Same rule: only ever ADD to the end of a list,
-        while it still fits in the padding (13 bits free today: 6 more avatar items).
+        while it still fits in the padding (5 bits free today: 2 more avatar items).
    2. THE ARCADE BACKUP CODE (long: EVERYTHING on the device: stars and progress for every game and instrument,
       skins unlocked and equipped, settings, the Arcade Quest save). Too long to type comfortably, so the panel
       has a COPY button (and shows the short Quest code too).
@@ -82,7 +82,7 @@ window.Arcade = window.Arcade || {};
     cosmetics: ['eyes:stars', 'eyes:hearts', 'eyes:wink', 'mouth:tongue', 'mouth:whistle', 'hairColor:gold', 'hairColor:neon',
       'hairColor:galaxy', 'hairColor:flametip', 'head:tophat', 'head:wizard', 'head:plumeshako', 'head:royalcrown', 'head:diamondband',
       'top:rockstar', 'top:tuxedo', 'top:champion', 'top:sequin', 'pet:ghost', 'pet:animatronic', 'pet:note', 'pet:star', 'pet:metronome',
-      'back:pixelcape', 'back:jetpack', 'back:wings'],
+      'back:pixelcape', 'back:jetpack', 'back:wings', 'bg:bubbles', 'bg:fireflies', 'bg:lavalamp', 'bg:confetti'],
   };
   const QUEST_DATA_BITS = 110, QUEST_CHECK_BITS = 15, QUEST_CHARS = 25;
   const QUEST_DATA_BITS_2 = 185, QUEST_CHARS_2 = 40, CHARM_SLOTS = 8;

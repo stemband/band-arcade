@@ -225,7 +225,8 @@
   function cosmeticShop() {
     return new Promise(done => {
       const AV = A.Avatar, stock = AV ? AV.items().filter(it => it.shop) : [];
-      const pic = it => `<img class="q-cos" alt="" src="${AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null})}">`;
+      const bgOf = it => it.field === 'bg' && A.AvatarBg ? ` style="background-image:url(${A.AvatarBg.stillURL(it.id, 128)})"` : '';   // a background: behind you
+      const pic = it => `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null})}">`;
       const own = it => !!A.store.ownedItems[it.key] || AV.isUnlocked(it.field, it.id);
       const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}`, sub: own(it) ? 'OWNED' : `${it.shop} tokens`, cls: own(it) ? 'q-owned' : ''}))
         .concat([{id: null, label: 'Back'}]);

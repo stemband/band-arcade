@@ -382,28 +382,37 @@ window.Arcade = window.Arcade || {};
   /* ARCADE QUEST (title screen): an 8-bit night sky, twinkling pixel stars, a castle silhouette in pixel art */
   S['pixel-night'] = (x, W, H, t, o) => {
     const st = o.state, pw = 160, ph = Math.max(60, Math.round(pw * H / W));
-    if (!st.c || st.c.height !== ph) { st.c = document.createElement('canvas'); st.c.width = pw; st.c.height = ph; }
-    const p = st.c.getContext('2d');
-    const bands = ['q-void', 'q-void', 'q-purple-d', 'q-blue-d'];
-    for (let y = 0; y < ph; y++) for (let xx = 0; xx < pw; xx += 1) {          // the sky: bands with a checker dither where they meet
-      const f = y / ph * (bands.length - 1), b = Math.floor(f), frac = f - b, up = ((xx + y) % 2) && frac > .5 ? 1 : 0;
-      p.fillStyle = col(bands[Math.min(bands.length - 1, b + up)]); p.fillRect(xx, y, 1, 1);
+    const layer = () => { const c = document.createElement('canvas'); c.width = pw; c.height = ph; return c; };
+    if (!st.c || st.c.height !== ph) {
+      // the parts that never move are drawn ONCE (the dithered sky is 1 × 1 pixels: far too many to redraw every frame)
+      st.c = layer(); st.back = layer(); st.front = layer();
+      const b = st.back.getContext('2d');
+      const bands = ['q-void', 'q-void', 'q-purple-d', 'q-blue-d'];
+      for (let y = 0; y < ph; y++) for (let xx = 0; xx < pw; xx += 1) {          // the sky: bands with a checker dither where they meet
+        const f = y / ph * (bands.length - 1), bd = Math.floor(f), frac = f - bd, up = ((xx + y) % 2) && frac > .5 ? 1 : 0;
+        b.fillStyle = col(bands[Math.min(bands.length - 1, bd + up)]); b.fillRect(xx, y, 1, 1);
+      }
+      b.fillStyle = col('q-black', .3); b.fillRect(0, 0, pw, ph);                      // keep it dark (the castle still stands out)
+      const f = st.front.getContext('2d');
+      const mx = Math.floor(pw * .18), my = Math.floor(ph * .18);                      // a pixel crescent moon
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= 16 && (dx - 2) * (dx - 2) + (dy + 1) * (dy + 1) > 12) { f.fillStyle = col('q-moon', .75); f.fillRect(mx + dx, my + dy, 1, 1); }
+      f.fillStyle = mix('q-green-d', 'q-black', .55);                  // hills
+      for (let hx = 0; hx < pw; hx++) { const hy = ph * .82 + Math.sin(hx * .07) * 3 + Math.sin(hx * .19) * 1.5; f.fillRect(hx, Math.floor(hy), 1, ph); }
+      const cx = Math.floor(pw * .72), base = Math.floor(ph * .8);  // the castle, to the right
+      f.fillStyle = col('q-black');
+      [[0, 26, 20], [-8, 34, 6], [20, 34, 6], [6, 40, 7]].forEach(([dx, hgt, w]) => {
+        f.fillRect(cx + dx, base - hgt, w, hgt);
+        for (let k = 0; k < w; k += 2) f.fillRect(cx + dx + k, base - hgt - 2, 1, 2);
+      });
     }
-    p.fillStyle = col('q-black', .3); p.fillRect(0, 0, pw, ph);                      // keep it dark (the castle still stands out)
+    const p = st.c.getContext('2d');
+    p.clearRect(0, 0, pw, ph); p.drawImage(st.back, 0, 0);
     for (let i = 0; i < 60; i++) {
       const sx = Math.floor(hash(i) * pw), sy = Math.floor(hash(i + 9) * ph * .6), on = hash(i * 3 + Math.floor(t * .7 + hash(i) * 5)) > .25;
       if (on) { p.fillStyle = col('q-white', .35 + .3 * hash(i + 2)); p.fillRect(sx, sy, 1, 1); }
     }
-    const mx = Math.floor(pw * .18), my = Math.floor(ph * .18);                      // a pixel crescent moon
-    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= 16 && (dx - 2) * (dx - 2) + (dy + 1) * (dy + 1) > 12) { p.fillStyle = col('q-moon', .75); p.fillRect(mx + dx, my + dy, 1, 1); }
-    p.fillStyle = mix('q-green-d', 'q-black', .55);                  // hills
-    for (let hx = 0; hx < pw; hx++) { const hy = ph * .82 + Math.sin(hx * .07) * 3 + Math.sin(hx * .19) * 1.5; p.fillRect(hx, Math.floor(hy), 1, ph); }
-    const cx = Math.floor(pw * .72), base = Math.floor(ph * .8);  // the castle, to the right
-    p.fillStyle = col('q-black');
-    [[0, 26, 20], [-8, 34, 6], [20, 34, 6], [6, 40, 7]].forEach(([dx, hgt, w]) => {
-      p.fillRect(cx + dx, base - hgt, w, hgt);
-      for (let k = 0; k < w; k += 2) p.fillRect(cx + dx + k, base - hgt - 2, 1, 2);
-    });
+    p.drawImage(st.front, 0, 0);
+    const cx = Math.floor(pw * .72), base = Math.floor(ph * .8);
     if (Math.floor(t * .5) % 4 !== 3) { p.fillStyle = col('q-gold', .8); p.fillRect(cx + 9, base - 32, 1, 2); p.fillRect(cx + 4, base - 16, 2, 2); }
     x.imageSmoothingEnabled = false; x.drawImage(st.c, 0, 0, W, H); x.imageSmoothingEnabled = true;
   };
@@ -414,7 +423,9 @@ window.Arcade = window.Arcade || {};
     for (let i = 0; i < 50; i++) { x.fillStyle = col('white-hi', .15 + .1 * hash(i + 1)); x.fillRect(hash(i) * W, hash(i + 5) * H * .7, Math.max(1, W / 900), Math.max(1, W / 900)); }
     const st = o.state, pw = 120, ph = Math.max(40, Math.round(pw * H / W));
     if (!st.c || st.c.height !== ph) { st.c = document.createElement('canvas'); st.c.width = pw; st.c.height = ph; }
-    const p = st.c.getContext('2d'); p.clearRect(0, 0, pw, ph);
+    const p = st.c.getContext('2d');
+    // the curtains move very slowly (0.05 rad/s): redrawn at most 6 times a second (360 gradients a frame is costly)
+    if (st.at == null || Math.abs(t - st.at) >= 1 / 6 || st.atH !== ph) { st.at = t; st.atH = ph; p.clearRect(0, 0, pw, ph);
     [['green', .3, .22, 0], ['cyan', .22, .3, 2], ['purple', .18, .18, 4]].forEach(([c, a, by, ph0]) => {
       for (let px = 0; px < pw; px++) {
         const u = px / pw, y = ph * by + Math.sin(u * 5 + t * .05 + ph0) * ph * .06 + Math.sin(u * 13 + t * .03 + ph0) * ph * .02;
@@ -423,11 +434,172 @@ window.Arcade = window.Arcade || {};
         p.fillStyle = g; p.fillRect(px, y - h, 1, h);
       }
     });
+    }
     x.save(); x.globalCompositeOperation = 'lighter'; x.imageSmoothingEnabled = true; x.drawImage(st.c, 0, 0, W, H); x.restore();
   };
 
+  /* ---------- AVATAR BACKGROUND SCENES (shared/avatar-bg.js), also ready for a game's menu some day ----------
+     Same rules as above: dark, tokens only, slow, nothing flashes. Square-friendly (the avatar covers the middle). */
+
+  /* NEON CITY: a skyline at night: two rows of buildings, windows that slowly light and dim, neon signs humming */
+  S.city = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, col('deep')], [.55, mix('deep', 'purple-ink', .45)], [1, mix('deep', 'pink-ink', .35)]]);
+    for (let i = 0; i < 40; i++) { x.fillStyle = col('white-hi', .12 + .12 * hash(i + 3)); x.fillRect(hash(i) * W, hash(i + 7) * H * .4, Math.max(1, W / 400), Math.max(1, W / 400)); }
+    glow(x, W * .5, H * .95, W * .7, col('pink', .16), col('pink', 0));
+    [[.34, 'floor-2', 16, .1], [.52, 'floor', 11, .2]].forEach(([top, tone, n, seed], L) => {
+      for (let i = 0; i < n; i++) {
+        const bw = W / n, bx = i * bw, bh = H * (top * .45 + top * .55 * hash(i * 3 + seed * 90)) + (L ? H * .1 : 0), by = H - bh;
+        x.fillStyle = col(tone); x.fillRect(bx - 1, by, bw + 1, bh);
+        const cols = 3, rows = Math.floor(bh / (H * .045)), ww = bw / (cols * 2 + 1), wh = H * .018;
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          const k = i * 97 + r * 13 + c + L * 500, on = .5 + .5 * Math.sin(t * .25 * (.4 + hash(k)) + hash(k + 1) * TAU);
+          if (hash(k + 2) < .45) continue;
+          x.fillStyle = col(hash(k + 3) < .5 ? 'yellow-hi' : 'cyan-hi', (.08 + .3 * on) * (L ? 1 : .6));
+          x.fillRect(bx + ww * (1 + c * 2), by + H * .02 + r * H * .045, ww, wh);
+        }
+        if (L && hash(i + 40) > .7) {                                 // a neon sign on a roof, humming slowly
+          const hum = .75 + .25 * Math.sin(t * 1.2 + i), c = hash(i + 41) > .5 ? 'pink' : 'cyan';
+          glow(x, bx + bw / 2, by - H * .03, bw * .9, col(c, .25 * hum), col(c, 0));
+          x.fillStyle = col(c, .8 * hum); x.fillRect(bx + bw * .15, by - H * .045, bw * .7, H * .025);
+        }
+      }
+    });
+  };
+
+  /* SYNTHWAVE SUNSET: a striped sun sinking behind mountains, a neon grid rolling toward you */
+  S.synthwave = (x, W, H, t) => {
+    const hz = H * .62;
+    vgrad(x, W, H, [[0, col('deep')], [.35, mix('deep', 'purple-ink', .7)], [hz / H, mix('purple-ink', 'pink-ink', .7)], [hz / H, col('deep')], [1, mix('deep', 'purple-ink', .3)]]);
+    const sr = Math.min(W, H) * .3, sx = W * .5, sy = hz - sr * .35;
+    glow(x, sx, sy, sr * 2.2, col('pink', .25), col('pink', 0));
+    x.save(); x.beginPath(); x.rect(0, 0, W, hz); x.clip();
+    const g = x.createLinearGradient(0, sy - sr, 0, sy + sr); g.addColorStop(0, col('yellow')); g.addColorStop(.5, col('amber')); g.addColorStop(1, col('pink'));
+    x.fillStyle = g; x.beginPath(); x.arc(sx, sy, sr, 0, TAU); x.fill();
+    x.fillStyle = mix('purple-ink', 'pink-ink', .6);                   // the sun's stripes, drifting down slowly
+    for (let k = 0; k < 6; k++) { const f = fract(k / 6 + t * .03), y = sy + sr * (f * 1.1 - .1), h = sr * .03 * (1 + f * 3); x.fillRect(sx - sr, y, sr * 2, h); }
+    x.restore();
+    x.fillStyle = col('deep');                                          // mountains
+    x.beginPath(); x.moveTo(0, hz); [[0, .8], [.12, .55], [.22, .74], [.3, .62], [.4, .85]].forEach(([u, v]) => x.lineTo(W * u, hz - (1 - v) * H * .5)); x.lineTo(W * .45, hz); x.fill();
+    x.beginPath(); x.moveTo(W, hz); [[1, .78], [.88, .58], [.78, .72], [.7, .64], [.6, .86]].forEach(([u, v]) => x.lineTo(W * u, hz - (1 - v) * H * .5)); x.lineTo(W * .55, hz); x.fill();
+    x.strokeStyle = col('pink', .7); x.lineWidth = Math.max(1, W / 300);
+    x.beginPath(); x.moveTo(0, hz); x.lineTo(W, hz); x.stroke();
+    x.strokeStyle = col('cyan', .45); x.lineWidth = Math.max(1, W / 500);
+    for (let i = -10; i <= 10; i++) { x.beginPath(); x.moveTo(W / 2 + i * W * .03, hz); x.lineTo(W / 2 + i * W * .2, H); x.stroke(); }
+    for (let k = 0; k < 8; k++) { const f = fract(k / 8 + t * .12), y = hz + (H - hz) * f * f; x.strokeStyle = col('cyan', .55 * f); x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); }
+  };
+
+  /* GALAXY SWIRL: spiral arms of stars turning slowly around the middle */
+  S.galaxy = (x, W, H, t, o) => {
+    vgrad(x, W, H, [[0, col('deep')], [1, mix('deep', 'purple-ink', .35)]]);
+    const cx = W / 2, cy = H / 2, R = Math.hypot(W, H) * .55, m = Math.min(W, H);
+    glow(x, cx, cy, m * .45, col('purple', .35), col('purple', 0));
+    glow(x, cx, cy, m * .18, col('pink-hi', .3), col('pink-hi', 0));
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const cols = ['cyan', 'pink', 'purple-hi', 'white-hi'];
+    for (let i = 0; i < 260; i++) {
+      const arm = i % 3, d = Math.pow(hash(i + 1), .7), a = arm / 3 * TAU + d * 4.2 + t * .06 + (hash(i + 2) - .5) * .5;
+      const r = d * R, px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r * .8;
+      const tw = .55 + .45 * Math.sin(t * (.6 + hash(i + 3)) + i);
+      x.fillStyle = col(cols[i % 4], (.25 + .5 * (1 - d)) * tw); const s = Math.max(1, m / 180) * (1 + hash(i + 4));
+      x.fillRect(px, py, s, s);
+    }
+    x.restore();
+  };
+
+  /* GOLD RECORD WALL: framed gold records on a dark wall, slowly spinning, a soft spotlight passing along */
+  S.records = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('deep', 'floor-3', .8)], [1, col('deep')]]);
+    const n = 3, cw = W / n, ch = H / n, r = Math.min(cw, ch) * .3;
+    for (let row = 0; row < n; row++) for (let c = 0; c < n; c++) {
+      const fx = c * cw + cw / 2, fy = row * ch + ch / 2, s = Math.min(cw, ch) * .82;
+      x.fillStyle = col('dd-wood', .9); x.fillRect(fx - s / 2, fy - s / 2, s, s);
+      x.strokeStyle = col('amber', .6); x.lineWidth = Math.max(1, W / 200); x.strokeRect(fx - s / 2, fy - s / 2, s, s);
+      x.fillStyle = col('deep'); x.fillRect(fx - s * .42, fy - s * .42, s * .84, s * .84);
+      const g = x.createRadialGradient(fx - r * .3, fy - r * .3, 0, fx, fy, r);
+      g.addColorStop(0, col('yellow-hi')); g.addColorStop(.6, col('amber')); g.addColorStop(1, col('amber-ink'));
+      x.fillStyle = g; x.beginPath(); x.arc(fx, fy, r, 0, TAU); x.fill();
+      x.strokeStyle = col('amber-ink', .6); x.lineWidth = 1;
+      [.85, .7, .55].forEach(k => { x.beginPath(); x.arc(fx, fy, r * k, 0, TAU); x.stroke(); });
+      const a = t * (.5 + .1 * c) + row;                                 // the shine turning with the record
+      x.strokeStyle = col('white-hi', .55); x.lineWidth = Math.max(1, r * .12);
+      x.beginPath(); x.arc(fx, fy, r * .72, a, a + .7); x.stroke();
+      x.fillStyle = col('pink-ink'); x.beginPath(); x.arc(fx, fy, r * .28, 0, TAU); x.fill();
+      x.fillStyle = col('deep'); x.beginPath(); x.arc(fx, fy, r * .06, 0, TAU); x.fill();
+    }
+    const sp = (Math.sin(t * .35) * .6 + .5) * W;                           // the spotlight drifting across
+    x.save(); x.globalCompositeOperation = 'lighter'; glow(x, sp, H * .45, Math.min(W, H) * .5, col('amber-hi', .12), col('amber-hi', 0)); x.restore();
+  };
+
+  /* UNDERWATER BUBBLES: deep water, light rays swaying from the surface, bubbles wobbling up */
+  S.bubbles = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('cyan-ink', 'blue-ink', .5)], [.6, mix('deep', 'blue-ink', .55)], [1, col('deep')]]);
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 5; i++) {                                         // light rays
+      const bx = W * (.1 + .2 * i) + Math.sin(t * .3 + i * 2) * W * .06, g = x.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, col('cyan-hi', .16)); g.addColorStop(1, col('cyan-hi', 0)); x.fillStyle = g;
+      x.beginPath(); x.moveTo(bx - W * .03, 0); x.lineTo(bx + W * .03, 0); x.lineTo(bx + W * .12, H); x.lineTo(bx - W * .02, H); x.fill();
+    }
+    x.restore();
+    for (let i = 0; i < 26; i++) {
+      const sp = .06 + .06 * hash(i + 1), y = (1.1 - fract(hash(i + 2) + t * sp)) * H * 1.15 - H * .05, r = Math.min(W, H) * (.012 + .03 * hash(i + 3));
+      const bx = hash(i + 4) * W + Math.sin(t * 1.6 + i) * W * .015;
+      x.strokeStyle = col('cyan-hi', .6); x.lineWidth = Math.max(1, r * .18); x.beginPath(); x.arc(bx, y, r, 0, TAU); x.stroke();
+      x.fillStyle = col('cyan', .12); x.fill();
+      x.fillStyle = col('white-hi', .7); x.beginPath(); x.arc(bx - r * .35, y - r * .35, r * .22, 0, TAU); x.fill();
+    }
+  };
+
+  /* LAVA LAMP: soft glowing blobs rising and sinking, slowly melting together */
+  S.lavalamp = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('deep', 'purple-ink', .55)], [1, mix('deep', 'pink-ink', .4)]]);
+    glow(x, W / 2, H, W * .8, col('amber', .2), col('amber', 0));
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 9; i++) {
+      const P = 14 + 10 * hash(i + 1), f = tri(t / P + hash(i + 2)), by = H * (1.05 - 1.1 * f), bx = W * (.12 + .76 * hash(i + 3)) + Math.sin(t * .2 + i) * W * .05;
+      const r = Math.min(W, H) * (.09 + .07 * hash(i + 4)), c = i % 3 === 0 ? 'amber' : i % 3 === 1 ? 'pink' : 'yellow';
+      x.save(); x.translate(bx, by); x.scale(1, 1.15 + .15 * Math.sin(t * .5 + i));
+      glow(x, 0, 0, r * 1.6, col(c, .55), col(c, 0));
+      x.fillStyle = col(c, .35); x.beginPath(); x.arc(0, 0, r * .8, 0, TAU); x.fill(); x.restore();
+    }
+    x.restore();
+  };
+
+  /* CONFETTI PARTY: soft party lights and confetti falling gently, turning as it falls */
+  S.confetti = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('deep', 'purple-ink', .5)], [1, col('deep')]]);
+    [['pink', .2, .25], ['cyan', .8, .3], ['yellow', .5, .8]].forEach(([c, u, v], i) => glow(x, W * u + Math.sin(t * .2 + i) * W * .05, H * v, Math.min(W, H) * .45, col(c, .14), col(c, 0)));
+    const cols = ['pink', 'cyan', 'yellow', 'green', 'purple-hi', 'amber'];
+    for (let i = 0; i < 46; i++) {
+      const sp = .05 + .05 * hash(i + 1), y = (fract(hash(i + 2) + t * sp) * 1.2 - .1) * H, px = hash(i + 3) * W + Math.sin(t * (.7 + hash(i + 4)) + i) * W * .03;
+      const s = Math.min(W, H) * (.018 + .014 * hash(i + 5)), turn = Math.cos(t * (1.2 + hash(i + 6) * 1.5) + i);
+      x.save(); x.translate(px, y); x.rotate(t * (.4 + hash(i + 7)) + i);
+      x.fillStyle = col(cols[i % cols.length], .85); x.fillRect(-s / 2, -s * .3 * Math.abs(turn), s, Math.max(1, s * .6 * Math.abs(turn)));
+      x.restore();
+    }
+  };
+
+  /* FIREFLIES NIGHT: a dark meadow, grass swaying, fireflies drifting and glowing softly on and off (slow) */
+  S.fireflies = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('deep', 'blue-ink', .35)], [.7, mix('deep', 'green-ink', .25)], [1, col('deep')]]);
+    for (let i = 0; i < 30; i++) { x.fillStyle = col('white-hi', .1 + .15 * hash(i + 2)); x.fillRect(hash(i) * W, hash(i + 5) * H * .45, Math.max(1, W / 400), Math.max(1, W / 400)); }
+    x.strokeStyle = mix('deep', 'green-ink', .5); x.lineWidth = Math.max(1, W / 160);
+    for (let i = 0; i < 60; i++) {
+      const gx = hash(i + 10) * W, gh = H * (.1 + .16 * hash(i + 11)), sw = Math.sin(t * .8 + i * .7) * W * .012;
+      x.beginPath(); x.moveTo(gx, H); x.quadraticCurveTo(gx, H - gh * .6, gx + sw, H - gh); x.stroke();
+    }
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 18; i++) {
+      const fx = W * (hash(i + 20) + Math.sin(t * (.1 + .08 * hash(i + 21)) + i) * .12), fy = H * (.3 + .6 * hash(i + 22) + Math.sin(t * (.13 + .1 * hash(i + 23)) + i * 2) * .08);
+      const on = Math.max(0, Math.sin(t * (.5 + .4 * hash(i + 24)) + i * 1.7));      // under 0.5 pulses a second, smooth
+      glow(x, fx, fy, Math.min(W, H) * .07, col('yellow', .45 * on), col('yellow', 0));
+      x.fillStyle = col('yellow-hi', .25 + .7 * on); x.fillRect(fx - 1, fy - 1, Math.max(2, W / 160), Math.max(2, W / 160));
+    }
+    x.restore();
+  };
+
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
-  S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20};
+  S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
+    city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

@@ -608,6 +608,8 @@
     later(1400, () => M.P.forEach(P => ninja(P.pi, 'bow')));
     const first = M.P.find(P => !P.cpu && P === W) || M.P[0];
     const btn = $('res' + first.pi).querySelector('[data-act="rematch"]'); if (btn) btn.focus({preventScroll: true});
+    // a player item this win unlocked (the Dojo Night background: 5 wins): the UNLOCKED! card, after the victory sounds
+    later(2600, () => { if (!M.running && A.Avatar && A.Avatar.freshItems().length && A.Skins.catchUp) A.Skins.catchUp(A.store.player); });
   }
   function resultsHTML(P, W, Lz) {
     const won = P === W, st = P.stats, taps = st.right + st.wrong;

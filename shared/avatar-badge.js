@@ -13,7 +13,10 @@
    loaded the first time EDIT AVATAR is used on a page that doesn't already have it.
 
      Arcade.AvatarBadge.mount(el, {member, instLabel, changeInstrument: href | fn | null})   draws the badge into el
-     Arcade.AvatarBadge.edit({member, onClose})   the creator for the device's avatar (loads it first if needed)
+     Arcade.AvatarBadge.edit({member, onClose, tab})   the creator for the device's avatar (loads it first if needed)
+   THE NAME UPGRADE NOTE: after the name migration (shared/avatar.js: a NEVER-USE word or an old initial was replaced),
+   the first badge on the next page shows "Your name got an upgrade! Tap your name to change it." once, under the
+   badge; tapping it opens the creator on the NAME tab, × closes it.
      Arcade.AvatarBadge.load()                    a Promise: the creator is ready
    Saving the avatar fires window 'arcade:avatar' ({detail: {guest}}); every badge redraws itself on it. */
 window.Arcade = window.Arcade || {};
@@ -43,8 +46,8 @@ window.Arcade = window.Arcade || {};
     return loading;
   }
   /** the creator for the device's own avatar, over this page */
-  function edit({member, onClose} = {}) {
-    return load().then(() => A.AvatarCreator.open({member, onClose}))
+  function edit({member, onClose, tab} = {}) {
+    return load().then(() => A.AvatarCreator.open({member, onClose, tab}))
       .catch(e => { if (window.console) console.warn('Band Arcade: the avatar editor could not load', e); });
   }
 
@@ -97,7 +100,24 @@ window.Arcade = window.Arcade || {};
     b.close = close;
     badges.add(b);
     draw(b);
+    upgradeNote(b);
     return b;
+  }
+  /** the one-time "Your name got an upgrade!" note under the badge */
+  function upgradeNote(b) {
+    if (!A.Avatar || !A.Avatar.nameNote || !A.store.avatar) return;
+    A.Avatar.get();                                             // (reading it runs the migration)
+    if (!A.Avatar.nameNote.pending() || document.querySelector('.avb-up')) return;
+    A.Avatar.nameNote.seen();
+    const n = document.createElement('div');
+    n.className = 'avb-up'; n.setAttribute('role', 'status');
+    n.innerHTML = `<button type="button" class="avb-up-go">${esc(A.Avatar.nameNote.TEXT)}</button><button type="button" class="avb-up-x" aria-label="Close">×</button>`;
+    b.el.appendChild(n);
+    n.querySelector('.avb-up-x').addEventListener('click', e => { e.stopPropagation(); n.remove(); });
+    n.querySelector('.avb-up-go').addEventListener('click', e => {
+      e.stopPropagation(); n.remove();
+      if (b.opts.onEdit) b.opts.onEdit(); else edit({member: b.opts.member, tab: 'name', onClose: () => b.el.querySelector('.avb-btn').focus({preventScroll: true})});
+    });
   }
   function draw(b) {
     const {el, opts} = b, btn = el.querySelector('.avb-btn');
