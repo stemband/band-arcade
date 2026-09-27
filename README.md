@@ -475,19 +475,20 @@ bar (← Arcade, sound) still works on the title screen. It shows only when the 
 and never turns on the microphone (that still happens when a level starts). Arcade Quest keeps its own title screen;
 the Note Checker has none. Add `?nostart` to a game's address to skip it while testing.
 
-## Select a level (every game's first screen)
+## Select your notes, select your level, START (every game's first screen)
 
-After PRESS START, every game's first screen makes the next step obvious:
+After PRESS START, every game's first screen works in two steps, then one big button:
 
-- **SELECT A LEVEL** in big announcer letters right above the level cards (with **① PICK YOUR NOTES** on the note
-  picker and **② SELECT A LEVEL** on the heading, in games that have a note picker). The announcer says "Select a level"
-  (the `select-level` sound, at most once a minute).
-- **The next level to play glows** and says **▶ PLAY**: the first level without stars (Level 1 for a new student), or
-  once every open level has stars, the first one without all three. It has the keyboard focus, so Enter starts it.
-- If nobody taps for 5 seconds, a **bouncing arrow** points at it.
-- **Locked levels** are dimmed with a lock and what opens them ("Clear Level 3 to unlock").
-- The level cards now come right after the note picker; the "Your first five notes" staff, the Note Checker link and
-  other extras moved below them.
+- **① SELECT YOUR NOTES** on the note picker, and **② SELECT YOUR LEVEL** right above the level cards (both headings in
+  the same neon style). The announcer says "Select your level" (the `select-level` sound, at most once a minute).
+- **Tapping a level selects it** (a lit border and a ✓, like the chosen note set). It doesn't start the game yet.
+  Locked levels say what opens them ("Clear Level 3 to unlock") when tapped. The Endless card can be selected too.
+- **START** then appears next to the heading, with what you picked ("LEVEL 4 · FIRST FIVE") and the `start-ready`
+  sound. Before a level is picked it says "Select your notes and level" there instead.
+- **Remembered:** each device remembers the last level picked (and the notes) for each game and instrument, so a
+  returning student can press START right away. After a level, the screen comes back with that level selected.
+- If nobody taps for 5 seconds, a **bouncing arrow** points at the next step: the level cards, or START.
+- The **"Your first five notes" staff** is back under the note picker, at half size.
 
 Dojo Duel's BEGIN THE DUEL, Neon Face-Off's START MATCH and Arcade Quest's CONTINUE / NEW GAME glow the same way.
 

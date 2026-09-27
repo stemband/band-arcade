@@ -547,28 +547,46 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 @media (prefers-reduced-motion: reduce){ .ps-go{animation:none} html.ps-reveal body>*>*{animation:none} }
 
 /* ---------- THE LEVEL SELECT PATTERN (shared/level-select.js): every game's first screen ---------- */
-/* "SELECT A LEVEL": the announcer style of CHOOSE YOUR INSTRUMENT, smaller; one line in landscape, balanced lines in portrait */
-.ls-head{margin:6px 0 12px;font-family:var(--display);font-weight:400;font-size:clamp(24px,4.6vw,40px);line-height:1.05;letter-spacing:.03em;text-transform:uppercase;
-  font-style:italic;transform:skewX(-8deg);transform-origin:left center;color:var(--yellow);-webkit-text-stroke:1.5px var(--red-ink);
-  text-shadow:0 3px 0 var(--red-ink),var(--glow-yellow);text-wrap:balance;overflow-wrap:normal;padding:0 4px}
+/* ONE heading style for "① SELECT YOUR NOTES" and "② SELECT YOUR LEVEL": the announcer's neon lettering at section size */
+.ls-head{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(16px,2.3vw,21px);line-height:1.15;letter-spacing:.04em;text-transform:uppercase;
+  font-style:italic;transform:skewX(-8deg);transform-origin:left center;color:var(--yellow);-webkit-text-stroke:.8px var(--red-ink);
+  text-shadow:0 2px 0 var(--red-ink),var(--glow-yellow);white-space:nowrap;padding:0 4px}
 .ls-head.say{animation:ls-say .6s ease-out}
-@keyframes ls-say{35%{transform:skewX(-8deg) scale(1.06)}}
-.ls-step{display:inline-grid;place-items:center;font-style:normal;color:var(--cyan-hi);-webkit-text-stroke:0;text-shadow:var(--glow-cyan)}
-.ls-pick{margin:0 0 8px;font-family:var(--display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-hi)}
-.ls-pick .ls-step{font-size:18px;margin-right:2px}
-/* the recommended level: a gentle glowing pulse (0.6 a second), steady under reduced motion; a big ▶ PLAY */
+@keyframes ls-say{35%{transform:skewX(-8deg) scale(1.08)}}
+.ls-step{font-style:normal;color:var(--cyan-hi);-webkit-text-stroke:0;text-shadow:var(--glow-cyan)}
+.ls-pick{margin:0 0 8px}
+/* the heading row: "② SELECT YOUR LEVEL" and START (or the hint); it sticks to the top while the cards scroll under it */
+.ls-row{position:sticky;top:0;z-index:8;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;
+  margin:2px -8px 8px;padding:4px 8px;border-radius:14px;background:color-mix(in srgb,var(--floor) 86%,transparent)}
+.ls-go{display:flex;align-items:center;justify-content:flex-end;min-height:58px;margin-left:auto}
+.ls-need{margin:0;padding:8px 14px;border:2px dashed var(--floor-3);border-radius:14px;color:var(--text-lo);font-weight:700;font-size:15px}
+.ls-start{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:200px;min-height:58px;padding:6px 26px;border-radius:16px;cursor:pointer;
+  border:3px solid var(--yellow-hi);background:var(--yellow);color:var(--deep);box-shadow:0 4px 0 var(--red-ink),var(--glow-yellow)}
+.ls-start-t{font:400 26px/1 var(--display);letter-spacing:.1em;text-transform:uppercase}
+.ls-start .ls-sum{margin-top:3px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+.ls-start:hover{background:var(--yellow-hi)}
+.ls-start:active{transform:translateY(2px);box-shadow:0 2px 0 var(--red-ink),var(--glow-yellow)}
+.ls-start:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+.ls-start.ls-in{animation:ls-in .35s ease-out}
+@keyframes ls-in{from{opacity:0;transform:translateX(24px)}}
+@media (max-width:560px){ .ls-go{width:100%;margin-left:0} .ls-start,.ls-need{width:100%} }
+/* a selected level: the chosen note set's look (lit border, glow) + a check */
 .ls-card{position:relative}
-.ls-rec{border-color:var(--yellow)!important;box-shadow:0 0 0 2px var(--yellow),0 0 18px color-mix(in srgb,var(--yellow) 55%,transparent);animation:ls-glow 1.6s ease-in-out infinite}
-@keyframes ls-glow{50%{box-shadow:0 0 0 3px var(--yellow-hi),0 0 34px color-mix(in srgb,var(--yellow) 80%,transparent)}}
-.ls-rec:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
-.ls-play{position:absolute;right:8px;top:-14px;z-index:2;padding:3px 12px 2px;border-radius:999px;background:var(--yellow);color:var(--deep);
-  font:400 18px/1.2 var(--display);letter-spacing:.08em;text-transform:uppercase;box-shadow:0 2px 0 var(--red-ink),var(--glow-yellow);pointer-events:none;white-space:nowrap}
-/* locked levels: dimmed, a lock and what opens them; never glowing */
-.ls-locked{box-shadow:none!important;animation:none!important}
-.ls-lock{display:flex;align-items:center;gap:6px;margin-top:6px;grid-column:1/-1;font-size:13px;font-weight:700;color:var(--text-hi);opacity:1;line-height:1.2;text-align:left}
+.ls-card.ls-sel{border-color:var(--yellow)!important;background:var(--floor-lit);box-shadow:0 0 0 2px var(--yellow),var(--glow-yellow)}
+.ls-card.ls-sel::after{content:"✓";position:absolute;top:-10px;right:-8px;z-index:3;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;
+  background:var(--yellow);color:var(--deep);font:700 17px/1 var(--text);box-shadow:0 0 0 3px var(--deep),var(--glow-yellow)}
+.ls-card:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+/* locked levels: dimmed, a lock and what opens them; tapping one says it for a moment */
+.ls-locked{cursor:not-allowed;opacity:.5}
+.ls-lock{display:flex;align-items:center;gap:6px;margin-top:6px;grid-column:1/-1;font-size:13px;font-weight:700;color:var(--text-hi);line-height:1.2;text-align:left}
 .ls-lock-i{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
 .ls-lock-i rect{fill:currentColor;fill-opacity:.25}
-/* the idle hint: a bouncing arrow beside the recommended level */
+.ls-toast{position:absolute;left:50%;top:50%;z-index:4;transform:translate(-50%,-50%);width:max-content;max-width:92%;padding:8px 12px;border-radius:12px;
+  background:var(--deep);border:2px solid var(--yellow);color:var(--text-hi);font-weight:700;font-size:14px;text-align:center;box-shadow:var(--glow-yellow);
+  animation:ls-toast 1.8s ease both;pointer-events:none}
+.ls-locked .ls-toast{opacity:1}
+@keyframes ls-toast{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
+/* the idle hint: a bouncing arrow at what's missing (the level cards, or START) */
 .ls-hint{position:absolute;z-index:60;width:44px;height:44px;pointer-events:none;color:var(--yellow);filter:drop-shadow(0 0 6px var(--yellow)) drop-shadow(0 2px 0 var(--red-ink));
   animation:ls-bob .9s ease-in-out infinite}
 .ls-hint svg{width:100%;height:100%;fill:currentColor;stroke:var(--deep);stroke-width:2;stroke-linejoin:round}
@@ -576,4 +594,18 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 @keyframes ls-bob{50%{translate:8px 0}}
 .ls-hint.down{animation-name:ls-bob-down}
 @keyframes ls-bob-down{50%{translate:0 8px}}
-@media (prefers-reduced-motion:reduce){ .ls-rec,.ls-hint{animation:none} .ls-head.say{animation:none} }
+/* a setup screen's main button (START MATCH, CONTINUE): lit */
+.ls-main{box-shadow:0 0 0 3px var(--yellow),var(--glow-yellow)!important}
+/* the note-set staff, half size, right after the picker; on wider screens it sits beside the picker's ORDER row and
+   description line (the space they leave on the right), so it never pushes the level cards down */
+.ls-notes{position:relative}
+.fivecard.ls-mini{width:min(100%,400px);margin:0 0 10px;padding:2px 6px 0}
+.fivecard.ls-mini .cap{font-size:11.5px;line-height:1.3;padding:0 4px;gap:6px}
+.fivecard.ls-mini .cap>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fivecard.ls-mini .cap>span+span{display:none}                 /* the staff shows the notes; the concert names stay on the big one */
+@media (min-width:700px){
+  .ls-notes .fivecard.ls-mini{position:absolute;right:0;bottom:1px;width:230px;margin:0}
+  .ls-notes .mp-order{max-width:min(480px,calc(100% - 250px))}
+  .ls-notes .mp-say{margin-right:242px}
+}
+@media (prefers-reduced-motion:reduce){ .ls-hint,.ls-start.ls-in,.ls-head.say{animation:none} }

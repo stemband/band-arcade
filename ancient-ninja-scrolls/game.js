@@ -57,9 +57,9 @@
       </button>`;
     }).join('');
     $('chambers').querySelectorAll('.chamber-card').forEach(b => b.addEventListener('click', () => openChamber(+b.dataset.r)));
-    // SELECT A LEVEL (shared/level-select.js): every chamber is open; the next one = the lowest belt without stars
+    // SELECT YOUR LEVEL (shared/level-select.js): every chamber is open; START opens the selected one
     A.LevelSelect.show({screen: $('hub'), grid: $('chambers'), cards: $('chambers').querySelectorAll('.chamber-card'),
-      stars: i => A.store.level(GAME_ID, 'all', beltNo(RANKS[i])).stars, unlocked: () => true});
+      unlocked: () => true, label: i => `Rank ${RANKS[i]} · ${A.belt(RANKS[i]).name} chamber`});
     const open = RANKS.filter(r => masteredIn(r) > 0), total = RANKS.reduce((s, r) => s + masteredIn(r), 0);
     $('reviewBtn').disabled = !open.length;
     $('reviewInfo').textContent = open.length
@@ -75,6 +75,7 @@
 
   /* ---------- a chamber: modes and the scroll rack ---------- */
   function openChamber(r) {
+    A.LevelSelect.played(RANKS.indexOf(r));        // the temple comes back with this chamber selected
     A.Sfx.gameMenuMusic(GAME_ID);                   // a belt's chamber is a menu too
     stopTimer(); Q = null; rank = r;
     const b = A.belt(r), p = A.store.level(GAME_ID, 'all', beltNo(r)), ex = gd.exams[r];

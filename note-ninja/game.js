@@ -61,8 +61,7 @@
       blurb: 'Name notes until your 3 hearts are gone. The timer keeps getting shorter, and more notes come at once. A wrong answer or running out of time costs a heart.',
       onPlay: startEndless}));
     window.scrollTo(0, 0);
-    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'),
-      stars: i => A.store.level(key, inst.id, i + 1).stars,
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0,
       lockText: i => `Clear the ${BELTS[i - 1].name} Belt to unlock`});
   }
@@ -71,6 +70,7 @@
   let G = null, timerId = 0;
 
   function startLevel(lv) {
+    A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const L = BELTS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv);
     // each item: the note as drawn (show) and its real name (letter + acc of n: key signature included)
@@ -89,6 +89,7 @@
     return A.ModePicker.sequence(picker.state, {count: 24, pool: small ? 3 : 5}, small ? 1 : 2);
   }
   function startEndless() {
+    A.LevelSelect.played('endless');
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const st = picker.state, seq = chunk(0), full = A.ModePicker.sequence(st, {count: 8, pool: 5}, 2);
     G = {endless: true, L: {name: 'Endless', color: 'belt-white'}, items: seq.items.map(itemOf), count: Infinity,
