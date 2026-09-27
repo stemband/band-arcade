@@ -11,7 +11,7 @@ sound for that moment, so nothing ever goes silent and students never see an err
    (lowercase, dashes, no spaces). If both exist, the `.m4a` is used.
 3. Upload it into this folder (`shared/sounds/`) on GitHub. To replace a sound, upload a new file with the same name.
 4. Open the **Sound Board** (`sound-board/index.html` on the site, e.g.
-   `https://stemband.github.io/band-arcade/sound-board/index.html`). It checks every file when it opens; after an
+   `https://bandarcade.org/sound-board/index.html`). It checks every file when it opens; after an
    upload, press **RELOAD ALL SOUNDS** (no need to reload the page). Your file shows **YOUR FILE (m4a, 0.42 s,
    18 KB)** with its length and size, so you can tell a replaced file from the old one; a label that changed since
    the last check gets a yellow outline, and "Checked at …" shows when the check ran. The Sound Board always asks

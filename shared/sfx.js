@@ -330,8 +330,9 @@ window.Arcade = window.Arcade || {};
     const el = new Audio(); let done = false;
     el.preload = 'auto';
     el.addEventListener('canplaythrough', () => { if (!done) { done = true; res(el); } }, {once: true});
-    el.addEventListener('error', () => { if (!done) { done = true; rej(); } }, {once: true});
-    setTimeout(() => { if (!done) { done = true; rej(); } }, 8000);
+    // a file that isn't there (or won't play) = missing, like a 404; too slow = a network hiccup (tried again later)
+    el.addEventListener('error', () => { if (!done) { done = true; rej(Object.assign(new Error('missing'), {status: 404})); } }, {once: true});
+    setTimeout(() => { if (!done) { done = true; rej(new Error('timeout')); } }, 8000);
     el.src = url; el.load();
   });
   /* CACHING: games load <file>.<ext>?v=<SOUNDS_VERSION> (shared/sounds.js) with the browser's normal cache, so students
@@ -378,8 +379,9 @@ window.Arcade = window.Arcade || {};
           if (wanted(file)) setTimeout(applyAll, 0);         // a music file just loaded: the manager starts it now
           return rec;
         } catch (e) {
-          const gone = e.status === 404 || e.status === 410 || e.status === 'could not decode';
-          mdbg(`${file}.${ext}: ${e.status || 'network error'}`);
+          const st = e && e.status;
+          const gone = st === 404 || st === 410 || st === 'could not decode';
+          mdbg(`${file}.${ext}: ${st || 'network error'}`);
           if (!gone) { transient = true; continue; }         // a Wi-Fi hiccup is never remembered as "missing"
           if (music) continue;                               // music: never remembered (see above)
           miss.add(base);
