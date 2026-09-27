@@ -102,7 +102,7 @@ window.Arcade = window.Arcade || {};
     if (!DEBUG) return;
     const line = (performance.now() / 1000).toFixed(2) + ' s  ' + msg;
     musicLog.push(line); if (musicLog.length > 60) musicLog.shift();
-    console.log('[music] ' + msg);
+    console.log('[sound] ' + msg);
     if (!document.body) return;
     if (!logBox) {
       logBox = document.createElement('pre');
@@ -112,7 +112,7 @@ window.Arcade = window.Arcade || {};
         'background:var(--deep,black);color:var(--text-hi,white);border:1px solid var(--cyan,white);opacity:.9';
       document.body.appendChild(logBox);
     }
-    logBox.textContent = 'MUSIC (?debug)\n' + musicLog.slice(-14).join('\n');
+    logBox.textContent = 'SOUNDS (?debug)\n' + musicLog.slice(-14).join('\n');
   }
 
   /* true once this page has had a tap. A context made by that same tap may still be starting
@@ -287,8 +287,17 @@ window.Arcade = window.Arcade || {};
   function playGen(fn) { span = 0; fn(); return Math.max(span, 0.05); }
 
   /* ---------- sound files ---------- */
-  const MISS_KEY = 'bandarcade.snd-miss', miss = new Set();
-  try { JSON.parse(sessionStorage.getItem(MISS_KEY) || '[]').forEach(u => miss.add(u)); } catch (e) {}
+  /* an effect file that 404'd (or wouldn't decode) is skipped for a while in this tab, so a missing .m4a costs one request,
+     not one per page. The memory EXPIRES after MISS_MS (GitHub Pages lets browsers keep a 404 for 10 minutes too):
+     a file uploaded later is found again, even in a tab (or an iPad home-screen app) that stays open for days. */
+  const MISS_KEY = 'bandarcade.snd-miss2', MISS_MS = 10 * 60 * 1000, missAt = {};
+  try { const o = JSON.parse(sessionStorage.getItem(MISS_KEY) || '{}'); if (o && typeof o === 'object' && !Array.isArray(o)) Object.assign(missAt, o); } catch (e) {}
+  const saveMiss = () => { try { sessionStorage.setItem(MISS_KEY, JSON.stringify(missAt)); } catch (x) {} };
+  const miss = {
+    has: u => !!missAt[u] && Date.now() - missAt[u] < MISS_MS,
+    add: u => { missAt[u] = Date.now(); saveMiss(); },
+    delete: u => { if (u in missAt) { delete missAt[u]; saveMiss(); } },
+  };
   const retries = {};          // music file -> tries after network errors
   const files = {};            // file name -> {state: 'loading' | 'ok' | 'missing', buf | el, ext, dur, loopStart, loopEnd}
   const decode = ab => new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
@@ -319,7 +328,7 @@ window.Arcade = window.Arcade || {};
       for (const ext of ['m4a', 'mp3']) {
         const base = BASE + file + '.' + ext + '?v=' + VERSION();
         const url = bust ? base + '&t=' + Date.now() : base;
-        if (!fresh && !bust && !music && miss.has(base)) continue;
+        if (!fresh && !bust && !music && miss.has(base)) { if (DEBUG) mdbg(`${file}.${ext}: skipped (missing a moment ago in this tab)`); continue; }
         asked = true;
         try {
           if (FILE_MODE || !ctx) {
@@ -338,20 +347,19 @@ window.Arcade = window.Arcade || {};
             Object.assign(rec, {state: 'ok', buf, ext, url, dur: buf.duration}, loops(file) ? {loopStart: 0, loopEnd: buf.duration, trimmed: pts} : pts);
           }
           miss.delete(base);
-          if (music) mdbg(`${file}.${ext}: loaded (${rec.dur.toFixed(1)} s)`);
+          mdbg(`${file}.${ext}: loaded (${rec.dur.toFixed(1)} s)`);
           if (wanted(file)) setTimeout(applyAll, 0);         // a music file just loaded: the manager starts it now
           return rec;
         } catch (e) {
           const gone = e.status === 404 || e.status === 410 || e.status === 'could not decode';
-          if (music) mdbg(`${file}.${ext}: ${e.status || 'network error'}`);
+          mdbg(`${file}.${ext}: ${e.status || 'network error'}`);
           if (!gone) { transient = true; continue; }         // a Wi-Fi hiccup is never remembered as "missing"
           if (music) continue;                               // music: never remembered (see above)
           miss.add(base);
-          try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss])); } catch (x) {}
         }
       }
       rec.state = 'missing';
-      if (music) mdbg(`${file}: no .m4a or .mp3 could play`);
+      mdbg(`${file}: no .m4a or .mp3 could play`);
       // music that failed on a bad connection: try again in a few seconds while it's still wanted (3 tries)
       if (music && transient && !bust && (retries[file] = (retries[file] || 0) + 1) <= 3)
         setTimeout(() => { if (files[file] === rec && wanted(file)) { delete files[file]; applyAll(); } }, 4000 * retries[file]);
@@ -412,6 +420,7 @@ window.Arcade = window.Arcade || {};
     if (e && e.file) {
       const rec = files[e.file];
       if (rec && rec.state === 'ok') return {how: 'file', rec, e};
+      if (DEBUG && !depth) mdbg(`${name}: playing the fallback: ${e.file} is ${!rec ? 'not downloaded yet' : rec.state === 'loading' ? 'still downloading' : 'missing or would not play'}`);
       if (!rec && ctx) load(e.file);                     // not preloaded: this time the fallback, next time the file
     }
     if (e && e.fallback && depth < 3) {
@@ -483,7 +492,7 @@ window.Arcade = window.Arcade || {};
         try {
           const r = await fetch(base);
           if (r.ok) { await r.arrayBuffer(); return; }
-          if (r.status === 404) { miss.add(base); try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss])); } catch (x) {} }
+          if (r.status === 404) miss.add(base);
         } catch (e) { return; }                                  // offline: the normal load tries again later
       }
     })();
@@ -496,7 +505,11 @@ window.Arcade = window.Arcade || {};
     const rec = files[e.file];
     if (rec && rec.state !== 'loading') return Promise.resolve(playEvent(name));
     const p = rec ? rec.p : load(e.file);                         // not queued yet: fetch it now
-    return Promise.race([p, new Promise(r => setTimeout(r, maxWait))]).then(() => playEvent(name));
+    const t0 = performance.now();
+    return Promise.race([p, new Promise(r => setTimeout(r, maxWait))]).then(() => {
+      mdbg(`${name}: waited ${Math.round(performance.now() - t0)} ms for ${e.file}`);
+      return playEvent(name);
+    });
   }
   function pump() {
     while (busy < 2 && queue.length) {
