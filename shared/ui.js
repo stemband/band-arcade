@@ -308,16 +308,21 @@ window.Arcade = window.Arcade || {};
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;
-    // the student's AVATAR (shared/avatar.js, Create Your Player) wearing this instrument's skins; a fixed-instrument
-    // game (Chime Heist) shows its instrument instead
+    // THE AVATAR BADGE (shared/avatar-badge.js): the student's avatar + name + instrument; its menu = EDIT AVATAR (the
+    // creator over this page) and CHANGE INSTRUMENT (Choose Your Instrument for this game; a fixed-instrument game:
+    // the arcade's instrument pick, then the lobby). Without avatar-badge.js: the old instrument chip.
     const pic = id => !id ? '' : !fixed && A.avatarHTML ? `<span class="chip-pic" aria-hidden="true">${A.avatarHTML({size: 'chip', member: id})}</span>`
       : A.portraitHTML ? `<span class="chip-pic" aria-hidden="true">${A.portraitHTML(id, {size: 'chip'})}</span>` : '';
+    const pickLink = () => A.linkTo('../index.html', {pick: ''});
     el.innerHTML =
       `<a class="brand" href="${A.homeLink(gameId)}" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a>` +
       `<div class="topbar-right">${extraRightHTML}` +
-      (fixed ? `<span class="chip">${pic(portrait)}<span class="sr">Playing </span><span class="chip-name">${fixed}</span></span></div>`
-             : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">${pic(m && m.id)}` +
-               `<span class="sr">Change instrument. Playing as </span><span class="chip-name">${m ? m.short : inst ? inst.shortName : 'Choose instrument'}</span></a></div>`);
+      (A.AvatarBadge ? `<div class="avb-slot"></div></div>`
+        : fixed ? `<span class="chip">${pic(portrait)}<span class="sr">Playing </span><span class="chip-name">${fixed}</span></span></div>`
+        : `<a class="chip" href="${A.playerLink(gameId)}" title="Change instrument">${pic(m && m.id)}` +
+          `<span class="sr">Change instrument. Playing as </span><span class="chip-name">${m ? m.short : inst ? inst.shortName : 'Choose instrument'}</span></a></div>`);
+    if (A.AvatarBadge) A.AvatarBadge.mount(el.querySelector('.avb-slot'), {member: m ? m.id : null,
+      instLabel: fixed || (m ? m.short : inst ? inst.shortName : ''), changeInstrument: fixed ? pickLink() : A.playerLink(gameId)});
     /* sound (shared/sfx.js): the speaker button, this game's sounds preloaded after the first tap, and "← ARCADE"
        plays ui-back before it leaves. Nothing loops on a game page unless the game asks the music manager
        (Arcade.Sfx.setMusic): the first tap (the mic prompt, START, a level button) unlocks the audio. */

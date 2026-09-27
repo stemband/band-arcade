@@ -72,7 +72,8 @@ window.Arcade = window.Arcade || {};
     'item-unlocked':    {file: 'item-unlocked',    vol: .8, mic: true, screen: 'general', fallback: 'skin-unlocked', when: 'An UNLOCKED! card with a new item for your player (a hat, a pet, a jacket…): a results screen or Select Player.', len: '0.5–1 s'},
     'item-purchase':    {file: 'item-purchase',    vol: .7, mic: true, screen: 'arcade-quest', fallback: 'quest-tokens', gen: 'select-default', when: 'Arcade Quest: buying a player item or a charm at the Token Booth.', len: '0.3–0.8 s'},
     'charm-equip':      {file: 'charm-equip',      vol: .6, mic: true, screen: 'arcade-quest', fallback: 'skin-equip', gen: 'skin-equip', when: 'Arcade Quest: putting on or taking off a charm (Menu: CHARMS), or a ghost giving you one.', len: '0.2–0.5 s'},
-    'avatar-save':      {file: 'avatar-save',      vol: .7, mic: true, screen: 'general', gen: 'skin-equip', when: 'Create Your Player: SAVE.', len: '0.3–0.6 s'},
+    'avatar-open':      {file: 'avatar-open',      vol: .6, mic: false, screen: 'general', gen: [[392, 0, .07, .18, 'triangle'], [587, .06, .07, .18, 'triangle'], [784, .12, .14, .16, 'triangle']], when: 'The avatar editor (Create Your Player) opens over any screen, from the avatar badge in the top bar or EDIT PLAYER.', len: '0.2–0.6 s'},
+    'avatar-save':      {file: 'avatar-save',      vol: .7, mic: true, screen: 'general', gen: 'skin-equip', when: 'Create Your Player: DONE (the new look is saved). CANCEL plays ui-back.', len: '0.3–0.6 s'},
     // ---- every game --------------------------------------------------------------------------------------------
     'level-start':     {file: 'level-start',    vol: .8, mic: true, screen: 'game', when: 'A level begins.', len: '0.3–0.8 s'},
     'note-hit':        {file: 'note-hit',       vol: .7, mic: true, play: true, screen: 'game', when: 'A correct note.', len: 'under 0.5 s (0.1–0.3 s)'},

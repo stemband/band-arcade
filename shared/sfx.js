@@ -534,6 +534,19 @@ window.Arcade = window.Arcade || {};
       g.linearRampToValueAtTime(level, t + down); g.setValueAtTime(level, end); g.linearRampToValueAtTime(1, end + up);
     });
   }
+  /** a dip that lasts until released (a panel over the page: the avatar creator): duckHold(true) dips the MUSIC and
+      AMBIENCE to `level`, duckHold(false) brings them back */
+  function duckHold(on, {level = 0.6, down = 0.25, up = 0.5} = {}) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    Object.values(CH).forEach(c => {
+      if (!c.duck) return;
+      const g = c.duck.gain;
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+      if (on) { c.duckEnd = t + 3600; g.linearRampToValueAtTime(level, t + down); }
+      else { c.duckEnd = 0; g.linearRampToValueAtTime(1, t + up); }
+    });
+  }
   /** ms until the last effect played with event() has finished (0 = quiet); busy('voice'): the last VOICE line */
   const busyFor = (what) => Math.max(0, ...played.filter(p => what !== 'voice' || p.voice).map(p => p.at + p.dur * 1000 - performance.now()));
 
@@ -1024,7 +1037,7 @@ window.Arcade = window.Arcade || {};
     get unlocked() { return !!ctx && ctx.state === 'running'; },
     /** a tap or key on this page has started the audio (it may still be unlocking) */
     get started() { return !!ctx; },
-    duck, busy: busyFor,
+    duck, duckHold, busy: busyFor,
     /** ?debug: the music log (also shown on the page) */
     musicLog,
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */

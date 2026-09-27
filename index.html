@@ -33,7 +33,7 @@
 <div class="room" aria-hidden="true"></div>
 
 <!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES, the FULL ARCADE; arcade.js): back, where you are, TUNE UP (the
-     Note Checker), ALL GAMES, FULL ARCADE, your player (tap to change instrument) and the sound button -->
+     Note Checker), ALL GAMES, FULL ARCADE, your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
 <nav class="fbar" id="fbar" aria-label="Arcade">
   <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
   <h2 class="fb-title" id="fbTitle" hidden></h2>
@@ -44,7 +44,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><span>All games</span></button>
     <button type="button" class="fb-btn fb-full" id="fullBtn">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span>Full arcade</span></button>
-    <button type="button" class="fb-chip" id="instChip"></button>
+    <div class="fb-avb" id="avBadge"></div>
     <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
   </div>
 </nav>
@@ -106,7 +106,7 @@
      unlocked. URL: index.html?game=<id>; select-player/index.html?game=<id> redirects here. -->
 <div class="sp-view" id="selectView" hidden>
 <div class="wrap sp">
-  <div class="topbar"><a class="brand" id="spBack" href="index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="spSound" role="group" aria-label="Sound"></div></div>
+  <div class="topbar"><a class="brand" id="spBack" href="index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="topbar-right"><div class="sound-ctl" id="spSound" role="group" aria-label="Sound"></div><div class="avb-slot" id="spBadge"></div></div></div>
 
   <header class="sp-head">
     <div class="sp-marquee" id="marquee"></div>
@@ -185,6 +185,7 @@
 <script src="shared/avatar-parts.js"></script>
 <script src="shared/avatar-names.js"></script>
 <script src="shared/avatar.js"></script>
+<script src="shared/avatar-badge.js"></script>
 <script src="shared/avatar-creator.js"></script>
 <script src="shared/games.js"></script>
 <script src="shared/featured.js"></script>

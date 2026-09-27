@@ -18,6 +18,8 @@
 .col-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .col-pic{width:64px;height:64px;flex:none;border-radius:14px;background:var(--deep);display:grid;place-items:center}
 .col-pic>svg,.col-pic>.pt-box{width:56px;height:56px}
+.col-edit{padding:0;border:2px solid var(--line);cursor:pointer}
+.col-edit:hover,.col-edit:focus-visible{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
 .col-head small{display:block;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--pc-hi)}
 .col-head b{font-family:var(--display);font-weight:400;font-size:24px;text-transform:uppercase}
 .col .mp-notes{grid-template-columns:repeat(3,1fr)}

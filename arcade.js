@@ -260,6 +260,7 @@
 
   document.addEventListener('keydown', e => {
     if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || A.SelectView.isOpen || pressStart()) return;
+    if (document.body.classList.contains('avc-open') || e.defaultPrevented) return;   // the avatar editor (or the badge's menu) has the keys
     if (!$('fitDlg').hidden) { if (e.key === 'Escape') closeFit(); return; }
     if (e.key === 'Escape' && current !== 'lobby') { e.preventDefault(); goBack(); return; }
     if (current !== 'zone') return;
@@ -505,13 +506,14 @@
     const el = current === 'zone' ? view && view.startLink : current === 'all' ? $('allGrid').querySelector('.gcard') : $('zones').querySelector('.zsign');
     if (el) el.focus({preventScroll: true});
   }
-  /** the player chip in the top bar: the avatar and instrument (tap: CHOOSE YOUR INSTRUMENT) */
-  function chip() {
-    const m = A.store.player ? A.memberById(A.store.player) : null;
-    $('instChip').innerHTML = m ? `<span class="chip-pic" aria-hidden="true">${A.avatarHTML({size: 'chip', member: m.id, label: ''})}</span><span class="chip-name">${esc(m.short)}</span>`
-      : `<span class="chip-name">Choose instrument</span>`;
-    $('instChip').setAttribute('aria-label', m ? `Playing ${m.short}. Change instrument` : 'Choose your instrument');
-  }
+  /** THE AVATAR BADGE in the top bar (shared/avatar-badge.js): the avatar, its name and the instrument; its menu =
+      EDIT AVATAR (the creator over this view: the zone, cabinet and scroll stay put) or CHANGE INSTRUMENT (pick mode) */
+  const badge = A.AvatarBadge.mount($('avBadge'), {
+    member: A.store.player || null,
+    instLabel: () => { const m = A.store.player ? A.memberById(A.store.player) : null; return m ? m.short : 'Choose instrument'; },
+    changeInstrument: () => openPick(null),
+  });
+  function chip() { badge.opts.member = A.store.player || null; badge.render(); }
 
   function enterZone(z) {
     A.Sfx.event('zone-select');
@@ -539,7 +541,6 @@
   $('backBtn').addEventListener('click', goBack);
   $('allBtn').addEventListener('click', openAll);
   $('fullBtn').addEventListener('click', openFull);
-  $('instChip').addEventListener('click', () => openPick(null));
 
   function openPick(g) {
     const p = new URLSearchParams(location.search);

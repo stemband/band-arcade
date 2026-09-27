@@ -439,6 +439,12 @@ Each page loads only its own sounds, after the first tap, two at a time (school 
 
 ## Create Your Player (avatars)
 
+**The avatar badge.** Every screen with a top bar (the lobby, zones, Full Arcade, All Games, Choose Your Instrument and
+every game's menus) shows the student's avatar, name and instrument in the top-right corner, with a small pencil.
+Tapping it offers **EDIT AVATAR** (the editor opens right on top of that screen; DONE saves and closes, CANCEL throws
+the changes away, and the student is back exactly where they were, with the same note set and level selected) and
+**CHANGE INSTRUMENT**. The badge is hidden during a level, so it can't be tapped by accident.
+
 Every student has an **8-bit avatar**, one per device, shown all over the arcade: the Select Player card and **Continue as …**, the top bar of every game, every results screen (with the player's name), Button Masher's fighter, Neon Face-Off's players, the Sustain Speedway dashboard, and in **Arcade Quest the hero IS the avatar** (walking, rolling in a wheelchair, holding and playing their own instrument). The first visit gives each device a random avatar, so nobody is left without one.
 
 - **Opening it:** **EDIT PLAYER** on the Select Player card; Arcade Quest's title (**YOUR PLAYER**) and SETTINGS (**EDIT PLAYER**); and the one-time "Create your player?" offer.

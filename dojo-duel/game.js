@@ -129,6 +129,8 @@
   $('card1').addEventListener('click', e => onCard(0, e));
   $('card2').addEventListener('click', e => onCard(1, e));
 
+  // a new look from the avatar badge's editor: the setup cards follow at once
+  addEventListener('arcade:avatar', () => { if (!$('wrap').hidden) renderSetup(); });
   function renderSetup() {
     $('segMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.mode)));
     $('segCpu').innerHTML = seg(CPUS.map(c => ({v: c.id, html: c.name})), S.cpu);

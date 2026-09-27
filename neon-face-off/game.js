@@ -91,13 +91,20 @@
       return;
     }
     const d = saved.settings['p' + (i + 1)].diff;
-    col.innerHTML = `<div class="col-head"><span class="col-pic">${portrait(p, 'tile')}</span><div><small>Player ${i + 1} · ${p.inst}</small><b>${p.name}</b>` +
+    // Player 1 is the device's own avatar: tapping it opens the avatar editor (shared/avatar-badge.js), like the badge
+    const own = i === 0 && A.AvatarBadge;
+    col.innerHTML = `<div class="col-head">${own ? `<button type="button" class="col-pic col-edit" aria-label="Edit your avatar, ${p.name}">${portrait(p, 'tile')}</button>` : `<span class="col-pic">${portrait(p, 'tile')}</span>`}<div><small>Player ${i + 1} · ${p.inst}</small><b>${p.name}</b>` +
       (i === 1 ? `<button type="button" class="guest-rand">Surprise me</button>` : '') + `</div></div>` +
       `<div class="col-modes"></div>` +
       `<div class="diff"><span class="mp-lbl">Difficulty</span><div class="segs">` +
       DIFF.map(x => `<button type="button" class="seg" data-diff="${x.id}" aria-pressed="${x.id === d}"><b>${x.label}</b><small>${x.window} s</small></button>`).join('') + `</div></div>`;
     pickers[i] = A.ModePicker.mount(col.querySelector('.col-modes'), {gameId: GAME_ID, group: p.group, member: p.member, levels: 8, memory: p.memory, stars: false, onChange: () => {}});
     col.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => { saved.settings['p' + (i + 1)].diff = b.dataset.diff; remember(); drawColumn(i); }));
+    const ed = col.querySelector('.col-edit');
+    if (ed) ed.addEventListener('click', () => A.AvatarBadge.edit({member: p.member.id, onClose: saved => {
+      if (saved) { p.name = avName(1) || p.member.short; showSetup(); }
+      const again = $('col1').querySelector('.col-edit'); if (again) again.focus({preventScroll: true});
+    }}));
     const rr = col.querySelector('.guest-rand');
     if (rr) rr.addEventListener('click', () => {                        // a new random guest look and name
       A.Avatar.setGuest(A.Avatar.random()); p.name = avName(2); A.Sfx.event('avatar-randomize');
@@ -105,6 +112,8 @@
     });
   }
   $('startBtn').addEventListener('click', () => A.requireMic(startMatch));
+  // a new look from the avatar badge's editor: Player 1's name and picture on the setup screen follow at once
+  addEventListener('arcade:avatar', e => { if (!$('setup').hidden && !e.detail.guest && !P[0].cpu) { P[0].name = avName(1) || P[0].member.short; showSetup(); } });
 
   /* ---------- the match ---------- */
   let M = null, raf = 0, timers = [];

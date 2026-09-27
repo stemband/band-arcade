@@ -10,8 +10,11 @@
 
    A big live preview (the portrait bust, and the full-body sprite holding the instrument, which turns when you tap
    it), tabs FACE · HAIR · HEAD · CLOTHES · EXTRAS · NAME, a grid of big labeled buttons per choice, SURPRISE ME (all,
-   or this tab), UNDO and SAVE. Keyboard: ←/→ on the tabs, arrows move inside a grid, Enter/Space picks, Esc closes.
-   Nothing is saved until SAVE (the name is only ever built from the word lists: no typing). */
+   or this tab), UNDO, CANCEL and DONE. Keyboard: ←/→ on the tabs, arrows move inside a grid, Enter/Space picks, Esc
+   closes (asks first when something changed). Nothing is saved until DONE (the name is only ever built from the word
+   lists: no typing). It is an overlay on the current page (the avatar badge opens it from any screen: shared/
+   avatar-badge.js), so closing it leaves the page exactly as it was. Sounds: avatar-open as it opens (the music dips a
+   little while it's open: Sfx.duckHold), avatar-save on DONE, ui-back on CANCEL. DONE fires window 'arcade:avatar'. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
@@ -106,7 +109,8 @@ window.Arcade = window.Arcade || {};
             <button type="button" class="btn btn-ghost avc-rand-all">Surprise me</button>
             <button type="button" class="btn btn-ghost avc-rand-tab">Shuffle this tab</button>
             <button type="button" class="btn btn-ghost avc-undo" disabled>Undo</button>
-            <button type="button" class="btn btn-gold avc-save">Save</button>
+            <button type="button" class="btn btn-ghost avc-cancel">Cancel</button>
+            <button type="button" class="btn btn-gold avc-save">Done</button>
           </div>
           <div class="avc-leave" hidden><p>Leave without saving?</p><button type="button" class="btn btn-ghost avc-stay">Keep editing</button><button type="button" class="btn btn-gold avc-go">Leave</button></div>
           <p class="avc-lockmsg" role="status" hidden></p>
@@ -119,11 +123,14 @@ window.Arcade = window.Arcade || {};
     document.body.appendChild(root);
     document.body.classList.add('avc-open');
     if (A.lockScroll) A.lockScroll(true);
+    sfx('avatar-open');                                      // and the music steps back a little while it's open
+    if (A.Sfx && A.Sfx.duckHold) A.Sfx.duckHold(true);
     const $ = s => root.querySelector(s);
     $('.avc-close').addEventListener('click', () => tryClose());
     $('.avc-stay').addEventListener('click', () => { $('.avc-leave').hidden = true; $('.avc-save').focus(); });
-    $('.avc-go').addEventListener('click', () => close(false));
+    $('.avc-go').addEventListener('click', () => { sfx('ui-back'); close(false); });
     $('.avc-save').addEventListener('click', save);
+    $('.avc-cancel').addEventListener('click', () => { sfx('ui-back'); close(false); });
     $('.avc-undo').addEventListener('click', undo);
     $('.avc-rand-all').addEventListener('click', () => { change(() => { const keepChair = S.av.chair; S.av = V().random({keep: S.av}); S.av.chair = keepChair; }); sfx('avatar-randomize'); });
     $('.avc-rand-tab').addEventListener('click', () => { change(() => { S.av = V().random({keep: S.av, only: TAB_FIELDS[S.tab]}); }); sfx('avatar-randomize'); });
@@ -183,18 +190,21 @@ window.Arcade = window.Arcade || {};
     close(true);
   }
   function tryClose() {
-    if (!S.dirty) { close(false); return; }
+    if (!S.dirty) { sfx('ui-back'); close(false); return; }
     const box = S.root.querySelector('.avc-leave'); box.hidden = false; box.querySelector('.avc-stay').focus();
   }
   function close(saved) {
     if (!S) return;
-    const {root, onClose} = S;
+    const {root, onClose, guest} = S;
     cancelAnimationFrame(S.raf); clearTimeout(S.tick);
     root.remove();
     document.body.classList.remove('avc-open');
     if (A.lockScroll) A.lockScroll(false);
+    if (A.Sfx && A.Sfx.duckHold) A.Sfx.duckHold(false);
     S = null;
     V().redrawAll();
+    // the new look everywhere at once: every avatar box redraws (above); badges, setup cards and sprites listen for this
+    if (saved) dispatchEvent(new CustomEvent('arcade:avatar', {detail: {guest: !!guest}}));
     if (onClose) onClose(saved);
   }
 

@@ -64,7 +64,7 @@ body.avc-open{overflow:hidden}
   .avc-body canvas{width:clamp(64px,15vw,104px)}
   .avc-name{flex-basis:100%;order:3}
   .avc-acts{order:4;grid-template-columns:repeat(4,minmax(0,1fr));flex-basis:100%}
-  .avc-save{grid-column:auto}
+  .avc-save{grid-column:1/-1}
   .avc-acts .btn{font-size:14px;padding:6px 6px;min-height:46px}
   .avc-body small{display:none}
 }
