@@ -34,6 +34,8 @@ shared/               The engine every game uses
   avatar-bg.js        Avatar backgrounds, and the one loop that animates the biggest avatar on screen
   avatar-fx.js        Avatar effects (floating notes, sparkles, aura, snow…) and animated items' frames
   avatar-creator.js   The Create Your Player screen (+ avatar.css)
+  avatar-code.js      The avatar code (Share to Band Ninja / Load avatar code): the format table and the panels
+  bandninja.js        The optional Band Ninja connection: link settings, instrument names, belt reward codes
   pitch.js            Microphone + pitch detection (YIN), "note held" events, demo keys
   mic-gate.js         The "Turn on the microphone" prompt and fix-it messages
   ui.js               Staff notation (whole staff or single notes), ghost mascot, stars, top bar
@@ -507,6 +509,57 @@ Unlocks are checked from saved progress on every results screen and whenever Sel
 **THE LOCKER** (the player card's **LOCKER** button on Select Player) holds everything: tabs **OUTFIT** (tops, shoes, hair colors) · **HATS** · **EXTRAS** (this instrument's accessory skin, held items, things on your back, name plates, expressions) · **PETS** · **BACKGROUNDS** · **EFFECTS** (the avatar's effects and this instrument's glow skins). Tap an item to wear it; locked ones are dark silhouettes (a background: its own picture, dimmed) that say what they take ("Earn 150 ★", "Defeat Maestro Moose in Showtime Malfunction", "250 tokens at the Token Booth"). Create Your Player shows the same locks.
 
 **To add an item or change how it's earned:** see HOW TO ADD AN ITEM near the end of [`shared/avatar-parts.js`](shared/avatar-parts.js). An item is a part with an `unlock` rule: `{stars: 150}` (stars on this device), `{game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'}` (a special win), `{game: 'arcade-quest', achievement: 'ep1', text: …}`, `{game: 'ancient-ninja-scrolls', badge: true, text: …}` (or `badges: 4`: that many badges), `{game: 'chime-heist', perfect: 8, text: …}` (3 ★ on levels 1–8), `{game: 'lost-signal', endless: 10, text: …}` (an Endless run that reached 10 notes), `{game: 'dojo-duel', wins: 10, text: …}` or `{shop: 250}` (sold at the Token Booth for 250 tokens). Leave `unlock` out and it's free. Never lock an identity item. Never change an item's `id`, and add a new item to the end of `QUEST_V3.cosmetics` in `shared/backup.js` so save codes carry it.
+
+## Band Ninja connection (optional)
+
+Band Arcade can work alongside Mr. Graham's **Band Ninja** progress portal (a Google Apps Script web app). It's
+**optional**: a student who never uses a Band Ninja link, code or PIN gets exactly the same arcade, and nothing ever
+asks them about Band Ninja. There are **no logins**. The arcade stays **anonymous**: it never sends student data
+anywhere and stores nothing off the device. Who a student is stays in Band Ninja; the arcade only understands link
+settings and makes or checks codes. Everything lives in [`shared/bandninja.js`](shared/bandninja.js) and
+[`shared/avatar-code.js`](shared/avatar-code.js).
+
+**Link settings.** Any page takes these settings in its address, applies them once and then removes them from the
+address bar, so a reload doesn't apply them again (`?demo` still carries through):
+
+| Setting | Where | What it does |
+|---|---|---|
+| `inst=<instrument>` | any page | sets the student's instrument (Band Ninja's name for it, e.g. `Alto Sax`, `French Horn`, `Baritone`, `Percussion`), so Choose Your Instrument is skipped. Names are matched loosely (capitals, spaces and punctuation don't matter) through the alias table at the top of `shared/bandninja.js`: add any name Band Ninja uses there. "Percussion" means Bells. A name it doesn't know is ignored and the normal instrument screen shows. |
+| `belt=<white…diamond>` | Note Ninja | selects that belt on the level screen if it's open; otherwise the highest open belt, with "Your Band Ninja belt is Green. Clear the belts below to get there!" |
+| `rank=<orange…diamond>` | Ancient Ninja Scrolls | selects that rank's chamber (every chamber is always open there) |
+
+Examples: `bandarcade.org/note-ninja/index.html?inst=Alto%20Sax&belt=green` and
+`bandarcade.org/ancient-ninja-scrolls/index.html?inst=Trumpet&rank=orange`.
+
+**The avatar code ("Share to Band Ninja").** In Create Your Player and in the avatar badge's menu, **SHARE TO BAND
+NINJA** shows a short code (like `BA1-KEKCCchQwkDgRwSUMkLGUEUIZDlhJRFBNFihyIA`, about 43 characters) with a COPY button:
+"Paste this in your Band Ninja Progress page." The code holds only how the avatar looks (every item, color,
+background, effect and the name's words), nothing else. **LOAD AVATAR CODE** in Create Your Player brings an avatar to
+a new device; anything that device hasn't unlocked yet is left out (it says which). The code's format is the TABLE in
+`shared/avatar-code.js`: when you add an avatar part, add its id to the END of its list there (`?demo` warns in the
+console about anything missing).
+
+**The avatar card page.** `avatar-card/index.html?code=<avatar code>` draws the avatar exactly as the arcade does
+(background, items, pet, effect, animation) in a rounded frame, with its name underneath, for the portal to show in an
+iframe (about 260 × 280). Options: `frame=<any CSS color>` (the border; default: the arcade's gold), `still=1` (no
+animation; reduced motion does the same), `name=0` (no name). It loads only the drawing code, never reads or writes
+anything on the device, and shows a silhouette with "Avatar not found" for a missing or broken code.
+
+**Belt reward codes (Token Booth).** Band Ninja shows students one code per belt they've fully earned in class (like
+`GRN-3T3H`). At Arcade Quest's **Token Booth**, **Enter a code** checks it right on the device (capitals, spaces and
+the dash don't matter; 10 tries a minute) and unlocks that belt's **OFFICIAL BAND NINJA GEAR** with the usual UNLOCKED!
+card: a martial-arts belt at the waist in Band Ninja's colors and a matching name-plate frame; the Black belt code also
+gives the **Black Belt Gi**, the Diamond belt code the animated **Diamond Aura** effect and the **Diamond Dojo**
+background. This gear only comes from codes and is labeled "Official Band Ninja gear: earned in class" (Create Your
+Player shows it on its own BAND NINJA tab once a code has opened some); the arcade's own Note Ninja belt items are
+separate. Unlocked belts are saved on the device and kept by the Arcade Backup Code. Every game, level, star and every
+other unlockable stays available without any code.
+
+The codes are `beltUnlockCode(belt)` in `shared/bandninja.js`: FNV-1a of `ARCADE_CODE_SALT + "|belt|" + belt`, written
+as 4 characters from `23456789ABCDEFGHJKMNPQRSTUVWXYZ` after the belt's 3 letters. It's the portal's exact algorithm.
+**`ARCADE_CODE_SALT` must match the portal's.** Change it in BOTH places at the start of each school year (the repo is
+public, so the salt is not a secret; changing it just makes last year's codes stop working). With `?demo` the arcade
+checks its ten codes against the portal's list (`EXPECTED` in bandninja.js: update that list too when the salt changes).
 
 ## PRESS START title screens
 

@@ -379,6 +379,37 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* OFFICIAL BAND NINJA GEAR (the Diamond belt code; avatar backgrounds only): the night dojo with diamond-blue lanterns,
+     a Diamond belt hung on the back wall, and small diamond glints drifting down slowly (they fade, never blink) */
+  S['diamond-dojo'] = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, mix('dd-night', 'bn-diamond-d', .18)], [.78, mix('dd-night', 'floor-3', .4)], [.78, col('dd-wood')], [1, col('deep')]]);
+    x.fillStyle = col('deep', .4); x.fillRect(0, H * .78, W, H * .22);
+    x.strokeStyle = col('dd-wood-line', .35); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 10; i++) { x.beginPath(); x.moveTo(i * W / 10, H * .78); x.lineTo(W / 2 + (i * W / 10 - W / 2) * 1.6, H); x.stroke(); }
+    x.fillStyle = col('dd-wood', .95); x.fillRect(0, 0, W, H * .06);                 // the roof beam
+    // the belt on the back wall: a band, a knot, two tails
+    const by = H * .42, bw = W * .34, bh = H * .035, cx = W / 2;
+    glow(x, cx, by, W * .3, col('bn-diamond', .16), col('bn-diamond', 0));
+    x.fillStyle = col('bn-diamond', .75); x.fillRect(cx - bw / 2, by - bh / 2, bw, bh);
+    x.fillStyle = col('bn-diamond-d', .85); x.fillRect(cx - bh, by - bh, bh * 2, bh * 2);
+    x.save(); x.translate(cx, by + bh); x.fillStyle = col('bn-diamond', .75);
+    [-1, 1].forEach(sd => { x.save(); x.rotate(sd * .22); x.fillRect(sd > 0 ? 0 : -bh, 0, bh, H * .16); x.restore(); });
+    x.restore();
+    [.08, .24, .76, .92].forEach((lx, i) => {
+      const L = H * (.14 + .05 * (i % 2)), ang = Math.sin(t * .8 + i * 1.3) * .06, ex = W * lx + Math.sin(ang) * L, ey = H * .06 + Math.cos(ang) * L;
+      x.strokeStyle = col('dd-wood-line', .7); x.beginPath(); x.moveTo(W * lx, H * .06); x.lineTo(ex, ey); x.stroke();
+      glow(x, ex, ey + H * .03, H * .16, col('bn-diamond', .2), col('bn-diamond', 0));
+      x.fillStyle = col('dd-paper', .55); x.beginPath(); x.ellipse(ex, ey + H * .03, H * .025, H * .035, ang, 0, TAU); x.fill();
+      x.fillStyle = col('bn-diamond', .6); x.fillRect(ex - H * .012, ey - H * .006, H * .024, H * .008);
+    });
+    for (let i = 0; i < 18; i++) {                                 // diamond glints drifting down
+      const px = (fract(hash(i) + t * (.01 + .008 * hash(i + 1))) * 1.2 - .1) * W, py = (fract(hash(i + 2) + t * (.02 + .012 * hash(i + 3))) * 1.2 - .1) * H;
+      const a = .18 + .12 * Math.sin(t * .9 + i * 2.1), r = H * (.006 + .004 * hash(i + 4));
+      x.fillStyle = col('bn-diamond', a); x.beginPath();
+      x.moveTo(px, py - r * 1.6); x.lineTo(px + r, py); x.lineTo(px, py + r * 1.6); x.lineTo(px - r, py); x.closePath(); x.fill();
+    }
+  };
+
   /* ARCADE QUEST (title screen): an 8-bit night sky, twinkling pixel stars, a castle silhouette in pixel art */
   S['pixel-night'] = (x, W, H, t, o) => {
     const st = o.state, pw = 160, ph = Math.max(60, Math.round(pw * H / W));
@@ -599,7 +630,7 @@ window.Arcade = window.Arcade || {};
 
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
-    city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7};
+    city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

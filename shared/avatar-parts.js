@@ -654,6 +654,8 @@ window.AVATAR_PARTS = {};
      (glowphones, lightup); `anim: {maps: {bust: [4 maps], front: [...], 'behind.front': [...]}}` swaps whole maps per
      frame (flap(), shiftRows() and unhalf() build them from the still map); a HAND item's `bust(api, f)` draws frame f;
      a pet's `frames` + `seq`. Keep changes small and slow (4 frames at 4 fps): nothing may flash.
+     AVATAR CODE: every new part id (free or not) also goes at the END of its field's list in shared/avatar-code.js
+     TABLE, so Share to Band Ninja carries it (?demo warns in the console about any id missing there).
      HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, SHOES, PETS, BACKS, HANDS, EFFECTS or PLATES) with a new id
      and a name, draw its maps like the parts above, and give it an `unlock` rule (or none: free). An UNLOCKED! card
      shows the first time a student has earned it (results screens and Select Player), and old progress counts.
@@ -1003,4 +1005,36 @@ window.AVATAR_PARTS = {};
     {id: 'lavalamp', name: 'Lava Lamp', kind: 'scene', scene: 'lavalamp', lift: 1.1, main: 'purple-ink', unlock: {shop: 250}},
     {id: 'confetti', name: 'Confetti Party', kind: 'scene', scene: 'confetti', lift: 1.2, main: 'purple-ink', unlock: {shop: 300}},
   ];
+
+  /* =====================================================================================================================
+     OFFICIAL BAND NINJA GEAR: earned IN CLASS, never in the arcade. Only a belt code from Mat's Band Ninja portal opens
+     it (shared/bandninja.js; typed at Arcade Quest's Token Booth, ENTER A CODE): unlock {bandninja: '<belt>'}. Every
+     part here has `official: true`, so Create Your Player shows it on its own BAND NINJA tab ("Official Band Ninja gear:
+     earned in class"), apart from the arcade's own Note Ninja belt items above, and only once a code has opened some.
+     Colors: the portal's own belt colors (--bn-* tokens in theme.css).
+     - P.BN_BELTS (the 'belt' field): a martial-arts belt at the waist (avatar.js draws it: a band + a knot + two tails;
+       Z = the belt, z = its edge, Y = the Diamond belt's sparkle)
+     - name-plate frames 'bn-<belt>' (P.PLATES), the Black Belt Gi (top 'bngi'), the Diamond Aura (effect 'bndiamond',
+       shared/avatar-fx.js) and the Diamond Dojo (background 'bndojo', scene 'diamond-dojo' in bg-scenes.js)
+     ===================================================================================================================== */
+  const BN = ['white', 'yellow', 'orange', 'green', 'blue', 'purple', 'red', 'brown', 'black', 'diamond'];
+  const bnRule = k => ({bandninja: k, text: `Enter your ${k[0].toUpperCase() + k.slice(1)} belt code from Band Ninja at the Token Booth`});
+  P.BN_BELTS = [{id: 'none', name: 'No belt'}].concat(BN.map(k => {
+    const b = {id: k, name: `${k[0].toUpperCase() + k.slice(1)} belt`, official: true, unlock: bnRule(k), pal: {Z: 'bn-' + k, z: 'bn-' + k + '-d', Y: 'white-hi'}};
+    if (k === 'diamond') b.anim = {pal: {Y: ['white-hi', 'bn-diamond', 'bn-diamond', 'bn-diamond']}};   // one slow sparkle (1 a second)
+    return b;
+  }));
+  P.PLATES.push(...BN.map(k => ({id: 'bn-' + k, name: `${k[0].toUpperCase() + k.slice(1)} belt frame`, official: true, unlock: bnRule(k)})));
+  const setPx = (m, pts) => {
+    const rows = m.rows.slice();
+    pts.forEach(([x, y, ch]) => { const r = y - (m.y || 0); if (r < 0) return; while (rows.length <= r) rows.push(''); rows[r] = rows[r].padEnd(x + 1, '.'); rows[r] = rows[r].slice(0, x) + ch + rows[r].slice(x + 1); });
+    return {y: m.y || 0, rows};
+  };
+  const bngi = gi({D: 'bn-black', E: 'bn-black-d', G: 'bn-gold'}, 'bngi', 'Black Belt Gi', bnRule('black'));
+  bngi.official = true;
+  bngi.bust = setPx(bngi.bust, [[8, 30, 'G'], [9, 30, 'G'], [8, 31, 'G'], [9, 31, 'G']]);            // the Band Ninja crest
+  bngi.front = setPx(bngi.front, [[13, 15, 'G']]);
+  P.TOPS.push(bngi);
+  P.EFFECTS.push({id: 'bndiamond', name: 'Diamond Aura', official: true, unlock: bnRule('diamond')});
+  P.BGS.push({id: 'bndojo', name: 'Diamond Dojo', kind: 'scene', scene: 'diamond-dojo', lift: 1.8, main: 'blue-ink', official: true, unlock: bnRule('diamond')});
 })(window.AVATAR_PARTS);

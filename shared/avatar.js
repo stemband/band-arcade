@@ -54,12 +54,13 @@ window.Arcade = window.Arcade || {};
     chair: () => [false, true], chairColor: () => P.CHAIR_COLORS,
     pet: () => ids(P.PETS), back: () => ids(P.BACKS), bg: () => ids(P.BGS || [{id: 'none'}]),
     hand: () => ids(P.HANDS), effect: () => ids(P.EFFECTS), effectColor: () => P.EFFECT_COLORS, plate: () => ids(P.PLATES),
+    belt: () => ids(P.BN_BELTS || [{id: 'none'}]),           // OFFICIAL BAND NINJA GEAR (a belt code from class: shared/bandninja.js)
   };
 
   /* ---------- UNLOCKS (the rules are on the parts in avatar-parts.js) ----------
      A part without `unlock` is free. IDENTITY items are ALWAYS free, whatever a rule says (never lock them). */
   const LOCKABLE = {eyes: () => P.EYES, mouth: () => P.MOUTHS, hairColor: () => P.HAIR_COLORS, head: () => P.HEADS, top: () => P.TOPS, pet: () => P.PETS, back: () => P.BACKS, bg: () => P.BGS || [],
-    hand: () => P.HANDS, effect: () => P.EFFECTS, plate: () => P.PLATES, shoes: () => P.SHOES};
+    hand: () => P.HANDS, effect: () => P.EFFECTS, plate: () => P.PLATES, shoes: () => P.SHOES, belt: () => P.BN_BELTS || []};
   const IDENTITY = {head: ['none', 'hijab', 'headwrap', 'turban', 'patka', 'kufi', 'tichel', 'durag'], aids: '*', chair: '*', glasses: '*', glassesColor: '*', aidColor: '*', chairColor: '*'};
   const itemKey = (field, id) => field + ':' + id;
   const partFor = (field, id) => LOCKABLE[field] ? byId(LOCKABLE[field](), id) : null;
@@ -69,6 +70,7 @@ window.Arcade = window.Arcade || {};
     if (identity(field, id)) return true;
     const p = partFor(field, id), u = p && p.unlock;
     if (!u || (A.Skins && A.Skins.UNLOCK_ALL)) return true;
+    if (u.bandninja) return !!(A.BandNinja && A.BandNinja.has(u.bandninja));   // official Band Ninja gear: only a belt code opens it
     if (u.shop) return !!(st().ownedItems || {})[itemKey(field, id)];
     if (u.stars && !u.game) return st().allStars('*') >= u.stars;      // device-wide: every instrument, every game
     return !!(A.Skins && A.Skins.ruleMet(u));
@@ -92,7 +94,7 @@ window.Arcade = window.Arcade || {};
   /** every item that has to be earned or bought: {key, field, id, name, unlock, shop} */
   function items() {
     const out = [];
-    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0}); }));
+    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0, official: !!p.official}); }));
     return out;
   }
   /** earned items (not bought ones) whose UNLOCKED! card hasn't been shown yet (never with ?unlockall) */
@@ -122,6 +124,7 @@ window.Arcade = window.Arcade || {};
       case 'topColor': case 'headColor': return pick(FIELDS[k]().filter(x => x !== 'khaki' && x !== 'denim' && x !== 'tan'));
       case 'pet': return r < 0.8 ? 'none' : pick(open(k));
       case 'back': case 'plate': return 'none';
+      case 'belt': return r < 0.5 ? 'none' : pick(open(k));
       case 'hand': case 'effect': return r < 0.85 ? 'none' : pick(open(k).filter(x => x !== 'none')) || 'none';
       case 'bg': return r < 0.4 ? 'none' : pick(open(k).filter(x => !(P.BGS || []).find(b => b.id === x && b.unlock)));
       default: return pick(open(k));
@@ -143,7 +146,7 @@ window.Arcade = window.Arcade || {};
   function normalize(av) {
     const out = {v: VERSION};
     av = av && typeof av === 'object' ? av : {};
-    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back', 'bg', 'paint', 'hand', 'effect', 'plate'].includes(k) ? 'none' : list[0]); });
+    Object.keys(FIELDS).forEach(k => { const list = FIELDS[k](); out[k] = list.includes(av[k]) ? av[k] : (k === 'skin' ? 5 : ['head', 'glasses', 'aids', 'pet', 'back', 'bg', 'paint', 'hand', 'effect', 'plate', 'belt'].includes(k) ? 'none' : list[0]); });
     out.name = cleanName(av.name).name;
     return out;
   }
@@ -234,7 +237,7 @@ window.Arcade = window.Arcade || {};
   }
 
   /** the parts the avatar wears that can carry colors or animations */
-  const worn = av => [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back), partOf(P.SHOES, av.shoes)];
+  const worn = av => [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back), partOf(P.SHOES, av.shoes), partOf(P.BN_BELTS || [{}], av.belt)];
   /** a part's map for a view key ('bust', 'front', 'behind.front'…) in animation frame f (anim.maps) */
   function am(part, key, f = 0) {
     if (!part) return null;
@@ -244,7 +247,7 @@ window.Arcade = window.Arcade || {};
   }
   /** is anything the avatar wears animated? bust: in the portrait (shoes don't show there) */
   function isAnimated(av, eq, {bust = true} = {}) {
-    const parts = [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back)].concat(bust ? [] : [partOf(P.SHOES, av.shoes)]);
+    const parts = [partOf(P.HEADS, av.head), partOf(P.TOPS, av.top), partOf(P.HANDS || [{}], av.hand), partOf(P.BACKS, av.back), partOf(P.BN_BELTS || [{}], av.belt)].concat(bust ? [] : [partOf(P.SHOES, av.shoes)]);
     const acc = eq && eq.acc ? P.ACCESSORIES[eq.acc] : null, pet = partOf(P.PETS, av.pet);
     return parts.concat(acc ? [acc] : []).some(p => p && p.anim) || !!(pet && pet.frames);
   }
@@ -341,6 +344,25 @@ window.Arcade = window.Arcade || {};
     if (paint && paint[view]) stamp(g, paint[view]);
   }
   /** the head's layers for one view: {behind, body} grids (W × H); view 'front' | 'side' | 'back' | 'bust' */
+  /** OFFICIAL BAND NINJA GEAR: the belt at the waist (Z band, z edge + knot, Y the Diamond belt's sparkle). The bust
+      shows it across the bottom of the chest; the sprites on the last row of the top, with the tails over the waist */
+  function beltLayer(g, av, view) {
+    if (!av.belt || av.belt === 'none') return;
+    const on = (x, y, ch, always) => { if (g[y] && x >= 0 && x < g[y].length && (always || g[y][x] !== '.')) g[y][x] = ch; };
+    if (view === 'bust') {
+      for (let y = 33; y <= 34; y++) for (let x = 0; x < 36; x++) on(x, y, y === 34 ? 'z' : 'Z');
+      [[17, 32], [18, 32], [16, 33], [19, 33], [16, 34], [19, 34]].forEach(([x, y]) => on(x, y, 'Z', true));
+      [[17, 33], [18, 33], [17, 34], [18, 34]].forEach(([x, y]) => on(x, y, 'z', true));
+      [[15, 35], [16, 35], [19, 35], [20, 35]].forEach(([x, y]) => on(x, y, 'Z', true));
+      if (av.belt === 'diamond') { on(8, 33, 'Y'); on(27, 33, 'Y'); }
+      return;
+    }
+    const [x0, x1] = view === 'side' ? [12, 18] : [11, 20];
+    for (let x = x0; x <= x1; x++) on(x, 20, 'Z');
+    if (view === 'front') { on(15, 20, 'z', true); on(16, 20, 'z', true); on(14, 21, 'Z', true); on(17, 21, 'Z', true); }
+    if (view === 'side') on(17, 20, 'z', true);
+    if (av.belt === 'diamond' && view !== 'back') on(x0 + 1, 20, 'Y', true);
+  }
   function headAndBody(av, eq, view, f = 0) {
     const W = view === 'bust' ? 36 : 32, H = W, bust = view === 'bust';
     const behind = blank(W, H), body = blank(W, H), over = blank(W, H);
@@ -371,6 +393,7 @@ window.Arcade = window.Arcade || {};
       stamp(body, {y: 21, half: [view === 'side' ? '' : '...........ppppp']});   // the waist
       if (view === 'side') stamp(body, {y: 21, rows: ['............ppppppp']});
     }
+    beltLayer(body, av, view);
     // --- the face (not from behind) ---
     if (view !== 'back') {
       const eyes = partOf(P.EYES, av.eyes), brows = partOf(P.BROWS, av.brows), mouth = partOf(P.MOUTHS, av.mouth);
