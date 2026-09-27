@@ -62,18 +62,41 @@
     byWritten.clear();
     list.forEach(it => { if (!byWritten.has(it.midi)) byWritten.set(it.midi, []); byWritten.get(it.midi).push(it.key); });
   }
-  // lay the notes out in rows that fit the screen: at least 50px per note so sharps and flats never touch
+  /* lay the notes out in rows, EVENLY: every gap between two notes is the same, counting the room a ♯/♭/♮ takes in
+     front of its note (so a sharp never looks closer to its neighbor), and one gap for every row, so rows line up.
+     Scales: the way up on one row, the way down on the next (each split in two on a narrow screen).
+     Chromatic: as many rows as it needs, the notes shared out evenly between them. */
+  const HEAD_L = 11, HEAD_R = 11, ACC_L = 34, MIN_GAP = 18, CHROM_MIN = 50, SCALE_MIN = 40;
+  const leftOf = it => (it.show.acc || it.show.natural ? ACC_L : HEAD_L);
+  function rowsOf(avail) {
+    if (!isChromatic()) {
+      const up = list.slice(0, scaleObj.up.length), dn = list.slice(scaleObj.up.length);
+      if (avail / up.length >= SCALE_MIN) return [up, dn];
+      const half = a => { const k = Math.ceil(a.length / 2); return [a.slice(0, k), a.slice(k)]; };
+      return half(up).concat(half(dn));
+    }
+    const per = Math.max(4, Math.min(12, Math.floor(avail / CHROM_MIN))), nRows = Math.ceil(list.length / per), even = Math.ceil(list.length / nRows);
+    const rows = [];
+    for (let r = 0; r < list.length; r += even) rows.push(list.slice(r, r + even));
+    return rows;
+  }
   function drawFull() {
     if (!member) return;
     buildList();
     const box = $('fullStaff'), W = Math.max(260, Math.floor(box.clientWidth || 340));
-    const CLEF = 72 + A.keySigWidth(sig), per = Math.max(4, Math.min(12, Math.floor((W - CLEF - 16) / 50))), step = (W - CLEF - 16) / per;
+    const CLEF = 70 + A.keySigWidth(sig, 'big'), RIGHT = 14, avail = W - CLEF - RIGHT;
+    const rows = rowsOf(avail);
+    // one gap for every row: the one that makes the fullest row fill the width
+    const need = row => row.reduce((a, it) => a + leftOf(it) + HEAD_R, 0);
+    const gap = Math.max(MIN_GAP, Math.min(...rows.map(row => (avail - need(row)) / row.length)));
     let html = '';
-    for (let r = 0; r < list.length; r += per) {
-      const row = list.slice(r, r + per);
-      html += A.staffSVG(member.clef, row.map((it, k) => ({n: it.show, x: CLEF + step * (k + .5), id: 'fr' + it.key, caption: it.label})),
-        {width: W, keySig: sig, label: `Notes ${r + 1} to ${r + row.length}: ` + row.map(it => it.label).join(', ')});
-    }
+    rows.forEach((row, ri) => {
+      let x = CLEF + gap / 2;
+      const items = row.map(it => { x += leftOf(it); const at = x; x += HEAD_R + gap; return {n: it.show, x: at, id: 'fr' + it.key, caption: it.label}; });
+      const first = list.indexOf(row[0]) + 1;
+      const what = isChromatic() ? `Notes ${first} to ${first + row.length - 1}` : (row[0] === list[0] || list.indexOf(row[0]) < scaleObj.up.length ? 'Going up' : 'Coming down');
+      html += A.staffSVG(member.clef, items, {width: W, keySig: sig, sigStyle: 'big', label: `${what}: ` + row.map(it => it.label).join(', ')});
+    });
     box.innerHTML = html;
     fullFound.forEach(k => A.colorNote('fr' + k, GOLD));
     markHeard(heard, true); markCursor();
