@@ -70,7 +70,10 @@
   let zone = null, ring = [], N = 0, cur = 0, view = null, v3 = null, loading3D = false;
   let use3D = !A.params.has('flat') && hasWebGL() && !!A.Floor3D;
   const aisle = $('aisle');
-  const wrap = d => { if (!N) return 0; d = ((d % N) + N) % N; return d > N / 2 ? d - N : d; };   // ring offset, −N/2 < d ≤ N/2
+  // ring offset, −N/2 < d ≤ N/2. Two cabinets are a straight row instead (no ring): with a ring both would stand on the
+  // same side and one would vanish on every turn, so the second is always on the right of the first
+  const LINE = () => N === 2;
+  const wrap = d => { if (!N) return 0; if (LINE()) return d; d = ((d % N) + N) % N; return d > N / 2 ? d - N : d; };
   const fitOf = g => A.gameFit(g, A.store.player);
   const fade = g => fitOf(g).ok ? 1 : .45;                // a game that doesn't suit this instrument stands dimmed
 
@@ -139,6 +142,8 @@
     $('aisleFlags').innerHTML = (F === g ? '<span class="badge b-assigned">Assigned</span>' : '') + (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`);
     hiscore(g);
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur ? 'true' : 'false'));
+    $('prevBtn').disabled = LINE() && cur === 0;                     // a straight row: the arrow at an end rests
+    $('nextBtn').disabled = LINE() && cur === N - 1;
     // its START sound (and the next cabinets' either side) download before every other sound
     A.Sfx.prefer([g, ring[(cur + 1) % N], ring[(cur - 1 + N) % N]].filter(Boolean).map(x => 'select-' + x.id));
     // the address says which zone and cabinet (Back from a game comes here); the history entry stays the same
@@ -182,7 +187,11 @@
     A.Sfx.event(dir < 0 ? 'wheel-left' : 'wheel-right');
     clearTimeout(focusT); focusT = setTimeout(() => A.Sfx.event('cabinet-focus'), reduced.matches ? 120 : 450);
   }
-  const go = step => { if (N < 2) return; cur = ((cur + step) % N + N) % N; place(); turnSound(step); };
+  const go = step => {
+    if (N < 2) return;
+    if (LINE() && (cur + step < 0 || cur + step >= N)) return;     // a straight row: no going past either end
+    cur = ((cur + step) % N + N) % N; place(); turnSound(step);
+  };
   function goTo(i) { if (i === cur) return; const dir = wrap(i - cur); cur = i; place(); turnSound(dir); }
 
   let lights = [];

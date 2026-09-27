@@ -116,7 +116,8 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 - **ALL GAMES** (in the top bar everywhere): every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games.
 - **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
 - **Addresses:** each view has its own address, so the browser's Back button and the iPad's back-swipe work, and you can share a zone: `index.html#zone=technique-lab`, `index.html#all-games`. (`?demo` stays on.)
-- **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself.
+- **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself. A zone's `order` line picks which cabinet is in front when it opens (Technique Lab opens on Showtime Malfunction, which every instrument can play).
+- **Two-cabinet zones** (Note Reading, 2-Player Corner) are a straight row: the arrows go back and forth between the two (no wrapping around), and the arrow at an end rests.
 
 ### The ASSIGNED game (change it yourself)
 
