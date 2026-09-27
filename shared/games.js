@@ -56,6 +56,10 @@
                 2 stacked lines. EVERY marquee shows ONLY the game's name, as large as it fits without clipping: no
                 subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
+     bg         its MENU BACKGROUND (shared/backgrounds.js): {scene (shared/bg-scenes.js: 'storm' | 'manor' | 'bamboo' | 'ink'
+                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora'),
+                dim (0–1: the dark overlay everywhere), focus (0–1: extra darkness in the middle, behind the menu)}.
+                A picture in shared/backgrounds/<id>.webp|.jpg|.png replaces the scene. Menu screens only, never in play.
      menuMusic  the game's MENU MUSIC (a loop event in shared/sounds.js, file shared/sounds/<name>.m4a): its level select,
                 mode picker, intro panels and results screens play it through Arcade.Sfx.gameMenuMusic (the arcade's
                 select-music until the file is uploaded). A new game only needs this line (+ its sounds.js entry).
@@ -97,6 +101,7 @@ window.Arcade.GAMES = [
     tool: true,                          // not a cabinet: the lobby's TUNE UP button opens it
     zones: [],
     name: 'Note Checker',
+    bg: {scene: 'aurora', dim: .4, focus: .35},
     skill: 'Start here',
     blurb: 'Play a note and watch it light up. Tuning needle included.',
     maxStars: 0,
@@ -111,6 +116,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Ghost Notes listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Ghost Notes',
+    bg: {scene: 'manor', dim: .4, focus: .35},
     menuMusic: 'ghost-notes-menu',
     skill: 'Note reading',
     blurb: 'Read the note and play it. The note names fade away as you level up.',
@@ -126,6 +132,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Storm listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Storm',
+    bg: {scene: 'storm', dim: .4, focus: .35},
     menuMusic: 'note-storm-menu',
     skill: 'Speed reading',
     blurb: 'Notes march toward your robot. Read each one fast and play it to blast it.',
@@ -141,6 +148,7 @@ window.Arcade.GAMES = [
     zones: ['ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Ninja shows the notes your instrument reads, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Ninja',
+    bg: {scene: 'bamboo', dim: .4, focus: .35},
     menuMusic: 'note-ninja-menu',
     skill: 'Note names',
     blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
@@ -156,6 +164,7 @@ window.Arcade.GAMES = [
     zones: ['note-reading', 'ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Vanishing Ink listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Vanishing Ink',
+    bg: {scene: 'ink', dim: .4, focus: .35},
     menuMusic: 'vanishing-ink-music', menuMusicOwn: "silent until uploaded (menus only)",
     skill: 'Reading in groups',
     blurb: 'Notes appear on the Ink Master\'s scroll, then the magic ink fades away. Play them back from memory!',
@@ -171,6 +180,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {only: ['bells'], tag: 'Bells only', why: 'Chime Heist is played on the bell kit. Switch your instrument to Bells to play it.'},
     name: 'Chime Heist',
+    bg: {scene: 'vault', dim: .4, focus: .35},
     menuMusic: 'chime-heist-menu',
     skill: 'Mallet keyboard',
     blurb: 'Crack the vault codes: read each note and strike its bar on the chime lock. No mic needed!',
@@ -186,6 +196,7 @@ window.Arcade.GAMES = [
     id: 'ancient-ninja-scrolls',
     zones: ['ninja-dojo'],
     name: 'Ancient Ninja Scrolls',
+    bg: {scene: 'temple', dim: .4, focus: .35},
     menuMusic: 'ancient-ninja-scrolls-menu',
     skill: 'Music vocabulary',
     blurb: 'Study the Band Ninja vocabulary scrolls for Ranks 3–10, then pass the practice Belt Exam. No instrument needed!',
@@ -202,6 +213,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'Button Masher is about fingerings and slide positions, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Button Masher',
+    bg: {scene: 'arena', dim: .4, focus: .35},
     menuMusic: 'button-masher-menu',
     skill: 'Fingerings',
     blurb: 'A note appears: press its fingering on your instrument like a special-move combo, then STRIKE! No mic needed!',
@@ -218,6 +230,7 @@ window.Arcade.GAMES = [
     zones: ['two-player'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Neon Face-Off listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Neon Face-Off',
+    bg: {scene: 'rink', dim: .4, focus: .35},
     menuMusic: 'neon-face-off-menu',
     skill: '2-Player duel',
     blurb: 'Air hockey with your instruments! Play your note to strike the puck back. Two players on one device, or you vs the CPU.',
@@ -233,6 +246,7 @@ window.Arcade.GAMES = [
     id: 'showtime-malfunction',
     zones: ['technique-lab'],
     name: 'Showtime Malfunction',
+    bg: {scene: 'stage', dim: .4, focus: .35},
     menuMusic: 'showtime-malfunction-menu',
     skill: 'Articulation',
     blurb: "The arcade's old animatronic band has powered back on! Play each note as many times as its voice box shows, tonguing every one, to reboot them.",
@@ -250,6 +264,7 @@ window.Arcade.GAMES = [
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'In Sustain Speedway you hold long notes, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Sustain Speedway',
+    bg: {scene: 'track', dim: .4, focus: .35},
     menuMusic: 'sustain-speedway-menu',
     skill: 'Long tones & tuning',
     blurb: 'Your instrument is the engine! Hold each lap\'s note in tune and steady to race; breathe in the pit stops.',
@@ -269,6 +284,7 @@ window.Arcade.GAMES = [
     zones: ['ear-training'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Lost Signal listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Lost Signal',
+    bg: {scene: 'space', dim: .4, focus: .35},
     menuMusic: 'lost-signal-music', menuMusicOwn: "its built-in chiptune until uploaded (level screens only)",
     skill: 'Playing by ear',
     blurb: 'An alien probe is sending melodies across the galaxy. Listen to each transmission, then echo it back on your instrument to make contact.',
@@ -283,6 +299,7 @@ window.Arcade.GAMES = [
     id: 'dojo-duel',
     zones: ['ninja-dojo', 'two-player'],
     name: 'Dojo Duel',
+    bg: {scene: 'night-dojo', dim: .4, focus: .35},
     menuMusic: 'dojo-music', menuMusicOwn: "its built-in chiptune until uploaded (setup screen; dojo-match-music in a match)",
     skill: '2-Player duel',
     blurb: 'Two ninjas, one screen! A note appears for each of you: the first to tap its name wins the point. Or duel the Sensei. No instrument needed!',
@@ -301,6 +318,7 @@ window.Arcade.GAMES = [
     id: 'arcade-quest',
     zones: ['adventure'],
     name: 'Arcade Quest',
+    bg: {scene: 'pixel-night', dim: .4, focus: .35},
     menuMusic: 'quest-title', menuMusicOwn: "silent until uploaded (the title screen; every scene and room has its own track)",
     skill: 'RPG adventure',
     blurb: 'The Mysterious Microphone, Episode 1: Ghost Notes Manor. An 8-bit adventure: play your instrument to calm the manor\'s grumpy ghosts and win them over to your band.',

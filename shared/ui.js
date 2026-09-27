@@ -303,6 +303,7 @@ window.Arcade = window.Arcade || {};
      {portrait: 'bells'}: the portrait for a fixed label. The chip shows the student's avatar (shared/avatar.js,
      when the page loads it; else the instrument's tiny portrait) and the instrument's name. */
   A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed, portrait} = {}) {
+    if (A.Bg && gameId) A.Bg.mount(gameId);                // the game's menu background (shared/backgrounds.js)
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;

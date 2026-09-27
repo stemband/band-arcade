@@ -833,6 +833,7 @@ window.Arcade = window.Arcade || {};
         `<p class="snd-note" hidden></p>` +
       `</div>`;
     const open = el.querySelector('.snd-open'), pop = el.querySelector('.snd-pop'), tg = el.querySelector('.snd-toggle');
+    if (A.Bg && A.Bg.control) A.Bg.control(pop);           // MOVING BACKGROUNDS on/off (shared/backgrounds.js)
     function draw() {
       const on = store.sfx;
       [open, tg].forEach(b => b.setAttribute('aria-pressed', on));
@@ -882,6 +883,7 @@ window.Arcade = window.Arcade || {};
   let menuT = 0, menuPaused = false;
   function gameMenuMusic(gameId, on = true, {afterEffects = false} = {}) {
     clearTimeout(menuT); menuT = 0;
+    if (A.Bg) A.Bg.menu(on);                                 // the menu background (shared/backgrounds.js) follows the same screens
     const P = A.Pitch;
     if (!on) {
       if (menuPaused && P && P.pauseListening) { if (P.suppress) P.suppress(MENU_FADE * 1000); P.pauseListening(false); }

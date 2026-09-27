@@ -464,6 +464,24 @@ Unlocks are checked from saved progress on every results screen and whenever Sel
 
 **To add an item or change how it's earned:** see HOW TO ADD AN ITEM near the end of [`shared/avatar-parts.js`](shared/avatar-parts.js). An item is a part with an `unlock` rule: `{stars: 150}` (stars on this device), `{game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'}` (a special win), `{game: 'arcade-quest', achievement: 'ep1', text: …}`, `{game: 'ancient-ninja-scrolls', badge: true, text: …}` or `{shop: 250}` (sold at the Token Booth for 250 tokens). Leave `unlock` out and it's free. Never change an item's `id`, and add a new item to the end of `QUEST_V2.cosmetics` in `shared/backup.js` so save codes carry it.
 
+## Menu backgrounds
+
+Every game's menu screens (level select, mode picker, level intros, results, setup and title screens) have a moving
+background drawn in code, like stepping inside the game's cabinet art: storm clouds with soft lightning for Note
+Storm, a haunted hallway for Ghost Notes, moonlit bamboo for Note Ninja, a blueprint vault with lasers for Chime Heist,
+and so on (`shared/bg-scenes.js`; each game picks one with `bg` in `shared/games.js`). Gameplay never shows it: it
+fades away when play starts.
+
+- **Your own picture wins:** put `shared/backgrounds/<game-id>.webp` (or `.jpg` / `.png`, 1920 × 1080; optional
+  `<game-id>-portrait.webp`, 1080 × 1920) and that game shows it instead. See `shared/backgrounds/README.md`.
+- **The Art Board** (`art-board/index.html`, not linked from the arcade) shows every game's scene, moving, with its
+  picture slots (background, marquee) and which one is showing, plus every instrument portrait slot.
+- **Readable first:** a dark overlay sits on every background (`bg.dim`, `bg.focus` in games.js).
+- **Moving backgrounds** can be switched off in the speaker panel (remembered on the device). Devices that ask for
+  reduced motion get a still picture, and a device that is too slow to draw it smoothly switches to a still picture
+  by itself.
+- **No flashing:** Note Storm's lightning is a soft glow behind the clouds every 6–15 seconds, never a full-screen flash.
+
 ## Instrument portraits
 
 Each instrument's portrait is Mat's artwork in `shared/portraits/` (`trumpet.png`, `alto-sax.png`, …): the Select Player tiles, the instrument badge on the big preview, Chime Heist's bell kit and the CPU rivals in Neon Face-Off. (The PLAYER is shown as their avatar: see *Create Your Player*.) Underneath each image is the drawn neon portrait from `portraits.js`; if a file is missing or broken, the drawing shows instead, so a broken image never appears.

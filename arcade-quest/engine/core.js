@@ -64,6 +64,7 @@ window.Arcade = window.Arcade || {};
     if (Q.input) Q.input.clear();
     ui.innerHTML = '';
     scene = Q.scenes[name]; Q.sceneName = name;
+    if (A.Bg) A.Bg.menu(name === 'title');          // the menu background (shared/backgrounds.js): the title screen only
     if (scene && scene.enter) scene.enter(args || {});
   };
   Q.scene = () => scene;

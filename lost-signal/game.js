@@ -42,7 +42,7 @@
   }
   /** play a lost-signal-* sound and wait for it to end (the mic is paused for every one of them) */
   const snd = name => wait(Math.max(0, A.Sfx.event(name) || 0) * 1000);
-  const menuMusic = on => A.Sfx.setMusic(on ? ['lost-signal-music'] : null, {builtIn: true});
+  const menuMusic = on => { A.Sfx.setMusic(on ? ['lost-signal-music'] : null, {builtIn: true}); if (A.Bg) A.Bg.menu(on); };   // + the menu background
 
   /* ---------- the note set and THE PATTERN GENERATOR (shared/patterns.js) ---------- */
   const noteSet = pool => A.patterns.noteSet(picker.state, pool);

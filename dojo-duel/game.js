@@ -172,6 +172,7 @@
     $('duel').hidden = true; $('paused').hidden = true; $('wrap').hidden = false;
     holdOrientation();
     A.Sfx.setMusic(['dojo-music'], {builtIn: true});
+    if (A.Bg) A.Bg.menu(true);                      // the setup screen's background (shared/backgrounds.js)
     // every dojo-* and sensei-* sound loads (and decodes) now, so none is late or missing in the match
     A.Sfx.preloadScreen('dojo-duel');
     renderSetup();
@@ -257,6 +258,7 @@
     applyLayout();
     drawScores();
     A.Sfx.setMusic(['dojo-match-music'], {builtIn: true});
+    if (A.Bg) A.Bg.menu(false);                     // none in a match
     if (screen.orientation && screen.orientation.lock && M.layout === 'table') screen.orientation.lock(screen.orientation.type).catch(() => {});
     M.running = true;
     countdown();                                   // the gong + the Sensei's line, then a CLASSIC 3-2-1

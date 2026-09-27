@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Art Board</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .ab h1{font-family:var(--display);font-weight:400;color:var(--yellow);margin:.2em 0}
+  .ab-intro{max-width:70ch}
+  .ab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;margin:14px 0 28px}
+  .ab-card{border:2px solid var(--line);border-radius:16px;background:var(--floor-2);overflow:hidden}
+  .ab-card h2{margin:0;padding:10px 12px 0;font:400 18px var(--display);letter-spacing:.03em;text-transform:uppercase;color:var(--text-hi)}
+  .ab-prev{position:relative;aspect-ratio:16/9;margin:10px 12px 0;border-radius:10px;overflow:hidden;background:var(--floor)}
+  .ab-prev canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .ab-prev .bg-dim{position:absolute;inset:0}
+  .ab-prev .ab-menu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--floor-2);
+    font:400 11px var(--display);color:var(--text-hi);text-align:center;letter-spacing:.05em}
+  .ab-prev .ab-menu i{display:block;height:6px;margin:5px 0 0;border-radius:3px;background:var(--floor-3)}
+  .ab-mark{position:absolute;left:8px;top:8px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--deep);border:1px solid var(--cyan);color:var(--cyan-hi)}
+  .ab-mark.img{border-color:var(--yellow);color:var(--yellow-hi)}
+  .ab-scene{padding:6px 12px 0;font-size:13.5px;color:var(--text-lo)}
+  .ab-slots{list-style:none;margin:8px 0 12px;padding:0 12px;display:grid;gap:6px}
+  .ab-slots li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:13.5px}
+  .ab-slots code{font-size:12.5px;color:var(--cyan-hi);word-break:break-all}
+  .ab-slots .k{font-weight:700;color:var(--text-lo);min-width:9ch}
+  .ab-st{font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid var(--floor-3);color:var(--text-lo);white-space:nowrap}
+  .ab-st.ok{border-color:var(--green);color:var(--green)}
+  .ab-thumb{width:100%;max-height:90px;object-fit:cover;border-radius:6px;grid-column:1/-1}
+  .ab-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:10px;margin:10px 0 30px}
+  .ab-p{display:flex;gap:8px;align-items:center;padding:8px;border-radius:12px;background:var(--floor-2);border:1px solid var(--line);font-size:13.5px}
+  .ab-p .pt-box{width:48px;height:48px;flex:none}
+</style>
+</head>
+<body>
+<div class="wrap ab">
+  <div class="topbar"><a class="brand" href="../index.html" aria-label="Back to the arcade"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="sound-ctl" id="soundCtl"></div></div>
+  <h1>Art Board</h1>
+  <p class="ab-intro muted">Every picture slot in the Band Arcade and what shows there today. A game's menu screens show its
+    <b>coded scene</b> (animated, drawn in <code>shared/bg-scenes.js</code>) unless you upload a <b>background picture</b>
+    (<code>shared/backgrounds/</code>, see its README), which then <b>overrides</b> it. The small box in each preview is where the
+    menu sits, with the game's dark overlay on top of the background. Marquee pictures go in <code>shared/marquees/</code>,
+    instrument portraits in <code>shared/portraits/</code>.</p>
+  <h2 class="sb-group">Games</h2>
+  <div class="ab-grid" id="games"></div>
+  <h2 class="sb-group">Instrument portraits</h2>
+  <div class="ab-pgrid" id="portraits"></div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script>
+(function (A) {
+  "use strict";
+  const $ = id => document.getElementById(id), esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  A.Sfx.mountControls($('soundCtl'));
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const games = (A.ALL_GAMES || A.GAMES).filter(g => g.bg);
+  const MQ = '../shared/marquees/', PT = '../shared/portraits/';
+  const ver = u => (A.v ? A.v(u) : u);
+  /** the first of these URLs that loads (an image), or null */
+  const first = urls => new Promise(res => { const next = () => { const u = urls.shift(); if (!u) return res(null); const im = new Image(); im.onload = () => res(u); im.onerror = next; im.src = ver(u); }; next(); });
+  const slot = (k, file, u) => `<li><span class="k">${k}</span><code>${esc(file)}</code><span class="ab-st${u ? ' ok' : ''}">${u ? '✓ uploaded' : '— none'}</span>` +
+    (u ? `<img class="ab-thumb" src="${esc(ver(u))}" alt="">` : '') + `</li>`;
+
+  $('games').innerHTML = games.map(g => {
+    const dim = g.bg.dim != null ? g.bg.dim : .45, focus = g.bg.focus != null ? g.bg.focus : .35;
+    return `<section class="ab-card" data-g="${g.id}"><h2>${esc(g.name)}</h2>` +
+      `<div class="ab-prev" style="--bg-edge:${Math.round(dim * 100)}%;--bg-mid:${Math.round((dim + focus * (1 - dim)) * 100)}%">` +
+      `<canvas width="480" height="270"></canvas><div class="bg-dim"></div><div class="ab-menu">${esc(g.name)}<i></i><i></i><i></i></div>` +
+      `<span class="ab-mark">coded scene (default)</span></div>` +
+      `<p class="ab-scene">Scene <b>${esc(g.bg.scene)}</b> · overlay dim ${dim} · focus ${focus}</p><ul class="ab-slots">Checking…</ul></section>`;
+  }).join('');
+
+  // the slots: background (landscape, portrait), marquee (scene picture, full sign)
+  games.forEach(async g => {
+    const card = document.querySelector(`.ab-card[data-g="${g.id}"]`);
+    const [land, port, mq, mqFull] = await Promise.all([
+      first(['webp', 'jpg', 'png'].map(e => A.Bg.DIR + g.id + '.' + e)), first(['webp', 'jpg', 'png'].map(e => A.Bg.DIR + g.id + '-portrait.' + e)),
+      first([MQ + g.id + '.webp', MQ + g.id + '.png']), first([MQ + g.id + '-full.webp', MQ + g.id + '-full.png'])]);
+    card.querySelector('.ab-slots').innerHTML =
+      slot('Background', `shared/backgrounds/${g.id}.webp`, land) + slot('Portrait', `shared/backgrounds/${g.id}-portrait.webp`, port) +
+      (g.tool ? '' : slot('Marquee', `shared/marquees/${g.id}.png`, mq) + slot('Full sign', `shared/marquees/${g.id}-full.png`, mqFull));
+    if (land || port) { const m = card.querySelector('.ab-mark'); m.textContent = 'your image (overrides)'; m.classList.add('img'); }
+  });
+
+  // the previews: animated while on screen (20 frames a second), a still frame with reduced motion
+  const live = new Set(), states = {};
+  const io = window.IntersectionObserver ? new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? live.add(e.target) : live.delete(e.target))) : null;
+  document.querySelectorAll('.ab-card canvas').forEach(c => { if (io) io.observe(c); else live.add(c); });
+  const draw = (c, t, still) => {
+    const g = games.find(x => x.id === c.closest('.ab-card').dataset.g), fn = A.BgScenes[g.bg.scene];
+    if (fn) fn(c.getContext('2d'), c.width, c.height, t, {state: states[g.id] || (states[g.id] = {}), still, colors: g.bg.colors || []});
+  };
+  document.querySelectorAll('.ab-card canvas').forEach(c => { const g = c.closest('.ab-card').dataset.g; draw(c, A.BgScenes.STILL[games.find(x => x.id === g).bg.scene] || 0, true); });
+  let last = 0; const t0 = performance.now();
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (reduced.matches || document.hidden || now - last < 48) return;
+    last = now; live.forEach(c => draw(c, (now - t0) / 1000, false));
+  }
+  requestAnimationFrame(loop);
+
+  // instrument portraits: each member's picture slot
+  $('portraits').innerHTML = A.PLAYERS.map(id => {
+    const m = A.memberById(id), names = [].concat(A.PORTRAIT_FILES[id] || []);
+    return `<div class="ab-p" data-p="${id}">${A.portraitHTML(id, {size: 'tile', skin: false})}<div><b>${esc(m.short)}</b><br><code>shared/portraits/${esc(names[0] || id)}.png</code><br><span class="ab-st">Checking…</span></div></div>`;
+  }).join('');
+  A.PLAYERS.forEach(async id => {
+    const names = [].concat(A.PORTRAIT_FILES[id] || []);
+    const u = await first(names.flatMap(n => [PT + n + '.png', PT + n + '.webp']));
+    const st = document.querySelector(`.ab-p[data-p="${id}"] .ab-st`);
+    st.textContent = u ? '✓ uploaded' : '— drawn fallback'; st.classList.toggle('ok', !!u);
+  });
+})(window.Arcade);
+</script>
+</body>
+</html>
