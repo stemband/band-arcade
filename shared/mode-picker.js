@@ -12,7 +12,7 @@
      memory: where the choice is remembered (default gameId; Neon Face-Off keeps one per player: 'neon-face-off:p2').
      stars: false hides the star totals (a game whose stars aren't per NOTES × ORDER, like Neon Face-Off).
      keySuffix: a function returning text added to every progress key the stars are read from (Showtime
-       Malfunction's EXTRA SPOOKY: () => ':extra'); max: the stars shown per combination (default games.js maxStars).
+       Malfunction's NIGHTMARE: () => ':extra'); max: the stars shown per combination (default games.js maxStars).
        The game saves under picker.state.progressKey + that suffix itself; call picker.refresh() when it changes.
    The last NOTES + ORDER choice is remembered per game (Arcade.store.noteMode). The NOTES buttons show each
    combination's stars for the chosen ORDER, out of the game's maxStars from games.js ("E♭ ★ 9/24").

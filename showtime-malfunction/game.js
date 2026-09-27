@@ -5,7 +5,7 @@
    mode: no staff, any clean hit counts, and its animatronics are Snapjaw Sal and his clone units.
    Progress: per instrument MEMBER (games.js byMember): setLevel(<progress key>, member id, showtime, {stars, best});
    the snare saves under 'showtime-malfunction:count'. Levels and rules: levels.js. Characters: characters.js.
-   DIFFICULTY: Normal | EXTRA SPOOKY (levels.js column `x`: bigger counts, faster walk). EXTRA SPOOKY opens once this
+   DIFFICULTY: Normal | NIGHTMARE (levels.js column `x`: bigger counts, faster walk). NIGHTMARE opens once this
    instrument has cleared The 5:00 Show on Normal (any mode; ?demo: always) and saves under the same keys + ':extra'.
    It is separate from the SPOOKY LEVEL (Mild | Spooky), which only changes the visuals. */
 (function (A) {
@@ -36,7 +36,7 @@
   document.querySelectorAll('[data-spooky]').forEach(b => b.addEventListener('click', () => { setSpooky(b.dataset.spooky); sfx('ui-toggle'); }));
   setSpooky(gd.spooky);
 
-  /* ---------- the difficulty (remembered): Normal | EXTRA SPOOKY, locked until The 5:00 Show is cleared on Normal ---------- */
+  /* ---------- the difficulty (remembered): Normal | NIGHTMARE, locked until The 5:00 Show is cleared on Normal ---------- */
   const normalKeys = () => snare ? [SNARE_KEY] : A.progressKeys(GAME_ID);
   const extraEarned = () => normalKeys().some(k => A.store.level(k, who, 1).stars > 0);    // for THIS instrument, any mode
   const extraOpen = () => A.DEMO || extraEarned();
@@ -63,7 +63,7 @@
     showHub();
   }
   document.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => setDiff(b.dataset.diff)));
-  /** a showtime's row for the chosen difficulty: Normal = levels.js as written; EXTRA SPOOKY = its `x` column */
+  /** a showtime's row for the chosen difficulty: Normal = levels.js as written; NIGHTMARE = its `x` column */
   function rowFor(lv, extra = isExtra()) {
     const L = LEVELS[lv - 1], x = L.x;
     if (!extra || !x) return L;
@@ -93,7 +93,7 @@
     document.body.classList.remove('in-show');
     drawDiff();
     const key = progressKey(), x = isExtra();
-    $('levelsTitle').textContent = x ? 'Showtimes · Extra Spooky' : 'Showtimes';
+    $('levelsTitle').textContent = x ? 'Showtimes · Nightmare' : 'Showtimes';
     $('levelGrid').innerHTML = LEVELS.map((_, i) => {
       const lv = i + 1, L = rowFor(lv, x), p = A.store.level(key, who, lv);
       const open = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, who, lv - 1).stars > 0;
@@ -143,7 +143,7 @@
     G.ext = extentOf(G.fit);
     $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
-    $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Extra Spooky' : ''}`; $('hudLevelName').textContent = L.name;
+    $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Nightmare' : ''}`; $('hudLevelName').textContent = L.name;
     $('bots').innerHTML = ''; $('band').innerHTML = ''; banner('');
     lastTarget = null; tpShown = null; drawPanel(null);
     drawLights(); hud();
@@ -451,7 +451,7 @@
     $('results').hidden = false;
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
-    A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score', unlockedNow && 'extra-spooky-unlocked']);
+    A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score', unlockedNow && 'nightmare-unlocked']);
     G = null;
     finished = g;
   }

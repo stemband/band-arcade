@@ -1,7 +1,7 @@
 /* Showtime Malfunction: the Band Arcade after closing. Flicker is always slow and gentle (never a rapid or
    full-screen flash), and prefers-reduced-motion turns off every flicker, shake, twitch and lurch.
    Mild (default) = glitches and static; body.spooky-mode = darker, more static, and a lean-in at game over.
-   body.extra-mode = the EXTRA SPOOKY difficulty: with Spooky visuals, a little darker still (red emergency lighting,
+   body.extra-mode = the NIGHTMARE difficulty: with Spooky visuals, a little darker still (red emergency lighting,
    more static on the cabinets, eyes that flicker more). With Mild visuals it looks just like Mild. */
 .showtime{--st-red:var(--anim-eye-bad);--st-blue:var(--anim-eye-good)}
 .hub-head{margin-bottom:14px}
@@ -134,7 +134,7 @@
 .spooky-mode .fluoro{opacity:.4}
 .spooky-mode .cabs{opacity:.3}
 .lights-out .fluoro{opacity:.15;animation:none}
-/* EXTRA SPOOKY + Spooky visuals: red emergency lighting (a slow, gentle pulse), more static on the cabinets, flickering eyes */
+/* NIGHTMARE + Spooky visuals: red emergency lighting (a slow, gentle pulse), more static on the cabinets, flickering eyes */
 .emergency{inset:0;opacity:0;background:radial-gradient(ellipse 70% 45% at 50% 0,color-mix(in srgb,var(--anim-emergency) 34%,transparent),transparent 75%),
   linear-gradient(color-mix(in srgb,var(--anim-emergency) 10%,transparent),transparent 60%)}
 .spooky-mode.extra-mode .emergency{opacity:1;animation:emergency 5s ease-in-out infinite}
