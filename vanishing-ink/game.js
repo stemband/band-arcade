@@ -42,7 +42,7 @@
     if (A.Sfx.sync) A.Sfx.sync();
     $('hearBox').classList.toggle('off', !on);
   }
-  const menuMusic = on => A.Sfx.setMusic(on ? ['vanishing-ink-music'] : null);   // a file only: nothing pitched is generated
+  const menuMusic = on => { A.Sfx.setMusic(on ? ['vanishing-ink-music'] : null); if (A.Bg) A.Bg.menu(on); };   // a file only (nothing pitched is generated); + the menu background
 
   /* ---------- the note set and the patterns (shared/patterns.js) ---------- */
   const noteSet = pool => A.patterns.noteSet(picker.state, pool);

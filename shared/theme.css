@@ -506,3 +506,20 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .apad-letter.good{background:var(--yellow);color:var(--deep);border-color:var(--yellow-hi)}
 .apad-letter.bad{background:var(--red-ink);border-color:var(--red)}
 .apad.locked .apad-letter,.apad.locked .apad-acc{opacity:.4}
+
+/* ---------- MENU BACKGROUNDS (shared/backgrounds.js + bg-scenes.js): a picture or a coded scene behind a game's
+   menu screens, a dark readability overlay on top (games.js bg.dim / bg.focus), gone during play (0.4 s fade) ---------- */
+.bg-layer{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .4s ease;background:var(--floor);--bg-edge:45%;--bg-mid:64%}
+.bg-layer.on{opacity:1}
+html.bg-on body{background:transparent}
+.bg-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bg-img{position:absolute;inset:0;display:none;background:var(--floor) center/cover no-repeat}
+.bg-layer.has-img .bg-img{display:block}
+.bg-layer.has-img .bg-cv{display:none}
+.bg-dim{position:absolute;inset:0;background:radial-gradient(ellipse 75% 65% at 50% 48%,
+  color-mix(in srgb,var(--deep) var(--bg-mid),transparent),color-mix(in srgb,var(--deep) var(--bg-edge),transparent))}
+/* the MOVING BACKGROUNDS switch in the speaker panel */
+.snd-motion{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:15px;color:var(--text-hi);cursor:pointer}
+.snd-motion input{width:20px;height:20px;accent-color:var(--cyan)}
+.snd-motion small{flex-basis:100%;color:var(--text-lo);font-size:13px}
+.snd-motion small:empty{display:none}
