@@ -28,7 +28,7 @@
      {game, level, stars, text}           achievement: any instrument has `stars` on that level of that game, in
                                           any NOTES × ORDER mode. Unlocks for EVERY instrument on the device.
                                           + suffix: only progress keys ending in it (':extra' = Showtime
-                                          Malfunction's EXTRA SPOOKY difficulty)
+                                          Malfunction's NIGHTMARE difficulty)
      {game, badge: true, text}            achievement: any Ancient Ninja Scrolls TEST READY badge
      {game, achievement: 'id', text}      achievement: store.gameData(game).achievements[id] is true (the game sets it;
                                           Sustain Speedway: 'virtuoso-win' = won any track on Virtuoso)
@@ -54,7 +54,7 @@ window.Arcade = window.Arcade || {};
                                                                                   look: {colors: ['cyan', 'pink'], fx: 'shimmer'}},
     {id: 'animatronic', kind: 'color', name: 'Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, text: 'Defeat Maestro Moose in Showtime Malfunction'},
                                                                                   look: {colors: ['anim-metal', 'anim-eye-good'], fx: 'animatronic', eyes: true}},
-    {id: 'nightmare', kind: 'color', name: 'Nightmare Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, suffix: ':extra', text: 'Clear The Midnight Encore on EXTRA SPOOKY in Showtime Malfunction'},
+    {id: 'nightmare', kind: 'color', name: 'Nightmare Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, suffix: ':extra', text: 'Clear The Midnight Encore on NIGHTMARE in Showtime Malfunction'},
                                                                                   look: {colors: ['anim-chrome', 'anim-eye-bad'], fx: 'nightmare', eyes: 'flicker'}},
     {id: 'stripes', kind: 'color', name: 'Racing Stripes', unlock: {game: 'sustain-speedway', level: 8, stars: 3, text: 'Win The Grand Prix in Sustain Speedway'},
                                                                                   look: {colors: ['pink', 'amber'], fx: 'stripes', stripes: true}},

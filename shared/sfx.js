@@ -8,6 +8,11 @@
      Arcade.Sfx.play('whoosh' | 'coin' | 'blip')   the three original generated sounds
      Arcade.Sfx.bell(soundingMidi)     a bell bar's tone at its real pitch (Chime Heist; always generated, never a file)
      Arcade.Sfx.playThenGo(name, href) play, then change page when the sound ends (never later than 1.5 s)
+     Arcade.Sfx.prefer(names)          load these small effects now, ahead of everything (the floor: the front
+                                       cabinet's select-<id> and its two neighbors, on every turn; before the first
+                                       tap they are downloaded and decoded on unlock)
+     Arcade.Sfx.eventSoon(name, ms)    like event(), but if its file is still downloading, wait for it (up to ms,
+                                       default 600) instead of playing the fallback: the floor's START uses it
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
                                        preloaded after the first tap, two at a time (school Wi-Fi)
      Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE sliders (saved on the device)
@@ -436,9 +441,12 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- preloading: only this page's sounds, after the first tap, two at a time ---------- */
   const screens = new Set(['general']);
-  let queue = [], busy = 0;
+  let queue = [], busy = 0, preferred = [];
+  /** the files an event needs: its own and its fallback's */
+  const filesOf = n => { const e = entry(n); if (!e || !e.file || e.loop) return []; const f = e.fallback && entry(e.fallback); return f && f.file ? [e.file, f.file] : [e.file]; };
   function preload() {
     if (!ctx || !A.Sounds) return;
+    preferred.forEach(n => filesOf(n).forEach(f => { if (!files[f] && !queue.includes(f)) queue.push(f); }));
     A.Sounds.names().forEach(n => {
       const e = entry(n);
       if (!e || !e.file || !screens.has(e.screen) || files[e.file] || queue.includes(e.file)) return;
@@ -447,6 +455,48 @@ window.Arcade = window.Arcade || {};
       if (e.fallback) { const f = entry(e.fallback); if (f && f.file && !queue.includes(f.file) && !files[f.file]) queue.push(f.file); }
     });
     pump();
+  }
+  /** move these events' files to the front of the queue (or remember them until the audio unlocks) */
+  function prefer(names) {
+    [].concat(names).forEach(n => {
+      if (!preferred.includes(n)) preferred.push(n);
+      if (!ctx) { filesOf(n).forEach(fetchFxEarly); return; }     // before the first tap: download now, decode on unlock
+      filesOf(n).forEach(f => {
+        if (files[f]) return;                                    // loaded, or already downloading
+        queue = queue.filter(x => x !== f);
+        if (ctx.state === 'running') load(f);                    // small: starts now, beside the two in the queue
+        else queue.unshift(f);
+      });
+    });
+  }
+  /** a small effect wanted soon (the front cabinet's START sound), before the first tap: download it now, on its own
+      (not behind the music), and remember a missing .m4a for this tab, so the load on unlock goes straight to the
+      .mp3 in the browser's cache */
+  const fxEarly = new Set();
+  function fetchFxEarly(file) {
+    if (!file || FILE_MODE || !BASE || files[file] || fxEarly.has(file)) return;
+    fxEarly.add(file);
+    (async () => {
+      for (const ext of ['m4a', 'mp3']) {
+        const base = BASE + file + '.' + ext + '?v=' + VERSION();
+        if (miss.has(base)) continue;
+        try {
+          const r = await fetch(base);
+          if (r.ok) { await r.arrayBuffer(); return; }
+          if (r.status === 404) { miss.add(base); try { sessionStorage.setItem(MISS_KEY, JSON.stringify([...miss])); } catch (x) {} }
+        } catch (e) { return; }                                  // offline: the normal load tries again later
+      }
+    })();
+  }
+  /** play an event, but give a file that is still downloading up to maxWait ms to arrive first */
+  function eventSoon(name, maxWait = 600) {
+    if (!ready()) return Promise.resolve(playEvent(name));
+    const e = entry(name);
+    if (!e || !e.file || e.loop) return Promise.resolve(playEvent(name));
+    const rec = files[e.file];
+    if (rec && rec.state !== 'loading') return Promise.resolve(playEvent(name));
+    const p = rec ? rec.p : load(e.file);                         // not queued yet: fetch it now
+    return Promise.race([p, new Promise(r => setTimeout(r, maxWait))]).then(() => playEvent(name));
   }
   function pump() {
     while (busy < 2 && queue.length) {
@@ -750,13 +800,14 @@ window.Arcade = window.Arcade || {};
     musicLog,
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
+    prefer, eventSoon,
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */
     playThenGo(name, href) {
       if (leaving) return;                 // a second tap during the wait does nothing
       leaving = true;
       setTimeout(() => { leaving = false; }, GO_MAX + 500);
-      const d = SOUNDS[name] ? Sfx.play(name) : playEvent(name);
-      if (d) setTimeout(() => { location.href = href; }, Math.min(GO_MAX, Math.max(120, d * 1000))); else location.href = href;
+      const go = d => { if (d) setTimeout(() => { location.href = href; }, Math.min(GO_MAX, Math.max(120, d * 1000))); else location.href = href; };
+      if (SOUNDS[name]) go(Sfx.play(name)); else eventSoon(name).then(go);
     },
     mountControls,
     /* for the Sound Board (sound-board/index.html) */

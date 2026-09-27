@@ -1,6 +1,6 @@
 /* AFTER REPLACING SOUNDS in shared/sounds/, add 1 to this number, so every student's device loads the new files right
    away instead of a copy it saved earlier (every sound URL ends in ?v=<this number>). */
-var SOUNDS_VERSION = 1;
+var SOUNDS_VERSION = 2;
 
 /* Band Arcade: THE SOUND LIST. Every sound the arcade plays, by event name. shared/sfx.js plays them.
 
@@ -117,7 +117,7 @@ window.Arcade = window.Arcade || {};
     'reboot':          {file: 'reboot',        vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reboots (eyes turn blue), or Maestro Moose finishes a phase.', len: 'under 0.5 s'},
     'spotlight-out':   {file: 'spotlight-out', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reaches the front and a spotlight goes out.', len: 'under 0.5 s'},
     'showtime-over':   {file: 'showtime-over', vol: .8, mic: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: all three spotlights are out, SHOWTIME\'S OVER. Spooky-fun, never a scream.', len: '1–2 s'},
-    'extra-spooky-unlocked': {file: 'extra-spooky-unlocked', vol: .8, mic: true, fallback: 'skin-unlocked', screen: 'showtime-malfunction', when: 'Showtime Malfunction: the results screen the first time EXTRA SPOOKY unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream.', len: '0.8–1.5 s'},
+    'nightmare-unlocked': {file: 'nightmare-unlocked', vol: .8, mic: true, fallback: 'skin-unlocked', screen: 'showtime-malfunction', when: 'Showtime Malfunction: the results screen the first time NIGHTMARE unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream.', len: '0.8–1.5 s'},
     // ---- Sustain Speedway (the mic listens for the whole race: nothing plays while racing) ------------------------
     'race-countdown':  {file: 'race-countdown', vol: .8, mic: true, screen: 'sustain-speedway', gen: [[523, 0, .16], [523, 1, .16], [523, 2, .16], [1047, 3, .45]], when: 'Sustain Speedway: "3, 2, 1, GO!" before the first note. It plays BEFORE listening counts: GO waits until it ends.', len: '3–3.5 s (GO on the last beat)'},
     'pit-in':          {file: 'pit-in', vol: .7, mic: true, play: true, screen: 'sustain-speedway', gen: [[392, 0, .08, .25], [523, .08, .14, .25]], when: 'Sustain Speedway: the car pulls into the pit stop (a rest between laps).', len: 'under 0.5 s'},

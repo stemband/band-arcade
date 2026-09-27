@@ -11,14 +11,14 @@
      pool     3 = the smaller starting note pool on the first showtime (sequences.js), 5 = the whole pool
      boss     the final boss (showtime 8): Maestro Moose, `phases` × `count` plays (snare: `snare` hits a phase),
               walking `walk` seconds, while the smaller animatronics keep coming
-     x        THE EXTRA SPOOKY COLUMN (the harder difficulty; everything not listed here stays as above: same
+     x        THE NIGHTMARE COLUMN (the harder difficulty; everything not listed here stays as above: same
               number of animatronics, same lanes, same pool):
                 count   [fewest, most] plays each               snare  [fewest, most] hits (Snare Drum, up to 16)
                 speed   walk-speed multiplier (1.15 = 15% faster than Normal: walk seconds ÷ speed)
-                blurb   the level card's sentence in EXTRA SPOOKY
+                blurb   the level card's sentence in NIGHTMARE
                 boss    {count, snare}: Maestro Moose's plays / hits per phase (phases and the rest as in `boss`)
    STARS per showtime: 3 = no spotlights lost, 2 = one lost, 1 = survived (a spotlight left). All 3 out = SHOWTIME'S OVER.
-   Normal and EXTRA SPOOKY keep separate stars (EXTRA SPOOKY saves under the same progress keys + ':extra'). */
+   Normal and NIGHTMARE keep separate stars (NIGHTMARE saves under the same progress keys + ':extra'). */
 window.SHOWTIMES = [
   {name: 'The 5:00 Show',       blurb: 'One at a time, slow. Play each note twice.',          bots: 5, count: [2, 2], snare: [4, 4],   atOnce: 1, lanes: 2, walk: 14, pool: 3,
     x: {count: [2, 3], snare: [4, 6],   speed: 1.15, blurb: 'Two or three plays each, a little faster.'}},

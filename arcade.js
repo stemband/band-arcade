@@ -153,6 +153,8 @@
     }
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur % N ? 'true' : 'false'));
     if (!g.player) A.Sfx.preloadMusic('select-music-' + g.id);   // this game's own select music (if Mat made one) is ready for START
+    // its START sound (and the next cabinets' either side) download before every other sound
+    A.Sfx.prefer([g, ring[(cur + 1) % ring.length], ring[(cur - 1 + ring.length) % ring.length]].filter(Boolean).map(x => 'select-' + x.id));
     // the address says which cabinet is in front (not while Select Player's ?game= address is showing)
     if (!new URLSearchParams(location.search).has('game')) { try { history.replaceState(null, '', '#' + g.id); } catch (e) { /* some browsers block this on local files */ } }
   }
@@ -193,7 +195,7 @@
         e.preventDefault();
         const g = ring[cur];
         if (g.player) A.Sfx.playThenGo('select-' + g.id, start.href);   // its own fixed player: straight to the game
-        else { A.Sfx.event('select-' + g.id); openSelect(g); }
+        else { A.Sfx.eventSoon('select-' + g.id); openSelect(g); }   // still downloading? wait a moment for it, not the fallback
       }
       return;
     }
