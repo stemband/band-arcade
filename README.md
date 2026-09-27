@@ -239,13 +239,20 @@ needed. Each player gets their own half of the screen with their own note and th
   TABLETOP (the iPad lies flat between the players, the far half turned to face them) or SIDE BY SIDE. Each player picks
   a look (Player 2 is a guest avatar), a name (Player 1 / Player 2, or their avatar's name), a clef, a note set and a
   **belt**: any Note Ninja belt they've earned on this device. The belt is a handicap: White gets the first three notes
-  and letter guides, higher belts get the whole set with no guides.
-- **A point:** READY… BEGIN! Both notes appear at once. A wrong tap makes you dizzy for 1 second. Nobody right in
-  6 seconds (or both wrong) = no point. Both answers show for a moment, then the next note.
+  and letter guides, higher belts get the whole set with no guides. **Countdown:** QUICK (a fast 3-2-1, the default),
+  CLASSIC (one second a number) or OFF (a short pause), remembered on the device.
+- **A point:** a 3-2-1 over both staffs (the buttons rest, a little dimmed), then both notes appear at the same instant
+  and the buttons wake up. The first note of a match always gets a slow 3-2-1 and BEGIN!, and so does the note after
+  someone reaches MATCH POINT. A wrong tap makes you dizzy for 1 second. Then a **result moment** (1.5 s): the winner's
+  half glows in their belt color, their ninja does a playful strike, "+1" flies to their score, and BOTH sides see the
+  right answer (the name next to the note, the right button glowing, a wrong tap still coral: "You tapped G. It's E.").
+  Nobody right in 6 seconds, or both wrong: "Too slow, ninjas!", no point. The winning point goes to the victory screen.
+  With QUICK, a note comes about every 3 seconds.
 - **Results** face each player: accuracy, average answer time and "Practice these" (the notes they missed or were
   slowest on). No stars; the device keeps a **dojo record** of wins for each player name (in the Arcade Backup Code).
 - **Keyboards:** Player 1 Q–U = A–G (A = ♭, S = ♯); Player 2 1–7 = A–G (8 = ♭, 9 = ♯).
-- **Tuning:** `dojo-duel/levels.js` (point time, stun, reveal, the Sensei's speed and lines).
+- **Tuning:** `dojo-duel/levels.js`: `DUEL_PACING` at the top holds every timing (countdown steps, the result moment,
+  stun, the 6 s per note), then the rules, the Sensei's speed and lines.
 
 ## Note Ninja
 
