@@ -761,7 +761,8 @@ window.Arcade = window.Arcade || {};
   };
 
   function setup(THREE, aisle, opts) {
-    const {ring, wrap, onGiveUp} = opts, M = ring.length;
+    const {onGiveUp} = opts;
+    let ring = opts.ring, wrap = opts.wrap, M = ring.length, fadeOf = opts.fade || (() => 1);
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     let level = 0;                                                  // 0 = full, 1 = downgraded (dpr 1, no haze, no sway)
     const dpr = () => level ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
@@ -793,9 +794,9 @@ window.Arcade = window.Arcade || {};
           // pictures from shared/marquees/ can't go into WebGL on a page opened from a file (the browser forbids it)
           const c = canvas(512, Math.round(512 / aspect)), art = location.protocol !== 'file:';
           const tex = new THREE.CanvasTexture(c);
-          const m = {texture: tex, draw(t) { A.Marquee.draw(c.getContext('2d'), c.width, c.height, t, g, {art}); tex.needsUpdate = true; }};
+          const m = {texture: tex, dead: false, draw(t) { if (m.dead) return; A.Marquee.draw(c.getContext('2d'), c.width, c.height, t, g, {art}); tex.needsUpdate = true; }};
           m.draw(null);
-          A.Marquee.onArt(g, () => { m.draw(null); kick(); });   // a picture or a font arrived: draw again
+          A.Marquee.onArt(g, () => { if (!m.dead) { m.draw(null); kick(); } });   // a picture or a font arrived: draw again
           cache[id] = m;
         }
         return cache[id];
@@ -836,9 +837,63 @@ window.Arcade = window.Arcade || {};
     });
     scene.add(hazeGroup);
 
-    // the cabinets
+    /* the cabinets. Each place on the ring is a SLOT: a holder the carousel moves, with either the FULL cabinet
+       (only the front one and its neighbors: NEAR places away) or a FLAT stand-in (one textured plane: a lit
+       silhouette with the marquee) farther out. setRing() swaps the whole set (a new zone) and disposes the old. */
+    const NEAR = 1.5;
     const ringGroup = new THREE.Group(); scene.add(ringGroup);
-    const items = ring.map(g => { const it = build(THREE, g, shared); ringGroup.add(it.group); return it; });
+    let slots = [];
+    function disposeTree(o) {
+      o.traverse(x => {
+        if (x.geometry) x.geometry.dispose();
+        if (x.material) [].concat(x.material).forEach(m => m.dispose());   // their textures are shared (cache) and stay
+      });
+    }
+    /* a flat, lightweight cabinet: its silhouette in the body color with a neon edge, the marquee and a glowing screen */
+    function flatCab(g) {
+      const k = A.cabinet3dOf(g), P = PROFILES[k.profile], W = P.width, H = Math.max(...P.points.map(p => p[1]));
+      const c = canvas(128, Math.round(128 * H / W)), x = c.getContext('2d'), cw = c.width, ch = c.height;
+      x.fillStyle = tok[k.body] || tok['cab-side']; x.fillRect(2, 2, cw - 4, ch - 4);
+      x.strokeStyle = tok[k.trim + '-hi'] || tok[k.trim]; x.lineWidth = 3; x.strokeRect(2, 2, cw - 4, ch - 4);
+      const mq = canvas(256, 64); A.Marquee.draw(mq.getContext('2d'), 256, 64, null, g, {art: false});
+      x.drawImage(mq, 8, ch * .03, cw - 16, (cw - 16) / 4);
+      x.fillStyle = tok.deep; x.fillRect(cw * .14, ch * .4, cw * .72, ch * .26);
+      x.strokeStyle = tok[k.trim2] || tok[k.trim]; x.lineWidth = 2; x.strokeRect(cw * .14, ch * .4, cw * .72, ch * .26);
+      const tex = new THREE.CanvasTexture(c), mats = [];
+      const m = new THREE.MeshBasicMaterial({map: tex, color: new THREE.Color(1, 1, 1), transparent: true}); mats.push([m, m.color.clone(), 'color']);
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, H), m);
+      mesh.position.set(0, H / 2, .1); mesh.userData.pick = true;
+      return {mesh, mats, tex};
+    }
+    function setFull(S, on) {
+      if (on && !S.full) {
+        S.full = build(THREE, S.g, shared); S.holder.add(S.full.group);
+        if (S.flat) { S.holder.remove(S.flat.mesh); disposeTree(S.flat.mesh); S.flat.tex.dispose(); S.flat = null; }
+        S.dim = undefined; stats.built++;
+      } else if (!on && !S.flat) {
+        if (S.full) { S.holder.remove(S.full.group); disposeTree(S.full.group); S.full = null; stats.disposed++; }
+        S.flat = flatCab(S.g); S.holder.add(S.flat.mesh); S.dim = undefined;
+      }
+    }
+    /** full cabinets where the carousel is and where it's going (and every place in between) */
+    function sync(a, b) {
+      slots.forEach((S, r) => {
+        let near = false;
+        for (let p = Math.min(a, b); p <= Math.max(a, b) + 1e-6; p += .5) if (Math.abs(wrap(r - p)) <= NEAR) near = true;
+        setFull(S, near);
+      });
+      stats.full = slots.filter(S => S.full).length; stats.flat = slots.filter(S => S.flat).length;
+    }
+    function clearSlots() {
+      slots.forEach(S => { if (S.full) disposeTree(S.full.group); if (S.flat) { disposeTree(S.flat.mesh); S.flat.tex.dispose(); } ringGroup.remove(S.holder); });
+      slots = [];
+      // this zone's marquee and screen textures go too (the round glow textures are tiny and shared: they stay)
+      Object.keys(cache).forEach(id => { if (id[0] !== 'g') { if (cache[id].dead === false) cache[id].dead = true; (cache[id].texture || cache[id]).dispose(); delete cache[id]; } });
+    }
+    function makeSlots() {
+      slots = ring.map(g => { const holder = new THREE.Group(); ringGroup.add(holder); return {g, holder, full: null, flat: null, fade: fadeOf(g)}; });
+    }
+    const frontSlot = () => slots[frontIdx()];
 
     // HTML START over the front cabinet's control panel
     const start = document.createElement('a');
@@ -873,19 +928,19 @@ window.Arcade = window.Arcade || {};
 
     function layout(now) {
       const sway = (!reduced.matches && !level) ? Math.sin(now / 1000 * .9) * SWAY : 0;
-      items.forEach((it, r) => {
+      slots.forEach((it, r) => {
         const d = wrap(r - pos), ad = Math.abs(d);
-        const dim = narrow ? Math.max(0, 1 - ad * 1.4) : ad < 1 ? 1 - .55 * ad : ad < 2 ? .45 - .25 * (ad - 1) : Math.max(0, .2 - .2 * (ad - 2) * 2);
+        const dim = (narrow ? Math.max(0, 1 - ad * 1.4) : ad < 1 ? 1 - .55 * ad : ad < 2 ? .45 - .25 * (ad - 1) : Math.max(0, .2 - .2 * (ad - 2) * 2)) * it.fade;
         it.ad = ad;
-        it.group.visible = dim > .01;
-        if (!it.group.visible) return;
+        it.holder.visible = dim > .01;
+        if (!it.holder.visible) return;
         const phi = d * ARC_STEP;
-        it.group.position.set(Math.sin(phi) * ARC_R, 0, -ARC_R + Math.cos(phi) * ARC_R - SINK * Math.min(ad, 2.5));
+        it.holder.position.set(Math.sin(phi) * ARC_R, 0, -ARC_R + Math.cos(phi) * ARC_R - SINK * Math.min(ad, 2.5));
         it.phi = phi;
-        it.group.rotation.y = phi + sway * Math.max(0, 1 - ad);
+        it.holder.rotation.y = phi + sway * Math.max(0, 1 - ad);
         if (it.dim !== dim) {
           it.dim = dim;
-          it.mats.forEach(([m, c, kind, op]) => {
+          (it.full ? it.full.mats : it.flat.mats).forEach(([m, c, kind, op]) => {
             if (kind === 'add') m.opacity = (op || 1) * dim;
             else m.color.copy(c).multiplyScalar(dim);
           });
@@ -894,9 +949,10 @@ window.Arcade = window.Arcade || {};
     }
 
     function placeStart() {
-      const it = items[frontIdx()];
+      const it = frontSlot();
+      if (!it || !it.full) return;
       // where START sits on the cabinet, ignoring the idle sway, so the button holds still under a finger
-      const v = it.start.clone().applyAxisAngle(Y_AXIS, it.phi || 0).add(it.group.position).project(camera);
+      const v = it.full.start.clone().applyAxisAngle(Y_AXIS, it.phi || 0).add(it.holder.position).project(camera);
       const l = Math.round((v.x + 1) / 2 * Wpx) + 'px', t = Math.round((1 - v.y) / 2 * Hpx) + 'px';
       if (start.style.left !== l) start.style.left = l;
       if (start.style.top !== t) start.style.top = t;
@@ -909,11 +965,11 @@ window.Arcade = window.Arcade || {};
       renderer.clear();
       // pass 1: the reflection (everything upside down under the floor)
       floor.visible = false; hazeGroup.visible = false;
-      const far = items.filter(it => it.group.visible && it.ad > 1.3);   // the far cabinets are too dim to reflect
-      far.forEach(it => { it.group.visible = false; });
+      const far = slots.filter(it => it.holder.visible && it.ad > 1.3);   // the far cabinets are too dim to reflect
+      far.forEach(it => { it.holder.visible = false; });
       ringGroup.scale.y = -1; camera.layers.disable(1); renderer.render(scene, camera);
       const calls = renderer.info.render.calls;
-      far.forEach(it => { it.group.visible = true; });
+      far.forEach(it => { it.holder.visible = true; });
       // pass 2: the room
       ringGroup.scale.y = 1; camera.layers.enable(1); floor.visible = true; hazeGroup.visible = !level;
       renderer.render(scene, camera);
@@ -941,13 +997,14 @@ window.Arcade = window.Arcade || {};
       if (turning) {
         const p = Math.min(1, (now - t0) / TURN_MS);
         pos = from + (to - from) * easeIO(p);
-        if (p >= 1) { turning = false; pos = to; }
+        if (p >= 1) { turning = false; pos = to; sync(to, to); }    // the turn is over: far cabinets go flat
       }
       const idle = !turning;
       if (!idle || now - lastRender >= IDLE_MS) {
         const t = Math.max(0, now - animT0) / 1000;       // a frame can be stamped a moment before setup ended
-        if (!reduced.matches && now - lastScreen > 60) { items[frontIdx()].screen.draw(t); lastScreen = now; }
-        if (!reduced.matches && now - lastMarquee > 1000 / (A.Marquee.FPS / (level ? 2 : 1)) - 2) { items[frontIdx()].marquee.draw(t); lastMarquee = now; }
+        const fr = frontSlot() && frontSlot().full;
+        if (fr && !reduced.matches && now - lastScreen > 60) { fr.screen.draw(t); lastScreen = now; }
+        if (fr && !reduced.matches && now - lastMarquee > 1000 / (A.Marquee.FPS / (level ? 2 : 1)) - 2) { fr.marquee.draw(t); lastMarquee = now; }
         layout(now); placeStart(); render(); lastRender = now; stats.frames++;
       }
       if (turning || !reduced.matches) raf = requestAnimationFrame(frame);
@@ -969,7 +1026,7 @@ window.Arcade = window.Arcade || {};
     if (ro) ro.observe(aisle); else addEventListener('resize', resize);
     cvs.addEventListener('webglcontextlost', e => { e.preventDefault(); destroy(); onGiveUp(); });
 
-    const stats = {avgMs: null, samples: [], level: 0, frames: 0, noDowngrade: A.params.has('keep3d')};
+    const stats = {avgMs: null, samples: [], level: 0, frames: 0, noDowngrade: A.params.has('keep3d'), built: 0, disposed: 0, full: 0, flat: 0};
     // ?fps: a small readout of the average frame time, for checking real iPads and Chromebooks
     let fpsBox = null;
     if (A.params.has('fps')) { fpsBox = document.createElement('div'); fpsBox.className = 'fps3d'; fpsBox.textContent = 'measuring…'; aisle.appendChild(fpsBox); }
@@ -990,19 +1047,33 @@ window.Arcade = window.Arcade || {};
     // for testing and tuning: frame times (ms, averaged per few seconds), downgrade level, draw calls per frame (both passes)
     A.Floor3D.stats = () => Object.assign({}, stats, {pixelRatio: renderer.getPixelRatio(), haze: !!scene.fog});
 
+    makeSlots(); sync(pos, pos);
     resize();
     return {
       kind: '3d',
       startLink: start,
+      /** a new set of cabinets (entering a zone); [] = none (the lobby): everything is disposed */
+      setRing(newRing, newWrap, cur = 0, fade) {
+        clearSlots();
+        ring = newRing; wrap = newWrap || wrap; M = ring.length; if (fade) fadeOf = fade;
+        pos = from = to = cur; turning = false;
+        makeSlots(); if (M) sync(pos, pos);
+        stats.full = slots.filter(S => S.full).length; stats.flat = slots.filter(S => S.flat).length;
+        kick();
+      },
+      /** the instrument changed: dim the games that don't suit it (games.js fit) */
+      refade(fade) { fadeOf = fade; slots.forEach(S => { S.fade = fade(S.g); S.dim = undefined; }); kick(); },
       place(cur, instant) {
         const g = ring[cur];
+        if (!g) return;
         start.href = A.startLink(g, '');
         start.className = 'start3d ' + A.trimClasses(g);
         start.setAttribute('aria-label', 'Start ' + g.name);
         const target = pos + wrap(cur - pos);
-        items[frontIdx()].screen.draw(null);             // the old front cabinet's screen goes still
-        items[frontIdx()].marquee.draw(null);            // and its marquee
-        if (instant) { pos = from = to = target; turning = false; }
+        const fr = frontSlot() && frontSlot().full;
+        if (fr) { fr.screen.draw(null); fr.marquee.draw(null); }    // the old front cabinet's screen and marquee go still
+        sync(pos, target);
+        if (instant) { pos = from = to = target; turning = false; sync(pos, pos); }
         else { from = pos; to = target; t0 = performance.now(); turning = true; }
         kick();
         if (instant && reduced.matches) { layout(performance.now()); placeStart(); render(); }
@@ -1013,7 +1084,7 @@ window.Arcade = window.Arcade || {};
         ray.setFromCamera({x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1}, camera);
         // only the solid bodies count (not the glow planes, which spread over the neighbors)
         const bodies = [];
-        items.forEach((it, r) => { if (it.group.visible) it.group.children.forEach(o => { if (o.userData.pick) { o.userData.ring = r; bodies.push(o); } }); });
+        slots.forEach((it, r) => { if (it.holder.visible) (it.full ? it.full.group.children : [it.flat.mesh]).forEach(o => { if (o.userData.pick) { o.userData.ring = r; bodies.push(o); } }); });
         const hit = ray.intersectObjects(bodies, false)[0];
         return hit ? Math.round(wrap(hit.object.userData.ring - pos)) : null;
       },

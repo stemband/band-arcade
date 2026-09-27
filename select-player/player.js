@@ -9,6 +9,10 @@
    IT IS A VIEW ON THE ARCADE FLOOR PAGE (index.html, #selectView), so the audio the student unlocked on the floor
    stays unlocked and the select music starts the moment it opens:
      Arcade.SelectView.open(game, {players, need})   build the screen for that game (arcade.js calls it)
+     Arcade.SelectView.open(null, {forGame, onDone})  PICK MODE: choose the instrument for the whole arcade, before
+                                                      the lobby (URL index.html?pick). No game: the arcade's own sign,
+                                                      no Player 2; forGame (optional) dims the instruments that game
+                                                      doesn't suit (games.js `fit`); onDone(memberId) instead of a game
      Arcade.SelectView.close()                        tear it down (every listener it added goes with it)
    The URL is index.html?game=<id>[&players=2][&need=pitched|noplay]; select-player/index.html?game=<id> redirects
    there. Links from here are relative to the site root. */
@@ -28,21 +32,22 @@
   const view = $('selectView');
   const me = live = {game, ac};
   const still = fn => () => { if (live === me) fn(); };    // a timer that does nothing once the view has closed
-  const gameLink = A.linkTo(ROOT + game.id + '/index.html', {need: null});
-  view.className = 'sp-view ' + A.trimClasses(game);        // this game's neon colors for the whole screen
+  const pick = !game, forGame = pick ? opts.forGame || null : null;   // PICK MODE: the lobby's instrument, no game
+  const gameLink = pick ? '#' : A.linkTo(ROOT + game.id + '/index.html', {need: null});
+  view.className = 'sp-view ' + (pick ? 'trim-cyan trim2-pink pick' : A.trimClasses(game));   // this game's neon colors for the whole screen
   view.hidden = false; view.scrollTop = 0;
-  document.title = `Select Instrument · ${game.name}`;
+  document.title = pick ? `Select Instrument · ${A.ARCADE_NAME || 'Band Arcade'}` : `Select Instrument · ${game.name}`;
   $('spMsg').hidden = true; $('spMsg').innerHTML = '';
   $('spTitle').textContent = 'Select your instrument';
   $('ready').hidden = true; $('ready').classList.remove('go');
-  $('marquee').innerHTML = A.marqueeHTML(game, 'p');
-  if (A.Marquee) A.Marquee.animate($('marquee').querySelector('.mq-live'), 'select');   // this game's sign, moving
+  $('marquee').innerHTML = pick ? `<p class="sp-arcade neon" aria-hidden="true">${(A.ARCADE_NAME || 'Band Arcade').replace(/ (\S+)$/, ' <span>$1</span>')}</p>` : A.marqueeHTML(game, 'p');
+  if (A.Marquee && !pick) A.Marquee.animate($('marquee').querySelector('.mq-live'), 'select');   // this game's sign, moving
   A.Sfx.use('select');                                      // this screen's sounds load after the first tap
   // the music manager: the room ambience fades out, the character-select music fades in (this game's own
   // select-music-<id> if Mat uploaded one, else select-music, else the built-in chiptune). No extra tap needed.
-  A.Sfx.setAmbience(null); A.Sfx.setMusic(['select-music-' + game.id, 'select-music'], {builtIn: true});
+  A.Sfx.setAmbience(null); A.Sfx.setMusic(pick ? ['select-music'] : ['select-music-' + game.id, 'select-music'], {builtIn: true});
 
-  const two = game.players > 1 || String(opts.players) === '2';
+  const two = !pick && (game.players > 1 || String(opts.players) === '2');
   let phase = 1;                                                      // 1 = Player 1 picks, 2 = Player 2 picks
   const ids = two ? A.PLAYERS.concat('cpu') : A.PLAYERS, info = id => A.memberById(id);
   const hornOf = () => phase === 2 ? A.store.opponentHornStart : A.store.hornStart;
@@ -58,13 +63,15 @@
 
   /* an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js, and games.js
      `noPlay` with `block: true` rules out more (Sustain Speedway: bells and snare can't hold a long tone) */
-  const blocked = id => A.blockedBy(game, id);
-  const canPlay = id => !blocked(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
-  const np = game.noPlay || {};
-  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (blocked(t.dataset.id) ? np.label : 'try Showtime Malfunction')); } });
+  const blocked = id => !pick && A.blockedBy(game, id);
+  // pick mode: every instrument, except the ones the game the student wants doesn't suit (games.js fit)
+  const canPlay = id => pick ? !forGame || A.gameFit(forGame, id).ok : !blocked(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
+  const np = (!pick && game.noPlay) || {};
+  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (pick ? A.gameFit(forGame, t.dataset.id).tag : blocked(t.dataset.id) ? np.label : 'try Showtime Malfunction')); } });
   const gameLinkHTML = id => { const g = A.GAMES.find(x => x.id === id); return g ? `<a href="${A.startLink(g, ROOT)}">${g.name}</a>` : ''; };
   const snareMsg = id => {
     $('spMsg').hidden = false;
+    if (pick) { const f = A.gameFit(forGame, id); $('spMsg').innerHTML = `<b>${f.tag || ''}</b> ${f.why || ''}`; return; }
     if ((id && blocked(id)) || opts.need === 'noplay') {      // games.js noPlay.block: its own message, with links
       const links = (np.games || [np.game]).map(gameLinkHTML).filter(Boolean);
       $('spMsg').innerHTML = `<b>${np.label}</b> Pick an instrument that can hold a long note for this game.${links.length ? ` Or go to ${links.join(' or ')}.` : ''}`;
@@ -131,7 +138,7 @@
     $('skinsCount').textContent = `${lc.have} of ${lc.total}`;
   }
   function cpuCard() {
-    const n = A.store.player ? A.store.allStars(A.store.player, game.id) : 0;
+    const n = A.store.player && !pick ? A.store.allStars(A.store.player, game.id) : 0;
     $('preview').style.setProperty('--pc', 'var(--pt-cpu)');
     $('pvPic').innerHTML = A.portraitSVG('cpu', {size: 'big', label: 'CPU'});
     $('pvInst').hidden = true; $('pvInst').innerHTML = '';
@@ -219,6 +226,7 @@
     setTimeout(still(() => A.Sfx.event('player-ready')), 260);
     const wait = reduced.matches ? 700 : 1100;
     if (two && phase === 1) setTimeout(still(() => { r.hidden = true; startPlayer2(id); leaving = false; }), wait);
+    else if (pick) setTimeout(still(() => { leaving = false; if (opts.onDone) opts.onDone(id); }), wait);   // back to the lobby
     else {
       setTimeout(still(() => A.Sfx.setMusic(null)), Math.max(0, wait - 400));      // the music fades out as the game opens
       setTimeout(still(() => { location.href = gameLink; }), wait);

@@ -888,8 +888,29 @@ window.Arcade = window.Arcade || {};
     document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => { mounted.forEach(el => paint(el)); Object.keys(listeners).forEach(id => listeners[id].forEach(fn => fn())); });
   }
 
+  /* ---------- flat THUMBNAILS (the lobby's cards and ALL GAMES: images only, no animation, no 3D) ----------
+     One still frame per game and size, drawn once from this same renderer and kept for the page (a JPEG data URL);
+     drawn again when the game's picture or a lettering font arrives, and every <img data-mq-thumb> showing it
+     is updated. Use: `<img data-mq-thumb="${key}" src="${Arcade.Marquee.thumb(g)}">` with key = thumbKey(g). */
+  const thumbs = {};
+  const thumbKey = (g, W = 400, H = 100) => g.id + '|' + W + 'x' + H;
+  function thumb(g, W = 400, H = 100) {
+    const key = thumbKey(g, W, H);
+    if (thumbs[key]) return thumbs[key].url;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const T = thumbs[key] = {url: ''};
+    const render = () => {
+      draw(c.getContext('2d'), W, H, null, g);
+      try { T.url = c.toDataURL('image/jpeg', .86); } catch (e) { T.url = ''; }        // a tainted canvas (file://): no picture
+      document.querySelectorAll('img[data-mq-thumb]').forEach(i => { if (i.dataset.mqThumb === key && T.url) i.src = T.url; });
+    };
+    render();
+    (listeners[g.id] = listeners[g.id] || []).push(render);
+    return T.url;
+  }
+
   A.Marquee = {
-    FPS, MAX_FLASH_HZ, SCENES, config, draw, html, hydrate, animate, TITLE_MARGIN,
+    FPS, MAX_FLASH_HZ, SCENES, config, draw, html, hydrate, animate, TITLE_MARGIN, thumb, thumbKey,
     /** tests: the fit chosen for a titleFit 'max' game at W × H ({size, lines}) */
     fitInfo(g, W, H) {
       const k = config(g), style = k.cab.marquee, c = document.createElement('canvas').getContext('2d');

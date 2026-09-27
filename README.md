@@ -5,8 +5,9 @@ Practice games for beginning band that listen through the device microphone. Bui
 ## What's in here
 
 ```
-index.html            The arcade floor (home page): pick a GAME from a carousel of cabinets
-arcade.css / .js      Arcade floor look and behavior (carousel, swipe, arrow keys, indicator lights)
+index.html            The arcade (home page): PRESS START, the ZONE LOBBY, each zone's cabinets, ALL GAMES
+arcade.css / .js      The arcade's look and behavior (the page's views and addresses, a zone's carousel, swipe, keys)
+lobby.js              The zone lobby's neon signs, CONTINUE and ASSIGNED cards, and the ALL GAMES grid (flat, no 3D)
 arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, glossy floor, haze
 shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
 select-player/        "Select Your Player": a view on the arcade floor page (player.js, style.css); its old address redirects
@@ -29,7 +30,9 @@ shared/               The engine every game uses
   scales.js           The GMEA scales (Concert B♭, E♭, F, A♭, Chromatic) for every instrument, and the starting-note table
   sequences.js        The notes of every level in the note-reading games (NOTES × ORDER), and their progress keys
   mode-picker.js      The NOTES × ORDER picker those games show on their level screen
-  games.js            The list of games on the arcade floor, and how each cabinet looks
+  games.js            The list of games and the lobby's ZONES, which zone(s) each game is in, which instruments it
+                      suits, and how each cabinet looks
+  featured.js         The ASSIGNED game (edit it by hand: see "The zone lobby" below)
   belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
   sounds.js           THE SOUND LIST: every sound event, its file name, volume and rules (see sounds/README.md)
   sounds/             Mat's recorded sounds (.m4a / .mp3), and the list of file names to use (README.md)
@@ -88,12 +91,58 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 ## How students move through it
 
 0. **PRESS START:** the first time the arcade opens in a visit, a neon attract screen says PRESS START; any tap or key lets you in, and the lobby sound starts right away (browsers only allow sound after a tap, so this is that tap). Coming back from a game in the same visit skips it.
-1. **Arcade floor** (`index.html`): choose a game. Turn the cabinets with the ◀ ▶ buttons, a swipe, the ←/→ keys, or the lights under the carousel. Press **START** on the front cabinet.
-2. **Select Your Player** (`index.html?game=<game-id>`, on the same page as the floor, so its music starts at once; the old `select-player/index.html?game=<game-id>` addresses still work; the browser's Back button returns to the cabinets): a fighting-game character select. Sixteen portraits, one per instrument (woodwinds on the top row, brass and percussion below, including the **Snare Drum**), tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
+1. **Select Your Instrument** comes next (once per visit, and whenever the device has no instrument yet): **Continue as …** is one tap. The player chip in the top bar opens it again any time.
+2. **The zone lobby** (`index.html`): one neon sign per zone (see *The zone lobby* below). Tap a sign to walk into that zone: its cabinets in the carousel (◀ ▶ buttons, a swipe, the ←/→ keys, or the lights). **START** opens the game straight away with the saved instrument. **← LOBBY** (or the browser's Back, or the iPad's back-swipe) goes back. **ALL GAMES** shows every game as a card; **TUNE UP** opens the Note Checker.
+2b. **Select Your Player for one game** (`index.html?game=<game-id>`, on the same page, so its music starts at once; the old `select-player/index.html?game=<game-id>` addresses still work; the browser's Back button returns to the cabinets) opens for a two-player game (Neon Face-Off: Player 2 picks there too), when no instrument is saved yet, or from a game's instrument chip: a fighting-game character select. Sixteen portraits, one per instrument (woodwinds on the top row, brass and percussion below, including the **Snare Drum**), tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
    The big preview shows **the student's own avatar** (see *Create Your Player*) with the instrument as a badge, and **EDIT PLAYER** opens Create Your Player. The first time a device reaches Select Player it asks **"Create your player?"** once (MAYBE LATER keeps the random look it was given).
-3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the floor, turned to that game.
+3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the zone you came from (or ALL GAMES, or the lobby), with that game's cabinet in front.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
+
+## The zone lobby
+
+After PRESS START and the instrument, students land in the **zone lobby**: a dark arcade wall with a glowing neon sign for each zone. Each sign shows the zone's name, a short line, little outlines of its cabinets and the student's stars there (for the instrument they chose). Tapping a sign walks into that zone: the same 3D cabinets as always, but only that zone's games. A game can be in two zones (Dojo Duel is in the Band Ninja Dojo and the 2-Player Corner).
+
+| Zone | Games |
+|---|---|
+| Note Reading | Ghost Notes, Note Storm |
+| Band Ninja Dojo | Note Ninja, Ancient Ninja Scrolls, Dojo Duel |
+| Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
+| Ear Training | Lost Signal |
+| 2-Player Corner | Neon Face-Off, Dojo Duel |
+| Adventure | Arcade Quest |
+
+- **CONTINUE** (top of the lobby): the last game opened on this device, one tap to play it again.
+- **ALL GAMES** (in the top bar everywhere): every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games.
+- **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
+- **Addresses:** each view has its own address, so the browser's Back button and the iPad's back-swipe work, and you can share a zone: `index.html#zone=technique-lab`, `index.html#all-games`. (`?demo` stays on.)
+- **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself.
+
+### The ASSIGNED game (change it yourself)
+
+Open `shared/featured.js` and edit this one line:
+
+```js
+window.Arcade.FEATURED = {game: 'lost-signal', note: 'Practice this week!', until: '2026-10-09'};
+```
+
+- **game**: the game's folder name, in quotes (`'note-storm'`, `'ghost-notes'`, `'sustain-speedway'`…). The list is in the comment at the top of that file.
+- **note**: what students read on the card (keep it short).
+- **until** (optional): the last day it shows, as year-month-day. The day after, it disappears by itself. Leave it out to keep it up until you change it.
+- **To turn it off**, write `game: null` (no quotes around null).
+
+While it's on, the lobby shows a glowing **ASSIGNED** card at the top with your note, and the game gets an ASSIGNED badge on its cabinet, its zone's sign and its ALL GAMES card. Save the file (upload it to GitHub); students see it the next time the arcade opens.
+
+### Which instruments a game suits
+
+A game that doesn't work for the student's instrument stays visible but dimmed, with a short tag; opening it explains why and offers **Switch instrument**. These are the `fit` lines in `shared/games.js`:
+
+| Game | Suits | Tag |
+|---|---|---|
+| Ghost Notes, Note Storm, Note Ninja, Neon Face-Off, Lost Signal | every instrument except Snare Drum | Not for snare |
+| Chime Heist | Bells only | Bells only |
+| Button Masher, Sustain Speedway | woodwinds and brass (not Bells or Snare Drum) | Winds & brass only |
+| Ancient Ninja Scrolls, Showtime Malfunction, Dojo Duel, Arcade Quest | every instrument | — |
 
 ## Endless mode (Note Storm and Note Ninja)
 
@@ -455,6 +504,7 @@ On devices that can do it, the home page shows real 3D cabinets (three.js). Ever
 
 - **2D fallback.** The flat cabinets are still there. The page switches to them by itself when the device has no WebGL, when three.js can't load, or when the device is too slow. The 3D view first lowers its quality (sharper pixels off, no haze, no sway); if frames are still slow (averaging over 40 ms for a few seconds), it switches to 2D.
 - **Force 2D:** add `?flat` to the address, e.g. `index.html?flat` or `index.html?demo&flat`.
+- **Only what's needed.** The lobby and ALL GAMES are flat pictures (no 3D at all), so three.js loads only when a zone opens. Inside a zone, only the front cabinet and its neighbors are full 3D models; one farther away is a flat picture, and walking back to the lobby throws the zone's cabinets away. Compared with the old 13-cabinet aisle, a zone is ready about twice as fast and uses about half the memory.
 - **For testing only:** `?keep3d` stops the automatic switch to 2D, so you can see the 3D view on a slow computer. `?fps` shows the average frame time in the corner (under 40 ms is fine; the page aims for about 17–33 ms).
 - **Why three.js r149:** it's the last version with a plain `three.min.js` that works from a `<script>` tag and when you open the page by double-clicking. Newer versions need JavaScript modules, which break on local files. Don't update it without checking that.
 
@@ -479,7 +529,7 @@ Every later change you save to the repository goes live at the same link within 
 1. Copy the `ghost-notes/` folder and rename it, e.g. `echo-notes/`.
 2. Keep the `<script>` tags for `../shared/*.js` in its `index.html`. Replace `game.js` (and `levels.js` if needed).
 3. At the top of `game.js`, start with `const inst = Arcade.requireInstrument('echo-notes'); if (!inst) return;` and `Arcade.mountTopbar(inst, '', 'echo-notes');`. That sends students without an instrument to Select Player, and wires up the top bar.
-4. Add an entry to `shared/games.js` (see the comment at the top of that file).
+4. Add an entry to `shared/games.js` (see the comment at the top of that file), with its zone(s) (`zones: ['technique-lab']`) and, if it doesn't suit every instrument, a `fit` line. That's all the lobby, the zone and ALL GAMES need.
 5. Save progress with `Arcade.store.setLevel(gameId, instrumentId, level, {stars, best})`, which lets the arcade floor show the hi-score automatically.
 6. A game whose progress depends on the exact instrument (Button Masher's fingerings) sets `byMember: true`: it saves under the member id (`trumpet`, `clarinet`…) and the hi-score reads it. `noPlay` sends instruments the game can't use to another game (percussion → Chime Heist); with `block: true` those instruments can't open the game at all: they go back to Select Player, which dims their tiles and shows the message (Sustain Speedway: bells and snare).
 7. The **Snare Drum** is an unpitched player (`pitched: false` in `shared/instruments.js`: no notes, only attacks). A game that works without pitch sets `unpitched: true` in `shared/games.js` (Showtime Malfunction, the Note Checker's ARTICULATION test) and checks `inst.pitched === false`; every other game automatically sends a snare player back to Select Player with "Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.", and on those games the snare tile is dimmed and the arcade floor links to Showtime Malfunction instead of a hi-score.

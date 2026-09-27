@@ -258,6 +258,41 @@ window.Arcade = window.Arcade || {};
   /** the line shown to a snare drummer where a game needs a pitched instrument */
   A.SNARE_MSG = 'Snare drummers: try Showtime Malfunction! Pick a pitched instrument for this game.';
 
+  /* ---------- THE LOBBY'S ZONES (games.js ZONES + each game's zones / fit / tool; arcade.js and lobby.js use these) ---------- */
+  /** the games with a cabinet (every game except tools like the Note Checker) */
+  A.floorGames = () => (A.GAMES || []).filter(g => !g.tool);
+  A.zoneById = id => (A.ZONES || []).find(z => z.id === id) || null;
+  /** a zone's games, in games.js order */
+  A.zoneGames = id => A.floorGames().filter(g => (g.zones || []).includes(id));
+  /** the zones that have at least one game (an empty zone is hidden) */
+  A.zoneList = () => (A.ZONES || []).filter(z => A.zoneGames(z.id).length);
+  /** a game's zones (only ones that exist) */
+  A.zonesOf = g => (g && g.zones || []).map(A.zoneById).filter(Boolean);
+  /** does game g suit this instrument member? games.js `fit` ({only} or {not}); no member saved = it fits */
+  A.gameFit = function (g, memberId) {
+    const f = g && g.fit;
+    if (!f || !memberId) return {ok: true};
+    const ok = f.only ? f.only.includes(memberId) : !(f.not || []).includes(memberId);
+    return ok ? {ok: true} : {ok: false, tag: f.tag || 'Not for your instrument', why: f.why || ''};
+  };
+  /** the ASSIGNED game from shared/featured.js (null when off, past its `until` date, or not on the floor) */
+  A.featuredGame = function () {
+    const F = A.FEATURED;
+    if (!F || !F.game) return null;
+    if (F.until) {
+      const end = new Date(String(F.until) + 'T23:59:59');          // the whole last day counts (local time)
+      if (!isNaN(end) && Date.now() > end.getTime()) return null;
+    }
+    return A.floorGames().find(g => g.id === F.game) || null;
+  };
+  /** the stars saved in game g for the current instrument (every mode; a fixed-player game: its own player) */
+  A.gameStars = function (g) {
+    if (!g || !g.maxStars || !A.store) return 0;
+    if (g.player) return A.store.allStars(g.player, g.id);
+    const m = A.currentMember ? A.currentMember() : null;
+    return m ? A.store.allStars(m.id, g.id) : 0;
+  };
+
   /** Standard game top bar: "← Arcade" back to the arcade floor on the left, the sound button and instrument chip on the right.
       The chip opens Select Player for this game. Call on a page that has <div id="topbar"></div>. */
   /* {fixed: 'Bell Kit'}: a game with its own instrument shows it as a plain label, not a link to Select Player.

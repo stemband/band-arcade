@@ -27,19 +27,41 @@
   <span class="ps-hint" id="psHint" aria-hidden="true">Press any key</span>
 </button>
 <div class="room" aria-hidden="true"></div>
-<div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
 
-<header class="sign">
-  <h1 class="neon" id="arcadeName">Band Arcade</h1>
-  <p id="arcadeTagline"></p>
-</header>
+<!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES; arcade.js): back, where you are, TUNE UP (the Note Checker),
+     ALL GAMES, your player (tap to change instrument) and the sound button -->
+<nav class="fbar" id="fbar" aria-label="Arcade">
+  <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
+  <h2 class="fb-title" id="fbTitle" hidden></h2>
+  <div class="fb-right">
+    <a class="fb-btn fb-tune" id="tuneBtn" href="note-checker/index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M5.5 11.5l1.2 1M12 8v1.6M18.5 11.5l-1.2 1"/></svg><span>Tune up</span></a>
+    <button type="button" class="fb-btn fb-all" id="allBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><span>All games</span></button>
+    <button type="button" class="fb-chip" id="instChip"></button>
+    <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
+  </div>
+</nav>
 
-<main>
+<!-- THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (lobby.js draws it) -->
+<section class="lobby" id="lobby" hidden aria-labelledby="arcadeName">
+  <header class="sign">
+    <h1 class="neon" id="arcadeName">Band Arcade</h1>
+    <p id="arcadeTagline"></p>
+  </header>
+  <div class="lobby-cards" id="lobbyCards"></div>
+  <div class="zones" id="zones"></div>
+  <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
+</section>
+
+<!-- ONE ZONE: the cabinet carousel with only that zone's games -->
+<main class="zone" id="zoneView" hidden>
   <section class="carousel" aria-roledescription="carousel" aria-label="Games">
     <button class="nav nav-prev" id="prevBtn" aria-label="Previous game">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4L6 12l10 8z"/></svg>
     </button>
     <div class="aisle" id="aisle"></div>
+    <div class="aisle-flags" id="aisleFlags" aria-hidden="true"></div>
     <button class="nav nav-next" id="nextBtn" aria-label="Next game">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l10 8-10 8z"/></svg>
     </button>
@@ -50,12 +72,27 @@
   <section class="info" aria-live="polite">
     <p class="info-skill" id="infoSkill"></p>
     <h2 class="info-name" id="infoName"></h2>
+    <p class="info-tags" id="infoTags"></p>
     <p class="hiscore" id="hiscore" hidden></p>
     <p class="info-blurb" id="infoBlurb"></p>
   </section>
-
-  <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
 </main>
+
+<!-- ALL GAMES: every game once, as a card (lobby.js) -->
+<section class="allg" id="allView" hidden aria-labelledby="allTitle">
+  <h2 class="sr" id="allTitle">All games</h2>
+  <div class="allg-grid" id="allGrid"></div>
+</section>
+
+<!-- a game that doesn't suit the student's instrument (games.js fit) -->
+<div class="overlay" id="fitDlg" hidden>
+  <div class="panel fit-panel" role="dialog" aria-modal="true" aria-labelledby="fitTitle">
+    <div class="fit-pic" id="fitPic"></div>
+    <h2 id="fitTitle"></h2>
+    <p id="fitWhy"></p>
+    <div class="acts"><button type="button" class="btn btn-gold" id="fitSwitch">Switch instrument</button><button type="button" class="btn btn-ghost" id="fitClose">Back</button></div>
+  </div>
+</div>
 
 <!-- SELECT YOUR PLAYER: a view on this page (select-player/player.js), so the audio unlocked on the floor stays
      unlocked. URL: index.html?game=<id>; select-player/index.html?game=<id> redirects here. -->
@@ -142,6 +179,7 @@
 <script src="shared/avatar.js"></script>
 <script src="shared/avatar-creator.js"></script>
 <script src="shared/games.js"></script>
+<script src="shared/featured.js"></script>
 <script src="shared/scales.js"></script>
 <script src="shared/sequences.js"></script>
 <script src="shared/cabinets.js"></script>
@@ -151,6 +189,7 @@
 <script src="shared/backup.js"></script>
 <script src="arcade-quest/sprites.js"></script>
 <script src="select-player/player.js"></script>
+<script src="lobby.js"></script>
 <script src="arcade3d.js"></script>
 <script src="arcade.js"></script>
 </body>

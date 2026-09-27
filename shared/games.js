@@ -29,6 +29,14 @@
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
      players    optional: 2 = a two-player game (Neon Face-Off): START opens Select Player with &players=2, so Player 2
                 picks too (or CPU); stored as Arcade.store.opponent, never replacing Player 1's instrument
+     zones      the lobby ZONES this game's cabinet stands in (ids from Arcade.ZONES below), e.g. ['technique-lab'].
+                A game can be in more than one zone (Dojo Duel). A game with no zone still shows in ALL GAMES.
+     fit        which instruments the game suits (the lobby dims it for the others, with `tag`, and opening it explains
+                `why` with a button to switch instruments). Leave it out = every instrument. {only: [member ids]} or
+                {not: [member ids]} (member ids from shared/instruments.js: 'bells', 'snare', 'trumpet'…), tag (a few
+                words), why (one or two plain sentences). This only changes the lobby: the game's own page still
+                checks the instrument itself (unpitched / noPlay below).
+     tool       optional: true = not a cabinet (the Note Checker): the lobby's TUNE UP button opens it instead
      demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
      unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
@@ -61,9 +69,25 @@
 window.Arcade = window.Arcade || {};
 window.Arcade.ARCADE_NAME = 'Band Arcade';
 window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
+/* THE ZONES of the arcade lobby, in the order their neon signs appear. A game joins a zone with its `zones` list
+   (below); a zone with no games is hidden.
+     id       the zone's id (used in the address: index.html#zone=technique-lab); never rename one
+     name     the sign's words
+     color    the sign's neon: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'blue' | 'white'
+     tagline  one short line under the name */
+window.Arcade.ZONES = [
+  {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
+  {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, words and duels.'},
+  {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.'},
+  {id: 'ear-training',  name: 'Ear Training',     color: 'green',  tagline: 'Listen closely, then play it back.'},
+  {id: 'two-player',    name: '2-Player Corner',  color: 'pink',   tagline: 'Grab a friend and face off.'},
+  {id: 'adventure',     name: 'Adventure',        color: 'purple', tagline: 'A story you play with your instrument.'},
+];
 window.Arcade.GAMES = [
   {
     id: 'note-checker',
+    tool: true,                          // not a cabinet: the lobby's TUNE UP button opens it
+    zones: [],
     name: 'Note Checker',
     skill: 'Start here',
     blurb: 'Play a note and watch it light up. Tuning needle included.',
@@ -76,6 +100,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'ghost-notes',
+    zones: ['note-reading'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Ghost Notes listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Ghost Notes',
     skill: 'Note reading',
     blurb: 'Read the note and play it. The note names fade away as you level up.',
@@ -88,6 +114,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'note-storm',
+    zones: ['note-reading'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Storm listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Storm',
     skill: 'Speed reading',
     blurb: 'Notes march toward your robot. Read each one fast and play it to blast it.',
@@ -100,6 +128,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'note-ninja',
+    zones: ['ninja-dojo'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Ninja shows the notes your instrument reads, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Ninja',
     skill: 'Note names',
     blurb: 'A note appears on the scroll. Tap its name before time runs out. No instrument needed!',
@@ -112,6 +142,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'chime-heist',
+    zones: ['technique-lab'],
+    fit: {only: ['bells'], tag: 'Bells only', why: 'Chime Heist is played on the bell kit. Switch your instrument to Bells to play it.'},
     name: 'Chime Heist',
     skill: 'Mallet keyboard',
     blurb: 'Crack the vault codes: read each note and strike its bar on the chime lock. No mic needed!',
@@ -125,6 +157,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'ancient-ninja-scrolls',
+    zones: ['ninja-dojo'],
     name: 'Ancient Ninja Scrolls',
     skill: 'Music vocabulary',
     blurb: 'Study the Band Ninja vocabulary scrolls for Ranks 3–10, then pass the practice Belt Exam. No instrument needed!',
@@ -138,6 +171,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'button-masher',
+    zones: ['technique-lab'],
+    fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'Button Masher is about fingerings and slide positions, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Button Masher',
     skill: 'Fingerings',
     blurb: 'A note appears: press its fingering on your instrument like a special-move combo, then STRIKE! No mic needed!',
@@ -151,6 +186,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'neon-face-off',
+    zones: ['two-player'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Neon Face-Off listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Neon Face-Off',
     skill: '2-Player duel',
     blurb: 'Air hockey with your instruments! Play your note to strike the puck back. Two players on one device, or you vs the CPU.',
@@ -164,6 +201,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'showtime-malfunction',
+    zones: ['technique-lab'],
     name: 'Showtime Malfunction',
     skill: 'Articulation',
     blurb: "The arcade's old animatronic band has powered back on! Play each note as many times as its voice box shows, tonguing every one, to reboot them.",
@@ -178,6 +216,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'sustain-speedway',
+    zones: ['technique-lab'],
+    fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'In Sustain Speedway you hold long notes, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Sustain Speedway',
     skill: 'Long tones & tuning',
     blurb: 'Your instrument is the engine! Hold each lap\'s note in tune and steady to race; breathe in the pit stops.',
@@ -194,6 +234,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'lost-signal',
+    zones: ['ear-training'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Lost Signal listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Lost Signal',
     skill: 'Playing by ear',
     blurb: 'An alien probe is sending melodies across the galaxy. Listen to each transmission, then echo it back on your instrument to make contact.',
@@ -206,6 +248,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'dojo-duel',
+    zones: ['ninja-dojo', 'two-player'],
     name: 'Dojo Duel',
     skill: '2-Player duel',
     blurb: 'Two ninjas, one screen! A note appears for each of you: the first to tap its name wins the point. Or duel the Sensei. No instrument needed!',
@@ -222,6 +265,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'arcade-quest',
+    zones: ['adventure'],
     name: 'Arcade Quest',
     skill: 'RPG adventure',
     blurb: 'The Mysterious Microphone, Episode 1: Ghost Notes Manor. An 8-bit adventure: play your instrument to calm the manor\'s grumpy ghosts and win them over to your band.',
