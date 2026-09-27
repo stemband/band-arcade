@@ -45,6 +45,8 @@
   .sb-status.fallback{border-color:var(--amber);color:var(--amber-hi)}
   .sb-status.generated{border-color:var(--red);color:var(--red-hi)}
   .sb-status.too-long{border-color:var(--amber);color:var(--amber-hi);box-shadow:none}
+  .sb-status{max-width:260px}
+  .sb-warn{margin:6px 0 0;font-weight:700;color:var(--amber-hi)}
   .sb-peak{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text-lo);min-width:8ch;text-align:right}
   .sb-play{min-height:40px;padding:6px 16px;font-size:15px}
   .sb-loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0;padding:10px;border-radius:12px;background:var(--deep);border:1px dashed var(--cyan-ink)}
@@ -113,11 +115,11 @@
   $('groups').innerHTML = S.SCREENS.filter(([k]) => byScreen[k]).map(([k, label]) =>
     `<h2 class="sb-group">${label}</h2><div class="sb-list">` + byScreen[k].map(n => {
       const e = S.get(n);
-      const tags = [e.loop && '<span class="sb-tag">loops</span>', e.play && '<span class="sb-tag play">during play: under 0.5 s</span>',
+      const tags = [e.loop && '<span class="sb-tag">loops</span>', e.play && `<span class="sb-tag play">during play: under ${e.maxLen || 0.5} s</span>`,
         e.mic === false && '<span class="sb-tag">never while the mic listens</span>', e.fallback && `<span class="sb-tag">else ${e.fallback}</span>`].filter(Boolean).join('');
       return `<div class="sb-row" data-n="${n}">` +
         `<div class="sb-name"><b>${n}</b><small>vol ${e.vol == null ? .8 : e.vol} · ${esc(e.len || '')}</small></div>` +
-        `<div class="sb-when">${esc(e.when || '')}<small><code>shared/sounds/${e.file}.m4a</code> or <code>.mp3</code></small>${tags}</div>` +
+        `<div class="sb-when">${esc(e.when || '')}<small><code>shared/sounds/${e.file}.m4a</code> or <code>.mp3</code></small>${tags}<p class="sb-warn" data-warn hidden></p></div>` +
         `<span class="sb-status" data-status>not checked</span>` +
         `<span class="sb-peak" data-peak>–</span>` +
         (e.loop ? `<button type="button" class="btn btn-ghost sb-play" data-loop>Loop test</button>` : `<button type="button" class="btn btn-ghost sb-play" data-play>Play</button>`) +
@@ -170,7 +172,8 @@
       : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
     // sounds.js maxLen (s): a sound that must stay short (Neon Face-Off's puck sounds): say so when the file is longer
     const e = A.Sounds.LIST[n] || {}, long = st.kind === 'file' && e.maxLen && st.dur > e.maxLen + .005;
-    if (long) text += ` ⚠ Trim this sound to under ${e.maxLen} s for the snappiest rallies`;
+    const warn = document.querySelector(`#groups .sb-row[data-n="${n}"] [data-warn]`);
+    if (warn) { warn.hidden = !long; warn.textContent = long ? `⚠ ${st.dur.toFixed(2)} s long. Trim this sound to under ${e.maxLen} s for the snappiest rallies.` : ''; }
     const changed = mark && el.dataset.last && el.dataset.last !== text;
     el.className = 'sb-status ' + st.kind + (changed ? ' changed' : '') + (long ? ' too-long' : '');
     el.textContent = text;
