@@ -40,6 +40,11 @@ window.Arcade = window.Arcade || {};
     'wheel-left':      {file: 'wheel-left',  vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn left (◀, swipe, ← key).', len: '0.2–0.4 s'},
     'wheel-right':     {file: 'wheel-right', vol: .7, mic: false, screen: 'floor', when: 'The cabinets turn right (▶, swipe, → key).', len: '0.2–0.4 s'},
     'cabinet-focus':   {file: 'cabinet-focus', vol: .35, mic: false, screen: 'floor', when: 'A new cabinet arrives at the front (quiet, after the turn).', len: '0.1–0.3 s'},
+    // the lobby's zones (arcade.js): mic: false, short
+    'zone-select':     {file: 'zone-select', vol: .7, mic: false, screen: 'floor', gen: [[392, 0, .06, .25, 'square'], [587, .05, .1, .25, 'square']], when: 'A zone sign is tapped in the arcade lobby (the sign lights up).', len: '0.2–0.5 s'},
+    'zone-enter':      {file: 'zone-enter', vol: .6, mic: false, screen: 'floor', gen: [[[220, 660], 0, .35, .18, 'triangle'], [[1200, 3000], .05, .3, .08, 'noise', 1.2]], when: 'A zone opens: its cabinets appear.', len: '0.3–0.8 s'},
+    'zone-back':       {file: 'zone-back', vol: .6, mic: false, screen: 'floor', gen: [[[660, 220], 0, .3, .18, 'triangle']], when: 'BACK TO LOBBY (leaving a zone or ALL GAMES).', len: '0.2–0.6 s'},
+    'all-games-open':  {file: 'all-games-open', vol: .6, mic: false, screen: 'floor', gen: [[523, 0, .05, .2, 'square'], [659, .05, .05, .2, 'square'], [784, .1, .08, .2, 'square']], when: 'ALL GAMES opens (the grid of every game).', len: '0.2–0.6 s'},
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js
     // ---- Select Player --------------------------------------------------------------------------------------

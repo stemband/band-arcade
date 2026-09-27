@@ -30,20 +30,54 @@
   transform:perspective(300px) rotateX(58deg);transform-origin:50% 100%;
   -webkit-mask-image:linear-gradient(180deg,transparent,#000 70%);mask-image:linear-gradient(180deg,transparent,#000 70%)}
 
-/* ---------- sound buttons: top right corner (their own row below 1000px, so they never cover the sign) ---------- */
-.floor-page .sound-ctl{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0}
-@media (min-width:1000px){ .floor-page .sound-ctl{position:absolute;top:0;right:0;z-index:20;padding-right:12px}
-  .floor-page .snd-btn{padding:6px 9px;letter-spacing:.05em;gap:5px} }
+/* ---------- THE TOP BAR (lobby, zones, ALL GAMES): back, where you are, TUNE UP, ALL GAMES, your player, sound ----------
+   --z (the zone's color) tints it inside a zone */
+.fbar{position:relative;z-index:20;display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;
+  padding:calc(8px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px))}
+.fb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.fbar .sound-ctl{padding:0}
+.fb-back,.fb-btn,.fb-chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 14px;border-radius:999px;
+  border:2px solid var(--z,var(--cyan));background:var(--deep);color:var(--text-hi);font:700 15px var(--text);letter-spacing:.03em;text-decoration:none;cursor:pointer}
+.fb-back{font-family:var(--display);font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--z-hi,var(--cyan-hi));box-shadow:0 0 10px color-mix(in srgb,var(--z,var(--cyan)) 45%,transparent)}
+.fb-back[hidden],.fb-btn[hidden],.fb-title[hidden]{display:none}
+.fb-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.fb-tune{border-color:var(--green-ink);color:var(--green-hi)}
+.fb-all{border-color:var(--yellow-ink);color:var(--yellow-hi)}
+.fb-btn:hover,.fb-back:hover,.fb-chip:hover{background:var(--floor-3)}
+.fb-chip{border-color:var(--line);padding:4px 14px 4px 4px}
+.fb-chip .chip-pic{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--floor-3);display:grid;place-items:center}
+.fb-chip .chip-pic .pt-box{width:34px}
+.fb-title{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(20px,3.6vw,30px);letter-spacing:.05em;text-transform:uppercase;line-height:1.1;
+  color:var(--z-hi,var(--text-hi));text-shadow:0 0 4px var(--z,transparent),0 0 16px var(--z-ink,transparent)}
+@media (max-width:640px){ .fb-btn span,.fb-chip .chip-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .fb-btn,.fb-chip{padding:6px 10px} .fb-title{order:3;width:100%;text-align:center} }
 
 /* ---------- neon sign ---------- */
-.sign{text-align:center;padding:6px 16px 4px}
-@media (min-width:1000px){ .sign{padding-top:calc(16px + env(safe-area-inset-top,0px))} }
+.sign{text-align:center;padding:0 16px 4px}
 .neon{font-family:var(--neon-font);font-weight:400;font-size:var(--logo,48px);line-height:1.1;letter-spacing:.04em;
   color:var(--pink-hi);text-shadow:0 0 2px var(--pink-hi),0 0 8px var(--pink),0 0 22px var(--pink-ink)}
 .neon span{color:var(--cyan-hi);text-shadow:0 0 2px var(--cyan-hi),0 0 8px var(--cyan),0 0 22px var(--cyan-ink)}
 .neon span{animation:flicker 7s steps(1) infinite}
 @keyframes flicker{0%,100%{opacity:1}91%{opacity:.55}92%{opacity:1}94%{opacity:.7}95%{opacity:1}}
 .sign p{margin:4px auto 0;max-width:40ch;color:var(--text-lo);font-size:17px}
+
+/* ---------- A ZONE: the carousel with only its cabinets (there's no big sign here, so the cabinets get its room) ---------- */
+.floor-page.v-zone{--cab-w:clamp(180px, min(64vw, calc((100vh - 300px) / 2)), 290px)}
+@supports (height:100svh){ .floor-page.v-zone{--cab-w:clamp(180px, min(64vw, calc((100svh - 300px) / 2)), 290px)} }
+.zone[hidden],.lobby[hidden],.allg[hidden]{display:none}
+.zone.single .nav,.zone.single .lights{display:none}
+.aisle-flags{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:6px;pointer-events:none}
+.slot.nofit .cab{filter:brightness(.5) saturate(.45)}
+.start3d.nofit,.cab-start.nofit{filter:saturate(.35) brightness(.8)}
+.info-tags{margin:0 0 8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
+.info-tags:empty{display:none}
+.info-tags .as-note{color:var(--yellow-hi);font-weight:700}
+
+/* ---------- badges and tags (lobby, zones, ALL GAMES) ---------- */
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font:400 12px var(--display);letter-spacing:.1em;text-transform:uppercase;line-height:1.3}
+.b-assigned{background:var(--yellow);color:var(--deep);box-shadow:var(--glow-yellow)}
+.b-2p{background:var(--pink);color:var(--deep)}
+.fit-tag{display:inline-block;padding:3px 9px;border-radius:8px;border:2px solid var(--amber);color:var(--amber-hi);background:var(--deep);font-weight:700;font-size:13px}
 
 /* ---------- carousel ---------- */
 .carousel{position:relative;margin-top:14px}
@@ -144,3 +178,77 @@ body.in-select>.overlay{z-index:40}
 .sp-view[hidden]{display:none}
 body.in-select{overflow:hidden}
 body.in-select>.sign,body.in-select>main,body.in-select>#soundCtl{visibility:hidden}
+body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.allg{visibility:hidden}
+.sp-view.pick .sp-marquee{width:auto;height:auto;justify-content:center}
+.sp-view.pick .sp-arcade{margin:0 auto;text-align:center;font-size:clamp(26px,min(5vw,6vh),48px);white-space:nowrap}
+
+/* ---------- THE ZONE LOBBY (lobby.js): a dark arcade wall, one neon sign per zone. Flat HTML/CSS, no 3D. ---------- */
+.lobby{padding:0 max(16px,env(safe-area-inset-left,0px)) calc(28px + env(safe-area-inset-bottom,0px))}
+.lobby .sign{--logo:clamp(34px, min(8.5vw, 8vh), 80px)}
+.lobby-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:1100px;margin:10px auto 14px}
+.lobby-cards[hidden]{display:none}
+.lcard{flex:1 1 320px;max-width:520px;display:flex;align-items:center;gap:12px;padding:10px;border-radius:16px;text-align:left;cursor:pointer;
+  border:2px solid var(--z,var(--cyan));background:linear-gradient(90deg,var(--deep),var(--floor-2));color:var(--text-hi)}
+.lc-assigned{border-color:var(--yellow);box-shadow:var(--glow-yellow),inset 0 0 18px color-mix(in srgb,var(--yellow) 18%,transparent)}
+.lc-pic{flex:0 0 min(46%,220px)}
+.lc-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:8px}
+.lc-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lc-label{font:400 13px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--z-hi,var(--cyan-hi))}
+.lc-assigned .lc-label{color:var(--yellow-hi)}
+.lc-name{font:400 clamp(17px,2.4vw,22px) var(--display);letter-spacing:.03em;text-transform:uppercase}
+.lc-note{color:var(--yellow-hi);font-weight:700;font-size:15px}
+.lcard:hover{background:var(--floor-3)}
+
+.zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,22px);max-width:1100px;margin:0 auto}
+@media (orientation:portrait),(max-width:700px){ .zones{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.zsign{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:clamp(150px,22vh,220px);padding:16px 12px 12px;
+  border-radius:20px;border:3px solid var(--z);cursor:pointer;color:var(--text-hi);text-align:center;
+  background:radial-gradient(90% 70% at 50% 0%,color-mix(in srgb,var(--z) 16%,transparent),transparent 70%),var(--deep);
+  box-shadow:0 0 0 3px var(--deep),0 0 18px color-mix(in srgb,var(--z) 45%,transparent),inset 0 0 22px color-mix(in srgb,var(--z) 14%,transparent)}
+.zsign:hover,.zsign:focus-visible{background:radial-gradient(90% 80% at 50% 0%,color-mix(in srgb,var(--z) 26%,transparent),transparent 72%),var(--deep)}
+.zsign:focus-visible{outline:4px solid var(--text-hi);outline-offset:4px}
+.zsign:active{transform:scale(.98)}
+.zs-name{font:400 clamp(20px,3.2vw,34px) var(--display);letter-spacing:.04em;text-transform:uppercase;line-height:1.05;color:var(--z-hi);
+  text-shadow:0 0 3px var(--z-hi),0 0 12px var(--z),0 0 26px var(--z-ink)}
+.zs-tag{color:var(--text-lo);font-size:clamp(13px,1.6vw,16px);max-width:32ch}
+.zs-cabs{display:flex;align-items:flex-end;gap:6px;height:clamp(34px,6vh,54px);margin-top:2px}
+.cab-sil{height:100%;width:auto;overflow:visible}
+.cab-sil path{fill:var(--cab-face);stroke:var(--t);stroke-width:14;stroke-linejoin:round}
+.zs-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;font-size:15px;color:var(--text-lo)}
+.zs-stars{font-variant-numeric:tabular-nums;color:var(--text-hi)}
+.zs-stars .star,.gc-stars .star{color:var(--yellow);text-shadow:0 0 6px rgba(255,225,77,.6)}
+.zsign .b-assigned{position:absolute;top:-11px;right:14px}
+/* each sign turns on with a short, gentle flicker (twice, once per page load, one after another, only the sign itself:
+   well under 3 flashes a second), then hums: a slow breathing glow */
+@media (prefers-reduced-motion:no-preference){
+  .zsign.flick{animation:zs-on 1s linear both;animation-delay:calc(var(--i) * .16s)}
+  .zs-name{animation:zs-hum 4.5s ease-in-out infinite}
+}
+@keyframes zs-on{0%{opacity:.18}18%{opacity:.7}30%{opacity:.35}55%{opacity:1}66%{opacity:.8}100%{opacity:1}}
+@keyframes zs-hum{0%,100%{text-shadow:0 0 3px var(--z-hi),0 0 12px var(--z),0 0 26px var(--z-ink)}50%{text-shadow:0 0 3px var(--z-hi),0 0 8px var(--z),0 0 18px var(--z-ink)}}
+
+/* ---------- ALL GAMES (lobby.js): every game once, as a card; the page scrolls ---------- */
+.allg{padding:4px max(16px,env(safe-area-inset-left,0px)) calc(28px + env(safe-area-inset-bottom,0px))}
+.allg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px;max-width:1200px;margin:0 auto}
+.gcard{display:flex;flex-direction:column;padding:0;border-radius:16px;overflow:hidden;cursor:pointer;text-align:left;color:var(--text-hi);
+  border:2px solid var(--z,var(--line));background:var(--floor-2);box-shadow:0 0 12px color-mix(in srgb,var(--z,transparent) 30%,transparent)}
+.gcard:hover{background:var(--floor-3)}
+.gcard:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+.gc-pic{position:relative;display:block}
+.gc-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1}
+.gc-badges{position:absolute;top:6px;right:6px;display:flex;gap:4px}
+.gc-body{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px}
+.gc-name{font:400 19px var(--display);letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
+.gc-skill{color:var(--text-lo);font-size:14px}
+.gc-zones{display:flex;flex-wrap:wrap;gap:4px}
+.ztag{padding:2px 8px;border-radius:999px;border:2px solid var(--z);color:var(--z-hi);font-size:12px;font-weight:700;background:var(--deep)}
+.gc-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:2px;font-size:15px}
+.gc-stars{font-variant-numeric:tabular-nums}
+.gc-sum{color:var(--text-lo);font-size:14px}
+.mq-none{display:grid;place-items:center;aspect-ratio:4/1;background:var(--deep);font:400 18px var(--display)}
+/* a game that doesn't suit the instrument: still there, dimmed, with its tag (the tag stays bright to read) */
+.nofit .mq-thumb,.nofit .gc-name,.nofit .lc-name,.nofit .gc-skill{opacity:.5;filter:saturate(.35)}
+
+/* the "doesn't suit your instrument" panel */
+.fit-panel .fit-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:10px;margin-bottom:12px}
+.fit-panel p{color:var(--text-hi)}

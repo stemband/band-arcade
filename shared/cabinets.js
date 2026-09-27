@@ -497,6 +497,11 @@ window.Arcade = window.Arcade || {};
     attractTimer = setInterval(() => { if (!document.hidden) box.innerHTML = scr.html(g, ++i); }, scr.period);
   };
 
+  /** a small flat silhouette of a game's cabinet (the lobby's zone signs): its outline in the body color, trim neon edge */
+  A.cabSilhouetteSVG = function (g, cls = '') {
+    const c = A.cabinetOf(g), s = SHAPES[c.shape];
+    return `<svg class="cab-sil ${cls} ${A.trimClasses(g)}" viewBox="-10 -10 320 620" aria-hidden="true"><path d="${s.outline}"/></svg>`;
+  };
   A.CAB_SHAPES = SHAPES;
   A.CAB_SCREENS = SCREENS;
 })(window.Arcade);

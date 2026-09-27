@@ -88,6 +88,10 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `wheel-left` | `wheel-left.m4a` or `wheel-left.mp3` | The cabinets turn left (◀, swipe, ← key). | 0.2–0.4 s |
 | `wheel-right` | `wheel-right.m4a` or `wheel-right.mp3` | The cabinets turn right (▶, swipe, → key). | 0.2–0.4 s |
 | `cabinet-focus` | `cabinet-focus.m4a` or `cabinet-focus.mp3` | A new cabinet arrives at the front (quiet, after the turn). | 0.1–0.3 s |
+| `zone-select` | `zone-select.m4a` or `zone-select.mp3` | A zone sign is tapped in the arcade lobby (the sign lights up). | 0.2–0.5 s |
+| `zone-enter` | `zone-enter.m4a` or `zone-enter.mp3` | A zone opens: its cabinets appear. | 0.3–0.8 s |
+| `zone-back` | `zone-back.m4a` or `zone-back.mp3` | BACK TO LOBBY (leaving a zone or ALL GAMES). | 0.2–0.6 s |
+| `all-games-open` | `all-games-open.m4a` or `all-games-open.mp3` | ALL GAMES opens (the grid of every game). | 0.2–0.6 s |
 | `select-default` | `select-default.m4a` or `select-default.mp3` | START on the arcade floor, for any game without its own select-&lt;game&gt; sound. | 0.4–1.2 s |
 | `select-note-checker` | `select-note-checker.m4a` or `select-note-checker.mp3` | START on the arcade floor for Note Checker (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-ghost-notes` | `select-ghost-notes.m4a` or `select-ghost-notes.mp3` | START on the arcade floor for Ghost Notes (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
