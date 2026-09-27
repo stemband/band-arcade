@@ -14,7 +14,11 @@
 .sp-marquee .mq{box-shadow:var(--t-glow)}
 .sp-marquee .mq-shade{transform:skewY(-3deg)}
 .sp-title{font-family:var(--display);font-weight:400;font-size:clamp(30px,6.4vw,56px);line-height:1;letter-spacing:.03em;text-transform:uppercase;
-  font-style:italic;transform:skewX(-8deg);color:var(--yellow);-webkit-text-stroke:2px var(--red-ink);text-shadow:0 4px 0 var(--red-ink),var(--glow-yellow)}
+  font-style:italic;transform:skewX(-8deg);color:var(--yellow);-webkit-text-stroke:2px var(--red-ink);text-shadow:0 4px 0 var(--red-ink),var(--glow-yellow);
+  text-wrap:balance;overflow-wrap:normal;padding:0 8px}
+/* the announcer says it: one gentle swell, timed with the choose-instrument voice line (none under reduced motion) */
+.sp-title.say{animation:say .6s ease-out}
+@keyframes say{35%{transform:skewX(-8deg) scale(1.06)}}
 
 /* CONTINUE AS … (returning students), and the migration message */
 .continue{display:flex;justify-content:center;margin-bottom:12px}
@@ -202,7 +206,7 @@
 @keyframes slam{0%{transform:skewX(-10deg) scale(2.2);opacity:0}100%{transform:skewX(-10deg) scale(1);opacity:1}}
 
 @media (prefers-reduced-motion:reduce){
-  .pv-pic,.tile.on,.ready.go p,.ready.go .flash{animation:none}
+  .pv-pic,.tile.on,.ready.go p,.ready.go .flash,.sp-title.say{animation:none}
   .tile,.tile.on{transition:none;transform:none}
 }
 /* BACKUP / RESTORE (shared/backup.js): a small text button on the player card */

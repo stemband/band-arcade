@@ -24,7 +24,41 @@
   const {noteLabel} = A.music;
   const FAMILY = {woodwind: 'Woodwind', brass: 'Brass', percussion: 'Percussion'};
   const KEY = {0: 'Concert pitch', 2: 'B♭ instrument', 7: 'F instrument', 9: 'E♭ instrument'};
+  const VOICE_KEY = 'bandarcade.choose-at', VOICE_GAP = 60000, VOICE_DELAY = 500;
   let live = null;                                          // the open view: {game, ac (AbortController)}
+
+  /* THE ANNOUNCER: "Choose your instrument!" (sounds.js choose-instrument) as the screen opens: VOICE_DELAY ms in, or
+     when the START sound (select-<id>, the coin) has finished, whichever is later; the heading pulses with it and the
+     music dips (Sfx.duck). At most once a minute (this browser tab, so also after coming back from a game). Only when
+     a tap on this page already started the audio: a page loaded straight onto this screen stays quiet (it would come
+     late, on the first tap). A tap on an instrument (or the arrows, CONTINUE, SELECT) before it starts cancels it.
+     A panel over the screen (the first visit's "Create your player?", an UNLOCKED! card) holds it until it closes. */
+  function announce(me, view, on) {
+    let heard = 0; try { heard = +sessionStorage.getItem(VOICE_KEY) || 0; } catch (e) { /* private mode */ }
+    if (!A.Sfx.started || Date.now() - heard < VOICE_GAP) return;
+    let off = false;
+    const cancel = () => { off = true; };
+    on(view, 'pointerdown', e => { if (e.target.closest('.tile, #continueBtn, #selectBtn')) cancel(); }, {capture: true});
+    on(window, 'keydown', e => { if (/^(Arrow|Enter$| $)/.test(e.key)) cancel(); }, {capture: true});
+    const t0 = performance.now();
+    const go = () => {
+      if (off || live !== me) return;
+      const wait = Math.max(VOICE_DELAY - (performance.now() - t0), A.Sfx.busy());
+      if (wait > 20) { setTimeout(go, wait); return; }
+      // a panel on top ("Create your player?", an UNLOCKED! card, the creator, the LOCKER): the line waits for it
+      if (document.body.classList.contains('avc-open') || document.querySelector('body>.overlay:not([hidden]), #locker:not([hidden])')) { setTimeout(go, 300); return; }
+      if (!A.Sfx.unlocked) return;
+      A.Sfx.whenReady('choose-instrument', 400).then(() => {
+        if (off || live !== me) return;
+        const d = A.Sfx.event('choose-instrument');
+        if (!d) return;                                               // muted: not heard, so not counted
+        try { sessionStorage.setItem(VOICE_KEY, String(Date.now())); } catch (e) { /* private mode */ }
+        A.Sfx.duck(d * 1000);
+        const h = $('spTitle'); h.classList.remove('say'); void h.offsetWidth; h.classList.add('say');
+      });
+    };
+    setTimeout(go, VOICE_DELAY);
+  }
 
   function open(game, opts = {}) {
   close();
@@ -36,9 +70,9 @@
   const gameLink = pick ? '#' : A.linkTo(ROOT + game.id + '/index.html', {need: null});
   view.className = 'sp-view ' + (pick ? 'trim-cyan trim2-pink pick' : A.trimClasses(game));   // this game's neon colors for the whole screen
   view.hidden = false; view.scrollTop = 0;
-  document.title = pick ? `Select Instrument · ${A.ARCADE_NAME || 'Band Arcade'}` : `Select Instrument · ${game.name}`;
+  document.title = pick ? `Choose Your Instrument · ${A.ARCADE_NAME || 'Band Arcade'}` : `Choose Your Instrument · ${game.name}`;
   $('spMsg').hidden = true; $('spMsg').innerHTML = '';
-  $('spTitle').textContent = 'Select your instrument';
+  $('spTitle').textContent = 'Choose your instrument';
   $('ready').hidden = true; $('ready').classList.remove('go');
   $('marquee').innerHTML = pick ? `<p class="sp-arcade neon" aria-hidden="true">${(A.ARCADE_NAME || 'Band Arcade').replace(/ (\S+)$/, ' <span>$1</span>')}</p>` : A.marqueeHTML(game, 'p');
   if (A.Marquee && !pick) A.Marquee.animate($('marquee').querySelector('.mq-live'), 'select');   // this game's sign, moving
@@ -46,6 +80,8 @@
   // the music manager: the room ambience fades out, the character-select music fades in (this game's own
   // select-music-<id> if Mat uploaded one, else select-music, else the built-in chiptune). No extra tap needed.
   A.Sfx.setAmbience(null); A.Sfx.setMusic(pick ? ['select-music'] : ['select-music-' + game.id, 'select-music'], {builtIn: true});
+
+  announce(me, view, on);
 
   const two = !pick && (game.players > 1 || String(opts.players) === '2');
   let phase = 1;                                                      // 1 = Player 1 picks, 2 = Player 2 picks
