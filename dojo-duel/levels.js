@@ -21,6 +21,8 @@ window.DUEL_PACING = {
   flyMs: 650,             // the "+1" flies to the score this long (inside the result moment)
   stunMs: 1000,           // a wrong tap: that player's buttons rest this long (dizzy)
   noteMs: 6000,           // nobody answers in this long = no point ("Too slow, ninjas!")
+  fastMs: 1500,           // a PLAYER's point won faster than this (from the note appearing) counts as "fast": the
+                          // Sensei's "fast" line and the sensei-fast sound. The Sensei's own points never count
 };
 
 window.DUEL_RULES = {
@@ -28,7 +30,6 @@ window.DUEL_RULES = {
   length: 10,             // …the default
   countdowns: ['quick', 'classic', 'off'],   // COUNTDOWN choices on the setup screen (remembered on this device)
   tieMs: 24,              // taps this close together are compared by their exact time stamp
-  fastMs: 1500,           // a point won faster than this = a "fast" Sensei line
 };
 
 /* SOLO VS. SENSEI: the Sensei's reaction time (seconds, ± spread) and how often it taps a wrong note first */
