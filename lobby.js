@@ -73,9 +73,9 @@ window.Arcade = window.Arcade || {};
         : `<span class="gc-sum">${esc((g.summary && g.summary(A.store)) || 'No stars: just play!')}</span>`;
       return `<button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
         `aria-label="${esc(g.name)}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
-        `<span class="gc-pic">${thumb(g)}<span class="gc-badges">` +
-        (F === g ? `<span class="badge b-assigned">Assigned</span>` : '') + (twoP(g) ? `<span class="badge b-2p">2P</span>` : '') + `</span></span>` +
-        `<span class="gc-body"><span class="gc-name">${esc(g.name)}</span><span class="gc-skill">${esc(g.skill || '')}</span>` +
+        `<span class="gc-pic">${thumb(g)}</span>` +               // the marquee alone: badges never cover its title
+        `<span class="gc-body"><span class="gc-head"><span class="gc-name">${esc(g.name)}</span><span class="gc-badges">` +
+        (F === g ? `<span class="badge b-assigned">Assigned</span>` : '') + (twoP(g) ? `<span class="badge b-2p">2P</span>` : '') + `</span></span><span class="gc-skill">${esc(g.skill || '')}</span>` +
         `<span class="gc-zones">${zones.map(z => `<span class="ztag" style="${zoneStyle(z)}">${esc(z.name)}</span>`).join('')}</span>` +
         `<span class="gc-foot">${foot}${f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`}</span></span></button>`;
     }).join('');

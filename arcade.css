@@ -239,7 +239,8 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .gcard:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
 .gc-pic{position:relative;display:block}
 .gc-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1}
-.gc-badges{position:absolute;top:6px;right:6px;display:flex;gap:4px}
+.gc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.gc-badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;flex:none}
 .gc-body{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px}
 .gc-name{font:400 19px var(--display);letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
 .gc-skill{color:var(--text-lo);font-size:14px}

@@ -476,7 +476,6 @@ window.Arcade = window.Arcade || {};
       trim,
       trim2: TRIMS.includes(c.trim2) ? c.trim2 : (trim === 'cyan' ? 'pink' : 'cyan'),
       marquee: MARQUEES.includes(c.marquee) ? c.marquee : 'bungee',
-      kicker: c.kicker || '',
       screen: SCREENS[c.screen] ? c.screen : 'insert',
     };
   };
@@ -491,7 +490,7 @@ window.Arcade = window.Arcade || {};
       (c.marquee === 'haunt' ? `<span class="mq-mascot" aria-hidden="true">${A.ghostSVG('', '')}</span>` : '') +
       (c.marquee === 'quest' ? `<span class="mq-mascot mq-mic">${pixelSVG(QUEST_MIC, 'mq-micsvg')}</span>` : '') +
       (c.marquee === 'dojo' && A.ninjaSVG ? `<span class="mq-mascot mq-ninja" aria-hidden="true">${A.ninjaSVG({belt: 'belt-black'})}</span>` : '') +
-      `<span class="mq-text">${c.kicker ? `<span class="mq-kicker">${esc(c.kicker)}</span>` : ''}` +
+      `<span class="mq-text">` +
       `<span class="mq-name">${c.marquee === 'faceoff' ? esc(g.name).replace(/^(\S+) (.+)$/, '$1 <span class="fo2">$2</span>')
         : c.marquee === 'showtime' ? esc(g.name).replace(/^(\S+) (.+)$/, (m, a, b) => `<span class="st1">${a}</span> <span class="st2">${b.replace('F', '<i class="dead">F</i>')}</span>`)   // one bulb is out
         : esc(g.name)}</span></span></${tag}>`;
