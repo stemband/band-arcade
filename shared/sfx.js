@@ -905,6 +905,20 @@ window.Arcade = window.Arcade || {};
     else go();
   }
 
+  /** PRESS START's question on page load: does this browser already allow sound without a tap (Chrome sometimes
+      does)? Makes the AudioContext now (it stays suspended until the first tap when the answer is no) and resolves
+      true if it is running within ms. */
+  function autoStart(ms = 300) {
+    if (!AC) return Promise.resolve(false);
+    if (!ctx) unlock({type: 'page load'});
+    return new Promise(res => {
+      if (!ctx) return res(false);
+      if (ctx.state === 'running') return res(true);
+      const t = setTimeout(() => res(ctx.state === 'running'), ms);
+      ctx.addEventListener('statechange', () => { if (ctx.state === 'running') { clearTimeout(t); res(true); } });
+    });
+  }
+
   let leaving = false;
   const seqs = new Set();                                 // sequences still playing (Sfx.sequence handles)
   // a channel and its sub-channels: 'dojo' also means 'dojo:voice'
@@ -966,7 +980,7 @@ window.Arcade = window.Arcade || {};
     /** THE MUSIC MANAGER (see the top of this file): the track this page wants on the MUSIC channel. Never start
         audio any other way. */
     setMusic: (names, opts) => want(CH.mus, names, opts),
-    gameMenuMusic,
+    gameMenuMusic, autoStart,
     /** the track this page wants on the AMBIENCE channel (the arcade floor's lobby-ambience) */
     setAmbience: (names, opts) => want(CH.amb, names, opts),
     /** fetch these music events' files now (the likely next tracks), so they start at once when wanted */

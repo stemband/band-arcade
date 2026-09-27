@@ -464,6 +464,16 @@ Unlocks are checked from saved progress on every results screen and whenever Sel
 
 **To add an item or change how it's earned:** see HOW TO ADD AN ITEM near the end of [`shared/avatar-parts.js`](shared/avatar-parts.js). An item is a part with an `unlock` rule: `{stars: 150}` (stars on this device), `{game: 'ghost-notes', level: 8, stars: 3, text: 'Get 3 ★ on Ghost Run in Ghost Notes'}` (a special win), `{game: 'arcade-quest', achievement: 'ep1', text: …}`, `{game: 'ancient-ninja-scrolls', badge: true, text: …}` or `{shop: 250}` (sold at the Token Booth for 250 tokens). Leave `unlock` out and it's free. Never change an item's `id`, and add a new item to the end of `QUEST_V2.cosmetics` in `shared/backup.js` so save codes carry it.
 
+## PRESS START title screens
+
+Every game page opens on a title screen: the game's marquee, big and moving, over its menu background, with a
+blinking PRESS START. Browsers don't allow any sound on a new page until the student taps, and every game is its own
+page, so this one tap (or any key) turns the sound on: the `press-start` sound plays (or the game's own
+`press-start-<game id>` file, if you upload one), the game's menu music starts, and the level select fades in. The top
+bar (← Arcade, sound) still works on the title screen. It shows only when the game page opens, never between levels,
+and never turns on the microphone (that still happens when a level starts). Arcade Quest keeps its own title screen;
+the Note Checker has none. Add `?nostart` to a game's address to skip it while testing.
+
 ## Menu backgrounds
 
 Every game's menu screens (level select, mode picker, level intros, results, setup and title screens) have a moving

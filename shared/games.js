@@ -60,6 +60,8 @@
                 | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora'),
                 dim (0–1: the dark overlay everywhere), focus (0–1: extra darkness in the middle, behind the menu)}.
                 A picture in shared/backgrounds/<id>.webp|.jpg|.png replaces the scene. Menu screens only, never in play.
+     pressStart false = no shared PRESS START title screen (shared/press-start.js; Arcade Quest has its own). Every other
+                game opens on one (mountTopbar shows it); tools (the Note Checker) never do
      menuMusic  the game's MENU MUSIC (a loop event in shared/sounds.js, file shared/sounds/<name>.m4a): its level select,
                 mode picker, intro panels and results screens play it through Arcade.Sfx.gameMenuMusic (the arcade's
                 select-music until the file is uploaded). A new game only needs this line (+ its sounds.js entry).
@@ -318,6 +320,7 @@ window.Arcade.GAMES = [
     id: 'arcade-quest',
     zones: ['adventure'],
     name: 'Arcade Quest',
+    pressStart: false,                              // its own title screen (arcade-quest/scenes.js), not shared/press-start.js
     bg: {scene: 'pixel-night', dim: .4, focus: .35},
     menuMusic: 'quest-title', menuMusicOwn: "silent until uploaded (the title screen; every scene and room has its own track)",
     skill: 'RPG adventure',
