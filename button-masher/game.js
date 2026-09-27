@@ -90,6 +90,7 @@
   const isPerc = () => T && T.diagram === 'none';
 
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimers(); G = null;
     ['play', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('playing'); document.body.classList.remove('ww');
@@ -150,6 +151,7 @@
   /** seconds per note for this rival on this instrument (MASHER_RULES.timeByFamily: woodwinds get longer) */
   function timeFor(V) { return V.time * ((RULES.timeByFamily || {})[member.family] || 1); }
   function startLevel(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopTimers();
     const V = RIVALS[lv - 1], pool = poolFor(V);
     G = {lv, V, time: timeFor(V), items: deck(pool, V.notes), fit: pool.map(it => it.show), i: 0, tries: 0, pressed: {}, order: [], glow: null, hintOn: false,
@@ -382,6 +384,7 @@
     const hasNext = lv < RIVALS.length && (stars > 0 || A.DEMO);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([won ? 'level-complete' : result !== 'time' && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score']);

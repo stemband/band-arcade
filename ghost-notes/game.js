@@ -19,6 +19,7 @@
 
   /* ---------- level select ---------- */
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     G = null;
     const st = picker.state, key = st.progressKey;
     A.ModePicker.useRange(st);
@@ -50,6 +51,7 @@
   /* ---------- play ---------- */
   let G = null;
   function startLevel(lv) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const L = LEVELS[lv - 1], st = picker.state;
     const seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
@@ -158,6 +160,7 @@
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
     $('resNext').hidden = !hasNext;
     $('results').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
     (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best > 0 && 'new-high-score']);

@@ -44,6 +44,7 @@
     window.scrollTo(0, 0);
   }
   function showHub() {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimer(); Q = null;
     $('chambers').innerHTML = RANKS.map(r => {
       const b = A.belt(r), p = A.store.level(GAME_ID, 'all', beltNo(r)), m = masteredIn(r), ready = gd.badges[r];
@@ -71,6 +72,7 @@
 
   /* ---------- a chamber: modes and the scroll rack ---------- */
   function openChamber(r) {
+    A.Sfx.gameMenuMusic(GAME_ID);                   // a belt's chamber is a menu too
     stopTimer(); Q = null; rank = r;
     const b = A.belt(r), p = A.store.level(GAME_ID, 'all', beltNo(r)), ex = gd.exams[r];
     $('chamber').style.setProperty('--belt', `var(--${b.color})`);
@@ -143,6 +145,7 @@
   /* ---------- Train / Spar / Review rounds ---------- */
   let Q = null, timerId = 0;
   function startQuiz(mode) {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopTimer();
     const b = A.belt(rank);
     Q = {mode, n: 0, score: 0, combo: 0, bestCombo: 0, right: 0, wrong: 0, firstTry: 0, done: 0, answered: false, current: null, last: null};
@@ -316,6 +319,7 @@
     $('resTitle').textContent = title; $('resMsg').textContent = msg; $('resBest').textContent = best;
     $('resBack').textContent = mode === 'review' ? 'Temple' : 'Chamber';
     $('results').hidden = false; $('resAgain').focus();
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Skins.announce($('results').querySelector('.panel'), {members: [A.store.player]});
   }
   $('resAgain').addEventListener('click', () => { $('results').hidden = true; startQuiz(Q.mode); });
@@ -325,6 +329,7 @@
   /* ---------- Belt Exam: the paper test ---------- */
   let E = null;
   function startExam() {
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     const b = A.belt(rank);
     E = {rank, items: itemsOf(rank), placed: {}, syms: {}, chosen: null, target: null, done: false};
     E.symChoices = {};
@@ -420,6 +425,8 @@
     window.scrollTo(0, 0);
     if (passed) setTimeout(() => presentBadge(E.rank, firstBadge), 900);
     else setTimeout(() => sfx('level-failed'), 900);
+    const graded = E;                               // the menu music again once the exam's result sounds are done
+    setTimeout(() => { if (E === graded && E.done) A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true}); }, 1000);
   }
   function presentBadge(r, first) {
     const b = A.belt(r);
