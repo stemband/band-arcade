@@ -39,7 +39,9 @@ window.AVATAR_PARTS = {};
     {id: 'black', name: 'Black'}, {id: 'darkbrown', name: 'Dark brown'}, {id: 'brown', name: 'Brown'}, {id: 'auburn', name: 'Auburn'},
     {id: 'copper', name: 'Copper'}, {id: 'blonde', name: 'Blonde'}, {id: 'platinum', name: 'Platinum'}, {id: 'gray', name: 'Gray'},
     {id: 'white', name: 'White'}, {id: 'pink', name: 'Pink'}, {id: 'purple', name: 'Purple'}, {id: 'blue', name: 'Blue'},
-    {id: 'teal', name: 'Teal'}, {id: 'green', name: 'Green'}, {id: 'orange', name: 'Orange'}];
+    {id: 'teal', name: 'Teal'}, {id: 'green', name: 'Green'}, {id: 'orange', name: 'Orange'},
+    {id: 'cherry', name: 'Cherry red'}, {id: 'magenta', name: 'Magenta'}, {id: 'lavender', name: 'Lavender'}, {id: 'sky', name: 'Sky blue'},
+    {id: 'mint', name: 'Mint'}, {id: 'sunny', name: 'Sunny yellow'}];
   P.EYE_COLORS = [{id: 'darkbrown', name: 'Dark brown'}, {id: 'brown', name: 'Brown'}, {id: 'hazel', name: 'Hazel'}, {id: 'green', name: 'Green'},
     {id: 'blue', name: 'Blue'}, {id: 'gray', name: 'Gray'}, {id: 'amber', name: 'Amber'}];
   // clothes, head coverings, shoes, glasses, hearing aids and the wheelchair all pick from this list
@@ -47,9 +49,11 @@ window.AVATAR_PARTS = {};
     {id: 'red', name: 'Red'}, {id: 'orange', name: 'Orange'}, {id: 'yellow', name: 'Yellow'}, {id: 'green', name: 'Green'}, {id: 'teal', name: 'Teal'},
     {id: 'blue', name: 'Blue'}, {id: 'navy', name: 'Navy'}, {id: 'purple', name: 'Purple'}, {id: 'pink', name: 'Pink'}, {id: 'maroon', name: 'Maroon'},
     {id: 'forest', name: 'Forest green'}, {id: 'black', name: 'Black'}, {id: 'gray', name: 'Gray'}, {id: 'white', name: 'White'},
-    {id: 'denim', name: 'Denim'}, {id: 'khaki', name: 'Khaki'}, {id: 'tan', name: 'Tan'}];
-  P.BOTTOM_COLORS = ['denim', 'black', 'khaki', 'gray', 'navy', 'maroon', 'forest', 'tan', 'purple', 'red'];
-  P.SHOE_COLORS = ['white', 'black', 'red', 'blue', 'pink', 'green', 'yellow', 'purple', 'tan'];
+    {id: 'denim', name: 'Denim'}, {id: 'khaki', name: 'Khaki'}, {id: 'tan', name: 'Tan'},
+    {id: 'lavender', name: 'Lavender'}, {id: 'mint', name: 'Mint'}, {id: 'coral', name: 'Coral'}, {id: 'mustard', name: 'Mustard'},
+    {id: 'cream', name: 'Cream'}, {id: 'brown', name: 'Brown'}, {id: 'sky', name: 'Sky blue'}, {id: 'olive', name: 'Olive'}];
+  P.BOTTOM_COLORS = ['denim', 'black', 'khaki', 'gray', 'navy', 'maroon', 'forest', 'tan', 'purple', 'red', 'brown', 'olive', 'cream', 'pink', 'sky'];
+  P.SHOE_COLORS = ['white', 'black', 'red', 'blue', 'pink', 'green', 'yellow', 'purple', 'tan', 'brown', 'teal', 'orange'];
   P.FRAME_COLORS = ['black', 'maroon', 'tan', 'red', 'blue', 'purple', 'pink', 'teal', 'yellow'];
   P.AID_COLORS = ['aid', 'black', 'blue', 'pink', 'purple', 'teal', 'red', 'yellow'];
   P.CHAIR_COLORS = ['gray', 'black', 'red', 'blue', 'purple', 'pink', 'teal', 'green', 'yellow'];
@@ -104,6 +108,40 @@ window.AVATAR_PARTS = {};
   P.FRECKLES = {front: {y: 10, half: ['............F...']}, side: {y: 10, rows: ['...............F..']},
     bust: {y: 19, half: ['............F.F...', '.............F....']}};
   P.NOSE = {bust: {y: 19, half: ['.................S']}};
+
+  /* ---------- MORE FREE CHOICES: expressions, freckle styles, face paint ---------- */
+  P.EYES.push(
+    {id: 'confident', name: 'Confident', front: ['..', 'Ke'], side: ['..', 'eK'], bust: ['...', 'KKK', '.ee']},
+    {id: 'focused',   name: 'Determined', front: ['.K', '.e'], side: ['K.', 'e.'], bust: ['K..', '.KK', '.ee']},
+    // the right eye is drawn the same way round (not mirrored): both look to the side
+    {id: 'glance',    name: 'Cool glance', front: ['..', 'we'], frontR: ['..', 'we'], side: ['..', 'ew'], bust: ['...', 'wwe', 'wwe'], bustR: ['...', 'wwe', 'wwe']},
+    {id: 'cheerful',  name: 'Cheerful', front: ['..', 'ee'], side: ['..', 'ee'], bust: ['.ww', 'wee', 'eee']});
+  P.BROWS.push({id: 'raised', name: 'Raised', front: ['.bb', '...'], side: ['bb.', '...'], bust: ['bbb', '...']});
+  P.MOUTHS.push(
+    {id: 'smirk', name: 'Smirk', front: ['...m', '.mm.'], side: ['..m', '.m.'], bust: ['.....m', '..mmm.', '......']},
+    {id: 'beam',  name: 'Big smile', front: ['mmmm', '.nn.'], side: ['..m', '.nm'], bust: ['m....m', 'mmmmmm', '.mnnm.']});
+  // freckles: false = none, true = the classic ones (P.FRECKLES above), or one of these styles
+  P.FRECKLE_STYLES = [
+    {id: false, name: 'No freckles'}, {id: true, name: 'Freckles'},
+    {id: 'cheeks', name: 'Cheek freckles', front: {y: 10, half: ['...........F.F..']}, side: {y: 10, rows: ['..............F.F.']},
+     bust: {y: 18, half: ['...........F.F....', '............F.F...', '...........F......']}},
+    {id: 'nose', name: 'Nose freckles', front: {y: 10, half: ['..............F.']}, side: {y: 9, rows: ['.................F']},
+     bust: {y: 18, half: ['...............F.F', '..............F.F.']}},
+    {id: 'dusting', name: 'Lots of freckles', front: {y: 10, half: ['...........F.F.F']}, side: {y: 10, rows: ['.............F.F.F']},
+     bust: {y: 17, half: ['..........F.......', '...........F.F.F..', '..........F..F..F.', '............F.F...']}},
+  ];
+  // face paint (the color is paintColor: letter T)
+  P.PAINTS = [
+    {id: 'none', name: 'No face paint'},
+    {id: 'stripes', name: 'Stripes', front: {y: 10, half: ['............TT..']}, side: {y: 10, rows: ['................TT']},
+     bust: {y: 18, half: ['............TTT...', '..................', '............TTT...']}},
+    {id: 'bolt', name: 'Lightning bolt', front: {y: 10, x: 19, rows: ['T', 'T']}, side: {y: 10, x: 17, rows: ['T', 'T']},
+     bust: {y: 17, x: 21, rows: ['..T', '.T.', 'TTT', '.T.', 'T..']}},
+    {id: 'star', name: 'Star', front: {y: 10, x: 19, rows: ['T']}, side: {y: 10, x: 17, rows: ['T']},
+     bust: {y: 18, x: 21, rows: ['.T.', 'TTT', '.T.']}},
+  ];
+  P.PAINT_COLORS = ['black', 'red', 'blue', 'yellow', 'pink', 'white', 'teal', 'purple', 'orange', 'green'];
+
 
   /* ---------- hair ----------
      front/side/back: the SPRITE (32 × 32); bust: the PORTRAIT (36 × 36). behind: drawn behind the body (long
@@ -232,6 +270,119 @@ window.AVATAR_PARTS = {};
                          '........hhhhhhhhhh', '........hhhHhhhhhh', '........hhhhhhhhhh', '........hhhhh.h.h.', '........hhh.......', '.........h........']},
   });
 
+
+  /* ---------- MORE HAIR (free: every texture and protective style is free, like all hair) ----------
+     Drawn with the little shape kit below instead of typed rows: kit(width, height) gives a blank grid, then
+     disc (a round shape), spans (rows of [x0, x1]), px (one pixel) paint it, sym() mirrors the left half onto the
+     right, and map(y) turns it into an ordinary {y, rows} map. Textures are functions (x, y) -> letter:
+     coil (tight coils: h with H and l dots), twist (diagonal twists), rowsTex (cornrows: parting lines), wave. */
+  const kit = (w, h = 36) => {
+    const g = Array.from({length: h}, () => Array(w).fill('.'));
+    const k = {
+      px(x, y, ch) { x = Math.round(x); y = Math.round(y); if (x >= 0 && x < w && y >= 0 && y < h) g[y][x] = typeof ch === 'function' ? ch(x, y) : ch; return k; },
+      disc(cx, cy, r, ch) { for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r + r * .5) k.px(x, y, ch); return k; },
+      spans(y0, list, ch) { list.forEach((s, i) => { if (s) for (let x = s[0]; x <= s[1]; x++) k.px(x, y0 + i, ch); }); return k; },
+      clear(x0, y0, x1, y1) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) k.px(x, y, '.'); return k; },
+      sym() { g.forEach(r => { for (let x = 0; x < w / 2; x++) if (r[x] !== '.') r[w - 1 - x] = r[x]; }); return k; },
+      map() { return {y: 0, rows: g.map(r => r.join('').replace(/\.+$/, ''))}; },
+    };
+    return k;
+  };
+  const coil = (x, y) => ((x * 7 + y * 5) % 9 === 0 ? 'l' : (x + y * 2) % 5 === 0 ? 'H' : 'h');
+  const twist = (x, y) => ((x + y) % 3 === 0 ? 'H' : 'h');
+  const rowsTex = (x, y) => (x % 3 === 2 ? 'S' : y % 2 ? 'H' : 'h');
+  const sideRows = (x, y) => (y % 3 === 2 ? 'S' : x % 2 ? 'H' : 'h');
+  const wave = (x, y) => ((x + (y >> 1)) % 4 === 0 ? 'H' : 'h');
+  /** a copy of a map with every hair pixel re-textured (h/H/l -> tex(x, y)) */
+  const retex = (m, tex) => m && Object.assign({}, m, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) =>
+    [...r].map((ch, x) => ('hHl'.includes(ch) ? tex(x + (m.x || 0), y + (m.y || 0)) : ch)).join(''))});
+  const retexHair = (h, tex) => {
+    const o = {};
+    ['front', 'side', 'back', 'bust', 'bustBehind'].forEach(k => { if (h[k]) o[k] = retex(h[k], tex); });
+    if (h.behind) o.behind = Object.fromEntries(Object.entries(h.behind).map(([v, m]) => [v, retex(m, tex)]));
+    return Object.assign({}, h, o);
+  };
+  const byHair = id => HAIRS.find(x => x.id === id);
+  const shape = o => { const c = Object.assign({}, o); delete c.id; delete c.name; return c; };   // a style's maps without its id and name
+  // the close caps every short style starts from (the head's own outline, a pixel of volume)
+  const CAP = {front: [[12, 19], [11, 20], [10, 21], [10, 21], [10, 21]], side: [[11, 16], [10, 18], [9, 18], [9, 19], [9, 19]],
+    bust: [[14, 21], [12, 23], [10, 25], [9, 26], [9, 26], [9, 26], [9, 26]]};
+
+  // AFRO PUFFS: pulled back, two round puffs
+  hair('puffs', 'Afro puffs', {
+    front: kit(32).spans(1, CAP.front, twist).spans(6, [[10, 10], [10, 10]], 'h').disc(7, 2.5, 2.8, coil).sym().map(),
+    side:  kit(32).disc(7.5, 2.5, 2.8, coil).spans(1, CAP.side, twist).spans(6, [[9, 11], [9, 10], [9, 10]], 'h').map(),
+    back:  kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], twist).disc(7, 2.5, 2.8, coil).sym().map(),
+    bust:  kit(36).spans(5, CAP.bust, twist).spans(12, [[9, 10], [9, 10], [9, 9]], 'h').disc(5.5, 6, 5, coil).px(10, 8, 'H').sym().map(),
+  });
+  // HIGH PUFF: one big puff on top
+  hair('highpuff', 'High puff', {
+    front: kit(32).spans(2, CAP.front.slice(1), twist).spans(6, [[10, 10], [10, 10]], 'h').sym().disc(15.5, 1.5, 3.2, coil).map(),
+    side:  kit(32).spans(2, CAP.side.slice(1), twist).spans(6, [[9, 11], [9, 10]], 'h').disc(12, 1.5, 3.2, coil).map(),
+    back:  kit(32).spans(2, [[11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], twist).disc(15.5, 1.5, 3.2, coil).map(),
+    bust:  kit(36).spans(6, CAP.bust.slice(1), twist).spans(12, [[9, 10], [9, 10], [9, 9]], 'h').sym().disc(17.5, 4.5, 5.5, coil).map(),
+  });
+  // CORNROWS: close braids from front to back (the parting lines show the scalp)
+  hair('cornrows', 'Cornrows', {
+    front: kit(32).spans(1, CAP.front, rowsTex).map(),
+    side:  kit(32).spans(1, CAP.side, sideRows).spans(6, [[9, 10], [9, 10]], sideRows).map(),
+    back:  kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20], [12, 19]], rowsTex)
+      .spans(11, [[13, 13], [13, 13], [13, 13]], 'h').spans(11, [[18, 18], [18, 18], [18, 18]], 'h').map(),
+    bust:  kit(36).spans(5, CAP.bust, rowsTex).map(),
+  });
+  // HIGH-TOP FADE: a tall flat top, the sides faded short
+  hair('fade', 'High-top fade', {
+    front: kit(32).spans(0, [[11, 20], [11, 20], [11, 20], [11, 20], [11, 20]], coil).spans(1, [[12, 19]], 'l').spans(5, [[9, 11], [9, 10], [9, 9]], 'H').sym().map(),
+    side:  kit(32).spans(0, [[10, 18], [10, 18], [10, 18], [10, 18], [10, 18]], coil).spans(5, [[9, 12], [9, 11], [9, 11], [9, 10]], 'H').map(),
+    back:  kit(32).spans(0, [[11, 20], [11, 20], [11, 20], [11, 20], [11, 20]], coil).spans(5, [[10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], 'H').map(),
+    bust:  kit(36).spans(0, Array(11).fill([11, 24]), coil).spans(1, [[12, 23]], 'l').spans(9, [[9, 10], [9, 10], [9, 10], [9, 9], [9, 9]], 'H').sym().map(),
+  });
+  // BANTU KNOTS: small coiled knots all over
+  const knots = (k, list, r) => { list.forEach(([x, y]) => { k.disc(x, y, r, 'H').disc(x - .2, y - .2, r - .9, 'h').px(x - r / 3, y - r / 3, 'l'); }); return k; };
+  const scalpRows = (x, y) => (x % 3 === 2 ? 'S' : 'H');
+  hair('bantu', 'Bantu knots', {
+    front: knots(kit(32).spans(2, CAP.front.slice(1), scalpRows), [[11, 2], [15.5, 1], [20, 2]], 1.4).map(),
+    side:  knots(kit(32).spans(2, CAP.side.slice(1), (x, y) => (y % 3 === 2 ? 'S' : 'H')), [[10, 2.5], [14, 1]], 1.4).map(),
+    back:  knots(kit(32).spans(2, [[11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], scalpRows), [[11, 2], [15.5, 1], [20, 2], [12, 6], [19, 6]], 1.4).map(),
+    bust:  knots(kit(36).spans(6, CAP.bust.slice(1), scalpRows), [[10, 8.5], [13.5, 5], [17.5, 3.5], [21.5, 5], [25, 8.5]], 2.3).map(),
+  });
+  // PIXIE: short, with a fringe swept to one side
+  hair('pixie', 'Pixie cut', {
+    front: kit(32).spans(1, [[12, 19], [10, 21], [10, 21], [10, 21], [10, 21], [10, 16], [10, 12]], 'h').px(21, 6, 'h').px(13, 3, 'l').px(12, 4, 'l').map(),
+    side:  kit(32).spans(1, [[11, 16], [9, 18], [8, 19], [8, 19], [8, 20], [9, 12], [9, 11], [9, 10]], 'h').px(15, 3, 'l').map(),
+    backTo: 9,
+    bust:  kit(36).spans(5, [[15, 22], [12, 24], [10, 25], [9, 26], [9, 26], [9, 26], [9, 26], [9, 18], [9, 14], [9, 10]], 'h').spans(12, [[25, 26], [26, 26]], 'h')
+      .px(13, 8, 'l').px(12, 9, 'l').px(14, 9, 'l').px(20, 7, 'H').map(),
+  });
+  // SIDE PART: neat, with a part line and more volume on one side
+  hair('sidepart', 'Side part', {
+    front: kit(32).spans(1, [[12, 20], [10, 21], [9, 22], [9, 22], [9, 22], [9, 11], [9, 10]], 'h').spans(6, [[21, 22], [22, 22]], 'h').px(13, 1, 'S').px(13, 2, 'S').px(15, 2, 'l').px(16, 3, 'l').map(),
+    side:  kit(32).spans(1, [[11, 16], [9, 18], [8, 19], [8, 19], [8, 19], [9, 12], [9, 11], [9, 10]], 'h').px(15, 2, 'l').map(),
+    backTo: 9,
+    bust:  kit(36).spans(4, [[16, 23], [12, 25], [10, 26], [9, 27], [8, 27], [8, 27], [8, 27], [8, 26], [8, 11], [8, 10]], 'h').spans(12, [[24, 27], [25, 27]], 'h')
+      .px(13, 5, 'S').px(13, 6, 'S').px(13, 7, 'S').px(13, 8, 'S').px(17, 6, 'l').px(18, 6, 'l').px(19, 7, 'l').map(),
+  });
+  // BANGS: shoulder length with a straight fringe
+  const bob = byHair('bob');
+  const fringe = (m, rows, from) => Object.assign({}, m, {half: m.half.map((r, i) => rows.includes(i) ? r.slice(0, from) + rep('h', r.length - from) : r)});
+  hair('bangs', 'Bangs', {front: fringe(bob.front, [4, 5], 9), side: bob.side, backTo: bob.backTo, bust: fringe(bob.bust, [4, 5, 6, 7], 9)});
+  // TWISTS, COILS, WAVY, BOX BRAIDS: the same shapes as locs, curly, long and braids with their own texture
+  hair('twists', 'Twists', Object.assign(shape(retexHair(byHair('locs'), twist)), {backTex: 'hH'}));
+  hair('coils', 'Coils', shape(retexHair(byHair('curly'), coil)));
+  hair('wavy', 'Wavy', Object.assign(shape(retexHair(byHair('long'), wave)), {backTex: 'hhhH'}));
+  const beads = m => m && Object.assign({}, m, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, i, all) => i === all.length - 1 ? r.replace(/h/g, 'g') : r)});   // a gold bead at each end
+  const braids = byHair('braids');
+  hair('boxbraids', 'Box braids with beads', Object.assign(shape(braids), {bust: beads(braids.bust), bustBehind: beads(braids.bustBehind),
+    behind: {front: beads(braids.behind.front), side: beads(braids.behind.side)}}));
+  // MOHAWK: a crest down the middle, the sides buzzed
+  hair('mohawk', 'Mohawk', {
+    front: kit(32).spans(0, [[14, 17], [14, 17], [14, 17], [14, 17], [14, 17]], 'h').spans(2, [[12, 13], [11, 13], [10, 13], [10, 11], [10, 10]], 'H').px(15, 1, 'l').sym().map(),
+    side:  kit(32).spans(0, [[10, 17], [9, 18], [9, 18]], 'h').spans(3, [[9, 19], [9, 19], [9, 12], [9, 11], [9, 10]], 'H').px(13, 1, 'l').map(),
+    back:  kit(32).spans(0, [[14, 17], [14, 17], [14, 17], [14, 17], [14, 17], [14, 17], [14, 17], [14, 17], [14, 17]], 'h').spans(2, [[11, 13], [10, 13], [10, 13], [10, 13], [10, 13], [10, 13], [10, 13], [11, 13]], 'H').sym().map(),
+    bust:  kit(36).spans(0, [[16, 19], [15, 20], [15, 20], [15, 20], [15, 20], [15, 20], [15, 20], [15, 20], [15, 20]], 'h').spans(6, [[13, 14], [12, 14], [11, 14], [10, 13], [10, 12], [10, 11], [10, 10], [10, 10]], 'H')
+      .px(16, 2, 'l').px(16, 4, 'l').sym().map(),
+  });
+
   /* ---------- head coverings ---------- */
   P.HEADS = [
     {id: 'none', name: 'Nothing', hides: 'none'},
@@ -297,6 +448,32 @@ window.AVATAR_PARTS = {};
      bust:  {y: 3, half: ['...........UUUUUUU', '.........UU.......', '........U.........', '.......U..........', '.......U..........', '.......U..........', '.......U..........',
                           '......uuu.........', '.....uuuu.........', '.....uuuu.........', '.....uuuu.........', '.....uuuu.........', '.....uuuu.........', '......uuu.........']}},
   ];
+
+  /* ---------- MORE HEAD COVERINGS (free, and part of who a student is: never locked) ---------- */
+  const patkaBust = kit(36).spans(5, [[14, 21], [12, 23], [10, 25], [9, 26], [9, 26], [9, 26], [9, 26], [9, 26]], 'u').spans(13, [[9, 11], [9, 10]], 'u')
+    .spans(12, [[9, 26]], 'U').disc(17.5, 3.5, 2.6, 'u').px(16, 2, 'U').px(18, 3, 'U').px(17, 4, 'U').sym();
+  P.HEADS.push(
+    {id: 'patka', name: 'Patka', hides: 'all',
+     front: kit(32).spans(1, CAP.front, 'u').spans(5, [[10, 21]], 'U').spans(6, [[10, 10], [10, 10]], 'u').disc(15.5, .5, 1.6, 'u').px(15, 0, 'U').sym().map(),
+     side:  kit(32).spans(1, CAP.side, 'u').spans(5, [[9, 19]], 'U').spans(6, [[9, 12], [9, 11]], 'u').disc(15, .5, 1.6, 'u').map(),
+     back:  kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], 'u').disc(15.5, .5, 1.6, 'u').map(),
+     bust:  patkaBust.map()},
+    {id: 'kufi', name: 'Kufi', hides: 'top', clip: {front: 5, side: 5, back: 5, bust: 10},
+     front: kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21]], 'u').spans(3, [[10, 21]], (x) => (x % 2 ? 'j' : 'u')).map(),
+     side:  kit(32).spans(1, [[11, 16], [10, 18], [9, 18], [9, 19]], 'u').spans(3, [[9, 18]], (x) => (x % 2 ? 'j' : 'u')).map(),
+     back:  kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21]], 'u').map(),
+     bust:  kit(36).spans(4, [[15, 20], [13, 22], [11, 24], [10, 25], [10, 25], [9, 26]], 'u').spans(7, [[10, 25]], (x) => (x % 2 ? 'j' : 'u')).spans(9, [[9, 26]], 'U').map()},
+    {id: 'tichel', name: 'Headscarf', hides: 'all',
+     front: kit(32).spans(0, [[12, 19], [10, 21], [9, 22], [9, 22], [9, 22], [9, 22], [9, 11], [9, 10], [9, 10], [9, 10], [9, 10]], 'u').spans(5, [[11, 20]], 'U').sym().map(),
+     side:  kit(32).spans(0, [[11, 16], [9, 18], [8, 19], [8, 19], [8, 19], [8, 19], [8, 12], [8, 12], [8, 12], [8, 12], [9, 11]], 'u').spans(5, [[12, 19]], 'U').spans(8, [[6, 7], [5, 7], [5, 6]], 'U').map(),
+     back:  kit(32).spans(0, [[12, 19], [10, 21], [9, 22], [9, 22], [9, 22], [9, 22], [9, 22], [9, 22], [9, 22], [10, 21], [12, 19]], 'u').spans(11, [[14, 17], [13, 18], [14, 17]], 'U').map(),
+     bust:  kit(36).spans(4, [[14, 21], [11, 24], [9, 26], [8, 27], [8, 27], [8, 27], [8, 27], [8, 27]], 'u').spans(12, [[8, 10], [8, 10], [8, 10], [8, 10], [8, 10], [8, 10], [8, 10], [9, 10]], 'u')
+       .spans(11, [[10, 25]], 'U').sym().map()},
+    {id: 'durag', name: 'Durag', hides: 'all',
+     front: kit(32).spans(1, CAP.front, 'u').spans(5, [[10, 21]], 'U').px(15, 1, 'U').px(16, 1, 'U').px(15, 2, 'U').px(16, 2, 'U').spans(6, [[10, 10]], 'u').sym().map(),
+     side:  kit(32).spans(1, CAP.side, 'u').spans(5, [[9, 19]], 'U').spans(6, [[9, 11], [9, 10], [8, 9], [7, 9], [7, 8], [7, 8], [7, 8]], 'u').map(),
+     back:  kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [10, 21], [11, 20]], 'u').spans(10, [[13, 14], [13, 14], [13, 14], [13, 14], [13, 14]], 'U').sym().map(),
+     bust:  kit(36).spans(5, CAP.bust, 'u').spans(12, [[9, 26]], 'U').spans(5, [[17, 18], [17, 18], [17, 18], [17, 18], [17, 18], [17, 18]], 'U').spans(13, [[9, 10], [9, 10]], 'u').map()});
 
   /* ---------- clothes ----------
      TOPS: sleeve = how far down the arm the sleeve reaches (sprite arms: 0.35 short, 1 long); base: 'black' = always
@@ -366,6 +543,22 @@ window.AVATAR_PARTS = {};
     {id: 'hightops', name: 'High-tops', rows: 3, sole: true},
     {id: 'boots',    name: 'Boots',     rows: 3, sole: false},
   ];
+  // more everyday tops: a sweater vest over a white shirt, and a plaid flannel
+  const plaid = (x, y) => ['c', 'C', 'K'][(Math.floor(x / 3) % 2) + (Math.floor(y / 3) % 2)];   // a buffalo check: light, shade, dark
+  P.TOPS.push(
+    {id: 'vest', name: 'Sweater vest', sleeve: 1, sleeveCh: 'W',
+     front: torsoF(['...........cccWW', '...........cccWd', '...........ccccW', '...........cccdc', '...........ccdcd', '...........cccdc', '...........WWWWW']),
+     side: torsoS(['............cccccWW', T(12, 18), T(12, 18), T(12, 18), T(12, 18), T(12, 18), '............WWWWWWW']), back: torsoF(['...........WWWWW', T(11, 15), T(11, 15), T(11, 15), T(11, 15), T(11, 15), '...........WWWWW']),
+     bust: {y: 27, half: ['..........WWWWWsss', '.......WWccccWWWss', '.....WWcccccccWWWs', '....WWcccccccccWWW', '...WWccccdcccccWWW', '...WWcccdddcccccWW',
+                          '...WWccccdcccccccW', '...WWccccccccccccc', '...WWccccccccccccc']}},
+    {id: 'flannel', name: 'Flannel', sleeve: 1,
+     front: kit(32).spans(14, Array(7).fill([11, 20]), plaid).spans(14, [[15, 16]], 's').map(),
+     side: kit(32).spans(14, Array(7).fill([12, 18]), plaid).map(), back: kit(32).spans(14, Array(7).fill([11, 20]), plaid).map(),
+     bust: kit(36).spans(27, [[10, 25], [7, 28], [5, 30], [4, 31], [3, 32], [3, 32], [3, 32], [3, 32], [3, 32]], plaid).spans(27, [[15, 20], [16, 19]], 's')
+       .spans(27, [[13, 14], [14, 15], [15, 15]], 'C').spans(27, [[21, 22], [20, 21], [20, 20]], 'C').map()});
+  // bottoms and shoes
+  P.BOTTOMS.push({id: 'cargo', name: 'Cargo pants', legs: 'long', pocket: true});
+  P.SHOES.push({id: 'sandals', name: 'Sandals', rows: 2, sandal: true});
 
   /* ---------- extras ---------- */
   P.GLASSES = [
@@ -383,6 +576,15 @@ window.AVATAR_PARTS = {};
   // hearing aids: `side` 'left' / 'right' / 'both' = the student's own ears (their left ear is on your right)
   P.AIDS = [{id: 'none', name: 'None'}, {id: 'right', name: 'Right ear'}, {id: 'left', name: 'Left ear'}, {id: 'both', name: 'Both ears'}];
   P.AID = {front: {y: 7, x: 8, rows: ['a', 'a']}, side: {y: 7, x: 12, rows: ['a', 'a']}, bust: {y: 12, x: 7, rows: ['.a', 'aa', 'aa', 'a.']}};
+
+  /* ---------- MORE GLASSES (free, like all glasses) ---------- */
+  P.GLASSES.push(
+    {id: 'rect', name: 'Rectangle', front: {y: 8, half: ['...........xxxxx', '...........x..x.']}, side: {y: 8, rows: ['...............xxxx', '..............xx..x']},
+     bust: {y: 15, half: ['.........xxxxxxxxx', '..........x...x...', '..........xxxxx...']}},
+    {id: 'cateye', name: 'Cat-eye', front: {y: 7, half: ['..........x.....', '...........xxxxx', '............x.x.']}, side: {y: 8, rows: ['..............xxxx', '.............xx..x']},
+     bust: {y: 14, half: ['.........xx.......', '..........xxxxx...', '..........x...xxxx', '...........xxx....']}},
+    {id: 'aviator', name: 'Aviator', front: {y: 8, half: ['...........xxxxx', '............xx..']}, side: {y: 8, rows: ['...............xxxx', '.............xx.xx']},
+     bust: {y: 14, half: ['..........xxxxx...', '.........x.....xxx', '..........x...x...', '...........xxx....']}});
 
   /* ---------- the accessory skins (shared/skins.js), drawn as things the avatar wears ----------
      over: drawn over everything on the head; behind: behind the body (the Cape); hides: 'top' = like a cap */
@@ -439,15 +641,24 @@ window.AVATAR_PARTS = {};
        {stars: 150}                         150 ★ on THIS DEVICE: every instrument, every game, every mode added up
        {game, level, stars, text}           an achievement: any instrument has `stars` on that level of that game
        {game, achievement: 'id', text}      an achievement a game saves (Arcade Quest's 'ep1', Speedway's 'virtuoso-win')
-       {game, badge: true, text}            any TEST READY badge in Ancient Ninja Scrolls
+       {game, badge: true, text}            any TEST READY badge in Ancient Ninja Scrolls ({game, badges: 4, text}: 4 of them)
+       {game, perfect: 8, text}             3 ★ on every level 1–8 of that game (any instrument, any mode's key)
+       {game, endless: 10, text}            an Endless run of that game reached 10 notes (store.endless + gameData('endless-best'))
+       {game, wins: 10, text}               matches won on this device (Neon Face-Off, Dojo Duel: shared/skins.js WINS)
        {shop: 250}                          bought for 250 Arcade Tokens at Arcade Quest's Token Booth (owned forever)
      IDENTITY ITEMS ARE ALWAYS FREE AND CAN NEVER BE LOCKED (avatar.js enforces it, whatever a rule says): no head
-     covering at all, the hijab, headwrap and turban, hearing aids, the wheelchair and glasses.
-     HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, PETS or BACKS) with a new id
+     covering at all, the hijab, headwrap, turban, patka, kufi, headscarf (tichel) and durag, hearing aids, the wheelchair
+     and glasses.
+     ANIMATED ITEMS (all optional; still frame = frame 0, used with reduced motion, Motion off and on every copy except
+     the largest avatar on screen, see avatar-bg.js): `anim: {pal: {letter: [4 tokens]}}` cycles a fixed color
+     (glowphones, lightup); `anim: {maps: {bust: [4 maps], front: [...], 'behind.front': [...]}}` swaps whole maps per
+     frame (flap(), shiftRows() and unhalf() build them from the still map); a HAND item's `bust(api, f)` draws frame f;
+     a pet's `frames` + `seq`. Keep changes small and slow (4 frames at 4 fps): nothing may flash.
+     HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, SHOES, PETS, BACKS, HANDS, EFFECTS or PLATES) with a new id
      and a name, draw its maps like the parts above, and give it an `unlock` rule (or none: free). An UNLOCKED! card
      shows the first time a student has earned it (results screens and Select Player), and old progress counts.
-     Then add '<field>:<id>' (e.g. 'pet:ghost') to the END of QUEST_V2.cosmetics in shared/backup.js so save codes
-     carry it, and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
+     A {shop} item: add '<field>:<id>' (e.g. 'pet:penguin') to the END of QUEST_V3.cosmetics in shared/backup.js so
+     save codes carry it (2 places left; after that the code needs a version 4), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
      A {shop} item appears on the Token Booth's PLAYER ITEMS shelf by itself (keep prices 50–500).
      ===================================================================================================================== */
   const recolor = (map, from, to) => map && Object.assign({}, map, map.half ? {half: map.half.map(r => r.replace(from, to))} : {rows: map.rows.map(r => r.replace(from, to))});
@@ -560,6 +771,188 @@ window.AVATAR_PARTS = {};
                               '..999900..........', '...99990..........', '...999900.........', '....99990.........', '.....9999.........', '......99..........']}},
   ];
 
+
+  /* =====================================================================================================================
+     MORE UNLOCKABLE ITEMS (and the new slots: HAND items, EFFECTS, NAME PLATES).
+     Colors a part always has (not the student's choice) go in its `pal` (letter -> theme token): heads use A B, tops
+     D E G, hand items I J L M, back items N O (so two parts never fight over a letter).
+     ANIMATED ITEMS have `anim` (the renderer plays 4 frames, ~4 a second, only on the largest avatar on screen and
+     never with reduced motion or the Motion switch off; every other copy shows frame 0):
+       anim.pal:  {letter: [4 tokens]}      a slow color cycle (light-up soles, glowing headphones, a glow stick)
+       anim.maps: {bust: [4 maps], front: [...], side: [...], back: [...], bustBehind: [...], 'behind.front': [...]}
+                                            a different picture per frame (a swaying plume, flapping wings and capes)
+       hand items draw themselves: bust(api, frame) with api.px(x, y, ch) and api.line(x0, y0, x1, y1, ch)
+     Game goals (shared/skins.js ruleMet): {game, level, stars}, {game, perfect: 8} (3 ★ on levels 1–8, any mode),
+     {game, endless: 10} (an Endless run of that many notes: Lost Signal's longest signal, Vanishing Ink's scroll),
+     {game, badges: 4} (Ancient Ninja Scrolls TEST READY badges), {game, wins: n}, {game, achievement}.
+     ===================================================================================================================== */
+  const W2 = 36;
+  // a half map as full rows (to animate one side differently), and small ways to move a map
+  const unhalf = (m, W) => m && m.half ? {y: m.y, rows: m.half.map(r => { const a = r.padEnd(W / 2, '.').slice(0, W / 2); return a + [...a].reverse().join(''); })} : m;
+  const shiftRows = (m, from, to, dx) => m && Object.assign({}, m, {rows: m.rows.map((r, i) => i >= from && i <= to ? (dx > 0 ? rep('.', dx) + r : r.slice(-dx)) : r)});
+  const shiftHalf = (m, dx) => m && (m.half ? Object.assign({}, m, {half: m.half.map(r => (dx > 0 ? rep('.', dx) + r : r.slice(-dx)))}) : shiftRows(m, 0, 99, dx));
+  const flap = (m, lower = 0, d = 1) => m && [m, shiftHalf(m, -d), m, shiftHalf(m, d)].map((x, i) => lower && i % 2 ? Object.assign({}, x, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) => (y < lower ? (m.half || m.rows)[y] : (x.half || x.rows)[y]))}) : x);
+  const BELT_NAMES = ['White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Red', 'Brown', 'Black', 'Diamond'];
+  const beltRule = i => ({game: 'note-ninja', level: i + 1, stars: 1, text: `Earn the ${BELT_NAMES[i]} belt in Note Ninja`});
+
+  // ---- hats ----
+  const band = P.ACCESSORIES.headband, toA = m => m && recolor(recolor(m, /1/g, 'A'), /2/g, 'A');
+  const phones = P.HEADS.find(h => h.id === 'headphones'), toPhones = m => m && recolor(recolor(m, /u/g, 'B'), /U/g, 'A');
+  const ring = (w, cx, cy, r, maxY) => { const k = kit(w); k.disc(cx, cy, r, 'A'); for (let y = 0; y < 36; y++) for (let x = 0; x < w; x++) if ((x - cx) ** 2 + (y - cy) ** 2 < (r - 1.1) ** 2 || y > maxY) k.px(x, y, '.'); return k; };
+  P.HEADS.push(
+    {id: 'pirate', name: 'Pirate hat', unlock: {shop: 200}, hides: 'top', clip: {front: 5, side: 5, back: 5, bust: 11}, pal: {A: 'av-black', B: 'av-gold'},
+     front: kit(32).spans(0, [[12, 19], [11, 20], [11, 20]], 'A').spans(3, [[6, 25], [8, 23]], 'A').spans(4, [[9, 22]], 'B').px(6, 2, 'A').px(25, 2, 'A').px(15, 1, 'W').px(16, 1, 'W').map(),
+     side:  kit(32).spans(0, [[11, 17], [10, 18], [10, 18]], 'A').spans(3, [[6, 22], [7, 21]], 'A').spans(4, [[8, 20]], 'B').px(6, 2, 'A').px(22, 2, 'A').map(),
+     back:  kit(32).spans(0, [[12, 19], [11, 20], [11, 20]], 'A').spans(3, [[6, 25], [8, 23]], 'A').px(6, 2, 'A').px(25, 2, 'A').map(),
+     bust:  kit(W2).spans(2, [[14, 21], [12, 23], [11, 24], [11, 24], [10, 25], [10, 25]], 'A').spans(8, [[4, 31], [6, 29]], 'A').spans(9, [[7, 28]], 'B')
+       .spans(5, [[3, 4], [3, 5], [4, 5]], 'A').spans(5, [[31, 32], [30, 32], [30, 31]], 'A').spans(4, [[16, 19], [16, 19], [17, 18]], 'W').px(16, 5, 'A').px(19, 5, 'A').map()},
+    {id: 'astronaut', name: 'Astronaut helmet', unlock: {stars: 400}, hides: 'none', pal: {A: 'white-hi', B: 'cyan-hi'},
+     front: ring(32, 15.5, 6.5, 7.6, 12).px(10, 3, 'B').px(11, 2, 'B').map(),
+     side:  ring(32, 15, 6.5, 7.6, 12).px(10, 3, 'B').map(),
+     back:  ring(32, 15.5, 6.5, 7.6, 12).map(),
+     bust:  ring(W2, 17.5, 14, 14.2, 25).spans(25, [[9, 26]], 'A').px(8, 8, 'B').px(9, 7, 'B').px(10, 6, 'B').px(8, 10, 'B').map()},
+    {id: 'glowphones', name: 'Glowing headphones', unlock: {shop: 350}, hides: 'none', pal: {A: 'av-black', B: 'cyan'},
+     anim: {pal: {B: ['cyan-ink', 'cyan', 'cyan-hi', 'cyan']}},
+     front: toPhones(phones.front), side: toPhones(phones.side), back: toPhones(phones.back), bust: toPhones(phones.bust)},
+    ...BELT_NAMES.map((b, i) => ({id: 'belt-' + b.toLowerCase(), name: `${b} belt headband`, unlock: beltRule(i), hides: 'none', pal: {A: 'belt-' + b.toLowerCase()},
+      front: toA(band.front), side: toA(band.side), back: toA(band.back), bust: toA(band.bust), bustAfter: toA(band.bust.after)})));
+  // the plumed shako's plume sways (frame 0 is the still picture)
+  const ps = P.HEADS.find(h => h.id === 'plumeshako'), psBust = unhalf(ps.bust, W2), psFront = unhalf(ps.front, 32);
+  ps.bust = psBust; ps.front = psFront;
+  ps.anim = {maps: {bust: [psBust, shiftRows(psBust, 0, 2, 1), psBust, shiftRows(psBust, 0, 2, -1)], front: [psFront, shiftRows(psFront, 0, 0, 1), psFront, shiftRows(psFront, 0, 0, -1)]}};
+
+  // ---- tops ----
+  const X = (k, x0, y0, x1, y1, ch) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) k.px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, ch); return k; };
+  const bustBody = (ch = 'c') => kit(W2).spans(27, [[10, 25], [7, 28], [5, 30], [4, 31], [3, 32], [3, 32], [3, 32], [3, 32], [3, 32]], ch).spans(27, [[15, 20]], 's');
+  const torso = (ch = 'c', rows = [14, 20]) => kit(32).spans(rows[0], Array(rows[1] - rows[0] + 1).fill([11, 20]), ch);
+  const sideT = (ch = 'c', rows = [14, 20]) => kit(32).spans(rows[0], Array(rows[1] - rows[0] + 1).fill([12, 18]), ch);
+  const twinkle = (k, f) => { const m = k.map(); return {y: 0, rows: m.rows.map((r, y) => [...r].map((ch, x) => (ch === 'c' && (x * 3 + y * 5 + f * 3) % 11 === 0 ? 'W' : ch)).join(''))}; };
+  const stage = f => ({bust: twinkle(bustBody('c').spans(27, [[13, 22], [14, 21], [15, 20], [15, 20], [16, 19], [16, 19], [17, 18]], 'K').spans(28, [[12, 13], [22, 23]], 'C'), f),
+    front: twinkle(torso('c').spans(14, [[15, 16], [15, 16], [15, 16], [15, 16], [15, 16], [15, 16], [15, 16]], 'K'), f), side: twinkle(sideT('c'), f), back: twinkle(torso('c'), f)});
+  const S0 = stage(0);
+  const gi = (pal, id, name, unlock) => ({id, name, unlock, sleeve: 0.8, sleeveCh: 'D', pal,
+    front: X(torso('D'), 13, 14, 18, 18, 'E').spans(14, [[15, 16]], 's').spans(20, [[11, 20]], 'G').px(14, 21, 'G').px(17, 21, 'G').map(),
+    side: sideT('D').spans(14, [[16, 18]], 'E').spans(20, [[12, 18]], 'G').map(), back: torso('D').spans(20, [[11, 20]], 'G').map(),
+    bust: X(X(bustBody('D').spans(27, [[14, 21], [15, 20], [16, 19]], 's'), 13, 27, 21, 35, 'E'), 22, 27, 19, 30, 'E').map()});
+  P.TOPS.push(
+    {id: 'uniform', name: 'Marching band uniform', unlock: {stars: 100}, sleeve: 1,
+     front: X(X(torso('c', [13, 20]).spans(13, [[14, 17]], 'g').px(11, 14, 'g').px(20, 14, 'g'), 11, 14, 20, 20, 'W'), 20, 14, 11, 20, 'W').map(),
+     side: X(sideT('c', [13, 20]).spans(13, [[14, 16]], 'g'), 12, 14, 18, 20, 'W').map(), back: X(X(torso('c', [13, 20]), 11, 14, 20, 20, 'W'), 20, 14, 11, 20, 'W').map(),
+     bust: X(X(X(X(bustBody('c').spans(25, [[15, 20], [15, 20]], 'g').spans(27, [[4, 9], [5, 8]], 'g').spans(27, [[26, 31], [27, 30]], 'g'), 8, 29, 27, 35, 'W'), 9, 29, 28, 35, 'W'), 27, 29, 8, 35, 'W'), 26, 29, 7, 35, 'W').map()},
+    {id: 'stagejacket', name: 'Sequined stage jacket', unlock: {shop: 400}, sleeve: 1, bust: S0.bust, front: S0.front, side: S0.side, back: S0.back,
+     anim: {maps: ['bust', 'front', 'side', 'back'].reduce((o, v) => { o[v] = [0, 1, 2, 3].map(f => stage(f)[v]); return o; }, {})}},
+    gi({D: 'av-white', E: 'av-white-d', G: 'belt-white'}, 'gi', 'White ninja gi', beltRule(0)),
+    gi({D: 'av-black', E: 'av-gray', G: 'belt-black'}, 'blackgi', 'Black ninja gi', beltRule(8)),
+    {id: 'racing', name: 'Racing jacket', unlock: {game: 'sustain-speedway', perfect: 8, text: 'Win all 8 tracks in Sustain Speedway'}, sleeve: 1,
+     front: torso('c').spans(14, Array(7).fill([12, 12]), 'W').spans(14, Array(7).fill([19, 19]), 'W').spans(14, [[15, 16]], 'K').px(13, 16, 'K').px(14, 16, 'W').px(13, 17, 'W').px(14, 17, 'K').map(),
+     side: sideT('c').spans(14, Array(7).fill([13, 13]), 'W').map(), back: torso('c').spans(14, Array(7).fill([12, 12]), 'W').spans(14, Array(7).fill([19, 19]), 'W').map(),
+     bust: bustBody('c').spans(27, [[14, 21]], 'K').spans(28, Array(8).fill([7, 8]), 'W').spans(28, Array(8).fill([27, 28]), 'W').spans(28, Array(8).fill([17, 18]), 'W')
+       .spans(30, [[21, 22], [23, 24]], 'K').spans(31, [[23, 24], [21, 22]], 'K').spans(30, [[23, 24]], 'W').spans(31, [[21, 22]], 'W').map()},
+    {id: 'spacesuit', name: 'Space suit', unlock: {game: 'lost-signal', endless: 10, text: 'Echo a 10-note signal in Lost Signal (Deep Space Scan)'}, sleeve: 1, sleeveCh: 'D',
+     pal: {D: 'av-white', E: 'av-gray', G: 'av-blue'},
+     front: torso('D').spans(15, [[14, 17], [14, 17]], 'G').px(14, 15, 'g').px(17, 16, 'W').spans(20, [[11, 20]], 'E').map(),
+     side: sideT('D').spans(14, Array(6).fill([12, 13]), 'E').map(), back: torso('D').spans(14, Array(6).fill([12, 19]), 'E').map(),
+     bust: bustBody('D').spans(26, [[12, 23], [11, 24]], 'E').spans(30, [[14, 21], [14, 21], [14, 21]], 'G').px(15, 31, 'g').px(18, 31, 'W').px(20, 31, 'g').map()},
+    {id: 'ghosthunter', name: 'Ghost-hunter coat', unlock: {game: 'ghost-notes', perfect: 8, text: 'Get 3 ★ on every Ghost Notes level'}, sleeve: 1, sleeveCh: 'D',
+     pal: {D: 'av-khaki', E: 'av-khaki-d', G: 'green'},
+     front: torso('D', [14, 23]).spans(21, [[15, 16], [15, 16], [15, 16]], '.').spans(14, [[13, 14], [14, 14]], 'E').spans(14, [[17, 18], [17, 17]], 'E').px(18, 16, 'G').map(),
+     side: sideT('D', [14, 23]).map(), back: torso('D', [14, 23]).spans(18, [[11, 20]], 'E').map(),
+     bust: bustBody('D').spans(25, [[12, 14], [11, 14]], 'E').spans(25, [[21, 23], [21, 24]], 'E').spans(27, [[14, 21], [15, 20], [16, 19], [16, 19], [17, 18]], 'K')
+       .spans(27, [[12, 14], [13, 14], [13, 15]], 'E').spans(27, [[21, 23], [21, 22], [20, 22]], 'E').spans(31, [[23, 26], [23, 26]], 'E').px(24, 31, 'G').map()});
+
+  // ---- shoes (sprite only: the bust stops at the shoulders) ----
+  P.SHOES.push({id: 'lightup', name: 'Light-up sneakers', unlock: {shop: 300}, rows: 2, sole: true, anim: {pal: {Q: ['pink', 'cyan', 'yellow', 'green']}}});
+
+  // ---- back items: wings and capes flap ----
+  P.BACKS.forEach(b => {
+    if (b.id === 'wings' || b.id === 'pixelcape') b.anim = {maps: {bustBehind: flap(b.bustBehind, b.id === 'pixelcape' ? 3 : 0, 2), 'behind.front': flap(b.behind.front, b.id === 'pixelcape' ? 3 : 0),
+      'behind.back': flap(b.behind.back, b.id === 'pixelcape' ? 3 : 0)}};
+  });
+  const neon = P.BACKS.find(b => b.id === 'wings'), feather = m => m && Object.assign({}, m, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) => [...r].map((ch, x) => (ch === '9' || ch === '0' ? ((x + y) % 3 === 0 ? 'O' : 'N') : ch)).join(''))});
+  const fw = {bustBehind: feather(neon.bustBehind), behind: {front: feather(neon.behind.front), side: feather(neon.behind.side), back: feather(neon.behind.back)}};
+  P.BACKS.push({id: 'featherwings', name: 'Feathered wings', unlock: {shop: 450}, pal: {N: 'white-hi', O: 'av-white-d'}, bustBehind: fw.bustBehind, behind: fw.behind,
+    anim: {maps: {bustBehind: flap(fw.bustBehind, 0, 2), 'behind.front': flap(fw.behind.front), 'behind.back': flap(fw.behind.back)}}});
+  // the Cape (an accessory skin) flaps too
+  P.ACCESSORIES.cape.anim = {maps: {bustBehind: flap(P.ACCESSORIES.cape.bustBehind, 3, 2), 'behind.front': flap(P.ACCESSORIES.cape.behind.front, 3), 'behind.back': flap(P.ACCESSORIES.cape.behind.back, 3)}};
+
+  // ---- HAND items (the 'hand' slot): held up beside the portrait (the full-body sprite holds your instrument instead).
+  //      The hand is at x 29–30, rows 21–22; the arm comes up from the shoulder in the top's color. ----
+  const HAND = [29.5, 21.5];
+  P.HANDS = [
+    {id: 'none', name: 'Empty hands'},
+    {id: 'baton', name: "Conductor's baton", unlock: {stars: 600}, pal: {I: 'yellow', J: 'white-hi'}, anim: {spin: true},
+     bust(a, f) { const ang = [90, 45, 0, 135][f % 4] * Math.PI / 180, c = Math.cos(ang), s = Math.sin(ang);
+       a.line(HAND[0] - c * 5, HAND[1] + s * 5, HAND[0] + c * 5, HAND[1] - s * 5, 'J'); a.px(HAND[0] + c * 5, HAND[1] - s * 5, 'I'); }},
+    {id: 'drumsticks', name: 'Drumsticks', unlock: {game: 'button-masher', perfect: 8, text: 'Get 3 ★ against every Button Masher rival'}, pal: {I: 'q-wood', J: 'q-wood-l'},
+     bust(a) { a.line(29, 21, 31, 12, 'J').line(30, 21, 34, 13, 'J').px(31, 12, 'I').px(34, 13, 'I').px(31, 11, 'I'); }},
+    {id: 'glowstick', name: 'Glow stick', unlock: {shop: 200}, pal: {I: 'green', L: 'green-hi', M: 'av-gray'}, anim: {pal: {I: ['green', 'green-hi', 'green-hi', 'green'], L: ['green-hi', 'white-hi', 'white-hi', 'green-hi']}},
+     bust(a) { a.line(29, 13, 29, 20, 'L').line(30, 13, 30, 20, 'I').px(29, 12, 'M').px(30, 12, 'M'); }},
+    {id: 'mic', name: 'Microphone', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}, pal: {I: 'q-silver', J: 'av-black', L: 'q-silver-d', M: 'red'},
+     bust(a) { a.line(29, 17, 29, 20, 'J').line(30, 17, 30, 20, 'J'); [[28, 14], [29, 13], [30, 13], [31, 14], [28, 15], [29, 14], [30, 14], [31, 15], [29, 15], [30, 15], [29, 16], [30, 16]].forEach(([x, y]) => a.px(x, y, (x + y) % 2 ? 'I' : 'L')); a.px(29, 18, 'M'); }},
+    {id: 'wand', name: 'Magic wand', unlock: {shop: 250}, pal: {I: 'yellow', J: 'av-black', L: 'white-hi'}, anim: {sparkle: true},
+     bust(a, f) { a.line(30, 21, 33, 15, 'J'); [[33, 12], [32, 13], [33, 13], [34, 13], [33, 14]].forEach(([x, y]) => a.px(x, y, 'I'));
+       [[[31, 11], [35, 15]], [[35, 11], [31, 15]], [[33, 10], [35, 13]], [[31, 13], [34, 16]]][f % 4].forEach(([x, y]) => a.px(x, y, 'L')); }},
+    {id: 'trophy', name: 'Trophy', unlock: {game: 'neon-face-off', wins: 10, text: 'Win 10 matches in Neon Face-Off on this device'}, pal: {I: 'yellow', J: 'amber', L: 'white-hi'},
+     bust(a) { for (let y = 12; y <= 16; y++) a.line(27 + (y > 14 ? 1 : 0), y, 32 - (y > 14 ? 1 : 0), y, 'I'); a.px(26, 13, 'I').px(26, 14, 'I').px(33, 13, 'I').px(33, 14, 'I');
+       a.line(29, 17, 30, 17, 'J').line(29, 18, 30, 18, 'J').line(27, 19, 32, 19, 'J').px(28, 13, 'L'); }},
+  ];
+
+  // ---- PETS: new friends, each with an idle animation (frames: pictures; seq: which one each of the 4 frames shows) ----
+  P.PETS.push(
+    {id: 'cat', name: 'Cat', unlock: {stars: 25}, pal: {o: 'amber', O: 'amber-ink', K: 'av-black', P: 'pink'}, seq: [0, 0, 1, 1],
+     rows: ['.O...O..', '.oO.Oo..', '.ooooo..', '.oKoKo..', '.ooPoo.O', '..ooo..O', '.ooooooO', '.oo.oo..'],
+     frames: [null, ['.O...O..', '.oO.Oo..', '.ooooo.O', '.oKoKo.O', '.ooPoo.O', '..ooo.O.', '.oooooo.', '.oo.oo..']]},
+    {id: 'penguin', name: 'Penguin', unlock: {shop: 150}, pal: {K: 'av-black', W: 'white-hi', a: 'amber'}, seq: [0, 0, 1, 0],
+     rows: ['..KKKK..', '.KKKKKK.', '.KWKKWK.', '.KKaaKK.', '.KWWWWK.', 'KKWWWWKK', '.KWWWWK.', '..a..a..'],
+     frames: [null, ['..KKKK..', '.KKKKKK.', '.KWKKWK.', 'KKKaaKKK', 'K.WWWW.K', '.KWWWWK.', '.KWWWWK.', '..a..a..']]},
+    {id: 'narwhal', name: 'Narwhal', unlock: {shop: 200}, pal: {b: 'cyan', B: 'cyan-ink', W: 'white-hi', K: 'av-black'}, seq: [0, 0, 0, 1],
+     rows: ['W.......', '.W......', '..BbbB..', '.bbbbbb.', 'bbKbbbbb', 'bbbbbbbB', '.bbbbBB.', '.....B.B'],
+     frames: [null, ['W.......', '.W......', '..BbbB..', '.bbbbbb.', 'bbbbbbbb', 'bbbbbbbB', '.bbbbBB.', '.....B.B']]},
+    {id: 'robot', name: 'Mini robot', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, suffix: ':extra', text: 'Clear The Midnight Encore on NIGHTMARE in Showtime Malfunction'},
+     pal: {m: 'q-silver', M: 'q-silver-d', K: 'av-black', r: 'red', c: 'cyan'}, seq: [0, 0, 1, 1],
+     rows: ['...r....', '...M....', '.mmmmmm.', '.mcmmcm.', '.mmKKmm.', '..MMMM..', '.mmmmmm.', '.m.mm.m.'],
+     frames: [null, ['...M....', '...M....', '.mmmmmm.', '.mcmmcm.', '.mmKKmm.', '..MMMM..', '.mmmmmm.', '.m.mm.m.']]},
+    {id: 'dragon', name: 'Baby dragon', unlock: {game: 'dojo-duel', wins: 10, text: 'Win 10 matches in Dojo Duel on this device'},
+     pal: {g: 'green', G: 'green-ink', y: 'yellow', K: 'av-black'}, seq: [0, 1, 0, 1],
+     rows: ['..g.g...', '.gggg...', 'gKggg.G.', 'gggggGG.', '.yygggG.', '.yyggg..', '.gg.gg.g', '......gg'],
+     frames: [null, ['..g.g.G.', '.ggggGG.', 'gKgggG..', 'ggggg...', '.yyggg..', '.yyggg..', '.gg.gg.g', '......gg']]},
+    {id: 'owl', name: 'Owl', unlock: {game: 'ancient-ninja-scrolls', badges: 4, text: 'Earn 4 TEST READY badges in Ancient Ninja Scrolls'},
+     pal: {o: 'q-wood-l', O: 'q-wood', W: 'white-hi', K: 'av-black', y: 'amber'}, seq: [0, 0, 0, 1],
+     rows: ['.O....O.', '.OooooO.', '.WWooWW.', '.WKooKW.', '.ooyyoo.', '.oOooOo.', '.oOooOo.', '..y..y..'],
+     frames: [null, ['.O....O.', '.OooooO.', '.OOooOO.', '.ooooOo.', '.ooyyoo.', '.oOooOo.', '.oOooOo.', '..y..y..']]});
+  // the old pets get idle animations too
+  const pet = id => P.PETS.find(x => x.id === id);
+  Object.assign(pet('ghost'), {seq: [0, 1, 0, 1], frames: [null, ['..WWWW..', '.WWWWWW.', '.WKWWKW.', '.WWWWWW.', '.WpWWpW.', '.WWWWWW.', 'W.WW.WW.', '.W..W..W']]});
+  Object.assign(pet('metronome'), {seq: [0, 1, 0, 2], frames: [null, ['...ww...', '..wWWw..', '..wWmw..', '.wWWmWw.', '.wWmWWw.', 'wWWWWWWw', 'wwwwwwww', '........'],
+    ['...ww...', '..wmWw..', '..wmWw..', '.wWmWWw.', '.wWmWWw.', 'wWWWWWWw', 'wwwwwwww', '........']]});
+  Object.assign(pet('star'), {seq: [0, 0, 1, 0], frames: [null, ['...yy...', '...yy...', 'yyyyyyyy', '.yKyyKy.', '..yyyy..', '.yyaayy.', 'yy....yy', '........'].map((r, y) => y === 3 ? '.yyyyyy.' : r)]});
+
+  // ---- EFFECTS (the 'effect' slot): drawn around the avatar by shared/avatar-fx.js (never over the face or the name) ----
+  P.EFFECTS = [
+    {id: 'none', name: 'No effect'},
+    {id: 'notes', name: 'Floating notes', unlock: {stars: 50}},
+    {id: 'orbit', name: 'Orbiting stars', unlock: {stars: 150}},
+    {id: 'aura', name: 'Glow aura', unlock: {stars: 250}, colored: true},
+    {id: 'sparkles', name: 'Sparkles', unlock: {game: 'chime-heist', perfect: 8, text: 'Get 3 ★ on every Chime Heist vault'}},
+    {id: 'sparks', name: 'Lightning sparks', unlock: {game: 'note-storm', perfect: 8, text: 'Get 3 ★ on every Note Storm level'}},
+    {id: 'bubbles', name: 'Bubbles', unlock: {game: 'vanishing-ink', endless: 10, text: 'Remember a 10-note scroll in Vanishing Ink (Endless Scroll)'}},
+    {id: 'snow', name: 'Snowflakes', unlock: {shop: 250}},
+    {id: 'confetti', name: 'Confetti', unlock: {shop: 350}},
+  ];
+  P.EFFECT_COLORS = ['cyan', 'pink', 'yellow', 'purple', 'green', 'amber'];
+
+  // ---- NAME PLATES (the 'plate' slot): the frame around the player's name on results screens and score lists
+  //      (the look is CSS: .av-plate-<id> in theme.css) ----
+  P.PLATES = [
+    {id: 'none', name: 'Plain'},
+    {id: 'simple', name: 'Outline'},
+    {id: 'notes', name: 'Music notes', unlock: {stars: 100}},
+    {id: 'gold', name: 'Gold', unlock: {stars: 250}},
+    {id: 'neon', name: 'Neon', unlock: {shop: 150}},
+    {id: 'flames', name: 'Flames', unlock: {shop: 250}},
+    ...BELT_NAMES.map((b, i) => ({id: 'belt-' + b.toLowerCase(), name: `${b} belt`, unlock: beltRule(i)})),
+  ];
+
   /* ---- BACKGROUNDS (the 'bg' field): drawn in code behind the avatar by shared/avatar-bg.js ----
      kind 'solid' (one color) | 'grad' (two colors, top to bottom) | 'pattern' (pat: stripes, dots, staff, checker,
      stars; on colors[0], drawn in colors[1]) | 'scene' (scene: an animated scene from shared/bg-scenes.js, the same
@@ -567,7 +960,7 @@ window.AVATAR_PARTS = {};
      shows. Free ones have no `unlock`. Unlock rules as above, plus {game, wins: 5, text} = matches won on this
      device (Neon Face-Off, Dojo Duel: shared/skins.js WINS). HOW TO ADD ONE: add it here (a new id, never rename
      one), draw a new scene in bg-scenes.js if it needs one, and for a {shop} one add 'bg:<id>' to the END of
-     QUEST_V2.cosmetics in shared/backup.js. */
+     QUEST_V3.cosmetics in shared/backup.js. */
   const clear = n => ({game: n[0], level: n[1], stars: 1, text: n[2]});
   P.BGS = [
     {id: 'none', name: 'None', kind: 'none', main: 'floor-3'},

@@ -121,7 +121,7 @@
     await Q.say(['Saved! The jukebox plays your theme song. Your HP is full again.']);
     await Q.talk.showCode();
   }
-  /** the SAVE CODE panel: this save as 40 characters (shared/backup.js), to write down or copy */
+  /** the SAVE CODE panel: this save as 45 characters (shared/backup.js), to write down or copy */
   Q.talk.showCode = function () {
     const code = Q.save.code();
     if (!code) return Promise.resolve();
@@ -142,8 +142,8 @@
     return new Promise(done => {
       const p = Q.el('div', 'q-overlay');
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
-        `<label class="q-small" for="qCodeIn">40 letters and numbers (older codes: 25). Spaces and dashes don't matter.</label>` +
-        `<input id="qCodeIn" class="q-codein" type="text" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<label class="q-small" for="qCodeIn">45 letters and numbers (older codes: 40 or 25). Spaces and dashes don't matter.</label>` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="66" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
         `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button><button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
@@ -151,7 +151,7 @@
       const close = ok => { off(); p.remove(); done(ok); };
       const off = Q.input.on(btn => { if (btn === 'b') close(false); return true; });
       inp.addEventListener('input', () => {                   // tidy as they type: upper case, groups of 5
-        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 40);
+        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 45);
         inp.value = (raw.match(/.{1,5}/g) || []).join('-'); msg.textContent = ''; confirming = false;
       });
       const load = () => {
@@ -226,7 +226,13 @@
     return new Promise(done => {
       const AV = A.Avatar, stock = AV ? AV.items().filter(it => it.shop) : [];
       const bgOf = it => it.field === 'bg' && A.AvatarBg ? ` style="background-image:url(${A.AvatarBg.stillURL(it.id, 128)})"` : '';   // a background: behind you
-      const pic = it => `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null})}">`;
+      const bust = it => AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null});
+      const pic = it => {
+        if (it.field === 'plate') return `<span class="q-cos q-cos-plate"><span class="av-plate av-plate-${it.id}">${AV.nameOf(AV.get()).split(' ').slice(-1)[0]}</span></span>`;
+        const fx = it.field === 'effect' && A.AvatarFx ? A.AvatarFx.stillURLs(it.id, AV.get().effectColor, 96) : null;   // an effect: around your bust
+        if (fx) return `<span class="q-cos q-cos-fx"><img alt="" src="${fx.back}"><img alt="" src="${bust(it)}"><img alt="" src="${fx.front}"></span>`;
+        return `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${bust(it)}">`;
+      };
       const own = it => !!A.store.ownedItems[it.key] || AV.isUnlocked(it.field, it.id);
       const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}`, sub: own(it) ? 'OWNED' : `${it.shop} tokens`, cls: own(it) ? 'q-owned' : ''}))
         .concat([{id: null, label: 'Back'}]);

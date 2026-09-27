@@ -53,7 +53,7 @@ window.Arcade = window.Arcade || {};
       const me = E.playerName();
       return '<ol class="ed-top">' + list.map((x, i) => {
         const mine = hi != null ? i === hi : x.name === me;
-        return `<li class="${mine ? 'me' : ''}"><span class="ed-rank">${i + 1}</span><span class="ed-name">${esc(x.name || 'Player')}</span>` +
+        return `<li class="${mine ? 'me' : ''}"><span class="ed-rank">${i + 1}</span><span class="ed-name">${x.plate && /^[a-z-]+$/.test(x.plate) ? `<span class="av-plate av-plate-${x.plate}">${esc(x.name || 'Player')}</span>` : esc(x.name || 'Player')}</span>` +
           `<span class="ed-score">${Number(x.score).toLocaleString()}</span><span class="ed-date">${esc(dateText(x.date))}</span></li>`;
       }).join('') + '</ol>';
     },
@@ -81,12 +81,16 @@ window.Arcade = window.Arcade || {};
     gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds}) {
       const demo = A.DEMO && !E.saveInDemo;
       const before = E.top(gameId, instKey, setKey);
-      const entry = {score: Math.round(run.score), name: E.playerName(), date: today(), notes: run.notes, speed: +(+run.speed || 0).toFixed(1), combo: run.combo};
+      const av = A.Avatar && A.store.avatar ? A.Avatar.get() : null;
+      const entry = {score: Math.round(run.score), name: E.playerName(), date: today(), notes: run.notes, speed: +(+run.speed || 0).toFixed(1), combo: run.combo,
+        plate: av && av.plate !== 'none' ? av.plate : undefined};      // the player's name plate (shown around the name in the Top 5)
       let rank = -1, list = before;
       if (demo) {                                   // where it WOULD have placed, without saving it
         const at = before.findIndex(x => entry.score > x.score);
         rank = at < 0 ? (before.length < TOP ? before.length : -1) : at;
       } else if (entry.score > 0) {
+        const best = A.store.gameData('endless-best');                 // the longest run ever (avatar item goals: shared/skins.js)
+        if ((+run.notes || 0) > (best[gameId] || 0)) { best[gameId] = +run.notes; A.store.saveGameData('endless-best'); }
         rank = A.store.addEndless(gameId, instKey, setKey, entry);
         list = E.top(gameId, instKey, setKey);
       }
