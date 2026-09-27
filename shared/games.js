@@ -200,8 +200,8 @@ window.Arcade.GAMES = [
     maxStars: 24,
     color: 'cyan',
     noteModes: true,                                 // NOTES × ORDER: the note set the transmissions are made from
-    marquee: {scene: 'radio', colors: ['ls-wave', 'ls-ping', 'text-hi'], titleFit: 'max', titleLayouts: [['LOST  SIGNAL'], ['LOST', 'SIGNAL']]},
-    cabinet: {shape: 'signal', trim: 'cyan', trim2: 'green', marquee: 'signal', kicker: 'Play by ear', screen: 'signal'},
+    marquee: {scene: 'radio', colors: ['ls-wave', 'green', 'text-hi'], titleFit: 'max', titleLayouts: [['LOST  SIGNAL'], ['LOST', 'SIGNAL']]},
+    cabinet: {shape: 'signal', trim: 'green', trim2: 'green', marquee: 'signal', kicker: 'Play by ear', screen: 'signal'},
     cabinet3d: {profile: 'signal', body: 'cab-side'},
   },
   {

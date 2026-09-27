@@ -385,11 +385,11 @@ window.Arcade = window.Arcade || {};
       for (let k = 1; k <= 3; k++) { x.beginPath(); x.arc(cx, cy, R * k / 3, 0, Math.PI * 2); x.stroke(); }
       x.beginPath(); x.moveTo(cx - R, cy); x.lineTo(cx + R, cy); x.moveTo(cx, cy - R); x.lineTo(cx, cy + R); x.stroke();
       const ang = tt * 2.1 - Math.PI / 2;
-      x.fillStyle = tok['ls-sweep']; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R, ang - .5, ang); x.closePath(); x.fill();
-      x.strokeStyle = tok['ls-ping']; x.lineWidth = 3; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R); x.stroke();
+      x.fillStyle = tok['ls-grid']; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R, ang - .5, ang); x.closePath(); x.fill();
+      x.strokeStyle = tok['ls-wave']; x.lineWidth = 3; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R); x.stroke();
       [[.6, .55], [2.4, .8], [4.1, .4]].forEach(([ba, br]) => {
         const since = (((ang - ba) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / 2.1, a = Math.max(0, 1 - since / 1.3);
-        x.globalAlpha = a; x.fillStyle = tok['ls-ping']; x.beginPath(); x.arc(cx + Math.cos(ba) * br * R, cy + Math.sin(ba) * br * R, H * .025, 0, 7); x.fill();
+        x.globalAlpha = a; x.fillStyle = tok['ls-wave']; x.beginPath(); x.arc(cx + Math.cos(ba) * br * R, cy + Math.sin(ba) * br * R, H * .025, 0, 7); x.fill();
       });
       x.globalAlpha = 1;
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok['ls-wave'];

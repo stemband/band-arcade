@@ -293,9 +293,9 @@
 .scr-signal{background:var(--ls-scope)}
 .scr-signal svg{width:100%;height:auto}
 .scr-signal .sg-ring{fill:none;stroke:var(--ls-grid);stroke-width:1.2}
-.scr-signal .sg-sweep path{fill:var(--ls-sweep)}.scr-signal .sg-sweep line{stroke:var(--ls-ping);stroke-width:2}
+.scr-signal .sg-sweep path{fill:var(--ls-grid)}.scr-signal .sg-sweep line{stroke:var(--ls-wave);stroke-width:2}
 .scr-signal .sg-sweep{transform-origin:80px 52px;transform-box:view-box}
-.scr-signal .sg-blip{fill:var(--ls-ping);opacity:.6}
+.scr-signal .sg-blip{fill:var(--ls-wave);opacity:.6}
 .scr-signal .sg-cap{fill:var(--ls-wave);font:700 9px var(--display);letter-spacing:.1em}
 .attract .scr-signal .sg-sweep{animation:sg-turn 3s linear infinite}
 .attract .scr-signal .sg-blip{opacity:0;animation:sg-blip 3s ease-out infinite}
