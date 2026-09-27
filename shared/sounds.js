@@ -73,6 +73,12 @@ window.Arcade = window.Arcade || {};
     'life-lost':       {file: 'life-lost',  vol: .8, mic: true, play: true, screen: 'note-storm', when: 'Note Storm: a note reaches Tempo and a heart is lost.', len: 'under 0.5 s'},
     'game-over':       {file: 'game-over',  vol: .9, mic: true, screen: 'note-storm', when: 'Note Storm: the last heart is gone.', len: '0.8–1.5 s'},
     'all-notes-found': {file: 'all-notes-found', vol: .9, mic: true, screen: 'note-checker', when: 'Note Checker: every note on the staff has been found.', len: '0.8–1.5 s'},
+    // ---- ENDLESS MODE (Note Storm and Note Ninja) --------------------------------------------------------------
+    'endless-start':      {file: 'endless-start',      vol: .8, mic: true, screen: 'endless', fallback: 'level-start', gen: 'level-start', when: 'Endless mode: a run begins (the storm waits for it; keep it under 1.5 s).', len: '0.5–1.5 s'},
+    'speed-up':           {file: 'speed-up',           vol: .6, mic: true, play: true, screen: 'endless', gen: [[660, 0, .06, .18, 'square'], [880, .06, .06, .18, 'square'], [1175, .12, .1, .18, 'square']], when: 'Endless mode: SPEED UP! (the speed passes the next step). During play: under 0.5 s.', len: 'under 0.5 s (0.2–0.4 s)'},
+    'endless-life-lost':  {file: 'endless-life-lost',  vol: .8, mic: true, play: true, screen: 'endless', fallback: 'life-lost', gen: 'life-lost', when: 'Endless mode: a heart is lost (Note Storm: a note reaches Tempo; Note Ninja: a wrong answer or time runs out). During play: under 0.5 s.', len: 'under 0.5 s'},
+    'endless-game-over':  {file: 'endless-game-over',  vol: .9, mic: true, screen: 'endless', fallback: 'game-over', gen: 'game-over', when: 'Endless mode: the last heart is gone (the GAME OVER panel).', len: '0.8–1.5 s'},
+    'endless-high-score': {file: 'endless-high-score', vol: .9, mic: true, screen: 'endless', fallback: 'new-high-score', gen: 'new-high-score', when: 'Endless mode: GAME OVER with a new #1 on this Top 5 (after endless-game-over).', len: '0.5–1.5 s'},
     // ---- Note Ninja ---------------------------------------------------------------------------------------------
     'ninja-slash':     {file: 'ninja-slash', vol: .7, mic: true, play: true, screen: 'note-ninja', when: 'Note Ninja: a correct answer.', len: '0.1–0.3 s'},
     'ninja-combo':     {file: 'ninja-combo', vol: .8, mic: true, play: true, screen: 'note-ninja', when: 'Note Ninja: every 5 right in a row.', len: '0.3–0.5 s'},
@@ -154,7 +160,7 @@ window.Arcade = window.Arcade || {};
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Select Player'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
-    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['chime-heist', 'Chime Heist'],
+    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['chime-heist', 'Chime Heist'],
     ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {

@@ -36,3 +36,29 @@ window.NINJA_RULES = {
   afterGroupMs: 450,    // pause before the next notes appear
   afterMissMs: 1200,    // pause after time runs out (shows the answer)
 };
+
+/* ENDLESS MODE (the ∞ card under the belts): name notes until the last heart is gone. The speed never stops rising.
+   SPEED (shown in the HUD): 1 = the White belt's pace (time1 seconds per note); the Diamond belt is about 3.3.
+     SPEED after t seconds = start + (max − start) × (1 − e^(−t ÷ k)) + creep × t      (shared/endless.js)
+   t counts only while a note is waiting for its answer. With these numbers: 0.83 at the start (12 s a note),
+   about 2.4 after 1 minute (4.1 s), 3.4 after 2 (3 s), 4 after 3 (2.5 s), 4.7 after 5 (2.1 s).
+   As it speeds up: the letter guides fade, read-ahead grows to 4 notes, the whole note set comes in (a set's
+   accidentals and wider range, never a note outside it), and the buttons stop hinting ♭/♯. */
+window.NINJA_ENDLESS = {
+  time1: 10,           // seconds per note at SPEED 1 (the White belt)
+  start: 0.83,         // SPEED at the start: slower than the White belt (12 s a note)
+  max: 3.6,            // the main ramp heads toward this SPEED…
+  k: 90,               // …fast at first (after k seconds it has gone about 63% of the way)
+  creep: 0.004,        // …plus this much more every second, forever (0.24 a minute), so every run ends
+  minTime: 1,          // never less than this many seconds per note
+  guides: [[0, .55], [1.1, .25], [1.4, 0]],            // [from SPEED, letter guides: .55 easy to see … 0 none]
+  readAhead: [[0, 1], [1.6, 2], [2.3, 3], [3, 4]],     // [from SPEED, notes on the staff at once]
+  smallPoolUntil: 1.4, // until this SPEED, only the smaller belt-1 pool (first three notes, a scale's first five…)
+  noHintsFrom: 3.3,    // from this SPEED the letter buttons stop showing ♭/♯ after the Shift (like the Diamond belt)
+  flashEvery: 0.5,     // "SPEED UP!" each time SPEED passes a multiple of this
+  lives: 3,            // a wrong answer or running out of time costs a heart
+  base: 100,           // points per note…
+  quickBonus: 100,     // …+ up to this for an instant answer (less as the timer runs down)…
+  speedBonus: 0.5,     // …× (1 + speedBonus × (SPEED − 1)) × the combo (×2 at 10 in a row, ×3 at 25, ×4 at 50)
+  afterLifeMs: 1100,   // the pause after a lost heart (shows the right answer)
+};

@@ -95,6 +95,22 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
 
+## Endless mode (Note Storm and Note Ninja)
+
+Under the levels (or belts) of both games there is an **∞ ENDLESS** card. It's always open, uses whatever notes and
+order are picked above it, and plays until your 3 hearts are gone while the speed keeps rising. It gives no stars.
+
+- **The speed** (shown as SPEED in the top bar, with a short "SPEED UP!" at each step) starts slower than Level 1 / the
+  White belt. It climbs fast at first, then more slowly, but it never stops. Note Storm: the notes march faster and more
+  of them come at once, up to 5. Note Ninja: less time per note, read-ahead up to 4 notes, and the whole note set.
+- **Hearts:** Note Storm loses one when a note reaches Tempo (a wrong note only breaks the combo, because the mic can
+  mishear). Note Ninja loses one for a wrong answer or running out of time.
+- **Score:** points per note × the combo (×2 at 10 in a row, ×3 at 25, ×4 at 50), worth more the faster it goes.
+- **Top 5:** each instrument and note set has its own Top 5 on the device (the avatar's name and the date), shown on the
+  card and on the GAME OVER panel. They're part of the Arcade Backup Code. `?demo` runs are never saved.
+- **Tuning:** every number is in one commented block at the bottom of `note-storm/levels.js` (`STORM_ENDLESS`) and
+  `note-ninja/levels.js` (`NINJA_ENDLESS`). The shared parts live in `shared/endless.js`.
+
 ## Note Ninja
 
 A note-reading game that **doesn't use the microphone**, so students can play it anywhere, even without their instrument. A note appears on a lit scroll in a neon dojo; they tap its name. Correct answers make the ninja strike the practice target; a wrong answer makes it stumble.

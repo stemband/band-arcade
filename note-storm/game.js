@@ -9,18 +9,24 @@
    pitch twice needs a fresh attack (pitch.js onHeld fires once per note).
    THE STORM NEVER STOPS: notes, spawning and the clock keep going through shots, sounds and the microphone's
    mute (only the pause button, a hidden tab, and the start/results screens stop it). The mute stays short:
-   Sfx.muteMax = RULES.muteMs, and Pitch.softSuppress lets a note started during the mute count right after it. */
+   Sfx.muteMax = RULES.muteMs, and Pitch.softSuppress lets a note started during the mute count right after it.
+   ENDLESS MODE (the ∞ card, shared/endless.js; its numbers are STORM_ENDLESS in levels.js): the same storm with no
+   end: G.endless, G.L is worked out again every frame from the SPEED curve (march, every, maxOn), notes come in
+   chunks from the same sequences, 3 hearts, wrong notes only break the combo, no stars, a Top 5 per note set. */
 (function (A) {
   "use strict";
   const {$} = A;
   const GAME_ID = 'note-storm';
-  const LEVELS = window.STORM_LEVELS, RULES = window.STORM_RULES;
+  const LEVELS = window.STORM_LEVELS, RULES = window.STORM_RULES, END = window.STORM_ENDLESS;
 
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
   A.Pitch.setInstrument(inst);
   A.Pitch.softSuppress = true;               // see THE STORM NEVER STOPS above
   A.Sfx.muteMax = RULES.muteMs;
+  A.Sfx.use('endless');
+  const member = A.currentMember();
+  const endKey = () => ({gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: A.Endless.setKey(picker.state)});
   A.mountTopbar(inst, '', GAME_ID);
   $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
   $('demoHelp').hidden = !A.DEMO;
@@ -75,6 +81,10 @@
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b =>
       b.addEventListener('click', () => A.requireMic(() => startLevel(+b.dataset.l))));
+    A.Endless.tile($('endlessTile'), Object.assign(endKey(), {
+      label: `${member ? member.short : inst.shortName} · ${st.label}`,
+      blurb: 'Play until the storm gets you. The notes keep speeding up, and more of them come at once. 3 hearts.',
+      onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
   }
 
@@ -84,13 +94,67 @@
     stop();
     const L = LEVELS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
-         spawned: 0, notes: [], front: null, gi: 0,
-         clock: 0, nextSpawn: RULES.readyMs / 1000, lives: RULES.lives,
+         spawned: 0, notes: [], front: null, gi: 0, roomOn: L.maxOn,
+         clock: 0, nextSpawn: RULES.readyMs / 1000, lives: RULES.lives, maxLives: RULES.lives,
          score: 0, hits: 0, lost: 0, wrong: 0, paused: false, over: false};
+    begin(`Level ${lv}`, L.name, 'level-start');
+  }
+
+  /* ---------- ENDLESS MODE ---------- */
+  function startEndless() {
+    stop();
+    const st = picker.state, seq = chunk(0);
+    G = {endless: true, L: endlessRow(END.start), items: seq.items, count: Infinity, sig: seq.sig, fit: seq.fit, name: seq.name,
+         spawned: 0, notes: [], front: null, gi: 0, roomOn: 5, key: st.progressKey,
+         clock: 0, nextSpawn: RULES.readyMs / 1000, lives: END.lives, maxLives: END.lives,
+         score: 0, hits: 0, lost: 0, wrong: 0, paused: false, over: false,
+         speed: END.start, topSpeed: END.start, step: Math.floor(END.start / END.flashEvery), combo: 0, bestCombo: 0};
+    begin('Endless', 'Speed ' + END.start.toFixed(1), 'endless-start');
+  }
+  /** the SPEED now (t = seconds since the run began) */
+  const speedAt = t => A.Endless.speed(END, t);
+  /** what a SPEED means for the storm: a row like the ones in levels.js */
+  function endlessRow(S) {
+    const march = Math.max(END.minMarch, END.march1 / S);
+    const every = Math.max(END.minEvery, END.every / S);
+    const maxOn = END.more.reduce((n, [from, on]) => S >= from ? on : n, 1);
+    return {name: 'Endless', march, every, gust: END.gust, maxOn, names: false};
+  }
+  /** more notes from the same sequences (the smaller pool first, like Level 1) */
+  function chunk(S) {
+    const small = S < END.smallPoolUntil;
+    return A.ModePicker.sequence(picker.state, {count: 24, pool: small ? 3 : 5}, small ? 1 : 2);
+  }
+  function moreNotes() {
+    const add = chunk(G.speed).items.slice(), lastIt = G.items[G.items.length - 1];
+    if (lastIt && add.length > 1 && add[0].pc === lastIt.pc) add.shift();    // never the same pitch twice across chunks
+    G.items = G.items.concat(add);
+  }
+  /** each frame: the SPEED, and "SPEED UP!" when it passes the next step */
+  function endlessTick() {
+    const S = G.speed = speedAt(G.clock);
+    G.topSpeed = Math.max(G.topSpeed, S);
+    const before = G.L.maxOn;
+    G.L = endlessRow(S);
+    const step = Math.floor(S / END.flashEvery);
+    if (step > G.step) {
+      G.step = step;
+      A.Endless.flash($('edFlash'), G.L.maxOn > before ? `SPEED UP! Up to ${G.L.maxOn} notes` : 'SPEED UP!');
+      A.Sfx.event('speed-up');
+    }
+    const shown = 'Speed ' + S.toFixed(1);
+    if ($('hudLevelName').textContent !== shown) $('hudLevelName').textContent = shown;
+    if (G.spawned >= G.items.length - 2) moreNotes();
+  }
+
+  function begin(label, name, sound) {
+    const L = G.L;
     $('results').hidden = true; $('paused').hidden = true; $('hub').hidden = true; $('play').hidden = false;
     $('wrap').classList.add('playing');
-    $('hudLevelLabel').textContent = `Level ${lv}`;
-    $('hudLevelName').textContent = L.name;
+    $('hudLevelLabel').textContent = label;
+    $('hudLevelName').textContent = name;
+    $('hudLeftLabel').textContent = G.endless ? 'Combo' : 'Notes left';
+    $('quitPlay').textContent = G.endless ? 'Quit run' : 'Quit level';
     $('noteLayer').innerHTML = '';
     hud();
     window.scrollTo(0, 0);
@@ -98,11 +162,11 @@
     setPrompt('Get ready…', '');
     A.Pitch.ignoreCurrent();                 // whatever is already sounding doesn't count
     // the first note waits for the level-start sound (the mic would hear it as a note)
-    const intro = A.Sfx.event('level-start');
+    const intro = A.Sfx.event(sound);
     G.nextSpawn = Math.max(G.nextSpawn, intro ? intro + 0.35 : 0);
-    // the first level with several notes at once: a tip, once per device
+    // the first level with several notes at once (or the first endless run): a tip, once per device
     const data = A.store.gameData(GAME_ID);
-    if (L.maxOn > 1 && !data.sameTip) {
+    if ((L.maxOn > 1 || G.endless) && !data.sameTip) {
       data.sameTip = true; A.store.saveGameData(GAME_ID);
       setPrompt('Same note twice? Tongue it again!', 'tip');
       G.nextSpawn += 1.5;
@@ -121,7 +185,7 @@
     const want = Math.min(2, (innerHeight * 0.45) / H);
     const off = A.keySigWidth(G.sig);                 // Tempo stands after the key signature
     // wide enough that maxOn notes fit between the right edge and Tempo without touching (a smaller staff on phones)
-    const room = 158 + off + G.L.maxOn * RULES.gapUnits;
+    const room = 158 + off + G.roomOn * RULES.gapUnits;
     const newW = Math.max(340, room, Math.round(fw / want));
     if (!force && newW === W && Math.abs(fw / W - scale) < .001) return;
     W = newW; scale = fw / W;
@@ -213,7 +277,11 @@
   }
 
   function blast(n) {
-    const pts = RULES.base + Math.round((1 - n.p) * RULES.farBonus);
+    let pts = RULES.base + Math.round((1 - n.p) * RULES.farBonus);
+    if (G.endless) {
+      G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo);
+      pts = Math.round((END.base + (1 - n.p) * END.farBonus) * Math.max(1, 1 + END.speedBonus * (G.speed - 1)) * A.Endless.mult(G.combo));
+    }
     G.score += pts; G.hits++;
     const x = noteX(n.p);
     // beam from Tempo's tuning fork to the note, then a burst where the note was
@@ -237,7 +305,8 @@
     G.lost++; G.lives--;
     kick('ouch');
     setPrompt(`That ${n.it.label} got through!`, 'bad');
-    A.Sfx.event(G.lives > 0 ? 'life-lost' : 'game-over');
+    if (G.endless) { G.combo = 0; A.Sfx.event('endless-life-lost'); }   // endless-game-over plays on the GAME OVER panel
+    else A.Sfx.event(G.lives > 0 ? 'life-lost' : 'game-over');
     removeNote(n, 'lost');
   }
 
@@ -248,17 +317,17 @@
 
   function checkEnd() {
     if (G.over) return;
-    if (G.lives <= 0 || (G.spawned >= G.count && !G.notes.length)) {
+    if (G.lives <= 0 || (!G.endless && G.spawned >= G.count && !G.notes.length)) {
       G.over = true;
       setTimeout(() => { if (G && G.over) finishLevel(); }, 750);
     }
   }
 
   function hud() {
-    $('hudLeft').textContent = G.count - G.hits - G.lost;
+    $('hudLeft').textContent = G.endless ? (G.combo ? `${G.combo} ×${A.Endless.mult(G.combo)}` : '0') : G.count - G.hits - G.lost;
     $('hudScore').textContent = G.score;
-    $('hudLives').innerHTML = [...Array(RULES.lives)].map((_, i) => `<span class="${i < G.lives ? 'on' : ''}">♥</span>`).join('');
-    $('hudLives').setAttribute('aria-label', `${G.lives} of ${RULES.lives} lives`);
+    $('hudLives').innerHTML = A.Endless.hearts(G.lives, G.maxLives);
+    $('hudLives').setAttribute('aria-label', `${G.lives} of ${G.maxLives} lives`);
   }
 
   let promptT = 0;
@@ -277,6 +346,7 @@
     // the storm never stops for a sound (see THE STORM NEVER STOPS at the top)
     if (!G.over) {
       G.clock += dt;
+      if (G.endless) endlessTick();
       const step = dt / G.L.march;
       for (let i = 0; i < G.notes.length; i++) { G.notes[i].p += step; place(G.notes[i]); }
       while (!G.over && G.notes.length && G.notes[0].p >= 1) lose(G.notes[0]);
@@ -316,6 +386,7 @@
     if (hit) blast(hit);
     else {
       G.wrong++;
+      if (G.endless && G.combo) { G.combo = 0; hud(); }   // a wrong note breaks the combo, never costs a heart
       const f = G.front.el; f.classList.remove('nope'); void f.getBoundingClientRect(); f.classList.add('nope');
       setPrompt(G.L.maxOn > 1 ? `That's ${G.name(pc)}. It's not on the staff.` : `That's ${G.name(pc)}. Play the glowing note.`, 'bad');
       A.Sfx.event('note-wrong');
@@ -336,6 +407,12 @@
   /* ---------- results ---------- */
   function finishLevel() {
     stop();
+    if (G.endless) {
+      A.Endless.gameOver(Object.assign(endKey(), {
+        run: {score: G.score, notes: G.hits, speed: G.topSpeed, combo: G.bestCombo},
+        onAgain: () => startEndless(), onBack: showHub, backLabel: 'Levels'}));
+      return;
+    }
     const {lv, hits, lost, wrong, score, lives, count, key} = G;
     const need = Math.ceil(count * RULES.passRate);
     const cleared = lives > 0 && hits >= need;

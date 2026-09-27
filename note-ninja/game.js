@@ -3,12 +3,15 @@
    in Random or Scale Order; scale pools show their key signature. The answer is always the note's real name,
    key signature included (a B in F major is B♭), spelled as shown (C♯ is not D♭).
    Answering: ♭ ♮ ♯ work like a Shift key for the next letter tap, then go back to ♮.
-   Belts (levels) live in levels.js. Sounds are named events in shared/sfx.js. */
+   Belts (levels) live in levels.js. Sounds are named events in shared/sfx.js.
+   ENDLESS MODE (the ∞ card, shared/endless.js; its numbers are NINJA_ENDLESS in levels.js): G.endless, 3 hearts
+   (a wrong answer or a timeout costs one), the time per note shrinks with the SPEED curve, read-ahead and the
+   whole note set come in as it rises, notes come in chunks from the same sequences, no stars, a Top 5 per note set. */
 (function (A) {
   "use strict";
   const {$} = A;
   const GAME_ID = 'note-ninja';
-  const RULES = window.NINJA_RULES;
+  const RULES = window.NINJA_RULES, END = window.NINJA_ENDLESS;
   const BELTS = window.NINJA_BELTS.map(L => Object.assign({}, A.belt(L.name), L));   // color and sparkle from shared/belts.js
   const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   const ACC_SIGN = {'-1': '♭', 0: '', 1: '♯'};
@@ -20,6 +23,9 @@
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
+  A.Sfx.use('endless');
+  const member = A.currentMember();
+  const endKey = () => ({gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: A.Endless.setKey(picker.state)});
 
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: BELTS.length, onChange: () => showHub()});
 
@@ -50,6 +56,10 @@
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.l)));
+    A.Endless.tile($('endlessTile'), Object.assign(endKey(), {
+      label: `${member ? member.short : inst.shortName} · ${st.label}`,
+      blurb: 'Name notes until your 3 hearts are gone. The timer keeps getting shorter, and more notes come at once. A wrong answer or running out of time costs a heart.',
+      onPlay: startEndless}));
     window.scrollTo(0, 0);
   }
 
@@ -64,18 +74,97 @@
          accs: seq.items.concat(seq.pool).some(it => it.n.acc),   // show ♭ ♮ ♯ only if these notes have any sharps or flats
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, combo: 0, bestCombo: 0,
          acc: 0, locked: true, noteStart: 0};
-    $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false;
-    $('wrap').classList.add('playing');
-    $('hudBeltLabel').textContent = `Belt ${lv}`;
-    $('hudBeltName').textContent = L.name;
+    begin(`Belt ${lv}`, L.name, L, 'level-start');
+  }
+
+  /* ---------- ENDLESS MODE ---------- */
+  const itemOf = it => ({show: it.show, letter: it.n.letter, acc: it.n.acc, label: it.label, pc: it.pc});
+  function chunk(S) {
+    const small = S < END.smallPoolUntil;
+    return A.ModePicker.sequence(picker.state, {count: 24, pool: small ? 3 : 5}, small ? 1 : 2);
+  }
+  function startEndless() {
+    const st = picker.state, seq = chunk(0), full = A.ModePicker.sequence(st, {count: 8, pool: 5}, 2);
+    G = {endless: true, L: {name: 'Endless', color: 'belt-white'}, items: seq.items.map(itemOf), count: Infinity,
+         key: st.progressKey, sig: seq.sig, fit: seq.fit,
+         accs: seq.items.concat(full.pool).some(it => it.n.acc),   // the whole set: its ♭/♯ may come in later
+         i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, combo: 0, bestCombo: 0,
+         acc: 0, locked: true, noteStart: 0,
+         clock: 0, speed: END.start, topSpeed: END.start, step: Math.floor(END.start / END.flashEvery),
+         lives: END.lives, over: false, beltColor: ''};
+    endlessRow(true);
+    begin('Endless', 'Speed ' + END.start.toFixed(1), G.L, 'endless-start');
+  }
+  /** SPEED → this moment's belt-like row: time per note (always), and at a new group guides + read-ahead + hints */
+  function endlessRow(group) {
+    const S = G.speed, L = G.L;
+    L.time = Math.max(END.minTime, END.time1 / S);
+    if (group) {
+      L.guides = END.guides.reduce((g, [from, v]) => S >= from ? v : g, 0);
+      L.onStaff = END.readAhead.reduce((n, [from, v]) => S >= from ? v : n, 1);
+      L.relabel = S >= END.noHintsFrom ? false : undefined;
+    }
+    // the ninja wears the belt that matches this pace (the highest belt whose time per note is still at least this)
+    const belt = BELTS.filter(b => b.time >= L.time).pop() || BELTS[0];
+    L.color = belt.color; L.sparkle = belt.sparkle;
+  }
+  /** the run's clock (only while a note waits for an answer): the SPEED, and "SPEED UP!" at each step */
+  function endlessTick(dt) {
+    G.clock += dt;
+    const S = G.speed = A.Endless.speed(END, G.clock);
+    G.topSpeed = Math.max(G.topSpeed, S);
+    const step = Math.floor(S / END.flashEvery);
+    if (step > G.step) { G.step = step; A.Endless.flash($('edFlash'), 'SPEED UP!'); sfx('speed-up'); }
+    const shown = 'Speed ' + S.toFixed(1);
+    if ($('hudBeltName').textContent !== shown) $('hudBeltName').textContent = shown;
+  }
+  function moreNotes() {
+    const add = chunk(G.speed).items.map(itemOf), lastIt = G.items[G.items.length - 1];
+    if (lastIt && add.length > 1 && add[0].pc === lastIt.pc) add.shift();    // never the same pitch twice across chunks
+    G.items = G.items.concat(add);
+  }
+  function beltLook(L) {
+    if (G.beltColor === L.color) return;
+    G.beltColor = L.color;
     $('hudChip').style.setProperty('--belt', `var(--${L.color})`);
     $('hudChip').classList.toggle('sparkle', !!L.sparkle);
     $('ninja').innerHTML = A.ninjaSVG({belt: L.color});
+  }
+  function loseLife(k, color, text) {
+    G.lives--; G.combo = 0; G.locked = true;
+    reveal(k, color);
+    sfx('endless-life-lost');
+    act('stumble');
+    setPrompt(text, 'bad');
+    setAcc(0);
+    hud();
+    if (G.lives <= 0) {
+      G.over = true; stopTimer();
+      setTimeout(() => { if (G && G.over && !$('play').hidden) endlessOver(); }, 900);
+      return;
+    }
+    advance(END.afterLifeMs);
+  }
+  function endlessOver() {
+    A.Endless.gameOver(Object.assign(endKey(), {
+      run: {score: G.score, notes: G.hits, speed: G.topSpeed, combo: G.bestCombo},
+      onAgain: () => startEndless(), onBack: showHub, backLabel: 'Belts'}));
+  }
+
+  function begin(label, name, L, sound) {
+    $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false;
+    $('wrap').classList.add('playing');
+    $('hudBeltLabel').textContent = label;
+    $('hudBeltName').textContent = name;
+    $('hudCountLabel').textContent = G.endless ? 'Lives' : 'Note';
+    $('quitPlay').textContent = G.endless ? 'Quit run' : 'Quit belt';
+    G.beltColor = '';
+    beltLook(L);
     $('accRow').hidden = !G.accs;
     setAcc(0);
     hud();
     window.scrollTo(0, 0);
-    sfx('level-start');
+    sfx(sound);
     drawGroup();
   }
 
@@ -83,6 +172,10 @@
      Fewer notes = a narrower drawing, so it scales up bigger on the screen. */
   let W = 400;
   function drawGroup() {
+    if (G.endless) {
+      endlessRow(true); beltLook(G.L);
+      if (G.gStart + G.L.onStaff >= G.items.length - 1) moreNotes();
+    }
     const n = G.L.onStaff, grp = G.items.slice(G.gStart, G.gStart + n);
     const sigW = A.keySigWidth(G.sig), guides = G.L.guides > 0;
     W = [0, 290, 330, 380, 420][n] + sigW;
@@ -108,7 +201,8 @@
   function current() { return G.items[G.i]; }
   function nextNote() {
     const it = current();
-    $('hudCount').textContent = `${G.i + 1} / ${G.count}`;
+    if (G.endless) endlessRow(false);
+    else $('hudCount').textContent = `${G.i + 1} / ${G.count}`;
     placePointer();
     $('demoAns').hidden = !A.DEMO;
     if (A.DEMO) $('demoAns').textContent = `Answer: ${it.label}`;
@@ -142,8 +236,10 @@
     timerId = setInterval(() => {
       const now = performance.now();
       if (document.hidden) { G.noteStart += now - last; last = now; return; }
+      const dt = (now - last) / 1000;
       last = now;
       if (!G || G.locked) return;
+      if (G.endless) endlessTick(dt);
       const frac = 1 - (now - G.noteStart) / (G.L.time * 1000);
       bar.style.transform = `scaleX(${Math.max(0, frac)})`;
       $('timer').classList.toggle('low', frac < .3);
@@ -175,16 +271,26 @@
   function hit() {
     const it = current(), k = G.i - G.gStart;
     const frac = Math.max(0, 1 - (performance.now() - G.noteStart) / (G.L.time * 1000));
-    const mult = Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
-    const pts = Math.round((RULES.base + frac * RULES.speedBonus) * mult);
-    G.score += pts; G.hits++; G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo);
+    let pts, milestone;
+    if (G.endless) {
+      G.combo++;
+      pts = Math.round((END.base + frac * END.quickBonus) * Math.max(1, 1 + END.speedBonus * (G.speed - 1)) * A.Endless.mult(G.combo));
+      milestone = A.Endless.COMBO.some(([n]) => n === G.combo);
+    } else {
+      const mult = Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
+      pts = Math.round((RULES.base + frac * RULES.speedBonus) * mult);
+      G.combo++;
+      milestone = G.combo % RULES.comboStep === 0;
+    }
+    G.score += pts; G.hits++; G.bestCombo = Math.max(G.bestCombo, G.combo);
     reveal(k, GOLD);
     act('strike');
-    if (G.combo % RULES.comboStep === 0) { sfx('ninja-combo'); popCombo(); } else sfx('ninja-slash');
+    if (milestone) { sfx('ninja-combo'); popCombo(); } else sfx('ninja-slash');
     setPrompt(`Yes! ${it.label}. +${pts}`, 'good');
     advance(0);
   }
   function wrongAnswer(said) {
+    if (G.endless) { G.wrong++; loseLife(G.i - G.gStart, MISS, `Not ${said}. That was ${current().label}.`); return; }
     G.wrong++; G.combo = 0;
     act('stumble');
     sfx('note-wrong');
@@ -193,6 +299,7 @@
   }
   function miss() {
     const it = current(), k = G.i - G.gStart;
+    if (G.endless) { G.missed++; loseLife(k, MISS, `Time! That was ${it.label}.`); return; }
     G.missed++; G.combo = 0; G.locked = true;
     reveal(k, MISS);
     sfx('note-missed');
@@ -223,12 +330,16 @@
   }
   function restart(el, cls) { el.classList.remove('strike', 'stumble', 'split', 'shake'); void el.getBoundingClientRect(); el.classList.add(cls); }
   function popCombo() {
-    const m = Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
+    const m = G.endless ? A.Endless.mult(G.combo) : Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
     const p = $('comboPop'); p.textContent = `${G.combo} in a row! ×${m}`;
     p.classList.remove('go'); void p.getBoundingClientRect(); p.classList.add('go');
   }
   function hud() {
-    const mult = Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
+    const mult = G.endless ? A.Endless.mult(G.combo) : Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
+    if (G.endless) {
+      $('hudCount').innerHTML = `<span class="ed-hearts">${A.Endless.hearts(G.lives, END.lives)}</span>`;
+      $('hudCount').setAttribute('aria-label', `${G.lives} of ${END.lives} lives`);
+    } else $('hudCount').removeAttribute('aria-label');
     $('hudCombo').textContent = G.combo ? `${G.combo} ×${mult}` : '0';
     $('hudCombo').classList.toggle('hot', mult > 1);
     $('hudScore').textContent = G.score;
@@ -276,6 +387,8 @@
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score',
       newBelt && (BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned')]);
   }
+
+  A.Ninja = {state: () => G};   // tests
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
   $('resRetry').addEventListener('click', () => startLevel(G.lv));

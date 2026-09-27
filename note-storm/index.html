@@ -34,6 +34,7 @@
     </div>
     <p class="eyebrow" id="levelsTitle">Levels</p>
     <div class="levels" id="levelGrid"></div>
+    <div id="endlessTile"></div>
     <p class="demo-help" id="demoHelp" hidden>Demo: keys 1–5 play the first five notes. In Scales, hold Space to play the glowing note.</p>
   </section>
 
@@ -41,7 +42,7 @@
   <section id="play" hidden>
     <div class="hud">
       <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">Warm-Up</b></div>
-      <div class="c"><small>Notes left</small><b id="hudLeft">6</b></div>
+      <div class="c"><small id="hudLeftLabel">Notes left</small><b id="hudLeft">6</b></div>
       <div class="c"><small>Lives</small><b class="lives" id="hudLives" aria-live="polite"></b></div>
       <div class="r"><small>Score</small><b id="hudScore">0</b></div>
     </div>
@@ -50,6 +51,7 @@
         <div id="stormStaff"></div>
         <svg class="layer fx" id="fx" aria-hidden="true"></svg>
         <div class="layer" id="noteLayer" aria-hidden="true"></div>
+        <div class="ed-flash" id="edFlash" aria-live="polite"></div>
       </div>
     </div>
     <p class="prompt" id="prompt" aria-live="polite">Get ready…</p>
@@ -112,6 +114,7 @@
 <script src="../shared/mode-picker.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../shared/endless.js"></script>
 <script src="levels.js"></script>
 <script src="game.js"></script>
 </body>
