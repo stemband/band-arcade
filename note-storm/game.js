@@ -2,8 +2,14 @@
    Play the front note to blast it; a note that reaches Tempo costs a life.
    The staff is drawn once; each frame only moves the note layers (CSS transforms).
    NOTES × ORDER (shared/mode-picker.js, notes from shared/sequences.js): First 5, a concert scale or Chromatic,
-   in Random or Scale Order (the front note is always the next note of the sequence). Levels keep their speed,
-   notes on screen and lives in every combination. */
+   in Random or Scale Order (notes arrive in the order of the sequence). Levels keep their speed, notes on screen
+   and lives in every combination.
+   SEVERAL NOTES AT ONCE: a played note blasts the note CLOSEST TO TEMPO with that pitch (any note on the staff
+   counts, not only the front one); none on the staff = a wrong note. One held note blasts one note: the same
+   pitch twice needs a fresh attack (pitch.js onHeld fires once per note).
+   THE STORM NEVER STOPS: notes, spawning and the clock keep going through shots, sounds and the microphone's
+   mute (only the pause button, a hidden tab, and the start/results screens stop it). The mute stays short:
+   Sfx.muteMax = RULES.muteMs, and Pitch.softSuppress lets a note started during the mute count right after it. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -13,6 +19,8 @@
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
   A.Pitch.setInstrument(inst);
+  A.Pitch.softSuppress = true;               // see THE STORM NEVER STOPS above
+  A.Sfx.muteMax = RULES.muteMs;
   A.mountTopbar(inst, '', GAME_ID);
   $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
   $('demoHelp').hidden = !A.DEMO;
@@ -76,7 +84,7 @@
     stop();
     const L = LEVELS[lv - 1], st = picker.state, seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
-         spawned: 0, notes: [], front: null,
+         spawned: 0, notes: [], front: null, gi: 0,
          clock: 0, nextSpawn: RULES.readyMs / 1000, lives: RULES.lives,
          score: 0, hits: 0, lost: 0, wrong: 0, paused: false, over: false};
     $('results').hidden = true; $('paused').hidden = true; $('hub').hidden = true; $('play').hidden = false;
@@ -89,7 +97,16 @@
     layout(true);
     setPrompt('Get ready…', '');
     A.Pitch.ignoreCurrent();                 // whatever is already sounding doesn't count
-    A.Sfx.event('level-start');              // the storm waits while it plays
+    // the first note waits for the level-start sound (the mic would hear it as a note)
+    const intro = A.Sfx.event('level-start');
+    G.nextSpawn = Math.max(G.nextSpawn, intro ? intro + 0.35 : 0);
+    // the first level with several notes at once: a tip, once per device
+    const data = A.store.gameData(GAME_ID);
+    if (L.maxOn > 1 && !data.sameTip) {
+      data.sameTip = true; A.store.saveGameData(GAME_ID);
+      setPrompt('Same note twice? Tongue it again!', 'tip');
+      G.nextSpawn += 1.5;
+    }
     run();
   }
 
@@ -102,10 +119,12 @@
     const vb = probe.match(/viewBox="0 (\S+) \d+ (\S+)"/);
     top = +vb[1]; H = +vb[2];
     const want = Math.min(2, (innerHeight * 0.45) / H);
-    const newW = Math.max(340, Math.round(fw / want));   // 340 keeps room for four notes on a phone-width screen
+    const off = A.keySigWidth(G.sig);                 // Tempo stands after the key signature
+    // wide enough that maxOn notes fit between the right edge and Tempo without touching (a smaller staff on phones)
+    const room = 158 + off + G.L.maxOn * RULES.gapUnits;
+    const newW = Math.max(340, room, Math.round(fw / want));
     if (!force && newW === W && Math.abs(fw / W - scale) < .001) return;
     W = newW; scale = fw / W;
-    const off = A.keySigWidth(G.sig);                 // Tempo stands after the key signature
     DEF_X = 84 + off; HIT_X = 124 + off; BEAM_X = DEF_X + 40;
     $('stormStaff').innerHTML = A.staffSVG(inst.clef, [], {fit: G.fit, captions: G.L.names, width: W, keySig: G.sig,
       label: 'Staff with notes marching toward Tempo'});
@@ -144,33 +163,50 @@
     const n = {it, pc: it.pc, y: A.noteY(inst.clef, it.show), p: 0, el};
     G.notes.push(n);
     place(n);
-    G.nextSpawn = G.clock + G.L.every;
+    G.nextSpawn = G.clock + gap();
     if (!G.front) pickFront();
+  }
+
+  /** seconds until the next note: runs of quick notes, then runs of slow ones (levels.js `gust`), averaging `every` */
+  function gap() {
+    const L = G.L, run = Math.max(1, L.maxOn - 1), quick = Math.floor(G.gi++ / run) % 2 === 1;
+    const g = L.gust ? L.every * (1 + (quick ? -1 : 1) * L.gust) * (0.92 + Math.random() * 0.16) : L.every;
+    return g;
+  }
+
+  /** room for a new note: fewer than maxOn on the staff, and the newest one has moved far enough from the edge */
+  function roomForNote() {
+    if (G.notes.length >= G.L.maxOn) return false;
+    const newest = G.notes[G.notes.length - 1];
+    return !newest || newest.p * (spawnX() - HIT_X) >= RULES.gapUnits;
   }
 
   function place(n) {
     n.el.style.transform = `translate3d(${((noteX(n.p) + SLICE_L) * scale).toFixed(1)}px,0,0)`;
   }
 
-  /** the front note is the one closest to Tempo: always the oldest note still on the staff */
+  /** the front note is the one closest to Tempo: always the oldest note still on the staff (it glows) */
   function pickFront() {
     const f = G.notes[0] || null;
     if (f === G.front) return;
     G.front = f;
     if (f) {
       f.el.classList.add('front');
-      A.Pitch.ignoreCurrent();               // a note still ringing from the last target doesn't count twice
-      setPrompt(G.L.names ? 'Play the glowing note!' : 'Read the glowing note and play it!', '');
+      if (!/tip|good|bad/.test($('prompt').className)) setPrompt(playText(), '');
     }
   }
+  const playText = () => G.L.maxOn > 1
+    ? (G.L.names ? 'Play the notes before they reach Tempo!' : 'Read the notes and play them!')
+    : (G.L.names ? 'Play the glowing note!' : 'Read the glowing note and play it!');
 
   function removeNote(n, cls) {
+    const full = G.notes.length >= G.L.maxOn;
     G.notes.splice(G.notes.indexOf(n), 1);
     n.el.classList.remove('front');
     n.el.classList.add(cls);
     setTimeout(() => n.el.remove(), 550);
     if (G.front === n) G.front = null;
-    G.nextSpawn = Math.max(G.nextSpawn, G.clock + RULES.refillMs / 1000);
+    if (full) G.nextSpawn = Math.max(G.nextSpawn, G.clock + RULES.refillMs / 1000);   // a spot just opened on a full staff
     pickFront();
     hud();
     checkEnd();
@@ -229,7 +265,7 @@
   function setPrompt(text, cls) {
     const p = $('prompt'); p.textContent = text; p.className = 'prompt ' + (cls || '');
     clearTimeout(promptT);
-    if (cls) promptT = setTimeout(() => { if (G && !G.over && G.front) setPrompt(G.L.names ? 'Play the glowing note!' : 'Read the glowing note and play it!', ''); }, 1400);
+    if (cls) promptT = setTimeout(() => { if (G && !G.over && G.front) setPrompt(playText(), ''); }, cls === 'tip' ? 2600 : 1400);
   }
 
   /* ---------- the animation loop: move notes, spawn new ones ---------- */
@@ -238,14 +274,13 @@
     if (!G || G.paused) return;
     const dt = Math.min(0.1, (now - last) / 1000);   // cap the step so a slow frame never jumps a note past Tempo
     last = now;
-    // the storm stands still while a sound plays (the detector is deaf then, shared/pitch.js), so no sound costs time
-    if (!G.over && !A.Pitch.isSuppressed(now)) {
+    // the storm never stops for a sound (see THE STORM NEVER STOPS at the top)
+    if (!G.over) {
       G.clock += dt;
       const step = dt / G.L.march;
       for (let i = 0; i < G.notes.length; i++) { G.notes[i].p += step; place(G.notes[i]); }
-      const f = G.notes[0];
-      if (f && f.p >= 1) lose(f);
-      if (!G.over && G.spawned < G.count && G.notes.length < G.L.maxOn && G.clock >= G.nextSpawn) spawn();
+      while (!G.over && G.notes.length && G.notes[0].p >= 1) lose(G.notes[0]);
+      if (!G.over && G.spawned < G.count && G.clock >= G.nextSpawn && roomForNote()) spawn();
     }
     raf = requestAnimationFrame(frame);
   }
@@ -277,11 +312,12 @@
   /* ---------- listening ---------- */
   A.Pitch.onHeld(pc => {
     if (!G || G.paused || G.over || !G.front) return;
-    if (pc === G.front.pc) blast(G.front);
+    const hit = G.notes.find(n => n.pc === pc);        // the oldest match = the one closest to Tempo
+    if (hit) blast(hit);
     else {
       G.wrong++;
       const f = G.front.el; f.classList.remove('nope'); void f.getBoundingClientRect(); f.classList.add('nope');
-      setPrompt(`That's ${G.name(pc)}. Play the glowing note.`, 'bad');
+      setPrompt(G.L.maxOn > 1 ? `That's ${G.name(pc)}. It's not on the staff.` : `That's ${G.name(pc)}. Play the glowing note.`, 'bad');
       A.Sfx.event('note-wrong');
     }
   });
@@ -290,7 +326,7 @@
   A.Pitch.onFrame((r, level) => {
     if (!G) return;
     const heard = r ? G.name(r.pc) : '–';
-    const match = !!(r && G.front && r.pc === G.front.pc);
+    const match = !!(r && G.notes.some(n => n.pc === r.pc));
     if (heard !== lastHeard) { $('hearNote').textContent = heard; lastHeard = heard; }
     if (match !== lastMatch) { $('hearNote').classList.toggle('match', match); lastMatch = match; }
     const bars = A.Pitch.bars(level);
@@ -331,6 +367,8 @@
 
   // ?demo scales: Space plays the glowing (front) note
   A.ModePicker.demoSpace(() => G && !G.paused && !G.over && G.front && G.front.it.sounding != null ? G.front.it.sounding : null);
+
+  A.Storm = {state: () => G, levels: LEVELS};   // tests
 
   $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
   $('resRetry').addEventListener('click', () => startLevel(G.lv));
