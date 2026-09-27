@@ -162,6 +162,19 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `belt-earned` | `belt-earned.m4a` or `belt-earned.mp3` | Note Ninja: a new belt unlocked. | 0.8–1.5 s |
 | `belt-diamond` | `belt-diamond.m4a` or `belt-diamond.mp3` | Note Ninja: the Diamond belt unlocked. | 1–2 s |
 
+### Endless mode (Note Storm, Note Ninja)
+
+Until you upload these, each plays its fallback (the sound in brackets), so nothing goes silent. Endless never pauses
+for a sound: keep the "during play" ones short.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `endless-start` | `endless-start.m4a` or `endless-start.mp3` | Endless mode: a run begins; Note Storm's first note waits for it (falls back to `level-start`). | 0.5–1.5 s |
+| `speed-up` | `speed-up.m4a` or `speed-up.mp3` | Endless mode: "SPEED UP!" as the speed passes the next step (a built-in rising blip until then). **during play: under 0.5 s** | 0.2–0.4 s |
+| `endless-life-lost` | `endless-life-lost.m4a` or `endless-life-lost.mp3` | Endless mode: a heart is lost (Note Storm: a note reaches Tempo; Note Ninja: a wrong answer or time runs out) (falls back to `life-lost`). **during play: under 0.5 s** | under 0.5 s |
+| `endless-game-over` | `endless-game-over.m4a` or `endless-game-over.mp3` | Endless mode: the last heart is gone, the GAME OVER panel (falls back to `game-over`). | 0.8–1.5 s |
+| `endless-high-score` | `endless-high-score.m4a` or `endless-high-score.mp3` | Endless mode: GAME OVER with a new #1 on the Top 5, after `endless-game-over` (falls back to `new-high-score`). | 0.5–1.5 s |
+
 ### Chime Heist
 
 | Event | File to upload | When it plays | Suggested length |

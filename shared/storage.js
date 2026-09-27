@@ -13,6 +13,8 @@
    avatar / guestAvatar: Create Your Player's avatars (shared/avatar.js, versioned by their `v`); avatarOffered.
    gameData: {gameId: {...}} holds a game's own extra records (Ancient Ninja Scrolls: mastered terms, exam
    results, spar bests), kept apart from the shared progress shape above.
+   endless: {gameId: {instKey: {setKey: [{score, name, date, notes, speed, combo}, … best first, at most 5]}}}:
+   ENDLESS MODE's Top 5 (shared/endless.js). Kept apart from `games`, so it never counts as stars.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
    THE PLAYER: `player` is the saved INSTRUMENT MEMBER ('trumpet', 'oboe', 'horn'…, Arcade.PLAYERS), chosen on
    Select Player. `inst` is kept as its player GROUP (Arcade.groupFor), which is what every game saves progress
@@ -164,6 +166,23 @@ window.Arcade = window.Arcade || {};
     /** a game's own extra saved object (created on demand); change it, then call saveGameData(gameId) */
     gameData(gameId) { const g = data.gameData || (data.gameData = {}); return g[gameId] || (g[gameId] = {}); },
     saveGameData() { save(); },
+    /** ENDLESS MODE: the Top 5 for a game + instrument + note set (a copy, best first) */
+    endlessTop(gameId, instKey, setKey) {
+      const e = ((data.endless || {})[gameId] || {})[instKey] || {};
+      return (e[setKey] || []).map(x => Object.assign({}, x));
+    },
+    /** add a finished run; keeps the best 5. Returns its place (0 = #1) or -1 if it didn't make the Top 5 */
+    addEndless(gameId, instKey, setKey, entry) {
+      const all = data.endless || (data.endless = {}), g = all[gameId] || (all[gameId] = {}), i = g[instKey] || (g[instKey] = {});
+      const list = (i[setKey] || []).slice();
+      let at = list.findIndex(x => entry.score > x.score);
+      if (at < 0) at = list.length;
+      if (at >= 5) return -1;
+      list.splice(at, 0, entry);
+      i[setKey] = list.slice(0, 5);
+      save();
+      return at;
+    },
     /** THE STAR TOTAL: every star for one instrument across EVERY progress key (all NOTES × ORDER combinations,
         Chime Heist's modes, Button Masher's rivals…), for one game (gameId) or, without it, for all games.
         instrument: a member id ('trumpet': its group(s) for group-keyed games, the member for byMember games

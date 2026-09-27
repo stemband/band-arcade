@@ -34,3 +34,27 @@ window.STORM_RULES = {
   muteMs: 250,          // the most of any sound that mutes the microphone (+ 250 ms of room echo, shared/sfx.js):
                         // the storm never stops, so a long hit sound must not leave the detector deaf
 };
+
+/* ENDLESS MODE (the ∞ card under the levels): play until the last heart is gone. The speed never stops rising.
+   SPEED (shown in the HUD): 1 = Level 1's pace (a note takes march1 seconds to reach Tempo); Level 8 is about 4.8.
+     SPEED after t seconds = start + (max − start) × (1 − e^(−t ÷ k)) + creep × t      (shared/endless.js)
+   With these numbers: 0.85 at the start, about 2.7 after 1 minute, 3.8 after 2, 4.5 after 3, 5.4 after 5.
+   The notes never get faster than minMarch; past that, the rising SPEED only brings them closer together
+   (every ÷ SPEED, down to minEvery) with up to 5 on the staff at once, so late runs are about reading several notes. */
+window.STORM_ENDLESS = {
+  march1: 12,          // seconds to reach Tempo at SPEED 1 (Level 1's pace)
+  start: 0.85,         // SPEED at the start: slower than Level 1 (a note takes 14 s)
+  max: 4.4,            // the main ramp heads toward this SPEED…
+  k: 100,              // …fast at first (after k seconds it has gone about 63% of the way)
+  creep: 0.004,        // …plus this much more every second, forever (0.24 a minute), so every run ends
+  minMarch: 2.2,       // never faster than this many seconds to reach Tempo (a held note needs ~0.3 s to count)
+  every: 3.96,         // average seconds between new notes = every ÷ SPEED (0.8 s at SPEED 4.95)…
+  minEvery: 0.55,      // …but never closer than this
+  gust: 0.3,           // uneven gusts, like the levels (0 = perfectly even)
+  more: [[1.3, 2], [2.2, 3], [3.4, 4], [4.8, 5]],   // [from SPEED, most notes on the staff at once]
+  smallPoolUntil: 1.3, // until this SPEED, only the smaller level-1 pool (first three notes, a scale's first five…)
+  flashEvery: 0.5,     // "SPEED UP!" each time SPEED passes a multiple of this (about every 20–60 s)
+  lives: 3,            // a note reaching Tempo costs a heart; wrong notes only break the combo
+  base: 100, farBonus: 100,   // points per note, like the levels, × the combo (×2 at 10 in a row, ×3 at 25, ×4 at 50)…
+  speedBonus: 0.5,     // …× (1 + speedBonus × (SPEED − 1)): the faster it is, the more each note is worth
+};

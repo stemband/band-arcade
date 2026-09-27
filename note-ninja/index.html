@@ -31,6 +31,7 @@
     </div>
     <p class="eyebrow" id="levelsTitle">Belts</p>
     <div class="levels" id="levelGrid"></div>
+    <div id="endlessTile"></div>
     <p class="demo-help" id="demoHelp" hidden>Demo: all belts unlocked, and the answer shows under the buttons. Keys A–G answer; 1 / 2 / 3 pick ♭ / ♮ / ♯.</p>
   </section>
 
@@ -38,7 +39,7 @@
   <section id="play" hidden>
     <div class="hud">
       <div><small id="hudBeltLabel">Belt</small><b id="hudBelt"><i class="belt-chip" id="hudChip"></i><span id="hudBeltName">White</span></b></div>
-      <div class="c"><small>Note</small><b id="hudCount">1 / 8</b></div>
+      <div class="c"><small id="hudCountLabel">Note</small><b id="hudCount">1 / 8</b></div>
       <div class="c"><small>Combo</small><b id="hudCombo" aria-live="polite">0</b></div>
       <div class="r"><small>Score</small><b id="hudScore">0</b></div>
     </div>
@@ -46,6 +47,7 @@
     <div class="arena">
       <div class="ninja-spot" id="ninja" aria-hidden="true"></div>
       <div class="combo-pop" id="comboPop" aria-hidden="true"></div>
+      <div class="ed-flash" id="edFlash" aria-live="polite"></div>
       <button class="btn btn-ghost btn-small quit" id="quitPlay">Quit belt</button>
       <div class="target" id="target" aria-hidden="true">
         <svg viewBox="0 0 60 110">
@@ -115,6 +117,7 @@
 <script src="../shared/mode-picker.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../shared/endless.js"></script>
 <script src="levels.js"></script>
 <script src="game.js"></script>
 </body>

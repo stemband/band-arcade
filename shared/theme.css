@@ -433,3 +433,42 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .bk-msg.bad{color:var(--red-hi)}.bk-msg.good{color:var(--green)}
 .bk-confirm{margin-top:8px;padding:10px;border-radius:12px;border:2px solid var(--amber)}
 .bk-confirm p{margin:0}
+
+/* ---------- ENDLESS MODE (shared/endless.js: Note Storm, Note Ninja) ---------- */
+.ed-tile{margin-top:14px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px 22px;align-items:start;padding:16px 18px;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--floor-2),var(--deep));border:2px solid var(--pink);box-shadow:var(--glow-pink),inset 0 0 0 1px var(--cyan-ink)}
+@media (max-width:700px){.ed-tile{grid-template-columns:1fr}}
+.ed-tile-main{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.ed-tile-main .ed-go{grid-column:1/-1;justify-self:start;margin-top:8px}
+.ed-inf{font-family:var(--display);font-size:64px;line-height:.9;color:var(--cyan);text-shadow:var(--glow-cyan)}
+.ed-title{margin:0;font-family:var(--display);font-weight:400;font-size:30px;letter-spacing:.06em;text-transform:uppercase;color:var(--pink-hi);text-shadow:var(--glow-pink)}
+.ed-blurb{margin:4px 0 0;color:var(--text-lo);font-size:14px;line-height:1.4}
+.ed-set{margin:4px 0 0;color:var(--text-hi);font-size:13px;font-weight:700}
+.ed-top-h{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.ed-empty{margin:0;color:var(--text-lo);font-size:14px}
+.ed-top{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-variant-numeric:tabular-nums}
+.ed-top li{display:grid;grid-template-columns:1.6em minmax(0,1fr) auto auto;gap:8px;align-items:baseline;padding:4px 8px;border-radius:8px;background:var(--floor-3);font-size:14px;color:var(--text-hi)}
+.ed-top li.me{outline:2px solid var(--yellow);background:var(--floor-2)}
+.ed-rank{font-family:var(--display);color:var(--cyan)}
+.ed-top li:first-child .ed-rank{color:var(--yellow)}
+.ed-name{overflow-wrap:anywhere}
+.ed-score{font-weight:700}
+.ed-date{color:var(--text-lo);font-size:12px}
+.ed-hearts{letter-spacing:2px;color:var(--text-dim)}
+.ed-hearts span{opacity:.35}
+.ed-hearts .on{opacity:1;color:var(--pink);text-shadow:var(--glow-pink)}
+/* SPEED UP!: one gentle fade in and out (1.2 s), part of the screen only: never a strobe */
+.ed-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;pointer-events:none;opacity:0;white-space:nowrap;
+  font-family:var(--display);font-size:clamp(18px,3.4vw,28px);letter-spacing:.06em;color:var(--yellow);text-shadow:0 2px 0 var(--deep),var(--glow-yellow)}
+.ed-flash.go{animation:ed-flash 1.2s ease-out}
+@keyframes ed-flash{0%{opacity:0;transform:translate(-50%,6px)}18%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){@keyframes ed-flash{0%,100%{opacity:0}10%,80%{opacity:1}}}
+.ed-over .panel{text-align:center}
+.ed-kicker{margin:0;font-family:var(--display);font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+.ed-over h2{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.04em}
+.ed-new{margin:0 0 10px;font-family:var(--display);font-size:18px;color:var(--cyan-hi)}
+.ed-new.top{font-size:24px;color:var(--yellow);text-shadow:var(--glow-yellow)}
+@media (prefers-reduced-motion:no-preference){.ed-new.top{animation:bob 1.6s ease-in-out infinite}}
+.ed-demo{margin:8px 0 0;font-weight:700;color:var(--amber)}
+.ed-over .ed-top-h{margin-top:14px}
+.ed-over .ed-list{text-align:left;max-width:440px;margin:0 auto}
