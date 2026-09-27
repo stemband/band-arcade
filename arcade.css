@@ -2,6 +2,10 @@
    the chosen one stands in front, its neighbors sit to the sides, angled like cabinets down an aisle.
    The cabinets themselves are drawn by shared/cabinets.js + shared/cabinets.css. */
 
+/* THE CHECKERED FLOOR'S VISIBILITY: 0 = no checks, 1 = the strongest. Used by both the 3D floor (arcade3d.js) and
+   the 2D one below. Change the number and reload. (It was .35 until the checks were made a little more visible.) */
+:root{--floor-checks:.55}
+
 /* the neon sign's size (--logo) and the cabinet size: as big as fits, leaving room for the sign above and the
    description below (the room for the sign grows with it, so a bigger sign never pushes START off the screen) */
 .floor-page{
@@ -21,7 +25,7 @@
     radial-gradient(50% 22% at 82% 8%, rgba(58,232,255,.1), transparent 70%),
     linear-gradient(180deg, var(--deep) 0, var(--floor) 58%, var(--floor-2) 76%, var(--deep) 100%)}
 /* the floor: a faint checkerboard receding under the cabinets */
-.room::after{content:"";position:absolute;left:-20%;right:-20%;bottom:0;height:34%;opacity:.35;
+.room::after{content:"";position:absolute;left:-20%;right:-20%;bottom:0;height:34%;opacity:var(--floor-checks,.55);
   background:repeating-conic-gradient(var(--floor-3) 0 25%, transparent 0 50%) 0 0/64px 64px;
   transform:perspective(300px) rotateX(58deg);transform-origin:50% 100%;
   -webkit-mask-image:linear-gradient(180deg,transparent,#000 70%);mask-image:linear-gradient(180deg,transparent,#000 70%)}

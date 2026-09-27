@@ -722,7 +722,9 @@ window.Arcade = window.Arcade || {};
     // and this see-through floor darkens that copy into a reflection.
     const fc = canvas(512, 512), fx = fc.getContext('2d');
     fx.fillStyle = tok.deep; fx.fillRect(0, 0, 512, 512);
-    fx.fillStyle = tok['floor-3']; fx.globalAlpha = .35;
+    // how visible the checks are: --floor-checks in arcade.css (0–1), shared with the 2D floor
+    const checks = Math.max(0, Math.min(1, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--floor-checks')) || .55));
+    fx.fillStyle = tok['floor-3']; fx.globalAlpha = checks;
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if ((x + y) % 2) fx.fillRect(x * 32, y * 32, 32, 32);
     fx.globalAlpha = 1; fx.globalCompositeOperation = 'destination-in';
     fx.drawImage(radial(512, 'rgba(0,0,0,1)', .35), 0, 0);
