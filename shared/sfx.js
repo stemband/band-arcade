@@ -13,6 +13,8 @@
                                        tap they are downloaded and decoded on unlock)
      Arcade.Sfx.eventSoon(name, ms)    like event(), but if its file is still downloading, wait for it (up to ms,
                                        default 600) instead of playing the fallback: the floor's START uses it
+     Arcade.Sfx.whenReady(names, ms)   a Promise: these events' files are loaded (or missing), or ms (default 1500)
+                                       passed; Dojo Duel's first countdown waits for it so the voices are on time
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
                                        preloaded after the first tap, two at a time (school Wi-Fi)
      Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE sliders (saved on the device)
@@ -524,6 +526,13 @@ window.Arcade = window.Arcade || {};
       return playEvent(name);
     });
   }
+  /** resolves once these events' files (and their fallbacks' files) are loaded or known missing, or after maxWait ms:
+      a page waits for it before sounds that must be on time (Dojo Duel's first countdown). At once when muted */
+  function whenReady(names, maxWait = 1500) {
+    if (!ready()) return Promise.resolve();
+    const ps = [].concat(names).flatMap(filesOf).map(f => (files[f] || {}).p || load(f));
+    return Promise.race([Promise.all(ps), new Promise(r => setTimeout(r, maxWait))]).then(() => {});
+  }
   function pump() {
     while (busy < 2 && queue.length) {
       busy++;
@@ -829,7 +838,7 @@ window.Arcade = window.Arcade || {};
     musicLog,
     /** the sounds this page needs, preloaded after the first tap: 'floor', 'select', 'game', or a game id */
     use(...names) { names.forEach(n => screens.add(n)); if (ctx && ctx.state === 'running') preload(); },
-    prefer, eventSoon,
+    prefer, eventSoon, whenReady,
     /** play a sound, then go to href when it ends (at most GO_MAX ms; straight away when muted) */
     playThenGo(name, href) {
       if (leaving) return;                 // a second tap during the wait does nothing

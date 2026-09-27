@@ -15,7 +15,9 @@ window.DUEL_PACING = {
   classicStep: 1000,      // CLASSIC countdown: each number this long. Always used for the first note of a match
                           // (followed by BEGIN!) and for the note after a point that makes someone's MATCH POINT
   offMs: 400,             // OFF: no numbers, just this short "ready" gap with an empty staff
-  beginMs: 600,           // the first note: "BEGIN!" shows this long after 3-2-1
+  beginMs: 600,           // the first note: "BEGIN!" (and the gong) shows this long after 3-2-1
+  senseiWaitMs: 3000,     // the first countdown of a match waits for the Sensei's sensei-begin line to finish (+ a
+                          // short breath), so voices never talk over each other; never longer than this
   resultMs: 1500,         // the RESULT MOMENT after a point (the strike, +1, both answers shown)
   noPointMs: 1500,        // the same moment when nobody scores (both wrong, or too slow)
   flyMs: 650,             // the "+1" flies to the score this long (inside the result moment)
