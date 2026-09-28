@@ -30,6 +30,7 @@ reorder or remove songs. Add new ones at the end.**
   key: 'Bb',                     // the CONCERT major key (its key signature); 'Bb' for every song so far
   mode: 'minor',                 // optional: degree 1 = the key's relative minor (in B♭: G minor)
   style: 'rock',                 // drum groove: 'rock' | 'march' | 'swing' | 'waltz'
+  sticking: 'RLRL RRLL …',        // optional, the snare: one R/L per note (left out = the student's ALTERNATE / DOWNBEATS RIGHT)
   chords: 'I I V I | …',         // optional: one Roman numeral per measure (headphones mode only; left out = chosen from the melody)
   notes: [                       // in order; no overlaps (one melody line)
     {deg: 3, oct: 0, beats: 1},            // a scale degree 1–7 of the key (or of the minor)

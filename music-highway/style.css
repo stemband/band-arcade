@@ -12,6 +12,14 @@
 .mh-seg[aria-pressed="true"]{background:var(--cyan);color:var(--deep)}
 .mh-hp{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:700 15px var(--text);cursor:pointer}
 .mh-hp.on{border-color:var(--green);color:var(--green-hi);box-shadow:var(--glow-green)}
+.mh-sticknote{margin:-6px 0 12px;font-weight:700;color:var(--cyan-hi)}
+.mh-sticknote[hidden]{display:none}
+/* the pause menu sits ABOVE the game screen (#play is z-index 40; a plain .overlay is 20, which hid it: the "freeze") */
+#pausePanel{z-index:60}
+.mh-pausemenu{text-align:center;max-width:420px}
+.mh-pausemenu .mh-pstats{grid-template-columns:1fr 1fr}
+.mh-pacts{display:grid;gap:10px;margin-top:10px}
+.mh-pacts .btn{min-height:56px;font-size:20px;width:100%}
 .mh-optnote{margin:0 0 12px;font-size:14px;color:var(--text-lo);min-height:1.3em}
 .levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:900px){.levels{grid-template-columns:repeat(3,1fr)}}
@@ -40,7 +48,7 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
 .mh-hud small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mh-hud b{font-family:var(--display);font-weight:400;font-size:clamp(18px,3.4vw,28px);color:var(--text-hi);font-variant-numeric:tabular-nums}
 .mh-hud .c{text-align:center} .mh-hud .c b{color:var(--yellow-hi)} .mh-hud .r{text-align:right}
-.mh-pause{width:48px;height:48px;border-radius:12px;border:2px solid var(--pink);background:var(--floor-2);cursor:pointer;display:grid;place-items:center}
+.mh-pause{width:56px;height:56px;border-radius:12px;border:2px solid var(--pink);background:var(--floor-2);cursor:pointer;display:grid;place-items:center}
 .mh-pause svg{width:22px;fill:var(--pink-hi)}
 .mh-judge{position:absolute;left:50%;top:calc(var(--sy) - 118px);transform:translateX(-50%);width:max-content;text-align:center;-webkit-text-stroke:1px var(--deep);paint-order:stroke;font-family:var(--display);font-size:clamp(26px,6vw,48px);line-height:1;pointer-events:none;color:var(--text-hi)}
 .mh-judge small{display:block;font-family:var(--text);font-weight:700;font-size:15px;letter-spacing:.1em;color:var(--text-lo);margin-top:4px}

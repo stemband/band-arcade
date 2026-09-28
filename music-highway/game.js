@@ -31,6 +31,7 @@
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
   let slow = !!gd().slow, hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false;
+  let sticking = gd().sticking === 'downbeats' ? 'downbeats' : 'alternate';   // the snare's default hand pattern
   const hornSide = 'F';                                            // (the fingering choice of the old cards: not used any more)
   let hpChecked = false;                                         // the speaker check passed on this page load
   const mode = () => hp ? 'headphones' : 'speaker';
@@ -48,6 +49,9 @@
     $('spdNormal').setAttribute('aria-pressed', String(!slow)); $('spdSlow').setAttribute('aria-pressed', String(slow));
     $('hpBtn').setAttribute('aria-pressed', String(hp)); $('hpBtn').classList.toggle('on', hp);
     $('spcNormal').setAttribute('aria-pressed', String(!wide)); $('spcWide').setAttribute('aria-pressed', String(wide));
+    $('stickOpt').hidden = $('stickNote').hidden = !unpitched;
+    if (unpitched) $('hubBlurb').textContent = 'Neon lights race down the highway with the band: the left lane is your left hand, the right lane your right hand. Hit the drum as each light reaches its gate.';
+    $('stickAlt').setAttribute('aria-pressed', String(sticking === 'alternate')); $('stickDown').setAttribute('aria-pressed', String(sticking === 'downbeats'));
     $('namesOn').setAttribute('aria-pressed', String(names)); $('namesOff').setAttribute('aria-pressed', String(!names));
     const c = (gd().calib || {})[mode()];
     $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') + (wide ? 'Wide note spacing: more room between the lights (they move a little faster). ' : '') + (names ? '' : 'Letter names are off inside the lights (the gates still show them). ')  +
@@ -59,6 +63,8 @@
   $('spdSlow').onclick = () => { slow = true; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
   $('spcNormal').onclick = () => { wide = false; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('spcWide').onclick = () => { wide = true; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('stickAlt').onclick = () => { sticking = 'alternate'; save({sticking}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('stickDown').onclick = () => { sticking = 'downbeats'; save({sticking}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('namesOn').onclick = () => { names = true; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('namesOff').onclick = () => { names = false; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('hpBtn').onclick = () => {
@@ -77,7 +83,7 @@
     drawOpts();
     $('songGrid').innerHTML = SONGS.map((s, i) => {
       const p = A.store.level(GAME_ID, member.id, i + 1), open = unlocked(i);
-      const map = SM.forMember(s, member, inst, {hornSide});
+      const map = SM.forMember(s, member, inst, {hornSide, sticking});
       const secs = Math.round((map.total + map.beatsPerMeasure) * 60 / s.tempo);
       return `<button class="lvl mh-song t${s.tier}" data-i="${i}" ${open ? '' : 'disabled'}>
         <span class="n">${TIER_NAME[s.tier]}</span>
@@ -153,7 +159,7 @@
     A.LevelSelect.played(i);
     A.Sfx.gameMenuMusic(GAME_ID, false);                          // the menu music fades; the microphone listens again
     const rate = practice ? R.practiceRate : slow ? R.slowRate : 1;
-    const map = SM.forMember(song, member, inst, {hornSide});
+    const map = SM.forMember(song, member, inst, {hornSide, sticking});
     const lanes = SM.lanes(song, map, inst);
     const T = buildTimeline(song, map, rate, practice, lanes);
     G = {i, song, map, lanes, rate, practice, slow: !practice && slow, T, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
@@ -248,7 +254,7 @@
     const t = songNow(), n = G.T.notes.find(x => !x.res && x.t > t - R.outerMs / 1000);
     return n ? (unpitched ? null : {pc: n.pc, midi: n.midi}) : null;
   };
-  const songNow = (p = performance.now()) => G ? audAt(p) - G.T0 : 0;
+  const songNow = (p = performance.now()) => !G ? 0 : G.paused ? G.pausedRaw : audAt(p) - G.T0;   // (paused = the clock stands still)
   /** an attack's song time, corrected by the calibration */
   const songOf = perf => songNow(perf) - G.lag / 1000;
 
@@ -417,7 +423,7 @@
     const roadH = H - staffH;
     Object.assign(V, {W, H, roadH, staffH, cx: W / 2, hy: roadH * R.horizon, sy: roadH * .86, K: R.roadDepth});
     V.nl = G.lanes.lanes.length;
-    V.half = unpitched ? Math.min(W * .2, roadH * .3, 130) : Math.min(W * .47, roadH * .85);
+    V.half = unpitched ? Math.min(W * .3, roadH * .45, 230) : Math.min(W * .47, roadH * .85);   // the snare: two sticking lanes
     V.laneW = V.half * 2 / V.nl;
     V.padW0 = Math.min(R.padMaxPx, V.laneW * .8); V.padH0 = V.padW0 * R.padShape;
     V.padW = V.padW0; V.padH = V.padH0;
@@ -446,10 +452,9 @@
     const Hr = V.sy - V.hy, dB = Hr / (H - V.hy), xB = u => V.cx + u * V.half / dB;
     g.globalAlpha = .9; g.fillStyle = tok('mh-road');
     g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(1), H); g.lineTo(xB(-1), H); g.closePath(); g.fill(); g.globalAlpha = 1;
-    for (let l = 0; l <= V.nl; l++) {
-      const u = -1 + l * 2 / V.nl, edge = l === 0 || l === V.nl;
-      if (edge && FX.q !== 'lo') { g.strokeStyle = tok('pink'); g.globalAlpha = .25; g.lineWidth = 9; g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke(); }
-      g.strokeStyle = edge ? tok('pink') : tok('mh-lane'); g.globalAlpha = edge ? .95 : .5; g.lineWidth = edge ? 3 : 1.3;
+    for (const u of [-1, 1]) {                                     // the road's edges (the lane dashes move: drawHighway)
+      if (FX.q !== 'lo') { g.strokeStyle = tok('pink'); g.globalAlpha = .25; g.lineWidth = 9; g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke(); }
+      g.strokeStyle = tok('pink'); g.globalAlpha = .95; g.lineWidth = 3;
       g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke();
     }
     g.globalAlpha = 1;
@@ -480,21 +485,30 @@
     const g = V.g, T = G.T, W = V.W, still = reduced();
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     g.drawImage(V.bg, 0, 0, W, V.roadH);
-    // THE SUN SWELLS on each downbeat: a smooth cosine over the measure, at most +10 % (never a flash; off with reduced motion)
-    if (!still && V.sun) {
-      const ph = ((t / (T.spb * T.per)) % 1 + 1) % 1, s = .5 + .5 * Math.cos(ph * Math.PI * 2);
-      g.save(); g.beginPath(); g.rect(0, 0, W, V.hy); g.clip();                 // (only the part above the horizon)
-      g.globalCompositeOperation = 'lighter'; g.globalAlpha = R.sunSwell * s;
-      g.drawImage(V.sun.img, V.sun.x, V.sun.y); g.restore();
+    // ONLY THE ROAD MOVES: the sky, sun, mountains and the ground beside the road are the still layer (V.bg). On the road:
+    // one cross line per beat, crossing the gates ON the beat (downbeats magenta), and the lane dividers' dashes rolling
+    // toward the player with them. Reduced motion: the road stands still too.
+    const tg = still ? 0 : t, dMax = Math.pow(1 + V.K, 1.6), Hr = V.sy - V.hy;
+    const yAt = dt => { const p = proj(dt); return p.d > dMax ? null : p.y; };
+    const hw = y => V.half * (y - V.hy) / Hr;                       // the road's half width at height y (through the vanishing point)
+    const fadeAt = y => Math.max(0, Math.min(1, (y - V.hy) / (Hr * .35)));
+    const b0 = Math.floor((tg - G.lead) / T.spb) - 1, b1 = Math.floor((tg + G.lead * 1.6) / T.spb) + 1;
+    for (let b = b0; b <= b1; b++) {
+      const y = yAt(b * T.spb - tg); if (y == null || y > V.roadH) continue;
+      const down = ((b % T.per) + T.per) % T.per === 0, w = hw(y);
+      g.strokeStyle = tok(down ? 'mh-grid-2' : 'mh-grid'); g.lineWidth = down ? 2 : 1.2; g.globalAlpha = (down ? .75 : .5) * fadeAt(y);
+      g.beginPath(); g.moveTo(V.cx - w, y); g.lineTo(V.cx + w, y); g.stroke();
     }
-    // THE GRID rolls toward the player: one line per beat, crossing the strike line on the beat (still with reduced motion)
-    const tg = still ? 0 : t, dMax = Math.pow(1 + V.K, 1.6), bMax = Math.floor((tg + G.lead * 1.6) / T.spb);
-    for (let b = Math.ceil((tg - G.lead) / T.spb); b <= bMax; b++) {
-      const p = proj(b * T.spb - tg); if (p.y > V.roadH || p.d > dMax) continue;
-      const down = ((b % T.per) + T.per) % T.per === 0;
-      g.strokeStyle = tok(down ? 'mh-grid-2' : 'mh-grid'); g.lineWidth = down ? 2 : 1.2;
-      g.globalAlpha = (down ? .7 : .45) * Math.max(0, 1 - Math.log(p.d) / Math.log(dMax));
-      g.beginPath(); g.moveTo(0, p.y); g.lineTo(W, p.y); g.stroke();
+    g.strokeStyle = tok('mh-lane'); g.lineWidth = 1.6;
+    for (let b = b0 * 2; b <= b1 * 2; b++) {                        // dashes: half a beat long, one every beat
+      if (b % 2) continue;
+      const ya = yAt(b / 2 * T.spb - tg), yb = yAt((b / 2 + .5) * T.spb - tg);
+      if (ya == null || yb == null) continue;
+      const y0 = Math.min(ya, V.roadH), y1 = Math.min(yb, V.roadH); if (y0 === y1) continue;
+      g.globalAlpha = .7 * fadeAt(Math.max(y0, y1));
+      g.beginPath();
+      for (let l = 1; l < V.nl; l++) { const u = -1 + l * 2 / V.nl; g.moveTo(V.cx + u * hw(y0), y0); g.lineTo(V.cx + u * hw(y1), y1); }
+      g.stroke();
     }
     g.globalAlpha = 1;
     while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) G.ci++;
@@ -765,31 +779,57 @@
   $('resSongs').onclick = () => showHub();
 
   /* ================= PAUSE ================= */
+  /* ================= PAUSE =================
+     Pausing stops the scheduler and every scheduled or sounding backing sound (drums, clicks, the headphones band), the
+     song clock and the drawing freeze where they are (frame() draws nothing while paused), and nothing heard counts.
+     RESUME goes back ONE MEASURE (never before the start), counts in one measure and plays on from there, on a new
+     clock start: drums, pads, staff and judging stay in step. Notes already judged keep their result (judge() skips them).
+     Auto-pause: a hidden tab, a locked device, or the window losing focus for more than PAUSE_BLUR_MS. */
+  const PAUSE_BLUR_MS = 600;
   function pause() {
     if (!G || G.paused || G.phase === 'done') return;
-    G.paused = true; G.pausedAt = Math.max(0, songNow());
+    G.pausedRaw = songNow(); G.pausedAt = Math.max(0, G.pausedRaw); G.paused = true; G.pauses = (G.pauses || 0) + 1;
     clearInterval(sched); sched = 0;
     if (kit) { kit.stopAll(); kit = A.MHBacking.create(CLK.ctx, CLK.out); }
-    $('pausePanel').hidden = false;
+    G.pendingAtk = []; G.soft = [];
+    G.T.notes.forEach(n => { n.holding = false; });                // a held note stops counting (its bonus so far stays)
+    glowOff(); showCount('');
     A.Pitch.demoAttacks = false;
-    if (A.Bg) A.Bg.menu(true);
+    $('pScore').textContent = G.score;
+    $('pAccL').textContent = G.practice ? 'This loop' : 'Accuracy';
+    $('pAcc').textContent = $('hudAcc').textContent;
+    $('pausePanel').hidden = false;
+    setTimeout(() => $('resumeBtn').focus(), 0);
   }
   function resume() {
     if (!G || !G.paused) return;
     $('pausePanel').hidden = true;
-    if (A.Bg) A.Bg.menu(false);
-    const T = G.T, m = Math.floor(G.pausedAt / (T.per * T.spb));
-    const from = Math.max(0, m * T.per * T.spb);
+    const T = G.T, bar = T.per * T.spb;
+    const beat = Math.floor(G.pausedAt / T.spb + 1e-6) * T.spb;     // back one measure from the beat we stopped on
+    const from = Math.max(0, beat - bar);
     G.fileStarted = false;
+    G.resumes = (G.resumes || []).concat({at: +G.pausedAt.toFixed(3), from: +from.toFixed(3)});
     A.Pitch.demoAttacks = true; A.Pitch.ignoreCurrent();
     play(from);
   }
-  $('pauseBtn').onclick = () => G && G.practice ? finish() : pause();
+  $('pauseBtn').onclick = () => pause();
   $('resumeBtn').onclick = resume;
   $('restartBtn').onclick = () => { const i = G ? G.i : 0, pr = G && G.practice; $('pausePanel').hidden = true; startSong(i, {practice: pr}); };
+  /* SONG MENU: the song ends at once: no results, no stars, nothing saved; the song select comes back with this song
+     still selected (LevelSelect remembered it when it started) */
   $('quitBtn').onclick = () => { $('pausePanel').hidden = true; showHub(); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-  addEventListener('keydown', e => { if (e.key === 'Escape' && G && !G.paused) { e.preventDefault(); G.practice ? finish() : pause(); } });
+  addEventListener('pagehide', () => pause());
+  let blurT = 0;
+  addEventListener('blur', () => { clearTimeout(blurT); blurT = setTimeout(() => { if (!document.hasFocus()) pause(); }, PAUSE_BLUR_MS); });
+  addEventListener('focus', () => clearTimeout(blurT));
+  addEventListener('keydown', e => {
+    if (!G || $('play').hidden || e.repeat) return;
+    const k = e.key;
+    if (k !== 'Escape' && k !== 'p' && k !== 'P') return;
+    e.preventDefault();
+    if (!G.paused) pause(); else if (k === 'Escape' || k === 'p' || k === 'P') resume();
+  });
   addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); spacing(); buildStaff(); } });
 
   /* ================= CALIBRATION: "Play any note on each of the 8 clicks" ================= */
@@ -922,7 +962,7 @@
             G.recent.push(perf);
             const pc = unpitched ? null : wrong ? (n.pc + 2) % 12 : n.pc;
             if (unpitched) judge(songOf(perf), null, perf); else judge(songOf(perf), pc, perf);
-            if (hold && n.long && !wrong) { n.holding = true; n.lastHeard = performance.now(); const iv = setInterval(() => { if (!G || songNow() > n.end) return clearInterval(iv); n.lastHeard = performance.now(); n.held = Math.max(n.held, Math.min(n.dur, songNow() - n.t)); }, 40); }
+            if (hold && n.long && !wrong) { n.holding = true; n.lastHeard = performance.now(); const iv = setInterval(() => { if (!G || songNow() > n.end) return clearInterval(iv); if (G.paused || G.phase === 'count') return; n.lastHeard = performance.now(); n.held = Math.max(n.held, Math.min(n.dur, songNow() - n.t)); }, 40); }
           }
         });
       };
@@ -946,6 +986,9 @@
     }) : [],
     lanes: () => G ? {n: V.nl, labels: G.lanes.lanes.map(l => l.label), midis: G.lanes.lanes.map(l => l.midis), sy: V.sy, gates: G.lanes.lanes.map((_, l) => laneX(l))} : null,
     fx: () => ({q: FX.q, why: FX.why || null}),
+    /** tests: the resumes so far ([{at, from}]) and the drum hits scheduled (context s) with the song's clock start */
+    pauses: () => G ? {n: G.pauses || 0, resumes: G.resumes || [], T0: G.T0, from: G.from, spb: G.T.spb, dur: G.T.total} : null,
+    paused: () => !!(G && G.paused),
     /** tests: record every frame from now on: {t, tx (the staff strip's translateX), pads: {note k: y of its center}} */
     trace: () => { if (G) { G.trace = {pads: {}}; G.traceLog = []; } },
     traceLog: () => G ? G.traceLog : null,

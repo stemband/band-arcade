@@ -17,6 +17,8 @@
                  oct   0 = the octave from degree 1 up to degree 7; 1 = the octave above; -1 = below
                  beats length in quarter-note beats (0.5 = an eighth, 1.5 = dotted quarter, 0.25 = a sixteenth)
                  acc   optional: +1 = raised a half step (♯ or ♮), -1 = lowered
+     sticking  optional, for the snare: one R or L per note, in order (spaces and | are ignored), e.g. 'RLRL RRLL'. Left out,
+               the student's pattern on the song select decides (ALTERNATE or DOWNBEATS RIGHT). The Song Board checks the count.
      chords    optional: one chord per measure, as Roman numerals ('I IV V I …'; minor songs 'i iv v'). Left out, the
                game picks I / IV / V (i / iv / v) for each measure from the melody. Only heard in HEADPHONES MODE.
    }
