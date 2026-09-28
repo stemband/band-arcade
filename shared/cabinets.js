@@ -109,7 +109,7 @@ window.Arcade = window.Arcade || {};
       slots: {marquee: [34, 22, 232, 86], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
     /* highway: the Music Highway cabinet. A flat top with a road sign-style marquee, the neon highway painted down both
-       side panels (lane lines running to a horizon), a strike line across the control panel and three colored buttons */
+       side panels (lane lines running to a horizon, two neon pads on it), a strike line across the control panel and three colored buttons */
     highway: {
       outline: 'M26 18H274V112H264V300L286 318V380H270V598H30V380H14V318L36 300V112H26Z',
       face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
@@ -119,7 +119,7 @@ window.Arcade = window.Arcade || {};
       door: {x: 104, y: 470, w: 92, h: 90},
       extras: '<path class="s-road" d="M130 398H170L250 596H50Z"/><path class="s-roadedge" d="M130 398L50 596M170 398L250 596"/>' +
               '<path class="s-roadlane" d="M143 398L117 596M157 398L183 596"/><path class="s-strike" d="M26 360H274"/>' +
-              '<rect class="s-card s-c1" x="118" y="420" width="16" height="16" rx="2"/><rect class="s-card s-c2" x="162" y="440" width="20" height="20" rx="2"/>',
+              '<rect class="s-card s-c1" x="116" y="424" width="20" height="10" rx="5"/><rect class="s-card s-c2" x="160" y="446" width="26" height="13" rx="6.5"/>',
       slots: {marquee: [34, 24, 232, 82], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
     },
     /* ink: the Ink Master's cabinet (Vanishing Ink). The marquee is an unrolled scroll with wooden rods standing out at
@@ -479,14 +479,14 @@ window.Arcade = window.Arcade || {};
           wk + bk + `<text class="kc-cap" x="80" y="104" text-anchor="middle">FIND THE KEY!</text></svg></div>`;
       },
     },
-    /* Music Highway: three note cards gliding down a little highway to the strike line, "PLAY ALONG!" */
+    /* Music Highway: the game itself at cabinet size, on a canvas (shared/highway-draw.js, the SAME drawing as the game
+       and the 3D cabinet: the first phrase of Hot Cross Buns, looping). A canvas screen has `draw(ctx, W, H, t)`
+       (t = null: the still frame); hydrateScreens() draws the still frames, setAttract() animates the front one. */
     highway: {
-      html() {
-        return `<div class="scr scr-highway"><svg viewBox="0 0 160 110" aria-hidden="true">` +
-          `<path class="hw-road" d="M72 14H88L150 96H10Z"/><path class="hw-edge" d="M72 14L10 96M88 14L150 96"/><path class="hw-lane" d="M77.3 14L56 96M82.7 14L104 96"/>` +
-          `<path class="hw-strike" d="M18 84H142"/>` +
-          [['c', 0], ['e', 1], ['g', 2]].map(([c, i]) => `<g class="hw-card hw-${c} hw-k${i}"><rect x="-8" y="-16" width="16" height="16" rx="2"/><ellipse cx="-1" cy="-5" rx="3" ry="2.2" transform="rotate(-20 -1 -5)"/><path d="M1.8 -6V-13"/></g>`).join('') +
-          `<text class="hw-cap" x="80" y="106" text-anchor="middle">PLAY ALONG!</text></svg></div>`;
+      html() { return `<div class="scr scr-highway scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        if (A.HighwayDraw) return A.HighwayDraw.attract(x, W, H, t);
+        x.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--mh-sky'); x.fillRect(0, 0, W, H);
       },
     },
     /* Vanishing Ink: three notes brush onto a little scroll one by one, stay, then the ink fades away (slow, never a
@@ -558,16 +558,52 @@ window.Arcade = window.Arcade || {};
       `</div>`;
   };
 
+  /* CANVAS SCREENS (a SCREENS entry with draw()): the canvas is sized to its screen (pixel ratio ≤ 1.5) the first time
+     it's drawn; every cabinet shows the still frame, only the front one moves (setAttract, ≤ SCREEN_FPS, nothing while
+     the tab is hidden or the floor is paused, still frames with reduced motion) */
+  const SCREEN_FPS = 30;
+  function sizeCanvas(cv) {
+    const r = cv.parentElement.getBoundingClientRect(), dpr = Math.min(1.5, devicePixelRatio || 1);
+    const w = Math.max(64, Math.round((r.width || 176) * dpr)), h = Math.max(56, Math.round((r.height || 156) * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    return cv.getContext('2d');
+  }
+  function drawScreen(box, g, t) {
+    const scr = SCREENS[A.cabinetOf(g).screen], cv = box && box.querySelector('canvas');
+    if (!scr || !scr.draw || !cv) return;
+    scr.draw(sizeCanvas(cv), cv.width, cv.height, t);
+  }
+  /** draw the still frame of every canvas screen under root (call after adding cabinets to the page) */
+  A.hydrateScreens = function (root) {
+    (root || document).querySelectorAll('.cab .cab-screen').forEach(box => {
+      const g = (A.ALL_GAMES || A.GAMES || []).find(x => x.id === box.closest('.cab').dataset.game);
+      if (g) drawScreen(box, g, null);
+    });
+  };
+
   /* Attract mode: only one cabinet (the one in front) animates. CSS runs the loops for
-     `.cab.attract`; screens with a `period` are also redrawn on a timer. */
-  let attractTimer = 0;
+     `.cab.attract`; screens with a `period` are also redrawn on a timer, canvas screens every frame (≤ SCREEN_FPS). */
+  let attractTimer = 0, attractRaf = 0, attractBox = null, attractG = null;
   A.setAttract = function (cabEl, g) {
-    clearInterval(attractTimer);
+    clearInterval(attractTimer); cancelAnimationFrame(attractRaf); attractRaf = 0;
+    if (attractBox && attractG) drawScreen(attractBox, attractG, null);    // the old front screen goes still
+    attractBox = attractG = null;
     if (A.Marquee) A.Marquee.animate(cabEl ? cabEl.querySelector('.mq-live') : null, 'floor');   // only the front marquee moves
     document.querySelectorAll('.cab.attract').forEach(el => el.classList.remove('attract'));
     if (!cabEl || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cabEl.classList.add('attract');
     const c = A.cabinetOf(g), scr = SCREENS[c.screen], box = cabEl.querySelector('.cab-screen');
+    if (scr.draw) {
+      attractBox = box; attractG = g;
+      const t0 = performance.now(); let last = 0;
+      const loop = now => {
+        attractRaf = requestAnimationFrame(loop);
+        if (document.hidden || A.floorPaused || now - last < 1000 / SCREEN_FPS - 1) return;
+        last = now; drawScreen(box, g, (now - t0) / 1000);
+      };
+      attractRaf = requestAnimationFrame(loop);
+      return;
+    }
     if (!scr.period) return;
     let i = 0;
     box.innerHTML = scr.html(g, i);

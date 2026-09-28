@@ -124,7 +124,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
     /* highway: the Music Highway cabinet: a classic body leaning forward a little, with a lit highway sign on two posts
-       on the roof (a road running to the horizon, a note on it) */
+       on the roof (a road running to the horizon) */
     highway: {
       width: 0.96, topper: 'road',
       points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.82, 0.84], [0.82, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.66, 1.50], [0.66, 1.72], [0.60, 1.76], [0, 1.76]],
@@ -469,23 +469,11 @@ window.Arcade = window.Arcade || {};
       x.strokeStyle = tok['kt-fork']; x.beginPath(); [5.7, 6, 6.3].forEach(v => { x.moveTo(u * v, H * .08); x.lineTo(u * v, H * .17); }); x.moveTo(u * 5.7, H * .17); x.quadraticCurveTo(u * 6, H * .24, u * 6.3, H * .17); x.moveTo(u * 6, H * .21); x.lineTo(u * 6, H * .32); x.stroke();
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi']; x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('FIND THE KEY!', W / 2, H * .93);
     },
-    /* Music Highway: note cards gliding down a small highway to the strike line, "PLAY ALONG!" (as 2D) */
+    /* Music Highway: the game itself at cabinet size (shared/highway-draw.js: the same drawing as the game, playing the
+       first phrase of Hot Cross Buns and looping; t = null: the still frame) */
     highway(x, W, H, t) {
-      const tt = t == null ? .8 : t, vx = W / 2, hz = H * .14, sy = H * .78, half = W * .46, far = 4;
+      if (A.HighwayDraw) return A.HighwayDraw.attract(x, W, H, t);
       x.fillStyle = tok['mh-sky']; x.fillRect(0, 0, W, H);
-      const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
-      x.fillStyle = tok['mh-road']; x.beginPath(); x.moveTo(X(-1, far), Y(far)); x.lineTo(X(1, far), Y(far)); x.lineTo(X(1, .86), H); x.lineTo(X(-1, .86), H); x.fill();
-      for (let l = 0; l <= 3; l++) { const u = -1 + l * 2 / 3; x.strokeStyle = l % 3 ? tok['mh-lane'] : tok[this.trim2]; x.lineWidth = l % 3 ? 1.5 : 3; x.beginPath(); x.moveTo(X(u, far), Y(far)); x.lineTo(X(u, .86), H); x.stroke(); }
-      x.strokeStyle = tok[this.trim]; x.lineWidth = 4; x.beginPath(); x.moveTo(X(-1, 1), sy); x.lineTo(X(1, 1), sy); x.stroke();
-      ['mh-c', 'mh-e', 'mh-g'].forEach((c, i) => {
-        const f = ((tt * .45 + i / 3) % 1), d = far - (far - 1) * f, u = -2 / 3 + i * 2 / 3, w = half * .42 / d, cx = X(u, d), by = Y(d);
-        x.globalAlpha = Math.min(1, f * 4); x.fillStyle = tok.screen; x.fillRect(cx - w / 2, by - w, w, w);
-        x.strokeStyle = tok[c]; x.lineWidth = 3; x.strokeRect(cx - w / 2, by - w, w, w);
-        x.fillStyle = tok.ink; x.beginPath(); x.ellipse(cx - w * .08, by - w * .32, w * .14, w * .1, -.35, 0, 7); x.fill(); x.fillRect(cx + w * .04, by - w * .8, Math.max(1, w * .04), w * .48);
-      });
-      x.globalAlpha = 1;
-      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi'];
-      x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('PLAY ALONG!', W / 2, H * .92);
     },
     /* Vanishing Ink: three notes brush onto a small scroll, stay, then fade away slowly; "PLAY IT BACK!" (4.2 s loop, as 2D) */
     ink(x, W, H, t) {
@@ -807,7 +795,7 @@ window.Arcade = window.Arcade || {};
       });
       neon([new THREE.Vector3(-W * .45, topY + .01, fz + .07), new THREE.Vector3(W * .45, topY + .01, fz + .07)]);
     } else if (P.topper === 'road') {
-      // a highway sign on two posts: a road to the horizon between neon edges, a note card on it (Music Highway)
+      // a highway sign on two posts: a road to the horizon between neon edges, a few stars (Music Highway)
       const fz = frontTop + zc - .14, sw = W * .7, sh = .26, metal = lambert(col('cab-metal'));
       [-1, 1].forEach(sd => { const post = new THREE.Mesh(new THREE.BoxGeometry(.03, .12, .03), metal); post.position.set(sd * sw * .35, topY + .06, fz); group.add(detail(post)); });
       const box = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, .05), lambert(col('cab-side'))); box.position.set(0, topY + .12 + sh / 2, fz - .03); box.userData.pick = true; group.add(box);
@@ -816,8 +804,6 @@ window.Arcade = window.Arcade || {};
       cx.fillStyle = tok['mh-road']; cx.beginPath(); cx.moveTo(116, 20); cx.lineTo(140, 20); cx.lineTo(236, 96); cx.lineTo(20, 96); cx.fill();
       cx.strokeStyle = tok[k.trim2]; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(116, 20); cx.lineTo(20, 96); cx.moveTo(140, 20); cx.lineTo(236, 96); cx.stroke();
       cx.strokeStyle = tok['mh-lane']; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(128, 20); cx.lineTo(128, 96); cx.stroke();
-      cx.fillStyle = tok.screen; cx.fillRect(140, 44, 30, 30); cx.strokeStyle = tok['mh-g']; cx.lineWidth = 3; cx.strokeRect(140, 44, 30, 30);
-      cx.fillStyle = tok.ink; cx.beginPath(); cx.ellipse(152, 64, 6, 4.5, -.35, 0, 7); cx.fill(); cx.fillRect(157, 48, 2, 16);
       cx.fillStyle = tok['text-hi']; [[30, 10], [70, 6], [200, 12], [230, 4], [100, 8]].forEach(([a2, b2]) => cx.fillRect(a2, b2, 2, 2));
       const face = new THREE.Mesh(new THREE.PlaneGeometry(sw * .94, sh * .88), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
       face.position.set(0, topY + .12 + sh / 2, fz + .002); group.add(face);

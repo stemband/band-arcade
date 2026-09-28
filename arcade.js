@@ -101,6 +101,7 @@
       `<div class="slot${fitOf(g).ok ? '' : ' nofit'}" data-r="${r}">${A.cabinetHTML(g, {href: gameHref(g)})}${isFull() && tagOf(g) ? zoneTagHTML(g) : ''}</div>`).join('');
     const slots = [...aisle.querySelectorAll('.slot')];
     if (A.Marquee) A.Marquee.hydrate(aisle);                  // the marquees' still frames (shared/marquees.js)
+    if (A.hydrateScreens) A.hydrateScreens(aisle);             // canvas screens' still frames (shared/cabinets.js)
     return {
       kind: '2d',
       get startLink() { return slots[cur] && slots[cur].querySelector('.cab-start'); },

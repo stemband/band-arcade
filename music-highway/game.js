@@ -474,8 +474,6 @@
   /* effects quality: 'hi' | 'lo' (fewer stars, no mountains, no halos, pixel ratio 1). A device whose frames stay slow
      is lowered once, for good (gameData('music-highway').fx), instead of dropping frames */
   const FX = {q: gd().fx === 'lo' ? 'lo' : 'hi', draw: [], gaps: [], last: 0};
-  const TOK = {}, tok = name => TOK[name] || (TOK[name] = getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || 'white');
-  const FONT = (getComputedStyle(document.documentElement).getPropertyValue('--display').trim() || 'sans-serif');
   function layout() {
     const P = $('play'), W = P.clientWidth, H = P.clientHeight;
     const staffH = Math.round(Math.max(96, Math.min(170, H * .2)));
@@ -495,135 +493,32 @@
     P.style.setProperty('--sy', V.sy + 'px');
     GL.lanes = Array.from({length: V.nl}, () => ({v: 0, target: 0, n: null, offAt: -1e9, col: 'c', badAt: -1e9}));
   }
-  const laneX = (l, s = 1) => V.cx + (l - (V.nl - 1) / 2) * V.laneW * s;
-  function rrect(g, x, y, w, h, r) {                              // a rounded rectangle path (no ctx.roundRect on older iPads)
-    r = Math.min(r, w / 2, h / 2);
-    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
-    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
-  }
-  /* the parts that never move, drawn once: the sunset, the road, its lanes, the unlit gates and their letter names */
+  /* the drawing itself is shared/highway-draw.js (Arcade.HighwayDraw), which the cabinet's attract screen uses too */
+  const HD = A.HighwayDraw;
+  const laneX = (l, s = 1) => HD.laneX(V, l, s);
+  const rrect = HD.rrect;
+  /* the parts that never move, drawn once: the sunset, the road, its edges, the unlit gates and their letter names */
   function drawStatic(W, H, dpr) {
-    const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
-    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const art = A.BgScenes.sunset.paint(g, W, H, {hz: V.hy, cx: V.cx, stars: FX.q === 'lo' ? 15 : 60, mountains: FX.q !== 'lo'});
-    V.sun = art.sun;
-    // the road: from the vanishing point on the horizon to the bottom (lines through the vanishing point = perspective)
-    const Hr = V.sy - V.hy, dB = Hr / (H - V.hy), xB = u => V.cx + u * V.half / dB;
-    g.globalAlpha = .9; g.fillStyle = tok('mh-road');
-    g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(1), H); g.lineTo(xB(-1), H); g.closePath(); g.fill(); g.globalAlpha = 1;
-    for (const u of [-1, 1]) {                                     // the road's edges (the lane dashes move: drawHighway)
-      if (FX.q !== 'lo') { g.strokeStyle = tok('pink'); g.globalAlpha = .25; g.lineWidth = 9; g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke(); }
-      g.strokeStyle = tok('pink'); g.globalAlpha = .95; g.lineWidth = 3;
-      g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke();
-    }
-    g.globalAlpha = 1;
-    // the strike line and the gates (unlit), with each lane's letter name under its gate
-    g.strokeStyle = tok('cyan'); g.globalAlpha = .7; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(V.cx - V.half, V.sy); g.lineTo(V.cx + V.half, V.sy); g.stroke(); g.globalAlpha = 1;
-    const fs = Math.max(13, Math.min(24, V.laneW * .3));
-    g.font = `${fs}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'top';
-    G.lanes.lanes.forEach((ln, l) => {
-      const x = laneX(l);
-      g.fillStyle = tok('deep'); g.globalAlpha = .55; rrect(g, x - V.gateW / 2, V.sy - V.gateH / 2, V.gateW, V.gateH, V.gateH * .35); g.fill();
-      g.globalAlpha = .85; g.strokeStyle = tok('mh-gate'); g.lineWidth = 2; g.stroke();
-      g.globalAlpha = 1; g.lineWidth = 4; g.strokeStyle = tok('deep'); g.fillStyle = tok('text-hi');
-      g.strokeText(ln.label, x, V.sy + V.gateH / 2 + 6); g.fillText(ln.label, x, V.sy + V.gateH / 2 + 6);
-    });
+    const c = HD.paintStatic(V, G.lanes.lanes.map(l => l.label), {dpr, q: FX.q});
     return c;
   }
-  /* the road is exponential in depth: d = (1 + K)^(dt / lead). A pad's size (1/d) and its distance to the next pad
-     then shrink together, so the spacing rule (CARD SPACING in settings.js) holds all the way up the road. Past the
-     line a pad keeps the line's speed at full size. */
-  function proj(dt) {
-    const L = G.lead, H = V.sy - V.hy;
-    if (dt < 0) return {d: 1, s: 1, y: V.sy - dt / L * H * Math.log(1 + V.K)};
-    const d = Math.pow(1 + V.K, dt / L);
-    return {d, s: 1 / d, y: V.hy + H / d};
-  }
+  /* the road is exponential in depth (see highway-draw.js proj): d = (1 + K)^(dt / lead) */
+  const proj = dt => { V.lead = G.lead; return HD.proj(V, dt); };
   function drawHighway(t) {
-    const g = V.g, T = G.T, W = V.W, still = reduced();
+    const g = V.g, T = G.T, W = V.W;
+    V.lead = G.lead;
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     g.drawImage(V.bg, 0, 0, W, V.roadH);
-    // ONLY THE ROAD MOVES: the sky, sun, mountains and the ground beside the road are the still layer (V.bg). On the road:
-    // one cross line per beat, crossing the gates ON the beat (downbeats magenta), and the lane dividers' dashes rolling
-    // toward the player with them. Reduced motion: the road stands still too.
-    const tg = still ? 0 : t, dMax = Math.pow(1 + V.K, 1.6), Hr = V.sy - V.hy;
-    const yAt = dt => { const p = proj(dt); return p.d > dMax ? null : p.y; };
-    const hw = y => V.half * (y - V.hy) / Hr;                       // the road's half width at height y (through the vanishing point)
-    const fadeAt = y => Math.max(0, Math.min(1, (y - V.hy) / (Hr * .35)));
-    const b0 = Math.floor((tg - G.lead) / T.spb) - 1, b1 = Math.floor((tg + G.lead * 1.6) / T.spb) + 1;
-    for (let b = b0; b <= b1; b++) {
-      const y = yAt(b * T.spb - tg); if (y == null || y > V.roadH) continue;
-      const down = ((b % T.per) + T.per) % T.per === 0, w = hw(y);
-      g.strokeStyle = tok(down ? 'mh-grid-2' : 'mh-grid'); g.lineWidth = down ? 2 : 1.2; g.globalAlpha = (down ? .75 : .5) * fadeAt(y);
-      g.beginPath(); g.moveTo(V.cx - w, y); g.lineTo(V.cx + w, y); g.stroke();
-    }
-    g.strokeStyle = tok('mh-lane'); g.lineWidth = 1.6;
-    for (let b = b0 * 2; b <= b1 * 2; b++) {                        // dashes: half a beat long, one every beat
-      if (b % 2) continue;
-      const ya = yAt(b / 2 * T.spb - tg), yb = yAt((b / 2 + .5) * T.spb - tg);
-      if (ya == null || yb == null) continue;
-      const y0 = Math.min(ya, V.roadH), y1 = Math.min(yb, V.roadH); if (y0 === y1) continue;
-      g.globalAlpha = .7 * fadeAt(Math.max(y0, y1));
-      g.beginPath();
-      for (let l = 1; l < V.nl; l++) { const u = -1 + l * 2 / V.nl; g.moveTo(V.cx + u * hw(y0), y0); g.lineTo(V.cx + u * hw(y1), y1); }
-      g.stroke();
-    }
-    g.globalAlpha = 1;
+    HD.drawRoad(g, V, {t, spb: T.spb, per: T.per, still: reduced()});
     while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) G.ci++;
-    // LONG NOTES: a light trail stretching back from the pad for the note's length; while it's held it burns bright
-    for (let k = G.ci; k < T.notes.length && T.notes[k].t - t <= G.lead; k++) {
-      const n = T.notes[k];
-      if (!n.trail) continue;
-      const a = n.t - t, e = n.tEnd - t;
-      if (e < -.3) continue;
-      const hit = n.res && n.res !== 'miss', lit = hit && n.holding && e > 0;
-      const from = hit ? Math.max(a, 0) : Math.max(a, -.3), pa = proj(from), pe = proj(Math.min(e, G.lead * 1.3));
-      if (pe.y >= pa.y) continue;
-      const x0 = laneX(n.lane, pa.s), x1 = laneX(n.lane, pe.s), w = V.padW * .34;
-      const quad = k2 => { g.beginPath(); g.moveTo(x0 - w * k2 * pa.s, pa.y); g.lineTo(x0 + w * k2 * pa.s, pa.y); g.lineTo(x1 + w * k2 * pe.s, pe.y); g.lineTo(x1 - w * k2 * pe.s, pe.y); g.closePath(); };
-      g.fillStyle = n.res === 'miss' ? tok('text-dim') : tok('mh-' + n.color);
-      if (lit && FX.q !== 'lo') { g.globalAlpha = .3; quad(1.9); g.fill(); }
-      g.globalAlpha = n.res === 'miss' ? .2 : lit ? .95 : hit ? .3 : .55; quad(1); g.fill();
-      if (lit) { g.fillStyle = tok('text-hi'); g.globalAlpha = .7; quad(.35); g.fill(); }
-      g.globalAlpha = 1;
-    }
-    // THE PADS (a hit pad is consumed by its gate; a missed one rolls on, grey, and fades)
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (let k = G.ci; k < T.notes.length; k++) {
-      const n = T.notes[k], dt = n.t - t;
-      if (dt > G.lead) break;
-      if (dt < -.45 || (n.res && n.res !== 'miss')) continue;
-      const p = proj(dt), x = laneX(n.lane, p.s), w = V.padW * p.s, h = V.padH * p.s, y = p.y;
-      const al = Math.min(1, (G.lead - dt) / (G.lead * .15)) * (dt < 0 ? Math.max(0, 1 + dt / .45) : 1);
-      if (al <= 0) continue;
-      const colr = n.res === 'miss' ? tok('text-dim') : tok('mh-' + n.color);
-      if (FX.q !== 'lo' && !n.res) { g.globalAlpha = .28 * al; g.fillStyle = colr; rrect(g, x - w / 2 - 5 * p.s, y - h / 2 - 5 * p.s, w + 10 * p.s, h + 10 * p.s, h * .6); g.fill(); }
-      g.globalAlpha = al; g.fillStyle = colr; rrect(g, x - w / 2, y - h / 2, w, h, h * .42); g.fill();
-      g.fillStyle = tok('text-hi'); g.globalAlpha = .35 * al; rrect(g, x - w * .4, y - h * .38, w * .8, h * .26, h * .13); g.fill();
-      g.globalAlpha = al; g.strokeStyle = tok('deep'); g.lineWidth = Math.max(1.2, 2.6 * p.s); rrect(g, x - w / 2, y - h / 2, w, h, h * .42); g.stroke();
-      if (names && h >= 9) { g.fillStyle = tok('deep'); g.font = `${Math.round(h * .66)}px ${FONT}`; g.fillText(n.label, x, y + h * .04); }
-      if (G.trace) G.trace.pads[n.k] = y;
-    }
-    g.globalAlpha = 1;
+    HD.drawTrails(g, V, T.notes, {from: G.ci, t, q: FX.q});
+    HD.drawPads(g, V, T.notes, {from: G.ci, t, q: FX.q, names, onPad: G.trace ? (n, y) => { G.trace.pads[n.k] = y; } : null});
     drawGates();
   }
   /* the gates' glow (GL, below) and the red miss outline */
   function drawGates() {
-    const g = V.g, now = performance.now();
-    GL.lanes.forEach((ln, l) => {
-      const x = laneX(l), gw = V.gateW, gh = V.gateH, bad = Math.max(0, 1 - (now - ln.badAt) / R.badMs);
-      if (ln.v > 0) {
-        const c = tok('mh-' + ln.col);
-        g.fillStyle = c;
-        if (FX.q !== 'lo') { g.globalAlpha = .18 * ln.v; rrect(g, x - gw / 2 - 14, V.sy - gh / 2 - 14, gw + 28, gh + 28, gh * .6); g.fill();
-          g.globalAlpha = .3 * ln.v; rrect(g, x - gw / 2 - 6, V.sy - gh / 2 - 6, gw + 12, gh + 12, gh * .5); g.fill(); }
-        g.globalAlpha = .6 * ln.v; rrect(g, x - gw / 2, V.sy - gh / 2, gw, gh, gh * .35); g.fill();
-        g.globalAlpha = ln.v; g.strokeStyle = c; g.lineWidth = 3; g.stroke();
-      }
-      if (bad > 0) { g.globalAlpha = .55 * bad; g.strokeStyle = tok('red'); g.lineWidth = 2.5; rrect(g, x - gw / 2, V.sy - gh / 2, gw, gh, gh * .35); g.stroke(); }
-    });
-    g.globalAlpha = 1;
+    const now = performance.now();
+    HD.drawGates(V.g, V, GL.lanes.map(ln => ({v: ln.v, col: ln.col, bad: Math.max(0, 1 - (now - ln.badAt) / R.badMs)})), {q: FX.q});
   }
 
   /* CARD SPACING (settings.js), for the pads: the time a pad is on the road (G.lead) and the pad size for this song.
