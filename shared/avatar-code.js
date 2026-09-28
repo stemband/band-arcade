@@ -23,6 +23,9 @@ window.Arcade = window.Arcade || {};
   const VERSION = 1, CHECK_BITS = 12;
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   /* [field ('name.title' = a word of the name), bits, values (append-only!)] */
+  // the name words come from avatar-names.js, whose lists are numbered and append-only (the same numbers the
+  // leaderboard uses; a retired '#Word' keeps its place): old codes decode to the same words
+  const NAMED = k => ((window.AVATAR_NAMES || {})[k] || []).map(w => String(w).replace(/^#/, ''));
   const TABLE = [
     ["skin", 6, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]],
     ["face", 5, ["round", "oval", "square", "heart"]],
@@ -57,9 +60,9 @@ window.Arcade = window.Arcade || {};
     ["effectColor", 5, ["cyan", "pink", "yellow", "purple", "green", "amber"]],
     ["plate", 7, ["none", "simple", "notes", "gold", "neon", "flames", "belt-white", "belt-yellow", "belt-orange", "belt-green", "belt-blue", "belt-purple", "belt-red", "belt-brown", "belt-black", "belt-diamond", "bn-white", "bn-yellow", "bn-orange", "bn-green", "bn-blue", "bn-purple", "bn-red", "bn-brown", "bn-black", "bn-diamond", "hearts", "blossom", "sunset"]],
     ["belt", 6, ["none", "white", "yellow", "orange", "green", "blue", "purple", "red", "brown", "black", "diamond"]],
-    ["name.title", 8, ["Ace", "Admiral", "Agent", "Ambassador", "Astronaut", "Baron", "Captain", "Champ", "Chef", "Chief", "Coach", "Commander", "Commodore", "Dame", "Detective", "DJ", "Doctor", "Duchess", "Explorer", "Grandmaster", "Guardian", "Hero", "Inventor", "Knight", "Legend", "Maestra", "Maestro", "Major", "Marshal", "Mayor", "Navigator", "Ninja", "Pilot", "Pirate", "Professor", "Ranger", "Rockstar", "Rookie", "Scout", "Sensei", "Sheriff", "Sir", "Superstar", "Viking", "Virtuoso", "Wizard"]],
-    ["name.adj", 8, ["Atomic", "Blazing", "Bold", "Brassy", "Brilliant", "Clever", "Cosmic", "Crimson", "Dazzling", "Dynamic", "Electric", "Epic", "Fearless", "Fiery", "Fortissimo", "Frosty", "Funky", "Galactic", "Glowing", "Golden", "Groovy", "Harmonic", "Heroic", "Jazzy", "Jolly", "Legato", "Legendary", "Lucky", "Majestic", "Mellow", "Melodic", "Mighty", "Mystic", "Neon", "Nimble", "Pizzicato", "Plucky", "Quantum", "Radiant", "Rapid", "Retro", "Roaring", "Rocking", "Shiny", "Silver", "Sizzling", "Snappy", "Sonic", "Sparkly", "Speedy", "Staccato", "Stealthy", "Stellar", "Supersonic", "Swift", "Syncopated", "Thundering", "Tropical", "Turbo", "Vivid", "Zippy"]],
-    ["name.noun", 9, ["Anthem", "Asteroid", "Banjo", "Bassline", "Bassoon", "Beat", "Blaze", "Bongo", "Cadence", "Cheetah", "Chord", "Comet", "Crescendo", "Cymbal", "Dragon", "Echo", "Encore", "Falcon", "Fermata", "Forte", "Galaxy", "Griffin", "Groove", "Harmony", "Kazoo", "Kraken", "Laser", "Llama", "Maraca", "Melody", "Meteor", "Metronome", "Narwhal", "Nebula", "Noodle", "Octave", "Otter", "Panther", "Penguin", "Phoenix", "Piccolo", "Pixel", "Quasar", "Remix", "Rhythm", "Riff", "Robot", "Rocket", "Satellite", "Shark", "Sonata", "Spark", "Sprocket", "Taco", "Tempo", "Thunder", "Tiger", "Tuba", "Unicorn", "Vortex", "Waffle", "Wolf", "Xylophone", "Yeti"]],
+    ["name.title", 8, NAMED('titles')],
+    ["name.adj", 8, NAMED('adjectives')],
+    ["name.noun", 9, NAMED('nouns')],
   ];
   const fnv = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; };
   const checkOf = bits => fnv('BA|' + bits) & ((1 << CHECK_BITS) - 1);

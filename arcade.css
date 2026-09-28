@@ -44,6 +44,7 @@
 .fb-tune{border-color:var(--green-ink);color:var(--green-hi)}
 .fb-all{border-color:var(--yellow-ink);color:var(--yellow-hi)}
 .fb-full{border-color:var(--pink-ink);color:var(--pink-hi)}
+.fb-lb{border-color:var(--amber-ink);color:var(--amber-hi)}
 .fb-btn:hover,.fb-back:hover,.fb-chip:hover{background:var(--floor-3)}
 .fb-chip{border-color:var(--line);padding:4px 14px 4px 4px}
 .fb-chip .chip-pic{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--floor-3);display:grid;place-items:center}
@@ -366,3 +367,52 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 }
 @keyframes ev-fall{0%{translate:0 -40px;opacity:0}10%{opacity:.4}90%{opacity:.4}100%{translate:30px 60vh;opacity:0}}
 @keyframes ev-drift{50%{translate:0 -8px}}
+
+/* ---------- THE LEADERBOARD (leaderboard-screen.js): a full screen over the floor ---------- */
+body.lb-open{overflow:hidden}
+.lb-view{position:fixed;inset:0;z-index:70;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+  background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--amber) 14%,transparent),transparent 60%),var(--floor);color:var(--text-hi);
+  padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.lb-view[hidden]{display:none}
+.lb-in{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lb-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lb-title{margin:0;font:400 clamp(26px,5vw,42px) var(--neon-font,var(--display));color:var(--amber-hi);text-shadow:0 0 4px var(--amber-hi),0 0 14px var(--amber),0 0 28px var(--amber-ink)}
+.lb-x{min-width:48px;min-height:48px;border-radius:50%;border:2px solid var(--text-lo);background:var(--deep);color:var(--text-hi);font-size:22px;cursor:pointer}
+.lb-x:hover,.lb-x:focus-visible{border-color:var(--text-hi)}
+.lb-ask{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:8vh;text-align:center}
+.lb-ask h3{margin:0;font:400 clamp(22px,4vw,32px) var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--cyan-hi)}
+.lb-grades{display:flex;gap:16px}
+.lb-g{width:clamp(76px,16vw,110px);aspect-ratio:1;border-radius:20px;border:3px solid var(--cyan);background:var(--deep);color:var(--cyan-hi);font:400 clamp(34px,7vw,52px) var(--display);cursor:pointer;box-shadow:var(--glow-cyan)}
+.lb-g:hover,.lb-g:focus-visible{background:var(--floor-3);outline:3px solid var(--text-hi);outline-offset:3px}
+.lb-note{margin:0;color:var(--text-lo);font-size:15px}
+.lb-gradesw,.lb-tabs,.lb-games{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.lb-gs,.lb-tab,.lb-gm,.lb-mg{min-height:44px;padding:6px 14px;border-radius:999px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-lo);font:700 15px var(--text);cursor:pointer}
+.lb-gs small{margin-left:6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan-hi)}
+.lb-tab{font:400 14px var(--display);letter-spacing:.06em;text-transform:uppercase}
+.lb-gs.on,.lb-gm.on,.lb-mg.on{border-color:var(--cyan);color:var(--cyan-hi);background:color-mix(in srgb,var(--cyan) 14%,var(--deep))}
+.lb-tab[aria-selected="true"]{border-color:var(--amber);color:var(--amber-hi);background:color-mix(in srgb,var(--amber) 16%,var(--deep));box-shadow:0 0 10px color-mix(in srgb,var(--amber) 40%,transparent)}
+.lb-gs:focus-visible,.lb-tab:focus-visible,.lb-gm:focus-visible,.lb-mg:focus-visible,.lb-ref:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+.lb-board{min-height:120px}
+.lb-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lb-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 14px;border-radius:14px;border:2px solid var(--floor-3);background:var(--deep)}
+.lb-rank{font:400 20px var(--display);text-align:center;color:var(--text-lo)}
+.lb-name{font-weight:700;font-size:17px;text-wrap:balance;overflow-wrap:break-word}
+.lb-val{font:400 18px var(--display);color:var(--text-hi);white-space:nowrap}
+.lb-row.m-gold{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,var(--deep))}.lb-row.m-gold .lb-rank{color:var(--yellow-hi)}
+.lb-row.m-silver{border-color:var(--silver,var(--text-lo));background:color-mix(in srgb,var(--text-lo) 12%,var(--deep))}.lb-row.m-silver .lb-rank{color:var(--text-hi)}
+.lb-row.m-bronze{border-color:var(--amber-ink);background:color-mix(in srgb,var(--amber) 10%,var(--deep))}.lb-row.m-bronze .lb-rank{color:var(--amber-hi)}
+.lb-row.me{outline:3px solid var(--cyan);outline-offset:2px;box-shadow:var(--glow-cyan)}
+.lb-you{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--cyan);color:var(--deep);font-size:11px;letter-spacing:.08em}
+.lb-id{margin-left:6px;padding:1px 6px;border-radius:6px;border:1px dashed var(--text-lo);color:var(--yellow-hi);font:700 13px ui-monospace,Menlo,Consolas,monospace}
+.lb-msg{margin:24px 0;text-align:center;color:var(--text-hi);font-size:18px}
+.lb-break{color:var(--amber-hi)}
+.lb-own{margin:0;padding:10px 14px;border-radius:14px;border:2px dashed var(--cyan);color:var(--cyan-hi);font-weight:700;text-align:center}
+.lb-foot{margin:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;color:var(--text-lo)}
+.lb-ref{min-height:40px;padding:4px 14px;border-radius:999px;border:2px solid var(--text-lo);background:var(--deep);color:var(--text-hi);cursor:pointer;font:700 14px var(--text)}
+.lb-mine{margin-top:8px;padding:12px 16px;border-radius:16px;border:1px solid var(--floor-3);background:var(--floor-2);display:flex;flex-direction:column;gap:8px}
+.lb-mine h3{margin:0;font:400 14px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo)}
+.lb-mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.lb-mg{min-width:52px}
+.lb-tog{cursor:pointer;min-height:44px;font-weight:700}
+.lb-tog input{width:24px;height:24px;accent-color:var(--cyan)}
+.lb-teach{color:var(--yellow-hi)}
