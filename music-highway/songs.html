@@ -41,7 +41,7 @@
 <div class="wrap sbd">
   <div class="topbar"><a class="brand" id="back" href="index.html" aria-label="Back to Music Highway"><span aria-hidden="true">←</span><span>Music Highway</span></a><div class="sound-ctl" id="soundCtl"></div></div>
   <h1>Song Board</h1>
-  <p class="muted">Every Music Highway song, from <code>music-highway/songs.js</code>: in concert pitch and written for the instrument you pick, with letter names and the tempo. ▶ PLAY plays the melody with a soft synth and the song's drum groove (the microphone is never on here). A tier-1 song always uses the instrument's first five notes; higher tiers pick the octave that fits the instrument.</p>
+  <p class="muted">Every Music Highway song, from <code>music-highway/songs.js</code>: in concert pitch and written for the instrument you pick, with letter names and the tempo. ▶ PLAY plays the melody with a soft synth and the song's drum groove (the microphone is never on here). A tier-1 song always uses the instrument's first five notes; higher tiers pick the octave that fits the instrument. The staffs use the same notation and spacing as the game's scrolling staff.</p>
   <div class="sbd-bar">
     <label for="inst">Show written for</label>
     <select id="inst"></select>
@@ -59,6 +59,7 @@
 <script src="../shared/sfx.js"></script>
 <script src="songs.js"></script>
 <script src="song-map.js"></script>
+<script src="notation.js"></script>
 <script src="settings.js"></script>
 <script src="backing.js"></script>
 <script>
@@ -86,20 +87,27 @@
   const concertMember = {id: 'concert', sounds: 0, lowMidi: 58, highMidi: 84, pitched: true};
   const bassConcert = {id: 'concert', sounds: 0, lowMidi: 36, highMidi: 64, pitched: true};
 
-  /** a song's notes on staff rows, 4 measures a row, bar lines drawn */
-  function rows(map) {
-    if (map.unpitched) return `<p class="letters">${map.notes.map(n => n.stick).join(' ')}</p>`;
-    const per = map.beatsPerMeasure, minB = Math.min(...map.notes.map(n => n.beats)), PPB = Math.max(44, Math.min(120, 28 / minB)),
-      lead = 70 + A.keySigWidth(map.sig), mPerRow = Math.max(1, Math.round(720 / (per * PPB))), out = [];
-    for (let r0 = 1; r0 <= map.measures; r0 += mPerRow) {
-      const r1 = Math.min(map.measures, r0 + mPerRow - 1);
-      const inRow = map.notes.filter(n => n.measure >= r0 && n.measure <= r1);
-      const x = n => lead + (n.t - (r0 - 1) * per) * PPB + 14;
-      const W = lead + mPerRow * per * PPB + 20;
-      let svg = A.staffSVG(map.clef, inRow.map(n => ({n: n.show, x: x(n), caption: n.label})), {width: W, keySig: map.sig, fit: map.notes.map(n => n.show), label: `Measures ${r0}–${r1}`});
-      let bars = '';
-      for (let m = r0; m <= r1; m++) { const bx = lead + (m - r0 + 1) * per * PPB; bars += `<line x1="${bx}" y1="56" x2="${bx}" y2="120" stroke="#18203a" stroke-width="1.6"/>`; }
-      out.push(`<div class="stage">${svg.replace('</svg>', bars + '</svg>')}</div>`);
+  /** a song on staff rows as printed music (notation.js: real note values, beams, rests, ties, the same spacing as the
+      game's staff): as many measures a row as fit, each row justified to the same width */
+  const ROW_W = 980;
+  function rows(map, song) {
+    const per = map.beatsPerMeasure, clef = map.unpitched ? null : map.clef;
+    const events = (from, to) => { const base = (from - 1) * per, inR = e => e.measure >= from && e.measure <= to;
+      return map.notes.filter(inR).map(n => ({t: n.t - base, beats: n.beats, n: n.n, label: map.unpitched ? n.stick : n.label}))
+        .concat((map.rests || []).filter(inR).map(r => ({t: r.t - base, beats: r.beats, rest: true}))); };
+    const opt = {clef, sig: map.sig, per, timeSig: song.timeSig, captions: true};
+    // measure widths from one pass over the whole song, then rows that fit ROW_W
+    const all = A.MHNotation.engrave(Object.assign({}, opt, {measures: map.measures, header: 'none', events: events(1, map.measures)}));
+    const head = (clef ? 50 + A.keySigWidth(map.sig) : 36);
+    const out = [];
+    let r0 = 1;
+    while (r0 <= map.measures) {
+      let r1 = r0, w = head + (r0 === 1 ? 38 : 0) + (all.bars[r0] - all.bars[r0 - 1]);
+      while (r1 < map.measures && w + (all.bars[r1 + 1] - all.bars[r1]) <= ROW_W) { r1++; w += all.bars[r1] - all.bars[r1 - 1]; }
+      const last = r1 === map.measures, E = A.MHNotation.engrave(Object.assign({}, opt, {measures: r1 - r0 + 1, header: 'full', showTime: r0 === 1,
+        final: last, width: last && w < ROW_W * .7 ? 0 : ROW_W, events: events(r0, r1), label: `Measures ${r0}–${r1}`}));
+      out.push(`<div class="stage" style="max-width:${Math.round(E.vb.w / ROW_W * 100)}%">${E.svg}</div>`);
+      r0 = r1 + 1;
     }
     return `<div class="rows">${out.join('')}</div>`;
   }
@@ -119,8 +127,8 @@
         <p class="meta">${esc(s.source)} · ${s.tempo} beats a minute · ${s.timeSig[0]}/${s.timeSig[1]} · ${s.style} groove · ${c.keyName} · ${c.notes.length} notes · id <code>${s.id}</code></p>
         ${probs.length ? `<p class="warn">⚠ ${probs.map(esc).join('<br>')}</p>` : ''}
         <div class="btns"><button class="btn btn-gold btn-small" data-play="1">▶ Play</button><button class="btn btn-ghost btn-small" data-play=".75">▶ Slow (75%)</button></div>
-        <h3>Concert pitch (${c.keyName})</h3>${rows(c)}${letters(c)}
-        <h3>Written for ${esc(o.label)}${w.unpitched ? ' (rhythm only)' : ` (${w.writtenKey})`}</h3>${rows(w)}${letters(w)}
+        <h3>Concert pitch (${c.keyName})</h3>${rows(c, s)}${letters(c)}
+        <h3>Written for ${esc(o.label)}${w.unpitched ? ' (rhythm only)' : ` (${w.writtenKey})`}</h3>${rows(w, s)}${letters(w)}
       </article>`;
     }).join('');
   }

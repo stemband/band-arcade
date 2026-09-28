@@ -28,10 +28,34 @@ window.MH_RULES = {
   practiceLoops: 12,      // it loops this many times (or until PAUSE)    // how many measures a trouble spot is
   /* THE HIGHWAY */
   lanes: 5,
+  roadDepth: 5,           // how far the road reaches: a card on the horizon is 1 ÷ (1 + this) of its size at the line (deeper = more cards fit)
   leadBeats: 4,           // a card appears this many beats before it reaches the strike line …
   leadMinS: 2.2,          // … but never less than this many seconds …
-  leadPerShortest: 14,    // … and at least 14 × the song's shortest note (quick notes spread out) …
-  leadMaxS: 3.6,          // … and never more than this
+  leadMaxS: 3.6,          // … and never more than this (both only when the card spacing below allows it)
+  /* CARD SPACING. Two cards in a row are always at least cardGap × a card's size apart (bottom of one to the top of
+     the next), even for the song's shortest note, anywhere on the road; so a song with quick notes moves its cards
+     faster. When that would leave a card on the road for less than readMinS, the cards get smaller for that song
+     instead (never below cardMinScale); cards never overlap. */
+  cardGap: .4,            // the smallest gap between two cards, as a share of a card's size
+  wideMul: 1.5,           // NOTE SPACING: WIDE = this much more room from one card to the next (stars count in both)
+  cardMaxPx: 190,         // a card at the strike line is never bigger than this (it is about one lane wide)
+  cardMinScale: .6,       // … and never shrunk below this share of its normal size
+  readMinS: 1.5,          // a card should be on the road at least this long (time to read it)
+  /* THE STRIKE GLOW (a right note in time lights the target in the card's color). Never a strobe: it fades in 60 ms
+     and out 200 ms (style.css), stays lit through a run of notes, and goes out at most 3 times a second. */
+  glowLingerMs: 250,      // a short note's glow stays this long after the note's end (so a run stays lit)
+  glowMinCycleMs: 340,    // the glow goes out at most once in this long (≤ 3 flashes a second)
+  badMs: 450,             // a miss / wrong note: a dim red outline on that lane's pad for this long
+  /* STAFF SPACING (the scrolling staff, the trouble spot and the Song Board; units: one staff space = 16) */
+  staff: {
+    barPadL: 26,          // room after every bar line before the first note (about a notehead and a half)
+    barPadR: 20,          // room after the last note (and its dot) before the next bar line
+    noteBase: 36,         // the space after the song's shortest note (head to head)
+    noteGrow: .6,         // longer notes get more: base × (1 + noteGrow × log2(length ÷ shortest))
+    noteMin: 34,          // never less than this (heads, stems, flags, beams and letter names never touch)
+    accRoom: 22,          // extra room in front of a note with a ♯ / ♭ / ♮
+    dotRoom: 10,          // extra room after a dotted note
+  },
   /* CALIBRATION ("Play any note on each of the 8 clicks") */
   calClicks: 8,
   calLead: 4,             // clicks to listen to first ("ready… 3, 2, 1")

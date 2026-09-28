@@ -10,7 +10,7 @@
                                                   whole song moves (the C–G horn plays it in concert F: shift −5)
      Arcade.SongMap.forMember(song, member, group, {hornSide}) -> the song for one instrument:
          {notes: [{i, t, beats, measure, pc, concert, midi (written), n (written note), show, label, fing, deg}],
-          sig ({type, count} | null), clef, shift, keyName ('Concert B♭'), writtenKey ('C major'), unpitched,
+          rests: [{t, beats, measure}], sig ({type, count} | null), clef, shift, keyName ('Concert B♭'), writtenKey ('C major'), unpitched,
           chords: [{measure, root, tones: [concert midis], name}], beatsPerMeasure, measures}
          the snare (unpitched): every note has pc null, no written note; the rhythm is the same.
      Arcade.SongMap.fitOctave(...)             the octave rule (below)
@@ -165,7 +165,8 @@ window.Arcade = window.Arcade || {};
     }
     const list = concert(song, {shift});
     const concertKeyPc = mod12(KEY_PC[song.key || 'Bb'] + shift);
-    const base = {beatsPerMeasure: beatsPer(song), measures: Math.ceil((list.total || 0) / beatsPer(song) - 1e-6), total: list.total, shift, unpitched,
+    const rests = list.filter(e => e.rest).map(e => ({t: e.t, beats: e.beats, measure: e.measure}));
+    const base = {beatsPerMeasure: beatsPer(song), measures: Math.ceil((list.total || 0) / beatsPer(song) - 1e-6), total: list.total, shift, unpitched, rests,
       keyName: 'Concert ' + keyLabel(concertKeyPc) + (song.mode === 'minor' ? ' (' + keyLabel(mod12(concertKeyPc + 9)) + ' minor)' : ''),
       chords: chordsFor(song, list, tonicMidi(song, shift) + (song.mode === 'minor' ? 0 : 0))};
     if (unpitched) {
