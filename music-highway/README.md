@@ -12,6 +12,7 @@ judges the pitch and the timing (from the note's attack).
 | `settings.js` | Judging windows, scoring, stars, speeds, the highway (lanes, pads, pad spacing, the sun), the gate glow, performance, staff spacing, calibration, volumes. |
 | `backing.js` | The generated drums (and the headphones-mode band), scheduled on the audio clock. |
 | `game.js` | The game: song select, the highway, judging, calibration, the headphones check, results. |
+| `../shared/highway-draw.js` | The highway drawing (sunset, road, pads, trails, gates), shared with the arcade cabinet's attract screen. |
 | `songs.html` | The **Song Board**: every song on a staff (concert and any instrument), letter names, ▶ PLAY. |
 
 ## The song format

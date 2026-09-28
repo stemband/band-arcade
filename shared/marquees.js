@@ -576,7 +576,7 @@ window.Arcade = window.Arcade || {};
       },
     },
     /* MUSIC HIGHWAY. colors: [lanes + beat lines, road edges, stars]. A neon road running into a starfield: five lanes
-       from the horizon, beat lines rolling toward you, small note cards drifting down the lanes (slow; nothing flashes). */
+       from the horizon, beat lines rolling toward you, small neon pads gliding down the lanes (slow; nothing flashes). */
     highway: {
       colors: ['mh-lane', 'pink', 'cyan'], still: .6,
       draw(x, W, H, t, c) {
@@ -601,11 +601,12 @@ window.Arcade = window.Arcade || {};
           x.beginPath(); x.moveTo(X(-1, d), Y(d)); x.lineTo(X(1, d), Y(d)); x.stroke();
         }
         const cols = ['mh-c', 'mh-e', 'mh-g', 'mh-b', 'mh-d'];
-        for (let i = 0; i < 5; i++) {                                // note cards drifting down the lanes
+        for (let i = 0; i < 5; i++) {                                // neon pads gliding down the lanes (as in the game)
           const f = wrap(hash(i + 20) + t * .18, 1), d = far - (far - 1.3) * f, u = -.8 + (i % 5) * .4;
-          const w = half * .22 / d, h = w * 1.05, cx = X(u, d), by = Y(d);
-          x.fillStyle = rgba('screen', .25 + .5 * f); x.strokeStyle = tok(cols[i]); x.lineWidth = Math.max(1, H * .012);
-          x.beginPath(); x.rect(cx - w / 2, by - h, w, h); x.fill(); x.stroke();
+          const w = half * .3 / d, h = w * .42, cx = X(u, d), by = Y(d), r = h / 2;
+          x.fillStyle = rgba(cols[i], .3 + .55 * f); x.strokeStyle = tok(cols[i]); x.lineWidth = Math.max(1, H * .012);
+          x.beginPath(); x.moveTo(cx - w / 2 + r, by - h); x.arcTo(cx + w / 2, by - h, cx + w / 2, by, r); x.arcTo(cx + w / 2, by, cx - w / 2, by, r);
+          x.arcTo(cx - w / 2, by, cx - w / 2, by - h, r); x.arcTo(cx - w / 2, by - h, cx + w / 2, by - h, r); x.closePath(); x.fill(); x.stroke();
         }
       },
     },
