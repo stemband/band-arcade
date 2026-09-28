@@ -304,7 +304,7 @@ window.Arcade.GAMES = [
     bg: {scene: 'highway', dim: .4, focus: .35},
     menuMusic: 'music-highway-menu',
     skill: 'Play-along rhythm',
-    blurb: 'Your fingerings fly down a neon highway with the band. Play each note right as its card reaches the line: the microphone judges your pitch and your timing.',
+    blurb: 'Neon lights race down a synthwave highway with the band, one lane for each note: low on the left, high on the right. Play each note as its light reaches its gate: the microphone judges your pitch and your timing.',
     maxStars: 48,                                    // 16 songs × 3 (music-highway/songs.js; never reorder the songs)
     color: 'cyan',
     byMember: true,                                  // stars are saved per instrument member (song number = level)

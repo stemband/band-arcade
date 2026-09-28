@@ -1,7 +1,7 @@
 # Music Highway
 
-A play-along rhythm game. Fingering cards for the student's own instrument fly down a neon highway in time with a
-backing groove; the student plays each note on their instrument as its card reaches the strike line. The microphone
+A play-along rhythm game. Neon light pads race down a synthwave highway in time with a backing groove, one lane per
+pitch (low on the left, high on the right); the student plays each note as its pad reaches its lane's gate. The microphone
 judges the pitch and the timing (from the note's attack).
 
 | File | What it is |
@@ -9,7 +9,7 @@ judges the pitch and the timing (from the note's attack).
 | `songs.js` | **THE SONG LIST.** Every song, in the format below. Mat edits this. |
 | `song-map.js` | The song engine: scale degrees → concert pitch → each instrument's written notes, octave fitting, chords. |
 | `notation.js` | The notation engine: note values, beams, rests, ties, accidentals, engraving-style spacing and the time → x map the scrolling staff follows (also the Song Board and the trouble spot). |
-| `settings.js` | Judging windows, scoring, stars, speeds, card spacing, the strike glow, staff spacing, calibration, volumes. |
+| `settings.js` | Judging windows, scoring, stars, speeds, the highway (lanes, pads, pad spacing, the sun), the gate glow, performance, staff spacing, calibration, volumes. |
 | `backing.js` | The generated drums (and the headphones-mode band), scheduled on the audio clock. |
 | `game.js` | The game: song select, the highway, judging, calibration, the headphones check, results. |
 | `songs.html` | The **Song Board**: every song on a staff (concert and any instrument), letter names, ▶ PLAY. |

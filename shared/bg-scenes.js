@@ -371,43 +371,90 @@ window.Arcade = window.Arcade || {};
     x.fillStyle = col('deep', .35); x.fillRect(0, 0, W, H);              // keep it dark behind the menus
   };
 
-  /* MUSIC HIGHWAY: a neon highway at night: five lanes running to the horizon under a starfield, beat lines rolling
-     toward you and faint note cards drifting down the lanes. Dark and slow; the brightest parts are thin lines */
+  /* THE SYNTHWAVE SUNSET (Music Highway's art: the game's backdrop (music-highway/game.js) and its menu scene below
+     share it). paint() draws what never moves, once, into a canvas the caller keeps: the purple-to-pink sky, a few
+     stars, the big striped sun on the horizon, wireframe mountains on both sides and the ground with its grid lines
+     running to the vanishing point. The moving parts (the grid's rolling lines, the road, the pads) are the caller's.
+       S.sunset.paint(x, W, H, {hz, cx, stars, mountains})  -> {sun: {x, y, r, img}} (img = the sun alone, for a swell) */
+  S.sunset = {
+    paint(x, W, H, o = {}) {
+      const hz = o.hz, cx = o.cx != null ? o.cx : W / 2, stars = o.stars == null ? 60 : o.stars;
+      vgrad(x, W, hz, [[0, col('mh-sky-top')], [.55, col('mh-sky-mid')], [1, col('mh-sky-low')]]);
+      for (let i = 0; i < stars; i++) {                                  // stars in the dark top of the sky
+        const sx = hash(i) * W, sy = Math.pow(hash(i + 50), 1.6) * hz * .6;
+        x.fillStyle = col('text-hi', .25 + .5 * hash(i + 9)); x.fillRect(sx, sy, 1.5, 1.5);
+      }
+      // the sun: a gradient disc sitting on the horizon, horizontal bands cut out of its lower half
+      const r = Math.min(W * .16, hz * .64), sy = hz - r * .42;
+      const img = document.createElement('canvas'); img.width = Math.ceil(r * 2 + 4); img.height = Math.ceil(r * 2 + 4);
+      const g = img.getContext('2d'), c0 = r + 2;
+      const gr = g.createLinearGradient(0, 2, 0, r * 2 + 2); gr.addColorStop(0, col('mh-sun1')); gr.addColorStop(.55, col('amber')); gr.addColorStop(1, col('mh-sun2'));
+      g.fillStyle = gr; g.beginPath(); g.arc(c0, c0, r, 0, TAU); g.fill();
+      g.globalCompositeOperation = 'destination-out';
+      for (let k = 0; k < 6; k++) { const f = k / 6, y = c0 + r * (.08 + f * .9), h = r * (.04 + f * .09); g.fillRect(0, y, img.width, h); }
+      glow(x, cx, sy, r * 2, col('mh-sun2', .35), col('mh-sun2', 0));
+      x.save(); x.beginPath(); x.rect(0, 0, W, hz); x.clip();
+      x.drawImage(img, cx - c0, sy - c0);
+      // wireframe mountains on both sides
+      if (o.mountains !== false) {
+        const ridge = (pts, side) => {
+          const P = pts.map(([u, v]) => [side < 0 ? W * u : W * (1 - u), hz - v * hz * .42]);
+          x.fillStyle = col('mh-mtn'); x.beginPath(); x.moveTo(P[0][0], hz); P.forEach(p => x.lineTo(p[0], p[1])); x.lineTo(P[P.length - 1][0], hz); x.closePath(); x.fill();
+          x.strokeStyle = col('mh-mtn-line', .35); x.lineWidth = 1;                // the wireframe: peak to the valleys around it
+          for (let i = 1; i < P.length - 1; i++) { x.beginPath(); x.moveTo(P[i][0], P[i][1]); x.lineTo((P[i - 1][0] + P[i][0]) / 2, hz); x.lineTo(P[i][0], hz); x.lineTo((P[i + 1][0] + P[i][0]) / 2, hz); x.stroke(); }
+          x.strokeStyle = col('mh-mtn-line', .85); x.lineWidth = Math.max(1.5, W / 700);
+          x.beginPath(); P.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.stroke();
+        };
+        ridge([[0, .5], [.05, .75], [.11, .42], [.17, .9], [.24, .5], [.3, .66], [.37, .18], [.4, 0]], -1);
+        ridge([[0, .6], [.06, .38], [.12, .82], [.19, .45], [.26, .7], [.33, .3], [.38, .12], [.41, 0]], 1);
+      }
+      x.restore();
+      // the ground: dark, with the grid's lines running to the vanishing point
+      vgrad2(x, 0, hz, W, H - hz, [[0, col('mh-ground')], [1, mix('mh-ground', 'deep', .5)]]);
+      for (let i = -24; i <= 24; i++) {
+        const gl = x.createLinearGradient(0, hz, 0, H); gl.addColorStop(0, col('mh-grid', 0)); gl.addColorStop(1, col('mh-grid', .35));
+        x.strokeStyle = gl; x.lineWidth = 1; x.beginPath(); x.moveTo(cx, hz); x.lineTo(cx + i * W * .09, H); x.stroke();
+      }
+      x.strokeStyle = col('mh-sky-low', .9); x.lineWidth = 2; x.beginPath(); x.moveTo(0, hz); x.lineTo(W, hz); x.stroke();
+      return {sun: {x: cx - c0, y: sy - c0, r, img}};
+    },
+  };
+  function vgrad2(x, X0, Y0, W, H, stops) { const g = x.createLinearGradient(0, Y0, 0, Y0 + H); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(X0, Y0, W, H); }
+
+  /* MUSIC HIGHWAY (the menu scene): the game's own synthwave sunset (S.sunset) with the highway's pitch lanes, the
+     grid rolling toward you and a few light pads drifting down the lanes. Slow; the menus sit on top */
+  const HW_CACHE = {};
   S.highway = (x, W, H, t) => {
-    const hz = H * .38, vx = W / 2, far = 5, half = W * .42, sy = H * 1.02;
-    vgrad(x, W, H, [[0, col('deep')], [.3, col('mh-sky')], [.38, mix('mh-sky', 'purple-ink', .5)], [.38, col('deep')], [1, col('mh-road')]]);
-    for (let i = 0; i < 70; i++) {                                 // stars, twinkling slowly
-      const sx = hash(i) * W, syy = hash(i + 50) * hz * .95, a = .15 + .35 * tri(hash(i + 9) + t * (.05 + .05 * hash(i + 4)));
-      x.fillStyle = col('text-hi', a); x.fillRect(sx, syy, 1.4, 1.4);
+    // the still layers are drawn once per size and kept here (an avatar background passes no state of its own)
+    const key = W + 'x' + H, st = HW_CACHE[key] || (HW_CACHE[key] = {}), hz = H * .42, vx = W / 2, far = 6, half = W * .36, sy = H * 1.02;
+    const keys = Object.keys(HW_CACHE); if (keys.length > 6) delete HW_CACHE[keys[0]];
+    if (!st.bg) {
+      st.bg = document.createElement('canvas'); st.bg.width = W; st.bg.height = H;
+      const b = st.bg.getContext('2d');
+      S.sunset.paint(b, W, H, {hz, cx: vx, stars: 50});
+      const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
+      b.fillStyle = col('mh-road', .92); b.beginPath(); b.moveTo(vx, hz); b.lineTo(X(1, 1), Y(1)); b.lineTo(X(-1, 1), Y(1)); b.fill();
+      for (let l = 0; l <= 5; l++) { const u = -1 + l * .4, edge = l === 0 || l === 5;
+        b.strokeStyle = edge ? col('pink', .8) : col('mh-lane', .35); b.lineWidth = edge ? Math.max(2, W / 400) : 1;
+        b.beginPath(); b.moveTo(vx, hz); b.lineTo(X(u, 1), Y(1)); b.stroke(); }
     }
-    const r = Math.min(W, H) * .16;                                // the sun behind the horizon
-    x.save(); x.beginPath(); x.rect(0, 0, W, hz); x.clip();
-    const g = x.createLinearGradient(0, hz - r, 0, hz); g.addColorStop(0, col('mh-sun1', .35)); g.addColorStop(1, col('mh-sun2', .35));
-    x.fillStyle = g; x.beginPath(); x.arc(vx, hz, r, 0, TAU); x.fill();
-    x.fillStyle = col('deep'); for (let k = 0; k < 4; k++) x.fillRect(vx - r, hz - r * (.12 + k * .2), r * 2, 2 + k);
-    x.restore();
+    x.drawImage(st.bg, 0, 0, W, H);
     const X = (u, d) => vx + u * half / d, Y = d => hz + (sy - hz) / d;
-    x.fillStyle = col('mh-road', .9); x.beginPath(); x.moveTo(X(-1, far), Y(far)); x.lineTo(X(1, far), Y(far)); x.lineTo(X(1, 1), Y(1)); x.lineTo(X(-1, 1), Y(1)); x.fill();
-    for (let l = 0; l <= 5; l++) {                                 // the lanes (the edges glow pink)
-      const u = -1 + l * .4, edge = l === 0 || l === 5;
-      x.strokeStyle = edge ? col('pink', .75) : col('mh-lane', .3); x.lineWidth = edge ? Math.max(2, W / 400) : 1;
-      x.beginPath(); x.moveTo(X(u, far), Y(far)); x.lineTo(X(u, 1), Y(1)); x.stroke();
-    }
-    for (let k = 0; k < 8; k++) {                                  // beat lines rolling toward you
-      const f = fract(k / 8 + t * .12), d = far - (far - 1) * f;
-      x.strokeStyle = col('mh-lane', .45 * f); x.lineWidth = 1 + f;
-      x.beginPath(); x.moveTo(X(-1, d), Y(d)); x.lineTo(X(1, d), Y(d)); x.stroke();
+    for (let k = 0; k < 10; k++) {                                // the grid rolling toward you
+      const f = fract(k / 10 + t * .1), d = Math.pow(far, 1 - f);
+      x.strokeStyle = col(k % 2 ? 'mh-grid' : 'mh-grid-2', .5 * f); x.lineWidth = 1 + f;
+      x.beginPath(); x.moveTo(0, Y(d)); x.lineTo(W, Y(d)); x.stroke();
     }
     const cols = ['mh-c', 'mh-d', 'mh-e', 'mh-f', 'mh-g', 'mh-a', 'mh-b'];
-    for (let i = 0; i < 6; i++) {                                  // faint note cards drifting down the lanes
-      const f = fract(hash(i + 20) + t * .07), d = far - (far - 1.2) * f, lane = Math.floor(hash(i + 31) * 5), u = -.8 + lane * .4;
-      const w = half * .28 / d, h = w * 1.1, cx = X(u, d), by = Y(d);
-      x.fillStyle = col('screen', .1 + .25 * f); x.strokeStyle = col(cols[i % 7], .25 + .45 * f); x.lineWidth = 1.5;
+    for (let i = 0; i < 6; i++) {                                  // light pads drifting down the lanes
+      const f = fract(hash(i + 20) + t * .07), d = Math.pow(far, 1 - f), lane = Math.floor(hash(i + 31) * 5), u = -.8 + lane * .4;
+      const w = half * .3 / d, h = w * .45, cx = X(u, d), by = Y(d);
+      x.fillStyle = col(cols[i % 7], .25 + .5 * f); x.strokeStyle = col('deep', .8); x.lineWidth = 1.5;
       x.beginPath(); x.rect(cx - w / 2, by - h, w, h); x.fill(); x.stroke();
     }
-    x.strokeStyle = col('cyan', .35); x.lineWidth = 2;               // a dim strike line near the bottom
-    x.beginPath(); x.moveTo(X(-1, 1.12), Y(1.12)); x.lineTo(X(1, 1.12), Y(1.12)); x.stroke();
+    x.fillStyle = col('deep', .25); x.fillRect(0, 0, W, H);           // a little darker behind the menus
   };
+
 
   /* LOST SIGNAL: a slow starfield, a radar sweep in the corner, a faint distant signal pulse */
   S.space = (x, W, H, t) => {
