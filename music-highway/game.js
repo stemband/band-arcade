@@ -1,11 +1,12 @@
-/* Music Highway: a play-along rhythm game. Fingering cards for the student's own instrument fly down a neon highway
-   in time with a backing groove; the student plays each note as its card reaches the strike line. The microphone
-   judges the pitch AND the timing (from the note's attack).
+/* Music Highway: a play-along rhythm game. Neon light pads race down a synthwave highway in time with a backing
+   groove, one lane per pitch (low notes on the left, high on the right, so the melody's shape shows on the road);
+   the student plays each note as its pad reaches its lane's gate. The microphone judges the pitch AND the timing
+   (from the note's attack).
      songs.js     THE SONG LIST (scale degrees in a concert key) · song-map.js: songs -> each instrument's written notes
      settings.js  judging windows, scoring, stars, speeds, calibration, volumes · backing.js: the drums (+ headphones band)
    THE CLOCK: everything runs on the arcade's AudioContext (Sfx.output()): the drums are scheduled on it, and the
    highway, the staff and the judge all read the AUDIBLE time from it (getOutputTimestamp / outputLatency), so the
-   cards reach the line exactly as the beat is heard and nothing drifts, however long the song. With the sound off the
+   pads reach their gates exactly as the beat is heard and nothing drifts, however long the song. With the sound off the
    game falls back to performance.now().
    SOUND WHILE LISTENING (the exception, see CLAUDE.md): the backing plays while the microphone listens and does NOT mute
    it; the drums are unpitched noise (a hit counts only with the right pitch) and the snare player's hits must be louder
@@ -29,7 +30,8 @@
   /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, slow, horn, wide, tip} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
-  let slow = !!gd().slow, hp = !!gd().hp, hornSide = gd().horn === 'Bb' ? 'Bb' : 'F', wide = !!gd().wide;
+  let slow = !!gd().slow, hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false;
+  const hornSide = 'F';                                            // (the fingering choice of the old cards: not used any more)
   let hpChecked = false;                                         // the speaker check passed on this page load
   const mode = () => hp ? 'headphones' : 'speaker';
   const lagMs = () => { const c = (gd().calib || {})[mode()]; return c && typeof c.ms === 'number' ? c.ms : R.defaultLagMs; };
@@ -46,10 +48,9 @@
     $('spdNormal').setAttribute('aria-pressed', String(!slow)); $('spdSlow').setAttribute('aria-pressed', String(slow));
     $('hpBtn').setAttribute('aria-pressed', String(hp)); $('hpBtn').classList.toggle('on', hp);
     $('spcNormal').setAttribute('aria-pressed', String(!wide)); $('spcWide').setAttribute('aria-pressed', String(wide));
-    $('hornOpt').hidden = member.id !== 'horn';
-    $('hornF').setAttribute('aria-pressed', String(hornSide === 'F')); $('hornBb').setAttribute('aria-pressed', String(hornSide === 'Bb'));
+    $('namesOn').setAttribute('aria-pressed', String(names)); $('namesOff').setAttribute('aria-pressed', String(!names));
     const c = (gd().calib || {})[mode()];
-    $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') + (wide ? 'Wide note spacing: more room between the cards (they move a little faster). ' : '') +
+    $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') + (wide ? 'Wide note spacing: more room between the lights (they move a little faster). ' : '') + (names ? '' : 'Letter names are off inside the lights (the gates still show them). ')  +
       (hp ? 'Headphones mode: the band plays the melody, bass and chords too. Bluetooth headphones add a delay: recalibrate with them on. ' : '') +
       (c ? `Timing calibrated (${Math.round(c.ms)} ms${hp ? ', headphones' : ''}).` : 'Not calibrated yet: the first song starts with a quick timing check.');
     $('calBtn').textContent = c ? 'Recalibrate' : 'Calibrate';
@@ -58,8 +59,8 @@
   $('spdSlow').onclick = () => { slow = true; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
   $('spcNormal').onclick = () => { wide = false; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('spcWide').onclick = () => { wide = true; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
-  $('hornF').onclick = () => { hornSide = 'F'; save({horn: 'F'}); A.Sfx.event('ui-toggle'); drawOpts(); };
-  $('hornBb').onclick = () => { hornSide = 'Bb'; save({horn: 'Bb'}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('namesOn').onclick = () => { names = true; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('namesOff').onclick = () => { names = false; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('hpBtn').onclick = () => {
     A.Sfx.event('ui-toggle');
     if (hp) { hp = false; save({hp}); drawOpts(); return; }
@@ -126,9 +127,9 @@
 
   /* ================= THE SONG ================= */
   let G = null, kit = null, raf = 0, sched = 0;
-  const COLORS = ['c', 'c', 'd', 'd', 'e', 'f', 'f', 'g', 'g', 'a', 'a', 'b'];      // card color by letter (written)
+  const COLORS = ['c', 'c', 'd', 'd', 'e', 'f', 'f', 'g', 'g', 'a', 'a', 'b'];      // pad color by letter (written)
 
-  function buildTimeline(song, map, rate, practice) {
+  function buildTimeline(song, map, rate, practice, lanes) {
     const spb = 60 / (song.tempo * rate), per = map.beatsPerMeasure;
     let notes = map.notes, measures = map.measures, loops = 1, from = 1;
     if (practice) {
@@ -139,11 +140,7 @@
       notes = [];
       for (let k = 0; k < loops; k++) inRange.forEach(n => notes.push(Object.assign({}, n, {t: n.t - base + k * len, loop: k, measure: n.measure - from + 1 + k * (to - from + 1), orig: n.measure})));
     }
-    const lanesOf = (() => {                                       // lane by pitch: low = left
-      if (unpitched) return n => n.stick === 'L' ? 1 : 3;
-      const pitches = [...new Set(map.notes.map(n => n.midi))].sort((a, b) => a - b), L = R.lanes;
-      return n => pitches.length < 2 ? 2 : Math.round(pitches.indexOf(n.midi) / (pitches.length - 1) * (L - 1));
-    })();
+    const lanesOf = n => unpitched ? 0 : lanes.of(n);             // one lane per pitch, low = left (song-map.js lanes)
     const list = notes.map((n, k) => ({k, n, t: n.t * spb, beats: n.beats, dur: n.beats * spb, end: (n.t + n.beats) * spb, lane: lanesOf(n), measure: n.measure,
       orig: n.orig || n.measure, loop: n.loop || 0, pc: n.pc, midi: n.concert, long: !unpitched && n.beats >= R.holdFrom, res: null, held: 0}));
     return {spb, per, notes: list, measures, total: measures * per * spb, loops, from, perLoop: practice ? list.length / loops : list.length,
@@ -157,17 +154,18 @@
     A.Sfx.gameMenuMusic(GAME_ID, false);                          // the menu music fades; the microphone listens again
     const rate = practice ? R.practiceRate : slow ? R.slowRate : 1;
     const map = SM.forMember(song, member, inst, {hornSide});
-    const T = buildTimeline(song, map, rate, practice);
-    G = {i, song, map, rate, practice, slow: !practice && slow, T, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
+    const lanes = SM.lanes(song, map, inst);
+    const T = buildTimeline(song, map, rate, practice, lanes);
+    G = {i, song, map, lanes, rate, practice, slow: !practice && slow, T, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
          counts: {perfect: 0, good: 0, ok: 0, early: 0, late: 0, miss: 0}, value: 0, judged: 0, pendingAtk: [], recent: [], soft: [],
          bleed: 0, bleedSamples: [], hits: [], lag: lagMs(), paused: false, loopStats: {}, log: []};
     $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
     document.documentElement.classList.add('mh-playing');
     $('hudSong').textContent = song.title + (practice ? ' · practice' : G.slow ? ' · slow' : '');
     $('hudAccL').textContent = practice ? 'This loop' : 'Accuracy';
-    layout(); buildCards(); buildStaff();
+    layout(); buildPads(); buildStaff();
     showTip(practice ? `Practice: measures ${practice.from}–${practice.to}, looping at ${Math.round(R.practiceRate * 100)}% speed. Tap pause to stop.` :
-      unpitched ? 'Play each hit as its card reaches the line. Stick with the R and L!' : 'Play each note as its card reaches the glowing line.');
+      unpitched ? 'Play each hit as its light reaches the gate. Stick with the R and L!' : 'Play each note as its light reaches its gate. Low notes on the left, high notes on the right!');
     A.Pitch.ignoreCurrent();
     A.Pitch.demoAttacks = true;
     clockStart();
@@ -310,7 +308,7 @@
     cardDone(n, res);
     if (res === 'perfect' || res === 'good' || res === 'ok') glowHit(n);
     else if (res === 'miss') badPad(n.lane);
-    showJudge(res, d);
+    showJudge(res, d, n.lane);
     hud();
   }
   let wrongT = 0;
@@ -379,9 +377,12 @@
         if (beats > .25) { const pts = Math.round(beats * R.holdPoints); G.score += pts; G.bonus = (G.bonus || 0) + pts; hud(); }
       }
     });
+    const d0 = performance.now();
+    glowFrame(t);
     drawHighway(t);
     moveStaff(t);
-    glowFrame(t);
+    perfWatch(d0);
+    if (G.trace) { G.traceLog.push({t, tx: V.st.play - V.st.x * V.st.scale, pads: G.trace.pads}); G.trace = {pads: {}}; }
     if (G.practice) {
       const L = Math.floor(Math.max(0, t) / (G.T.total / G.T.loops));
       if (L !== G.shownLoop) { G.shownLoop = L; hud(); }
@@ -389,73 +390,86 @@
     if (t > G.T.total + .6 && G.phase === 'play') finish();
   }
 
-  /* ---------- layout + the road ---------- */
+  /* PERFORMANCE: the frame's own drawing time and the time between frames. Averages that stay slow for 3 s
+     (draw > fxSlowDrawMs or frames further apart than fxSlowGapMs) lower the effects once, for good on this device */
+  function perfWatch(d0) {
+    const now = performance.now();
+    if (FX.q === 'lo') return;
+    FX.draw.push(now - d0); if (FX.last) FX.gaps.push(d0 - FX.last); FX.last = d0;
+    if (FX.draw.length < 180) return;
+    const avg = a => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length), dr = avg(FX.draw), gp = avg(FX.gaps);
+    FX.draw = []; FX.gaps = [];
+    if (dr > R.fxSlowDrawMs || gp > R.fxSlowGapMs) { FX.q = 'lo'; FX.why = {draw: +dr.toFixed(1), gap: +gp.toFixed(1)}; save({fx: 'lo'}); layout(); spacing(); }
+  }
+  /* ---------- THE HIGHWAY: a synthwave sunset (bg-scenes.js S.sunset, drawn once into V.bg), the road with one lane
+     per pitch (song-map.js lanes: low = left), the grid rolling in time with the song, neon light PADS flying from the
+     horizon to their lane's GATE on the strike line, long notes' light trails, and the gates' hit glow. All on one
+     canvas; the static layers are drawn once (layout), each frame only the grid, trails, pads and gates. ---------- */
   const V = {};
+  /* effects quality: 'hi' | 'lo' (fewer stars, no mountains, no halos, pixel ratio 1). A device whose frames stay slow
+     is lowered once, for good (gameData('music-highway').fx), instead of dropping frames */
+  const FX = {q: gd().fx === 'lo' ? 'lo' : 'hi', draw: [], gaps: [], last: 0};
+  const TOK = {}, tok = name => TOK[name] || (TOK[name] = getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || 'white');
+  const FONT = (getComputedStyle(document.documentElement).getPropertyValue('--display').trim() || 'sans-serif');
   function layout() {
     const P = $('play'), W = P.clientWidth, H = P.clientHeight;
     const staffH = Math.round(Math.max(96, Math.min(170, H * .2)));
     const roadH = H - staffH;
-    Object.assign(V, {W, H, roadH, staffH, cx: W / 2, hy: roadH * .06, sy: roadH * .84, K: R.roadDepth});
-    V.half = Math.min(W * .46, roadH * .72);
-    V.laneW = V.half * 2 / R.lanes;
-    V.cardW0 = Math.min(R.cardMaxPx, V.laneW * .98); V.cardH0 = V.cardW0 * (unpitched ? .9 : 1);
-    V.cardW = V.cardW0; V.cardH = V.cardH0;
-    const c = $('road'), dpr = Math.min(1.5, devicePixelRatio || 1);
+    Object.assign(V, {W, H, roadH, staffH, cx: W / 2, hy: roadH * R.horizon, sy: roadH * .86, K: R.roadDepth});
+    V.nl = G.lanes.lanes.length;
+    V.half = unpitched ? Math.min(W * .2, roadH * .3, 130) : Math.min(W * .47, roadH * .85);
+    V.laneW = V.half * 2 / V.nl;
+    V.padW0 = Math.min(R.padMaxPx, V.laneW * .8); V.padH0 = V.padW0 * R.padShape;
+    V.padW = V.padW0; V.padH = V.padH0;
+    V.gateW = Math.min(V.laneW * .94, V.padW0 + 16); V.gateH = V.padH0 + 12;
+    const c = $('road'), dpr = FX.q === 'lo' ? 1 : Math.min(1.5, devicePixelRatio || 1);
     c.width = Math.round(W * dpr); c.height = Math.round(roadH * dpr); c.style.width = W + 'px'; c.style.height = roadH + 'px';
     V.g = c.getContext('2d'); V.g.setTransform(dpr, 0, 0, dpr, 0, 0);
     V.bg = drawStatic(W, roadH, dpr);
     $('staffBox').style.height = staffH + 'px';
     P.style.setProperty('--sy', V.sy + 'px');
-    // the pads on the strike line, and THE STRIKE GLOW: one lit target that slides to the lane of the note played
-    $('pads').innerHTML = Array.from({length: R.lanes}, (_, l) => `<i class="mh-pad" style="left:${laneX(l)}px;top:${V.sy}px;width:${V.laneW * .8}px"></i>`).join('') +
-      `<i class="mh-strike" id="strikeGlow" style="left:${V.cx - V.half}px;top:${V.sy}px;width:${V.half * 2}px"></i>` +
-      `<i class="mh-reticle" id="reticle" style="width:${V.laneW * .86}px"></i>`;
-    GL.on = false; GL.n = null;
+    GL.lanes = Array.from({length: V.nl}, () => ({v: 0, target: 0, n: null, offAt: -1e9, col: 'c', badAt: -1e9}));
   }
-  const laneX = l => V.cx + (l - (R.lanes - 1) / 2) * V.laneW;
-  const TOK = {}, tok = name => TOK[name] || (TOK[name] = getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || 'white');
-  /* the parts that never move, drawn once: the night sky, the stars, the sun on the horizon, the road and its lanes */
+  const laneX = (l, s = 1) => V.cx + (l - (V.nl - 1) / 2) * V.laneW * s;
+  function rrect(g, x, y, w, h, r) {                              // a rounded rectangle path (no ctx.roundRect on older iPads)
+    r = Math.min(r, w / 2, h / 2);
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+  /* the parts that never move, drawn once: the sunset, the road, its lanes, the unlit gates and their letter names */
   function drawStatic(W, H, dpr) {
     const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
     const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const sky = g.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, tok('deep')); sky.addColorStop(.1, tok('mh-sky')); sky.addColorStop(1, tok('floor'));
-    g.fillStyle = sky; g.fillRect(0, 0, W, H);
-    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    g.fillStyle = tok('text-hi');
-    for (let i = 0; i < 90; i++) { g.globalAlpha = .15 + rnd() * .5; g.fillRect(rnd() * W, rnd() * V.hy * 1.6, 1.3, 1.3); }
-    g.globalAlpha = 1;
-    // the sun, half under the horizon
-    const r = Math.min(W * .12, H * .12), sun = g.createLinearGradient(0, V.hy - r, 0, V.hy);
-    sun.addColorStop(0, tok('mh-sun1')); sun.addColorStop(1, tok('mh-sun2'));
-    g.save(); g.beginPath(); g.rect(0, 0, W, V.hy); g.clip();
-    g.fillStyle = sun; g.globalAlpha = .55; g.beginPath(); g.arc(V.cx, V.hy, r, 0, Math.PI * 2); g.fill();
-    g.globalAlpha = 1; g.fillStyle = tok('deep');
-    for (let k = 0; k < 4; k++) g.fillRect(V.cx - r, V.hy - r * (.14 + k * .2), r * 2, 1.5 + k);
-    g.restore();
-    // the road
-    const far = 1 + V.K, xAt = (x, d) => V.cx + x / d, yAt = d => V.hy + (V.sy - V.hy) / d;
-    const dBottom = (V.sy - V.hy) / (H - V.hy);
-    g.beginPath(); g.moveTo(xAt(-V.half, far), yAt(far)); g.lineTo(xAt(V.half, far), yAt(far));
-    g.lineTo(xAt(V.half, dBottom), H); g.lineTo(xAt(-V.half, dBottom), H); g.closePath();
-    const rd = g.createLinearGradient(0, V.hy, 0, H); rd.addColorStop(0, tok('floor-2')); rd.addColorStop(1, tok('mh-road'));
-    g.fillStyle = rd; g.fill();
-    for (let l = 0; l <= R.lanes; l++) {
-      const x = -V.half + l * V.laneW, edge = l === 0 || l === R.lanes;
-      g.strokeStyle = edge ? tok('pink') : tok('mh-lane'); g.lineWidth = edge ? 3 : 1.4; g.globalAlpha = edge ? .9 : .5;
-      if (edge) { g.shadowColor = tok('pink'); g.shadowBlur = 10; } else g.shadowBlur = 0;
-      g.beginPath(); g.moveTo(xAt(x, far), yAt(far)); g.lineTo(xAt(x, dBottom), H); g.stroke();
+    const art = A.BgScenes.sunset.paint(g, W, H, {hz: V.hy, cx: V.cx, stars: FX.q === 'lo' ? 15 : 60, mountains: FX.q !== 'lo'});
+    V.sun = art.sun;
+    // the road: from the vanishing point on the horizon to the bottom (lines through the vanishing point = perspective)
+    const Hr = V.sy - V.hy, dB = Hr / (H - V.hy), xB = u => V.cx + u * V.half / dB;
+    g.globalAlpha = .9; g.fillStyle = tok('mh-road');
+    g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(1), H); g.lineTo(xB(-1), H); g.closePath(); g.fill(); g.globalAlpha = 1;
+    for (let l = 0; l <= V.nl; l++) {
+      const u = -1 + l * 2 / V.nl, edge = l === 0 || l === V.nl;
+      if (edge && FX.q !== 'lo') { g.strokeStyle = tok('pink'); g.globalAlpha = .25; g.lineWidth = 9; g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke(); }
+      g.strokeStyle = edge ? tok('pink') : tok('mh-lane'); g.globalAlpha = edge ? .95 : .5; g.lineWidth = edge ? 3 : 1.3;
+      g.beginPath(); g.moveTo(V.cx, V.hy); g.lineTo(xB(u), H); g.stroke();
     }
-    g.shadowBlur = 0; g.globalAlpha = 1;
-    // the strike line
-    g.strokeStyle = tok('cyan'); g.lineWidth = 4; g.shadowColor = tok('cyan'); g.shadowBlur = 14;
-    g.beginPath(); g.moveTo(V.cx - V.half, V.sy); g.lineTo(V.cx + V.half, V.sy); g.stroke(); g.shadowBlur = 0;
+    g.globalAlpha = 1;
+    // the strike line and the gates (unlit), with each lane's letter name under its gate
+    g.strokeStyle = tok('cyan'); g.globalAlpha = .7; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(V.cx - V.half, V.sy); g.lineTo(V.cx + V.half, V.sy); g.stroke(); g.globalAlpha = 1;
+    const fs = Math.max(13, Math.min(24, V.laneW * .3));
+    g.font = `${fs}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'top';
+    G.lanes.lanes.forEach((ln, l) => {
+      const x = laneX(l);
+      g.fillStyle = tok('deep'); g.globalAlpha = .55; rrect(g, x - V.gateW / 2, V.sy - V.gateH / 2, V.gateW, V.gateH, V.gateH * .35); g.fill();
+      g.globalAlpha = .85; g.strokeStyle = tok('mh-gate'); g.lineWidth = 2; g.stroke();
+      g.globalAlpha = 1; g.lineWidth = 4; g.strokeStyle = tok('deep'); g.fillStyle = tok('text-hi');
+      g.strokeText(ln.label, x, V.sy + V.gateH / 2 + 6); g.fillText(ln.label, x, V.sy + V.gateH / 2 + 6);
+    });
     return c;
   }
-  /** where a moment dt seconds away is on the road: {y, s (scale), d} */
-  /* the road is exponential in depth: d = (1 + K)^(dt / lead). A card's size (1/d) and its distance to the next card
+  /* the road is exponential in depth: d = (1 + K)^(dt / lead). A pad's size (1/d) and its distance to the next pad
      then shrink together, so the spacing rule (CARD SPACING in settings.js) holds all the way up the road. Past the
-     line a card keeps the line's speed at full size. */
+     line a pad keeps the line's speed at full size. */
   function proj(dt) {
     const L = G.lead, H = V.sy - V.hy;
     if (dt < 0) return {d: 1, s: 1, y: V.sy - dt / L * H * Math.log(1 + V.K)};
@@ -463,96 +477,86 @@
     return {d, s: 1 / d, y: V.hy + H / d};
   }
   function drawHighway(t) {
-    const g = V.g, T = G.T;
-    g.clearRect(0, 0, V.W, V.roadH);
-    g.drawImage(V.bg, 0, 0, V.W, V.roadH);
-    // beat lines rolling toward the strike line (measure lines brighter): the music's pulse on the road
-    const b0 = Math.ceil((t - .4) / T.spb), b1 = Math.floor((t + G.lead) / T.spb);
-    for (let b = Math.max(b0, -T.per); b <= b1; b++) {
-      const p = proj(b * T.spb - t); if (p.y > V.roadH) continue;
-      const bar = ((b % T.per) + T.per) % T.per === 0;
-      g.strokeStyle = bar ? tok('mh-lane') : tok('floor-3'); g.globalAlpha = (bar ? .8 : .45) * Math.min(1, (1 - (p.d - 1) / V.K) * 1.5);
-      g.lineWidth = bar ? 2 : 1;
-      g.beginPath(); g.moveTo(V.cx - V.half * p.s, p.y); g.lineTo(V.cx + V.half * p.s, p.y); g.stroke();
+    const g = V.g, T = G.T, W = V.W, still = reduced();
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    g.drawImage(V.bg, 0, 0, W, V.roadH);
+    // THE SUN SWELLS on each downbeat: a smooth cosine over the measure, at most +10 % (never a flash; off with reduced motion)
+    if (!still && V.sun) {
+      const ph = ((t / (T.spb * T.per)) % 1 + 1) % 1, s = .5 + .5 * Math.cos(ph * Math.PI * 2);
+      g.save(); g.beginPath(); g.rect(0, 0, W, V.hy); g.clip();                 // (only the part above the horizon)
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = R.sunSwell * s;
+      g.drawImage(V.sun.img, V.sun.x, V.sun.y); g.restore();
+    }
+    // THE GRID rolls toward the player: one line per beat, crossing the strike line on the beat (still with reduced motion)
+    const tg = still ? 0 : t, dMax = Math.pow(1 + V.K, 1.6), bMax = Math.floor((tg + G.lead * 1.6) / T.spb);
+    for (let b = Math.ceil((tg - G.lead) / T.spb); b <= bMax; b++) {
+      const p = proj(b * T.spb - tg); if (p.y > V.roadH || p.d > dMax) continue;
+      const down = ((b % T.per) + T.per) % T.per === 0;
+      g.strokeStyle = tok(down ? 'mh-grid-2' : 'mh-grid'); g.lineWidth = down ? 2 : 1.2;
+      g.globalAlpha = (down ? .7 : .45) * Math.max(0, 1 - Math.log(p.d) / Math.log(dMax));
+      g.beginPath(); g.moveTo(0, p.y); g.lineTo(W, p.y); g.stroke();
     }
     g.globalAlpha = 1;
-    // long notes' glowing tails (filled gold as they are held)
+    while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) G.ci++;
+    // LONG NOTES: a light trail stretching back from the pad for the note's length; while it's held it burns bright
     for (let k = G.ci; k < T.notes.length && T.notes[k].t - t <= G.lead; k++) {
       const n = T.notes[k];
       if (!n.long) continue;
       const a = n.t - t, e = n.end - t;
-      if (e < -.5 || a > G.lead) continue;
-      const pa = proj(Math.max(a, -.35)), pe = proj(Math.min(e, G.lead)), x = (n.lane - (R.lanes - 1) / 2) * V.laneW, w = V.laneW * .22;
-      g.beginPath();
-      g.moveTo(V.cx + (x - w) * pa.s, pa.y); g.lineTo(V.cx + (x + w) * pa.s, pa.y);
-      g.lineTo(V.cx + (x + w) * pe.s, pe.y); g.lineTo(V.cx + (x - w) * pe.s, pe.y); g.closePath();
-      const col = n.res === 'miss' ? tok('text-dim') : tok('mh-' + (n.color || 'c'));
-      g.fillStyle = col; g.globalAlpha = n.res === 'miss' ? .25 : .55;
-      if (!reduced()) { g.shadowColor = col; g.shadowBlur = 12; }
-      g.fill(); g.shadowBlur = 0; g.globalAlpha = 1;
-      if (n.res && n.res !== 'miss' && n.held > 0) {                // the tail meter: how much has been held
-        const ph = proj(Math.max(-.35, a + n.held));
-        g.fillStyle = tok('yellow-hi'); g.globalAlpha = .85;
-        g.beginPath(); g.moveTo(V.cx + (x - w * .5) * pa.s, pa.y); g.lineTo(V.cx + (x + w * .5) * pa.s, pa.y);
-        g.lineTo(V.cx + (x + w * .5) * ph.s, ph.y); g.lineTo(V.cx + (x - w * .5) * ph.s, ph.y); g.closePath(); g.fill(); g.globalAlpha = 1;
-      }
+      if (e < -.3) continue;
+      const hit = n.res && n.res !== 'miss', lit = hit && n.holding && e > 0;
+      const from = hit ? Math.max(a, 0) : Math.max(a, -.3), pa = proj(from), pe = proj(Math.min(e, G.lead * 1.3));
+      if (pe.y >= pa.y) continue;
+      const x0 = laneX(n.lane, pa.s), x1 = laneX(n.lane, pe.s), w = V.padW * .34;
+      const quad = k2 => { g.beginPath(); g.moveTo(x0 - w * k2 * pa.s, pa.y); g.lineTo(x0 + w * k2 * pa.s, pa.y); g.lineTo(x1 + w * k2 * pe.s, pe.y); g.lineTo(x1 - w * k2 * pe.s, pe.y); g.closePath(); };
+      g.fillStyle = n.res === 'miss' ? tok('text-dim') : tok('mh-' + n.color);
+      if (lit && FX.q !== 'lo') { g.globalAlpha = .3; quad(1.9); g.fill(); }
+      g.globalAlpha = n.res === 'miss' ? .2 : lit ? .95 : hit ? .3 : .55; quad(1); g.fill();
+      if (lit) { g.fillStyle = tok('text-hi'); g.globalAlpha = .7; quad(.35); g.fill(); }
+      g.globalAlpha = 1;
     }
-    // the cards: only the ones on the road (from G.ci while they are within the lead time)
-    while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) { const n = T.notes[G.ci++]; if (n.el) { n.el.remove(); n.el = null; } }
+    // THE PADS (a hit pad is consumed by its gate; a missed one rolls on, grey, and fades)
+    g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let k = G.ci; k < T.notes.length; k++) {
       const n = T.notes[k], dt = n.t - t;
       if (dt > G.lead) break;
-      if (dt < -.6 || (n.res && n.res !== 'miss' && dt < -.3)) { if (n.el) { n.el.remove(); n.el = null; } continue; }
-      if (!n.el) makeCard(n);
-      const el = n.el, p = proj(dt), x = V.cx + (n.lane - (R.lanes - 1) / 2) * V.laneW * p.s;
-      el.style.transform = `translate(${(x - V.cardW / 2).toFixed(1)}px,${(p.y - V.cardH).toFixed(1)}px) scale(${p.s.toFixed(3)})`;
-      el.style.opacity = String(Math.min(1, (G.lead - dt) / (G.lead * .18)) * (dt < 0 ? Math.max(0, 1 + dt / (n.res && n.res !== 'miss' ? .3 : .6)) : 1));
-      el.style.zIndex = String(1000 - Math.round(dt * 100));
+      if (dt < -.45 || (n.res && n.res !== 'miss')) continue;
+      const p = proj(dt), x = laneX(n.lane, p.s), w = V.padW * p.s, h = V.padH * p.s, y = p.y;
+      const al = Math.min(1, (G.lead - dt) / (G.lead * .15)) * (dt < 0 ? Math.max(0, 1 + dt / .45) : 1);
+      if (al <= 0) continue;
+      const colr = n.res === 'miss' ? tok('text-dim') : tok('mh-' + n.color);
+      if (FX.q !== 'lo' && !n.res) { g.globalAlpha = .28 * al; g.fillStyle = colr; rrect(g, x - w / 2 - 5 * p.s, y - h / 2 - 5 * p.s, w + 10 * p.s, h + 10 * p.s, h * .6); g.fill(); }
+      g.globalAlpha = al; g.fillStyle = colr; rrect(g, x - w / 2, y - h / 2, w, h, h * .42); g.fill();
+      g.fillStyle = tok('text-hi'); g.globalAlpha = .35 * al; rrect(g, x - w * .4, y - h * .38, w * .8, h * .26, h * .13); g.fill();
+      g.globalAlpha = al; g.strokeStyle = tok('deep'); g.lineWidth = Math.max(1.2, 2.6 * p.s); rrect(g, x - w / 2, y - h / 2, w, h, h * .42); g.stroke();
+      if (names && h >= 9) { g.fillStyle = tok('deep'); g.font = `${Math.round(h * .66)}px ${FONT}`; g.fillText(n.label, x, y + h * .04); }
+      if (G.trace) G.trace.pads[n.k] = y;
     }
+    g.globalAlpha = 1;
+    drawGates();
+  }
+  /* the gates' glow (GL, below) and the red miss outline */
+  function drawGates() {
+    const g = V.g, now = performance.now();
+    GL.lanes.forEach((ln, l) => {
+      const x = laneX(l), gw = V.gateW, gh = V.gateH, bad = Math.max(0, 1 - (now - ln.badAt) / R.badMs);
+      if (ln.v > 0) {
+        const c = tok('mh-' + ln.col);
+        g.fillStyle = c;
+        if (FX.q !== 'lo') { g.globalAlpha = .18 * ln.v; rrect(g, x - gw / 2 - 14, V.sy - gh / 2 - 14, gw + 28, gh + 28, gh * .6); g.fill();
+          g.globalAlpha = .3 * ln.v; rrect(g, x - gw / 2 - 6, V.sy - gh / 2 - 6, gw + 12, gh + 12, gh * .5); g.fill(); }
+        g.globalAlpha = .6 * ln.v; rrect(g, x - gw / 2, V.sy - gh / 2, gw, gh, gh * .35); g.fill();
+        g.globalAlpha = ln.v; g.strokeStyle = c; g.lineWidth = 3; g.stroke();
+      }
+      if (bad > 0) { g.globalAlpha = .55 * bad; g.strokeStyle = tok('red'); g.lineWidth = 2.5; rrect(g, x - gw / 2, V.sy - gh / 2, gw, gh, gh * .35); g.stroke(); }
+    });
+    g.globalAlpha = 1;
   }
 
-  /* ---------- the cards ---------- */
-  const cardCache = {};
-  function cardInner(n) {
-    if (unpitched) return `<b class="mh-stick">${n.n.stick}</b><svg class="mh-drum" viewBox="0 0 60 40" aria-hidden="true"><ellipse cx="30" cy="12" rx="24" ry="8"/><path d="M6 12v16c0 4.4 10.7 8 24 8s24-3.6 24-8V12"/><path d="M12 26l6-10M48 26l-6-10"/></svg>`;
-    const key = n.n.midi + '|' + hornSide;
-    if (cardCache[key]) return cardCache[key];
-    let pic = '';
-    if (member.id === 'bells') pic = bellsSVG(n.n.midi);
-    else if (n.n.fing && A.Masher && A.Masher.DIAGRAMS[G.map.diagram]) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = A.Masher.diagramSVG(G.map.diagram, {label: 'Fingering: ' + n.n.fing.text});
-      const svg = tmp.firstChild, D = A.Masher.DIAGRAMS[G.map.diagram];
-      A.Masher.setState(svg, A.Masher.pressedOf(n.n.fing.keys));
-      if (D.brass) {                                               // valves: just the valves (and the horn's trigger), big
-        const ks = D.keys, ext = k => k.r || Math.max(k.w, k.h) / 2;
-        const x0 = Math.min(...ks.map(k => k.x - ext(k))) - 10, x1 = Math.max(...ks.map(k => k.x + ext(k))) + 10;
-        const y0 = Math.min(...ks.map(k => k.y - ext(k))) - 8, y1 = Math.max(...ks.map(k => k.y + ext(k))) + 8;
-        svg.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
-        svg.querySelector('.dg-draw').setAttribute('opacity', '.35');
-      }
-      const txt = n.n.fing.text;                                   // a long woodwind description: the diagram says it
-      pic = `<div class="mh-dg">${tmp.innerHTML}</div>` + (txt.length <= 22 ? `<span class="mh-ft">${esc(txt)}</span>` : '');
-    } else pic = `<span class="mh-ft mh-nochart">Check your fingering chart</span>`;
-    return (cardCache[key] = `<b class="mh-note">${n.n.label}</b>${pic}`);
-  }
-  /* bells: a strip of the bell kit around the note, the bar to strike lit (naturals below, sharps/flats raised) */
-  function bellsSVG(w) {
-    const nat = [0, 2, 4, 5, 7, 9, 11];
-    const isNat = m => nat.includes(((m % 12) + 12) % 12);
-    let lo = w - 5; while (!isNat(lo)) lo--;
-    const bars = []; let x = 0;
-    for (let m = lo; bars.filter(b => b.nat).length < 7; m++) {
-      if (isNat(m)) { bars.push({m, nat: true, x}); x += 14; }
-      else bars.push({m, nat: false, x: x - 7});
-    }
-    return `<svg class="mh-bells" viewBox="-2 0 ${x + 2} 46" aria-hidden="true">` +
-      bars.filter(b => b.nat).map(b => `<rect x="${b.x}" y="18" width="12" height="${26 - (b.m - lo) * .5}" rx="2" class="${b.m === w ? 'on' : ''}"/>`).join('') +
-      bars.filter(b => !b.nat).map(b => `<rect x="${b.x + 1}" y="2" width="10" height="${16 - (b.m - lo) * .3}" rx="2" class="acc ${b.m === w ? 'on' : ''}"/>`).join('') + `</svg>`;
-  }
-  /* CARD SPACING (settings.js): the time a card is on the road (G.lead) and the card size for this song. Two cards
-     dt apart (the song's quickest step from one note to the next) at any depth d: their gap = H (1 - (1+K)^(-dt/lead)) / d,
-     a card is cardH / d, so the rule is H (1 - (1+K)^(-dt/lead)) >= (1 + cardGap) × cardH (× wideMul for WIDE). */
+  /* CARD SPACING (settings.js), for the pads: the time a pad is on the road (G.lead) and the pad size for this song.
+     Two pads dt apart (the song's quickest step from one note to the next) at any depth d: their gap =
+     H (1 - (1+K)^(-dt/lead)) / d, a pad is padH / d, so the rule is H (1 - (1+K)^(-dt/lead)) >= (1 + cardGap) × padH
+     (× wideMul for WIDE): measured at the strike line, and it holds everywhere up the road. */
   function spacing() {
     const T = G.T, K = V.K, H = V.sy - V.hy, lnK = Math.log(1 + K);
     let dt = Infinity;
@@ -560,91 +564,77 @@
     if (!isFinite(dt)) dt = T.spb;
     const mul = (1 + R.cardGap) * (wide ? R.wideMul : 1);
     const pref = Math.min(R.leadMaxS, Math.max(R.leadMinS, R.leadBeats * T.spb));
-    const leadFor = cardH => { const f = mul * cardH / H; return f >= .999 ? 0 : dt * lnK / -Math.log(1 - f); };
-    let scale = 1, lead = Math.min(pref, leadFor(V.cardH0));
-    if (lead < R.readMinS) {                                      // too fast to read: smaller cards for this song
+    const leadFor = h => { const f = mul * h / H; return f >= .999 ? 0 : dt * lnK / -Math.log(1 - f); };
+    let scale = 1, lead = Math.min(pref, leadFor(V.padH0));
+    if (lead < R.readMinS) {                                      // too fast to read: smaller pads for this song
       const h = (1 - Math.pow(1 + K, -dt / R.readMinS)) * H / mul;
-      scale = Math.max(R.cardMinScale, Math.min(1, h / V.cardH0));
-      lead = Math.min(pref, leadFor(V.cardH0 * scale));
+      scale = Math.max(R.cardMinScale, Math.min(1, h / V.padH0));
+      lead = Math.min(pref, leadFor(V.padH0 * scale));
     }
     G.lead = lead;
-    V.cardW = V.cardW0 * scale; V.cardH = V.cardH0 * scale;
-    $('play').style.setProperty('--cardw', V.cardW + 'px'); $('play').style.setProperty('--cardh', V.cardH + 'px');
-    G.spacing = {dt: +dt.toFixed(3), lead: +lead.toFixed(3), scale: +scale.toFixed(3), wide, cardPx: Math.round(V.cardH),
-      pxPerBeat: Math.round(H * lnK / lead * T.spb), gapPx: Math.round(H * (1 - Math.pow(1 + K, -dt / lead)) - V.cardH)};
+    V.padW = V.padW0 * scale; V.padH = V.padH0 * scale;
+    G.spacing = {dt: +dt.toFixed(3), lead: +lead.toFixed(3), scale: +scale.toFixed(3), wide, padPx: Math.round(V.padH), lanes: V.nl,
+      pxPerBeat: Math.round(H * lnK / lead * T.spb), gapPx: Math.round(H * (1 - Math.pow(1 + K, -dt / lead)) - V.padH)};
   }
-  function buildCards() {
+  function buildPads() {
     spacing();
-    $('cards').innerHTML = '';
-    G.ci = 0;                                                      // the first card that hasn't left the road yet
-    G.T.notes.forEach(n => { n.color = unpitched ? (n.n.stick === 'L' ? 'g' : 'e') : COLORS[((n.n.midi % 12) + 12) % 12]; n.el = null; });
-  }
-  /* a card is made as it comes over the horizon and removed once it has passed (a long song or a practice loop never
-     keeps hundreds of cards in the page) */
-  function makeCard(n) {
-    const el = document.createElement('div');
-    el.className = `mh-card mc-${n.color}${n.n.n && n.n.n.acc ? ' acc' : ''}${n.long ? ' long' : ''}${unpitched ? ' snare' : ''}${n.res ? (n.res === 'miss' ? ' missed' : ' hit') : ''}`;
-    el.innerHTML = cardInner(n);
-    el.dataset.k = n.k;
-    $('cards').appendChild(el); n.el = el;
+    G.ci = 0;                                                      // the first note that hasn't left the road yet
+    G.T.notes.forEach(n => {
+      n.color = unpitched ? (n.n.stick === 'L' ? 'g' : 'e') : COLORS[((n.n.midi % 12) + 12) % 12];
+      n.label = unpitched ? n.n.stick : n.n.label;
+    });
   }
   function cardDone(n, res) {
-    if (!n.el) return;
-    n.el.classList.add(res === 'miss' ? 'missed' : 'hit');
     const g = staffNote(n);
     if (g) g.classList.add(res === 'miss' ? 'miss' : 'hit');
   }
   const staffNote = n => document.getElementById('mhn' + (G.practice ? n.k % G.T.perLoop : n.k));
 
-  /* ---------- THE STRIKE GLOW (visual only; see settings.js) ----------
-     A right note in time (PERFECT / GOOD / OK) lights the target on the strike line, the card and the note on the staff
-     in the card's color. A long note stays lit while it is held (the same check as the hold bonus: n.holding) and
-     fades as soon as it isn't; a short note stays lit glowLingerMs past its end, so a run of right notes is one
-     continuous glow whose color and place glide from note to note. It never blinks: fades only (style.css), and it
-     goes out at most once every glowMinCycleMs (≤ 3 times a second). Misses and wrong notes: a dim red pad outline. */
-  const GL = {on: false, n: null, offAt: -1e9};
+  /* ---------- THE GATE GLOW (visual only; see settings.js) ----------
+     A right note in time (PERFECT / GOOD / OK) lights its lane's gate, and the note on the staff, in the pad's color.
+     A long note stays lit while it is held (the same check as the hold bonus: n.holding; its trail burns bright too)
+     and fades as soon as it isn't; a short note stays lit glowLingerMs past its end, so a run of right notes keeps the
+     gates lit. It never blinks: it fades in (60 ms) and out (200 ms), and a gate goes out at most once every
+     glowMinCycleMs (≤ 3 times a second); reduced motion = on/off with no fades. Misses and wrong notes: a dim red
+     gate outline. */
+  const GL = {lanes: [], last: null};
   function glowHit(n) {
-    if (!G) return;
-    if (GL.n && GL.n !== n) litNote(GL.n, false);
-    GL.n = n;
-    const r = $('reticle'), s = $('strikeGlow'), col = `var(--mh-${n.color || 'c'})`;
-    if (r) { r.style.setProperty('--gc', col); r.style.transform = `translate(${laneX(n.lane).toFixed(1)}px,${V.sy.toFixed(1)}px) translate(-50%,-50%)`; }
-    if (s) s.style.setProperty('--gc', col);
-    if (!GL.on) { GL.on = true; if (r) r.classList.add('on'); if (s) s.classList.add('on'); }
+    const ln = GL.lanes[n.lane]; if (!G || !ln) return;
+    if (ln.n && ln.n !== n) litNote(ln.n, false);
+    ln.n = n; ln.col = n.color; ln.target = 1; GL.last = n;
     litNote(n, true);
-    if (n.el) n.el.classList.add('lit');
   }
   function litNote(n, on) {
     const g = G && staffNote(n);
     if (g) { if (on) g.style.setProperty('--gc', `var(--mh-${n.color || 'c'})`); g.classList.toggle('lit', on); }
-    if (!on && n.el) n.el.classList.remove('lit');
   }
   function glowFrame(t) {
-    const n = GL.n;
-    if (!n || !GL.on) return;
-    const want = n.long ? n.holding && t < n.end : t < n.end + R.glowLingerMs / 1000;
-    if (want) return;
-    const now = performance.now();
-    if (now - GL.offAt < R.glowMinCycleMs) return;              // at most one fade-out per glowMinCycleMs
-    GL.offAt = now;
-    glowOff();
+    const now = performance.now(), dms = Math.min(100, now - (GL.at || now)); GL.at = now;
+    GL.lanes.forEach(ln => {
+      const n = ln.n;
+      if (ln.target && n) {
+        const want = n.long ? n.holding && t < n.end : t < n.end + R.glowLingerMs / 1000;
+        if (!want && now - ln.offAt >= R.glowMinCycleMs) { ln.offAt = now; ln.target = 0; litNote(n, false); ln.n = null; }
+      }
+      if (reduced()) ln.v = ln.target;
+      else if (ln.v < ln.target) ln.v = Math.min(1, ln.v + dms / 60);
+      else if (ln.v > ln.target) ln.v = Math.max(0, ln.v - dms / 200);
+    });
   }
-  function glowOff(reset) {
-    if (GL.n && G) litNote(GL.n, false);
-    GL.on = false; GL.n = null;
-    ['reticle', 'strikeGlow'].forEach(id => { const e = $(id); if (e) e.classList.remove('on'); });
-    if (reset) GL.offAt = -1e9;
+  function glowOff() {
+    GL.lanes.forEach(ln => { if (ln.n && G) litNote(ln.n, false); ln.v = ln.target = 0; ln.n = null; ln.offAt = -1e9; });
+    GL.last = null;
   }
   function badPad(lane) {
-    const p = $('pads').children[lane], now = performance.now();
-    if (!p || now - (p._bad || 0) < R.glowMinCycleMs) return;
-    p._bad = now; p.classList.add('bad');
-    clearTimeout(p._bt); p._bt = setTimeout(() => p.classList.remove('bad'), R.badMs);
+    const ln = GL.lanes[lane], now = performance.now();
+    if (!ln || now - ln.badAt < R.glowMinCycleMs) return;
+    ln.badAt = now;
   }
   let judgeT = 0;
   const WORD = {perfect: 'PERFECT', good: 'GOOD', ok: 'OK', early: 'EARLY', late: 'LATE', miss: 'MISS'};
-  function showJudge(res, d) {
+  function showJudge(res, d, lane) {
     const j = $('judge');
+    if (lane != null && V.W) j.style.left = Math.max(130, Math.min(V.W - 130, laneX(lane))) + 'px';
     j.className = 'mh-judge ' + res; void j.offsetWidth; j.classList.add('pop');
     j.innerHTML = WORD[res] + (G.combo >= 5 ? `<small>${G.combo} combo${G.mult > 1 ? ' · ×' + G.mult : ''}</small>` : '');
     clearTimeout(judgeT); judgeT = setTimeout(() => { j.textContent = ''; j.className = 'mh-judge'; }, 700);
@@ -800,7 +790,7 @@
   $('quitBtn').onclick = () => { $('pausePanel').hidden = true; showHub(); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && G && !G.paused) { e.preventDefault(); G.practice ? finish() : pause(); } });
-  addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); spacing(); buildStaff(); G.T.notes.forEach(n => { if (n.el) { n.el.remove(); n.el = null; } }); } });
+  addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); spacing(); buildStaff(); } });
 
   /* ================= CALIBRATION: "Play any note on each of the 8 clicks" ================= */
   let calRun = null;
@@ -950,12 +940,18 @@
     perfAt: t => CLK.ctx ? (t - CLK.off) * 1000 : null,
     /** tests: the card spacing of the song playing, and every card's box on the road at song time t (the drawing's math) */
     spacing: () => G && G.spacing,
-    cardRects: t => G ? G.T.notes.filter(n => n.t - t <= G.lead && n.t - t >= -.6).map(n => {
-      const p = proj(n.t - t), x = V.cx + (n.lane - (R.lanes - 1) / 2) * V.laneW * p.s;
-      return {k: n.k, x0: x - V.cardW * p.s / 2, x1: x + V.cardW * p.s / 2, y0: p.y - V.cardH * p.s, y1: p.y};
+    cardRects: t => G ? G.T.notes.filter(n => n.t - t <= G.lead && n.t - t >= -.45).map(n => {
+      const p = proj(n.t - t), x = laneX(n.lane, p.s), w = V.padW * p.s, h = V.padH * p.s;
+      return {k: n.k, lane: n.lane, x0: x - w / 2, x1: x + w / 2, y0: p.y - h / 2, y1: p.y + h / 2};
     }) : [],
-    staff: () => V.st ? {play: V.st.play, scale: V.st.scale, sy: V.sy, cardH: V.cardH, x: V.st.x} : null,
-    glow: () => ({on: GL.on, k: GL.n ? GL.n.k : null}),
+    lanes: () => G ? {n: V.nl, labels: G.lanes.lanes.map(l => l.label), midis: G.lanes.lanes.map(l => l.midis), sy: V.sy, gates: G.lanes.lanes.map((_, l) => laneX(l))} : null,
+    fx: () => ({q: FX.q, why: FX.why || null}),
+    /** tests: record every frame from now on: {t, tx (the staff strip's translateX), pads: {note k: y of its center}} */
+    trace: () => { if (G) { G.trace = {pads: {}}; G.traceLog = []; } },
+    traceLog: () => G ? G.traceLog : null,
+    names: () => names,
+    staff: () => V.st ? {play: V.st.play, scale: V.st.scale, sy: V.sy, padH: V.padH, x: V.st.x} : null,
+    glow: () => ({on: GL.lanes.some(l => l.target), k: GL.last && GL.lanes[GL.last.lane] && GL.lanes[GL.last.lane].target ? GL.last.k : null, lanes: GL.lanes.map(l => +l.v.toFixed(2))}),
   };
 
   showHub();

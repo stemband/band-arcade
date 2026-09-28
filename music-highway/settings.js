@@ -26,26 +26,32 @@ window.MH_RULES = {
   practiceRate: .6,       // PRACTICE THIS PART: the trouble spot looped at 60 %
   practiceMeasures: 2,
   practiceLoops: 12,      // it loops this many times (or until PAUSE)    // how many measures a trouble spot is
-  /* THE HIGHWAY */
-  lanes: 5,
-  roadDepth: 5,           // how far the road reaches: a card on the horizon is 1 ÷ (1 + this) of its size at the line (deeper = more cards fit)
-  leadBeats: 4,           // a card appears this many beats before it reaches the strike line …
+  /* THE HIGHWAY (lanes: one per written pitch, low = left; how many: song-map.js MAX_LANES, tier 1 = the first five) */
+  horizon: .3,            // where the horizon is, as a share of the road's height (the sunset above it)
+  roadDepth: 5,           // how far the road reaches: a pad on the horizon is 1 ÷ (1 + this) of its size at the gate
+  leadBeats: 4,           // a pad appears this many beats before it reaches its gate …
   leadMinS: 2.2,          // … but never less than this many seconds …
-  leadMaxS: 3.6,          // … and never more than this (both only when the card spacing below allows it)
-  /* CARD SPACING. Two cards in a row are always at least cardGap × a card's size apart (bottom of one to the top of
-     the next), even for the song's shortest note, anywhere on the road; so a song with quick notes moves its cards
-     faster. When that would leave a card on the road for less than readMinS, the cards get smaller for that song
-     instead (never below cardMinScale); cards never overlap. */
-  cardGap: .4,            // the smallest gap between two cards, as a share of a card's size
-  wideMul: 1.5,           // NOTE SPACING: WIDE = this much more room from one card to the next (stars count in both)
-  cardMaxPx: 190,         // a card at the strike line is never bigger than this (it is about one lane wide)
-  cardMinScale: .6,       // … and never shrunk below this share of its normal size
-  readMinS: 1.5,          // a card should be on the road at least this long (time to read it)
-  /* THE STRIKE GLOW (a right note in time lights the target in the card's color). Never a strobe: it fades in 60 ms
-     and out 200 ms (style.css), stays lit through a run of notes, and goes out at most 3 times a second. */
+  leadMaxS: 3.6,          // … and never more than this (both only when the pad spacing below allows it)
+  padMaxPx: 130,          // a light pad at its gate is never wider than this (it is 80 % of a lane wide)
+  padShape: .5,           // a pad's height ÷ its width (a wide tail light)
+  sunSwell: .08,          // the sun brightens this much (a smooth swell) on each downbeat; none with reduced motion
+  /* PAD SPACING. Two pads in a row are always at least cardGap × a pad's size apart (bottom of one to the top of the
+     next) at the gates, even for the song's shortest note; the road's perspective keeps that true all the way up, so
+     pads never overlap. A song with quick notes moves its pads faster; when that would leave a pad on the road for
+     less than readMinS, the pads get smaller for that song instead (never below cardMinScale). */
+  cardGap: .4,            // the smallest gap between two pads, as a share of a pad's size
+  wideMul: 1.5,           // NOTE SPACING: WIDE = this much more room from one pad to the next (stars count in both)
+  cardMinScale: .6,       // a pad is never shrunk below this share of its normal size
+  readMinS: 1.5,          // a pad should be on the road at least this long (time to read it)
+  /* THE GATE GLOW (a right note in time lights its lane's gate in the pad's color). Never a strobe: it fades in 60 ms
+     and out 200 ms, stays lit through a run of notes, and a gate goes out at most 3 times a second. */
   glowLingerMs: 250,      // a short note's glow stays this long after the note's end (so a run stays lit)
-  glowMinCycleMs: 340,    // the glow goes out at most once in this long (≤ 3 flashes a second)
-  badMs: 450,             // a miss / wrong note: a dim red outline on that lane's pad for this long
+  glowMinCycleMs: 340,    // a gate goes out at most once in this long (≤ 3 flashes a second)
+  badMs: 450,             // a miss / wrong note: a dim red gate outline for this long
+  /* PERFORMANCE: frames that stay slow for 3 s lower the effects for good on this device (fewer stars, no mountains,
+     no halos, pixel ratio 1; gameData('music-highway').fx = 'lo') */
+  fxSlowDrawMs: 9,        // the highway's own drawing takes longer than this on average …
+  fxSlowGapMs: 30,        // … or frames come further apart than this (under ~33 a second)
   /* STAFF SPACING (the scrolling staff, the trouble spot and the Song Board; units: one staff space = 16) */
   staff: {
     barPadL: 26,          // room after every bar line before the first note (about a notehead and a half)

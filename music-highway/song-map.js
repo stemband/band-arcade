@@ -14,6 +14,8 @@
           chords: [{measure, root, tones: [concert midis], name}], beatsPerMeasure, measures}
          the snare (unpitched): every note has pc null, no written note; the rhythm is the same.
      Arcade.SongMap.fitOctave(...)             the octave rule (below)
+     Arcade.SongMap.lanes(song, map, group)    -> THE PITCH LANES of the highway: {lanes: [{midis, label, count}], of(note)}
+                                                  (low = left; see LANES below)
    THE OCTAVE RULE: tier 1 = degree 1 lands exactly on the first note of the student's first five (its written
    note), so a tier-1 song only uses the notes they know. Tiers 2–3 try every octave and keep the one whose notes sit
    best inside the member's GMEA chromatic range and closest to its first five, preferring notes that have a fingering
@@ -187,7 +189,47 @@ window.Arcade = window.Arcade || {};
     return Object.assign(base, {clef: group.clef, sig, octave: k, writtenKey: keyLabel(wKey) + ' major', notes, diagram: table ? table.diagram : 'none'});
   }
 
-  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, keyLabel, KEYS};
+  /* LANES: one highway lane per written pitch, lowest on the left, so the melody's shape shows on the road.
+     Tier 1 = exactly the group's first five notes (even when a song leaves one out: beginners always see their five);
+     tiers 2 / 3 = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
+     nearest neighbor's lane (order kept). The snare: one lane. A lane's label = its pitch's written name (a lane of
+     two merged pitches: both, "E/F"; more: the most-used one's). */
+  const MAX_LANES = {1: 5, 2: 8, 3: 12};
+  function lanes(song, map, group) {
+    if (map.unpitched) return {lanes: [{midis: [], label: 'R L', count: map.notes.length}], of: () => 0};
+    let L;
+    if (song.tier === 1 && group && group.notes && group.notes.length >= 5) {
+      L = group.notes.slice(0, 5).map(n => ({midis: [writtenMidi(n)], label: noteLabel(n), count: 0}));
+    } else {
+      const by = {};
+      map.notes.forEach(n => { by[n.midi] = by[n.midi] || {midis: [n.midi], label: n.label, names: {[n.midi]: n.label}, count: 0}; by[n.midi].count++; });
+      L = Object.keys(by).map(Number).sort((a, b) => a - b).map(m => by[m]);
+      const max = MAX_LANES[song.tier] || 12;
+      while (L.length > max) {
+        let i = 0; L.forEach((l, j) => { if (l.count < L[i].count) i = j; });
+        const lo = L[i - 1], hi = L[i + 1], mid = x => x.midis.reduce((a, b) => a + b, 0) / x.midis.length, me = mid(L[i]);
+        const into = !lo ? hi : !hi ? lo : (me - mid(lo) < mid(hi) - me || (me - mid(lo) === mid(hi) - me && lo.count <= hi.count)) ? lo : hi;
+        into.midis = into.midis.concat(L[i].midis).sort((a, b) => a - b);
+        Object.assign(into.names, L[i].names);
+        if (L[i].count > into.count) into.label = L[i].label;
+        into.count += L[i].count; into.merged = true;
+        L.splice(i, 1);
+      }
+    }
+    // counts (tier 1) and the lane of any written midi (a note outside every lane: the nearest one)
+    const of = n => {
+      const m = n.midi != null ? n.midi : n;
+      let best = 0, bd = Infinity;
+      L.forEach((l, j) => l.midis.forEach(x => { const d = Math.abs(x - m); if (d < bd) { bd = d; best = j; } }));
+      return best;
+    };
+    if (song.tier === 1) map.notes.forEach(n => L[of(n)].count++);
+    // a merged lane of two pitches shows both names ("E/F"); more than two: the most-used one's
+    L.forEach(l => { if (l.merged && l.midis.length === 2) l.label = l.midis.map(m => l.names[m]).join('/'); });
+    return {lanes: L, of};
+  }
+
+  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, keyLabel, KEYS, lanes, MAX_LANES};
   // measure problems show in the console (and on the Song Board), so a typo in songs.js is found at once
   if (window.MH_SONGS) window.MH_SONGS.forEach(s => check(s).forEach(p => console.warn('Music Highway songs.js: ' + p)));
 })(window.Arcade);

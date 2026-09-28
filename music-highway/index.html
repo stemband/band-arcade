@@ -8,14 +8,13 @@
 <script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
 <script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
 <title>Music Highway</title>
-<meta name="description" content="Play along with the band: your fingerings fly down a neon highway. Play each note as it reaches the line.">
+<meta name="description" content="Play along with the band: neon lights race down a synthwave highway, one lane per note. Play each note as its light reaches its gate.">
 <meta name="theme-color" content="#0b0716">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../shared/fonts.css">
 <link rel="stylesheet" href="../shared/theme.css">
-<link rel="stylesheet" href="../shared/diagrams.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,7 +25,7 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title">Music <span>Highway</span></h1>
-      <p class="muted" id="hubBlurb">Your fingerings fly down the highway with the band. Play each note on your instrument as its card reaches the glowing line.</p>
+      <p class="muted" id="hubBlurb">Neon lights race down the highway with the band: low notes on the left, high notes on the right. Play each note on your instrument as its light reaches its gate.</p>
     </div>
     <div class="mh-opts" id="opts">
       <div class="mh-opt" role="group" aria-label="Speed">
@@ -41,10 +40,10 @@
       </div>
       <button class="mh-hp" id="hpBtn" aria-pressed="false"><span aria-hidden="true">🎧</span> I'm wearing headphones</button>
       <button class="btn btn-ghost btn-small" id="calBtn">Recalibrate</button>
-      <div class="mh-opt" role="group" aria-label="Horn fingerings" id="hornOpt" hidden>
-        <span class="mh-ol">Horn</span>
-        <button class="mh-seg" id="hornF" aria-pressed="true">F side</button>
-        <button class="mh-seg" id="hornBb" aria-pressed="false">B♭ side</button>
+      <div class="mh-opt" role="group" aria-label="Letter names in the lights">
+        <span class="mh-ol">Letter names</span>
+        <button class="mh-seg" id="namesOn" aria-pressed="true">On</button>
+        <button class="mh-seg" id="namesOff" aria-pressed="false">Off</button>
       </div>
     </div>
     <p class="mh-optnote" id="optNote"></p>
@@ -57,9 +56,6 @@
 <!-- PLAY: the highway -->
 <section id="play" hidden aria-label="Music Highway">
   <canvas id="road" aria-hidden="true"></canvas>
-  <div id="tails" aria-hidden="true"></div>
-  <div id="cards" aria-hidden="true"></div>
-  <div id="pads" aria-hidden="true"></div>
   <div class="mh-hud">
     <div><small id="hudSong">Song</small><b id="hudScore">0</b></div>
     <div class="c"><small>Combo</small><b id="hudCombo">0</b></div>
@@ -170,6 +166,8 @@
 <script src="../shared/marquees.js"></script>
 <script src="../shared/press-start.js"></script>
 <script src="../shared/level-select.js"></script>
+<!-- fingerings.js + diagrams.js: no diagrams are drawn any more, but the song engine still prefers octaves that have
+     a fingering (song-map.js fitOctave), so every song keeps the notes it had -->
 <script src="../shared/fingerings.js"></script>
 <script src="../shared/diagrams.js"></script>
 <script src="songs.js"></script>
