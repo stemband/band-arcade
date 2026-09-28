@@ -80,7 +80,7 @@ window.MH_RULES = {
   /* THE BACKING (generated drums; shared/sounds/mh-drums-<song id>.m4a replaces them) */
   lookaheadS: .6,         // the drums are put on the audio clock this far ahead (a stalled page never delays a hit)
   drumVol: .9,           // the whole kit (the student's EFFECTS slider and SOUND ON/OFF apply on top)
-  clickVol: .6,           // count-in and calibration clicks
+  clickVol: .9,           // count-in and calibration clicks
   /* HEADPHONES MODE: a quiet guide melody, bass and chords on top of the drums (pitched: only after the speaker check) */
   guideVol: .16, bassVol: .2, padVol: .07,
   /* PRACTICE MODE (no microphone, so the band plays out loud): the melody is clear and on top; the MELODY VOLUME slider
