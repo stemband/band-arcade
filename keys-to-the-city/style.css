@@ -88,11 +88,28 @@ body.kt-playing .wrap{padding-bottom:8px}
 .kt-sign .sg-name{font-family:var(--display);font-size:10px;letter-spacing:.08em}
 .kt-sign.chop .sg-board{stroke:var(--kt-chop)}.kt-sign.chop .sg-icon,.kt-sign.chop .sg-glow{stroke:var(--kt-chop)}.kt-sign.chop .sg-name{fill:var(--kt-chop)}
 .kt-sign.fork .sg-board{stroke:var(--kt-fork)}.kt-sign.fork .sg-icon,.kt-sign.fork .sg-glow{stroke:var(--kt-fork)}.kt-sign.fork .sg-name{fill:var(--kt-fork)}
-.kt-mainst .ms-post{fill:none;stroke:var(--ink-2);stroke-width:3}
-.kt-mainst .ms-lamp{fill:var(--kt-lamp)}
-.kt-mainst .ms-sign{fill:var(--green-ink)}
-.kt-mainst .ms-text{font-family:var(--display);font-size:10px;fill:var(--text-hi)}
-.kt-signdemo{width:min(100%,340px);display:block;margin:0 auto}
+/* a sign is tapped for its spoken hint only while it can be seen (.tap): a big invisible area in the sky over its group */
+.sky-signs{pointer-events:none}
+.sky-signs .sg-hit{fill:transparent}
+.sky-signs.tap .sg-hit,.sky-signs.tap .kt-sign{pointer-events:all;cursor:pointer}
+/* the C and F plates on early districts: small signs in the Chopsticks' / the Fork's color */
+.kt-cfl{pointer-events:none;transition:opacity .8s}
+.kt-cf rect{fill:var(--kt-night);stroke-width:4}
+.kt-cf text{font-family:var(--display);font-size:34px}
+.kt-cf.c rect{stroke:var(--kt-chop)}.kt-cf.c text{fill:var(--kt-chop)}
+.kt-cf.f rect{stroke:var(--kt-fork)}.kt-cf.f text{fill:var(--kt-fork)}
+/* the level intro's mini keyboard (one octave, the two signs pointing at C and F) */
+.kt-minikb{width:min(100%,360px);display:block;margin:4px auto 0}
+.mk-w{fill:var(--kt-street);stroke:var(--kt-street-2);stroke-width:1.5}
+.mk-w.c{fill:color-mix(in srgb,var(--kt-chop) 45%,var(--kt-street));stroke:var(--kt-chop);stroke-width:3}
+.mk-w.f{fill:color-mix(in srgb,var(--kt-fork) 40%,var(--kt-street));stroke:var(--kt-fork);stroke-width:3}
+.mk-b{fill:var(--kt-bldg);stroke:var(--kt-bldg-2);stroke-width:1.5}
+.mk-l{font-family:var(--display);font-size:24px;fill:var(--kt-night)}
+.mk-line{fill:none;stroke-width:3;stroke-dasharray:6 5;stroke-linecap:round}
+.mk-arrow{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.mk-line.chop,.mk-arrow.chop{stroke:var(--kt-chop)}.mk-line.fork,.mk-arrow.fork{stroke:var(--kt-fork)}
+.mk-cap{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px;margin:6px 0 0;font-weight:700;font-size:15px}
+.mk-cap .chop{color:var(--kt-chop)}.mk-cap .fork{color:var(--kt-fork)}
 /* ---------- the Mayor ---------- */
 .mayor-svg{width:100%;height:auto;display:block}
 .my-hat{fill:var(--kt-hat)}.my-band{fill:var(--kt-sash)}
@@ -115,5 +132,5 @@ body.kt-playing .wrap{padding-bottom:8px}
 .stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
 .stats b{font-size:22px}
 @media (prefers-reduced-motion:reduce){
-  .kt-strip,.sky-signs,.k .k-body,.k .win,.kt-staff .ksig{transition:none}
+  .kt-strip,.sky-signs,.kt-cfl,.k .k-body,.k .win,.kt-staff .ksig{transition:none}
 }

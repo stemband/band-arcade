@@ -5,7 +5,9 @@
      levels.js  THE CITY MAP (districts), rules, Night Shift · quiz.js: the music model and the round maker
    Question types (mixed in a district): FIND THE KEY (a note on the staff → tap that exact key), NAME THE KEY (a key
    lights up → its letter name), FULL CIRCUIT (name it, then put it on the staff), SCALE BUILDER (a key signature → the
-   major scale, one octave up).
+   major scale, one octave up; never in timed play).
+   EARLY DISTRICTS: "C" and "F" plates on every C and F key (levels.js `labels`), in the signs' colors. The signs can be
+   TAPPED for their spoken hint (kttc-mayor-chopsticks / -fork) while they are visible; a tap is never an answer.
    TOUCH mode (the default): no instrument, no microphone; a tapped key plays a piano tone (Sfx.piano).
    INSTRUMENT mode: FIND THE KEY rounds are answered by PLAYING the note (the microphone, any octave); no piano tone
    or any other pitched sound ever plays then (the effects are unpitched noise). Needs a pitched instrument.
@@ -69,14 +71,32 @@
       `<g class="sg-glow">${icon}</g><g class="sg-icon">${icon}</g>` +
       `<text class="sg-name" y="34" text-anchor="middle">${kind === 'chop' ? 'CHOPSTICKS' : 'FORK'}</text></g>`;
   }
-  $('introSigns').innerHTML = `<svg viewBox="-50 -40 280 90" class="kt-signdemo">${signSVG('chop', 40, 0)}${signSVG('fork', 170, 0)}</svg>` +
-    `<p><b>The Chopsticks</b> = 2 black keys. C is right next to the Chopsticks.<br><b>The Fork</b> = 3 black keys. F is right next to the Fork.</p>`;
+  /* the level intro's MINI KEYBOARD: one octave (C to C), the Chopsticks over the 2 black keys and the Fork over the 3,
+     each with a line down to its key (C / F, lit in the sign's color) */
+  function miniKeyboard() {
+    const w = 40, bw = 23, bh = 72, top = 88, wh = 116, xs = p => [0, 2, 4, 5, 7, 9, 11, 12].indexOf(p);
+    let white = '', black = '';
+    [0, 2, 4, 5, 7, 9, 11, 12].forEach((p, i) => {
+      const cls = p === 0 ? ' c' : p === 5 ? ' f' : '';
+      white += `<rect class="mk-w${cls}" x="${i * w + 1}" y="${top}" width="${w - 2}" height="${wh}" rx="4"/>`;
+      if (cls) white += `<text class="mk-l${cls}" x="${i * w + w / 2}" y="${top + wh - 12}" text-anchor="middle">${p === 0 ? 'C' : 'F'}</text>`;
+    });
+    const bx = {1: 0, 3: 1, 6: 3, 8: 4, 10: 5};
+    Object.keys(bx).forEach(p => { const cx = bx[p] * w + w + BOFF[p] * w; black += `<rect class="mk-b" x="${cx - bw / 2}" y="${top - 2}" width="${bw}" height="${bh}" rx="3"/>`; });
+    const chopX = (w + BOFF[1] * w + 2 * w + BOFF[3] * w) / 2, forkX = 4 * w + w;
+    // a line from each sign down to the part of its key that shows between the black keys (the top-left corner)
+    const line = (kind, x1, y1, x2, y2) => `<path class="mk-line ${kind}" d="M${x1} ${y1}Q${x1} ${(y1 + y2) / 2} ${x2} ${y2 - 6}"/><path class="mk-arrow ${kind}" d="M${x2 - 6} ${y2 - 12}L${x2} ${y2 - 2}L${x2 + 6} ${y2 - 12}"/>`;
+    return `<svg viewBox="-14 -2 348 212" class="kt-minikb" role="img" aria-label="One octave of piano keys: the Chopsticks sign over the 2 black keys points to C, the Fork sign over the 3 black keys points to F">` +
+      white + black + signSVG('chop', chopX, 38, .62) + signSVG('fork', forkX, 38, .62) +
+      line('chop', chopX - 22, 62, 11, top + 16) + line('fork', forkX - 16, 62, 4 * w - 29, top + 16) + `</svg>` +
+      `<p class="mk-cap"><span class="chop">C is right next to the Chopsticks</span><span class="fork">F is right next to the Fork</span></p>`;
+  }
 
   /* ================= THE SKYLINE KEYBOARD ================= */
   const W = 100, BW = 58, BHK = .63;                                   // SVG units: a white key's width, a black key's width, a black key's length (× white)
   let WH = 360, BH = 228, SKY = 150;                                   // white key length, black key length, the sky above (shorter on short screens)
   const BOFF = {1: -.13, 3: .13, 6: -.16, 8: 0, 10: .16};               // real pianos: the black keys sit off-center in their groups
-  const KB = {keys: new Map(), lo: 0, hi: 0, x: 0, px: 60, view: 0, total: 0};
+  const KB = {keys: new Map(), lo: 0, hi: 0, x: 0, px: 60, view: 0, total: 0, signs: 1, labels: 0};
   const whiteIndex = m => { const o = Math.floor(m / 12), p = mod(m, 12); return o * 7 + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][p]; };
   function buildKeyboard(lo, hi) {
     // whole octaves: from the C at or below lo to the B at or above hi (a C on top when hi is a C)
@@ -90,7 +110,7 @@
     BH = Math.round(WH * BHK);
     KB.keys.clear();
     const w0 = whiteIndex(lo), nW = whiteIndex(hi) - w0 + 1, width = nW * W, rnd = i => (Math.sin(i * 91.7) + 1) / 2;
-    let whites = '', blacks = '', roofs = '', signs = '', lamps = '';
+    let whites = '', blacks = '', roofs = '', signs = '', labels = '';
     for (let m = lo; m <= hi; m++) {
       const p = mod(m, 12), wi = whiteIndex(m) - w0;
       if (!K.isBlack(m)) {
@@ -98,8 +118,10 @@
         whites += `<g class="k white" data-midi="${m}"><rect class="k-body" x="${x + 1}" y="${SKY}" width="${W - 2}" height="${WH}" rx="6"/>` +
           `<path class="k-curb" d="M${x + 12} ${SKY + WH - 34}H${x + W - 12}"/><path class="k-lane" d="M${x + W / 2} ${SKY + WH - 150}V${SKY + WH - 44}"/>` +
           `<text class="k-name" x="${x + W / 2}" y="${SKY + WH - 60}" text-anchor="middle"></text></g>`;
-        if (m === 60) lamps += `<g class="kt-mainst" transform="translate(${x + W / 2} ${SKY + WH - 8})"><path class="ms-post" d="M0 0V-44M0 -44Q0 -52 9 -52"/><circle class="ms-lamp" cx="11" cy="-50" r="5"/>` +
-          `<rect class="ms-sign" x="-30" y="-24" width="60" height="16" rx="3"/><text class="ms-text" y="-12" text-anchor="middle">MAIN ST</text></g>`;
+        // the C and F plates (early districts): a small sign in the Chopsticks' / the Fork's color at the bottom of the key
+        if (p === 0 || p === 5) { const k = p === 0 ? 'c' : 'f';
+          labels += `<g class="kt-cf ${k}"><rect x="${x + W / 2 - 28}" y="${SKY + WH - 58}" width="56" height="46" rx="8"/>` +
+            `<text x="${x + W / 2}" y="${SKY + WH - 21}" text-anchor="middle">${p === 0 ? 'C' : 'F'}</text></g>`; }
       } else {
         const cx = wi * W + W + BOFF[p] * W, x = cx - BW / 2;
         let win = '';
@@ -108,17 +130,20 @@
           `<text class="k-name" x="${cx}" y="${SKY + BH - 18}" text-anchor="middle"></text></g>`;
         const rh = 26 + Math.round(rnd(m) * 46);                           // a rooftop, a little different on every building
         roofs += `<g class="roof"><rect x="${x + 8}" y="${SKY - rh * .45}" width="${BW - 16}" height="${rh * .45}"/><path d="M${cx} ${SKY - rh * .45}V${SKY - rh}"/><circle cx="${cx}" cy="${SKY - rh}" r="3"/></g>`;
-        // the signs: over the middle of each group
-        if (p === 1) signs += signSVG('chop', (cx + (wi * W + W + BOFF[3] * W + W)) / 2, 58);
-        if (p === 8) signs += signSVG('fork', cx, 58);
+        // the signs: over the middle of each group, each with a big invisible tap area (the sky above its group; it
+        // ends above the rooftops' keys, so it never covers a black key)
+        if (p === 1) { const sx = (cx + (wi * W + W + BOFF[3] * W + W)) / 2; signs += `<rect class="sg-hit" data-sign="chop" x="${sx - 62}" y="0" width="124" height="${SKY - 8}"/>` + signSVG('chop', sx, 58); }
+        if (p === 8) signs += `<rect class="sg-hit" data-sign="fork" x="${cx - 72}" y="0" width="144" height="${SKY - 8}"/>` + signSVG('fork', cx, 58);
       }
       KB.keys.set(m, null);
     }
     const svg = `<svg class="kt-kb" viewBox="0 0 ${width} ${SKY + WH}" role="group" aria-label="Piano keyboard">` +
-      `<g class="sky-roofs" aria-hidden="true">${roofs}</g><g class="sky-signs" id="signs" aria-hidden="true">${signs}</g>${whites}${lamps}${blacks}</svg>`;
+      `<g class="sky-roofs" aria-hidden="true">${roofs}</g><g class="sky-signs" id="signs" aria-hidden="true">${signs}</g>${whites}` +
+      `<g class="kt-cfl" id="cfLabels" aria-hidden="true">${labels}</g>${blacks}</svg>`;
     $('kbStrip').innerHTML = svg;
     KB.total = nW;
     $('kbStrip').querySelectorAll('.k').forEach(g => KB.keys.set(+g.dataset.midi, g));
+    setSigns(KB.signs); setLabels(KB.labels);                            // a redrawn keyboard keeps the brightness it had
     if (G && G.r) relight();
   }
   /* the key size: as many whites as the district wants on screen, never under RULES.minKeyPx, capped by the height */
@@ -168,7 +193,9 @@
     for (let k = base + a; k <= base + b; k++) { const g = keyEl(k); if (g) { g.classList.remove('blk'); void g.getBBox; g.classList.add('blk'); } }
     setTimeout(() => KB.keys.forEach(g => g && g.classList.remove('blk')), 1400);
   }
-  function setSigns(o) { const s = $('signs'); if (s) s.style.opacity = String(o); }
+  /* the signs' and the C/F plates' brightness; a sign can be tapped only while it can be seen (RULES.signTapFrom) */
+  function setSigns(o) { KB.signs = o; const s = $('signs'); if (s) { s.style.opacity = String(o); s.classList.toggle('tap', o >= RULES.signTapFrom); } }
+  function setLabels(o) { KB.labels = o; const s = $('cfLabels'); if (s) s.style.opacity = String(o); }
 
   /* ================= THE STAFF ================= */
   const STAFF_W = 360;
@@ -251,7 +278,9 @@
     $('introTitle').textContent = `District ${lv}: ${L.name}`;
     $('introSay').textContent = L.say;
     $('introMayor').innerHTML = mayorSVG(lv === LEVELS.length ? 'cheer' : 'point');
-    $('introSigns').hidden = lv > 4;
+    $('introSigns').hidden = !(Array.isArray(L.signs) ? L.signs[0] : L.signs);   // every district with signs (not the Mayor's Challenge)
+    if (!$('introSigns').hidden && !$('introSigns').firstChild) $('introSigns').innerHTML = miniKeyboard();
+    $('results').hidden = true;                                          // RETRY / NEXT DISTRICT: the intro replaces the results
     $('intro').hidden = false;
     A.Sfx.event('kttc-mayor-hello');
     $('introGo').onclick = () => { $('intro').hidden = true; startLevel(lv); };
@@ -263,7 +292,7 @@
     const clefs = L.clefs === 'pref' ? (clefPref === 'both' ? ['treble', 'bass'] : [clefPref]) : L.clefs;
     let lo = 200, hi = 0;
     clefs.forEach(c => { const [a, b] = K.rangeOf(L, c); lo = Math.min(lo, a); hi = Math.max(hi, b + (L.types.scale ? 12 : 0)); });
-    return [Math.min(lo, 60), Math.max(hi, 60)];                        // Main St (middle C) is always on the map
+    return [Math.min(lo, 60), Math.max(hi, 60)];                        // middle C is always on the keyboard
   };
   function startLevel(lv) {
     A.LevelSelect.played(lv - 1);
@@ -287,7 +316,8 @@
     buildKeyboard(lo, hi);
     window.scrollTo(0, 0);
   }
-  const signsFor = () => { const s = G.L.signs; return Array.isArray(s) ? s[0] + (s[1] - s[0]) * (G.i / Math.max(1, G.n - 1)) : s; };
+  const fade = s => Array.isArray(s) ? s[0] + (s[1] - s[0]) * (G.i / Math.max(1, G.n - 1)) : s || 0;
+  const signsFor = () => fade(G.L.signs), labelsFor = () => fade(G.L.labels);
 
   function nextRound() {
     clearTimeout(G.tNext); cancelAnimationFrame(timerRaf);
@@ -298,8 +328,8 @@
     $('hudCount').textContent = G.endless ? `Stage ${G.stage + 1}` : `${G.i + 1} / ${G.n}`;
     $('hudCountLabel').textContent = G.endless ? `Right: ${G.right}` : 'Round';
     clearKeys(); $('keyName').textContent = ''; $('pad').classList.add('off'); if (pad) pad.lock(true);
-    const sg = G.endless ? 0 : signsFor();
-    setSigns(sg); $('signsBtn').hidden = sg >= .99;
+    const sg = G.endless ? 0 : signsFor(), lb = G.endless ? 0 : labelsFor();
+    setSigns(sg); setLabels(lb); $('signsBtn').hidden = sg >= .99 && (lb >= .99 || !G.L.labels);
     const inst = mode === 'inst';
     if (r.type === 'find') {
       drawStaff(r, [{n: r.target.show}], {label: 'Find this note'});
@@ -342,6 +372,8 @@
 
   /* ---------- answers ---------- */
   $('kbStrip').addEventListener('pointerdown', e => {
+    const sg = e.target.closest('.sg-hit, .kt-sign');
+    if (sg) { e.preventDefault(); if ($('signs').classList.contains('tap')) signTap(sg.dataset.sign || (sg.classList.contains('chop') ? 'chop' : 'fork')); return; }
     const g = e.target.closest('.k'); if (!g || !G || G.done) return;
     e.preventDefault();
     const m = +g.dataset.midi, r = G.r;
@@ -406,7 +438,7 @@
       G.right++; G.streak++; G.best = Math.max(G.best, G.streak);
       let pts = RULES.base + Math.round(RULES.quickBonus * Math.max(0, 1 - secs / RULES.quickSecs)) + (r.type === 'scale' ? RULES.scaleBonus : 0);
       if (G.signsHere) pts -= RULES.signsCost;
-      if (G.endless) pts = Math.round((NIGHT.base + NIGHT.quickBonus * Math.max(0, 1 - secs / G.limit)) * (1 + NIGHT.stageBonus * G.stage) * A.Endless.mult(G.streak));
+      if (G.endless) pts = Math.round((NIGHT.base + NIGHT.quickBonus * Math.max(0, 1 - secs / (G.roundLimit || G.limit))) * (1 + NIGHT.stageBonus * G.stage) * A.Endless.mult(G.streak));
       G.score += Math.max(10, pts);
       mark(r.target.midi, 'good', r.type === 'scale' ? '' : name); lightBlock(r.target.midi);
       if (r.type === 'find' || r.type === 'circuit') drawStaff(r, [{n: r.target.show, caption: name, color: GOLD}]);
@@ -421,7 +453,7 @@
       pan(r.type === 'scale' ? [r.scale[0].midi, r.scale[7].midi] : [r.target.midi, r.target.midi]);
       if (r.type !== 'scale') drawStaff(r, [{n: r.target.show, caption: name, color: MISS}]);
       const hint = G.L.hints ? signHint(r.target.n) : '';
-      if (hint) { setSigns(1); say(hint, 'point', mod(r.target.midi, 12) < 5 ? 'kttc-mayor-chopsticks' : 'kttc-mayor-fork'); }
+      if (hint) { setSigns(1); say(hint, 'point'); if (!A.Pitch.listening()) hintVoice(mod(r.target.midi, 12) < 5 ? 'chop' : 'fork'); }
       else say(r.type === 'scale' ? `That scale goes ${r.scale.map(x => K.label(x.n)).join(' ')}.` : named ? `That key is ${name}.` : `It was ${name}. You'll get the next one!`, 'oops');
       A.Sfx.event('kttc-wrong');
       if (G.endless) { G.lives--; $('hudLives').innerHTML = A.Endless.hearts(G.lives, NIGHT.lives); if (G.lives > 0) A.Sfx.event('endless-life-lost'); }
@@ -450,12 +482,33 @@
       7: 'Find the Fork: G is between the first two tines!', 8: `Find the Fork: ${K.label(n)} is the Fork's middle tine!`,
       9: 'Find the Fork: A is between the last two tines!', 10: `Find the Fork: ${K.label(n)} is the Fork's last tine!`, 11: 'Find the Fork: B is just past it!'})[pc];
   }
-  $('signsBtn').onclick = () => { if (!G || G.done || G.signsHere) return; G.signsHere = true; G.signsUsed++; setSigns(1); say('Here are the signs! (A hint costs a few points.)', 'point'); };
+  $('signsBtn').onclick = () => { if (!G || G.done || G.signsHere) return; G.signsHere = true; G.signsUsed++; setSigns(1); setLabels(1); say('Here are the signs! (A hint costs a few points.)', 'point'); };
+
+  /* TAP A SIGN: its spoken hint (the Mayor's kttc-mayor-chopsticks / -fork line) + the words in the Mayor's bubble.
+     Never an answer and never costs points. The same hint never restarts or stacks; the other sign's hint stops it. */
+  const HINT = {kind: null, until: 0, taps: []};
+  const hintBusy = kind => HINT.kind === kind && performance.now() < HINT.until;
+  function hintVoice(kind) {                                             // the one way a sign's hint is spoken
+    if (hintBusy(kind)) return;                                          // already saying it: never restart or stack
+    if (HINT.kind && performance.now() < HINT.until) A.Sfx.hush();       // the other sign's hint stops
+    HINT.kind = kind;
+    HINT.until = performance.now() + 1000 * A.Sfx.event(kind === 'chop' ? 'kttc-mayor-chopsticks' : 'kttc-mayor-fork');
+  }
+  function signTap(kind) {
+    if (!G) return;
+    HINT.taps.push(kind);
+    if (hintBusy(kind)) return;
+    say(kind === 'chop' ? 'C is right next to the Chopsticks!' : 'F is right next to the Fork!', 'point');
+    hintVoice(kind);
+  }
   $('quitPlay').onclick = () => { if (G && G.endless && G.right) return nightOver(); showHub(); };
 
   /* the Mayor's Challenge timer (and Night Shift's): a bar that runs down; time up = a wrong answer */
+  /* taps a round needs: FIND 1; NAME 1 (+1 for a ♯/♭); FULL CIRCUIT the name + its place on the staff (levels.js TIMED ROUNDS) */
+  const tapsFor = r => r.type === 'scale' ? 8 : (r.type === 'find' ? 1 : 1 + (r.target.n.acc ? 1 : 0) + (r.type === 'circuit' ? 1 : 0));
   function runTimer() {
-    const limit = G.endless ? G.limit : G.L.time, t = $('timer'), bar = t.firstElementChild;
+    const limit = (G.endless ? G.limit : G.L.time) + RULES.perTap * (tapsFor(G.r) - 1), t = $('timer'), bar = t.firstElementChild;
+    G.roundLimit = limit;
     t.hidden = false;
     const tick = () => {
       if (!G || G.done) return;
@@ -566,12 +619,13 @@
   A.KeysCity = {
     state: () => G ? {lv: G.lv, endless: !!G.endless, i: G.i, n: G.n, right: G.right, score: G.score, stage: G.stage, lives: G.lives, done: G.done, step: G.step,
       round: G.r && {type: G.r.type, clef: G.r.clef, key: G.r.key, midi: G.r.target.midi, name: K.label(G.r.target.n), spell: G.r.spell, scale: G.r.scale && G.r.scale.map(x => x.midi)},
-      signs: +($('signs') && getComputedStyle($('signs')).opacity), kb: {lo: KB.lo, hi: KB.hi, px: KB.px, x: KB.x, total: KB.total}} : {menu: true},
+      signs: +($('signs') && getComputedStyle($('signs')).opacity), labels: +($('cfLabels') && getComputedStyle($('cfLabels')).opacity),
+      signTap: !!($('signs') && $('signs').classList.contains('tap')), limit: G.roundLimit, hint: {kind: HINT.kind, until: HINT.until, taps: HINT.taps.slice()}, kb: {lo: KB.lo, hi: KB.hi, px: KB.px, x: KB.x, total: KB.total}} : {menu: true},
     answer: () => DEMO.answer(),
     tapKey: m => { const g = keyEl(m); if (g) g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true})); },
     name: (l, a) => answerName(l, a),
     place: step => judge(step === A.music.stepOf(G.named ? K.noteFor(G.r.target.midi, G.named.letter, G.named.acc) : G.r.target.n), G.r.target.midi, null, {step}),
-    mode: () => mode, begin, setClef: c => { clefPref = c; },
+    mode: () => mode, begin, setClef: c => { clefPref = c; }, signTap,
   };
   addEventListener('resize', () => { if (G && !$('play').hidden) sizeKeyboard(); });
   showHub();

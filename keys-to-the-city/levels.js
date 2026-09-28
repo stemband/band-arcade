@@ -23,18 +23,26 @@
      noSig    share of rounds with no key signature on key-signature levels (0–1)
      sigHint  key-signature rounds that briefly light the key signature's ♯/♭ that applies (then the hint fades)
      signs    how bright the Chopsticks and Fork signs are: 1 = on, 0 = off, [from, to] = they fade across the level.
-              SHOW SIGNS (a hint button) turns them back on for one round; it costs `RULES.signsCost` points
+              SHOW SIGNS (a hint button) turns them back on for one round (the C/F labels too); it costs `RULES.signsCost`
+              points. A sign can be TAPPED for its spoken hint while it is visible (brightness ≥ `RULES.signTapFrom`)
+     labels   the "C" and "F" plates on every C and F key (in the Chopsticks' and the Fork's colors), like `signs`:
+              1 = on, [from, to] = they fade across the level, left out = none
      hints    true = after a wrong answer the Mayor points at the sign ("Find the Chopsticks: C is right next to them!")
      helper   INSTRUMENT MODE: show "Piano B♭ = your C" (the student's written note). true | 'fade' (the first
               `RULES.helperFadeRounds` rounds only) | false
      view     how many white keys should fit on screen (the keyboard pans when the level's keys don't all fit)
-     time     seconds per round (the Mayor's Challenge); null = no timer (a quick answer still scores more)          */
+     time     seconds per round (the Mayor's Challenge); null = no timer (a quick answer still scores more)
+
+   TIMED ROUNDS (the Mayor's Challenge, Night Shift): a question that takes several taps gets the base time + about
+   1.5 s for every tap after the first (`RULES.perTap`): NAME THE KEY of a black key (♯/♭ + letter), FULL CIRCUIT (the
+   name, then its place on the staff). Any new multi-tap question in timed play must follow this rule. SCALE BUILDER
+   (8 taps) is never timed: it stays in Key Signature Square and Sharp Signature Summit only.                        */
 window.KTTC_LEVELS = [
   {name: 'Downtown C', rounds: 12, types: {find: 1}, clefs: 'pref', treble: ['C4', 'B4'], bass: ['C3', 'B3'], keys: 'white', spell: 'any',
-   signs: 1, hints: true, helper: true, view: 8, time: null,
+   signs: 1, labels: 1, hints: true, helper: true, view: 8, time: null,
    say: 'Welcome downtown! C is right next to the Chopsticks. F is right next to the Fork.'},
   {name: 'Restaurant Row', rounds: 12, types: {name: 1, find: 1}, clefs: 'pref', treble: ['C4', 'C5'], bass: ['C3', 'C4'], keys: 'white', spell: 'any',
-   signs: [1, .1], hints: true, helper: true, view: 8, time: null,
+   signs: [1, .1], labels: [1, 0], hints: true, helper: true, view: 8, time: null,
    say: 'Now I light a key and you name it. The signs get dimmer as you go!'},
   {name: 'Sharp Street', rounds: 12, types: {find: 1, name: 1}, clefs: 'pref', treble: ['C4', 'C5'], bass: ['C3', 'C4'], keys: 'black', spell: 'sharps',
    signs: .55, hints: true, helper: true, view: 8, time: null,
@@ -47,14 +55,14 @@ window.KTTC_LEVELS = [
    say: 'Up here the notes climb onto ledger lines. Name a key, then put it on the staff!'},
   {name: 'Bass Clef Harbor', rounds: 12, types: {find: 1, name: 1, circuit: 1}, clefs: ['bass'], bass: ['C2', 'C4'], keys: 'all', spell: 'any',
    signs: .15, hints: false, helper: false, view: 15, time: null,
-   say: 'Down at the harbor we read bass clef. Middle C is still on Main Street!'},
+   say: 'Down at the harbor we read bass clef. Middle C sits on a ledger line just above the bass staff.'},
   {name: 'Key Signature Square', rounds: 12, types: {find: 1, name: .7, scale: .6}, clefs: ['treble', 'bass'], treble: ['C4', 'G5'], bass: ['E2', 'C4'], keys: 'all', spell: 'any',
    keySigs: ['F', 'Bb', 'Eb', 'Ab'], noSig: 0, sigHint: 4, signs: .1, hints: false, helper: false, view: 15, time: null,
    say: 'Key signatures! A flat in the signature changes that note everywhere: in F major, every B is B♭.'},
   {name: 'Sharp Signature Summit', rounds: 12, types: {find: 1, name: .7, scale: .6}, clefs: ['treble', 'bass'], treble: ['C4', 'G5'], bass: ['E2', 'C4'], keys: 'all', spell: 'any',
    keySigs: ['G', 'D', 'A', 'F', 'Bb', 'Eb', 'Ab'], sigsFirst: ['G', 'D', 'A'], noSig: 0, sigHint: 4, signs: .05, hints: false, helper: false, view: 15, time: null,
    say: 'Sharp keys now: in G major every F is F♯. Then flat keys and sharp keys, all mixed up!'},
-  {name: "The Mayor's Challenge", rounds: 15, types: {find: 1, name: .8, circuit: .5, scale: .4}, clefs: ['treble', 'bass'], treble: ['A3', 'C6'], bass: ['C2', 'E4'], keys: 'all', spell: 'any',
+  {name: "The Mayor's Challenge", rounds: 15, types: {find: 1, name: .8, circuit: .5}, clefs: ['treble', 'bass'], treble: ['A3', 'C6'], bass: ['C2', 'E4'], keys: 'all', spell: 'any',
    keySigs: ['F', 'Bb', 'Eb', 'Ab', 'G', 'D', 'A'], noSig: .4, sigHint: 0, signs: 0, hints: false, helper: false, view: 15, time: 9,
    say: 'My challenge: everything at once, a timer on every round and no signs. Win it and the keys to the city are yours!'},
 ];
@@ -66,6 +74,8 @@ window.KTTC_RULES = {
   quickSecs: 8,
   scaleBonus: 100,          // a whole scale built counts extra
   signsCost: 30,            // SHOW SIGNS costs this many points from that round
+  signTapFrom: .2,          // a sign this bright (or brighter) can be tapped for its spoken hint; dimmer = faded, not tappable
+  perTap: 1.5,              // TIMED ROUNDS: + this many seconds for every tap after the first (see TIMED ROUNDS above)
   streak: 5,                // every 5 right in a row lights a city block (kttc-block-lights)
   afterRightMs: 700,        // the pause after a right answer
   afterWrongMs: 1900,       // after a wrong one (the right answer glows, and early levels show the sign hint)
@@ -86,7 +96,7 @@ window.KTTC_NIGHT = {
     {keys: 'all'},
     {treble: ['A3', 'C6'], types: {find: 1, name: 1, circuit: .5}},
     {bass: ['C2', 'E4'], clefs: ['treble', 'bass']},
-    {keySigs: ['F', 'Bb', 'G', 'D'], noSig: .5, types: {find: 1, name: 1, circuit: .5, scale: .3}},
+    {keySigs: ['F', 'Bb', 'G', 'D'], noSig: .5},   // no SCALE BUILDER: it is never timed (TIMED ROUNDS above)
     {keySigs: ['F', 'Bb', 'Eb', 'Ab', 'G', 'D', 'A'], noSig: .35},
   ],
 };

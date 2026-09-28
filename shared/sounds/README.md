@@ -405,8 +405,8 @@ slots are optional: until you record them, the Mayor only speaks in text.
 | `kttc-golden-key` | `kttc-golden-key.m4a` or `kttc-golden-key.mp3` | A district cleared: the Mayor hands over a golden key (results). | 0.6–1.5 s |
 | `kttc-keys-to-city` | `kttc-keys-to-city.m4a` or `kttc-keys-to-city.mp3` | The Mayor's Challenge cleared: the KEYS TO THE CITY celebration. | 2–4 s |
 | `kttc-mayor-hello` | `kttc-mayor-hello.m4a` or `kttc-mayor-hello.mp3` | Optional voice: the Mayor welcomes you to a district. Silent until recorded. | 1–3 s |
-| `kttc-mayor-chopsticks` | `kttc-mayor-chopsticks.m4a` or `kttc-mayor-chopsticks.mp3` | Optional voice: "C is right next to the Chopsticks!" (a hint after a wrong answer). Silent until recorded. | 1–2.5 s |
-| `kttc-mayor-fork` | `kttc-mayor-fork.m4a` or `kttc-mayor-fork.mp3` | Optional voice: "F is right next to the Fork!" (a hint after a wrong answer). Silent until recorded. | 1–2.5 s |
+| `kttc-mayor-chopsticks` | `kttc-mayor-chopsticks.m4a` or `kttc-mayor-chopsticks.mp3` | Optional voice: "C is right next to the Chopsticks!" Plays when a student taps the Chopsticks sign, and as a hint after a wrong answer. Silent until recorded (the Mayor's bubble shows the words). | 1–2.5 s |
+| `kttc-mayor-fork` | `kttc-mayor-fork.m4a` or `kttc-mayor-fork.mp3` | Optional voice: "F is right next to the Fork!" Plays when a student taps the Fork sign, and as a hint after a wrong answer. Silent until recorded (the Mayor's bubble shows the words). | 1–2.5 s |
 
 ### Music Highway
 
