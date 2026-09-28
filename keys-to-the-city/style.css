@@ -38,13 +38,15 @@ body.kt-playing .wrap{padding-bottom:8px}
 .kt-say{margin:0;background:var(--floor-2);border:1px solid var(--floor-3);border-radius:14px;padding:6px 12px;color:var(--text-hi);font-size:15px;min-height:1.4em}
 .kt-say:empty{visibility:hidden}
 .kt-prompt{margin:6px 0 4px;font-family:var(--display);font-size:clamp(16px,2.6vw,22px);color:var(--yellow-hi);text-align:center}
-.kt-stage{position:relative;padding:4px 10px;margin:0 auto 6px;max-width:560px}
-.kt-staff svg{display:block;width:100%;height:auto;max-height:clamp(110px,21vh,210px)}
+.kt-stage{position:relative;padding:3px;margin:0 auto 6px;width:fit-content;max-width:100%}
+/* the drawing is sized in px by game.js (sizeStaff), centered, with its own even padding; the box wraps it */
+.kt-staff{display:flex;align-items:center;justify-content:center}
+.kt-staff svg{display:block;flex:none}
 .kt-staff svg.placing{cursor:ns-resize;touch-action:none}
 .kt-staff .ghostnote .head{fill:var(--cyan-ink)}.kt-staff .ghostnote .stem{stroke:var(--cyan-ink)}
 .kt-staff .ksig.kt-hint{fill:var(--red);transition:fill .3s}
 .kt-staff .ksig{transition:fill .9s}
-.kt-keyname{margin:0;min-height:1.2em;text-align:center;color:var(--ink);font-weight:700;font-size:14px}
+.kt-keyname{position:absolute;left:8px;right:8px;top:4px;margin:0;text-align:center;color:var(--ink);font-weight:700;font-size:14px;line-height:1.2;pointer-events:none}
 .kt-helper{margin:0 0 6px;text-align:center;font-weight:700;color:var(--cyan-hi)}
 .kt-pad{max-width:640px;margin:0 auto 6px;touch-action:none}
 .kt-pad.off{visibility:hidden}

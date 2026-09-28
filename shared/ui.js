@@ -26,7 +26,9 @@ window.Arcade = window.Arcade || {};
      Lines at y = 56..120 (16px per space). One diatonic step = 8px.
      items: [{n, x, id?, color?, caption?}]   (n.natural: draw a natural sign, for a note the key signature would change)
      opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count},
-             sigStyle: 'big' (the Note Checker: the key signature further from the clef, larger ♯/♭)}
+             sigStyle: 'big' (the Note Checker: the key signature further from the clef, larger ♯/♭),
+             box: [top, height] (the drawing's own vertical window instead of the one fit gives; Keys to the City),
+             capY: the captions' baseline (default: the bottom of the drawing)}
      With a key signature, start the notes keySigWidth(sig, sigStyle) further right so nothing collides. */
   const STAFF_BOTTOM = 120, MID_LINE = 88;
   function noteY(clef, n) {
@@ -74,9 +76,9 @@ window.Arcade = window.Arcade || {};
     const W = opts.width || 400;
     const ys = (opts.fit || items.map(i => i.n)).map(n => noteY(clef, n));
     const hasCap = opts.captions || items.some(i => i.caption);
-    const top = Math.min(30, Math.min(...ys.map(y => y > MID_LINE ? y - 60 : y - 14)));
-    const bot = Math.max(146, Math.max(...ys.map(y => y > MID_LINE ? y + 14 : y + 60))) + (hasCap ? 34 : 6);
-    const capY = bot - 10;
+    const top = opts.box ? opts.box[0] : Math.min(30, Math.min(...ys.map(y => y > MID_LINE ? y - 60 : y - 14)));
+    const bot = opts.box ? opts.box[0] + opts.box[1] : Math.max(146, Math.max(...ys.map(y => y > MID_LINE ? y + 14 : y + 60))) + (hasCap ? 34 : 6);
+    const capY = opts.capY || bot - 10;
     let s = `<svg class="staff" viewBox="0 ${top} ${W} ${bot - top}" role="img" aria-label="${opts.label || 'Music staff'}">`;
     for (let i = 0; i < 5; i++) {
       const y = 56 + i * 16;
