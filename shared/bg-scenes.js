@@ -338,6 +338,39 @@ window.Arcade = window.Arcade || {};
     x.restore();
   };
 
+  /* KEYS TO THE CITY: a night skyline whose skyscrapers stand in piano-key groups of 2 and 3, the Chopsticks and Fork
+     neon signs glowing softly above them, a piano keyboard for a street along the bottom, windows switching on and off
+     slowly (fades, never a blink) */
+  S['keys-city'] = (x, W, H, t) => {
+    vgrad(x, W, H, [[0, col('deep')], [.55, col('kt-night-2')], [1, col('kt-night')]]);
+    for (let i = 0; i < 60; i++) { x.fillStyle = col('text-hi', .12 + .3 * tri(hash(i + 3) + t * .04)); x.fillRect(hash(i) * W, hash(i + 40) * H * .45, 1.3, 1.3); }
+    const ground = H * .82, u = W / 21;                                  // 21 white keys across
+    const blacks = [1, 2, 4, 5, 6];                                      // black keys after white 0,1 and 3,4,5 of each octave
+    for (let o = 0; o < 3; o++) blacks.forEach((b, k) => {
+      const cx = (o * 7 + b) * u, h = H * (.28 + .22 * hash(o * 7 + b)), bw = u * .62, top = ground - h;
+      x.fillStyle = col('kt-bldg'); x.fillRect(cx - bw / 2, top, bw, h);
+      for (let r = 0; r < Math.floor(h / (u * .45)); r++) for (let c = 0; c < 2; c++) {
+        const on = tri(hash(o * 70 + b * 9 + r * 3 + c) + t * .03);                       // a slow fade on and off
+        x.fillStyle = on > .6 ? col('kt-win-on', .25 + .35 * (on - .6) / .4) : col('kt-win-off', .5);
+        x.fillRect(cx - bw / 2 + bw * (.18 + c * .44), top + u * .25 + r * u * .45, bw * .22, u * .22);
+      }
+      if (k === 0 || k === 2) {                                          // the sign over each group
+        const gx = k === 0 ? (o * 7 + 1.5) * u : (o * 7 + 5) * u, gy = H * .2 + hash(o + k) * H * .06, s = u * .5, glow = .45 + .2 * Math.sin(t * .6 + o + k);
+        x.strokeStyle = col(k === 0 ? 'kt-chop' : 'kt-fork', glow); x.lineWidth = Math.max(1.5, u * .06); x.lineCap = 'round';
+        x.strokeRect(gx - s * 1.1, gy - s * 1.1, s * 2.2, s * 2.2);
+        x.beginPath();
+        if (k === 0) { x.moveTo(gx - s * .5, gy - s * .7); x.lineTo(gx - s * .1, gy + s * .7); x.moveTo(gx + s * .5, gy - s * .7); x.lineTo(gx + s * .1, gy + s * .7); }
+        else { [-1, 0, 1].forEach(d => { x.moveTo(gx + d * s * .45, gy - s * .75); x.lineTo(gx + d * s * .45, gy - s * .2); });
+          x.moveTo(gx - s * .45, gy - s * .2); x.quadraticCurveTo(gx, gy + s * .3, gx + s * .45, gy - s * .2); x.moveTo(gx, gy + s * .1); x.lineTo(gx, gy + s * .8); }
+        x.stroke();
+      }
+    });
+    x.fillStyle = col('kt-street', .85); x.fillRect(0, ground, W, H - ground);            // the keyboard street
+    x.strokeStyle = col('kt-street-2'); x.lineWidth = 1;
+    for (let k = 0; k <= 21; k++) { x.beginPath(); x.moveTo(k * u, ground); x.lineTo(k * u, H); x.stroke(); }
+    x.fillStyle = col('deep', .35); x.fillRect(0, 0, W, H);              // keep it dark behind the menus
+  };
+
   /* MUSIC HIGHWAY: a neon highway at night: five lanes running to the horizon under a starfield, beat lines rolling
      toward you and faint note cards drifting down the lanes. Dark and slow; the brightest parts are thin lines */
   S.highway = (x, W, H, t) => {
@@ -668,7 +701,7 @@ window.Arcade = window.Arcade || {};
 
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
-    highway: 4, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
+    highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -92,6 +92,21 @@ window.Arcade = window.Arcade || {};
                                      `<rect class="s-bar s-bar2" x="${226 + i * 9}" y="${440 - i * 10}" width="6" height="${14 + i * 10}" rx="2"/>`).join('') +
               '<path class="s-wave" d="M48 530q8-14 16 0t16 0t16 0t16 0M188 530q8-14 16 0t16 0t16 0t16 0"/>',
       slots: {marquee: [36, 22, 228, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
+    },
+    /* keys: the Keys to the City cabinet. A skyline of skyscrapers (piano black keys) rising behind the marquee, the
+       Chopsticks and Fork neon signs painted on the sides, and a real little keyboard along the kick plate */
+    keys: {
+      outline: 'M28 18H70V6H86V18H120V2H136V18H170V10H186V18H272V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H28Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338, 's-btn0'], [210, 342, 's-btn1'], [240, 346, 's-btn0']],
+      door: {x: 104, y: 440, w: 92, h: 96},
+      extras: '<rect class="s-roofwin" x="74" y="9" width="8" height="5"/><rect class="s-roofwin" x="124" y="6" width="8" height="5"/><rect class="s-roofwin" x="174" y="12" width="8" height="5"/>' +
+              '<g class="s-chop"><rect x="44" y="420" width="44" height="44" rx="6"/><path d="M56 428L63 456M76 428L69 456"/></g>' +
+              '<g class="s-fork"><rect x="212" y="420" width="44" height="44" rx="6"/><path d="M226 428V438M234 428V438M242 428V438M226 438Q234 450 242 438M234 444V458"/></g>' +
+              '<rect class="s-wkey" x="40" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="60" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="80" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="100" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="120" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="140" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="160" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="180" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="200" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="220" y="560" width="19" height="36" rx="2"/><rect class="s-wkey" x="240" y="560" width="19" height="36" rx="2"/><rect class="s-bkey" x="53" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="73" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="113" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="133" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="153" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="193" y="560" width="12" height="22" rx="1.5"/><rect class="s-bkey" x="213" y="560" width="12" height="22" rx="1.5"/>',
+      slots: {marquee: [34, 22, 232, 86], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
     /* highway: the Music Highway cabinet. A flat top with a road sign-style marquee, the neon highway painted down both
        side panels (lane lines running to a horizon), a strike line across the control panel and three colored buttons */
@@ -452,6 +467,16 @@ window.Arcade = window.Arcade || {};
           `<g class="sg-sweep"><path d="M80 52L80 10A42 42 0 0 1 110 22Z"/><line x1="80" y1="52" x2="80" y2="10"/></g>` +
           `<circle class="sg-blip b1" cx="104" cy="34" r="3"/><circle class="sg-blip b2" cx="62" cy="74" r="3"/><circle class="sg-blip b3" cx="96" cy="78" r="3"/>` +
           `<text class="sg-cap" x="80" y="106" text-anchor="middle">INCOMING…</text></svg></div>`;
+      },
+    },
+    /* Keys to the City: a little skyline keyboard; a key's windows switch on, then its name appears ("FIND THE KEY!") */
+    keys: {
+      html() {
+        const wk = [0, 1, 2, 3, 4, 5, 6].map(i => `<rect class="kc-w${i === 3 ? ' kc-t' : ''}" x="${24 + i * 16}" y="54" width="15" height="36" rx="2"/>`).join('');
+        const bk = [0, 1, 3, 4, 5].map(i => `<rect class="kc-b${i === 4 ? ' kc-lit' : ''}" x="${24 + i * 16 + 10}" y="36" width="11" height="36" rx="1.5"/>`).join('');
+        return `<div class="scr scr-keys"><svg viewBox="0 0 160 110" aria-hidden="true">` +
+          `<path class="kc-chop" d="M42 12L46 28M54 12L50 28"/><path class="kc-fork" d="M98 12V18M104 12V18M110 12V18M98 18Q104 24 110 18M104 22V30"/>` +
+          wk + bk + `<text class="kc-cap" x="80" y="104" text-anchor="middle">FIND THE KEY!</text></svg></div>`;
       },
     },
     /* Music Highway: three note cards gliding down a little highway to the strike line, "PLAY ALONG!" */

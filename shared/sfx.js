@@ -281,6 +281,28 @@ window.Arcade = window.Arcade || {};
   }
 
 
+  /* a piano key at a SOUNDING midi note (Keys to the City's TOUCH mode; never while a microphone listens): a hammer
+     tap, a few partials that die away faster the higher they are, and a gentle long decay like a real string */
+  function piano(midi) {
+    const f = 440 * Math.pow(2, (midi - 69) / 12), t = ctx.currentTime, low = Math.max(0, (60 - midi) / 36);
+    const decay = 1.4 + 1.6 * low;                                     // low strings ring longer
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(12000, f * 9), t);
+    lp.frequency.exponentialRampToValueAtTime(Math.min(9000, f * 3), t + .6); lp.connect(master);
+    [[1, .42, 1], [2.001, .2, .6], [3.003, .09, .4], [4.006, .05, .3], [5.01, .025, .22]].forEach(([ratio, vol, len], k) => {
+      const fr = f * ratio; if (fr > 14000) return;
+      const o = ctx.createOscillator(), g = ctx.createGain(), d = decay * len;
+      o.type = k ? 'sine' : 'triangle'; o.frequency.setValueAtTime(fr, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .004);
+      g.gain.exponentialRampToValueAtTime(vol * .35, t + .12); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t + d + .05);
+    });
+    // the hammer: a short soft thump of filtered noise
+    const n = ctx.createBufferSource(), nb = ctx.createBuffer(1, Math.floor(ctx.sampleRate * .03), ctx.sampleRate), d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    n.buffer = nb; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(4000, f * 4); bp.Q.value = .8;
+    const ng = ctx.createGain(); ng.gain.value = .05; n.connect(bp); bp.connect(ng); ng.connect(lp); n.start(t);
+  }
+
   /* built-in fallbacks for events whose sound didn't exist before (short generated retro sounds) */
   const GENERIC = {
     'cabinet-focus':   () => tone(2093, 0, 0.03, 0.12, 'triangle'),
@@ -1040,6 +1062,12 @@ window.Arcade = window.Arcade || {};
       const e = entry(name);
       if (!e || !e.file || !ready() || FILE_MODE) return Promise.resolve(null);
       return load(e.file).then(r => (r && r.state === 'ok' && r.buf) || null, () => null);
+    },
+    /** a piano key at a SOUNDING midi note (Keys to the City's TOUCH mode only: never while a mic listens; it refuses
+        then). Respects mute like every sound here. */
+    piano(midi) {
+      if (!ready() || (A.Pitch && A.Pitch.listening && A.Pitch.listening())) return false;
+      try { piano(midi); return true; } catch (e) { return false; }
     },
     /** a bell bar at a SOUNDING midi note (Chime Heist). Respects mute like every sound here. */
     bell(midi) {

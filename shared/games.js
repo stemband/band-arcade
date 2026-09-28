@@ -162,6 +162,22 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'dojo', body: 'cab-side'},
   },
   {
+    id: 'keys-to-the-city',
+    zones: ['note-reading'],
+    name: 'Keys to the City',
+    bg: {scene: 'keys-city', dim: .4, focus: .35},
+    menuMusic: 'keys-to-the-city-menu',
+    skill: 'Piano keys & staff',
+    blurb: 'The piano keyboard is a neon city! Find keys from the staff, name lit keys and build scales. C is next to the Chopsticks, F is next to the Fork. No instrument needed!',
+    maxStars: 27,                                    // 9 districts × 3 (keys-to-the-city/levels.js)
+    color: 'yellow',
+    player: 'all',                                   // no instrument needed (touch mode); instrument mode uses the saved one
+    unpitched: true,                                 // any saved instrument may open it (the snare plays in touch mode)
+    marquee: {scene: 'keys', colors: ['kt-win-on', 'kt-chop', 'kt-fork']},
+    cabinet: {shape: 'keys', trim: 'yellow', trim2: 'cyan', marquee: 'keys', screen: 'keys'},
+    cabinet3d: {profile: 'keys', body: 'cab-side'},
+  },
+  {
     id: 'vanishing-ink',
     zones: ['note-reading', 'ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Vanishing Ink listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},

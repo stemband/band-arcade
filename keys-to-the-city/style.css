@@ -1,0 +1,119 @@
+/* Keys to the City: the city map, the skyline keyboard, the signs, the staff, the Mayor. Colors: --kt-* tokens only. */
+.hub-head{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+.mayor-hi{width:92px;flex:none}
+.game-title{font-family:var(--display);font-weight:400;font-size:clamp(34px,8vw,64px);line-height:.95}
+.game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
+.hub-head p{max-width:56ch;margin:8px 0 0}
+.kt-opts{display:flex;flex-wrap:wrap;gap:10px 14px;margin:6px 0}
+.kt-opt{display:inline-flex;align-items:center;border:2px solid var(--floor-3);border-radius:12px;overflow:hidden}
+.kt-ol{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:0 10px}
+.kt-seg{min-height:44px;padding:0 14px;background:var(--floor-2);color:var(--text-lo);border:0;border-left:1px solid var(--floor-3);font:700 15px var(--text);cursor:pointer}
+.kt-seg[aria-pressed="true"]{background:var(--yellow);color:var(--deep)}
+.kt-optnote{margin:0 0 12px;font-size:14px;color:var(--text-lo)}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:760px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--floor-2);color:var(--text-hi);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:128px;font:inherit;cursor:pointer}
+.lvl:hover:not([disabled]){border-color:var(--yellow)}
+.lvl .n{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow-hi);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;width:46px}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;font-size:13px;color:var(--text-lo);margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+.kt-dist.cleared{border-color:color-mix(in srgb,var(--kt-gold) 45%,transparent)}
+.gk{width:100%;height:auto;fill:var(--kt-gold);stroke:var(--kt-gold-d);stroke-width:1}
+.gk .gk-hole{fill:var(--floor-2)}
+
+/* ---------- play ---------- */
+body.kt-playing .wrap{padding-bottom:8px}
+.hud{display:grid;grid-template-columns:1fr auto auto 1fr;gap:10px;align-items:end;margin:4px 0}
+.hud small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);font-weight:700}
+.hud b{font-family:var(--display);font-weight:400;font-size:clamp(16px,3vw,24px);color:var(--text-hi)}
+.hud .c{text-align:center}.hud .r{text-align:right}
+.kt-timer{height:8px;border-radius:4px;background:var(--floor-3);overflow:hidden;margin:2px 0 6px}
+.kt-timer i{display:block;height:100%;background:var(--yellow);transform-origin:left}
+.kt-timer.low i{background:var(--red)}
+.kt-talk{display:flex;align-items:center;gap:10px;min-height:44px}
+.kt-mayor{width:44px;flex:none}
+.kt-say{margin:0;background:var(--floor-2);border:1px solid var(--floor-3);border-radius:14px;padding:6px 12px;color:var(--text-hi);font-size:15px;min-height:1.4em}
+.kt-say:empty{visibility:hidden}
+.kt-prompt{margin:6px 0 4px;font-family:var(--display);font-size:clamp(16px,2.6vw,22px);color:var(--yellow-hi);text-align:center}
+.kt-stage{position:relative;padding:4px 10px;margin:0 auto 6px;max-width:560px}
+.kt-staff svg{display:block;width:100%;height:auto;max-height:clamp(110px,21vh,210px)}
+.kt-staff svg.placing{cursor:ns-resize;touch-action:none}
+.kt-staff .ghostnote .head{fill:var(--cyan-ink)}.kt-staff .ghostnote .stem{stroke:var(--cyan-ink)}
+.kt-staff .ksig.kt-hint{fill:var(--red);transition:fill .3s}
+.kt-staff .ksig{transition:fill .9s}
+.kt-keyname{margin:0;min-height:1.2em;text-align:center;color:var(--ink);font-weight:700;font-size:14px}
+.kt-helper{margin:0 0 6px;text-align:center;font-weight:700;color:var(--cyan-hi)}
+.kt-pad{max-width:640px;margin:0 auto 6px;touch-action:none}
+.kt-pad.off{visibility:hidden}
+.play-foot{display:flex;justify-content:center;gap:10px;margin-top:6px}
+
+/* ---------- the skyline keyboard ---------- */
+.kt-city{background:linear-gradient(180deg,var(--kt-night),var(--kt-night-2));border-radius:16px;padding:0;overflow:hidden;border:2px solid var(--floor-3)}
+.kt-view{position:relative;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.kt-strip{position:absolute;left:0;top:0;transition:transform .45s ease-in-out;will-change:transform}
+.kt-kb{display:block}
+.k{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.k.white .k-body{fill:var(--kt-street);stroke:var(--kt-street-2);stroke-width:2;transition:fill .35s}
+.k.white .k-curb{stroke:var(--kt-street-2);stroke-width:4}
+.k.white .k-lane{stroke:var(--kt-lane);stroke-width:3;stroke-dasharray:14 12;opacity:.55}
+.k.black .k-body{fill:var(--kt-bldg);stroke:var(--kt-bldg-2);stroke-width:2;transition:fill .35s}
+.k.black .win{fill:var(--kt-win-off);transition:fill .5s,opacity .5s}
+.k .k-name{font-family:var(--display);font-size:34px;fill:var(--ink);pointer-events:none}
+.k.black .k-name{fill:var(--kt-glow);font-size:26px}
+.roof rect{fill:var(--kt-bldg)}.roof path{stroke:var(--kt-bldg-2);stroke-width:3}.roof circle{fill:var(--red);opacity:.7}
+/* a key being asked about: its windows switch on (a black key), a warm glow on a street (a white key) */
+.k.black.lit .win{fill:var(--kt-win-on)}
+.k.white.lit .k-body{fill:var(--kt-glow)}
+.k.black.lit .k-body{fill:var(--kt-bldg-2)}
+.k.good .k-body{stroke:var(--kt-good);stroke-width:6}
+.k.white.good .k-body{fill:color-mix(in srgb,var(--kt-good) 45%,var(--kt-street))}
+.k.black.good .win{fill:var(--kt-good)}
+.k.bad .k-body{stroke:var(--kt-bad);stroke-width:6}
+.k.answer .k-body{stroke:var(--kt-answer);stroke-width:7}
+.k.white.answer .k-body{fill:color-mix(in srgb,var(--kt-answer) 40%,var(--kt-street))}
+.k.black.answer .win{fill:var(--kt-answer)}
+.k.done .k-body{stroke:var(--kt-good);stroke-width:5}
+.k.black.done .win{fill:var(--kt-good)}
+/* a right answer lights up its whole block (a gentle glow that fades in and out once) */
+.k.white.blk .k-body{fill:color-mix(in srgb,var(--kt-glow) 55%,var(--kt-street))}
+.k.black.blk .win{fill:var(--kt-win-on)}
+/* the signs */
+.sky-signs{transition:opacity .8s}
+.kt-sign .sg-board{fill:color-mix(in srgb,var(--kt-night) 80%,transparent);stroke-width:2.5}
+.kt-sign .sg-icon{fill:none;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
+.kt-sign .sg-glow{fill:none;stroke-width:11;stroke-linecap:round;stroke-linejoin:round;opacity:.28}
+.kt-sign .sg-name{font-family:var(--display);font-size:10px;letter-spacing:.08em}
+.kt-sign.chop .sg-board{stroke:var(--kt-chop)}.kt-sign.chop .sg-icon,.kt-sign.chop .sg-glow{stroke:var(--kt-chop)}.kt-sign.chop .sg-name{fill:var(--kt-chop)}
+.kt-sign.fork .sg-board{stroke:var(--kt-fork)}.kt-sign.fork .sg-icon,.kt-sign.fork .sg-glow{stroke:var(--kt-fork)}.kt-sign.fork .sg-name{fill:var(--kt-fork)}
+.kt-mainst .ms-post{fill:none;stroke:var(--ink-2);stroke-width:3}
+.kt-mainst .ms-lamp{fill:var(--kt-lamp)}
+.kt-mainst .ms-sign{fill:var(--green-ink)}
+.kt-mainst .ms-text{font-family:var(--display);font-size:10px;fill:var(--text-hi)}
+.kt-signdemo{width:min(100%,340px);display:block;margin:0 auto}
+/* ---------- the Mayor ---------- */
+.mayor-svg{width:100%;height:auto;display:block}
+.my-hat{fill:var(--kt-hat)}.my-band{fill:var(--kt-sash)}
+.my-fur{fill:var(--kt-fur);stroke:var(--kt-fur-d);stroke-width:1.5}
+.my-muzzle{fill:var(--kt-street)}.my-eye{fill:var(--kt-hat)}.my-shine{fill:var(--text-hi)}.my-nose{fill:var(--pink)}
+.my-line,.my-whisk{fill:none;stroke:var(--kt-hat);stroke-width:2;stroke-linecap:round}.my-whisk{stroke-width:1.2;opacity:.7}
+.my-coat{fill:var(--kt-hat)}.my-sash{fill:var(--kt-sash)}.my-medal{fill:var(--kt-gold)}
+.my-key{fill:none;stroke:var(--kt-gold);stroke-width:3;stroke-linecap:round}.my-keyring{fill:none;stroke:var(--kt-gold);stroke-width:3}
+/* ---------- panels ---------- */
+.kt-intro-mayor{width:110px;margin:0 auto}
+.kt-intro-signs p{color:var(--text-lo);font-size:15px}
+.kt-gold{width:90px;margin:0 auto 4px}
+.kt-finale-key{display:flex;align-items:center;justify-content:center;gap:10px}
+.kt-finale-key .gk{width:120px}.kt-finale-key .mayor-svg{width:110px}
+.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
+.panel .bigstars .on{color:var(--yellow)}
+.panel .best{font-size:14px;margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
+.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.stats b{font-size:22px}
+@media (prefers-reduced-motion:reduce){
+  .kt-strip,.sky-signs,.k .k-body,.k .win,.kt-staff .ksig{transition:none}
+}

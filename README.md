@@ -86,6 +86,10 @@ showtime-malfunction/ Game 8: articulation. Play each note N separate times (ton
 sustain-speedway/     Game 9: long tones and tuning. Your instrument is the engine: hold each lap's note in tune and steady to race
   levels.js           The 8 tracks (Downtown Loop … The Grand Prix): laps, lap length, rivals, and HOW SPEED WORKS. Edit here
   game.js             The race: the speed model, the canvas road, the tuning speedometer, pit stops, rivals, ghost car, results
+keys-to-the-city/     Piano keys and the staff in a neon city: find keys, name them, place notes, build scales (touch or mic)
+  levels.js           THE CITY MAP (9 districts), rules, Night Shift (endless). Edit here; never reorder (stars = district number)
+  quiz.js             The music model (spelling, key signatures) and the round maker
+  game.js             The skyline keyboard, the Chopsticks and Fork signs, the staff, the Mayor, instrument mode, results
 music-highway/        Play-along rhythm game: your fingerings fly down a neon highway with the band; play each note on the line
   songs.js            THE SONG LIST (16 songs in 3 tiers, as concert B♭ scale degrees). Edit here; never reorder (stars = song number)
   song-map.js         Songs -> each instrument's written notes, octave, chords · settings.js: judging windows, stars, volumes
