@@ -412,3 +412,21 @@
 @keyframes hw-glide2{from{transform:translate(83px,20px) scale(.35);opacity:0}15%{opacity:1}to{transform:translate(108px,84px) scale(1.15);opacity:1}}
 .attract .scr-highway .hw-k1{animation-delay:-.8s}.attract .scr-highway .hw-k2{animation-delay:-1.6s}
 @media (prefers-reduced-motion:reduce){.attract .scr-highway .hw-card{animation:none}}
+/* keys: Keys to the City: a skyline over the marquee, the Chopsticks and Fork signs, a little keyboard on the kick plate */
+.mq-keys{background:linear-gradient(180deg,var(--deep),var(--kt-night-2));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:var(--t-glow)}
+.mq-keys .mq-name{font-family:"GN Neon",var(--display)}
+.shape-keys .s-roofwin{fill:var(--kt-win-on);opacity:.8}
+.shape-keys .s-chop rect,.shape-keys .s-fork rect{fill:var(--kt-night);stroke-width:2.5}
+.shape-keys .s-chop rect,.shape-keys .s-chop path{stroke:var(--kt-chop)}.shape-keys .s-fork rect,.shape-keys .s-fork path{stroke:var(--kt-fork)}
+.shape-keys .s-chop path,.shape-keys .s-fork path{fill:none;stroke-width:3;stroke-linecap:round}
+.shape-keys .s-wkey{fill:var(--kt-street);stroke:var(--kt-street-2)}.shape-keys .s-bkey{fill:var(--kt-bldg)}
+.scr-keys{background:var(--kt-night-2)}
+.scr-keys svg{width:100%;height:auto}
+.scr-keys .kc-w{fill:var(--kt-street);stroke:var(--kt-street-2)}.scr-keys .kc-b{fill:var(--kt-bldg)}
+.scr-keys .kc-chop,.scr-keys .kc-fork{fill:none;stroke-width:2;stroke-linecap:round}.scr-keys .kc-chop{stroke:var(--kt-chop)}.scr-keys .kc-fork{stroke:var(--kt-fork)}
+.scr-keys .kc-cap{fill:var(--yellow-hi);font:700 9px var(--display);letter-spacing:.1em}
+.attract .scr-keys .kc-lit{animation:kc-lit 3s ease-in-out infinite}
+.attract .scr-keys .kc-t{animation:kc-t 3s ease-in-out infinite 1.5s}
+@keyframes kc-lit{0%,20%{fill:var(--kt-bldg)}45%,75%{fill:var(--kt-win-on)}100%{fill:var(--kt-bldg)}}
+@keyframes kc-t{0%,20%{fill:var(--kt-street)}45%,75%{fill:var(--kt-glow)}100%{fill:var(--kt-street)}}
+@media (prefers-reduced-motion:reduce){.attract .scr-keys .kc-lit,.attract .scr-keys .kc-t{animation:none}}

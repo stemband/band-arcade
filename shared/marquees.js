@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -544,6 +544,37 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
+    /* KEYS TO THE CITY. colors: [lit windows, the Chopsticks, the Fork]. A neon skyline made of piano keys: black keys
+       stand up as skyscrapers over a row of white keys, their windows fading on and off slowly, the Chopsticks and the
+       Fork glowing over the groups (nothing flashes) */
+    keys: {
+      colors: ['kt-win-on', 'kt-chop', 'kt-fork'], still: 2,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [1, tok('kt-night-2')]]); x.fillRect(0, 0, W, H);
+        const n = 14, u = W / n, ground = H * .78;
+        x.fillStyle = tok('kt-street'); x.fillRect(0, ground, W, H - ground);
+        x.strokeStyle = tok('kt-street-2'); x.lineWidth = Math.max(1, H * .01);
+        for (let k = 1; k < n; k++) { x.beginPath(); x.moveTo(k * u, ground); x.lineTo(k * u, H); x.stroke(); }
+        [1, 2, 4, 5, 6, 8, 9, 11, 12, 13].forEach((b, i) => {
+          const h = H * (.35 + .3 * hash(b + 2)), bw = u * .6, cx = b * u, top = ground + H * .12 - h;
+          x.fillStyle = tok('kt-bldg'); x.fillRect(cx - bw / 2, top, bw, h);
+          for (let r = 0; r < 5; r++) {
+            const on = .5 + .5 * Math.sin(t * .7 + hash(b * 5 + r) * 6.28);
+            x.fillStyle = on > .5 ? rgba(c[0], .3 + .6 * on) : tok('kt-win-off');
+            x.fillRect(cx - bw * .25, top + h * (.1 + r * .15), bw * .5, h * .06);
+          }
+        });
+        [[1.5, 1], [5, 2], [8.5, 1], [12, 2]].forEach(([gx, k]) => {          // the signs over the groups
+          const X = gx * u, Y = H * .16, s = H * .08, col = c[k];
+          glow(x, X, Y, s * 3, col, .35);
+          x.strokeStyle = tok(col); x.lineWidth = Math.max(1.2, H * .018); x.lineCap = 'round'; x.beginPath();
+          if (k === 1) { x.moveTo(X - s * .6, Y - s); x.lineTo(X - s * .1, Y + s); x.moveTo(X + s * .6, Y - s); x.lineTo(X + s * .1, Y + s); }
+          else { [-1, 0, 1].forEach(d => { x.moveTo(X + d * s * .55, Y - s); x.lineTo(X + d * s * .55, Y - s * .2); });
+            x.moveTo(X - s * .55, Y - s * .2); x.quadraticCurveTo(X, Y + s * .5, X + s * .55, Y - s * .2); x.moveTo(X, Y + s * .15); x.lineTo(X, Y + s); }
+          x.stroke();
+        });
+      },
+    },
     /* MUSIC HIGHWAY. colors: [lanes + beat lines, road edges, stars]. A neon road running into a starfield: five lanes
        from the horizon, beat lines rolling toward you, small note cards drifting down the lanes (slow; nothing flashes). */
     highway: {
@@ -733,7 +764,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)

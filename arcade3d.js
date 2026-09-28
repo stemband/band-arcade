@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -115,6 +115,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* keys: the Keys to the City cabinet: a classic body with a little skyline on the roof, three skyscrapers standing
+       in a piano's 2 + 3 black-key pattern, their windows lit */
+    keys: {
+      width: 0.96, topper: 'skyline',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.82, 0.84], [0.82, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.66, 1.50], [0.66, 1.72], [0.60, 1.76], [0, 1.76]],
+      marquee: [[0.66, 1.52], [0.66, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.82, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* highway: the Music Highway cabinet: a classic body leaning forward a little, with a lit highway sign on two posts
        on the roof (a road running to the horizon, a note on it) */
     highway: {
@@ -146,7 +154,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -174,7 +182,8 @@ window.Arcade = window.Arcade || {};
    'sw-sky-top', 'sw-sky-mid', 'sw-sky-low', 'sw-sun-1', 'sw-sun-2', 'sw-ground', 'sw-grid', 'sw-road', 'sw-lane', 'sw-glass', 'sw-tail',
    'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep', 'dd-night', 'dd-wood', 'dd-wood-2', 'dd-wood-line', 'dd-paper', 'dd-lantern',
    'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2',
-   'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b'].forEach(n => { tok[n] = cssVar(n); });
+   'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b',
+   'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -444,6 +453,21 @@ window.Arcade = window.Arcade || {};
       x.globalAlpha = 1;
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok['ls-wave'];
       x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('INCOMING…', W / 2, H * .93);
+    },
+    /* Keys to the City: a little skyline keyboard; a black key's windows fade on, then a white key glows (as 2D) */
+    keys(x, W, H, t) {
+      const tt = t == null ? 1.5 : t, ph = (tt % 3) / 3, on = ph < .2 ? 0 : ph < .45 ? (ph - .2) / .25 : ph < .75 ? 1 : 1 - (ph - .75) / .25;
+      x.fillStyle = tok['kt-night-2']; x.fillRect(0, 0, W, H);
+      const u = W / 9, y0 = H * .45;
+      for (let i = 0; i < 7; i++) {
+        x.fillStyle = tok['kt-street']; x.fillRect(u + i * u + 1, y0, u - 2, H * .4);
+        if (i === 3) { x.globalAlpha = on; x.fillStyle = tok['kt-glow']; x.fillRect(u + i * u + 1, y0, u - 2, H * .4); x.globalAlpha = 1; }   // the asked key fades on
+      }
+      [0, 1, 3, 4, 5].forEach(i => { x.fillStyle = tok['kt-bldg']; x.fillRect(u + i * u + u * .65, y0 - H * .15, u * .7, H * .38);
+        for (let r = 0; r < 4; r++) { x.fillStyle = i === 4 && on > .3 ? tok['kt-win-on'] : tok['kt-win-off']; x.fillRect(u + i * u + u * .8, y0 - H * .1 + r * H * .07, u * .4, H * .03); } });
+      x.strokeStyle = tok['kt-chop']; x.lineWidth = 3; x.beginPath(); x.moveTo(u * 2.2, H * .08); x.lineTo(u * 2.45, H * .3); x.moveTo(u * 2.9, H * .08); x.lineTo(u * 2.65, H * .3); x.stroke();
+      x.strokeStyle = tok['kt-fork']; x.beginPath(); [5.7, 6, 6.3].forEach(v => { x.moveTo(u * v, H * .08); x.lineTo(u * v, H * .17); }); x.moveTo(u * 5.7, H * .17); x.quadraticCurveTo(u * 6, H * .24, u * 6.3, H * .17); x.moveTo(u * 6, H * .21); x.lineTo(u * 6, H * .32); x.stroke();
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = tok[this.trim + '-hi']; x.font = `${H * .07}px "GN Display", sans-serif`; x.fillText('FIND THE KEY!', W / 2, H * .93);
     },
     /* Music Highway: note cards gliding down a small highway to the strike line, "PLAY ALONG!" (as 2D) */
     highway(x, W, H, t) {
@@ -774,6 +798,14 @@ window.Arcade = window.Arcade || {};
         const grip = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .1, 8), wood); grip.rotation.z = a;
         grip.position.set(Math.sin(-a) * .16, topY + .17 + Math.cos(a) * -.16, fz + .02); group.add(detail(grip));
       });
+    } else if (P.topper === 'skyline') {
+      // a little skyline on the roof: five skyscrapers in a piano's 2 + 3 black-key pattern, lit windows, a neon line (Keys to the City)
+      const fz = frontTop + zc - .16, bw = W * .1;
+      [[-.36, .3], [-.24, .38], [-.02, .26], [.12, .42], [.26, .32]].forEach(([u, h]) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(bw, h, .12), lambert(col('kt-bldg'))); b.position.set(u * W, topY + h / 2, fz); b.userData.pick = true; group.add(detail(b));
+        for (let r = 0; r < Math.floor(h / .07); r++) { const w = new THREE.Mesh(new THREE.PlaneGeometry(bw * .5, .025), basic(col(r % 3 ? 'kt-win-on' : 'kt-win-off'))); w.position.set(u * W, topY + .04 + r * .07, fz + .061); group.add(detail(w)); }
+      });
+      neon([new THREE.Vector3(-W * .45, topY + .01, fz + .07), new THREE.Vector3(W * .45, topY + .01, fz + .07)]);
     } else if (P.topper === 'road') {
       // a highway sign on two posts: a road to the horizon between neon edges, a note card on it (Music Highway)
       const fz = frontTop + zc - .14, sw = W * .7, sh = .26, metal = lambert(col('cab-metal'));

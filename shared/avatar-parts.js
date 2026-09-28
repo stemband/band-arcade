@@ -894,6 +894,10 @@ window.AVATAR_PARTS = {};
     {id: 'wand', name: 'Magic wand', unlock: {shop: 250}, pal: {I: 'yellow', J: 'av-black', L: 'white-hi'}, anim: {sparkle: true},
      bust(a, f) { a.line(30, 21, 33, 15, 'J'); [[33, 12], [32, 13], [33, 13], [34, 13], [33, 14]].forEach(([x, y]) => a.px(x, y, 'I'));
        [[[31, 11], [35, 15]], [[35, 11], [31, 15]], [[33, 10], [35, 13]], [[31, 13], [34, 16]]][f % 4].forEach(([x, y]) => a.px(x, y, 'L')); }},
+    {id: 'citykey', name: 'Golden City Key', unlock: {game: 'keys-to-the-city', achievement: 'mayor', text: "Clear The Mayor's Challenge in Keys to the City"},
+     pal: {I: 'kt-gold', J: 'kt-gold-d', L: 'white-hi'},
+     bust(a) { [[28, 11], [29, 10], [30, 10], [31, 11], [28, 12], [31, 12], [28, 13], [29, 14], [30, 14], [31, 13]].forEach(([x, y]) => a.px(x, y, 'I'));
+       a.px(29, 11, 'L'); a.line(29.5, 15, 29.5, 21, 'I').line(30, 17, 31, 17, 'J').line(30, 19, 31, 19, 'J'); }},
     {id: 'trophy', name: 'Trophy', unlock: {game: 'neon-face-off', wins: 10, text: 'Win 10 matches in Neon Face-Off on this device'}, pal: {I: 'yellow', J: 'amber', L: 'white-hi'},
      bust(a) { for (let y = 12; y <= 16; y++) a.line(27 + (y > 14 ? 1 : 0), y, 32 - (y > 14 ? 1 : 0), y, 'I'); a.px(26, 13, 'I').px(26, 14, 'I').px(33, 13, 'I').px(33, 14, 'I');
        a.line(29, 17, 30, 17, 'J').line(29, 18, 30, 18, 'J').line(27, 19, 32, 19, 'J').px(28, 13, 'L'); }},
@@ -992,6 +996,7 @@ window.AVATAR_PARTS = {};
     {id: 'nighttrack', name: 'Night Track', kind: 'scene', scene: 'track', lift: 1.9, main: 'purple-ink', unlock: clear(['sustain-speedway', 8, 'Finish The Grand Prix in the top 3 in Sustain Speedway'])},
     {id: 'deepspace', name: 'Deep Space Radar', kind: 'scene', scene: 'space', lift: 2, main: 'blue-ink', unlock: clear(['lost-signal', 8, 'Clear Lost Signal Level 8'])},
     {id: 'neonhighway', name: 'Neon Highway', kind: 'scene', scene: 'highway', lift: 1.8, main: 'purple-ink', unlock: clear(['music-highway', 16, 'Earn a star on The Entertainer in Music Highway'])},
+    {id: 'cityskyline', name: 'City Skyline', kind: 'scene', scene: 'keys-city', lift: 1.8, main: 'purple-ink', unlock: {game: 'keys-to-the-city', achievement: 'mayor', text: "Clear The Mayor's Challenge in Keys to the City"}},
     {id: 'dojonight', name: 'Dojo Night', kind: 'scene', scene: 'night-dojo', lift: 2, main: 'red-ink', unlock: {game: 'dojo-duel', wins: 5, text: 'Win 5 matches in Dojo Duel on this device'}},
     {id: 'pixelcastle', name: 'Pixel Castle', kind: 'scene', scene: 'pixel-night', lift: 1.7, main: 'purple-ink', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}},
     // ---- star milestones (every star on this device) ----
