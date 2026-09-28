@@ -576,6 +576,35 @@ as 4 characters from `23456789ABCDEFGHJKMNPQRSTUVWXYZ` after the belt's 3 letter
 public, so the salt is not a secret; changing it just makes last year's codes stop working). With `?demo` the arcade
 checks its ten codes against the portal's list (`EXPECTED` in bandninja.js: update that list too when the salt changes).
 
+## Leaderboard & privacy
+
+A per-grade weekly leaderboard (the trophy button in the arcade's top bar): ⭐ Stars this week, 📈 Most improved,
+🔥 Practice streak (school days in a row) and ♾️ Endless (pick a game). It resets every Monday. It talks to Mat's Google
+Apps Script scoreboard, whose address is in `shared/leaderboard-config.js` (`Arcade.LEADERBOARD_URL`); **set it to
+`''` to switch the whole leaderboard off** (the button disappears and nothing is ever sent).
+
+**What is sent** (and nothing else, ever): a random device id (24 letters/numbers, made on the device, not tied to
+anyone), the grade (6, 7 or 8), the avatar's name as three word **numbers** (never text), and for each event the game,
+the kind (`stars`, `endless` or `play`), a number and the level:
+- `stars`: how many NEW stars a level's best just gained (1–3);
+- `endless`: an Endless score, only when it beats this device's best for that game this week;
+- `play`: once a day, the first time a game is started that day (for the practice streak).
+
+**What is never sent:** real names, emails, PINs, the avatar's look, what instrument is played, anything typed.
+
+**Turning it off:** every student has a "Show me on the leaderboard" switch (on by default) on the leaderboard
+screen, under MY SETTINGS. Off = nothing is sent at all (anything still waiting is thrown away). Nothing is sent
+until the student picks a grade, and never in `?demo`. The device id, grade and switch are in the Arcade Backup
+Code, so a student's streak follows them to a new device.
+
+**Hiding a player (teacher):** open the leaderboard with `?teacher` in the address
+(`bandarcade.org/index.html?teacher`). Every entry then shows its 6-character id; paste it into the **Blocked**
+tab of the scoreboard Sheet.
+
+Names: every word in `shared/avatar-names.js` has a permanent number (its place in its list), so the lists are
+append-only now: add new words at the end, and retire a word with a `#` in front (`'#Word'`) instead of deleting it.
+A retired or unknown word shows as "Mystery" on the leaderboard.
+
 ## PRESS START title screens
 
 Every game page opens on a title screen: the game's marquee, big and moving, over its menu background, with a

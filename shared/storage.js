@@ -179,12 +179,15 @@ window.Arcade = window.Arcade || {};
       const got = run != null ? run : Math.max(0, ((p && p.stars) || 0) - ((old && old.stars) || 0));
       logActivity({game: gameId.split(':')[0], stars: got, cleared: got > 0 ? 1 : 0});
       save();
+      // the leaderboard (shared/leaderboard.js): only the INCREASE of this level's best stars
+      const gain = ((p && p.stars) || 0) - ((old && old.stars) || 0);
+      if (gain > 0 && A.Leaderboard) A.Leaderboard.stars(gameId.split(':')[0], lvl, gain);
     },
     /** THE DAILY ACTIVITY LOG (seasonal events count only what happens inside their dates):
         {'YYYY-MM-DD': {s: stars earned, c: levels cleared, g: {gameId: 1} (games played), e: best Endless score,
         p: plays}}, the last 400 days, in the Arcade Backup Code. note({game, play, endless}) adds to today. */
     get activity() { return JSON.parse(JSON.stringify(data.activity || {})); },
-    noteActivity(o) { logActivity(o); save(); },
+    noteActivity(o) { logActivity(o); save(); if (o && o.play && o.game && A.Leaderboard) A.Leaderboard.play(o.game); },
     /** today's date (the device's; ?demo&today=YYYY-MM-DD pretends another day, for testing) */
     today() {
       const t = A.DEMO && A.params && /^\d{4}-\d{2}-\d{2}$/.test(A.params.get('today') || '') ? A.params.get('today').split('-').map(Number) : null;
@@ -211,6 +214,7 @@ window.Arcade = window.Arcade || {};
       const all = data.endless || (data.endless = {}), g = all[gameId] || (all[gameId] = {}), i = g[instKey] || (g[instKey] = {});
       const list = (i[setKey] || []).slice();
       logActivity({game: gameId, endless: entry.score});
+      if (A.Leaderboard) A.Leaderboard.endless(gameId, entry.score);   // sent only if it beats this week's best here
       let at = list.findIndex(x => entry.score > x.score);
       if (at < 0) at = list.length;
       if (at >= 5) { save(); return -1; }

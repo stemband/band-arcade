@@ -33,7 +33,7 @@
 <div class="room" aria-hidden="true"></div>
 
 <!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES, the FULL ARCADE; arcade.js): back, where you are, TUNE UP (the
-     Note Checker), ALL GAMES, FULL ARCADE, your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
+     Note Checker), ALL GAMES, FULL ARCADE, LEADERBOARD (leaderboard-screen.js; hidden when no scoreboard address is set), your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
 <nav class="fbar" id="fbar" aria-label="Arcade">
   <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
   <h2 class="fb-title" id="fbTitle" hidden></h2>
@@ -44,6 +44,8 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><span>All games</span></button>
     <button type="button" class="fb-btn fb-full" id="fullBtn">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span>Full arcade</span></button>
+    <button type="button" class="fb-btn fb-lb" id="lbBtn" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20h7M10 17h4"/></svg><span>Leaderboard</span></button>
     <div class="fb-avb" id="avBadge"></div>
     <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
   </div>
@@ -184,6 +186,8 @@
 <script src="shared/portraits.js"></script>
 <script src="shared/skins.js"></script>
 <script src="shared/seasons.js"></script>
+<script src="shared/leaderboard-config.js"></script>
+<script src="shared/leaderboard.js"></script>
 <script src="shared/avatar-parts.js"></script>
 <script src="shared/avatar-names.js"></script>
 <script src="shared/avatar.js"></script>
@@ -207,6 +211,7 @@
 <script src="select-player/player.js"></script>
 <script src="lobby.js"></script>
 <script src="season-lobby.js"></script>
+<script src="leaderboard-screen.js"></script>
 <script src="arcade3d.js"></script>
 <script src="arcade.js"></script>
 </body>

@@ -41,7 +41,18 @@ window.Arcade = window.Arcade || {};
   /* the name builder's words: A–Z, no repeats, never a NEVER-USE word (even if one is added to a list by mistake) */
   const NEVER = (RAW_NAMES.never || []).map(w => w.toLowerCase());
   const banned = w => NEVER.includes(String(w).trim().toLowerCase());
-  const cleanList = list => [...new Set((list || []).map(w => String(w).trim()).filter(w => w && !banned(w)))].sort((a, b) => a.localeCompare(b));
+  const cleanList = list => [...new Set((list || []).map(w => String(w).trim()).filter(w => w && w[0] !== '#' && !banned(w)))].sort((a, b) => a.localeCompare(b));
+  /* THE WORD NUMBERS (avatar-names.js): a word's permanent number = its place in its raw list, from 1 ('#Word' =
+     retired: its number stays reserved). The leaderboard sends names as [title, adjective, noun] numbers; 0 = not
+     in the list. Showing numbers: an unknown, retired or NEVER-USE word becomes "Mystery". */
+  const RAW_LISTS = {title: RAW_NAMES.titles || [], adj: RAW_NAMES.adjectives || [], noun: RAW_NAMES.nouns || []};
+  const MYSTERY = 'Mystery';
+  const wordNumber = (k, w) => (RAW_LISTS[k] || []).findIndex(x => x === w || x === '#' + w) + 1;
+  const wordAt = (k, n) => { const w = (RAW_LISTS[k] || [])[(n | 0) - 1]; return typeof w === 'string' && w && w[0] !== '#' && !banned(w) && n === (n | 0) ? w : MYSTERY; };
+  /** an avatar's name as [title, adjective, noun] numbers */
+  const nameNumbers = av => { const n = (av && av.name) || {}; return ['title', 'adj', 'noun'].map(k => wordNumber(k, n[k])); };
+  /** numbers back to words ("Captain Mystery Comet" when a number is unknown or retired) */
+  const nameFromNumbers = nums => ['title', 'adj', 'noun'].map((k, i) => wordAt(k, Array.isArray(nums) ? Number(nums[i]) : 0)).join(' ');
   const NAMES = {titles: cleanList(RAW_NAMES.titles), adjectives: cleanList(RAW_NAMES.adjectives), nouns: cleanList(RAW_NAMES.nouns), never: RAW_NAMES.never || []};
   const NAME_PARTS = {title: 'titles', adj: 'adjectives', noun: 'nouns'};
   const VERSION = 1;
@@ -897,7 +908,9 @@ window.Arcade = window.Arcade || {};
     },
     VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone, nameNote, cleanName,
     /** the builder's words for 'title' | 'adj' | 'noun' (A–Z, no repeats, no NEVER-USE words) */
-    words: k => NAMES[NAME_PARTS[k] || k] || [], banned,
+    words: k => NAMES[NAME_PARTS[k] || k] || [], banned, wordNumber, wordAt, nameNumbers, nameFromNumbers, MYSTERY,
+    /** the numbered raw lists with retired words' '#' taken off (avatar-code.js stores names by these numbers) */
+    numberedWords: k => (RAW_LISTS[k] || []).map(w => String(w).replace(/^#/, '')),
     bustURL, bustCanvas, bustFrames, isAnimated, sprites, fightSprites, redrawAll, eqFor,
     /** a live box's avatar {av, eq} (its data-live id) */
     liveInfo: id => LIVE.get(String(id)), plateAttr,
