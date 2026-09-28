@@ -65,7 +65,7 @@ window.MH_RULES = {
   maxLagMs: 450,          // a calibration outside ±this is refused ("Let's try that again")
   /* THE BACKING (generated drums; shared/sounds/mh-drums-<song id>.m4a replaces them) */
   lookaheadS: .6,         // the drums are put on the audio clock this far ahead (a stalled page never delays a hit)
-  drumVol: .55,           // the whole kit (the student's EFFECTS slider and SOUND ON/OFF apply on top)
+  drumVol: .9,           // the whole kit (the student's EFFECTS slider and SOUND ON/OFF apply on top)
   clickVol: .6,           // count-in and calibration clicks
   /* HEADPHONES MODE: a quiet guide melody, bass and chords on top of the drums (pitched: only after the speaker check) */
   guideVol: .16, bassVol: .2, padVol: .07,
