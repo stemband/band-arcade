@@ -378,11 +378,16 @@ microphone is paused, so they never mute anything; trim them so each word starts
 ### Sustain Speedway
 
 The microphone listens for the whole race, so there is no engine sound, music or ambience while racing. The countdown
-plays before GO (the race waits for it to end), and `pit-in` plays during the pit stop, which is a rest.
+(one file per word, like Dojo Duel's) plays before GO: the race starts when the microphone is live again after "Go!".
+`pit-in` plays during the pit stop, which is a rest. `race-countdown` (the old one-file "3, 2, 1, GO!") is **no longer
+used**: an uploaded file is simply ignored.
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `race-countdown` | `race-countdown.m4a` or `race-countdown.mp3` | Sustain Speedway: "3, 2, 1, GO!" before the first note. It plays BEFORE listening counts: GO waits until it ends. | 3–3.5 s (GO on the last beat) |
+| `race-count-3` | `race-count-3.m4a` or `race-count-3.mp3` | Sustain Speedway countdown voice; optional, falls back to the Dojo Duel voice. The spoken "3!" as the 3 appears before a race. Missing: `dojo-count-3`, then the `dojo-count` tick. **voice** | under 0.8 s |
+| `race-count-2` | `race-count-2.m4a` or `race-count-2.mp3` | Sustain Speedway countdown voice; optional, falls back to the Dojo Duel voice. The spoken "2!", 1 second after the 3. Missing: `dojo-count-2`, then the `dojo-count` tick. **voice** | under 0.8 s |
+| `race-count-1` | `race-count-1.m4a` or `race-count-1.mp3` | Sustain Speedway countdown voice; optional, falls back to the Dojo Duel voice. The spoken "1!", 1 second after the 2. Missing: `dojo-count-1`, then the `dojo-count` tick. **voice** | under 0.8 s |
+| `race-count-go` | `race-count-go.m4a` or `race-count-go.mp3` | Sustain Speedway countdown voice; optional, falls back to the Dojo Duel voice. The spoken "Go!" 1 second after the 1; the race starts when the microphone is live again after it, so keep it short and trimmed. Missing: `dojo-count-go`, then `dojo-reveal`. **voice** | under 0.6 s |
 | `pit-in` | `pit-in.m4a` or `pit-in.mp3` | Sustain Speedway: the car pulls into the pit stop (a rest between laps). **during play: under 0.5 s** | under 0.5 s |
 | `race-finish` | `race-finish.m4a` or `race-finish.mp3` | Sustain Speedway: crossing the finish line. | 0.8–1.5 s |
 | `podium` | `podium.m4a` or `podium.mp3` | Sustain Speedway: the results screen, finishing 1st, 2nd or 3rd. | 1–2 s |

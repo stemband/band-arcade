@@ -46,8 +46,12 @@
   const recKey = lv => `${picker.state.progressKey}|${who}|${lv}`;       // ghost cars and best laps: track × mode × instrument
 
   /* ---------- the track select ---------- */
+  // THE COUNTDOWN's sounds (race-count-3/-2/-1/-go and their Dojo Duel fallbacks): downloaded as the track screen shows,
+  // so the first countdown after a page load is on time
+  const COUNT_SOUNDS = A.countdown.sounds('race');
   function showHub() {
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
+    A.Sfx.prefer(COUNT_SOUNDS);
     stopRace();
     A.ModePicker.useRange(picker.state);
     picker.refresh();
@@ -87,7 +91,7 @@
     const rivals = L.rivals.map((r, i) => Object.assign({lane: [-1, 1, -1][i] * (i === 2 ? .45 : 1)}, r));
     const ghost = (gd.ghosts || {})[recKey(lv)] || null;
     G = {lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
-      phase: 'count', goAt: 0, pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
+      phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
     $('hub').hidden = true; $('results').hidden = true; $('race').hidden = false; $('pit').hidden = true;
@@ -98,11 +102,41 @@
     drawGauge(); drawNote(); hud(); resize();
     window.scrollTo(0, 0);
     resetHearing();
-    // 3, 2, 1, GO! The countdown sound plays BEFORE listening counts; GO waits until it has finished (and its echo)
-    const snd = sfx('race-countdown');
-    G.goAt = performance.now() + Math.max(R.countdownMs, snd * 1000 + 300);
     A.Pitch.demoJitter = 0.01;
     lastT = performance.now(); raf = requestAnimationFrame(loop);
+    // 3, 2, 1, GO! once its sounds are ready (at most 0.8 s: a sound still missing plays its fallback)
+    const g = G;
+    A.Sfx.whenReady(COUNT_SOUNDS, 800).then(() => { if (G === g && G.phase === 'count' && !G.cd && !document.hidden) startCountdown(); });
+  }
+  /* THE COUNTDOWN (shared/countdown.js, like Dojo Duel and Neon Face-Off): CLASSIC 3 · 2 · 1 one second apart, each
+     number shown as its own voice clip plays (race-count-N, else Dojo Duel's), then a spoken "GO!". It runs on the race's
+     own countdown clock (G.cd, advanced by the loop only while the page is visible); hiding the page stops it, and it
+     starts again from 3 (visibilitychange). Nothing heard counts until the race starts: the "GO!" banner, the car and the
+     race clock start the moment the microphone is live again after the GO voice (the sound manager's own mute ends:
+     Pitch.isSuppressed), never on a guess. A note started during "GO!" simply counts from then on. */
+  function startCountdown() {
+    const g = G, cd = {t: 0, timers: [], log: []};
+    g.cd = cd; g.goHeard = false;
+    banner('');
+    A.countdown({style: 'classic', voicePrefix: 'race', go: true,
+      later: (ms, fn) => { if (g.cd === cd) cd.timers.push({at: cd.t + ms, fn}); },
+      show: (label, kind) => {
+        if (G !== g || g.cd !== cd) return;
+        cd.log.push({label, kind, t: Math.round(cd.t), at: Math.round(performance.now())});
+        banner(kind === 'count' ? label : '', 'count');        // the GO! banner waits for the microphone (below)
+      },
+      onGo: () => { if (G === g && g.cd === cd) g.goHeard = performance.now(); }});
+  }
+  /** the countdown's clock: runs its timers (the loop calls it every frame while counting and visible) */
+  function countTick(ms) {
+    const cd = G.cd; if (!cd) return;
+    cd.t += ms;
+    for (;;) {
+      const due = cd.timers.filter(x => x.at <= cd.t).sort((a, b) => a.at - b.at)[0];
+      if (!due) break;
+      cd.timers.splice(cd.timers.indexOf(due), 1); due.fn();
+      if (!G || G.cd !== cd) break;
+    }
   }
   function stopRace() {
     cancelAnimationFrame(raf); raf = 0;
@@ -157,13 +191,13 @@
   function loop(now) {
     raf = requestAnimationFrame(loop);
     if (!G) return;
-    const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    const raw = now - lastT, dt = Math.min(0.1, raw / 1000); lastT = now;
     demoDrive(now);
     const paused = document.hidden || A.Pitch.isSuppressed(now);   // a sound is muting the mic: the race clock stops
     if (G.phase === 'count') {
-      const left = Math.ceil((G.goAt - now) / 1000);
-      if (now >= G.goAt) { G.phase = 'race'; banner('GO!', 'go', 700); resetHearing(); }
-      else banner(String(Math.min(3, left)), 'count');
+      if (!document.hidden) countTick(Math.min(raw, 250));
+      // the race starts when the microphone is live again after "GO!": the sound manager's mute has really ended
+      if (G && G.goHeard && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); }
     } else if (G.phase === 'race' && !paused) {
       G.clock += dt; G.driveTime += dt;
       const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) : 0;
@@ -611,8 +645,14 @@
   $('resRetry').addEventListener('click', () => A.requireMic(() => startRace(finished.lv)));
   $('resTracks').addEventListener('click', showHub);
   $('quitRace').addEventListener('click', showHub);
-  document.addEventListener('visibilitychange', () => { lastT = performance.now(); });
+  document.addEventListener('visibilitychange', () => {
+    lastT = performance.now();
+    // PAUSED during the countdown (the page hidden): it stops, and starts again from 3 when the page comes back
+    if (!G || G.phase !== 'count') return;
+    if (document.hidden) { G.cd = null; G.goHeard = false; A.Sfx.hush(); banner(''); G.restarts = (G.restarts || 0) + 1; }
+    else startCountdown();
+  });
 
-  A.Speedway = {debug: () => G, hearing: () => S, rules: R};    // tests
+  A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS};    // tests
   showHub();
 })(window.Arcade);
