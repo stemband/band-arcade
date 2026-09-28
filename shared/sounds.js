@@ -26,6 +26,8 @@ var SOUNDS_VERSION = 3;
              second play while it still speaks is skipped), and in Sfx.sequence it waits until any other voice
              line has finished, so two voices never talk at once
      maxInstances  (optional) at most this many copies of the sound at once (voice: true = 1); a play beyond it is skipped
+     cap     (optional) dB: the LOUDNESS CAP. The sound's peak never goes more than this many dB over the arcade's normal
+             loudest effect, whatever the file (sfx.js scales it and runs it through a limiter). The jump-scare stings: 3
 
    A GAME CAN ADD ITS OWN SOUNDS without touching sfx.js: in its own script (before it plays them),
      Arcade.Sounds.add({'bonus-round': {file: 'bonus-round', vol: .8, mic: true, screen: 'my-game', when: '…', len: '0.5 s',
@@ -216,6 +218,27 @@ window.Arcade = window.Arcade || {};
     'spotlight-out':   {file: 'spotlight-out', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: an animatronic reaches the front and a spotlight goes out.', len: 'under 0.5 s'},
     'showtime-over':   {file: 'showtime-over', vol: .8, mic: true, screen: 'showtime-malfunction', when: 'Showtime Malfunction: all three spotlights are out, SHOWTIME\'S OVER. Spooky-fun, never a scream.', len: '1–2 s'},
     'nightmare-unlocked': {file: 'nightmare-unlocked', vol: .8, mic: true, fallback: 'skin-unlocked', screen: 'showtime-malfunction', when: 'Showtime Malfunction: the results screen the first time NIGHTMARE unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream.', len: '0.8–1.5 s'},
+    // the SPECIAL MACHINES (levels.js SHOWTIME_SPECIALS): all unpitched (noise), short
+    'special-alert':   {file: 'special-alert', vol: .8, mic: true, play: true, screen: 'showtime-malfunction', gen: [[[900, 1800], 0, .12, .3, 'noise', 3], [[900, 1800], .16, .12, .3, 'noise', 3], [[4000, 1500], .3, .12, .15, 'noise', 1]],
+                        when: 'Showtime Malfunction: a SPECIAL MACHINE walks on (when it has no sound of its own), and the "NEW MALFUNCTION DETECTED!" card opens (the game is paused).', len: 'under 0.5 s'},
+    'special-intro':   {file: 'special-intro', vol: .8, mic: true, screen: 'showtime-malfunction', gen: [[[300, 1200], 0, .35, .2, 'noise', 1.5], [[2500, 2500], .35, .08, .18, 'noise', 4]],
+                        when: 'Showtime Malfunction: right after special-alert, the special machine\'s card slides in (the game is paused).', len: '0.4–1 s'},
+    'special-turbo-tin':        {file: 'special-turbo-tin', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[800, 4000], 0, .25, .25, 'noise', 2]], when: 'Showtime Malfunction: Turbo Tin walks on (a revving zoom).', len: 'under 0.5 s'},
+    'special-tuba-tank':        {file: 'special-tuba-tank', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[180, 120], 0, .35, .35, 'noise', 1.5], [[2500, 2500], .05, .05, .12, 'noise', 5], [[2500, 2500], .2, .05, .12, 'noise', 5]], when: 'Showtime Malfunction: Tuba Tank walks on (heavy clanking armor).', len: 'under 0.5 s'},
+    'special-long-tone-lurker': {file: 'special-long-tone-lurker', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[400, 250], 0, .45, .22, 'noise', 1.2]], when: 'Showtime Malfunction: Long Tone Lurker walks on (a long, low creak).', len: 'under 0.5 s'},
+    'special-duet-dolls':       {file: 'special-duet-dolls', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[3000, 3000], 0, .06, .18, 'noise', 6], [[2200, 2200], .12, .06, .18, 'noise', 6], [[3000, 3000], .24, .06, .18, 'noise', 6]], when: 'Showtime Malfunction: the Duet Dolls walk on (wind-up key clicks).', len: 'under 0.5 s'},
+    'special-glitch-jester':    {file: 'special-glitch-jester', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[1200, 5000], 0, .08, .2, 'noise', 2], [[5000, 900], .1, .12, .2, 'noise', 2], [[1500, 3500], .25, .1, .15, 'noise', 2]], when: 'Showtime Malfunction: Glitch Jester walks on (a glitchy warble), and when its note glitches into another.', len: 'under 0.5 s'},
+    'special-split-sprocket':   {file: 'special-split-sprocket', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[2000, 2000], 0, .04, .2, 'noise', 5], [[1600, 1600], .07, .04, .2, 'noise', 5], [[2000, 2000], .14, .04, .2, 'noise', 5], [[1600, 1600], .21, .04, .2, 'noise', 5]], when: 'Showtime Malfunction: Split Sprocket walks on (ratcheting gears), and when it splits in two.', len: 'under 0.5 s'},
+    'special-blackout-bot':     {file: 'special-blackout-bot', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[1500, 200], 0, .3, .25, 'noise', 1]], when: 'Showtime Malfunction: Blackout Bot walks on (a power-down whump).', len: 'under 0.5 s'},
+    'special-oil-can-ollie':    {file: 'special-oil-can-ollie', vol: .7, mic: true, play: true, fallback: 'special-alert', screen: 'showtime-malfunction', gen: [[[600, 300], 0, .12, .25, 'noise', 3], [[500, 250], .18, .12, .25, 'noise', 3]], when: 'Showtime Malfunction: Oil Can Ollie walks on (two squirts of an oil can).', len: 'under 0.5 s'},
+    // JUMP SCARE MODE: one of these (at random) with each scare, never in "Visual scares only". `cap` = the LOUDNESS CAP:
+    // the peak never goes more than 3 dB over the arcade's normal loudest effect (sfx.js limiter), whatever the file
+    'scare-sting-1':   {file: 'scare-sting-1', vol: .9, cap: 3, mic: true, screen: 'showtime-malfunction', gen: [[[3500, 600], 0, .5, 1, 'noise', .9], [[160, 90], 0, .45, 1, 'noise', 1.5]],
+                        when: 'Showtime Malfunction, JUMP SCARE mode: a jump scare (1 of 3, at random). Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
+    'scare-sting-2':   {file: 'scare-sting-2', vol: .9, cap: 3, mic: true, screen: 'showtime-malfunction', gen: [[[200, 2400], 0, .35, 1, 'noise', 1.2], [[2400, 2400], .35, .3, .8, 'noise', 2]],
+                        when: 'Showtime Malfunction, JUMP SCARE mode: a jump scare (2 of 3, at random). Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
+    'scare-sting-3':   {file: 'scare-sting-3', vol: .9, cap: 3, mic: true, screen: 'showtime-malfunction', gen: [[[5000, 5000], 0, .08, .8, 'noise', 3], [[120, 60], .02, .6, 1, 'noise', 1.2], [[1800, 700], .05, .4, .8, 'noise', 1]],
+                        when: 'Showtime Malfunction, JUMP SCARE mode: a jump scare (3 of 3, at random). Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
     // ---- Sustain Speedway (the mic listens for the whole race: nothing plays while racing) ------------------------
     // THE COUNTDOWN (shared/countdown.js, voice prefix 'race', CLASSIC 3·2·1 one second apart + a spoken GO): one file per
     // word, each played as its number appears. mic: true, because the mic is already listening before the race (they
