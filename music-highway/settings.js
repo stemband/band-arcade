@@ -21,8 +21,17 @@ window.MH_RULES = {
   holdFrom: 2,            // a note of this many beats or more is a LONG NOTE (a glowing tail): hold it for bonus points
   holdPoints: 20,         // bonus points per beat held (a long note's tail meter); letting go early ends the bonus only
   holdGapMs: 160,         // a gap longer than this in the heard note = let go
+  /* FULL-VALUE TRAILS: every note this long or longer (a quarter note and up; not the snare) trails a light for its
+     length; holding it for fullValueShare of its length = FULL VALUE (a quiet pop-up; quarter notes and dotted quarters
+     get fullValuePoints, long notes already earn holdPoints per beat). Results show "Full value held". */
+  trailFrom: 1,           // beats: 1 = quarter notes and longer (eighths and shorter: no trail)
+  trailGap: .12,          // a trail ends this share of its note early, so two notes in a row stay apart
+  fullValueShare: .85,    // held for at least this share of the note's length = FULL VALUE
+  fullValuePoints: 50,    // the FULL VALUE bonus for a quarter (or dotted quarter) note
   /* SPEED */
-  slowRate: .75,          // SLOW mode: 75 % of the song's tempo (no stars)
+  slowRate: .75,          // SLOW: 75 % of the song's tempo (no stars)
+  turboRate: 1.25,        // TURBO: 125 % (stars count like Normal; a star on Turbo earns the song's ⚡ TURBO badge)
+                          // (judging windows stay the same in ms at every speed)
   practiceRate: .6,       // PRACTICE THIS PART: the trouble spot looped at 60 %
   practiceMeasures: 2,
   practiceLoops: 12,      // it loops this many times (or until PAUSE)    // how many measures a trouble spot is
@@ -74,6 +83,9 @@ window.MH_RULES = {
   clickVol: .6,           // count-in and calibration clicks
   /* HEADPHONES MODE: a quiet guide melody, bass and chords on top of the drums (pitched: only after the speaker check) */
   guideVol: .16, bassVol: .2, padVol: .07,
+  /* PRACTICE MODE (no microphone, so the band plays out loud): the melody is clear and on top; the MELODY VOLUME slider
+     on the song select scales practiceMelodyVol */
+  practiceMelodyVol: .34, practiceBassVol: .22, practicePadVol: .09,
   checkVol: .35,          // the speaker check's test tones (louder than the guide, so a speaker is surely heard)
   checkFrames: 3,         // readings of a test tone's pitch that mean "your speakers are on"
 };

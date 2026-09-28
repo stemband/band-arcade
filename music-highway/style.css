@@ -12,6 +12,20 @@
 .mh-seg[aria-pressed="true"]{background:var(--cyan);color:var(--deep)}
 .mh-hp{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:700 15px var(--text);cursor:pointer}
 .mh-hp.on{border-color:var(--green);color:var(--green-hi);box-shadow:var(--glow-green)}
+.mh-pracopts{flex-basis:100%;margin:0}
+.mh-pracopts[hidden]{display:none}
+.mh-vol{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:2px solid var(--floor-3);border-radius:12px}
+.mh-vol input{width:160px;accent-color:var(--cyan)}
+.mh-vol input:disabled{opacity:.4}
+.mh-turbo{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--deep);background:var(--yellow);border-radius:6px;padding:1px 6px;vertical-align:2px;white-space:nowrap}
+/* PRACTICE: the label under the HUD; the score/combo/accuracy are hidden */
+.mh-prac{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);margin:0;padding:4px 14px;border-radius:999px;background:color-mix(in srgb,var(--deep) 80%,transparent);border:2px solid var(--green);color:var(--green-hi);font:700 14px var(--text);letter-spacing:.1em;white-space:nowrap}
+.mh-prac[hidden]{display:none}
+#play.guide .mh-hud b{visibility:hidden}
+/* FULL VALUE: a quiet pop-up over the gate (a fade up, never a flash) */
+.mh-fv{position:absolute;left:50%;top:calc(var(--sy) - 70px);transform:translateX(-50%);font:700 15px var(--text);letter-spacing:.14em;color:var(--yellow-hi);-webkit-text-stroke:.5px var(--deep);pointer-events:none;opacity:0}
+.mh-fv.show{animation:mhFv .9s ease-out}
+@keyframes mhFv{0%{opacity:0;transform:translate(-50%,6px)}20%{opacity:.95}100%{opacity:0;transform:translate(-50%,-14px)}}
 .mh-sticknote{margin:-6px 0 12px;font-weight:700;color:var(--cyan-hi)}
 .mh-sticknote[hidden]{display:none}
 /* the pause menu sits ABOVE the game screen (#play is z-index 40; a plain .overlay is 20, which hid it: the "freeze") */
@@ -88,7 +102,8 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
 .mh-hpmeter i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
 
 /* ---------- results ---------- */
-.mh-stats{grid-template-columns:repeat(3,1fr)}
+.mh-stats{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.mh-stats [hidden]{display:none}
 .mh-counts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
 .mh-counts span{display:flex;flex-direction:column;align-items:center;min-width:54px;padding:6px 8px;border-radius:10px;background:var(--floor-2);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-lo)}
 .mh-counts b{font-family:var(--display);font-weight:400;font-size:22px;color:var(--text-hi)}
@@ -103,6 +118,7 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
   /* a steady highlight, no fades or glides */
   .mh-staffsvg .halo,.mh-strip g.lit .halo{transition:none}
   .mh-judge.pop,.mh-count.pop{animation:none}
+  .mh-fv.show{animation:none;opacity:.9}
   .mh-hpmeter i{transition:none}
 }
 .panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
