@@ -10,7 +10,8 @@
      start     async page => {…} instead of "select Level 1 + START"
      done      async page => bool: the level/match is over (default: #results shows)
      key       the progress key its stars are saved under (default: the game id); stars: false = none are saved
-     store     extra saved data for the device before the page opens (merged into tests/helpers.js device())
+     store     extra saved data for the device before the page opens (merged into tests/helpers.js device()),
+               or browserName => that data
      url       the address to open (default: <id>/index.html?demo&nostart)
      next      a button to press between rounds when it shows (e.g. "Next scroll" / "Try the same signal")
      limit     ms the whole level may take (default 70 s)
@@ -89,7 +90,9 @@ const STEPS = {
     done: page => page.evaluate(() => { const s = Arcade.Duel.state(); return !!s && !s.running && s.players.some(p => p.score > 0); })},
   // Music Highway judges timing to the millisecond, so the test uses the game's own autoPlay hook (every note on time,
   // through the real judging) instead of key presses; calibrated already, so the first song doesn't ask for it
-  'music-highway': {store: {gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, limit: 120_000,
+  // WebKit on a test machine with no sound card says its audio is running but its clock never moves, so there the song
+  // plays with SOUND OFF (the game then runs on its performance.now() clock, as on a muted iPad)
+  'music-highway': {store: browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}), limit: 120_000,
     play: async page => { await page.evaluate(() => { const H = Arcade.Highway; if (!window.__auto && H.state().phase !== 'menu') { window.__auto = true; H.autoPlay(0); } }); await page.waitForTimeout(400); }},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
   'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute

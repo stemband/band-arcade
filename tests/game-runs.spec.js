@@ -33,9 +33,20 @@ const diag = page => page.evaluate(() => {
 });
 const resultsShown = page => page.evaluate(() => { const r = document.getElementById('results'); return !!r && !r.hidden && r.getClientRects().length > 0; });
 
+/* A game puts the focus on its results screen's NEXT LEVEL button: a key pressed just as the results open would press
+   it and start Level 2. So right before every key press: stop if the results are up, and take the focus off buttons
+   (the demo keys are read by the whole page, never by a button). */
+const readyForKeys = page => page.evaluate(() => {
+  const r = document.getElementById('results');
+  if (r && !r.hidden && r.getClientRects().length) return false;
+  const a = document.activeElement;
+  if (a && a !== document.body && /^(BUTTON|A|INPUT)$/.test(a.tagName)) a.blur();
+  return true;
+});
 async function step(page, R, how) {
   if (R.next && await click(R.next)(page)) { await page.waitForTimeout(300); return; }   // one thing per step
   if (typeof how === 'function') return how(page);
+  if (how !== 'idle' && !(await readyForKeys(page))) return;
   if (how === 'tap') await page.keyboard.press('Space');
   else if (how === 'wrong') await page.keyboard.press('w');
   else if (how === 'idle') { /* nothing: the notes run out on their own */ }
@@ -47,7 +58,7 @@ for (const R of RUNS) {
   test(`game run: ${R.name}`, async ({page, browserName}) => {
     test.skip(R.skip === browserName, `not in ${browserName}`);
     test.setTimeout(R.limit + 60_000);
-    const watch = await prepare(page, {store: device(R.member, R.store)});
+    const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);
     if (R.setup) await R.setup(page);
     if (R.start) await R.start(page);
@@ -69,9 +80,9 @@ for (const R of RUNS) {
 
 /* ENDLESS: every game with an Endless card, from its card to GAME OVER (wrong notes / missed notes cost the hearts) */
 for (const R of RUNS.filter(r => r.endless)) {
-  test(`endless: ${R.name}`, async ({page}) => {
+  test(`endless: ${R.name}`, async ({page, browserName}) => {
     test.setTimeout(150_000);
-    const watch = await prepare(page, {store: device(R.member, R.store)});
+    const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);
     await page.locator('.ls-endless').first().click();
     await page.locator('.ls-start').click();

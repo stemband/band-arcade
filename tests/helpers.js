@@ -39,7 +39,13 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
       navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('No microphone in the tests', 'NotFoundError'));
     }
   }, [store, visit, mic]);
-  page.on('pageerror', e => watch.errors.push(`uncaught: ${e.message}`));
+  page.on('pageerror', e => {
+    // WebKit reports a download cancelled by a page change (the backup panel's reload) as an error "…/file due to access
+    // control checks"; for an optional file (a sound the site preloads) that is not a site error
+    const m = /(\/\S+) due to access control checks/.exec(e.message || '');
+    if (m && optional('http://127.0.0.1' + m[1].replace(/^\/127\.0\.0\.1:\d+/, ''))) return;
+    watch.errors.push(`uncaught: ${e.message}`);
+  });
   page.on('console', m => {
     if (m.type() !== 'error') return;
     const t = m.text(), url = (m.location() || {}).url || '';
