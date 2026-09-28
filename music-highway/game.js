@@ -128,6 +128,12 @@
     });
   }
 
+  /* the backing kit, with the uploaded mh-click if it's there (shared/sounds.js; else backing.js's generated click) */
+  let clickBuf = null;                                            // (Sfx.buffer resolves to the decoded file, or null: no upload)
+  const loadClick = () => { if (!clickBuf && A.Sfx.buffer) Promise.resolve(A.Sfx.buffer('mh-click')).then(b => { if (b) clickBuf = b; }).catch(() => {}); };
+  addEventListener('pointerdown', loadClick, true); addEventListener('keydown', loadClick, true);
+  const newKit = (out = CLK.out) => { loadClick(); return A.MHBacking.create(CLK.ctx, out, {click: clickBuf}); };
+
   /* ================= THE CLOCK (audible AudioContext time; see the top) ================= */
   const CLK = {ctx: null, off: null, p0: 0};
   function clockStart() {
@@ -206,7 +212,7 @@
     A.Pitch.ignoreCurrent();
     A.Pitch.demoAttacks = !guide;
     clockStart();
-    kit = CLK.ctx ? A.MHBacking.create(CLK.ctx, CLK.out) : null;
+    kit = CLK.ctx ? newKit() : null;
     // the uploaded drums file (if any) is fetched now; the count-in gives it time. Practice and slow use the generated groove
     G.drumFile = null;
     if (kit && !practice && !unpitched && rate === 1) A.Sfx.buffer('mh-drums-' + song.id).then(b => { if (G && G.song === song && b) G.drumFile = b; });
@@ -226,7 +232,11 @@
     for (let b = 0; b < T.per; b++) {                             // the count-in: stick clicks (accent on 1) over the hi-hat,
       const t = G.countAt + b * T.spb;                             // and the kick: the game hears its own drums before
       G.clicks.push(t);                                            // any note (a snare player's bleed level, see onAttack)
-      if (kit) { kit.click(t, R.clickVol * 1.2, b === 0); kit.hat(t, .7 * R.drumVol); kit.kick(t, (b ? .8 : 1) * R.drumVol); }
+      if (kit) {                                                   // (the EFFECTS slider applies; the hat and kick stay under
+        const cp = kit.click(t, R.clickVol, b === 0), room = Math.max(0, .98 - cp);   // the headroom the click leaves: no clipping)
+        const hv = Math.min(.7 * R.drumVol, room * .25 / .16), kv = Math.min((b ? .8 : 1) * R.drumVol, Math.max(0, room - .16 * hv) / .55);
+        kit.hat(t, hv); kit.kick(t, kv);
+      }
     }
     G.fileStarted = false;
     clearInterval(sched); sched = setInterval(schedule, 25); schedule();
@@ -879,7 +889,7 @@
     if (!G || G.paused || G.phase === 'done') return;
     G.pausedRaw = songNow(); G.pausedAt = Math.max(0, G.pausedRaw); G.paused = true; G.pauses = (G.pauses || 0) + 1;
     clearInterval(sched); sched = 0;
-    if (kit) { kit.stopAll(); kit = A.MHBacking.create(CLK.ctx, CLK.out); }
+    if (kit) { kit.stopAll(); kit = newKit(); }
     G.pendingAtk = []; G.soft = [];
     G.T.notes.forEach(n => { n.holding = false; });                // a held note stops counting (its bonus so far stays)
     glowOff(); showCount('');
@@ -938,10 +948,11 @@
       $('calGo').hidden = true;
       A.Sfx.gameMenuMusic(GAME_ID, false);
       clockStart();
-      const k2 = CLK.ctx ? A.MHBacking.create(CLK.ctx, CLK.out) : null;
+      // the timing check's clicks IGNORE the EFFECTS slider (Sfx.outputRaw: only SOUND ON/OFF mutes them), at clickVol
+      const raw = A.Sfx.outputRaw ? A.Sfx.outputRaw() : null, k2 = CLK.ctx && raw ? newKit(raw.out) : null;
       const spb = 60 / R.calBpm, t0 = nowCtx() + .6, n = R.calLead + R.calClicks;
       const clicks = Array.from({length: n}, (_, k) => t0 + k * spb);
-      if (k2) clicks.forEach((t, k) => k2.click(t, R.clickVol * 1.3, k % 4 === 0));
+      if (k2) clicks.forEach((t, k) => k2.click(t, R.clickVol, k % 4 === 0));
       A.Pitch.demoAttacks = true; A.Pitch.demoTarget = calTarget;
       calRun = {attacks: [], frames: [], kit: k2, clicks};
       const dots = $('calDots').children;
@@ -953,21 +964,40 @@
         if (now > clicks[n - 1] + .7) { clearInterval(calRun.timer); calDone(); }
       }, 40);
     };
+    /* THE CLICK MUST NEVER COUNT AS THE STUDENT: a pitched instrument's attack counts only with a pitch (the click has
+       none); the snare's hits (no pitch) must be clearly louder (bleedK ×) than the clicks the microphone heard during
+       the listening clicks, when the student isn't playing yet. And a round whose offsets are machine-steady near 0 ms
+       (or far too early) is the click itself: it's refused. */
     function calDone() {
+      const near = (a, c) => Math.abs(audAt(a.time) - c) * 1000 <= R.bleedMs;
+      const bleed = Math.max(0, ...calRun.attacks.filter(a => a.level != null && calRun.clicks.slice(0, R.calLead).some(c => near(a, c))).map(a => a.level));
+      const ok = a => unpitched ? (a.level == null || !bleed || a.level > bleed * R.bleedK) : a.pc != null;
+      const heard = calRun.attacks.filter(a => audAt(a.time) > calRun.clicks[R.calLead] - R.maxLagMs / 1000);
+      const good = heard.filter(ok), clicky = heard.length - good.length;
       const offs = [];
       calRun.clicks.slice(R.calLead).forEach(c => {
-        const near = calRun.attacks.map(a => (audAt(a.time) - c) * 1000).filter(d => Math.abs(d) <= R.maxLagMs).sort((a, b) => Math.abs(a) - Math.abs(b))[0];
-        if (near != null) offs.push(near);
+        const d = good.map(a => (audAt(a.time) - c) * 1000).filter(x => Math.abs(x) <= R.maxLagMs).sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+        if (d != null) offs.push(d);
       });
       offs.sort((a, b) => a - b);
       const med = offs.length ? offs[Math.floor(offs.length / 2)] : null;
+      const sd = offs.length > 1 ? Math.sqrt(offs.reduce((s2, x) => s2 + (x - offs.reduce((a, b) => a + b, 0) / offs.length) ** 2, 0) / offs.length) : 0;
+      const clickLike = med != null && offs.length >= R.calNeed && ((sd < R.calMinSpreadMs && Math.abs(med) < R.calClickMaxMs) || med < -R.calTooEarlyMs);
+      calRun.result = {accepted: offs.length, rejectedAsClick: clicky, bleed: +bleed.toFixed(4), median: med, spread: +sd.toFixed(1), clickLike};
       A.Pitch.demoAttacks = false; A.Pitch.demoTarget = demoTargetGame;
+      if (clickLike || (offs.length < R.calNeed && clicky >= R.calNeed)) {
+        $('calSay').textContent = 'I heard the click, not your instrument. Try playing a little louder or moving the device a bit farther from you.';
+        $('calGo').hidden = false; $('calGo').textContent = 'Try again';
+        lastCal = calRun.result; calRun = null;
+        return;
+      }
       if (offs.length < R.calNeed || med == null) {
         $('calSay').textContent = offs.length ? `I heard ${offs.length} of ${R.calClicks}. Play a little louder, right on each click. Let's try again!` : "I didn't hear any notes. Check the microphone and play a little louder. Let's try again!";
         $('calGo').hidden = false; $('calGo').textContent = 'Try again';
-        calRun = null;
+        lastCal = calRun.result; calRun = null;
         return;
       }
+      lastCal = calRun.result;
       const c = Object.assign({}, gd().calib || {}); c[mode()] = {ms: Math.round(med), n: offs.length, at: Date.now()};
       save({calib: c});
       $('calSay').textContent = `All set! Your timing check: ${Math.round(med)} ms.`;
@@ -975,6 +1005,7 @@
       setTimeout(() => close(true), 1100);
     }
   }
+  let lastCal = null;
   const demoTargetGame = A.Pitch.demoTarget;
   const calTarget = () => unpitched ? null : {pc: inst.targetPc[0], midi: 60 + inst.targetPc[0]};
 
@@ -1066,6 +1097,8 @@
     kitCount: () => kit ? kit.count() : 0,
     /** tests: the calibration's click times (context s), and the perf time (ms) at which context time t is heard */
     calClicks: () => calRun ? calRun.clicks.slice() : null,
+    /** tests: the last timing check's verdict {accepted, rejectedAsClick, bleed, median, spread, clickLike} */
+    calResult: () => lastCal,
     perfAt: t => CLK.ctx ? (t - CLK.off) * 1000 : null,
     /** tests: the card spacing of the song playing, and every card's box on the road at song time t (the drawing's math) */
     spacing: () => G && G.spacing,

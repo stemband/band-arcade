@@ -425,6 +425,7 @@ groove so you can hear what to match.
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
 | `music-highway-menu` | `music-highway-menu.m4a` or `music-highway-menu.mp3` | Music Highway: menu music (song select, the timing check, results). Never during a song. | 30–90 s loop |
+| `mh-click` | `mh-click.m4a` or `mh-click.mp3` | Music Highway: THE CLICK of every song's count-in and of the timing check. A woodblock / stick-click: sharp, bright (most of it between 1.5 and 4 kHz so small speakers carry it), NOT a pitched tone. Trim it to start at once. The downbeat plays it a little higher and louder; its level is `clickVol` in music-highway/settings.js (the timing check ignores the EFFECTS slider). Until you upload it: a generated woodblock click. | under 0.06 s |
 | `mh-drums-hot-cross-buns` | `mh-drums-hot-cross-buns.m4a` or `mh-drums-hot-cross-buns.mp3` | Music Highway: the backing drums for Hot Cross Buns (88 beats a minute). Optional: without it, the generated groove. | the whole song |
 | `mh-drums-mary-lamb` | `mh-drums-mary-lamb.m4a` or `mh-drums-mary-lamb.mp3` | Music Highway: the backing drums for Mary Had a Little Lamb (96 beats a minute). Optional: without it, the generated groove. | the whole song |
 | `mh-drums-aunt-rhody` | `mh-drums-aunt-rhody.m4a` or `mh-drums-aunt-rhody.mp3` | Music Highway: the backing drums for Go Tell Aunt Rhody (96 beats a minute). Optional: without it, the generated groove. | the whole song |

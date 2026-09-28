@@ -77,10 +77,15 @@ window.MH_RULES = {
   calNeed: 5,             // at least this many clicks must be played for a good measurement
   defaultLagMs: 60,       // before calibrating: the usual delay of a microphone + the note detector
   maxLagMs: 450,          // a calibration outside ±this is refused ("Let's try that again")
+  calMinSpreadMs: 4,      // a round whose offsets are this steady (a machine, not a player) …
+  calClickMaxMs: 30,      // … and this close to 0 ms is the microphone hearing THE CLICK: refused
+  calTooEarlyMs: 150,     // a median this far BEFORE the clicks is refused too
   /* THE BACKING (generated drums; shared/sounds/mh-drums-<song id>.m4a replaces them) */
   lookaheadS: .6,         // the drums are put on the audio clock this far ahead (a stalled page never delays a hit)
   drumVol: .9,           // the whole kit (the student's EFFECTS slider and SOUND ON/OFF apply on top)
-  clickVol: .9,           // count-in and calibration clicks
+  clickVol: .9,           // THE CLICK's overall level, 0–1 (1 = full scale, never clipped; the downbeat is the loudest,
+                          // the other clicks 72 % of it). The count-in follows the EFFECTS slider; the timing check
+                          // ignores it (only SOUND ON/OFF mutes it). The sound: shared/sounds.js 'mh-click' (upload your own)
   /* HEADPHONES MODE: a quiet guide melody, bass and chords on top of the drums (pitched: only after the speaker check) */
   guideVol: .16, bassVol: .2, padVol: .07,
   /* PRACTICE MODE (no microphone, so the band plays out loud): the melody is clear and on top; the MELODY VOLUME slider
