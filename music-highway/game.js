@@ -27,10 +27,17 @@
   { const l = A.link('songs.html'); $('boardLink').href = l + (l.includes('?') ? '&' : '?') + 'm=' + encodeURIComponent(member.id); }
   const RM = matchMedia('(prefers-reduced-motion: reduce)'), reduced = () => RM.matches;
 
-  /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, slow, horn, wide, tip} ---------- */
+  /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, speed ('slow' | 'normal' |
+     'turbo'; old saves: slow), mode ('play' | 'practice'), melody, melVol, wide, names, sticking, fx, turbo ({member:
+     {song id: true}}: the ⚡ TURBO badges), tip} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
-  let slow = !!gd().slow, hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false;
+  let speed = ['slow', 'normal', 'turbo'].includes(gd().speed) ? gd().speed : gd().slow ? 'slow' : 'normal';
+  let playMode = gd().mode === 'practice' ? 'practice' : 'play';       // PRACTICE: the pitched backing plays, the mic stays off
+  let melody = gd().melody !== false, melVol = typeof gd().melVol === 'number' ? gd().melVol : .7;
+  let hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false;
+  const RATE = {slow: R.slowRate, normal: 1, turbo: R.turboRate};
+  const turboBadge = s => !!((gd().turbo || {})[member.id] || {})[s.id];
   let sticking = gd().sticking === 'downbeats' ? 'downbeats' : 'alternate';   // the snare's default hand pattern
   const hornSide = 'F';                                            // (the fingering choice of the old cards: not used any more)
   let hpChecked = false;                                         // the speaker check passed on this page load
@@ -46,7 +53,11 @@
 
   /* ================= SONG SELECT ================= */
   function drawOpts() {
-    $('spdNormal').setAttribute('aria-pressed', String(!slow)); $('spdSlow').setAttribute('aria-pressed', String(slow));
+    ['slow', 'normal', 'turbo'].forEach(k => $('spd' + k[0].toUpperCase() + k.slice(1)).setAttribute('aria-pressed', String(speed === k)));
+    $('modePlay').setAttribute('aria-pressed', String(playMode === 'play')); $('modePractice').setAttribute('aria-pressed', String(playMode === 'practice'));
+    $('pracOpts').hidden = playMode !== 'practice';
+    $('melOn').setAttribute('aria-pressed', String(melody)); $('melOff').setAttribute('aria-pressed', String(!melody));
+    $('melVol').value = Math.round(melVol * 100); $('melVol').disabled = !melody;
     $('hpBtn').setAttribute('aria-pressed', String(hp)); $('hpBtn').classList.toggle('on', hp);
     $('spcNormal').setAttribute('aria-pressed', String(!wide)); $('spcWide').setAttribute('aria-pressed', String(wide));
     $('stickOpt').hidden = $('stickNote').hidden = !unpitched;
@@ -54,13 +65,19 @@
     $('stickAlt').setAttribute('aria-pressed', String(sticking === 'alternate')); $('stickDown').setAttribute('aria-pressed', String(sticking === 'downbeats'));
     $('namesOn').setAttribute('aria-pressed', String(names)); $('namesOff').setAttribute('aria-pressed', String(!names));
     const c = (gd().calib || {})[mode()];
-    $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') + (wide ? 'Wide note spacing: more room between the lights (they move a little faster). ' : '') + (names ? '' : 'Letter names are off inside the lights (the gates still show them). ')  +
+    $('optNote').textContent = (playMode === 'practice' ? 'Practice: hear every note played for you. The microphone stays off: no score, no stars. ' : '') +
+      (speed === 'slow' ? 'Slow: 75% speed, for practice. No stars. ' : speed === 'turbo' ? 'Turbo: 125% speed! Stars count, and a star earns the ⚡ TURBO badge. ' : '') + (wide ? 'Wide note spacing: more room between the lights (they move a little faster). ' : '') + (names ? '' : 'Letter names are off inside the lights (the gates still show them). ')  +
       (hp ? 'Headphones mode: the band plays the melody, bass and chords too. Bluetooth headphones add a delay: recalibrate with them on. ' : '') +
       (c ? `Timing calibrated (${Math.round(c.ms)} ms${hp ? ', headphones' : ''}).` : 'Not calibrated yet: the first song starts with a quick timing check.');
     $('calBtn').textContent = c ? 'Recalibrate' : 'Calibrate';
   }
-  $('spdNormal').onclick = () => { slow = false; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
-  $('spdSlow').onclick = () => { slow = true; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
+  const setSpeed = k => { speed = k; save({speed}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
+  $('spdSlow').onclick = () => setSpeed('slow'); $('spdNormal').onclick = () => setSpeed('normal'); $('spdTurbo').onclick = () => setSpeed('turbo');
+  const setMode = k => { playMode = k; save({mode: k}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
+  $('modePlay').onclick = () => setMode('play'); $('modePractice').onclick = () => setMode('practice');
+  $('melOn').onclick = () => { melody = true; save({melody}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('melOff').onclick = () => { melody = false; save({melody}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('melVol').oninput = () => { melVol = $('melVol').value / 100; save({melVol}); };
   $('spcNormal').onclick = () => { wide = false; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('spcWide').onclick = () => { wide = true; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('stickAlt').onclick = () => { sticking = 'alternate'; save({sticking}); A.Sfx.event('ui-toggle'); drawOpts(); };
@@ -87,20 +104,22 @@
       const secs = Math.round((map.total + map.beatsPerMeasure) * 60 / s.tempo);
       return `<button class="lvl mh-song t${s.tier}" data-i="${i}" ${open ? '' : 'disabled'}>
         <span class="n">${TIER_NAME[s.tier]}</span>
-        <span class="t">${esc(s.title)}</span>
+        <span class="t">${esc(s.title)}${turboBadge(s) ? ' <span class="mh-turbo" title="Cleared on Turbo">⚡ TURBO</span>' : ''}</span>
         <span class="d">${esc(s.source)}<br>${s.tempo} beats a minute · ${s.timeSig[0]}/${s.timeSig[1]} · ${map.notes.length} notes · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span>
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${p.best ? 'Best ' + p.best : ''}</span></span>
       </button>`;
     }).join('');
     $('songGrid').querySelectorAll('.mh-song').forEach(b => b.addEventListener('click', () => begin(+b.dataset.i)));
     A.LevelSelect.show({screen: $('hub'), grid: $('songGrid'), cards: $('songGrid').querySelectorAll('.mh-song'), unlocked,
-      label: i => SONGS[i].title + (slow ? ' · SLOW' : ''),
+      label: i => SONGS[i].title + (speed === 'slow' ? ' · SLOW' : speed === 'turbo' ? ' · TURBO' : '') + (playMode === 'practice' ? ' · PRACTICE' : ''),
       lockText: i => `Get stars on 3 Tier ${SONGS[i].tier - 1} songs to unlock`});
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
   /** START on a song: the microphone, then (once) the headphones check and the timing check, then the song */
   function begin(i, opts = {}) {
+    const guide = opts.guide != null ? opts.guide : playMode === 'practice';
+    if (guide) return startSong(i, Object.assign({}, opts, {guide: true}));   // PRACTICE: never asks for the microphone
     A.requireMic(() => {
       const go = () => startSong(i, opts);
       const cal = () => calibrated() ? go() : calibrate(ok => go(), {first: true});
@@ -146,39 +165,51 @@
       notes = [];
       for (let k = 0; k < loops; k++) inRange.forEach(n => notes.push(Object.assign({}, n, {t: n.t - base + k * len, loop: k, measure: n.measure - from + 1 + k * (to - from + 1), orig: n.measure})));
     }
-    const lanesOf = n => unpitched ? 0 : lanes.of(n);             // one lane per pitch, low = left (song-map.js lanes)
+    const lanesOf = n => lanes.of(n);                              // one lane per pitch, low = left; the snare: its hand's lane
     const list = notes.map((n, k) => ({k, n, t: n.t * spb, beats: n.beats, dur: n.beats * spb, end: (n.t + n.beats) * spb, lane: lanesOf(n), measure: n.measure,
-      orig: n.orig || n.measure, loop: n.loop || 0, pc: n.pc, midi: n.concert, long: !unpitched && n.beats >= R.holdFrom, res: null, held: 0}));
+      orig: n.orig || n.measure, loop: n.loop || 0, pc: n.pc, midi: n.concert, long: !unpitched && n.beats >= R.holdFrom,
+      trail: !unpitched && n.beats >= R.trailFrom - 1e-6, res: null, held: 0}));
+    // a trail ends a little before the note does (trailGap of its length), so two notes in a row stay apart
+    list.forEach(n => { n.tEnd = n.end - (n.trail ? R.trailGap * n.dur : 0); });
+    list.fvTotal = list.filter(n => n.trail).length;
     return {spb, per, notes: list, measures, total: measures * per * spb, loops, from, perLoop: practice ? list.length / loops : list.length,
       loopLen: practice ? (practice.to - practice.from + 1) * per * spb : Infinity};
   }
 
-  function startSong(i, {practice = null} = {}) {
+  const CONCERT = {g: {clef: 'treble', notes: [A.music.parseNote('Bb4')], targetPc: [10], pitched: true}, m: {id: 'concert', sounds: 0, lowMidi: 58, highMidi: 84, pitched: true}};
+  function startSong(i, {practice = null, guide = false} = {}) {
     stopSong();
     const song = SONGS[i];
     A.LevelSelect.played(i);
     A.Sfx.gameMenuMusic(GAME_ID, false);                          // the menu music fades; the microphone listens again
-    const rate = practice ? R.practiceRate : slow ? R.slowRate : 1;
+    const rate = practice ? R.practiceRate : RATE[speed];
     const map = SM.forMember(song, member, inst, {hornSide, sticking});
     const lanes = SM.lanes(song, map, inst);
     const T = buildTimeline(song, map, rate, practice, lanes);
-    G = {i, song, map, lanes, rate, practice, slow: !practice && slow, T, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
+    G = {i, song, map, lanes, rate, practice, guide, speed: practice ? 'practice' : speed, slow: !practice && speed === 'slow', T, fv: {n: T.notes.fvTotal || 0, held: 0, pts: 0}, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
          counts: {perfect: 0, good: 0, ok: 0, early: 0, late: 0, miss: 0}, value: 0, judged: 0, pendingAtk: [], recent: [], soft: [],
          bleed: 0, bleedSamples: [], hits: [], lag: lagMs(), paused: false, loopStats: {}, log: []};
     $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
     document.documentElement.classList.add('mh-playing');
-    $('hudSong').textContent = song.title + (practice ? ' · practice' : G.slow ? ' · slow' : '');
+    $('hudSong').textContent = song.title + (practice ? ' · practice' : speed === 'slow' ? ' · slow' : speed === 'turbo' ? ' · turbo' : '');
+    $('hudPractice').hidden = !guide; $('play').classList.toggle('guide', guide);
+    // PRACTICE: the melody the band plays (the snare hears the song's concert melody for context)
+    if (guide) G.melody = unpitched ? (() => { const cm = SM.forMember(song, CONCERT.m, CONCERT.g), sp = T.spb, fr = practice ? practice.from : 1, to = practice ? practice.to : cm.measures;
+        const base = (fr - 1) * cm.beatsPerMeasure, len = (to - fr + 1) * cm.beatsPerMeasure, loops = practice ? T.loops : 1, out = [];
+        for (let k = 0; k < loops; k++) cm.notes.filter(n => n.measure >= fr && n.measure <= to).forEach(n => out.push({t: (n.t - base + k * len) * sp, dur: n.beats * sp, midi: n.concert}));
+        return out; })() : T.notes.map(n => ({t: n.t, dur: n.dur, midi: n.midi}));
+    if (unpitched && A.DEMO) stickingSelfCheck();
     $('hudAccL').textContent = practice ? 'This loop' : 'Accuracy';
     layout(); buildPads(); buildStaff();
-    showTip(practice ? `Practice: measures ${practice.from}–${practice.to}, looping at ${Math.round(R.practiceRate * 100)}% speed. Tap pause to stop.` :
+    showTip(guide ? (unpitched ? 'Practice: the band plays the song. Follow the sticking: left lane = L, right lane = R.' : 'Practice: listen and watch. Each gate lights up as its note plays. Play along if you like!') : practice ? `Practice: measures ${practice.from}–${practice.to}, looping at ${Math.round(R.practiceRate * 100)}% speed. Tap pause to stop.` :
       unpitched ? 'Play each hit as its light reaches the gate. Stick with the R and L!' : 'Play each note as its light reaches its gate. Low notes on the left, high notes on the right!');
     A.Pitch.ignoreCurrent();
-    A.Pitch.demoAttacks = true;
+    A.Pitch.demoAttacks = !guide;
     clockStart();
     kit = CLK.ctx ? A.MHBacking.create(CLK.ctx, CLK.out) : null;
     // the uploaded drums file (if any) is fetched now; the count-in gives it time. Practice and slow use the generated groove
     G.drumFile = null;
-    if (kit && !practice && !unpitched) A.Sfx.buffer('mh-drums-' + song.id).then(b => { if (G && G.song === song && b) G.drumFile = b; });
+    if (kit && !practice && !unpitched && rate === 1) A.Sfx.buffer('mh-drums-' + song.id).then(b => { if (G && G.song === song && b) G.drumFile = b; });
     play(0);
   }
 
@@ -213,13 +244,13 @@
     const groove = A.MHBacking.groove(G.song.style, T.per);
     while (G.nextBeat * T.spb <= until && G.nextBeat * T.spb < T.total) {
       const b = G.nextBeat, t = G.T0 + b * T.spb, inMeasure = +(b % T.per).toFixed(3);
-      if (!G.fileStarted) groove.forEach(([at, drum, v]) => { if (unpitched && drum === 'snare') return; if (Math.abs(at - inMeasure) < .01 || (at % .25 && Math.abs(Math.floor(at * 4) / 4 - inMeasure) < .01)) {
+      if (!G.fileStarted) groove.forEach(([at, drum, v]) => { if (unpitched && !G.guide && drum === 'snare') return; if (Math.abs(at - inMeasure) < .01 || (at % .25 && Math.abs(Math.floor(at * 4) / 4 - inMeasure) < .01)) {
         const tt = G.T0 + (b - inMeasure + at) * T.spb;
         if (tt < now) G.lateHits = (G.lateHits || 0) + 1;          // tests: a hit put on the clock after its time (a stalled page)
         kit[drum](tt, v * R.drumVol);
         G.hits.push(tt);
       } });
-      if (hp && hpChecked) headphoneBand(b, t);
+      if ((hp && hpChecked) || G.guide) headphoneBand(b, t);
       G.nextBeat = Math.round((b + .25) * 4) / 4;
     }
     if (G.hits.length > 200) G.hits.splice(0, G.hits.length - 200);
@@ -227,15 +258,17 @@
   /* headphones mode: the guide melody (the student's notes, quietly), a bass note on the strong beats, a soft chord */
   function headphoneBand(b, t) {
     const T = G.T;
-    T.notes.filter(n => Math.abs(n.t / T.spb - b) < .01 && n.midi != null).forEach(n => kit.tone(G.T0 + n.t, n.midi, Math.max(.12, n.dur * .9), R.guideVol, 'guide'));
+    const mv = G.guide ? (melody ? R.practiceMelodyVol * melVol : 0) : R.guideVol, bv = G.guide ? R.practiceBassVol : R.bassVol, pv = G.guide ? R.practicePadVol : R.padVol;
+    const tone = (at, m, d, v, kind) => { kit.tone(at, m, d, v, kind); if (G.tones) G.tones.push({kind, at: +(at - G.T0).toFixed(4), m}); };
+    if (mv > 0) (G.guide ? G.melody : T.notes).filter(n => Math.abs(n.t / T.spb - b) < .01 && n.midi != null).forEach(n => tone(G.T0 + n.t, n.midi, Math.max(.12, n.dur * .9), mv, 'guide'));
     const inM = b % T.per;
     if (Math.abs(inM) < .01 || (T.per === 4 && Math.abs(inM - 2) < .01)) {
       const m = Math.floor(b / T.per + 1e-6) + 1, orig = G.practice ? ((m - 1) % (G.practice.to - G.practice.from + 1)) + G.practice.from : m;
       const ch = G.map.chords[orig - 1];
       if (ch) {
         let root = ch.root; while (root > 50) root -= 12; while (root < 38) root += 12;
-        kit.tone(t, root, T.spb * (T.per === 4 ? 1.8 : T.per * .9), R.bassVol, 'bass');
-        if (Math.abs(inM) < .01) ch.tones.forEach(m2 => { let x = m2; while (x > 67) x -= 12; while (x < 55) x += 12; kit.tone(t, x, T.spb * T.per * .95, R.padVol, 'pad'); });
+        tone(t, root, T.spb * (T.per === 4 ? 1.8 : T.per * .9), bv, 'bass');
+        if (Math.abs(inM) < .01) ch.tones.forEach(m2 => { let x = m2; while (x > 67) x -= 12; while (x < 55) x += 12; tone(t, x, T.spb * T.per * .95, pv, 'pad'); });
       }
     }
   }
@@ -260,7 +293,7 @@
 
   A.Pitch.onAttack(a => {
     if (calRun) { calRun.attacks.push(a); return; }
-    if (!G || G.paused) return;
+    if (!G || G.paused || G.guide) return;
     G.recent.push(a.time); if (G.recent.length > 20) G.recent.shift();
     const t = songOf(a.time);
     // THE DRUMS HEARD BACK (a snare player: any attack counts, so the backing's own hits must not). An attack right on a
@@ -298,7 +331,7 @@
     const d = (t - best.t) * 1000, ad = Math.abs(d);
     const res = ad <= R.perfectMs ? 'perfect' : ad <= R.goodMs ? 'good' : ad <= R.okMs ? 'ok' : d < 0 ? 'early' : 'late';
     mark(best, res, d);
-    if (best.long) { best.holding = true; best.lastHeard = performance.now(); }
+    if (best.trail) { best.holding = true; best.lastHeard = performance.now(); }
     return true;
   }
   function mark(n, res, d) {
@@ -330,7 +363,7 @@
   A.Pitch.onFrame((r, level, now) => {
     if (calRun) { calRun.frames.push({r, now}); }
     if (hpRun) { hpRun.frame(r, level); }
-    if (!G || G.paused) return;
+    if (!G || G.paused || G.guide) return;
     const pc = r ? r.pc : null;
     // a new pitch (or a pitch after silence): a possible soft entry, decided 260 ms later
     if (pc != null) {
@@ -376,7 +409,23 @@
     // misses: past the window (+ a moment for a late attack's pitch to settle)
     const late = R.outerMs / 1000 + .3;
     G.T.notes.forEach(n => {
+      if (G.guide) {                                               // PRACTICE: each note "plays itself": its gate lights as it sounds
+        if (!n.res && t >= n.t && t < n.end + .3) { n.res = 'guide'; n.holding = n.trail; glowHit(n); }
+        else if (!n.res && t >= n.end + .3) n.res = 'guide';
+        if (n.res === 'guide' && n.holding && t >= n.tEnd) n.holding = false;
+        return;
+      }
       if (!n.res && t > n.t + late) mark(n, 'miss', null);
+      // FULL VALUE: a quarter note or longer held for fullValueShare of its length (checked where its trail ends)
+      if (n.trail && n.res && n.res !== 'miss' && !n.fvDone && t > n.tEnd) {
+        n.fvDone = true;
+        if (n.holding) n.held = Math.max(n.held, n.tEnd - n.t);    // still sounding at the trail's end = held to there
+        if (n.held >= R.fullValueShare * n.dur - 1e-3) {
+          n.fullValue = true; G.fv.held++;
+          if (!n.long) { G.score += R.fullValuePoints; G.fv.pts += R.fullValuePoints; hud(); }   // (long notes earn the hold bonus per beat)
+          fvPop(n);
+        }
+      }
       if (n.long && n.res && n.res !== 'miss' && !n.bonused && t > n.end) {
         n.bonused = true; n.holding = false;
         const beats = n.held / G.T.spb;
@@ -515,8 +564,8 @@
     // LONG NOTES: a light trail stretching back from the pad for the note's length; while it's held it burns bright
     for (let k = G.ci; k < T.notes.length && T.notes[k].t - t <= G.lead; k++) {
       const n = T.notes[k];
-      if (!n.long) continue;
-      const a = n.t - t, e = n.end - t;
+      if (!n.trail) continue;
+      const a = n.t - t, e = n.tEnd - t;
       if (e < -.3) continue;
       const hit = n.res && n.res !== 'miss', lit = hit && n.holding && e > 0;
       const from = hit ? Math.max(a, 0) : Math.max(a, -.3), pa = proj(from), pe = proj(Math.min(e, G.lead * 1.3));
@@ -627,7 +676,7 @@
     GL.lanes.forEach(ln => {
       const n = ln.n;
       if (ln.target && n) {
-        const want = n.long ? n.holding && t < n.end : t < n.end + R.glowLingerMs / 1000;
+        const want = n.trail ? n.holding && t < n.tEnd : t < n.end + R.glowLingerMs / 1000;
         if (!want && now - ln.offAt >= R.glowMinCycleMs) { ln.offAt = now; ln.target = 0; litNote(n, false); ln.n = null; }
       }
       if (reduced()) ln.v = ln.target;
@@ -716,17 +765,27 @@
     clearInterval(sched); sched = 0; cancelAnimationFrame(raf); raf = 0;
     if (kit) { const k = kit; kit = null; k.fade(.4); setTimeout(() => k.stopAll(), 600); }
     A.Pitch.demoAttacks = false;
+    if (g.guide) return practiceDone(g);
     const total = g.T.notes.length, acc = total ? g.value / total * 100 : 0;
     const stars = g.practice || g.slow ? 0 : R.stars.filter(s => acc >= s - 1e-9).length;
     const lvKey = g.i + 1, prev = A.store.level(GAME_ID, member.id, lvKey);
     let newBest = false;
-    if (!g.practice && !g.slow) {
+    let turboNew = false;
+    if (!g.practice && !g.slow) {                                  // NORMAL and TURBO count; the best stars and score are kept
       newBest = g.score > (prev.best || 0);
-      A.store.setLevel(GAME_ID, member.id, lvKey, {stars, best: g.score});
+      A.store.setLevel(GAME_ID, member.id, lvKey, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)});
+      if (g.speed === 'turbo' && stars >= 1) {                     // the ⚡ TURBO badge on this song (per instrument)
+        const tb = gd().turbo || {}, mine = tb[member.id] || (tb[member.id] = {});
+        turboNew = !mine[g.song.id]; mine[g.song.id] = true; save({turbo: tb});
+      }
     }
     $('play').hidden = true; document.documentElement.classList.remove('mh-playing');
     const shownStars = g.practice || g.slow ? null : stars;
     $('resStars').innerHTML = shownStars == null ? '' : A.starStr(shownStars);
+    ['resFvBox', 'resCounts'].forEach(id => { $(id).hidden = false; }); $('resPlay').hidden = true; $('resRetry').textContent = 'Play again';
+    document.querySelector('#results .mh-stats').hidden = false;
+    $('resFvBox').hidden = !g.fv.n;                                 // FULL VALUE HELD: quarter notes and longer (not the snare)
+    $('resFv').textContent = g.fv.n ? Math.round(g.fv.held / g.fv.n * 100) + '%' : '–';
     $('resTitle').textContent = g.practice ? 'Practice done' : g.slow ? 'Slow practice done' : stars ? (stars === 3 ? 'Superstar!' : 'Song complete!') : 'Keep practicing!';
     $('resMsg').textContent = g.practice ? `You looped measures ${g.practice.from}–${g.practice.to}. Try the whole song again!` :
       g.slow ? 'Slow mode is for practice (no stars). Ready for full speed?' :
@@ -734,13 +793,14 @@
     $('resScore').textContent = g.score; $('resAcc').textContent = Math.round(acc) + '%'; $('resCombo').textContent = g.maxCombo;
     const c = g.counts;
     $('resCounts').innerHTML = [['perfect', 'Perfect'], ['good', 'Good'], ['ok', 'OK'], ['early', 'Early'], ['late', 'Late'], ['miss', 'Miss']]
-      .map(([k, l]) => `<span class="mc-${k}"><b>${c[k]}</b>${l}</span>`).join('') + (g.bonus ? `<span class="mc-bonus"><b>+${g.bonus}</b>Hold bonus</span>` : '');
-    $('resBest').textContent = g.practice || g.slow ? '' : newBest && prev.best ? `New best score! (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : '';
+      .map(([k, l]) => `<span class="mc-${k}"><b>${c[k]}</b>${l}</span>`).join('') + (g.bonus ? `<span class="mc-bonus"><b>+${g.bonus}</b>Hold bonus</span>` : '') +
+      (g.fv.pts ? `<span class="mc-bonus"><b>+${g.fv.pts}</b>Full value</span>` : '');
+    $('resBest').textContent = (turboNew ? '⚡ TURBO badge earned! ' : '') + (g.practice || g.slow ? '' : newBest && prev.best ? `New best score! (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : '');
     trouble(g);
     const next = g.i + 1 < SONGS.length && unlocked(g.i + 1);
     $('resNext').hidden = !next || !!g.practice;
     $('results').hidden = false;
-    $('results').dataset.song = g.i;
+    $('results').dataset.song = g.i; $('results').dataset.guide = '';
     lastG = g; G = null;
     const snd = [!g.practice && !g.slow ? (stars ? 'level-complete' : 'level-failed') : 'level-complete'];
     if (stars > (prev.stars || 0)) snd.push('star-earned');
@@ -750,6 +810,34 @@
     A.Skins.announce($('results').querySelector('.panel'));
   }
   let lastG = null;
+  /* the end of a PRACTICE run: no score, no stars, nothing saved */
+  function practiceDone(g) {
+    $('play').hidden = true; document.documentElement.classList.remove('mh-playing');
+    $('resStars').innerHTML = ''; $('resTitle').textContent = 'Practice complete!';
+    $('resMsg').textContent = unpitched ? 'You heard the whole song and saw every stick. Ready to play it for real?' : 'You heard every note of the song. Ready to play it for real?';
+    document.querySelector('#results .mh-stats').hidden = true; $('resCounts').hidden = true; $('resBest').textContent = ''; $('trouble').hidden = true;
+    $('resPlay').hidden = false; $('resNext').hidden = true; $('resRetry').textContent = 'Practice again';
+    $('results').hidden = false; $('results').dataset.song = g.i; $('results').dataset.guide = '1';
+    lastG = g; G = null;
+    A.Sfx.sequence(['level-complete'], 120, {channel: GAME_ID});
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
+    A.Skins.announce($('results').querySelector('.panel'));
+  }
+  /* a quiet FULL VALUE pop-up over the note's gate (a fade, never a flash) */
+  let fvT = 0;
+  function fvPop(n) {
+    const f = $('fv'); if (!f || !V.W) return;
+    f.style.left = Math.max(80, Math.min(V.W - 80, laneX(n.lane))) + 'px';
+    f.textContent = 'FULL VALUE'; f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+    clearTimeout(fvT); fvT = setTimeout(() => f.classList.remove('show'), 900);
+  }
+  /* ?demo: the snare's sticking and lanes for the first two measures, in the console */
+  function stickingSelfCheck() {
+    const rows = G.T.notes.filter(n => n.measure <= 2).map(n => ({measure: n.measure, beat: +(n.n.t % G.T.per + 1).toFixed(2), stick: n.n.stick, lane: G.lanes.lanes[n.lane].label}));
+    const ok = rows.every(r => r.stick === r.lane);
+    console.info(`Music Highway sticking self-check (${G.map.sticking}): ${ok ? 'OK, every note is in its hand\'s lane' : 'MISMATCH'}\n` + rows.map(r => `  m${r.measure} beat ${r.beat}: ${r.stick} -> lane ${r.lane}`).join('\n'));
+    G.stickCheck = {ok, rows};
+  }
   /* the trouble spot: the measures (practiceMeasures long) with the most misses (early/late count half) */
   function trouble(g) {
     const box = $('trouble');
@@ -774,8 +862,9 @@
     $('practiceBtn').onclick = () => begin(g.i, {practice: {from, to}});
     box.hidden = false;
   }
-  $('resRetry').onclick = () => begin(+$('results').dataset.song);
-  $('resNext').onclick = () => { const i = +$('results').dataset.song + 1; $('results').hidden = true; begin(i); };
+  $('resRetry').onclick = () => begin(+$('results').dataset.song, {guide: $('results').dataset.guide === '1'});
+  $('resPlay').onclick = () => { playMode = 'play'; save({mode: 'play'}); drawOpts(); begin(+$('results').dataset.song, {guide: false}); };
+  $('resNext').onclick = () => { const i = +$('results').dataset.song + 1; $('results').hidden = true; begin(i, {guide: false}); };
   $('resSongs').onclick = () => showHub();
 
   /* ================= PAUSE ================= */
@@ -795,7 +884,7 @@
     G.T.notes.forEach(n => { n.holding = false; });                // a held note stops counting (its bonus so far stays)
     glowOff(); showCount('');
     A.Pitch.demoAttacks = false;
-    $('pScore').textContent = G.score;
+    $('pScore').textContent = G.guide ? '–' : G.score;
     $('pAccL').textContent = G.practice ? 'This loop' : 'Accuracy';
     $('pAcc').textContent = $('hudAcc').textContent;
     $('pausePanel').hidden = false;
@@ -814,7 +903,7 @@
   }
   $('pauseBtn').onclick = () => pause();
   $('resumeBtn').onclick = resume;
-  $('restartBtn').onclick = () => { const i = G ? G.i : 0, pr = G && G.practice; $('pausePanel').hidden = true; startSong(i, {practice: pr}); };
+  $('restartBtn').onclick = () => { const i = G ? G.i : 0, pr = G && G.practice, gd2 = !!(G && G.guide); $('pausePanel').hidden = true; startSong(i, {practice: pr, guide: gd2}); };
   /* SONG MENU: the song ends at once: no results, no stars, nothing saved; the song select comes back with this song
      still selected (LevelSelect remembered it when it started) */
   $('quitBtn').onclick = () => { $('pausePanel').hidden = true; showHub(); };
@@ -962,7 +1051,7 @@
             G.recent.push(perf);
             const pc = unpitched ? null : wrong ? (n.pc + 2) % 12 : n.pc;
             if (unpitched) judge(songOf(perf), null, perf); else judge(songOf(perf), pc, perf);
-            if (hold && n.long && !wrong) { n.holding = true; n.lastHeard = performance.now(); const iv = setInterval(() => { if (!G || songNow() > n.end) return clearInterval(iv); if (G.paused || G.phase === 'count') return; n.lastHeard = performance.now(); n.held = Math.max(n.held, Math.min(n.dur, songNow() - n.t)); }, 40); }
+            if (hold && n.trail && !wrong) { n.holding = true; n.lastHeard = performance.now(); const iv = setInterval(() => { if (!G || songNow() > n.end || (typeof hold === 'number' && songNow() > n.t + hold * n.dur)) return clearInterval(iv); if (G.paused || G.phase === 'count') return; n.lastHeard = performance.now(); n.held = Math.max(n.held, Math.min(n.dur, songNow() - n.t)); }, 40); }
           }
         });
       };
@@ -989,6 +1078,12 @@
     /** tests: the resumes so far ([{at, from}]) and the drum hits scheduled (context s) with the song's clock start */
     pauses: () => G ? {n: G.pauses || 0, resumes: G.resumes || [], T0: G.T0, from: G.from, spb: G.T.spb, dur: G.T.total} : null,
     paused: () => !!(G && G.paused),
+    stickCheck: () => G && G.stickCheck,
+    /** tests: record every backing tone from now on ({kind, at (song s), m}) */
+    tones: () => { if (G) G.tones = G.tones || []; return G && G.tones; },
+    notes: () => G ? G.T.notes.map(n => ({k: n.k, t: +n.t.toFixed(3), beats: n.beats, lane: n.lane, stick: n.n.stick || null, trail: !!n.trail, tEnd: +n.tEnd.toFixed(3), res: n.res, fullValue: !!n.fullValue, held: +n.held.toFixed(3), dur: +n.dur.toFixed(3)})) : null,
+    mode: () => ({playMode, speed, melody, melVol, guide: !!(G && G.guide), rate: G ? G.rate : null}),
+    fvStat: () => G ? Object.assign({}, G.fv) : lastG ? Object.assign({}, lastG.fv) : null,
     /** tests: record every frame from now on: {t, tx (the staff strip's translateX), pads: {note k: y of its center}} */
     trace: () => { if (G) { G.trace = {pads: {}}; G.traceLog = []; } },
     traceLog: () => G ? G.traceLog : null,

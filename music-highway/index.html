@@ -28,10 +28,24 @@
       <p class="muted" id="hubBlurb">Neon lights race down the highway with the band: low notes on the left, high notes on the right. Play each note on your instrument as its light reaches its gate.</p>
     </div>
     <div class="mh-opts" id="opts">
+      <div class="mh-opt" role="group" aria-label="Mode">
+        <span class="mh-ol">Mode</span>
+        <button class="mh-seg" id="modePlay" aria-pressed="true">Play</button>
+        <button class="mh-seg" id="modePractice" aria-pressed="false">Practice</button>
+      </div>
       <div class="mh-opt" role="group" aria-label="Speed">
         <span class="mh-ol">Speed</span>
-        <button class="mh-seg" id="spdNormal" aria-pressed="true">Normal</button>
         <button class="mh-seg" id="spdSlow" aria-pressed="false">Slow 75%</button>
+        <button class="mh-seg" id="spdNormal" aria-pressed="true">Normal</button>
+        <button class="mh-seg" id="spdTurbo" aria-pressed="false">Turbo 125%</button>
+      </div>
+      <div class="mh-opts mh-pracopts" id="pracOpts" hidden>
+        <div class="mh-opt" role="group" aria-label="Melody">
+          <span class="mh-ol">Melody</span>
+          <button class="mh-seg" id="melOn" aria-pressed="true">On</button>
+          <button class="mh-seg" id="melOff" aria-pressed="false">Off</button>
+        </div>
+        <label class="mh-vol"><span class="mh-ol">Melody volume</span><input type="range" id="melVol" min="0" max="100" step="5" aria-label="Melody volume"></label>
       </div>
       <div class="mh-opt" role="group" aria-label="Note spacing">
         <span class="mh-ol">Note spacing</span>
@@ -69,6 +83,8 @@
     <button class="mh-pause" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
   </div>
   <div class="mh-judge" id="judge" aria-live="polite"></div>
+  <div class="mh-fv" id="fv" aria-hidden="true"></div>
+  <p class="mh-prac" id="hudPractice" hidden>PRACTICE: not scored</p>
   <div class="mh-count" id="count" aria-live="assertive"></div>
   <div class="mh-tip" id="tip"></div>
   <div class="mh-staff" id="staffBox" aria-hidden="true">
@@ -132,6 +148,7 @@
       <div><small>Score</small><b id="resScore">0</b></div>
       <div><small>Accuracy</small><b id="resAcc">0%</b></div>
       <div><small>Max combo</small><b id="resCombo">0</b></div>
+      <div id="resFvBox"><small>Full value held</small><b id="resFv">–</b></div>
     </div>
     <div class="mh-counts" id="resCounts"></div>
     <p id="resBest" class="best"></p>
@@ -142,6 +159,7 @@
       <button class="btn btn-ghost" id="practiceBtn">Practice this part</button>
     </div>
     <div class="acts">
+      <button class="btn btn-gold" id="resPlay" hidden>Play this song</button>
       <button class="btn btn-gold" id="resNext">Next song</button>
       <button class="btn btn-ghost" id="resRetry">Play again</button>
       <button class="btn btn-ghost" id="resSongs">Songs</button>
