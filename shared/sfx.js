@@ -62,7 +62,7 @@ window.Arcade = window.Arcade || {};
   const FILE_MODE = location.protocol === 'file:';   // a double-clicked page: Web Audio can't read files, use <audio>
   const here = document.currentScript && document.currentScript.src || (document.querySelector('script[src$="sfx.js"]') || {}).src;
   const BASE = here ? new URL('sounds/', here).href : '';
-  let ctx = null, master = null, fxBus = null, analyser = null, span = 0;
+  let ctx = null, master = null, fxBus = null, rawBus = null, analyser = null, span = 0;
   const store = A.store;
   const vol = k => { const v = store && store[k]; return typeof v === 'number' ? v : DEFAULTS[k]; };
   const listening = () => !!(A.Pitch && A.Pitch.listening && A.Pitch.listening());
@@ -76,6 +76,7 @@ window.Arcade = window.Arcade || {};
         ctx = new AC();
         fxBus = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
         fxBus.connect(analyser); analyser.connect(ctx.destination);
+        rawBus = ctx.createGain(); rawBus.connect(analyser);                                 // outputRaw(): no EFFECTS slider
         master = ctx.createGain(); master.gain.value = GEN_LEVEL; master.connect(fxBus);    // the generated sounds
         Object.values(CH).forEach(c => { c.bus = ctx.createGain(); c.duck = ctx.createGain(); c.bus.connect(c.duck); c.duck.connect(ctx.destination); });   // bus = the slider, duck = duck()
         applySettings();
@@ -1055,6 +1056,9 @@ window.Arcade = window.Arcade || {};
     /** the arcade's audio output for shared/tones.js (Lost Signal's pitched tones): {ctx, out} once the audio is
         unlocked and sound is on (out = the EFFECTS bus: mute and the EFFECTS slider apply), else null */
     output() { return ready() ? {ctx, out: fxBus} : null; },
+    /** the same output WITHOUT the EFFECTS slider (SOUND ON/OFF still mutes it: null when off). Only for sounds a
+        student must hear whatever the slider says: Music Highway's calibration clicks */
+    outputRaw() { return ready() ? {ctx, out: rawBus} : null; },
     /** an event's uploaded FILE as a decoded AudioBuffer, or null (no file, not decoded yet, sound off, or a file://
         page, which can't decode). Music Highway schedules its backing-drums file (mh-drums-<song>) on the audio clock
         with it; nothing here plays it. */
@@ -1132,6 +1136,7 @@ window.Arcade = window.Arcade || {};
       loopState: name => { const c = chOf(name); return c ? {allowed: !!c.want, playing: !!c.cur, gen: !!(c.cur && c.cur.gen), rendered: !!c.buf} : null; },
       analyser: () => analyser,
       bus: () => fxBus,                                   // the effects output (the board plays its loop test into it)
+      mix: () => analyser,                                // everything the arcade's effects play (fxBus + outputRaw), for tests
       entry,
       files,
     },
