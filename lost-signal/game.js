@@ -358,7 +358,7 @@
     const acc = total ? hits / total : 0;
     const stars = acc === 1 && replays === 0 ? 3 : acc >= RULES.twoStar ? 2 : acc >= RULES.oneStar ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
-    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = stars === 3 ? 'Perfect contact!' : stars ? 'Transmission decoded!' : 'Weak signal';
     $('resMsg').textContent = stars === 3 ? 'Every note, no replays. Crystal-clear signal, operator!'

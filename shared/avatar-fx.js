@@ -55,6 +55,42 @@ window.Arcade = window.Arcade || {};
   }
   const glowDot = (x, u, cx, cy, r, c0) => { const g = x.createRadialGradient(cx * u, cy * u, 0, cx * u, cy * u, r * u); g.addColorStop(0, c0); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect((cx - r) * u, (cy - r) * u, r * 2 * u, r * 2 * u); };
   const auraGlow = {};
+  /** 0 on the face, rising smoothly to 1 two pixels away from it: a particle passing near the face fades out */
+  const faceFade = (px, py) => {
+    const dx = Math.max(FACE.x0 - px, px - FACE.x1, 0), dy = Math.max(FACE.y0 - py, py - FACE.y1, 0);
+    if (inFace(px, py)) return 0;
+    const d = Math.max(dx, dy); return d >= 2.5 ? 1 : d <= .5 ? 0 : (d - .5) / 2;
+  };
+  /** a soft six-armed snowflake r bust pixels across, turning slowly with a */
+  function flake(x, u, cx, cy, r, a) {
+    glowDot(x, u, cx, cy, r * 1.3, col('white-hi', .4));
+    x.strokeStyle = col('white-hi', .6); x.lineWidth = Math.max(1, u * .6); x.lineCap = 'round'; x.beginPath();
+    for (let i = 0; i < 3; i++) { const ang = a + i * Math.PI / 3, dx = Math.cos(ang) * r, dy = Math.sin(ang) * r; x.moveTo((cx - dx) * u, (cy - dy) * u); x.lineTo((cx + dx) * u, (cy + dy) * u); }
+    x.stroke();
+  }
+  /** a pixel heart (5 × 4 cells of s bust pixels) centered on cx, cy, with a tiny light highlight */
+  const HEART = ['XX.XX', 'XXXXX', '.XXX.', '..X..'];
+  function heart(x, u, cx, cy, s, c) {
+    const ox = cx - 2.5 * s, oy = cy - 2 * s, X = i => Math.round((ox + i * s) * u), Y = i => Math.round((oy + i * s) * u);
+    x.beginPath();                                             // one path, cells on whole pixels: no seams between them
+    HEART.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch === 'X') x.rect(X(rx), Y(ry), X(rx + 1) - X(rx), Y(ry + 1) - Y(ry)); }));
+    const o = Math.max(1, Math.round(u * .35));                // a dark edge, so it reads on any background (a pink one too)
+    x.save(); x.fillStyle = col('deep', .6); [[-o, 0], [o, 0], [0, -o], [0, o]].forEach(([dx, dy]) => { x.translate(dx, dy); x.fill(); x.translate(-dx, -dy); }); x.restore();
+    x.fillStyle = c; x.fill();
+    x.fillStyle = col('white-hi', .7); x.fillRect(X(.5), Y(.4), Math.max(1, X(1.1) - X(.5)), Math.max(1, Y(1) - Y(.4)));
+  }
+  /** a cherry-blossom petal: a soft oval with a notch, turned by a and flipping gently (its width breathes) */
+  function petal(x, u, cx, cy, a, s, k) {
+    const flip = .45 + .55 * Math.abs(Math.cos(a * .7));
+    x.save(); x.translate(cx * u, cy * u); x.rotate(a); x.scale(1, flip);
+    x.fillStyle = col(k % 3 ? 'pink-hi' : 'pink', .95);
+    const q = s * u; x.beginPath(); x.moveTo(-1.6 * q, 0);                   // the stem end, round sides, a notch at the tip
+    x.quadraticCurveTo(-.6 * q, -1.4 * q, 1.5 * q, -.8 * q); x.lineTo(1 * q, 0); x.lineTo(1.5 * q, .8 * q);
+    x.quadraticCurveTo(-.6 * q, 1.4 * q, -1.6 * q, 0); x.closePath();
+    x.strokeStyle = col('deep', .55); x.lineWidth = Math.max(1, u * .4); x.stroke(); x.fill();     // a dark edge: reads on any background
+    x.fillStyle = col('white-hi', .45); x.beginPath(); x.ellipse(-.3 * q, -.25 * q, .6 * q, .3 * q, 0, 0, TAU); x.fill();
+    x.restore();
+  }
   const SIDE = i => (i % 2 ? 29 + hash(i + 5) * 6 : 1 + hash(i + 5) * 6);            // a spot beside the head, left or right
 
   /* ---------- THE EFFECTS: fn(ctx, u, t, layer, opts) ---------- */
@@ -167,6 +203,77 @@ window.Arcade = window.Arcade || {};
         piece(18 + Math.cos(ang) * v * b, 34 + Math.sin(ang) * v * b + 14 * b * b, i + 7, b * 6 + i);
       }
     },
+
+    /* SEASONAL EFFECTS (unlock {event}: shared/seasons.js). Slow and soft: every particle fades in and out, and one
+       near the face fades away smoothly (faceFade) instead of popping. */
+    /* Spooky green glow: a friendly ghost-green aura with the avatar's rim, a slow breathing pulse (5 s) and a few
+       soft wisps curling up around the edge */
+    spookyglow(x, u, t, layer, o) {
+      if (layer === 'back') {
+        const a = .42 + .13 * Math.sin(t * TAU / 5), k = 'spooky|' + u;
+        if (!auraGlow[k]) { const g = document.createElement('canvas'); g.width = g.height = Math.ceil(38 * u); glowDot(g.getContext('2d'), u, 19, 19, 19, col('green', .55)); auraGlow[k] = g; }
+        x.globalAlpha = a; x.drawImage(auraGlow[k], -1 * u, 3 * u);
+        if (o.silhouette) x.drawImage(o.silhouette, 0, 0, 36 * u, 36 * u);
+        for (let i = 0; i < 5; i++) {                          // wisps rising behind the shoulders and head
+          const c = fract(t / (5 + hash(i + 40) * 2) + hash(i + 41)), bx = [3, 33, 7, 29, 18][i];
+          const px = bx + Math.sin(c * TAU + i) * 1.6, py = 33 - c * 30;
+          x.globalAlpha = Math.sin(c * Math.PI) * .7; glowDot(x, u, px, py, 3 + c * 1.5, col('green', .6));
+        }
+        x.globalAlpha = 1; return;
+      }
+      for (let i = 0; i < 4; i++) {                            // two or three small wisps drifting up beside the head
+        const k = i + 60, c = fract(t / (6 + hash(k) * 2) + hash(k + 1)), px = SIDE(k) + Math.sin(c * TAU * 1.2 + i) * 1.3, py = 34 - c * 32;
+        const a = Math.sin(c * Math.PI) * .8 * faceFade(px, py); if (a < .02) continue;
+        x.globalAlpha = a; glowDot(x, u, px, py, 2.4, col('green', .7));        // a little ghostly wisp: a soft head + a wavy tail
+        glowDot(x, u, px + Math.sin(c * TAU * 1.2 + i - .6) * .8, py + 1.6, 1.6, col('green', .45));
+        glowDot(x, u, px, py, 1.1, col('green-hi', .8));
+      }
+      x.globalAlpha = 1;
+    },
+    /* Snowfall: big, soft flakes drifting down slowly (about 12 s top to bottom), swaying, far ones behind, near ones
+       in front, and a little drift of snow in the bottom corners */
+    snowfall(x, u, t, layer) {
+      const back = layer === 'back', n = back ? 7 : 5;
+      for (let i = 0; i < n; i++) {
+        const k = i + (back ? 100 : 120), c = fract(t / (14 + hash(k) * 6) + hash(k + 1));
+        const px = (back ? 2 + hash(k + 2) * 32 : SIDE(k)) + Math.sin(t * .4 + k) * 1.4, py = c * 40 - 3;
+        const a = Math.min(1, Math.sin(c * Math.PI) * 1.6) * (back ? .6 : .9) * (back ? 1 : faceFade(px, py));
+        if (a < .02) continue;
+        x.globalAlpha = a; flake(x, u, px, py, back ? 1.5 : 2, t * .08 + k);
+      }
+      if (!back) {                                             // the drift: two soft mounds in the bottom corners
+        x.globalAlpha = .85; x.fillStyle = col('white-hi', .75);
+        [[0, 6.5], [36, 6.5]].forEach(([cx, r]) => { x.beginPath(); x.ellipse(cx * u, 36.5 * u, r * u, 2.2 * u, 0, 0, TAU); x.fill(); });
+        x.fillStyle = col('cyan-hi', .35);
+        [[0, 6.5], [36, 6.5]].forEach(([cx, r]) => x.fillRect((cx - r * .6) * u, 35.2 * u, r * 1.2 * u, Math.max(1, u * .4)));
+      }
+      x.globalAlpha = 1;
+    },
+    /* Floating hearts: little pixel hearts in pinks and reds rising slowly beside the head, fading in and out */
+    hearts(x, u, t, layer) {
+      const back = layer === 'back', n = back ? 3 : 5, cols = ['pink', 'pink-hi', 'red', 'red-hi'];
+      for (let i = 0; i < n; i++) {
+        const k = i + (back ? 200 : 220), c = fract(t / (9 + hash(k) * 3) + hash(k + 1));
+        const px = SIDE(k) + Math.sin(t * .6 + k) * .9, py = 36 - c * 36, s = back ? .55 : .7 + hash(k + 3) * .2;
+        const a = Math.sin(c * Math.PI) * (back ? .55 : .95) * (back ? 1 : faceFade(px, py));
+        if (a < .02) continue;
+        x.globalAlpha = a; heart(x, u, px, py, s, col(cols[k % cols.length]));
+      }
+      x.globalAlpha = 1;
+    },
+    /* Cherry blossoms: small pink petals drifting diagonally down (left to right), turning slowly as they fall */
+    blossoms(x, u, t, layer) {
+      const back = layer === 'back', n = back ? 4 : 6;
+      for (let i = 0; i < n; i++) {
+        const k = i + (back ? 300 : 320), c = fract(t / (9 + hash(k) * 4) + hash(k + 1));
+        const x0 = back ? hash(k + 2) * 30 - 6 : (k % 2 ? 22 : -6) + hash(k + 2) * 8;
+        const px = x0 + c * 14 + Math.sin(t * .8 + k) * 1.2, py = c * 42 - 4;
+        const a = Math.min(1, Math.sin(c * Math.PI) * 1.5) * (back ? .55 : .95) * (back ? 1 : faceFade(px, py));
+        if (a < .02 || px < -2 || px > 38) continue;
+        x.globalAlpha = a; petal(x, u, px, py, t * (.6 + hash(k + 3) * .5) + k, back ? .8 : 1, k);
+      }
+      x.globalAlpha = 1;
+    },
   };
   function draw(x, id, size, t, {layer = 'front', color, silhouette, burst} = {}) {
     const fn = FX[id]; if (!fn) return;
@@ -217,7 +324,8 @@ window.Arcade = window.Arcade || {};
     const eff = info.av.effect;
     const layers = box.querySelectorAll('canvas.av-fx');
     if (eff && eff !== 'none' && layers.length) {
-      const silo = eff === 'aura' || eff === 'bndiamond' ? silhouette(frames[frames.length > 1 ? f : 0], eff === 'bndiamond' ? 'bn-diamond' : info.av.effectColor || 'cyan') : null;
+      const rim = {aura: info.av.effectColor || 'cyan', bndiamond: 'bn-diamond', spookyglow: 'green'}[eff];   // effects with the avatar's rim
+      const silo = rim ? silhouette(frames[frames.length > 1 ? f : 0], rim) : null;
       const burst = box.closest('.av-res') ? sec - st.start : null;
       layers.forEach(c => {
         if (c.width !== px) { c.width = c.height = px; }

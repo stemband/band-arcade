@@ -146,7 +146,7 @@
     const acc = hits / count;
     const stars = acc === 1 && wrong === 0 ? 3 : acc >= RULES.twoStarRate ? 2 : acc >= RULES.passRate ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
-    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     G.locked = true;
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = stars ? (stars === 3 ? 'Perfect!' : 'Level cleared') : 'So close';

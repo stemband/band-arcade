@@ -297,7 +297,7 @@
       const pct = Math.round(100 * Q.firstTry / Q.total), all = masteredIn(rank) === 15;
       stars = all ? 3 : pct >= RULES.twoStarRate * 100 ? 2 : 1;
       const old = A.store.level(GAME_ID, 'all', beltNo(rank));
-      A.store.setLevel(GAME_ID, 'all', beltNo(rank), {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best)});
+      A.store.setLevel(GAME_ID, 'all', beltNo(rank), {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best)}, stars);
       title = stars === 3 ? 'Every scroll mastered!' : 'Round complete';
       msg = `${Q.firstTry} of ${Q.total} right the first time (${pct}%). ${masteredIn(rank)} of 15 ${b.name} scrolls unrolled.` +
         (stars === 1 ? ' Get 90% right the first time for 2 stars.' : stars === 2 ? ' Master all 15 scrolls for 3 stars.' : '');

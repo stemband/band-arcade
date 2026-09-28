@@ -425,7 +425,7 @@
     const cleared = lives > 0 && hits >= need;
     const stars = !cleared ? 0 : lost === 0 && wrong === 0 ? 3 : lost <= 1 ? 2 : 1;
     const old = A.store.level(key, inst.id, lv);
-    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = stars === 3 ? 'Perfect!' : stars ? 'Level cleared' : lives <= 0 ? 'The storm got through' : 'So close';
     $('resMsg').textContent =

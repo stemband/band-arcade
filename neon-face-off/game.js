@@ -133,6 +133,7 @@
   function startMatch() {
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     stopMatch();
+    A.store.noteActivity({game: GAME_ID, play: 1}); // seasonal events: a game played today
     P.forEach((p, i) => {
       const d = p.cpu ? {window: RULES.cpuWindow, level: 2} : DIFF.find(x => x.id === saved.settings['p' + (i + 1)].diff) || DIFF[0];
       const st = p.cpu ? {notes: 'first5', order: 'random'} : pickers[i].state;
@@ -336,7 +337,7 @@
         if (saved.cpuWins == null) saved.cpuWins = [1, 2, 3, 4, 5, 6, 7, 8].filter(n => A.store.bestLevelStars(GAME_ID, n) >= 1).length;
         saved.cpuWins++; remember();
       }
-      A.store.setLevel(GAME_ID, P[0].member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pts, old.best)});
+      A.store.setLevel(GAME_ID, P[0].member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pts, old.best)}, stars);
       $('resStars').innerHTML = A.starStr(stars);
       $('resMsg').textContent = !won ? `${P[1].name} took this one. Play your notes a little sooner and try again!`
         : stars === 3 ? 'A shutout! Perfect defense.' : stars === 2 ? 'Won by 4 or more. Keep them scoreless for 3 stars.' : 'You won! Win by 4 or more for 2 stars.';

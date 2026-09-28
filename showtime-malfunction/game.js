@@ -437,7 +437,7 @@
     document.body.classList.remove('lights-out');
     const stars = !survived ? 0 : g.lights >= 3 ? 3 : g.lights === 2 ? 2 : 1;
     const old = A.store.level(g.key, who, g.lv), newBest = g.score > old.best && old.best > 0;
-    A.store.setLevel(g.key, who, g.lv, {stars: Math.max(stars, old.stars), best: Math.max(g.score, old.best)});
+    A.store.setLevel(g.key, who, g.lv, {stars: Math.max(stars, old.stars), best: Math.max(g.score, old.best)}, stars);
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = !survived ? "Showtime's over" : stars === 3 ? 'Perfect show!' : 'Show saved!';
     $('resMsg').textContent = !survived ? `The band got through all ${RULES.spotlights} spotlights. Start each note fresh and fast, and reboot the closest one first. You've got this!`

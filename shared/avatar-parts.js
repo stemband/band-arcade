@@ -1043,4 +1043,155 @@ window.AVATAR_PARTS = {};
   P.TOPS.push(bngi);
   P.EFFECTS.push({id: 'bndiamond', name: 'Diamond Aura', official: true, unlock: bnRule('diamond')});
   P.BGS.push({id: 'bndojo', name: 'Diamond Dojo', kind: 'scene', scene: 'diamond-dojo', lift: 1.8, main: 'blue-ink', official: true, unlock: bnRule('diamond')});
+
+  /* =====================================================================================================================
+     SEASONAL ITEMS (shared/seasons.js: the event calendar says which event gives which item and how). Each has
+     unlock {event: '<event id>'}: it can only be EARNED during that event (its free gift or a challenge step), then it
+     is the student's forever. Outside the event a locked one says "Returns next Spooky Season!". Never sold at the
+     Token Booth. Cute and friendly (spooky = fun, never gory or scary); animations are slow and never flash.
+     A NEW SEASONAL ITEM: add it here with unlock {event}, list it in its event in shared/seasons.js, and add its id at
+     the END of its field's list in shared/avatar-code.js TABLE.
+     ===================================================================================================================== */
+  const ev = id => ({event: id});
+  // ---- effects (drawn by shared/avatar-fx.js) ----
+  P.EFFECTS.push(
+    {id: 'spookyglow', name: 'Spooky green glow', unlock: ev('spooky')},
+    {id: 'snowfall', name: 'Snowfall', unlock: ev('winter')},
+    {id: 'hearts', name: 'Floating hearts', unlock: ev('friendship')},
+    {id: 'blossoms', name: 'Cherry blossoms', unlock: ev('spring')});
+  // ---- backgrounds (scenes in shared/bg-scenes.js) ----
+  P.BGS.push(
+    {id: 'hauntedhallway', name: 'Haunted Hallway', kind: 'scene', scene: 'haunted-hallway', lift: 1.6, main: 'purple-ink', unlock: ev('spooky')},
+    {id: 'twinklelights', name: 'Twinkle Lights', kind: 'scene', scene: 'twinkle-lights', lift: 1.5, main: 'blue-ink', unlock: ev('winter')},
+    {id: 'concerthall', name: 'Concert Hall', kind: 'scene', scene: 'concert-hall', lift: 1.5, main: 'red-ink', unlock: ev('miosm')},
+    {id: 'sunsetbeach', name: 'Sunset Beach', kind: 'scene', scene: 'sunset-beach', lift: 1.2, main: 'amber-ink', unlock: ev('summer')});
+  // ---- name plates (CSS: .av-plate-<id> in theme.css) ----
+  P.PLATES.push(
+    {id: 'hearts', name: 'Heart frame', unlock: ev('friendship')},
+    {id: 'blossom', name: 'Blossom frame', unlock: ev('spring')},
+    {id: 'sunset', name: 'Sunset frame', unlock: ev('summer')});
+
+  // ---- hats and head things (heads use pal letters A B R) ----
+  const shakoH = P.HEADS.find(h => h.id === 'shako');
+  const band5 = m => m && recolor(recolor(recolor(recolor(m, /W/g, 'R'), /u/g, 'A'), /U/g, 'B'), /j/g, 'R');
+  const flower = (k, x, y) => k.px(x, y - 1, 'A').px(x - 1, y, 'A').px(x + 1, y, 'A').px(x, y + 1, 'A').px(x, y, 'R');
+  const heartLens = (k, x, y) => k.px(x + 1, y, 'A').px(x + 3, y, 'A').spans(y + 1, [[x, x + 4], [x, x + 4], [x + 1, x + 3]], 'A').px(x + 2, y + 4, 'A').px(x + 1, y + 1, 'W');
+  const pumpkinTop = (w, rows, ribs, stem) => {
+    const k = kit(w).spans(rows[0], rows[1], 'A');
+    ribs.forEach(x => { for (let y = rows[0] + 1; y < rows[0] + rows[1].length; y++) if (k.map().rows[y] && k.map().rows[y][x] === 'A') k.px(x, y, 'B'); });
+    stem.forEach(([x, y, ch]) => k.px(x, y, ch));
+    return k.map();
+  };
+  P.HEADS.push(
+    // SPOOKY SEASON: a round pumpkin worn as a hat (stem + leaf), and a floppy witch hat in the student's color
+    {id: 'pumpkin', name: 'Pumpkin head', unlock: ev('spooky'), hides: 'top', clip: {front: 6, side: 6, back: 6, bust: 12}, pal: {A: 'amber', B: 'amber-ink', R: 'green'},
+     bust: pumpkinTop(36, [3, [[13, 22], [10, 25], [8, 27], [7, 28], [7, 28], [7, 28], [7, 28], [7, 28], [8, 27]]], [12, 17, 18, 23],
+       [[17, 0, 'R'], [17, 1, 'R'], [18, 2, 'R'], [17, 2, 'R'], [19, 1, 'R'], [20, 0, 'R'], [21, 1, 'R'], [14, 5, 'W'], [13, 6, 'W']]),
+     front: pumpkinTop(32, [1, [[12, 19], [10, 21], [9, 22], [9, 22], [9, 22], [10, 21]]], [12, 15, 16, 19], [[15, 0, 'R'], [16, 0, 'R'], [17, 0, 'R'], [12, 3, 'W']]),
+     side: pumpkinTop(32, [1, [[11, 17], [9, 19], [8, 20], [8, 20], [8, 20], [9, 19]]], [11, 14, 17], [[14, 0, 'R'], [13, 0, 'R'], [12, 0, 'R']]),
+     back: pumpkinTop(32, [1, [[12, 19], [10, 21], [9, 22], [9, 22], [9, 22], [10, 21]]], [12, 15, 16, 19], [[15, 0, 'R'], [16, 0, 'R']])},
+    {id: 'witchhat', name: 'Witch hat', unlock: ev('spooky'), hides: 'top', clip: {front: 5, side: 5, back: 5, bust: 12}, pal: {A: 'green', B: 'yellow'},
+     bust: kit(36).spans(0, [[22, 24], [21, 23], [19, 22], [18, 21], [17, 21], [16, 21], [15, 21], [14, 22], [13, 23]], 'u')
+       .spans(9, [[12, 23], [12, 24]], 'A').spans(9, [[17, 18], [17, 18]], 'B').spans(11, [[4, 31]], 'U').spans(12, [[6, 29]], 'u').map(),
+     front: kit(32).spans(0, [[17, 18], [15, 17], [14, 17]], 'u').spans(3, [[13, 18]], 'A').px(15, 3, 'B').px(16, 3, 'B').spans(4, [[6, 25]], 'U').map(),
+     side: kit(32).spans(0, [[16, 17], [14, 16], [13, 16]], 'u').spans(3, [[12, 17]], 'A').px(16, 3, 'B').spans(4, [[5, 22]], 'U').map(),
+     back: kit(32).spans(0, [[17, 18], [15, 17], [14, 17]], 'u').spans(3, [[13, 18]], 'A').spans(4, [[6, 25]], 'U').map()},
+    // WINTER FEST: fluffy earmuffs in the student's color on a thin band
+    {id: 'earmuffs', name: 'Earmuffs', unlock: ev('winter'), hides: 'none', pal: {A: 'av-gray'},
+     bust: kit(36).spans(4, [[12, 23], [10, 11], [9, 9], [8, 8], [8, 8], [7, 7], [7, 7], [7, 7]], 'A').spans(4, [[24, 25], [26, 26], [27, 27], [27, 27], [28, 28], [28, 28], [28, 28]], 'A')
+       .spans(11, [[6, 9], [5, 10], [4, 10], [4, 10], [4, 10], [5, 10], [6, 9]], 'u').spans(11, [[26, 29], [25, 30], [25, 31], [25, 31], [25, 31], [25, 30], [26, 29]], 'u')
+       .px(6, 12, 'W').px(5, 13, 'W').px(27, 12, 'W').px(26, 13, 'W').px(8, 16, 'U').px(28, 16, 'U').map(),
+     front: kit(32).spans(0, [[11, 20], [10, 10], [9, 9], [9, 9]], 'A').spans(1, [[21, 21], [22, 22], [22, 22]], 'A').spans(4, [[8, 10], [7, 10], [7, 10], [8, 10]], 'u')
+       .spans(4, [[21, 23], [21, 24], [21, 24], [21, 23]], 'u').px(8, 5, 'W').px(22, 5, 'W').map(),
+     side: kit(32).spans(0, [[11, 16], [10, 10]], 'A').spans(1, [[17, 17], [17, 17]], 'A').spans(3, [[10, 13], [9, 14], [9, 14], [10, 13]], 'u').px(10, 4, 'W').map(),
+     back: kit(32).spans(0, [[11, 20], [10, 10], [9, 9], [9, 9]], 'A').spans(1, [[21, 21], [22, 22], [22, 22]], 'A').spans(4, [[8, 10], [7, 10], [7, 10], [8, 10]], 'u')
+       .spans(4, [[21, 23], [21, 24], [21, 24], [21, 23]], 'u').map()},
+    // FRIENDSHIP WEEK: heart-shaped glasses (a fun extra, worn in the head slot: real glasses are always free)
+    {id: 'heartglasses', name: 'Heart glasses', unlock: ev('friendship'), hides: 'none', pal: {A: 'pink', B: 'red'},
+     bust: heartLens(heartLens(kit(36), 10, 14), 21, 14).spans(15, [[15, 20]], 'B').spans(15, [[8, 9], [26, 27]], 'B').map(),
+     front: kit(32).spans(8, [[11, 14], [12, 13]], 'A').spans(8, [[17, 20], [18, 19]], 'A').px(15, 8, 'B').px(16, 8, 'B').px(10, 8, 'B').px(21, 8, 'B').px(11, 8, 'W').map(),
+     side: kit(32).spans(8, [[16, 19], [17, 18]], 'A').spans(8, [[13, 15]], 'B').px(16, 8, 'W').map(), back: {y: 0, rows: []}},
+    // MUSIC IN OUR SCHOOLS MONTH: a marching band hat with a tall gold plume (sways)
+    {id: 'miosmplume', name: 'Marching plume hat', unlock: ev('miosm'), hides: 'top', clip: shakoH.clip, pal: {A: 'red', B: 'red-ink', R: 'yellow'},
+     front: band5(shakoH.front), side: band5(shakoH.side), back: band5(shakoH.back),
+     bust: band5({y: 0, half: ['.............RRRRR', '............RRRRRR', '..............RRRR', '..........uuuuuuuu', '..........uuuuuuuu', '..........uuuuuugg',
+                                 '..........uuuuuggg', '..........uuuuuugg', '..........uuuuuuuu', '..........gggggggg', '..........uuuuuuuu', '.........KKKKKKKKK',
+                                 '..........KKKKKKKK', '..........g.......', '..........g.......']})},
+    // SPRING BLOOM: a crown of little flowers
+    {id: 'flowercrown', name: 'Flower crown', unlock: ev('spring'), hides: 'none', pal: {A: 'pink-hi', B: 'green', R: 'yellow'},
+     bust: flower(flower(flower(kit(36), 10, 10), 13, 7), 17, 6).px(11, 8, 'B').px(12, 9, 'B').px(15, 6, 'B').px(9, 12, 'B').sym().map(),
+     front: flower(flower(kit(32), 10, 4), 13, 2).px(11, 3, 'B').px(15, 1, 'A').px(15, 2, 'B').sym().map(),
+     side: flower(flower(flower(kit(32), 10, 4), 13, 2), 17, 3).px(11, 3, 'B').px(15, 1, 'B').map(),
+     back: flower(flower(kit(32), 10, 4), 13, 2).px(11, 3, 'B').px(15, 1, 'A').sym().map()},
+    // SUMMER SEND-OFF: sunglasses with bright frames
+    {id: 'sunnies', name: 'Summer sunglasses', unlock: ev('summer'), hides: 'none', pal: {A: 'av-black', B: 'yellow'},
+     bust: kit(36).spans(14, [[10, 15], [10, 15], [11, 15], [12, 14]], 'A').spans(14, [[20, 25], [20, 25], [20, 24], [21, 23]], 'A')
+       .spans(14, [[16, 19]], 'B').spans(14, [[8, 9], [26, 27]], 'B').spans(13, [[10, 15], [20, 25]], 'B').px(11, 15, 'W').px(21, 15, 'W').map(),
+     front: kit(32).spans(8, [[11, 14], [12, 13]], 'A').spans(8, [[17, 20], [18, 19]], 'A').spans(8, [[15, 16]], 'B').px(10, 8, 'B').px(21, 8, 'B').map(),
+     side: kit(32).spans(8, [[16, 19], [17, 18]], 'A').spans(8, [[13, 15]], 'B').map(), back: {y: 0, rows: []}});
+  // the plume sways, like the plumed shako's
+  const mp = P.HEADS.find(h => h.id === 'miosmplume'), mpBust = unhalf(mp.bust, W2), mpFront = unhalf(mp.front, 32);
+  mp.bust = mpBust; mp.front = mpFront;
+  mp.anim = {maps: {bust: [mpBust, shiftRows(mpBust, 0, 2, 1), mpBust, shiftRows(mpBust, 0, 2, -1)], front: [mpFront, shiftRows(mpFront, 0, 0, 1), mpFront, shiftRows(mpFront, 0, 0, -1)]}};
+
+  // ---- tops (pal letters D E G) ----
+  const scarfCh = (x, y) => ((x + y) % 4 < 2 ? 'D' : 'E');
+  const sash = (k, pts) => { pts.forEach(([x0, y0, x1, y1]) => X(k, x0, y0, x1, y1, 'D')); return k; };
+  P.TOPS.push(
+    // WINTER FEST (the free gift): a cozy striped scarf over the student's top
+    {id: 'scarf', name: 'Cozy scarf', unlock: ev('winter'), sleeve: 1, pal: {D: 'cyan', E: 'white-hi'},
+     bust: bustBody('c').spans(25, [[12, 23], [11, 24], [11, 24], [12, 23]], scarfCh).spans(29, [[20, 23], [20, 23], [20, 23], [20, 23], [20, 23], [20, 23], [21, 22]], scarfCh)
+       .spans(35, [[20, 20], [22, 22]], 'D').map(),
+     front: torso('c').spans(13, [[12, 19], [12, 19]], scarfCh).spans(15, [[17, 18], [17, 18], [17, 18], [17, 18]], scarfCh).map(),
+     side: sideT('c').spans(13, [[12, 17], [12, 17]], scarfCh).spans(15, [[17, 18], [17, 18], [17, 18]], scarfCh).map(),
+     back: torso('c').spans(13, [[12, 19], [12, 19]], scarfCh).map()},
+    // MUSIC IN OUR SCHOOLS MONTH (the free gift): a gold sash with red trim and little notes
+    {id: 'miosmsash', name: 'MIOSM sash', unlock: ev('miosm'), sleeve: 1, pal: {D: 'yellow', E: 'red', G: 'av-black'},
+     bust: (() => { const k = sash(bustBody('c'), [[6, 28, 20, 35], [7, 28, 21, 35], [8, 28, 22, 35], [9, 28, 23, 35], [10, 28, 24, 35]]);
+       X(k, 5, 28, 19, 35, 'E'); X(k, 11, 28, 25, 35, 'E');
+       return k.px(12, 31, 'G').px(12, 30, 'G').px(13, 30, 'G').px(17, 34, 'G').px(17, 33, 'G').px(18, 33, 'G').map(); })(),
+     front: sash(torso('c'), [[11, 14, 17, 20], [12, 14, 18, 20]]).px(14, 16, 'G').map(),
+     side: sash(sideT('c'), [[12, 14, 17, 20]]).map(),
+     back: sash(torso('c'), [[20, 14, 14, 20], [19, 14, 13, 20]]).map()});
+
+  // ---- shoes: ice skates (a boot in the student's shoe color on a silver blade: the sole row, Q, is the blade) ----
+  P.SHOES.push({id: 'iceskates', name: 'Ice skates', unlock: ev('winter'), rows: 3, sole: true, skate: true, pal: {Q: 'q-silver'}});
+
+  // ---- back items (pal letters N O): little bat wings that flap ----
+  const batBust = {y: 11, half: ['.N................', '.NN...............', '.NNN..............', '.NNNN.............', '.NONNN............', '.NNONNN...........', '.NNNONNN..........',
+    '.N.NNONNN.........', '....NNONNN........', '....N.NNONN.......', '.......NNONN......', '.......N.NNON.....', '..........NNN.....', '..........N.N.....']};
+  const batFront = {y: 11, half: ['..N.............', '.NN.............', '.NON............', '.NNON...........', '.N.NON..........', '....NNO.........', '....N.NN........', '.......N........']};
+  const batSide = {y: 10, rows: ['....N', '...NN', '..NON', '..NNON', '.N.NNON', '....NNN', '....N.N']};
+  P.BACKS.push({id: 'batwings', name: 'Bat wings', unlock: ev('spooky'), pal: {N: 'purple', O: 'purple-ink'}, bustBehind: batBust, behind: {front: batFront, side: batSide, back: batFront},
+    anim: {maps: {bustBehind: flap(batBust, 0, 1), 'behind.front': flap(batFront), 'behind.back': flap(batFront)}}});
+
+  // ---- HAND items (pal letters I J L M; the hand is at x 29–30, rows 21–22) ----
+  P.HANDS.push(
+    {id: 'rose', name: 'Rose', unlock: ev('friendship'), pal: {I: 'red', J: 'green', L: 'red-hi', M: 'green-ink'},
+     bust(a) { a.line(29, 21, 31, 14, 'J'); a.px(29, 17, 'M').px(28, 16, 'M').px(32, 18, 'M');
+       [[30, 11], [31, 11], [32, 11], [29, 12], [30, 12], [31, 12], [32, 12], [33, 12], [30, 13], [31, 13], [32, 13], [31, 10]].forEach(([x, y]) => a.px(x, y, 'I'));
+       a.px(31, 12, 'L').px(30, 11, 'L'); }},
+    {id: 'goldbaton', name: 'Golden baton', unlock: ev('miosm'), pal: {I: 'white-hi', J: 'yellow', M: 'amber'}, anim: {spin: true},
+     bust(a, f) { const ang = [90, 60, 30, 60][f % 4] * Math.PI / 180, c = Math.cos(ang), s = Math.sin(ang);
+       a.line(HAND[0] - c * 2, HAND[1] + s * 2, HAND[0] + c * 7, HAND[1] - s * 7, 'J'); a.px(HAND[0] + c * 7, HAND[1] - s * 7, 'I'); a.px(HAND[0] - c * 2, HAND[1] + s * 2, 'M'); }},
+    {id: 'beachball', name: 'Beach ball', unlock: ev('summer'), pal: {I: 'red', J: 'white-hi', L: 'cyan', M: 'yellow'},
+     bust(a) { const cx = 30.5, cy = 15.5;
+       for (let y = 12; y <= 19; y++) for (let x = 27; x <= 34; x++) {
+         const dx = x - cx, dy = y - cy; if (dx * dx + dy * dy > 13) continue;
+         const q = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * 6) % 6;
+         a.px(x, y, dx * dx + dy * dy < 1.5 ? 'J' : ['I', 'J', 'L', 'J', 'M', 'J'][q]);
+       } }});
+
+  // ---- PETS (their own colors) ----
+  P.PETS.push(
+    {id: 'boo', name: 'Boo the ghost', unlock: ev('spooky'), pal: {W: 'white-hi', K: 'av-black', P: 'purple', c: 'pink', a: 'amber'}, seq: [0, 1, 2, 1],
+     rows: ['...PP...', '..PPPP..', '.WWWWWW.', '.WKWWKW.', '.WcWWcW.', '.WWWWWW.', '.WWWWWWa', '.W.WW.W.'],
+     frames: [null, ['...PP...', '..PPPP..', '.WWWWWW.', '.WKWWKW.', '.WcWWcW.', '.WWWWWW.', 'WWWWWWWa', 'W.WW.W..'],
+              ['...PP...', '..PPPP..', '.WWWWWW.', '.WKWWKW.', '.WcWWcW.', '.WWWWWWa', '.WWWWWW.', '..W.WW.W']]},
+    {id: 'snowman', name: 'Snow buddy', unlock: ev('winter'), pal: {W: 'white-hi', K: 'av-black', a: 'amber', R: 'red'}, seq: [0, 0, 1, 0],
+     rows: ['..KKK...', '.KKKKK..', '..WWW...', '.WKWKW..', '.WWaWW..', '.RRRRR..', 'WWWWWWW.', '.WWWWW..'],
+     frames: [null, ['..KKK...', '.KKKKK..', '..WWW...', '.WKWKW..', '.WWaWW..', '.RRRRRR.', 'WWWWWWWR', '.WWWWW..']]},
+    {id: 'butterfly', name: 'Butterfly', unlock: ev('spring'), pal: {P: 'pink', p: 'yellow', K: 'av-black'}, seq: [0, 0, 1, 0],
+     rows: ['.K....K.', '..K..K..', 'PP.KK.PP', 'PPPKKPPP', 'PpPKKPpP', '.PPKKPP.', '.PP..PP.', '........'],
+     frames: [null, ['.K....K.', '..K..K..', '.P.KK.P.', '.PPKKPP.', '.PpKKpP.', '..PKKP..', '..P..P..', '........']]});
 })(window.AVATAR_PARTS);

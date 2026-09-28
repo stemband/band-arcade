@@ -583,7 +583,7 @@
     const key = picker.state.progressKey, rk = recKey(g.lv);
     const old = A.store.level(key, who, g.lv), tenths = Math.round(total * 10);
     const newBest = !old.best || tenths < old.best;
-    A.store.setLevel(key, who, g.lv, {stars: Math.max(stars, old.stars), best: old.best ? Math.min(old.best, tenths) : tenths});
+    A.store.setLevel(key, who, g.lv, {stars: Math.max(stars, old.stars), best: old.best ? Math.min(old.best, tenths) : tenths}, stars);
     // the ghost car = your best run on this track, mode and instrument; best lap too
     gd.ghosts = gd.ghosts || {}; gd.bestLap = gd.bestLap || {};
     if (!gd.ghosts[rk] || total < gd.ghosts[rk].t) gd.ghosts[rk] = {t: +total.toFixed(2), p: g.ghostRec};
