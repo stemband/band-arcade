@@ -34,7 +34,6 @@ window.MH_RULES = {
   leadMaxS: 3.6,          // … and never more than this (both only when the pad spacing below allows it)
   padMaxPx: 130,          // a light pad at its gate is never wider than this (it is 80 % of a lane wide)
   padShape: .5,           // a pad's height ÷ its width (a wide tail light)
-  sunSwell: .08,          // the sun brightens this much (a smooth swell) on each downbeat; none with reduced motion
   /* PAD SPACING. Two pads in a row are always at least cardGap × a pad's size apart (bottom of one to the top of the
      next) at the gates, even for the song's shortest note; the road's perspective keeps that true all the way up, so
      pads never overlap. A song with quick notes moves its pads faster; when that would leave a pad on the road for

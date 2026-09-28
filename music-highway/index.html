@@ -40,6 +40,11 @@
       </div>
       <button class="mh-hp" id="hpBtn" aria-pressed="false"><span aria-hidden="true">🎧</span> I'm wearing headphones</button>
       <button class="btn btn-ghost btn-small" id="calBtn">Recalibrate</button>
+      <div class="mh-opt" role="group" aria-label="Sticking" id="stickOpt" hidden>
+        <span class="mh-ol">Sticking</span>
+        <button class="mh-seg" id="stickAlt" aria-pressed="true">Alternate</button>
+        <button class="mh-seg" id="stickDown" aria-pressed="false">Downbeats right</button>
+      </div>
       <div class="mh-opt" role="group" aria-label="Letter names in the lights">
         <span class="mh-ol">Letter names</span>
         <button class="mh-seg" id="namesOn" aria-pressed="true">On</button>
@@ -47,9 +52,10 @@
       </div>
     </div>
     <p class="mh-optnote" id="optNote"></p>
+    <p class="mh-sticknote" id="stickNote" hidden>Follow the sticking! The lanes show which hand to use.</p>
     <div class="levels mh-songs" id="songGrid"></div>
     <p class="mh-foot"><a class="btn btn-ghost btn-small" id="boardLink" href="songs.html">Song Board</a> <span class="muted">every song on a staff, for any instrument</span></p>
-    <p class="demo-help" id="demoHelp" hidden>Demo: Space = play the note on the line (T too), W = a wrong note, hold S = hold it, 1–5 = your first five. Every song is open.</p>
+    <p class="demo-help" id="demoHelp" hidden>Demo: Space = play the note on the line (T too), W = a wrong note, hold S = hold it, 1–5 = your first five. P or Esc = pause. Every song is open.</p>
   </section>
 </div>
 
@@ -74,13 +80,17 @@
 
 <!-- PAUSE -->
 <div class="overlay" id="pausePanel" hidden>
-  <div class="panel">
+  <div class="panel mh-pausemenu">
     <h2>Paused</h2>
-    <p class="muted">The band waits for you. RESUME counts you in again from the start of this measure.</p>
-    <div class="acts">
+    <div class="stats mh-pstats">
+      <div><small>Score</small><b id="pScore">0</b></div>
+      <div><small id="pAccL">Accuracy</small><b id="pAcc">–</b></div>
+    </div>
+    <p class="muted">The band waits for you. RESUME goes back one measure and counts you in.</p>
+    <div class="mh-pacts">
       <button class="btn btn-gold" id="resumeBtn">Resume</button>
       <button class="btn btn-ghost" id="restartBtn">Restart song</button>
-      <button class="btn btn-ghost" id="quitBtn">Songs</button>
+      <button class="btn btn-ghost" id="quitBtn">Song menu</button>
     </div>
   </div>
 </div>

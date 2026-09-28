@@ -8,7 +8,7 @@
      Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc} | {rest}] in beats from the start
      Arcade.SongMap.concert(song, {shift})     -> the same notes with `concert` (midi) and `pc`; shift = semitones the
                                                   whole song moves (the C–G horn plays it in concert F: shift −5)
-     Arcade.SongMap.forMember(song, member, group, {hornSide}) -> the song for one instrument:
+     Arcade.SongMap.forMember(song, member, group, {hornSide, sticking}) -> the song for one instrument:
          {notes: [{i, t, beats, measure, pc, concert, midi (written), n (written note), show, label, fing, deg}],
           rests: [{t, beats, measure}], sig ({type, count} | null), clef, shift, keyName ('Concert B♭'), writtenKey ('C major'), unpitched,
           chords: [{measure, root, tones: [concert midis], name}], beatsPerMeasure, measures}
@@ -48,6 +48,8 @@ window.Arcade = window.Arcade || {};
       t += n.rest != null ? n.rest : n.beats;
     });
     if (Math.abs(t - Math.round(t / per) * per) > 1e-6) out.push(`${song.id}: the last measure has ${+(t % per).toFixed(3)} of ${per} beats`);
+    if (song.sticking) { const n = String(song.sticking).toUpperCase().replace(/[^RL]/g, '').length, k = (song.notes || []).filter(x => x.deg).length;
+      if (n !== k) out.push(`${song.id}: sticking has ${n} letters for ${k} notes`); }
     if (song.tier === 1) (song.notes || []).forEach(n => { if (n.deg && (n.deg > 5 || n.oct || n.acc)) out.push(`${song.id}: tier 1 uses only degrees 1–5 in the first octave`); });
     return [...new Set(out)];
   }
@@ -157,7 +159,21 @@ window.Arcade = window.Arcade || {};
   }
 
   /** the song for one instrument member (see the top) */
-  function forMember(song, member, group, {hornSide = 'F'} = {}) {
+  /* STICKING (the snare): the song's own `sticking` (R/L letters, one per note in order; spaces and | are ignored) when
+     it has one, else the student's pattern: 'alternate' (hand to hand note by note, every measure starts with R; rests
+     don't count) | 'downbeats' (a note on a beat = R, off the beat (the "&", "e", "a") = L). A long note (a roll, a half
+     note) just takes the hand the rule gives it. */
+  function stickings(song, notes, pattern) {
+    const own = song.sticking ? String(song.sticking).toUpperCase().replace(/[^RL]/g, '').split('') : null;
+    let m = -1, hand = 0;
+    return notes.map((e, i) => {
+      if (own && own[i]) return own[i];
+      if (pattern === 'downbeats') return Math.abs(e.t - Math.round(e.t)) < 1e-6 ? 'R' : 'L';
+      if (e.measure !== m) { m = e.measure; hand = 0; }
+      return hand++ % 2 ? 'L' : 'R';
+    });
+  }
+  function forMember(song, member, group, {hornSide = 'F', sticking = 'alternate'} = {}) {
     const unpitched = member.pitched === false || group.pitched === false;
     // move the song to the group's first five when its tonic isn't concert B♭ (the C–G horn: concert F)
     let shift = 0;
@@ -172,8 +188,9 @@ window.Arcade = window.Arcade || {};
       keyName: 'Concert ' + keyLabel(concertKeyPc) + (song.mode === 'minor' ? ' (' + keyLabel(mod12(concertKeyPc + 9)) + ' minor)' : ''),
       chords: chordsFor(song, list, tonicMidi(song, shift) + (song.mode === 'minor' ? 0 : 0))};
     if (unpitched) {
-      let hand = 0;
-      return Object.assign(base, {clef: null, sig: null, writtenKey: '', notes: list.filter(e => !e.rest).map(e => Object.assign({}, e, {pc: null, concert: null, midi: null, stick: (hand++ % 2) ? 'L' : 'R'}))});
+      const ns = list.filter(e => !e.rest), st = stickings(song, ns, sticking);
+      return Object.assign(base, {clef: null, sig: null, writtenKey: '', sticking: song.sticking ? 'song' : sticking,
+        notes: ns.map((e, i) => Object.assign({}, e, {pc: null, concert: null, midi: null, stick: st[i]}))});
     }
     const table = A.Masher && window.MASHER_FINGERINGS ? A.Masher.table(member) : null;
     const k = fitOctave(song, list, member, group, table);
@@ -192,11 +209,12 @@ window.Arcade = window.Arcade || {};
   /* LANES: one highway lane per written pitch, lowest on the left, so the melody's shape shows on the road.
      Tier 1 = exactly the group's first five notes (even when a song leaves one out: beginners always see their five);
      tiers 2 / 3 = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
-     nearest neighbor's lane (order kept). The snare: one lane. A lane's label = its pitch's written name (a lane of
+     nearest neighbor's lane (order kept). The snare: two STICKING lanes, L (left hand) and R (right hand). A lane's label = its pitch's written name (a lane of
      two merged pitches: both, "E/F"; more: the most-used one's). */
   const MAX_LANES = {1: 5, 2: 8, 3: 12};
   function lanes(song, map, group) {
-    if (map.unpitched) return {lanes: [{midis: [], label: 'R L', count: map.notes.length}], of: () => 0};
+    if (map.unpitched) return {lanes: [{midis: [], label: 'L', count: map.notes.filter(n => n.stick === 'L').length}, {midis: [], label: 'R', count: map.notes.filter(n => n.stick === 'R').length}],
+      of: n => n.stick === 'R' ? 1 : 0};                          // the snare: two sticking lanes, L on the left, R on the right
     let L;
     if (song.tier === 1 && group && group.notes && group.notes.length >= 5) {
       L = group.notes.slice(0, 5).map(n => ({midis: [writtenMidi(n)], label: noteLabel(n), count: 0}));
@@ -229,7 +247,7 @@ window.Arcade = window.Arcade || {};
     return {lanes: L, of};
   }
 
-  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, keyLabel, KEYS, lanes, MAX_LANES};
+  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, keyLabel, KEYS, lanes, MAX_LANES, stickings};
   // measure problems show in the console (and on the Song Board), so a typo in songs.js is found at once
   if (window.MH_SONGS) window.MH_SONGS.forEach(s => check(s).forEach(p => console.warn('Music Highway songs.js: ' + p)));
 })(window.Arcade);
