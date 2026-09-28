@@ -150,7 +150,7 @@
   function sizeKeyboard(view = KB.view) {
     const box = $('kbView'), cw = box.clientWidth || innerWidth - 32;
     // the height left under the staff (the page doesn't scroll during play), never more than half the screen
-    const avail = Math.max(160, Math.min(innerHeight * .5, innerHeight - $('city').getBoundingClientRect().top - $('playFoot').offsetHeight - 14));
+    const avail = Math.max(160, Math.min(innerHeight * .5, innerHeight - $('city').getBoundingClientRect().top - $('playFoot').offsetHeight - 18));
     const want = Math.min(KB.total, view || KB.total);
     let px = Math.max(RULES.minKeyPx, Math.min(96, cw / want));
     const tallest = avail / 2.9;                                        // keys never so wide that they can't be ~3× as tall
@@ -197,18 +197,85 @@
   function setSigns(o) { KB.signs = o; const s = $('signs'); if (s) { s.style.opacity = String(o); s.classList.toggle('tap', o >= RULES.signTapFrom); } }
   function setLabels(o) { KB.labels = o; const s = $('cfLabels'); if (s) s.style.opacity = String(o); }
 
-  /* ================= THE STAFF ================= */
-  const STAFF_W = 360;
-  const stepNote = (clef, step) => ({letter: K.LETTERS[mod(step, 7)], acc: 0, oct: Math.floor(step / 7)});
-  function staffFit(clef, r) {                                          // the drawing's height: the round's whole range
-    const [lo, hi] = r.range, a = K.spell(lo, '#'), b = K.spell(hi + (r.type === 'scale' ? 12 : 0), '#');
-    return [a, b];
+  /* ================= THE STAFF =================
+     The drawing is laid out from the DISTRICT, never from the round's note, so it doesn't jump: its WIDTH leaves room
+     for the district's widest key signature, its HEIGHT fits the district's whole range in this clef (stems and ledger
+     lines included; SCALE BUILDER rounds also their scale's top, at most a 4th above the range), centered with even
+     padding above and below (the answer's name goes in the bottom padding, under the note). The note sits in the middle of the open space after the clef
+     and key signature (a wider key signature moves it right). It is sized in px as large as the box's width and
+     STAFF_MAXH allow; the white box hugs it with even padding, and the space under the box makes up the district's
+     tallest layout, so the keyboard below never moves. A round that doesn't use the letter pad lends the pad's space to
+     the staff. */
+  const MID = 88, CLEF_END = 56, OPEN = 236, SCALE_OPEN = 300, VPAD = 18, SIG_GAP = 12;
+  const STAFF_MAXH = [130, .27, 270];                                    // px: clamp(min, share of the screen height, max)
+  const STAFF_MAXH_LENT = [130, .30, 300];                               // the same when the round has the letter pad's space too
+  const OLD_MAXH = [110, .21, 210];                                      // the old staff's height cap: the staff is never drawn smaller than it was
+  /** the old drawing's height (360 wide, sized from the round's range + 34 for captions): the scale it had is the floor */
+  function oldHeight(L, clef, scale) {
+    const [a, b] = K.rangeOf(L, clef), ys = [K.spell(a, '#'), K.spell(b + (scale ? 12 : 0), '#')].map(n => A.noteY(clef, n));
+    const top = Math.min(30, ...ys.map(y => y > MID ? y - 60 : y - 14)), bot = Math.max(146, ...ys.map(y => y > MID ? y + 14 : y + 60)) + 34;
+    return bot - top;
   }
+  const KB_MIN = 160;                                                    // the keyboard's smallest height (sizeKeyboard): the staff grows only while it fits
+  const stepNote = (clef, step) => ({letter: K.LETTERS[mod(step, 7)], acc: 0, oct: Math.floor(step / 7)});
+  const openFrom = (clef, sig) => sig && sig.count ? (clef === 'bass' ? 60 : 54) + sig.count * SIG_GAP + 6 : CLEF_END;
+  const clefsOf = L => L.clefs === 'pref' ? (clefPref === 'both' ? ['treble', 'bass'] : [clefPref]) : L.clefs;
+  /** the staff layout of district L in a clef, for a round type ('scale' or any other): {W, box: [top, height], capY} */
+  function staffLayout(L, clef, type) {
+    const maxSig = Math.max(0, ...(L.keySigs || []).map(k => K.KEYS[k].sig.count)), scale = type === 'scale';
+    const W = openFrom(clef, maxSig ? {count: maxSig} : null) + (scale ? SCALE_OPEN : OPEN);
+    const [a, b] = K.rangeOf(L, clef);
+    let [lo, hi] = clef === 'bass' ? [52, 120] : [34, 136];             // the staff and the clef (the treble clef reaches past it)
+    // accidentals (black keys, key signatures' naturals): a ♯ on the lowest note reaches ~1.5 spaces below it; the top of
+    // a range is a white key, so a ♭ can only sit a step lower and reaches ~1 space above the top note
+    const acc = L.keys !== 'white' || !!L.keySigs;
+    [K.spell(a, '#'), K.spell(b + (scale ? 5 : 0), 'b')].forEach((n, i) => {   // quiz.js: a scale's top is at most a 4th above
+      const y = A.noteY(clef, n);                                         // stem up below the middle line
+      lo = Math.min(lo, y > MID ? y - 52 : y - 8, acc && i ? y - 16 : y); hi = Math.max(hi, y > MID ? y + 8 : y + 52, acc && !i ? y + 26 : y);
+    });
+    return {W, box: [lo - VPAD, hi - lo + 2 * VPAD], capY: hi + VPAD - 4, clef, scale, sigW: maxSig ? 14 + maxSig * SIG_GAP : 0};   // everything it can show, centered, even padding
+  }
+  /** every layout the district can show (its clefs × SCALE BUILDER or not) */
+  const layoutsOf = L => clefsOf(L).flatMap(c => [staffLayout(L, c, 'find')].concat(L.types.scale ? [staffLayout(L, c, 'scale')] : []));
+  /** the x of a single note: the middle of the open space (an accidental in front counts as part of the note) */
+  const noteX = (r, n, lay) => (openFrom(r.clef, r.sig) + lay.W - 8) / 2 + (n.acc || n.natural ? 11 : 0);
   function drawStaff(r, items = [], opts = {}) {
-    const x0 = 150 + A.keySigWidth(r.sig);
-    const it = items.map((n, k) => Object.assign({x: (opts.x || x0) + k * (opts.gap || 0), id: 'sn' + k}, n));
-    $('staff').innerHTML = A.staffSVG(r.clef, it, {width: opts.width || STAFF_W + A.keySigWidth(r.sig), keySig: r.sig, fit: staffFit(r.clef, r),
-      captions: true, label: opts.label || 'The staff'});
+    const lay = staffLayout(G.L, r.clef, r.type);
+    const x0 = opts.gap ? (openFrom(r.clef, r.sig) + lay.W - 8) / 2 - opts.gap * 3.5 + 6 : null;
+    const it = items.map((n, k) => Object.assign({x: x0 != null ? x0 + k * opts.gap : noteX(r, n.n, lay), id: 'sn' + k}, n));
+    $('staff').innerHTML = A.staffSVG(r.clef, it, {width: lay.W, keySig: r.sig, box: lay.box, capY: lay.capY, label: opts.label || 'The staff'});
+    G.lay = lay;
+    sizeStaff();
+  }
+  /* the drawing in px: as large as the box's width and STAFF_MAXH allow; the box: the district's tallest layout */
+  function sizeStaff() {
+    const svg = $('staff').querySelector('svg'); if (!svg || !G || !G.lay) return;
+    const wrap = $('stage').parentElement.clientWidth - 18;
+    const clamp = ([a, v, b]) => Math.max(a, Math.min(b, innerHeight * v));
+    // THE LETTER PAD'S SPACE: a district with NAME rounds keeps the pad's place under the staff for every round (the
+    // keyboard never moves); a round that doesn't use the pad (FIND THE KEY, SCALE BUILDER) lends that space to the staff
+    const pad = $('pad'), reserved = !pad.hidden, usesPad = reserved && (G.r.type === 'name' || G.r.type === 'circuit');
+    pad.style.display = '';
+    const padSpace = reserved ? pad.offsetHeight + 6 : 0;                 // .kt-pad's bottom margin
+    // the room left when the keyboard is at its smallest: the screen minus everything that isn't the staff or the keyboard
+    const st = $('stage').getBoundingClientRect(), kb = $('kbView').getBoundingClientRect(), sf = $('staff').getBoundingClientRect();
+    const lent0 = (parseFloat($('stage').style.marginBottom) || 6) - 6;   // the space under the box set last time isn't "others"
+    const others = (st.top + scrollY) + (st.height - sf.height) + (kb.top - st.bottom - lent0) + (document.documentElement.scrollHeight - (kb.bottom + scrollY));
+    const room = innerHeight - others - KB_MIN;
+    // as large as fits (the width, STAFF_MAXH, the room above the keyboard at its smallest), but never smaller than the old
+    // staff was: where even that doesn't fit (a 768 px tall screen with the letter pad) the page scrolls a little, as before
+    const px = (lay, maxH) => { const floor = Math.min(wrap / lay.W, clamp(OLD_MAXH) / oldHeight(G.L, lay.clef, lay.scale), wrap / (360 + (lay.sigW || 0)));
+      const k = Math.min(wrap / lay.W, Math.max(maxH / lay.box[1], floor)); return [Math.floor(lay.W * k), Math.floor(lay.box[1] * k)]; };
+    const maxH = Math.min(clamp(STAFF_MAXH), room);
+    const boxH = Math.max(...layoutsOf(G.L).map(l => px(l, maxH)[1]));    // the district's box (with the pad's space under it)
+    const lend = reserved && !usesPad;
+    const [w, h] = px(G.lay, lend ? Math.min(clamp(STAFF_MAXH_LENT), boxH + padSpace) : Math.min(maxH, boxH));
+    svg.style.width = w + 'px'; svg.style.height = h + 'px';
+    if (lend) pad.style.display = 'none';
+    // the white box hugs the drawing (even padding all round); the rest of the district's space stays under it, so the
+    // keyboard never moves (in a round that lends the pad's space, that's where the pad sits in NAME rounds)
+    $('staff').style.height = h + 'px';
+    $('stage').style.marginBottom = 6 + Math.max(0, boxH + (lend ? padSpace : 0) - h) + 'px';
   }
   /* the key signature hint: its ♯/♭ for the letter lights up for a moment, then fades */
   function sigHint(r) {
@@ -310,7 +377,9 @@
     $('hudScore').textContent = '0';
     // the letter pad keeps its place for the whole district (the keyboard never jumps when a NAME round comes)
     const names = !!(L.types.name || L.types.circuit) || !!G.endless;
-    $('pad').hidden = !names; if (names) { padFor(); pad.set({accs: true}); $('pad').classList.add('off'); }
+    // reserved in the shape the district uses (the ♭ ♮ ♯ row only where black keys or key signatures can come), so its
+    // height never changes and neither does the staff's box above it
+    $('pad').hidden = !names; if (names) { padFor(); pad.set({accs: !!G.endless || L.keys !== 'white' || !!L.keySigs}); $('pad').classList.add('off'); }
     const [lo, hi] = kbRange(L);
     KB.view = L.view;
     buildKeyboard(lo, hi);
@@ -356,7 +425,7 @@
       pan([r.scale[0].midi, r.scale[7].midi]);
     }
     if (G.L.time || G.endless) runTimer();
-    requestAnimationFrame(() => { if (G && G.r === r && !G.sized) { G.sized = true; sizeKeyboard(); } });
+    requestAnimationFrame(() => { if (G && G.r === r && !G.sized) { G.sized = true; sizeKeyboard(); sizeStaff(); sizeKeyboard(); } });   // the district's first round: settle both
   }
   function writtenFor(concert, acc) {                                   // the student's written note for a concert pitch
     const w = concert + member.sounds, n = A.music.spell(w, acc < 0);
@@ -383,7 +452,7 @@
       const want = r.scale[G.step].midi;
       if (m !== want) return judge(false, m);
       mark(m, 'done', K.label(r.scale[G.step].n)); G.step++;
-      drawStaff(r, r.scale.slice(0, Math.max(1, G.step)).map(x => ({n: K.showUnder(x.n, r.sig), caption: K.label(x.n)})), {x: 110 + A.keySigWidth(r.sig), gap: 30, width: 380 + A.keySigWidth(r.sig)});
+      drawStaff(r, r.scale.slice(0, Math.max(1, G.step)).map(x => ({n: K.showUnder(x.n, r.sig), caption: K.label(x.n)})), {gap: 34});
       if (G.step >= r.scale.length) judge(true, m);
       return;
     }
@@ -415,7 +484,7 @@
       const y = Math.max(vb.y + 6, Math.min(vb.y + vb.height - 30, q.y)); return base + Math.round((120 - y) / 8); };
     let ghost = null;
     const draw = step => { const n = Object.assign(stepNote(r.clef, step), {acc: want.acc}); if (ghost) ghost.remove();
-      ghost = document.createElementNS('http://www.w3.org/2000/svg', 'g'); ghost.setAttribute('class', 'ghostnote'); ghost.innerHTML = A.noteGlyph(r.clef, {n, x: 200}); svg.appendChild(ghost); };
+      ghost = document.createElementNS('http://www.w3.org/2000/svg', 'g'); ghost.setAttribute('class', 'ghostnote'); ghost.innerHTML = A.noteGlyph(r.clef, {n, x: noteX(r, n, G.lay)}); svg.appendChild(ghost); };   // where the note is drawn
     let down = false;
     svg.onpointerdown = ev => { if (G.done) return; down = true; svg.setPointerCapture(ev.pointerId); draw(toStep(ev)); ev.preventDefault(); };
     svg.onpointermove = ev => { if (down) draw(toStep(ev)); };
@@ -620,6 +689,7 @@
     state: () => G ? {lv: G.lv, endless: !!G.endless, i: G.i, n: G.n, right: G.right, score: G.score, stage: G.stage, lives: G.lives, done: G.done, step: G.step,
       round: G.r && {type: G.r.type, clef: G.r.clef, key: G.r.key, midi: G.r.target.midi, name: K.label(G.r.target.n), spell: G.r.spell, scale: G.r.scale && G.r.scale.map(x => x.midi)},
       signs: +($('signs') && getComputedStyle($('signs')).opacity), labels: +($('cfLabels') && getComputedStyle($('cfLabels')).opacity),
+      staff: (() => { const sv = $('staff').querySelector('svg'), b = $('stage').getBoundingClientRect(), q = sv && sv.getBoundingClientRect(); return sv && {lay: G.lay, box: [b.left, b.top, b.width, b.height].map(Math.round), svg: [q.left, q.top, q.width, q.height].map(Math.round)}; })(),
       signTap: !!($('signs') && $('signs').classList.contains('tap')), limit: G.roundLimit, hint: {kind: HINT.kind, until: HINT.until, taps: HINT.taps.slice()}, kb: {lo: KB.lo, hi: KB.hi, px: KB.px, x: KB.x, total: KB.total}} : {menu: true},
     answer: () => DEMO.answer(),
     tapKey: m => { const g = keyEl(m); if (g) g.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true})); },
@@ -627,6 +697,6 @@
     place: step => judge(step === A.music.stepOf(G.named ? K.noteFor(G.r.target.midi, G.named.letter, G.named.acc) : G.r.target.n), G.r.target.midi, null, {step}),
     mode: () => mode, begin, setClef: c => { clefPref = c; }, signTap,
   };
-  addEventListener('resize', () => { if (G && !$('play').hidden) sizeKeyboard(); });
+  addEventListener('resize', () => { if (G && !$('play').hidden) { sizeStaff(); sizeKeyboard(); } });
   showHub();
 })(window.Arcade);
