@@ -1,0 +1,58 @@
+# Band Arcade's AUTOMATIC TESTS: on every pull request (and every push to main), the whole arcade is opened in
+# Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how). A green ✓ on the pull request =
+# every test passed; a red ✗ = something broke: "Details" shows which test, and the "test-report-<browser>" download has the
+# screenshots.
+#
+# Test tooling lives ONLY in tests/ (its own package.json with Playwright) and here. The site itself stays plain files:
+# nothing is built, and the Pages deploy (pages.yml) doesn't wait for or depend on this workflow.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:                  # a newer push to the same pull request cancels the older run
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]          # side by side, so the whole check takes about as long as one
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install the test tools
+        run: npm ci
+      - name: Install ${{ matrix.browser }}
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run the tests (the site is served as-is with python3 -m http.server)
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          CI: 'true'
+      - name: Upload the report and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ matrix.browser }}
+          path: |
+            tests/playwright-report/
+            tests/test-results/
+          retention-days: 14

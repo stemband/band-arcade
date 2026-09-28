@@ -1,0 +1,13 @@
+{
+  "name": "band-arcade-tests",
+  "private": true,
+  "description": "Automatic tests for Band Arcade (Playwright). Test tooling only: nothing in tests/ is ever loaded by the site.",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
