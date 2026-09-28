@@ -30,18 +30,22 @@ test('Arcade Backup Code: export → clear → import', async ({page}) => {
   await page.locator('.bk-in').fill(code);
   await page.locator('.bk-restore').click();
   await page.locator('.bk-yes').click();
-  await page.waitForEvent('load');
-  await page.waitForTimeout(500);
+  // the panel reloads the page itself; the restored device is then read in a fresh tab of the same browser
+  // (Linux WebKit's test build can crash while reloading an arcade page, which isn't what this test is about)
+  await expect.poll(() => page.evaluate(() => !!localStorage.getItem('bandarcade.v1') && JSON.parse(localStorage.getItem('bandarcade.v1')).player).catch(() => null), {timeout: 15_000}).toBe('clarinet');
+  const tab = await page.context().newPage();
+  await tab.goto('index.html?demo&nostart');
+  await tab.waitForTimeout(500);
 
-  const after = await saved(page);
+  const after = await saved(tab);
   expect(starsIn(after, 'note-storm')).toBe(3);
   expect(starsIn(after, 'showtime-malfunction', 2)).toBe(2);
   expect(after.player).toBe('clarinet');
   expect(after.sfx).toBe(false);
   expect(after.sfxVol).toBe(0.25);
   expect(after.items && after.items.owned).toEqual({'head:crown': true});
-  expect(await page.evaluate(() => Arcade.store.ownedItems['head:crown'])).toBe(true);
+  expect(await tab.evaluate(() => Arcade.store.ownedItems['head:crown'])).toBe(true);
   expect(JSON.stringify(after.gameData && after.gameData['showtime-malfunction'])).toContain('spooky');
-  expect(await page.evaluate(() => JSON.stringify(Arcade.Avatar.get()))).toBe(before.avatar);
+  expect(await tab.evaluate(() => JSON.stringify(Arcade.Avatar.get()))).toBe(before.avatar);
   watch.check();
 });

@@ -17,6 +17,20 @@ async function dismiss(page) {
     return null;
   }, LEAVE);
 }
+/** what the page looks like right now, for a failure message (the log is all Mat sees without the screenshots) */
+const diag = page => page.evaluate(() => {
+  const A = window.Arcade || {}, vis = e => e && !e.hidden && e.getClientRects().length > 0;
+  const overlays = [...document.querySelectorAll('.overlay, .ps-screen')].filter(vis).map(e => e.id || e.className);
+  const prompt = (document.getElementById('prompt') || {}).textContent || '';
+  let state = null;
+  try {
+    const hook = (A.Showtime && A.Showtime.debug && (() => { const G = A.Showtime.debug(); return G && {t: G.t, rebooted: G.rebooted, total: G.total, lights: G.lights, paused: G.paused, bots: G.bots.map(b => b.state + ':' + b.left)}; }))
+      || (A.Highway && A.Highway.state) || (A.Duel && A.Duel.state) || (A.FaceOff && A.FaceOff.state) || (A.Quest && A.Quest.battleState) || null;
+    state = hook ? hook() : null;
+  } catch (e) { state = 'state error: ' + e.message; }
+  const sfx = A.Sfx && A.Sfx.output ? (A.Sfx.output() ? 'audio running' : 'no audio output') : '';
+  return JSON.stringify({url: location.pathname + location.search, overlays, prompt: prompt.slice(0, 80), sfx, listening: A.Pitch && A.Pitch.listening ? A.Pitch.listening() : null, state}).slice(0, 1500);
+});
 const resultsShown = page => page.evaluate(() => { const r = document.getElementById('results'); return !!r && !r.hidden && r.getClientRects().length > 0; });
 
 async function step(page, R, how) {
@@ -47,7 +61,7 @@ for (const R of RUNS) {
       if (await dismiss(page)) { await page.waitForTimeout(300); continue; }
       await step(page, R, R.play);
     }
-    expect(await done(page), `${R.name}: the results screen never showed`).toBe(true);
+    if (!(await done(page))) expect(false, `${R.name}: the results screen never showed. The page: ${await diag(page)}`).toBe(true);
     if (R.stars) expect(starsIn(await saved(page), R.key), `${R.name}: stars saved for level 1`).toBeGreaterThan(0);
     watch.check();
   });
@@ -67,7 +81,7 @@ for (const R of RUNS.filter(r => r.endless)) {
       if (await dismiss(page)) { await page.waitForTimeout(300); continue; }
       await step(page, Object.assign({}, R, {every: 400}), R.endlessPlay);
     }
-    expect(await over(), `${R.name}: Endless never reached GAME OVER`).toBe(true);
+    if (!(await over())) expect(false, `${R.name}: Endless never reached GAME OVER. The page: ${await diag(page)}`).toBe(true);
     watch.check();
   });
 }

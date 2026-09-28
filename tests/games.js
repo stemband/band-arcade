@@ -87,8 +87,12 @@ const STEPS = {
   'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000},
   'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000,
     done: page => page.evaluate(() => { const s = Arcade.Duel.state(); return !!s && !s.running && s.players.some(p => p.score > 0); })},
-  'music-highway': {store: {gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, play: 'tap', every: 120, limit: 120_000},
+  // Music Highway judges timing to the millisecond, so the test uses the game's own autoPlay hook (every note on time,
+  // through the real judging) instead of key presses; calibrated already, so the first song doesn't ask for it
+  'music-highway': {store: {gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, limit: 120_000,
+    play: async page => { await page.evaluate(() => { const H = Arcade.Highway; if (!window.__auto && H.state().phase !== 'menu') { window.__auto = true; H.autoPlay(0); } }); await page.waitForTimeout(400); }},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
+  'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
   'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext'},
   'vanishing-ink': {next: '#rrNext'},
   'arcade-quest': {url: 'arcade-quest/index.html?demo&test', store: {gameData: {'arcade-quest': {settings: {textSpeed: 'instant', dodge: 'easy', assist: true}}}}, start: async page => { await page.waitForTimeout(1200); await page.keyboard.press('Enter'); },
