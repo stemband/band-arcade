@@ -2,7 +2,10 @@
    pixels: calc(var(--px) * N). Pixel font "GN Quest" (Pixelify Sans, shared/fonts). Colors = theme.css tokens only. */
 html,body{height:100%}
 body{margin:0;background:var(--deep);color:var(--text-hi);overflow:hidden}
-.q-wrap{height:100%;display:flex;flex-direction:column;padding:8px 12px calc(8px + env(safe-area-inset-bottom));box-sizing:border-box;gap:6px}
+/* the VISIBLE height (engine/core.js layout(): --app-h = the visual viewport, redone when Safari's toolbar shows or hides);
+   100dvh until then, 100vh in browsers without dvh. Safe areas: the notch and the home bar never cover a control. */
+.q-wrap{height:100vh;height:100dvh;height:var(--app-h,100dvh);display:flex;flex-direction:column;box-sizing:border-box;gap:6px;
+  padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));--pb:46px}
 .q-wrap>#topbar{margin:0;flex:none}
 #viewport{flex:1;min-height:0;display:grid;place-items:center}
 #stage{position:relative;--px:3px;background:var(--q-black);overflow:hidden;box-shadow:0 0 0 2px var(--floor-3),var(--glow-cyan);
@@ -154,10 +157,18 @@ button{font:inherit}
 .q-close{position:static;margin:calc(var(--px) * 2) auto 0;min-height:calc(var(--px) * 15);width:calc(var(--px) * 70)}
 
 /* ---------- touch: D-pad + A/B (touch screens only) ---------- */
+/* --pb = one D-pad button (engine/core.js layout(): 44–58 px from the visible height); A and B are 1.3 × that */
 .q-pad{flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 8px;gap:12px}
 .q-pad[hidden]{display:none}
-.dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px)}
-@media (min-height:900px){.dpad{grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px)}}
+.dpad{display:grid;grid-template-columns:repeat(3,var(--pb));grid-template-rows:repeat(3,var(--pb))}
+/* LANDSCAPE: D-pad left, A/B right, the game centered between them; both pads sit at the bottom of the visible area */
+.q-wrap.pad-side{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);column-gap:12px;row-gap:6px}
+.q-wrap.pad-side>#topbar{grid-column:1/-1;grid-row:1}
+.q-wrap.pad-side>#viewport{grid-column:2;grid-row:2}
+.q-wrap.pad-side>.q-pad:not([hidden]){display:contents}
+.q-wrap.pad-side .dpad{grid-column:1;grid-row:2;align-self:end}
+.q-wrap.pad-side .abpad{grid-column:3;grid-row:2;align-self:end;flex-direction:column-reverse;align-items:flex-end;gap:calc(var(--pb) * .25)}
+.q-wrap.pad-side .pb-b{margin:0 calc(var(--pb) * .7) 0 0}
 .pb{background:var(--floor-2);color:var(--text-hi);border:2px solid var(--floor-3);font-size:20px;touch-action:none;cursor:pointer;padding:0;display:grid;place-items:center}
 .pb svg{width:55%;height:55%;fill:currentColor;pointer-events:none}
 .pb-a::after{content:"A"}.pb-b::after{content:"B"}               /* letters as CSS content: nothing to select */
@@ -165,9 +176,9 @@ button{font:inherit}
 .pb.on{background:var(--cyan-ink);border-color:var(--cyan)}
 .pb-up{grid-area:1/2}.pb-left{grid-area:2/1}.pb-right{grid-area:2/3}.pb-down{grid-area:3/2}
 .abpad{display:flex;gap:14px;align-items:center}
-.pb-a,.pb-b{width:60px;height:60px;border-radius:50%;font-family:"GN Quest",var(--display);font-size:24px}
+.pb-a,.pb-b{width:calc(var(--pb) * 1.3);height:calc(var(--pb) * 1.3);border-radius:50%;font-family:"GN Quest",var(--display);font-size:calc(var(--pb) * .5)}
 .pb-a{border-color:var(--pink);color:var(--pink)}
-.pb-b{border-color:var(--cyan);color:var(--cyan);margin-top:24px}
+.pb-b{border-color:var(--cyan);color:var(--cyan);margin-top:calc(var(--pb) * .5)}
 body.q-touch .q-gear{display:block}
 
 @media (prefers-reduced-motion:reduce){

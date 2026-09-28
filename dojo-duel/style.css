@@ -2,7 +2,7 @@
    Motion is light and slow; nothing flashes; everything stops under prefers-reduced-motion. */
 body.dd-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(--dd-night) 62%)}
 .dd-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.dd-bg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34vh;opacity:.55;
+.dd-bg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34vh;height:34dvh;opacity:.55;
   background:linear-gradient(to bottom,var(--dd-night),transparent 40%),repeating-linear-gradient(90deg,var(--dd-wood) 0 58px,var(--dd-wood-line) 58px 60px,var(--dd-wood-2) 60px 118px,var(--dd-wood-line) 118px 120px)}
 .lantern{position:absolute;top:-10px;width:44px;height:58px;border-radius:45%;background:radial-gradient(ellipse at 50% 45%,var(--dd-paper),var(--dd-lantern) 70%,var(--belt-red));
   box-shadow:0 0 22px var(--dd-lantern),0 0 60px color-mix(in srgb,var(--dd-lantern) 45%,transparent);opacity:.8;transform-origin:50% -40px;animation:dd-sway 6s ease-in-out infinite alternate}
@@ -146,9 +146,9 @@ body.dueling #wrap{display:none}
 .say{margin:0;min-height:1.35em;text-align:center;font-weight:700;font-size:clamp(14px,2.4vmin,19px);color:var(--text-hi);line-height:1.3}
 .say.good{color:var(--yellow)}.say.bad{color:var(--red-hi)}.say.mp{color:var(--yellow);font-family:var(--display);font-weight:400}
 .hf-pad{flex:none}
-.hf-pad .apad-letter{min-height:clamp(46px,min(9vh,10vw),84px);font-size:clamp(22px,4vmin,32px)}
-.lay-table .hf-pad .apad-letter,.lay-stack .hf-pad .apad-letter{min-height:clamp(46px,8.4vh,84px)}
-.hf-pad .apad-acc{min-height:clamp(38px,6vh,52px)}
+.hf-pad .apad-letter{min-height:clamp(46px,min(9vh,10vw),84px);min-height:clamp(46px,min(9dvh,10vw),84px);font-size:clamp(22px,4vmin,32px)}
+.lay-table .hf-pad .apad-letter,.lay-stack .hf-pad .apad-letter{min-height:clamp(46px,8.4vh,84px);min-height:clamp(46px,8.4dvh,84px)}
+.hf-pad .apad-acc{min-height:clamp(38px,6vh,52px);min-height:clamp(38px,6dvh,52px)}
 .hf-pad.cpu{pointer-events:none}
 .hf-pad.cpu .apad-letter,.hf-pad.cpu .apad-acc{opacity:.85}
 .hf-pad.cpu.locked .apad-letter{opacity:.6}
@@ -236,7 +236,7 @@ body.dueling #wrap{display:none}
 .res-rec{margin:0;color:var(--amber);font-weight:700;font-size:14px}
 .res-prac{width:min(420px,100%)}
 .res-prac .stage{padding:2px 6px 0}
-.res-prac svg{display:block;width:100%;max-height:clamp(90px,17vh,150px)}
+.res-prac svg{display:block;width:100%;max-height:clamp(90px,17vh,150px);max-height:clamp(90px,17dvh,150px)}
 .res-prac-none{margin:0;color:var(--text-lo)}
 .res-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .res-acts .btn{min-height:46px}
@@ -248,7 +248,7 @@ body.dueling #wrap{display:none}
   .lay-table .hf-in,.lay-stack .hf-in{gap:4px;padding:6px 10px}
   .lay-table .res-prac svg{max-height:80px}
 }
-.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(70px,11vh,120px)}
+.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(70px,11vh,120px);max-height:clamp(70px,11dvh,120px)}
 .lay-table .bow-n,.lay-stack .bow-n{width:clamp(44px,7vmin,64px)}
 .lay-table .bow-n.champ,.lay-stack .bow-n.champ{width:clamp(54px,8.5vmin,76px)}
 .lay-table .res-in,.lay-stack .res-in{gap:5px}
@@ -260,6 +260,6 @@ body.dueling #wrap{display:none}
 }
 /* Tabletop / stacked: each half is short, so the results get compact */
 .lay-table .res-k,.lay-stack .res-k{font-size:clamp(22px,4.4vmin,38px)}
-.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(64px,9vh,110px)}
+.lay-table .res-prac svg,.lay-stack .res-prac svg{max-height:clamp(64px,9vh,110px);max-height:clamp(64px,9dvh,110px)}
 .lay-table .res-stats div,.lay-stack .res-stats div{padding:4px}
 .lay-table .res-acts .btn,.lay-stack .res-acts .btn{min-height:44px;padding-block:8px}

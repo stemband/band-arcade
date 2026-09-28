@@ -29,10 +29,37 @@ window.Arcade = window.Arcade || {};
     canvas.width = Q.W; canvas.height = Q.H;
     ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
     Q.ctx = ctx; Q.ui = ui; Q.stage = stage; Q.canvas = canvas;
-    addEventListener('resize', resize); resize();
+    addEventListener('resize', relayout); addEventListener('orientationchange', relayout);
+    // iPad Safari: the toolbar showing or hiding (and Split View, the keyboard) resizes only the VISUAL viewport
+    if (window.visualViewport) { visualViewport.addEventListener('resize', relayout); visualViewport.addEventListener('scroll', relayout); }
+    layout();
     document.addEventListener('visibilitychange', () => { last = performance.now(); });
     requestAnimationFrame(loop);
   };
+  /* THE PAGE FITS THE VISIBLE AREA. 100vh is taller than what iPad Safari shows while its toolbar is up (the D-pad and
+     A/B ended up under it in landscape), so the page's height is the visual viewport's, measured (--app-h on <html>;
+     style.css falls back to 100dvh), and redone whenever it changes. With the pad showing (touch screens):
+       LANDSCAPE (wider than tall): the D-pad on the LEFT, A/B on the RIGHT, both at the bottom of the visible area,
+         the game centered between them (.pad-side);
+       PORTRAIT (and a tall Split View window): the pad under the game, as before.
+     The buttons' size (--pb) follows the visible height: 58 px on a tall screen down to 44 px (the smallest tap size)
+     on a short one. Safe areas (the notch, the home bar) are padding in style.css. */
+  let pending = 0;
+  function relayout() { if (!pending) pending = requestAnimationFrame(() => { pending = 0; layout(); }); }
+  function layout() {
+    const vv = window.visualViewport, zoomed = vv && vv.scale > 1.01;   // pinch-zoomed: the layout viewport is still the page
+    const H = Math.round(vv && !zoomed ? vv.height : innerHeight), W = Math.round(vv && !zoomed ? vv.width : innerWidth);
+    document.documentElement.style.setProperty('--app-h', H + 'px');
+    const wrap = stage.closest('.q-wrap'), pad = Q.$('pad');
+    if (wrap && pad) {
+      const side = !pad.hidden && W > H;
+      wrap.classList.toggle('pad-side', side);
+      wrap.style.setProperty('--pb', Math.round(Math.max(44, Math.min(58, H * (side ? 0.1 : 0.06)))) + 'px');
+    }
+    if (vv && !zoomed && (scrollX || scrollY)) scrollTo(0, 0);           // a toolbar change can leave the page scrolled
+    resize();
+  }
+  Q.layout = layout;
   /* letterbox: the biggest 16:9 box inside #viewport */
   function resize() {
     const r = viewport.getBoundingClientRect();
