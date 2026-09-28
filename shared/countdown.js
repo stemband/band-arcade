@@ -1,4 +1,4 @@
-/* Band Arcade: THE COUNTDOWN (shared by Dojo Duel and Neon Face-Off). Only the beats and their sounds live here;
+/* Band Arcade: THE COUNTDOWN (shared by Dojo Duel, Neon Face-Off and Sustain Speedway). Only the beats and their sounds live here;
    each game draws the numbers its own way (its `show` callback) and runs the timers on its own clock (its `later`),
    so pausing a game pauses its countdown too.
 
@@ -11,6 +11,10 @@
                   'faceoff' → faceoff-count-3/-2/-1, faceoff-ready, faceoff-count-go; every faceoff-* sound falls back
                   to the matching dojo-count-* file, then to the dojo-count tick (sounds.js `fallback`), and the tick
                   of a QUICK countdown is <prefix>-count when that event exists, else dojo-count.
+                  'race' (Sustain Speedway) → race-count-3/-2/-1, race-count-go, falling back exactly like 'faceoff'.
+                  A new prefix needs only its sounds.js entries (each with `fallback` = the matching dojo-count-* event).
+     countdown.sounds(prefix)  every event (and fallback) a CLASSIC + GO countdown with that prefix can play: hand it to
+                  Sfx.prefer / Sfx.whenReady so the first countdown after a page load is on time
      later(ms, fn) the game's own timer (Dojo Duel: its game clock, which stops while paused)
      show(label, kind)  draw the beat: label '3' | '2' | '1' | 'READY…' | 'GO!' | '' (clear); kind 'count' | 'ready' | 'go'
      onGo()       the moment play starts (the note appears)
@@ -54,5 +58,12 @@ window.Arcade = window.Arcade || {};
     return {total: delay + 3 * step};
   }
   countdown.STEPS = STEPS;
+  /** every sound a CLASSIC countdown with a spoken GO can play for this prefix, fallbacks included */
+  countdown.sounds = pre => {
+    const out = [], add = n => { while (n && has(n) && !out.includes(n)) { out.push(n); n = A.Sounds.LIST[n].fallback; } };
+    ['-count-3', '-count-2', '-count-1', '-count-go'].forEach(s => add(pre + s));
+    add('dojo-count');
+    return out;
+  };
   A.countdown = countdown;
 })(window.Arcade);

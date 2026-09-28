@@ -53,7 +53,6 @@ window.SPEEDWAY_RULES = {
   wrongFrames: 2,          // a wrong note must be heard this many readings in a row (~40 ms each) before braking
   nitro: {cents: 5, steady: .75, holdMs: 2000, boost: 1.25},   // within ±5 cents and steady for 2 s: IN THE ZONE!
   pitSec: 3.5,             // the pit stop between laps (a rest: breathe, get the next fingering ready). Rivals pit too.
-  countdownMs: 3000,       // 3, 2, 1, GO! (longer if the countdown sound is longer)
   topSpeed: 180,           // the speed shown at full speed (display only)
   ghostEvery: 0.5,         // the ghost car records your position every this many seconds
 };
