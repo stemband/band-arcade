@@ -26,10 +26,10 @@
   { const l = A.link('songs.html'); $('boardLink').href = l + (l.includes('?') ? '&' : '?') + 'm=' + encodeURIComponent(member.id); }
   const RM = matchMedia('(prefers-reduced-motion: reduce)'), reduced = () => RM.matches;
 
-  /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, slow, horn, tip} ---------- */
+  /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, slow, horn, wide, tip} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
-  let slow = !!gd().slow, hp = !!gd().hp, hornSide = gd().horn === 'Bb' ? 'Bb' : 'F';
+  let slow = !!gd().slow, hp = !!gd().hp, hornSide = gd().horn === 'Bb' ? 'Bb' : 'F', wide = !!gd().wide;
   let hpChecked = false;                                         // the speaker check passed on this page load
   const mode = () => hp ? 'headphones' : 'speaker';
   const lagMs = () => { const c = (gd().calib || {})[mode()]; return c && typeof c.ms === 'number' ? c.ms : R.defaultLagMs; };
@@ -45,16 +45,19 @@
   function drawOpts() {
     $('spdNormal').setAttribute('aria-pressed', String(!slow)); $('spdSlow').setAttribute('aria-pressed', String(slow));
     $('hpBtn').setAttribute('aria-pressed', String(hp)); $('hpBtn').classList.toggle('on', hp);
+    $('spcNormal').setAttribute('aria-pressed', String(!wide)); $('spcWide').setAttribute('aria-pressed', String(wide));
     $('hornOpt').hidden = member.id !== 'horn';
     $('hornF').setAttribute('aria-pressed', String(hornSide === 'F')); $('hornBb').setAttribute('aria-pressed', String(hornSide === 'Bb'));
     const c = (gd().calib || {})[mode()];
-    $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') +
+    $('optNote').textContent = (slow ? 'Slow: 75% speed, for practice. No stars. ' : '') + (wide ? 'Wide note spacing: more room between the cards (they move a little faster). ' : '') +
       (hp ? 'Headphones mode: the band plays the melody, bass and chords too. Bluetooth headphones add a delay: recalibrate with them on. ' : '') +
       (c ? `Timing calibrated (${Math.round(c.ms)} ms${hp ? ', headphones' : ''}).` : 'Not calibrated yet: the first song starts with a quick timing check.');
     $('calBtn').textContent = c ? 'Recalibrate' : 'Calibrate';
   }
   $('spdNormal').onclick = () => { slow = false; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
   $('spdSlow').onclick = () => { slow = true; save({slow}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
+  $('spcNormal').onclick = () => { wide = false; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('spcWide').onclick = () => { wide = true; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('hornF').onclick = () => { hornSide = 'F'; save({horn: 'F'}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('hornBb').onclick = () => { hornSide = 'Bb'; save({horn: 'Bb'}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('hpBtn').onclick = () => {
@@ -237,6 +240,7 @@
     clearInterval(sched); sched = 0; cancelAnimationFrame(raf); raf = 0;
     if (kit) { kit.stopAll(); kit = null; }
     A.Pitch.demoAttacks = false;
+    glowOff(true);
     G = null;
   }
 
@@ -283,7 +287,8 @@
       if (!best || Math.abs(t - n.t) < Math.abs(t - best.t)) best = n;
     });
     if (!best) {
-      if (pc != null && G.T.notes.some(n => !n.res && Math.abs(t - n.t) <= W)) wrongNote(pc);
+      const open = pc != null && G.T.notes.find(n => !n.res && Math.abs(t - n.t) <= W);
+      if (open) { wrongNote(pc); badPad(open.lane); }
       return false;
     }
     const d = (t - best.t) * 1000, ad = Math.abs(d);
@@ -303,6 +308,8 @@
     if (G.practice) { const L = G.loopStats[n.loop] = G.loopStats[n.loop] || {v: 0, c: 0}; L.v += R.value[res]; L.c++; }
     G.log.push({k: n.k, res, d: d == null ? null : Math.round(d)});
     cardDone(n, res);
+    if (res === 'perfect' || res === 'good' || res === 'ok') glowHit(n);
+    else if (res === 'miss') badPad(n.lane);
     showJudge(res, d);
     hud();
   }
@@ -374,6 +381,7 @@
     });
     drawHighway(t);
     moveStaff(t);
+    glowFrame(t);
     if (G.practice) {
       const L = Math.floor(Math.max(0, t) / (G.T.total / G.T.loops));
       if (L !== G.shownLoop) { G.shownLoop = L; hud(); }
@@ -387,20 +395,24 @@
     const P = $('play'), W = P.clientWidth, H = P.clientHeight;
     const staffH = Math.round(Math.max(96, Math.min(170, H * .2)));
     const roadH = H - staffH;
-    Object.assign(V, {W, H, roadH, staffH, cx: W / 2, hy: roadH * .1, sy: roadH * .84, K: 2.6});
+    Object.assign(V, {W, H, roadH, staffH, cx: W / 2, hy: roadH * .06, sy: roadH * .84, K: R.roadDepth});
     V.half = Math.min(W * .46, roadH * .72);
     V.laneW = V.half * 2 / R.lanes;
-    V.cardW = Math.min(190, V.laneW * .98); V.cardH = V.cardW * (unpitched ? .9 : 1);
+    V.cardW0 = Math.min(R.cardMaxPx, V.laneW * .98); V.cardH0 = V.cardW0 * (unpitched ? .9 : 1);
+    V.cardW = V.cardW0; V.cardH = V.cardH0;
     const c = $('road'), dpr = Math.min(1.5, devicePixelRatio || 1);
     c.width = Math.round(W * dpr); c.height = Math.round(roadH * dpr); c.style.width = W + 'px'; c.style.height = roadH + 'px';
     V.g = c.getContext('2d'); V.g.setTransform(dpr, 0, 0, dpr, 0, 0);
     V.bg = drawStatic(W, roadH, dpr);
     $('staffBox').style.height = staffH + 'px';
-    P.style.setProperty('--cardw', V.cardW + 'px'); P.style.setProperty('--cardh', V.cardH + 'px');
     P.style.setProperty('--sy', V.sy + 'px');
-    // the pads on the strike line
-    $('pads').innerHTML = Array.from({length: R.lanes}, (_, l) => `<i class="mh-pad" style="left:${V.cx + (l - (R.lanes - 1) / 2) * V.laneW}px;top:${V.sy}px;width:${V.laneW * .8}px"></i>`).join('');
+    // the pads on the strike line, and THE STRIKE GLOW: one lit target that slides to the lane of the note played
+    $('pads').innerHTML = Array.from({length: R.lanes}, (_, l) => `<i class="mh-pad" style="left:${laneX(l)}px;top:${V.sy}px;width:${V.laneW * .8}px"></i>`).join('') +
+      `<i class="mh-strike" id="strikeGlow" style="left:${V.cx - V.half}px;top:${V.sy}px;width:${V.half * 2}px"></i>` +
+      `<i class="mh-reticle" id="reticle" style="width:${V.laneW * .86}px"></i>`;
+    GL.on = false; GL.n = null;
   }
+  const laneX = l => V.cx + (l - (R.lanes - 1) / 2) * V.laneW;
   const TOK = {}, tok = name => TOK[name] || (TOK[name] = getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || 'white');
   /* the parts that never move, drawn once: the night sky, the stars, the sun on the horizon, the road and its lanes */
   function drawStatic(W, H, dpr) {
@@ -441,10 +453,14 @@
     return c;
   }
   /** where a moment dt seconds away is on the road: {y, s (scale), d} */
+  /* the road is exponential in depth: d = (1 + K)^(dt / lead). A card's size (1/d) and its distance to the next card
+     then shrink together, so the spacing rule (CARD SPACING in settings.js) holds all the way up the road. Past the
+     line a card keeps the line's speed at full size. */
   function proj(dt) {
-    const L = G.lead, z = dt / L;
-    const d = z >= 0 ? 1 + V.K * z : Math.max(.62, 1 + z * 1.4);
-    return {d, s: 1 / d, y: V.hy + (V.sy - V.hy) / d};
+    const L = G.lead, H = V.sy - V.hy;
+    if (dt < 0) return {d: 1, s: 1, y: V.sy - dt / L * H * Math.log(1 + V.K)};
+    const d = Math.pow(1 + V.K, dt / L);
+    return {d, s: 1 / d, y: V.hy + H / d};
   }
   function drawHighway(t) {
     const g = V.g, T = G.T;
@@ -486,11 +502,11 @@
     for (let k = G.ci; k < T.notes.length; k++) {
       const n = T.notes[k], dt = n.t - t;
       if (dt > G.lead) break;
-      if (dt < -.6 || (n.res && n.res !== 'miss' && dt < -.12)) { if (n.el) { n.el.remove(); n.el = null; } continue; }
+      if (dt < -.6 || (n.res && n.res !== 'miss' && dt < -.3)) { if (n.el) { n.el.remove(); n.el = null; } continue; }
       if (!n.el) makeCard(n);
       const el = n.el, p = proj(dt), x = V.cx + (n.lane - (R.lanes - 1) / 2) * V.laneW * p.s;
       el.style.transform = `translate(${(x - V.cardW / 2).toFixed(1)}px,${(p.y - V.cardH).toFixed(1)}px) scale(${p.s.toFixed(3)})`;
-      el.style.opacity = String(Math.min(1, (G.lead - dt) / (G.lead * .18)) * (dt < 0 ? Math.max(0, 1 + dt / .6) : 1));
+      el.style.opacity = String(Math.min(1, (G.lead - dt) / (G.lead * .18)) * (dt < 0 ? Math.max(0, 1 + dt / (n.res && n.res !== 'miss' ? .3 : .6)) : 1));
       el.style.zIndex = String(1000 - Math.round(dt * 100));
     }
   }
@@ -534,10 +550,31 @@
       bars.filter(b => b.nat).map(b => `<rect x="${b.x}" y="18" width="12" height="${26 - (b.m - lo) * .5}" rx="2" class="${b.m === w ? 'on' : ''}"/>`).join('') +
       bars.filter(b => !b.nat).map(b => `<rect x="${b.x + 1}" y="2" width="10" height="${16 - (b.m - lo) * .3}" rx="2" class="acc ${b.m === w ? 'on' : ''}"/>`).join('') + `</svg>`;
   }
+  /* CARD SPACING (settings.js): the time a card is on the road (G.lead) and the card size for this song. Two cards
+     dt apart (the song's quickest step from one note to the next) at any depth d: their gap = H (1 - (1+K)^(-dt/lead)) / d,
+     a card is cardH / d, so the rule is H (1 - (1+K)^(-dt/lead)) >= (1 + cardGap) × cardH (× wideMul for WIDE). */
+  function spacing() {
+    const T = G.T, K = V.K, H = V.sy - V.hy, lnK = Math.log(1 + K);
+    let dt = Infinity;
+    for (let k = 1; k < T.notes.length; k++) { const d = T.notes[k].t - T.notes[k - 1].t; if (d > 1e-4) dt = Math.min(dt, d); }
+    if (!isFinite(dt)) dt = T.spb;
+    const mul = (1 + R.cardGap) * (wide ? R.wideMul : 1);
+    const pref = Math.min(R.leadMaxS, Math.max(R.leadMinS, R.leadBeats * T.spb));
+    const leadFor = cardH => { const f = mul * cardH / H; return f >= .999 ? 0 : dt * lnK / -Math.log(1 - f); };
+    let scale = 1, lead = Math.min(pref, leadFor(V.cardH0));
+    if (lead < R.readMinS) {                                      // too fast to read: smaller cards for this song
+      const h = (1 - Math.pow(1 + K, -dt / R.readMinS)) * H / mul;
+      scale = Math.max(R.cardMinScale, Math.min(1, h / V.cardH0));
+      lead = Math.min(pref, leadFor(V.cardH0 * scale));
+    }
+    G.lead = lead;
+    V.cardW = V.cardW0 * scale; V.cardH = V.cardH0 * scale;
+    $('play').style.setProperty('--cardw', V.cardW + 'px'); $('play').style.setProperty('--cardh', V.cardH + 'px');
+    G.spacing = {dt: +dt.toFixed(3), lead: +lead.toFixed(3), scale: +scale.toFixed(3), wide, cardPx: Math.round(V.cardH),
+      pxPerBeat: Math.round(H * lnK / lead * T.spb), gapPx: Math.round(H * (1 - Math.pow(1 + K, -dt / lead)) - V.cardH)};
+  }
   function buildCards() {
-    // how long a card is on the road: leadBeats, never under leadMinS, and longer for quick notes so their cards don't pile up
-    const minDur = Math.min(...G.T.notes.map(n => n.dur));
-    G.lead = Math.min(R.leadMaxS, Math.max(R.leadMinS, R.leadBeats * G.T.spb, R.leadPerShortest * minDur));
+    spacing();
     $('cards').innerHTML = '';
     G.ci = 0;                                                      // the first card that hasn't left the road yet
     G.T.notes.forEach(n => { n.color = unpitched ? (n.n.stick === 'L' ? 'g' : 'e') : COLORS[((n.n.midi % 12) + 12) % 12]; n.el = null; });
@@ -548,20 +585,61 @@
     const el = document.createElement('div');
     el.className = `mh-card mc-${n.color}${n.n.n && n.n.n.acc ? ' acc' : ''}${n.long ? ' long' : ''}${unpitched ? ' snare' : ''}${n.res ? (n.res === 'miss' ? ' missed' : ' hit') : ''}`;
     el.innerHTML = cardInner(n);
+    el.dataset.k = n.k;
     $('cards').appendChild(el); n.el = el;
   }
   function cardDone(n, res) {
     if (!n.el) return;
     n.el.classList.add(res === 'miss' ? 'missed' : 'hit');
-    const g = document.getElementById('mhn' + (G.practice ? n.k % G.T.perLoop : n.k));
+    const g = staffNote(n);
     if (g) g.classList.add(res === 'miss' ? 'miss' : 'hit');
-    if (res !== 'miss') burst(n, res);
   }
-  function burst(n, res) {
-    const pad = $('pads').children[n.lane];
-    if (!pad) return;
-    pad.classList.remove('lit', 'perfect'); void pad.offsetWidth;
-    pad.classList.add('lit'); if (res === 'perfect') pad.classList.add('perfect');
+  const staffNote = n => document.getElementById('mhn' + (G.practice ? n.k % G.T.perLoop : n.k));
+
+  /* ---------- THE STRIKE GLOW (visual only; see settings.js) ----------
+     A right note in time (PERFECT / GOOD / OK) lights the target on the strike line, the card and the note on the staff
+     in the card's color. A long note stays lit while it is held (the same check as the hold bonus: n.holding) and
+     fades as soon as it isn't; a short note stays lit glowLingerMs past its end, so a run of right notes is one
+     continuous glow whose color and place glide from note to note. It never blinks: fades only (style.css), and it
+     goes out at most once every glowMinCycleMs (≤ 3 times a second). Misses and wrong notes: a dim red pad outline. */
+  const GL = {on: false, n: null, offAt: -1e9};
+  function glowHit(n) {
+    if (!G) return;
+    if (GL.n && GL.n !== n) litNote(GL.n, false);
+    GL.n = n;
+    const r = $('reticle'), s = $('strikeGlow'), col = `var(--mh-${n.color || 'c'})`;
+    if (r) { r.style.setProperty('--gc', col); r.style.transform = `translate(${laneX(n.lane).toFixed(1)}px,${V.sy.toFixed(1)}px) translate(-50%,-50%)`; }
+    if (s) s.style.setProperty('--gc', col);
+    if (!GL.on) { GL.on = true; if (r) r.classList.add('on'); if (s) s.classList.add('on'); }
+    litNote(n, true);
+    if (n.el) n.el.classList.add('lit');
+  }
+  function litNote(n, on) {
+    const g = G && staffNote(n);
+    if (g) { if (on) g.style.setProperty('--gc', `var(--mh-${n.color || 'c'})`); g.classList.toggle('lit', on); }
+    if (!on && n.el) n.el.classList.remove('lit');
+  }
+  function glowFrame(t) {
+    const n = GL.n;
+    if (!n || !GL.on) return;
+    const want = n.long ? n.holding && t < n.end : t < n.end + R.glowLingerMs / 1000;
+    if (want) return;
+    const now = performance.now();
+    if (now - GL.offAt < R.glowMinCycleMs) return;              // at most one fade-out per glowMinCycleMs
+    GL.offAt = now;
+    glowOff();
+  }
+  function glowOff(reset) {
+    if (GL.n && G) litNote(GL.n, false);
+    GL.on = false; GL.n = null;
+    ['reticle', 'strikeGlow'].forEach(id => { const e = $(id); if (e) e.classList.remove('on'); });
+    if (reset) GL.offAt = -1e9;
+  }
+  function badPad(lane) {
+    const p = $('pads').children[lane], now = performance.now();
+    if (!p || now - (p._bad || 0) < R.glowMinCycleMs) return;
+    p._bad = now; p.classList.add('bad');
+    clearTimeout(p._bt); p._bt = setTimeout(() => p.classList.remove('bad'), R.badMs);
   }
   let judgeT = 0;
   const WORD = {perfect: 'PERFECT', good: 'GOOD', ok: 'OK', early: 'EARLY', late: 'LATE', miss: 'MISS'};
@@ -587,50 +665,45 @@
     } else $('hudAcc').textContent = G.judged ? Math.round(G.value / G.judged * 100) + '%' : '–';
   }
 
-  /* ---------- the scrolling staff (written pitch, the student's clef, letter names, a playhead) ---------- */
-  let PPB = 58;                                                    // staff units per beat (wider for songs with short notes)
+  /* ---------- the scrolling staff: the song as printed music (notation.js), the student's clef + key signature pinned
+     on the left, letter names, a playhead. It scrolls by THE TIME -> X MAP of the engraving, so the playhead reaches
+     each notehead exactly when its card reaches the strike line (the staff's speed changes a little; the cards don't). */
+  /** the song's notes + rests of measures from..to as notation events (ids = the notes' staff ids) */
+  function staffEvents(map, from, to, idOf) {
+    const base = (from - 1) * map.beatsPerMeasure, inR = e => e.measure >= from && e.measure <= to;
+    return map.notes.filter(inR).map((n, j) => ({t: n.t - base, beats: n.beats, n: n.n, label: unpitched ? n.stick : n.label, id: idOf(n, j)}))
+      .concat((map.rests || []).filter(inR).map(r => ({t: r.t - base, beats: r.beats, rest: true})));
+  }
   function buildStaff() {
-    const T0 = G.T, T = G.practice ? {per: T0.per, spb: T0.spb, measures: G.practice.to - G.practice.from + 1, notes: T0.notes.slice(0, T0.perLoop)} : T0;
-    const m = G.map, startX = 40, notesX = n => startX + n.t / T.spb * PPB;
-    PPB = Math.max(58, Math.min(130, 32 / Math.min(...m.notes.map(n => n.beats))));
-    const width = startX + T.measures * T.per * PPB + 60;
-    let svg;
-    if (unpitched) {
-      svg = `<svg class="staff mh-perc" viewBox="0 40 ${width} 110">` + `<line x1="0" y1="88" x2="${width}" y2="88" stroke="#18203a" stroke-width="1.6"/>` +
-        T.notes.map(n => `<g id="mhn${n.k}"><ellipse class="head" cx="${notesX(n)}" cy="88" rx="9" ry="6.6" transform="rotate(-20 ${notesX(n)} 88)" fill="#18203a"/><line class="stem" x1="${notesX(n) + 8.3}" y1="86" x2="${notesX(n) + 8.3}" y2="46" stroke="#18203a" stroke-width="2"/><text class="ncap" x="${notesX(n)}" y="132" text-anchor="middle" font-weight="700" font-size="16" fill="#4b5570">${n.n.stick}</text></g>`).join('');
-    } else {
-      const items = T.notes.map(n => ({n: n.n.show, x: notesX(n), id: 'mhn' + n.k, caption: n.n.label}));
-      svg = A.staffSVG(m.clef, items, {width, keySig: m.sig, fit: m.notes.map(n => n.show), label: 'The song on the staff'});
-      // the song's own clef slides away under the fixed one; notes start after it
-    }
-    const vb = /viewBox="([\d.\s-]+)"/.exec(svg)[1].split(/\s+/).map(Number);
-    let bars = '';
-    for (let k = 0; k <= T.measures; k++) { const x = startX - PPB * .3 + k * T.per * PPB; bars += `<line class="mh-bar" x1="${x}" y1="${unpitched ? 72 : 56}" x2="${x}" y2="${unpitched ? 104 : 120}" stroke="#18203a" stroke-width="1.4"/>`; }
-    svg = svg.replace('</svg>', bars + '</svg>');
-    const box = $('staffBox'), h = V.staffH - 10, scale = h / vb[3];
+    const m = G.map, P = G.practice, from = P ? P.from : 1, to = P ? P.to : m.measures;
+    const E = A.MHNotation.engrave({clef: unpitched ? null : m.clef, sig: m.sig, per: m.beatsPerMeasure, timeSig: G.song.timeSig,
+      measures: to - from + 1, header: 'time', x0: 6, captions: true, final: !P,
+      events: staffEvents(m, from, to, (n, j) => 'mhn' + (P ? j : m.notes.indexOf(n)))});
+    const box = $('staffBox'), h = V.staffH - 10, scale = h / E.vb.h;
     const strip = $('staffStrip');
-    strip.innerHTML = svg;
-    const s = strip.firstChild; s.style.width = vb[2] * scale + 'px'; s.style.height = h + 'px'; s.removeAttribute('width');
-    // the fixed clef + key signature on the left
-    const pinW = unpitched ? 40 : 60 + A.keySigWidth(m.sig);
-    const pin = unpitched ? `<svg viewBox="0 40 ${pinW} 110"><line x1="0" y1="88" x2="${pinW}" y2="88" stroke="#18203a" stroke-width="1.6"/><rect x="12" y="74" width="5" height="28" fill="#18203a"/><rect x="21" y="74" width="5" height="28" fill="#18203a"/></svg>`
-      : A.staffSVG(m.clef, [], {width: pinW + 16, keySig: m.sig, fit: m.notes.map(n => n.show)});
-    $('staffPin').innerHTML = pin;
-    const ps = $('staffPin').firstChild; ps.style.height = h + 'px'; ps.style.width = (unpitched ? pinW : pinW + 16) * scale + 'px';
-    V.st = {scale, startX, pinPx: (unpitched ? pinW : pinW + 16) * scale};
+    strip.innerHTML = E.svg;
+    const s = strip.firstChild; s.style.width = E.vb.w * scale + 'px'; s.style.height = h + 'px';
+    const pin = A.MHNotation.pinSVG({clef: unpitched ? null : m.clef, sig: m.sig, top: E.vb.top, h: E.vb.h});
+    $('staffPin').innerHTML = pin.svg;
+    const ps = $('staffPin').firstChild; ps.style.height = h + 'px'; ps.style.width = pin.w * scale + 'px';
+    V.st = {scale, E, pinPx: pin.w * scale};
     V.st.play = V.st.pinPx + Math.min(120, box.clientWidth * .12);
     $('playhead').style.left = V.st.play + 'px';
-    moveStaff(-10);
+    moveStaff(-G.T.per * G.T.spb);
+  }
+  /** where the staff is at song time t (seconds): the engraving's x (staff units) under the playhead */
+  function staffX(t) {
+    if (G.practice && t >= 0) t -= Math.floor(t / G.T.loopLen) * G.T.loopLen;
+    return Math.max(0, V.st.E.xAt(Math.max(-G.T.per, t / G.T.spb)));   // (the count-in: the staff waits at its start)
   }
   function moveStaff(t) {
     if (!V.st) return;
     if (G.practice && t >= 0) {                                    // practice: one loop's staff, the playhead wraps around
       const L = Math.floor(t / G.T.loopLen);
       if (L !== V.st.loop) { V.st.loop = L; $('staffStrip').querySelectorAll('g.hit,g.miss').forEach(g => g.classList.remove('hit', 'miss')); }
-      t -= L * G.T.loopLen;
     }
-    const x = (V.st.startX + Math.max(-G.T.per, t / G.T.spb) * PPB) * V.st.scale;
-    $('staffStrip').style.transform = `translateX(${(V.st.play - x).toFixed(1)}px)`;
+    V.st.x = staffX(t);
+    $('staffStrip').style.transform = `translateX(${(V.st.play - V.st.x * V.st.scale).toFixed(1)}px)`;
   }
 
   /* ================= THE END: results ================= */
@@ -689,13 +762,11 @@
     const notes = g.T.notes.filter(n => n.measure >= from && n.measure <= to);
     const misses = notes.filter(n => n.res === 'miss').length;
     $('troubleMsg').textContent = `Measures ${from}–${to}: ${misses ? misses + ' missed' : 'a little off the beat'}. Loop it slowly until it feels easy.`;
-    if (unpitched) $('troubleStaff').innerHTML = `<p class="mh-sticks">${notes.map(n => `<span class="${n.res === 'miss' ? 'miss' : ''}">${n.n.stick}</span>`).join(' ')}</p>`;
-    else {
-      const x0 = 70 + A.keySigWidth(g.map.sig), gap = Math.max(34, Math.min(56, 560 / Math.max(1, notes.length)));
-      $('troubleStaff').innerHTML = A.staffSVG(g.map.clef, notes.map((n, k) => ({n: n.n.show, x: x0 + 20 + k * gap, caption: n.n.label, id: 'mht' + k})),
-        {width: x0 + 60 + notes.length * gap, keySig: g.map.sig, label: 'The trouble spot'});
-      notes.forEach((n, k) => { const el = document.getElementById('mht' + k); if (el && n.res === 'miss') el.classList.add('miss'); });
-    }
+    const E = A.MHNotation.engrave({clef: unpitched ? null : g.map.clef, sig: g.map.sig, per: g.map.beatsPerMeasure, timeSig: g.song.timeSig,
+      measures: to - from + 1, header: 'full', captions: true, label: 'The trouble spot',
+      events: staffEvents(g.map, from, to, (n, j) => 'mht' + j)});
+    $('troubleStaff').innerHTML = E.svg;
+    notes.forEach((n, k) => { const el = document.getElementById('mht' + k); if (el && n.res === 'miss') el.classList.add('miss'); });
     $('practiceBtn').onclick = () => begin(g.i, {practice: {from, to}});
     box.hidden = false;
   }
@@ -729,7 +800,7 @@
   $('quitBtn').onclick = () => { $('pausePanel').hidden = true; showHub(); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && G && !G.paused) { e.preventDefault(); G.practice ? finish() : pause(); } });
-  addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); buildStaff(); G.T.notes.forEach(n => { if (n.el) { n.el.remove(); n.el = null; } }); } });
+  addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); spacing(); buildStaff(); G.T.notes.forEach(n => { if (n.el) { n.el.remove(); n.el = null; } }); } });
 
   /* ================= CALIBRATION: "Play any note on each of the 8 clicks" ================= */
   let calRun = null;
@@ -877,6 +948,14 @@
     /** tests: the calibration's click times (context s), and the perf time (ms) at which context time t is heard */
     calClicks: () => calRun ? calRun.clicks.slice() : null,
     perfAt: t => CLK.ctx ? (t - CLK.off) * 1000 : null,
+    /** tests: the card spacing of the song playing, and every card's box on the road at song time t (the drawing's math) */
+    spacing: () => G && G.spacing,
+    cardRects: t => G ? G.T.notes.filter(n => n.t - t <= G.lead && n.t - t >= -.6).map(n => {
+      const p = proj(n.t - t), x = V.cx + (n.lane - (R.lanes - 1) / 2) * V.laneW * p.s;
+      return {k: n.k, x0: x - V.cardW * p.s / 2, x1: x + V.cardW * p.s / 2, y0: p.y - V.cardH * p.s, y1: p.y};
+    }) : [],
+    staff: () => V.st ? {play: V.st.play, scale: V.st.scale, sy: V.sy, cardH: V.cardH, x: V.st.x} : null,
+    glow: () => ({on: GL.on, k: GL.n ? GL.n.k : null}),
   };
 
   showHub();
