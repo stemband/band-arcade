@@ -57,7 +57,7 @@
     {id: 'mary-lamb', title: 'Mary Had a Little Lamb', source: 'Traditional (American nursery song)', tier: 1, tempo: 96, timeSig: [4, 4], key: 'Bb', style: 'rock',
      notes: N('3 2 1 2 | 3 3 3:2 | 2 2 2:2 | 3 5 5:2', '3 2 1 2 | 3 3 3 3 | 2 2 3 2 | 1:4')},
     {id: 'aunt-rhody', title: 'Go Tell Aunt Rhody', source: 'Traditional (American folk song)', tier: 1, tempo: 96, timeSig: [4, 4], key: 'Bb', style: 'march',
-     notes: N('3 3 2:2 | 1 1 3:2 | 5 5 4 3 | 2:4', '3 3 2:2 | 1 1 3:2 | 2 1 2 3 | 1:4')},
+     notes: N('3:2 3 2 | 1 r:1 1 r:1 | 2:2 2 4 | 3 2 1 r:1 | 5:2 5 4 | 3 r:1 3 3 | 2 4 3 2 | 1:4')},
     {id: 'lightly-row', title: 'Lightly Row', source: 'Traditional (German folk song)', tier: 1, tempo: 100, timeSig: [4, 4], key: 'Bb', style: 'rock',
      notes: N('5 3 3:2 | 4 2 2:2 | 1 2 3 4 | 5 5 5:2', '5 3 3:2 | 4 2 2:2 | 1 3 5 5 | 3:4',
               '2 2 2 2 | 2 3 4:2 | 3 3 3 3 | 3 4 5:2', '5 3 3:2 | 4 2 2:2 | 1 3 5 5 | 1:4')},
