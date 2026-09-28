@@ -380,6 +380,19 @@ microphone is paused, so they never mute anything; trim them so each word starts
 | `spotlight-out` | `spotlight-out.m4a` or `spotlight-out.mp3` | Showtime Malfunction: an animatronic reaches the front and a spotlight goes out. **during play: under 0.5 s** | under 0.5 s |
 | `showtime-over` | `showtime-over.m4a` or `showtime-over.mp3` | Showtime Malfunction: all three spotlights are out, SHOWTIME'S OVER. Spooky-fun, never a scream. | 1–2 s |
 | `nightmare-unlocked` | `nightmare-unlocked.m4a` or `nightmare-unlocked.mp3` | Showtime Malfunction: the results screen the first time NIGHTMARE unlocks (The 5:00 Show cleared on Normal). Spooky-fun, never a scream. falls back to `skin-unlocked` | 0.8–1.5 s |
+| `special-alert` | `special-alert.m4a` or `special-alert.mp3` | Showtime Malfunction: a SPECIAL MACHINE walks on (when it has no sound of its own), and the "NEW MALFUNCTION DETECTED!" card opens (the game is paused). **during play: under 0.5 s** | under 0.5 s |
+| `special-intro` | `special-intro.m4a` or `special-intro.mp3` | Showtime Malfunction: right after special-alert, the special machine's card slides in (the game is paused). | 0.4–1 s |
+| `special-turbo-tin` | `special-turbo-tin.m4a` or `special-turbo-tin.mp3` | Showtime Malfunction: Turbo Tin walks on (a revving zoom). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-tuba-tank` | `special-tuba-tank.m4a` or `special-tuba-tank.mp3` | Showtime Malfunction: Tuba Tank walks on (heavy clanking armor). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-long-tone-lurker` | `special-long-tone-lurker.m4a` or `special-long-tone-lurker.mp3` | Showtime Malfunction: Long Tone Lurker walks on (a long, low creak). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-duet-dolls` | `special-duet-dolls.m4a` or `special-duet-dolls.mp3` | Showtime Malfunction: the Duet Dolls walk on (wind-up key clicks). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-glitch-jester` | `special-glitch-jester.m4a` or `special-glitch-jester.mp3` | Showtime Malfunction: Glitch Jester walks on (a glitchy warble), and when its note glitches into another. falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-split-sprocket` | `special-split-sprocket.m4a` or `special-split-sprocket.mp3` | Showtime Malfunction: Split Sprocket walks on (ratcheting gears), and when it splits in two. falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-blackout-bot` | `special-blackout-bot.m4a` or `special-blackout-bot.mp3` | Showtime Malfunction: Blackout Bot walks on (a power-down whump). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `special-oil-can-ollie` | `special-oil-can-ollie.m4a` or `special-oil-can-ollie.mp3` | Showtime Malfunction: Oil Can Ollie walks on (two squirts of an oil can). falls back to `special-alert` **during play: under 0.5 s** | under 0.5 s |
+| `scare-sting-1` | `scare-sting-1.m4a` or `scare-sting-1.mp3` | Showtime Malfunction, JUMP SCARE mode: a jump scare (1 of 3, at random). Cartoon-creepy, never a scream. **Loudness cap:** the game turns it down so its peak is never more than 3 dB over the arcade's normal loudest effect. Never plays with "Visual scares only". | 0.5–1 s |
+| `scare-sting-2` | `scare-sting-2.m4a` or `scare-sting-2.mp3` | Showtime Malfunction, JUMP SCARE mode: a jump scare (2 of 3, at random). Same rules as scare-sting-1. | 0.5–1 s |
+| `scare-sting-3` | `scare-sting-3.m4a` or `scare-sting-3.mp3` | Showtime Malfunction, JUMP SCARE mode: a jump scare (3 of 3, at random). Same rules as scare-sting-1. | 0.5–1 s |
 
 ### Sustain Speedway
 

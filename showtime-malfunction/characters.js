@@ -1,7 +1,10 @@
 /* Showtime Malfunction: THE SHOWTIME BAND, the arcade's old animatronic house band, drawn in SVG (original designs).
    Cartoon-creepy machines: worn felt, metal joints and bolts, glowing eyes (red while malfunctioning, friendly blue
    once rebooted: the eye color comes from CSS, .bot.glitch / .bot.fixed). No gore, nobody inside: just machines.
-     Arcade.Showtime.botSVG(kind, {label, unit})   kind: 'walrus' | 'owl' | 'gator' | 'raccoon' | 'moose' | 'clone'
+     Arcade.Showtime.botSVG(kind, {label, unit, plates})   kind: 'walrus' | 'owl' | 'gator' | 'raccoon' | 'moose' | 'clone',
+       or a SPECIAL MACHINE: 'turbo-tin' | 'tuba-tank' | 'long-tone-lurker' | 'duet-dolls' | 'glitch-jester' |
+       'split-sprocket' (+ 'sprocket-mini', its two halves) | 'blackout-bot' | 'oil-can-ollie' (levels.js SHOWTIME_SPECIALS)
+       plates: Tuba Tank's armor plates (.a-plate, data-i 0…n-1; game.js pops them off with .popped)
      Arcade.Showtime.BAND                           who is who (name, instrument, felt colors: theme.css --anim-* tokens)
    Every drawing is on a 140 × 200 grid, feet at the bottom. Colors are classes styled in style.css. */
 window.Arcade = window.Arcade || {};
@@ -14,6 +17,16 @@ window.Arcade = window.Arcade || {};
     raccoon: {name: 'Rico Bandit',     plays: 'sax',    felt: 'anim-raccoon', felt2: 'anim-raccoon-2'},
     moose:   {name: 'Maestro Moose',   plays: 'baton',  felt: 'anim-moose',   felt2: 'anim-moose-2'},
     clone:   {name: 'Sal Unit',        plays: 'snare',  felt: 'anim-clone',   felt2: 'anim-gator-2'},
+    // the SPECIAL MACHINES (levels.js SHOWTIME_SPECIALS): original designs, same worn-felt-and-bolts style
+    'turbo-tin':        {name: 'Turbo Tin',        plays: 'horn',    felt: 'anim-tin',      felt2: 'anim-tin-2',      special: true},
+    'tuba-tank':        {name: 'Tuba Tank',        plays: 'tuba',    felt: 'anim-tank',     felt2: 'anim-tank-2',     special: true},
+    'long-tone-lurker': {name: 'Long Tone Lurker', plays: 'bassoon', felt: 'anim-lurker',   felt2: 'anim-lurker-2',   special: true},
+    'duet-dolls':       {name: 'Duet Dolls',       plays: null,      felt: 'anim-doll',     felt2: 'anim-doll-2',     special: true},
+    'glitch-jester':    {name: 'Glitch Jester',    plays: 'clarinet', felt: 'anim-jester',  felt2: 'anim-jester-2',   special: true},
+    'split-sprocket':   {name: 'Split Sprocket',   plays: 'bells',   felt: 'anim-sprocket', felt2: 'anim-sprocket-2', special: true},
+    'sprocket-mini':    {name: 'Sprocket Mini',    plays: null,      felt: 'anim-sprocket', felt2: 'anim-sprocket-2'},
+    'blackout-bot':     {name: 'Blackout Bot',     plays: 'lantern', felt: 'anim-blackout', felt2: 'anim-blackout-2', special: true},
+    'oil-can-ollie':    {name: 'Oil Can Ollie',    plays: 'oilcan',  felt: 'anim-ollie',    felt2: 'anim-ollie-2',    special: true},
   };
 
   const bolt = (x, y, r = 2.6) => `<circle class="a-bolt" cx="${x}" cy="${y}" r="${r}"/><path class="a-boltx" d="M${x - r * .6} ${y}h${r * 1.2}"/>`;
@@ -51,6 +64,60 @@ window.Arcade = window.Arcade || {};
       eyes([[58, 38], [82, 38]], 5) + `<path class="a-seam" d="M46 50Q70 44 94 50"/>` + bolt(44, 44) + bolt(96, 44),
   };
   HEADS.clone = HEADS.gator;
+  Object.assign(HEADS, {
+    // a tin can with a racing visor, a lightning stripe and a stubby antenna
+    'turbo-tin': () => `<path class="a-felt" d="M44 22H96Q100 22 100 26V62Q100 66 96 66H44Q40 66 40 62V26Q40 22 44 22Z"/>` +
+      `<path class="a-seam" d="M40 32H100M40 56H100"/><path class="a-felt2" d="M46 36H94V50H46Z"/>` + eyes([[60, 43], [80, 43]], 4.4) +
+      `<path class="a-felt2" d="M96 24L84 44H92L80 64L104 38H96L104 24Z"/><path class="a-rod" d="M56 22V10"/><circle class="a-bolt" cx="56" cy="9" r="3"/>` + bolt(44, 61) + bolt(96, 61),
+    // a riveted tank helmet with a narrow slit and a little turret on top
+    'tuba-tank': () => `<path class="a-felt" d="M32 46Q32 18 70 18Q108 18 108 46V64H32Z"/><path class="a-felt2" d="M58 8H82V20H58Z"/><path class="a-rod" d="M82 13H100"/>` +
+      `<path class="a-dark" d="M42 40H98" style="stroke-width:12;opacity:.85"/>` + eyes([[58, 40], [82, 40]], 4) +
+      bolt(38, 58) + bolt(52, 60) + bolt(70, 60) + bolt(88, 60) + bolt(102, 58),
+    // a long-necked wading bird on a telescoping neck, with one half-closed eye lid
+    'long-tone-lurker': () => `<path class="a-rod" d="M70 76V40"/>${bolt(70, 58, 2.2)}` +
+      `<path class="a-felt" d="M50 30Q50 10 70 10Q90 10 90 30Q90 44 70 44Q50 44 50 30Z"/><path class="a-beak" d="M88 28L130 34L88 38Z"/>` +
+      `<path class="a-felt2" d="M52 16Q60 2 72 8Q64 10 58 20Z"/>` + eyes([[62, 26], [78, 26]], 4.2) + `<path class="a-dark" d="M56 21H68M72 21H84"/>`,
+    // a gear for a head: the teeth turn a little when it twitches
+    'split-sprocket': () => `<g class="a-gear"><path class="a-felt2" d="${gear(70, 40, 30, 23, 10)}"/></g><circle class="a-felt" cx="70" cy="40" r="19"/>` +
+      eyes([[62, 38], [78, 38]], 4.4) + `<path class="a-seam" d="M70 21V59"/>` + bolt(70, 52, 2.4),
+    'sprocket-mini': () => `<g class="a-gear"><path class="a-felt2" d="${gear(70, 40, 30, 23, 8)}"/></g><circle class="a-felt" cx="70" cy="40" r="19"/>` +
+      eyes([[70, 38]], 6) + `<path class="a-seam" d="M52 48H88"/>`,
+    // a desk-lamp head with a deep shade: its eyes glow out of the dark under it
+    'blackout-bot': () => `<path class="a-rod" d="M70 76L60 60L74 44"/>${bolt(60, 60, 2.4)}` +
+      `<path class="a-felt" d="M42 36L60 8H88L106 36Z"/><path class="a-dark" d="M44 36H104Q100 50 74 50Q48 50 44 36Z"/>` + eyes([[62, 42], [86, 42]], 3.6) + bolt(74, 9, 2.2),
+    // an oil can with a long spout for a nose and a thumb-pump cap
+    'oil-can-ollie': () => `<path class="a-felt" d="M42 30Q42 20 52 20H88Q98 20 98 30V60Q98 68 88 68H52Q42 68 42 60Z"/>` +
+      `<path class="a-felt2" d="M56 20Q56 8 70 8Q84 8 84 20Z"/><path class="a-rod" d="M70 8V2"/>` +
+      `<path class="a-felt2" d="M96 44L126 26L128 30L98 52Z"/><path class="a-oil" d="M127 32Q124 38 127 41Q130 38 127 32Z"/>` +
+      eyes([[58, 38], [80, 38]], 4.6) + `<path class="a-seam" d="M42 52H98"/>` + bolt(48, 62) + bolt(92, 62),
+    // a two-point jester's hood with little bells (unpitched: they never ring), and a crooked grin
+    'glitch-jester': () => `<path class="a-felt2" d="M40 34Q30 10 12 14Q28 22 34 40ZM100 34Q110 10 128 14Q112 22 106 40Z"/>` +
+      `<circle class="a-brass-fill" cx="12" cy="14" r="5"/><circle class="a-brass-fill" cx="128" cy="14" r="5"/>` +
+      `<path class="a-felt" d="M36 36Q38 18 70 18Q102 18 104 36Q106 68 70 70Q34 68 36 36Z"/><path class="a-felt2" d="M36 36Q70 24 104 36Q70 30 36 36Z"/>` +
+      eyes([[56, 44], [84, 42]], 4.8) + `<path class="a-dark" d="M54 58Q70 66 88 56"/><path class="a-seam" d="M70 20V70"/>`,
+  });
+  /** a cog outline: n teeth, outer radius R, inner r */
+  function gear(cx, cy, R, r, n) {
+    let d = '';
+    for (let i = 0; i < n * 2; i++) {
+      const a0 = (i / (n * 2)) * Math.PI * 2, a1 = ((i + 1) / (n * 2)) * Math.PI * 2, rad = i % 2 ? r : R;
+      const p = a => `${(cx + Math.cos(a) * rad).toFixed(1)} ${(cy + Math.sin(a) * rad).toFixed(1)}`;
+      d += (i ? 'L' : 'M') + p(a0) + 'L' + p(a1);
+    }
+    return d + 'Z';
+  }
+  /* the Duet Dolls: two small wind-up dolls, button eyes, cheek dots, a big key between them (their own drawing, no
+     shared frame). .doll-a / .doll-b: game.js lights the one whose note comes next (.duet-a / .duet-b on the bot) */
+  function dolls() {
+    const doll = (x, cls, felt) => `<g class="doll ${cls}" style="--felt:var(--${felt})">` +
+      `<path class="a-rod" d="M${x - 8} 150V186M${x + 8} 150V186"/><path class="a-boot" d="M${x - 16} 184h14v8H${x - 18}ZM${x + 2} 184h14q2 0 2 8H${x + 2}Z"/>` +
+      `<path class="a-felt" d="M${x - 20} 150L${x - 12} 108H${x + 12}L${x + 20} 150Q${x} 158 ${x - 20} 150Z"/><path class="a-seam" d="M${x - 16} 138H${x + 16}"/>` +
+      `<circle class="a-felt2" cx="${x}" cy="90" r="20"/><path class="a-felt" d="M${x - 22} 84Q${x - 20} 64 ${x} 66Q${x + 20} 64 ${x + 22} 84Q${x} 74 ${x - 22} 84Z"/>` +
+      eyes([[x - 8, 90], [x + 8, 90]], 3.6) + `<circle class="a-cheek" cx="${x - 12}" cy="99" r="3"/><circle class="a-cheek" cx="${x + 12}" cy="99" r="3"/>` +
+      `<path class="a-dark" d="M${x - 4} 102h8"/>${bolt(x, 120, 2.2)}</g>`;
+    return `<path class="a-rod" d="M48 124H92"/><path class="a-brass-fill" d="M62 112Q70 104 78 112L74 124H66Z"/>` +
+      doll(36, 'doll-a', 'anim-doll') + doll(104, 'doll-b', 'anim-doll-b');
+  }
   /* what each one holds in front of its torso */
   const HOLDS = {
     tuba: `<path class="a-brass" d="M50 104Q40 116 48 132Q60 146 80 138Q94 130 90 112Q86 100 74 102"/><path class="a-brass-fill" d="M84 108L104 80H118L96 116Z"/><path class="a-rod" d="M62 112v14M68 110v14M74 110v14"/>`,
@@ -58,17 +125,38 @@ window.Arcade = window.Arcade || {};
     snare: `<path class="a-drum" d="M44 118V138Q70 148 96 138V118Z"/><ellipse class="a-drumhead" cx="70" cy="118" rx="26" ry="7"/><path class="a-dark" d="M52 124v16M70 126v16M88 124v16"/>` +
       `<path class="a-stick" d="M36 122L64 112M104 122L78 110"/>`,
     sax: `<path class="a-brass" d="M88 84Q76 88 76 104V128Q76 142 64 142Q54 142 52 132"/><path class="a-brass-fill" d="M44 132Q46 122 58 126Q60 136 50 140Z"/><path class="a-dark" d="M74 104h4M74 112h4M74 120h4"/>`,
+    horn: `<path class="a-brass" d="M46 112H88Q98 112 98 102"/><path class="a-brass-fill" d="M92 100L112 88V116L92 104Z"/><path class="a-rod" d="M60 112v-8M68 112v-8M76 112v-8"/>`,
+    bassoon: `<path class="a-felt2" d="M84 70L94 150H104L94 70Z"/><path class="a-silver" d="M86 76Q76 70 70 80"/><path class="a-dark" d="M90 100h6M92 112h6M93 124h6"/>`,
+    clarinet: `<path class="a-dark" d="M66 84L60 146" style="stroke-width:8"/><path class="a-silver" d="M58 144Q60 152 66 150" /><path class="a-bolt" d="M60 104h6M59 114h6M58 124h6"/>`,
+    bells: `<path class="a-brass-fill" d="M46 112H94V122H46Z"/><path class="a-dark" d="M54 112v10M62 112v10M70 112v10M78 112v10M86 112v10"/><path class="a-stick" d="M40 100L56 110M100 100L84 110"/>`,
+    lantern: `<path class="a-rod" d="M96 96V110"/><path class="a-felt2" d="M86 110H106L102 132H90Z"/><path class="a-dark" d="M90 118H102"/>`,
+    oilcan: `<path class="a-felt2" d="M84 112Q84 104 94 104H104Q112 104 112 112V132H84Z"/><path class="a-silver" d="M110 112L128 100"/><path class="a-oil" d="M129 104Q126 110 129 113Q132 110 129 104Z"/>`,
     baton: `<path class="a-coat" d="M42 92L36 150H56L70 110L84 150H104L98 92Z"/><path class="a-bow" d="M60 80L70 86L80 80V92L70 86L60 92Z"/>` +
       `<path class="a-felt2 arm-r" d="M96 92Q112 84 116 64L108 60Q104 78 90 86Z"/><path class="a-stick" d="M112 62L128 30"/>${bolt(94, 95)}`,
   };
   /** one animatronic as an SVG string. unit = a clone's number */
-  function botSVG(kind, {label = '', unit = null} = {}) {
+  /** Tuba Tank's armor: n plates over the torso and arms (a 2 × 4 grid, filled in order) */
+  function plates(n) {
+    const spots = [[46, 96], [74, 96], [46, 116], [74, 116], [46, 134], [74, 134], [28, 104], [100, 104]];
+    return spots.slice(0, n).map(([x, y], i) => `<g class="a-plate" data-i="${i}"><rect x="${x}" y="${y}" width="${i > 5 ? 12 : 22}" height="${i > 5 ? 18 : 16}" rx="2"/>` +
+      `<circle cx="${x + 3}" cy="${y + 3}" r="1.3"/><circle cx="${x + (i > 5 ? 9 : 19)}" cy="${y + 3}" r="1.3"/></g>`).join('');
+  }
+  /** one animatronic as an SVG string. unit = a clone's number */
+  function botSVG(kind, {label = '', unit = null, plates: nPlates = 0} = {}) {
     const b = BAND[kind] || BAND.gator;
     const style = `--felt:var(--${b.felt});--felt2:var(--${b.felt2})`;
-    const body = kind === 'moose' ? frame({torso: 'M42 92Q40 80 52 76H88Q100 80 98 92L100 146Q70 156 40 146Z', arms: false}) : frame();
-    return `<svg class="bot-svg" viewBox="0 0 140 200" style="${style}" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'} overflow="visible">` +
-      `<g class="bot-body">${body}${HOLDS[b.plays] || ''}</g><g class="bot-head">${HEADS[kind] ? HEADS[kind](unit) : ''}</g>` +
+    const aria = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
+    if (kind === 'duet-dolls') return `<svg class="bot-svg" viewBox="0 0 140 200" style="${style}" ${aria} overflow="visible"><g class="bot-body bot-head">${dolls()}</g>` +
+      `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
+    const body = kind === 'moose' ? frame({torso: 'M42 92Q40 80 52 76H88Q100 80 98 92L100 146Q70 156 40 146Z', arms: false})
+      : kind === 'tuba-tank' ? frame({torso: 'M34 94Q32 78 50 74H90Q108 78 106 94L108 148Q70 160 32 148Z'})
+      : kind === 'long-tone-lurker' ? frame({torso: 'M48 92Q46 80 56 76H84Q94 80 92 92L94 146Q70 154 46 146Z'})
+      : frame();
+    return `<svg class="bot-svg" viewBox="0 0 140 200" style="${style}" ${aria} overflow="visible">` +
+      `<g class="bot-body">${body}${HOLDS[b.plays] || ''}${nPlates ? plates(nPlates) : ''}</g><g class="bot-head">${HEADS[kind] ? HEADS[kind](unit) : ''}</g>` +
       `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
   }
-  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG});
+  /** the special machines' ids, in the Malfunction Files' order */
+  const SPECIAL_IDS = Object.keys(BAND).filter(k => BAND[k].special);
+  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG, SPECIAL_IDS});
 })(window.Arcade);

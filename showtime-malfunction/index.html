@@ -38,10 +38,11 @@
           <button type="button" class="seg" data-diff="normal" aria-pressed="true">Normal</button><button type="button" class="seg x-seg" data-diff="extra" aria-pressed="false" aria-describedby="diffLock"><span class="lock" aria-hidden="true"></span>Nightmare</button>
           <span class="diff-lock" id="diffLock" hidden>Clear The 5:00 Show to unlock</span></div>
       <button type="button" class="btn btn-ghost btn-small" id="storyBtn">The story</button>
+      <button type="button" class="btn btn-ghost btn-small files-btn" id="filesBtn">Malfunction Files <span class="files-n" id="filesCount"></span></button>
       <div class="spooky-set" role="group" aria-labelledby="spookyLbl"><span class="mp-lbl" id="spookyLbl">Spooky level</span>
-        <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button></div>
+        <button type="button" class="seg" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" class="seg" data-spooky="spooky" aria-pressed="false">Spooky</button><button type="button" class="seg jump-seg" data-spooky="jump" aria-pressed="false" hidden>Jump Scare</button></div>
     </div>
-    <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks.</p>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks. Add <b>&amp;special=turbo-tin</b> (or tuba-tank, long-tone-lurker, duet-dolls, glitch-jester, split-sprocket, blackout-bot, oil-can-ollie) to the address to send out that special machine; <b>&amp;scare=lunge</b> (eyes, popup, band) with Jump Scare on = a scare of that kind 3 s in.</p>
   </section>
 
   <!-- A SHOWTIME -->
@@ -65,6 +66,8 @@
       </div>
       <svg class="tether" id="tether" aria-hidden="true"><line id="tetherLine"/></svg>
       <div class="bots" id="bots"></div>
+      <!-- JUMP SCARE mode: darkness, a machine, glowing eyes (game.js scare(); no bright flashes, never full-screen white) -->
+      <div class="scare" id="scare" aria-hidden="true"><div class="sc-dark"></div><div class="sc-bot" id="scareBot"></div><div class="sc-eyes" id="scareEyes"><i></i><i></i></div></div>
       <div class="spots" id="spots" aria-hidden="true"></div>
       <p class="banner" id="banner" hidden aria-live="assertive"></p>
     </div>
@@ -94,6 +97,37 @@
   </div>
 </div>
 
+<!-- A SPECIAL MACHINE's first appearance on this device: the game pauses for its card -->
+<div class="overlay special-ov" id="specialCard" hidden>
+  <div class="panel special-panel" role="dialog" aria-modal="true" aria-labelledby="spTitle">
+    <p class="sp-alert">New malfunction detected!</p>
+    <div class="sp-art bot glitch" id="spArt" aria-hidden="true"></div>
+    <h2 id="spTitle">Turbo Tin</h2>
+    <p class="sp-how" id="spHow"></p>
+    <div class="acts"><button class="btn btn-gold" id="spGo">Got it!</button></div>
+  </div>
+</div>
+
+<!-- THE MALFUNCTION FILES: every special machine (a silhouette until met; the full file once rebooted) -->
+<div class="overlay" id="files" hidden>
+  <div class="panel files-panel" role="dialog" aria-modal="true" aria-labelledby="filesTitle">
+    <h2 id="filesTitle">Malfunction Files</h2>
+    <p class="muted" id="filesSub">Special machines show up from Showtime 3 on. Reboot one to complete its file.</p>
+    <div class="files-grid" id="filesGrid"></div>
+    <div class="acts"><button class="btn btn-gold" id="filesClose">Close</button></div>
+  </div>
+</div>
+
+<!-- JUMP SCARE: asked every time it's turned on -->
+<div class="overlay" id="jumpWarn" hidden>
+  <div class="panel jump-panel" role="alertdialog" aria-modal="true" aria-labelledby="jwTitle" aria-describedby="jwText">
+    <h2 id="jwTitle">Jump Scare mode</h2>
+    <p id="jwText"><b>This mode has sudden jump scares with loud sounds. Are you sure?</b></p>
+    <label class="jw-check"><input type="checkbox" id="jwVisual"> Visual scares only (no scare sounds)</label>
+    <div class="acts"><button class="btn btn-gold" id="jwYes">Yes</button><button class="btn btn-ghost" id="jwNo">No</button></div>
+  </div>
+</div>
+
 <!-- RESULTS -->
 <div class="overlay" id="results" hidden>
   <div class="panel">
@@ -107,6 +141,7 @@
       <div><small>Spotlights</small><b id="resLights">3</b></div>
       <div><small>Score</small><b id="resScore">0</b></div>
     </div>
+    <p class="res-special" id="resSpecial" hidden></p>
     <p id="resBest" class="best"></p>
     <div class="acts">
       <button class="btn btn-gold" id="resNext">Next showtime</button>
@@ -147,6 +182,7 @@
 <script src="../shared/marquees.js"></script>
 <script src="../shared/press-start.js"></script>
 <script src="../shared/level-select.js"></script>
+<script src="../shared/teacher-settings.js"></script>
 <script src="levels.js"></script>
 <script src="characters.js"></script>
 <script src="game.js"></script>

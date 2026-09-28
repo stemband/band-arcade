@@ -158,7 +158,7 @@ window.Arcade = window.Arcade || {};
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(g); g.connect(master);
+    o.connect(g); g.connect(genDest || master);
     o.start(t); o.stop(t + len + 0.02);
   }
   /** UNPITCHED: band-passed noise around freq (or sweeping [from, to]), width q (low = wide, no pitch to hear).
@@ -170,9 +170,50 @@ window.Arcade = window.Arcade || {};
     f.frequency.setValueAtTime(f0, t);
     if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + len);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.01, len / 4)); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    n.connect(f); f.connect(g); g.connect(master);
+    n.connect(f); f.connect(g); g.connect(genDest || master);
     n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02);
     span = Math.max(span, at + len);
+  }
+  let genDest = null;          // where the generated sounds go (null = master); a capped play (sounds.js `cap`) routes them through its limiter
+
+  /* ---------- THE LOUDNESS CAP (sounds.js `cap`: Showtime Malfunction's jump-scare stings) ----------
+     A capped sound is never more than `cap` dB louder than the arcade's normal loudest effect, measured two ways: its
+     PEAK and its LOUDNESS (the loudest 50 ms stretch, RMS). The reference = the loudest uncapped effect file played on
+     this page (vol × the file's own peak / loudness), and never less than REF_PEAK / REF_RMS: measured from the files
+     in shared/sounds (the loudest peak .9; the loudness of showtime-start, .38, the loudest sound a student hears in
+     Showtime Malfunction before a scare). A file is scaled down to both limits before it plays (measured once), and
+     everything (files and the generated fallback) then passes a hard limiter at the peak limit, so nothing gets past it.
+     It sits before the EFFECTS slider like every effect, so SOUND ON/OFF and the slider apply as usual. */
+  const REF_PEAK = 0.9, REF_RMS = 0.38, RMS_S = 0.05;
+  let loudest = 0, loudestRms = 0;
+  const peakOf = buf => {
+    if (buf._peak != null) return buf._peak;
+    let p = 0;
+    for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) { const v = d[i] < 0 ? -d[i] : d[i]; if (v > p) p = v; } }
+    return (buf._peak = p);
+  };
+  /** the loudest 50 ms stretch (RMS, half-overlapping windows, the louder channel) */
+  const rmsOf = buf => {
+    if (buf._rms != null) return buf._rms;
+    const W = Math.max(1, Math.round(buf.sampleRate * RMS_S));
+    let best = 0;
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i + W <= d.length; i += W >> 1) { let q = 0; for (let j = i; j < i + W; j++) q += d[j] * d[j]; if (q > best) best = q; }
+    }
+    return (buf._rms = Math.sqrt(best / W));
+  };
+  const capLimit = e => { const k = Math.pow(10, (+e.cap || 0) / 20); return {peak: Math.max(loudest, REF_PEAK) * k, rms: Math.max(loudestRms, REF_RMS) * k}; };
+  const limiters = {};
+  /** a hard limiter at `limit` (a WaveShaper: the input halved, then the curve clamps at ±limit) into the effects bus */
+  function limiterFor(limit) {
+    const k = limit.toFixed(3);
+    if (limiters[k]) return limiters[k];
+    const pre = ctx.createGain(), sh = ctx.createWaveShaper(), N = 2049, curve = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const u = (i / (N - 1)) * 2 - 1; curve[i] = Math.max(-limit, Math.min(limit, u * 2)); }
+    pre.gain.value = 0.5; sh.curve = curve; sh.oversample = 'none';
+    pre.connect(sh); sh.connect(fxBus);
+    return (limiters[k] = pre);
   }
   let noiseBuf = null;
   function noise() {
@@ -191,7 +232,7 @@ window.Arcade = window.Arcade || {};
       f.type = 'bandpass'; f.Q.value = 1.2;
       f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(350, t + 0.18);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-      n.connect(f); f.connect(g); g.connect(master);
+      n.connect(f); f.connect(g); g.connect(genDest || master);
       n.start(t); n.stop(t + 0.22); span = Math.max(span, 0.22);
       tone(1400, 0, 0.018, 0.25);
     },
@@ -216,7 +257,7 @@ window.Arcade = window.Arcade || {};
     f.type = 'bandpass'; f.Q.value = 2;
     f.frequency.setValueAtTime(4200, t); f.frequency.exponentialRampToValueAtTime(900, t + 0.12);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-    n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + 0.16); span = Math.max(span, 0.16);
+    n.connect(f); f.connect(g); g.connect(genDest || master); n.start(t); n.stop(t + 0.16); span = Math.max(span, 0.16);
   }
   const EVENTS = {
     'level-start':    () => arp([523, 659, 784], 0.07),
@@ -277,7 +318,7 @@ window.Arcade = window.Arcade || {};
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sine'; o.frequency.setValueAtTime(fr, t);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-      o.connect(g); g.connect(master); o.start(t); o.stop(t + len + 0.02);
+      o.connect(g); g.connect(genDest || master); o.start(t); o.stop(t + len + 0.02);
     });
   }
 
@@ -333,7 +374,13 @@ window.Arcade = window.Arcade || {};
     }
     return {fn: GENERIC[name] || GENERIC.retro, kind: 'generated'};
   }
-  function playGen(fn) { span = 0; fn(); return Math.max(span, 0.05); }
+  function playGen(fn, e) {
+    span = 0;
+    // a capped sound's generated fallback: through the same limiter (GEN_LEVEL is applied after it by `master`'s share)
+    if (e && e.cap != null) { const g = ctx.createGain(); g.gain.value = GEN_LEVEL; g.connect(limiterFor(capLimit(e).peak)); genDest = g; }
+    try { fn(); } finally { genDest = null; }
+    return Math.max(span, 0.05);
+  }
 
   /* ---------- sound files ---------- */
   /* an effect file that 404'd (or wouldn't decode) is skipped for a while in this tab, so a missing .m4a costs one request,
@@ -470,7 +517,7 @@ window.Arcade = window.Arcade || {};
       // file:// (<audio>): the loaded element itself when it's free; a copy otherwise, which must start at once or
       // not at all (a copy that is still loading would play late, when everything piles up)
       const free = rec.el.paused || rec.el.ended, el = free ? rec.el : rec.el.cloneNode();
-      el.volume = Math.min(1, level * vol('sfxVol'));
+      el.volume = Math.min(1, (e.cap != null ? Math.min(level, .6) : level) * vol('sfxVol'));   // capped, on file:// (can't measure the file): a moderate level
       if (free) { try { el.currentTime = 0; } catch (x) { /* not seekable yet */ } }
       let started = false; el.addEventListener('playing', () => { started = true; }, {once: true});
       el.play().catch(() => {});
@@ -479,8 +526,17 @@ window.Arcade = window.Arcade || {};
       return rec.dur;
     }
     const s = ctx.createBufferSource(), g = ctx.createGain();
-    s.buffer = rec.buf; g.gain.value = level;
-    s.connect(g); g.connect(fxBus); s.start();
+    s.buffer = rec.buf;
+    if (e.cap != null) {                                   // the loudness cap: scaled to the limit, then the limiter
+      const lim = capLimit(e);
+      g.gain.value = Math.min(level, lim.peak / (peakOf(rec.buf) || 1), lim.rms / (rmsOf(rec.buf) || 1));
+      s.connect(g); g.connect(limiterFor(lim.peak));
+    } else {
+      g.gain.value = level;
+      if (!e.loop) { loudest = Math.max(loudest, level * peakOf(rec.buf)); loudestRms = Math.max(loudestRms, level * rmsOf(rec.buf)); }
+      s.connect(g); g.connect(fxBus);
+    }
+    s.start();
     if (e.voice) track(fade => { const t = ctx.currentTime; g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); try { s.stop(t + fade + .02); } catch (x) {} }, rec.dur);
     return rec.dur;
   }
@@ -535,7 +591,7 @@ window.Arcade = window.Arcade || {};
     live[name] = (live[name] || []).filter(end => end > now);
     if (max && live[name].length >= max) { mdbg(`${name}: skipped (already playing)`); return 0; }
     let dur = 0, how = '';
-    try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, r.e) : playGen(r.fn); }
+    try { const r = resolve(name); how = r.how === 'file' ? 'file:' + r.rec.file + '.' + r.rec.ext : r.kind; dur = r.how === 'file' ? playFile(r.rec, e && e.cap != null && r.e.cap == null ? Object.assign({}, r.e, {cap: e.cap}) : r.e) : playGen(r.fn, e); }
     catch (x) { dur = 0; }
     // sounds.js `echo`: a shorter tail. Sfx.muteMax (a page's option, ms): mute only for the first part of a longer sound
     // muteCap (ms, per play: Neon Face-Off's in-rally sounds): the WHOLE mute, echo included, is never longer; the rest of the sound plays on
@@ -1053,6 +1109,8 @@ window.Arcade = window.Arcade || {};
     },
     get events() { return A.Sounds ? A.Sounds.names() : Object.keys(EVENTS); },
     history: played,
+    /** tests: the loudness cap's reference (sounds.js `cap`) and the limits a sound with cap dB gets */
+    loudness: (cap = 3) => Object.assign({loudest, loudestRms, REF_PEAK, REF_RMS}, capLimit({cap})),
     /** the arcade's audio output for shared/tones.js (Lost Signal's pitched tones): {ctx, out} once the audio is
         unlocked and sound is on (out = the EFFECTS bus: mute and the EFFECTS slider apply), else null */
     output() { return ready() ? {ctx, out: fxBus} : null; },

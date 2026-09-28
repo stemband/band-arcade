@@ -46,6 +46,62 @@ window.SHOWTIME_RULES = {
   holdHintMs: 1000,       // a note held this long with no new attack shows "Tongue each note!"
   lurchMs: [170, 260],    // stop-motion: an animatronic moves in jerky steps this far apart (off with reduced motion)
   bossStagger: 0.22,      // how far Maestro Moose staggers back after each phase (0–1 of the floor)
-  points: {tick: 10, reboot: 100, early: 100},   // each counted play, each reboot, + up to `early` for rebooting it far away
+  points: {tick: 10, reboot: 100, early: 100,    // each counted play, each reboot, + up to `early` for rebooting it far away
+           special: 150},                        // + this for rebooting a SPECIAL MACHINE (+ its own `points` below)
   storyOnce: true,        // show the story before the first showtime (it can always be read again from the level screen)
 };
+
+/* THE SPECIAL MACHINES: rare bonus animatronics with an ability. A special REPLACES a regular animatronic when it
+   walks on (the showtime has the same number of machines; only Split Sprocket's two minis are extra), and never more
+   than one special is on the floor at once (the minis don't count). Stars work exactly as before; rebooting a special
+   earns bonus points. The first time a device meets each one, the game pauses for its "NEW MALFUNCTION DETECTED!" card.
+
+     chance    the chance (0–1) that an animatronic walking on is a special, by showtime (1–8): none in 1–2
+     nightmare added to that chance in NIGHTMARE (only where specials already appear: never in Showtimes 1–2)
+   Each machine (the id is saved in the Malfunction Files: never rename it):
+     name, how     its name and the one-line "how to beat it" on its card and in the Malfunction Files
+     speed         walk-speed multiplier (2 = twice as fast as the showtime's animatronics, 0.6 = slower)
+     count         [fewest, most] plays (Turbo Tin, split minis), or countMul × the showtime's count (Tuba Tank)
+     snare         the same for the Snare Drum (hits)
+     points        extra points for this one (on top of SHOWTIME_RULES.points.special, which every special earns)
+     howSnare      the card's line for the Snare Drum, when the machine works differently there
+   SNARE DRUM (count mode): Turbo Tin, Tuba Tank, Split Sprocket, Blackout Bot and Oil Can Ollie work with hits; the Long
+   Tone Lurker wants a steady ROLL; the Duet Dolls and the Glitch Jester are ordinary counts (no notes to swap).
+   and its own settings, explained on its line. */
+window.SHOWTIME_SPECIALS = {
+  chance: [0, 0, .15, .15, .25, .25, .25, .30],
+  nightmare: .10,
+  machines: {
+    // fast and fragile: twice the speed, only 1–2 plays
+    'turbo-tin':        {name: 'Turbo Tin', how: 'Twice as fast, but it only needs 1 or 2 plays. Be quick!', speed: 2, count: [1, 2], snare: [2, 3], points: 50},
+    // slow and armored: ~2× the plays; one armor plate pops off with each counted play (at most `plates` plates drawn)
+    'tuba-tank':        {name: 'Tuba Tank', how: 'Slow, but armored: it needs twice as many plays. Pop off every plate!', speed: .6, countMul: 2, plates: 8, points: 100},
+    // tonguing does NOT count: hold its note steadily for `hold` seconds (by showtime 1–8); the ring drains at `drain`
+    // × fill speed while the note stops or changes. Snare: a steady roll of at least `rollRate` hits a second for `roll` seconds
+    'long-tone-lurker': {name: 'Long Tone Lurker', how: 'Tonguing won\'t work. Hold its note: one long, steady note until the ring fills.', speed: .85,
+                         hold: [2, 2, 2, 2.5, 3, 3.5, 3.5, 4], drain: .5, roll: [2, 2, 2, 2, 2.5, 2.5, 3, 3], rollRate: 6, points: 100,
+                         howSnare: 'Single hits won\'t work. Keep a steady roll (6 hits a second or more) until the ring fills.'},
+    // a linked pair with two different notes: play them in turns A, B, A, B… (the next one glows); the other note does nothing
+    'duet-dolls':       {name: 'Duet Dolls', how: 'Two dolls, two notes. Take turns: first doll, second doll, first, second…', speed: .9, minCount: 4, points: 100,
+                         howSnare: 'Two dolls, one count: hit it that many times, like the rest of the band.'},
+    // after `switchAt` of its plays its note glitches (slowly, `glitchMs`) into another note from the set
+    'glitch-jester':    {name: 'Glitch Jester', how: 'Halfway through, its note glitches into a different one. Read it again!', switchAt: .5, glitchMs: 700, points: 75,
+                         howSnare: 'A trickster, but on the snare it\'s just a count: hit it that many times.'},
+    // rebooted, it splits into two minis in the lanes beside it: faster, one play each
+    'split-sprocket':   {name: 'Split Sprocket', how: 'Reboot it and it splits in two! Each mini is fast but needs only 1 play.', miniSpeed: 1.5, miniCount: [1, 1], miniSnare: [2, 2], points: 75},
+    // its voice box is dark until it has walked `revealAt` of the way, then the note fades in (`fadeMs`, no flicker)
+    'blackout-bot':     {name: 'Blackout Bot', how: 'Its note is hidden in the dark. Watch closely: it fades in halfway.', revealAt: .5, fadeMs: 900, points: 75},
+    // while on the floor, every `every` seconds it oils the nearest other machine: +1 play (at most `maxAdd` per machine)
+    'oil-can-ollie':    {name: 'Oil Can Ollie', how: 'It oils the others: +1 play every few seconds. Reboot Ollie first!', every: 4, maxAdd: 3, points: 100},
+  },
+};
+
+/* JUMP SCARE MODE (the third SPOOKY LEVEL, after a warning; only if shared/teacher-settings.js allows it): 1–2 sudden
+   scares a showtime. Numbers here; the scares pause the band, the clocks and the microphone, and never cost a spotlight.
+     perShow     [fewest, most] scares in one showtime
+     notBefore   never in the first seconds of a showtime
+     apart       at least this many seconds between two scares
+     bossGuard   never in the last seconds of a boss phase (the Maestro this close to the front, or 2 plays or fewer left)
+     ms          how long a scare lasts, and `beat` = the pause after it before the band moves again
+     window      [from, to] seconds: when the scares may be planned (the showtime's game clock) */
+window.SHOWTIME_SCARES = {perShow: [1, 2], notBefore: 10, apart: 25, bossGuard: 5, ms: 1300, beat: 700, window: [12, 70]};
