@@ -368,7 +368,7 @@
     const acc = total ? hits / total : 0;
     const stars = acc === 1 && reveals === 0 ? 3 : acc >= RULES.twoStar ? 2 : acc >= RULES.oneStar ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
-    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = stars === 3 ? 'Perfect memory!' : stars ? 'Scroll mastered!' : 'The ink got away';
     $('resMsg').textContent = stars === 3 ? 'Every note, no reveals. Your eyes are as sharp as a brush tip!'

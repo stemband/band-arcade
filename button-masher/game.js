@@ -416,7 +416,7 @@
     G.locked = true;
     const stars = won ? (mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1) : 0;
     const old = A.store.level(GAME_ID, member.id, lv);
-    A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     const unlocked = won && old.stars === 0 && lv < RIVALS.length;
     $('resRival').innerHTML = rivalSVG(V, won ? 'bowing' : '');
     $('resYou').innerHTML = FX ? A.AvatarFight.stillHTML(member.id, won ? 'victory' : 'bow', {cls: 'res-fighter'}) : A.avatarHTML({size: 'tile', member: member.id});

@@ -363,7 +363,7 @@
     const pct = hits / count;
     const stars = wrong === 0 && missed === 0 ? 3 : pct >= RULES.twoStarRate ? 2 : pct >= RULES.passRate ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
-    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
+    A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     const newBelt = stars > 0 && old.stars === 0 && lv < BELTS.length;
     $('resNinja').innerHTML = A.ninjaSVG({belt: stars ? L.color : 'belt-white', cls: stars ? 'cheer' : ''});
     $('resStars').innerHTML = A.starStr(stars);

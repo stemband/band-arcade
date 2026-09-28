@@ -746,9 +746,269 @@ window.Arcade = window.Arcade || {};
     x.restore();
   };
 
+  /** a still layer painted once per size into the scene's state (only the moving parts are drawn every frame) */
+  function layer(st, key, W, H, paint) {
+    const L = st[key];
+    if (L && L.width === W && L.height === H) return L;
+    const c = st[key] = document.createElement('canvas'); c.width = W; c.height = H;
+    paint(c.getContext('2d'), W, H);
+    return c;
+  }
+  /** a slow, smooth breath 0..1 (period p seconds; keep p ≥ 2: nothing flickers) */
+  const breathe = (t, p, ph = 0) => .5 + .5 * Math.sin(t * TAU / p + ph);
+
+  /* HAUNTED HALLWAY: a cute, friendly spooky corridor at night: purple walls running back to a lit doorway, crooked
+     portraits, cobwebs in the corners, candle sconces that glow softly (slow breaths, no flicker), mist on the floor
+     and one little friendly ghost drifting across and back, high up */
+  S['haunted-hallway'] = (x, W, H, t, o) => {
+    const bx0 = W * .39, bx1 = W * .61, by0 = H * .3, by1 = H * .62, m = Math.min(W, H);   // the far wall
+    x.drawImage(layer(o.state, 'hall', W, H, (p, W, H) => {
+      vgrad(p, W, H, [[0, mix('deep', 'purple-ink', .25)], [1, col('deep')]]);
+      const wall = (pts, c) => { p.fillStyle = c; p.beginPath(); pts.forEach(([a, b], i) => i ? p.lineTo(a, b) : p.moveTo(a, b)); p.closePath(); p.fill(); };
+      wall([[0, 0], [bx0, by0], [bx0, by1], [0, H]], mix('deep', 'purple-ink', .3));                    // left wall
+      wall([[W, 0], [bx1, by0], [bx1, by1], [W, H]], mix('deep', 'purple-ink', .3));                    // right wall
+      wall([[0, 0], [W, 0], [bx1, by0], [bx0, by0]], mix('deep', 'purple-ink', .14));                   // ceiling
+      wall([[0, H], [W, H], [bx1, by1], [bx0, by1]], mix('deep', 'q-carpet-d', .2));                  // floor
+      wall([[W * .18, H], [W * .82, H], [W * .54, by1], [W * .46, by1]], mix('deep', 'red-ink', .25)); // the runner rug
+      p.fillStyle = mix('deep', 'purple-ink', .2); p.fillRect(bx0, by0, bx1 - bx0, by1 - by0);          // the far wall
+      glow(p, W / 2, (by0 + by1) / 2 + H * .03, (bx1 - bx0) * .9, col('purple', .14), col('purple', 0));
+      p.fillStyle = mix('deep', 'purple', .22); p.fillRect(W * .46, H * .4, W * .08, by1 - H * .4);     // the lit doorway
+      p.strokeStyle = col('purple-ink', .25); p.lineWidth = Math.max(1, W / 300);                      // wallpaper stripes, in perspective
+      for (let i = 1; i < 9; i++) {
+        const u = i / 9, lx = bx0 * u, rx = W - (W - bx1) * u;
+        [[lx, lx / bx0], [rx, (W - rx) / (W - bx1)]].forEach(([sx, f]) => { p.beginPath(); p.moveTo(sx, by0 * f); p.lineTo(sx, H - (H - by1) * f); p.stroke(); });
+      }
+      [[.12, .5], [.26, .78]].forEach(([u, sc], k) => {                                                   // portraits on both walls
+        [-1, 1].forEach(side => {
+          const f = u / (bx0 / W), X0 = side < 0 ? W * u : W * (1 - u), w = W * .07 * sc * (1.2 - f * .5);
+          const top = by0 * f + H * .12 * (1 - f), h = (H - (H - by1) * f - by0 * f) * .28;
+          p.save(); p.translate(X0, top + h / 2); p.rotate((k ? -.06 : .05) * side);
+          p.fillStyle = mix('deep', 'gold-ink', .45); p.fillRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
+          p.fillStyle = mix('deep', 'purple-ink', .12); p.fillRect(-w / 2, -h / 2, w, h);
+          p.fillStyle = mix('deep', 'q-ghost-d', .2); p.beginPath(); p.ellipse(0, -h * .08, w * .22, h * .2, 0, 0, TAU); p.fill();   // a portrait's head
+          p.fillRect(-w * .3, h * .12, w * .6, h * .3);
+          p.restore();
+        });
+      });
+      p.strokeStyle = col('q-ghost', .14); p.lineWidth = 1;                                            // cobwebs in the top corners
+      [[0, 1], [W, -1]].forEach(([cx, d]) => {
+        const r = m * .22;
+        for (let k = 0; k <= 5; k++) { const a = k / 5 * Math.PI / 2; p.beginPath(); p.moveTo(cx, 0); p.lineTo(cx + d * Math.cos(a) * r, Math.sin(a) * r); p.stroke(); }
+        for (let j = 1; j <= 3; j++) { p.beginPath(); for (let k = 0; k <= 5; k++) { const a = k / 5 * Math.PI / 2, rr = r * j / 3.3 * (k % 5 ? .92 : 1); k ? p.lineTo(cx + d * Math.cos(a) * rr, Math.sin(a) * rr) : p.moveTo(cx + d * rr, 0); } p.stroke(); }
+      });
+    }), 0, 0);
+    [[.07, .42, 1], [.93, .42, 1], [.3, .4, .55], [.7, .4, .55]].forEach(([sx, sy, sc], i) => {   // candles: a slow breath of light
+      const f = .8 + .12 * breathe(t, 3.2 + i * .7, i * 2) + .08 * breathe(t, 5.1, i);
+      const X = W * sx, Y = H * sy, r = m * .018 * sc;
+      glow(x, X, Y - r * 2, m * .2 * sc, col('amber', .2 * f), col('amber', 0));
+      x.fillStyle = col('bone', .6); x.fillRect(X - r * .6, Y - r * .4, r * 1.2, r * 2.4);                  // the candle
+      x.fillStyle = mix('deep', 'gold-ink', .4); x.fillRect(X - r * 1.4, Y + r * 2, r * 2.8, r * .7);                    // its holder
+      x.fillStyle = col('yellow-hi', .75 * f); x.beginPath(); x.ellipse(X, Y - r * 1.2, r * .5, r * (1 + .1 * Math.sin(t * 2.4 + i)), 0, 0, TAU); x.fill();
+    });
+    for (let i = 0; i < 5; i++) {                                                          // mist along the floor
+      const mx = fract(hash(i + 3) + t * (.01 + .006 * hash(i + 4))) * W * 1.6 - W * .3;
+      x.save(); x.translate(mx, H * (.82 + .12 * hash(i + 5))); x.scale(3, 1);
+      glow(x, 0, 0, m * .1, col('mist', .08), col('mist', 0)); x.restore();
+    }
+    // the friendly ghost: floats across and back high up (a round head, a wavy hem, dot eyes, rosy cheeks, a little smile)
+    const gx = W * (.5 + .36 * Math.sin(t * .08)), gy = H * .17 + Math.sin(t * .6) * H * .02, gr = m * .065, dir = Math.cos(t * .08) >= 0 ? 1 : -1;
+    glow(x, gx, gy, gr * 2.4, col('q-wisp', .12), col('q-wisp', 0));
+    // pre-drawn once per size and facing, then placed with smooth (filtered) moves: its edges never shimmer
+    const gs = Math.ceil(gr * 3), spr = layer(o.state, 'ghost' + dir, gs, gs, p => {
+      p.translate(gs / 2, gs * .42);
+      p.fillStyle = col('q-ghost', .62); p.beginPath(); p.arc(0, 0, gr, Math.PI, 0);
+      const hem = gr * 1.1; p.lineTo(gr, hem);
+      for (let k = 4; k > 0; k--) { const hx = -gr + (k - .5) * gr / 2; p.quadraticCurveTo(hx + gr * .25, hem + gr * .22, hx, hem - gr * .05); p.lineTo(hx - gr * .25, hem); }
+      p.closePath(); p.fill();
+      p.fillStyle = col('deep'); const ex = gr * .1 * dir;
+      [-1, 1].forEach(s => { p.beginPath(); p.ellipse(ex + s * gr * .34, -gr * .1, gr * .11, gr * .15, 0, 0, TAU); p.fill(); });
+      p.fillStyle = col('q-cheek', .55); [-1, 1].forEach(s => { p.beginPath(); p.arc(ex + s * gr * .55, gr * .18, gr * .1, 0, TAU); p.fill(); });
+      p.strokeStyle = col('deep'); p.lineWidth = Math.max(1, gr * .08); p.beginPath(); p.arc(ex, gr * .15, gr * .16, .2, Math.PI - .2); p.stroke();
+    });
+    x.save(); x.translate(gx, gy); x.rotate(Math.sin(t * .5 + 1) * .04); x.imageSmoothingEnabled = true;
+    x.drawImage(spr, -gs / 2, -gs * .42);
+    x.restore();
+  };
+
+  /* TWINKLE LIGHTS: a winter night: strings of colored bulbs draped across the top and the sides, each bulb slowly
+     fading brighter and dimmer on its own (2.4–5 s a cycle: a twinkle, never a blink), soft snow falling on snowy hills */
+  const TW_STRANDS = [[-.02, .06, 1.02, .06, .14, 11], [-.02, .02, .45, -.02, .2, 6], [.55, -.02, 1.02, .03, .2, 6], [-.02, .36, .2, .78, .06, 5], [1.02, .36, .8, .78, .06, 5]];
+  const TW_COLS = ['pink', 'cyan', 'yellow', 'green', 'amber', 'purple'];
+  const twAt = (W, H, u0, v0, u1, v1, sag, f) => [W * (u0 + (u1 - u0) * f), H * (v0 + (v1 - v0) * f + sag * 4 * f * (1 - f))];
+  function TW_BULBS(W, H) {
+    const L = [];
+    TW_STRANDS.forEach(([u0, v0, u1, v1, sag, n], s) => { for (let k = 0; k < n; k++) { const [a, b] = twAt(W, H, u0, v0, u1, v1, sag, (k + .5) / n); L.push([a, b, s * 17 + k]); } });
+    return L;
+  }
+  S['twinkle-lights'] = (x, W, H, t, o) => {
+    const m = Math.min(W, H);
+    x.drawImage(layer(o.state, 'night', W, H, (p, W, H) => {
+      vgrad(p, W, H, [[0, col('deep')], [.75, mix('deep', 'blue-ink', .38)], [1, mix('deep', 'blue-ink', .2)]]);
+      for (let i = 0; i < 40; i++) { p.fillStyle = col('white-hi', .08 + .14 * hash(i + 60)); p.fillRect(hash(i + 61) * W, hash(i + 62) * H * .6, Math.max(1, W / 400), Math.max(1, W / 400)); }
+      const hill = (y0, amp, ph, c) => { p.fillStyle = c; p.beginPath(); p.moveTo(0, H); for (let i = 0; i <= 40; i++) { const u = i / 40; p.lineTo(u * W, H * (y0 - amp * Math.sin(u * 3.2 + ph))); } p.lineTo(W, H); p.fill(); };
+      hill(.86, .06, .4, mix('deep', 'blue-ink', .5));
+      hill(.93, .05, 2.1, mix('deep', 'blue-ink', .6, .9));
+      p.fillStyle = col('white-hi', .06); p.fillRect(0, H * .9, W, H * .1);
+      for (let i = 0; i < 5; i++) {                                                          // little pines on the far hill, dark
+        const px = W * (.06 + .22 * i + .06 * hash(i + 90)), py = H * (.86 - .05 * Math.sin(px / W * 3.2 + .4)), s = m * (.05 + .03 * hash(i + 91));
+        p.fillStyle = mix('deep', 'blue-ink', .2);
+        for (let k = 0; k < 3; k++) { p.beginPath(); p.moveTo(px, py - s * (1.6 - k * .45)); p.lineTo(px - s * (.35 + k * .12), py - s * (.7 - k * .35)); p.lineTo(px + s * (.35 + k * .12), py - s * (.7 - k * .35)); p.fill(); }
+      }
+    }), 0, 0);
+    const r = m * .014, gr = Math.max(4, Math.round(m * .07)), br = Math.max(2, Math.ceil(r * 1.3));
+    const bulbs = TW_BULBS(W, H);
+    x.drawImage(layer(o.state, 'wires', W, H, p => {                                        // the wires (a gentle droop) + every bulb unlit
+      p.strokeStyle = mix('deep', 'green-ink', .5); p.lineWidth = Math.max(1, m / 250);
+      TW_STRANDS.forEach(([u0, v0, u1, v1, sag]) => { p.beginPath(); for (let k = 0; k <= 24; k++) { const [a, b] = twAt(W, H, u0, v0, u1, v1, sag, k / 24); k ? p.lineTo(a, b) : p.moveTo(a, b); } p.stroke(); });
+      bulbs.forEach(([bx, by, k]) => {
+        p.fillStyle = col('deep'); p.fillRect(bx - r * .45, by - r * .2, r * .9, r * .9);
+        p.fillStyle = mix('deep', TW_COLS[k % TW_COLS.length], .3); p.beginPath(); p.ellipse(bx, by + r * 1.4, r * .8, r * 1.15, 0, 0, TAU); p.fill();
+      });
+    }), 0, 0);
+    TW_COLS.forEach(c => {                                                                   // each color's glow and lit bulb, pre-drawn once
+      layer(o.state, 'glow-' + c, gr * 2, gr * 2, p => glow(p, gr, gr, gr, col(c, .22), col(c, 0)));
+      layer(o.state, 'bulb-' + c, br * 2, br * 2, p => {
+        p.fillStyle = mix('deep', c, .9); p.beginPath(); p.ellipse(br, br, r * .8, r * 1.15, 0, 0, TAU); p.fill();
+        p.fillStyle = col('white-hi', .35); p.beginPath(); p.arc(br - r * .25, br - r * .3, r * .25, 0, TAU); p.fill();
+      });
+    });
+    x.save(); x.globalCompositeOperation = 'lighter';
+    bulbs.forEach(([bx, by, k]) => {                                                         // each bulb breathes on its own: 2.4–5 s a cycle
+      x.globalAlpha = .35 + .65 * breathe(t, 2.4 + 2.6 * hash(k + 7), hash(k + 8) * TAU);
+      x.drawImage(o.state['glow-' + TW_COLS[k % TW_COLS.length]], bx - gr, by + m * .02 - gr);
+    });
+    x.globalCompositeOperation = 'source-over';
+    bulbs.forEach(([bx, by, k]) => {
+      x.globalAlpha = .1 + .9 * breathe(t, 2.4 + 2.6 * hash(k + 7), hash(k + 8) * TAU);
+      x.drawImage(o.state['bulb-' + TW_COLS[k % TW_COLS.length]], bx - br, by + r * 1.4 - br);
+    });
+    x.restore();
+    for (let tier = 0; tier < 3; tier++) {                                                    // soft snow (one path per brightness)
+      x.fillStyle = col('white-hi', .22 + .12 * tier); x.beginPath();
+      for (let i = tier; i < 45; i += 3) {
+        const sp = .03 + .03 * hash(i + 30), y = (fract(hash(i + 31) + t * sp) * 1.1 - .05) * H, sx = hash(i + 32) * W + Math.sin(t * (.4 + .3 * hash(i + 33)) + i) * W * .03, r = m * (.004 + .005 * hash(i + 35));
+        x.moveTo(sx + r, y); x.arc(sx, y, r, 0, TAU);
+      }
+      x.fill();
+    }
+  };
+
+  /* CONCERT HALL: the stage seen from the seats: red curtains and a valance, chairs and music stands waiting on a warm
+     wooden stage, three spotlight cones breathing slowly and drifting a little, rows of seats along the bottom */
+  S['concert-hall'] = (x, W, H, t, o) => {
+    const m = Math.min(W, H), sy = H * .66;                                                  // the stage's front edge
+    x.drawImage(layer(o.state, 'hall', W, H, (p, W, H) => {
+      vgrad(p, W, H, [[0, col('deep')], [.5, mix('deep', 'stage-curtain', .18)], [sy / H, mix('deep', 'red-ink', .3)], [1, col('deep')]]);
+      vgrad2(p, 0, H * .5, W, sy - H * .5, [[0, mix('stage-wood', 'deep', .7)], [1, mix('stage-wood', 'deep', .35)]]);   // the stage floor
+      p.strokeStyle = col('deep', .35); p.lineWidth = 1;
+      for (let i = 1; i < 5; i++) { const y = H * .5 + (sy - H * .5) * (i / 5) * (i / 5); p.beginPath(); p.moveTo(0, y); p.lineTo(W, y); p.stroke(); }
+      p.fillStyle = mix('stage-wood', 'deep', .75); p.fillRect(0, sy, W, H * .03);                      // the stage's lip
+      p.fillStyle = mix('deep', 'floor-3', .6);                                                            // chairs and stands, in arcs
+      [[.54, .9, 7], [.6, 1, 8]].forEach(([yy, sc, n]) => {
+        for (let i = 0; i < n; i++) {
+          const u = .18 + .64 * (i + .5) / n, cx = W * u, cy = H * yy - Math.sin(u * Math.PI) * H * .03, s = m * .032 * sc;
+          p.fillRect(cx - s * .5, cy - s * 1.3, s * .18, s * 1.3); p.fillRect(cx - s * .5, cy - s * .5, s, s * .15);   // a chair
+          p.fillRect(cx - s * .5, cy - s * .35, s * .12, s * .35); p.fillRect(cx + s * .38, cy - s * .35, s * .12, s * .35);
+          if (i % 2 === 0) { p.fillRect(cx + s * .8, cy - s * 1.6, s * .08, s * 1.6); p.save(); p.translate(cx + s * .84, cy - s * 1.7); p.rotate(-.25); p.fillRect(-s * .45, -s * .3, s * .9, s * .55); p.restore(); }   // a music stand
+        }
+      });
+      const curtain = (x0, w, flip) => {
+        const n = 6;
+        for (let k = 0; k < n; k++) {
+          const fx = x0 + (flip ? w - (k + 1) * w / n : k * w / n), g = p.createLinearGradient(fx, 0, fx + w / n, 0);
+          g.addColorStop(0, mix('stage-curtain', 'deep', .7)); g.addColorStop(.5, mix('stage-curtain', 'deep', .3)); g.addColorStop(1, mix('stage-curtain', 'deep', .78));
+          p.fillStyle = g; p.beginPath(); p.moveTo(fx, 0); p.lineTo(fx + w / n + 1, 0); p.lineTo(fx + w / n + 1 + (flip ? -1 : 1) * w * .05 * (k / n), sy); p.lineTo(fx + (flip ? -1 : 1) * w * .05 * (k / n), sy); p.fill();
+        }
+      };
+      curtain(0, W * .16, false); curtain(W * .84, W * .16, true);
+      vgrad2(p, 0, 0, W, H * .13, [[0, mix('stage-curtain', 'deep', .7)], [1, mix('stage-curtain', 'deep', .45)]]);   // the valance
+      for (let k = 0; k < 12; k++) { p.fillStyle = mix('stage-curtain', 'deep', .45); p.beginPath(); p.arc((k + .5) * W / 12, H * .13, W / 24, 0, Math.PI); p.fill(); }
+      p.fillStyle = col('gold', .5); p.fillRect(0, H * .13 - 1, W, Math.max(1, H / 200));
+      for (let r = 0; r < 4; r++) {                                                           // rows of seats (the backs of them)
+        const y = sy + H * .06 + r * H * .085, s = W / (10 + r * -1.5) , off = r % 2 ? s / 2 : 0;
+        p.fillStyle = mix('deep', 'red-ink', .18 + r * .05);
+        for (let cx = -s + off; cx < W + s; cx += s) { p.beginPath(); p.moveTo(cx - s * .42, y + H * .09); p.lineTo(cx - s * .42, y + s * .18); p.quadraticCurveTo(cx - s * .42, y, cx, y); p.quadraticCurveTo(cx + s * .42, y, cx + s * .42, y + s * .18); p.lineTo(cx + s * .42, y + H * .09); p.fill(); }
+      }
+    }), 0, 0);
+    x.save(); x.globalCompositeOperation = 'lighter';
+    [[.28, .14, 7], [.5, 0, 9], [.72, -.14, 8]].forEach(([u, lean, P], i) => {                 // spotlights: slow breaths, slow drift
+      const b = .55 + .45 * breathe(t, P, i * 2.1), fx = W * (u + .04 * Math.sin(t * TAU / (P * 2.3) + i)), top = W * (u - lean * .6);
+      const g = x.createLinearGradient(0, H * .1, 0, sy);
+      g.addColorStop(0, col('amber-hi', .14 * b)); g.addColorStop(1, col('amber-hi', .05 * b));
+      x.fillStyle = g; x.beginPath(); x.moveTo(top - W * .015, H * .1); x.lineTo(top + W * .015, H * .1); x.lineTo(fx + W * .09, sy - H * .04); x.lineTo(fx - W * .09, sy - H * .04); x.fill();
+      x.save(); x.translate(fx, sy - H * .05); x.scale(1, .25); glow(x, 0, 0, W * .12, col('amber-hi', .2 * b), col('amber-hi', 0)); x.restore();
+    });
+    for (let i = 0; i < 24; i++) {                                                             // dust in the light
+      const dy = H * .12 + fract(hash(i + 50) + t * .012 * (1 + hash(i + 51))) * (sy - H * .2), dx = W * (.2 + .6 * hash(i + 52)) + Math.sin(t * .3 + i) * W * .01;
+      x.fillStyle = col('bone', .16); x.fillRect(dx, dy, Math.max(1, W / 500), Math.max(1, W / 500));
+    }
+    x.restore();
+  };
+
+  /* SUNSET BEACH: a half sun sinking into the sea under a warm sky, its light shimmering on slow waves, foam sliding up
+     and back on the sand, a palm tree swaying a little and a couple of birds gliding by */
+  S['sunset-beach'] = (x, W, H, t, o) => {
+    const m = Math.min(W, H), hz = H * .55, sand = H * .82;
+    const sr = m * .2, sx = W * .5;
+    x.drawImage(layer(o.state, 'sky', W, H, (p, W, H) => {
+      vgrad2(p, 0, 0, W, hz, [[0, col('deep')], [.4, mix('deep', 'purple-ink', .5)], [.75, mix('deep', 'pink-ink', .6)], [1, mix('pink-ink', 'amber-ink', .6)]]);
+      glow(p, sx, hz, sr * 3, col('amber', .22), col('amber', 0));
+      p.save(); p.beginPath(); p.rect(0, 0, W, hz); p.clip();
+      const g = p.createLinearGradient(0, hz - sr, 0, hz); g.addColorStop(0, mix('yellow', 'amber', .3)); g.addColorStop(1, mix('amber', 'pink-ink', .4));
+      p.fillStyle = g; p.beginPath(); p.arc(sx, hz, sr, 0, TAU); p.fill();
+      p.fillStyle = mix('deep', 'purple-ink', .35, .6);                                 // thin cloud streaks
+      [[.15, .22, .3], [.7, .3, .25], [.35, .4, .18], [.82, .12, .2]].forEach(([u, v, w]) => { p.beginPath(); p.ellipse(W * u, H * v, W * w, H * .012, 0, 0, TAU); p.fill(); });
+      p.restore();
+      vgrad2(p, 0, hz, W, sand - hz, [[0, mix('deep', 'purple-ink', .4)], [1, mix('deep', 'blue-ink', .25)]]);   // the sea
+      vgrad2(p, 0, sand, W, H - sand, [[0, mix('amber-ink', 'deep', .7)], [1, mix('amber-ink', 'deep', .88)]]);      // the sand
+    }), 0, 0);
+    // the sun's path on the water: short strokes that shimmer (slow sway, each fades in and out over seconds)
+    x.save(); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 22; i++) {
+      const f = (i + .5) / 22, y = hz + (sand - hz) * f * .95, w = sr * (.35 + 1.1 * f) * (.5 + .5 * hash(i + 3));
+      const cx = sx + (hash(i + 4) - .5) * sr * .6 * (1 + f) + Math.sin(t * .5 + i) * sr * .08, a = .1 + .22 * breathe(t, 2.5 + 2 * hash(i + 5), i);
+      x.fillStyle = col('amber-hi', a * .8 * (1 - f * .5)); x.fillRect(cx - w / 2, y, w, Math.max(1, H * .006));
+    }
+    x.restore();
+    x.strokeStyle = col('amber-hi', .12); x.lineWidth = Math.max(1, H / 300);                // slow swell lines
+    for (let k = 0; k < 6; k++) {
+      const f = fract(k / 6 + t * .025), y = hz + (sand - hz) * f;
+      x.globalAlpha = Math.sin(f * Math.PI); x.beginPath();
+      for (let i = 0; i <= 20; i++) { const u = i / 20; x.lineTo(u * W, y + Math.sin(u * 9 + t * .4 + k) * H * .004 * (1 + f * 2)); }
+      x.stroke();
+    }
+    x.globalAlpha = 1;
+    const reach = H * .05 * breathe(t, 9, 0);                                               // foam sliding up the sand and back
+    x.fillStyle = col('white-hi', .1);
+    x.beginPath(); x.moveTo(0, sand - 2);
+    for (let i = 0; i <= 24; i++) { const u = i / 24; x.lineTo(u * W, sand + reach * (.6 + .4 * Math.sin(u * 7 + 1)) + Math.sin(u * 23 + t * .3) * H * .004); }
+    x.lineTo(W, sand - 2); x.fill();
+    x.fillStyle = mix('deep', 'blue-ink', .4, .5); x.fillRect(0, sand - 2, W, 2);
+    // the palm: a leaning trunk and fronds on the right, swaying slowly
+    const px = W * .88, py = H * 1.0, top = [W * .8, H * .36], sway = Math.sin(t * .5) * .05;
+    x.strokeStyle = col('deep'); x.lineCap = 'round'; x.lineWidth = m * .03;
+    x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(W * .9, H * .6, top[0], top[1]); x.stroke();
+    x.fillStyle = col('deep');
+    for (let k = 0; k < 7; k++) {
+      const a = -Math.PI / 2 + (k - 3) * .5 + sway * (1 + k % 2), L = m * (.2 + .05 * hash(k + 70)), tx = top[0] + Math.cos(a) * L, ty = top[1] + Math.sin(a) * L * .6 + L * .35;
+      x.beginPath(); x.moveTo(top[0], top[1]);
+      x.quadraticCurveTo((top[0] + tx) / 2 + Math.cos(a - 1.2) * L * .25, (top[1] + ty) / 2 - L * .3, tx, ty);
+      x.quadraticCurveTo((top[0] + tx) / 2, (top[1] + ty) / 2 - L * .1, top[0], top[1]); x.fill();
+    }
+    x.lineCap = 'butt';
+    // birds: soft V shapes gliding slowly across the sky, wings flapping gently (under 1 beat a second)
+    x.strokeStyle = col('deep', .8); x.lineWidth = Math.max(1, m / 180);
+    for (let i = 0; i < 3; i++) {
+      const bxp = (fract(hash(i + 80) + t * (.012 + .006 * i)) * 1.3 - .15) * W, byp = H * (.12 + .1 * i) + Math.sin(t * .3 + i) * H * .015;
+      const s = m * (.022 - .004 * i), fl = Math.sin(t * TAU * .7 + i * 2) * s * .35;
+      x.beginPath(); x.moveTo(bxp - s, byp - fl); x.quadraticCurveTo(bxp - s * .4, byp - s * .35 - fl * .5, bxp, byp); x.quadraticCurveTo(bxp + s * .4, byp - s * .35 - fl * .5, bxp + s, byp - fl); x.stroke();
+    }
+  };
+
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
-    highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10};
+    highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

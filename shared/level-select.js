@@ -361,6 +361,7 @@ window.Arcade = window.Arcade || {};
   function played(i) {
     const gameId = (S && S.gameId) || pageGame();
     remember(gameId, i);
+    if (A.store && A.store.noteActivity && gameId) A.store.noteActivity({game: gameId, play: 1});   // seasonal events: a game played today
     if (S && S.opts) { S.sel = i; mark(); drawStart(false); }
   }
 

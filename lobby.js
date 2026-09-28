@@ -62,6 +62,7 @@ window.Arcade = window.Arcade || {};
     $('zones').querySelectorAll('.zsign').forEach(b => b.addEventListener('click', () => onZone(A.zoneById(b.dataset.zone))));
     $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
+    if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
   }
 
   /* ---------- ALL GAMES ---------- */

@@ -244,6 +244,7 @@
     stopLoop();
     A.Sfx.cancelAll('dojo'); A.Sfx.hush();                        // REMATCH: the last match's sounds never carry over
     saveSetup();
+    A.store.noteActivity({game: GAME_ID, play: 1});             // seasonal events: a game played today
     M = {to: S.to, clock: 0, last: 0, paused: false, running: false, phase: 'count', first: true, pt: null, P: [makePlayer(0), makePlayer(1)], mpShown: [false, false],
          cpu: cpuOn() ? CPUS.find(c => c.id === S.cpu) : null, angle0: angle(), timers: []};
     $('wrap').hidden = true; $('paused').hidden = true;

@@ -15,6 +15,8 @@
    results, spar bests), kept apart from the shared progress shape above.
    endless: {gameId: {instKey: {setKey: [{score, name, date, notes, speed, combo}, … best first, at most 5]}}}:
    ENDLESS MODE's Top 5 (shared/endless.js). Kept apart from `games`, so it never counts as stars.
+   activity: {'YYYY-MM-DD': {s, c, g, e, p}}: the DAILY ACTIVITY LOG (stars, levels cleared, games, best Endless score,
+   plays) that seasonal events count (shared/seasons.js); the last 400 days.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
    THE PLAYER: `player` is the saved INSTRUMENT MEMBER ('trumpet', 'oboe', 'horn'…, Arcade.PLAYERS), chosen on
    Select Player. `inst` is kept as its player GROUP (Arcade.groupFor), which is what every game saves progress
@@ -79,6 +81,18 @@ window.Arcade = window.Arcade || {};
   }
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+  /* the daily activity log (see store.activity); the caller saves */
+  function logActivity({game, stars = 0, cleared = 0, endless = 0, play = 0} = {}) {
+    const d = A.store.today(), p = n => String(n).padStart(2, '0'), k = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    const log = data.activity || (data.activity = {}), a = log[k] || (log[k] = {});
+    if (stars) a.s = (a.s || 0) + stars;
+    if (cleared) a.c = (a.c || 0) + cleared;
+    if (endless) a.e = Math.max(a.e || 0, endless);
+    if (play || stars || cleared || endless) a.p = (a.p || 0) + (play ? 1 : 0);
+    if (game) (a.g || (a.g = {}))[game] = 1;
+    const keys = Object.keys(log);
+    if (keys.length > 400) keys.sort().slice(0, keys.length - 400).forEach(x => { delete log[x]; });
+  }
 
   A.store = {
     /** THE BACKUP (shared/backup.js): everything this device remembers, as a plain object (a deep copy) */
@@ -157,7 +171,26 @@ window.Arcade = window.Arcade || {};
       return g[instId] || (g[instId] = {});
     },
     level(gameId, instId, lvl) { return this.levels(gameId, instId)[lvl] || {stars: 0, best: 0}; },
-    setLevel(gameId, instId, lvl, p) { this.levels(gameId, instId)[lvl] = p; save(); },
+    /** save a level's progress. run = the stars THIS play earned (games pass it: p.stars is the best ever), which the
+        daily activity log counts for seasonal events (shared/seasons.js); left out = the new best stars only */
+    setLevel(gameId, instId, lvl, p, run) {
+      const old = this.levels(gameId, instId)[lvl];
+      this.levels(gameId, instId)[lvl] = p;
+      const got = run != null ? run : Math.max(0, ((p && p.stars) || 0) - ((old && old.stars) || 0));
+      logActivity({game: gameId.split(':')[0], stars: got, cleared: got > 0 ? 1 : 0});
+      save();
+    },
+    /** THE DAILY ACTIVITY LOG (seasonal events count only what happens inside their dates):
+        {'YYYY-MM-DD': {s: stars earned, c: levels cleared, g: {gameId: 1} (games played), e: best Endless score,
+        p: plays}}, the last 400 days, in the Arcade Backup Code. note({game, play, endless}) adds to today. */
+    get activity() { return JSON.parse(JSON.stringify(data.activity || {})); },
+    noteActivity(o) { logActivity(o); save(); },
+    /** today's date (the device's; ?demo&today=YYYY-MM-DD pretends another day, for testing) */
+    today() {
+      const t = A.DEMO && A.params && /^\d{4}-\d{2}-\d{2}$/.test(A.params.get('today') || '') ? A.params.get('today').split('-').map(Number) : null;
+      if (!t) return new Date();
+      const n = new Date(); return new Date(t[0], t[1] - 1, t[2], n.getHours(), n.getMinutes(), n.getSeconds());
+    },
     /** true once any level of this game key has been played by this instrument */
     hasProgress(gameId, instId) {
       const lv = (data.games[gameId] || {})[instId] || {};
@@ -177,9 +210,10 @@ window.Arcade = window.Arcade || {};
     addEndless(gameId, instKey, setKey, entry) {
       const all = data.endless || (data.endless = {}), g = all[gameId] || (all[gameId] = {}), i = g[instKey] || (g[instKey] = {});
       const list = (i[setKey] || []).slice();
+      logActivity({game: gameId, endless: entry.score});
       let at = list.findIndex(x => entry.score > x.score);
       if (at < 0) at = list.length;
-      if (at >= 5) return -1;
+      if (at >= 5) { save(); return -1; }
       list.splice(at, 0, entry);
       i[setKey] = list.slice(0, 5);
       save();

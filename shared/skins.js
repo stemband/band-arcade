@@ -329,7 +329,7 @@ window.Arcade = window.Arcade || {};
         : A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
       return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s => s.item ?
         `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
-        (s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.text || ''}</small>`) +
+        (s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.event ? eventLine(s.item) : s.item.unlock.text || ''}</small>`) +
         `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
         `<div class="sk-u-item"><span class="sk-u-pic">${pic(s)}</span><b class="sk-u-name">${s.name}</b>` +
         `<small>${s.kind === 'acc' ? 'Accessory' : 'Skin'}${milestone(s) ? (m ? ` for ${m.short}` : '') : ' for every instrument'} · ${milestone(s) ? `${s.unlock.stars} ★` : s.unlock.text}</small>` +
@@ -345,6 +345,7 @@ window.Arcade = window.Arcade || {};
       const list = (members || [st().player]).filter((m, i, a) => a.indexOf(m) === i);
       let found = [], shownFor = member || list.find(Boolean) || null;
       list.forEach(m => { found = found.concat(Skins.fresh(m).filter(s => !found.some(f => f.id === s.id))); });
+      if (A.Seasons && !UNLOCK_ALL) A.Seasons.check();             // a seasonal event step finished: its item is earned now
       const items = AV() ? AV().freshItems() : [];                 // avatar items (device-wide stars, achievements)
       if (!found.length && !items.length) return [];
       list.forEach(m => Skins.markSeen(m, found));
@@ -358,8 +359,9 @@ window.Arcade = window.Arcade || {};
       return items.map(item => ({item})).concat(found);
     },
     /** Select Player: a card for everything unlocked since the student last looked (existing progress included) */
-    catchUp(member, {onEquip, only} = {}) {
+    catchUp(member, {onEquip, only, foot} = {}) {
       // only: item keys (a Band Ninja belt code's gear): just those, no skins
+      if (A.Seasons && !UNLOCK_ALL && !only) A.Seasons.check();
       const skins = only ? [] : Skins.fresh(member), items = AV() ? AV().freshItems().filter(it => !only || only.includes(it.key)) : [];
       if (!skins.length && !items.length) return [];
       Skins.markSeen(member, skins);
@@ -368,7 +370,7 @@ window.Arcade = window.Arcade || {};
       const ov = document.createElement('div');
       ov.className = 'overlay sk-catchup';
       ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${Skins.cardHTML(found, member)}` +
-        `<p class="muted sk-u-foot">${only ? 'Find it in <b>Create Your Player</b>, on the <b>BAND NINJA</b> tab.' : 'Find everything in the <b>LOCKER</b> on the player card.'}</p>` +
+        `<p class="muted sk-u-foot">${foot ? foot : only ? 'Find it in <b>Create Your Player</b>, on the <b>BAND NINJA</b> tab.' : 'Find everything in the <b>LOCKER</b> on the player card.'}</p>` +
         `<div class="acts"><button type="button" class="btn btn-ghost" data-close>OK</button></div></div>`;
       document.body.appendChild(ov);
       wire(ov, member, onEquip);
@@ -382,6 +384,11 @@ window.Arcade = window.Arcade || {};
     },
   };
 
+  /* a seasonal event item's line on the UNLOCKED! card: "Spooky Season: yours forever" */
+  function eventLine(item) {
+    const ev = A.Seasons && A.Seasons.eventOf(item.key);
+    return ev ? `${ev.emoji || ''} ${ev.name}: yours forever`.trim() : 'A seasonal event item';
+  }
   function accHTML(id, a) {
     const art = ACC_ART[a.id], an = ANCHORS[id], img = an.img, svg = an.svg || img, full = an.full || img;
     const pick = set => {

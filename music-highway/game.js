@@ -678,7 +678,7 @@
     let turboNew = false;
     if (!g.practice && !g.slow) {                                  // NORMAL and TURBO count; the best stars and score are kept
       newBest = g.score > (prev.best || 0);
-      A.store.setLevel(GAME_ID, member.id, lvKey, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)});
+      A.store.setLevel(GAME_ID, member.id, lvKey, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)}, stars);
       if (g.speed === 'turbo' && stars >= 1) {                     // the ⚡ TURBO badge on this song (per instrument)
         const tb = gd().turbo || {}, mine = tb[member.id] || (tb[member.id] = {});
         turboNew = !mine[g.song.id]; mine[g.song.id] = true; save({turbo: tb});

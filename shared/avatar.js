@@ -79,6 +79,9 @@ window.Arcade = window.Arcade || {};
     if (!u || (A.Skins && A.Skins.UNLOCK_ALL)) return true;
     if (u.bandninja) return !!(A.BandNinja && A.BandNinja.has(u.bandninja));   // official Band Ninja gear: only a belt code opens it
     if (u.shop) return !!(st().ownedItems || {})[itemKey(field, id)];
+    // SEASONAL EVENT items (shared/seasons.js): earned during the event, owned forever (a ?season= preview's claims
+    // count in that tab only)
+    if (u.event) return A.Seasons ? A.Seasons.owned(itemKey(field, id)) : !!(st().ownedItems || {})[itemKey(field, id)];
     if (u.stars && !u.game) return st().allStars('*') >= u.stars;      // device-wide: every instrument, every game
     return !!(A.Skins && A.Skins.ruleMet(u));
   }
@@ -87,6 +90,7 @@ window.Arcade = window.Arcade || {};
     const u = (partFor(field, id) || {}).unlock;
     if (!u || identity(field, id)) return '';
     if (u.shop) return `${u.shop} tokens at the Token Booth`;
+    if (u.event) return A.Seasons ? A.Seasons.requirement(itemKey(field, id)) : u.text || 'A seasonal event item';
     if (u.stars && !u.game) return `Earn ${u.stars} ★`;
     return u.text || 'Keep playing to unlock';
   }
@@ -96,19 +100,23 @@ window.Arcade = window.Arcade || {};
     if (!u || isUnlocked(field, id)) return '';
     if (u.stars && !u.game) return `${st().allStars("*")} of ${u.stars} ★ so far`;
     if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
+    if (u.event && A.Seasons) {                                          // a seasonal step running now: "2 of 3 so far"
+      const o = A.Seasons.active(), s = o && o.ev.id === u.event && A.Seasons.steps(o).find(x => x.item === itemKey(field, id));
+      if (s) return `${s.have} of ${s.n} so far`;
+    }
     return '';
   }
   /** every item that has to be earned or bought: {key, field, id, name, unlock, shop} */
   function items() {
     const out = [];
-    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0, official: !!p.official}); }));
+    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0, official: !!p.official, event: p.unlock.event || null}); }));
     return out;
   }
   /** earned items (not bought ones) whose UNLOCKED! card hasn't been shown yet (never with ?unlockall) */
   function freshItems() {
     if (A.Skins && A.Skins.UNLOCK_ALL) return [];
     const seen = st().itemsSeen || {};
-    return items().filter(it => !it.shop && !seen[it.key] && isUnlocked(it.field, it.id));
+    return items().filter(it => !it.shop && !seen[it.key] && isUnlocked(it.field, it.id) && !(it.event && A.Seasons && A.Seasons.previewSeen(it.key)));
   }
   /** a copy of the avatar with anything still locked swapped for a free choice (what the arcade shows) */
   function effective(av) {
@@ -601,6 +609,7 @@ window.Arcade = window.Arcade || {};
       const fx = hx + dx;
       for (let y = foot; y <= foot + 1; y++) for (let x = fx - 1; x <= fx + (side ? 2 : 1); x++)
         put(g, x, y, shoe.sandal ? (y === foot ? ((x - fx) % 2 ? 's' : 'q') : 'Q') : shoe.sole && y === foot + 1 ? 'Q' : 'q');
+      if (shoe.skate && side) put(g, fx + 3, foot + 1, 'Q');                                        // an ice skate's blade (Q = silver) sticks out
     };
     if (view === 'side') { leg(L.side.back, step.back || 0, 0, true); leg(L.side.front, step.front || 0, 0, true); }
     else { leg(L.front.left, 0, step.left || 0); leg(L.front.right, 0, step.right || 0); }
@@ -653,6 +662,7 @@ window.Arcade = window.Arcade || {};
       for (let x = 19; x <= 22; x++) put(g, x, 29, shoe.sole ? 'Q' : 'q');
       for (let x = 19; x <= 22; x++) put(g, x, 28, shoe.sandal && x % 2 ? 's' : 'q');
       if (shoe.rows === 3) { put(g, 19, 27, 'q'); put(g, 20, 27, 'q'); }
+      if (shoe.skate) put(g, 23, 29, 'Q');
     } else {
       for (let x = 12; x <= 19; x++) for (let y = 21; y <= 23; y++) put(g, x, y, bottom.legs === 'shorts' && y === 23 ? 's' : 'p');
       if (bottom.legs === 'skirt') { put(g, 11, 23, 'p'); put(g, 20, 23, 'p'); }
@@ -794,6 +804,7 @@ window.Arcade = window.Arcade || {};
     if (bottom.legs === 'skirt') for (let x = 12; x <= 17; x++) put(g, x, 27, 'p');
     if (bottom.cuff) { put(g, 23, 28, 'P'); put(g, 23, 29, 'P'); }
     for (let y = 26; y <= 29; y++) for (let x = 24; x <= 25; x++) put(g, x, y, shoe.sandal ? (x === 25 ? 'Q' : 's') : shoe.sole && x === 25 ? 'Q' : 'q');
+    if (shoe.skate) put(g, 25, 25, 'Q');
     return outline(g);
   }
   /** the instrument set down on the ground behind a seated (KO) avatar: its carry parts, moved as one */
@@ -878,7 +889,12 @@ window.Arcade = window.Arcade || {};
   A.Avatar = {
     stampResults, isUnlocked, requirement, progress, items, LOCKABLE: Object.keys(LOCKABLE), freshItems, effective, itemKey,
     /** mark items' UNLOCKED! cards as shown */
-    markSeen: list => st().markItemsSeen(list.map(it => it.key)),
+    // (a ?season= preview's event items are never marked: the real event must still celebrate them)
+    markSeen: list => {
+      const pv = it => it.event && A.Seasons && A.Seasons.preview;
+      if (A.Seasons && A.Seasons.preview) A.Seasons.markPreviewSeen(list.filter(pv).map(it => it.key));
+      st().markItemsSeen(list.filter(it => !pv(it)).map(it => it.key));
+    },
     VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone, nameNote, cleanName,
     /** the builder's words for 'title' | 'adj' | 'noun' (A–Z, no repeats, no NEVER-USE words) */
     words: k => NAMES[NAME_PARTS[k] || k] || [], banned,

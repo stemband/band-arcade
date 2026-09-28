@@ -601,7 +601,7 @@
     const g = G; stop();
     const acc = g.right / g.n, stars = RULES.stars.filter(s => acc >= s - 1e-9).length;
     const prev = prog(g.lv), newBest = g.score > (prev.best || 0);
-    A.store.setLevel(GAME_ID, 'all', g.lv, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)});
+    A.store.setLevel(GAME_ID, 'all', g.lv, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)}, stars);
     const lastOne = g.lv === LEVELS.length, clearedNow = stars > 0;
     if (lastOne && clearedNow) { const a = gd().achievements || {}; a.mayor = true; save({achievements: a}); }
     $('play').hidden = true; document.body.classList.remove('kt-playing');

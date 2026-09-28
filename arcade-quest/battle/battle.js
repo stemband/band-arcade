@@ -268,6 +268,7 @@
     enter({enemy, back, overrides}) {
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
+      A.store.noteActivity({game: 'arcade-quest', play: 1});      // seasonal events: a game played today
       B = {e: Object.assign({}, src, {maxHp: src.hp, hp: src.hp}), save, member, back, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
         player: Q.playerId(member.id)};
       Q.ui.innerHTML = `<div class="q-hud">` +

@@ -166,6 +166,12 @@ file so the voice starts at the very beginning.
 | `avatar-open` | `avatar-open.m4a` or `avatar-open.mp3` | The avatar editor (Create Your Player) opens over any screen, from the avatar badge in the top bar or EDIT PLAYER. The music dips a little while it's open. | 0.2–0.6 s |
 | `avatar-save` | `avatar-save.m4a` or `avatar-save.mp3` | Create Your Player: DONE (the new look is saved). CANCEL plays `ui-back`. | 0.3–0.6 s |
 | `item-unlocked` | `item-unlocked.m4a` or `item-unlocked.mp3` | An UNLOCKED! card with a new item for your player (a hat, a pet, a jacket…): a results screen or Select Player. falls back to `skin-unlocked` | 0.5–1 s |
+| `event-spooky-jingle` | `event-spooky-jingle.m4a` or `event-spooky-jingle.mp3` | Spooky Season (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
+| `event-winter-jingle` | `event-winter-jingle.m4a` or `event-winter-jingle.mp3` | Winter Fest (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
+| `event-friendship-jingle` | `event-friendship-jingle.m4a` or `event-friendship-jingle.mp3` | Friendship Week (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
+| `event-miosm-jingle` | `event-miosm-jingle.m4a` or `event-miosm-jingle.mp3` | Music In Our Schools Month (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
+| `event-spring-jingle` | `event-spring-jingle.m4a` or `event-spring-jingle.mp3` | Spring Bloom (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
+| `event-summer-jingle` | `event-summer-jingle.m4a` or `event-summer-jingle.mp3` | Summer Send-Off (seasonal event): the lobby banner opens the event panel, or its free gift is claimed. Built-in jingle until uploaded | 0.5–1.5 s |
 | `item-purchase` | `item-purchase.m4a` or `item-purchase.mp3` | Arcade Quest: buying a player item or a charm at the Token Booth. falls back to `quest-tokens` | 0.3–0.8 s |
 | `charm-equip` | `charm-equip.m4a` or `charm-equip.mp3` | Arcade Quest: putting on or taking off a charm (Menu: CHARMS), or a ghost giving you one. falls back to `skin-equip` | 0.2–0.5 s |
 
