@@ -9,7 +9,7 @@
                  EDIT AVATAR, Tab/↑/↓ move, Esc returns to the badge
      during play hidden (html.in-play, set by Arcade.Bg.menu: every level, round, match, battle and transmission turns
                  the menu background off, and back on for results), so it can't be tapped by accident
-   The creator (shared/avatar-creator.js + avatar.css + the full-body sprite parts in arcade-quest/sprites.js) is
+   The creator (shared/avatar-creator.js + avatar.css + the full-body sprite parts in shared/instrument-sprites.js) is
    loaded the first time EDIT AVATAR is used on a page that doesn't already have it.
 
      Arcade.AvatarBadge.mount(el, {member, instLabel, changeInstrument: href | fn | null})   draws the badge into el
@@ -40,7 +40,7 @@ window.Arcade = window.Arcade || {};
     if (!document.querySelector('link[href*="avatar.css"]')) {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = ver(DIR + 'avatar.css'); document.head.appendChild(l);
     }
-    loading = (window.QUEST_ART ? Promise.resolve() : script(DIR + '../arcade-quest/sprites.js'))
+    loading = (window.QUEST_ART ? Promise.resolve() : script(DIR + 'instrument-sprites.js'))
       .then(() => A.AvatarCreator ? null : script(DIR + 'avatar-creator.js'))
       .catch(e => { loading = null; throw e; });
     return loading;

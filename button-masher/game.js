@@ -11,6 +11,9 @@
   const {noteLabel, writtenMidi} = A.music;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const inst = A.requireInstrument(GAME_ID); if (!inst) return;
+  // THE PLAYER'S AVATAR is the fighter (shared/avatar-fight.js) once the student has one; until then the generic fighter
+  // below and a "Make your avatar!" button (nothing here ever makes an avatar by itself)
+  const hasAvatar = () => !!(A.store && A.store.avatar) && !!(A.AvatarFight && A.AvatarFight.ready());
   A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
@@ -72,7 +75,8 @@
     const [c1, c2] = V.colors;
     return `<svg class="rival-svg ${cls}" viewBox="0 -10 120 160" preserveAspectRatio="xMidYMax meet" style="--r1:var(--${c1});--r2:var(--${c2})" aria-hidden="true">${(RIVAL_LOOKS[V.look] || RIVAL_LOOKS.reed)()}</svg>`;
   }
-  /* the student's fighter: spiky hair, a headband, a jacket in the instrument's color, sneakers; faces right */
+  /* the GENERIC fighter (only for a student with no avatar yet): spiky hair, a headband, a jacket in the instrument's
+     color, sneakers; faces right */
   function fighterSVG(color) {
     return `<svg class="fighter-svg" viewBox="0 -10 120 160" preserveAspectRatio="xMidYMax meet" style="--f1:var(--${color})" aria-hidden="true">` +
       `<path class="f-pants f-line" d="M42 100L36 142H52L60 114L68 142H84L78 100Z"/><path class="f-shoe f-line" d="M32 140H54V148H30Z"/><path class="f-shoe f-line" d="M66 140H88Q94 148 88 148H66Z"/>` +
@@ -92,6 +96,7 @@
   function showHub() {
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimers(); G = null;
+    if (FX) { FX.destroy(); FX = null; }
     ['play', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('playing'); document.body.classList.remove('ww');
     member = A.currentMember();                                              // the instrument chosen on Select Player
@@ -103,6 +108,8 @@
       return;
     }
     $('percussion').hidden = true; $('hubMain').hidden = false;
+    // draw the fight poses now, while the student picks a rival (once per avatar + instrument; cached), not at FIGHT!
+    setTimeout(() => { if (!G && hasAvatar()) A.Avatar.fightSprites(member.id); }, 400);
     const secs = V => Math.round(timeFor(V) * 10) / 10;
     $('rivalGrid').innerHTML = RIVALS.map((V, i) => {
       const lv = i + 1, p = A.store.level(GAME_ID, member.id, lv);
@@ -163,11 +170,9 @@
     ['hub', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
     $('play').hidden = false; $('wrap').classList.add('playing');
     document.body.classList.toggle('ww', !D.brass && !D.slide);             // woodwind diagrams need the long side of a phone
-    $('fighter').innerHTML = fighterSVG(FIGHTER_COLOR[T.diagram] || 'cyan') + `<span class="f-pic">${A.avatarHTML({size: 'tile', member: member.id})}</span>`;
-    $('youPic').innerHTML = A.avatarHTML({size: 'chip', member: member.id});                 // the student's avatar (shared/avatar.js)
+    mountFighter();
     $('rival').innerHTML = rivalSVG(V);
     $('rival').className = 'rival' + (V.boss ? ' boss' : '');
-    $('fighter').className = 'fighter';
     $('rivalName').textContent = V.name;
     $('pad').innerHTML = M.diagramSVG(T.diagram, {interactive: true, label: `${member.name}: ${D.slide ? 'tap a slide position' : 'tap the keys for the note, then STRIKE!'}`});
     $('pad').className = 'pad pad-' + T.diagram;
@@ -178,6 +183,30 @@
     window.scrollTo(0, 0);
     intro();
   }
+
+  /* ---------- THE FIGHTER: the player's avatar in its fight poses, or the generic fighter ---------- */
+  let FX = null;                                       // the fighting avatar's controller (shared/avatar-fight.js)
+  function mountFighter() {
+    if (FX) { FX.destroy(); FX = null; }
+    if (hasAvatar()) FX = A.AvatarFight.mount($('fighter'), {member: member.id});
+    if (!FX) {
+      $('fighter').innerHTML = fighterSVG(FIGHTER_COLOR[T.diagram] || 'cyan') + `<button type="button" class="f-make" id="makeAvatar">Make your avatar!</button>`;
+      $('makeAvatar').addEventListener('click', () => A.AvatarBadge && A.AvatarBadge.edit({member: member.id, onClose: () => { if (hasAvatar() && G) mountFighter(); }}));
+    }
+    $('fighter').className = 'fighter' + (FX ? ' has-avatar' : '');
+    // the HUD: the avatar's little portrait and its name (the instrument's portrait and "You" without an avatar)
+    const has = !!FX;
+    $('youPic').innerHTML = has ? A.avatarHTML({size: 'chip', member: member.id}) : A.portraitHTML(member.id, {size: 'chip'});
+    $('youName').textContent = has ? A.Avatar.nameOf(A.Avatar.get()) : 'You';
+    if (has) $('youName').dataset.avName = 'me'; else delete $('youName').dataset.avName;
+  }
+  /** the fighter's pose: 'idle' | 'strike' | 'hit' | 'dizzy' | 'ko' | 'victory' | 'bow'; ms = back to idle after that */
+  function pose(p, ms) {
+    if (!FX) return;
+    FX.set(p);
+    if (ms) later(() => { if (FX && FX.pose === p) FX.set('idle'); }, ms);
+  }
+  addEventListener('arcade:avatar', () => { if (G && !$('play').hidden && hasAvatar()) mountFighter(); });   // edited from the top bar
 
   /* the rival's taunt, then ROUND n … FIGHT! */
   function intro() {
@@ -297,6 +326,7 @@
     sfx('special-move');
     if (G.combo % RULES.comboStep === 0) later(() => sfx('combo-streak'), 260);
     specialMove(G.combo >= 2 ? `${G.combo} hit combo!` : 'Hit!');
+    if (FX && G.combo >= 2) FX.react('cheer');                                // the pet cheers a combo
     setPrompt(`${current().label}! That's the combo. +${pts}`, 'good');
     hud();
     if (G.hp <= 0) later(ko, reduced.matches ? 300 : 650);
@@ -306,7 +336,7 @@
     G.locked = true; clearInterval(timerId);
     G.mistakes++; G.combo = 0; G.energy--; G.tries++;
     sfx('rival-counter');
-    counter();
+    counter(kind);
     const p = primary();
     G.glow = p.keys; G.pressed = {}; G.order = [];
     render(); hud();
@@ -322,11 +352,12 @@
   }
   function advance() {
     G.i++;
-    if (G.i >= G.items.length) { G.locked = true; banner('Time over', 'ko'); sfx('level-failed'); later(() => { banner(''); finish('time'); }, 1500); return; }
+    if (G.i >= G.items.length) { G.locked = true; pose('bow'); banner('Time over', 'ko'); sfx('level-failed'); later(() => { banner(''); finish('time'); }, 1500); return; }
     nextNote();
   }
   function ko() {
     $('rival').classList.add('ko');
+    pose('victory');
     banner('K.O.!', 'ko');
     sfx('ko');
     later(() => { banner(''); finish('ko'); }, reduced.matches ? 900 : 1900);
@@ -336,17 +367,32 @@
   function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); later(() => el.classList.remove(cls), 1000); }   // back to the idle bob
   function specialMove(text) {
     const fx = $('fx'), a = $('arena').getBoundingClientRect(), f = $('fighter').getBoundingClientRect(), r = $('rival').getBoundingClientRect();
-    fx.style.setProperty('--x0', (f.right - a.left - f.width * .1) + 'px');
-    fx.style.setProperty('--dx', (r.left + r.width * .35 - f.right + f.width * .1) + 'px');
-    fx.innerHTML = `<i class="blast"></i>` + (reduced.matches ? '' : [0, 1, 2, 3, 4, 5].map(k => `<i class="spark" style="--k:${k}"></i>`).join('')) + `<b class="pop">${text}</b>`;
+    fx.style.removeProperty('--px');
+    if (FX) {
+      // the avatar plays (bells/snare strike) and a neon SOUND-WAVE flies from the instrument to the rival
+      const m = FX.mouth();
+      fx.style.setProperty('--x0', (m.x - a.left) + 'px'); fx.style.setProperty('--y0', (m.y - a.top) + 'px');
+      fx.style.setProperty('--dx', (r.left + r.width * .35 - m.x) + 'px');
+      pose('strike', 650);
+    } else {
+      fx.style.setProperty('--x0', (f.right - a.left - f.width * .1) + 'px'); fx.style.removeProperty('--y0');
+      fx.style.setProperty('--dx', (r.left + r.width * .35 - f.right + f.width * .1) + 'px');
+    }
+    fx.innerHTML = (FX ? A.AvatarFight.blastHTML(member.id) : `<i class="blast"></i>`) +
+      (reduced.matches ? '' : [0, 1, 2, 3, 4, 5].map(k => `<i class="spark" style="--k:${k}"></i>`).join('')) + `<b class="pop">${text}</b>`;
     restart($('fighter'), 'strike'); restart($('rival'), 'hit'); restart(fx, 'go');
   }
-  function counter() {
+  /** the rival counters: too slow = a HIT (stagger), a wrong combo = DIZZY, the last of the energy = KO */
+  function counter(kind) {
     const fx = $('fx'), a = $('arena').getBoundingClientRect(), f = $('fighter').getBoundingClientRect(), r = $('rival').getBoundingClientRect();
     fx.style.setProperty('--x0', (r.left - a.left + r.width * .2) + 'px');
     fx.style.setProperty('--dx', (f.left + f.width * .6 - r.left - r.width * .2) + 'px');
+    // with the avatar, "Boing!" pops beside its head, so the dizzy stars and the KO stay in view
+    if (FX) fx.style.setProperty('--px', (f.right - a.left) + 'px'); else fx.style.removeProperty('--px');
     fx.innerHTML = `<i class="wave">)))</i><b class="pop bad">Boing!</b>`;
     restart($('rival'), 'counter'); restart($('fighter'), 'dizzy'); restart(fx, 'go-back');
+    if (G.energy <= 0) pose('ko'); else pose(kind === 'timeout' ? 'hit' : 'dizzy', 1000);
+    if (FX) FX.react('worry');                                               // the pet worries
   }
   function hud() {
     const hp = Math.max(0, G.hp) / G.V.health, en = Math.max(0, G.energy) / RULES.energy;
@@ -373,7 +419,7 @@
     A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)});
     const unlocked = won && old.stars === 0 && lv < RIVALS.length;
     $('resRival').innerHTML = rivalSVG(V, won ? 'bowing' : '');
-    $('resYou').innerHTML = A.avatarHTML({size: 'tile', member: member.id});
+    $('resYou').innerHTML = FX ? A.AvatarFight.stillHTML(member.id, won ? 'victory' : 'bow', {cls: 'res-fighter'}) : A.avatarHTML({size: 'tile', member: member.id});
     $('resStars').innerHTML = A.starStr(stars);
     $('resTitle').textContent = won ? (stars === 3 ? 'Perfect K.O.!' : 'K.O.! You win!') : result === 'time' ? 'Time over' : 'Out of energy';
     $('resMsg').textContent = won
@@ -430,6 +476,7 @@
       (fs.length > 1 ? `<p class="ch-alt">Also: ${fs.slice(1).map(f => f.text).join(' · ')}</p>` : '') + `</div></figure>`;
   }
   A.Masher.game = () => G;                                   // tests: the match in progress
+  A.Masher.fighter = () => FX;                               // tests: the fighting avatar (null = the generic fighter)
   $('chartBtn').addEventListener('click', showChart);
   $('chartClose').addEventListener('click', closeChart);
   addEventListener('keydown', e => { if (e.key === 'Escape' && !$('chart').hidden) closeChart(); });

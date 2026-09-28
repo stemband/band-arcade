@@ -670,6 +670,28 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 }
 @media (prefers-reduced-motion:reduce){ .ls-hint,.ls-start.ls-in,.ls-head.say{animation:none} }
 
+/* ---------- THE FIGHTING AVATAR (shared/avatar-fight.js: Button Masher's fighter) ----------
+   .avf = the pose canvas (crisp pixels) + the effect's still pictures in a square around the figure + the pet in its
+   corner. The game sizes and places .avf (its aspect ratio is --avf-ar). The blast: three neon arcs in the instrument
+   family's color (--avf-c); the game moves it. No blur filters, nothing flashes. */
+.avf{position:relative;display:block;aspect-ratio:var(--avf-ar);pointer-events:none}
+.avf-cv{position:absolute;inset:0;width:100%;height:100%;z-index:2;image-rendering:pixelated;image-rendering:crisp-edges}
+.avf-fx{position:absolute;top:0;left:50%;height:100%;width:auto;aspect-ratio:1;transform:translateX(-50%);pointer-events:none}
+.avf-fx-b{z-index:1}.avf-fx-f{z-index:3}
+.avf-pet{position:absolute;left:0;bottom:2%;width:calc(100% * 10 / 44);aspect-ratio:1;z-index:4}
+.avf-pet canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.avf-pet.cheer{animation:avf-hop .5s ease-out 2}
+.avf-pet.worry{animation:avf-shiver .25s ease-in-out 4}
+@keyframes avf-hop{50%{transform:translateY(-40%)}}
+@keyframes avf-shiver{25%{transform:translateX(-7%) rotate(-5deg)}75%{transform:translateX(7%) rotate(5deg)}}
+.avf-still{display:inline-block;aspect-ratio:var(--avf-ar)}
+.avf-still .avf-img{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.avf-blast{position:absolute;display:block;width:56px;height:56px;margin:-28px 0 0 -12px;pointer-events:none}
+.avf-blast b{position:absolute;inset:0;border:4px solid transparent;border-right-color:var(--avf-c);border-radius:50%;opacity:.95}
+.avf-blast b:nth-child(2){inset:18%;opacity:.8}
+.avf-blast b:nth-child(3){inset:36%;opacity:.65}
+@media (prefers-reduced-motion:reduce){.avf-pet.cheer,.avf-pet.worry{animation:none}}
+
 /* ---------- THE AVATAR BADGE (shared/avatar-badge.js): top bar, every screen; hidden during play ---------- */
 .avb{position:relative;display:inline-flex}
 .avb-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:min(260px,46vw);padding:4px 12px 4px 4px;border-radius:999px;cursor:pointer;

@@ -18,13 +18,20 @@
                                         accessories are drawn ON the avatar as pixels (a crown, a cape…).
      Arcade.Avatar.bustURL(av, eq)      the bust as an image URL (cached: redrawn only when the avatar changes)
      Arcade.Avatar.sprites(member, {avatar, eq})
-                                        THE FULL-BODY SPRITES for Arcade Quest (needs arcade-quest/sprites.js for
+                                        THE FULL-BODY SPRITES for Arcade Quest (needs shared/instrument-sprites.js for
                                         the instruments): {'': idle, '-walk', '-front', '-front-walk', '-back',
                                         '-back-walk', '-play'} -> {w, h, fps, frames: [canvas…], strike?}. Layers,
                                         back to front: legs (or the wheelchair and seated legs) → hair/cape/hood
                                         behind → back arm → instrument parts behind → body and head → the
                                         instrument → hands → front arm → sticks/mallets. A wheelchair rolls
                                         (its spokes turn) where others walk.
+     Arcade.Avatar.fightSprites(member, {avatar, eq})
+                                        THE FIGHT POSES (any game; Button Masher's fighter): the same full-body avatar
+                                        holding its instrument, facing right, on a FIGHT_W × FIGHT_H canvas (room to
+                                        lean, jump and for dizzy stars): {w, h, poses: {idle, strike, hit, dizzy, ko,
+                                        victory, bow}, pet} -> {frames: [canvas…], fps}; pet = the pet alone (small
+                                        frames), or null. A wheelchair user stays seated in every pose. Drawn once
+                                        per avatar + instrument and cached; shared/avatar-fight.js shows them.
    Everything is drawn on small canvases from theme tokens (--av-*, --q-*, the neon colors), cached per avatar, and
    scaled up with crisp pixels. */
 window.Arcade = window.Arcade || {};
@@ -290,10 +297,10 @@ window.Arcade = window.Arcade || {};
   function paint(w, h, layers) {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const x = c.getContext('2d'), img = x.createImageData(w, h), d = img.data;
-    layers.forEach(({g, pal, dy = 0}) => g.forEach((row, yy) => row.forEach((ch, xx) => {
-      const y = yy + dy; if (ch === '.' || y < 0 || y >= h) return;
+    layers.forEach(({g, pal, dy = 0, dx = 0}) => g.forEach((row, yy) => row.forEach((ch, xx) => {
+      const y = yy + dy, X = xx + dx; if (ch === '.' || y < 0 || y >= h || X < 0 || X >= w) return;
       const tok = pal[ch]; if (!tok) return;
-      const [r, gg, b] = rgb(tok), i = (y * w + xx) * 4;
+      const [r, gg, b] = rgb(tok), i = (y * w + X) * 4;
       d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = 255;
     })));
     x.putImageData(img, 0, 0);
@@ -746,6 +753,114 @@ window.Arcade = window.Arcade || {};
     return out;
   }
 
+  /* ---------- THE FIGHT POSES (shared/avatar-fight.js shows them; Button Masher's fighter) ----------
+     Every pose is the same layers as the full-body sprite (frameLayers), with the LOWER part (legs, or the wheelchair
+     and the seated legs) and the UPPER part (everything else: body, head, hair, hats, arms, instrument, all moving
+     together, so nothing ever floats off) shifted by whole pixels. Facing right, on a FIGHT_W × FIGHT_H canvas with the
+     32 × 32 figure at (FIGHT_X, FIGHT_Y). IDLE: carry pose, wide stance, a 1-pixel bob. STRIKE: playing pose, lunging
+     (bells and snare: mallets / sticks up, then down). HIT: pushed back a step, a small impact burst. DIZZY: swaying, stars circling the head.
+     KO: a cartoon sit-down on the floor, the instrument set down behind, stars (in a wheelchair: slumped in the chair).
+     VICTORY: a fanfare: playing, jumping (in a wheelchair: bouncing in the chair), two little notes rising. BOW: facing the viewer, a slow bow. A wheelchair never moves: only the
+     body leans in it. No pose is ever a hurt or an injury: a flop, stars, a bow. */
+  const FIGHT_W = 44, FIGHT_H = 37, FIGHT_X = 6, FIGHT_Y = 5;
+  const STAR_PAL = {'*': 'yellow-hi', '+': 'yellow', o: 'av-out'};
+  /** three little stars circling above the head (k: 0–3, a quarter of the way round each; y is above the grid) */
+  function starsLayer(k, cx = 15, cy = 0) {
+    const g = blank(PW, PW), Y0 = 6;
+    for (let s = 0; s < 3; s++) {
+      const t = k * Math.PI / 6 + s * Math.PI * 2 / 3, x = Math.round(cx + Math.cos(t) * 7), y = Math.round(cy + Math.sin(t) * 2) + Y0;
+      put(g, x, y, '*'); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => put(g, x + a, y + b, '+'));
+    }
+    return {g: outline(g), pal: STAR_PAL, dy: -Y0};
+  }
+  /** two little music notes rising around the head (VICTORY's fanfare; k: 0–3) */
+  const NOTE_ROWS = ['.##', '.#.', '.#.', '##.', '##.'];
+  function notesLayer(k, family) {
+    const g = blank(PW, PW), Y0 = 6, ch = family === 'woodwind' ? 'w' : family === 'percussion' ? 'c' : 'b';
+    [[4, 8, 0], [26, 4, 2]].forEach(([x, y, ph]) => stamp(g, {x, y: y + Y0 - ((k + ph) % 4) * 2, rows: NOTE_ROWS.map(r => r.replace(/#/g, ch))}));
+    return {g: outline(g), pal: {w: 'pink-hi', b: 'amber-hi', c: 'cyan-hi', o: 'av-out'}, dy: -Y0};
+  }
+  /** a small steady impact burst in front of the chest (HIT) */
+  function impactLayer(x = 22, y = 13) {
+    const g = blank(PW, PW);
+    [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2], [4, 1], [-2, 1], [1, -2], [1, 4]].forEach(([a, b]) => put(g, x + a, y + b, b === 1 || a === 1 ? '*' : '+'));
+    return {g: outline(g), pal: {'*': 'red-hi', '+': 'yellow-hi', o: 'av-out'}};
+  }
+  /** sitting on the floor (KO): the legs straight out in front along the ground, feet up */
+  function floorLegs(av) {
+    const g = blank(PW, PW), bottom = partOf(P.BOTTOMS, av.bottom), shoe = partOf(P.SHOES, av.shoes);
+    const bare = bottom.legs === 'shorts' || bottom.legs === 'skirt';
+    for (let x = 13; x <= 23; x++) for (let y = 28; y <= 29; y++) put(g, x, y, bare && x > 16 ? 's' : 'p');
+    if (bottom.legs === 'skirt') for (let x = 12; x <= 17; x++) put(g, x, 27, 'p');
+    if (bottom.cuff) { put(g, 23, 28, 'P'); put(g, 23, 29, 'P'); }
+    for (let y = 26; y <= 29; y++) for (let x = 24; x <= 25; x++) put(g, x, y, shoe.sandal ? (x === 25 ? 'Q' : 's') : shoe.sole && x === 25 ? 'Q' : 'q');
+    return outline(g);
+  }
+  /** the instrument set down on the ground behind a seated (KO) avatar: its carry parts, moved as one */
+  function groundedParts(pose) {
+    const ART = window.QUEST_ART, S = ART.SHAPES, parts = pose.parts || [];
+    if (!parts.length) return null;
+    let x0 = 99, x1 = -99, y1 = -99;
+    parts.forEach(([sh, x, y]) => { const r = S[sh] || []; x0 = Math.min(x0, x); x1 = Math.max(x1, x + Math.max(0, ...r.map(w => w.length)) - 1); y1 = Math.max(y1, y + r.length - 1); });
+    const dx = Math.max(-x0, 10 - x1), dy = 31 - y1, g = blank(PW, PW);
+    parts.forEach(([sh, x, y]) => stamp(g, {x: x + dx, y: y + dy, rows: S[sh] || []}));
+    return {g: outline(g), pal: ART.INSTRUMENT_PALETTE};
+  }
+  const fightCache = new Map();
+  function fightSprites(member, {avatar, eq} = {}) {
+    const ART = window.QUEST_ART;
+    if (!ART || !ART.POSES) return null;
+    const av = avatar ? normalize(avatar) : get();
+    eq = eq || eqFor(member);
+    const key = JSON.stringify([av, member, eq.color, eq.acc]);
+    if (fightCache.has(key)) return fightCache.get(key);
+    const moving = isAnimated(av, eq, {bust: false}) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const F = moving ? [0, 1, 2, 3] : [0];
+    const pals = F.map(f => palette(av, eq, {f}));
+    const heads = F.map(f => ({front: headAndBody(av, eq, 'front', f), side: headAndBody(av, eq, 'side', f)}));
+    const Pz = ART.POSES[member] || ART.POSES.trumpet, play = [].concat(Pz.play), sit = !!av.chair;
+    const lowerN = sit ? 2 : 1;
+    // one frame: o = {view, pose, bob, step, ux, uy (the upper part), lx, ly (the lower part), legs, under, over}
+    const frame = (o, i) => {
+      const fi = i % F.length, pal = pals[fi];
+      let ls = frameLayers(av, eq, pal, o.view || 'side', o.pose || Pz.side, o.bob || 0, o.step || {}, 0, heads[fi][o.view || 'side']);
+      ls = ls.map((l, n) => n < lowerN ? Object.assign({}, l, {dx: o.lx || 0, dy: (l.dy || 0) + (o.ly || 0)})
+        : Object.assign({}, l, {dx: o.ux || 0, dy: (l.dy || 0) + (o.uy || 0)}));
+      if (o.legs) ls[0] = {g: o.legs, pal, dx: 0, dy: 0};
+      return paint(FIGHT_W, FIGHT_H, (o.under || []).concat(ls, o.over ? o.over(i) : []).filter(Boolean)
+        .map(l => Object.assign({}, l, {dx: (l.dx || 0) + FIGHT_X, dy: (l.dy || 0) + FIGHT_Y})));
+    };
+    const pose = (list, fps) => ({fps, frames: list.map(frame)});
+    const stance = sit ? {} : {back: -1, front: 1};
+    const stars = i => [starsLayer(i % 4)];
+    const fam = (A.memberById && (A.memberById(member) || {}).family) || 'brass';
+    const out = {
+      idle: pose((moving ? [0, 1, 2, 3] : [0, 1]).map(k => ({bob: k % 2, step: stance})), 2),
+      strike: pose([0, 1].map(k => ({pose: play[k % play.length], ux: sit ? 1 : 1 + k, step: sit ? {} : {back: -2, front: 2}})), 4),   // 4 a second: at most 2 flashes a second
+      hit: pose([0, 1].map(k => ({ux: sit ? -1 : -3 + k, step: sit ? {} : {back: -3 + k, front: -1}, over: () => [impactLayer(sit ? 21 : 20 + k)]})), 4),
+      dizzy: pose([0, 1, 2, 3].map(k => ({ux: [-1, 0, 1, 0][k], step: stance, over: stars})), 4),
+      ko: sit
+        ? pose([0, 1, 2, 3].map(() => ({ux: -1, uy: 1, pose: Object.assign({}, Pz.side), over: stars})), 3)
+        : pose([0, 1, 2, 3].map(() => ({pose: {parts: [], hands: {back: 'rest', front: 'rest'}}, uy: 7, legs: floorLegs(av), under: [groundedParts(Pz.side)],
+            over: i => [starsLayer(i % 4, 15, 7)]})), 3),
+      // VICTORY: a fanfare: playing, jumping (a wheelchair user bounces in the chair), little notes rising
+      victory: pose([0, 1, 2, 3].map(k => { const j = [3, 2, 0, 0][k], P0 = play[k % play.length];
+        return sit ? {pose: P0, uy: -(j ? 1 : 0), over: () => [notesLayer(k, fam)]} : {pose: P0, uy: -j, ly: -j, over: () => [notesLayer(k, fam)]}; }), 4),
+      bow: pose([0, 1].map(k => ({view: 'front', pose: Pz.front, uy: k * (sit ? 1 : 2)})), 1),
+    };
+    // the pet alone, for the player's corner (its own idle frames and bob)
+    const petPart = partOf(P.PETS, av.pet);
+    let pet = null;
+    if (petPart && petPart.rows) {
+      const [px, py] = P.PET_AT.sprite;
+      pet = {fps: 2, frames: [0, 1, 2, 3].map(f => { const l = petLayer(av, false, 0, moving ? f : 0); return paint(10, 10, [Object.assign({}, l, {dx: 1 - px, dy: 1 - py})]); })};
+    }
+    const res = {w: FIGHT_W, h: FIGHT_H, x: FIGHT_X, y: FIGHT_Y, poses: out, pet, chair: sit};
+    if (fightCache.size > 20) fightCache.clear();
+    fightCache.set(key, res);
+    return res;
+  }
+
   /** the NAME PLATE (the 'plate' slot, CSS .av-plate-<id> in theme.css) as a class attribute, or '' */
   const plateAttr = av => (av && av.plate && av.plate !== 'none' ? ` class="av-plate av-plate-${esc(av.plate)}"` : '');
   /** RESULTS SCREENS: the player's avatar and name at the top of a results panel (shared/skins.js's announce()
@@ -767,7 +882,7 @@ window.Arcade = window.Arcade || {};
     VERSION, FIELDS, get, set, guest, setGuest, random, randomName, normalize, nameOf, clone, nameNote, cleanName,
     /** the builder's words for 'title' | 'adj' | 'noun' (A–Z, no repeats, no NEVER-USE words) */
     words: k => NAMES[NAME_PARTS[k] || k] || [], banned,
-    bustURL, bustCanvas, bustFrames, isAnimated, sprites, redrawAll, eqFor,
+    bustURL, bustCanvas, bustFrames, isAnimated, sprites, fightSprites, redrawAll, eqFor,
     /** a live box's avatar {av, eq} (its data-live id) */
     liveInfo: id => LIVE.get(String(id)), plateAttr,
     /** the parts' lists (the creator reads them) */

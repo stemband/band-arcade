@@ -69,7 +69,7 @@
 .r-pearl{fill:var(--screen);stroke:var(--ink);stroke-width:1}
 .r-fork,.r-arm{fill:none;stroke:var(--cab-metal);stroke-width:3.5;stroke-linecap:round}
 .r-baton{stroke:var(--screen);stroke-width:3;stroke-linecap:round}
-.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
+g.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
 .f-line{stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
 .f-jacket{fill:var(--f1)} .f-pants{fill:var(--fighter-pants)} .f-shoe{fill:var(--fighter-shoe)} .f-skin{fill:var(--fighter-skin)}
 .f-hair{fill:var(--fighter-hair)} .f-band{fill:var(--red)} .f-ink{fill:var(--ink)}
@@ -91,8 +91,19 @@
 .you-row .who{color:var(--blue-hi);text-shadow:var(--glow-blue);display:flex;align-items:center;gap:6px}
 .who-pic{width:26px;height:26px;border-radius:50%;background:var(--deep);border:1px solid var(--blue);display:grid;place-items:center;flex:none}
 .who-pic .pt-box{width:22px;height:22px}
-/* the player's instrument portrait: a badge by the fighter's feet */
+/* the player's instrument portrait: a badge by the fighter's feet (the generic fighter only) */
 .fighter{position:relative}
+/* THE PLAYER'S AVATAR as the fighter (shared/avatar-fight.js): as tall as the old fighter, feet on the floor, centered
+   on its column (its empty sides may reach past it: they're transparent and never catch taps) */
+.fighter .avf{position:absolute;bottom:0;left:50%;height:100%;width:auto;transform:translateX(-50%)}
+.f-make{position:absolute;left:0;bottom:0;z-index:6;padding:4px 8px;border-radius:10px;background:var(--deep);border:2px solid var(--blue);color:var(--blue-hi);
+  font:700 12px/1.2 var(--text);cursor:pointer;min-height:32px}
+.f-make:hover{border-color:var(--blue-hi)}
+.you-row .who-name{text-wrap:balance;overflow-wrap:break-word;max-width:16ch;line-height:1.1}
+/* the sound-wave blast (shared/avatar-fight.js's arcs), from the instrument to the rival */
+.fx .avf-blast{left:var(--x0);top:var(--y0,42%);opacity:0}
+.fx.go .avf-blast{animation:avf-fly .42s ease-in forwards}
+@keyframes avf-fly{0%{opacity:1;transform:translateX(0) scale(.6)}85%{opacity:1;transform:translateX(var(--dx)) scale(1.1)}100%{opacity:0;transform:translateX(var(--dx)) scale(1.5)}}
 .f-pic{position:absolute;left:0;bottom:0;width:38%;max-width:84px;padding:3px;border-radius:12px;background:var(--deep);border:2px solid var(--blue);box-shadow:var(--glow-blue)}
 .f-pic .pt-box{display:grid}
 .hp{height:18px;border-radius:4px;background:var(--deep);border:2px solid var(--red);box-shadow:var(--glow-red);overflow:hidden;transform:skewX(-14deg)}
@@ -163,7 +174,7 @@
 .fx.go .spark{animation:spark .6s ease-out .36s forwards}
 .fx .spark:nth-child(3n){background:var(--pink-hi)} .fx .spark:nth-child(3n+1){background:var(--cyan-hi)}
 @keyframes spark{0%{opacity:1;transform:rotate(calc(var(--k) * 60deg)) translateY(0) scale(1.4)}100%{opacity:0;transform:rotate(calc(var(--k) * 60deg)) translateY(-54px) scale(.6)}}
-.fx .pop{position:absolute;left:calc(var(--x0) + var(--dx));top:2%;transform:translateX(-50%) skewX(-10deg);font-family:var(--display);font-weight:400;font-size:clamp(20px,4vw,34px);
+.fx .pop{position:absolute;left:var(--px,calc(var(--x0) + var(--dx)));top:2%;transform:translateX(-50%) skewX(-10deg);font-family:var(--display);font-weight:400;font-size:clamp(20px,4vw,34px);
   text-transform:uppercase;white-space:nowrap;color:var(--yellow);-webkit-text-stroke:1.5px var(--red-ink);text-shadow:0 3px 0 var(--red-ink);opacity:0}
 .fx .pop.bad{color:var(--red-hi);-webkit-text-stroke-color:var(--deep);text-shadow:0 3px 0 var(--deep)}
 .fx.go .pop,.fx.go-back .pop{animation:pop .9s ease-out forwards}
@@ -273,6 +284,7 @@
 .res-faces{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:0 auto 2px}
 .res-you{width:84px;padding:4px;border-radius:14px;background:var(--deep);border:2px solid var(--blue);box-shadow:var(--glow-blue)}
 .res-you .pt-box{display:grid}
+.res-you .avf-still{display:block;width:100%}
 .res-rival{width:96px;height:120px;--r1:var(--red)}
 .panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
 .panel .bigstars .on{color:var(--yellow)}
@@ -295,6 +307,8 @@
   .fighter.dizzy .dizzy{animation:stars-in .8s steps(1)}
   .fx.go .blast{animation:flash-at .5s steps(1)}
   .fx .blast{left:calc(var(--x0) + var(--dx))}
+  .fx.go .avf-blast{animation:flash-at .5s steps(1)}
+  .fx .avf-blast{left:calc(var(--x0) + var(--dx))}
   .fx.go-back .wave{animation:flash-at .5s steps(1)}
   .fx .wave{left:calc(var(--x0) + var(--dx))}
   .hp i{transition:none}
