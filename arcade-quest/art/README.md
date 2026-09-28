@@ -17,7 +17,7 @@ The hero is always the student's own **avatar** from Create Your Player (their s
 clothes, glasses, hearing aids, wheelchair and name), holding their instrument. It's drawn in code from
 `shared/avatar-parts.js` (how to add a hair style, a hat, a top…: see the notes at the top of that file), so player
 sheets (`art/player-<instrument>.png`) are no longer used. Instrument positions and hand points are the POSES in
-`arcade-quest/sprites.js`.
+`shared/instrument-sprites.js`.
 
 You can check every instrument at `arcade-quest/index.html?sprites` (the sprite review page shows every frame, as
 your avatar, a random one or in a wheelchair).

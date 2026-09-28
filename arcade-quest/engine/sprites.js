@@ -1,4 +1,4 @@
-/* ARCADE QUEST ENGINE: sprites. The pixel maps live in arcade-quest/sprites.js (window.QUEST_ART).
+/* ARCADE QUEST ENGINE: sprites. The pixel maps live in arcade-quest/sprites.js + shared/instrument-sprites.js (window.QUEST_ART).
    Q.draw(ctx, id, x, y, {frame, t, scale, alpha, anim, flip})   draw a sprite (top-left at x, y, in game pixels;
        flip: mirrored left to right).
        frame: a fixed frame; otherwise it animates through `anim` (default: every idle frame but the last 'happy' one
@@ -88,7 +88,7 @@
 
   /* ---------- players: the student's AVATAR (Create Your Player, shared/avatar.js) holding their instrument ----------
      Q.playerId(member, {avatar}) builds every sprite of the character (32 × 32 each) from the device's avatar (or
-     `avatar`, for the review sheet) with the instrument's POSES from arcade-quest/sprites.js:
+     `avatar`, for the review sheet) with the instrument's POSES from shared/instrument-sprites.js:
        'player-<m>'            CARRY facing right, idle (2 frames). Battle, title, arena. While a playing challenge
                                is on screen it is drawn as 'player-<m>-play' instead (see Q.playing()).
        'player-<m>-walk'       CARRY facing right, walking (4 frames; mirrored with {flip} to walk left)

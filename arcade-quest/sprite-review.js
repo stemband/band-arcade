@@ -4,7 +4,7 @@
    or for bells and snare mallets up / striking). Each frame is shown at 1× and at the chosen zoom, on a dark or a
    light background (or both), with a live animated preview per character, drawn as your avatar (Create Your Player),
    a random one or yours in a wheelchair (it rolls instead of walking). Nothing is saved from this page.
-   To nudge a hand or an instrument: arcade-quest/sprites.js, POSES (then reload this page). */
+   To nudge a hand or an instrument: shared/instrument-sprites.js, POSES (then reload this page). */
 (function (A) {
   "use strict";
   const Q = A.Quest;
@@ -30,7 +30,7 @@
     document.body.classList.add('q-review');
     const root = Q.el('main', 'spr');
     root.innerHTML = `<header class="spr-head"><h1>Arcade Quest · Sprite review</h1>
-      <p>Every band kid, carrying and playing. Hands and instrument positions are in <code>arcade-quest/sprites.js</code> (POSES).</p>
+      <p>Every band kid, carrying and playing. Hands and instrument positions are in <code>shared/instrument-sprites.js</code> (POSES).</p>
       <div class="spr-controls">
         <span>Zoom</span>${[1, 2, 4].map(z => `<button type="button" data-zoom="${z}">${z}×</button>`).join('')}
         <span>Background</span>${[['dark', 'Dark'], ['light', 'Light'], ['both', 'Both']].map(([v, l]) => `<button type="button" data-bg="${v}">${l}</button>`).join('')}
