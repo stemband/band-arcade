@@ -79,7 +79,7 @@ g.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
 .f-mouth{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round}
 
 /* ---------- a match ---------- */
-.wrap.playing{display:flex;flex-direction:column;max-width:1100px;min-height:100vh;min-height:100dvh;padding-bottom:0;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.wrap.playing{display:flex;flex-direction:column;box-sizing:border-box;margin-bottom:0;max-width:1100px;min-height:100vh;min-height:100dvh;padding-bottom:0;padding-top:calc(10px + env(safe-area-inset-top,0px))}
 .wrap.playing #play{display:flex;flex-direction:column;flex:1;min-height:0}
 .wrap.playing .topbar{margin-bottom:8px}
 
@@ -120,14 +120,14 @@ g.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
 #hudCombo.hot{color:var(--yellow);text-shadow:var(--glow-yellow)}
 
 /* the arena: fighter | the note on the staff | rival */
-.arena{position:relative;display:grid;grid-template-columns:1fr minmax(170px,300px) 1fr;grid-template-rows:100%;align-items:end;gap:8px;height:clamp(140px,25vh,230px);
+.arena{position:relative;display:grid;grid-template-columns:1fr minmax(170px,300px) 1fr;grid-template-rows:100%;align-items:end;gap:8px;height:clamp(140px,25vh,230px);height:clamp(140px,25dvh,230px);
   padding:0 4px;border-bottom:3px solid var(--blue);background:linear-gradient(180deg,transparent 70%,rgba(77,141,255,.12));
   box-shadow:0 3px 0 -1px var(--red)}
 .fighter,.rival{height:92%;min-width:0;align-self:end}
 .fighter>svg,.rival svg{width:100%;height:100%}
 .rival.boss{height:100%}
 .note-card{align-self:center;max-height:100%;padding:6px 8px 0;border-color:var(--yellow);box-shadow:0 0 0 4px var(--deep),var(--glow-yellow),inset 0 0 0 2px rgba(255,255,255,.6);text-align:center}
-.note-card .staff{max-height:calc(clamp(140px,25vh,230px) - 44px);margin:0 auto}
+.note-card .staff{max-height:calc(clamp(140px,25vh,230px) - 44px);max-height:calc(clamp(140px,25dvh,230px) - 44px);margin:0 auto}
 .note-name{margin:0 0 4px;min-height:1.2em;font-family:var(--display),var(--music);font-size:22px;line-height:1.1;color:var(--ink)}
 .note-name:empty{min-height:0;margin:0}
 .taunt{position:absolute;right:18%;top:4px;max-width:min(360px,60%);margin:0;padding:8px 12px;border-radius:14px;background:var(--screen);color:var(--ink);
@@ -227,10 +227,12 @@ g.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
   .strike-btn{font-size:20px}
   .taunt{right:4%;font-size:14px}
 }
+/* narrow and not tall (iPad Split View): the keyboard help line makes room for LEAVE MATCH */
+@media (max-width:600px) and (max-height:820px){.keys-help{display:none}}
 /* short screens (iPad and Chromebook landscape): tighter so the arena and the diagram both fit */
 @media (max-height:820px){
-  .arena{height:clamp(120px,22vh,190px)}
-  .note-card .staff{max-height:calc(clamp(120px,22vh,190px) - 40px)}
+  .arena{height:clamp(120px,22vh,190px);height:clamp(120px,22dvh,190px)}
+  .note-card .staff{max-height:calc(clamp(120px,22vh,190px) - 40px);max-height:calc(clamp(120px,22dvh,190px) - 40px)}
   .prompt{margin:4px 0;font-size:16px}
   .bars{gap:4px}
 }
@@ -242,8 +244,8 @@ g.dizzy{fill:var(--yellow);stroke:var(--yellow-ink);stroke-width:1;opacity:0}
     grid-template-areas:"bars pad" "arena pad" "timer pad" "prompt combo" "foot foot"}
   .bars{grid-area:bars}.arena{grid-area:arena}.timer{grid-area:timer}.prompt{grid-area:prompt}.pad{grid-area:pad}.combo-row{grid-area:combo}.play-foot{grid-area:foot}
   .bar-row{gap:6px}.who{font-size:13px}.mini-hud{gap:8px}.mini-hud small{font-size:9px}.mini-hud b{font-size:14px}.rival-row small{font-size:11px}
-  .arena{height:clamp(100px,32vh,140px);grid-template-columns:1fr minmax(120px,170px) 1fr}
-  .note-card .staff{max-height:calc(clamp(100px,32vh,140px) - 34px)}
+  .arena{height:clamp(100px,32vh,140px);height:clamp(100px,32dvh,140px);grid-template-columns:1fr minmax(120px,170px) 1fr}
+  .note-card .staff{max-height:calc(clamp(100px,32vh,140px) - 34px);max-height:calc(clamp(100px,32dvh,140px) - 34px)}
   .note-name{font-size:16px}
   .prompt{font-size:14px;margin:4px 0;align-self:center}
   .pad{min-height:0;max-height:none;padding:2px}
