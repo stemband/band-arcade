@@ -264,6 +264,12 @@
 @keyframes plate-pop-r{0%{transform:none;opacity:1}100%{transform:translate(26px,30px) rotate(70deg);opacity:0}}
 .a-cheek{fill:var(--anim-doll);opacity:.55}
 .a-oil{fill:var(--anim-oil);stroke:var(--anim-oil-hi);stroke-width:1}
+/* HYBRIDS: stitch seams, the odd eye (from the other parent), the Lurker's gauge */
+.a-stitch{fill:none;stroke:var(--anim-stitch);stroke-width:2;stroke-dasharray:1.5 3;stroke-linecap:round}
+.a-eyering{fill:none;stroke-width:2.4}
+.a-slit{fill:none;stroke:var(--anim-metal-dark);stroke-width:1.6}
+.a-gauge{fill:var(--deep);stroke:var(--anim-metal-dark);stroke-width:2}
+.a-gaugefill{fill:none;stroke:var(--anim-hold);stroke-width:3}
 .a-gear{transform-origin:70px 40px;transition:transform .12s steps(2)}
 .bots .bot.twitch .a-gear{transform:rotate(14deg)}
 .bot.special .sign::before{border-color:color-mix(in srgb,var(--purple) 80%,transparent)}
@@ -313,6 +319,15 @@
 .special-panel .sp-alert{margin:0 0 6px;font-size:clamp(18px,4vw,24px);color:var(--st-red);letter-spacing:.04em;text-shadow:0 0 10px color-mix(in srgb,var(--st-red) 55%,transparent)}
 .sp-art{display:block;height:180px;aspect-ratio:.7;margin:0 auto 4px}
 .special-panel .ui-title{color:var(--yellow);margin:4px 0}
+/* HYBRIDS: the card's badge and parents, the Files' section */
+.sp-hybrid{margin:2px 0 0;font-weight:700;color:var(--text-hi)}
+.sp-hybrid[hidden]{display:none}
+.sp-badge{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--st-red);color:var(--text-hi);font-family:var(--display);font-weight:400;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.files-sec{grid-column:1/-1;margin:14px 0 0}
+.f-sub{grid-column:1/-1;margin:0;color:var(--text-lo)}
+.f-parents{font-size:13px;color:var(--text-lo);display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center}
+.f-parents .sp-badge{font-size:11px;padding:1px 6px}
+.file.f-hybrid{border-style:dashed}
 .sp-how{color:var(--text-hi);font-size:18px;line-height:1.4}
 @media (prefers-reduced-motion:no-preference){.special-ov:not([hidden]) .special-panel{animation:sp-in .35s ease-out}}
 @keyframes sp-in{from{transform:translateY(24px) scale(.96);opacity:0}to{transform:none;opacity:1}}

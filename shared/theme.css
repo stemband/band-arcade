@@ -56,7 +56,7 @@
   --anim-lurker:#3f5a78; --anim-lurker-2:#8fb3cf; --anim-doll:#b0607a; --anim-doll-2:#f0d6c4; --anim-doll-b:#5c7fb0;
   --anim-jester:#7a3e9c; --anim-jester-2:#e2b53c; --anim-sprocket:#8a6a3c; --anim-sprocket-2:#c9a15a;
   --anim-blackout:#2b2d3a; --anim-blackout-2:#555a70; --anim-ollie:#4d6b73; --anim-ollie-2:#c7b37a; --anim-oil:#1c1a14; --anim-oil-hi:#6f8a95;
-  --anim-hold:#52c8ff; --scare-dark:#030106;
+  --anim-hold:#52c8ff; --anim-stitch:#d8cfb8; --scare-dark:#030106;
   /* Lost Signal: the radio console (the scope's screen, grid, waveform, radar pings and sweep; static is --ls-static*) */
   --ls-scope:#03110d; --ls-grid:rgba(77,255,136,.22); --ls-wave:#4dff88; --ls-ping:#3ae8ff; --ls-sweep:rgba(58,232,255,.28);
   --ls-panel:#0a1a1f; --ls-static:#5d6b73; --ls-static-2:#27323a;
