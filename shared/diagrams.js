@@ -1,11 +1,13 @@
 /* THE FINGERING DIAGRAMS (drawn in SVG, no images) and the fingering table reader (shared/fingerings.js).
-   Used by Button Masher, Arcade Quest's FINGERING challenge and Music Highway's fingering cards: never copy them.
+   Used by Button Masher and Arcade Quest's FINGERING challenge (Music Highway loads fingerings.js + this file only for
+   its octave fit; it draws no diagrams): never copy them.
    A diagram is a picture of the instrument turned sideways, left hand on the left, with every key a real
-   tappable button. Chart-style: finger holes are circles, keys are rounded bars, pressed = filled.
+   tappable button. Clarinet (+ bass clarinet) and saxes: the LEFT pinky keys sit ABOVE the body (between the throat /
+   palm keys and the side keys), the right pinky keys below. Chart-style: finger holes are circles, keys are rounded bars, pressed = filled.
      DIAGRAMS[id]   viewBox, the drawing behind the keys (`body`), and `keys`:
                     {id, x, y, r (round) | w, h (bar), label (on the key), name (spoken / chart text),
                      half: true (tap cycles open -> half -> closed: the oboe and bassoon first finger)}
-     Arcade.Masher.diagramSVG(id, {interactive, small})   the SVG (state is set later with setState)
+     Arcade.Masher.diagramSVG(id, {interactive, label})   the SVG (state is set later with setState)
      Arcade.Masher.setState(svg, pressed, {glow, hint})   pressed: {keyId: 1 | 'h'}; glow/hint: a fingering to light up
      Arcade.Masher.table(member)   the member's fingerings from fingerings.js:
                     {diagram, notes(midi) -> [{keys, canon, text}], has(midi)}
@@ -49,30 +51,32 @@ window.Arcade = window.Arcade || {};
       ],
     },
     clarinet: {
-      view: [0, 26, 740, 244],
+      view: [0, -10, 740, 272],
       body: tube(34, 720, 120, 46) + '<path class="dg-reed" d="M6 112L38 116V124L6 128Z"/>' + hands(272, 548) +
-        text(98, 252, 'left thumb') + text(178, 40, 'throat keys') + text(410, 256, 'left pinky') + text(530, 40, 'side keys') + text(686, 256, 'right pinky'),
+        text(98, 252, 'left thumb') + text(178, 34, 'throat keys') + text(410, 4, 'left pinky') + text(530, 34, 'side keys') + text(686, 256, 'right pinky'),
       keys: [
         bar('Reg', 70, 204, 'Reg', 'register key'), hole('Th', 126, 204, {r: 22, label: 'T', name: 'thumb hole'}),
         bar('G#', 150, 58, 'G♯', 'G♯ key'), bar('A', 206, 58, 'A', 'A key'),
         hole('1', 210, 120), hole('2', 272, 120), hole('3', 334, 120),
-        bar('LF#', 384, 176, 'F♯', 'left F♯/C♯ key'), bar('LE', 384, 216, 'E', 'left E/B key'), bar('LF', 436, 196, 'F', 'left F/C key'),
+        // the left pinky keys: ABOVE the body, between the throat keys and the side keys, over the gap between fingers 3 and 4
+        bar('LF#', 384, 30, 'F♯', 'left F♯/C♯ key'), bar('LE', 384, 70, 'E', 'left E/B key'), bar('LF', 436, 50, 'F', 'left F/C key'),
         bar('SEb', 500, 58, 'E♭', 'side E♭/B♭ key'), bar('SBb', 560, 58, 'B♭', 'side B♭ trill key'),
         hole('4', 486, 120), hole('5', 548, 120), hole('6', 610, 120),
         bar('RAb', 664, 176, 'A♭', 'right A♭/E♭ key'), bar('RE', 664, 216, 'E', 'right E/B key'), bar('RF', 712, 196, 'F', 'right F/C key', {w: 44}),
       ],
     },
     sax: {
-      view: [0, 20, 740, 250],
-      body: tube(30, 720, 120, 46) + hands(262, 552) +
-        text(72, 252, 'left thumb') + text(170, 30, 'palm keys') + text(410, 260, 'left pinky') + text(552, 30, 'side keys') + text(690, 260, 'right pinky'),
+      view: [0, -10, 740, 272],
+      body: tube(30, 720, 120, 46) + hands(300, 552) +
+        text(72, 252, 'left thumb') + text(170, 18, 'palm keys') + text(410, 4, 'left pinky') + text(552, 30, 'side keys') + text(690, 256, 'right pinky'),
       keys: [
         bar('Oct', 72, 204, 'Oct', 'octave key (left thumb)'),
         bar('pD', 120, 50, 'D', 'palm D key', {w: 44}), bar('pEb', 170, 44, 'E♭', 'palm E♭ key', {w: 44}), bar('pF', 220, 50, 'F', 'palm F key', {w: 44}),
         bar('fF', 290, 62, 'front F', 'front F key', {w: 70, h: 28}),
         hole('1', 180, 120), hole('bis', 222, 120, {r: 12, label: '', name: 'bis key (small B♭ key)', tag: 'bis'}), hole('2', 264, 120), hole('3', 326, 120),
-        bar('G#', 384, 176, 'G♯', 'G♯ key (left pinky)', {w: 46}), bar('LC#', 436, 176, 'C♯', 'low C♯ key', {w: 46}),
-        bar('LB', 384, 216, 'B', 'low B key', {w: 46}), bar('LBb', 436, 216, 'B♭', 'low B♭ key', {w: 46}),
+        // the left pinky table: ABOVE the body, between the palm keys (and front F) and the side keys, over the gap between fingers 3 and 4
+        bar('G#', 384, 30, 'G♯', 'G♯ key (left pinky)', {w: 46}), bar('LC#', 436, 30, 'C♯', 'low C♯ key', {w: 46}),
+        bar('LB', 384, 70, 'B', 'low B key', {w: 46}), bar('LBb', 436, 70, 'B♭', 'low B♭ key', {w: 46}),
         bar('SE', 500, 56, 'E', 'side E key (high E)', {w: 44}), bar('SC', 552, 56, 'C', 'side C key', {w: 44}), bar('SBb', 604, 56, 'B♭', 'side B♭ key', {w: 44}),
         hole('4', 490, 120), hole('5', 552, 120), hole('6', 614, 120),
         bar('REb', 690, 176, 'E♭', 'low E♭ key (right pinky)'), bar('RC', 690, 216, 'C', 'low C key (right pinky)'),
