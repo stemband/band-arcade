@@ -4,7 +4,7 @@
 
    Arcade.UI.pause.mount({…})      THE PAUSE BUTTON + PAUSE MENU (RESUME · RESTART · SETTINGS · extras · BACK TO LEVELS · BACK TO ARCADE GAMES)
    Arcade.UI.results.show({…})     THE RESULTS SCREEN (stars, title, stat tiles, NEXT / TRY AGAIN / LEVELS, new best)
-   Arcade.UI.settings.open({…})    THE SETTINGS PANEL (sound, music, effects, motion, mic sensitivity + meter, the game's own)
+   Arcade.UI.settings.open({…})    THE SETTINGS PANEL (sound, music, effects, motion, seasonal look, mic sensitivity + meter, the game's own)
    Arcade.UI.intro.show({…})       A LEVEL INTRO pop-up
    Arcade.UI.confirm({…})          a YES / NO question (never the browser's confirm()); UI.notice({…}) = one OK button
    Arcade.UI.toast(text, {…})      a short message that fades by itself
@@ -407,6 +407,7 @@ window.Arcade = window.Arcade || {};
         ${lobby ? '<label class="ui-srow"><span class="ui-sname">Arcade sounds<small>the hum on the arcade floor</small></span><input type="range" min="0" max="100" step="5" data-k="ambVol"><output></output></label>' : ''}
         <div class="ui-srow"><p class="ui-snote" data-note="sound"></p></div>
         <div class="ui-srow"><span class="ui-sname" id="uiMotL">Motion<small>moving backgrounds and animations</small></span><span></span><button type="button" class="ui-switch" role="switch" data-k="motion" aria-labelledby="uiMotL"></button><p class="ui-snote" data-note="motion"></p></div>
+        ${A.Seasons && A.Seasons.setLookOn ? '<div class="ui-srow"><span class="ui-sname" id="uiSeaL">Seasonal look<small>the arcade\'s menus dress up for the seasons</small></span><span></span><button type="button" class="ui-switch" role="switch" data-k="season" aria-labelledby="uiSeaL"></button></div>' : ''}
         ${mic ? `<label class="ui-srow"><span class="ui-sname">Mic sensitivity<small>more = hears quieter notes</small></span><input type="range" min="0" max="100" step="1" data-k="sens"><output></output></label>
         <div class="ui-srow ui-mrow"><span class="ui-sname">Mic level</span><div class="ui-meter" aria-hidden="true"><i></i><em></em></div><span></span><p class="ui-snote" data-note="mic"></p></div>` : ''}
         <div class="ui-sextras"></div>
@@ -426,6 +427,7 @@ window.Arcade = window.Arcade || {};
         mo.disabled = sys;
         ov.querySelector('[data-note=motion]').textContent = sys ? 'Your device asks for less motion, so things stay still.'
           : d.slow ? 'The moving backgrounds were switched off because this device was slow. Switch Motion off and on to try again.' : '';
+        const se = ov.querySelector('[data-k=season]'); if (se) se.setAttribute('aria-checked', A.Seasons.lookOn());
         const s = ov.querySelector('input[data-k=sens]'); if (s) { s.value = st.sens != null ? st.sens : 50; s.nextElementSibling.textContent = s.value; }
       }
       ov.querySelector('[data-k=sfx]').addEventListener('click', () => {
@@ -443,6 +445,8 @@ window.Arcade = window.Arcade || {};
         UI.setMotion(now);
         draw();
       });
+      const sea = ov.querySelector('[data-k=season]');
+      if (sea) sea.addEventListener('click', () => { A.Seasons.setLookOn(!A.Seasons.lookOn()); if (Sfx && Sfx.event) Sfx.event('ui-toggle'); draw(); });
       const sens = ov.querySelector('input[data-k=sens]');
       if (sens) sens.addEventListener('input', () => {
         const v = +sens.value; sens.nextElementSibling.textContent = v;

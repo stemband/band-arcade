@@ -972,6 +972,7 @@ window.Arcade = window.Arcade || {};
 
     // haze toward the back of the room
     const hazeGroup = new THREE.Group();
+    const HAZE = ['purple', 'pink', 'cyan'], LIGHTS = ['pink', 'cyan'];
     [[tok.purple, -2.5, .3], [tok.pink, 2.8, .18], [tok.cyan, 0, .14]].forEach(([c, x, o], i) => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(9, 5), new THREE.MeshBasicMaterial({map: shared.glow('h'), color: new THREE.Color(c), transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false}));
       m.position.set(x, 2.2 + i * .3, -7 - i); hazeGroup.add(m);
@@ -1225,10 +1226,22 @@ window.Arcade = window.Arcade || {};
       renderer.dispose();
       cvs.remove(); start.remove(); if (fpsBox) fpsBox.remove();
       aisle.classList.remove('is-3d');
-      A.Floor3D.stats = null;
+      A.Floor3D.stats = null; A.Floor3D.look = null;
     }
     // for testing and tuning: frame times (ms, averaged per few seconds), downgrade level, draw calls per frame (both passes)
     A.Floor3D.stats = () => Object.assign({}, stats, {pixelRatio: renderer.getPixelRatio(), haze: !!scene.fog});
+    /* THE SEASONAL LOOK (season-look.js): the haze and the two side lights take its colors (the backdrop itself shows
+       through the see-through canvas); none = the arcade's own pink / cyan / purple. Called again when it changes. */
+    A.Floor3D.look = function () {
+      if (dead) return null;
+      const P = A.SeasonLook && A.SeasonLook.palette && A.SeasonLook.palette();
+      const hz = (P && P.haze) || HAZE, li = (P && P.lights) || LIGHTS;
+      hazeGroup.children.forEach((m, i) => m.material.color.set(cssVar(hz[i] || HAZE[i])));
+      pinkL.color.set(cssVar(li[0])); cyanL.color.set(cssVar(li[1]));
+      kick();
+      return {haze: hz, lights: li};
+    };
+    A.Floor3D.look();
 
     makeSlots(); sync(pos, pos);
     resize();

@@ -10,7 +10,12 @@
                Both days count (inclusive), in the device's own date and time. An event may cross New Year
                ('12-01' → '01-07': it starts in December and ends in January).
      colors    theme tokens (shared/theme.css) for the banner and the panel: [main, accent]
-     deco      the lobby's decoration while it runs: 'spooky' | 'winter' | 'hearts' | 'music' | 'flowers' | 'summer' | null
+     look      THE SEASONAL LOOK of the arcade's menus while it runs (season-look.js draws it): 'spooky' | 'winter' |
+               'friendship' | 'miosm' | 'spring' | 'summer' | 'concert' | 'school' | 'harvest' | 'frost'
+     deco      the touch on the lobby's signs while it runs (snow on top, a flower…): 'spooky' | 'winter' | 'hearts' |
+               'music' | 'flowers' | 'summer' | null
+     countdown true = the banner counts down to the event's LAST day ("🎻 Concert in 5 days!", "Concert tonight!"):
+               for a concert, make `end` the concert day and `start` the day the countdown should begin
      jingle    the sound for the banner and the CLAIM moment (shared/sounds.js; it falls back to a built-in jingle)
      gift      the FREE GIFT: '<field>:<item id>', claimed with one tap in the event panel during the event
      ladder    the CHALLENGE LADDER, 3–5 steps, each {do, n, item}:
@@ -24,10 +29,11 @@
    THE ITEMS themselves live in shared/avatar-parts.js (the SEASONAL ITEMS section at its end) with
    unlock: {event: '<event id>'}. A new item also goes at the END of its list in shared/avatar-code.js TABLE.
    Identity items (head coverings, glasses, hearing aids, the wheelchair) are never event items.
+   An event's look always wins over a BACKGROUND-ONLY SEASON (below) on the same days.
    ========================================================================================== */
 window.Arcade = window.Arcade || {};
 window.Arcade.SEASONS = [
-  {id: 'spooky', name: 'Spooky Season', emoji: '🎃', start: '10-01', end: '11-01', colors: ['purple', 'amber'], deco: 'spooky', jingle: 'event-spooky-jingle',
+  {id: 'spooky', name: 'Spooky Season', emoji: '🎃', start: '10-01', end: '11-01', look: 'spooky', colors: ['purple', 'amber'], deco: 'spooky', jingle: 'event-spooky-jingle',
    gift: 'head:pumpkin',
    ladder: [
      {do: 'games', n: 3, item: 'head:witchhat'},
@@ -36,7 +42,7 @@ window.Arcade.SEASONS = [
      {do: 'endless', n: 500, item: 'effect:spookyglow'},
      {do: 'days', n: 3, item: 'bg:hauntedhallway'},
    ]},
-  {id: 'winter', name: 'Winter Fest', emoji: '❄️', start: '12-01', end: '01-07', colors: ['cyan', 'blue'], deco: 'winter', jingle: 'event-winter-jingle',
+  {id: 'winter', name: 'Winter Fest', emoji: '❄️', start: '12-01', end: '01-07', look: 'winter', colors: ['cyan', 'blue'], deco: 'winter', jingle: 'event-winter-jingle',
    gift: 'top:scarf',
    ladder: [
      {do: 'levels', n: 3, item: 'head:earmuffs'},
@@ -45,44 +51,61 @@ window.Arcade.SEASONS = [
      {do: 'days', n: 4, item: 'effect:snowfall'},
      {do: 'endless', n: 750, item: 'bg:twinklelights'},
    ]},
-  {id: 'friendship', name: 'Friendship Week', emoji: '💖', start: '02-07', end: '02-14', colors: ['pink', 'red'], deco: 'hearts', jingle: 'event-friendship-jingle',
+  {id: 'friendship', name: 'Friendship Week', emoji: '💖', start: '02-07', end: '02-14', look: 'friendship', colors: ['pink', 'red'], deco: 'hearts', jingle: 'event-friendship-jingle',
    gift: 'head:heartglasses',
    ladder: [
      {do: 'games', n: 2, item: 'hand:rose'},
      {do: 'stars', n: 8, item: 'effect:hearts'},
      {do: 'days', n: 3, item: 'plate:hearts'},
    ]},
-  {id: 'miosm', name: 'Music In Our Schools Month', emoji: '🎺', start: '03-01', end: '03-31', colors: ['yellow', 'red'], deco: 'music', jingle: 'event-miosm-jingle',
+  {id: 'miosm', name: 'Music In Our Schools Month', emoji: '🎺', start: '03-01', end: '03-31', look: 'miosm', colors: ['yellow', 'red'], deco: 'music', jingle: 'event-miosm-jingle',
    gift: 'top:miosmsash',
    ladder: [
      {do: 'levels', n: 5, item: 'hand:goldbaton'},
      {do: 'games', n: 4, item: 'head:miosmplume'},
      {do: 'stars', n: 20, item: 'bg:concerthall'},
    ]},
-  {id: 'spring', name: 'Spring Bloom', emoji: '🌸', start: '04-01', end: '04-30', colors: ['pink', 'green'], deco: 'flowers', jingle: 'event-spring-jingle',
+  {id: 'spring', name: 'Spring Bloom', emoji: '🌸', start: '04-01', end: '04-30', look: 'spring', colors: ['pink', 'green'], deco: 'flowers', jingle: 'event-spring-jingle',
    gift: 'head:flowercrown',
    ladder: [
      {do: 'stars', n: 10, item: 'pet:butterfly'},
      {do: 'levels', n: 5, item: 'effect:blossoms'},
      {do: 'days', n: 3, item: 'plate:blossom'},
    ]},
-  {id: 'summer', name: 'Summer Send-Off', emoji: '☀️', start: '05-01', end: '05-22', colors: ['amber', 'cyan'], deco: 'summer', jingle: 'event-summer-jingle',
+  {id: 'summer', name: 'Summer Send-Off', emoji: '☀️', start: '05-01', end: '05-22', look: 'summer', colors: ['amber', 'cyan'], deco: 'summer', jingle: 'event-summer-jingle',
    gift: 'head:sunnies',
    ladder: [
      {do: 'games', n: 3, item: 'hand:beachball'},
      {do: 'endless', n: 500, item: 'bg:sunsetbeach'},
      {do: 'levels', n: 8, item: 'plate:sunset'},
    ]},
-  // A ONE-TIME CUSTOM EVENT (full dates: it happens once). Remove the // to turn it on, and give it items: add them to
-  // shared/avatar-parts.js with unlock {event: 'concert-week'} (and to avatar-code.js TABLE), or leave `gift`/`item`
-  // out of a step to have a challenge with no item.
-  // {id: 'concert-week', name: 'Concert Week', emoji: '🎻', start: '2027-05-03', end: '2027-05-07', colors: ['yellow', 'purple'], deco: 'music', jingle: 'event-miosm-jingle',
-  //  gift: 'plate:concertweek',
+  /* CONCERT SEASON: a template for YOUR concert (one time only: full 'YYYY-MM-DD' dates). To turn it on:
+       1. remove the // in front of each line below,
+       2. set `end` to the CONCERT DAY and `start` to the day the countdown should begin (a week or two before),
+       3. keep a unique id for every concert ('concert-2027-spring', 'concert-2027-winter'…): never reuse one.
+     The menus get the CONCERT look (stage curtains, spotlights, footlights) and the banner counts down:
+     "🎻 Concert in 5 days!" … "Concert tonight!". Its challenges below have no items (a step without `item` is just a
+     goal to beat); to give items, add them to shared/avatar-parts.js with unlock {event: '<this id>'} (and to the END
+     of their list in shared/avatar-code.js TABLE), then put `gift: '<field>:<id>'` / `item: '<field>:<id>'` here.
+     A concert wins over the yearly events and the background-only seasons on its days. */
+  // {id: 'concert-2027-spring', name: 'Spring Concert', emoji: '🎻', start: '2027-04-20', end: '2027-05-04', look: 'concert', countdown: true,
+  //  colors: ['yellow', 'red'], deco: 'music', jingle: 'event-miosm-jingle',
   //  ladder: [
-  //    {do: 'days', n: 2},
-  //    {do: 'stars', n: 10},
-  //    {do: 'levels', n: 5},
+  //    {do: 'days', n: 5},
+  //    {do: 'stars', n: 15},
+  //    {do: 'levels', n: 6},
   //  ]},
+];
+
+/* ======================== BACKGROUND-ONLY SEASONS (Mat: edit this list) ========================
+   A season with ONLY a look for the arcade's menus: no banner, no event panel, no items. They fill the gaps between
+   the events. Each: {id (never rename), name, look (one of the looks above), dates: [['MM-DD', 'MM-DD'], …]} (every
+   year, both days count, a window may cross New Year; several windows = several lines). An EVENT's look always wins
+   when both match a date. ?season=<id> previews one. */
+window.Arcade.SEASON_BACKDROPS = [
+  {id: 'school',  name: 'Back to School', look: 'school',  dates: [['08-01', '09-30']]},
+  {id: 'harvest', name: 'Fall Harvest',   look: 'harvest', dates: [['11-02', '11-30']]},
+  {id: 'frost',   name: 'Frost',          look: 'frost',   dates: [['01-08', '02-06'], ['02-15', '02-28']]},
 ];
 
 /* ======================== the engine (no need to edit below) ========================
@@ -98,7 +121,10 @@ window.Arcade.SEASONS = [
    Endless score, per date; the last 400 days, in the Arcade Backup Code). An event's progress = the log's days inside
    the event's dates, so nothing done before or after an event counts, and every year starts fresh.
    EARNED ITEMS are owned (store.ownItem, like the Token Booth's), so they stay the student's after the event ends.
-   PREVIEW (testing): ?season=<id> shows that event today (banner, panel, decorations, items) whatever the date. Its
+     Arcade.Seasons.look()            THE SEASONAL LOOK of the menus today (an event's, else a background-only season's)
+     Arcade.Seasons.lookOn() / setLookOn(on)   the "Seasonal look" switch (this device; ON by default)
+   PREVIEW (testing): ?season=<id> shows that event today (banner, panel, look, items) whatever the date, or a
+   background-only season's look (?season=frost), or any look by its name (?season=concert). Its
    progress is TODAY's activity only, and its claims/earned items live in this tab only (sessionStorage): nothing is
    saved. ?demo&today=YYYY-MM-DD pretends it is that date (saved normally: for testing dates like New Year's Eve).
    ?demo&unlockall opens every item, as with other unlocks. */
@@ -113,6 +139,15 @@ window.Arcade.SEASONS = [
   const DAY = 864e5;
   const params = () => A.params || new URLSearchParams(location.search);
   const previewId = () => { const p = params().get('season'); return p && LIST().some(e => e.id === p) ? p : null; };
+  const BACKDROPS = () => A.SEASON_BACKDROPS || [];
+  /** ?season=<a background-only season's id>: its look today (never an event, nothing saved) */
+  // every look season-look.js can draw (so ?season=concert previews the Concert Season look with no concert set up)
+  const LOOK_IDS = ['spooky', 'winter', 'friendship', 'miosm', 'spring', 'summer', 'concert', 'school', 'harvest', 'frost'];
+  const previewBackdrop = () => {
+    const p = params().get('season');
+    if (!p || previewId()) return null;
+    return BACKDROPS().find(b => b.id === p) || (LOOK_IDS.includes(p) ? {id: p, name: p, look: p} : null);
+  };
 
   /** today (the device's date; ?demo&today=YYYY-MM-DD for testing) */
   function today() {
@@ -147,6 +182,44 @@ window.Arcade.SEASONS = [
     const list = LIST().filter(oneOff).concat(LIST().filter(ev => !oneOff(ev)));
     for (const ev of list) { const o = occurrence(ev, date); if (o) return Object.assign(o, {daysLeft: daysLeft(o)}); }
     return null;
+  }
+  /** the background-only season on `date` (the first in the list whose window holds it), or null */
+  function backdrop(date = today()) {
+    const pb = previewBackdrop();
+    if (pb) return pb;
+    for (const b of BACKDROPS()) for (const [start, end] of b.dates || []) if (occurrence({id: b.id, start, end}, date)) return b;
+    return null;
+  }
+  /** THE SEASONAL LOOK of the menus on `date`: {look, id, name, kind: 'event'|'backdrop', preview} or null.
+      An event (or ?season=<event>) always wins over a background-only season. Ignores the Seasonal look switch:
+      Arcade.SeasonLook asks lookOn() before drawing. */
+  function look(date = today()) {
+    const pb = previewBackdrop();
+    if (pb) return {look: pb.look, id: pb.id, name: pb.name, kind: 'backdrop', preview: true};
+    const o = active(date);
+    if (o && o.ev.look) return {look: o.ev.look, id: o.ev.id, name: o.ev.name, kind: 'event', preview: !!o.preview};
+    if (o && previewId()) return null;                        // previewing an event with no look: the normal arcade
+    const b = backdrop(date);
+    return b ? {look: b.look, id: b.id, name: b.name, kind: 'backdrop', preview: !!previewBackdrop()} : null;
+  }
+  /* THE SWITCH "Seasonal look: On / Off" (the Settings panel + the event panel), saved on this device in
+     gameData('seasons').look; ON by default. It replaced the event panel's DECORATIONS switch (gameData('seasons').deco):
+     a device that had turned the decorations off keeps its seasonal look off. */
+  function lookOn() {
+    const d = A.store ? A.store.gameData('seasons') : {};
+    return d.look !== undefined ? d.look !== false : d.deco !== false;
+  }
+  function setLookOn(on) {
+    const d = A.store.gameData('seasons');
+    d.look = !!on; delete d.deco;
+    A.store.saveGameData('seasons');
+    try { dispatchEvent(new CustomEvent('arcade:seasonlook', {detail: {on: !!on}})); } catch (e) { /* old browsers: the next page shows it */ }
+  }
+  /** the banner's words: "6 days left!", or for a `countdown` event "Concert in 5 days!" / "Concert tomorrow!" / "Concert tonight!" */
+  function leftText(o) {
+    const n = o.daysLeft, what = o.ev.countdownWord || 'Concert';
+    if (o.ev.countdown) return n <= 0 ? `${what} tonight!` : n === 1 ? `${what} tomorrow!` : `${what} in ${n} days!`;
+    return n <= 0 ? 'last day!' : n === 1 ? '1 day left!' : `${n} days left!`;
   }
   /** when an event starts next (null for a one-off event that has begun) */
   function nextStart(ev, date = today()) {
@@ -249,7 +322,7 @@ window.Arcade.SEASONS = [
     else if (!it.part.unlock || it.part.unlock.event !== ev.id) console.warn(`[seasons] ${it.key} needs unlock: {event: '${ev.id}'}`);
   })), 0);
 
-  A.Seasons = {list: LIST, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, label, claimed, claim, check,
+  A.Seasons = {list: LIST, backdrops: BACKDROPS, LOOK_IDS, backdrop, look, lookOn, setLookOn, leftText, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, label, claimed, claim, check,
     requirement, owned, when, get preview() { return !!previewId(); },
     /** a preview's UNLOCKED! cards are remembered in this tab only */
     previewSeen: key => !!(previewId() && (pmem().seen || {})[key]),
