@@ -171,7 +171,7 @@ a{color:inherit}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--yellow-hi);outline-offset:3px}
 h1,h2,h3{text-wrap:balance;margin:0}
-.wrap{max-width:860px;margin:0 auto;padding-inline:max(16px, env(safe-area-inset-left,0px));padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
 .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);font-weight:700;margin:0 0 10px}
 .muted{color:var(--text-lo)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -475,7 +475,8 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 /* Every overlay is its own scroll container: a panel taller than the screen scrolls inside it (wheel, trackpad,
    touch swipe, keys once focused), never the page behind it. Short panels stay centered (the auto margins); a tall
    one starts at the top instead of being cut off above it. */
-.overlay{position:fixed;inset:0;z-index:20;display:grid;justify-items:center;align-items:start;padding:20px 16px;background:rgba(6,4,13,.88);
+.overlay{position:fixed;inset:0;z-index:20;display:grid;justify-items:center;align-items:start;
+  padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(6,4,13,.88);
   overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .overlay>*{margin-block:auto}
 .overlay:focus{outline:none}
@@ -749,3 +750,27 @@ html.in-play .avb{visibility:hidden;pointer-events:none}
 .acode-say{margin:10px 0 0;color:var(--text-hi)}
 .acode-msg{min-height:1.3em;margin:6px 0 0;color:var(--text-lo);font-weight:700}
 .acode .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+
+/* ---------- THE APP (shared/app.js): update banner, install help, "Bring your progress" ----------
+   SAFE AREAS: the installed app runs full screen (the iPad status bar is see-through: black-translucent), so every
+   screen keeps its content inside env(safe-area-inset-*): .wrap and .overlay above, the floor's bars (arcade.css),
+   Arcade Quest's .q-wrap, Dojo Duel's .duel, the leaderboard. A new full-screen layout must do the same. */
+.app-update{position:fixed;z-index:95;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  max-width:calc(100% - 32px);min-height:48px;padding:10px 20px;border-radius:999px;border:2px solid var(--cyan);background:var(--floor-2);
+  color:var(--text-hi);font:700 16px/1.25 var(--text);box-shadow:var(--glow-cyan),0 10px 30px rgba(0,0,0,.5);cursor:pointer;touch-action:manipulation}
+.app-update:hover,.app-update:focus-visible{background:var(--floor-3);outline:none}
+.app-update:disabled{opacity:.8;cursor:default}
+html.in-play .app-update{visibility:hidden;pointer-events:none}   /* never over a game in progress: it's back on the next menu */
+.app-overlay{z-index:90}
+.app-panel{max-width:520px;width:100%;text-align:left}
+.app-panel h2{text-align:center;font-family:var(--display);font-weight:400;color:var(--cyan)}
+.app-lead,.app-note{color:var(--text-lo);font-size:15px;line-height:1.45}
+.app-note{margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--deep);border:1px solid var(--floor-3)}
+.app-steps{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.app-steps li{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;color:var(--text-hi)}
+.app-pic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--deep);border:2px solid var(--cyan-ink);color:var(--cyan-hi)}
+.app-pic svg{width:30px;height:30px}
+.app-pic-icon{background-size:cover;background-position:center;border-color:var(--pink)}
+.app-steps-small li{grid-template-columns:34px 1fr}
+.app-num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--deep);border:2px solid var(--yellow);color:var(--yellow);font-weight:700}
+.app-panel .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
