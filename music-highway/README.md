@@ -38,6 +38,7 @@ reorder or remove songs. Add new ones at the end.**
     {deg: 4, oct: 0, beats: 0.5, acc: 1},  // acc: +1 raised a half step (♯ or ♮), -1 lowered
     {rest: 2},                             // a rest, in beats
     {deg: 5, oct: 0, beats: 2, tie: true}, // tie: held on into the NEXT note (the same degree/octave/acc)
+    {deg: 3, oct: 0, beats: 1, slur: 1},   // slur: the notes of one slur share a number (NOTE TEXT: '(3 4 5)')
   ],
 }
 ```
@@ -53,7 +54,9 @@ reorder or remove songs. Add new ones at the end.**
 
 In songs.js the notes are typed as short NOTE TEXT (`N('3 3 4 5 | 5 4 3 2')`: `5,` = an octave lower, `1'` = higher,
 `#4` / `b7` = raised / lowered, `:2` = two beats, `r:2` = a two-beat rest, `5:2~` = TIED into the next note (`5:2~ | 5` = one
-three-beat note across the bar line; the next note must be the same note, or the check reports it), `|` = a bar line that is CHECKED: a
+three-beat note across the bar line; the next note must be the same note, or the check reports it), `(3 4 5)` = a SLUR (parentheses around at least two
+notes; it may cross bar lines and hold a tie: `(5:2~ | 5 4) 3`; an unclosed `(`, a `)` with no `(`, a slur inside a slur,
+a rest inside one or a one-note slur are reported; the staff draws the arc, the highway a ribbon; the snare ignores it), `|` = a bar line that is CHECKED: a
 measure that doesn't add up is reported in the browser console and on the Song Board). `N()` turns the text into the
 objects above, which are the real format.
 

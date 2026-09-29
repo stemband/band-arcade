@@ -34,23 +34,50 @@
        5:2~     a TIE: '~' at the end ties this note into the NEXT note (same degree, octave and accidental), e.g.
                 '5:2~ | 5 5' (2/4) = one note held 3 beats, then 5. The game plays a tied pair as ONE held note (one
                 pad, one longer trail); the bar check still counts each side in its own measure; the staff draws a tie.
+       (3 4 5)  a SLUR: parentheses around a group of notes (at least two; it may cross bar lines, e.g. '(5 | 4 3) 2').
+                The staff draws the slur arc, the highway joins the pads with a thin ribbon ("one breath, no tongue"), and
+                the game's feedback says SMOOTH or "tongued" (feedback only: a slurred note scores exactly like any other).
+                A tie can sit inside a slur ('(3:2~ | 3 2)'). A '(' that is never closed, a ')' with no '(' or a slur
+                inside a slur is reported on the Song Board and in the console. The Snare Drum ignores slurs.
    A future MIDI importer only needs to produce the `notes` objects (see music-highway/README.md). */
 (function () {
   'use strict';
   /** one phrase of NOTE TEXT -> note objects (bar lines are kept as {bar: true} markers for the measure check) */
   function N(...lines) {
-    const out = [];
+    const out = [], problems = [];
+    let slur = null, slurs = 0;                                // the open slur: {id, notes}
     lines.join(' | ').split(/\s+/).filter(Boolean).forEach(tok => {
       if (tok === '|') { out.push({bar: true}); return; }
-      const m = /^(r|([#b]?)([1-7])([',]*))(?::([\d.]+))?(~)?$/.exec(tok);
-      if (!m) { console.warn('Music Highway songs.js: "' + tok + '" is not a note'); return; }
-      const beats = m[5] ? parseFloat(m[5]) : 1;
-      if (m[1] === 'r') { out.push({rest: beats}); return; }
-      const o = {deg: +m[3], oct: (m[4].match(/'/g) || []).length - (m[4].match(/,/g) || []).length, beats};
-      if (m[2]) o.acc = m[2] === '#' ? 1 : -1;
-      if (m[6]) o.tie = true;                                  // tied into the next note (see NOTE TEXT)
+      const m = /^(\()?(r|([#b]?)([1-7])([',]*))(?::([\d.]+))?(~)?(\))?$/.exec(tok);
+      if (!m) { problems.push(`"${tok}" is not a note`); return; }
+      const beats = m[6] ? parseFloat(m[6]) : 1;
+      if (m[1]) {                                              // '(' opens a slur
+        if (slur) problems.push(`a slur "(" inside another slur at "${tok}"`);
+        else slur = {id: ++slurs, notes: []};
+      }
+      let o;
+      if (m[2] === 'r') {
+        o = {rest: beats};
+        if (slur) problems.push(`a rest inside a slur at "${tok}"`);
+      } else {
+        o = {deg: +m[4], oct: (m[5].match(/'/g) || []).length - (m[5].match(/,/g) || []).length, beats};
+        if (m[3]) o.acc = m[3] === '#' ? 1 : -1;
+        if (m[7]) o.tie = true;                                // tied into the next note (see NOTE TEXT)
+        if (slur) slur.notes.push(o);
+      }
       out.push(o);
+      if (m[8]) {                                              // ')' closes it
+        if (!slur) problems.push(`a ")" with no "(" at "${tok}"`);
+        else { close(slur); slur = null; }
+      }
     });
+    if (slur) problems.push(`a slur "(" is never closed (it starts ${slur.notes.length ? 'at note ' + (out.filter(n => n.deg).indexOf(slur.notes[0]) + 1) : 'before the end'})`);
+    function close(sl) {
+      // a slur needs two DIFFERENT notes (a tied pair alone is one note)
+      if (sl.notes.filter((n, i) => !(i && sl.notes[i - 1].tie)).length < 2) { problems.push('a slur around a single note'); return; }
+      sl.notes.forEach(n => { n.slur = sl.id; });
+    }
+    if (problems.length) { out.problems = problems; problems.forEach(p => console.warn('Music Highway songs.js: ' + p)); }
     return out;
   }
   (window.Arcade = window.Arcade || {}).MHSongText = N;     // the same reader, for tests
@@ -122,15 +149,15 @@
               "1:2 | 2:.5 4:.5 3:.5 2:.5 | 5 5 | 5:.5 6:.5 3:.5 4:.5 | 2 2 | 2:.5 4:.5 3:.5 2:.5 | 1:.5 5:.5 2:.5 3:.5 | 1 1")},
     // the book's 1-beat pickup: the first measure starts with 2 beats of rest
     {id: 'come-from-sydney', title: "I've Just Come From Sydney", source: 'Traditional (Australian folk song)', tier: 1, tempo: 108, timeSig: [3, 4], key: 'Bb', style: 'waltz',
-     notes: N('r:2 5:.5 5:.5 | 3 3 5 | 2 2 5 | 5:.5 5:.5 4 2 | 3:2 5:.5 5:.5', '3:.5 3:.5 3 5:.5 5:.5 | 2:.5 2:.5 2 5:.5 5:.5 | 5 4 2 | 1:3')},
+     notes: N('r:2 5:.5 5:.5 | 3 3 5 | 2 2 5 | 5:.5 5:.5 4 2 | 3:2 5:.5 5:.5', '3:.5 3:.5 3 5:.5 5:.5 | 2:.5 2:.5 2 5:.5 5:.5 | (5 4) 2 | 1:3')},   // the book's m. 7 slur (G–F; its measures count from after the pickup)
     {id: 'donkey-riding', title: 'Donkey Riding', source: 'Traditional (Canadian folk song)', tier: 2, tempo: 96, timeSig: [2, 4], key: 'Eb', style: 'march',
      notes: N('1:.5 2:.5 3:.5 3:.5 | 4:.5 2:.5 3 | 3:.5 2:.5 2:.5 1:.5 | 3:.5 2:.5 2', '1:.5 2:.5 3:.5 3:.5 | 4:.5 2:.5 3 | 3:.5 2:.5 2:.5 3:.5 | 1 1')},
     {id: 'frogs-song', title: "The Frog's Song", source: 'Traditional (Japanese folk song)', tier: 2, tempo: 104, timeSig: [4, 4], key: 'Bb', style: 'rock',
-     notes: N('1 2 3 4 | 3 2 1:2 | 3 4 5 6 | 5 4 3:2', '1 r 1 r | 1 r 1 r | 1 2 3 6 | 3 2 1:2')},
+     notes: N('(1 2 3 4 | 3 2 1:2) | (3 4 5 6 | 5 4 3:2)', '1 r 1 r | 1 r 1 r | (1 2 3 6 | 3 2 1:2)')},   // the book's phrase slurs: mm. 1–2, 3–4, 7–8
     {id: 'san-sereni', title: 'San Serení', source: 'Traditional (Puerto Rican folk song)', tier: 2, tempo: 104, timeSig: [2, 4], key: 'Bb', style: 'rock',
-     notes: N('5:2 | 3 4 | 5:2~ | 5 5 | 6 5 | 4 3 | 5:2 | 4:2', '4:2 | 2 3 | 4:2~ | 4 4 | 5 4 | 2 7, | 1:2~ | 1 r')},
+     notes: N('5:2 | 3 4 | 5:2~ | 5 5 | (6 5) | 4 3 | (5:2 | 4:2)', '4:2 | 2 3 | 4:2~ | 4 4 | (5 4) | 2 7, | 1:2~ | 1 r')},   // slurs: mm. 5, 13, 7→8
     {id: 'nutcracker-theme', title: 'Theme from The Nutcracker', source: 'Pyotr Ilyich Tchaikovsky, 1892', tier: 2, tempo: 84, timeSig: [4, 4], key: 'Eb', style: 'march',
      notes: N('1:.5 7,:.5 1:.5 7,:.5 1 7, | 2 1 3:2 | 4:.5 3:.5 4:.5 3:.5 2 1 | 1:2 7,:2',
-              '6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 1:3 r:1')},
+              '6,:.5 6,:.5 6,:.5 6,:.5 (6, 5,) | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 1:3 r:1')},   // m. 5: the last two notes slurred
   ];
 })();
