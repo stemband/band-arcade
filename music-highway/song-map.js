@@ -5,7 +5,8 @@
    diagrams.js for the fingering cards).
 
      Arcade.SongMap.check(song)                -> [problems] (a measure that doesn't add up, a bad degree)
-     Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc} | {rest}] in beats from the start
+     Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc, tied?} | {rest}] in beats from the start
+                                                  (a tied pair (NOTE TEXT '~') = one note)
      Arcade.SongMap.concert(song, {shift})     -> the same notes with `concert` (midi) and `pc`; shift = semitones the
                                                   whole song moves (the C–G horn plays it in concert F: shift −5)
      Arcade.SongMap.forMember(song, member, group, {hornSide, sticking}) -> the song for one instrument:
@@ -47,21 +48,29 @@ window.Arcade = window.Arcade || {};
       if (n.rest == null && !(n.deg >= 1 && n.deg <= 7)) out.push(`${song.id}: "${JSON.stringify(n)}" has no degree 1–7`);
       t += n.rest != null ? n.rest : n.beats;
     });
+    // a tie ('~') must lead into the same note (degree, octave, accidental)
+    const seq = (song.notes || []).filter(n => !n.bar);
+    seq.forEach((n, k) => { if (!n.tie) return; const x = seq[k + 1];
+      if (!x || x.rest != null || x.deg !== n.deg || (x.oct || 0) !== (n.oct || 0) || (x.acc || 0) !== (n.acc || 0)) out.push(`${song.id}: note ${k + 1} is tied (~) but the next note isn't the same note`); });
     if (Math.abs(t - Math.round(t / per) * per) > 1e-6) out.push(`${song.id}: the last measure has ${+(t % per).toFixed(3)} of ${per} beats`);
-    if (song.sticking) { const n = String(song.sticking).toUpperCase().replace(/[^RL]/g, '').length, k = (song.notes || []).filter(x => x.deg).length;
+    if (song.sticking) { const n = String(song.sticking).toUpperCase().replace(/[^RL]/g, '').length, k = events(song).filter(x => !x.rest).length;   // a tied pair = one note
       if (n !== k) out.push(`${song.id}: sticking has ${n} letters for ${k} notes`); }
     if (song.tier === 1) (song.notes || []).forEach(n => { if (n.deg && (n.deg > 5 || n.oct || n.acc)) out.push(`${song.id}: tier 1 uses only degrees 1–5 in the first octave`); });
     return [...new Set(out)];
   }
 
-  /** timed notes (beats from the start of the song) */
+  /** timed notes (beats from the start of the song). TIES: a note with `tie` and the same note after it become ONE
+      note (its beats added; the measure it starts in); the notation draws the tie where a bar line cuts it. */
   function events(song) {
     const per = beatsPer(song), out = [];
-    let t = 0, i = 0;
+    let t = 0, i = 0, held = null;
     (song.notes || []).forEach(n => {
       if (n.bar) return;
-      if (n.rest != null) { out.push({rest: true, t, beats: n.rest, measure: Math.floor(t / per + 1e-6) + 1}); t += n.rest; return; }
-      out.push({i: i++, t, beats: n.beats, deg: n.deg, oct: n.oct || 0, acc: n.acc || 0, measure: Math.floor(t / per + 1e-6) + 1});
+      if (n.rest != null) { held = null; out.push({rest: true, t, beats: n.rest, measure: Math.floor(t / per + 1e-6) + 1}); t += n.rest; return; }
+      const same = held && held.deg === n.deg && held.oct === (n.oct || 0) && held.acc === (n.acc || 0);
+      if (same) { held.beats += n.beats; held.tied = (held.tied || 1) + 1; }
+      else out.push(held = {i: i++, t, beats: n.beats, deg: n.deg, oct: n.oct || 0, acc: n.acc || 0, measure: Math.floor(t / per + 1e-6) + 1});
+      if (!n.tie) held = null;
       t += n.beats;
     });
     out.total = t;
@@ -175,10 +184,11 @@ window.Arcade = window.Arcade || {};
   }
   function forMember(song, member, group, {hornSide = 'F', sticking = 'alternate'} = {}) {
     const unpitched = member.pitched === false || group.pitched === false;
-    // move the song to the group's first five when its tonic isn't concert B♭ (the C–G horn: concert F)
+    // a group whose first five don't start on concert B♭ (the C–G horn: concert F) gets the song moved by that same
+    // interval, whatever key the song is in (B♭ songs → F, E♭ songs → A♭); every other group plays the song's own key
     let shift = 0;
     if (!unpitched && group.targetPc && group.targetPc.length) {
-      shift = mod12(group.targetPc[0] - KEY_PC[song.key || 'Bb']);
+      shift = mod12(group.targetPc[0] - KEY_PC.Bb);
       if (shift > 6) shift -= 12;
     }
     const list = concert(song, {shift});
