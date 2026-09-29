@@ -88,6 +88,9 @@ test.describe('rhythm dojo', () => {
     await page.locator('#rdRetry').click();
     await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase), {timeout: 20000}).toBe('feedback');
     const hp = await page.evaluate(() => Arcade.RhythmDojo.state().last);
+    const bleed = await page.evaluate(() => Arcade.RhythmDojo.bleed());
+    console.log('bleed rule (headphones run):', JSON.stringify(bleed));
+    expect(bleed.heard, 'the count-in taught how late and how loud the clicks are heard').toBeGreaterThan(0);
     expect(hp.extras).toBe(0);
     expect(hp.res.every(r => r === 'miss')).toBe(true);
     // 3. synthesized claps (louder than the clicks) played into the same loop right on the notes: judged on time

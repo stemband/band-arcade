@@ -336,7 +336,7 @@
       kit = newKit(false);
       const clicksAll = !micMode() || opt.hp;                          // TAP (no microphone) and headphones: the beat keeps going
       Rd.clicks = scheduleClicks(kit, T.t0, clicksAll ? T.end : T.T0, T.beatS, per);
-      Rd.att = {T, attacks: [], lag: lagMs(), bleed: 0, down: null};
+      Rd.att = {T, attacks: [], lag: lagMs(), bleed: 0, offs: [], down: null};
       Rd.phase = 'perform';
       showButtons('perform');
       if (micMode()) { A.Pitch.pauseListening(false); A.Pitch.ignoreCurrent(); A.Onsets.ensure(); }
@@ -421,13 +421,28 @@
     if (!G || !G.R || G.R.phase !== 'perform' || !G.R.att) return;
     const Rd = G.R, a = Rd.att, aud = CLK.audAt(p) - a.lag / 1000, rel = aud - a.T.T0;
     if (rel < -R.lateMs / 1000) {                                        // the count-in: never a clap, but it teaches the bleed
-      if (level != null && Rd.clicks && Rd.clicks.some(c => Math.abs(CLK.audAt(p) - c) * 1000 <= R.bleedMs)) a.bleed = Math.max(a.bleed, level);
+      // how late the microphone hears our own clicks (speaker + mic delay: it differs from device to device), and how loud
+      const d = level != null && Rd.clicks ? nearestClick(Rd, CLK.audAt(p), 0, R.bleedLearnMs) : null;
+      if (d != null) { a.offs.push(d); a.bleed = Math.max(a.bleed, level); }
       return;
     }
-    // with the clicks still going (headphones), a hit right on a click must be clearly louder than the clicks were
-    if (level != null && a.bleed && Rd.clicks && Rd.clicks.some(c => Math.abs(CLK.audAt(p) - c) * 1000 <= R.bleedMs) && level <= a.bleed * R.bleedK) return;
+    // with the clicks still going (headphones), a hit right on a click (as late as the count-in's were heard) must be
+    // clearly louder than the clicks were
+    if (level != null && a.bleed && Rd.clicks && nearestClick(Rd, CLK.audAt(p), clickLag(a), R.bleedMs) != null && level <= a.bleed * R.bleedK) return;
     a.attacks.push({rel, p, up: null});
     strike();
+  }
+  /** the heard time's distance (s) to the nearest click played (+ lag), when within ms; else null */
+  function nearestClick(Rd, heard, lag, ms) {
+    let best = null;
+    Rd.clicks.forEach(c => { const d = heard - (c + lag); if (Math.abs(d) * 1000 <= ms && (best == null || Math.abs(d) < Math.abs(best))) best = d; });
+    return best;
+  }
+  /** the median delay the count-in's clicks were heard with (0 before any) */
+  function clickLag(a) {
+    if (!a.offs.length) return 0;
+    const o = a.offs.slice().sort((x, y) => x - y);
+    return o[Math.floor(o.length / 2)];
   }
   function tapDown(p) {
     if (opt.mode !== 'tap') return;
@@ -767,6 +782,8 @@
     /** the next performances play themselves: offset ms (or one per note), skip [note indexes], extra [seconds], short (tap: let go early), persist */
     autoPlay(offset = 0, o = {}) { auto = Object.assign({offset}, o); },
     judge: () => G && G.R && G.R.att ? judge(G.R) : null,
+    /** the performance's bleed rule: the clicks' level and how late they were heard in the count-in (ms) */
+    bleed: () => G && G.R && G.R.att ? {level: G.R.att.bleed, lagMs: Math.round(clickLag(G.R.att) * 1000), heard: G.R.att.offs.length, offs: G.R.att.offs.map(o => Math.round(o * 1000))} : null,
     /** the performance in progress: its rhythm's start (AudioContext time) and each note's time after it (s) */
     timeline: () => G && G.R && G.R.att ? {T0: G.R.att.T.T0, notes: G.R.targets.map(t => t.t)} : null,
     set: patch => { Object.assign(opt, patch); save(patch); if (!G) showHub(); },
