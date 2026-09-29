@@ -81,10 +81,11 @@
 
   /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows), or the FULL ARCADE ---------- */
   const FULL = {id: 'full-arcade', name: 'Full Arcade', full: true};
-  /** every floor game once, zone by zone (the lobby's order, then each zone's own), then any game in no zone; its zone */
+  /** every floor game once, zone by zone (the lobby's order, then each zone's own; an `auto` zone such as No Instrument
+      Needed is skipped: its games stand under their own zones), then any game in no zone; its zone */
   function fullGames() {
     const list = [], zoneOf = {};
-    A.zoneList().forEach(z => A.zoneGames(z.id).forEach(g => { if (!zoneOf[g.id]) { zoneOf[g.id] = z; list.push(g); } }));
+    A.zoneList().filter(z => !z.auto).forEach(z => A.zoneGames(z.id).forEach(g => { if (!zoneOf[g.id]) { zoneOf[g.id] = z; list.push(g); } }));
     A.floorGames().forEach(g => { if (!list.includes(g)) list.push(g); });
     return {list, zoneOf};
   }
@@ -98,7 +99,7 @@
   // same side and one would vanish on every turn, so the second is always on the right of the first
   const LINE = () => N === 2;
   const wrap = d => { if (!N) return 0; if (LINE()) return d; d = ((d % N) + N) % N; return d > N / 2 ? d - N : d; };
-  const fitOf = g => A.gameFit(g, A.store.player);
+  const fitOf = g => A.gameFit(g, A.store.player, current === 'zone' ? zone : null);   // (the No Instrument Needed zone: all fit)
   const fade = g => fitOf(g).ok ? 1 : .45;                // a game that doesn't suit this instrument stands dimmed
 
   /* the 2D view: CSS 3D-transformed HTML cabinets */
@@ -405,7 +406,7 @@
     if (!g) { setHash(''); return {view: 'lobby'}; }
     let from = {};
     try { from = JSON.parse(ss.get(FROM) || '{}') || {}; } catch (e) { /* none */ }
-    const z = from.zone && (g.zones || []).includes(from.zone) ? A.zoneById(from.zone) : A.zonesOf(g)[0];
+    const z = from.zone && A.inZone(g, from.zone) ? A.zoneById(from.zone) : A.zonesOf(g)[0];
     const to = from.view === 'all' ? {view: 'all', game: g.id} : from.view === 'full' ? {view: 'zone', zone: FULL, game: g.id}
       : from.view === 'lobby' || !z ? {view: 'lobby'} : {view: 'zone', zone: z, game: g.id};
     // the lobby goes underneath, so Back from here goes to the lobby (then back to the game)

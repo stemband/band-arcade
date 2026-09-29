@@ -264,20 +264,27 @@ window.Arcade = window.Arcade || {};
   /** the games with a cabinet (every game except tools like the Note Checker) */
   A.floorGames = () => (A.GAMES || []).filter(g => !g.tool);
   A.zoneById = id => (A.ZONES || []).find(z => z.id === id) || null;
+  /** is game g in zone z? its own `zones` list, or the zone's `auto` flag (games.js ZONES: the No Instrument Needed zone) */
+  A.inZone = function (g, z) {
+    if (typeof z === 'string') z = A.zoneById(z);
+    return !!(g && z && (z.auto ? g[z.auto] : (g.zones || []).includes(z.id)));
+  };
   /** a zone's games: the zone's own `order` first (games.js ZONES), then the rest in games.js order */
   A.zoneGames = function (id) {
-    const games = A.floorGames().filter(g => (g.zones || []).includes(id)), z = A.zoneById(id), order = (z && z.order) || [];
+    const z = A.zoneById(id), games = A.floorGames().filter(g => A.inZone(g, z)), order = (z && z.order) || [];
     const rank = g => { const i = order.indexOf(g.id); return i < 0 ? order.length + games.indexOf(g) : i; };
     return games.slice().sort((a, b) => rank(a) - rank(b));
   };
   /** the zones that have at least one game (an empty zone is hidden) */
   A.zoneList = () => (A.ZONES || []).filter(z => A.zoneGames(z.id).length);
-  /** a game's zones (only ones that exist) */
+  /** a game's own zones (only ones that exist; never an `auto` zone: those are a second way in) */
   A.zonesOf = g => (g && g.zones || []).map(A.zoneById).filter(Boolean);
-  /** does game g suit this instrument member? games.js `fit` ({only} or {not}); no member saved = it fits */
-  A.gameFit = function (g, memberId) {
+  /** does game g suit this instrument member? games.js `fit` ({only} or {not}); no member saved = it fits; in the
+      No Instrument Needed zone (pass the zone) every game there fits */
+  A.gameFit = function (g, memberId, zone) {
     const f = g && g.fit;
     if (!f || !memberId) return {ok: true};
+    if (zone && zone.auto === 'noInstrument' && g.noInstrument) return {ok: true};   // needs no instrument: never dimmed there
     const ok = f.only ? f.only.includes(memberId) : !(f.not || []).includes(memberId);
     return ok ? {ok: true} : {ok: false, tag: f.tag || 'Not for your instrument', why: f.why || ''};
   };
