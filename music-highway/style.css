@@ -58,6 +58,11 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
 .mh-judge.early,.mh-judge.late{color:var(--amber-hi)} .mh-judge.miss{color:var(--text-dim)}
 .mh-judge.wrong{color:var(--red);font-size:clamp(20px,4vw,30px)}
 .mh-judge.pop{animation:mhPop .22s ease-out}
+/* SLUR FEEDBACK (feedback only): SMOOTH / tongued under the judgment */
+.mh-judge small.mh-art{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.12em;margin-top:6px}
+.mh-judge small.mh-art.smooth{color:var(--cyan-hi)}
+.mh-judge small.mh-art.tongued{color:var(--amber-hi);font-family:var(--text);font-weight:700;letter-spacing:.06em}
+.mh-slurtip{margin:8px auto;max-width:560px;text-align:center;font-weight:700;color:var(--text-hi);background:var(--floor-2);border:1px solid var(--cyan);border-radius:12px;padding:10px 14px}
 @keyframes mhPop{from{transform:translateX(-50%) scale(1.25)}to{transform:translateX(-50%)}}
 @keyframes mhPopC{from{transform:scale(1.25)}to{transform:none}}
 .mh-count{position:absolute;left:0;right:0;top:calc(var(--sy) * .32);text-align:center;font-family:var(--display);font-size:clamp(60px,16vw,140px);color:var(--cyan-hi);text-shadow:var(--glow-cyan);pointer-events:none}

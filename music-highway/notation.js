@@ -6,7 +6,7 @@
 
      Arcade.MHNotation.engrave({clef ('treble' | 'bass' | null = a one-line percussion staff), sig, per (beats in a
        measure), timeSig, measures, events: [{t (beats from the first measure), beats, rest?, n (written note),
-       label (the letter name / R or L), id?}], header: 'time' | 'full' | 'none', showTime, x0, width (justify a row
+       label (the letter name / R or L), id?, slur? (its slur group), slurFirst?, slurLast?}], header: 'time' | 'full' | 'none', showTime, x0, width (justify a row
        to this width), captions, final (a double bar at the end)})
        -> {svg, vb: {top, h, w}, xAt(beats) (the smooth time -> x map), points: [{t, x}], bars: [x], shortest}
      Arcade.MHNotation.pinSVG({clef, sig, top, h}) -> the clef + key signature alone, the same height (the fixed part
@@ -276,7 +276,7 @@ window.Arcade = window.Arcade || {};
           end = up ? Math.min(end, MID) : Math.max(end, MID);
           if (!pitched) end = y - 52;
         }
-        ext(end);
+        ext(end); pc.stemEnd = end;
         s += `<line class="stem" x1="${f1(sxx)}" y1="${f1(y + d * 2)}" x2="${f1(sxx)}" y2="${f1(end)}" stroke="currentColor" stroke-width="2.2"/>`;
         if (!pc.beam) for (let k = 0; k < v.flags; k++) {
           const yy = end - d * k * 9;
@@ -293,6 +293,30 @@ window.Arcade = window.Arcade || {};
       if (!pc.tieFrom) { g.x = xx; if (o.captions && pc.ev.label) g.cap = {x: xx, label: pc.ev.label}; }
     });
 
+    /* SLURS: one arc from the group's first notehead to its last, OPPOSITE THE STEMS (all stems up = under the heads,
+       otherwise over them, clearing every head and up-stem in between); a slur that starts or ends outside this drawing
+       (a row break) runs to the edge */
+    let slurSVG = '';
+    const bySlur = new Map();
+    all.forEach(pc => { if (!pc.rest && pc.ev.slur != null && pc.x != null) { if (!bySlur.has(pc.ev.slur)) bySlur.set(pc.ev.slur, []); bySlur.get(pc.ev.slur).push(pc); } });
+    bySlur.forEach(list => {
+      list.sort((a, b) => a.x - b.x);
+      const a = list[0], z = list[list.length - 1];
+      const openL = !a.ev.slurFirst || a.tieFrom, openR = !z.ev.slurLast || z.tieNext;
+      if (a === z && !openL && !openR) return;
+      const below = list.every(pc => pc.up), side = below ? 1 : -1;
+      const endY = pc => below ? pc.y + 11 : pc.up && pc.stemEnd != null ? pc.stemEnd - 6 : pc.y - 11;
+      const endX = pc => !below && pc.up && pc.stemEnd != null ? pc.x + 8.3 : pc.x + (pc === a ? 2 : -2);
+      const x1 = openL ? Math.max(start - 6, a.x - 30) : endX(a), x2 = openR ? Math.min(W - 6, z.x + 30) : endX(z);
+      const y1 = endY(a), y2 = endY(z);
+      const far = below ? Math.max(...list.map(pc => pc.up ? pc.y + 8 : (pc.stemEnd != null ? pc.stemEnd : pc.y + 8))) + 7
+        : Math.min(...list.map(pc => pc.up && pc.stemEnd != null ? pc.stemEnd - 5 : pc.y - 8)) - 7;
+      const mid = (y1 + y2) / 2, apex = below ? Math.max(far, mid + 9) : Math.min(far, mid - 9);
+      const yc = (apex - .25 * mid) / .75, dx = (x2 - x1) * .25, yi = yc - side * 5;
+      ext(apex, yc);
+      slurSVG += `<path class="slur" fill="currentColor" d="M${f1(x1)} ${f1(y1)}C${f1(x1 + dx)} ${f1(yc)} ${f1(x2 - dx)} ${f1(yc)} ${f1(x2)} ${f1(y2)}C${f1(x2 - dx)} ${f1(yi)} ${f1(x1 + dx)} ${f1(yi)} ${f1(x1)} ${f1(y1)}Z"/>`;
+    });
+
     const top = Math.floor(Math.min(28, minY - 8)), bot0 = Math.ceil(Math.max(o.minBottom || 146, maxY + 8));
     const bot = bot0 + (o.captions ? 30 : 0), capY = bot - 10;
     let notesSVG = '';
@@ -300,7 +324,7 @@ window.Arcade = window.Arcade || {};
       notesSVG += `<g${e.id ? ` id="${e.id}"` : ''} data-x="${f1(g.x)}">${g.a}${g.cap ? `<text class="ncap" x="${f1(g.cap.x)}" y="${capY}" text-anchor="middle" ${TEXT_FONT} font-weight="700" font-size="15" fill="currentColor" fill-opacity=".72">${g.cap.label}</text>` : ''}</g>`;
     });
     const svg = `<svg class="staff mh-staffsvg" viewBox="0 ${top} ${f1(W)} ${bot - top}" style="color:var(--ink)" role="img" aria-label="${o.label || 'The song on the staff'}">` +
-      lines + head + rests + beamSVG + notesSVG + `</svg>`;
+      lines + head + rests + beamSVG + notesSVG + slurSVG + `</svg>`;
     return {svg, vb: {top, h: bot - top, w: W}, xAt, points: pts, bars, shortest, pieces: all.length};
   }
 

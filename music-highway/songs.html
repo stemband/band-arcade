@@ -94,7 +94,7 @@
   function rows(map, song) {
     const per = map.beatsPerMeasure, clef = map.unpitched ? null : map.clef;
     const events = (from, to) => { const base = (from - 1) * per, inR = e => e.measure >= from && e.measure <= to;
-      return map.notes.filter(inR).map(n => ({t: n.t - base, beats: n.beats, n: n.n, label: map.unpitched ? n.stick : n.label}))
+      return map.notes.filter(inR).map(n => ({t: n.t - base, beats: n.beats, n: n.n, label: map.unpitched ? n.stick : n.label, slur: n.slur, slurFirst: n.slurFirst, slurLast: n.slurLast}))
         .concat((map.rests || []).filter(inR).map(r => ({t: r.t - base, beats: r.beats, rest: true}))); };
     const opt = {clef, sig: map.sig, per, timeSig: song.timeSig, captions: true};
     // measure widths from one pass over the whole song, then rows that fit ROW_W

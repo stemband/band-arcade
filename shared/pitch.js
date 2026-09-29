@@ -344,12 +344,14 @@ window.Arcade = window.Arcade || {};
       if (ago === null && d <= ENV.jumpMs + env.every) ago = v;
       if (d >= 40 && d <= 120) before = Math.max(before, v);
     }
-    if (e >= dip * ENV.rise || (ago !== null && e >= ago * ENV.jump && e >= before * ENV.above)) attackAt(now, undefined, e);
+    if (e >= dip * ENV.rise || (ago !== null && e >= ago * ENV.jump && e >= before * ENV.above)) attackAt(now, undefined, e, dip > 0 && dip < Infinity ? e / dip : null);
   }
-  function attackAt(time, pitch, level) {
+  // rise = how far the envelope climbed over the quietest point of the last dipMs (information only: Music Highway's
+  // slur feedback asks for a clearer attack than the detector's own ENV.rise)
+  function attackAt(time, pitch, level, rise) {
     lastAttack = time;
-    if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null, level: level == null ? null : level});
-    pend.push({time, seen: [], level});
+    if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null, level: level == null ? null : level, rise: rise == null ? null : rise});
+    pend.push({time, seen: [], level, rise});
   }
   function fireAttack(a) { attackFns.forEach(fn => fn(a)); }
   /* called by the main loop with each reading: settle the pitch of pending attacks */
@@ -363,7 +365,7 @@ window.Arcade = window.Arcade || {};
         pend.splice(i, 1);
         let pick = two ? a.seen[n - 1] : null;
         if (!pick && n) { const c = {}; a.seen.forEach(x => { c[x.pc] = (c[x.pc] || 0) + 1; }); const best = +Object.keys(c).sort((x, y) => c[y] - c[x])[0]; pick = a.seen.filter(x => x.pc === best).pop(); }
-        fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null, level: a.level == null ? null : a.level});
+        fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null, level: a.level == null ? null : a.level, rise: a.rise == null ? null : a.rise});
       }
     }
   }

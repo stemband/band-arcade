@@ -5,7 +5,7 @@
    diagrams.js for the fingering cards).
 
      Arcade.SongMap.check(song)                -> [problems] (a measure that doesn't add up, a bad degree)
-     Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc, tied?} | {rest}] in beats from the start
+     Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc, tied?, slur, slurFirst?, slurLast?} | {rest}] in beats from the start
                                                   (a tied pair (NOTE TEXT '~') = one note)
      Arcade.SongMap.concert(song, {shift})     -> the same notes with `concert` (midi) and `pc`; shift = semitones the
                                                   whole song moves (the C–G horn plays it in concert F: shift −5)
@@ -52,6 +52,8 @@ window.Arcade = window.Arcade || {};
     const seq = (song.notes || []).filter(n => !n.bar);
     seq.forEach((n, k) => { if (!n.tie) return; const x = seq[k + 1];
       if (!x || x.rest != null || x.deg !== n.deg || (x.oct || 0) !== (n.oct || 0) || (x.acc || 0) !== (n.acc || 0)) out.push(`${song.id}: note ${k + 1} is tied (~) but the next note isn't the same note`); });
+    // slurs: the NOTE TEXT reader's own reports (an unclosed '(', a ')' with no '(', a slur in a slur…)
+    (song.notes && song.notes.problems || []).forEach(p => out.push(`${song.id}: ${p}`));
     if (Math.abs(t - Math.round(t / per) * per) > 1e-6) out.push(`${song.id}: the last measure has ${+(t % per).toFixed(3)} of ${per} beats`);
     if (song.sticking) { const n = String(song.sticking).toUpperCase().replace(/[^RL]/g, '').length, k = events(song).filter(x => !x.rest).length;   // a tied pair = one note
       if (n !== k) out.push(`${song.id}: sticking has ${n} letters for ${k} notes`); }
@@ -68,10 +70,18 @@ window.Arcade = window.Arcade || {};
       if (n.bar) return;
       if (n.rest != null) { held = null; out.push({rest: true, t, beats: n.rest, measure: Math.floor(t / per + 1e-6) + 1}); t += n.rest; return; }
       const same = held && held.deg === n.deg && held.oct === (n.oct || 0) && held.acc === (n.acc || 0);
-      if (same) { held.beats += n.beats; held.tied = (held.tied || 1) + 1; }
-      else out.push(held = {i: i++, t, beats: n.beats, deg: n.deg, oct: n.oct || 0, acc: n.acc || 0, measure: Math.floor(t / per + 1e-6) + 1});
+      if (same) { held.beats += n.beats; held.tied = (held.tied || 1) + 1; if (held.slur == null && n.slur != null) held.slur = n.slur; }
+      else out.push(held = {i: i++, t, beats: n.beats, deg: n.deg, oct: n.oct || 0, acc: n.acc || 0, measure: Math.floor(t / per + 1e-6) + 1, slur: n.slur != null ? n.slur : null});
       if (!n.tie) held = null;
       t += n.beats;
+    });
+    // SLURS: each slurred note knows its group (`slur`), whether it starts it (`slurFirst`: its attack is the
+    // group's one tongued note) and whether it ends it (`slurLast`)
+    const bySlur = {};
+    out.forEach(e => { if (e.slur != null) (bySlur[e.slur] = bySlur[e.slur] || []).push(e); });
+    Object.values(bySlur).forEach(g => {
+      if (g.length < 2) { g.forEach(e => { e.slur = null; }); return; }
+      g[0].slurFirst = true; g[g.length - 1].slurLast = true;
     });
     out.total = t;
     return out;
@@ -200,7 +210,7 @@ window.Arcade = window.Arcade || {};
     if (unpitched) {
       const ns = list.filter(e => !e.rest), st = stickings(song, ns, sticking);
       return Object.assign(base, {clef: null, sig: null, writtenKey: '', sticking: song.sticking ? 'song' : sticking,
-        notes: ns.map((e, i) => Object.assign({}, e, {pc: null, concert: null, midi: null, stick: st[i]}))});
+        notes: ns.map((e, i) => Object.assign({}, e, {pc: null, concert: null, midi: null, stick: st[i], slur: null, slurFirst: false, slurLast: false}))});   // the snare ignores slurs
     }
     const table = A.Masher && window.MASHER_FINGERINGS ? A.Masher.table(member) : null;
     const k = fitOctave(song, list, member, group, table);

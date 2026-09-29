@@ -15,11 +15,12 @@
                                              the unlit gates and their letter names -> a canvas (V.sun = the sun)
      drawRoad(g, V, {t, spb, per, still})    ONLY THE ROAD MOVES: one cross line per beat (crossing the gates ON the beat,
                                              downbeats magenta) and the lane dividers' dashes rolling with them
+     drawSlurs(g, V, notes, {from, t, q})    a thin ribbon joining each slurred pad to the next (`slurTo`)
      drawTrails(g, V, notes, {from, t, q})   the light trails of notes with `trail` (burning bright while `holding`)
      drawPads(g, V, notes, {from, t, q, names, onPad})   the neon pads (a hit one is consumed by its gate)
      drawGates(g, V, lanes, {q})             the gates' glow: lanes = [{v (0–1), col (a letter: 'c'…'b'), bad (0–1)}]
      attract(x, W, H, t)                     THE CABINET'S ATTRACT DEMO (below): t = s, or null = the still frame
-   A note = {t, end, tEnd, lane, color ('c'…'b', 'e'/'g' for the snare), label, trail, res, holding}. */
+   A note = {t, end, tEnd, lane, color ('c'…'b', 'e'/'g' for the snare), label, trail, res, holding, slurTo?}. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -115,6 +116,24 @@ window.Arcade = window.Arcade || {};
       if (lit && q !== 'lo') { g.globalAlpha = .3; quad(1.9); g.fill(); }
       g.globalAlpha = n.res === 'miss' ? .2 : lit ? .95 : hit ? .3 : .55; quad(1); g.fill();
       if (lit) { g.fillStyle = tok('text-hi'); g.globalAlpha = .7; quad(.35); g.fill(); }
+      g.globalAlpha = 1;
+    }
+  }
+
+  /* SLURS: a thin ribbon from each slurred pad to the next one in its slur ("one breath, no tongue"), under the trails
+     and pads; once a pad has been played the ribbon starts at the strike line */
+  function drawSlurs(g, V, notes, {from = 0, t, q = 'hi'}) {
+    for (let k = from; k < notes.length && notes[k].t - t <= V.lead; k++) {
+      const n = notes[k], x = n.slurTo;
+      if (!x || (x.res && x.res !== 'miss' && x.t - t < 0)) continue;
+      const a = n.t - t, b = Math.min(x.t - t, V.lead * 1.05);
+      if (b < -.3) continue;
+      const done = n.res && n.res !== 'miss';
+      const pa = proj(V, done ? Math.max(a, 0) : Math.max(a, -.3)), pb = proj(V, b);
+      const xa = laneX(V, n.lane, pa.s), xb = laneX(V, x.lane, pb.s), w = Math.max(1.2, V.padH * .12);
+      g.strokeStyle = tok('text-hi'); g.lineCap = 'round';
+      if (q !== 'lo') { g.globalAlpha = .18; g.lineWidth = w * 2.6 * (pa.s + pb.s) / 2; g.beginPath(); g.moveTo(xa, pa.y); g.lineTo(xb, pb.y); g.stroke(); }
+      g.globalAlpha = .7; g.lineWidth = w * (pa.s + pb.s) / 2; g.beginPath(); g.moveTo(xa, pa.y); g.lineTo(xb, pb.y); g.stroke();
       g.globalAlpha = 1;
     }
   }
@@ -222,5 +241,5 @@ window.Arcade = window.Arcade || {};
     x.restore();
   }
 
-  A.HighwayDraw = {laneX, proj, rrect, paintStatic, drawRoad, drawTrails, drawPads, drawGates, attract, DEMO, tok};
+  A.HighwayDraw = {laneX, proj, rrect, paintStatic, drawRoad, drawSlurs, drawTrails, drawPads, drawGates, attract, DEMO, tok};
 })(window.Arcade);

@@ -12,6 +12,13 @@ window.MH_RULES = {
   bleedK: 2.5,            // … and then counts only when this many times louder than the drums the microphone heard back
   softEntryMs: 150,       // a note that started without a clear attack (a very soft entry) still counts from its first
                           // steady reading, if no attack was heard within this before it
+  /* SLUR FEEDBACK (feedback only: a slurred note is judged exactly like any other). A slurred note (not the first of its
+     slur) counts as TONGUED only when a CLEAR new attack came with it: within slurAtkMs of the note, rising at least
+     slurTongueRise × the quietest point before it (stricter than the attack detector's own 2.2, so a slur's small
+     bump never counts); anything else = SMOOTH. The results tip: a slur tongued on more than slurTipShare of its notes */
+  slurAtkMs: 120,
+  slurTongueRise: 3,
+  slurTipShare: .5,
   /* SCORING. Accuracy = the average of each note's value; stars from the accuracy */
   points: {perfect: 300, good: 200, ok: 100, early: 50, late: 50, miss: 0},
   value:  {perfect: 1, good: .9, ok: .7, early: .4, late: .4, miss: 0},

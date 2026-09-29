@@ -29,13 +29,15 @@
 
   /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, speed ('slow' | 'normal' |
      'turbo'; old saves: slow), mode ('play' | 'practice'), melody, melVol, wide, names, sticking, fx, turbo ({member:
-     {song id: true}}: the ⚡ TURBO badges), tip} ---------- */
+     {song id: true}}: the ⚡ TURBO badges), tip, slurTips (false = no SMOOTH / tongued pops and no slur tip)} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
   let speed = ['slow', 'normal', 'turbo'].includes(gd().speed) ? gd().speed : gd().slow ? 'slow' : 'normal';
   let playMode = gd().mode === 'practice' ? 'practice' : 'play';       // PRACTICE: the pitched backing plays, the mic stays off
   let melody = gd().melody !== false, melVol = typeof gd().melVol === 'number' ? gd().melVol : .7;
-  let hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false;
+  let hp = !!gd().hp, wide = !!gd().wide, names = gd().names !== false, slurTips = gd().slurTips !== false;
+  /* SLURS ARE FOR WINDS: the snare ignores them (song-map.js), the bells can't slur (no feedback, no tip) */
+  const slurs = !unpitched && member.family !== 'percussion';
   const RATE = {slow: R.slowRate, normal: 1, turbo: R.turboRate};
   const turboBadge = s => !!((gd().turbo || {})[member.id] || {})[s.id];
   let sticking = gd().sticking === 'downbeats' ? 'downbeats' : 'alternate';   // the snare's default hand pattern
@@ -104,6 +106,7 @@
     };
     seg('Note spacing', 'mhSetSpc', [['false', 'Normal'], ['true', 'Wide']], () => wide, setWide);
     seg('Letter names in the lights', 'mhSetNames', [['true', 'On'], ['false', 'Off']], () => names, setNames);
+    if (slurs) seg('Slur tips', 'mhSetSlur', [['true', 'On'], ['false', 'Off']], () => slurTips, v => { slurTips = v; save({slurTips}); A.Sfx.event('ui-toggle'); });
     if (G) { const n = document.createElement('p'); n.className = 'ui-snote'; n.textContent = 'A new note spacing shows when you resume.'; box.appendChild(n); }
   });
   $('hpBtn').onclick = () => {
@@ -187,7 +190,9 @@
     const lanesOf = n => lanes.of(n);                              // one lane per pitch, low = left; the snare: its hand's lane
     const list = notes.map((n, k) => ({k, n, t: n.t * spb, beats: n.beats, dur: n.beats * spb, end: (n.t + n.beats) * spb, lane: lanesOf(n), measure: n.measure,
       orig: n.orig || n.measure, loop: n.loop || 0, pc: n.pc, midi: n.concert, long: !unpitched && n.beats >= R.holdFrom,
-      trail: !unpitched && n.beats >= R.trailFrom - 1e-6, res: null, held: 0}));
+      trail: !unpitched && n.beats >= R.trailFrom - 1e-6, res: null, held: 0, slur: unpitched ? null : n.slur, slurFirst: !!n.slurFirst}));
+    // SLURS: each slurred note points at the next one in its group (the highway's ribbon joins them)
+    list.forEach((n, k) => { const x = list[k + 1]; if (n.slur != null && x && x.slur === n.slur && x.loop === n.loop) n.slurTo = x; });
     // a trail ends a little before the note does (trailGap of its length), so two notes in a row stay apart
     list.forEach(n => { n.tEnd = n.end - (n.trail ? R.trailGap * n.dur : 0); });
     list.fvTotal = list.filter(n => n.trail).length;
@@ -205,7 +210,7 @@
     const map = SM.forMember(song, member, inst, {hornSide, sticking});
     const lanes = SM.lanes(song, map, inst);
     const T = buildTimeline(song, map, rate, practice, lanes);
-    G = {i, song, map, lanes, rate, practice, guide, speed: practice ? 'practice' : speed, slow: !practice && speed === 'slow', T, fv: {n: T.notes.fvTotal || 0, held: 0, pts: 0}, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
+    G = {slurLog: [], i, song, map, lanes, rate, practice, guide, speed: practice ? 'practice' : speed, slow: !practice && speed === 'slow', T, fv: {n: T.notes.fvTotal || 0, held: 0, pts: 0}, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
          counts: {perfect: 0, good: 0, ok: 0, early: 0, late: 0, miss: 0}, value: 0, judged: 0, pendingAtk: [], recent: [], soft: [],
          bleed: 0, bleedSamples: [], hits: [], lag: lagMs(), paused: false, loopStats: {}, log: []};
     $('hub').hidden = true; A.UI.results.hide(); $('play').hidden = false;
@@ -334,12 +339,17 @@
       if (G.phase === 'count') return;
       return judge(t, null, a.time);
     }
-    if (a.pc != null && judge(t, a.pc, a.time)) return;
-    G.pendingAtk.push({t, time: a.time, pc: a.pc, until: a.time + R.pitchConfirmMs});
+    const art = {tongued: tongued(a)};
+    if (a.pc != null && judge(t, a.pc, a.time, art)) return;
+    G.pendingAtk.push({t, time: a.time, pc: a.pc, until: a.time + R.pitchConfirmMs, art});
   });
 
-  /** judge a note start at song time t with pitch class pc (null = unpitched): the closest open note in the window */
-  function judge(t, pc, perf) {
+  /** SLUR FEEDBACK: was this attack a CLEAR new tongue? (stricter than the detector: settings.js slurTongueRise; an
+      attack with no measured rise is a ?demo key press = a tongue) */
+  const tongued = a => a.rise != null ? a.rise >= R.slurTongueRise : !!A.DEMO;
+  /** judge a note start at song time t with pitch class pc (null = unpitched): the closest open note in the window.
+      art = how it arrived ({tongued}: an attack, or null / {tongued: false}: a smooth pitch change): feedback only */
+  function judge(t, pc, perf, art) {
     const W = R.outerMs / 1000;
     let best = null;
     G.T.notes.forEach(n => {
@@ -355,8 +365,31 @@
     const d = (t - best.t) * 1000, ad = Math.abs(d);
     const res = ad <= R.perfectMs ? 'perfect' : ad <= R.goodMs ? 'good' : ad <= R.okMs ? 'ok' : d < 0 ? 'early' : 'late';
     mark(best, res, d);
+    slurred(best, art);
     if (best.trail) { best.holding = true; best.lastHeard = performance.now(); }
     return true;
+  }
+  /* FEEDBACK ONLY (the score above is already decided): a slurred note after the first of its slur arrived with a clear
+     new attack = "tongued", by a smooth pitch change = SMOOTH (a small pop under the judgment) */
+  function slurred(n, art) {
+    if (!slurs || n.slur == null || n.slurFirst || G.guide) return;
+    n.art = art && art.tongued ? 'tongued' : 'smooth';
+    G.slurLog.push({k: n.k, art: n.art, measure: n.orig, slur: n.slur, loop: n.loop});
+    if (!slurTips) return;
+    const j = $('judge');
+    j.insertAdjacentHTML('beforeend', n.art === 'smooth' ? '<small class="mh-art smooth">SMOOTH</small>' : '<small class="mh-art tongued">tongued</small>');
+  }
+  /** after the song: ONE tip when the slurs were mostly tongued, for the slur tongued the most (its first measure) */
+  function slurTip(g) {
+    if (!slurs || !slurTips || !g.slurLog.length) return '';
+    const tg = g.slurLog.filter(x => x.art === 'tongued').length;
+    if (tg / g.slurLog.length <= R.slurTipShare) return '';
+    const by = {};
+    g.slurLog.forEach(x => { const k = x.loop + ':' + x.slur, b = by[k] = by[k] || {n: 0, t: 0, m: x.measure}; b.n++; if (x.art === 'tongued') b.t++; });
+    const worst = Object.values(by).sort((a, b) => b.t / b.n - a.t / a.n || a.m - b.m)[0];
+    const how = member.id === 'trombone' ? 'Keep the air moving through the slide change; a light "doo" is OK.'
+      : 'One air stream, move only your fingers.';
+    return `Measure ${worst.m}: slur it! ${how}`;
   }
   function mark(n, res, d) {
     n.res = res; n.d = d;
@@ -398,15 +431,15 @@
     // attacks waiting for their pitch
     for (let k = G.pendingAtk.length - 1; k >= 0; k--) {
       const a = G.pendingAtk[k];
-      if (pc != null && now >= a.time && judge(a.t, pc, a.time)) { G.pendingAtk.splice(k, 1); continue; }
-      if (now > a.until) { G.pendingAtk.splice(k, 1); if (a.pc != null) judge(a.t, a.pc, a.time); }
+      if (pc != null && now >= a.time && judge(a.t, pc, a.time, a.art)) { G.pendingAtk.splice(k, 1); continue; }
+      if (now > a.until) { G.pendingAtk.splice(k, 1); if (a.pc != null) judge(a.t, a.pc, a.time, a.art); }
     }
     for (let k = G.soft.length - 1; k >= 0; k--) {
       const s = G.soft[k];
       if (now < s.due) continue;
       G.soft.splice(k, 1);
       if (G.recent.some(t => t > s.time - R.softEntryMs && t < s.time + 120)) continue;   // it had an attack: judged already
-      judge(songOf(s.time - 25), s.pc, s.time);
+      judge(songOf(s.time - 25), s.pc, s.time, {tongued: false});   // no attack: a smooth arrival (a slur)
     }
     // long notes: the tail meter fills while the note sounds
     G.T.notes.forEach(n => {
@@ -528,6 +561,7 @@
     g.drawImage(V.bg, 0, 0, W, V.roadH);
     HD.drawRoad(g, V, {t, spb: T.spb, per: T.per, still: reduced()});
     while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) G.ci++;
+    HD.drawSlurs(g, V, T.notes, {from: G.ci, t, q: FX.q});
     HD.drawTrails(g, V, T.notes, {from: G.ci, t, q: FX.q});
     HD.drawPads(g, V, T.notes, {from: G.ci, t, q: FX.q, names, onPad: G.trace ? (n, y) => { G.trace.pads[n.k] = y; } : null});
     drawGates();
@@ -646,7 +680,7 @@
   /** the song's notes + rests of measures from..to as notation events (ids = the notes' staff ids) */
   function staffEvents(map, from, to, idOf) {
     const base = (from - 1) * map.beatsPerMeasure, inR = e => e.measure >= from && e.measure <= to;
-    return map.notes.filter(inR).map((n, j) => ({t: n.t - base, beats: n.beats, n: n.n, label: unpitched ? n.stick : n.label, id: idOf(n, j)}))
+    return map.notes.filter(inR).map((n, j) => ({t: n.t - base, beats: n.beats, n: n.n, label: unpitched ? n.stick : n.label, id: idOf(n, j), slur: n.slur, slurFirst: n.slurFirst, slurLast: n.slurLast}))
       .concat((map.rests || []).filter(inR).map(r => ({t: r.t - base, beats: r.beats, rest: true})));
   }
   function buildStaff() {
@@ -708,6 +742,7 @@
     extra.innerHTML = `<div class="mh-counts" id="resCounts">` + [['perfect', 'Perfect'], ['good', 'Good'], ['ok', 'OK'], ['early', 'Early'], ['late', 'Late'], ['miss', 'Miss']]
       .map(([k, l]) => `<span class="mc-${k}"><b>${c[k]}</b>${l}</span>`).join('') + (g.bonus ? `<span class="mc-bonus"><b>+${g.bonus}</b>Hold bonus</span>` : '') +
       (g.fv.pts ? `<span class="mc-bonus"><b>+${g.fv.pts}</b>Full value</span>` : '') + '</div>' +
+      (slurTip(g) ? `<p class="mh-slurtip" id="slurTip">${slurTip(g)}</p>` : '') +
       `<div class="mh-trouble" id="trouble" hidden><h3 class="ui-section">Trouble spot</h3><p id="troubleMsg"></p><div class="stage mh-tstaff" id="troubleStaff"></div>` +
       `<button type="button" class="btn btn-secondary" id="practiceBtn">Practice this part</button></div>`;
     const next = g.i + 1 < SONGS.length && unlocked(g.i + 1);
@@ -954,7 +989,7 @@
       counts: Object.assign({}, G.counts), judged: G.judged, total: G.T.notes.length, lag: G.lag, rate: G.rate, bleed: G.bleed, paused: G.paused,
       drums: G.hits.length, lateHits: G.lateHits || 0, file: !!G.fileStarted, clock: CLK.ctx ? 'audio' : 'perf', log: G.log.slice(-40)} : {phase: 'menu', last: lastG ? {counts: lastG.counts, score: lastG.score} : null},
     /** tests: play every note automatically, `offsetMs` from its time (the attack given the calibrated delay) */
-    autoPlay(offsetMs = 0, {wrong = false, every = 1, hold = true} = {}) {
+    autoPlay(offsetMs = 0, {wrong = false, every = 1, hold = true, slur = 'tongue'} = {}) {
       const done = new Set();
       const tick = () => {
         if (!G) return;
@@ -968,7 +1003,8 @@
             const perf = performance.now() - (t - n.t - off / 1000) * 1000 + G.lag;
             G.recent.push(perf);
             const pc = unpitched ? null : wrong ? (n.pc + 2) % 12 : n.pc;
-            if (unpitched) judge(songOf(perf), null, perf); else judge(songOf(perf), pc, perf);
+            // slur: 'tongue' = every note arrives with an attack, 'smooth' = slurred notes arrive by a pitch change
+            if (unpitched) judge(songOf(perf), null, perf); else judge(songOf(perf), pc, perf, {tongued: !(slur === 'smooth' && n.slur != null && !n.slurFirst)});
             if (hold && n.trail && !wrong) { n.holding = true; n.lastHeard = performance.now(); const iv = setInterval(() => { if (!G || songNow() > n.end || (typeof hold === 'number' && songNow() > n.t + hold * n.dur)) return clearInterval(iv); if (G.paused || G.phase === 'count') return; n.lastHeard = performance.now(); n.held = Math.max(n.held, Math.min(n.dur, songNow() - n.t)); }, 40); }
           }
         });
@@ -1008,6 +1044,12 @@
     trace: () => { if (G) { G.trace = {pads: {}}; G.traceLog = []; } },
     traceLog: () => G ? G.traceLog : null,
     names: () => names,
+    /** tests: the slur feedback so far ([{k, art: 'tongued' | 'smooth', measure}]) and the results tip */
+    slurLog: () => (G || lastG) ? (G || lastG).slurLog.slice() : null,
+    slurTip: () => lastG ? slurTip(lastG) : null,
+    /** tests: every note's judgment in the last song ([res, …], in note order) */
+    results: () => { const g = G || lastG; return g ? g.T.notes.map(n => n.res) : null; },
+    slurLinks: () => G ? G.T.notes.filter(n => n.slurTo).map(n => [n.k, n.slurTo.k]) : null,
     staff: () => V.st ? {play: V.st.play, scale: V.st.scale, sy: V.sy, padH: V.padH, x: V.st.x} : null,
     glow: () => ({on: GL.lanes.some(l => l.target), k: GL.last && GL.lanes[GL.last.lane] && GL.lanes[GL.last.lane].target ? GL.last.k : null, lanes: GL.lanes.map(l => +l.v.toFixed(2))}),
   };
