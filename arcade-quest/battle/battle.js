@@ -6,7 +6,10 @@
      HARMONIZE  only with a full CALM meter: its happy-note challenge. Success = it joins your band (bigger rewards).
    Enemy HP 0 = it fades away grumbling (smaller rewards), WHATEVER ITS CALM: the student chooses. A full CALM offers
    HARMONIZE (and says so once: "Its CALM is full: HARMONIZE to befriend it, or keep playing to defeat it."); playing
-   on defeats it. Only story-critical enemies keep `mustHarmonize` (the Phantom Fermata, the Ghost Conductor).
+   on defeats it. `mustHarmonize` (HP stops at 1) is kept for an enemy that must never be defeated; none uses it in
+   Episode 1: the Phantom Fermata and the Ghost Conductor have ALTERNATE ROUTES instead (data/enemies.js
+   `opensIfFaded`: defeating the Fermata opens the Hidden Passage; the Conductor's `finale` holds him at 1 HP ONCE,
+   then HARMONIZE = the best ending, PLAY on = the defeat ending, engine/world.js).
    Your HP 0 = "out of breath": nothing is lost, HP refills.
    YOUR POWER = Q.save.powerAt(level) (engine/save.js): about 14 % more every level. A PLAY does
    power × accuracy × (0.55 + 0.45 × speed) (× 1.3 for the B♭ Blast).
@@ -145,10 +148,14 @@
   /** the enemy takes n (you or a companion); a story-critical enemy (mustHarmonize) holds on at 1 HP */
   function hurtFoe(n) {
     B.e.hp -= n; B.hurtUntil = performance.now() + 450; Q.sfx('quest-enemy-hurt'); Q.shake(2, 180);
-    if (B.e.mustHarmonize && B.e.hp < 1) {
+    if (B.e.hp >= 1) return;
+    if (B.e.finale && !B.finale) {                                // the final boss's finale: he holds on at 1 HP ONCE
+      B.e.hp = 1; B.finale = true; B.calm = RULES.calmMax; B.choiceSaid = true;
+      B.queue.push(...[].concat(B.e.finale), Q.text('finaleChoice', {name: B.e.name})); Q.sfx('quest-boss-phase');
+    } else if (B.e.finale && B.finaleHeldThisPlay) B.e.hp = 1;     // (not in the same PLAY that started the finale)
+    else if (B.e.mustHarmonize) {
       B.e.hp = 1;
-      if (B.e.finale && !B.finale) { B.finale = true; B.calm = RULES.calmMax; B.queue.push(...[].concat(B.e.finale)); Q.sfx('quest-boss-phase'); }
-      else if (!B.heldSaid) { B.heldSaid = true; B.queue.push(B.e.lines.hold); }
+      if (!B.heldSaid) { B.heldSaid = true; B.queue.push(B.e.lines.hold); }
     }
   }
   /** after each of YOUR PLAYs: every companion still playing plays too, as well as you just did (your accuracy) */
@@ -185,7 +192,7 @@
     const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: foe()});
     if (B === null) return false;
     const power = Q.save.powerAt(B.save.level);
-    B.heldSaid = false;
+    B.heldSaid = false; B.finaleHeldThisPlay = !B.finale;          // the PLAY that reaches the finale can't also end it
     let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
     const fork = Q.charms.effects().find(e => e.inTune && res.acc >= (e.at || .9));    // the Tuning Fork
     if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
@@ -304,6 +311,7 @@
   }
   async function fade() {
     B.state = 'fading'; B.fadeAt = performance.now(); Q.sfx('quest-fade');
+    if (B.e.opensIfFaded) Q.save.setFlag(B.e.opensIfFaded);    // THE ALTERNATE ROUTE (the Fermata: the Hidden Passage)
     await Q.say([B.e.lines.fade, Q.text('faded', {name: B.e.name})]);
     await rewards('fade');
   }

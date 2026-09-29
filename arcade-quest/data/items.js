@@ -27,4 +27,6 @@ window.QUEST_CHARMS = {
   'metronome-charm':   {name: 'Metronome Charm', icon: 'metro', desc: 'Enemy notes move 15% slower when you dodge.', effect: {dodge: 0.85}, reward: 'fermata'},
   'silver-mute':       {name: 'Silver Mute', icon: 'mute', desc: 'Blocks the first sour note that hits you in each battle.', effect: {block: 1}, price: 200},
   'tuning-fork':       {name: 'Tuning Fork', icon: 'fork', desc: 'In-tune playing (90% or better) hits 25% harder.', effect: {inTune: 1.25, at: 0.9}, found: 'library'},
+  // THE ALTERNATE ROUTE's treasure: only in the Hidden Passage (opened by DEFEATING the Phantom Fermata)
+  'echo-chime':        {name: 'Echo Chime', icon: 'chime', desc: '+4 max HP, and CALM rises 15% faster. It rings with the old orchestra.', effect: {maxHp: 4, calm: 1.15}, found: 'passage'},
 };

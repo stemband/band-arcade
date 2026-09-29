@@ -113,8 +113,10 @@
           else A.UI.confirm({title: 'Start your save over?', text: 'Your Arcade Quest level, tokens, items and band friends start over.', yes: 'Start over', no: 'Keep my save',
             danger: true, theme: 'q-theme'}).then(yes => { if (yes && Q.$('qFoes')) { m.destroy(); f.destroy(); Q.save.reset(); Q.go('arena'); } });
         }});
-      this.menu = m;
+      this.menu = m; this.foot = f;
     },
+    // leaving the arena any other way (a test, ?demo): its menus stop listening for A
+    exit() { [this.menu, this.foot].forEach(x => { if (x) x.destroy(); }); this.menu = this.foot = null; },
     draw(ctx, now) {
       for (let y = 112; y < Q.H; y += 16) for (let x = 0; x < Q.W; x += 16) Q.draw(ctx, 'tile', x, y);
       const s = Q.save.get(), cur = this.menu ? this.menu.index : -1;

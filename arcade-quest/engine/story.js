@@ -9,6 +9,7 @@
      pull     the Ghost Notes cabinet, close up, pulling you in     party   the manor celebrating (your ghost friends)
      crackle  the party frozen in static                            mic     THE MYSTERIOUS MICROPHONE, huge
      black    nothing (a shot's `title` shows big words over it)
+     rafters  THE DEFEAT ENDING: the manor lighting up while the Conductor drifts up into the rafters, fading
    Reduced motion: no shaking, no flicker; the static stands still and nobody bounces. */
 (function (A) {
   "use strict";
@@ -95,6 +96,7 @@
       if (t > 2.6) { ctx.fillStyle = Q.css('q-white'); ctx.globalAlpha = Math.min(1, (t - 2.6) * 2) * .8; ctx.fillRect(0, 0, Q.W, Q.H); ctx.globalAlpha = 1; }
     },
     party(ctx, now) { party(ctx, now, true); },
+    rafters(ctx, now, t) { party(ctx, now, true, {rise: Math.min(1, t / 4)}); },
     crackle(ctx, now, t) {
       if (!Q.reduced() && t < 1.2) { ctx.save(); ctx.translate(Math.round(rnd(Math.floor(now / 40)) * 6 - 3), 0); }
       party(ctx, now, false);
@@ -115,7 +117,7 @@
     },
   };
   /** the manor, celebrating: warm candlelight, your ghost friends bouncing, the Conductor conducting, confetti */
-  function party(ctx, now, moving) {
+  function party(ctx, now, moving, {rise = 0} = {}) {
     ctx.fillStyle = Q.css('q-wall'); ctx.fillRect(0, 0, Q.W, 70);
     ctx.fillStyle = Q.css('q-trim'); ctx.fillRect(0, 66, Q.W, 4);
     ctx.fillStyle = Q.css('q-plank'); ctx.fillRect(0, 70, Q.W, 110);
@@ -126,7 +128,8 @@
       ctx.globalAlpha = .18; ctx.beginPath(); ctx.arc(x + 1.5, 28, 12, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
     const bounce = k => (moving && !Q.reduced() ? Math.round(Math.abs(Math.sin(now / 260 + k)) * -4) : 0);
-    Q.draw(ctx, 'conductor', 136, 20 + Math.round(bounce(0) / 2), {frame: 2});
+    // (the defeat ending: the Conductor drifts up and fades as the room lights up)
+    Q.draw(ctx, 'conductor', 136, 20 + Math.round(bounce(0) / 2) - Math.round(rise * 40), {frame: 2, alpha: 1 - rise * .8});
     const friends = [...new Set(['wisp', 'squeaker', 'hush', 'wobble', 'chatterbox', ...Q.save.get().roster.filter(id => id !== 'conductor' && id !== 'fermata')])].slice(0, 8);
     friends.forEach((id, k) => {
       const x = k < 4 ? 8 + k * 30 : 184 + (k - 4) * 32;
@@ -237,7 +240,9 @@
       Q.save.achievements();
       const leave = then => { A.UI.results.hide(); then(); };
       A.UI.results.show({gameId: 'arcade-quest', theme: 'q-theme', stars: null, title: 'Episode 1 complete!',
-        msg: 'Ghost Notes Manor has its music back. The Ghost Conductor joined your band.',
+        msg: 'Ghost Notes Manor has its music back. ' + ((s.route || {}).conductor === 'fade'
+          ? 'The Ghost Conductor faded into the rafters, humming along. (Befriend him next time for the best ending!)'
+          : 'The Ghost Conductor joined your band.'),
         tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', s.tokens], ['Ghosts helped', Q.save.helped()]],
         extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
           `<p class="ui-howto">The manor is still yours to explore. Episode 2 is coming...</p>`,

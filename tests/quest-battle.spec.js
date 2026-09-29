@@ -79,13 +79,26 @@ test('HARMONIZE with a full CALM still befriends', async ({page}) => {
   watch.check();
 });
 
-test('a story-critical enemy (the Phantom Fermata) still holds on at 1 HP until HARMONIZED', async ({page}) => {
+test('the Phantom Fermata can be defeated now: it fades and opens the Hidden Passage (atticPassage), not the door', async ({page}) => {
   const watch = await open(page, {level: 6});
+  await page.evaluate(() => { window.__play = {acc: 1, speed: 1, correct: 0, total: 3, success: false}; });
   await start(page, 'fermata');
-  await until(page, b => b && b.hp <= 1, () => 'PLAY');
-  const b = await state(page);
-  expect(b.hp).toBe(1);
-  expect(b.state).toBe('fight');
+  await until(page, (b, scene) => scene !== 'battle');
+  const f = await page.evaluate(() => Arcade.Quest.save.get().flags);
+  expect(f.atticPassage).toBe(true);
+  expect(f.atticOpen).toBeFalsy();
+  watch.check();
+});
+
+test('the Ghost Conductor holds on ONCE for his finale (CALM fills, the choice is said), then can be defeated', async ({page}) => {
+  const watch = await open(page, {level: 8});
+  await start(page, 'conductor');
+  await until(page, b => b && b.hp === 1 && b.calm >= 100, () => 'PLAY');
+  const lines = await page.evaluate(() => window.__lines);
+  expect(lines.some(l => /HARMONIZE to give the orchestra back its sound, or keep playing/.test(l))).toBe(true);
+  expect((await state(page)).state).toBe('fight');
+  await until(page, b => !b || b.state !== 'fight', () => 'PLAY');                // PLAY again: he fades
+  expect((await state(page)).state).toBe('fading');
   watch.check();
 });
 
@@ -162,14 +175,14 @@ test('damage grows with level: one perfect PLAY at LV 1 vs LV 10 (solo), shown a
   curve.slice(1).forEach((p, i) => expect(p / curve[i]).toBeGreaterThan(1.08));
 });
 
-test('an old save (version 3, no band choice) keeps working and gets the default band', async ({page}) => {
+test('an old save (version 3, no band choice) keeps working and gets the default band (and the current version)', async ({page}) => {
   const old = {v: 3, level: 4, xp: 5, hp: 30, maxHp: 32, tokens: 12, items: {'valve-oil': 1}, roster: ['warble', 'wisp', 'hush', 'wobble'], battles: {won: 4, befriended: 4, faded: 0},
     world: null, flags: {songBb: true}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}};
   const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true, gameData: {'arcade-quest': {settings: SETTINGS, save: old}}})});
   await page.goto('arcade-quest/index.html?demo&test');
   await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName === 'arena');
   const r = await page.evaluate(() => ({s: Arcade.Quest.save.get(), band: Arcade.Quest.band.members()}));
-  expect(r.s.v).toBe(4);
+  expect(r.s.v).toBe(await page.evaluate(() => Arcade.Quest.save.VERSION));
   expect(r.s.band).toBe(null);
   expect(r.s.level).toBe(4);
   expect(r.s.roster).toEqual(old.roster);

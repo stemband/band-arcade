@@ -33,12 +33,16 @@
    lines       its own words: intro, turn (before it attacks), hurt, calm, fade, befriend
    ALSO (Episode 1): test   shown in the TEST ARENA (the stage 1 test enemies)
                phases       a list of challenges used turn by turn (the mini-boss: long tone, then PLAY, then…)
-               mustHarmonize  its HP stops at 1: it can only be HARMONIZED. STORY-CRITICAL ENEMIES ONLY (the Phantom
-                            Fermata holds the attic door, the Ghost Conductor ends Episode 1): every other enemy fades at
-                            0 HP, even with a full CALM (the student chooses: HARMONIZE to befriend, PLAY to defeat)
+               mustHarmonize  its HP stops at 1: it can only be HARMONIZED. None uses it in Episode 1: every enemy
+                            fades at 0 HP, even with a full CALM (the student chooses: HARMONIZE to befriend, PLAY to
+                            defeat), and the story ghosts have ALTERNATE ROUTES instead (opensIfFaded, finale)
                listenBoost  CALM from notes is multiplied by this after you LISTEN to it once
                music        its battle music event (shared/sounds.js); leave out for quest-battle
                opens        a story flag set when it's befriended (the Phantom Fermata: 'atticOpen')
+               opensIfFaded THE ALTERNATE ROUTE: a flag set when it's DEFEATED instead, opening a DIFFERENT way to the same
+                            place (the Fermata: 'atticPassage' = the cracked wall of the Attic Stairs, the Hidden Passage and
+                            its secret stair to the Attic). Every enemy with `opens` needs one, so neither choice can lock
+                            a student out; the first one says "Something shifted somewhere in the manor…" (engine/world.js)
                size (maps)  how many tiles wide it stands in the overworld
    ALSO (the FINAL BOSS, the Ghost Conductor):
                talk         a character in data/dialogue.js whose speech plays before the battle
@@ -46,7 +50,9 @@
                             say (its words when the stage starts), challenge + notes/count/hold/taps/time/bpm/cutoff,
                             dodge}]. hold: [min, max] = a random length; cutoff: true = the length is a secret ("hold
                             it until I cut you off"); bpm: the baton beats this tempo (notes on the beat count more)
-               finale       at HP 1 (mustHarmonize) its CALM fills and it says these lines
+               finale       the first time its HP would reach 0 it holds on at 1, its CALM fills and it says these lines;
+                            then the student chooses: HARMONIZE (the best ending) or PLAY on (it fades: the defeat ending,
+                            QUEST_CUTSCENES['ending-fade']). Episode 1 is finished either way
                harmonizeKeep  a missed HARMONIZE doesn't empty the CALM meter
                harmonize {type: 'scale', time}  the whole concert B♭ scale, bottom to top (snare: 8 clean strokes)
    DODGE KINDS for the final boss: 'baton' (a warning line, then the baton sweeps across the box), 'measure' (falling
@@ -208,24 +214,24 @@ window.QUEST_ENEMIES = [
       befriend: 'The Chatterbox takes a breath. A REST! It wants to join your band!'},
   },
   {
-    id: 'fermata', name: 'The Phantom Fermata', sprite: 'fermata', hp: 64, atk: 2, area: 'manor', boss: true, music: 'quest-miniboss', opens: 'atticOpen',
-    challenge: 'longtone', phases: ['longtone', 'play', 'longtone', 'play'], mustHarmonize: true,
+    id: 'fermata', name: 'The Phantom Fermata', sprite: 'fermata', hp: 64, atk: 2, area: 'manor', boss: true, music: 'quest-miniboss', opens: 'atticOpen', opensIfFaded: 'atticPassage',
+    challenge: 'longtone', phases: ['longtone', 'play', 'longtone', 'play'],
     notes: 'first5', hold: 4, count: 4, time: 12,
     happy: 0,
     calm: {perNote: 6, listen: 6, success: 22},
     harmonize: {type: 'note', hold: 4},
     listen: ['THE PHANTOM FERMATA. A huge ghostly fermata. It has held the attic door shut for ages.', 'It wants every note held long... and then played right.',
-      'It can\'t be pushed aside, only HARMONIZED. Its happy note is {happy}: hold it long!'],
+      'HARMONIZE with it and it lets go of the door. Its happy note is {happy}: hold it long!'],
     dodge: {seconds: 7, patterns: [{kind: 'burst', sprite: 'static', every: 2.2, count: 6, speed: 38}, {kind: 'rain', sprite: 'sour', every: 0.85, speed: 42}, {kind: 'aimed', sprite: 'rest', every: 2.4, speed: 40}]},
     companion: {power: .45, perk: {calm: 10}, hp: .8},
     rewards: {fade: {xp: 20, tokens: 10}, befriend: {xp: 40, tokens: 25, item: 'tuning-slide'}},
     lines: {intro: 'The Phantom Fermata rises over the attic door. "HOLLLLLLD..."', turn: ['"HOLD... THAT... NOTE..."', 'The Fermata\'s eye glows. Static crackles.', 'The Fermata stretches. Everything slows down.'],
-      hurt: 'The Fermata wavers... but it holds on.', calm: 'The Fermata\'s eye softens.', fade: 'The Fermata shrinks back, still holding the door.',
+      hurt: 'The Fermata wavers... but it holds on.', calm: 'The Fermata\'s eye softens.', fade: 'The Fermata shrinks back into the door... and the whole stairwell rumbles.',
       befriend: 'The Fermata sighs a long, happy note... and lets go of the attic door.', hold: 'The Fermata clings to the door. It won\'t let go. Try to HARMONIZE with it!'},
   },
   {
     id: 'conductor', name: 'The Ghost Conductor', sprite: 'conductor', hp: 96, atk: 2, area: 'manor', boss: true, final: true, music: 'quest-boss', talk: 'conductor',
-    challenge: 'play', notes: 'first5', count: 4, time: 12, mustHarmonize: true, harmonizeKeep: true,
+    challenge: 'play', notes: 'first5', count: 4, time: 12, harmonizeKeep: true,
     happy: 0,
     calm: {perNote: 0, listen: 0, success: 0},
     stages: [
@@ -244,12 +250,12 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'scale', time: 40},
     listen: ['THE GHOST CONDUCTOR. He led the manor\'s orchestra for a hundred years, until the static stole its sound.',
       'Now he conducts silence, and he is FURIOUS about it. His baton never stops moving.',
-      'He can\'t be pushed aside. Play your best until he hears real music again... then HARMONIZE.'],
+      'Play your best until he hears real music again... then HARMONIZE with him (or play on, and he fades away).'],
     dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.2, speed: 1}]},
     companion: {power: .5, perk: {power: 1.3}, hp: .8},
     rewards: {fade: {xp: 30, tokens: 15}, befriend: {xp: 60, tokens: 40, item: 'baton'}},
     lines: {intro: 'The Ghost Conductor taps his baton on the podium. Tap. Tap. TAP.', turn: ['"FROM THE TOP!"', 'The Conductor slashes his baton through the air!', '"Watch. My. BATON!"', 'The Conductor beats a furious 4/4.'],
-      hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting.',
+      hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting... and humming along.',
       befriend: '"My orchestra... I can hear them! Take my baton, {hero}."', hold: 'The Conductor won\'t give up his podium. Keep playing!'},
   },
 ];
