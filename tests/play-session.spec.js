@@ -11,7 +11,8 @@ const {prepare, device} = require('./helpers');
 /* a microphone the browser "has": getUserMedia gives a silent stream (counted), or refuses when window.__denyMic.
    The stream is an empty MediaStream marked __fake, and the page's own AudioContext turns it into a silent node:
    a stream made by ANOTHER AudioContext outside a tap is refused by WebKit, while pitch.js's real start-up (the
-   permission request, resume, the analyser) runs unchanged. */
+   permission request, resume, the analyser) runs unchanged. The machine's audio device is faked too (resume's wait
+   capped): headless WebKit on CI has no running audio clock. */
 async function fakeMic(page) {
   await page.addInitScript(() => {
     window.__micAsks = 0;
@@ -20,6 +21,10 @@ async function fakeMic(page) {
       if (!AC || AC.prototype.__fakeMic) return;
       const real = AC.prototype.createMediaStreamSource;
       AC.prototype.createMediaStreamSource = function (s) { return s && s.__fake ? this.createGain() : real.call(this, s); };
+      // …and an audio device: the CI machine's WebKit has none, so resume() never settles there (see rhythm-dojo.spec.js);
+      // the real resume() is still called, only the wait is capped
+      const resume = AC.prototype.resume;
+      if (resume) AC.prototype.resume = function () { return Promise.race([resume.call(this), new Promise(r => setTimeout(r, 300))]); };
       AC.prototype.__fakeMic = true;
     });
     navigator.mediaDevices.getUserMedia = async () => {
