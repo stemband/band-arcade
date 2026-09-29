@@ -3,8 +3,9 @@
    Player from anywhere without losing their place.
      the badge   the student's avatar (the portrait bust), its safe-builder name, the instrument under it, a small pencil;
                  no avatar saved yet: a silhouette and "Create avatar"
-     its menu    a small popover with two big buttons: EDIT AVATAR (the creator as an overlay on this very page, so the
-                 screen, the selections and the scroll stay exactly as they were) and CHANGE INSTRUMENT (what the chip
+     its menu    a small popover with big buttons: EDIT AVATAR (the creator as an overlay on this very page, so the
+                 screen, the selections and the scroll stay exactly as they were), SHARE TO BAND NINJA, LOCKER (below)
+                 and CHANGE INSTRUMENT (what the chip
                  did before: Choose Your Instrument). Tap outside or Esc closes it; keyboard: Enter opens, focus goes to
                  EDIT AVATAR, Tab/↑/↓ move, Esc returns to the badge
      during play hidden (html.in-play, set by Arcade.Bg.menu: every level, round, match, battle and transmission turns
@@ -18,7 +19,17 @@
    the first badge on the next page shows "Your name got an upgrade! Tap your name to change it." once, under the
    badge; tapping it opens the creator on the NAME tab, × closes it.
      Arcade.AvatarBadge.load()                    a Promise: the creator is ready
-   Saving the avatar fires window 'arcade:avatar' ({detail: {guest}}); every badge redraws itself on it. */
+   Saving the avatar fires window 'arcade:avatar' ({detail: {guest}}); every badge redraws itself on it.
+   THE LOCKER (shared/locker.js) from anywhere: the menu's LOCKER ("Locker · 12 of 58") opens it over this page for the
+   badge's instrument (the saved one), and a results screen's LOCKER button (shared/skins.js announce) too.
+     Arcade.Locker.open({member, guest, tab, onChange, onClose})   loads shared/locker.js + locker.css (+ the full-body
+                                                     sprite parts) the first time, then opens it; a Promise
+     Arcade.Locker.count(member)     {have, total}: avatar items + that instrument's skins (official gear only once earned)
+     Arcade.Locker.fresh(member)     NEW: the item keys earned since the Locker was last opened ('field:id', skins
+                                     'skin:<id>@<member>'); gameData('locker').seen. The first time a device is asked,
+                                     everything already earned counts as seen (only new earnings get a NEW)
+     Arcade.Locker.markOpened(member)  everything earned so far = seen (opening the Locker); fires 'arcade:locker'
+   The badge shows a small pink dot while fresh(member) has anything; every badge redraws on 'arcade:locker'. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
@@ -51,6 +62,69 @@ window.Arcade = window.Arcade || {};
       .catch(e => { if (window.console) console.warn('Band Arcade: the avatar editor could not load', e); });
   }
 
+  /* ---------- THE LOCKER: counts, what's NEW, and the Locker itself loaded on demand ---------- */
+  const unlockAll = () => !!(A.DEMO && A.params && A.params.has && A.params.has('unlockall'));
+  function lockItems() {
+    const AV = A.Avatar; if (!AV || !AV.items) return [];
+    return AV.items().filter(it => !it.official || AV.isUnlocked(it.field, it.id));
+  }
+  const lockSkins = () => (A.Skins && A.Skins.LIST ? A.Skins.LIST.filter(s => !s.unlock.always) : []);
+  function count(member) {
+    member = member || (A.store && A.store.player);
+    const items = lockItems(), skins = lockSkins(), AV = A.Avatar;
+    return {have: items.filter(it => AV.isUnlocked(it.field, it.id)).length + (member ? skins.filter(s => A.Skins.isUnlocked(s, member)).length : 0),
+      total: items.length + (member ? skins.length : 0)};
+  }
+  function earnedKeys(member) {
+    const AV = A.Avatar; if (!AV || !AV.items || !A.store) return {items: [], skins: []};
+    return {items: lockItems().filter(it => AV.isUnlocked(it.field, it.id)).map(it => it.key),
+      skins: member ? lockSkins().filter(s => A.Skins.isUnlocked(s, member)).map(s => `skin:${s.id}@${member}`) : []};
+  }
+  function lockData() {
+    const d = A.store.gameData('locker');
+    if (!d.seen) d.seen = {};
+    if (!d.members) d.members = {};
+    return d;
+  }
+  function fresh(member) {
+    member = member || (A.store && A.store.player);
+    if (!A.store || !A.Avatar || unlockAll()) return [];
+    const d = lockData(), k = earnedKeys(member);
+    let save = false;
+    // the first time: what's already earned is not "new" (only what's earned from now on)
+    if (!d.base) { k.items.forEach(x => { d.seen[x] = 1; }); d.base = 1; save = true; }
+    if (member && !d.members[member]) { k.skins.forEach(x => { d.seen[x] = 1; }); d.members[member] = 1; save = true; }
+    if (save) A.store.saveGameData('locker');
+    return k.items.concat(k.skins).filter(x => !d.seen[x]);
+  }
+  function markOpened(member) {
+    member = member || (A.store && A.store.player);
+    if (!A.store || !A.Avatar || unlockAll()) return;
+    const d = lockData(), k = earnedKeys(member);
+    k.items.concat(k.skins).forEach(x => { d.seen[x] = 1; });
+    d.base = 1; if (member) d.members[member] = 1;
+    A.store.saveGameData('locker');
+    changed();
+  }
+  const changed = () => { try { dispatchEvent(new CustomEvent('arcade:locker')); } catch (e) { badges.forEach(b => b.render()); } };
+  let lkLoading = null;
+  function loadLocker() {
+    if (A.LockerUI && window.QUEST_ART) return Promise.resolve();
+    if (lkLoading) return lkLoading;
+    if (!document.querySelector('link[href*="locker.css"]')) {
+      const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = ver(DIR + 'locker.css'); document.head.appendChild(l);
+    }
+    lkLoading = (window.QUEST_ART ? Promise.resolve() : script(DIR + 'instrument-sprites.js'))
+      .then(() => A.LockerUI ? null : script(DIR + 'locker.js'))
+      .catch(e => { lkLoading = null; throw e; });
+    return lkLoading;
+  }
+  function openLocker(opts = {}) {
+    return loadLocker().then(() => A.LockerUI.open(opts))
+      .catch(e => { if (window.console) console.warn('Band Arcade: the Locker could not load', e); });
+  }
+  A.Locker = {open: openLocker, load: loadLocker, count, fresh, markOpened, changed};
+
   /* ---------- the badge ---------- */
   function mount(el, opts = {}) {
     if (!el) return null;
@@ -60,10 +134,12 @@ window.Arcade = window.Arcade || {};
       `<div class="avb-menu" role="group" aria-label="Your player" hidden>` +
       `<button type="button" class="avb-item avb-edit">${PENCIL}<span>Edit avatar</span></button>` +
       `<button type="button" class="avb-item avb-share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg><span>Share to Band Ninja</span></button>` +
+      `<button type="button" class="avb-item avb-locker"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 12h14M9 7h2M9 16h2"/></svg><span class="avb-lk-t">Locker</span></button>` +
       (opts.changeInstrument ? `<button type="button" class="avb-item avb-inst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg><span>Change instrument</span></button>` : '') +
       `</div>`;
     const btn = el.querySelector('.avb-btn'), menu = el.querySelector('.avb-menu');
     const open = () => {
+      lockerLabel(b);
       menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); el.classList.add('open');
       if (A.Sfx) A.Sfx.event('ui-toggle');
       setTimeout(() => menu.querySelector('.avb-item').focus(), 0);
@@ -93,6 +169,10 @@ window.Arcade = window.Arcade || {};
     el.querySelector('.avb-share').addEventListener('click', () => {      // the avatar code (shared/avatar-code.js)
       close(false);
       if (A.avatarCode) A.avatarCode.share(A.Avatar.get(), {onClose: () => btn.focus({preventScroll: true})});
+    });
+    el.querySelector('.avb-locker').addEventListener('click', () => {    // THE LOCKER, over this page (shared/locker.js)
+      close(false);
+      openLocker({member: opts.member || (A.store && A.store.player) || undefined, onClose: () => { btn.focus({preventScroll: true}); draw(b); }});
     });
     const inst = el.querySelector('.avb-inst');
     if (inst) inst.addEventListener('click', () => {
@@ -131,11 +211,25 @@ window.Arcade = window.Arcade || {};
     const name = has ? A.Avatar.nameOf(A.Avatar.get()) : '';
     const inst = typeof opts.instLabel === 'function' ? opts.instLabel() : opts.instLabel || '';
     btn.innerHTML = `<span class="avb-pic" aria-hidden="true">${has ? A.avatarHTML({size: 'chip', member: opts.member || undefined, label: ''}) : SILHOUETTE}</span>` +
-      `<span class="avb-txt"><b class="avb-name">${esc(has ? name : 'Create avatar')}</b>${inst ? `<small class="avb-sub">${esc(inst)}</small>` : ''}</span>${PENCIL}`;
-    btn.setAttribute('aria-label', has ? `Your player, ${name}${inst ? ', playing ' + inst : ''}. Edit avatar${opts.changeInstrument ? ' or change instrument' : ''}` : 'Create your avatar');
+      `<span class="avb-txt"><b class="avb-name">${esc(has ? name : 'Create avatar')}</b>${inst ? `<small class="avb-sub">${esc(inst)}</small>` : ''}</span>${PENCIL}` +
+      (newCount(opts) ? '<i class="avb-dot" aria-hidden="true"></i>' : '');
+    const n = newCount(opts);
+    btn.setAttribute('aria-label', (has ? `Your player, ${name}${inst ? ', playing ' + inst : ''}. Edit avatar, open the Locker${opts.changeInstrument ? ' or change instrument' : ''}` : 'Create your avatar') +
+      (n ? `. ${n} new item${n === 1 ? '' : 's'} in your Locker` : ''));
+    lockerLabel(b);
+  }
+  const newCount = opts => { try { return fresh(opts.member || (A.store && A.store.player)).length; } catch (e) { return 0; } };
+  /** the menu's "Locker · 12 of 58" (+ "· 2 NEW") */
+  function lockerLabel(b) {
+    const t = b.el.querySelector('.avb-lk-t'); if (!t) return;
+    let c = {have: 0, total: 0}, n = 0;
+    try { c = count(b.opts.member); n = newCount(b.opts); } catch (e) { /* no avatar parts on this page */ }
+    t.innerHTML = `Locker <small class="avb-lk-n">· ${c.have} of ${c.total}</small>${n ? ` <b class="avb-lk-new">${n} new</b>` : ''}`;
   }
   // a saved avatar (the creator's DONE): every badge on the page redraws
   addEventListener('arcade:avatar', () => badges.forEach(b => { if (b.el.isConnected) b.render(); else badges.delete(b); }));
+  // the Locker opened (the NEW dot clears) or something was just unlocked (a results screen): redraw
+  addEventListener('arcade:locker', () => badges.forEach(b => { if (b.el.isConnected) b.render(); else badges.delete(b); }));
 
   A.AvatarBadge = {mount, edit, load};
 })(window.Arcade);

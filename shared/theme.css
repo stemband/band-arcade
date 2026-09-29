@@ -711,6 +711,12 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .avb-item{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 16px;border-radius:12px;cursor:pointer;border:2px solid var(--floor-3);background:var(--deep);
   color:var(--text-hi);font:400 17px/1.1 var(--display);letter-spacing:.05em;text-transform:uppercase;text-align:left}
 .avb-item svg{flex:none;width:22px;height:22px;fill:none;stroke:var(--cyan-hi);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+/* the LOCKER entry: its count, and "2 new"; the badge's NEW dot (something earned since the Locker was last opened) */
+.sk-u-more{display:flex;justify-content:center;margin-top:10px}
+.avb-lk-n{font-size:13px;font-weight:700;color:var(--text-lo)}
+.avb-lk-new{margin-left:4px;padding:1px 8px;border-radius:999px;background:var(--pink);color:var(--deep);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.avb-btn{position:relative}
+.avb-dot{position:absolute;top:2px;left:30px;width:12px;height:12px;border-radius:50%;background:var(--pink);box-shadow:0 0 0 2px var(--deep),0 0 8px var(--pink)}
 .avb-item:hover,.avb-item:focus-visible{border-color:var(--yellow);background:var(--floor-lit);outline:none;box-shadow:var(--glow-yellow)}
 @media (max-width:640px){ .avb-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} .avb-btn{padding-right:10px} }
 /* during play (html.in-play: shared/backgrounds.js Bg.menu(false)) the badge can't be tapped by accident */

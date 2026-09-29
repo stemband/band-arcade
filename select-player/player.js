@@ -277,113 +277,13 @@
   }
   on(window, 'pageshow', e => { if (e.persisted) { leaving = false; $('ready').hidden = true; $('ready').classList.remove('go'); } });   // back button
 
-  /* ---------- THE LOCKER: avatar items (unlock rules in shared/avatar-parts.js; worn everywhere) and the instrument's
-     skins (shared/skins.js; per instrument). Tabs OUTFIT · HATS · EXTRAS · PETS · EFFECTS; locked = a dark silhouette
-     + what earns it. Live preview on the big avatar. Player 2's turn dresses the GUEST avatar. ---------- */
-  const P = window.AVATAR_PARTS, AV = A.Avatar;
-  // official Band Ninja gear (earned in class: a belt code) shows only once it's been earned
-  const earned = (field, list) => list.filter(o => !o.official || AV.isUnlocked(field, o.id));
-  const LK_TABS = {
-    outfit: [{field: 'top', label: 'Tops', list: () => earned('top', P.TOPS)}, {field: 'shoes', label: 'Shoes', note: 'in Arcade Quest and the full-body picture', list: () => P.SHOES},
-             {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
-    hats: [{field: 'head', label: 'Hats and head coverings', list: () => P.HEADS}],
-    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'hand', label: 'Held item', list: () => earned('hand', P.HANDS || [])}, {field: 'back', label: 'On your back', list: () => P.BACKS},
-             {field: 'belt', label: 'Band Ninja belts', note: 'official Band Ninja gear: earned in class', list: () => { const l = earned('belt', P.BN_BELTS || []); return l.length > 1 ? l : []; }},
-             {field: 'plate', label: 'Name plates', note: 'around your name on results and score lists', list: () => earned('plate', P.PLATES || [])},
-             {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
-    pets: [{field: 'pet', label: 'Pets', note: 'they float beside you', list: () => P.PETS}],
-    backgrounds: [{field: 'bg', label: 'Backgrounds', note: 'behind your player', list: () => earned('bg', P.BGS || [])}],
-    effects: [{field: 'effect', label: 'Effects around you', note: 'they move on the biggest picture of you', list: () => earned('effect', P.EFFECTS || [])}, {skin: 'color', label: 'Glow effects', note: 'worn with this instrument'}],
-  };
-  let lockerFor = null, lkTab = 'outfit';
-  const lkGuest = () => phase === 2;
-  const lkAvatar = () => lkGuest() ? AV.guest() : AV.get();
-  /** how many locker items are open: {have, total} (avatar items + this instrument's skins) */
-  function lockerCount(id) {
-    const items = AV.items().filter(it => !it.official || AV.isUnlocked(it.field, it.id)), skins = A.Skins.LIST.filter(s => !s.unlock.always);
-    return {have: items.filter(it => AV.isUnlocked(it.field, it.id)).length + skins.filter(s => A.Skins.isUnlocked(s, id)).length, total: items.length + skins.length};
-  }
+  /* ---------- THE LOCKER (shared/locker.js): the player card's LOCKER button opens it for the highlighted instrument;
+     Player 2's turn dresses the GUEST avatar. Every change redraws this instrument's portraits here. ---------- */
+  const lockerCount = id => A.Locker.count(id);
   function openLocker() {
     const id = ids[cur]; if (!info(id)) return;
-    lockerFor = id;
-    $('lkTitle').textContent = lkGuest() ? `Guest · ${info(id).short}` : `${AV.nameOf(lkAvatar())} · ${info(id).short}`;
-    drawLocker();
-    $('locker').hidden = false;
-    $('lkTab-' + lkTab).focus();
-  }
-  const LOCK = '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>';
-  function lkButton({attrs, name, open, pressed, need, prog, pic, legend}) {
-    return `<button type="button" class="sk-opt${open ? '' : ' locked'}${legend ? ' sk-legend' : ''}" ${attrs} aria-pressed="${pressed}"` +
-      ` aria-label="${name}${legend ? ', legendary' : ''}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
-      `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : LOCK}</span>` +
-      (legend ? '<span class="lk-legend-tag" aria-hidden="true">Legendary</span>' : '') +
-      `<b>${name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
-  }
-  /** an item's picture in the LOCKER: your avatar wearing it; a name plate: its frame around your name; shoes: your full body */
-  function lkPic(field, itemId, member, av) {
-    const worn = Object.assign({}, av, {[field]: itemId});
-    if (field === 'plate') return `<span class="lk-plate"><span class="av-plate av-plate-${itemId}">${AV.nameOf(av).split(' ').slice(-1)[0]}</span></span>`;
-    if (field === 'shoes') { const sp = AV.sprites(member, {avatar: worn}); if (sp) return `<span class="lk-body"><img alt="" src="${sp['-front'].frames[0].toDataURL()}"></span>`; }
-    return A.avatarHTML({size: 'tile', member, avatar: worn, label: ''});
-  }
-  function drawLocker() {
-    const id = lockerFor, eq = A.Skins.equipped(id), m = info(id), av = lkAvatar(), guest = lkGuest();
-    $('lkPic').innerHTML = A.avatarHTML({size: 'big', member: id, guest, live: true});
-    $('lkNow').textContent = `Wearing: ${A.Skins.get(eq.color).name}${eq.acc ? ' + ' + A.Skins.get(eq.acc).name : ''}` +
-      (av.pet !== 'none' ? ` · Pet: ${(P.PETS.find(p => p.id === av.pet) || {}).name}` : '');
-    $('lkTabs').querySelectorAll('[role="tab"]').forEach(b => { const on = b.dataset.tab === lkTab; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
-    $('lkBody').setAttribute('aria-labelledby', 'lkTab-' + lkTab);
-    $('lkBody').innerHTML = LK_TABS[lkTab].map((g, gi) => {
-      let html;
-      if (!g.skin && !g.list().length) return '';                // nothing to show (Band Ninja belts before a code)
-      if (g.skin) {
-        const list = g.skin === 'color' ? A.Skins.colors() : [{id: 'none', kind: 'acc', name: 'None', unlock: {always: true}}].concat(A.Skins.accessories());
-        html = list.map(s => {
-          const open = A.Skins.isUnlocked(s, id), skin = g.skin === 'color' ? {color: s.id, acc: eq.acc} : {color: eq.color, acc: s.id === 'none' ? null : s.id};
-          const pressed = g.skin === 'color' ? s.id === eq.color : (s.id === 'none' ? !eq.acc : s.id === eq.acc);
-          return lkButton({attrs: `data-kind="${s.kind}" data-skin="${s.id}"`, name: s.name, open, pressed, need: open ? '' : A.Skins.requirement(s), prog: open ? '' : A.Skins.progress(s, id),
-            pic: s.id === 'none' ? '<span class="lk-none" aria-hidden="true">∅</span>' : A.avatarHTML({size: 'tile', member: id, guest, skin, label: m.short})});
-        }).join('');
-      } else {
-        html = g.list().map(p => {
-          const open = AV.isUnlocked(g.field, p.id);
-          const dim = ['bg', 'effect', 'plate'].includes(g.field) ? ' data-lk-bg="1"' : '';          // a locked one: its dimmed picture, not a silhouette
-          return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"${dim}`, name: p.name, open, pressed: av[g.field] === p.id,
-            need: open ? '' : AV.requirement(g.field, p.id), prog: open ? '' : AV.progress(g.field, p.id),
-            pic: lkPic(g.field, p.id, id, av), legend: !!p.legendary});
-        }).join('');
-      }
-      return `<h3 class="lk-sub" id="lkG${gi}">${g.label}${g.note ? ` <small>(${g.note})</small>` : ''}</h3><div class="lk-grid" role="group" aria-labelledby="lkG${gi}">${html}</div>`;
-    }).join('');
-    const c = lockerCount(id); $('skinsCount').textContent = `${c.have} of ${c.total}`;
-  }
-  function pickSkin(b) {
-    const id = lockerFor, name = b.querySelector('b').textContent;
-    if (b.classList.contains('locked')) {
-      A.Sfx.event('note-wrong');
-      $('lkNow').textContent = `${name}: ${b.dataset.item ? AV.requirement(b.dataset.field, b.dataset.item) : A.Skins.requirement(A.Skins.get(b.dataset.skin))}`;
-      return;
-    }
-    let sel;
-    if (b.dataset.item) {                                        // an avatar item: the avatar wears it everywhere
-      const av = lkAvatar(); av[b.dataset.field] = b.dataset.item;
-      if (lkGuest()) AV.setGuest(av); else AV.set(av);
-      A.Sfx.event('skin-equip');
-      sel = `[data-field="${b.dataset.field}"][data-item="${b.dataset.item}"]`;
-    } else {
-      const s = b.dataset.skin;
-      A.Skins.equip(id, b.dataset.kind === 'acc' ? {acc: s === 'none' ? null : s} : {color: s});
-      sel = `[data-kind="${b.dataset.kind}"][data-skin="${s}"]`;
-    }
-    const scroll = $('locker').scrollTop;
-    drawLocker(); refreshPortraits(id);
-    $('locker').scrollTop = scroll;
-    const again = document.querySelector('#locker .sk-opt' + sel);
-    if (again) again.focus({preventScroll: true});
-  }
-  function lkShow(tab, focus) {
-    lkTab = tab; drawLocker();
-    if (focus) { $('lkTab-' + tab).focus(); A.Sfx.event('ui-toggle'); }
+    A.Locker.open({member: id, guest: phase === 2, onChange: () => { refreshPortraits(id); const c = lockerCount(id); $('skinsCount').textContent = `${c.have} of ${c.total}`; },
+      onClose: () => $('skinsBtn').focus({preventScroll: true})});
   }
   /** redraw every portrait of this instrument on the page (tile, preview, CONTINUE AS) with its new skin */
   function refreshPortraits(id) {
@@ -392,17 +292,6 @@
   }
   on($('skinsBtn'), 'click', openLocker);
   on($('backupBtn'), 'click', () => A.Backup && A.Backup.open());       // shared/backup.js
-  on($('lkBody'), 'click', e => { const b = e.target.closest('.sk-opt'); if (b) pickSkin(b); });
-  on($('lkTabs'), 'click', e => { const b = e.target.closest('[role="tab"]'); if (b) lkShow(b.dataset.tab, true); });
-  on($('lkTabs'), 'keydown', e => {                             // ←/→ between the tabs
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const list = Object.keys(LK_TABS), i = list.indexOf(lkTab);
-    e.preventDefault(); lkShow(list[(i + (e.key === 'ArrowRight' ? 1 : list.length - 1)) % list.length], true);
-  });
-  const closeLocker = () => { $('locker').hidden = true; lockerFor = null; $('skinsBtn').focus({preventScroll: true}); };
-  on($('lkDone'), 'click', closeLocker);
-  on($('locker'), 'click', e => { if (e.target === $('locker')) closeLocker(); });
-  on(window, 'keydown', e => { if (e.key === 'Escape' && !$('locker').hidden) closeLocker(); });
 
   highlight(cur, {focus: false, sound: false});
   (saved && canPlay(saved) ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
@@ -417,7 +306,7 @@
     live.ac.abort(); live = null;
     if (A.Marquee) A.Marquee.animate(null, 'select');
     const v = $('selectView');
-    v.hidden = true; $('locker').hidden = true; $('ready').hidden = true;
+    v.hidden = true; if (A.LockerUI) A.LockerUI.close(); $('ready').hidden = true;
     $('grid').innerHTML = '';
     document.title = A.ARCADE_NAME || 'Band Arcade';
   }
