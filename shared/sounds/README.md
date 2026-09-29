@@ -101,6 +101,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Sustain Speedway | `sustain-speedway-menu` | `sustain-speedway-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Keys to the City | `keys-to-the-city-menu` | `keys-to-the-city-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Music Highway | `music-highway-menu` | `music-highway-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Rhythm Dojo | `rhythm-dojo-menu` | `rhythm-dojo-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -466,6 +467,24 @@ groove so you can hear what to match.
 | `mh-drums-shenandoah` | `mh-drums-shenandoah.m4a` or `mh-drums-shenandoah.mp3` | Music Highway: the backing drums for Shenandoah (76 beats a minute). Optional: without it, the generated groove. | the whole song |
 | `mh-drums-scarborough-fair` | `mh-drums-scarborough-fair.m4a` or `mh-drums-scarborough-fair.mp3` | Music Highway: the backing drums for Scarborough Fair (104 beats a minute). Optional: without it, the generated groove. | the whole song |
 | `mh-drums-the-entertainer` | `mh-drums-the-entertainer.m4a` or `mh-drums-the-entertainer.mp3` | Music Highway: the backing drums for The Entertainer (76 beats a minute). Optional: without it, the generated groove. | the whole song |
+
+### Rhythm Dojo
+
+Rhythm Dojo's CLICK plays WHILE the microphone listens for claps (the count-in, and in headphones mode the whole beat), and
+it does NOT mute the microphone: claps heard before the rhythm's first note never count, and a clap right on a click
+must be clearly louder than the clicks were during the count-in. So the click and the woodblock must be **short, dry,
+unpitched knocks**. Nothing else plays during a performance (the "Ready!" sound ends before the microphone listens;
+the feedback sounds play after it stops).
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `rhythm-dojo-menu` | `rhythm-dojo-menu.m4a` or `rhythm-dojo-menu.mp3` | Rhythm Dojo: menu music (the level select, the timing check, results). Never while a rhythm plays. | 30–90 s loop |
+| `rd-click` | `rd-click.m4a` or `rd-click.mp3` | THE CLICK: the one-measure count-in before every performance, the beat under HEAR IT, the beat all the way through in TAP mode (and in CLAP mode with headphones), and the timing check. A stick click, NOT a pitched tone; trim it to start at once. The downbeat plays it a little higher and louder. Until you upload it: the same generated click as Music Highway. | under 0.06 s |
+| `rd-woodblock` | `rd-woodblock.m4a` or `rd-woodblock.mp3` | HEAR IT: the rhythm on a woodblock over the click (the microphone is not listening), and every tap on the drum pad in TAP mode. A dry, woody knock with no ringing pitch. Until you upload it: a generated woodblock. | under 0.1 s |
+| `rd-count-in` | `rd-count-in.m4a` or `rd-count-in.mp3` | "Ready!": when the student taps CLAP IT! / TAP IT! / PLAY IT!, just before the count-in clicks (the microphone waits until it ends). A short taiko-style knock or soft gong swell, unpitched. | under 0.8 s |
+| `rd-perfect` | `rd-perfect.m4a` or `rd-perfect.mp3` | After a performance with 95 % or better (the feedback; the microphone has stopped). Falls back to star-earned. | 0.4–1 s |
+| `rd-miss` | `rd-miss.m4a` or `rd-miss.mp3` | After a performance under 60 %: a gentle "try again". Kind, never harsh. Falls back to level-failed. | under 0.6 s |
+| `rd-level-clear` | `rd-level-clear.m4a` or `rd-level-clear.mp3` | A level cleared (its results screen): the big taiko finish. Falls back to level-complete. | 1–2.5 s |
 
 ### Arcade Quest
 

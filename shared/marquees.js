@@ -697,6 +697,44 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = rgba('vi-ink', .9 * (1 - d)); x.beginPath(); x.ellipse(px1 - W * .06, dy, H * .018, H * .028, 0, 0, 7); x.fill();
       },
     },
+    /* RHYTHM DOJO. colors: [drum rim neon, lantern glow, night]. A night dojo: a wooden floor, two big taiko drums at
+       the ends of the sign whose neon rims glow on the beat (a smooth swell and fade, 1.25 beats a second, the two
+       drums taking turns: never a flash), and a few rhythm notes drifting slowly up between them. */
+    taiko: {
+      colors: ['pink', 'amber', 'dd-night'], still: .3,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('deep')], [1, tok(c[2])]]); x.fillRect(0, 0, W, H);
+        glow(x, W / 2, H * .45, W * .4, c[1], .14);
+        // the floor boards
+        x.fillStyle = tok('dd-wood'); x.fillRect(0, H * .82, W, H * .18);
+        x.strokeStyle = rgba('dd-wood-line', .9); x.lineWidth = Math.max(1, H * .01);
+        for (let k = 1; k < 8; k++) { x.beginPath(); x.moveTo(W * k / 8, H * .82); x.lineTo(W * k / 8 + W * .02, H); x.stroke(); }
+        // rhythm notes drifting up (slow, soft)
+        for (let i = 0; i < 6; i++) {
+          const f = wrap(hash(i + 5) + t * .06, 1), nx = W * (.25 + .5 * hash(i + 9)), ny = H * (.9 - f * .8), a = Math.sin(Math.PI * f) * .35;
+          x.fillStyle = rgba(c[1], a); x.strokeStyle = rgba(c[1], a); x.lineWidth = Math.max(1, H * .012);
+          x.beginPath(); x.ellipse(nx, ny, H * .035, H * .025, -.35, 0, 7); x.fill();
+          x.beginPath(); x.moveTo(nx + H * .03, ny); x.lineTo(nx + H * .03, ny - H * .13); x.stroke();
+        }
+        // the two drums (on the beat, taking turns)
+        const beat = t * 1.25;
+        [[W * .1, 0], [W * .9, 1]].forEach(([dx, k]) => {
+          const ph = wrap(beat - k, 2), pulse = ph < 1 ? Math.exp(-ph * 3) : 0;
+          const rw = H * .34, rh = H * .38, cy = H * .56;
+          x.fillStyle = tok('rd-body'); x.beginPath(); x.ellipse(dx, cy, rw, rh, 0, 0, 7); x.fill();
+          x.strokeStyle = tok('rd-iron'); x.lineWidth = Math.max(1.5, H * .025);
+          x.beginPath(); x.ellipse(dx, cy - rh * .55, rw * .92, rh * .12, 0, 0, Math.PI); x.stroke();
+          x.beginPath(); x.ellipse(dx, cy + rh * .55, rw * .92, rh * .12, 0, 0, Math.PI); x.stroke();
+          x.fillStyle = tok('rd-stud');
+          for (let j = -2; j <= 2; j++) { x.beginPath(); x.arc(dx + j * rw * .35, cy - rh * .48 + Math.abs(j) * rh * .03, H * .018, 0, 7); x.fill(); }
+          // the head, facing us a little, with its neon rim
+          glow(x, dx, cy - rh * .1, rw * 1.3, c[0], .1 + .35 * pulse);
+          x.fillStyle = tok('rd-head'); x.beginPath(); x.ellipse(dx, cy - rh * .1, rw * .72, rh * .66, 0, 0, 7); x.fill();
+          x.strokeStyle = rgba(c[0], .55 + .45 * pulse); x.lineWidth = Math.max(2, H * .035);
+          x.beginPath(); x.ellipse(dx, cy - rh * .1, rw * .72, rh * .66, 0, 0, 7); x.stroke();
+        });
+      },
+    },
     /* ARCADE QUEST. colors: [sky, microphone outline, static]. An 8-bit landscape at night with a giant
        microphone silhouette looming behind the title, crackling with pixel static (each speck fades in and out). */
     pixel: {
@@ -765,7 +803,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)

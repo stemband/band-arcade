@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
@@ -89,7 +89,7 @@ window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
               games left out follow in games.js order */
 window.Arcade.ZONES = [
   {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
-  {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, words and duels.'},
+  {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, rhythms, words and duels.'},
   {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.',
    // Showtime Malfunction first: every instrument can play it (Chime Heist, bells only, was in front for everyone)
    order: ['showtime-malfunction', 'music-highway', 'button-masher', 'sustain-speedway', 'chime-heist']},
@@ -209,6 +209,22 @@ window.Arcade.GAMES = [
     marquee: {scene: 'vault', colors: ['green', 'red', 'cyan']},
     cabinet: {shape: 'vault', trim: 'green', trim2: 'red', marquee: 'heist', screen: 'heist'},
     cabinet3d: {profile: 'vault', body: 'cab-side'},
+  },
+  {
+    id: 'rhythm-dojo',
+    zones: ['ninja-dojo'],
+    name: 'Rhythm Dojo',
+    bg: {scene: 'taiko', dim: .4, focus: .35},
+    menuMusic: 'rhythm-dojo-menu',
+    skill: 'Rhythm reading',
+    blurb: 'Read the rhythm and its counting, then clap it, tap it or play it on your snare. The counting fades as you earn your belts. No instrument needed!',
+    maxStars: 33,                                    // 11 levels × 3 (rhythm-dojo/levels.js)
+    color: 'pink',
+    player: 'all',                                   // no instrument needed: clap, tap or snare
+    unpitched: true,
+    marquee: {scene: 'taiko', colors: ['pink', 'amber', 'dd-night']},
+    cabinet: {shape: 'taiko', trim: 'pink', trim2: 'amber', marquee: 'taiko', screen: 'taiko'},
+    cabinet3d: {profile: 'taiko', body: 'cab-side'},
   },
   {
     id: 'ancient-ninja-scrolls',

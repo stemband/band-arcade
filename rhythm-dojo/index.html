@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Rhythm Dojo</title>
+<meta name="description" content="Read the rhythm and the counting, then clap it, tap it or play it on your snare. The counting fades as you level up.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <div class="rd-hub-sensei" id="hubSensei" aria-hidden="true"></div>
+      <div>
+        <h1 class="game-title">Rhythm <span>Dojo</span></h1>
+        <p class="ui-howto">Read the rhythm and its counting, then perform it: clap it, tap it or play it on your snare. The counting fades away as you earn your belts.</p>
+      </div>
+    </div>
+    <div class="rd-opts">
+      <div class="rd-opt"><span class="ui-label" id="lMode">Perform by</span>
+        <div class="ui-seg" role="group" aria-labelledby="lMode" id="modeSeg">
+          <button type="button" data-mode="clap" aria-pressed="true">👏 Clap<small>microphone</small></button>
+          <button type="button" data-mode="tap" aria-pressed="false">👆 Tap<small>screen or Space</small></button>
+          <button type="button" data-mode="snare" aria-pressed="false">🥁 Snare<small>microphone</small></button>
+        </div></div>
+      <div class="rd-opt"><span class="ui-label" id="lCount">Counting</span>
+        <div class="ui-seg" role="group" aria-labelledby="lCount" id="countSeg">
+          <button type="button" data-count="show" aria-pressed="false">Show</button>
+          <button type="button" data-count="auto" aria-pressed="true">Auto<small>fades</small></button>
+          <button type="button" data-count="hide" aria-pressed="false">Hide<small>+10 %</small></button>
+        </div></div>
+      <div class="rd-opt"><span class="ui-label" id="lSpeed">Speed</span>
+        <div class="ui-seg" role="group" aria-labelledby="lSpeed" id="speedSeg">
+          <button type="button" data-speed="normal" aria-pressed="true">Normal</button>
+          <button type="button" data-speed="slow" aria-pressed="false">Slow<small>no stars</small></button>
+        </div></div>
+    </div>
+    <div class="rd-tools">
+      <button type="button" class="btn btn-secondary btn-small" id="calBtn">Timing check</button>
+      <button type="button" class="btn btn-secondary btn-small" id="hpBtn" aria-pressed="false">🎧 Headphones: off</button>
+      <span class="rd-optnote" id="optNote"></span>
+    </div>
+    <div class="levels rd-levels" id="levelGrid"></div>
+    <div id="endlessTile"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every level is open. CLAP / SNARE: Space = a clap. TAP: Space or the drum pad (hold it for long notes).</p>
+  </section>
+
+  <!-- A ROUND -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLabel">Level 1</small><b id="hudName"><span class="rd-band" id="hudBand"></span><span id="hudNameT">First Steps</span></b></div>
+      <div class="c"><small id="hudCountLabel">Round</small><b id="hudCount">1 / 8</b></div>
+      <div class="c" id="hudLivesBox" hidden><small>Lives</small><b id="hudLives"></b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <div class="rd-dojo">
+      <div class="rd-sensei" id="sensei" aria-hidden="true"></div>
+      <p class="rd-say" id="say" aria-live="polite"></p>
+      <div class="rd-drum" id="drum" aria-hidden="true"></div>
+    </div>
+    <div class="stage rd-sheet" id="sheet">
+      <div class="rd-rows" id="rows"></div>
+      <div class="rd-count" id="countBig" aria-live="polite"></div>
+    </div>
+    <p class="rd-tip" id="tip" aria-live="polite"></p>
+    <div class="rd-acts" id="acts">
+      <button type="button" class="btn btn-secondary" id="rdHear">▶ Hear it</button>
+      <button type="button" class="btn btn-primary btn-big" id="rdGo">Clap it!</button>
+      <button type="button" class="btn btn-secondary" id="rdRetry" hidden>Try again</button>
+      <button type="button" class="btn btn-primary btn-big" id="rdNext" hidden>Next</button>
+    </div>
+    <button type="button" class="rd-pad" id="pad" hidden aria-label="Drum pad: tap the rhythm here, or press Space. Hold it for long notes."></button>
+    <p class="rd-listen" id="listenLine" hidden><span class="lvlbars" id="bars"><i></i><i></i><i></i><i></i><i></i></span><span id="listenT">The microphone is listening</span></p>
+  </section>
+</div>
+
+<!-- THE TIMING CHECK and THE HEADPHONES CHECK (the level select's buttons; the first performance in a mode opens it) -->
+<div class="overlay ui-ov rd-cal-ov" id="calPanel" hidden>
+  <div class="panel ui-panel" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+    <h2 class="ui-title" id="calTitle">Timing check</h2>
+    <p id="calMsg"></p>
+    <div class="rd-cal-dots" id="calDots" aria-hidden="true"></div>
+    <button type="button" class="rd-pad rd-pad-cal" id="calPad" hidden aria-label="Tap here on every click"></button>
+    <p class="rd-cal-say" id="calSay" aria-live="polite"></p>
+    <div class="acts">
+      <button type="button" class="btn btn-primary" id="calGo">Start</button>
+      <button type="button" class="btn btn-secondary" id="calSkip">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/belts.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="../shared/endless.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/onsets.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

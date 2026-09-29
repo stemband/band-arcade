@@ -62,6 +62,10 @@ shared/               The engine every game uses
   sounds.js           THE SOUND LIST: every sound event, its file name, volume and rules (see sounds/README.md)
   sounds/             Mat's recorded sounds (.m4a / .mp3), and the list of file names to use (README.md)
   sfx.js              Plays every sound: your files, else the built-in sounds; volumes; mutes the mic while sounds play
+  counting.js         MR. GRAHAM'S COUNTING (1 & 2 &, 1 e & a, 1 la le, 6/8…): rhythms as text, the counting of each note
+  rhythm-staff.js     Draws a rhythm on a one-line percussion staff with the counting underneath (true superscripts)
+  onsets.js           Hears claps and drum hits (sharp onsets, never pitch) from the same microphone as pitch.js
+  calibration.js      The audio clock (what the student hears, when) and the timing check's math (Music Highway, Rhythm Dojo)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
   fonts.css + fonts/  Fonts bundled with the site (no outside font service needed)
@@ -99,6 +103,11 @@ keys-to-the-city/     Piano keys and the staff in a neon city: find keys, name t
   levels.js           THE CITY MAP (9 districts), rules, Night Shift (endless). Edit here; never reorder (stars = district number)
   quiz.js             The music model (spelling, key signatures) and the round maker
   game.js             The skyline keyboard, the Chopsticks and Fork signs, the staff, the Mayor, instrument mode, results
+rhythm-dojo/          Rhythm reading: read the rhythm and Mr. Graham's counting, then clap it, tap it or play it on a snare
+  levels.js           The 11 levels (the rhythms each round is built from), judging windows, stars, the Dojo Marathon. Edit here
+  game.js             Hear it, perform (count-in, playhead, pulse light), judging, the colored feedback, timing check, marathon
+  examples.js         The Counting Board's 49 examples (each with the counting it must show: the tests check them)
+  counting.html       THE COUNTING BOARD (not linked for students): every case of the counting, drawn on the staff
 music-highway/        Play-along rhythm game: your fingerings fly down a neon highway with the band; play each note on the line
   songs.js            THE SONG LIST (16 songs in 3 tiers, as concert B♭ scale degrees). Edit here; never reorder (stars = song number)
   song-map.js         Songs -> each instrument's written notes, octave, chords · settings.js: judging windows, stars, volumes

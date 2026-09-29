@@ -153,26 +153,11 @@
   const newKit = (out = CLK.out) => { loadClick(); return A.MHBacking.create(CLK.ctx, out, {click: clickBuf}); };
 
   /* ================= THE CLOCK (audible AudioContext time; see the top) ================= */
-  const CLK = {ctx: null, off: null, p0: 0};
-  function clockStart() {
-    const o = A.Sfx.output();
-    CLK.ctx = o ? o.ctx : null; CLK.out = o ? o.out : null; CLK.off = null; CLK.p0 = performance.now();
-    if (CLK.ctx && CLK.ctx.state !== 'running') CLK.ctx.resume().catch(() => {});
-    sampleClock();
-  }
-  /* the audible context time at performance time p (seconds), smoothed so the frame-by-frame jitter of currentTime
-     never shakes the cards; with no audio: performance time */
-  function sampleClock() {
-    const c = CLK.ctx, p = performance.now();
-    if (!c) return;
-    let raw = null;
-    try { const ts = c.getOutputTimestamp && c.getOutputTimestamp(); if (ts && ts.performanceTime > 0 && ts.contextTime > 0) raw = ts.contextTime + (p - ts.performanceTime) / 1000; } catch (e) {}
-    if (raw == null) raw = c.currentTime - (c.outputLatency || c.baseLatency || 0);
-    const s = raw - p / 1000;
-    if (CLK.off == null || Math.abs(s - CLK.off) > .06) CLK.off = s; else CLK.off += (s - CLK.off) * .04;
-  }
-  const audAt = p => CLK.ctx ? p / 1000 + CLK.off : (p - CLK.p0) / 1000;        // "context seconds" heard at perf ms p
-  const nowCtx = () => CLK.ctx ? CLK.ctx.currentTime : (performance.now() - CLK.p0) / 1000;
+  // shared/calibration.js: the clock (CLK.ctx, CLK.out = the arcade's output; null with the sound off)
+  const CLK = A.AudioClock.create();
+  const clockStart = () => CLK.start(), sampleClock = () => CLK.sample();
+  const audAt = p => CLK.audAt(p);                                               // "context seconds" heard at perf ms p
+  const nowCtx = () => CLK.now();
 
   /* ================= THE SONG ================= */
   let G = null, kit = null, raf = 0, sched = 0;
@@ -871,21 +856,11 @@
        the listening clicks, when the student isn't playing yet. And a round whose offsets are machine-steady near 0 ms
        (or far too early) is the click itself: it's refused. */
     function calDone() {
-      const near = (a, c) => Math.abs(audAt(a.time) - c) * 1000 <= R.bleedMs;
-      const bleed = Math.max(0, ...calRun.attacks.filter(a => a.level != null && calRun.clicks.slice(0, R.calLead).some(c => near(a, c))).map(a => a.level));
-      const ok = a => unpitched ? (a.level == null || !bleed || a.level > bleed * R.bleedK) : a.pc != null;
-      const heard = calRun.attacks.filter(a => audAt(a.time) > calRun.clicks[R.calLead] - R.maxLagMs / 1000);
-      const good = heard.filter(ok), clicky = heard.length - good.length;
-      const offs = [];
-      calRun.clicks.slice(R.calLead).forEach(c => {
-        const d = good.map(a => (audAt(a.time) - c) * 1000).filter(x => Math.abs(x) <= R.maxLagMs).sort((a, b) => Math.abs(a) - Math.abs(b))[0];
-        if (d != null) offs.push(d);
-      });
-      offs.sort((a, b) => a - b);
-      const med = offs.length ? offs[Math.floor(offs.length / 2)] : null;
-      const sd = offs.length > 1 ? Math.sqrt(offs.reduce((s2, x) => s2 + (x - offs.reduce((a, b) => a + b, 0) / offs.length) ** 2, 0) / offs.length) : 0;
-      const clickLike = med != null && offs.length >= R.calNeed && ((sd < R.calMinSpreadMs && Math.abs(med) < R.calClickMaxMs) || med < -R.calTooEarlyMs);
-      calRun.result = {accepted: offs.length, rejectedAsClick: clicky, bleed: +bleed.toFixed(4), median: med, spread: +sd.toFixed(1), clickLike};
+      // shared/calibration.js: the median offset, and the refusal of a round that is the click itself
+      const res = A.Calibration.analyse({clicks: calRun.clicks, lead: R.calLead, attacks: calRun.attacks, audAt, rules: R,
+        accept: (a, bleed) => unpitched ? (a.level == null || !bleed || a.level > bleed * R.bleedK) : a.pc != null});
+      const offs = res.offs, med = res.median, clickLike = res.clickLike, clicky = res.rejectedAsClick;
+      calRun.result = {accepted: res.accepted, rejectedAsClick: clicky, bleed: res.bleed, median: med, spread: res.spread, clickLike};
       A.Pitch.demoAttacks = false; A.Pitch.demoTarget = demoTargetGame;
       if (clickLike || (offs.length < R.calNeed && clicky >= R.calNeed)) {
         $('calSay').textContent = 'I heard the click, not your instrument. Try playing a little louder or moving the device a bit farther from you.';

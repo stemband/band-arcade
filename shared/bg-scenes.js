@@ -497,6 +497,53 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* RHYTHM DOJO: the drum hall at night: a wooden floor, dim paper screens along the back wall, two big taiko drums on
+     stands at the edges (their heads glow and fade in a slow breath, 2.4 s: never a beat-by-beat flash), two lanterns
+     swaying, and dust drifting in the lantern light. The middle stays dark for the menu. */
+  S.taiko = (x, W, H, t) => {
+    const m = Math.min(W, H);
+    vgrad(x, W, H, [[0, col('dd-night')], [.72, mix('dd-night', 'floor-3', .35)], [.72, col('dd-wood')], [1, col('deep')]]);
+    // the paper screens on the back wall
+    const sy = H * .16, sh = H * .44, n = 8;
+    for (let i = 0; i < n; i++) {
+      const sx = W * (.04 + i * .92 / n), sw = W * .92 / n - W * .01;
+      x.fillStyle = mix('dd-night', 'dd-paper', .08); x.fillRect(sx, sy, sw, sh);
+      x.strokeStyle = col('dd-wood-line', .8); x.lineWidth = Math.max(1, m / 240);
+      x.strokeRect(sx, sy, sw, sh);
+      x.beginPath(); for (let k = 1; k < 4; k++) { x.moveTo(sx, sy + sh * k / 4); x.lineTo(sx + sw, sy + sh * k / 4); } x.moveTo(sx + sw / 2, sy); x.lineTo(sx + sw / 2, sy + sh); x.stroke();
+    }
+    x.fillStyle = col('dd-wood', .95); x.fillRect(0, 0, W, H * .07);               // the roof beam
+    x.strokeStyle = col('dd-wood-line', .35); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 10; i++) { x.beginPath(); x.moveTo(i * W / 10, H * .72); x.lineTo(W / 2 + (i * W / 10 - W / 2) * 1.6, H); x.stroke(); }
+    // the lanterns
+    [.2, .8].forEach((lx, i) => {
+      const L = H * .12, ang = Math.sin(t * .7 + i * 1.7) * .05, ex = W * lx + Math.sin(ang) * L, ey = H * .07 + Math.cos(ang) * L;
+      x.strokeStyle = col('dd-wood-line', .7); x.beginPath(); x.moveTo(W * lx, H * .07); x.lineTo(ex, ey); x.stroke();
+      glow(x, ex, ey + H * .03, H * .18, col('dd-lantern', .22), col('dd-lantern', 0));
+      x.fillStyle = col('dd-paper', .6); x.beginPath(); x.ellipse(ex, ey + H * .03, H * .026, H * .036, ang, 0, TAU); x.fill();
+    });
+    // the two drums on their stands
+    const breath = .5 + .5 * Math.sin(t * TAU / 2.4);
+    [[.1, 0], [.9, 1]].forEach(([u, k]) => {
+      const dx = W * u, r = m * .14, cy = H * .62, b = k ? 1 - breath : breath;
+      x.strokeStyle = col('rd-stand'); x.lineWidth = m * .02; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(dx - r * .8, H * .9); x.lineTo(dx - r * .3, cy + r * .6); x.moveTo(dx + r * .8, H * .9); x.lineTo(dx + r * .3, cy + r * .6); x.stroke();
+      x.fillStyle = col('rd-body'); x.beginPath(); x.ellipse(dx, cy, r * 1.05, r, 0, 0, TAU); x.fill();
+      x.strokeStyle = col('rd-iron'); x.lineWidth = m * .01;
+      x.beginPath(); x.ellipse(dx, cy, r * 1.05, r, 0, 0, TAU); x.stroke();
+      glow(x, dx, cy, r * 1.6, col('pink', .08 + .14 * b), col('pink', 0));
+      x.fillStyle = col('rd-head', .9); x.beginPath(); x.ellipse(dx, cy, r * .78, r * .74, 0, 0, TAU); x.fill();
+      x.strokeStyle = col('pink', .35 + .35 * b); x.lineWidth = m * .012; x.beginPath(); x.ellipse(dx, cy, r * .78, r * .74, 0, 0, TAU); x.stroke();
+      x.fillStyle = col('rd-stud', .8);
+      for (let j = 0; j < 14; j++) { const a = j / 14 * TAU; x.beginPath(); x.arc(dx + Math.cos(a) * r * .9, cy + Math.sin(a) * r * .86, m * .006, 0, TAU); x.fill(); }
+    });
+    // dust in the light
+    for (let i = 0; i < 18; i++) {
+      const px = (fract(hash(i + 40) + t * (.006 + .004 * hash(i + 41))) * 1.1 - .05) * W, py = H * (.1 + .6 * fract(hash(i + 42) - t * (.01 + .006 * hash(i + 43))));
+      x.fillStyle = col('dd-paper', .12 + .12 * hash(i + 44)); x.beginPath(); x.arc(px, py, m * .003, 0, TAU); x.fill();
+    }
+  };
+
   /* OFFICIAL BAND NINJA GEAR (the Diamond belt code; avatar backgrounds only): the night dojo with diamond-blue lanterns,
      a Diamond belt hung on the back wall, and small diamond glints drifting down slowly (they fade, never blink) */
   S['diamond-dojo'] = (x, W, H, t) => {
@@ -1008,7 +1055,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

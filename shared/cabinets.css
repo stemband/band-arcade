@@ -415,3 +415,14 @@
 @keyframes kc-lit{0%,20%{fill:var(--kt-bldg)}45%,75%{fill:var(--kt-win-on)}100%{fill:var(--kt-bldg)}}
 @keyframes kc-t{0%,20%{fill:var(--kt-street)}45%,75%{fill:var(--kt-glow)}100%{fill:var(--kt-street)}}
 @media (prefers-reduced-motion:reduce){.attract .scr-keys .kc-lit,.attract .scr-keys .kc-t{animation:none}}
+
+/* Rhythm Dojo: the taiko cabinet (a drum-barrel top with studs, crossed drumsticks, a little drum on the kick plate) */
+.mq-taiko{background:linear-gradient(180deg,var(--rd-body-2),var(--dd-night));color:var(--t-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:var(--t-glow)}
+.mq-taiko .mq-name{font-family:var(--display)}
+.shape-taiko .s-barrel{fill:var(--rd-body);stroke:var(--u);stroke-width:2}
+.shape-taiko .s-stud{fill:var(--rd-stud)}
+.shape-taiko .s-bachi{stroke:var(--dd-paper);stroke-width:7;stroke-linecap:round;opacity:.8}
+.shape-taiko .s-tkbody{fill:var(--rd-body);stroke:var(--rd-body-2);stroke-width:2}
+.shape-taiko .s-tkhead{fill:var(--rd-head);stroke:var(--t);stroke-width:2.5}
+.shape-taiko .s-tkband{fill:none;stroke:var(--rd-iron);stroke-width:3}
+.scr-taiko{background:var(--dd-night)}

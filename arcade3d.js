@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -138,6 +138,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* taiko: the Rhythm Dojo cabinet: a classic body with a taiko drum on a low stand on the roof, its head facing
+       out, a neon ring around the head */
+    taiko: {
+      width: 0.94, topper: 'taiko',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
     quest: {
       width: 0.94,
@@ -154,7 +162,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -183,7 +191,8 @@ window.Arcade = window.Arcade || {};
    'ls-scope', 'ls-grid', 'ls-wave', 'ls-ping', 'ls-sweep', 'dd-night', 'dd-wood', 'dd-wood-2', 'dd-wood-line', 'dd-paper', 'dd-lantern',
    'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2',
    'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b',
-   'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow'].forEach(n => { tok[n] = cssVar(n); });
+   'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow',
+   'rd-body', 'rd-body-2', 'rd-head', 'rd-iron', 'rd-stud', 'rd-stand'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -474,6 +483,12 @@ window.Arcade = window.Arcade || {};
     highway(x, W, H, t) {
       if (A.HighwayDraw) return A.HighwayDraw.attract(x, W, H, t);
       x.fillStyle = tok['mh-sky']; x.fillRect(0, 0, W, H);
+    },
+    /* Rhythm Dojo: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.taiko) */
+    taiko(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.taiko;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['dd-night']; x.fillRect(0, 0, W, H);
     },
     /* Vanishing Ink: three notes brush onto a small scroll, stay, then fade away slowly; "PLAY IT BACK!" (4.2 s loop, as 2D) */
     ink(x, W, H, t) {
@@ -843,6 +858,20 @@ window.Arcade = window.Arcade || {};
         const leg = new THREE.Mesh(new THREE.BoxGeometry(.03, .06, .03), lambert(col('vi-rod-cap'))); leg.position.set(sd * sw / 2, topY + .02, fz); group.add(detail(leg));
       });
       neon([new THREE.Vector3(-sw / 2, cy + sh / 2 + .01, fz + .004), new THREE.Vector3(sw / 2, cy + sh / 2 + .01, fz + .004)]);
+    } else if (P.topper === 'taiko') {
+      // a taiko drum on a low wooden stand on the roof: a barrel body, iron bands, a row of studs, its head facing out
+      // with a neon ring in the trim color (Rhythm Dojo)
+      const fz = frontTop + zc - .14, R0 = .19, cy = topY + R0 + .06;
+      const drum = new THREE.Group(); drum.position.set(0, cy, fz);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(R0, R0, .2, 20, 1), lambert(col('rd-body'))); body.rotation.x = Math.PI / 2; drum.add(body);
+      [.075, -.075].forEach(z => { const band = new THREE.Mesh(new THREE.TorusGeometry(R0 + .004, .008, 6, 24), lambert(col('rd-iron'))); band.position.z = z; drum.add(band); });
+      const head = new THREE.Mesh(new THREE.CircleGeometry(R0 * .96, 24), lambert(col('rd-head'))); head.position.z = .101; drum.add(head);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .012, 6, 28), basic(col(k.trim + '-hi'))); ring.position.z = .104; drum.add(ring);
+      const glow = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .035, 6, 28), basic(col(k.trim), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .104; drum.add(glow);
+      for (let j = 0; j < 12; j++) { const a = j / 12 * Math.PI * 2, st = new THREE.Mesh(new THREE.SphereGeometry(.012, 6, 4), basic(col('rd-stud'))); st.position.set(Math.cos(a) * (R0 + .006), Math.sin(a) * (R0 + .006), .085); drum.add(st); }
+      drum.userData.pick = true; group.add(detail(drum));
+      const wood = lambert(col('rd-stand'));
+      [-1, 1].forEach(sd => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.035, .12, .16), wood); leg.position.set(sd * R0 * .75, topY + .06, fz); group.add(detail(leg)); });
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {
