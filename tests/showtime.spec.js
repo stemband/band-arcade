@@ -68,12 +68,14 @@ test.describe('Showtime Malfunction', () => {
     await start(page, 8);
     const s = await page.evaluate(() => {
       const G = Arcade.Showtime.debug();
-      return {kinds: G.queue.map(q => q.kind).concat(G.bots.map(b => b.kind)), boss: !!G.L.boss, pending: G.bossPending, html: document.body.innerHTML.includes('SAL-')};
+      // (on a slow machine Maestro Moose may already be walking when this is read: he is the boss, not the band)
+      return {kinds: G.queue.map(q => q.kind).concat(G.bots.filter(b => !b.boss).map(b => b.kind)), boss: !!G.L.boss,
+        moose: G.bossPending || G.bots.some(b => b.boss && b.kind === 'moose'), html: document.body.innerHTML.includes('SAL-')};
     });
     expect(s.kinds.length).toBeGreaterThan(0);
     s.kinds.forEach(k => expect(['walrus', 'owl', 'gator', 'raccoon']).toContain(k));
     expect(new Set(s.kinds).size).toBeGreaterThan(1);                // not a clone army
-    expect(s.boss && s.pending).toBe(true);                          // Maestro Moose still comes
+    expect(s.boss && s.moose).toBe(true);                            // Maestro Moose comes (or is already on his way)
     expect(s.html).toBe(false);
     watch.check();
   });

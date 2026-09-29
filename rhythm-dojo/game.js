@@ -1,6 +1,6 @@
 /* Rhythm Dojo: read a rhythm on a one-line percussion staff (shared/rhythm-staff.js) with Mr. Graham's counting
    underneath (shared/counting.js), then PERFORM it: CLAP (the microphone hears claps as sharp onsets:
-   shared/onsets.js, never pitch), TAP (a big drum pad or Space) or SNARE (the microphone, like CLAP).
+   shared/onsets.js, never pitch), TAP (the default: a big drum pad or Space, no microphone) or SNARE (the microphone, like CLAP).
    The counting fades as the level goes on (the Counting setting: SHOW / AUTO / HIDE).
      levels.js   RD_LEVELS (the levels), RD_RULES (judging windows, stars, the timing check), RD_MARATHON (endless)
    A ROUND: the rhythm shows (study) → HEAR IT (optional: the woodblock over a click, a playhead, each syllable lights as
@@ -31,7 +31,7 @@
   /* ---------- saved choices: gameData('rhythm-dojo') = {mode, counting, speed, hp, calib: {clap, tap}} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
-  const opt = {mode: ['clap', 'tap', 'snare'].includes(gd().mode) ? gd().mode : 'clap',
+  const opt = {mode: ['clap', 'tap', 'snare'].includes(gd().mode) ? gd().mode : 'tap',   // TAP by default: no microphone until CLAP/SNARE is picked
     counting: ['show', 'auto', 'hide'].includes(gd().counting) ? gd().counting : 'auto',
     speed: gd().speed === 'slow' ? 'slow' : 'normal', hp: !!gd().hp};
   const micMode = () => opt.mode !== 'tap';

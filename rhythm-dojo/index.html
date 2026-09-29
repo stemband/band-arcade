@@ -8,7 +8,7 @@
 <script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
 <script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
 <title>Rhythm Dojo</title>
-<meta name="description" content="Read the rhythm and the counting, then clap it, tap it or play it on your snare. The counting fades as you level up.">
+<meta name="description" content="Read the rhythm and the counting, then tap it, clap it or play it on your snare. The counting fades as you level up.">
 <meta name="theme-color" content="#0b0716">
 <link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../shared/fonts.css">
@@ -25,14 +25,14 @@
       <div class="rd-hub-sensei" id="hubSensei" aria-hidden="true"></div>
       <div>
         <h1 class="game-title">Rhythm <span>Dojo</span></h1>
-        <p class="ui-howto">Read the rhythm and its counting, then perform it: clap it, tap it or play it on your snare. The counting fades away as you earn your belts.</p>
+        <p class="ui-howto">Read the rhythm and its counting, then perform it: tap it, clap it or play it on your snare. The counting fades away as you earn your belts.</p>
       </div>
     </div>
     <div class="rd-opts">
       <div class="rd-opt"><span class="ui-label" id="lMode">Perform by</span>
         <div class="ui-seg" role="group" aria-labelledby="lMode" id="modeSeg">
-          <button type="button" data-mode="clap" aria-pressed="true">👏 Clap<small>microphone</small></button>
-          <button type="button" data-mode="tap" aria-pressed="false">👆 Tap<small>screen or Space</small></button>
+          <button type="button" data-mode="tap" aria-pressed="true">👆 Tap<small>screen or Space</small></button>
+          <button type="button" data-mode="clap" aria-pressed="false">👏 Clap<small>microphone</small></button>
           <button type="button" data-mode="snare" aria-pressed="false">🥁 Snare<small>microphone</small></button>
         </div></div>
       <div class="rd-opt"><span class="ui-label" id="lCount">Counting</span>
@@ -54,7 +54,7 @@
     </div>
     <div class="levels rd-levels" id="levelGrid"></div>
     <div id="endlessTile"></div>
-    <p class="demo-help" id="demoHelp" hidden>Demo: every level is open. CLAP / SNARE: Space = a clap. TAP: Space or the drum pad.</p>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every level is open. TAP: Space or the drum pad. CLAP / SNARE: Space = a clap.</p>
   </section>
 
   <!-- A ROUND -->
