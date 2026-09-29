@@ -23,6 +23,7 @@ async function start(page, lv) {
 
 test.describe('Showtime Malfunction', () => {
   test('Jump Scare: every showtime plans its scares by progress (1, or 2 on the longer shows)', async ({page}) => {
+    test.setTimeout(180_000);                                              // it plays a show until the first scare
     const watch = await prepare(page, {store: jumpStore()});
     await page.goto(`showtime-malfunction/index.html?demo&nostart&today=${DAY}`);
     // the Settings line under the spooky buttons
@@ -46,9 +47,18 @@ test.describe('Showtime Malfunction', () => {
       if (await yes.isVisible().catch(() => false)) await yes.click();
       await expect.poll(() => page.evaluate(() => !!Arcade.Showtime.debug())).toBe(false);
     }
-    // a scare fires once enough of the band has walked on (a quick show: the first one armed and fired)
+    // a scare fires once enough of the band has walked on: play the show (?demo: Space = a right attack on the target), so
+    // the animatronics are rebooted and the next ones walk on, until the first scare (a slow machine runs the game clock
+    // slower: up to 90 s)
     await start(page, 1);
-    await expect.poll(() => page.evaluate(() => Arcade.Showtime.debug().scares.length), {timeout: 30_000}).toBeGreaterThanOrEqual(1);
+    let scares = 0;
+    for (const t0 = Date.now(); Date.now() - t0 < 90_000 && !scares;) {
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(300);
+      scares = await page.evaluate(() => { const G = Arcade.Showtime.debug(); return G ? G.scares.length : -1; });
+      if (scares < 0) break;                                           // the show ended without a scare
+    }
+    expect(scares).toBeGreaterThanOrEqual(1);
     watch.check();
   });
 

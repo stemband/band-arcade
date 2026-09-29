@@ -12,11 +12,14 @@ const {prepare, device} = require('./helpers');
    The stream is an empty MediaStream marked __fake, and the page's own AudioContext turns it into a silent node:
    a stream made by ANOTHER AudioContext outside a tap is refused by WebKit, while pitch.js's real start-up (the
    permission request, resume, the analyser) runs unchanged. The machine's audio device is faked too (resume's wait
-   capped): headless WebKit on CI has no running audio clock. */
+   capped): headless WebKit on CI has no running audio clock. Where the browser has no media devices at all (Playwright's
+   WebKit on Linux), navigator.mediaDevices itself is supplied. */
 async function fakeMic(page) {
   await page.addInitScript(() => {
     window.__micAsks = 0;
-    if (!navigator.mediaDevices) return;
+    // Playwright's WebKit on Linux has no media-stream support at all (no navigator.mediaDevices, no MediaStream):
+    // give it the device the test needs
+    if (!navigator.mediaDevices) { try { Object.defineProperty(navigator, 'mediaDevices', {value: {}, configurable: true}); } catch (e) { return; } }
     [window.AudioContext, window.webkitAudioContext].forEach(AC => {
       if (!AC || AC.prototype.__fakeMic) return;
       const real = AC.prototype.createMediaStreamSource;
@@ -30,7 +33,8 @@ async function fakeMic(page) {
     navigator.mediaDevices.getUserMedia = async () => {
       window.__micAsks++;
       if (window.__denyMic) throw new DOMException('Permission denied', 'NotAllowedError');
-      const s = new MediaStream(); s.__fake = true;
+      const s = window.MediaStream ? new MediaStream() : {getTracks: () => [], getAudioTracks: () => []};
+      s.__fake = true;
       return s;
     };
   });
