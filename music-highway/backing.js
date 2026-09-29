@@ -9,8 +9,9 @@
    HEADPHONES MODE (only after the speaker check proves the microphone can't hear the speakers): a quiet guide melody,
    a bass line and soft chords on top. THE ONLY OTHER PITCHED AUDIO IN THE ARCADE BESIDES LOST SIGNAL (see CLAUDE.md).
 
-     Arcade.MHBacking.create(ctx, out, {click}) -> kit with (click = the uploaded mh-click AudioBuffer, or null)
-       kick(t, v) · snare(t, v) · hat(t, v) · click(t, v, accent)       drums at context time t
+     Arcade.MHBacking.create(ctx, out, {click, block}) -> kit with (click = the uploaded mh-click AudioBuffer, or null;
+       block = an uploaded woodblock for block(): Rhythm Dojo, which uses this kit for its clicks and woodblock)
+       kick(t, v) · snare(t, v) · hat(t, v) · click(t, v, accent) · block(t, v, accent)   drums at context time t
          click() returns its PEAK (full scale = 1): the count-in keeps the drums under the headroom that's left
        tone(t, midi, dur, vol, kind)   kind 'guide' (triangle), 'bass' (sine + a touch of triangle), 'pad' (two sines)
        file(t, buffer, offset, rate)   the uploaded backing-drums file, from `offset` seconds into it
@@ -45,8 +46,12 @@ window.Arcade = window.Arcade || {};
      it can never go past v (so clickVol 1 = full scale, never clipped). Two resonant noise bands (the "wood"), a very
      short bright transient (the "stick"); most of the energy between 1.5 and 4 kHz so small speakers carry it; 55 ms.
      The DOWNBEAT is the same click tuned about 15 % higher and CLICK.weak × louder than the others. */
-  const CLICK = {len: .055, weak: .72, lo: [1850, 2800], hi: [2150, 3200], q: [2.6, 2.4], tau: [.012, .007], mix: [1, .55],
+  const CLICK_P = {len: .055, weak: .72, lo: [1850, 2800], hi: [2150, 3200], q: [2.6, 2.4], tau: [.012, .007], mix: [1, .55],
     stick: {f: 2600, q: 1.3, tau: .0015, mix: .6}, attack: .0005};
+  /* THE WOODBLOCK (Rhythm Dojo's HEAR IT: the rhythm played before the student performs it): the same noise recipe,
+     lower and a little longer, so it never sounds like the click it plays over. Still unpitched noise bands. */
+  const BLOCK = {len: .085, weak: .8, lo: [950, 1500], hi: [1150, 1750], q: [3, 2.6], tau: [.02, .012], mix: [1, .5],
+    stick: {f: 1800, q: 1.2, tau: .002, mix: .5}, attack: .0006};
   const clickCache = {};
   function bandpass(x, fs, f, q) {                                     // an RBJ band-pass (0 dB peak) over a whole buffer
     const w = 2 * Math.PI * f / fs, al = Math.sin(w) / (2 * q), a0 = 1 + al;
@@ -55,8 +60,8 @@ window.Arcade = window.Arcade || {};
     for (let i = 0; i < x.length; i++) { const v = b0 * x[i] + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v; }
     return y;
   }
-  function renderClick(ctx, accent) {
-    const fs = ctx.sampleRate, key = fs + (accent ? 'hi' : 'lo');
+  function renderClick(ctx, accent, CLICK = CLICK_P) {
+    const fs = ctx.sampleRate, key = fs + (accent ? 'hi' : 'lo') + (CLICK === BLOCK ? 'b' : '');
     if (clickCache[key]) return clickCache[key];
     const n = Math.round(CLICK.len * fs), out = new Float32Array(n);
     let seed = accent ? 11 : 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
@@ -112,10 +117,19 @@ window.Arcade = window.Arcade || {};
       /** the click at level v (clamped to 0–1; the downbeat full, the others CLICK.weak): the uploaded mh-click if there is
           one (normalized to its own peak; the downbeat played 12 % faster = higher), else the generated woodblock */
       click(t, v = 1, accent = false) {
-        const lv = Math.min(1, Math.max(0, v)) * (accent ? 1 : CLICK.weak);
+        const lv = Math.min(1, Math.max(0, v)) * (accent ? 1 : CLICK_P.weak);
         const src = ctx.createBufferSource(), g = ctx.createGain();
         if (opts.click instanceof AudioBuffer) { src.buffer = opts.click; src.playbackRate.value = accent ? 1.12 : 1; g.gain.value = lv / bufferPeak(opts.click); }
         else { src.buffer = renderClick(ctx, accent); g.gain.value = lv; }
+        src.connect(g); g.connect(master); src.start(t); keep(src, t);
+        return lv;
+      },
+      /** THE WOODBLOCK (Rhythm Dojo) at level v: the uploaded opts.block file if there is one, else the generated one */
+      block(t, v = 1, accent = false) {
+        const lv = Math.min(1, Math.max(0, v)) * (accent ? 1 : BLOCK.weak);
+        const src = ctx.createBufferSource(), g = ctx.createGain();
+        if (opts.block instanceof AudioBuffer) { src.buffer = opts.block; g.gain.value = lv / bufferPeak(opts.block); }
+        else { src.buffer = renderClick(ctx, accent, BLOCK); g.gain.value = lv; }
         src.connect(g); g.connect(master); src.start(t); keep(src, t);
         return lv;
       },
@@ -150,5 +164,5 @@ window.Arcade = window.Arcade || {};
     return kit;
   }
 
-  A.MHBacking = {create, groove, renderClick, CLICK, GROOVES};
+  A.MHBacking = {create, groove, renderClick, CLICK: CLICK_P, BLOCK, GROOVES};
 })(window.Arcade);

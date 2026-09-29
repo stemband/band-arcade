@@ -95,6 +95,15 @@ const STEPS = {
   // plays with SOUND OFF (the game then runs on its performance.now() clock, as on a muted iPad)
   'music-highway': {store: browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}), limit: 120_000,
     play: async page => { await page.evaluate(() => { const H = Arcade.Highway; if (!window.__auto && H.state().phase !== 'menu') { window.__auto = true; H.autoPlay(0); } }); await page.waitForTimeout(400); }},
+  // Rhythm Dojo judges timing too: TAP mode (no microphone), calibrated already, every rhythm performed on time by the
+  // game's own autoPlay hook (through the real judging); NEXT between rhythms. WebKit: SOUND OFF (see Music Highway).
+  // Its Dojo Marathon: nothing played, so every rhythm misses and costs a life.
+  'rhythm-dojo': {store: browser => Object.assign({gameData: {'rhythm-dojo': {mode: 'tap', calib: {clap: {ms: 0}, tap: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}),
+    next: '#rdNext', limit: 150_000, endlessPlay: 'idle',
+    play: async page => {
+      await page.evaluate(() => { const D = Arcade.RhythmDojo; if (!window.__auto) { window.__auto = true; D.autoPlay(0, {persist: true}); } if (D.state().phase === 'study') document.getElementById('rdGo').click(); });
+      await page.waitForTimeout(400);
+    }},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
   'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
   'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute

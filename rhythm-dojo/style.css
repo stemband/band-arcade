@@ -1,0 +1,105 @@
+/* Rhythm Dojo */
+.hub-head{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+.rd-hub-sensei{width:92px;flex:none}
+.rd-hub-sensei svg{width:100%;display:block}
+.game-title{color:var(--pink-hi);text-shadow:var(--glow-pink)}
+.game-title span{color:var(--amber-hi);text-shadow:var(--glow-amber)}
+
+/* the options */
+.rd-opts{display:flex;flex-wrap:wrap;gap:12px 22px;margin:0 0 10px}
+.rd-opt .ui-label{margin-bottom:4px}
+.rd-opts .ui-seg{--seg-on:var(--pink)}
+.rd-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 16px}
+.rd-optnote{color:var(--text-lo);font-size:15px;flex:1 1 260px}
+
+/* level cards: a belt-colored headband */
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media (max-width:900px){.levels{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto auto 1fr auto;gap:4px;text-align:left;background:var(--floor-2);color:var(--text-hi);border:2px solid transparent;border-radius:16px;padding:12px 14px;min-height:150px;font:inherit;cursor:pointer}
+.lvl:hover:not([disabled]){border-color:var(--pink)}
+.lvl .n{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+.rd-band{display:block;height:9px;border-radius:5px;background:var(--band,var(--belt-white));box-shadow:0 0 0 1px var(--floor-3) inset;position:relative}
+.rd-band::after{content:"";position:absolute;right:14px;top:-4px;width:14px;height:17px;border-radius:3px;background:inherit;transform:rotate(14deg)}
+.lvl.cleared{border-color:var(--floor-3)}
+
+/* the HUD */
+.hud{display:grid;grid-template-columns:1fr auto auto 1fr;gap:10px;align-items:end;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.hud small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);font-weight:700}
+.hud b{font-family:var(--display);font-weight:400;font-size:clamp(16px,3vw,24px);color:var(--text-hi);display:flex;align-items:center;gap:8px}
+.hud .c{text-align:center}.hud .c b{justify-content:center}
+.hud .r{text-align:right}.hud .r b{justify-content:flex-end}
+.hud .rd-band{width:34px;flex:none}
+#hudLives span{color:var(--text-dim);margin:0 1px}#hudLives span.on{color:var(--pink)}
+
+/* the dojo row: the Sensei, his line, the taiko (its rim = the pulse light) */
+.rd-dojo{display:grid;grid-template-columns:clamp(64px,10vw,110px) 1fr clamp(96px,15vw,170px);gap:12px;align-items:center;margin:4px 0 8px}
+.rd-sensei svg{width:100%;display:block}
+.rd-say{margin:0;font-size:clamp(16px,2.2vw,20px);font-weight:700;color:var(--text-hi);background:var(--floor-2);border:1px solid var(--floor-3);border-radius:14px;padding:10px 14px;min-height:48px}
+.rd-drum{--pulse:0}
+.rd-drum svg{width:100%;display:block;overflow:visible}
+.taiko .tk-stand{fill:none;stroke:var(--rd-stand);stroke-width:7;stroke-linecap:round}
+.taiko .tk-body{fill:var(--rd-body);stroke:var(--rd-body-2);stroke-width:3}
+.taiko .tk-band{fill:none;stroke:var(--rd-iron);stroke-width:4}
+.taiko .tk-studs circle{fill:var(--rd-stud)}
+.taiko .tk-head{fill:var(--rd-head);stroke:var(--pink);stroke-width:4;filter:drop-shadow(0 0 calc(2px + var(--pulse) * 10px) var(--pink))}
+.taiko .tk-mon{fill:none;stroke:var(--rd-head-2);stroke-width:2}
+.taiko .tk-glow{fill:var(--pink);opacity:calc(var(--pulse) * .28)}
+.rd-drum svg{transform-origin:50% 30%}
+.rd-drum.hit svg{animation:rd-hit .28s ease-out}
+@keyframes rd-hit{0%{transform:scale(1.07,.93)}100%{transform:none}}
+
+/* THE RHYTHM SHEET: rows of one-line staff + counting (shared/rhythm-staff.js) on the light screen */
+.rd-sheet{color:var(--ink);position:relative;padding:8px 12px 4px}
+.rd-rows{display:grid;gap:4px;justify-items:start;margin:0 auto;max-width:calc(var(--mw) * 1.35px)}
+.rd-row{position:relative;width:calc(var(--w) / var(--mw) * 100%)}
+.rd-sheet svg.rs{display:block;width:100%;height:auto}
+.rd-sheet .rc{color:var(--ink);transition:opacity .4s}
+.rd-sheet .rc .rc-small,.rd-sheet .rc .rc-u{color:var(--ink-2)}
+.rd-sheet.cnt-fade .rc{opacity:.28}
+.rd-sheet.cnt-hide .rc{opacity:0}
+.rd-sheet .lit{color:var(--rd-lit)!important;fill:var(--rd-lit)}
+.rd-sheet .rn.lit{color:var(--rd-lit)}
+/* feedback: green on time, yellow early/late/short, red missed/extra */
+.rd-sheet .rc.ok,.rd-sheet .rn.ok,.rd-sheet .rc.ok .rc-small,.rd-sheet .rc.ok .rc-u{color:var(--rd-ok)}
+.rd-sheet .rc.near,.rd-sheet .rn.near,.rd-sheet .rc.near .rc-small,.rd-sheet .rc.near .rc-u{color:var(--rd-near)}
+.rd-sheet .rc.bad,.rd-sheet .rn.bad,.rd-sheet .rc.bad .rc-small,.rd-sheet .rc.bad .rc-u{color:var(--rd-bad)}
+.rd-sheet .rc.short .rc-small,.rd-sheet .rc.short .rc-u{color:var(--rd-near)}
+.rd-sheet .rc.extra .rc-small,.rd-sheet .rc.extra .rc-u{color:var(--rd-bad)}
+.rd-sheet .rc.bad .rc-big{text-decoration:line-through;text-decoration-thickness:2px}
+.rd-ph{position:absolute;top:4%;height:60%;width:4px;margin-left:-2px;border-radius:2px;background:var(--pink-ink);box-shadow:0 0 8px var(--pink);pointer-events:none}
+.rd-count{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(70px,14vw,150px);color:var(--pink-ink);opacity:0}
+.rd-count.on{opacity:.9;animation:rd-num .5s ease-out}
+@keyframes rd-num{0%{transform:scale(.7);opacity:0}30%{opacity:.9}100%{transform:none}}
+
+.rd-tip{min-height:30px;text-align:center;margin:10px 0 6px;font-size:clamp(17px,2.4vw,21px);font-weight:700;color:var(--text-hi)}
+.rd-tip.ok{color:var(--green)}.rd-tip.near{color:var(--amber-hi)}.rd-tip.bad{color:var(--red)}
+.rd-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 10px}
+
+/* TAP mode: the big drum pad */
+.rd-pad{display:block;width:min(100%,560px);height:clamp(110px,22vh,190px);margin:6px auto 0;border-radius:24px;border:3px solid var(--pink);background:radial-gradient(ellipse at 50% 40%,var(--rd-head) 0 38%,var(--rd-head-2) 60%,var(--rd-body) 61% 100%);box-shadow:var(--glow-pink);cursor:pointer;touch-action:none}
+.rd-pad.down{transform:scale(.97);box-shadow:0 0 0 4px var(--pink-hi),var(--glow-pink)}
+.rd-pad[hidden]{display:none}
+.rd-listen{display:flex;justify-content:center;align-items:center;gap:10px;color:var(--text-lo);font-weight:700;margin:6px 0}
+.rd-listen[hidden]{display:none}
+
+/* the timing check */
+.rd-cal-dots{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.rd-cal-dots i{width:18px;height:18px;border-radius:50%;background:var(--floor-3);border:2px solid var(--cyan)}
+.rd-cal-dots i.lead{border-color:var(--text-dim)}
+.rd-cal-dots i.on{background:var(--cyan)}
+.rd-cal-dots i.lead.on{background:var(--text-dim)}
+.rd-cal-say{min-height:26px;font-weight:700;text-align:center}
+.rd-pad-cal{height:120px}
+.rd-res-hero{width:110px;margin:0 auto}
+.rd-res-hero svg{width:100%;display:block}
+
+@media (prefers-reduced-motion:reduce){
+  .rd-drum.hit svg,.rd-count.on{animation:none}
+  .rd-sheet .rc{transition:none}
+}
+html.no-motion .rd-drum.hit svg,html.no-motion .rd-count.on{animation:none}

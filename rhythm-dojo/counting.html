@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="theme-color" content="#0b0716">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Counting Board</title>
+<meta name="description" content="Every case of Mr. Graham's counting, drawn on a one-line staff with the counting underneath.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+<!-- THE COUNTING BOARD (for Mr. Graham, not linked for students): every example in rhythm-dojo/examples.js drawn with
+     shared/rhythm-staff.js, its counting from shared/counting.js, and a check that the counting matches what the example
+     says it should be. Linked from the Sound Board. -->
+<style>
+  .cbd .game-title{color:var(--yellow-hi);text-shadow:var(--glow-yellow)}
+  .cbd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px}
+  .ex{background:var(--floor-2);border:2px solid var(--floor-3);border-radius:16px;padding:12px 14px}
+  .ex.bad{border-color:var(--red)}
+  .ex h2{margin:0 0 2px;font:700 18px var(--text);color:var(--text-hi)}
+  .ex .src{margin:0 0 8px;color:var(--text-lo);font-size:14px}
+  .ex code{font-size:14px;color:var(--cyan-hi)}
+  .ex .rd-sheet{padding:6px 8px 2px}
+  .ex svg.rs{width:auto;max-width:100%}
+  .wrap.cbd{max-width:1280px}
+  .ex .say{margin:6px 0 0;font-size:15px;color:var(--text-lo)}
+  .ex .say b{color:var(--green)}
+  .ex.bad .say b{color:var(--red)}
+  .cbd-sum{font-weight:700;color:var(--green)}
+  .cbd-sum.bad{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap cbd">
+  <div class="topbar"><a class="brand" id="back" href="index.html"><span aria-hidden="true">←</span><span>Rhythm Dojo</span></a></div>
+  <h1 class="game-title">Counting Board</h1>
+  <p class="ui-howto">Every case of Mr. Graham's counting (<code>rhythm-dojo/examples.js</code>), drawn the way Rhythm Dojo draws it. The starting syllable is full size; the syllables a note is held through are small, raised and underlined; rests are in parentheses.</p>
+  <p class="cbd-sum" id="sum"></p>
+  <div class="cbd-grid" id="list"></div>
+</div>
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="examples.js"></script>
+<script>
+(function (A) {
+  'use strict';
+  const $ = id => document.getElementById(id), C = A.Counting;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  $('back').href = A.link('index.html');
+  let bad = 0;
+  $('list').innerHTML = window.RD_EXAMPLES.map((e, k) => {
+    const p = C.parse(e.rhythm, e.time), got = C.text(C.groups(p)), ok = got === e.expect && !p.errors.length;
+    if (!ok) bad++;
+    const E = A.RhythmStaff.engrave(p, {id: 'ex' + k, label: e.name});
+    return `<article class="ex${ok ? '' : ' bad'}" data-ok="${ok}"><h2>${esc(e.name)}</h2>
+      <p class="src">${esc(e.time)} · <code>${esc(e.rhythm)}</code></p>
+      <div class="stage rd-sheet">${E.svg}</div>
+      <p class="say">Counting: <b>${esc(got)}</b>${ok ? '' : ` · should be ${esc(e.expect)} ${esc(p.errors.join(' '))}`}</p></article>`;
+  }).join('');
+  $('sum').textContent = bad ? `${bad} example(s) don't match!` : `All ${window.RD_EXAMPLES.length} examples match the counting rule.`;
+  $('sum').classList.toggle('bad', !!bad);
+  const fit = () => A.RhythmStaff.refine($('list'));
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(fit);
+})(window.Arcade);
+</script>
+</body>
+</html>

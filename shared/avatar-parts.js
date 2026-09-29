@@ -997,6 +997,7 @@ window.AVATAR_PARTS = {};
     {id: 'deepspace', name: 'Deep Space Radar', kind: 'scene', scene: 'space', lift: 2, main: 'blue-ink', unlock: clear(['lost-signal', 8, 'Clear Lost Signal Level 8'])},
     {id: 'neonhighway', name: 'Neon Highway', kind: 'scene', scene: 'highway', lift: 1.8, main: 'purple-ink', unlock: clear(['music-highway', 16, 'Earn a star on The Entertainer in Music Highway'])},
     {id: 'cityskyline', name: 'City Skyline', kind: 'scene', scene: 'keys-city', lift: 1.8, main: 'purple-ink', unlock: {game: 'keys-to-the-city', achievement: 'mayor', text: "Clear The Mayor's Challenge in Keys to the City"}},
+    {id: 'drumhall', name: 'Drum Hall', kind: 'scene', scene: 'taiko', lift: 1.9, main: 'red-ink', unlock: clear(['rhythm-dojo', 11, "Earn a star on Master's Scroll in Rhythm Dojo"])},
     {id: 'dojonight', name: 'Dojo Night', kind: 'scene', scene: 'night-dojo', lift: 2, main: 'red-ink', unlock: {game: 'dojo-duel', wins: 5, text: 'Win 5 matches in Dojo Duel on this device'}},
     {id: 'pixelcastle', name: 'Pixel Castle', kind: 'scene', scene: 'pixel-night', lift: 1.7, main: 'purple-ink', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}},
     // ---- star milestones (every star on this device) ----

@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -139,6 +139,22 @@ window.Arcade = window.Arcade || {};
               '<g class="s-fnote"><ellipse cx="228" cy="530" rx="10" ry="7" transform="rotate(-20 228 530)"/><path d="M237 528V484"/></g>' +
               '<path class="s-brush" d="M120 582H176"/><path class="s-brushtip" d="M176 578q14 2 18 4q-4 2-18 4z"/>',
       slots: {marquee: [34, 22, 232, 84], screen: [62, 132, 176, 156], start: [80, 392, 140, 46]},
+    },
+    /* taiko: the Rhythm Dojo cabinet. Its top swells like the side of a taiko drum (a barrel with a row of studs), a
+       pair of drumsticks crossed on the lower side panels, and a little drum on the kick plate */
+    taiko: {
+      outline: 'M24 36Q150 -8 276 36V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H24Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 104, y: 430, w: 92, h: 90},
+      extras: '<path class="s-barrel" d="M24 36Q150 -8 276 36V46Q150 4 24 46Z"/>' +
+              [40, 70, 100, 130, 170, 200, 230, 260].map((x, i) => `<circle class="s-stud" cx="${x}" cy="${[30, 22, 16, 13, 13, 16, 22, 30][i] + 6}" r="3"/>`).join('') +
+              '<path class="s-bachi" d="M52 546L112 470M112 546L52 470"/><path class="s-bachi" d="M188 546L248 470M248 546L188 470"/>' +
+              '<ellipse class="s-tkbody" cx="150" cy="566" rx="46" ry="24"/><ellipse class="s-tkhead" cx="150" cy="552" rx="40" ry="9"/>' +
+              '<path class="s-tkband" d="M106 566Q150 584 194 566"/>',
+      slots: {marquee: [34, 40, 232, 72], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
     /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
        control panel and one button missing (Showtime Malfunction) */
@@ -498,6 +514,42 @@ window.Arcade = window.Arcade || {};
           [32, 39, 46, 53, 60].map(y => `<path class="vk-staff" d="M26 ${y}H134"/>`).join('') +
           [[56, 56.5], [84, 49.5], [112, 42.5]].map(([x, y], i) => `<g class="vk-n vk-n${i + 1}"><ellipse cx="${x}" cy="${y}" rx="4.4" ry="3.3" transform="rotate(-20 ${x} ${y})"/><path d="M${x + 3.9} ${y - 1}V${y - 20}"/></g>`).join('') +
           `<text class="vk-cap" x="80" y="100" text-anchor="middle">READ IT… PLAY IT BACK!</text></svg></div>`;
+      },
+    },
+    /* Rhythm Dojo: a rhythm on a one-line staff with its counting; a playhead sweeps it, each syllable lights as it
+       sounds, and a little taiko's rim pulses on the beat (smooth, 1.3 beats a second). A canvas screen (2D and 3D). */
+    taiko: {
+      html() { return `<div class="scr scr-taiko scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const beat = .75, loop = 4 * beat + 1.5, tt = t == null ? 1.7 : t % loop, b = tt / beat;
+        x.fillStyle = css('dd-night'); x.fillRect(0, 0, W, H);
+        // the paper card with the staff
+        const cx0 = W * .06, cy0 = H * .1, cw = W * .88, ch = H * .56;
+        x.fillStyle = css('screen'); x.fillRect(cx0, cy0, cw, ch);
+        const ly = cy0 + ch * .42, ink = css('ink'), lit = css('rd-lit');
+        x.strokeStyle = ink; x.lineWidth = Math.max(1, H * .012);
+        x.beginPath(); x.moveTo(cx0 + cw * .04, ly); x.lineTo(cx0 + cw * .96, ly); x.stroke();
+        // q | e e | q | q  (1, 2 &, 3, 4)
+        const notes = [[0, '1'], [1, '2'], [1.5, '&'], [2, '3'], [3, '4']];
+        const ON = [0, 1, 1.5, 2, 3, 4], XS = [.13, .33, .5, .67, .85, .95], r = H * .035;
+        const X = p => { let k = 0; while (k < 4 && p >= ON[k + 1]) k++; return cx0 + cw * (XS[k] + (XS[k + 1] - XS[k]) * (p - ON[k]) / (ON[k + 1] - ON[k])); };
+        notes.forEach(([p, syl], i) => {
+          const on = tt < 4 * beat && b >= p && (i === notes.length - 1 || b < notes[i + 1][0]);
+          x.fillStyle = on ? lit : ink; x.strokeStyle = on ? lit : ink;
+          x.beginPath(); x.ellipse(X(p), ly, r * 1.3, r, -.35, 0, 7); x.fill();
+          x.lineWidth = Math.max(1, H * .012); x.beginPath(); x.moveTo(X(p) + r * 1.15, ly - r * .2); x.lineTo(X(p) + r * 1.15, ly - H * .2); x.stroke();
+          x.font = `700 ${H * .11}px "GN Text", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+          x.fillText(syl, X(p), cy0 + ch * .92);
+        });
+        x.fillStyle = ink; x.fillRect(X(1) + r * 1.15 - 1, ly - H * .2, X(1.5) - X(1) + 2, H * .03);   // the eighths' beam
+        if (tt < 4 * beat) { x.fillStyle = lit; x.fillRect(X(Math.min(b, 3.9)) - 1.5, cy0 + ch * .08, 3, ch * .6); }   // the playhead
+        // the little taiko: its rim glows on each beat, fading smoothly
+        const pulse = tt < 4 * beat ? Math.exp(-(b % 1) * 3) : 0, dx = W * .5, dy = H * .83;
+        x.fillStyle = css('rd-body'); x.beginPath(); x.ellipse(dx, dy + H * .03, W * .14, H * .09, 0, 0, 7); x.fill();
+        x.fillStyle = css('rd-head'); x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.fill();
+        x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('pink'); x.lineWidth = Math.max(1.5, H * .02);
+        x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
       },
     },
     /* Arcade Quest: glitchy static, and an 8-bit microphone flickering through it (something is waking up) */

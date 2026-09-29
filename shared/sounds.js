@@ -165,6 +165,22 @@ window.Arcade = window.Arcade || {};
     // the sign hints: mic: true, because a student may tap a sign in instrument mode too (the manager mutes the detector while it speaks)
     'kttc-mayor-chopsticks': {file: 'kttc-mayor-chopsticks', voice: true, vol: .9, mic: true, optional: true, screen: 'keys-to-the-city', gen: [], when: 'Keys to the City (optional voice): "C is right next to the Chopsticks!" Plays when a student taps the Chopsticks sign, and as a hint after a wrong answer (touch mode). Silent until recorded (the Mayor\'s bubble shows the words).', len: '1–2.5 s'},
     'kttc-mayor-fork':  {file: 'kttc-mayor-fork', voice: true, vol: .9, mic: true, optional: true, screen: 'keys-to-the-city', gen: [], when: 'Keys to the City (optional voice): "F is right next to the Fork!" Plays when a student taps the Fork sign, and as a hint after a wrong answer (touch mode). Silent until recorded (the Mayor\'s bubble shows the words).', len: '1–2.5 s'},
+    'rhythm-dojo-menu': {file: 'rhythm-dojo-menu', vol: .45, loop: true, mic: false, screen: 'rhythm-dojo', when: 'Rhythm Dojo: menu music: the level select, the timing check and results. Fades out (0.5 s) when a level or the Dojo Marathon starts; never while a rhythm plays. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
+    'rd-woodblock': {file: 'rd-woodblock', vol: 1, mic: false, screen: 'rhythm-dojo', len: 'under 0.1 s',
+      when: 'Rhythm Dojo: HEAR IT: the rhythm played on a woodblock over the click (the microphone is not listening then), and each tap on the drum pad in TAP mode. A dry, woody knock: short, no ringing pitch. Scheduled on the audio clock (music-highway/backing.js kit.block). Until you upload it: a generated woodblock.',
+      gen: [[[1300, 1000], 0, .07, .5, 'noise', 3]]},
+    'rd-click': {file: 'rd-click', vol: 1, mic: true, screen: 'rhythm-dojo', len: 'under 0.06 s',
+      when: 'Rhythm Dojo: THE CLICK: the one-measure count-in before every performance, the beat under HEAR IT, the beat all the way through in TAP mode (and in CLAP mode with headphones), and the timing check. A stick click, brighter and shorter than the woodblock; never a pitched tone. The first click of each measure plays a little higher and louder. Until you upload it: the same generated click as Music Highway.',
+      gen: [[[2400, 2100], 0, .045, .5, 'noise', 4], [3400, 0, .02, .35, 'noise', 2]]},
+    'rd-count-in': {file: 'rd-count-in', vol: .7, mic: false, screen: 'rhythm-dojo', len: 'under 0.8 s',
+      when: 'Rhythm Dojo: "Ready!": plays when the student taps PERFORM (CLAP IT! / TAP IT! / PLAY IT!), just before the count-in clicks start (the microphone waits until it has ended). A short taiko-style knock or a soft gong swell, unpitched.',
+      gen: [[[180, 90], 0, .25, .5, 'noise', 1.5], [[2600, 1800], .02, .08, .25, 'noise', 2]]},
+    'rd-perfect': {file: 'rd-perfect', vol: .7, mic: false, screen: 'rhythm-dojo', len: '0.4–1 s',
+      when: 'Rhythm Dojo: after a performance with 95 % or better: every note right on time (the feedback screen; the microphone has stopped). Falls back to star-earned.', fallback: 'star-earned'},
+    'rd-miss': {file: 'rd-miss', vol: .6, mic: false, screen: 'rhythm-dojo', len: 'under 0.6 s',
+      when: 'Rhythm Dojo: after a performance under 60 %: a gentle "try again" (the feedback screen; the microphone has stopped). Kind, never harsh. Falls back to level-failed.', fallback: 'level-failed'},
+    'rd-level-clear': {file: 'rd-level-clear', vol: .8, mic: false, screen: 'rhythm-dojo', len: '1–2.5 s',
+      when: 'Rhythm Dojo: a level cleared (its results screen): the big taiko finish. Falls back to level-complete.', fallback: 'level-complete'},
     'music-highway-menu': {file: 'music-highway-menu', vol: .45, loop: true, mic: false, screen: 'music-highway', when: 'Music Highway: menu music: the song select, the timing check and results screens. Fades out (0.5 s) before a song\'s count-in; never during a song. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'mh-click': {file: 'mh-click', vol: 1, mic: true, screen: 'music-highway', len: 'under 0.06 s',
       when: 'Music Highway: THE CLICK of the one-measure count-in before every song and of the timing check (calibration). A woodblock / stick-click: a sharp attack, bright (most of its sound between 1.5 and 4 kHz so small speakers carry it), under 60 ms, and NOT a pitched tone (the microphone must never take it for a note). The first click of each measure plays it a little higher and louder. Scheduled on the audio clock by music-highway/backing.js (never through the normal effects player); its level is clickVol in music-highway/settings.js. Until you upload it: a generated woodblock click.',
@@ -315,7 +331,7 @@ window.Arcade = window.Arcade || {};
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['arcade-quest', 'Arcade Quest']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['rhythm-dojo', 'Rhythm Dojo'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {
     LIST, SCREENS,

@@ -18,6 +18,7 @@ const PAGES = [
   {name: 'Sound Board', url: 'sound-board/index.html'},
   {name: 'Art Board', url: 'art-board/index.html'},
   {name: 'Song Board', url: 'music-highway/songs.html'},
+  {name: 'Counting Board', url: 'rhythm-dojo/counting.html'},
   {name: 'avatar card', url: 'avatar-card/index.html'},
   {name: 'UI gallery', url: 'docs/gallery.html'},
   {name: 'old Select Player address', url: 'select-player/index.html?game=note-storm'},

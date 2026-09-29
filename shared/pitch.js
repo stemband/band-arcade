@@ -76,6 +76,8 @@ window.Arcade = window.Arcade || {};
   P.heldPc = () => H.pc;
   /** THE SETTINGS PANEL's mic meter (shared/ui-kit.js): how loud the microphone is right now, read even while listening
       is paused (a game's pause menu), without analysing anything (nothing can count) */
+  /** the microphone's audio node (null before start): shared/onsets.js listens to the same microphone for claps */
+  P.source = () => mic ? mic.src : null;
   P.meterLevel = () => {
     if (!mic) return P.level || 0;
     mic.an.getFloatTimeDomainData(mic.buf);
