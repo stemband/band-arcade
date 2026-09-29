@@ -110,7 +110,7 @@
     A.ModePicker.useRange(picker.state);
     const seq = A.ModePicker.sequence(picker.state, Object.assign({}, L, {count: L.laps}), lv);
     const lens = lapLens(L);
-    const rivals = L.rivals.map((r, i) => Object.assign({lane: [-1, 1, -1][i] * (i === 2 ? .45 : 1)}, r));
+    const rivals = L.rivals.map((r, i) => Object.assign({home: i % 2 ? 1 : -1}, r));      // home lane: left, right, left… (LANES)
     const ghost = (gd.ghosts || {})[recKey(lv)] || null;
     G = {lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
@@ -534,18 +534,16 @@
     const me = progress(), cars = [];
     const toDist = pr => { const i = Math.min(G.lens.length - 1, Math.floor(pr)); return G.lens.slice(0, i).reduce((a, b) => a + b, 0) + (pr - i) * G.lens[i]; };
     const myD = toDist(me);
-    if (G.phase !== 'count') G.rivals.forEach(r => cars.push({d: toDist(paceProgress(r.pace, G.clock)) - myD, lane: r.lane, color: C[r.color] || C.cyan, name: r.name}));
+    if (G.phase !== 'count') G.rivals.forEach(r => cars.push({d: toDist(paceProgress(r.pace, G.clock)) - myD, who: r, color: C[r.color] || C.cyan, name: r.name}));
     const gp = G.phase !== 'count' ? ghostProgress(G.clock) : null;
-    if (gp !== null) cars.push({d: toDist(gp) - myD, lane: .35, color: C.white, ghost: true, name: 'Best run'});
-    if (G.phase === 'count') G.rivals.forEach((r, i) => cars.push({d: .45 + i * .25, lane: r.lane, color: C[r.color] || C.cyan}));
-    cars.filter(c => c.d > .05 && c.d < 7).sort((a, b) => b.d - a.d).forEach(c => {
-      const z = ZN + c.d * 4.4; const p = proj(z);
-      drawCar(p.x + c.lane * p.w * .5, p.y, p.w * .42, c.color, {ghost: c.ghost});
-    });
-    // your car, from behind
+    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {home: 1}), color: C.white, ghost: true, name: 'Best run'});
+    if (G.phase === 'count') G.rivals.forEach((r, i) => cars.push({d: .45 + i * .25, who: r, color: C[r.color] || C.cyan}));
+    // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
     const sway = reduced.matches ? 0 : -curve * W * .02;
     const col = carColor();
-    drawCar(W / 2 + sway, bot - H * .04, Math.min(W * .24, H * .42), col.body, {tail: true, nitro: G.nitro && G.phase === 'race', stripes: col.stripes, me: true, braking: S.state === 'wrong'});
+    const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
+    placeCars(cars, proj, mine, now).forEach(c => drawCar(c.x, c.y, c.w, c.color, {ghost: c.ghost}));
+    drawCar(mine.x, mine.y, mine.w, col.body, {tail: true, nitro: G.nitro && G.phase === 'race', stripes: col.stripes, me: true, braking: S.state === 'wrong'});
     // nitro speed lines (not with reduced motion)
     if (G.nitro && !reduced.matches) {                       // short streaks rushing past the sides of the road
       cx.strokeStyle = C.nitro; cx.lineWidth = 2;
@@ -556,6 +554,43 @@
       }
       cx.globalAlpha = 1;
     }
+  }
+  /* ---------- NO TWO CARS EVER OVERLAP ON SCREEN ----------
+     Three lanes (the road's dashes at ±.34): the other cars keep to a side lane (rivals left, right, left…; the ghost
+     right), and move over (a smooth lane change) when another car is there at the same spot on the screen; the middle
+     lane is yours, and they use it only well up the road from you. Nearest car first. If every lane is taken, the car
+     is drawn a little farther up the road until it's clear: a drawing gap only (progress, positions and the standings
+     are never touched). */
+  const LANES = [-.67, .67, 0];                            // offsets in road half-widths: left, right, the middle
+  const LANE_SPEED = 4;                                    // lane changes: half-widths a second (instant with reduced motion)
+  const carBox = (x, y, w) => ({l: x - w * .5, r: x + w * .5, t: y - w * .42 * 1.12, b: y + 2});
+  const hits = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+  let laneT = 0;
+  function placeCars(cars, proj, mine, now) {
+    const dt = laneT ? Math.min(.1, (now - laneT) / 1000) : 0; laneT = now;
+    const at = (c, off, d) => { const p = proj(ZN + d * 4.4), w = p.w * .42, x = p.x + off * p.w; return {x, y: p.y, w, box: carBox(x, p.y, w)}; };
+    const taken = [carBox(mine.x, mine.y, mine.w)];
+    const clear = box => !taken.some(t => hits(t, box));
+    const out = [];
+    cars.filter(c => c.d > .05 && c.d < 7).sort((a, b) => a.d - b.d).forEach(c => {
+      const o = c.who;
+      if (o.lane == null) { o.lane = o.home; o.off = LANES[o.lane < 0 ? 0 : 1]; }
+      const off = k => LANES[k === -1 ? 0 : k === 1 ? 1 : 2];
+      // stay in this lane if it's clear, else the other side, else the middle (only where it doesn't touch your car)
+      const order = o.lane === 0 ? [o.home, -o.home, 0] : [o.lane, -o.lane, 0];
+      const free = order.find(k => clear(at(c, off(k), c.d).box));
+      if (free !== undefined) o.lane = free;
+      const target = off(o.lane);
+      o.off = reduced.matches || !dt ? target : o.off + Math.max(-LANE_SPEED * dt, Math.min(LANE_SPEED * dt, target - o.off));
+      let d = c.d, pos = at(c, o.off, d);
+      while (!clear(pos.box) && d < 7) { d += .03; pos = at(c, o.off, d); }   // still in the way: a small gap up the road
+      if (!clear(pos.box)) return;                                          // (never: nothing drawn over another car)
+      taken.push(pos.box);
+      out.push(Object.assign({}, c, pos, {drawnD: d}));
+    });
+    G.carsDrawn = out.map(c => ({name: c.name || null, d: +c.d.toFixed(3), drawnD: +c.drawnD.toFixed(3), off: +c.who.off.toFixed(2), box: c.box}));
+    G.carsDrawn.push({name: 'you', box: taken[0]});
+    return out.sort((a, b) => b.drawnD - a.drawnD);                        // far first
   }
   /** one band of the road between two projected rows: `k` = its width (share of the road), `off` = its center offset */
   function quad(a, b, k, col, alpha, off = 0) {
