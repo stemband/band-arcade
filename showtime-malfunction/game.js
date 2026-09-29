@@ -2,7 +2,7 @@
    each one's voice box shows a note and a count (E♭ × 4). Play that note that many SEPARATE times (tongued, or
    struck: Arcade.Pitch.onAttack) to reboot it before it reaches the front and knocks out a spotlight.
    Notes: NOTES × ORDER (shared/mode-picker.js + sequences.js). The Snare Drum (an unpitched player) gets a count-only
-   mode: no staff, any clean hit counts, and its animatronics are Snapjaw Sal and his clone units.
+   mode: no staff, any clean hit counts; the same band, special machines and Maestro Moose as everyone else.
    Progress: per instrument MEMBER (games.js byMember): setLevel(<progress key>, member id, showtime, {stars, best});
    the snare saves under 'showtime-malfunction:count'. Levels and rules: levels.js. Characters: characters.js.
    DIFFICULTY: Normal | NIGHTMARE (levels.js column `x`: bigger counts, faster walk). NIGHTMARE opens once this
@@ -56,6 +56,7 @@
     document.body.classList.toggle('spooky-mode', spookyOn());
     document.body.classList.toggle('jump-mode', jumpOn());
     document.querySelectorAll('[data-spooky="jump"]').forEach(b => { b.hidden = !jumpAllowed(); });
+    document.querySelectorAll('[data-jump-note]').forEach(p => { p.hidden = !jumpAllowed(); });
     document.querySelectorAll('[data-spooky]').forEach(b => b.setAttribute('aria-pressed', b.dataset.spooky === (gd.spooky || 'mild')));
   }
   /** Jump Scare: asked every time it's turned on (shared/ui-kit.js confirm; the safe answer has the focus) */
@@ -74,7 +75,8 @@
   });
   A.UI.settings.register(box => {
     box.innerHTML = `<span class="ui-label" id="spookySetLbl">Spooky level</span>
-      <div class="ui-seg st-seg" role="group" aria-labelledby="spookySetLbl"><button type="button" data-spooky="mild">Mild</button><button type="button" data-spooky="spooky">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" hidden>Jump Scare</button></div>`;
+      <div class="ui-seg st-seg" role="group" aria-labelledby="spookySetLbl"><button type="button" data-spooky="mild">Mild</button><button type="button" data-spooky="spooky">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" hidden>Jump Scare</button></div>
+      <p class="st-jump-note" data-jump-note hidden>Jump Scare resets to Spooky each new day.</p>`;
     drawSpooky();
   });
   drawSpooky();
@@ -170,7 +172,7 @@
         : picker.state.notes === 'first5' && picker.state.order === 'random' ? L.blurb : A.ModePicker.levelText(picker.state, Object.assign({}, L, {count: L.bots}), lv, [L.blurb]);
       return `<button class="lvl${L.boss ? ' boss' : ''}" data-l="${lv}" ${open ? '' : 'disabled'}>
         <span class="n">Showtime ${lv}</span>
-        <span class="mini bot glitch">${SHOW.botSVG(L.boss ? 'moose' : snare ? 'gator' : ['walrus', 'owl', 'gator', 'raccoon'][i % 4])}</span>
+        <span class="mini bot glitch">${SHOW.botSVG(L.boss ? 'moose' : ['walrus', 'owl', 'gator', 'raccoon'][i % 4])}</span>
         <span class="t">${L.name}</span>
         <span class="d">${blurb}</span>
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${open ? (p.best ? 'Best ' + p.best : times) : ''}</span></span>
@@ -225,7 +227,7 @@
     W = arena.clientWidth; H = arena.clientHeight;
     panelSide = $('tpanel').getBoundingClientRect().left >= arena.getBoundingClientRect().right - 1;   // beside the arena, or below it
   }
-  addEventListener('resize', () => { measure(); if (G) G.bots.forEach(place); });
+  addEventListener('resize', () => { measure(); if (G) { G.bots.forEach(place); lineup($('band')); } const rb = document.getElementById('resBand'); if (rb && finished) lineup(rb, {maxH: resBandMax()}); });
 
   function startShow(lv) {
     A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
@@ -238,10 +240,9 @@
       seq = A.ModePicker.sequence(picker.state, Object.assign({}, L, {count: total}), lv);
       items = seq.items;
     }
-    // who comes out: pitched = the band in a shuffled order; snare = Snapjaw Sal, then his clone units
+    // who comes out: the band in a shuffled order (the snare too: only its counts are hits instead of notes)
     const kinds = ['walrus', 'owl', 'gator', 'raccoon'].sort(() => Math.random() - .5);
-    const queue = [...Array(L.bots)].map((_, i) => ({kind: snare ? (i === 0 ? 'gator' : 'clone') : kinds[i % 4], unit: snare && i ? String(i + 1).padStart(2, '0') : null,
-      count: randInt(snare ? L.snare : L.count), item: items[i] || null}));
+    const queue = [...Array(L.bots)].map((_, i) => ({kind: kinds[i % 4], count: randInt(snare ? L.snare : L.count), item: items[i] || null}));
     drawSpooky();                                   // a new day since the page opened: Jump Scare is back to Spooky
     G = {lv, L, extra, key: progressKey(), wasOpen: extraEarned(), queue, bots: [], sig: seq && seq.sig, fit: seq && seq.fit, name: seq ? seq.name : null,
       total: L.bots + (boss ? 1 : 0), rebooted: 0, lights: RULES.spotlights, score: 0, spawnAt: 0, over: false, band: [], nextId: 0,
@@ -249,7 +250,7 @@
       // the game clock (s: stops with the band), the pool the specials' extra notes come from, the special on the floor,
       // the intro card's pause, recent attacks (the Lurker's roll), the jump scares planned (game-clock seconds)
       t: 0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
-      scare: null, scareAt: planScares(), lastScare: null, scares: [], held: false, timers: []};
+      scare: null, scarePlan: planScares(L), entered: 0, lastScare: null, scares: [], held: false, timers: []};
     G.ext = extentOf(G.fit);
     A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
@@ -289,7 +290,7 @@
       phase: 1, phases: isBoss ? L.boss.phases : 1}, spec, {walk, total: spec.count});
     const el = document.createElement('div');
     el.className = 'bot glitch' + (b.boss ? ' boss' : '') + (b.special ? ' special sp-' + b.special : '') + (b.mini ? ' mini' : '') + (b.dark ? ' dark' : '');
-    el.innerHTML = `<div class="ring" aria-hidden="true"></div><div class="sign${b.dark ? ' dark' : ''}"></div><div class="body">${SHOW.botSVG(b.kind, {unit: b.unit, plates: b.plates, label: SHOW.BAND[b.kind].name + (b.unit ? ' ' + b.unit : '')})}</div>`;
+    el.innerHTML = `<div class="ring" aria-hidden="true"></div><div class="sign${b.dark ? ' dark' : ''}"></div><div class="body">${SHOW.botSVG(b.kind, {plates: b.plates, label: SHOW.BAND[b.kind].name})}</div>`;
     b.el = el; b.sign = el.querySelector('.sign');
     if (b.special === 'blackout-bot') el.style.setProperty('--fade', MACH['blackout-bot'].fadeMs + 'ms');
     $('bots').appendChild(el);
@@ -316,7 +317,7 @@
   function specialize(spec) {
     const id = chooseSpecial();
     if (!id) return spec;
-    const M = MACH[id], s = Object.assign({}, spec, {kind: id, unit: null, special: id, speed: M.speed || 1});
+    const M = MACH[id], s = Object.assign({}, spec, {kind: id, special: id, speed: M.speed || 1});
     if (id === 'turbo-tin') s.count = randInt(snare ? M.snare : M.count);
     if (id === 'tuba-tank') { s.count = Math.round(spec.count * M.countMul); s.plates = Math.min(s.count, M.plates); }
     if (id === 'long-tone-lurker') { s.count = 1; s.need = (snare ? M.roll : M.hold)[G.lv - 1]; s.holdP = 0; }
@@ -415,23 +416,35 @@
     setPrompt('Split Sprocket split in two! One play each.', 'bad');
   }
 
-  /* ---------- JUMP SCARES (Jump Scare mode): planned on the game clock; each one pauses everything ---------- */
-  function planScares() {
+  /* ---------- JUMP SCARES (Jump Scare mode): every showtime gets 1 (2 on longer shows), timed by PROGRESS: a scare is
+     armed when a set share of the animatronics has walked on (levels.js SHOWTIME_SCARES.at) and comes `delay` seconds
+     later. It waits (never skips) while a guard holds: the first seconds of the show, too soon after the last scare, or
+     the last seconds of one of Maestro Moose's phases. Never the last animatronic to walk on, so never in the last
+     seconds of a show. ?demo&scare=<kind>: that kind, 3 s in (and again later) ---------- */
+  function planScares(L) {
     if (!jumpOn()) return [];
-    if (FORCE_SCARE) return [3, 3 + SCARES.apart];
-    const n = randInt(SCARES.perShow), [a, b] = SCARES.window;
-    const t1 = rand(Math.max(a, SCARES.notBefore), b);
-    return n > 1 ? [t1, t1 + SCARES.apart + rand(0, 15)] : [t1];
+    if (FORCE_SCARE) return [{at: 3}, {at: 3 + SCARES.apart}];
+    const long = L.bots >= SCARES.longFrom || !!L.boss;
+    return (long ? SCARES.at.long : SCARES.at.short).map(share => ({after: Math.min(L.bots - 1, Math.max(1, Math.round(share * L.bots))), at: null}));
+  }
+  /** the queue's animatronics walking on arm the planned scares */
+  function armScares() {
+    G.scarePlan.forEach(p => { if (p.at == null && G.entered >= p.after) p.at = G.t + SCARES.delay; });
   }
   function scareTick() {
-    if (!G.scareAt.length || G.t < G.scareAt[0] || !jumpOn()) return;   // switched off mid-show (Settings): no more scares
+    const next = G.scarePlan[0];
+    if (!next || next.at == null || G.t < next.at || !jumpOn()) return;   // not armed yet / not time yet / switched off mid-show
     const walking = G.bots.filter(b => b.state === 'walk');
     const boss = walking.find(b => b.boss);
-    // never in the last seconds of a boss phase, never closer than `apart` to the last one, and only with someone on the floor
-    const guard = boss && (boss.left <= 2 || (1 - boss.z) * boss.walk < SCARES.bossGuard);
-    if (!walking.length || guard || (G.lastScare != null && G.t - G.lastScare < SCARES.apart)) { G.scareAt[0] = G.t + 3; return; }
-    G.scareAt.shift(); G.lastScare = G.t;
-    scare(FORCE_SCARE || null, pick(walking.filter(b => !b.boss).concat(walking).slice(0, 3)));
+    const guard = G.t < SCARES.notBefore || (G.lastScare != null && G.t - G.lastScare < SCARES.apart) ||
+      (boss && (boss.left <= 2 || (1 - boss.z) * boss.walk < SCARES.bossGuard));
+    // the very end of the show (nothing left to come and the last one about to be rebooted): too late
+    const ending = !G.queue.length && !G.bossPending && !walking.some(b => b.boss || b.z < .75);
+    if (guard) { next.at = G.t + .5; return; }
+    G.scarePlan.shift();
+    if (ending && !FORCE_SCARE) { G.scareSkipped = (G.scareSkipped || 0) + 1; return; }
+    G.lastScare = G.t;
+    scare(FORCE_SCARE || null, walking.length ? pick(walking.filter(b => !b.boss).concat(walking).slice(0, 3)) : null);
   }
   /** one scare (~1.3 s), then a short beat: the band, the clocks and the microphone all wait (a scare never costs a spotlight) */
   function scare(type, src) {
@@ -545,7 +558,7 @@
     }
     if (look !== tpLook) {                                  // a new note on the same target (Duet turns, the Jester, the dark lifting): quietly
       tpLook = look;
-      $('tpWho').textContent = SHOW.BAND[t.kind].name + (t.unit ? ' ' + t.unit : '') + (t.boss ? ` · phase ${t.phase}/${t.phases}` : '') + (t.duet ? ` · ${doll(t)} doll` : '');
+      $('tpWho').textContent = SHOW.BAND[t.kind].name + (t.boss ? ` · phase ${t.phase}/${t.phases}` : '') + (t.duet ? ` · ${doll(t)} doll` : '');
       $('tpStaff').innerHTML = t.dark ? '<span class="tp-dark">Too dark to read…<br>wait for it!</span>'
         : !snare && t.item ? noteStaff(t.item, {fitted: true}) : '<span class="drum-ico huge" aria-hidden="true"></span>';
       el.classList.toggle('tp-special', !!t.special);
@@ -598,10 +611,11 @@
       const walking = G.bots.filter(b => b.state === 'walk' && !b.boss).length;
       if (G.queue.length && walking < G.L.atOnce && now >= G.spawnAt) {
         spawn(specialize(G.queue.shift()));
+        G.entered++; armScares();
         G.spawnAt = now + G.L.walk * 1000 / (G.L.atOnce + .6);
       }
       G.bots.forEach(b => {
-        if (b.state !== 'walk') return;
+        if (!G || b.state !== 'walk') return;                 // (the last one reaching the front can end the show mid-loop)
         b.z = Math.min(1, b.z + dt / b.walk);
         if (reduced.matches) b.zShown = b.z;
         else if (now >= b.nextLurch) {                         // stop-motion: a jerky step, and a twitch
@@ -612,6 +626,7 @@
         specialTick(b, dt);
         if (b.z >= 1) reachFront(b);
       });
+      if (!G) return;
       lurkerTick(dt, now);
       scareTick();
     }
@@ -692,7 +707,7 @@
     }
     sfx('reboot');
     if (b.special === 'split-sprocket') setTimeout(() => { if (G && !G.over) split(b); }, 0);
-    setPrompt(`${SHOW.BAND[b.kind].name}${b.unit ? ' ' + b.unit : ''} rebooted!`, 'good');
+    setPrompt(`${SHOW.BAND[b.kind].name} rebooted!`, 'good');
     b.sign.innerHTML = '<div class="vb-top">Rebooted</div><div class="vb-main"><b class="vb-count">♪</b></div>';
     // it straightens up and shuffles back to the stage, where it joins the band
     later(() => { b.el.classList.add('walk-home'); b.el.style.transform = `translate3d(${W / 2 - 20}px,${H * .1}px,0) scale(.12)`; }, reduced.matches ? 50 : 500);
@@ -703,9 +718,47 @@
     G.band.push(b);
     const s = document.createElement('span');
     s.className = 'bot fixed band-bot' + (b.boss ? ' boss' : '') + (b.mini ? ' mini' : '');
-    s.innerHTML = SHOW.botSVG(b.kind, {unit: b.unit});
+    s.innerHTML = SHOW.botSVG(b.kind);
     $('band').appendChild(s);
+    lineup($('band'));
     hud();
+  }
+  /* THE LINEUP (the stage band, and the rebooted band on the results screen): everyone always fits in the box. It picks
+     the number of rows (1–4) that lets the characters be tallest: neighbours overlap a little (LINEUP.overlap of a
+     character's width), each row further back overlaps the one in front (LINEUP.rowStep of a character's height)
+     and is offset half a step; the front row is drawn in front. `maxH`: the box grows to fit, up to that height (the
+     results); without it the box's own height is the limit (the stage). Children: .bot elements (.boss 1.18× tall,
+     .mini 0.72×), placed absolutely. */
+  const LINEUP = {aspect: .7, overlap: .38, rowStep: .55, maxRows: 4};
+  function lineup(box, {maxH} = {}) {
+    const kids = [...box.children], n = kids.length;
+    if (!n) { if (maxH) box.style.height = '0px'; return; }
+    const Wb = box.clientWidth, Hb = maxH || box.clientHeight;
+    if (!Wb || !Hb) return;
+    let best = null;
+    for (let r = 1; r <= Math.min(LINEUP.maxRows, n); r++) {
+      const c = Math.ceil(n / r), step = LINEUP.aspect * (1 - LINEUP.overlap);
+      const hW = Wb / (step * (c - 1) + LINEUP.aspect + (r > 1 ? step / 2 : 0));
+      const hH = Hb / (1.18 + (r - 1) * LINEUP.rowStep);                  // room for a boss's taller head
+      const h = Math.min(hW, hH);
+      if (!best || h > best.h + .5) best = {r, c, h};
+    }
+    const {r, c, h} = best, w = h * LINEUP.aspect, step = w * (1 - LINEUP.overlap);
+    // Maestro Moose (the boss) stands in the middle of the front row
+    const order = kids.filter(el => !el.classList.contains('boss'));
+    kids.filter(el => el.classList.contains('boss')).forEach(el => order.splice(Math.floor(Math.min(c, order.length + 1) / 2), 0, el));
+    const total = h * (1.18 + (r - 1) * LINEUP.rowStep);
+    if (maxH) box.style.height = Math.ceil(total) + 'px';
+    const Hbox = maxH ? total : box.clientHeight;
+    order.forEach((el, i) => {
+      const row = Math.floor(i / c), inRow = row < r - 1 ? c : n - c * (r - 1), k = i - row * c;
+      const sc = el.classList.contains('boss') ? 1.18 : el.classList.contains('mini') ? .72 : 1;
+      const rowW = step * (inRow - 1) + w, x0 = (Wb - rowW) / 2 + (row % 2 ? step / 2 : 0);
+      const bottom = Hbox - row * h * LINEUP.rowStep;
+      Object.assign(el.style, {position: 'absolute', width: (w * sc).toFixed(1) + 'px', height: (h * sc).toFixed(1) + 'px',
+        left: (x0 + k * step + (w - w * sc) / 2).toFixed(1) + 'px', top: (bottom - h * sc).toFixed(1) + 'px', zIndex: String(100 - row * 10 + k % 10)});
+    });
+    box.dataset.rows = r;
   }
   function checkEnd() {
     if (!G || G.over) return;
@@ -774,7 +827,15 @@
     const extra = (unlockedNow ? '<p class="x-unlock" id="resUnlock"><b>NIGHTMARE unlocked!</b> The band is faster, and every voice box wants more plays. Pick it on the showtime screen.</p>' : '') +
       (g.beaten ? `<p class="res-special" id="resSpecial">Special machines rebooted: ${g.beaten} (+${g.specialPts} bonus points). See them in the Malfunction Files!</p>` : '');
     A.UI.results.show({gameId: GAME_ID, theme: 'st-results', stars,
-      hero: `<div class="res-band" id="resBand" aria-hidden="true">${g.band.map(b => `<span class="bot fixed${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind, {unit: b.unit})}</span>`).join('')}</div>`,
+      // the rebooted band: BELOW the stars (never over them), every one of them fitting (lineup: smaller, more rows)
+      onShow: panel => {
+        const band = document.createElement('div');
+        band.className = 'res-band'; band.id = 'resBand'; band.setAttribute('aria-hidden', 'true');
+        band.innerHTML = g.band.map(b => `<span class="bot fixed${b.boss ? ' boss' : ''}${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind)}</span>`).join('');
+        const stars = panel.querySelector('.ui-stars');
+        if (stars) stars.after(band); else panel.prepend(band);
+        lineup(band, {maxH: resBandMax()});
+      },
       title: !survived ? "Showtime's over" : stars === 3 ? 'Perfect show!' : 'Show saved!',
       msg: !survived ? `The band got through all ${RULES.spotlights} spotlights. Start each note fresh and fast, and reboot the closest one first. You've got this!`
         : stars === 3 ? `Every animatronic rebooted, every spotlight still shining.${g.L.boss ? ' Maestro Moose is back on the podium!' : ''}`
@@ -791,8 +852,12 @@
     finished = g;
   }
   let finished = null;
+  /** the results' band: at most this tall (the stars, the words and the buttons still fit on a short screen) */
+  const resBandMax = () => Math.max(70, Math.min(150, innerHeight * .2));
 
   A.Showtime.debug = () => G;                              // tests
+  A.Showtime.lineup = lineup;                              // tests: lay out a stage/results band
+  A.Showtime.finish = () => finish(true);                  // tests: end the show now (survived)
   A.Showtime.scare = type => G && !G.scare && scare(type, G.bots.find(b => b.state === 'walk'));   // tests: one scare now
   showHub();
 })(window.Arcade);
