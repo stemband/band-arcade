@@ -497,17 +497,17 @@ window.Arcade = window.Arcade || {};
     }
   };
 
-  /* RHYTHM DOJO: the drum hall at night: a wooden floor, dim paper screens along the back wall, two big taiko drums on
-     stands at the edges (their heads glow and fade in a slow breath, 2.4 s: never a beat-by-beat flash), two lanterns
-     swaying, and dust drifting in the lantern light. The middle stays dark for the menu. */
+  /* RHYTHM DOJO (the bamboo dojo: jade + gold): the drum hall at night: a wooden floor, dim paper screens along the
+     back wall, two big wooden taiko drums on stands at the edges (their gold rims and a jade glow breathe slowly,
+     2.4 s: never a beat-by-beat flash), two lanterns swaying, and dust drifting in the lantern light. The middle stays dark for the menu. */
   S.taiko = (x, W, H, t) => {
     const m = Math.min(W, H);
-    vgrad(x, W, H, [[0, col('dd-night')], [.72, mix('dd-night', 'floor-3', .35)], [.72, col('dd-wood')], [1, col('deep')]]);
+    vgrad(x, W, H, [[0, col('rd-night')], [.72, mix('rd-night', 'floor-3', .35)], [.72, col('dd-wood')], [1, col('deep')]]);
     // the paper screens on the back wall
     const sy = H * .16, sh = H * .44, n = 8;
     for (let i = 0; i < n; i++) {
       const sx = W * (.04 + i * .92 / n), sw = W * .92 / n - W * .01;
-      x.fillStyle = mix('dd-night', 'dd-paper', .08); x.fillRect(sx, sy, sw, sh);
+      x.fillStyle = mix('rd-night', 'dd-paper', .08); x.fillRect(sx, sy, sw, sh);
       x.strokeStyle = col('dd-wood-line', .8); x.lineWidth = Math.max(1, m / 240);
       x.strokeRect(sx, sy, sw, sh);
       x.beginPath(); for (let k = 1; k < 4; k++) { x.moveTo(sx, sy + sh * k / 4); x.lineTo(sx + sw, sy + sh * k / 4); } x.moveTo(sx + sw / 2, sy); x.lineTo(sx + sw / 2, sy + sh); x.stroke();
@@ -531,9 +531,9 @@ window.Arcade = window.Arcade || {};
       x.fillStyle = col('rd-body'); x.beginPath(); x.ellipse(dx, cy, r * 1.05, r, 0, 0, TAU); x.fill();
       x.strokeStyle = col('rd-iron'); x.lineWidth = m * .01;
       x.beginPath(); x.ellipse(dx, cy, r * 1.05, r, 0, 0, TAU); x.stroke();
-      glow(x, dx, cy, r * 1.6, col('pink', .08 + .14 * b), col('pink', 0));
+      glow(x, dx, cy, r * 1.6, col('rd-jade', .07 + .12 * b), col('rd-jade', 0));
       x.fillStyle = col('rd-head', .9); x.beginPath(); x.ellipse(dx, cy, r * .78, r * .74, 0, 0, TAU); x.fill();
-      x.strokeStyle = col('pink', .35 + .35 * b); x.lineWidth = m * .012; x.beginPath(); x.ellipse(dx, cy, r * .78, r * .74, 0, 0, TAU); x.stroke();
+      x.strokeStyle = col('yellow', .35 + .35 * b); x.lineWidth = m * .012; x.beginPath(); x.ellipse(dx, cy, r * .78, r * .74, 0, 0, TAU); x.stroke();
       x.fillStyle = col('rd-stud', .8);
       for (let j = 0; j < 14; j++) { const a = j / 14 * TAU; x.beginPath(); x.arc(dx + Math.cos(a) * r * .9, cy + Math.sin(a) * r * .86, m * .006, 0, TAU); x.fill(); }
     });

@@ -516,14 +516,20 @@ window.Arcade = window.Arcade || {};
           `<text class="vk-cap" x="80" y="100" text-anchor="middle">READ IT… PLAY IT BACK!</text></svg></div>`;
       },
     },
-    /* Rhythm Dojo: a rhythm on a one-line staff with its counting; a playhead sweeps it, each syllable lights as it
-       sounds, and a little taiko's rim pulses on the beat (smooth, 1.3 beats a second). A canvas screen (2D and 3D). */
+    /* Rhythm Dojo (the bamboo dojo: jade + gold): a rhythm on a one-line staff with its counting; a playhead sweeps it,
+       each syllable lights as it sounds (deep jade), and a little wooden taiko's gold rim pulses on the beat (smooth,
+       1.3 beats a second), between two jade bamboo stalks. A canvas screen (2D and 3D). */
     taiko: {
       html() { return `<div class="scr scr-taiko scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
       draw(x, W, H, t) {
         const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
         const beat = .75, loop = 4 * beat + 1.5, tt = t == null ? 1.7 : t % loop, b = tt / beat;
-        x.fillStyle = css('dd-night'); x.fillRect(0, 0, W, H);
+        x.fillStyle = css('rd-night'); x.fillRect(0, 0, W, H);
+        // two bamboo stalks in jade neon at the sides (the bamboo dojo)
+        x.globalAlpha = .45; x.strokeStyle = css('rd-jade'); x.lineWidth = Math.max(1.5, W * .018);
+        [W * .025, W * .975].forEach(bx => { x.beginPath(); x.moveTo(bx, 0); x.lineTo(bx, H); x.stroke();
+          for (let j = 1; j < 4; j++) { x.beginPath(); x.moveTo(bx - W * .02, H * j / 4); x.lineTo(bx + W * .02, H * j / 4); x.stroke(); } });
+        x.globalAlpha = 1;
         // the paper card with the staff
         const cx0 = W * .06, cy0 = H * .1, cw = W * .88, ch = H * .56;
         x.fillStyle = css('screen'); x.fillRect(cx0, cy0, cw, ch);
@@ -548,7 +554,7 @@ window.Arcade = window.Arcade || {};
         const pulse = tt < 4 * beat ? Math.exp(-(b % 1) * 3) : 0, dx = W * .5, dy = H * .83;
         x.fillStyle = css('rd-body'); x.beginPath(); x.ellipse(dx, dy + H * .03, W * .14, H * .09, 0, 0, 7); x.fill();
         x.fillStyle = css('rd-head'); x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.fill();
-        x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('pink'); x.lineWidth = Math.max(1.5, H * .02);
+        x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('yellow'); x.lineWidth = Math.max(1.5, H * .02);
         x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
       },
     },

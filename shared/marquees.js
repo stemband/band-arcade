@@ -697,14 +697,22 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = rgba('vi-ink', .9 * (1 - d)); x.beginPath(); x.ellipse(px1 - W * .06, dy, H * .018, H * .028, 0, 0, 7); x.fill();
       },
     },
-    /* RHYTHM DOJO. colors: [drum rim neon, lantern glow, night]. A night dojo: a wooden floor, two big taiko drums at
-       the ends of the sign whose neon rims glow on the beat (a smooth swell and fade, 1.25 beats a second, the two
-       drums taking turns: never a flash), and a few rhythm notes drifting slowly up between them. */
+    /* RHYTHM DOJO, the bamboo dojo. colors: [drum rim + studs (gold), bamboo neon + notes (jade), night]. A night dojo:
+       a wooden floor, bamboo stalks in jade neon behind, two big warm-wood taiko drums at the ends of the sign whose
+       gold rims glow on the beat (a smooth swell and fade, 1.25 beats a second, the two drums taking turns: never a
+       flash), and a few rhythm notes drifting slowly up between them. */
     taiko: {
-      colors: ['pink', 'amber', 'dd-night'], still: .3,
+      colors: ['yellow', 'rd-jade', 'rd-night'], still: .3,
       draw(x, W, H, t, c) {
         x.fillStyle = vGrad(x, H, [[0, tok('deep')], [1, tok(c[2])]]); x.fillRect(0, 0, W, H);
-        glow(x, W / 2, H * .45, W * .4, c[1], .14);
+        glow(x, W / 2, H * .45, W * .4, c[1], .12);
+        // bamboo stalks: jade neon tubes with joints, swaying a very little (behind everything)
+        for (let i = 0; i < 7; i++) {
+          const bx = W * (.2 + .6 * i / 6) + W * .02 * Math.sin(t * .35 + i), a = .16 + .1 * hash(i + 3), w = Math.max(1.5, H * (.018 + .01 * hash(i)));
+          x.strokeStyle = rgba(c[1], a); x.lineWidth = w; x.beginPath(); x.moveTo(bx, H * .82); x.lineTo(bx + W * .006, -H * .05); x.stroke();
+          x.strokeStyle = rgba(c[1] + '-hi', a * .9); x.lineWidth = Math.max(1, w * .5);
+          for (let j = 0; j < 4; j++) { const jy = H * (.1 + .2 * j + .05 * hash(i + j)); x.beginPath(); x.moveTo(bx - w * 1.1, jy); x.lineTo(bx + w * 1.1, jy); x.stroke(); }
+        }
         // the floor boards
         x.fillStyle = tok('dd-wood'); x.fillRect(0, H * .82, W, H * .18);
         x.strokeStyle = rgba('dd-wood-line', .9); x.lineWidth = Math.max(1, H * .01);
@@ -727,7 +735,7 @@ window.Arcade = window.Arcade || {};
           x.beginPath(); x.ellipse(dx, cy + rh * .55, rw * .92, rh * .12, 0, 0, Math.PI); x.stroke();
           x.fillStyle = tok('rd-stud');
           for (let j = -2; j <= 2; j++) { x.beginPath(); x.arc(dx + j * rw * .35, cy - rh * .48 + Math.abs(j) * rh * .03, H * .018, 0, 7); x.fill(); }
-          // the head, facing us a little, with its neon rim
+          // the head, facing us a little, with its gold neon rim
           glow(x, dx, cy - rh * .1, rw * 1.3, c[0], .1 + .35 * pulse);
           x.fillStyle = tok('rd-head'); x.beginPath(); x.ellipse(dx, cy - rh * .1, rw * .72, rh * .66, 0, 0, 7); x.fill();
           x.strokeStyle = rgba(c[0], .55 + .45 * pulse); x.lineWidth = Math.max(2, H * .035);
@@ -878,7 +886,8 @@ window.Arcade = window.Arcade || {};
     const F = fitMax(x, W, H, g, k, font, slant), s = F.size, words = g.name.toUpperCase().split(' ');
     // each word keeps its color: showtime = first word trim, the rest trim2 with the dead F bulb; faceoff likewise
     const two = (style === 'showtime' || style === 'faceoff') && words.length > 1;
-    const colorOf = wi => (two && wi > 0 ? k.cab.trim2 : k.cab.trim);
+    // taiko (Rhythm Dojo, the bamboo dojo): gold lettering (trim2) in its jade frame (trim)
+    const colorOf = wi => (style === 'taiko' ? k.cab.trim2 : two && wi > 0 ? k.cab.trim2 : k.cab.trim);
     const blockH = (F.hCoef - 2 * F.pad) * s;
     let y = H / 2 - blockH / 2, wi = 0, deadUsed = false;
     // a soft dark haze behind the letters (never over them), as on every marquee (tests measure the letters without it)

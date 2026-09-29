@@ -192,7 +192,7 @@ window.Arcade = window.Arcade || {};
    'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2',
    'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b',
    'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow',
-   'rd-body', 'rd-body-2', 'rd-head', 'rd-iron', 'rd-stud', 'rd-stand'].forEach(n => { tok[n] = cssVar(n); });
+   'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -859,15 +859,15 @@ window.Arcade = window.Arcade || {};
       });
       neon([new THREE.Vector3(-sw / 2, cy + sh / 2 + .01, fz + .004), new THREE.Vector3(sw / 2, cy + sh / 2 + .01, fz + .004)]);
     } else if (P.topper === 'taiko') {
-      // a taiko drum on a low wooden stand on the roof: a barrel body, iron bands, a row of studs, its head facing out
-      // with a neon ring in the trim color (Rhythm Dojo)
+      // a taiko drum on a low wooden stand on the roof: a warm-wood barrel body, iron bands, a row of gold studs, its head
+      // facing out with a neon ring in the SECOND trim color (Rhythm Dojo, the bamboo dojo: a gold rim on a jade cabinet)
       const fz = frontTop + zc - .14, R0 = .19, cy = topY + R0 + .06;
       const drum = new THREE.Group(); drum.position.set(0, cy, fz);
       const body = new THREE.Mesh(new THREE.CylinderGeometry(R0, R0, .2, 20, 1), lambert(col('rd-body'))); body.rotation.x = Math.PI / 2; drum.add(body);
       [.075, -.075].forEach(z => { const band = new THREE.Mesh(new THREE.TorusGeometry(R0 + .004, .008, 6, 24), lambert(col('rd-iron'))); band.position.z = z; drum.add(band); });
-      const head = new THREE.Mesh(new THREE.CircleGeometry(R0 * .96, 24), lambert(col('rd-head'))); head.position.z = .101; drum.add(head);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .012, 6, 28), basic(col(k.trim + '-hi'))); ring.position.z = .104; drum.add(ring);
-      const glow = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .035, 6, 28), basic(col(k.trim), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .104; drum.add(glow);
+      const head = new THREE.Mesh(new THREE.CircleGeometry(R0 * .96, 24), basic(col('rd-head-2')));   // unlit: the room's purple light never tints the hide head.position.z = .101; drum.add(head);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .012, 6, 28), basic(col(k.trim2 + '-hi'))); ring.position.z = .104; drum.add(ring);
+      const glow = new THREE.Mesh(new THREE.TorusGeometry(R0 * .96, .035, 6, 28), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .104; drum.add(glow);
       for (let j = 0; j < 12; j++) { const a = j / 12 * Math.PI * 2, st = new THREE.Mesh(new THREE.SphereGeometry(.012, 6, 4), basic(col('rd-stud'))); st.position.set(Math.cos(a) * (R0 + .006), Math.sin(a) * (R0 + .006), .085); drum.add(st); }
       drum.userData.pick = true; group.add(detail(drum));
       const wood = lambert(col('rd-stand'));
