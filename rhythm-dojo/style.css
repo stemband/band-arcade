@@ -80,9 +80,20 @@
 .rd-sheet .rc.extra .rc-small,.rd-sheet .rc.extra .rc-u{color:var(--rd-bad)}
 .rd-sheet .rc.bad .rc-big{text-decoration:line-through;text-decoration-thickness:2px}
 .rd-ph{position:absolute;top:4%;height:60%;width:4px;margin-left:-2px;border-radius:2px;background:var(--rd-jade-ink);box-shadow:0 0 8px var(--rd-jade);pointer-events:none}
-.rd-count{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(70px,14vw,150px);color:var(--rd-jade-ink);opacity:0}
-.rd-count.on{opacity:.9;animation:rd-num .5s ease-out}
-@keyframes rd-num{0%{transform:scale(.7);opacity:0}30%{opacity:.9}100%{transform:none}}
+/* THE COUNT-IN lives ON THE TAIKO, never over the notation: the big beat number on the drum's barrel (sized to it:
+   container units, a clamp where they aren't supported) and a row of beat dots under the drum, one lit per beat */
+.rd-drumbox{position:relative;display:grid;gap:6px;justify-items:center}
+.rd-drumbox .rd-drum{width:100%}
+.rd-count{position:absolute;left:10%;right:10%;top:12%;height:56%;display:grid;place-items:center;pointer-events:none;container-type:size;
+  font-family:var(--display);line-height:1;color:var(--rd-head);
+  text-shadow:0 0 3px var(--rd-iron),0 2px 0 var(--rd-iron),0 0 14px var(--rd-jade);opacity:0}
+.rd-count b{font-weight:400;font-size:clamp(38px,7.2vw,84px);font-size:78cqh}
+.rd-count.on{opacity:1;animation:rd-num .5s ease-out}
+@keyframes rd-num{0%{transform:scale(.7);opacity:0}30%{opacity:1}100%{transform:none}}
+.rd-beats{display:flex;justify-content:center;gap:clamp(4px,.8vw,8px);min-height:clamp(10px,1.5vw,14px);visibility:hidden}
+.rd-beats.on{visibility:visible}
+.rd-beats i{width:clamp(9px,1.4vw,14px);height:clamp(9px,1.4vw,14px);border-radius:50%;background:var(--floor-3);border:2px solid var(--rd-jade);transition:background .12s,box-shadow .12s}
+.rd-beats i.on{background:var(--rd-jade-hi);box-shadow:0 0 8px var(--rd-jade)}
 
 .rd-tip{min-height:30px;text-align:center;margin:10px 0 6px;font-size:clamp(17px,2.4vw,21px);font-weight:700;color:var(--text-hi)}
 .rd-tip.ok{color:var(--green)}.rd-tip.near{color:var(--amber-hi)}.rd-tip.bad{color:var(--red)}
@@ -108,6 +119,7 @@
 
 @media (prefers-reduced-motion:reduce){
   .rd-drum.hit svg,.rd-count.on{animation:none}
-  .rd-sheet .rc{transition:none}
+  .rd-sheet .rc,.rd-beats i{transition:none}
 }
 html.no-motion .rd-drum.hit svg,html.no-motion .rd-count.on{animation:none}
+html.no-motion .rd-beats i{transition:none}
