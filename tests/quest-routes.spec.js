@@ -60,6 +60,12 @@ async function fight(page, map, key, how) {
   await drive(page, idleIn(map), b => (how === 'befriend' && b && b.calm >= 100 ? 'HARMONIZE' : 'PLAY'));
   expect(await page.evaluate(k => Arcade.Quest.save.get().done[k], `${map}:${key}`)).toBe(how);
 }
+/** A (Enter) at whatever you face. A focused button takes Enter for itself (keyboard access; WebKit can leave one
+    focused after a text box), so nothing is focused first, as while playing */
+async function pressA(page) {
+  await page.evaluate(() => { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); });
+  await page.keyboard.press('Enter');
+}
 /** walk: stand at x, y facing dir, then step that way (through a door) */
 async function step(page, map, x, y, dir) {
   await drive(page, idleIn(map));
@@ -79,7 +85,7 @@ async function run(page, {ghost, fermata, conductor}) {
   }
   // Sir Reginald wakes up (8 ghosts helped) and steps aside; up the stairs
   await room(page, 'hall', 14, 3, 'up');
-  await page.keyboard.press('Enter');
+  await pressA(page);
   await drive(page, s => idleIn('hall')(s) && s.w.npcs.find(n => n.id === 'reginald').x !== 14);
   await step(page, 'hall', 14, 2, 'up');
   await drive(page, idleIn('stairs'));
@@ -92,7 +98,7 @@ async function run(page, {ghost, fermata, conductor}) {
     await step(page, 'stairs', 5, 2, 'up'); await drive(page, idleIn('stairs'));
     expect((await snap(page)).w.map).toBe('stairs');
     await step(page, 'stairs', 1, 2, 'up'); await drive(page, idleIn('passage'));
-    await page.evaluate(() => Arcade.Quest.world.warp(8, 7, 'up')); await page.keyboard.press('Enter');
+    await page.evaluate(() => Arcade.Quest.world.warp(8, 7, 'up')); await page.waitForTimeout(80); await pressA(page);
     await drive(page, s => idleIn('passage')(s) && s.chime);          // the treasure: found only this way
     await step(page, 'passage', 6, 2, 'up'); await drive(page, idleIn('attic'));
   } else {
