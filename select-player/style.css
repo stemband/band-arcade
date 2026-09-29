@@ -123,6 +123,9 @@
 .sk-opt:focus-visible{outline:3px solid var(--text-hi);outline-offset:3px}
 /* locked: a dark silhouette with a thin outline, a lock, and what it takes */
 .sk-opt.locked{border-style:dashed;cursor:not-allowed}
+/* the LEGENDARY item (the Grandmaster's Aura): a gold frame with a diamond edge, the rarest tile in the Locker */
+.sk-opt.sk-legend{border:3px solid var(--bn-gold);box-shadow:0 0 0 2px var(--bn-diamond),0 0 14px color-mix(in srgb,var(--bn-gold) 70%,transparent)}
+.sk-opt.sk-legend[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bn-diamond),0 0 0 5px var(--yellow),var(--glow-yellow)}
 .sk-opt.locked .pt-box{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
 .sk-opt.locked[data-lk-bg] .pt-box{filter:brightness(.5) saturate(.6)}              /* a locked background: its own dimmed picture */
 .sk-opt.locked b{color:var(--text-lo)}

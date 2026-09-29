@@ -83,6 +83,8 @@ window.Arcade = window.Arcade || {};
   const data = () => A.store.gameData('bandninja');
   const belts = () => { try { return Object.assign({}, data().belts || {}); } catch (e) { return {}; } };
   const has = belt => !!belts()[belt];
+  /** every one of the 10 belt codes entered on this device (the LEGENDARY Grandmaster's Aura) */
+  const hasAll = () => BELT_KEYS.every(has);
   /* 10 tries a minute (sessionStorage: a reload doesn't reset it) */
   const TRIES = 10, TRY_MS = 60000, TRY_KEY = 'bandarcade.bn-tries';
   function tries() { try { return JSON.parse(sessionStorage.getItem(TRY_KEY) || '[]').filter(t => Date.now() - t < TRY_MS); } catch (e) { return memTries.filter(t => Date.now() - t < TRY_MS); } }
@@ -160,7 +162,7 @@ window.Arcade = window.Arcade || {};
   }
 
   A.BandNinja = {INSTRUMENT_ALIASES, BELT_KEYS, BELT_CODE_ABBR, ARCADE_CODE_SALT, BAD, TRIES,
-    memberFor, norm, beltUnlockCode, checkCode, redeem, has, belts, beltName, link, levelWish, skipSelect, selfTest,
+    memberFor, norm, beltUnlockCode, checkCode, redeem, has, hasAll, belts, beltName, link, levelWish, skipSelect, selfTest,
     /** tests: forget the tries */
     resetTries() { memTries = []; try { sessionStorage.removeItem(TRY_KEY); } catch (e) { /* */ } }};
 

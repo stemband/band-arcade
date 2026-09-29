@@ -73,7 +73,7 @@ window.Arcade = window.Arcade || {};
       {k: 'gear.color', label: 'Glow effect', kind: 'gear', list: () => gearList('color'), thumb: 'effect', show: () => !!S.member && !S.guest},
     ]},
     {id: 'hand', label: 'Held item', groups: [
-      {k: 'hand', label: 'In your hand', kind: 'part', list: () => P().HANDS, thumb: 'hand', note: () => 'Held up beside your portrait (in Arcade Quest you hold your instrument).'},
+      {k: 'hand', label: 'In your hand', kind: 'part', list: () => own(P().HANDS), thumb: 'hand', note: () => 'Held up beside your portrait (in Arcade Quest you hold your instrument).'},
     ]},
     {id: 'pets', label: 'Pets', groups: [
       {k: 'pet', label: 'Pet', kind: 'part', list: () => P().PETS, thumb: 'pet', note: () => 'Your pet floats beside you and does a little dance now and then.'},
@@ -95,7 +95,8 @@ window.Arcade = window.Arcade || {};
     {k: 'belt', label: 'Belt', kind: 'part', list: () => P().BN_BELTS || [], thumb: 'body', note: () => 'Official Band Ninja gear: earned in class. Enter your belt codes from Band Ninja at the Token Booth in Arcade Quest.'},
     {k: 'plate', label: 'Belt name frame', kind: 'part', list: () => [P().PLATES[0]].concat(official(P().PLATES)), thumb: 'plate', note: () => 'Official Band Ninja gear: earned in class.'},
     {k: 'top', label: 'Gi', kind: 'part', list: () => official(P().TOPS), thumb: 'bust', note: () => 'Official Band Ninja gear: earned in class (the Black belt code).'},
-    {k: 'effect', label: 'Effect', kind: 'part', list: () => [P().EFFECTS[0]].concat(official(P().EFFECTS)), thumb: 'fx', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code).'},
+    {k: 'hand', label: 'In your hand', kind: 'part', list: () => [P().HANDS[0]].concat(official(P().HANDS)), thumb: 'hand', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code).'},
+    {k: 'effect', label: 'Effect', kind: 'part', list: () => [P().EFFECTS[0]].concat(official(P().EFFECTS)), thumb: 'fx', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code; the LEGENDARY Grandmaster\'s Aura: all 10 belt codes).'},
     {k: 'bg', label: 'Background', kind: 'part', list: () => [(P().BGS || [])[0]].concat(official(P().BGS || [])), thumb: 'bg', note: () => 'Official Band Ninja gear: earned in class (the Diamond belt code).'},
   ]}] : []);
   // the fields each tab's SURPRISE ME changes
@@ -330,10 +331,10 @@ window.Arcade = window.Arcade || {};
           const moving = animatedOpt(g, o), anim = moving ? `<span class="avc-anim" title="Animated" aria-hidden="true">${ANIM_ICON}</span>` : '', animSay = moving ? ', animated' : '';
           if (locked(g, o.id)) {                                 // a dark silhouette (backgrounds, effects, plates: dimmed) + what unlocks it
             const req = V().requirement(g.k, o.id);
-            return `<button type="button" class="avc-opt avc-locked${['bg', 'fx', 'plate'].includes(g.thumb) ? ' avc-bglock' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + animSay + ', locked. ' + req)}">${thumbHTML(g, o)}${anim}<span class="avc-lock" aria-hidden="true">🔒</span><span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span>${V().progress(g.k, o.id) ? `<span class="avc-req avc-prog">${esc(V().progress(g.k, o.id))}</span>` : ''}</button>`;
+            return `<button type="button" class="avc-opt avc-locked${['bg', 'fx', 'plate'].includes(g.thumb) ? ' avc-bglock' : ''}${o.legendary ? ' avc-legend' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="false" aria-disabled="true" aria-label="${esc(label + ': ' + o.name + animSay + ', locked. ' + req)}">${thumbHTML(g, o)}${anim}<span class="avc-lock" aria-hidden="true">🔒</span>${o.legendary ? '<span class="avc-legend-tag" aria-hidden="true">Legendary</span>' : ''}<span class="avc-lbl">${esc(o.name)}</span><span class="avc-req">${esc(req)}</span>${V().progress(g.k, o.id) ? `<span class="avc-req avc-prog">${esc(V().progress(g.k, o.id))}</span>` : ''}</button>`;
           }
           const fresh = S.fresh && S.fresh.has(V().itemKey(g.k, o.id)) ? '<span class="avc-newi">NEW!</span>' : '';
-          return `<button type="button" class="avc-opt" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name + animSay + (fresh ? ', new' : ''))}">${thumbHTML(g, o)}${anim}${fresh}<span class="avc-lbl">${esc(o.name)}</span></button>`;
+          return `<button type="button" class="avc-opt${o.legendary ? ' avc-legend' : ''}" data-opt="${esc(String(o.id))}" aria-pressed="${on}" aria-label="${esc(label + ': ' + o.name + animSay + (fresh ? ', new' : ''))}">${thumbHTML(g, o)}${anim}${fresh}${o.legendary ? '<span class="avc-legend-tag" aria-hidden="true">Legendary</span>' : ''}<span class="avc-lbl">${esc(o.name)}</span></button>`;
         }).join('') + `</div></div>`;
     });
     panel.innerHTML = html;

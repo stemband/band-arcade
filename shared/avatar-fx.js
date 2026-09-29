@@ -130,6 +130,52 @@ window.Arcade = window.Arcade || {};
         x.globalAlpha = a; x.drawImage(o.silhouette, 0, 0, 36 * u, 36 * u); x.globalAlpha = 1;
       }
     },
+    /* THE LEGENDARY GRANDMASTER'S AURA (all 10 Band Ninja belt codes): the rarest item in the arcade, and the only one
+       with every belt color. BEHIND: a soft halo whose rainbow of the 10 belt colors turns very slowly (one turn in
+       24 s), breathing gently (8 s), and a gold rim around the avatar's own shape. IN FRONT: a crown of 10 tiny
+       diamonds, one per belt, circling slowly above the head (one turn in 16 s; the back half passes behind the head,
+       dimmer), each fading as it nears the face. Every change is a slow fade: nothing flashes. */
+    grandmaster(x, u, t, layer, o) {
+      const BELTS = ['bn-white', 'bn-yellow', 'bn-orange', 'bn-green', 'bn-blue', 'bn-purple', 'bn-red', 'bn-brown', 'bn-black', 'bn-diamond'];
+      if (layer === 'back') {
+        const breathe = .5 + .1 * Math.sin(t * TAU / 8), cx = 18 * u, cy = 20 * u, R = 19 * u;
+        x.save();
+        x.globalAlpha = breathe;
+        const spin = t * TAU / 24;
+        let fill;
+        if (x.createConicGradient) {
+          fill = x.createConicGradient(spin, cx, cy);
+          BELTS.concat(BELTS[0]).forEach((b, i) => fill.addColorStop(i / BELTS.length, col(b, .75)));
+        } else fill = col('bn-diamond', .6);
+        x.fillStyle = fill;
+        x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.fill();
+        // fade the halo to nothing at its edge and keep its middle soft (a radial mask over the rainbow)
+        x.globalCompositeOperation = 'destination-in'; x.globalAlpha = 1;
+        const m = x.createRadialGradient(cx, cy, R * .25, cx, cy, R);
+        m.addColorStop(0, 'rgba(0,0,0,.55)'); m.addColorStop(.6, 'rgba(0,0,0,.9)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = m; x.fillRect(0, 0, 36 * u, 36 * u);
+        x.restore();
+        if (o.silhouette) { x.globalAlpha = .55 + .15 * Math.sin(t * TAU / 8); x.drawImage(o.silhouette, 0, 0, 36 * u, 36 * u); x.globalAlpha = 1; }
+        FX._crown(x, u, t, false);
+        return;
+      }
+      FX._crown(x, u, t, true);
+    },
+    _crown(x, u, t, front) {
+      const BELTS = ['bn-white', 'bn-yellow', 'bn-orange', 'bn-green', 'bn-blue', 'bn-purple', 'bn-red', 'bn-brown', 'bn-black', 'bn-diamond'];
+      BELTS.forEach((b, i) => {
+        const a = t * TAU / 16 + i * TAU / BELTS.length, s = Math.sin(a);
+        if ((s > 0) !== front) return;
+        const px = 18 + Math.cos(a) * 15, py = 4.5 + s * 2.6, fade = front ? faceFade(px, py) : .55;
+        if (fade < .03) return;
+        x.globalAlpha = fade * (front ? .95 : .6);
+        glowDot(x, u, px, py, 2.4, col(b, .45));
+        x.fillStyle = col(b); x.beginPath();                    // a tiny diamond with a dark edge (reads on any background)
+        x.moveTo(px * u, (py - 1.3) * u); x.lineTo((px + .9) * u, py * u); x.lineTo(px * u, (py + 1.3) * u); x.lineTo((px - .9) * u, py * u); x.closePath();
+        x.strokeStyle = col('deep', .6); x.lineWidth = Math.max(1, u * .35); x.stroke(); x.fill();
+      });
+      x.globalAlpha = 1;
+    },
     /* OFFICIAL BAND NINJA GEAR (the Diamond belt code): a slow diamond-blue aura with the avatar's rim, and a few
        small diamonds drifting beside the head, fading in and out (never a blink) */
     bndiamond(x, u, t, layer, o) {
@@ -324,7 +370,7 @@ window.Arcade = window.Arcade || {};
     const eff = info.av.effect;
     const layers = box.querySelectorAll('canvas.av-fx');
     if (eff && eff !== 'none' && layers.length) {
-      const rim = {aura: info.av.effectColor || 'cyan', bndiamond: 'bn-diamond', spookyglow: 'green'}[eff];   // effects with the avatar's rim
+      const rim = {aura: info.av.effectColor || 'cyan', bndiamond: 'bn-diamond', spookyglow: 'green', grandmaster: 'bn-gold'}[eff];   // effects with the avatar's rim
       const silo = rim ? silhouette(frames[frames.length > 1 ? f : 0], rim) : null;
       const burst = box.closest('.av-res') ? sec - st.start : null;
       layers.forEach(c => {
@@ -344,5 +390,5 @@ window.Arcade = window.Arcade || {};
   const state = box => ({body: box.classList.contains('av-anim-body'), fx: box.classList.contains('av-anim-fx') ? (A.Avatar.liveInfo(box.dataset.live) || {av: {}}).av.effect : null,
     f: (boxState.get(box) || {}).f});
 
-  A.AvatarFx = {FX: Object.keys(FX), FACE, draw, stillURLs, drawLive, stop, state};
+  A.AvatarFx = {FX: Object.keys(FX).filter(k => k[0] !== '_'), FACE, draw, stillURLs, drawLive, stop, state};
 })(window.Arcade);

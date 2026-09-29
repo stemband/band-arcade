@@ -88,6 +88,7 @@ window.Arcade = window.Arcade || {};
     if (identity(field, id)) return true;
     const p = partFor(field, id), u = p && p.unlock;
     if (!u || (A.Skins && A.Skins.UNLOCK_ALL)) return true;
+    if (u.bandninja === 'all') return !!(A.BandNinja && A.BandNinja.hasAll && A.BandNinja.hasAll());   // LEGENDARY: every belt code
     if (u.bandninja) return !!(A.BandNinja && A.BandNinja.has(u.bandninja));   // official Band Ninja gear: only a belt code opens it
     if (u.shop) return !!(st().ownedItems || {})[itemKey(field, id)];
     // SEASONAL EVENT items (shared/seasons.js): earned during the event, owned forever (a ?season= preview's claims
@@ -111,6 +112,7 @@ window.Arcade = window.Arcade || {};
     if (!u || isUnlocked(field, id)) return '';
     if (u.stars && !u.game) return `${st().allStars("*")} of ${u.stars} ★ so far`;
     if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
+    if (u.bandninja === 'all' && A.BandNinja) return `${A.BandNinja.BELT_KEYS.filter(b => A.BandNinja.has(b)).length} of ${A.BandNinja.BELT_KEYS.length} belt codes so far`;
     if (u.event && A.Seasons) {                                          // a seasonal step running now: "2 of 3 so far"
       const o = A.Seasons.active(), s = o && o.ev.id === u.event && A.Seasons.steps(o).find(x => x.item === itemKey(field, id));
       if (s) return `${s.have} of ${s.n} so far`;
@@ -120,7 +122,7 @@ window.Arcade = window.Arcade || {};
   /** every item that has to be earned or bought: {key, field, id, name, unlock, shop} */
   function items() {
     const out = [];
-    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0, official: !!p.official, event: p.unlock.event || null}); }));
+    Object.keys(LOCKABLE).forEach(f => LOCKABLE[f]().forEach(p => { if (p.unlock && !identity(f, p.id)) out.push({key: itemKey(f, p.id), field: f, id: p.id, name: p.name, unlock: p.unlock, shop: p.unlock.shop || 0, official: !!p.official, legendary: !!p.legendary, event: p.unlock.event || null}); }));
     return out;
   }
   /** earned items (not bought ones) whose UNLOCKED! card hasn't been shown yet (never with ?unlockall) */
