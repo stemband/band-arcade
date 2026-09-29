@@ -277,3 +277,46 @@ test.describe('rhythm dojo', () => {
     watch.check();
   });
 });
+
+/* THE BAMBOO DOJO: the cabinet, marquee and attract screen are jade green + gold (no pink, purple or cyan left in the
+   art), the lettering is gold, and the new bamboo never flashes (the photosensitivity rule: ≤ 3 flashes a second) */
+test('the bamboo dojo: jade + gold cabinet, marquee and screen, flash-safe', async ({page}) => {
+  const watch = await prepare(page, {store: device('trumpet')});
+  await page.goto('index.html?demo&nostart#all-games');
+  await page.waitForFunction(() => window.Arcade && Arcade.Marquee && Arcade.CAB_SCREENS);
+  const r = await page.evaluate(() => {
+    const A = Arcade, g = A.GAMES.find(x => x.id === 'rhythm-dojo'), cab = A.cabinetOf(g), k = A.Marquee.config(g);
+    const W = 360, H = 90, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    // pixels that are clearly pink / purple / cyan: saturated, bright enough to see, hue in those ranges
+    const bad = img => { let n = 0; const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), s = mx ? (mx - mn) / mx : 0;
+        if (mx < .35 || s < .45) continue;
+        let h = mx === r ? (gg - b) / (mx - mn) : mx === gg ? 2 + (b - r) / (mx - mn) : 4 + (r - gg) / (mx - mn); h = (h * 60 + 360) % 360;
+        if (h >= 185 && h <= 345) n++;        // cyan-blue (185+), purple, magenta, pink (≤ 345)
+      }
+      return n / (d.length / 4); };
+    const lum = img => { const d = img.data, o = new Float32Array(d.length / 4);
+      for (let i = 0; i < o.length; i++) { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; o[i] = .2126 * f(d[i * 4]) + .7152 * f(d[i * 4 + 1]) + .0722 * f(d[i * 4 + 2]); }
+      return o; };
+    let worstBad = 0, flashes = 0, prev = null, frames = [];
+    for (let t = 0; t <= 4; t += 1 / 30) {                 // 4 s at 30 fps, the whole sign (scene + title)
+      A.Marquee.draw(x, W, H, t, g, {art: false}); const img = x.getImageData(0, 0, W, H);
+      worstBad = Math.max(worstBad, bad(img)); const L = lum(img);
+      if (prev) { let big = 0; for (let i = 0; i < L.length; i++) if (Math.abs(L[i] - prev[i]) > .1) big++; frames.push(big / L.length); }
+      prev = L;
+    }
+    // a "flash" = a frame where more than 10 % of the sign changes by 0.1 relative luminance
+    flashes = frames.filter(f => f > .1).length;
+    const sc = A.CAB_SCREENS.taiko; let scrBad = 0;
+    for (let t = 0; t < 4.5; t += .5) { sc.draw(x, W, H, t); scrBad = Math.max(scrBad, bad(x.getImageData(0, 0, W, H))); }
+    return {color: g.color, trim: cab.trim, trim2: cab.trim2, colors: k.colors, worstBad, flashes, scrBad};
+  });
+  expect(r.color).toBe('green');
+  expect([r.trim, r.trim2]).toEqual(['green', 'yellow']);
+  expect(r.colors).toEqual(['yellow', 'rd-jade', 'rd-night']);
+  expect(r.worstBad).toBeLessThan(.0005);
+  expect(r.scrBad).toBeLessThan(.0005);
+  expect(r.flashes).toBe(0);
+  watch.check();
+});

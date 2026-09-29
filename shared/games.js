@@ -5,7 +5,7 @@
      skill     short tag ("Note reading")
      blurb     one or two plain sentences for students, shown under the carousel
      maxStars  total stars available per instrument (levels × 3), or 0 if the game has no stars
-     color     the game's main neon: 'pink' | 'cyan' | 'yellow' (tokens in theme.css)
+     color     the game's main neon: 'pink' | 'cyan' | 'yellow', or any other trim color below ('green': Rhythm Dojo) (tokens in theme.css)
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
@@ -238,11 +238,11 @@ window.Arcade.GAMES = [
     skill: 'Rhythm reading',
     blurb: 'Read the rhythm and its counting, then tap it, clap it or play it on your snare. The counting fades as you earn your belts. No instrument needed!',
     maxStars: 33,                                    // 11 levels × 3 (rhythm-dojo/levels.js)
-    color: 'pink',
+    color: 'green',                                  // THE BAMBOO DOJO: jade green + gold (the art's jade = --rd-jade)
     player: 'all',                                   // no instrument needed: tap, clap or snare
     unpitched: true,
-    marquee: {scene: 'taiko', colors: ['pink', 'amber', 'dd-night']},
-    cabinet: {shape: 'taiko', trim: 'pink', trim2: 'amber', marquee: 'taiko', screen: 'taiko'},
+    marquee: {scene: 'taiko', colors: ['yellow', 'rd-jade', 'rd-night']},
+    cabinet: {shape: 'taiko', trim: 'green', trim2: 'yellow', marquee: 'taiko', screen: 'taiko'},
     cabinet3d: {profile: 'taiko', body: 'cab-side'},
   },
   {

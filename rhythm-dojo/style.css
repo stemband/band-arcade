@@ -1,14 +1,22 @@
-/* Rhythm Dojo */
+/* Rhythm Dojo: THE BAMBOO DOJO, jade (--rd-jade*) + gold (--yellow*). The results' green (on time) stays --rd-ok / --green,
+   a yellower green than the teal jade, so a result never reads as the theme. */
 .hub-head{display:flex;gap:16px;align-items:center;margin-bottom:14px}
 .rd-hub-sensei{width:92px;flex:none}
 .rd-hub-sensei svg{width:100%;display:block}
-.game-title{color:var(--pink-hi);text-shadow:var(--glow-pink)}
-.game-title span{color:var(--amber-hi);text-shadow:var(--glow-amber)}
+.game-title{color:var(--yellow-hi);text-shadow:var(--glow-yellow)}
+.game-title span{color:var(--rd-jade-hi);text-shadow:var(--glow-rd-jade)}
 
 /* the options */
 .rd-opts{display:flex;flex-wrap:wrap;gap:12px 22px;margin:0 0 10px}
 .rd-opt .ui-label{margin-bottom:4px}
-.rd-opts .ui-seg{--seg-on:var(--pink)}
+.rd-opts .ui-seg>button{--seg-on:var(--rd-jade)}
+/* this page's outlined buttons (and the kit's panels here): jade instead of the kit's cyan */
+.btn-secondary{border-color:color-mix(in srgb,var(--rd-jade) 65%,var(--deep))}
+.btn-secondary:hover{border-color:var(--rd-jade);box-shadow:var(--glow-rd-jade)}
+/* this page's panels (the timing check, intros, results, the pause menu, confirms): a jade frame, gold titles */
+.panel{border-color:var(--rd-jade);box-shadow:var(--glow-rd-jade),0 30px 80px rgba(0,0,0,.6)}
+.panel h2,.ui-title{color:var(--yellow-hi)}
+.ui-kicker{color:var(--rd-jade-hi)}
 .rd-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 16px}
 .rd-optnote{color:var(--text-lo);font-size:15px;flex:1 1 260px}
 
@@ -17,7 +25,7 @@
 @media (max-width:900px){.levels{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
 .lvl{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto auto 1fr auto;gap:4px;text-align:left;background:var(--floor-2);color:var(--text-hi);border:2px solid transparent;border-radius:16px;padding:12px 14px;min-height:150px;font:inherit;cursor:pointer}
-.lvl:hover:not([disabled]){border-color:var(--pink)}
+.lvl:hover:not([disabled]){border-color:var(--rd-jade)}
 .lvl .n{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
 .lvl .t{font-weight:700;font-size:17px;line-height:1.2}
 .lvl .d{font-size:13px;color:var(--text-lo);line-height:1.35}
@@ -34,7 +42,7 @@
 .hud .c{text-align:center}.hud .c b{justify-content:center}
 .hud .r{text-align:right}.hud .r b{justify-content:flex-end}
 .hud .rd-band{width:34px;flex:none}
-#hudLives span{color:var(--text-dim);margin:0 1px}#hudLives span.on{color:var(--pink)}
+#hudLives span{color:var(--text-dim);margin:0 1px}#hudLives span.on{color:var(--rd-jade)}
 
 /* the dojo row: the Sensei, his line, the taiko (its rim = the pulse light) */
 .rd-dojo{display:grid;grid-template-columns:clamp(64px,10vw,110px) 1fr clamp(96px,15vw,170px);gap:12px;align-items:center;margin:4px 0 8px}
@@ -46,15 +54,16 @@
 .taiko .tk-body{fill:var(--rd-body);stroke:var(--rd-body-2);stroke-width:3}
 .taiko .tk-band{fill:none;stroke:var(--rd-iron);stroke-width:4}
 .taiko .tk-studs circle{fill:var(--rd-stud)}
-.taiko .tk-head{fill:var(--rd-head);stroke:var(--pink);stroke-width:4;filter:drop-shadow(0 0 calc(2px + var(--pulse) * 10px) var(--pink))}
+.taiko .tk-head{fill:var(--rd-head);stroke:var(--yellow);stroke-width:4;filter:drop-shadow(0 0 calc(2px + var(--pulse) * 10px) var(--yellow))}
 .taiko .tk-mon{fill:none;stroke:var(--rd-head-2);stroke-width:2}
-.taiko .tk-glow{fill:var(--pink);opacity:calc(var(--pulse) * .28)}
+.taiko .tk-glow{fill:var(--rd-jade);opacity:calc(var(--pulse) * .28)}
 .rd-drum svg{transform-origin:50% 30%}
 .rd-drum.hit svg{animation:rd-hit .28s ease-out}
 @keyframes rd-hit{0%{transform:scale(1.07,.93)}100%{transform:none}}
 
 /* THE RHYTHM SHEET: rows of one-line staff + counting (shared/rhythm-staff.js) on the light screen */
 .rd-sheet{color:var(--ink);position:relative;padding:8px 12px 4px}
+.stage.rd-sheet{border-color:var(--rd-jade);box-shadow:0 0 0 4px var(--deep),var(--glow-rd-jade),inset 0 0 0 2px rgba(255,255,255,.6)}
 .rd-rows{display:grid;gap:4px;justify-items:start;margin:0 auto;max-width:calc(var(--mw) * 1.35px)}
 .rd-row{position:relative;width:calc(var(--w) / var(--mw) * 100%)}
 .rd-sheet svg.rs{display:block;width:100%;height:auto}
@@ -70,8 +79,8 @@
 .rd-sheet .rc.bad,.rd-sheet .rn.bad,.rd-sheet .rc.bad .rc-small,.rd-sheet .rc.bad .rc-u{color:var(--rd-bad)}
 .rd-sheet .rc.extra .rc-small,.rd-sheet .rc.extra .rc-u{color:var(--rd-bad)}
 .rd-sheet .rc.bad .rc-big{text-decoration:line-through;text-decoration-thickness:2px}
-.rd-ph{position:absolute;top:4%;height:60%;width:4px;margin-left:-2px;border-radius:2px;background:var(--pink-ink);box-shadow:0 0 8px var(--pink);pointer-events:none}
-.rd-count{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(70px,14vw,150px);color:var(--pink-ink);opacity:0}
+.rd-ph{position:absolute;top:4%;height:60%;width:4px;margin-left:-2px;border-radius:2px;background:var(--rd-jade-ink);box-shadow:0 0 8px var(--rd-jade);pointer-events:none}
+.rd-count{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(70px,14vw,150px);color:var(--rd-jade-ink);opacity:0}
 .rd-count.on{opacity:.9;animation:rd-num .5s ease-out}
 @keyframes rd-num{0%{transform:scale(.7);opacity:0}30%{opacity:.9}100%{transform:none}}
 
@@ -80,17 +89,17 @@
 .rd-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 10px}
 
 /* TAP mode: the big drum pad */
-.rd-pad{display:block;width:min(100%,560px);height:clamp(110px,22vh,190px);margin:6px auto 0;border-radius:24px;border:3px solid var(--pink);background:radial-gradient(ellipse at 50% 40%,var(--rd-head) 0 38%,var(--rd-head-2) 60%,var(--rd-body) 61% 100%);box-shadow:var(--glow-pink);cursor:pointer;touch-action:none}
-.rd-pad.down{transform:scale(.97);box-shadow:0 0 0 4px var(--pink-hi),var(--glow-pink)}
+.rd-pad{display:block;width:min(100%,560px);height:clamp(110px,22vh,190px);margin:6px auto 0;border-radius:24px;border:3px solid var(--yellow);background:radial-gradient(ellipse at 50% 40%,var(--rd-head) 0 38%,var(--rd-head-2) 60%,var(--rd-body) 61% 100%);box-shadow:var(--glow-rd-jade);cursor:pointer;touch-action:none}
+.rd-pad.down{transform:scale(.97);box-shadow:0 0 0 4px var(--rd-jade-hi),var(--glow-rd-jade)}
 .rd-pad[hidden]{display:none}
 .rd-listen{display:flex;justify-content:center;align-items:center;gap:10px;color:var(--text-lo);font-weight:700;margin:6px 0}
 .rd-listen[hidden]{display:none}
 
 /* the timing check */
 .rd-cal-dots{display:flex;gap:8px;justify-content:center;margin:12px 0}
-.rd-cal-dots i{width:18px;height:18px;border-radius:50%;background:var(--floor-3);border:2px solid var(--cyan)}
+.rd-cal-dots i{width:18px;height:18px;border-radius:50%;background:var(--floor-3);border:2px solid var(--yellow)}
 .rd-cal-dots i.lead{border-color:var(--text-dim)}
-.rd-cal-dots i.on{background:var(--cyan)}
+.rd-cal-dots i.on{background:var(--yellow)}
 .rd-cal-dots i.lead.on{background:var(--text-dim)}
 .rd-cal-say{min-height:26px;font-weight:700;text-align:center}
 .rd-pad-cal{height:120px}

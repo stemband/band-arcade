@@ -65,10 +65,13 @@
   --vi-paper:#f7ecd2; --vi-paper-2:#e6d3a6; --vi-paper-edge:#b9985c; --vi-rod:#5b3520; --vi-rod-cap:#241509;
   --vi-ink:#0f0c0a; --vi-ink-2:#3b332b; --vi-seal:#c43a3a; --vi-glow:#ff4fb3;
   --vi-master:#7d68d9; --vi-master-2:#a996f0; --vi-master-ink:#3a2a7a; --vi-brow:#f4f0ff; --vi-band:#16121d;
-  /* Rhythm Dojo: the neon taiko drum (lacquered body, hide head, iron studs), and the rhythm sheet's feedback colors
-     (dark enough to read on the light --screen: on time, early/late/short, missed/extra, the syllable sounding now) */
-  --rd-body:#8f2433; --rd-body-2:#5c1520; --rd-head:#f1e3c4; --rd-head-2:#d8c39a; --rd-iron:#1c1118; --rd-stud:#e8c264; --rd-stand:#3a2317;
-  --rd-ok:#0a7d3b; --rd-near:#a35f00; --rd-bad:#c0392b; --rd-lit:#c4006e;
+  /* Rhythm Dojo, the BAMBOO DOJO: jade green + gold. The neon taiko drum (warm wood body, hide head, iron bands, gold
+     studs and rim), its bamboo-jade neon (bluer than --green, so the green "on time" result never looks like the theme),
+     and the rhythm sheet's feedback colors (dark enough to read on the light --screen: on time, early/late/short,
+     missed/extra, the syllable sounding now = a deep teal jade, apart from --rd-ok's green) */
+  --rd-body:#8a5a2e; --rd-body-2:#5a3819; --rd-head:#f1e3c4; --rd-head-2:#d8c39a; --rd-iron:#2a1c10; --rd-stud:#e8c264; --rd-stand:#3a2317;
+  --rd-night:#06140f; --rd-jade:#2fe0b0; --rd-jade-hi:#a9f5de; --rd-jade-ink:#00735f;
+  --rd-ok:#0a7d3b; --rd-near:#a35f00; --rd-bad:#c0392b; --rd-lit:#00735f;
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;
@@ -139,6 +142,7 @@
   --glow-purple:0 0 4px rgba(184,107,255,.9),0 0 14px rgba(184,107,255,.45);
   --glow-amber:0 0 4px rgba(255,171,46,.9),0 0 14px rgba(255,171,46,.4);
   --glow-green:0 0 4px rgba(77,255,136,.9),0 0 14px rgba(77,255,136,.4);
+  --glow-rd-jade:0 0 4px rgba(47,224,176,.9),0 0 14px rgba(47,224,176,.4);
   --glow-red:0 0 4px rgba(255,107,107,.9),0 0 14px rgba(255,80,80,.45);
   --glow-white:0 0 4px rgba(255,255,255,.9),0 0 14px rgba(230,225,255,.4);
   --glow-blue:0 0 4px rgba(77,141,255,.9),0 0 14px rgba(77,141,255,.45);
