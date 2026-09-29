@@ -159,5 +159,13 @@
     {id: 'nutcracker-theme', title: 'Theme from The Nutcracker', source: 'Pyotr Ilyich Tchaikovsky, 1892', tier: 2, tempo: 84, timeSig: [4, 4], key: 'Eb', style: 'march',
      notes: N('1:.5 7,:.5 1:.5 7,:.5 1 7, | 2 1 3:2 | 4:.5 3:.5 4:.5 3:.5 2 1 | 1:2 7,:2',
               '6,:.5 6,:.5 6,:.5 6,:.5 (6, 5,) | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 1:3 r:1')},   // m. 5: the last two notes slurred
+    // written G major (trumpet) = concert F; the book's slurs: mm. 2 (G–F♯), 4 (E–D), 6 (D–C), 8 (A–G)
+    {id: 'santa-lucia', title: 'Santa Lucia', source: 'Traditional (Italian folk song)', tier: 2, tempo: 96, timeSig: [3, 4], key: 'F', style: 'waltz',
+     chords: 'I | V | IV | I | I | V | V | I',
+     notes: N('5, 5, 1 | (1:.5 7,:.5) 7,:2 | 4, 4, 6, | (6, 5,:2)', '3, 6, 5, | (5,:.5 4,:.5) 4,:2 | 5, 6, 7, | (2 1:2)')},
+    // written C major (trumpet) = concert B♭; the book's slur: m. 7, the first three notes
+    {id: 'werde-munter', title: 'Werde munter (Jesu, Joy)', source: 'Johann Schop, 1642 (used by J.S. Bach in Cantata 147)', tier: 1, tempo: 84, timeSig: [3, 4], key: 'Bb', style: 'waltz',
+     chords: 'I | I | IV | V | I | I | V | I',
+     notes: N('3:2 4 | 5:2 5 | 4:2 3 | 2 2:2', '3:2 4 | 5:2 3 | (2:.5 4:.5 3) 2 | 1:3')},
   ];
 })();
