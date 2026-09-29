@@ -268,7 +268,8 @@
   }
 
   Q.world = {
-    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
+    // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too
+    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy || !!W.fade, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
       npcs: W.npcs.map(n => ({id: n.id, x: n.x, y: n.y}))},
     /** move an NPC somewhere (Sir Reginald stepping aside) */
     moveNpc(id, at) { W.npcs.filter(n => n.id === id).forEach(n => { n.x = at[0]; n.y = at[1]; n.px = at[0] * T; n.py = at[1] * T; }); },
