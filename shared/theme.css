@@ -65,6 +65,9 @@
   --vi-paper:#f7ecd2; --vi-paper-2:#e6d3a6; --vi-paper-edge:#b9985c; --vi-rod:#5b3520; --vi-rod-cap:#241509;
   --vi-ink:#0f0c0a; --vi-ink-2:#3b332b; --vi-seal:#c43a3a; --vi-glow:#ff4fb3;
   --vi-master:#7d68d9; --vi-master-2:#a996f0; --vi-master-ink:#3a2a7a; --vi-brow:#f4f0ff; --vi-band:#16121d;
+  /* SEASONAL LOOKS (season-look.js, arcade.css "SEASONAL LOOKS"): the few colors the other tokens don't have
+     (a chalkboard, stage curtains, autumn orange, a boardwalk) */
+  --sl-chalk:#0d2820; --sl-chalk-2:#17392e; --sl-curtain:#5a0a1d; --sl-curtain-2:#8c1530; --sl-orange:#ff8a3d; --sl-orange-ink:#c9501c; --sl-boards:#3b2616;
   /* Rhythm Dojo, the BAMBOO DOJO: jade green + gold. The neon taiko drum (warm wood body, hide head, iron bands, gold
      studs and rim), its bamboo-jade neon (bluer than --green, so the green "on time" result never looks like the theme),
      and the rhythm sheet's feedback colors (dark enough to read on the light --screen: on time, early/late/short,

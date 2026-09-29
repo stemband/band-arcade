@@ -305,9 +305,9 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .fit-panel .fit-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:10px;margin-bottom:12px}
 .fit-panel p{color:var(--text-hi)}
 
-/* ---------- SEASONAL EVENTS (season-lobby.js, shared/seasons.js): the banner, the event panel, the decorations ----------
-   --ev / --ev2 = the event's two theme colors. Nothing flashes; decorations drift only without reduced motion and with
-   MOVING BACKGROUNDS on (.ev-still), and the panel's DECORATIONS switch removes them. */
+/* ---------- SEASONAL EVENTS (season-lobby.js, shared/seasons.js): the banner, the event panel, the signs' touch ----------
+   --ev / --ev2 = the event's two theme colors. Nothing flashes; the gift breathes only without reduced motion and with
+   MOVING BACKGROUNDS on (.ev-still). The whole backdrop is SEASONAL LOOKS (end of this file). */
 .ev-banner-row{display:flex;justify-content:center;max-width:1100px;margin:6px auto 0;position:relative;z-index:1}
 .ev-banner{display:inline-flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:4px 10px;min-height:44px;padding:8px 18px;border-radius:999px;cursor:pointer;
   border:2px solid var(--ev);color:var(--text-hi);font:400 clamp(14px,1.9vw,18px) var(--display);letter-spacing:.06em;text-transform:uppercase;
@@ -357,22 +357,7 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .ev-decot input{width:22px;height:22px;accent-color:var(--ev)}
 @media (max-width:520px){ .ev-step{grid-template-columns:1fr} .ev-giftbox{grid-template-columns:1fr} }
 
-/* decorations: small, dim, at the edges (behind the signs; never over a name or a button) */
-.ev-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
 .lobby>.sign,.lobby>.lobby-cards,.lobby>.zones{position:relative;z-index:1}
-.ev-d{position:absolute;display:block;opacity:.55}
-.ev-d svg{display:block;width:100%;height:100%;overflow:visible}
-.d-web{width:clamp(56px,9vw,96px);height:clamp(56px,9vw,96px);opacity:.35}
-.dw path{fill:none;stroke:var(--text-lo);stroke-width:1.2}
-.d-pk{width:clamp(30px,4vw,44px);height:clamp(28px,3.7vw,40px);opacity:.8}
-.dp .o{fill:var(--amber)}.dp .r{fill:none;stroke:var(--amber-ink);stroke-width:1.4}.dp .st{fill:none;stroke:var(--green);stroke-width:2.2;stroke-linecap:round}.dp .f{fill:var(--deep)}
-.d-bat{width:44px;height:22px;opacity:.5}.db path{fill:var(--purple-ink)}.db circle{fill:var(--amber)}
-.d-fl{width:22px;height:22px;opacity:.4}.dk path{fill:none;stroke:var(--cyan-hi);stroke-width:1.6;stroke-linecap:round}
-.d-ht{width:26px;height:24px;opacity:.45}.dh path{fill:var(--pink)}
-.d-nt{width:22px;height:28px;opacity:.45}.dn ellipse{fill:var(--yellow)}.dn path{fill:none;stroke:var(--yellow);stroke-width:2.4;stroke-linejoin:round}
-.d-fw{width:28px;height:28px;opacity:.7}.df .pt circle{fill:var(--pink-hi)}.df .c{fill:var(--yellow)}
-.d-sun{width:clamp(56px,8vw,86px);height:clamp(56px,8vw,86px);opacity:.4}.ds circle{fill:var(--amber)}.ds path{stroke:var(--amber);stroke-width:3;stroke-linecap:round}
-.d-wave{height:14px;opacity:.35}.dv path{fill:none;stroke:var(--cyan);stroke-width:2}
 /* the signs themselves: snow on top (Winter Fest), a small flower (Spring Bloom) */
 .lobby[data-deco="winter"] .zsign::before{content:"";position:absolute;left:10px;right:10px;top:-7px;height:12px;border-radius:12px 12px 6px 6px;background:var(--av-white);opacity:.8;
   box-shadow:0 2px 0 var(--cyan-hi)}
@@ -380,16 +365,6 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .lobby[data-deco="spooky"] .zsign::before{content:"";position:absolute;right:10px;bottom:6px;width:26px;height:26px;opacity:.28;
   background:linear-gradient(45deg,transparent 48%,var(--text-lo) 49% 51%,transparent 52%),linear-gradient(-45deg,transparent 48%,var(--text-lo) 49% 51%,transparent 52%),
   radial-gradient(circle,transparent 5px,var(--text-lo) 6px,transparent 7px,transparent 10px,var(--text-lo) 11px,transparent 12px)}
-@media (prefers-reduced-motion:no-preference){
-  .lobby:not(.ev-still) .ev-d.fall{animation:ev-fall 16s linear infinite}
-  .lobby:not(.ev-still) .ev-d.fall.s2{animation-duration:21s;animation-delay:-7s}
-  .lobby:not(.ev-still) .ev-d.fall.s3{animation-duration:26s;animation-delay:-15s}
-  .lobby:not(.ev-still) .ev-d.drift{animation:ev-drift 7s ease-in-out infinite}
-  .lobby:not(.ev-still) .ev-d.drift.s2{animation-duration:9s}
-  .lobby:not(.ev-still) .ev-d.drift.s3{animation-duration:11s}
-}
-@keyframes ev-fall{0%{translate:0 -40px;opacity:0}10%{opacity:.4}90%{opacity:.4}100%{translate:30px 60vh;opacity:0}}
-@keyframes ev-drift{50%{translate:0 -8px}}
 
 /* ---------- THE LEADERBOARD (leaderboard-screen.js): a full screen over the floor ---------- */
 body.lb-open{overflow:hidden}
@@ -445,3 +420,122 @@ body.lb-open{overflow:hidden}
 /* ALL-CAPS TITLES (only these): the arcade's name (the lobby sign and PRESS START) and the Leaderboard (the top bar's
    button and the leaderboard screen's heading). CSS only: the text itself (screen readers, <title>) stays as written. */
 #arcadeName,#psName,#lbBtn>span,#lbTitle{text-transform:uppercase}
+
+/* ---------- SEASONAL LOOKS (season-look.js): a themed backdrop behind the arcade's menus while a season runs ----------
+   .slook = the backdrop (behind the floor; a copy inside PRESS START and Choose Your Instrument). Everything dark, the
+   props at the edges, the middle darkened again (.sl-dim) so every sign and text on top keeps its contrast. Drifting
+   bits: transforms/opacity only, slow; html.slook-still (reduced motion or MOTION off) = all still, where they rest. */
+.slook{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+html[data-slook] .room{background:none}
+html[data-slook] body{background:transparent}           /* the root keeps the color: the backdrop (z-index -1) paints above it */
+html[data-slook] .press-start,html[data-slook] .sp-view{background:var(--deep)}
+.sl-sky,.sl-fx,.sl-dim{position:absolute;inset:0}
+.sl-dim{background:radial-gradient(ellipse 60% 55% at 50% 46%,color-mix(in srgb,var(--deep) 66%,transparent),transparent 100%)}
+.sl-p{position:absolute;display:block}
+.sl-p>svg,.sl-seg>svg{display:block;width:100%;height:100%;overflow:visible}
+/* strips along the top: fixed-shape pieces in a row (never stretched), the row cut off at the right */
+.sl-lights,.sl-bunting{display:flex;height:clamp(26px,4.6vmin,44px);overflow:hidden;opacity:.75}
+.sl-seg{flex:none;height:100%;aspect-ratio:200/44}
+.sl-x{position:absolute;top:0;width:calc(26px * var(--s,1));aspect-ratio:1;opacity:.5;will-change:transform;
+  transform:translate3d(0,calc(12vh + var(--s,1) * 46vh),0)}                         /* the resting place (still) */
+.sl-x>svg{display:block;width:100%;height:100%;overflow:visible}
+.sl-snow,.sl-petal,.sl-leaf{animation:sl-fall var(--d,20s) linear var(--dl,0s) infinite}
+.sl-heart,.sl-note{animation:sl-rise var(--d,20s) linear var(--dl,0s) infinite}
+.sl-bat{width:calc(46px * var(--s,1));aspect-ratio:2;top:6%;transform:translate3d(0,calc(var(--s,1) * 14vh),0);animation:sl-bat calc(var(--d,20s) * .6) ease-in-out var(--dl,0s) infinite alternate}
+@keyframes sl-fall{0%{transform:translate3d(0,-12vh,0) rotate(0);opacity:0}10%{opacity:.55}90%{opacity:.55}100%{transform:translate3d(5vw,108vh,0) rotate(220deg);opacity:0}}
+@keyframes sl-rise{0%{transform:translate3d(0,108vh,0);opacity:0}12%{opacity:.5}85%{opacity:.5}100%{transform:translate3d(-4vw,-10vh,0);opacity:0}}
+@keyframes sl-bat{0%{transform:translate3d(-5vw,calc(var(--s,1) * 14vh),0)}100%{transform:translate3d(5vw,calc(var(--s,1) * 14vh + 3vh),0)}}
+@keyframes sl-drift{0%{transform:translateX(0)}100%{transform:translateX(-12%)}}
+@keyframes sl-glow{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes sl-sway{0%{transform:rotate(-6deg)}100%{transform:rotate(6deg)}}
+html.slook-still .slook *{animation:none!important}
+@media (prefers-reduced-motion:reduce){ .slook *{animation:none!important} }
+
+/* SPOOKY: purple fog, a moon, bats, jack-o'-lanterns */
+.slook[data-look=spooky] .sl-sky{background:radial-gradient(40% 38% at 88% 14%,color-mix(in srgb,var(--purple) 26%,transparent),transparent 70%),
+  radial-gradient(70% 30% at 50% 100%,color-mix(in srgb,var(--purple-ink) 45%,transparent),transparent 80%),
+  linear-gradient(180deg,color-mix(in srgb,var(--purple-ink) 22%,var(--deep)),var(--deep) 70%)}
+.sl-moon .mn{fill:var(--yellow-hi);opacity:.8}.sl-moon .mc{fill:var(--yellow-ink);opacity:.35}
+.sl-moon{background:radial-gradient(circle,color-mix(in srgb,var(--yellow) 26%,transparent) 36%,transparent 70%)}
+.sl-fog .fg{fill:var(--purple-ink);opacity:.28}.sl-fog.f2 .fg{opacity:.2}
+.sl-fog{animation:sl-drift 60s ease-in-out infinite alternate}.sl-fog.f2{animation-duration:80s}
+.sl-pk .pk{fill:var(--amber);opacity:.85}.sl-pk .pr{fill:none;stroke:var(--amber-ink);stroke-width:2}.sl-pk .st{fill:none;stroke:var(--green);stroke-width:3;stroke-linecap:round}
+.sl-pk .pf{fill:var(--yellow-hi)}
+.sl-bat .bt{fill:color-mix(in srgb,var(--purple-ink) 60%,var(--deep))}.sl-bat{opacity:.75}
+
+/* WINTER FEST: a snowy night, string lights */
+.slook[data-look=winter] .sl-sky{background:radial-gradient(1.5px 1.5px at 12% 18%,var(--white) 99%,transparent),radial-gradient(1.5px 1.5px at 72% 12%,var(--white) 99%,transparent),
+  radial-gradient(1.2px 1.2px at 42% 26%,var(--white) 99%,transparent),radial-gradient(1.2px 1.2px at 88% 34%,var(--white) 99%,transparent),radial-gradient(1.2px 1.2px at 24% 40%,var(--white) 99%,transparent),
+  radial-gradient(60% 40% at 50% 0%,color-mix(in srgb,var(--blue-ink) 40%,transparent),transparent 80%),linear-gradient(180deg,color-mix(in srgb,var(--blue-ink) 26%,var(--deep)),var(--deep) 75%)}
+.sl-hills .sn{fill:var(--white);opacity:.14}.sl-hills .sn2{fill:var(--white);opacity:.1}
+.sl-lights .wr,.sl-bunting .wr{fill:none;stroke:var(--floor-3);stroke-width:1.6}
+.sl-lights .lc{fill:var(--floor-3)}
+.sl-lights .lb{opacity:.85}
+.sl-lights .l1{fill:var(--pink)}.sl-lights .l2{fill:var(--yellow)}.sl-lights .l3{fill:var(--cyan)}.sl-lights .l4{fill:var(--green)}
+/* the lights breathe a strand at a time (whole pieces: cheap to draw), slowly, never a blink */
+.sl-lights .sl-seg{animation:sl-glow 4.5s ease-in-out infinite}.sl-lights .sl-seg:nth-child(2n){animation-duration:5.6s;animation-delay:-2s}.sl-lights .sl-seg:nth-child(3n){animation-delay:-3.3s}
+.sl-snow .fk{fill:none;stroke:var(--white-hi);stroke-width:1.6;stroke-linecap:round}.sl-snow{width:calc(20px * var(--s,1))}
+.sl-snow.quiet{opacity:.35;animation-duration:calc(var(--d,20s) * 1.5)}
+
+/* FRIENDSHIP WEEK: soft hearts, pink and red */
+.slook[data-look=friendship] .sl-sky{background:radial-gradient(45% 40% at 12% 30%,color-mix(in srgb,var(--pink) 20%,transparent),transparent 70%),
+  radial-gradient(45% 40% at 88% 78%,color-mix(in srgb,var(--red) 18%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--pink-ink) 18%,var(--deep)),var(--deep) 80%)}
+.sl-bh .hto{fill:none;stroke:var(--pink);stroke-width:1;opacity:.32}.sl-bh.b2 .hto{stroke:var(--red)}
+.sl-heart .ht{fill:var(--pink)}.sl-heart:nth-child(3n) .ht{fill:var(--red)}.sl-heart:nth-child(3n+1) .ht{fill:var(--pink-hi)}
+
+/* MUSIC IN OUR SCHOOLS MONTH: floating notes, marching-band colors (red, gold, blue) */
+.slook[data-look=miosm] .sl-sky{background:radial-gradient(40% 40% at 15% 20%,color-mix(in srgb,var(--red) 18%,transparent),transparent 70%),
+  radial-gradient(40% 40% at 85% 25%,color-mix(in srgb,var(--blue) 20%,transparent),transparent 70%),radial-gradient(60% 30% at 50% 100%,color-mix(in srgb,var(--yellow) 12%,transparent),transparent 80%),var(--deep)}
+.sl-bunting .fl{opacity:.8}.sl-bunting .f1{fill:var(--red)}.sl-bunting .f2{fill:var(--yellow)}.sl-bunting .f3{fill:var(--blue)}.sl-bunting .f4{fill:var(--white)}
+.sl-drum .dh{fill:color-mix(in srgb,var(--white) 12%,var(--deep))}.sl-drum .dr{fill:none;stroke:var(--red);stroke-width:3}
+.sl-drum.d2 .dr{stroke:var(--blue)}.sl-drum{opacity:.8}
+.sl-note .nt{fill:var(--yellow)}.sl-note .ns{fill:none;stroke:var(--yellow);stroke-width:2;stroke-linejoin:round}
+.sl-note:nth-child(3n) .nt{fill:var(--red-hi,var(--red))}.sl-note:nth-child(3n) .ns{stroke:var(--red)}.sl-note:nth-child(3n+1) .nt{fill:var(--blue-hi)}.sl-note:nth-child(3n+1) .ns{stroke:var(--blue-hi)}
+
+/* SPRING BLOOM: blossoms, green */
+.slook[data-look=spring] .sl-sky{background:radial-gradient(45% 35% at 10% 8%,color-mix(in srgb,var(--pink) 18%,transparent),transparent 70%),
+  radial-gradient(45% 35% at 90% 8%,color-mix(in srgb,var(--pink) 14%,transparent),transparent 70%),radial-gradient(80% 30% at 50% 100%,color-mix(in srgb,var(--green) 18%,transparent),transparent 80%),
+  linear-gradient(180deg,var(--deep),color-mix(in srgb,var(--green-ink) 14%,var(--deep)))}
+.sl-branch{opacity:.5}.sl-branch .br{fill:none;stroke:var(--sl-boards);stroke-width:5;stroke-linecap:round}
+.sl-branch .bl circle{fill:var(--pink-hi);opacity:.85}.sl-branch .b2 circle{fill:var(--pink)}.sl-branch .bl .bc{fill:var(--yellow)}
+.sl-grass{opacity:.7}.sl-grass .gr{fill:color-mix(in srgb,var(--green-ink) 42%,var(--deep))}
+.sl-petal .pt{fill:var(--pink-hi)}.sl-petal{width:calc(14px * var(--s,1))}
+
+/* SUMMER SEND-OFF: a sunset, a beach boardwalk in neon */
+.slook[data-look=summer] .sl-sky{background:linear-gradient(180deg,color-mix(in srgb,var(--purple-ink) 30%,var(--deep)) 0,color-mix(in srgb,var(--pink-ink) 32%,var(--deep)) 52%,color-mix(in srgb,var(--amber-ink) 38%,var(--deep)) 80%,var(--deep) 90%)}
+.sl-sun .su{fill:var(--amber);opacity:.5}
+.sl-wheel .wh *{fill:none;stroke:var(--cyan);stroke-width:2.5}.sl-wheel .wh rect{fill:color-mix(in srgb,var(--pink) 60%,transparent);stroke:var(--pink)}
+.sl-wheel{opacity:.7;}
+.sl-palm .pm{fill:none;stroke:var(--deep);stroke-width:7;stroke-linecap:round}.sl-palm .pml{fill:none;stroke:var(--deep);stroke-width:6;stroke-linecap:round}
+.sl-boards .bw{fill:var(--sl-boards)}.sl-boards .bwl{fill:none;stroke:color-mix(in srgb,var(--amber) 40%,var(--deep));stroke-width:1.2}
+.sl-wave .wv{fill:none;stroke:var(--cyan);stroke-width:2;opacity:.6}
+
+/* CONCERT SEASON: stage curtains, spotlights, footlights */
+.slook[data-look=concert] .sl-sky{background:radial-gradient(60% 40% at 50% 100%,color-mix(in srgb,var(--amber) 16%,transparent),transparent 80%),linear-gradient(180deg,color-mix(in srgb,var(--sl-curtain) 30%,var(--deep)),var(--deep) 70%)}
+.sl-curtain .ct{fill:var(--sl-curtain)}.sl-curtain .cf{stroke:var(--sl-curtain-2);stroke-width:5;opacity:.7}
+.sl-valance .ct{fill:var(--sl-curtain-2)}.sl-valance .vt{stroke:var(--yellow-ink);stroke-width:2.5}
+.sl-spot{transform-origin:50% 0;background:linear-gradient(180deg,color-mix(in srgb,var(--yellow-hi) 22%,transparent),color-mix(in srgb,var(--yellow-hi) 3%,transparent));
+  clip-path:polygon(44% 0,56% 0,100% 100%,0 100%);animation:sl-sway 12s ease-in-out infinite alternate}
+.sl-spot.s2{animation-delay:-6s;animation-duration:14s}
+.sl-foot{display:flex;justify-content:space-between;padding:0 clamp(50px,11vw,170px);height:10px;bottom:3px!important}
+.sl-fls{flex:none;width:10px;height:10px;display:block}
+.sl-fl{display:block;width:10px;height:6px;margin-top:4px;border-radius:5px 5px 0 0;background:var(--yellow-hi);box-shadow:0 -4px 14px 4px color-mix(in srgb,var(--amber) 45%,transparent);opacity:.8}
+@media (max-width:700px){ .sl-fls:nth-child(2n){display:none} }
+
+/* BACK TO SCHOOL: a chalkboard, notebook doodles in neon */
+.slook[data-look=school] .sl-sky{background:repeating-linear-gradient(180deg,transparent 0 31px,color-mix(in srgb,var(--cyan) 7%,transparent) 31px 32px),
+  radial-gradient(70% 60% at 50% 40%,var(--sl-chalk-2),var(--sl-chalk) 70%,var(--deep))}
+.sl-dood .dd{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}.sl-dood .dash{stroke-dasharray:3 5}
+.sl-dood .d1{stroke:var(--yellow)}.sl-dood .d2{stroke:var(--cyan)}.sl-dood .d3{stroke:var(--pink)}.sl-dood .d4{stroke:var(--green)}
+
+/* FALL HARVEST: autumn leaves, warm amber and orange */
+.slook[data-look=harvest] .sl-sky{background:radial-gradient(50% 40% at 15% 90%,color-mix(in srgb,var(--sl-orange) 18%,transparent),transparent 70%),
+  radial-gradient(50% 40% at 85% 90%,color-mix(in srgb,var(--amber) 16%,transparent),transparent 70%),linear-gradient(180deg,var(--deep),color-mix(in srgb,var(--amber-ink) 16%,var(--deep)))}
+.sl-leaf .lf{fill:var(--sl-orange)}.sl-leaf .lv{stroke:var(--sl-orange-ink);stroke-width:1}.sl-leaf:nth-child(3n) .lf{fill:var(--amber)}.sl-leaf:nth-child(3n+1) .lf{fill:var(--red-ink)}
+.sl-wheat .wt{stroke:var(--amber-ink);stroke-width:2.5}.sl-wheat .wg{fill:var(--amber);opacity:.75}
+.sl-gourd .pk{fill:var(--sl-orange);opacity:.8}.sl-gourd.g2 .pk{fill:var(--amber)}.sl-gourd .pr{fill:none;stroke:var(--sl-orange-ink);stroke-width:2}.sl-gourd .st{fill:none;stroke:var(--green-ink);stroke-width:3;stroke-linecap:round}
+
+/* FROST: icy blues, quiet snow */
+.slook[data-look=frost] .sl-sky{background:radial-gradient(45% 40% at 8% 6%,color-mix(in srgb,var(--cyan) 16%,transparent),transparent 70%),
+  radial-gradient(45% 40% at 92% 94%,color-mix(in srgb,var(--blue) 18%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--blue-ink) 16%,var(--deep)),var(--deep))}
+.sl-crystal .cr{fill:none;stroke:var(--cyan-hi);stroke-width:1.4;stroke-linecap:round;opacity:.22}.sl-crystal.c3 .cr{opacity:.3}
