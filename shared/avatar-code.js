@@ -8,7 +8,7 @@
    "not found", never a wrong avatar), then each field of TABLE in order as an index into its list (0 = the slot's
    default, 1 = the list's first id…), in that field's number of bits.
 
-   TABLE IS THE FORMAT (like QUEST_V3 in backup.js): never reorder, rename or remove anything in it; only APPEND:
+   TABLE IS THE FORMAT (like QUEST_V1–V4 in backup.js): never reorder, rename or remove anything in it; only APPEND:
      - a new part id → the END of its field's list (each field has room for about 4 times as many as it has now)
      - a new field → the END of TABLE (older arcades read the fields they know and ignore the rest)
    A value an arcade doesn't know (a newer item, or one taken out of avatar-parts.js) decodes to that slot's default.
@@ -55,8 +55,8 @@ window.Arcade = window.Arcade || {};
     ["pet", 6, ["none", "ghost", "animatronic", "note", "star", "metronome", "cat", "penguin", "narwhal", "robot", "dragon", "owl", "boo", "snowman", "butterfly"]],
     ["back", 5, ["none", "pixelcape", "jetpack", "wings", "featherwings", "batwings"]],
     ["bg", 8, ["none", "midnight", "berry", "ocean", "grape", "ember", "sunset", "lagoon", "lime", "stripes", "dots", "staff", "checker", "starry", "thunderstorm", "hauntedhall", "bamboomoon", "inkbloom", "laservault", "lanterntemple", "comboarena", "airrink", "spotlight", "nighttrack", "deepspace", "dojonight", "pixelcastle", "neoncity", "synthwave", "aurora", "galaxyswirl", "goldrecords", "bubbles", "fireflies", "lavalamp", "confetti", "bndojo", "neonhighway", "cityskyline", "hauntedhallway", "twinklelights", "concerthall", "sunsetbeach", "drumhall"]],
-    ["hand", 5, ["none", "baton", "drumsticks", "glowstick", "mic", "wand", "trophy", "citykey", "rose", "goldbaton", "beachball"]],
-    ["effect", 6, ["none", "notes", "orbit", "aura", "sparkles", "sparks", "bubbles", "snow", "confetti", "bndiamond", "spookyglow", "snowfall", "hearts", "blossoms"]],
+    ["hand", 5, ["none", "baton", "drumsticks", "glowstick", "mic", "wand", "trophy", "citykey", "rose", "goldbaton", "beachball", "tumbler-pink", "tumbler-blue", "tumbler-lime", "tumbler-sunset", "tumbler-galaxy", "tumbler-diamond"]],
+    ["effect", 6, ["none", "notes", "orbit", "aura", "sparkles", "sparks", "bubbles", "snow", "confetti", "bndiamond", "spookyglow", "snowfall", "hearts", "blossoms", "grandmaster"]],
     ["effectColor", 5, ["cyan", "pink", "yellow", "purple", "green", "amber"]],
     ["plate", 7, ["none", "simple", "notes", "gold", "neon", "flames", "belt-white", "belt-yellow", "belt-orange", "belt-green", "belt-blue", "belt-purple", "belt-red", "belt-brown", "belt-black", "belt-diamond", "bn-white", "bn-yellow", "bn-orange", "bn-green", "bn-blue", "bn-purple", "bn-red", "bn-brown", "bn-black", "bn-diamond", "hearts", "blossom", "sunset"]],
     ["belt", 6, ["none", "white", "yellow", "orange", "green", "blue", "purple", "red", "brown", "black", "diamond"]],

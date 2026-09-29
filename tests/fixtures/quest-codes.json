@@ -1,0 +1,178 @@
+{
+ "v1": {
+  "code": "49N58-L2N3B-CPPCN-LB6K2-VJDKN",
+  "fields": {
+   "level": 7,
+   "xp": 321,
+   "tokens": 1234,
+   "items": {
+    "cork-grease": 1,
+    "metronome": 2,
+    "tuning-slide": 1,
+    "baton": 2
+   },
+   "roster": [
+    "warble",
+    "quizzle",
+    "wisp",
+    "hush",
+    "chatterbox",
+    "conductor"
+   ],
+   "flags": {
+    "songBb": true,
+    "atticOpen": true,
+    "met-mezzo": true,
+    "met-terry": true,
+    "met-twins": true,
+    "met-conductor": true
+   },
+   "done": {
+    "hall:w1": "befriend",
+    "hall:s1": "fade",
+    "library:h3": "befriend",
+    "ballroom:b2": "fade",
+    "kitchen:c1": "befriend",
+    "kitchen:w1": "befriend",
+    "stairs:c1": "befriend"
+   },
+   "world": {
+    "map": "foyer",
+    "x": 18,
+    "y": 3,
+    "dir": "up"
+   },
+   "convertedLeft": 55,
+   "charms": {
+    "owned": {},
+    "equipped": [
+     null,
+     null
+    ]
+   },
+   "cosmetics": {
+    "owned": [],
+    "worn": []
+   }
+  }
+ },
+ "v2": {
+  "code": "69N58-L2N3B-CPPCN-LB6K2-VPCJK-46AK4-32222-22HTN",
+  "fields": {
+   "level": 7,
+   "xp": 321,
+   "tokens": 1234,
+   "items": {
+    "cork-grease": 1,
+    "metronome": 2,
+    "tuning-slide": 1,
+    "baton": 2
+   },
+   "roster": [
+    "warble",
+    "quizzle",
+    "wisp",
+    "hush",
+    "chatterbox",
+    "conductor"
+   ],
+   "flags": {
+    "songBb": true,
+    "atticOpen": true,
+    "met-mezzo": true,
+    "met-terry": true,
+    "met-twins": true,
+    "met-conductor": true
+   },
+   "done": {
+    "hall:w1": "befriend",
+    "hall:s1": "fade",
+    "library:h3": "befriend",
+    "ballroom:b2": "fade",
+    "kitchen:c1": "befriend",
+    "kitchen:w1": "befriend",
+    "stairs:c1": "befriend"
+   },
+   "world": {
+    "map": "foyer",
+    "x": 18,
+    "y": 3,
+    "dir": "up"
+   },
+   "convertedLeft": 55,
+   "charms": {
+    "owned": {
+     "lucky-reed": true,
+     "silver-mute": true
+    },
+    "equipped": [
+     "lucky-reed",
+     null
+    ]
+   },
+   "cosmetics": {
+    "owned": [
+     "eyes:stars",
+     "mouth:whistle",
+     "hairColor:flametip",
+     "head:royalcrown",
+     "top:champion",
+     "pet:note",
+     "back:jetpack",
+     "bg:lavalamp"
+    ],
+    "worn": [
+     "mouth:whistle"
+    ]
+   }
+  }
+ },
+ "v3": {
+  "code": "8ET2Z-9A224-22J22-22232-NA2AA-22423-2J722-2A224-22GA7",
+  "fields": {
+   "level": 12,
+   "xp": 400,
+   "tokens": 999,
+   "items": {
+    "valve-oil": 2
+   },
+   "roster": [
+    "squawk"
+   ],
+   "flags": {
+    "songBb": true
+   },
+   "done": {},
+   "world": {
+    "map": "foyer",
+    "x": 18,
+    "y": 3,
+    "dir": "up"
+   },
+   "convertedLeft": 40,
+   "charms": {
+    "owned": {
+     "golden-mouthpiece": true
+    },
+    "equipped": [
+     "golden-mouthpiece",
+     null
+    ]
+   },
+   "cosmetics": {
+    "owned": [
+     "eyes:hearts",
+     "pet:ghost",
+     "bg:confetti",
+     "hand:wand",
+     "plate:flames"
+    ],
+    "worn": [
+     "eyes:hearts",
+     "pet:ghost",
+     "hand:wand"
+    ]
+   }
+  }
+ }
+}

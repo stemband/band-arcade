@@ -137,7 +137,7 @@
       const p = Q.el('div', 'q-overlay');
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
         `<label class="q-small" for="qCodeIn">45 letters and numbers (older codes: 40 or 25). Spaces and dashes don't matter.</label>` +
-        `<input id="qCodeIn" class="q-codein" type="text" maxlength="66" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="90" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
         `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button><button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
@@ -234,7 +234,8 @@
         msg.textContent = r.msg; msg.className = 'q-codemsg ' + (r.ok ? 'q-good' : 'q-bad');
         if (!r.ok) { Q.sfx('note-wrong'); return; }
         if (r.again) return;
-        const keys = A.Avatar.items().filter(it => it.unlock.bandninja === r.belt).map(it => it.key);
+        // this belt's gear, and the LEGENDARY Grandmaster's Aura when this was the last of the 10 codes
+        const keys = A.Avatar.items().filter(it => it.unlock.bandninja === r.belt || (it.unlock.bandninja === 'all' && BN.hasAll && BN.hasAll())).map(it => it.key);
         inp.value = '';
         if (A.Skins && A.Skins.catchUp) {                   // the arcade's own UNLOCKED! card (+ item-unlocked)
           p.hidden = true;

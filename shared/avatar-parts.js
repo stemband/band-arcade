@@ -645,6 +645,8 @@ window.AVATAR_PARTS = {};
        {game, perfect: 8, text}             3 ★ on every level 1–8 of that game (any instrument, any mode's key)
        {game, endless: 10, text}            an Endless run of that game reached 10 notes (store.endless + gameData('endless-best'))
        {game, wins: 10, text}               matches won on this device (Neon Face-Off, Dojo Duel: shared/skins.js WINS)
+       {bandninja: 'diamond', text}         OFFICIAL BAND NINJA GEAR: that belt's code from class, entered at the Token Booth
+       {bandninja: 'all', text}             LEGENDARY: all 10 belt codes (Arcade.BandNinja.hasAll()); give it legendary: true
        {shop: 250}                          bought for 250 Arcade Tokens at Arcade Quest's Token Booth (owned forever)
      IDENTITY ITEMS ARE ALWAYS FREE AND CAN NEVER BE LOCKED (avatar.js enforces it, whatever a rule says): no head
      covering at all, the hijab, headwrap, turban, patka, kufi, headscarf (tichel) and durag, hearing aids, the wheelchair
@@ -659,9 +661,10 @@ window.AVATAR_PARTS = {};
      HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, SHOES, PETS, BACKS, HANDS, EFFECTS or PLATES) with a new id
      and a name, draw its maps like the parts above, and give it an `unlock` rule (or none: free). An UNLOCKED! card
      shows the first time a student has earned it (results screens and Select Player), and old progress counts.
-     A {shop} item: add '<field>:<id>' (e.g. 'pet:penguin') to the END of QUEST_V3.cosmetics in shared/backup.js so
-     save codes carry it (2 places left; after that the code needs a version 4), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
+     A {shop} item: add '<field>:<id>' (e.g. 'pet:penguin') to the END of QUEST_V4.cosmetics in shared/backup.js so
+     save codes carry it (QUEST CODE v4: room for 88 in all), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
      A {shop} item appears on the Token Booth's PLAYER ITEMS shelf by itself (keep prices 50–500).
+     (QUEST_V4 in shared/backup.js has room for 40 more; a new {shop} item goes at the END of QUEST_V4.cosmetics.)
      ===================================================================================================================== */
   const recolor = (map, from, to) => map && Object.assign({}, map, map.half ? {half: map.half.map(r => r.replace(from, to))} : {rows: map.rows.map(r => r.replace(from, to))});
   const deep = o => JSON.parse(JSON.stringify(o));
@@ -1043,6 +1046,12 @@ window.AVATAR_PARTS = {};
   bngi.front = setPx(bngi.front, [[13, 15, 'G']]);
   P.TOPS.push(bngi);
   P.EFFECTS.push({id: 'bndiamond', name: 'Diamond Aura', official: true, unlock: bnRule('diamond')});
+  /* THE LEGENDARY ITEM: all 10 belt codes (white through diamond) entered at the Token Booth. The rarest thing in the
+     arcade: never sold, never an UNLOCK rule of stars or wins. `legendary: true` = the gold/diamond LEGENDARY frame on
+     its Locker / Create Your Player tile and its own LEGENDARY UNLOCKED! card (shared/skins.js). Drawn by
+     shared/avatar-fx.js (FX.grandmaster). */
+  P.EFFECTS.push({id: 'grandmaster', name: "Grandmaster's Aura", official: true, legendary: true,
+    unlock: {bandninja: 'all', text: 'Enter all 10 Band Ninja belt codes at the Token Booth'}});
   P.BGS.push({id: 'bndojo', name: 'Diamond Dojo', kind: 'scene', scene: 'diamond-dojo', lift: 1.8, main: 'blue-ink', official: true, unlock: bnRule('diamond')});
 
   /* =====================================================================================================================
@@ -1182,6 +1191,53 @@ window.AVATAR_PARTS = {};
          const q = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * 6) % 6;
          a.px(x, y, dx * dx + dy * dy < 1.5 ? 'J' : ['I', 'J', 'L', 'J', 'M', 'J'][q]);
        } }});
+
+  /* =====================================================================================================================
+     TUMBLERS (HAND items): a big insulated travel cup with a lid, a straw and a handle, held in the hand at the bust's
+     right (x 29–30, rows 21–22). GENERIC: no brand, logo or wordmark, and not any brand's shape (a straight-sided cup,
+     not a tapered one; a plain round-cornered handle). Readable at chip size: a solid body, a dark lid, a straw that
+     sticks up, and the handle on the side facing OUT (the right). Letters (hand items use I J L M):
+       I the body   J its light stripe (or the second color)   L the lid and the straw   M an accent (bottom band, sparkles)
+     ===================================================================================================================== */
+  const TUMBLER = {x0: 27, x1: 31, top: 13, bottom: 20};           // the body: 5 wide, 8 tall
+  /** one tumbler: body(y) = the letter of that row's body (an ombré changes by row); stripe = the light stripe's letter */
+  function tumbler(a, {body = () => 'I', stripe = 'J', band = 'M'} = {}) {
+    const T = TUMBLER;
+    a.line(31, 11, 32.5, 7, 'L');                                    // the straw, leaning out a little
+    a.line(T.x0, 12, T.x1, 12, 'L').line(T.x0 + 1, 11, T.x1 - 1, 11, 'L');   // the lid (a dome)
+    for (let y = T.top; y <= T.bottom; y++) a.line(T.x0, y, T.x1, y, body(y));
+    if (stripe) a.line(T.x0 + 1, T.top + 1, T.x0 + 1, T.bottom - 2, stripe); // the light catching one side
+    if (band) a.line(T.x0, T.bottom, T.x1, T.bottom, band);           // a darker foot
+    a.line(32, 14, 33, 14, 'I').line(33, 15, 33, 17, 'I').line(32, 18, 33, 18, 'I');   // the handle, facing out
+  }
+  const TUMBLER_NOTE = 'A big insulated tumbler with a straw';
+  P.HANDS.push(
+    {id: 'tumbler-pink', name: 'Neon Pink Tumbler', unlock: {shop: 150}, pal: {I: 'pink', J: 'pink-hi', L: 'av-black', M: 'pink-ink'}, note: TUMBLER_NOTE,
+     bust(a) { tumbler(a); }},
+    {id: 'tumbler-blue', name: 'Arctic Blue Tumbler', unlock: {shop: 150}, pal: {I: 'cyan', J: 'cyan-hi', L: 'av-black', M: 'cyan-ink'}, note: TUMBLER_NOTE,
+     bust(a) { tumbler(a); }},
+    {id: 'tumbler-lime', name: 'Lime Tumbler', unlock: {shop: 150}, pal: {I: 'green', J: 'green-hi', L: 'av-black', M: 'green-ink'}, note: TUMBLER_NOTE,
+     bust(a) { tumbler(a); }},
+    // an ombré: pink at the top, orange in the middle, yellow at the foot (whole rows: crisp at every size)
+    {id: 'tumbler-sunset', name: 'Sunset Ombré Tumbler', unlock: {stars: 250}, pal: {I: 'pink', J: 'amber', L: 'av-black', M: 'yellow'}, note: TUMBLER_NOTE,
+     bust(a) { tumbler(a, {body: y => y <= 15 ? 'I' : y <= 17 ? 'J' : 'M', stripe: null, band: null}); }},
+    // the galaxy: a deep purple cup with a lighter swirl and a few tiny stars that fade in and out slowly (one moves
+    // per frame, 4 frames at 4 fps: never a blink over a big area)
+    {id: 'tumbler-galaxy', name: 'Galaxy Tumbler', unlock: {shop: 400}, pal: {I: 'purple-ink', J: 'purple', L: 'av-black', M: 'white-hi'}, anim: {sparkle: true}, note: TUMBLER_NOTE,
+     bust(a, f = 0) {
+       tumbler(a, {stripe: null, band: null});
+       [[28, 14], [29, 15], [30, 16], [29, 17], [28, 18]].forEach(([x, y]) => a.px(x, y, 'J'));      // the swirl
+       [[[30, 14], [28, 19]], [[28, 16], [31, 18]], [[31, 15], [29, 19]], [[27, 17], [30, 13]]][f % 4].forEach(([x, y]) => a.px(x, y, 'M'));
+     }},
+    // OFFICIAL BAND NINJA GEAR (the Diamond belt code): white with diamond-blue facets; one facet catches the light
+    // once a second (a gentle color change on a few pixels)
+    {id: 'tumbler-diamond', name: 'Diamond Tumbler', official: true, unlock: bnRule('diamond'), note: TUMBLER_NOTE,
+     pal: {I: 'white-hi', J: 'bn-diamond', L: 'bn-diamond-d', M: 'bn-diamond'}, anim: {pal: {M: ['bn-diamond', 'bn-diamond', 'white-hi', 'bn-diamond']}},
+     bust(a) {
+       tumbler(a, {stripe: null, band: 'J'});
+       [[28, 14], [30, 14], [29, 16], [28, 18], [30, 18]].forEach(([x, y]) => a.px(x, y, 'J'));      // the facets
+       a.px(29, 15, 'M').px(29, 17, 'M');
+     }});
 
   // ---- PETS (their own colors) ----
   P.PETS.push(

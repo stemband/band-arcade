@@ -88,6 +88,9 @@ body.avc-open{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.avc-opt,.avc-tab{transition:none}}
 /* locked items (unlocks: avatar-parts.js): a dark silhouette, a lock and what earns it */
 .avc-opt.avc-locked{border-style:dashed;border-color:var(--text-lo);cursor:help}
+/* the LEGENDARY item (the Grandmaster's Aura): a gold frame with a diamond edge, locked or not */
+.avc-opt.avc-legend,.avc-opt.avc-legend.avc-locked{border:3px solid var(--bn-gold);box-shadow:0 0 0 2px var(--bn-diamond),0 0 12px color-mix(in srgb,var(--bn-gold) 65%,transparent)}
+.avc-opt.avc-legend[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bn-diamond),0 0 0 5px var(--yellow),var(--glow-yellow)}
 .avc-opt.avc-locked .avc-th img,.avc-opt.avc-locked .avc-sw{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
 .avc-opt.avc-locked .avc-lbl{color:var(--text-lo)}
 .avc-lock{position:absolute;top:3px;right:5px;font-size:13px;line-height:1}

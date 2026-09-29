@@ -103,7 +103,7 @@ keys-to-the-city/     Piano keys and the staff in a neon city: find keys, name t
   levels.js           THE CITY MAP (9 districts), rules, Night Shift (endless). Edit here; never reorder (stars = district number)
   quiz.js             The music model (spelling, key signatures) and the round maker
   game.js             The skyline keyboard, the Chopsticks and Fork signs, the staff, the Mayor, instrument mode, results
-rhythm-dojo/          Rhythm reading: read the rhythm and Mr. Graham's counting, then clap it, tap it or play it on a snare
+rhythm-dojo/          Rhythm reading: read the rhythm and Mr. Graham's counting, then tap it, clap it or play it on a snare
   levels.js           The 11 levels (the rhythms each round is built from), judging windows, stars, the Dojo Marathon. Edit here
   game.js             Hear it, perform (count-in, playhead, pulse light), judging, the colored feedback, timing check, marathon
   examples.js         The Counting Board's 49 examples (each with the counting it must show: the tests check them)

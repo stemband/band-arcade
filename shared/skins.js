@@ -327,9 +327,13 @@ window.Arcade = window.Arcade || {};
       const m = member && A.memberById ? A.memberById(member) : null;
       const itemPic = it => it.field === 'plate' ? `<span class="sk-u-plate"><span class="av-plate av-plate-${it.id}">${A.Avatar.nameOf(A.Avatar.get()).split(' ').slice(-1)[0]}</span></span>`
         : A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
-      return `<div class="sk-unlock" role="status"><p class="sk-u-title ui-section">Unlocked!</p><div class="sk-u-list">` + list.map(s => s.item ?
-        `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
-        (s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.event ? eventLine(s.item) : s.item.unlock.text || ''}</small>`) +
+      // a LEGENDARY item (avatar-parts.js legendary: true: the Grandmaster's Aura) turns the whole card gold and diamond
+      const legend = list.some(s => s.item && s.item.legendary);
+      return `<div class="sk-unlock${legend ? ' sk-legendary' : ''}" role="status"><p class="sk-u-title ui-section">${legend ? 'Legendary!' : 'Unlocked!'}</p><div class="sk-u-list">` + list.map(s => s.item ?
+        `<div class="sk-u-item sk-u-av${s.item.legendary ? ' sk-u-legend' : ''}"><span class="sk-u-pic">${itemPic(s.item)}</span>` +
+        (s.item.legendary ? `<span class="sk-u-badge">Legendary</span>` : '') + `<b class="sk-u-name">${s.item.name}</b>` +
+        (s.item.legendary ? `<small>All 10 Band Ninja belt codes. The rarest item in the arcade!</small>`
+          : s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.event ? eventLine(s.item) : s.item.unlock.shop ? 'Token Booth' : s.item.unlock.text || ''}</small>`) +
         `<button type="button" class="btn btn-primary btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
         `<div class="sk-u-item"><span class="sk-u-pic">${pic(s)}</span><b class="sk-u-name">${s.name}</b>` +
         `<small>${s.kind === 'acc' ? 'Accessory' : 'Skin'}${milestone(s) ? (m ? ` for ${m.short}` : '') : ' for every instrument'} · ${milestone(s) ? `${s.unlock.stars} ★` : s.unlock.text}</small>` +

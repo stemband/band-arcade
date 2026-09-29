@@ -228,10 +228,10 @@ window.Arcade.GAMES = [
     bg: {scene: 'taiko', dim: .4, focus: .35},
     menuMusic: 'rhythm-dojo-menu',
     skill: 'Rhythm reading',
-    blurb: 'Read the rhythm and its counting, then clap it, tap it or play it on your snare. The counting fades as you earn your belts. No instrument needed!',
+    blurb: 'Read the rhythm and its counting, then tap it, clap it or play it on your snare. The counting fades as you earn your belts. No instrument needed!',
     maxStars: 33,                                    // 11 levels × 3 (rhythm-dojo/levels.js)
     color: 'pink',
-    player: 'all',                                   // no instrument needed: clap, tap or snare
+    player: 'all',                                   // no instrument needed: tap, clap or snare
     unpitched: true,
     marquee: {scene: 'taiko', colors: ['pink', 'amber', 'dd-night']},
     cabinet: {shape: 'taiko', trim: 'pink', trim2: 'amber', marquee: 'taiko', screen: 'taiko'},

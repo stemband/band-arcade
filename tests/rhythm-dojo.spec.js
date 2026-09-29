@@ -10,6 +10,36 @@ const CALIB = {gameData: {'rhythm-dojo': {calib: {clap: {ms: 0}, tap: {ms: 0}}}}
 const store = browser => device('trumpet', Object.assign({}, CALIB, browser === 'webkit' ? {sfx: false} : {}));
 
 test.describe('rhythm dojo', () => {
+  test('a fresh device opens in TAP mode (first and pressed in the markup) and never asks for the microphone', async ({page, browserName}) => {
+    // no Rhythm Dojo choices saved yet (and no timing check): count every microphone request
+    const watch = await prepare(page, {store: device('trumpet', browserName === 'webkit' ? {sfx: false} : {})});
+    await page.addInitScript(() => {
+      window.__micAsks = 0;
+      const count = function () { window.__micAsks++; return Promise.reject(new DOMException('No microphone in the tests', 'NotFoundError')); };
+      const put = o => { try { Object.defineProperty(o, 'getUserMedia', {value: count, configurable: true, writable: true}); } catch (e) { /* not ours */ } };
+      if (window.MediaDevices) put(MediaDevices.prototype);
+      if (navigator.mediaDevices) put(navigator.mediaDevices);
+    });
+    // the page as served (before any script runs): TAP first and already pressed, so CLAP never flashes selected
+    const html = await (await page.request.get('rhythm-dojo/index.html')).text();
+    const seg = /<div[^>]*id="modeSeg"[^>]*>([\s\S]*?)<\/div>/.exec(html)[1];
+    const btns = [...seg.matchAll(/data-mode="(\w+)" aria-pressed="(\w+)"/g)].map(m => [m[1], m[2]]);
+    expect(btns).toEqual([['tap', 'true'], ['clap', 'false'], ['snare', 'false']]);
+    await page.goto('rhythm-dojo/index.html?demo&nostart');
+    expect(await page.evaluate(() => Arcade.RhythmDojo.state().mode)).toBe('tap');
+    await expect(page.locator('#modeSeg [data-mode=tap]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#optNote')).toContainText('Tap the big drum pad or press Space on each note.');
+    // START on Level 1: the first-time timing check is the TAP one; no microphone reminder, no request
+    await page.locator('.ls-card:not(.ls-endless)').first().click();
+    await page.locator('.ls-start').click();
+    await expect(page.locator('#calPanel')).toBeVisible();
+    expect(await page.evaluate(() => !!(Arcade.requireMic.showing && Arcade.requireMic.showing()))).toBe(false);
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => [window.__micAsks, !!Arcade.Pitch.active])).toEqual([0, false]);
+    expect(await page.evaluate(() => (Arcade.store.gameData('rhythm-dojo') || {}).mode || null)).toBeNull();   // nothing chosen: nothing saved
+    watch.check();
+  });
+
   test('the Counting Board: every example matches the counting rule', async ({page}) => {
     const watch = await prepare(page);
     await page.goto('rhythm-dojo/counting.html');

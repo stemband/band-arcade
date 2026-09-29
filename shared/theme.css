@@ -347,6 +347,13 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-u-name{font-family:var(--display);font-weight:400;font-size:17px;text-transform:uppercase;color:var(--text-hi)}
 .sk-u-item small{font-size:12.5px;line-height:1.25;color:var(--text-lo)}
 .sk-u-equip{margin-top:4px}
+/* LEGENDARY (the Grandmaster's Aura): a gold card with a diamond edge; the item's picture in a gold-and-diamond frame.
+   Still: no blinking, no moving shine (nothing may flash) */
+.sk-unlock.sk-legendary{border-color:var(--bn-gold);box-shadow:0 0 0 2px var(--bn-diamond),0 0 18px var(--bn-gold),0 0 30px color-mix(in srgb,var(--bn-diamond) 45%,transparent)}
+.sk-legendary .sk-u-title{color:var(--bn-gold);text-shadow:0 0 8px var(--bn-gold),0 0 18px var(--bn-diamond)}
+.sk-u-legend .sk-u-pic{border:3px solid var(--bn-gold);box-shadow:inset 0 0 0 2px var(--bn-diamond),0 0 14px var(--bn-gold)}
+.sk-u-badge,.lk-legend-tag,.avc-legend-tag{display:inline-block;padding:1px 8px;border-radius:999px;background:linear-gradient(90deg,var(--bn-gold),var(--bn-diamond));
+  color:var(--deep);font:700 11px var(--text);letter-spacing:.08em;text-transform:uppercase}
 .sk-u-foot{margin:8px 0 0!important;font-size:14px}
 .sk-swatch{display:block;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,var(--sk1),transparent 70%)}
 .sk-catchup,.overlay.sk-tall{align-items:start;overflow-y:auto}

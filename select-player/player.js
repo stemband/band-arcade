@@ -287,7 +287,7 @@
     outfit: [{field: 'top', label: 'Tops', list: () => earned('top', P.TOPS)}, {field: 'shoes', label: 'Shoes', note: 'in Arcade Quest and the full-body picture', list: () => P.SHOES},
              {field: 'hairColor', label: 'Hair colors', list: () => P.HAIR_COLORS}],
     hats: [{field: 'head', label: 'Hats and head coverings', list: () => P.HEADS}],
-    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'hand', label: 'Held item', list: () => P.HANDS || []}, {field: 'back', label: 'On your back', list: () => P.BACKS},
+    extras: [{skin: 'acc', label: 'Accessory', note: 'worn with this instrument'}, {field: 'hand', label: 'Held item', list: () => earned('hand', P.HANDS || [])}, {field: 'back', label: 'On your back', list: () => P.BACKS},
              {field: 'belt', label: 'Band Ninja belts', note: 'official Band Ninja gear: earned in class', list: () => { const l = earned('belt', P.BN_BELTS || []); return l.length > 1 ? l : []; }},
              {field: 'plate', label: 'Name plates', note: 'around your name on results and score lists', list: () => earned('plate', P.PLATES || [])},
              {field: 'eyes', label: 'Expressions: eyes', list: () => P.EYES}, {field: 'mouth', label: 'Expressions: mouth', list: () => P.MOUTHS}],
@@ -312,10 +312,11 @@
     $('lkTab-' + lkTab).focus();
   }
   const LOCK = '<svg class="lk-lock" viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="10" width="14" height="12" rx="2"/><path d="M6.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none"/></svg>';
-  function lkButton({attrs, name, open, pressed, need, prog, pic}) {
-    return `<button type="button" class="sk-opt${open ? '' : ' locked'}" ${attrs} aria-pressed="${pressed}"` +
-      ` aria-label="${name}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
+  function lkButton({attrs, name, open, pressed, need, prog, pic, legend}) {
+    return `<button type="button" class="sk-opt${open ? '' : ' locked'}${legend ? ' sk-legend' : ''}" ${attrs} aria-pressed="${pressed}"` +
+      ` aria-label="${name}${legend ? ', legendary' : ''}${open ? (pressed ? ', wearing' : '') : ', locked. ' + need}"${open ? '' : ' aria-disabled="true"'}>` +
       `<span class="sk-o-pic" aria-hidden="true">${pic}${open ? '' : LOCK}</span>` +
+      (legend ? '<span class="lk-legend-tag" aria-hidden="true">Legendary</span>' : '') +
       `<b>${name}</b>${open ? '' : `<small>${need}${prog ? `<br>${prog}` : ''}</small>`}</button>`;
   }
   /** an item's picture in the LOCKER: your avatar wearing it; a name plate: its frame around your name; shoes: your full body */
@@ -349,7 +350,7 @@
           const dim = ['bg', 'effect', 'plate'].includes(g.field) ? ' data-lk-bg="1"' : '';          // a locked one: its dimmed picture, not a silhouette
           return lkButton({attrs: `data-field="${g.field}" data-item="${p.id}"${dim}`, name: p.name, open, pressed: av[g.field] === p.id,
             need: open ? '' : AV.requirement(g.field, p.id), prog: open ? '' : AV.progress(g.field, p.id),
-            pic: lkPic(g.field, p.id, id, av)});
+            pic: lkPic(g.field, p.id, id, av), legend: !!p.legendary});
         }).join('');
       }
       return `<h3 class="lk-sub" id="lkG${gi}">${g.label}${g.note ? ` <small>(${g.note})</small>` : ''}</h3><div class="lk-grid" role="group" aria-labelledby="lkG${gi}">${html}</div>`;
