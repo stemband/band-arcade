@@ -93,7 +93,9 @@ const STEPS = {
   // through the real judging) instead of key presses; calibrated already, so the first song doesn't ask for it
   // WebKit on a test machine with no sound card says its audio is running but its clock never moves, so there the song
   // plays with SOUND OFF (the game then runs on its performance.now() clock, as on a muted iPad)
+  // (the first song of a play session always starts with the timing check: this run counts as already checked)
   'music-highway': {store: browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}), limit: 120_000,
+    setup: page => page.evaluate(() => { Arcade.session.mark('mh-calibrated-speaker'); Arcade.session.mark('mh-calibrated-headphones'); }),
     play: async page => { await page.evaluate(() => { const H = Arcade.Highway; if (!window.__auto && H.state().phase !== 'menu') { window.__auto = true; H.autoPlay(0); } }); await page.waitForTimeout(400); }},
   // Rhythm Dojo judges timing too: TAP mode (no microphone), calibrated already, every rhythm performed on time by the
   // game's own autoPlay hook (through the real judging); NEXT between rhythms. WebKit: SOUND OFF (see Music Highway).

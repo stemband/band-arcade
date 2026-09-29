@@ -44,6 +44,12 @@
   const mode = () => hp ? 'headphones' : 'speaker';
   const lagMs = () => { const c = (gd().calib || {})[mode()]; return c && typeof c.ms === 'number' ? c.ms : R.defaultLagMs; };
   const calibrated = () => !!((gd().calib || {})[mode()]);
+  /* ONCE PER PLAY SESSION (Arcade.session, shared/version.js): the first song of every play session starts with the
+     timing check even when this device calibrated before (a different room, other headphones, a moved iPad…); after
+     that, only a device that has never calibrated is asked again, until the page is reloaded. Speaker and headphones
+     mode each have their own. CALIBRATE / RECALIBRATE works any time. */
+  const sessionCal = () => 'mh-calibrated-' + mode();
+  const needCal = () => !calibrated() || !(A.session && A.session.has(sessionCal()));
 
   /* ---------- unlocks: tier 2 after stars on 3 tier-1 songs, tier 3 after stars on 3 tier-2 songs ---------- */
   const starsOf = i => A.store.level(GAME_ID, member.id, i + 1).stars || 0;
@@ -68,7 +74,7 @@
     $('optNote').textContent = (playMode === 'practice' ? 'Practice: hear every note played for you. The microphone stays off: no score, no stars. ' : '') +
       (speed === 'slow' ? 'Slow: 75% speed, for practice. No stars. ' : speed === 'turbo' ? 'Turbo: 125% speed! Stars count, and a star earns the ⚡ TURBO badge. ' : '') + (wide ? 'Wide note spacing: more room between the lights (they move a little faster). ' : '') + (names ? '' : 'Letter names are off inside the lights (the gates still show them). ')  +
       (hp ? 'Headphones mode: the band plays the melody, bass and chords too. Bluetooth headphones add a delay: recalibrate with them on. ' : '') +
-      (c ? `Timing calibrated (${Math.round(c.ms)} ms${hp ? ', headphones' : ''}).` : 'Not calibrated yet: the first song starts with a quick timing check.');
+      (c ? `Timing calibrated (${Math.round(c.ms)} ms${hp ? ', headphones' : ''}).` + (needCal() ? ' The first song starts with a quick timing check.' : '') : 'Not calibrated yet: the first song starts with a quick timing check.');
     $('calBtn').textContent = c ? 'Recalibrate' : 'Calibrate';
   }
   const setSpeed = k => { speed = k; save({speed}); A.Sfx.event('ui-toggle'); drawOpts(); showHub(); };
@@ -140,7 +146,11 @@
     if (guide) return startSong(i, Object.assign({}, opts, {guide: true}));   // PRACTICE: never asks for the microphone
     A.requireMic(() => {
       const go = () => startSong(i, opts);
-      const cal = () => calibrated() ? go() : calibrate(ok => go(), {first: true});
+      const cal = () => {
+        if (!needCal()) return go();
+        const key = sessionCal();
+        calibrate(ok => { if (A.session) A.session.mark(key); go(); }, {first: true});   // done or skipped: once this session
+      };
       if (hp && !hpChecked) speakerCheck(ok => { if (!ok) { hp = false; save({hp}); drawOpts(); } else hpChecked = true; cal(); });
       else cal();
     });
@@ -829,7 +839,7 @@
     $('calSay').textContent = '';
     $('calGo').hidden = false; $('calGo').textContent = 'Start'; $('calSkip').textContent = first ? 'Skip for now' : 'Cancel';
     P.hidden = false;
-    const close = ok => { P.hidden = true; calRun = null; A.Pitch.demoAttacks = false; A.Sfx.gameMenuMusic(GAME_ID); done && done(ok); };
+    const close = ok => { P.hidden = true; calRun = null; A.Pitch.demoAttacks = false; if (ok && A.session) A.session.mark(sessionCal()); A.Sfx.gameMenuMusic(GAME_ID); done && done(ok); };
     $('calSkip').onclick = () => { if (calRun && calRun.timer) clearInterval(calRun.timer); if (calRun && calRun.kit) calRun.kit.stopAll(); close(false); };
     $('calGo').onclick = () => {
       $('calGo').hidden = true;

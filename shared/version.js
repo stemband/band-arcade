@@ -26,6 +26,30 @@ window.Arcade.VERSION = 'dev';
   // the site's root folder, from this file's own address (…/shared/version.js?t=…)
   const me = document.currentScript && document.currentScript.src;
   A.ROOT = me ? me.replace(/shared\/version\.js(\?.*)?$/, '') : '';
+  /** THE PLAY SESSION: things that happen once per play session (the "Turn on the microphone" reminder, Music
+      Highway's first-song timing check). A session = from opening the arcade until the tab is closed or a page is
+      RELOADED. The flags live in memory on Arcade.session; since every game is its own page, they're handed to the
+      next page of the same tab through window.name (never localStorage/sessionStorage: nothing is stored, and it goes
+      with the tab). A reload (the browser's reload, or pull-to-refresh) starts a new session. */
+  A.session = (function () {
+    const KEY = 'bandarcade-session:';
+    let data = {};
+    try {
+      const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+      const reload = nav ? nav.type === 'reload' : !!(performance.navigation && performance.navigation.type === 1);
+      if (!reload && typeof window.name === 'string' && window.name.indexOf(KEY) === 0) data = JSON.parse(window.name.slice(KEY.length)) || {};
+    } catch (e) { data = {}; }
+    const keep = () => { try { window.name = KEY + JSON.stringify(data); } catch (e) {} };
+    keep();
+    return {
+      /** has this happened yet in this play session? */
+      has: k => !!data[k],
+      /** mark it as done for the rest of the play session */
+      mark(k) { data[k] = 1; keep(); },
+      /** tests: forget everything (as a reload does) */
+      reset() { data = {}; keep(); },
+    };
+  })();
   /** a file address with this version added (unchanged in 'dev'), for files loaded by code. It's the version the
       PAGE was deployed with (its checkVersion line), so everything a page loads belongs to one version, even when an
       old page is kept (offline, or a reload that didn't help). */

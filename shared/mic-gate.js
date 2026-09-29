@@ -38,6 +38,7 @@ window.Arcade = window.Arcade || {};
     } catch (e) {
       if (A.DEMO) { A.Pitch.demoReady = true; finish(); return; }
       box.hidden = false;
+      el.hidden = false;                          // (shown even when the reminder was skipped: the error always shows)
       const name = e && e.name;
       if (name === 'Insecure') {
         box.innerHTML = 'This page has to be opened from its <b>https://</b> link to use the microphone. Ask your director for the game link.';
@@ -56,12 +57,21 @@ window.Arcade = window.Arcade || {};
     }
   }
 
+  /* ONCE PER PLAY SESSION (Arcade.session, shared/version.js): the reminder screen shows before the first game that
+     listens; after that the microphone starts straight from the tap. Only the REMINDER is skipped: the browser still
+     asks for permission when it's missing, and if the microphone doesn't start (denied, none, blocked) this screen
+     shows with its fix-it steps as always. */
+  const SEEN = 'mic-reminder';
   A.requireMic = function (fn) {
     if (A.Pitch.active || A.Pitch.demoReady) return fn();
     if (!el) build();
     pending = fn;
     el.querySelector('.err').hidden = true;
+    if (A.session && A.session.has(SEEN)) { go(); return; }   // no reminder: start the mic in this same tap
+    if (A.session) A.session.mark(SEEN);
     el.hidden = false;
     el.querySelector('[data-act="go"]').focus();
   };
+  /** tests: is the reminder screen showing? */
+  A.requireMic.showing = () => !!el && !el.hidden;
 })(window.Arcade);
