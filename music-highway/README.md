@@ -28,7 +28,7 @@ reorder or remove songs. Add new ones at the end.**
   tier: 1,                       // 1 = degrees 1–5 only (first-five octave) · 2 = whole scale · 3 = wider range, minor, accidentals, syncopation
   tempo: 100,                    // quarter notes per minute
   timeSig: [4, 4],               // [4, 4] | [3, 4] | [2, 4]
-  key: 'Bb',                     // the CONCERT major key (its key signature); 'Bb' for every song so far
+  key: 'Bb',                     // the CONCERT major key (its key signature): 'Bb' (trumpet in C) or 'Eb' (trumpet in F)
   mode: 'minor',                 // optional: degree 1 = the key's relative minor (in B♭: G minor)
   style: 'rock',                 // drum groove: 'rock' | 'march' | 'swing' | 'waltz'
   sticking: 'RLRL RRLL …',        // optional, the snare: one R/L per note (left out = the student's ALTERNATE / DOWNBEATS RIGHT)
@@ -37,6 +37,7 @@ reorder or remove songs. Add new ones at the end.**
     {deg: 3, oct: 0, beats: 1},            // a scale degree 1–7 of the key (or of the minor)
     {deg: 4, oct: 0, beats: 0.5, acc: 1},  // acc: +1 raised a half step (♯ or ♮), -1 lowered
     {rest: 2},                             // a rest, in beats
+    {deg: 5, oct: 0, beats: 2, tie: true}, // tie: held on into the NEXT note (the same degree/octave/acc)
   ],
 }
 ```
@@ -47,9 +48,12 @@ reorder or remove songs. Add new ones at the end.**
 - **acc** (optional): +1 / −1 half step. The engine spells it in each instrument's written key (a raised 4th in concert
   B♭ is E♮ for flute, F♯ for trumpet).
 - **{rest: beats}**: silence.
+- **tie** (optional): this note and the next one (the same note) sound as ONE held note in the game (one pad, one
+  longer trail); each side still counts toward its own measure in the bar check, and the staff draws the tie.
 
 In songs.js the notes are typed as short NOTE TEXT (`N('3 3 4 5 | 5 4 3 2')`: `5,` = an octave lower, `1'` = higher,
-`#4` / `b7` = raised / lowered, `:2` = two beats, `r:2` = a two-beat rest, `|` = a bar line that is CHECKED: a
+`#4` / `b7` = raised / lowered, `:2` = two beats, `r:2` = a two-beat rest, `5:2~` = TIED into the next note (`5:2~ | 5` = one
+three-beat note across the bar line; the next note must be the same note, or the check reports it), `|` = a bar line that is CHECKED: a
 measure that doesn't add up is reported in the browser console and on the Song Board). `N()` turns the text into the
 objects above, which are the real format.
 
@@ -57,7 +61,7 @@ objects above, which are the real format.
 
 1. **Concert pitch.** Degree 1 in octave 0 of `'Bb'` is B♭3 (concert); a minor song's degree 1 is its relative minor.
 2. **The C–G horn.** A group whose first five start on another concert pitch (the horn's C–G start) gets the whole song
-   moved to its own first five (concert F), so tier-1 songs use only notes it knows.
+   moved to its own first five (concert F; an E♭ song to A♭), so tier-1 songs use only notes it knows.
 3. **Each instrument's written notes** = concert + the member's `sounds` (shared/instruments.js), spelled in its written
    key, drawn under its key signature.
 4. **The octave.** Tier 1: degree 1 lands exactly on the first note of the student's first five. Tiers 2–3: the octave

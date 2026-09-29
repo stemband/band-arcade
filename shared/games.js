@@ -342,7 +342,7 @@ window.Arcade.GAMES = [
     menuMusic: 'music-highway-menu',
     skill: 'Play-along rhythm',
     blurb: 'Neon lights race down a synthwave highway with the band, one lane for each note: low on the left, high on the right. Play each note as its light reaches its gate: the microphone judges your pitch and your timing.',
-    maxStars: 48,                                    // 16 songs × 3 (music-highway/songs.js; never reorder the songs)
+    maxStars: 69,                                    // 23 songs × 3 (music-highway/songs.js; never reorder the songs)
     color: 'cyan',
     byMember: true,                                  // stars are saved per instrument member (song number = level)
     unpitched: true,                                 // the Snare Drum plays each song's rhythm (any clean hit counts)

@@ -31,6 +31,9 @@
        3        degree 3, one beat            3:2     degree 3, two beats          3:.5   an eighth note
        5,       degree 5 an octave LOWER      1'      degree 1 an octave HIGHER    #4     degree 4 raised   b7  lowered
        r:2      a rest, two beats
+       5:2~     a TIE: '~' at the end ties this note into the NEXT note (same degree, octave and accidental), e.g.
+                '5:2~ | 5 5' (2/4) = one note held 3 beats, then 5. The game plays a tied pair as ONE held note (one
+                pad, one longer trail); the bar check still counts each side in its own measure; the staff draws a tie.
    A future MIDI importer only needs to produce the `notes` objects (see music-highway/README.md). */
 (function () {
   'use strict';
@@ -39,16 +42,18 @@
     const out = [];
     lines.join(' | ').split(/\s+/).filter(Boolean).forEach(tok => {
       if (tok === '|') { out.push({bar: true}); return; }
-      const m = /^(r|([#b]?)([1-7])([',]*))(?::([\d.]+))?$/.exec(tok);
+      const m = /^(r|([#b]?)([1-7])([',]*))(?::([\d.]+))?(~)?$/.exec(tok);
       if (!m) { console.warn('Music Highway songs.js: "' + tok + '" is not a note'); return; }
       const beats = m[5] ? parseFloat(m[5]) : 1;
       if (m[1] === 'r') { out.push({rest: beats}); return; }
       const o = {deg: +m[3], oct: (m[4].match(/'/g) || []).length - (m[4].match(/,/g) || []).length, beats};
       if (m[2]) o.acc = m[2] === '#' ? 1 : -1;
+      if (m[6]) o.tie = true;                                  // tied into the next note (see NOTE TEXT)
       out.push(o);
     });
     return out;
   }
+  (window.Arcade = window.Arcade || {}).MHSongText = N;     // the same reader, for tests
 
   window.MH_SONGS = [
     /* ---------- TIER 1: the first five notes (degrees 1–5) ---------- */
@@ -106,5 +111,26 @@
               '1\':.25 3\':.5 2\':.25 1\':.25 6:.25 2\':.5 2\':1.5 2:.25 #2:.25',
               '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 1\':.25 2\':.25 #2\':.25 3\':.25',
               '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':2.25')},
+
+    /* ---------- ADDED LATER (always at the end: stars are saved by song number). Transcribed by Mr. Graham from trumpet
+       (B♭) parts: written C major = concert 'Bb', written F major = concert 'Eb'. ---------- */
+    {id: 'good-king-wenceslas', title: 'Good King Wenceslas', source: 'Traditional (English carol)', tier: 1, tempo: 100, timeSig: [4, 4], key: 'Bb', style: 'march',
+     notes: N('4 4 4 5 | 4 4 1:2 | 2 1 2 3 | 4 r 4 r', '4 4 4 5 | 4 4 1:2 | 2 1 2 3 | 4 r 4 r')},
+    // the book's repeat with 1st/2nd endings, written out
+    {id: 'orpheus-can-can', title: 'Can-Can (Orpheus in the Underworld)', source: 'Jacques Offenbach, 1858', tier: 2, tempo: 112, timeSig: [2, 4], key: 'Bb', style: 'rock',
+     notes: N("1:2 | 2:.5 4:.5 3:.5 2:.5 | 5 5 | 5:.5 6:.5 3:.5 4:.5 | 2 2 | 2:.5 4:.5 3:.5 2:.5 | 1:.5 1':.5 7:.5 6:.5 | 5:.5 4:.5 3:.5 2:.5",
+              "1:2 | 2:.5 4:.5 3:.5 2:.5 | 5 5 | 5:.5 6:.5 3:.5 4:.5 | 2 2 | 2:.5 4:.5 3:.5 2:.5 | 1:.5 5:.5 2:.5 3:.5 | 1 1")},
+    // the book's 1-beat pickup: the first measure starts with 2 beats of rest
+    {id: 'come-from-sydney', title: "I've Just Come From Sydney", source: 'Traditional (Australian folk song)', tier: 1, tempo: 108, timeSig: [3, 4], key: 'Bb', style: 'waltz',
+     notes: N('r:2 5:.5 5:.5 | 3 3 5 | 2 2 5 | 5:.5 5:.5 4 2 | 3:2 5:.5 5:.5', '3:.5 3:.5 3 5:.5 5:.5 | 2:.5 2:.5 2 5:.5 5:.5 | 5 4 2 | 1:3')},
+    {id: 'donkey-riding', title: 'Donkey Riding', source: 'Traditional (Canadian folk song)', tier: 2, tempo: 96, timeSig: [2, 4], key: 'Eb', style: 'march',
+     notes: N('1:.5 2:.5 3:.5 3:.5 | 4:.5 2:.5 3 | 3:.5 2:.5 2:.5 1:.5 | 3:.5 2:.5 1', '7,:.5 1:.5 2:.5 2:.5 | 4:.5 1:.5 2 | 3:.5 2:.5 2:.5 3:.5 | 1 1')},
+    {id: 'frogs-song', title: "The Frog's Song", source: 'Traditional (Japanese folk song)', tier: 2, tempo: 104, timeSig: [4, 4], key: 'Bb', style: 'rock',
+     notes: N('1 2 3 4 | 3 2 1:2 | 3 4 5 6 | 5 4 3:2', '1 r 1 r | 1 r 1 r | 1 2 3 5 | 3 2 1:2')},
+    {id: 'san-sereni', title: 'San Serení', source: 'Traditional (Puerto Rican folk song)', tier: 2, tempo: 104, timeSig: [2, 4], key: 'Bb', style: 'rock',
+     notes: N('5:2 | 3 4 | 5:2~ | 5 5 | 6 5 | 4 3 | 5:2 | 4:2', '4:2 | 2 3 | 4:2~ | 4 4 | 5 4 | 2 7, | 1:2~ | 1 r')},
+    {id: 'nutcracker-theme', title: 'Theme from The Nutcracker', source: 'Pyotr Ilyich Tchaikovsky, 1892', tier: 2, tempo: 84, timeSig: [4, 4], key: 'Eb', style: 'march',
+     notes: N('1:.5 7,:.5 1:.5 7,:.5 1 7, | 2 1 3:2 | 4:.5 3:.5 4:.5 3:.5 2 1 | 7,:2 7,:2',
+              '6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 1:3 r:1')},
   ];
 })();
