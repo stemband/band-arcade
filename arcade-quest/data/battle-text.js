@@ -28,6 +28,8 @@ window.QUEST_TEXT = {
   calmUp:          '{name}\'s CALM goes up!',
   calmFull:        '{name} is totally CALM. You can HARMONIZE now!',
   calmChoice:      'Its CALM is full: HARMONIZE to befriend it, or keep playing to defeat it.',
+  finaleChoice:    'HARMONIZE to give the orchestra back its sound, or keep playing and {name} fades away. Your choice!',
+  shiftHint:       'Something shifted somewhere in the manor…',
   listenCalm:      '{name} likes that you listened. CALM goes up!',
 
   itemUsed:        'You used the {item}.',

@@ -42,6 +42,11 @@ window.QUEST_DIALOGUE = {
       ['That crackle at the end, though... Kssshhh. Something out there is still listening.'],
       ['The Conductor rehearses every night now. Ghosts love a rehearsal. We have time.'],
     ]},
+    {if: 'atticPassage', cycle: [
+      ['You got past the Fermata the OTHER way? Through the walls? Darling, that is SO backstage of you.',
+        'The orchestra used that passage to sneak in late. Every. Single. Rehearsal.'],
+      ['A grand entrance is lovely. A secret entrance is legendary. I would know.'],
+    ]},
     {if: 'atticOpen', cycle: [
       ['The Fermata let you pass? Magnificent! Bravissimo! Encore!',
         'But the attic... Something up there hums at night. Low. Steady. Listening.',
@@ -283,6 +288,14 @@ window.QUEST_SIGNS = {
   'locked-attic': ['The attic door won\'t budge. Something huge and ghostly is holding it shut.'],
   'attic-sheet': ['Something huge under a dusty sheet. A thick cable snakes out from under it.', 'You hear a low hum. Kssshhh... It sounds like it\'s listening. Better not peek yet.'],
   'attic-cable': ['A thick black cable, humming with static. It runs from the sheet... into the wall. Into the arcade?'],
+  // THE ALTERNATE ROUTE (defeating the Phantom Fermata opens the Hidden Passage)
+  'crack': ['A thin crack runs up the wall. Cold air whistles through it... in B♭.', 'Something big is holding this whole stairwell together.'],
+  'attic-crack': ['A crack in the attic wall. On the other side, a staircase creaks all by itself.'],
+  'passage-case': ['An old instrument case. The label says "PROPERTY OF THE MANOR ORCHESTRA. DO NOT OPEN DURING STATIC."'],
+  'passage-case-2': ['A cello case with a hundred years of dust on it. Someone drew a smiley face in the dust. Recently.'],
+  'passage-board': ['The orchestra\'s old rehearsal board. "TONIGHT: the Grand Finale. The Conductor will be VERY particular."',
+    'Pinned under it: a small silver chime, still humming softly.'],
+  'passage-board-found': ['The orchestra\'s old rehearsal board. "TONIGHT: the Grand Finale."', 'You find a small silver chime pinned under it, still humming the orchestra\'s last note!'],
   'attic-window': ['From up here you can see the whole arcade, glowing in the dark.'],
   'attic-end': ['A note, scribbled in shaky handwriting: "IT HEARS EVERYTHING."', 'Under it, in the Conductor\'s neat hand: "Then let us give it something worth hearing."'],
   'practice-sign': ['PRACTICE HALL: these ghosts come back every visit. Practice makes permanent!'],
@@ -313,6 +326,15 @@ window.QUEST_CUTSCENES = {
     {show: 'party', lines: ['@conductor Listen! My orchestra has its sound back!', '@conductor Bravo, {hero}! BRAVO!',
       '@mezzo BRAVISSIMA! Encore! ENCORE! Darling, you did it!',
       'Every ghost you helped is dancing. Even Sir Reginald is awake. Mostly.']},
+  ]},
+  // THE DEFEAT ENDING (the Conductor faded instead of joining your band): shorter, still a happy one. Episode 1 is
+  // finished either way; befriending him is the best ending (the full party, the Baton).
+  'ending-fade': {music: 'quest-victory', shots: [
+    {show: 'rafters', lines: ['The Ghost Conductor drifts up into the rafters, still waving his baton.',
+      '@conductor Hmph. Not bad, {hero}. Not bad at all. Maybe my orchestra should hear THAT.',
+      'Down below, one instrument starts to hum... then another... then the whole manor!']},
+    {show: 'party', lines: ['The music is back! Your ghost friends cheer. You did it your way.',
+      '@mezzo Darling! He\'ll be humming that in the rafters for a century. BRAVISSIMA!']},
   ]},
   cliffhanger: {music: null, shots: [
     {show: 'crackle', sfx: 'quest-mic-crackle', lines: ['Then every speaker in the manor crackles at once. KSSSSHHHHH.',

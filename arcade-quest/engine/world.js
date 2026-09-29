@@ -77,6 +77,7 @@
   function tileOf(x, y) {
     const row = W.def.tiles[y], ch = row ? row[x] : ' ';
     if (ch === 'L') { const d = doorAt(x, y); if (d && doorOpen(d)) return TILES().D; }
+    if (ch === 'K') { const d = doorAt(x, y); if (d && doorOpen(d)) return TILES().O; }       // a cracked wall, opened
     return TILES()[ch] || TILES()[' '];
   }
   const npcAt = (x, y) => W.npcs.find(n => n.x === x && n.y === y);
@@ -214,13 +215,25 @@
       return;
     }
     W.ghosts = W.ghosts.filter(x => x !== g);
-    if (!W.def.practice) { Q.save.get().done[W.map + ':' + g.key] = result.kind; Q.save.write(); }
-    if (result.enemy === 'fermata' && result.kind === 'befriend') prerender();   // the attic door opens
-    if (result.enemy === 'conductor' && result.kind === 'befriend') {             // THE END of Episode 1 (engine/story.js)
+    const E = (window.QUEST_ENEMIES || []).find(e => e.id === result.enemy) || {}, s = Q.save.get();
+    if (!W.def.practice) {
+      s.done[W.map + ':' + g.key] = result.kind;
+      if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
+      Q.save.write();
+    }
+    if (E.opens || E.opensIfFaded) prerender();                                   // a door or a cracked wall opened
+    // THE ALTERNATE ROUTE: the first gate ghost a student defeats (not befriends) says something moved
+    if (!W.def.practice && result.kind === 'fade' && E.opensIfFaded && !Q.save.flag('shiftHint')) {
+      Q.save.setFlag('shiftHint'); W.busy = true;
+      Q.sfx('quest-door'); Q.shake(2, 500);
+      Q.say([Q.text('shiftHint')]).then(() => { if (W) W.busy = false; });
+    }
+    if (E.final && !W.def.practice) {                                            // THE END of Episode 1 (engine/story.js)
       const first = !Q.save.flag('ep1Done');
       Q.save.setFlag('ep1Done'); Q.save.achievements();
       W.busy = true;
-      Q.go('cutscene', {id: 'ending', next: {id: 'cliffhanger', next: {credits: true, first}}});
+      // befriended: the full ending (the best one); defeated: the shorter, still happy one. Both finish Episode 1
+      Q.go('cutscene', {id: result.kind === 'befriend' ? 'ending' : 'ending-fade', next: {id: 'cliffhanger', next: {credits: true, first}}});
     }
   }
 
@@ -263,6 +276,8 @@
     /** tests: a whisper right now */
     whisperNow() { if (W) { W.whisper = null; W.whisperAt = 0; } },
     /** tests: stand on a tile (demo only) */
+    /** ?demo (tests): start the battle with the ghost `key` in this room, as if you walked into it */
+    fight(key) { if (!A.DEMO || !W || W.busy) return false; const g = W.ghosts.find(x => x.key === key); if (!g) return false; encounter(g); return true; },
     warp(x, y, dir) { if (!A.DEMO || !W) return; W.x = x; W.y = y; W.px = x * T; W.py = y * T; W.move = null; if (dir) W.dir = dir; },
   };
 
@@ -294,7 +309,7 @@
       if (W.grace > 0) W.grace -= dt;
       if (W.fade) {
         W.fade.t += dt / 0.22;
-        if (W.fade.t >= 1) { const f = W.fade; W.fade = null; if (f.then) f.then(); else W.busy = false; }
+        if (W.fade.t >= 1) { const f = W.fade; W.fade = null; if (f.then) f.then(); else if (!W.fighting) W.busy = false; }   // (a ghost met during the fade-in: its battle is starting)
       }
       if (W.flash) W.flash.t += dt;
       if (W.move) { W.move.t += dt / STEP; if (W.move.t >= 1) arrive(); }

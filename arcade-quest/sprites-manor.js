@@ -64,6 +64,11 @@
   S['tile-locked'] = tile(Object.assign({p: 'q-plank-d', P: 'q-plank', c: 'q-steel', C: 'q-steel-d'}, WALL), [['tttttttttttttttt', 'TTTTTTTTTTTTTTTT', 'WWTttttttttttTWW',
     'WWtpPpPpPpPpPtWW', 'WWtcpPpPpPpPctWW', 'WWtpcPpPpPpcptWW', 'WWtpPcpPpPcPptWW', 'WWtpPpcggcpPptWW', 'WWtpPpPgGgpPptWW', 'WWtpPpPgGgpPptWW',
     'WWtpPpcgggcPptWW', 'WWtpPcPpPpPcptWW', 'WWtpcPpPpPpPctWW', 'WWtcpPpPpPpPpcWW', 'WWtpPpPpPpPpPtWW', 'WWtpPpPpPpPpPtWW']]);
+  // THE ALTERNATE ROUTE: a wall with a jagged crack (cold air hums through it), and the dark opening it becomes
+  S['tile-cracked'] = tile(WALL, [over(FACE, ['', '', '.......v', '......vv', '......v', '.....vv', '......v', '.......v', '.......vv', '......vv', '......v', '.....vv', '......v'])]);
+  S['tile-hole'] = tile(Object.assign({r: 'q-grey-d', R: 'q-grey'}, WALL), [['tttttttttttttttt', 'TTTTTTTTTTTTTTTT', 'WWWrWvvvvvWWrWWW', 'WWrvvvvvvvvvWWWW',
+    'WWvvvvvvvvvvvWWW', 'WrvvvvvvvvvvvvWW', 'WvvvvvvvvvvvvvrW', 'WvvvvvvvvvvvvvvW', 'rvvvvvvvvvvvvvvW', 'WvvvvvvvvvvvvvvW', 'WvvvvvvvvvvvvvvW',
+    'WvvvvvvvvvvvvvvW', 'WvvvvvvvvvvvvvvW', 'RvvvvvvvvvvvvvrR', 'RRrvvvvvvvvvrRRR', 'RRRRRRRRRRRRRRRR']]);
   const frame = (inner) => ['', '', '...gggggggggg', '...g' + inner[0] + 'g', '...g' + inner[1] + 'g', '...g' + inner[2] + 'g', '...g' + inner[3] + 'g',
     '...g' + inner[4] + 'g', '...g' + inner[5] + 'g', '...g' + inner[6] + 'g', '...g' + inner[7] + 'g', '...gggggggggg'];
   const PORT = Object.assign({h: 'q-ghost', k: 'q-black', m: 'q-out', b: 'q-glass', M: 'q-moon', r: 'q-carpet', R: 'q-carpet-d', y: 'q-tea', e: 'q-grey'}, WALL);
@@ -84,6 +89,9 @@
     y: 'q-white', s: 'q-steel', S: 'q-steel-d', r: 'q-red', b: 'q-brass', B: 'q-brass-d', e: 'q-ghost-d', E: 'q-ghost', z: 'q-out', t: 'q-trim'}, WOOD);
   S['tile-table'] = tile(FURN, [pad16(['', '...cccccccccc', '..cccccccccccc', '.cccccccccccccc', '.cccccccbcccccc', '.ccccccbbbcccccc', '.cccccccwcccccc',
     '.cccccccwcccccc', '..cccccccccccc', '..CCcccccccCCC', '...CCCCCCCCCC', '.....ww..ww', '.....ww..ww'])]);
+  // an old instrument case (the Hidden Passage): a dark case with brass latches and a handle
+  S['tile-case'] = tile(FURN, [pad16(['', '', '', '......bbbb', '......b..b', '..kkkkkkkkkkkk', '.kKKKKKKKKKKKKk', '.kKkkkkkkkkkkKk', '.kbKkkkkkkkkKbk',
+    '.kKkkkkkkkkkkKk', '.kKkkkkkkkkkkKk', '.kbKkkkkkkkkKbk', '.kKKKKKKKKKKKKk', '..kkkkkkkkkkkk'])]);
   S['tile-chair'] = tile(FURN, [pad16(['', '', '....wwwwwwww', '....wppppppw', '....wppppppw', '....wwwwwwww', '....wrrrrrrw', '....wrrrrrrw',
     '....wrrrrrrw', '....wwwwwwww', '....w......w', '....w......w', '....w......w'])]);
   S['tile-plant'] = tile(FURN, [pad16(['......g..g', '...g..g.g..g', '....g.gGg.g', '.....gGGg', '..g..gGg..g', '...gggGggg', '.....ggg', '.......g',

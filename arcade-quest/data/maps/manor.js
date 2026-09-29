@@ -7,9 +7,12 @@
      .  wood floor     ,  carpet     _  checkered floor     r  rug     s  stairs     ~  fog (drifts)
      b  bookshelf      t  table      h  chair     x  plant   g  piano   y  piano keys   k  counter   o  stove
      j  SAVE JUKEBOX   T  TOKEN BOOTH   S  SHOP COUNTER   a  the Ghost Notes cabinet   e  a dusty sheet   z  a cable
+     K  a cracked wall: a door with `need` (a solid wall with a crack until that flag is set, then a dark opening: O)
+     O  an opening in the wall (walk into it, like a door)     v  an old instrument case (furniture)
    IN EACH ROOM:
      doors    {at: [x, y], to: room id, spawn: [x, y] where you appear, dir: 'up'|'down'|'left'|'right',
-               need: a flag (locked until then; `locked` says why)}. x counts from 0 at the left, y from 0 at the top.
+               need: a flag (locked until then; `locked` says why)}. On an L tile it's a locked door; on a K tile a cracked
+               wall that opens when the flag is set (ALTERNATE ROUTES: data/enemies.js `opensIfFaded`). x counts from 0 at the left, y from 0 at the top.
      npcs     {id (data/dialogue.js), at, sprite?, moved: {flag, at} (where they stand once that flag is set)}
      enemies  {key (unique in the room: saved when you help that ghost), type (data/enemies.js), at, happy?, wander (tiles)}
      things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop',
@@ -51,6 +54,9 @@ window.QUEST_TILES = {
   a: {sprite: 'tile-cabinet', over: true, solid: true},
   e: {sprite: 'tile-sheet', over: true, solid: true},
   z: {sprite: 'tile-cable', over: true},
+  K: {sprite: 'tile-cracked', solid: true},
+  O: {sprite: 'tile-hole'},
+  v: {sprite: 'tile-case', over: true, solid: true},
 };
 
 window.QUEST_MAPS = {
@@ -245,7 +251,7 @@ window.QUEST_MAPS = {
     name: 'The Attic Stairs', music: 'quest-manor', fog: true,
     tiles: [
       'XXXXXXXXXXX',
-      'X#c##L##c#X',
+      'XKc##L##c#X',
       'X...sss...X',
       'X...sss...X',
       'X...sss...X',
@@ -264,6 +270,8 @@ window.QUEST_MAPS = {
     doors: [
       {at: [5, 15], to: 'hall', spawn: [14, 2], dir: 'down'},
       {at: [5, 1], to: 'attic', spawn: [7, 8], dir: 'up', need: 'atticOpen', locked: 'locked-attic'},
+      // THE ALTERNATE ROUTE: defeating the Fermata cracks this wall open (data/enemies.js opensIfFaded)
+      {at: [1, 1], to: 'passage', spawn: [5, 7], dir: 'up', need: 'atticPassage', locked: 'crack'},
     ],
     npcs: [],
     things: [{at: [2, 1], say: 'stairs-candle'}, {at: [8, 1], say: 'stairs-candle'}, {at: [4, 9], say: 'stairs'}],
@@ -274,14 +282,15 @@ window.QUEST_MAPS = {
     ],
   },
 
-  /* 7. THE ATTIC: locked until the Phantom Fermata is HARMONIZED. THE GHOST CONDUCTOR (the final boss) waits at his
+  /* 7. THE ATTIC: its door opens when the Phantom Fermata is HARMONIZED (atticOpen); the Hidden Passage's secret stair
+     comes up behind its cracked wall when the Fermata was DEFEATED instead (atticPassage). THE GHOST CONDUCTOR (the final boss) waits at his
      podium. Befriending him ends Episode 1 (the ending, the cliffhanger and the credits: engine/story.js). The
      dusty sheet hides something big with a cable... (Episode 2). A Save Jukebox by the door. */
   attic: {
     name: 'The Attic', music: 'quest-manor', fog: true,
     tiles: [
       'XXXXXXXXXXXXXXXX',
-      'X#w##c####c##w#X',
+      'X#w##c####c##wKX',
       'X.j............X',
       'X....ee........X',
       'X....eezzzzzzz.X',
@@ -291,7 +300,8 @@ window.QUEST_MAPS = {
       'X..............X',
       'XXXXXXXMXXXXXXXX',
     ],
-    doors: [{at: [7, 9], to: 'stairs', spawn: [5, 2], dir: 'down'}],
+    doors: [{at: [7, 9], to: 'stairs', spawn: [5, 2], dir: 'down'},
+      {at: [14, 1], to: 'passage', spawn: [6, 2], dir: 'down', need: 'atticPassage', locked: 'attic-crack'}],
     npcs: [],
     things: [
       {at: [5, 3], say: 'attic-sheet'}, {at: [6, 3], say: 'attic-sheet'}, {at: [5, 4], say: 'attic-sheet'}, {at: [6, 4], say: 'attic-sheet'},
@@ -299,6 +309,35 @@ window.QUEST_MAPS = {
       {at: [2, 2], say: 'jukebox', use: 'jukebox'},
     ],
     enemies: [{key: 'boss', type: 'conductor', at: [10, 6], wander: 0, size: 3}],
+  },
+
+  /* 8. THE HIDDEN PASSAGE (the ALTERNATE ROUTE): behind the cracked wall of the Attic Stairs, opened by DEFEATING the
+     Phantom Fermata. The orchestra's old backstage: instrument cases, a rehearsal board, the Echo Chime (a charm found
+     only here) and a secret stair up inside the wall to the Attic. No ghosts. */
+  passage: {
+    name: 'The Hidden Passage', music: 'quest-manor', fog: true,
+    tiles: [
+      'XXXXXXXXXXXX',
+      'X#c###O##c#X',
+      'X....sss...X',
+      'Xv...sss..vX',
+      'X....sss...X',
+      'X~.........X',
+      'Xvv.....t.~X',
+      'X..........X',
+      'XXXXXMXXXXXX',
+    ],
+    doors: [
+      {at: [5, 8], to: 'stairs', spawn: [1, 2], dir: 'down'},
+      {at: [6, 1], to: 'attic', spawn: [14, 2], dir: 'down'},
+    ],
+    npcs: [],
+    things: [
+      {at: [1, 3], say: 'passage-case'}, {at: [10, 3], say: 'passage-case-2'}, {at: [1, 6], say: 'passage-case'}, {at: [2, 6], say: 'passage-case-2'},
+      {at: [8, 6], say: 'passage-board', charm: 'echo-chime', found: 'passage-board-found'},
+      {at: [2, 1], say: 'stairs-candle'}, {at: [9, 1], say: 'stairs-candle'},
+    ],
+    enemies: [],
   },
 
   /* THE PRACTICE HALL (off the Foyer): one ghost of each kind, back every visit. Replay any challenge. */

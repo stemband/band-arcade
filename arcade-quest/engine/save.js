@@ -7,7 +7,14 @@
       converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>'),
       charms: {owned: {charmId: true}, equipped: [charmId | null, charmId | null]} (v3: data/items.js QUEST_CHARMS),
       band: [enemyId…] | null (v4: the friends who play beside you in battle, up to 2; null = never chosen = the last
-            two befriended; [] = a solo)}
+            two befriended; [] = a solo),
+      route: {<gate or final enemy id>: 'befriend' | 'fade'} (v5: how each story ghost was passed: the Phantom Fermata
+            (befriend = the attic door, fade = the Hidden Passage) and the Ghost Conductor (the best ending or the
+            defeat ending); for future achievements)}
+   ALTERNATE ROUTES stay open whatever happens (routes()): a gate ghost that is done (befriended or faded) always has
+   ITS way open: befriended = its `opens` flag, faded = its `opensIfFaded` flag, unless one is already set. This
+   repairs saves from before the routes, save codes (they carry the ghosts helped and the roster, so which way is known,
+   not the passage flag) and anything odd, so neither route can lock a student out.
    maxHp = maxHpAt(level) + the equipped charms' maxHp (Q.charms.fixHp keeps it right).
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
@@ -23,28 +30,47 @@
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
   const data = () => A.store.gameData(GAME);
   const CHARMS = () => window.QUEST_CHARMS || {};
-  /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10,
+  /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10 (its
+     door or the Hidden Passage),
      the Ghost Conductor 20 */
   function progress(s) {
     const maps = window.QUEST_MAPS || {}, keys = [];
     Object.keys(maps).forEach(id => { if (!maps[id].practice) (maps[id].enemies || []).forEach(e => keys.push(id + ':' + e.key)); });
     const helped = keys.filter(k => (s.done || {})[k]).length, f = s.flags || {};
-    const pct = Math.round((keys.length ? helped / keys.length * 50 : 0) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen ? 10 : 0) + (f.ep1Done ? 20 : 0));
+    const pct = Math.round((keys.length ? helped / keys.length * 50 : 0) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen || f.atticPassage ? 10 : 0) + (f.ep1Done ? 20 : 0));
     return {pct: Math.min(100, pct), friends: (s.roster || []).length};
   }
   const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
-    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null});
+    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null, route: {}});
+  /** the story ghosts' routes: every gate ghost that's done keeps its way open, and `route` notes how it was passed */
+  function routes(s) {
+    const maps = window.QUEST_MAPS || {}, E = window.QUEST_ENEMIES || [];
+    s.route = s.route || {};
+    Object.keys(maps).forEach(id => {
+      if (maps[id].practice) return;
+      (maps[id].enemies || []).forEach(g => {
+        const def = E.find(e => e.id === g.type), kind = s.done[id + ':' + g.key];
+        if (!def || !kind || !(def.opens || def.opensIfFaded || def.final)) return;
+        if (!s.route[def.id]) s.route[def.id] = kind;
+        if ((def.opens && s.flags[def.opens]) || (def.opensIfFaded && s.flags[def.opensIfFaded])) return;
+        const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
+        if (flag) s.flags[flag] = true;
+      });
+    });
+  }
   /** older saves -> the current version, one step at a time */
   function upgrade(s) {
     if (!s || typeof s !== 'object' || !s.v) return fresh();
     if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
     if (s.v === 2) { s.charms = {owned: {}, equipped: [null, null]}; s.v = 3; }                           // v2 -> v3: charms
     if (s.v === 3) { s.band = null; s.v = 4; }                                                            // v3 -> v4: the band (default)
+    if (s.v === 4) { s.route = {}; s.v = 5; }                                                             // v4 -> v5: routes
     s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
+    routes(s);
     s.charms = s.charms || {owned: {}, equipped: [null, null]}; s.charms.owned = s.charms.owned || {};
     s.charms.equipped = [0, 1].map(i => { const id = (s.charms.equipped || [])[i]; return id && s.charms.owned[id] && CHARMS()[id] ? id : null; });
     return s;

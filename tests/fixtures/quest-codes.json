@@ -57,7 +57,7 @@
   }
  },
  "v2": {
-  "code": "69N58-L2N3B-CPPCN-LB6K2-VPCJK-46AK4-32222-22HTN",
+  "code": "69N58-L2N3B-CPPCN-LB6K2-VP346-AK464-22222-22WEV",
   "fields": {
    "level": 7,
    "xp": 321,
@@ -106,24 +106,21 @@
      "silver-mute": true
     },
     "equipped": [
-     "lucky-reed",
-     null
+     "silver-mute",
+     "lucky-reed"
     ]
    },
    "cosmetics": {
     "owned": [
-     "eyes:stars",
-     "mouth:whistle",
-     "hairColor:flametip",
-     "head:royalcrown",
-     "top:champion",
-     "pet:note",
-     "back:jetpack",
+     "eyes:wink",
+     "hairColor:neon",
+     "head:wizard",
+     "top:rockstar",
+     "pet:ghost",
+     "pet:metronome",
      "bg:lavalamp"
     ],
-    "worn": [
-     "mouth:whistle"
-    ]
+    "worn": []
    }
   }
  },
