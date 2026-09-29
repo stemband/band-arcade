@@ -47,7 +47,7 @@ test.describe('music highway songs', () => {
     await board(page);
     const r = await page.evaluate(ids => {
       const SM = Arcade.SongMap, nm = n => n.letter + (n.acc > 0 ? '#' : n.acc < 0 ? 'b' : '') + n.oct;
-      const out = {order: MH_SONGS.slice(-7).map(s => s.id), count: MH_SONGS.length, first16: MH_SONGS[15].id, checks: MH_SONGS.flatMap(s => SM.check(s)), songs: {}};
+      const out = {order: MH_SONGS.slice(16, 23).map(s => s.id), count: MH_SONGS.length, first16: MH_SONGS[15].id, checks: MH_SONGS.flatMap(s => SM.check(s)), songs: {}};
       for (const id of ids) {
         const s = MH_SONGS.find(x => x.id === id), per = {};
         for (const [m, horn] of [['trumpet'], ['flute'], ['altosax'], ['horn', 'F'], ['horn', 'C'], ['snare']]) {
@@ -64,8 +64,8 @@ test.describe('music highway songs', () => {
       }
       return out;
     }, NEW);
-    expect(r.order).toEqual(NEW);                                    // added at the end, in this order
-    expect(r.count).toBe(23);
+    expect(r.order).toEqual(NEW);                                    // songs 17–23, in this order
+    expect(r.count).toBeGreaterThanOrEqual(23);
     expect(r.first16).toBe('the-entertainer');                       // the old songs keep their numbers
     expect(r.checks).toEqual([]);
     const S = r.songs;
@@ -104,6 +104,39 @@ test.describe('music highway songs', () => {
     await page.goto('sound-board/index.html');
     await page.waitForFunction(() => window.Arcade && Arcade.SoundBoard);
     for (const id of NEW) await expect(page.locator(`.sb-row[data-n="mh-drums-${id}"]`)).toBeAttached();
+    watch.check();
+  });
+
+  /* songs 24–25 (Santa Lucia: written G major for trumpet = concert F, tier 2; Werde munter: tier 1) with the book's slurs */
+  test('Santa Lucia and Werde munter: at the end, trumpet exactly as the book, in range, the slurs', async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
+    await board(page);
+    const r = await page.evaluate(() => {
+      const SM = Arcade.SongMap, nm = n => n.letter + (n.acc > 0 ? '♯' : n.acc < 0 ? '♭' : ''), out = {ids: MH_SONGS.slice(23).map(s => s.id), checks: []};
+      for (const id of ['santa-lucia', 'werde-munter']) {
+        const s = MH_SONGS.find(x => x.id === id), per = {};
+        out.checks.push(...SM.check(s));
+        for (const [m, horn] of [['trumpet'], ['flute'], ['altosax'], ['horn', 'F'], ['horn', 'C'], ['snare']]) {
+          const g = Arcade.groupFor(m, {hornStart: horn || 'F'}), mem = g.members.find(x => x.id === m), map = SM.forMember(s, mem, g, {}), L = SM.lanes(s, map, g);
+          const ws = map.notes.map(n => n.midi), top = Math.max(mem.highMidi || 0, s.tier === 1 ? Math.max(...L.lanes.flatMap(l => l.midis)) : 0);
+          per[m + (horn || '')] = {notes: map.unpitched ? '' : map.notes.map(n => nm(n.n)).join(' '), sig: map.sig ? map.sig.count + map.sig.type : '',
+            inRange: map.unpitched || (Math.min(...ws) >= mem.lowMidi && Math.max(...ws) <= top), lanes: L.lanes.length, max: map.unpitched ? 2 : SM.MAX_LANES[s.tier],
+            slurred: map.notes.filter(n => n.slur != null).length};
+        }
+        out[id] = per;
+      }
+      return out;
+    });
+    expect(r.ids).toEqual(['santa-lucia', 'werde-munter']);
+    expect(r.checks).toEqual([]);
+    const S = r['santa-lucia'], W = r['werde-munter'];
+    expect([S.trumpet.notes, S.trumpet.sig]).toEqual(['D D G G F♯ F♯ C C E E D B E D D C C D E F♯ A G', '1#']);
+    expect([W.trumpet.notes, W.trumpet.sig]).toEqual(['E F G G F E D D E F G E D F E D C', '']);
+    for (const [id, P] of [['santa-lucia', S], ['werde-munter', W]]) for (const [who, p] of Object.entries(P)) {
+      expect(p.inRange, `${id} ${who}`).toBe(true);
+      expect(p.lanes, `${id} ${who}`).toBeLessThanOrEqual(p.max);
+    }
+    expect([S.trumpet.slurred, W.trumpet.slurred, S.snare.slurred]).toEqual([8, 3, 0]);   // 4 two-note slurs; one three-note slur; the snare ignores them
     watch.check();
   });
 });
