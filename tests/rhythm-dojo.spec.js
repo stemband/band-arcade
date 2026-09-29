@@ -124,11 +124,11 @@ test.describe('rhythm dojo', () => {
     watch.check();
   });
 
-  test('judging: rests and extra attacks are penalized, TAP holds must last, the feedback is colored', async ({page, browserName}) => {
+  test('judging: rests and extra attacks are penalized, the feedback is colored', async ({page, browserName}) => {
     const watch = await prepare(page, {store: store(browserName)});
     await page.goto('rhythm-dojo/index.html?demo&nostart');
     await page.evaluate(() => Arcade.RhythmDojo.set({mode: 'tap'}));
-    await page.locator('.ls-card:not(.ls-endless)').nth(1).click();             // Long Tones: half and whole notes (held)
+    await page.locator('.ls-card:not(.ls-endless)').nth(1).click();             // Long Tones: half and whole notes
     await page.locator('.ls-start').click();
     await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase)).toBe('study');
     await page.evaluate(() => Arcade.RhythmDojo.setRound('q qr h', '4/4', 90));
@@ -138,7 +138,7 @@ test.describe('rhythm dojo', () => {
       await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase), {timeout: 20000}).toBe('feedback');
       return page.evaluate(() => Arcade.RhythmDojo.state().last);
     };
-    // perfect, held
+    // perfect
     const ok = await run({offset: 0, o: {}});
     expect(ok.res).toEqual(['perfect', 'perfect']);
     expect(ok.acc).toBe(1);
@@ -148,10 +148,9 @@ test.describe('rhythm dojo', () => {
     expect(rest.extras).toBe(1);
     expect(rest.tip).toMatch(/rest/i);
     await expect(page.locator('#rows .rc.rest.bad')).toHaveCount(1);
-    // the half note let go early = SHORT (its held syllable yellow), 110 ms late on beat 1 = GOOD
-    const short = await run({offset: [110, 0], o: {short: [1]}}, '#rdRetry');
-    expect(short.res).toEqual(['good', 'perfect+short']);
-    await expect(page.locator('#rows .rc.short')).toHaveCount(1);
+    // 110 ms late on beat 1 = GOOD
+    const good = await run({offset: [110, 0], o: {}}, '#rdRetry');
+    expect(good.res).toEqual(['good', 'perfect']);
     // a miss is red
     const miss = await run({offset: 0, o: {skip: [1]}}, '#rdRetry');
     expect(miss.res[1]).toBe('miss');
@@ -161,6 +160,44 @@ test.describe('rhythm dojo', () => {
     const early = await run({offset: [-300, 0], o: {}}, '#rdRetry');
     expect(early.res[0]).toBe('early');
     expect(early.tip).toMatch(/rushed beat 1/);
+    watch.check();
+  });
+
+  test('TAP: nothing is held: a whole note pressed on time and let go at once is PERFECT (pad and Space)', async ({page, browserName}) => {
+    const watch = await prepare(page, {store: store(browserName)});
+    await page.goto('rhythm-dojo/index.html?demo&nostart');
+    await page.evaluate(() => Arcade.RhythmDojo.set({mode: 'tap'}));
+    await page.locator('.ls-card:not(.ls-endless)').nth(1).click();
+    await page.locator('.ls-start').click();
+    await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase)).toBe('study');
+    await page.evaluate(() => Arcade.RhythmDojo.setRound('w', '4/4', 90));
+    expect(await page.evaluate(() => document.getElementById('pad').getAttribute('aria-label'))).not.toMatch(/hold/i);
+    // a real press on the pad (or Space) at the note's start, released straight away
+    for (const how of ['pad', 'space']) {
+      await page.locator(how === 'pad' ? '#rdGo' : '#rdRetry').click();
+      await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase), {timeout: 20000}).toBe('perform');
+      await page.evaluate(how => new Promise(res => {
+        const pad = document.getElementById('pad');
+        const wait = Math.max(0, Arcade.RhythmDojo.timeline().perf[0] - performance.now());
+        setTimeout(() => {
+          if (how === 'pad') {
+            pad.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, pointerId: 7}));
+            pad.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, pointerId: 7}));
+          } else {
+            dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true}));
+            dispatchEvent(new KeyboardEvent('keyup', {key: ' ', bubbles: true}));
+          }
+          res();
+        }, wait);
+      }), how);
+      await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase), {timeout: 20000}).toBe('feedback');
+      const last = await page.evaluate(() => Arcade.RhythmDojo.state().last);
+      expect(last.extras, how).toBe(0);
+      expect(last.res, how).toEqual(['perfect']);
+      expect(last.acc, how).toBe(1);
+      await expect(page.locator('#rows .rc.ok')).toHaveCount(1);
+      expect(await page.locator('#tip').textContent()).not.toMatch(/hold/i);
+    }
     watch.check();
   });
 
