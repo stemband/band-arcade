@@ -268,7 +268,8 @@
     $('rows').style.setProperty('--mw', Math.max(...Rd.rows.map(r => r.E.w)));
     $('rows').innerHTML = Rd.rows.map((r, k) => `<div class="rd-row" data-k="${k}" style="--w:${r.E.w}">${r.E.svg}<i class="rd-ph" hidden></i></div>`).join('');
     RS.refine($('rows'));
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && G.R === Rd) RS.refine($('rows')); });
+    fitRows();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (G && G.R === Rd) { RS.refine($('rows')); fitRows(); } });
   }
   addEventListener('resize', () => { if (G && G.R && !$('play').hidden && G.R.phase !== 'perform' && G.R.phase !== 'hear') { drawSheet(); applyCounting(); if (G.R.phase === 'feedback') paint(G.R.shown); } });
 
@@ -314,6 +315,7 @@
     const per = Rd.M.compound ? 6 : Rd.M.num;
     scheduleClicks(kit, T.t0, T.end, T.beatS, per);
     if (kit) Rd.targets.forEach(x => kit.block(T.T0 + x.t, R.blockVol, false));
+    fitRows(); inView();
     run({T, hear: true});
     say('Listen to the woodblock and follow the counting.', 'calm');
     $('rdHear').disabled = $('rdGo').disabled = true;
@@ -343,6 +345,7 @@
       showButtons('perform');
       if (micMode()) { A.Pitch.pauseListening(false); A.Pitch.ignoreCurrent(); A.Onsets.ensure(); }
       say(opt.mode === 'tap' ? 'Count along… then tap!' : opt.mode === 'snare' ? 'Count along… then play!' : 'Count along… then clap!', 'calm');
+      fitRows(); inView();
       run({T, hear: false});
       if (auto) autoAttempt(T);
     }
@@ -359,9 +362,41 @@
     cancelAnimationFrame(raf); raf = 0;
     stopKit();
     A.Pitch.pauseListening(true);
-    $('countBig').textContent = ''; $('countBig').className = 'rd-count';
+    showCount(null);
     document.querySelectorAll('.rd-ph').forEach(e => { e.hidden = true; });
     $('drum').style.setProperty('--pulse', 0);
+  }
+
+  /* THE COUNT-IN on the taiko: n beat dots (4, 3 in 3/4, 6 in 6/8), beat k (0-based) lit with its number; null = off */
+  function showCount(n, k) {
+    const c = $('countBig'), d = $('countDots');
+    if (n == null) { c.textContent = ''; c.className = 'rd-count'; d.className = 'rd-beats'; d.innerHTML = ''; return; }
+    if (d.children.length !== n) d.innerHTML = '<i></i>'.repeat(n);
+    d.className = 'rd-beats on';
+    [...d.children].forEach((e, i) => e.classList.toggle('on', i <= k));
+    const num = k >= 0 && k < n ? String(k + 1) : '';
+    c.innerHTML = num ? `<b>${num}</b>` : ''; c.className = 'rd-count' + (num ? ' on' : '');
+  }
+  /* EVERY ROW IN VIEW: the rows are scaled down (all at the same scale) until the whole sheet fits between the dojo and
+     the bottom of the screen, never below FIT_MIN px per staff unit (the counting's small syllables stay ≥ 11 px) */
+  const FIT_MIN = .6;
+  function fitRows() {
+    const Rd = G && G.R, box = $('rows');
+    if (!Rd || !Rd.rows || $('play').hidden) return;
+    box.style.maxWidth = '';
+    const mw = Math.max(...Rd.rows.map(r => r.E.w)), w0 = box.getBoundingClientRect().width;
+    if (!w0) return;
+    const s0 = w0 / mw, hUnits = Rd.rows.reduce((a, r) => a + r.E.h, 0), gaps = 4 * (Rd.rows.length - 1);
+    const top = $('rows').getBoundingClientRect().top + scrollY, sheetPad = 14;
+    const avail = innerHeight - top - sheetPad - 8;
+    let s = Math.min(s0, (avail - gaps) / hUnits);
+    if (s < FIT_MIN) s = Math.min(s0, Math.max(FIT_MIN, (innerHeight - 40 - gaps) / hUnits));
+    if (s < s0 - .001) box.style.maxWidth = Math.floor(s * mw) + 'px';
+  }
+  /* as a pass starts: the taiko (with the count) and the whole sheet on the screen */
+  function inView() {
+    const d = document.querySelector('#play .rd-dojo').getBoundingClientRect(), sh = $('sheet').getBoundingClientRect();
+    if (d.top < 0 || sh.bottom > innerHeight) scrollTo({top: Math.max(0, d.top + scrollY - 6), behavior: 'auto'});
   }
 
   /* ---------- THE FRAME LOOP: playhead, lit syllables, the pulse light, the count-in numbers, the end ---------- */
@@ -372,16 +407,16 @@
     const litEls = [...$('rows').querySelectorAll('.rc-big, .rc-small')].map(e => ({e, t: +e.dataset.t}));
     const noteEls = [...$('rows').querySelectorAll('.rn')];
     let lastLit = null, lastNum = null;
+    showCount(T.countN, -1);
     const tick = () => {
       if (!G || G.R !== Rd) return;
       CLK.sample();
       const now = CLK.audAt(performance.now()), rel = now - T.T0;
-      // the count-in: big numbers on each beat
+      // the count-in: the big number on the taiko + one beat dot lit per beat (never over the notation)
       if (rel < 0) {
         const k = Math.floor((now - T.t0) / T.beatS);
-        const num = k >= 0 ? String(k + 1) : '';
-        if (num !== lastNum) { lastNum = num; const c = $('countBig'); c.textContent = num; c.className = 'rd-count' + (num ? ' on' : ''); }
-      } else if (lastNum !== '') { lastNum = ''; $('countBig').textContent = ''; $('countBig').className = 'rd-count'; }
+        if (k !== lastNum) { lastNum = k; showCount(T.countN, k); }
+      } else if (lastNum !== -1) { lastNum = -1; showCount(null); }
       // THE PULSE LIGHT: brightest on each beat, fading smoothly until the next (never more than 1 a beat: ≤ 3 a second)
       const bt = (now - T.t0) / T.beatS, ph = bt - Math.floor(bt);
       const pulse = now < T.t0 || now > T.end + .1 ? 0 : RM.matches ? .6 : Math.exp(-ph * 3.2);

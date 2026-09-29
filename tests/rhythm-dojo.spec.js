@@ -276,6 +276,42 @@ test.describe('rhythm dojo', () => {
     await expect(page.locator('#rdGo')).toBeVisible();
     watch.check();
   });
+
+  /* THE COUNT-IN lives on the taiko: its number never covers the rhythm (1, 2 or more rows), the beat dots light one
+     per beat (4 in 4/4, 3 in 3/4, 6 in 6/8), and every row stays on the screen */
+  for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['laptop', 1366, 768]]) {
+    test(`the count-in never covers the rhythm (${name})`, async ({page, browserName}) => {
+      await page.setViewportSize({width: w, height: h});
+      const watch = await prepare(page, {store: store(browserName)});
+      await page.goto('rhythm-dojo/index.html?demo&nostart');
+      await page.evaluate(() => Arcade.RhythmDojo.set({mode: 'tap'}));
+      await page.locator('.ls-card:not(.ls-endless)').nth(10).click();
+      await page.locator('.ls-start').click();
+      await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase)).toBe('study');
+      for (const [text, time, dots] of [['q q h', '4/4', 4], ['q q h | e e q h', '4/4', 4], ['q q q | h q | e e e e q | h.', '3/4', 3], ['q. q. | e e e q. | q e q e | h.', '6/8', 6]]) {
+        await page.evaluate(a => Arcade.RhythmDojo.setRound(a[0], a[1], 40), [text, time]);
+        await page.locator('#rdGo').click();
+        await expect.poll(() => page.evaluate(() => document.getElementById('countBig').textContent), {timeout: 5000}).toMatch(/^[1-6]$/);
+        const r = await page.evaluate(() => {
+          const box = e => e.getBoundingClientRect(), c = box(document.querySelector('#countBig b')), rows = [...document.querySelectorAll('.rd-row')].map(box);
+          const hit = b => !(c.right <= b.left || c.left >= b.right || c.bottom <= b.top || c.top >= b.bottom);
+          const dots = document.querySelectorAll('#countDots i');
+          return {hits: rows.filter(hit).length, rows: rows.length, clipped: c.top < 0 || c.left < 0 || c.right > innerWidth,
+            dots: dots.length, lit: [...dots].filter(d => d.classList.contains('on')).length,
+            live: document.getElementById('countBig').getAttribute('aria-live'),
+            rowsIn: rows.every(b => b.top >= 0 && b.bottom <= innerHeight)};
+        });
+        expect(r.hits, `${text}: the number covers a row`).toBe(0);
+        expect([r.clipped, r.dots, r.live, r.rowsIn], text).toEqual([false, dots, 'polite', true]);
+        expect(r.lit).toBeGreaterThan(0);
+        await page.locator('#uiPauseBtn').click();
+        await page.locator('#uiPause [data-act=resume]').click();
+        await expect.poll(() => page.evaluate(() => Arcade.RhythmDojo.state().phase)).toBe('study');
+        expect(await page.evaluate(() => [document.getElementById('countBig').textContent, document.querySelectorAll('#countDots i').length])).toEqual(['', 0]);
+      }
+      watch.check();
+    });
+  }
 });
 
 /* THE BAMBOO DOJO: the cabinet, marquee and attract screen are jade green + gold (no pink, purple or cyan left in the
