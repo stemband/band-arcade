@@ -1,8 +1,6 @@
 /* Note Storm */
 .hub-head{margin-bottom:18px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
 .game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
-.hub-head p{max-width:52ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--text-dim);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
 .checker-cta p{margin:0;max-width:46ch;color:var(--text-lo);font-size:15px}
@@ -94,16 +92,7 @@
 .prompt.bad{color:var(--red)}
 .prompt.good{color:var(--yellow)}
 .prompt.tip{color:var(--cyan-hi)}
-.play-foot{display:flex;justify-content:center;gap:10px;margin-top:16px}
 
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
-.panel .best{font-size:14px;margin-top:8px}
 
 @media (prefers-reduced-motion:reduce){
   .tempo .pend,.tempo.fire,.tempo.ouch,.sn.front .brackets,.sn.nope .brackets,.sn svg{animation:none}

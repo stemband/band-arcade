@@ -23,50 +23,54 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title">Music <span>Highway</span></h1>
-      <p class="muted" id="hubBlurb">Neon lights race down the highway with the band: low notes on the left, high notes on the right. Play each note on your instrument as its light reaches its gate.</p>
+      <p class="ui-howto" id="hubBlurb">Neon lights race down the highway with the band: low notes on the left, high notes on the right. Play each note on your instrument as its light reaches its gate.</p>
     </div>
     <div class="mh-opts" id="opts">
-      <div class="mh-opt" role="group" aria-label="Mode">
-        <span class="mh-ol">Mode</span>
-        <button class="mh-seg" id="modePlay" aria-pressed="true">Play</button>
-        <button class="mh-seg" id="modePractice" aria-pressed="false">Practice</button>
-      </div>
-      <div class="mh-opt" role="group" aria-label="Speed">
-        <span class="mh-ol">Speed</span>
-        <button class="mh-seg" id="spdSlow" aria-pressed="false">Slow 75%</button>
-        <button class="mh-seg" id="spdNormal" aria-pressed="true">Normal</button>
-        <button class="mh-seg" id="spdTurbo" aria-pressed="false">Turbo 125%</button>
-      </div>
+      <div class="mh-opt"><span class="ui-label" id="lMode">Mode</span>
+        <div class="ui-seg" role="group" aria-labelledby="lMode">
+          <button type="button" id="modePlay" aria-pressed="true">Play</button>
+          <button type="button" id="modePractice" aria-pressed="false">Practice</button>
+        </div></div>
+      <div class="mh-opt"><span class="ui-label" id="lSpeed">Speed</span>
+        <div class="ui-seg" role="group" aria-labelledby="lSpeed">
+          <button type="button" id="spdSlow" aria-pressed="false">Slow 75%</button>
+          <button type="button" id="spdNormal" aria-pressed="true">Normal</button>
+          <button type="button" id="spdTurbo" aria-pressed="false">Turbo 125%</button>
+        </div></div>
       <div class="mh-opts mh-pracopts" id="pracOpts" hidden>
-        <div class="mh-opt" role="group" aria-label="Melody">
-          <span class="mh-ol">Melody</span>
-          <button class="mh-seg" id="melOn" aria-pressed="true">On</button>
-          <button class="mh-seg" id="melOff" aria-pressed="false">Off</button>
-        </div>
-        <label class="mh-vol"><span class="mh-ol">Melody volume</span><input type="range" id="melVol" min="0" max="100" step="5" aria-label="Melody volume"></label>
+        <div class="mh-opt"><span class="ui-label" id="lMel">Melody</span>
+          <div class="ui-seg" role="group" aria-labelledby="lMel">
+            <button type="button" id="melOn" aria-pressed="true">On</button>
+            <button type="button" id="melOff" aria-pressed="false">Off</button>
+          </div></div>
+        <label class="mh-opt mh-vol"><span class="ui-label">Melody volume</span><input type="range" id="melVol" min="0" max="100" step="5" aria-label="Melody volume"></label>
       </div>
-      <div class="mh-opt" role="group" aria-label="Note spacing">
-        <span class="mh-ol">Note spacing</span>
-        <button class="mh-seg" id="spcNormal" aria-pressed="true">Normal</button>
-        <button class="mh-seg" id="spcWide" aria-pressed="false">Wide</button>
-      </div>
-      <button class="mh-hp" id="hpBtn" aria-pressed="false"><span aria-hidden="true">🎧</span> I'm wearing headphones</button>
-      <button class="btn btn-ghost btn-small" id="calBtn">Recalibrate</button>
-      <div class="mh-opt" role="group" aria-label="Sticking" id="stickOpt" hidden>
-        <span class="mh-ol">Sticking</span>
-        <button class="mh-seg" id="stickAlt" aria-pressed="true">Alternate</button>
-        <button class="mh-seg" id="stickDown" aria-pressed="false">Downbeats right</button>
-      </div>
-      <div class="mh-opt" role="group" aria-label="Letter names in the lights">
-        <span class="mh-ol">Letter names</span>
-        <button class="mh-seg" id="namesOn" aria-pressed="true">On</button>
-        <button class="mh-seg" id="namesOff" aria-pressed="false">Off</button>
-      </div>
+      <div class="mh-opt"><span class="ui-label" id="lSpc">Note spacing</span>
+        <div class="ui-seg" role="group" aria-labelledby="lSpc">
+          <button type="button" id="spcNormal" aria-pressed="true">Normal</button>
+          <button type="button" id="spcWide" aria-pressed="false">Wide</button>
+        </div></div>
+      <div class="mh-opt"><span class="ui-label" id="lHp">Headphones</span>
+        <div class="ui-seg mh-hp" role="group" aria-labelledby="lHp">
+          <button type="button" id="hpBtn" aria-pressed="false"><span aria-hidden="true">🎧</span> I'm wearing headphones</button>
+        </div></div>
+      <div class="mh-opt"><span class="ui-label">Timing</span>
+        <button class="btn btn-secondary btn-small" id="calBtn">Recalibrate</button></div>
+      <div class="mh-opt" id="stickOpt" hidden><span class="ui-label" id="lStick">Sticking</span>
+        <div class="ui-seg" role="group" aria-labelledby="lStick">
+          <button type="button" id="stickAlt" aria-pressed="true">Alternate</button>
+          <button type="button" id="stickDown" aria-pressed="false">Downbeats right</button>
+        </div></div>
+      <div class="mh-opt"><span class="ui-label" id="lNames">Letter names</span>
+        <div class="ui-seg" role="group" aria-labelledby="lNames">
+          <button type="button" id="namesOn" aria-pressed="true">On</button>
+          <button type="button" id="namesOff" aria-pressed="false">Off</button>
+        </div></div>
     </div>
     <p class="mh-optnote" id="optNote"></p>
     <p class="mh-sticknote" id="stickNote" hidden>Follow the sticking! The lanes show which hand to use.</p>
     <div class="levels mh-songs" id="songGrid"></div>
-    <p class="mh-foot"><a class="btn btn-ghost btn-small" id="boardLink" href="songs.html">Song Board</a> <span class="muted">every song on a staff, for any instrument</span></p>
+    <p class="mh-foot"><a class="btn btn-secondary btn-small" id="boardLink" href="songs.html">Song Board</a> <span class="mh-footnote">every song on a staff, for any instrument</span></p>
     <p class="demo-help" id="demoHelp" hidden>Demo: Space = play the note on the line (T too), W = a wrong note, hold S = hold it, 1–5 = your first five. P or Esc = pause. Every song is open.</p>
   </section>
 </div>
@@ -78,7 +82,6 @@
     <div><small id="hudSong">Song</small><b id="hudScore">0</b></div>
     <div class="c"><small>Combo</small><b id="hudCombo">0</b></div>
     <div class="r"><small id="hudAccL">Accuracy</small><b id="hudAcc">–</b></div>
-    <button class="mh-pause" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
   </div>
   <div class="mh-judge" id="judge" aria-live="polite"></div>
   <div class="mh-fv" id="fv" aria-hidden="true"></div>
@@ -92,78 +95,34 @@
   </div>
 </section>
 
-<!-- PAUSE -->
-<div class="overlay" id="pausePanel" hidden>
-  <div class="panel mh-pausemenu">
-    <h2>Paused</h2>
-    <div class="stats mh-pstats">
-      <div><small>Score</small><b id="pScore">0</b></div>
-      <div><small id="pAccL">Accuracy</small><b id="pAcc">–</b></div>
-    </div>
-    <p class="muted">The band waits for you. RESUME goes back one measure and counts you in.</p>
-    <div class="mh-pacts">
-      <button class="btn btn-gold" id="resumeBtn">Resume</button>
-      <button class="btn btn-ghost" id="restartBtn">Restart song</button>
-      <button class="btn btn-ghost" id="quitBtn">Song menu</button>
-    </div>
-  </div>
-</div>
-
 <!-- CALIBRATION -->
 <div class="overlay" id="calPanel" hidden>
-  <div class="panel mh-cal">
-    <h2 id="calTitle">Timing check</h2>
+  <div class="panel ui-panel mh-cal">
+    <h2 class="ui-title" id="calTitle">Timing check</h2>
     <p id="calMsg">Every microphone and speaker adds a tiny delay. Let's measure yours once, so the game judges your timing fairly.</p>
     <div class="mh-caldots" id="calDots"></div>
     <p class="mh-calsay" id="calSay"></p>
     <div class="acts">
-      <button class="btn btn-gold" id="calGo">Start</button>
-      <button class="btn btn-ghost" id="calSkip">Not now</button>
+      <button class="btn btn-primary" id="calGo">Start</button>
+      <button class="btn btn-secondary" id="calSkip">Not now</button>
     </div>
   </div>
 </div>
 
 <!-- HEADPHONES: THE SPEAKER CHECK -->
 <div class="overlay" id="hpPanel" hidden>
-  <div class="panel mh-cal">
-    <h2>Headphones check</h2>
+  <div class="panel ui-panel mh-cal">
+    <h2 class="ui-title">Headphones check</h2>
     <p id="hpMsg">In headphones mode the band plays the melody, bass and chords too. The microphone must not hear them, so let's check.</p>
     <div class="mh-hpmeter" id="hpMeter" aria-hidden="true"><i></i></div>
     <div class="acts">
-      <button class="btn btn-gold" id="hpGo">Check now</button>
-      <button class="btn btn-ghost" id="hpCancel">Cancel</button>
+      <button class="btn btn-primary" id="hpGo">Check now</button>
+      <button class="btn btn-secondary" id="hpCancel">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel mh-res">
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Song complete</h2>
-    <p id="resMsg"></p>
-    <div class="stats mh-stats">
-      <div><small>Score</small><b id="resScore">0</b></div>
-      <div><small>Accuracy</small><b id="resAcc">0%</b></div>
-      <div><small>Max combo</small><b id="resCombo">0</b></div>
-      <div id="resFvBox"><small>Full value held</small><b id="resFv">–</b></div>
-    </div>
-    <div class="mh-counts" id="resCounts"></div>
-    <p id="resBest" class="best"></p>
-    <div class="mh-trouble" id="trouble" hidden>
-      <h3>Trouble spot</h3>
-      <p class="muted" id="troubleMsg"></p>
-      <div class="stage mh-tstaff" id="troubleStaff"></div>
-      <button class="btn btn-ghost" id="practiceBtn">Practice this part</button>
-    </div>
-    <div class="acts">
-      <button class="btn btn-gold" id="resPlay" hidden>Play this song</button>
-      <button class="btn btn-gold" id="resNext">Next song</button>
-      <button class="btn btn-ghost" id="resRetry">Play again</button>
-      <button class="btn btn-ghost" id="resSongs">Songs</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <script src="../shared/instruments.js"></script>
 <script src="../shared/storage.js"></script>

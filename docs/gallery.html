@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>UI Gallery · Band Arcade</title>
+<meta name="description" content="Every shared interface piece and every game's level select, pause menu, settings and results, side by side.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<!-- THE UI GALLERY (not linked for students): every shared piece of shared/ui-kit.js live, and every game's level
+     select, pause menu, settings panel and results screen as pictures, so they can be compared side by side.
+     The pictures (docs/gallery/*.jpg) come from the automatic tests: cd tests && GALLERY=1 npx playwright test
+     game-runs --project=chromium. The rules they follow: docs/STYLE.md. -->
+<style>
+  .gal .wrap{max-width:1280px}
+  .gal h2.ui-section{display:inline-block;margin:34px 0 14px}
+  .gal .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0}
+  .gal .card{background:var(--floor-2);border:1px solid var(--floor-3);border-radius:16px;padding:16px;margin:0 0 14px}
+  .gal .card>h3{margin:0 0 10px;font-family:var(--display);font-weight:400;font-size:22px;color:var(--cyan-hi)}
+  .gal .shots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  @media (max-width:900px){.gal .shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .gal figure{margin:0}
+  .gal figure img{display:block;width:100%;aspect-ratio:1180/820;object-fit:cover;border-radius:10px;border:1px solid var(--floor-3);background:var(--deep)}
+  .gal figure img.miss{object-fit:contain;opacity:.25}
+  .gal figcaption{font-size:13px;color:var(--text-lo);margin-top:4px;text-align:center}
+  .gal .ba{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .gal .sample-panel{max-width:460px}
+</style>
+</head>
+<body class="gal">
+<div class="wrap">
+  <div id="topbar" class="topbar"><a class="brand" href="../index.html"><span aria-hidden="true">←</span><span>Arcade</span></a><div class="topbar-right"><span class="sound-ctl" id="snd"></span></div></div>
+  <h1 class="game-title" style="color:var(--pink-hi)">UI Gallery</h1>
+  <p class="ui-howto">Every shared interface piece, and every game's level select, pause menu, settings panel and results screen, side by side. The rules: <a href="STYLE.md">docs/STYLE.md</a>.</p>
+
+  <h2 class="ui-section">Buttons</h2>
+  <div class="row">
+    <button class="btn btn-primary">Primary</button><button class="btn btn-secondary">Secondary</button>
+    <button class="btn btn-danger">Danger</button><button class="btn btn-secondary btn-small">Small</button>
+    <button class="btn btn-primary btn-big">Big</button><button class="btn btn-secondary" disabled>Disabled</button>
+  </div>
+  <div class="row">
+    <div class="ui-seg" role="group" aria-label="Difficulty"><button aria-pressed="true">Rookie<small>4 s</small></button><button aria-pressed="false">Pro<small>2.5 s</small></button><button aria-pressed="false">All-Star<small>1.5 s</small></button></div>
+    <button class="ui-switch" role="switch" aria-checked="true" aria-label="A switch" onclick="this.setAttribute('aria-checked', this.getAttribute('aria-checked') !== 'true')"></button>
+  </div>
+
+  <h2 class="ui-section">Headings and text</h2>
+  <div class="card">
+    <p class="ui-kicker">Level 3 · 5 transmissions</p>
+    <h3 class="ui-title" style="font-size:30px">A panel title (.ui-title)</h3>
+    <h4 class="ui-section" style="display:inline-block">① Select your notes (.ui-section)</h4>
+    <span class="ui-label" style="margin-top:12px">A label (.ui-label)</span>
+    <p class="ui-howto">How to play (.ui-howto): read the note and play it on your instrument.</p>
+    <div class="ui-tiles" style="max-width:420px"><div class="ui-tile"><small>Notes</small><b>6/6</b></div><div class="ui-tile"><small>Wrong</small><b>0</b></div><div class="ui-tile"><small>Score</small><b>1135</b></div></div>
+    <p class="ui-msg loading">Loading…</p><p class="ui-msg empty">No scores yet. Be the first!</p><p class="ui-msg err">The microphone is blocked.</p>
+  </div>
+
+  <h2 class="ui-section">The shared panels (live)</h2>
+  <div class="row">
+    <button class="btn btn-secondary" id="gPause">Pause menu</button>
+    <button class="btn btn-secondary" id="gResults">Results screen</button>
+    <button class="btn btn-secondary" id="gSettings">Settings panel</button>
+    <button class="btn btn-secondary" id="gIntro">Level intro</button>
+    <button class="btn btn-secondary" id="gConfirm">Confirm</button>
+    <button class="btn btn-secondary" id="gToast">Toast</button>
+  </div>
+
+  <h2 class="ui-section">Before and after</h2>
+  <div id="ba"></div>
+
+  <h2 class="ui-section">Every game</h2>
+  <p class="ui-howto">Level select · pause menu · settings panel · results screen. Pictures from the automatic tests (GALLERY=1).</p>
+  <div id="games"></div>
+</div>
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script>
+(function (A) {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  A.Sfx.mountControls($('snd'));
+  const img = (src, cap) => `<figure><img loading="lazy" src="${src}" alt="${cap}" onerror="this.onerror=null;this.classList.add('miss');this.src='../shared/icon.svg'"><figcaption>${cap}</figcaption></figure>`;
+  const KINDS = [['levels', 'Level select'], ['pause', 'Pause menu'], ['settings', 'Settings'], ['results', 'Results']];
+  $('games').innerHTML = (A.ALL_GAMES || A.GAMES).filter(g => !g.tool).map(g =>
+    `<div class="card"><h3>${g.name}</h3><div class="shots">${KINDS.map(([k, c]) => img(`gallery/${g.id}-${k}.jpg`, c)).join('')}</div></div>`).join('');
+  $('ba').innerHTML = ['ghost-notes', 'note-storm', 'button-masher'].map(id => {
+    const g = (A.ALL_GAMES || A.GAMES).find(x => x.id === id) || {name: id};
+    return `<div class="card"><h3>${g.name}</h3><div class="ba">${img(`gallery/before-${id}-results.jpg`, 'Before: results')}${img(`gallery/${id}-results.jpg`, 'After: results')}</div></div>`;
+  }).join('');
+  // the live pieces
+  const pause = A.UI.pause.mount({info: () => [['Score', 1135], ['Accuracy', '92%']], onRestart() {}, onLevels() {},
+    extras: [{label: 'Song menu (an extra)', onClick() {}}], note: 'A sample pause menu.'});
+  $('gPause').onclick = () => { pause.setActive(true); pause.pause('button'); };
+  const done = () => A.UI.results.hide();
+  $('gResults').onclick = () => A.UI.results.show({stars: 2, title: 'Level cleared', msg: 'Get every note with no wrong notes for 3 stars.',
+    tiles: [['Notes', '5/6'], ['Wrong', 1], ['Score', 1135]], best: 'Best: 1135', newBest: true, announce: false,
+    extra: '<p class="ui-msg">A game\'s own extra goes here (trouble spot, missed notes, Top 5…).</p>',
+    next: {label: 'Next level', onClick: done}, retry: {label: 'Try again', onClick: done}, levels: {label: 'Levels', onClick: done}});
+  $('gSettings').onclick = () => A.UI.settings.open({extras: box => { box.innerHTML = '<span class="ui-label">Note spacing (a game\'s own option)</span><div class="ui-seg"><button aria-pressed="true">Normal</button><button aria-pressed="false">Wide</button></div>'; }});
+  $('gIntro').onclick = () => A.UI.intro.show({kicker: 'Level 3 · 5 transmissions', title: 'Faint Signal', text: 'The signal is weak. Listen closely, then echo it back.', go: {label: 'Start listening'}, back: {label: 'Levels'}});
+  $('gConfirm').onclick = () => A.UI.confirm({title: 'Leave this level?', text: 'Your progress in this level won’t be saved.', yes: 'Leave', no: 'Keep playing', danger: true});
+  $('gToast').onclick = () => A.UI.toast('Clear Level 2 to unlock');
+})(window.Arcade);
+</script>
+</body>
+</html>

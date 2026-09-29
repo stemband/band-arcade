@@ -17,7 +17,7 @@
    Every write also stores `progress` = {pct, friends} for the arcade floor's line ("Episode 1: 60% · 7 friends").
    SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool} (your look and name: Create Your Player, EDIT PLAYER here).
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
-   Q.settings.open() shows the SETTINGS panel. */
+   Q.settings.open() shows the arcade's shared SETTINGS panel (shared/ui-kit.js) with these options under "Arcade Quest". */
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
@@ -127,38 +127,39 @@
   };
 
   const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false};
+  /* THE SETTINGS PANEL is the arcade's shared one (shared/ui-kit.js Arcade.UI.settings: sound, music, effects, motion,
+     mic sensitivity), pixel-themed in style.css; Arcade Quest adds its own options under "This game" (registered once,
+     so they're there however it opens: the title, the arena, a battle's ⚙, the pause menu or the top bar). */
+  const OPTS = [['textSpeed', 'Text speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']]],
+    ['dodge', 'Dodging', [['easy', 'Easy'], ['normal', 'Normal']]],
+    ['assist', 'Assist mode', [['false', 'Off'], ['true', 'On']], 'On: enemies’ sour notes do half damage.']];
+  function questOptions(box) {
+    const s = Q.settings.get();
+    box.innerHTML = OPTS.map(([k, name, opts, note]) => `<div><span class="ui-label" id="qSet-${k}">${name}</span>` +
+      `<div class="ui-seg ui-seg-sm" role="group" aria-labelledby="qSet-${k}" data-k="${k}">` +
+      opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(s[k]) === v}">${l}</button>`).join('') + `</div>` +
+      (note ? `<p class="ui-howto q-snote">${note}</p>` : '') + `</div>`).join('') +
+      (A.AvatarCreator ? `<div><span class="ui-label">Your player</span><button type="button" class="btn btn-secondary btn-small q-edit-av">Edit player</button>` +
+        `<p class="ui-howto q-snote">Your look and your name, everywhere in the arcade.</p></div>` : '');
+    box.querySelectorAll('.ui-seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      const k = g.dataset.k, v = k === 'assist' ? b.dataset.v === 'true' : b.dataset.v;
+      Q.settings.set({[k]: v}); Q.sfx('quest-select');
+      g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      if (Q.onSettings) Q.onSettings();
+    })));
+    const ed = box.querySelector('.q-edit-av');                     // Create Your Player (shared/avatar-creator.js)
+    if (ed) ed.addEventListener('click', () => A.AvatarCreator.open({onClose: () => { if (Q.onSettings) Q.onSettings(); if (ed.isConnected) ed.focus(); }}));
+  }
+  if (A.UI && A.UI.settings) A.UI.settings.register(questOptions, {title: 'Arcade Quest'});
   Q.settings = {
     get() { const d = data(); d.settings = Object.assign({}, DEFAULTS, d.settings || {}); return d.settings; },
     set(patch) { Object.assign(this.get(), patch); write(); },
-    /** the SETTINGS panel over the current scene; resolves when closed */
+    /** the shared SETTINGS panel over the current scene; resolves when closed */
     open() {
       return new Promise(done => {
-        const s = this.get();
-        const p = Q.el('div', 'q-overlay');
-        const seg = (key, opts) => `<div class="q-seg" role="group" data-k="${key}">` +
-          opts.map(([v, l]) => `<button type="button" class="q-chip" data-v="${v}" aria-pressed="${String(s[key]) === String(v)}">${l}</button>`).join('') + `</div>`;
-        p.innerHTML = `<div class="q-panel q-settings" role="dialog" aria-modal="true" aria-labelledby="qSetT"><h2 id="qSetT">Settings</h2>` +
-          `<div class="q-row"><span>Text speed</span>${seg('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']])}</div>` +
-          `<div class="q-row"><span>Dodging</span>${seg('dodge', [['easy', 'Easy'], ['normal', 'Normal']])}</div>` +
-          `<div class="q-row"><span>Assist mode</span>${seg('assist', [['false', 'Off'], ['true', 'On']])}<small>On: enemies' sour notes do half damage.</small></div>` +
-          (A.AvatarCreator ? `<div class="q-row"><span>Your player</span><button type="button" class="q-chip q-edit-av">Edit player</button><small>Your look and your name, everywhere in the arcade.</small></div>` : '') +
-          `<div class="q-row"><span>Sound &amp; music</span><div class="q-snd" id="qSnd"></div><small>The same settings as the rest of the arcade.</small></div>` +
-          `<div class="q-row"><span>Motion</span><small>${Q.reduced() ? 'Reduced motion is on (from your device): no screen shake or flashing.' : 'Screen shake is on. Turn on "reduce motion" on your device to switch it off.'}</small></div>` +
-          `<button type="button" class="q-btn q-close">Done</button></div>`;
-        Q.ui.appendChild(p);
-        if (A.Sfx) A.Sfx.mountControls(p.querySelector('#qSnd'));
-        p.querySelectorAll('.q-seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-          const k = g.dataset.k, raw = b.dataset.v, v = k === 'assist' ? raw === 'true' : raw;
-          this.set({[k]: v}); Q.sfx('quest-select');
-          g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
-          if (Q.onSettings) Q.onSettings();
-        })));
-        const close = () => { off(); p.remove(); done(); };
-        const off = Q.input.on(btn => { if (btn === 'b') close(); return true; });   // arrows/Tab move between buttons
-        p.querySelector('.q-close').addEventListener('click', close);
-        const ed = p.querySelector('.q-edit-av');                     // Create Your Player (shared/avatar-creator.js)
-        if (ed) ed.addEventListener('click', () => A.AvatarCreator.open({onClose: () => { if (Q.onSettings) Q.onSettings(); ed.focus(); }}));
-        p.querySelector('.q-chip[aria-pressed="true"]').focus();
+        if (!A.UI || !A.UI.settings || A.UI.state().settings) { done(); return; }
+        Q.input.clear();
+        A.UI.settings.open({theme: 'q-theme', onClose: () => { if (Q.onSettings) Q.onSettings(); done(); }});
       });
     },
   };

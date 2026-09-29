@@ -154,7 +154,7 @@ window.Arcade = window.Arcade || {};
       `<label class="acode-lbl" for="acodeOut">Your avatar code</label>` +
       `<input id="acodeOut" class="acode-in" type="text" readonly value="${esc(code)}" spellcheck="false" autocomplete="off">` +
       `<p class="acode-say">Paste this in your Band Ninja Progress page.</p><p class="acode-msg" role="status"></p>` +
-      `<div class="acts"><button type="button" class="btn btn-gold acode-copy">Copy</button><button type="button" class="btn btn-ghost" data-close>Done</button></div>`, 'Share to Band Ninja', onClose);
+      `<div class="acts"><button type="button" class="btn btn-primary acode-copy">Copy</button><button type="button" class="btn btn-secondary" data-close>Done</button></div>`, 'Share to Band Ninja', onClose);
     const inp = ov.querySelector('#acodeOut'), msg = ov.querySelector('.acode-msg');
     const selectAll = () => { inp.focus(); inp.select(); try { inp.setSelectionRange(0, code.length); } catch (e) { /* */ } };
     inp.addEventListener('focus', selectAll);
@@ -172,7 +172,7 @@ window.Arcade = window.Arcade || {};
       `<label class="acode-lbl" for="acodeIn">Paste an avatar code (it starts with BA1-)</label>` +
       `<input id="acodeIn" class="acode-in" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="BA1-…">` +
       `<p class="acode-msg" role="alert"></p>` +
-      `<div class="acts"><button type="button" class="btn btn-gold acode-load">Load</button><button type="button" class="btn btn-ghost" data-close>Cancel</button></div>`, 'Load avatar code', onClose);
+      `<div class="acts"><button type="button" class="btn btn-primary acode-load">Load</button><button type="button" class="btn btn-secondary" data-close>Cancel</button></div>`, 'Load avatar code', onClose);
     const inp = ov.querySelector('#acodeIn'), msg = ov.querySelector('.acode-msg');
     const go = () => {
       const av = decode(inp.value.replace(/\s+/g, ''));

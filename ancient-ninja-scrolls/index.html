@@ -43,14 +43,14 @@
     <div class="ch-head">
       <div class="lantern big" aria-hidden="true"></div>
       <div><p class="ch-rank" id="chRank">Rank 3</p><h2 class="ch-name" id="chName">Orange Chamber</h2></div>
-      <button class="btn btn-ghost btn-small ch-back" id="chBack">Temple</button>
+      <button class="btn btn-secondary btn-small ch-back" id="chBack">Temple</button>
     </div>
     <div class="modes">
       <button class="mode-card" id="goTrain"><span class="mt">Train</span><span class="md">Learn each scroll with four choices. Missed ones come back.</span><span class="mf" id="trainInfo"></span></button>
       <button class="mode-card" id="goSpar"><span class="mt">Spar</span><span class="md">60 seconds of rapid-fire questions. Build a combo!</span><span class="mf" id="sparInfo"></span></button>
       <button class="mode-card exam" id="goExam"><span class="mt">Belt Exam</span><span class="md">Your real test: fill in all 15 from the word bank.</span><span class="mf" id="examInfo"></span></button>
     </div>
-    <h3 class="eyebrow rack-title" id="rackTitle">Scroll rack</h3>
+    <h3 class="ui-section rack-title" id="rackTitle">Scroll rack</h3>
     <div class="rack" id="rack"></div>
   </section>
 
@@ -72,59 +72,32 @@
     <div class="feedback" id="feedback" aria-live="polite">
       <p class="fb-line" id="fbLine"></p>
       <p class="fb-tip" id="fbTip"></p>
-      <button class="btn btn-gold" id="nextBtn" hidden>Next</button>
+      <button class="btn btn-primary" id="nextBtn" hidden>Next</button>
     </div>
-    <div class="quiz-foot"><button class="btn btn-ghost btn-small" id="quitQuiz">Leave</button></div>
   </section>
 
   <!-- BELT EXAM: the paper test, on screen -->
   <section id="exam" hidden>
     <div class="ex-head">
       <div><p class="ch-rank" id="exRank">Rank 3</p><h2 class="ch-name" id="exName">Orange Belt Exam</h2></div>
-      <button class="btn btn-ghost btn-small" id="exBack">Chamber</button>
     </div>
     <div class="ex-result" id="exResult" hidden></div>
     <div class="bank" id="bank" role="group" aria-label="Word bank"></div>
     <p class="ex-how" id="exHow">Tap a word, then tap a blank to place it. Tap a filled blank to clear it. Each word is used once.</p>
     <ol class="ex-list" id="exList"></ol>
-    <div class="ex-foot"><button class="btn btn-gold" id="exSubmit">Submit exam</button></div>
+    <div class="ex-foot"><button class="btn btn-primary" id="exSubmit">Submit exam</button></div>
   </section>
 </div>
 
-<!-- a scroll unrolls (term mastered) -->
-<div class="toast" id="toast" aria-live="polite"></div>
+<!-- the round results, the pause menu, the "Turn in your exam?" question and the toasts: shared/ui-kit.js -->
 
-<!-- SUBMIT? -->
-<div class="overlay" id="confirm" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="cfTitle">
-    <h2 id="cfTitle">Turn in your exam?</h2>
-    <p id="cfMsg"></p>
-    <div class="acts"><button class="btn btn-gold" id="cfYes">Turn it in</button><button class="btn btn-ghost" id="cfNo">Keep working</button></div>
-  </div>
-</div>
-
-<!-- ROUND RESULTS (Train, Spar, Review) -->
-<div class="overlay" id="results" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="res-sensei" id="resSensei" aria-hidden="true"></div>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Round complete</h2>
-    <p id="resMsg"></p>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resAgain">Again</button>
-      <button class="btn btn-ghost" id="resBack">Chamber</button>
-    </div>
-  </div>
-</div>
-
-<!-- TEST READY: the Sensei presents the badge -->
-<div class="overlay" id="badge" hidden>
-  <div class="panel badge-panel" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+<!-- TEST READY: the Sensei presents the badge (a ceremony of its own, in the kit's panel style) -->
+<div class="overlay ui-ov" id="badge" hidden>
+  <div class="panel ui-panel badge-panel" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
     <div class="bd-scene"><div class="res-sensei" id="bdSensei" aria-hidden="true"></div><div class="medal" id="bdMedal" aria-hidden="true"></div></div>
-    <h2 id="bdTitle">TEST READY</h2>
+    <h2 class="ui-title" id="bdTitle">TEST READY</h2>
     <p id="bdMsg"></p>
-    <div class="acts"><button class="btn btn-gold" id="bdOk">Thank you, Sensei</button></div>
+    <div class="acts"><button class="btn btn-primary" id="bdOk">Thank you, Sensei</button></div>
   </div>
 </div>
 

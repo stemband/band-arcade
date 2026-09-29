@@ -18,7 +18,7 @@ window.Arcade = window.Arcade || {};
   const S = () => A.Seasons;
   const data = () => A.store.gameData('seasons');
   const decoOn = () => data().deco !== false;
-  const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches || A.store.gameData('bg').motion === false;
+  const still = () => (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches || A.store.gameData('bg').motion === false;
   const leftText = o => o.daysLeft <= 0 ? 'last day!' : o.daysLeft === 1 ? '1 day left!' : `${o.daysLeft} days left!`;
   const evStyle = ev => `--ev:var(--${ev.colors[0]});--ev-hi:var(--${ev.colors[0]}-hi);--ev2:var(--${ev.colors[1]});--ev2-hi:var(--${ev.colors[1]}-hi)`;
 
@@ -125,14 +125,14 @@ window.Arcade = window.Arcade || {};
       `<header class="ev-head"><span class="ev-emoji big" aria-hidden="true">${ev.emoji || '★'}</span><div><h2 id="evTitle">${esc(ev.name)}</h2>` +
       `<p class="ev-when">${esc(S().when(ev))} · ${esc(leftText(o))}${o.preview ? ' · <b>Preview: nothing is saved</b>' : ''}</p></div></header>` +
       (ev.gift ? `<section class="ev-giftbox"><h3>Free gift</h3><div class="ev-item">${itemPreview(ev.gift, !giftOwned)}</div>` +
-        (claimed || giftOwned ? `<p class="ev-done">✓ Yours to keep!</p>` : `<button type="button" class="btn btn-gold ev-claim">Claim</button>`) + `</section>` : '') +
+        (claimed || giftOwned ? `<p class="ev-done">✓ Yours to keep!</p>` : `<button type="button" class="btn btn-primary ev-claim">Claim</button>`) + `</section>` : '') +
       `<section class="ev-ladder"><h3>Challenges</h3><ol>` + steps.map(s =>
         `<li class="ev-step${s.owned ? ' done' : ''}"><div class="ev-item">${s.item ? itemPreview(s.item, !s.owned) : ''}</div>` +
         `<div class="ev-goal"><b>${esc(s.label)}</b><span class="ev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${s.n}" aria-valuenow="${s.have}" aria-label="${esc(s.label)}">` +
         `<i style="width:${pct(s)}%"></i></span><small>${s.owned ? '✓ Earned: yours to keep!' : `${s.have} of ${s.n}`}</small></div></li>`).join('') + `</ol></section>` +
       `<p class="muted ev-foot">Only what you do during ${esc(ev.name)} counts. Items you earn are yours forever. ${esc(ev.name)} comes back every year!</p>` +
       `<div class="acts"><label class="ev-decot"><input type="checkbox" class="ev-deco-cb"${decoOn() ? ' checked' : ''}> Decorations</label>` +
-      `<button type="button" class="btn btn-ghost ev-close">Close</button></div></div>`;
+      `<button type="button" class="btn btn-secondary ev-close">Close</button></div></div>`;
     ov.querySelector('.ev-close').addEventListener('click', close);
     ov.querySelector('.ev-deco-cb').addEventListener('change', e => { data().deco = e.target.checked; A.store.saveGameData('seasons'); if (A.Sfx) A.Sfx.event('ui-toggle'); render(); });
     const cl = ov.querySelector('.ev-claim');

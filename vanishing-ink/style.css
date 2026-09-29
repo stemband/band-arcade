@@ -31,9 +31,8 @@ body.vi-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(-
 /* ---------- level select ---------- */
 .hub-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px}
 .hub-head .vi-master{width:92px;flex:none}
-.game-title{font-family:"GN Brush",var(--display);font-weight:400;font-size:clamp(42px,9vw,76px);line-height:1.05;margin:0 0 .12em}
+.game-title{font-family:"GN Brush",var(--display);line-height:1.05}
 .game-title span{color:var(--pink);text-shadow:var(--glow-pink)}
-.hub-head p{max-width:58ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--text-dim);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
 .checker-cta p{margin:0;max-width:52ch;color:var(--text-lo);font-size:15px}
@@ -117,26 +116,19 @@ body.vi-body{background:radial-gradient(ellipse at 50% -20%,var(--floor-3),var(-
 .round-res{text-align:center;margin:4px 0 8px}
 .rr-line{font-size:20px;font-weight:700;margin:6px 0 4px}
 .rr-line.good{color:var(--yellow)}.rr-line.bad{color:var(--red-hi)}
-.acts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.round-res .acts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .play-actions{display:flex;justify-content:center;gap:10px;margin:4px 0 10px}
 .hear.off{opacity:.45}
-.play-foot{display:flex;justify-content:center;margin-top:16px}
 
 /* ---------- overlays ---------- */
 .im-talk{display:flex;align-items:flex-end;gap:12px;margin-bottom:8px}
 .im-talk .vi-master{width:100px;flex:none}
 .im-talk .say{margin:0;padding:10px 14px;border-radius:14px 14px 14px 4px;background:var(--vi-paper);color:var(--vi-ink);font-size:17px;line-height:1.4;font-weight:700}
-.panel .kicker{margin:0;font-family:var(--display);font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--pink)}
-.panel h2{font-family:"GN Brush",var(--display);font-weight:400}
-.panel .now{color:var(--cyan-hi);font-weight:700}
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
-.panel .best{font-size:14px;margin-top:8px}
+/* the kit's intro and results, and the ending: the brush-lettered title and the pink kicker */
+.vi-theme .ui-kicker{color:var(--pink)}
+.vi-theme .ui-title{font-family:"GN Brush",var(--display);font-weight:400}
+.vi-theme .now{color:var(--cyan-hi);font-weight:700}
+.vi-theme .ui-intro-hero{justify-content:flex-start}
 #endText p{color:var(--text-hi);font-size:17px;line-height:1.5}
 
 @media (max-width:560px){

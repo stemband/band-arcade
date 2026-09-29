@@ -131,9 +131,9 @@ window.Arcade = window.Arcade || {};
     const games = S.tab === 'endless' ? `<div class="lb-games" role="group" aria-label="Game">` + endlessGames(S.res).map(g =>
       `<button type="button" class="lb-gm${g === S.game ? ' on' : ''}" data-act="game" data-game="${esc(g)}" aria-pressed="${g === S.game}">${esc(gameName(g))}</button>`).join('') + `</div>` : '';
     let body;
-    if (S.loading && !S.res) body = `<p class="lb-msg">Loading…</p>`;
-    else if (!S.res || !S.res.ok) body = `<p class="lb-msg lb-break">Leaderboard is taking a break. Your progress is still saved!</p>`;
-    else if (!rows.length) body = `<p class="lb-msg">Nobody is on this board yet this week. Be the first!</p>`;
+    if (S.loading && !S.res) body = `<p class="ui-msg lb-msg">Loading…</p>`;
+    else if (!S.res || !S.res.ok) body = `<p class="ui-msg lb-msg lb-break">Leaderboard is taking a break. Your progress is still saved!</p>`;
+    else if (!rows.length) body = `<p class="ui-msg lb-msg">Nobody is on this board yet this week. Be the first!</p>`;
     else body = `<ol class="lb-list">` + rows.slice(0, 10).map((e, i) => {
       const me = L().isMe(e), medal = ['gold', 'silver', 'bronze'][i] || '';
       const name = A.Avatar && A.Avatar.nameFromNumbers ? A.Avatar.nameFromNumbers(e.name) : 'Mystery Player';

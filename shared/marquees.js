@@ -44,7 +44,7 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const FPS = 20;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
 
   /* ---------- colors: theme tokens ---------- */
   const tokCache = {};

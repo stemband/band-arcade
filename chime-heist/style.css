@@ -44,9 +44,8 @@ body.caught .alarm-flash{animation:flash .45s ease-out 3}
 
 /* ---------- vault select ---------- */
 .hub-head{margin-bottom:18px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92;color:var(--green-hi);text-shadow:var(--glow-green)}
+.game-title{color:var(--green-hi);text-shadow:var(--glow-green)}
 .game-title span{color:var(--red);text-shadow:var(--glow-red)}
-.hub-head p{max-width:56ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .terminal-card{border-color:var(--green);box-shadow:0 0 0 4px var(--deep),var(--glow-green),inset 0 0 0 2px rgba(255,255,255,.6)}
 .heist .eyebrow{color:var(--green)}
@@ -170,7 +169,6 @@ body.caught .alarm-flash{animation:flash .45s ease-out 3}
 
 .play-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px))}
 .demo-ans{font-size:13px;color:var(--text-lo);margin:0}
-#quitPlay{margin-left:auto}
 
 /* short screens (iPad and Chromebook landscape): tighter so the terminal and the whole kit both fit */
 @media (max-height:820px){
@@ -190,7 +188,6 @@ body.caught .alarm-flash{animation:flash .45s ease-out 3}
   .prompt{font-size:15px;margin:3px 0;min-height:20px}
   .lock{min-height:112px;padding:6px 8px}
   .play-foot{padding:3px 0 calc(4px + env(safe-area-inset-bottom,0px))}
-  .play-foot .btn{min-height:34px;padding-block:4px}
 }
 
 /* ---------- the vault door swings open on the treasure ---------- */
@@ -213,18 +210,10 @@ body.caught .alarm-flash{animation:flash .45s ease-out 3}
 @keyframes shine{0%{opacity:0;transform:scale(.7)}100%{opacity:1;transform:scale(1)}}
 
 /* ---------- results ---------- */
-.res-treasure{width:96px;margin:0 auto 4px}
+.res-treasure{width:96px;margin:0 auto}
 .res-treasure:empty{display:none}
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
-.res-score{margin:10px 0 0!important;color:var(--text-hi)!important;font-weight:700}
-.res-score b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--yellow)}
-.panel .best{font-size:14px;margin-top:8px}
+.res-streak{margin:0;text-align:center;color:var(--text-lo);font-weight:700}
+.res-streak b{font-family:var(--display);font-weight:400;font-size:20px;color:var(--yellow)}
 .panel{border-color:var(--green);box-shadow:var(--glow-green),0 30px 80px rgba(0,0,0,.6)}
 .panel h2{color:var(--green-hi)}
 

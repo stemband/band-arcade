@@ -16,11 +16,11 @@
   const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   const ACC_SIGN = {'-1': '♭', 0: '', 1: '♯'};
   const GOLD = '#c98a12', MISS = '#d0503f';          // same found / missed colors as the other games
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
 
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
-  A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
+  A.mountTopbar(inst, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
   A.Sfx.use('endless');
@@ -28,6 +28,17 @@
   const endKey = () => ({gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: A.Endless.setKey(picker.state)});
 
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: BELTS.length, onChange: () => showHub()});
+  // THE PAUSE MENU (shared/ui-kit.js): the answer timer (and an Endless run's clock) stops while paused.
+  // BACK TO LEVELS leaves the belt (or ends the run) with nothing saved, as "Quit belt" / "Quit run" did.
+  const pause = A.UI.pause.mount({
+    canPause: () => !!G && !G.over && G.i < G.count,
+    onPause: () => { if (G) G.paused = true; },
+    onResume: () => { if (G) G.paused = false; },
+    onRestart: () => G && G.endless ? startEndless() : startLevel(G.lv),
+    onLevels: showHub, levelsLabel: 'Back to belts',
+    info: () => !G ? [] : G.endless ? [['Speed', G.speed.toFixed(1)], ['Score', G.score]]
+      : [['Note', `${Math.min(G.i + 1, G.count)} / ${G.count}`], ['Score', G.score]],
+  });
 
   /* ---------- belt select ---------- */
   function showHub() {
@@ -35,7 +46,8 @@
     stopTimer();
     G = null;
     const st = picker.state, key = st.progressKey;
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('play').hidden = true; $('hub').hidden = false;
     $('wrap').classList.remove('playing');
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap;
@@ -146,8 +158,9 @@
     setAcc(0);
     hud();
     if (G.lives <= 0) {
-      G.over = true; stopTimer();
-      setTimeout(() => { if (G && G.over && !$('play').hidden) endlessOver(); }, 900);
+      G.over = true; stopTimer(); pause.setActive(false);   // the run is over: GAME OVER comes in a moment
+      const g = G;
+      setTimeout(() => { if (G === g && G.over && !$('play').hidden) endlessOver(); }, 900);
       return;
     }
     advance(END.afterLifeMs);
@@ -160,12 +173,14 @@
   }
 
   function begin(label, name, L, sound) {
-    $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false;
+    A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
+    pause.set({leaveTitle: G.endless ? 'End this run?' : 'Leave this belt?',
+      leaveText: G.endless ? 'This run won’t go on the Top 5.' : 'Your progress on this belt won’t be saved.', leaveYes: G.endless ? 'End run' : 'Leave'});
     $('wrap').classList.add('playing');
+    pause.setActive(true);                         // after the play layout, so the button lines up with "← Arcade"
     $('hudBeltLabel').textContent = label;
     $('hudBeltName').textContent = name;
     $('hudCountLabel').textContent = G.endless ? 'Lives' : 'Note';
-    $('quitPlay').textContent = G.endless ? 'Quit run' : 'Quit belt';
     G.beltColor = '';
     beltLook(L);
     $('accRow').hidden = !G.accs;
@@ -236,7 +251,8 @@
     let last = performance.now();
     timerId = setInterval(() => {
       const now = performance.now();
-      if (document.hidden) { G.noteStart += now - last; last = now; return; }
+      if (!G) return;
+      if (document.hidden || G.paused) { G.noteStart += now - last; last = now; return; }   // hidden tab or PAUSE: the clock stops
       const dt = (now - last) / 1000;
       last = now;
       if (!G || G.locked) return;
@@ -264,7 +280,7 @@
   A.holdGuard($('pad'));                             // a long press on an answer never selects or calls out (ui.js)
 
   function answer(letter) {
-    if (!G || G.locked) return;
+    if (!G || G.locked || G.paused) return;
     const it = current(), acc = G.accs ? G.acc : 0;
     setAcc(0);                                          // the Shift key lets go after every letter
     if (letter === it.letter && acc === it.acc) hit(); else wrongAnswer(letter + ACC_SIGN[acc]);
@@ -314,13 +330,14 @@
     stopTimer();
     G.i++;
     hud();
-    if (G.i >= G.count) { G.locked = true; setTimeout(finishLevel, Math.max(delay, 600)); return; }
+    const g = G;                                        // a RESTART from the pause menu makes a new G: old timeouts stop
+    if (G.i >= G.count) { G.locked = true; pause.setActive(false); setTimeout(() => { if (G === g) finishLevel(); }, Math.max(delay, 600)); return; }
     if (G.i - G.gStart >= G.L.onStaff) {
       G.locked = true;
       G.gStart = G.i;
-      setTimeout(() => { if (G && !$('play').hidden) drawGroup(); }, Math.max(delay, RULES.afterGroupMs));
+      setTimeout(() => { if (G === g && !$('play').hidden) drawGroup(); }, Math.max(delay, RULES.afterGroupMs));
     } else if (delay) {
-      setTimeout(() => { if (G && !$('play').hidden) { G.locked = false; nextNote(); } }, delay);
+      setTimeout(() => { if (G === g && !$('play').hidden) { G.locked = false; nextNote(); } }, delay);
     } else nextNote();
   }
 
@@ -350,7 +367,8 @@
 
   /* ---------- keyboard (Chromebooks): A–G answer, 1 / 2 / 3 = ♭ / ♮ / ♯ ---------- */
   addEventListener('keydown', e => {
-    if (!G || $('play').hidden || !$('results').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    // never while a panel is open (results, pause, settings, a confirm: shared/ui-kit.js) or paused
+    if (!G || G.paused || $('play').hidden || A.UI.isOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toUpperCase();
     if (LETTERS.includes(k)) { e.preventDefault(); answer(k); }
     else if (G.accs && (k === '1' || k === '2' || k === '3')) { e.preventDefault(); setAcc(+k - 2); }
@@ -365,38 +383,29 @@
     const old = A.store.level(key, inst.id, lv);
     A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     const newBelt = stars > 0 && old.stars === 0 && lv < BELTS.length;
-    $('resNinja').innerHTML = A.ninjaSVG({belt: stars ? L.color : 'belt-white', cls: stars ? 'cheer' : ''});
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = stars === 3 ? 'Perfect!' : stars ? `${L.name} belt cleared` : 'So close';
-    $('resMsg').textContent = stars
-      ? (stars === 3 ? 'Every note, no mistakes. True ninja reading!'
-        : stars === 2 ? 'Name every note in time with no mistakes for 3 stars.'
-        : `Name ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes in time for 2 stars.`) + (newBelt ? ` You earned the ${BELTS[lv].name} belt!` : '')
-      : `Name ${Math.ceil(count * RULES.passRate)} of ${count} notes in time to clear this belt. You've got this!`;
-    $('resHits').textContent = `${hits}/${count}`;
-    $('resWrong').textContent = wrong;
-    $('resMissed').textContent = missed;
-    $('resCombo').textContent = bestCombo;
-    $('resScore').textContent = score;
     const newBest = score > old.best && old.best > 0;
-    $('resBest').textContent = newBest ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO || A.store.level(key, inst.id, lv + 1).stars > 0);
-    $('resNext').hidden = !hasNext;
-    $('results').hidden = false;
+    A.UI.results.show({gameId: GAME_ID, stars,
+      hero: `<div class="res-ninja" id="resNinja">${A.ninjaSVG({belt: stars ? L.color : 'belt-white', cls: stars ? 'cheer' : ''})}</div>`,
+      title: stars === 3 ? 'Perfect!' : stars ? `${L.name} belt cleared` : 'So close',
+      msg: stars
+        ? (stars === 3 ? 'Every note, no mistakes. True ninja reading!'
+          : stars === 2 ? 'Name every note in time with no mistakes for 3 stars.'
+          : `Name ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes in time for 2 stars.`) + (newBelt ? ` You earned the ${BELTS[lv].name} belt!` : '')
+        : `Name ${Math.ceil(count * RULES.passRate)} of ${count} notes in time to clear this belt. You've got this!`,
+      tiles: [['Named', `${hits}/${count}`], ['Mistakes', wrong], ['Missed', missed], ['Score', score]],
+      extra: `<p class="res-combo">Best combo <b id="resCombo">${bestCombo}</b></p>`,
+      newBest, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: 'Next belt', hidden: !hasNext, onClick: () => startLevel(lv + 1)},
+      retry: {label: 'Try again', onClick: () => startLevel(lv)},
+      levels: {label: 'Belts', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     // sounds, one after another (each when the one before ends, whatever its length)
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score',
       newBelt && (BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned')]);
   }
 
   A.Ninja = {state: () => G};   // tests
-
-  $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
-  $('resRetry').addEventListener('click', () => startLevel(G.lv));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
 
   showHub();
 })(window.Arcade);

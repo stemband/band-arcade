@@ -12,6 +12,10 @@
    home-screen icon, the iPad "web app" tags) and loads shared/app.js (the service worker sw.js, the update banner,
    install help, the first-launch "Bring your progress" panel), so no page has to list them. A page that must not
    (the avatar card, shown inside other sites) has <meta name="arcade-app" content="off"> above its version lines.
+   THE UI KIT: checkVersion also loads shared/ui-kit.css (before the page's own stylesheets, so a game can re-theme a
+   piece) and shared/ui-kit.js (Arcade.UI: pause, results, settings, intro, confirm, toast) on every page.
+   MOTION: Arcade.reducedMotion.matches is true when the device asks for less motion OR the Settings panel's Motion
+   switch is off; html.no-motion is set here, before anything draws. Scripts read it instead of their own matchMedia.
    NEVER EDIT VERSION BY HAND: in the repository it stays 'dev', which switches all of this off (opening a page from
    a file, python3 -m http.server…); the deploy stamps the real one. */
 window.Arcade = window.Arcade || {};
@@ -30,6 +34,30 @@ window.Arcade.VERSION = 'dev';
     if (!ver || ver === 'dev' || !url || /^(data|blob):/.test(url)) return url;
     return url + (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + encodeURIComponent(ver);
   };
+  /** MOTION: the device's "reduce motion" OR the arcade's Motion switch (Settings; saved as gameData('bg').motion,
+      which shared/storage.js keeps in localStorage 'bandarcade.v1'). Works like a MediaQueryList: .matches, and
+      'change' listeners (called for both). */
+  const mq = matchMedia('(prefers-reduced-motion: reduce)'), mlisteners = [];
+  const switchOff = () => {
+    try {
+      if (A.store && A.store.gameData) return A.store.gameData('bg').motion === false;
+      const d = JSON.parse(localStorage.getItem('bandarcade.v1') || 'null');
+      return !!(d && d.gameData && d.gameData.bg && d.gameData.bg.motion === false);
+    } catch (e) { return false; }
+  };
+  const syncClass = () => document.documentElement.classList.toggle('no-motion', switchOff());
+  A.reducedMotion = {
+    get matches() { return mq.matches || switchOff(); },
+    get media() { return mq.media; },
+    addEventListener(t, f) { if (t === 'change') mlisteners.push(f); },
+    removeEventListener(t, f) { const i = mlisteners.indexOf(f); if (i >= 0) mlisteners.splice(i, 1); },
+    addListener(f) { mlisteners.push(f); },
+    removeListener(f) { this.removeEventListener('change', f); },
+    /** the Motion switch changed (shared/ui-kit.js) */
+    refresh() { syncClass(); const e = {matches: this.matches, media: mq.media}; mlisteners.slice().forEach(f => { try { f(e); } catch (x) { /* a listener's own problem */ } }); },
+  };
+  if (mq.addEventListener) mq.addEventListener('change', () => A.reducedMotion.refresh()); else if (mq.addListener) mq.addListener(() => A.reducedMotion.refresh());
+  syncClass();
   /** THE APP TAGS (written once, right after the version check, while the <head> is still being read) */
   function appTags() {
     if (A.appTags || !A.ROOT) return;
@@ -42,6 +70,7 @@ window.Arcade.VERSION = 'dev';
       '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">' +
       '<meta name="apple-mobile-web-app-title" content="Band Arcade">' +
       '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">';
+    h += `<link rel="stylesheet" href="${A.v(R + 'shared/ui-kit.css')}"><script src="${A.v(R + 'shared/ui-kit.js')}"><\/script>`;
     if (!off) h += `<script src="${A.v(R + 'shared/app.js')}"><\/script>`;
     document.write(h);
   }

@@ -29,7 +29,7 @@ window.Arcade = window.Arcade || {};
   const get = id => list().find(b => b.id === id) || list()[0] || {id: 'none', kind: 'none', main: 'floor-3'};
   const animated = id => get(id).kind === 'scene';
   const main = id => get(id).main || 'floor-3';
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const motionOK = () => !reduced.matches && !slow && !A.avatarStill && !(A.store && A.store.gameData && A.store.gameData('bg').motion === false);
 
   /* ---------- colors (theme tokens only) ---------- */

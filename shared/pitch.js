@@ -74,6 +74,15 @@ window.Arcade = window.Arcade || {};
     if (!on) { H.pc = H.note = null; H.fired = true; if (env) env.hist.length = 0; }   // start fresh: only a new note counts
   };
   P.heldPc = () => H.pc;
+  /** THE SETTINGS PANEL's mic meter (shared/ui-kit.js): how loud the microphone is right now, read even while listening
+      is paused (a game's pause menu), without analysing anything (nothing can count) */
+  P.meterLevel = () => {
+    if (!mic) return P.level || 0;
+    mic.an.getFloatTimeDomainData(mic.buf);
+    const b = mic.buf; let s = 0, n = 0;
+    for (let i = 0; i < b.length; i += 4) { s += b[i] * b[i]; n++; }
+    return Math.sqrt(s / n);
+  };
 
   /* sensitivity slider 0–100 -> loudness gate. 0 ignores quiet sounds, 100 hears almost anything */
   P.gateFromSens = v => 0.05 * Math.pow(0.04, v / 100);

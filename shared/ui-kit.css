@@ -1,0 +1,178 @@
+/* Band Arcade: THE UI KIT's styles (shared/ui-kit.js). One look for the pieces every game shares: buttons, headings,
+   option toggles, the pause button + pause menu, the results screen, the settings panel, level intros, toasts, confirm
+   dialogs and messages. docs/STYLE.md says when to use each. Loaded on every page by shared/version.js, BEFORE the
+   page's own stylesheets, so a game's style.css can re-theme a piece (a panel's border color, a title font) without
+   changing its layout. Colors only as theme tokens (shared/theme.css). */
+
+/* ---------- MOTION OFF (the Settings panel's Motion switch, or the device asks for less motion) ----------
+   html.no-motion: every CSS animation and transition ends at once (their final look stays). Scripts ask
+   Arcade.reducedMotion.matches (shared/version.js). */
+html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;
+  transition-duration:.001ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
+
+/* ---------- BUTTONS ----------
+   .btn + one of: .btn-primary (the one main action: yellow), .btn-secondary (everything else: outlined),
+   .btn-danger (leaving, deleting, starting over: red outline). Sizes: default (48 px tall), .btn-small (44 px, for
+   rows of tools), .btn-big (60 px, a setup screen's main button). Every button is at least 44 px tall. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:700;font-size:17px;line-height:1.2;
+  border:2px solid transparent;min-height:48px;text-decoration:none;text-align:center;cursor:pointer;transition:transform .12s, background .12s, border-color .12s, box-shadow .12s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--yellow);border-color:var(--yellow);color:var(--deep);box-shadow:var(--glow-yellow)}
+.btn-primary:hover{background:var(--yellow-hi);border-color:var(--yellow-hi)}
+.btn-secondary{background:transparent;border-color:var(--cyan-ink);color:var(--text-hi)}
+.btn-secondary:hover{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.btn-danger{background:transparent;border-color:var(--red);color:var(--red-hi)}
+.btn-danger:hover{background:var(--red);color:var(--deep);box-shadow:var(--glow-red)}
+.btn-small{min-height:44px;padding:8px 16px;font-size:15px}
+.btn-big{min-height:60px;padding:12px 34px;font-size:20px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,.ui-seg button:focus-visible,.ui-switch:focus-visible,.ui-pause-btn:focus-visible{outline:3px solid var(--yellow-hi);outline-offset:3px}
+
+/* ---------- HEADINGS ----------
+   .game-title   a game's name on its level select (each game keeps its own font and colors in its style.css)
+   .ui-title     a panel's or screen's title (Paused, Settings, a results title)
+   .ui-section   THE GOLD SECTION HEADING ("① SELECT YOUR NOTES", "② SELECT YOUR LEVEL", "UNLOCKED!", "Trouble spot")
+   .ui-kicker    the small line above a title ("Level 3 · 5 transmissions", "∞ Endless")
+   .ui-label     a small caps label over a control or a number */
+.game-title{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:clamp(38px,8.4vw,68px);line-height:.95;letter-spacing:.01em}
+/* short landscape screens (an iPad sideways, a Chromebook): a smaller title, so the first row of level cards fits */
+@media (orientation:landscape) and (max-height:860px){.game-title{font-size:clamp(32px,4vw,50px)}}
+.ui-title{margin:0 0 10px;font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,30px);line-height:1.1;color:var(--pink-hi)}
+.ui-section{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(16px,2.3vw,21px);line-height:1.15;letter-spacing:.04em;text-transform:uppercase;
+  font-style:italic;transform:skewX(-8deg);transform-origin:left center;color:var(--yellow);-webkit-text-stroke:.8px var(--red-ink);
+  text-shadow:0 2px 0 var(--red-ink),var(--glow-yellow);padding:0 4px}
+.ui-kicker{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+.ui-label{display:block;margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
+/* how to play: the short line under a game's title (and in an intro) */
+.ui-howto{margin:0 0 14px;color:var(--text-lo);font-size:17px;line-height:1.45;max-width:62ch}
+
+/* ---------- OPTION TOGGLES (.ui-seg: a row of choices, one pressed) ----------
+   <div class="ui-seg" role="group" aria-label="Difficulty"><button aria-pressed="true">Rookie<small>4 s</small></button>…</div>
+   A game can recolor the pressed one with --seg-on / --seg-on-ink. */
+.ui-seg{display:flex;flex-wrap:wrap;gap:8px}
+.ui-seg>button{--seg-on:var(--cyan);--seg-on-ink:var(--deep);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-height:44px;min-width:44px;padding:6px 16px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);
+  font-weight:700;font-size:15px;line-height:1.15;text-align:center}
+.ui-seg>button small{font-weight:400;font-size:12px;color:var(--text-lo)}
+.ui-seg>button:hover{border-color:var(--cyan-ink)}
+.ui-seg>button[aria-pressed="true"]{background:var(--seg-on);border-color:var(--seg-on);color:var(--seg-on-ink);box-shadow:0 0 12px color-mix(in srgb,var(--seg-on) 55%,transparent)}
+.ui-seg>button[aria-pressed="true"] small{color:inherit;opacity:.85}
+.ui-seg>button:disabled,.ui-seg>button[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.ui-seg.ui-seg-sm>button{min-height:44px;padding:4px 12px;font-size:14px}
+
+/* ---------- A SWITCH (on/off) ---------- */
+.ui-switch{position:relative;flex:none;width:64px;height:36px;border-radius:999px;border:2px solid var(--floor-3);background:var(--deep);padding:0;cursor:pointer}
+.ui-switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--text-dim);transition:left .15s, background .15s}
+.ui-switch[aria-checked="true"]{border-color:var(--cyan);background:var(--cyan-ink)}
+.ui-switch[aria-checked="true"]::after{left:32px;background:var(--cyan-hi)}
+.ui-switch:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- PANELS the kit opens (on top of .overlay/.panel from theme.css) ---------- */
+body.ui-modal{overflow:hidden}
+.overlay.ui-ov{z-index:60}
+.overlay.ui-ov.ui-settings-ov{z-index:70}
+.overlay.ui-ov.ui-confirm-ov{z-index:90}
+.ui-panel .acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.ui-panel>.ui-title{text-align:center}
+
+/* ---------- THE PAUSE BUTTON: the same place and size in every game (the top-left corner, where "← Arcade" is on the
+   level select; that link is hidden while a level runs) ---------- */
+.ui-pause-btn{position:fixed;z-index:45;left:var(--ui-pause-x,calc(12px + env(safe-area-inset-left,0px)));top:var(--ui-pause-y,calc(12px + env(safe-area-inset-top,0px)));
+  display:inline-flex;align-items:center;gap:8px;min-height:48px;min-width:48px;padding:8px 16px;border-radius:12px;
+  border:2px solid var(--pink);background:var(--deep);color:var(--pink-hi);font:400 16px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;
+  box-shadow:var(--glow-pink);cursor:pointer;touch-action:manipulation}
+.ui-pause-btn svg{width:18px;height:18px;fill:currentColor}
+.ui-pause-btn:hover{background:var(--pink);color:var(--deep)}
+.ui-pause-btn.ui-inline{position:static}
+html.ui-in-level #topbar .brand{visibility:hidden}
+@media (max-width:420px){.ui-pause-btn .ui-pb-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+
+/* ---------- THE PAUSE MENU ---------- */
+.ui-pause .panel{width:min(420px,100%)}
+.ui-pinfo{display:flex;justify-content:center;gap:10px;margin:0 0 12px}
+.ui-menu{display:grid;gap:10px;margin-top:6px}
+.ui-menu .btn{width:100%;min-height:56px;font-size:19px}
+.ui-pnote{font-size:14px}
+
+/* ---------- STAT TILES (results, pause, game over) ---------- */
+.ui-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:14px 0 6px}
+.ui-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:10px 6px;border-radius:14px;background:var(--deep);border:1px solid var(--floor-3)}
+.ui-tile small{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);line-height:1.2;text-align:center}
+.ui-tile b{font-family:var(--display);font-weight:400;font-size:22px;line-height:1.15;color:var(--text-hi);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+/* ---------- THE RESULTS SCREEN ---------- */
+.ui-results .panel{width:min(520px,100%)}
+.ui-results.ui-wide .panel{width:min(640px,100%)}
+.ui-res-hero:empty{display:none}
+.ui-res-hero{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:0 0 6px}
+.ui-res-title{margin:4px 0 6px}
+.ui-res-msg{margin:0 0 6px}
+.ui-res-msg:empty,.ui-res-best:empty,.ui-res-extra:empty{display:none}
+.ui-res-best{margin:8px 0 0;font-weight:700;color:var(--text-hi)!important}
+.ui-res-extra{margin-top:12px;text-align:left}
+/* the stars: they pop in one after another (the same everywhere); unearned ones stay dim */
+.ui-stars{display:flex;justify-content:center;gap:10px;margin:2px 0 4px;font-size:52px;line-height:1}
+.ui-stars span{color:var(--floor-3);-webkit-text-stroke:1px var(--text-dim)}
+.ui-stars span.on{color:var(--yellow);-webkit-text-stroke:0;text-shadow:0 0 14px rgba(255,225,77,.55),0 3px 0 var(--red-ink)}
+.ui-stars.go span.on{animation:ui-star .5s cubic-bezier(.3,1.6,.5,1) both}
+.ui-stars.go span.on:nth-child(2){animation-delay:.35s}
+.ui-stars.go span.on:nth-child(3){animation-delay:.7s}
+@keyframes ui-star{0%{opacity:0;transform:scale(.2) rotate(-40deg)}100%{opacity:1;transform:none}}
+/* a new best: a ribbon that settles in once (no flashing) */
+.ui-newbest{display:inline-block;margin:6px auto 0;padding:6px 16px;border-radius:999px;background:var(--yellow);color:var(--deep)!important;
+  font:400 18px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;box-shadow:var(--glow-yellow),0 3px 0 var(--red-ink)}
+.ui-newbest.go{animation:ui-ribbon .6s ease-out 1.1s both}
+@keyframes ui-ribbon{0%{opacity:0;transform:translateY(10px) scale(.8)}100%{opacity:1;transform:none}}
+.ui-res-acts .btn{min-width:130px}
+/* UI.results.render(el): the same screen inside an element (no overlay, no frame of its own) */
+.ui-res-inline{text-align:center}
+.ui-res-inline .ui-res-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+@media (prefers-reduced-motion:reduce){ .ui-stars.go span.on,.ui-newbest.go{animation:none} }
+
+/* ---------- THE SETTINGS PANEL ---------- */
+.ui-settings .panel{width:min(520px,100%);text-align:left;border-color:var(--cyan);box-shadow:var(--glow-cyan),0 30px 80px rgba(0,0,0,.6)}
+.ui-settings .ui-title{color:var(--cyan-hi)}
+.ui-srow{display:grid;grid-template-columns:minmax(110px,150px) 1fr auto;align-items:center;gap:10px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.ui-srow:first-of-type{border-top:0}
+.ui-srow>.ui-sname{font-weight:700;color:var(--text-hi)}
+.ui-srow>.ui-sname small{display:block;font-weight:400;font-size:13px;color:var(--text-lo)}
+.ui-srow input[type=range]{width:100%;min-height:44px;accent-color:var(--cyan)}
+.ui-srow input[type=range]:disabled{opacity:.4}
+.ui-srow output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-lo);font-size:14px}
+.ui-srow .ui-snote{grid-column:1/-1;margin:-4px 0 0;font-size:13px;color:var(--text-lo)}
+.ui-srow .ui-snote:empty{display:none}
+.ui-sgroup{margin-top:14px;padding-top:12px;border-top:2px solid var(--floor-3)}
+.ui-sgroup>.ui-section{display:inline-block;margin-bottom:8px}
+.ui-sextra{display:grid;gap:10px}
+.ui-sextra .ui-seg{margin-top:2px}
+@media (max-width:480px){ .ui-srow{grid-template-columns:1fr auto} .ui-srow>input[type=range],.ui-srow>.ui-meter{grid-column:1/-1} }
+/* the mic level meter: the live level, and the marker where sounds start to count (the sensitivity) */
+.ui-meter{position:relative;height:16px;border-radius:999px;background:var(--deep);border:1px solid var(--floor-3);overflow:hidden}
+.ui-meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--cyan-ink);transition:width .08s linear}
+.ui-meter i.over{background:var(--green)}
+.ui-meter em{position:absolute;top:-2px;bottom:-2px;width:3px;margin-left:-1px;background:var(--red)}
+
+/* ---------- LEVEL INTRO ---------- */
+.ui-intro .panel{width:min(520px,100%)}
+.ui-intro-hero:empty{display:none}
+.ui-intro-hero{display:flex;justify-content:center;margin:0 0 8px}
+.ui-intro-text{color:var(--text-hi)!important}
+.ui-intro-extra:empty{display:none}
+
+/* ---------- TOASTS (a short message that goes away by itself) ---------- */
+.ui-toast{position:fixed;z-index:95;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);
+  padding:10px 18px;border-radius:14px;background:var(--deep);border:2px solid var(--yellow);color:var(--text-hi);font-weight:700;font-size:15px;text-align:center;
+  box-shadow:var(--glow-yellow);pointer-events:none;animation:ui-toast var(--ui-toast-ms,2.2s) ease both}
+.ui-toast.good{border-color:var(--green);box-shadow:var(--glow-green)}
+.ui-toast.bad{border-color:var(--red);box-shadow:var(--glow-red)}
+.ui-toast.near{position:absolute;bottom:auto;top:50%;transform:translate(-50%,-50%)}
+@keyframes ui-toast{0%{opacity:0}10%,82%{opacity:1}100%{opacity:0}}
+
+/* ---------- MESSAGES: loading, empty, error ---------- */
+.ui-msg{margin:10px 0;padding:10px 14px;border-radius:12px;background:var(--deep);border:1px solid var(--floor-3);color:var(--text-lo);font-size:15px;text-align:left}
+.ui-msg.err,.err{color:var(--text-hi)!important;text-align:left;font-size:15px;background:rgba(255,107,107,.1);border:1px solid var(--red);border-radius:12px;padding:10px 12px}
+.err ul,.ui-msg ul{margin:6px 0 0;padding-left:20px}
+.ui-msg.empty{border-style:dashed;text-align:center}
+.ui-msg.loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border-radius:50%;border:3px solid var(--floor-3);border-top-color:var(--cyan);animation:ui-spin 1s linear infinite}
+@keyframes ui-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .ui-msg.loading::before{animation:none} }

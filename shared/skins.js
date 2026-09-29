@@ -327,13 +327,13 @@ window.Arcade = window.Arcade || {};
       const m = member && A.memberById ? A.memberById(member) : null;
       const itemPic = it => it.field === 'plate' ? `<span class="sk-u-plate"><span class="av-plate av-plate-${it.id}">${A.Avatar.nameOf(A.Avatar.get()).split(' ').slice(-1)[0]}</span></span>`
         : A.avatarHTML({size: 'tile', member, avatar: Object.assign(A.Avatar.get(), {[it.field]: it.id})});
-      return `<div class="sk-unlock" role="status"><p class="sk-u-title">UNLOCKED!</p><div class="sk-u-list">` + list.map(s => s.item ?
+      return `<div class="sk-unlock" role="status"><p class="sk-u-title ui-section">Unlocked!</p><div class="sk-u-list">` + list.map(s => s.item ?
         `<div class="sk-u-item sk-u-av"><span class="sk-u-pic">${itemPic(s.item)}</span><b class="sk-u-name">${s.item.name}</b>` +
         (s.item.official ? `<small>Official Band Ninja gear: earned in class</small>` : `<small>${ITEM_KIND[s.item.field] || 'Item'} for your player · ${s.item.unlock.stars && !s.item.unlock.game ? `${s.item.unlock.stars} ★ in all` : s.item.unlock.event ? eventLine(s.item) : s.item.unlock.text || ''}</small>`) +
-        `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
+        `<button type="button" class="btn btn-primary btn-small sk-u-equip" data-item="${s.item.key}">Wear it</button></div>` :
         `<div class="sk-u-item"><span class="sk-u-pic">${pic(s)}</span><b class="sk-u-name">${s.name}</b>` +
         `<small>${s.kind === 'acc' ? 'Accessory' : 'Skin'}${milestone(s) ? (m ? ` for ${m.short}` : '') : ' for every instrument'} · ${milestone(s) ? `${s.unlock.stars} ★` : s.unlock.text}</small>` +
-        (member ? `<button type="button" class="btn btn-gold btn-small sk-u-equip" data-skin="${s.id}">Equip now</button>` : '') + `</div>`).join('') + `</div></div>`;
+        (member ? `<button type="button" class="btn btn-primary btn-small sk-u-equip" data-skin="${s.id}">Equip now</button>` : '') + `</div>`).join('') + `</div></div>`;
     },
     /** check the unlock rules now (results screens): if anything new is unlocked, put the UNLOCKED! card into
         `host` (a results panel: after the stars and the result, above its buttons) and remember it was shown. members: whose star milestones to check (default the
@@ -371,7 +371,7 @@ window.Arcade = window.Arcade || {};
       ov.className = 'overlay sk-catchup';
       ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${Skins.cardHTML(found, member)}` +
         `<p class="muted sk-u-foot">${foot ? foot : only ? 'Find it in <b>Create Your Player</b>, on the <b>BAND NINJA</b> tab.' : 'Find everything in the <b>LOCKER</b> on the player card.'}</p>` +
-        `<div class="acts"><button type="button" class="btn btn-ghost" data-close>OK</button></div></div>`;
+        `<div class="acts"><button type="button" class="btn btn-secondary" data-close>OK</button></div></div>`;
       document.body.appendChild(ov);
       wire(ov, member, onEquip);
       const close = () => { ov.remove(); document.removeEventListener('keydown', esc); };

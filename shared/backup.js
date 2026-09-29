@@ -201,7 +201,7 @@ window.Arcade = window.Arcade || {};
       <h2 id="bkT">Backup / Restore</h2>
       <p class="bk-lead">Your stars, skins, settings and Arcade Quest save live on this device only. A backup code carries them to another device, or keeps them safe.</p>
       <section class="bk-sec"><h3>Back up this device</h3>
-        <button type="button" class="btn btn-gold bk-make">Make my backup code</button>
+        <button type="button" class="btn btn-primary bk-make">Make my backup code</button>
         <div class="bk-out" hidden>
           <label class="bk-lbl" for="bkCode">Your backup code (everything on this device)</label>
           <textarea id="bkCode" class="bk-code" rows="5" readonly spellcheck="false"></textarea>
@@ -215,13 +215,10 @@ window.Arcade = window.Arcade || {};
         <textarea id="bkIn" class="bk-in" rows="3" spellcheck="false" autocapitalize="characters" autocomplete="off"></textarea>
         <button type="button" class="btn bk-restore">Restore</button>
         <p class="bk-msg" role="alert"></p>
-        <div class="bk-confirm" hidden><p><b>This will replace this device's progress. Continue?</b></p>
-          <div class="bk-row"><button type="button" class="btn btn-gold bk-yes">Yes, replace it</button><button type="button" class="btn btn-ghost bk-no">No</button></div></div>
       </section>
-      <div class="acts"><button type="button" class="btn btn-ghost bk-close">Done</button></div></div>`;
+      <div class="acts"><button type="button" class="btn btn-secondary bk-close">Done</button></div></div>`;
     document.body.appendChild(ov);
     const $ = s => ov.querySelector(s);
-    let pending = null;
     const msg = (t, cls = '') => { const m = $('.bk-msg'); m.textContent = t; m.className = 'bk-msg ' + cls; };
     $('.bk-make').addEventListener('click', async () => {
       sfx('ui-toggle');
@@ -234,15 +231,15 @@ window.Arcade = window.Arcade || {};
       $('.bk-len').textContent = ok ? 'Copied! Paste it somewhere safe.' : 'Select the code and copy it.';
     });
     $('.bk-restore').addEventListener('click', async () => {
-      $('.bk-confirm').hidden = true; pending = null;
       const res = await fullDecode($('.bk-in').value);
       if (!res.ok) { msg(res.error, 'bad'); sfx('note-wrong'); return; }
-      pending = res.data; msg(res.at ? `A backup from ${new Date(res.at).toLocaleDateString()}.` : ''); $('.bk-confirm').hidden = false; $('.bk-yes').focus();
-    });
-    $('.bk-no').addEventListener('click', () => { pending = null; $('.bk-confirm').hidden = true; msg('Nothing changed.'); });
-    $('.bk-yes').addEventListener('click', () => {
-      if (!pending || !A.store.importAll(pending)) { msg(BAD, 'bad'); return; }
-      $('.bk-confirm').hidden = true; msg('Restored! Reloading…', 'good');
+      msg(res.at ? `A backup from ${new Date(res.at).toLocaleDateString()}.` : '');
+      // the shared yes/no question (shared/ui-kit.js)
+      const yes = await A.UI.confirm({title: 'Replace this device’s progress?', text: 'This will replace this device’s progress with the backup. Continue?',
+        yes: 'Yes, replace it', no: 'No', danger: true});
+      if (!yes) { msg('Nothing changed.'); return; }
+      if (!A.store.importAll(res.data)) { msg(BAD, 'bad'); return; }
+      msg('Restored! Reloading…', 'good');
       setTimeout(() => location.reload(), 700);
     });
     const close = () => { ov.remove(); removeEventListener('keydown', key); if (prev && prev.focus) prev.focus(); };
@@ -253,7 +250,7 @@ window.Arcade = window.Arcade || {};
     $('.bk-make').focus();
     return ov;
   }
-  function button(el, cls = 'btn btn-ghost btn-small') {
+  function button(el, cls = 'btn btn-secondary btn-small') {
     if (!el) return null;
     const b = document.createElement('button');
     b.type = 'button'; b.className = cls + ' bk-btn'; b.textContent = 'Backup / Restore';

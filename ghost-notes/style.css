@@ -1,8 +1,6 @@
 /* Ghost Notes */
 .hub-head{margin-bottom:18px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
 .game-title span{color:var(--gold);text-shadow:var(--glow-yellow)}
-.hub-head p{max-width:52ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--mist-2);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
 .checker-cta p{margin:0;max-width:46ch;color:var(--mist);font-size:15px}
@@ -37,15 +35,6 @@
 .prompt{min-height:28px;text-align:center;margin:16px 0 10px;font-size:18px;font-weight:700}
 .prompt.bad{color:var(--coral)}
 .prompt.good{color:var(--gold)}
-.play-foot{display:flex;justify-content:center;margin-top:18px}
-
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--mist-2);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--gold)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);font-weight:700}
-.stats b{font-size:22px}
-.panel .best{font-size:14px;margin-top:8px}
 
 @media (prefers-reduced-motion:reduce){
   .pop.go{animation-duration:.01s}

@@ -1,13 +1,17 @@
 /* ARCADE QUEST ENGINE: the OVERWORLD. Top-down rooms made of 16 × 16 tiles (data/maps/…), a camera that follows you,
    walls you bump into, doors between rooms, candles and fog that flicker and drift.
    MOVING: one tile per step (arrows/WASD or the D-pad), smooth in between. A (Enter/Space) talks to whoever you
-   face or inspects the thing in front of you; B (Esc) opens the pause menu.
+   face or inspects the thing in front of you; B (Backspace/X, the pad's B), Esc, P or the PAUSE button opens THE
+   PAUSE MENU (shared/ui-kit.js Arcade.UI.pause, pixel-themed in style.css: RESUME · SETTINGS · CHARMS · TITLE SCREEN,
+   with LV/HP/XP/tokens). It exists only in the overworld (battles are turn-based and wait for you; cutscenes have SKIP);
+   while it's open Q.paused stops the whole game loop, Q.wait and the text box. Esc during a conversation or a panel
+   still means B (back / next line), so the two never both react.
    GHOSTS are visible and wander near their spot (no random battles). Bump into one (or let it bump into you) and a
    battle starts. A ghost you befriend or fade never comes back (saved in save.done), except in a `practice` room.
    Q.go('world', {map, x, y, dir})     enter a room (x, y = a tile; left out = the room's start)
    Q.go('world', {continue: true})     back to the last Save Jukebox (or the Foyer)
    Q.go('world', {resume: true, result})  back from a battle (battle.js does this)
-   Q.world.state()                     for tests: {map, x, y, dir, ghosts, busy}
+   Q.world.state()                     for tests: {map, x, y, dir, ghosts, busy, paused}
    Conversations, signs, the jukebox, the Token Booth, the shop and the pause menu are in engine/talk.js. */
 (function (A) {
   "use strict";
@@ -16,6 +20,51 @@
   const MAPS = () => window.QUEST_MAPS, TILES = () => window.QUEST_TILES;
   const DIRS = {up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0]};
   let W = null, offKeys = null;
+
+  /* ---------- THE PAUSE MENU (the arcade's shared one: shared/ui-kit.js) ---------- */
+  let pause = null, frozen = false, wasBusy = false, inCharms = false;
+  function freeze() {
+    if (frozen) return;
+    frozen = true; Q.paused = true; document.body.classList.add('q-paused'); Q.input.clear();
+    if (W) { wasBusy = W.busy; W.busy = true; }
+  }
+  function unfreeze() {
+    if (!frozen) return;
+    frozen = false; Q.paused = false; document.body.classList.remove('q-paused'); Q.input.clear();
+    if (W) W.busy = wasBusy;
+  }
+  const idle = () => !!W && !W.busy && !W.fade && !W.fighting;
+  /** Esc belongs to the pause menu only when nothing else is on screen (engine/input.js asks) */
+  Q.pauseOwnsEsc = () => !!pause && pause.active && Q.sceneName === 'world' && idle();
+  function kitPause() {
+    if (pause || !A.UI || !A.UI.pause) return pause;
+    pause = A.UI.pause.mount({
+      theme: 'q-theme',
+      onPause: freeze,
+      onResume: () => {
+        if (!inCharms) unfreeze();                                     // (the tab hidden over CHARMS: that panel is still open)
+        // the kit gives the PAUSE button the focus back; here A (Enter/Space) must talk, not press it again
+        setTimeout(() => { if (pause && document.activeElement === pause.el) pause.el.blur(); }, 0);
+      },
+      // never mid-battle-flash or while the microphone listens (the Butler's lesson); Esc/P only when you're free to walk
+      canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
+      note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
+      info: () => { const s = Q.save.get(); return [['Level', s.level], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', s.tokens]]; },
+      extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
+        inCharms = true;
+        try { await Q.talk.charms(); } finally { inCharms = false; }
+        if (!pause.active) return;
+        if (!pause.paused) pause.pause('button');
+      }}],
+      levelsLabel: 'Title screen',
+      onLevels: () => { unfreeze(); Q.go('title'); },
+      confirmLeave: () => true,
+      leaveTitle: 'Go to the title screen?',
+      leaveText: 'Where you are in the manor is kept only from your last Save Jukebox. Your level, items, tokens and friends are already saved.',
+      leaveYes: 'Title screen',
+    });
+    return pause;
+  }
 
   /* ---------- the room ---------- */
   const doorAt = (x, y) => W.def.doors.find(d => d.at[0] === x && d.at[1] === y);
@@ -201,7 +250,7 @@
   }
 
   Q.world = {
-    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
+    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
       npcs: W.npcs.map(n => ({id: n.id, x: n.x, y: n.y}))},
     /** move an NPC somewhere (Sir Reginald stepping aside) */
     moveNpc(id, at) { W.npcs.filter(n => n.id === id).forEach(n => { n.x = at[0]; n.y = at[1]; n.px = at[0] * T; n.py = at[1] * T; }); },
@@ -216,6 +265,7 @@
     enter(args = {}) {
       Q.listen(false);
       Q.talk.mount();
+      if (kitPause()) pause.setActive(true);
       if (args.resume && W) {
         roomMusic(W.map);                                // the room's music again, from where it stopped
         Q.talk.hud();
@@ -228,12 +278,12 @@
         if (!W || W.busy || W.fade) return false;
         if (btn === 'a' && !W.move) { interact(); return true; }
         if (/^(up|down|left|right)$/.test(btn)) { W.tap = btn; return false; }        // a quick tap still takes one step
-        if (btn === 'b') { W.busy = true; Q.talk.pause().then(() => { if (W) { W.busy = false; Q.talk.hud(); } }); return true; }
+        if (btn === 'b') { if (pause) pause.pause('button'); return true; }
         return false;
       });
       if (args.intro) { W.busy = true; Q.talk.intro().then(() => { if (W) W.busy = false; }); }
     },
-    exit() { if (offKeys) offKeys(); offKeys = null; Q.input.clear(); },
+    exit() { if (offKeys) offKeys(); offKeys = null; if (pause) pause.setActive(false); unfreeze(); Q.input.clear(); },
     update(dt) {
       if (!W) return;
       if (W.grace > 0) W.grace -= dt;

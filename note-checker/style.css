@@ -1,5 +1,6 @@
 /* Note Checker */
-.page-title{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,42px);line-height:1}
+/* the title: the kit's .game-title (shared/ui-kit.css) in the tool's cyan */
+.game-title{color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
 .lede{max-width:52ch;margin:8px 0 18px}
 .startrow{display:flex;justify-content:center;margin:16px 0 0}
 .readout{display:grid;grid-template-columns:auto 1fr;gap:18px 26px;align-items:center;margin:20px 0}
@@ -17,27 +18,20 @@
 .meter .verdict{text-align:center;font-weight:700;font-size:18px;min-height:27px;margin-top:4px}
 .found{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:8px 0 18px}
 .found b{font-size:18px}
-.sens{display:grid;gap:6px;background:var(--night-2);border-radius:var(--r);padding:14px 16px}
-.sens label{font-weight:700}
-.sens p{margin:0;font-size:14px;color:var(--mist)}
+/* MIC SENSITIVITY: the tool's own block (the same setting as the shared Settings panel), with the kit's heading,
+   labels and level meter (.ui-section, .ui-label, .ui-meter in shared/ui-kit.css) */
+.sens{display:grid;gap:8px;background:var(--floor-2);border:1px solid var(--floor-3);border-radius:var(--r);padding:14px 16px}
+.sens .ui-section{justify-self:start;margin-bottom:4px}
+.sens .ui-label{margin:4px 0 0}
+.sens .ui-howto{margin:0;font-size:15px}
 .sens-row{display:flex;align-items:center;gap:14px;font-size:14px}
-.sens input{flex:1;accent-color:var(--gold);min-height:32px}
-.levelbar{position:relative;height:10px;border-radius:5px;background:var(--deep);overflow:hidden}
-.levelbar i{position:absolute;inset:0 auto 0 0;background:var(--mist);width:0}
-.levelbar i.over{background:var(--gold)}
-.levelbar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--coral)}
+.sens input{flex:1;accent-color:var(--cyan);min-height:44px}
 
-/* mode toggle: FIRST 5 NOTES | FULL RANGE */
-/* six modes: one pill row on wide screens, a 3 × 2 grid of buttons on narrow ones */
-.modes{display:flex;flex-wrap:wrap;gap:2px;margin:14px 0 4px;border:2px solid var(--cyan-ink);border-radius:26px;padding:3px;width:max-content;max-width:100%}
-.mode-btn{min-height:44px;padding:8px 16px;border:0;border-radius:999px;background:transparent;color:var(--text-lo);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
-@media (max-width:560px){ .modes{display:grid;grid-template-columns:repeat(3,1fr);width:100%} .mode-btn{padding:8px 6px} }
-.mode-btn[aria-pressed="true"]{background:var(--cyan);color:var(--deep);box-shadow:var(--glow-cyan)}
-.mode-btn:not([aria-pressed="true"]):hover{color:var(--text-hi)}
+/* the seven modes: the kit's option toggle (.ui-seg) */
+.modes{margin:14px 0 4px}
 
 /* full range and scales (the instrument question, "Playing: … change" are shared styles in theme.css) */
 .full-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:0 0 10px}
-.dir-btn[aria-pressed="true"]{background:var(--cyan);color:var(--deep);border-color:var(--cyan)}
 .full-stage{padding:6px 8px 0}
 .full-stage .staff+.staff{margin-top:-6px;border-top:1px dashed var(--screen-2)}
 /* the note being heard right now: a glowing outline on the staff */
@@ -47,7 +41,6 @@
 #fullStaff .demo-cursor .ncap{text-decoration:underline;fill:var(--pink-ink)}
 .octave-hint{min-height:27px;margin:8px 0 0;font-weight:700;color:var(--text-hi)}
 
-@media (max-width:420px){ .mode-btn{font-size:14px} }
 .full-head .playing{margin:0}
 
 /* ---------- ARTICULATION: the attack counter ---------- */

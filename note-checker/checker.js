@@ -18,7 +18,7 @@
   // "Back to <game>" when opened from a game (the game links here with #<game-id>)
   const fromGame = A.GAMES.find(g => g.id === location.hash.slice(1) && g.id !== 'note-checker');
   A.mountTopbar(inst, fromGame
-    ? `<a class="btn btn-ghost btn-small" href="${A.linkTo('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '', 'note-checker');
+    ? `<a class="btn btn-secondary btn-small" href="${A.linkTo('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '', 'note-checker');
 
   A.Pitch.setInstrument(inst);
   const unpitched = inst.pitched === false;                             // the snare drum
@@ -42,7 +42,7 @@
   function setupFull() {
     if (!member) return;
     $('memberName').textContent = member.name;
-    $('dirBtn').hidden = !isChromatic();
+    $('dirSeg').hidden = !isChromatic();
     scaleObj = isChromatic() ? null : A.Scales.build(member, mode);
     $('fullLede').innerHTML = isChromatic()
       ? 'Play your whole chromatic scale. Hold each note until it turns gold. It has to be the <b>right octave</b>: the low D and the high D are different notes.'
@@ -100,7 +100,7 @@
     box.innerHTML = html;
     fullFound.forEach(k => A.colorNote('fr' + k, GOLD));
     markHeard(heard, true); markCursor();
-    $('dirBtn').setAttribute('aria-pressed', down);
+    $('dirSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.down === String(down)));
     fullCount();
   }
   function fullCount() {
@@ -179,7 +179,7 @@
     $('artRate').textContent = artTimes.length > 1 ? `${(1000 * (artTimes.length - 1) / (a.time - artTimes[0])).toFixed(1)} per second` : '\u00a0';
     $('artHint').innerHTML = '&nbsp;';
   });
-  $('dirBtn').addEventListener('click', () => { down = !down; drawFull(); });
+  $('dirSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const d = b.dataset.down === 'true'; if (d !== down) { down = d; drawFull(); } }));
   let lastW = 0;
   addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
   setMode(mode);
@@ -228,6 +228,8 @@
       verdict.innerHTML = '&nbsp;';
       if (full) markHeard(null);
     }
+    // the shared Settings panel (the top bar) has the same slider: keep this one in step with it
+    const sl = $('sens'); if (document.activeElement !== sl && +sl.value !== A.store.sens) sl.value = A.store.sens;
     const fill = $('lvlFill');
     fill.style.width = A.Pitch.levelPct(level) + '%';
     fill.classList.toggle('over', level >= A.Pitch.gate);

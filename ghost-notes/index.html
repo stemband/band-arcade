@@ -23,7 +23,7 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title">Ghost <span>Notes</span></h1>
-      <p class="muted">Read the note and play it on your instrument. Each level, the note names fade a little more until only the staff is left.</p>
+      <p class="ui-howto">Read the note and play it on your instrument. Each level, the note names fade a little more until only the staff is left.</p>
     </div>
     <div class="ls-notes">
       <div id="modePick"></div>
@@ -35,7 +35,7 @@
     <div class="levels" id="levelGrid"></div>
     <div class="checker-cta">
       <p><b>New here, or on a new device?</b> Open the Note Checker first. Play all five notes and make sure each one lights up.</p>
-      <a class="btn btn-ghost" id="checkerLink" href="#">Note Checker</a>
+      <a class="btn btn-secondary" id="checkerLink" href="#">Note Checker</a>
     </div>
     <p class="demo-help" id="demoHelp" hidden>Demo: keys 1–5 play the first five notes. In Scales, hold Space to play the note on the staff.</p>
   </section>
@@ -57,29 +57,10 @@
     <div class="hear">
       <small>Hearing</small><b id="hearNote">–</b><span class="lvlbars" id="hearBars"><i></i><i></i><i></i><i></i><i></i></span>
     </div>
-    <div class="play-foot"><button class="btn btn-ghost btn-small" id="quitPlay">Quit level</button></div>
   </section>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel">
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Level cleared</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Notes</small><b id="resHits">0/0</b></div>
-      <div><small>Wrong</small><b id="resWrong">0</b></div>
-      <div><small>Score</small><b id="resScore">0</b></div>
-    </div>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next level</button>
-      <button class="btn btn-ghost" id="resRetry">Try again</button>
-      <button class="btn btn-ghost" id="resLevels">Levels</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <script src="../shared/instruments.js"></script>
 <script src="../shared/storage.js"></script>

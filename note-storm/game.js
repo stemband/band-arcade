@@ -31,6 +31,17 @@
   $('checkerLink').href = A.linkTo('../note-checker/index.html') + '#' + GAME_ID;
   $('demoHelp').hidden = !A.DEMO;
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub()});
+  // THE PAUSE MENU (shared/ui-kit.js): the storm (the rAF loop, spawning, G.clock, Tempo's swing) stops while paused.
+  // BACK TO LEVELS ends the level (or the endless run) with nothing saved, as "Quit level" / "Quit run" did.
+  const pause = A.UI.pause.mount({
+    canPause: () => !!G && !G.over,
+    onPause: () => { if (!G) return; G.paused = true; stop(); $('play').classList.add('is-paused'); },
+    onResume: () => { if (!G) return; G.paused = false; $('play').classList.remove('is-paused'); A.Pitch.ignoreCurrent(); run(); },
+    onRestart: () => G && G.endless ? startEndless() : startLevel(G.lv),
+    onLevels: showHub,
+    info: () => !G ? [] : G.endless ? [['Speed', G.speed.toFixed(1)], ['Score', G.score]]
+      : [['Notes left', G.count - G.hits - G.lost], ['Score', G.score]],
+  });
 
   /* ---------- staff geometry (SVG units; the staff's middle line is y = 88) ---------- */
   const MID_Y = 88;
@@ -59,7 +70,9 @@
     stop();
     G = null;
     $('wrap').classList.remove('playing');
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('paused').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('play').classList.remove('is-paused');
+    $('play').hidden = true; $('hub').hidden = false;
     const st = picker.state, key = st.progressKey;
     A.ModePicker.useRange(st);
     const card = A.ModePicker.hubCard(st);
@@ -155,12 +168,15 @@
 
   function begin(label, name, sound) {
     const L = G.L;
-    $('results').hidden = true; $('paused').hidden = true; $('hub').hidden = true; $('play').hidden = false;
+    A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
+    $('play').classList.remove('is-paused');
+    pause.set({leaveTitle: G.endless ? 'End this run?' : undefined,
+      leaveText: G.endless ? 'This run won’t go on the Top 5.' : undefined, leaveYes: G.endless ? 'End run' : undefined});
     $('wrap').classList.add('playing');
+    pause.setActive(true);                         // after the play layout, so the button lines up with "← Arcade"
     $('hudLevelLabel').textContent = label;
     $('hudLevelName').textContent = name;
     $('hudLeftLabel').textContent = G.endless ? 'Combo' : 'Notes left';
-    $('quitPlay').textContent = G.endless ? 'Quit run' : 'Quit level';
     $('noteLayer').innerHTML = '';
     hud();
     window.scrollTo(0, 0);
@@ -325,6 +341,7 @@
     if (G.over) return;
     if (G.lives <= 0 || (!G.endless && G.spawned >= G.count && !G.notes.length)) {
       G.over = true;
+      pause.setActive(false);                  // the level is over: its results come in a moment
       setTimeout(() => { if (G && G.over) finishLevel(); }, 750);
     }
   }
@@ -362,28 +379,6 @@
   }
   function run() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
-
-  /* ---------- pause ---------- */
-  function pause() {
-    if (!G || G.paused || G.over || !$('results').hidden) return;
-    G.paused = true; stop();
-    $('play').classList.add('is-paused');
-    $('paused').hidden = false;
-    $('resumeBtn').focus();
-  }
-  function resume() {
-    if (!G || !G.paused) return;
-    G.paused = false;
-    $('play').classList.remove('is-paused');
-    $('paused').hidden = true;
-    A.Pitch.ignoreCurrent();
-    run();
-  }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-  addEventListener('keydown', e => {
-    if (!G || $('play').hidden) return;
-    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { G.paused ? resume() : pause(); }
-  });
 
   /* ---------- listening ---------- */
   A.Pitch.onHeld(pc => {
@@ -426,26 +421,21 @@
     const stars = !cleared ? 0 : lost === 0 && wrong === 0 ? 3 : lost <= 1 ? 2 : 1;
     const old = A.store.level(key, inst.id, lv);
     A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = stars === 3 ? 'Perfect!' : stars ? 'Level cleared' : lives <= 0 ? 'The storm got through' : 'So close';
-    $('resMsg').textContent =
-      stars === 3 ? 'Every note blasted, no wrong notes.'
-      : stars === 2 ? (lost ? 'Only one note got through. Stop them all with no wrong notes for 3 stars.'
-                            : 'Nothing got through! Play with no wrong notes for 3 stars.')
-      : stars === 1 ? 'Let one note or fewer get through for 2 stars.'
-      : lives <= 0 ? `${RULES.lives} notes got through. Read the glowing note and play it early. You've got this!`
-      : `Blast ${need} of ${count} notes to clear this level.`;
-    $('resHits').textContent = `${hits}/${count}`;
-    $('resLost').textContent = lost;
-    $('resWrong').textContent = wrong;
-    $('resScore').textContent = score;
-    $('resBest').textContent = score > old.best && old.best ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !hasNext;
-    $('results').hidden = false;
+    A.UI.results.show({gameId: GAME_ID, stars,
+      title: stars === 3 ? 'Perfect!' : stars ? 'Level cleared' : lives <= 0 ? 'The storm got through' : 'So close',
+      msg: stars === 3 ? 'Every note blasted, no wrong notes.'
+        : stars === 2 ? (lost ? 'Only one note got through. Stop them all with no wrong notes for 3 stars.'
+                              : 'Nothing got through! Play with no wrong notes for 3 stars.')
+        : stars === 1 ? 'Let one note or fewer get through for 2 stars.'
+        : lives <= 0 ? `${RULES.lives} notes got through. Read the glowing note and play it early. You've got this!`
+        : `Blast ${need} of ${count} notes to clear this level.`,
+      tiles: [['Blasted', `${hits}/${count}`], ['Lost', lost], ['Wrong', wrong], ['Score', score]],
+      newBest: score > old.best && old.best > 0, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: 'Next level', hidden: !hasNext, onClick: () => startLevel(lv + 1)},
+      retry: {label: 'Try again', onClick: () => startLevel(lv)},
+      levels: {label: 'Levels', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     // game-over already played when the last heart went
     A.Sfx.sequence([stars ? 'level-complete' : lives > 0 && 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best > 0 && 'new-high-score']);
   }
@@ -454,14 +444,6 @@
   A.ModePicker.demoSpace(() => G && !G.paused && !G.over && G.front && G.front.it.sounding != null ? G.front.it.sounding : null);
 
   A.Storm = {state: () => G, levels: LEVELS};   // tests
-
-  $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
-  $('resRetry').addEventListener('click', () => startLevel(G.lv));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
-  $('pauseBtn').addEventListener('click', pause);
-  $('resumeBtn').addEventListener('click', resume);
-  $('pauseQuit').addEventListener('click', showHub);
 
   showHub();
 })(window.Arcade);

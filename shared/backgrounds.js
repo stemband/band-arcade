@@ -12,7 +12,7 @@
    Arcade.Bg.mount(gameId)   once per page (mountTopbar does it for every game page)
    Arcade.Bg.menu(on)        true on a menu screen, false when play starts (Sfx.gameMenuMusic calls it for most games);
                              it also sets html.in-play during play (the avatar badge hides)
-   Arcade.Bg.motion / setMotion(on)   the MOTION switch (Sfx.mountControls shows it), saved on this device
+   Arcade.Bg.motion / setMotion(on)   the MOTION switch (the Settings panel shows it), saved on this device
    Arcade.Bg.state()         tests: {game, scene, image, on, running, still, why, fps, avgMs}
 
    PERFORMANCE: one scene at a time, at most FPS frames a second, drawn at RES × the screen size (≤ MAX_W pixels wide)
@@ -26,7 +26,7 @@ window.Arcade = window.Arcade || {};
   const DIR = (() => { const s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^/]*$/, '') + 'backgrounds/' : 'shared/backgrounds/'; })();
   const MISS_KEY = 'bandarcade.bg-miss', misses = new Set();
   try { JSON.parse(sessionStorage.getItem(MISS_KEY) || '[]').forEach(u => misses.add(u)); } catch (e) { /* private mode */ }
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const data = () => (A.store && A.store.gameData ? A.store.gameData('bg') : {});
   const save = () => { try { A.store.saveGameData('bg'); } catch (e) { /* no storage */ } };
 
@@ -136,32 +136,16 @@ window.Arcade = window.Arcade || {};
     if (reduced.addEventListener) reduced.addEventListener('change', onReduce); else if (reduced.addListener) reduced.addListener(onReduce);
   }
 
-  /* ---------- the MOTION switch (in the speaker panel on every page) ---------- */
+  /* ---------- the MOTION switch (the Settings panel, shared/ui-kit.js) ---------- */
   function setMotion(v) {
     const d = data(); d.motion = !!v; if (v) d.slow = false; save();
     if (on) { stop(); start(); }
     refreshControls();
   }
-  function refreshControls() { document.querySelectorAll('[data-bg-motion]').forEach(el => el._draw && el._draw()); }
-  /** the switch's markup for Sfx.mountControls: a checkbox + a note */
-  function control(el) {
-    const box = document.createElement('label');
-    box.className = 'snd-motion'; box.setAttribute('data-bg-motion', '');
-    box.innerHTML = '<input type="checkbox"> <span>Moving backgrounds</span><small></small>';
-    const input = box.querySelector('input');
-    input.addEventListener('change', () => setMotion(input.checked));
-    box._draw = () => {
-      const d = data();
-      input.checked = d.motion !== false && !d.slow;
-      box.querySelector('small').textContent = reduced.matches ? 'Your device asks for less motion: backgrounds stay still.'
-        : d.slow ? 'Turned off because this device was slow. Tick it to try again.' : '';
-    };
-    box._draw();
-    el.appendChild(box);
-  }
-
+  // the Settings panel (shared/ui-kit.js) redraws itself; html.no-motion follows the switch (shared/version.js)
+  function refreshControls() { if (A.reducedMotion && A.reducedMotion.refresh) A.reducedMotion.refresh(); }
   A.Bg = {
-    mount, menu, setMotion, control, FPS, RES, SLOW_MS, SLOW_WINDOW, DIR,
+    mount, menu, setMotion, FPS, RES, SLOW_MS, SLOW_WINDOW, DIR,
     get motion() { return motionOK(); },
     findImage,
     state: () => ({game: game && game.id, scene, image: layer ? (layer.querySelector('.bg-img').style.backgroundImage || null) : null, on, running: !!raf,

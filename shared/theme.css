@@ -334,8 +334,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-acc-solo{display:block;width:100%;height:auto;overflow:visible}
 /* the UNLOCKED! card (results screens and Select Player's catch-up): the new skin spins in */
 .sk-unlock{margin:10px auto;padding:10px 12px;max-width:520px;border-radius:16px;border:2px solid var(--yellow);background:var(--floor-2);box-shadow:var(--glow-yellow);text-align:center}
-.sk-u-title{margin:0 0 6px!important;font-family:var(--display);font-size:clamp(24px,5vw,34px);letter-spacing:.06em;color:var(--yellow)!important;
-  -webkit-text-stroke:1.5px var(--red-ink);text-shadow:0 3px 0 var(--red-ink),var(--glow-yellow);transform:skewX(-8deg)}
+.sk-u-title{margin:0 0 6px!important;display:inline-block;font-size:clamp(22px,4.6vw,30px)}
 .sk-u-list{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .sk-u-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:150px}
 .sk-u-pic{display:grid;place-items:center;width:96px;height:96px;border-radius:14px;background:var(--deep)}
@@ -379,9 +378,10 @@ h1,h2,h3{text-wrap:balance;margin:0}
 @keyframes sk-float{50%{translate:0 -5px}}
 a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 
-/* ---------- the sound button (every top bar; shared/sfx.js): a speaker that opens SOUND ON/OFF and two sliders ---------- */
+/* ---------- the SETTINGS button (every top bar; shared/sfx.js mountControls): a speaker showing sound on/off; it opens the
+   shared Settings panel (shared/ui-kit.js) ---------- */
 .sound-ctl{position:relative;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.snd-btn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border-radius:10px;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+.snd-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 12px;border-radius:10px;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   background:var(--deep);color:var(--text-lo);border:2px solid var(--floor-3)}
 .snd-btn:hover{border-color:var(--cyan-ink);color:var(--text-hi)}
 .snd-btn[aria-pressed="true"]{color:var(--cyan-hi);border-color:var(--cyan)}
@@ -389,28 +389,12 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .snd-ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .snd-ico .spk{fill:currentColor;stroke:none}
 .snd-btn[aria-pressed="true"] .x,.snd-btn[aria-pressed="false"] .waves{display:none}
-.snd-open{padding:6px 10px;min-width:44px;justify-content:center}
+.snd-open{padding:6px 12px;min-width:44px;min-height:44px;justify-content:center}
+@media (max-width:640px){.snd-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 .snd-open .snd-ico{width:22px;height:22px}
-.snd-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:250px;padding:12px;border-radius:14px;background:var(--floor-2);
   border:2px solid var(--cyan);box-shadow:var(--glow-cyan),0 16px 40px rgba(0,0,0,.6);display:grid;gap:10px;text-align:left}
-.snd-pop[hidden]{display:none}
-.snd-toggle{justify-content:center;width:100%}
-.snd-row{display:grid;grid-template-columns:78px 1fr 42px;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-hi)}
-.snd-row input{width:100%;accent-color:var(--cyan);min-height:28px}
-.snd-row input:disabled{opacity:.4}
-.snd-row output{font-size:13px;color:var(--text-lo);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:0}
-.snd-note{margin:0;font-size:12.5px;color:var(--text-lo)}
-@media (max-width:420px){.snd-pop{position:fixed;left:12px;right:12px;top:64px;width:auto}}
 
-/* ---------- buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:700;font-size:17px;border:2px solid transparent;min-height:48px;text-decoration:none;transition:transform .12s, background .12s, border-color .12s}
-.btn:active{transform:scale(.97)}
-.btn-gold{background:var(--yellow);color:var(--deep);box-shadow:var(--glow-yellow)}
-.btn-gold:hover{background:var(--yellow-hi)}
-.btn-ghost{background:transparent;border-color:var(--cyan-ink);color:var(--text-hi)}
-.btn-ghost:hover{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
-.btn-small{min-height:40px;padding:8px 16px;font-size:15px}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
+/* ---------- buttons: shared/ui-kit.css (.btn .btn-primary .btn-secondary .btn-danger .btn-small .btn-big) ---------- */
 
 /* ---------- ghost mascot ---------- */
 .ghost .g-body{fill:var(--screen)}
@@ -484,16 +468,12 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .panel h2{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.1;margin-bottom:10px;color:var(--pink-hi)}
 .panel p{color:var(--text-lo);margin:0 0 12px}
 .panel .acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
-.err{color:var(--text-hi)!important;text-align:left;font-size:15px;background:rgba(255,107,107,.1);border:1px solid var(--red);border-radius:12px;padding:10px 12px}
-.err ul{margin:6px 0 0;padding-left:20px}
 
 @media (prefers-reduced-motion:reduce){
   .bob{animation:none}
 }
 
 /* ---------- BACKUP / RESTORE (shared/backup.js) ---------- */
-.snd-backup{display:block;width:100%;margin-top:10px;min-height:40px;border-radius:10px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);font-family:var(--display);font-size:13px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
-.snd-backup:hover,.snd-backup:focus-visible{border-color:var(--cyan);color:var(--cyan-hi)}
 .bk-overlay{z-index:60;align-items:start;overflow-y:auto}
 .bk-panel{max-width:560px;width:100%;margin:auto;text-align:left}
 .bk-panel h2{text-align:center;font-family:var(--display);font-weight:400;color:var(--cyan)}
@@ -543,15 +523,10 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .ed-flash.go{animation:ed-flash 1.2s ease-out}
 @keyframes ed-flash{0%{opacity:0;transform:translate(-50%,6px)}18%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){@keyframes ed-flash{0%,100%{opacity:0}10%,80%{opacity:1}}}
-.ed-over .panel{text-align:center}
-.ed-kicker{margin:0;font-family:var(--display);font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
-.ed-over h2{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.04em}
-.ed-new{margin:0 0 10px;font-family:var(--display);font-size:18px;color:var(--cyan-hi)}
-.ed-new.top{font-size:24px;color:var(--yellow);text-shadow:var(--glow-yellow)}
-@media (prefers-reduced-motion:no-preference){.ed-new.top{animation:bob 1.6s ease-in-out infinite}}
 .ed-demo{margin:8px 0 0;font-weight:700;color:var(--amber)}
 .ed-over .ed-top-h{margin-top:14px}
-.ed-over .ed-list{text-align:left;max-width:440px;margin:0 auto}
+.ed-over .ed-list{max-width:440px;margin:0 auto}
+.ed-over .ui-newbest{font-size:20px}
 
 /* ---------- THE SENSEI (Arcade.senseiSVG, shared/ui.js: Ancient Ninja Scrolls, Dojo Duel) ---------- */
 .ss-robe{fill:var(--sensei-robe)} .ss-robe2{fill:var(--sensei-robe-2)} .ss-sleeve{fill:var(--sensei-robe-2)}
@@ -589,11 +564,6 @@ html.bg-on body{background:transparent}
 .bg-layer.has-img .bg-cv{display:none}
 .bg-dim{position:absolute;inset:0;background:radial-gradient(ellipse 75% 65% at 50% 48%,
   color-mix(in srgb,var(--deep) var(--bg-mid),transparent),color-mix(in srgb,var(--deep) var(--bg-edge),transparent))}
-/* the MOVING BACKGROUNDS switch in the speaker panel */
-.snd-motion{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:15px;color:var(--text-hi);cursor:pointer}
-.snd-motion input{width:20px;height:20px;accent-color:var(--cyan)}
-.snd-motion small{flex-basis:100%;color:var(--text-lo);font-size:13px}
-.snd-motion small:empty{display:none}
 
 /* ---------- PRESS START (shared/press-start.js): every game's title screen, once per page load ---------- */
 html.ps-on,html.ps-on body{overflow:hidden}
@@ -619,9 +589,7 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 
 /* ---------- THE LEVEL SELECT PATTERN (shared/level-select.js): every game's first screen ---------- */
 /* ONE heading style for "① SELECT YOUR NOTES" and "② SELECT YOUR LEVEL": the announcer's neon lettering at section size */
-.ls-head{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(16px,2.3vw,21px);line-height:1.15;letter-spacing:.04em;text-transform:uppercase;
-  font-style:italic;transform:skewX(-8deg);transform-origin:left center;color:var(--yellow);-webkit-text-stroke:.8px var(--red-ink);
-  text-shadow:0 2px 0 var(--red-ink),var(--glow-yellow);white-space:nowrap;padding:0 4px}
+.ls-head{white-space:nowrap}      /* the look: .ui-section (shared/ui-kit.css) */
 .ls-head.say{animation:ls-say .6s ease-out}
 @keyframes ls-say{35%{transform:skewX(-8deg) scale(1.08)}}
 .ls-step{font-style:normal;color:var(--cyan-hi);-webkit-text-stroke:0;text-shadow:var(--glow-cyan)}
@@ -654,11 +622,6 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .ls-lock{display:flex;align-items:center;gap:6px;margin-top:6px;grid-column:1/-1;font-size:13px;font-weight:700;color:var(--text-hi);line-height:1.2;text-align:left}
 .ls-lock-i{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
 .ls-lock-i rect{fill:currentColor;fill-opacity:.25}
-.ls-toast{position:absolute;left:50%;top:50%;z-index:4;transform:translate(-50%,-50%);width:max-content;max-width:92%;padding:8px 12px;border-radius:12px;
-  background:var(--deep);border:2px solid var(--yellow);color:var(--text-hi);font-weight:700;font-size:14px;text-align:center;box-shadow:var(--glow-yellow);
-  animation:ls-toast 1.8s ease both;pointer-events:none}
-.ls-locked .ls-toast{opacity:1}
-@keyframes ls-toast{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
 /* the idle hint: a bouncing arrow at what's missing (the level cards, or START) */
 .ls-hint{position:absolute;z-index:60;width:44px;height:44px;pointer-events:none;color:var(--yellow);filter:drop-shadow(0 0 6px var(--yellow)) drop-shadow(0 2px 0 var(--red-ink));
   animation:ls-bob .9s ease-in-out infinite}

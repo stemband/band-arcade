@@ -9,12 +9,12 @@
   const GAME_ID = 'button-masher';
   const RIVALS = window.MASHER_RIVALS, RULES = window.MASHER_RULES, M = A.Masher;
   const {noteLabel, writtenMidi} = A.music;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const inst = A.requireInstrument(GAME_ID); if (!inst) return;
   // THE PLAYER'S AVATAR is the fighter (shared/avatar-fight.js) once the student has one; until then the generic fighter
   // below and a "Make your avatar!" button (nothing here ever makes an avatar by itself)
   const hasAvatar = () => !!(A.store && A.store.avatar) && !!(A.AvatarFight && A.AvatarFight.ready());
-  A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
+  A.mountTopbar(inst, '', GAME_ID);
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
 
@@ -95,9 +95,10 @@
 
   function showHub() {
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
-    stopTimers(); G = null;
+    stopTimers(); G = null; pausedLook(false);
+    pause.setActive(false); A.UI.results.hide();
     if (FX) { FX.destroy(); FX = null; }
-    ['play', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
+    ['play', 'chart'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('playing'); document.body.classList.remove('ww');
     member = A.currentMember();                                              // the instrument chosen on Select Player
     T = M.table(member); D = M.DIAGRAMS[T.diagram] || null;
@@ -155,20 +156,45 @@
 
   /* ---------- a match ---------- */
   let G = null, timerId = 0, timeouts = [];
-  const later = (fn, ms) => { const id = setTimeout(fn, ms); timeouts.push(id); return id; };
-  function stopTimers() { clearInterval(timerId); timerId = 0; timeouts.forEach(clearTimeout); timeouts = []; }
+  /* every delayed step of a match (the taunt, ROUND n, FIGHT!, the next note, poses back to idle, K.O.) goes through
+     later(), so a pause holds them all and RESUME carries on where they were */
+  function later(fn, ms) {
+    const t = {fn, left: ms, due: performance.now() + ms};
+    t.run = () => { timeouts = timeouts.filter(x => x !== t); t.fn(); };
+    t.id = setTimeout(t.run, ms); timeouts.push(t);
+    return t;
+  }
+  function stopTimers() { clearInterval(timerId); timerId = 0; timeouts.forEach(t => clearTimeout(t.id)); timeouts = []; }
+  function holdTimers() { const now = performance.now(); timeouts.forEach(t => { clearTimeout(t.id); t.left = Math.max(0, t.due - now); }); }
+  function resumeTimers() { const now = performance.now(); timeouts.forEach(t => { t.due = now + t.left; t.id = setTimeout(t.run, t.left); }); }
+  /** the arena's CSS animations (banners, blasts, the rival's bob) stand still while paused */
+  function pausedLook(on) { $('play').classList.toggle('is-paused', !!on); }
+
+  /* THE PAUSE MENU (shared/ui-kit.js): the note timer, the intro (taunt → ROUND n → FIGHT!) and every pose change
+     stop while paused; BACK TO RIVALS is the way out of a match */
+  const pause = A.UI.pause.mount({
+    onPause: () => { holdTimers(); pausedLook(true); },
+    onResume: () => { pausedLook(false); resumeTimers(); },
+    onRestart: () => { if (G) startLevel(G.lv); },
+    onLevels: showHub,
+    levelsLabel: 'Back to rivals',
+    leaveTitle: 'Leave this match?',
+    info: () => G ? [['Note', `${Math.min(G.i + 1, G.items.length)} / ${G.items.length}`], ['Score', G.score]] : [],
+  });
 
   /** seconds per note for this rival on this instrument (MASHER_RULES.timeByFamily: woodwinds get longer) */
   function timeFor(V) { return V.time * ((RULES.timeByFamily || {})[member.family] || 1); }
   function startLevel(lv) {
     A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
-    stopTimers();
+    stopTimers(); pausedLook(false);
     const V = RIVALS[lv - 1], pool = poolFor(V);
     G = {lv, V, time: timeFor(V), items: deck(pool, V.notes), fit: pool.map(it => it.show), i: 0, tries: 0, pressed: {}, order: [], glow: null, hintOn: false,
          hp: V.health, energy: RULES.energy, score: 0, hits: 0, mistakes: 0, combo: 0, bestCombo: 0, locked: true};
-    ['hub', 'results', 'chart'].forEach(id => { $(id).hidden = true; });
+    ['hub', 'chart'].forEach(id => { $(id).hidden = true; });
+    A.UI.results.hide();
     $('play').hidden = false; $('wrap').classList.add('playing');
+    pause.setActive(true);
     document.body.classList.toggle('ww', !D.brass && !D.slide);             // woodwind diagrams need the long side of a phone
     mountFighter();
     $('rival').innerHTML = rivalSVG(V);
@@ -279,7 +305,7 @@
   /* keyboard (Chromebooks): brass 1–4 press valves (horn: T or 4 = trigger), trombone 1–7 pick a position,
      Enter = STRIKE!, Backspace = CLEAR. Space presses a focused key. */
   addEventListener('keydown', e => {
-    if (!G || $('play').hidden || !$('results').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!G || $('play').hidden || pause.paused || A.UI.isOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key, onKey = e.target.closest && e.target.closest('.key');
     if (k === 'Enter') { if (e.target.closest && e.target.closest('button, a')) return; e.preventDefault(); strike(); return; }
     if (k === 'Backspace') { e.preventDefault(); clearCombo(); return; }
@@ -291,7 +317,7 @@
     }
   });
 
-  /* ---------- timer (paused while the tab is hidden) ---------- */
+  /* ---------- timer (stops while paused or the tab is hidden) ---------- */
   function startTimer() {
     clearInterval(timerId);
     const bar = $('timer').firstElementChild;
@@ -300,7 +326,7 @@
     let last = performance.now();
     timerId = setInterval(() => {
       const now = performance.now();
-      if (document.hidden) { G.noteStart += now - last; last = now; return; }
+      if (document.hidden || pause.paused) { G.noteStart += now - last; last = now; return; }
       last = now;
       if (!G || G.locked) return;
       const el = (now - G.noteStart) / 1000, frac = 1 - el / G.time;
@@ -409,7 +435,7 @@
   }
   function setPrompt(text, cls) { const p = $('prompt'); p.textContent = text; p.className = 'prompt ' + (cls || ''); }
 
-  /* ---------- results ---------- */
+  /* ---------- results (shared/ui-kit.js) ---------- */
   function finish(result) {
     stopTimers();
     const {lv, V, score, hits, mistakes, bestCombo} = G, won = result === 'ko';
@@ -418,31 +444,26 @@
     const old = A.store.level(GAME_ID, member.id, lv);
     A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     const unlocked = won && old.stars === 0 && lv < RIVALS.length;
-    $('resRival').innerHTML = rivalSVG(V, won ? 'bowing' : '');
-    $('resYou').innerHTML = FX ? A.AvatarFight.stillHTML(member.id, won ? 'victory' : 'bow', {cls: 'res-fighter'}) : A.avatarHTML({size: 'tile', member: member.id});
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = won ? (stars === 3 ? 'Perfect K.O.!' : 'K.O.! You win!') : result === 'time' ? 'Time over' : 'Out of energy';
-    $('resMsg').textContent = won
-      ? (stars === 3 ? `Flawless! ${V.name} bows out, seeing stars.` : stars === 2 ? 'Win with no mistakes for 3 stars.' : 'Win with 2 or fewer mistakes for 2 stars.') +
-        (unlocked ? ` ${RIVALS[lv].name} steps into the ring!` : lv === RIVALS.length ? ' You beat the final boss!' : '')
-      : result === 'time' ? `${V.name} still had ${G.hp} hit${G.hp === 1 ? '' : 's'} left when the notes ran out. Study the CHART and try again!`
-      : `${V.name} won this round. Check the CHART for the fingerings, then go for a rematch. You've got this!`;
-    $('resHits').textContent = `${hits}/${V.health}`;
-    $('resWrong').textContent = mistakes; $('resCombo').textContent = bestCombo; $('resScore').textContent = score;
     const newBest = score > old.best && old.best > 0;
-    $('resBest').textContent = newBest ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const hasNext = lv < RIVALS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !hasNext;
-    $('results').hidden = false;
+    A.UI.results.show({gameId: GAME_ID, stars,
+      // your still fighter (the avatar in VICTORY / BOW, else your avatar's tile) and the rival
+      hero: `<span class="res-you">${FX ? A.AvatarFight.stillHTML(member.id, won ? 'victory' : 'bow', {cls: 'res-fighter'}) : A.avatarHTML({size: 'tile', member: member.id})}</span>` +
+        `<div class="res-rival">${rivalSVG(V, won ? 'bowing' : '')}</div>`,
+      title: won ? (stars === 3 ? 'Perfect K.O.!' : 'K.O.! You win!') : result === 'time' ? 'Time over' : 'Out of energy',
+      msg: won
+        ? (stars === 3 ? `Flawless! ${V.name} bows out, seeing stars.` : stars === 2 ? 'Win with no mistakes for 3 stars.' : 'Win with 2 or fewer mistakes for 2 stars.') +
+          (unlocked ? ` ${RIVALS[lv].name} steps into the ring!` : lv === RIVALS.length ? ' You beat the final boss!' : '')
+        : result === 'time' ? `${V.name} still had ${G.hp} hit${G.hp === 1 ? '' : 's'} left when the notes ran out. Study the CHART and try again!`
+        : `${V.name} won this round. Check the CHART for the fingerings, then try again. You've got this!`,
+      tiles: [['Hits', `${hits}/${V.health}`], ['Mistakes', mistakes], ['Best combo', bestCombo], ['Score', score]],
+      newBest, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: 'Next rival', hidden: !hasNext, onClick: () => startLevel(lv + 1)},
+      retry: {label: 'Try again', onClick: () => startLevel(lv)},
+      levels: {label: 'Rivals', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([won ? 'level-complete' : result !== 'time' && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score']);
   }
-  $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
-  $('resRetry').addEventListener('click', () => startLevel(G.lv));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
   $('strikeBtn').addEventListener('click', strike);
   $('clearBtn').addEventListener('click', clearCombo);
 
@@ -454,7 +475,7 @@
       return {title: `Rival ${k + 3}, ${RIVALS[k + 2].name}: ${sc.label}`, items: sc.up.map(n => ({show: n.show, midi: n.midi, sig: sc.sig, n}))};
     }));
     $('chartTitle').textContent = `Fingering chart: ${member.name}`;
-    $('chartBody').innerHTML = sections.map(s => `<section class="ch-sec"><h3>${s.title}</h3><div class="ch-grid">${s.items.map(card).join('')}</div></section>`).join('') +
+    $('chartBody').innerHTML = sections.map(s => `<section class="ch-sec"><h3 class="ui-section">${s.title}</h3><div class="ch-grid">${s.items.map(card).join('')}</div></section>`).join('') +
       `<p class="muted ch-foot">Rivals 7 and 8 (${RIVALS[6].name} and ${RIVALS[7].name}) mix all four scales.</p>`;
     $('chartBody').querySelectorAll('.ch-card').forEach(c => {
       const f = T.notes(+c.dataset.midi)[0];

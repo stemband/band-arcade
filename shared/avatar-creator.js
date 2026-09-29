@@ -23,7 +23,7 @@ window.Arcade = window.Arcade || {};
   const V = () => A.Avatar, P = () => A.Avatar.parts, N = () => A.Avatar.names;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const sfx = n => { if (A.Sfx) A.Sfx.event(n); };
-  const REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const REDUCED = () => (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches;
 
   /* the tabs: each a list of choice groups. A group: {k (the avatar field), label, kind: 'part' | 'color' | 'toggle' |
      'word', list(), show(av)?, thumb: 'bust' | 'body' | 'swatch'} */
@@ -135,17 +135,16 @@ window.Arcade = window.Arcade || {};
           <button type="button" class="avc-name" aria-describedby="avcNameHint"></button><span id="avcNameHint" hidden>Change your name</span>
           <p class="avc-upgrade" role="status" hidden></p>
           <div class="avc-acts">
-            <button type="button" class="btn btn-ghost avc-rand-all">Surprise me</button>
-            <button type="button" class="btn btn-ghost avc-rand-tab">Shuffle this tab</button>
-            <button type="button" class="btn btn-ghost avc-undo" disabled>Undo</button>
-            <button type="button" class="btn btn-ghost avc-cancel">Cancel</button>
-            <button type="button" class="btn btn-gold avc-save">Done</button>
+            <button type="button" class="btn btn-secondary avc-rand-all">Surprise me</button>
+            <button type="button" class="btn btn-secondary avc-rand-tab">Shuffle this tab</button>
+            <button type="button" class="btn btn-secondary avc-undo" disabled>Undo</button>
+            <button type="button" class="btn btn-secondary avc-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary avc-save">Done</button>
           </div>
           <div class="avc-codes"${S.guest ? ' hidden' : ''}>
-            <button type="button" class="btn btn-ghost btn-small avc-share">Share to Band Ninja</button>
-            <button type="button" class="btn btn-ghost btn-small avc-loadcode">Load avatar code</button>
+            <button type="button" class="btn btn-secondary btn-small avc-share">Share to Band Ninja</button>
+            <button type="button" class="btn btn-secondary btn-small avc-loadcode">Load avatar code</button>
           </div>
-          <div class="avc-leave" hidden><p>Leave without saving?</p><button type="button" class="btn btn-ghost avc-stay">Keep editing</button><button type="button" class="btn btn-gold avc-go">Leave</button></div>
           <p class="avc-lockmsg" role="status" hidden></p>
         </section>
         <section class="avc-edit">
@@ -160,8 +159,6 @@ window.Arcade = window.Arcade || {};
     if (A.Sfx && A.Sfx.duckHold) A.Sfx.duckHold(true);
     const $ = s => root.querySelector(s);
     $('.avc-close').addEventListener('click', () => tryClose());
-    $('.avc-stay').addEventListener('click', () => { $('.avc-leave').hidden = true; $('.avc-save').focus(); });
-    $('.avc-go').addEventListener('click', () => { sfx('ui-back'); close(false); });
     $('.avc-save').addEventListener('click', save);
     $('.avc-cancel').addEventListener('click', () => { sfx('ui-back'); close(false); });
     $('.avc-undo').addEventListener('click', undo);
@@ -241,7 +238,9 @@ window.Arcade = window.Arcade || {};
   }
   function tryClose() {
     if (!S.dirty) { sfx('ui-back'); close(false); return; }
-    const box = S.root.querySelector('.avc-leave'); box.hidden = false; box.querySelector('.avc-stay').focus();
+    // the shared yes/no question (shared/ui-kit.js); the safe answer (keep editing) has the focus
+    A.UI.confirm({title: 'Leave without saving?', text: 'Your changes to your player won’t be saved.', yes: 'Leave', no: 'Keep editing', danger: true})
+      .then(leave => { if (!S) return; if (leave) { sfx('ui-back'); close(false); } else { const s = S.root.querySelector('.avc-save'); if (s) s.focus(); } });
   }
   function close(saved) {
     if (!S) return;
@@ -315,7 +314,7 @@ window.Arcade = window.Arcade || {};
     const scroll = panel.scrollTop;
     panel.setAttribute('aria-labelledby', 'avcTab-' + tab.id);
     let html = '';
-    if (tab.id === 'name') html += `<div class="avc-namebar"><button type="button" class="btn btn-ghost avc-rand-name">Random name</button></div>`;
+    if (tab.id === 'name') html += `<div class="avc-namebar"><button type="button" class="btn btn-secondary avc-rand-name">Random name</button></div>`;
     tab.groups.forEach(g => {
       if (g.show && !g.show(S.av)) return;
       const list = g.list(); if (!list.length) return;
@@ -392,7 +391,7 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- keyboard: arrows inside a grid move to the nearest button that way (on screen), Esc closes ---------- */
   function onKey(e) {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); const leave = S.root.querySelector('.avc-leave'); if (!leave.hidden) { leave.hidden = true; return; } tryClose(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); tryClose(); return; }
     const b = e.target.closest && e.target.closest('.avc-opt');
     if (!b || !/^Arrow/.test(e.key)) { if (e.key === 'Tab') trap(e); return; }
     e.preventDefault(); e.stopPropagation();
@@ -426,7 +425,7 @@ window.Arcade = window.Arcade || {};
     ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="avcOfferT">` +
       `<div class="avc-offer-pic">${A.avatarHTML({size: 'big', skin: false})}</div>` +
       `<h2 id="avcOfferT">Create your player?</h2><p>This is you in the arcade: <b>${esc(V().nameOf(V().get()))}</b>. Pick your own look and name, or keep this one. You can change it any time with EDIT PLAYER.</p>` +
-      `<div class="acts"><button type="button" class="btn btn-ghost" data-no>Maybe later</button><button type="button" class="btn btn-gold" data-yes>Create my player</button></div></div>`;
+      `<div class="acts"><button type="button" class="btn btn-secondary" data-no>Maybe later</button><button type="button" class="btn btn-primary" data-yes>Create my player</button></div></div>`;
     document.body.appendChild(ov);
     const done = yes => { ov.remove(); document.removeEventListener('keydown', k, true); if (yes) open({onClose: () => onDone && onDone()}); else if (onDone) onDone(); };
     const k = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } };

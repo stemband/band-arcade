@@ -590,7 +590,7 @@ window.Arcade = window.Arcade || {};
     attractBox = attractG = null;
     if (A.Marquee) A.Marquee.animate(cabEl ? cabEl.querySelector('.mq-live') : null, 'floor');   // only the front marquee moves
     document.querySelectorAll('.cab.attract').forEach(el => el.classList.remove('attract'));
-    if (!cabEl || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!cabEl || (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches) return;
     cabEl.classList.add('attract');
     const c = A.cabinetOf(g), scr = SCREENS[c.screen], box = cabEl.querySelector('.cab-screen');
     if (scr.draw) {

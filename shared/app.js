@@ -136,11 +136,11 @@ window.Arcade = window.Arcade || {};
       const e = S.installEvent; S.installEvent = null;
       try { e.prompt(); const c = await e.userChoice; if (c && c.outcome === 'accepted') S.installed = true; return; } catch (err) { /* fall through to the steps */ }
     }
-    const p = panel(steps() + '<div class="acts"><button type="button" class="btn btn-gold app-close">Got it</button></div>');
+    const p = panel(steps() + '<div class="acts"><button type="button" class="btn btn-primary app-close">Got it</button></div>');
     p.$('.app-close').focus();
   }
   function canOffer() { return !!(A.TEACHER && A.TEACHER.SHOW_INSTALL_PROMPT) && !standalone && http && !S.installed; }
-  function installButton(host, cls = 'snd-backup') {
+  function installButton(host, cls = 'btn btn-secondary btn-small') {
     if (!host || !canOffer()) return null;
     const b = document.createElement('button');
     b.type = 'button'; b.className = cls + ' app-install'; b.textContent = 'Install the app';
@@ -164,8 +164,8 @@ window.Arcade = window.Arcade || {};
       <label class="bk-lbl" for="appCode">Your backup code</label>
       <textarea id="appCode" class="bk-in" rows="3" spellcheck="false" autocapitalize="characters" autocomplete="off"></textarea>
       <p class="bk-msg app-msg" role="alert"></p>
-      <div class="acts"><button type="button" class="btn btn-gold app-restore">Bring my progress</button>
-        <button type="button" class="btn btn-ghost app-fresh">Start fresh</button></div>`, null);
+      <div class="acts"><button type="button" class="btn btn-primary app-restore">Bring my progress</button>
+        <button type="button" class="btn btn-secondary app-fresh">Start fresh</button></div>`, null);
     p.ov.dataset.noEsc = '1';
     p.ov.classList.add('app-welcome');
     // typing and tapping here belong to this panel only (not PRESS START's "any key", not the floor's keys)

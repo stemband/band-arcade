@@ -15,8 +15,8 @@ window.Arcade = window.Arcade || {};
         <p>The game listens to your instrument to check your notes. Nothing is recorded or saved.</p>
         <div class="err" hidden></div>
         <div class="acts">
-          <button class="btn btn-gold" data-act="go">Turn on microphone</button>
-          <button class="btn btn-ghost" data-act="cancel">Cancel</button>
+          <button class="btn btn-primary" data-act="go">Turn on microphone</button>
+          <button class="btn btn-secondary" data-act="cancel">Cancel</button>
         </div>
       </div>`;
     document.body.appendChild(el);

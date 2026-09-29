@@ -7,9 +7,7 @@ body.space{background:radial-gradient(ellipse at 50% -10%,var(--floor-3),var(--f
              radial-gradient(circle,var(--pink-hi) 0 .6px,transparent 1.2px) 57px 49px/173px 151px}
 
 .hub-head{margin-bottom:18px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
 .game-title span{color:var(--green);text-shadow:0 0 4px var(--green),0 0 14px var(--green-ink)}
-.hub-head p{max-width:56ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 .checker-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--text-dim);border-radius:var(--r);padding:14px 16px;margin-bottom:26px}
 .checker-cta p{margin:0;max-width:52ch;color:var(--text-lo);font-size:15px}
@@ -78,24 +76,14 @@ body.space{background:radial-gradient(ellipse at 50% -10%,var(--floor-3),var(--f
 #resStaff svg{display:block;width:100%;max-height:clamp(170px,30vh,250px);margin:0 auto}
 .tx-line{font-size:19px;font-weight:700;margin:10px 0 4px}
 .tx-line.good{color:var(--yellow)}.tx-line.bad{color:var(--red-hi)}
-.acts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.tx-result .acts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .play-actions{display:flex;justify-content:center;gap:10px;margin:4px 0 10px}
 .hear.off{opacity:.45}
-.play-foot{display:flex;justify-content:center;margin-top:16px}
 
-/* overlays */
-.panel .kicker{margin:0;font-family:var(--display);font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
-.panel .story{color:var(--text-hi);font-size:17px;line-height:1.45}
-.panel .now{color:var(--cyan-hi);font-weight:700}
-.panel .warn{color:var(--amber);font-weight:700}
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
-.panel .best{font-size:14px;margin-top:8px}
+/* overlays (the kit's intro and results, the signal check, the ending): the console's green kicker */
+.ls-theme .ui-kicker{color:var(--green)}
+.ls-theme .now{color:var(--cyan-hi);font-weight:700}
+.ls-theme .warn{color:var(--amber);font-weight:700}
 #endText p{color:var(--text-hi);font-size:17px;line-height:1.5}
 
 @media (prefers-reduced-motion:reduce){

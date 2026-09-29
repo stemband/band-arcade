@@ -1,21 +1,17 @@
 /* Music Highway: the song select, the highway, the staff, calibration and results. Colors are theme tokens only. */
 .hub-head{margin-bottom:14px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92}
 .game-title span{color:var(--cyan);text-shadow:var(--glow-cyan)}
-.hub-head p{max-width:56ch;margin:10px 0 0}
+.hub-head .ui-howto{max-width:56ch;margin:10px 0 0}
 
-/* ---------- options: speed, headphones, calibration, horn side ---------- */
-.mh-opts{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:4px 0 6px}
-.mh-opt{display:inline-flex;align-items:center;gap:0;border:2px solid var(--floor-3);border-radius:12px;overflow:hidden}
-.mh-ol{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:0 10px}
-.mh-seg{min-height:44px;padding:0 14px;background:var(--floor-2);color:var(--text-lo);border:0;border-left:1px solid var(--floor-3);font:700 15px var(--text);cursor:pointer}
-.mh-seg[aria-pressed="true"]{background:var(--cyan);color:var(--deep)}
-.mh-hp{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:700 15px var(--text);cursor:pointer}
-.mh-hp.on{border-color:var(--green);color:var(--green-hi);box-shadow:var(--glow-green)}
+/* ---------- options: mode, speed, spacing, headphones, calibration, sticking, letter names (.ui-seg toggles) ---------- */
+.mh-opts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;margin:4px 0 8px}
+.mh-opt{display:flex;flex-direction:column;align-items:flex-start}
+.mh-opt[hidden]{display:none}
+.mh-opt .ui-label{margin-bottom:4px}
+.mh-hp>button{--seg-on:var(--green);flex-direction:row;gap:6px}
 .mh-pracopts{flex-basis:100%;margin:0}
 .mh-pracopts[hidden]{display:none}
-.mh-vol{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:2px solid var(--floor-3);border-radius:12px}
-.mh-vol input{width:160px;accent-color:var(--cyan)}
+.mh-vol input{width:180px;min-height:44px;accent-color:var(--cyan)}
 .mh-vol input:disabled{opacity:.4}
 .mh-turbo{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--deep);background:var(--yellow);border-radius:6px;padding:1px 6px;vertical-align:2px;white-space:nowrap}
 /* PRACTICE: the label under the HUD; the score/combo/accuracy are hidden */
@@ -28,12 +24,6 @@
 @keyframes mhFv{0%{opacity:0;transform:translate(-50%,6px)}20%{opacity:.95}100%{opacity:0;transform:translate(-50%,-14px)}}
 .mh-sticknote{margin:-6px 0 12px;font-weight:700;color:var(--cyan-hi)}
 .mh-sticknote[hidden]{display:none}
-/* the pause menu sits ABOVE the game screen (#play is z-index 40; a plain .overlay is 20, which hid it: the "freeze") */
-#pausePanel{z-index:60}
-.mh-pausemenu{text-align:center;max-width:420px}
-.mh-pausemenu .mh-pstats{grid-template-columns:1fr 1fr}
-.mh-pacts{display:grid;gap:10px;margin-top:10px}
-.mh-pacts .btn{min-height:56px;font-size:20px;width:100%}
 .mh-optnote{margin:0 0 12px;font-size:14px;color:var(--text-lo);min-height:1.3em}
 .levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:900px){.levels{grid-template-columns:repeat(3,1fr)}}
@@ -45,25 +35,23 @@
 .lvl .d{font-size:13px;color:var(--text-lo);line-height:1.35}
 .lvl .foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
 .lvl[disabled]{cursor:not-allowed;opacity:.45}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
 .mh-songs .lvl.t2 .n{color:var(--amber-hi)}
 .mh-songs .lvl.t3 .n{color:var(--pink-hi)}
 .mh-foot{margin:18px 0 26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mh-footnote{color:var(--text-lo)}
 
 /* ---------- the highway (full screen while a song plays) ---------- */
 html.mh-playing,html.mh-playing body{overflow:hidden}
 #play{position:fixed;inset:0;z-index:40;background:var(--deep);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 #play[hidden]{display:none}
 #road{position:absolute;left:0;top:0;display:block}
-.mh-hud{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr auto 1fr auto;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:linear-gradient(var(--deep),transparent)}
+/* the HUD leaves the top-left corner to the arcade PAUSE button (shared/ui-kit.js, fixed above #play; game.js layout()
+   moves the HUD past wherever the kit put it) */
+.mh-hud{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px calc(150px + env(safe-area-inset-left));background:linear-gradient(var(--deep),transparent)}
+@media (max-width:420px){.mh-hud{padding-left:calc(76px + env(safe-area-inset-left))}}
 .mh-hud small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mh-hud b{font-family:var(--display);font-weight:400;font-size:clamp(18px,3.4vw,28px);color:var(--text-hi);font-variant-numeric:tabular-nums}
 .mh-hud .c{text-align:center} .mh-hud .c b{color:var(--yellow-hi)} .mh-hud .r{text-align:right}
-.mh-pause{width:56px;height:56px;border-radius:12px;border:2px solid var(--pink);background:var(--floor-2);cursor:pointer;display:grid;place-items:center}
-.mh-pause svg{width:22px;fill:var(--pink-hi)}
 .mh-judge{position:absolute;left:50%;top:calc(var(--sy) - 118px);transform:translateX(-50%);width:max-content;text-align:center;-webkit-text-stroke:1px var(--deep);paint-order:stroke;font-family:var(--display);font-size:clamp(26px,6vw,48px);line-height:1;pointer-events:none;color:var(--text-hi)}
 .mh-judge small{display:block;font-family:var(--text);font-weight:700;font-size:15px;letter-spacing:.1em;color:var(--text-lo);margin-top:4px}
 .mh-judge.perfect{color:var(--yellow-hi);text-shadow:var(--glow-yellow)} .mh-judge.good{color:var(--green-hi)} .mh-judge.ok{color:var(--cyan-hi)}
@@ -101,15 +89,16 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
 .mh-hpmeter{height:12px;border-radius:6px;background:var(--floor-3);overflow:hidden;margin:14px 0}
 .mh-hpmeter i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
 
-/* ---------- results ---------- */
-.mh-stats{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
-.mh-stats [hidden]{display:none}
+/* ---------- results (shared/ui-kit.js): the judgment counts and the trouble spot ---------- */
 .mh-counts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
 .mh-counts span{display:flex;flex-direction:column;align-items:center;min-width:54px;padding:6px 8px;border-radius:10px;background:var(--floor-2);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-lo)}
 .mh-counts b{font-family:var(--display);font-weight:400;font-size:22px;color:var(--text-hi)}
 .mh-counts .mc-perfect b{color:var(--yellow-hi)} .mh-counts .mc-good b{color:var(--green-hi)} .mh-counts .mc-miss b{color:var(--red)} .mh-counts .mc-bonus b{color:var(--pink-hi)}
-.mh-trouble{border:1px dashed var(--floor-3);border-radius:14px;padding:12px;margin:12px 0}
-.mh-trouble h3{margin:0 0 4px;font-family:var(--display);font-weight:400;color:var(--amber-hi)}
+.mh-trouble{border:1px dashed var(--floor-3);border-radius:14px;padding:12px;margin:12px 0 0}
+.mh-trouble[hidden]{display:none}
+.mh-trouble .ui-section{display:inline-block;margin:0 0 6px}
+.mh-trouble p{margin:0 0 6px;color:var(--text-lo)}
+.mh-trouble .btn{display:flex;margin:6px auto 0}
 .mh-tstaff{margin:8px 0}
 .mh-sticks{font-family:var(--display);font-size:24px;color:var(--ink);letter-spacing:.2em;text-align:center;margin:6px}
 .mh-sticks .miss{color:var(--mh-miss)}
@@ -121,6 +110,4 @@ html.mh-playing,html.mh-playing body{overflow:hidden}
   .mh-fv.show{animation:none;opacity:.9}
   .mh-hpmeter i{transition:none}
 }
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.panel .best{font-size:14px;margin-top:8px}
+

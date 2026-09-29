@@ -2,7 +2,8 @@
    THE SCREEN: a 320 × 180 canvas (Q.W × Q.H) scaled up with nearest-neighbor (image-rendering: pixelated) to fill the
    biggest 16:9 box that fits (letterboxed). Text, menus and challenge panels are HTML in #ui on top of it, sized in
    "pixels" of the 320-wide screen: CSS var(--px) = one game pixel, so calc(var(--px) * 10) = 10 game pixels.
-   THE LOOP: requestAnimationFrame; nothing updates while the tab is hidden (the game pauses).
+   THE LOOP: requestAnimationFrame; nothing updates while the tab is hidden or Q.paused (the shared pause menu,
+   engine/world.js: nothing moves, the last frame stays on screen).
    SCENES: Q.scenes[name] = {enter(args), exit(), update(dt, now), draw(ctx, now), press(button)}; Q.go(name, args).
      title, arena (the test arena) and battle today; later the overworld and cutscenes. */
 window.Arcade = window.Arcade || {};
@@ -11,7 +12,7 @@ window.Arcade = window.Arcade || {};
   const Q = A.Quest = A.Quest || {};
   Q.W = 320; Q.H = 180;
   Q.scenes = {};
-  const reducedMQ = matchMedia('(prefers-reduced-motion: reduce)');
+  const reducedMQ = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   Q.reduced = () => reducedMQ.matches;
   const cssCache = {};
   /** a theme token's color (shared/theme.css), e.g. Q.css('q-brass') */
@@ -75,7 +76,7 @@ window.Arcade = window.Arcade || {};
   function loop(now) {
     requestAnimationFrame(loop);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (document.hidden || !scene) return;                       // paused while the tab is hidden
+    if (document.hidden || !scene || Q.paused) return;           // paused while the tab is hidden or the PAUSE menu is open (the last frame stays)
     if (scene.update) scene.update(dt, now);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = Q.css('q-black'); ctx.fillRect(0, 0, Q.W, Q.H);
@@ -96,12 +97,12 @@ window.Arcade = window.Arcade || {};
   };
   Q.scene = () => scene;
 
-  /** wait ms of game time (does not count while the tab is hidden) */
+  /** wait ms of game time (does not count while the tab is hidden or the game is paused) */
   Q.wait = ms => new Promise(res => {
     let left = ms, t0 = performance.now();
     const step = () => {
       const now = performance.now();
-      if (!document.hidden) left -= now - t0;
+      if (!document.hidden && !Q.paused) left -= now - t0;
       t0 = now;
       if (left <= 0) res(); else setTimeout(step, Math.min(50, left));
     };

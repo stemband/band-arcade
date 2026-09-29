@@ -875,7 +875,7 @@ window.Arcade = window.Arcade || {};
   function setup(THREE, aisle, opts) {
     const {onGiveUp} = opts;
     let ring = opts.ring, wrap = opts.wrap, M = ring.length, fadeOf = opts.fade || (() => 1), tagOf = opts.tag || null;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
     let level = 0;                                                  // 0 = full, 1 = downgraded (dpr 1, no haze, no sway)
     const dpr = () => level ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
 

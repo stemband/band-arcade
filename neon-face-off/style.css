@@ -6,9 +6,9 @@
 
 /* ---------- match setup ---------- */
 .hub-head{margin-bottom:14px}
-.game-title{font-family:var(--neon-font);font-weight:400;font-size:clamp(38px,8vw,68px);line-height:1;letter-spacing:.02em}
+.game-title{font-family:var(--neon-font);letter-spacing:.02em}
 .game-title .c1{text-shadow:var(--glow-cyan)} .game-title .c2{text-shadow:var(--glow-pink)}
-.hub-head p{max-width:60ch;margin:10px 0 0}
+.hub-head .vs-line{margin:10px 0 0}
 .vs-line{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-lo)}
 .linkish{background:none;border:0;padding:4px 6px;color:var(--cyan-hi);text-decoration:underline;font-family:var(--text);font-size:15px;text-transform:none;letter-spacing:0}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -26,13 +26,11 @@
 .col .mp-row{grid-template-columns:1fr;gap:6px}
 .col .mp-order{max-width:none}
 .col .mp-note{min-height:58px}
-.diff{margin-top:6px}
-.segs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-.seg{flex:1;min-width:84px;min-height:52px;padding:6px 10px;border-radius:14px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700}
-.seg b{font-family:var(--display);font-weight:400;font-size:17px;text-transform:uppercase}
-.seg small{font-size:12px;color:var(--text-lo)}
-.seg[aria-pressed="true"]{border-color:var(--pc,var(--yellow));background:var(--floor-lit);box-shadow:0 0 12px var(--pc,var(--yellow))}
+.diff{margin-top:10px}
+/* the option toggles (.ui-seg, shared/ui-kit.css) in each player's color; points to win in yellow */
+.col .ui-seg>button{--seg-on:var(--pc);flex:1}
+.points .ui-seg{justify-content:center}
+.points .ui-seg>button{--seg-on:var(--yellow)}
 .ladder{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .rung{display:grid;grid-template-columns:48px 1fr;grid-template-rows:auto auto;gap:0 8px;align-items:center;text-align:left;padding:6px 8px;border-radius:14px;
   border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi)}
@@ -45,10 +43,7 @@
 .rung[disabled]{opacity:.45;cursor:not-allowed}
 .rung-line{margin:10px 0 0;color:var(--text-lo)}
 .shared-set{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
-.points .segs{justify-content:center}
-.points .seg{--pc:var(--yellow);min-width:64px;font-family:var(--display);font-size:20px}
 .record{margin:0;color:var(--text-lo)}
-.btn-start{min-height:60px;padding:12px 36px;font-family:var(--display);font-size:22px;letter-spacing:.06em;text-transform:uppercase}
 
 /* ---------- the match ---------- */
 .in-match .wrap{max-width:none;padding-bottom:8px}
@@ -118,18 +113,16 @@
   .s-status.turn{font-size:20px}
 }
 
-/* ---------- results ---------- */
+/* ---------- results (shared/ui-kit.js): the neon cyan panel, the winner's color on the title, both players above ---------- */
 .panel{border-color:var(--cyan);box-shadow:var(--glow-cyan),0 30px 80px rgba(0,0,0,.6)}
-.panel h2.c1{color:var(--cyan-hi)} .panel h2.c2{color:var(--pink-hi)}
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:0 0 6px}
-.panel .bigstars .on{color:var(--yellow)}
-.res-score{font-family:var(--display);font-size:24px;color:var(--text-hi)!important}
-.res-stats{display:grid;gap:6px;margin:8px 0;font-size:15px;color:var(--text-lo)}
-.res-stats div{background:var(--deep);border-radius:12px;padding:8px;display:grid;grid-template-columns:44px 1fr;column-gap:10px;align-items:center;text-align:left}
-.res-stats .res-pic{grid-row:1/3;width:44px}
-.res-stats .res-pic .pt-box{display:grid}
-.res-stats small{display:block;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-.res-stats .p1 small{color:var(--cyan-hi)} .res-stats .p2 small{color:var(--pink-hi)}
+.nfo-res.w-p1 .ui-res-title{color:var(--cyan-hi)} .nfo-res.w-p2 .ui-res-title{color:var(--pink-hi)}
+.nfo-vs{display:flex;align-items:center;justify-content:center;gap:12px}
+.nfo-vs>i{font-style:normal;font-family:var(--display);color:var(--text-lo)}
+.nfo-who{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;max-width:40%}
+.nfo-who .res-pic{width:56px}
+.nfo-who .res-pic .pt-box{display:grid}
+.nfo-who b{font-size:14px;line-height:1.15;overflow-wrap:break-word;text-wrap:balance}
+.nfo-who.p1 b{color:var(--cyan-hi)} .nfo-who.p2 b{color:var(--pink-hi)}
 .topbar-right .sound-ctl{flex-wrap:nowrap}
 
 @media (prefers-reduced-motion:reduce){

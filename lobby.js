@@ -13,7 +13,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const {$} = A;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const thumb = g => A.Marquee
     ? `<img class="mq-thumb" data-mq-thumb="${esc(A.Marquee.thumbKey(g))}" src="${A.Marquee.thumb(g)}" alt="" draggable="false">`
     : `<span class="mq-thumb mq-none">${esc(g.name)}</span>`;
