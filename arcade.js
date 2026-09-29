@@ -473,6 +473,7 @@
     if (r.view === 'lobby') {
       document.title = A.ARCADE_NAME;
       A.Lobby.render({onZone: z => enterZone(z), onGame: openGame});
+      warmBoard();
     } else if (r.view === 'all') {
       document.title = `All Games · ${A.ARCADE_NAME}`;
       $('fbTitle').textContent = 'All Games';
@@ -590,6 +591,12 @@
     e.preventDefault(); A.Sfx.event('select-' + g.id); openSelect(g);
   });
 
+  /* THE LEADERBOARD WARM-UP (shared/leaderboard.js warm()): a quiet ?action=status when the arcade opens and when the
+     lobby shows again (or comes back on screen) 10+ minutes later, so a cold scoreboard is awake by the time someone
+     taps the trophy. warm() keeps the 10 minutes itself; nothing waits for it. */
+  function warmBoard() { if (A.Leaderboard && A.Leaderboard.warm) setTimeout(() => A.Leaderboard.warm(), 0); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && current === 'lobby') warmBoard(); });
+  warmBoard();
   showView();                              // the address decides: lobby, a zone, ALL GAMES or Select Player
   A.Arcade = {state: () => ({view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
 })(window.Arcade);

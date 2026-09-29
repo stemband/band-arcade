@@ -8,8 +8,14 @@
        this device's own numbers ("You: 12 stars this week. Keep going!")
      - "Resets every Monday · Updated a minute ago" (boards are cached 60 s)
      - MY SETTINGS: the grade and "Show me on the leaderboard" (ON by default; OFF = nothing is ever sent)
-     - can't reach the scoreboard / switched off: "Leaderboard is taking a break. Your progress is still saved!"
-   ?teacher: every entry shows its 6-character id (Mat hides a player by pasting it in the Blocked tab of his Sheet).
+     - while a board loads (a cold scoreboard can take 20 s+): "Loading the leaderboard…" with the UI kit's spinner
+       (.ui-msg.loading), never an empty screen or the break message
+     - the read failed but this device has that grade's last good board: that board + "Couldn't refresh — showing the
+       board from 2 hours ago"; nothing saved (or switched off): "Leaderboard is taking a break. Your progress is still
+       saved!"
+   ?teacher: every entry shows its 6-character id (Mat hides a player by pasting it in the Blocked tab of his Sheet),
+   and under the board how the last request went (Leaderboard.lastRequest(): "timeout after 25 s", "offline",
+   "HTTP 500", "not JSON", "network error (CORS or blocked)", how long it took, tried twice).
      Arcade.LeaderboardScreen.open() / close() / state() */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -35,6 +41,26 @@ window.Arcade = window.Arcade || {};
     if (m < 60) return `Updated ${m} minutes ago`;
     const h = Math.round(m / 60);
     return h < 2 ? 'Updated an hour ago' : h < 48 ? `Updated ${h} hours ago` : 'Updated a while ago';
+  }
+  /** '2 hours ago' (the stale board's line) */
+  function agoPlain(t) {
+    const ms = Date.now() - t;
+    if (!(ms >= 0) || ms < 45000) return 'just now';
+    const m = Math.round(ms / 60000);
+    if (m < 2) return 'a minute ago';
+    if (m < 60) return `${m} minutes ago`;
+    const h = Math.round(m / 60);
+    if (h < 2) return 'an hour ago';
+    if (h < 36) return `${h} hours ago`;
+    const d = Math.round(h / 24);
+    return d < 2 ? 'yesterday' : `${d} days ago`;
+  }
+  /** ?teacher: how the last request went */
+  function diagLine() {
+    const r = L().lastRequest && L().lastRequest();
+    if (!r) return 'Last request: none yet.';
+    const secs = `${(r.ms / 1000).toFixed(1)} s`, twice = r.tries > 1 ? ', tried twice' : '';
+    return r.ok ? `Last request: OK in ${secs}${twice}.` : `Last request failed: ${r.why} (took ${secs}${twice}).`;
   }
   const updatedAt = res => { const u = res && res.data && res.data.updated; const t = typeof u === 'number' ? u : Date.parse(u); return isFinite(t) && t > 0 ? t : res && res.at; };
 
@@ -66,6 +92,7 @@ window.Arcade = window.Arcade || {};
     const g = S.grade;
     const res = await L().board(g, {fresh});
     if (g !== S.grade) return;                               // switched while it loaded
+    res.grade = g;
     S.res = res; S.loading = false;
     if (res.ok && S.tab === 'endless' && !S.game) S.game = endlessGames(res)[0] || null;
     draw();
@@ -131,7 +158,8 @@ window.Arcade = window.Arcade || {};
     const games = S.tab === 'endless' ? `<div class="lb-games" role="group" aria-label="Game">` + endlessGames(S.res).map(g =>
       `<button type="button" class="lb-gm${g === S.game ? ' on' : ''}" data-act="game" data-game="${esc(g)}" aria-pressed="${g === S.game}">${esc(gameName(g))}</button>`).join('') + `</div>` : '';
     let body;
-    if (S.loading && !S.res) body = `<p class="ui-msg lb-msg">Loading…</p>`;
+    const shown = S.res && S.res.grade === S.grade ? S.res : null;       // (another grade's board never shows under this one)
+    if (S.loading && !(shown && shown.ok)) body = `<p class="ui-msg loading lb-msg lb-loading" role="status">Loading the leaderboard…</p>`;
     else if (!S.res || !S.res.ok) body = `<p class="ui-msg lb-msg lb-break">Leaderboard is taking a break. Your progress is still saved!</p>`;
     else if (!rows.length) body = `<p class="ui-msg lb-msg">Nobody is on this board yet this week. Be the first!</p>`;
     else body = `<ol class="lb-list">` + rows.slice(0, 10).map((e, i) => {
@@ -141,6 +169,8 @@ window.Arcade = window.Arcade || {};
         `<span class="lb-name">${esc(name)}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
         `<span class="lb-val">${esc(tab.unit(e.value))}</span></li>`;
     }).join('') + `</ol>`;
+    if (shown && shown.ok && shown.stale) body = `<p class="lb-stale" role="status">Couldn't refresh — showing the board from ${esc(agoPlain(S.res.at))}</p>` + body;
+    if (TEACHER) body += `<p class="lb-note lb-diag">${esc(diagLine())}</p>`;
     const own = S.res && S.res.ok ? ownLine(rows) : '';
     const foot = `<p class="lb-foot">Resets every Monday${S.res && S.res.ok ? ` · ${esc(ago(updatedAt(S.res)))}` : ''}` +
       ` <button type="button" class="lb-ref" data-act="refresh"${S.loading ? ' disabled' : ''}>${S.loading ? 'Loading…' : 'Refresh'}</button></p>`;
@@ -154,6 +184,7 @@ window.Arcade = window.Arcade || {};
   }
   function state() {
     return {open: !!S.el && !S.el.hidden, asking: S.asking, grade: S.grade, tab: S.tab, game: S.game, ok: !!(S.res && S.res.ok), why: S.res && S.res.why,
+      loading: S.loading, stale: !!(S.res && S.res.stale),
       rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
   }
   // the top bar's trophy button (index.html #lbBtn): only when a scoreboard address is set

@@ -12,8 +12,20 @@
    EVENTS: 'play' once a day (the first game started that day); 'stars' = how many NEW stars a level's best just
    gained (1–3); 'endless' = the score at an Endless game over, only when it beats this device's best for that game
    this week. Events wait in a queue on the device (at most 50: the oldest go first) and are sent one at a time; a
-   failed or offline send stays queued and is tried again (going online, the page showing again, every 60 s). A
-   request never takes longer than 8 s and never holds up a game.
+   failed or offline send stays queued and is tried again (going online, the page showing again, every 60 s). Nothing
+   here ever holds up a game.
+
+   THE NETWORK (school iPads and Macs: Safari): a cold Apps Script that reads the Sheet can take 10–20 s, so a board
+   read waits up to TIMEOUTS.read (25 s) and is tried once more after a time-out; a send waits up to TIMEOUTS.send
+   (20 s). Every request is a CORS "simple request", so no preflight (Apps Script can't answer one): GET with no
+   headers, POST with only Content-Type text/plain; credentials 'omit', redirects followed (script.google.com →
+   script.googleusercontent.com), and NO `cache` option (WebKit has turned a non-default cache mode into
+   Cache-Control/Pragma request headers, which forces a preflight). WARM-UP: warm() sends one quiet ?action=status
+   when the arcade opens and when the lobby shows again 10+ minutes later, so the script is awake when a student taps
+   the trophy (result ignored, never in ?demo). THE LAST GOOD BOARD of each grade is kept in localStorage
+   ('bandarcade.lb-last'; not progress, not in the Backup Code): when a read fails it's shown instead ({stale: true}).
+   lastRequest() = how the last request went (for ?teacher): {ok, why ('timeout after 25 s' | 'offline' | 'HTTP 500' |
+   'not JSON' | 'network error (CORS or blocked)'), ms, tries, at}.
 
    Saved in gameData('leaderboard') (so the Arcade Backup Code carries it, streak and all): {pid, grade, on, queue,
    day (the last 'play' date), week, weekStars, endless: {gameId: best this week}, id (the 6-character id the
@@ -22,14 +34,18 @@
      Arcade.Leaderboard.available()      an address is set (the button shows)
      .settings() / setGrade(6|7|8) / setOn(bool)
      .canSend()                           everything above holds
-     .board(grade, {fresh})              → {ok, data} (cached 60 s on this device) | {ok: false, why}
+     .board(grade, {fresh})              → {ok, data} (cached 60 s on this device; a failed read → the last good board
+                                           {ok, data, stale: true, at, why}) | {ok: false, why}
+     .warm()                              the quiet wake-up (at most once in 10 minutes)
+     .lastRequest()                       how the last request went (?teacher)
+     .TIMEOUTS                            {read, send} in ms (tests shorten them)
      .mine()                              this device's week: {week, stars, endless: {…}, streak, grade}
      .queue() / .flush()                  tests
 */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
-  const TIMEOUT = 8000, MAX_QUEUE = 50, CACHE_MS = 60000, RETRY_MS = 60000;
+  const TIMEOUTS = {read: 25000, send: 20000}, MAX_QUEUE = 50, CACHE_MS = 60000, RETRY_MS = 60000, WARM_GAP = 10 * 60000;
   const url = () => String(A.LEADERBOARD_URL || '').trim();
   const D = () => A.store.gameData('leaderboard');
   const save = () => A.store.saveGameData('leaderboard');
@@ -112,21 +128,36 @@ window.Arcade = window.Arcade || {};
     enqueue({type: 'play', game, value: 1});
   }
 
-  /* ---------- the network (fetch, no credentials, redirects followed, 8 s at most) ---------- */
-  async function request(params, body) {
+  /* ---------- the network: simple CORS requests only (see the top), a time limit, what happened ---------- */
+  let last = null;                                            // how the last request went (lastRequest(), ?teacher)
+  async function request(params, body, ms = body === undefined ? TIMEOUTS.read : TIMEOUTS.send, quiet = false) {
     const ctl = window.AbortController ? new AbortController() : null;
-    const timer = setTimeout(() => ctl && ctl.abort(), TIMEOUT);
+    const timer = setTimeout(() => ctl && ctl.abort(), ms);
+    const t0 = Date.now(), done = (res, why) => { if (!quiet) last = {ok: !res.net, why: why || null, ms: Date.now() - t0, at: Date.now(), action: params ? params.action : 'send'}; return res; };
     try {
       const u = url() + (params ? (url().includes('?') ? '&' : '?') + new URLSearchParams(params) : '');
       const r = await fetch(u, body === undefined
-        ? {method: 'GET', credentials: 'omit', redirect: 'follow', cache: 'no-store', signal: ctl && ctl.signal}
-        : {method: 'POST', credentials: 'omit', redirect: 'follow', cache: 'no-store', signal: ctl && ctl.signal,
+        ? {method: 'GET', credentials: 'omit', redirect: 'follow', signal: ctl && ctl.signal}
+        : {method: 'POST', credentials: 'omit', redirect: 'follow', signal: ctl && ctl.signal,
            headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
-      if (!r.ok) return {net: true, status: r.status};
-      try { return {json: await r.json()}; } catch (e) { return {net: true, status: 'not json'}; }
+      if (!r.ok) return done({net: true, status: r.status}, `HTTP ${r.status}`);
+      try { return done({json: await r.json()}); } catch (e) { return done({net: true, status: 'not json'}, 'not JSON'); }
     } catch (e) {
-      return {net: true, status: e && e.name === 'AbortError' ? 'timeout' : 'offline'};
+      if (e && e.name === 'AbortError') return done({net: true, status: 'timeout'}, `timeout after ${ms >= 10000 ? Math.round(ms / 1000) : +(ms / 1000).toFixed(1)} s`);
+      if (navigator.onLine === false) return done({net: true, status: 'offline'}, 'offline');
+      return done({net: true, status: 'network'}, 'network error (CORS or blocked)');
     } finally { clearTimeout(timer); }
+  }
+  /** WARM-UP: one quiet ?action=status so a cold script is awake by the time someone opens the leaderboard (at most
+      once in WARM_GAP, remembered for the browser session; never waited for, the result ignored; never in ?demo) */
+  const WKEY = 'bandarcade.lb-warm';
+  function warm() {
+    if (!available() || A.DEMO) return false;
+    let at = 0; try { at = +sessionStorage.getItem(WKEY) || 0; } catch (e) { /* fine */ }
+    if (Date.now() - at < WARM_GAP) return false;
+    try { sessionStorage.setItem(WKEY, String(Date.now())); } catch (e) { /* fine */ }
+    request({action: 'status'}, undefined, TIMEOUTS.read, true).catch(() => {});   // quiet: not what the teacher line reports
+    return true;
   }
   let flushing = false, soon = 0;
   function flushSoon(ms = 400) { if (!soon) soon = setTimeout(() => { soon = 0; flush(); }, ms); }
@@ -151,20 +182,29 @@ window.Arcade = window.Arcade || {};
     setTimeout(() => { if (A.store && (D().queue || []).length) flush(); }, 3000);
   }
 
-  /* ---------- reading the boards (cached 60 s on this device) ---------- */
-  const CKEY = 'bandarcade.lb-cache';
+  /* ---------- reading the boards (cached 60 s on this device; the last good one kept for when the network fails) ---- */
+  const CKEY = 'bandarcade.lb-cache', LKEY = 'bandarcade.lb-last';
   const cacheGet = g => { try { const c = JSON.parse(sessionStorage.getItem(CKEY)) || {}; return c[g] && Date.now() - c[g].at < CACHE_MS ? c[g] : null; } catch (e) { return null; } };
   const cachePut = (g, data) => { try { const c = JSON.parse(sessionStorage.getItem(CKEY)) || {}; c[g] = {at: Date.now(), data}; sessionStorage.setItem(CKEY, JSON.stringify(c)); } catch (e) { /* fine */ } };
+  const lastGet = g => { try { const c = JSON.parse(localStorage.getItem(LKEY)) || {}; return c[g] && c[g].data ? c[g] : null; } catch (e) { return null; } };
+  const lastPut = (g, data) => { try { const c = JSON.parse(localStorage.getItem(LKEY)) || {}; c[g] = {at: Date.now(), data}; localStorage.setItem(LKEY, JSON.stringify(c)); } catch (e) { /* fine */ } };
   async function board(grade, {fresh} = {}) {
     if (!available()) return {ok: false, why: 'off'};
     grade = +grade;
     if (!GRADES.includes(grade)) return {ok: false, why: 'grade'};
     const c = !fresh && cacheGet(grade);
     if (c) return {ok: true, data: c.data, at: c.at, cached: true};
-    const res = await request({action: 'board', grade});
-    if (res.net || !res.json || res.json.ok === false) return {ok: false, why: res.net ? res.status : 'error'};
-    if (res.json.enabled === false) return {ok: false, why: 'disabled'};
-    cachePut(grade, res.json);
+    const t0 = Date.now();
+    let res = await request({action: 'board', grade}), tries = 1;
+    if (res.net && res.status === 'timeout') { res = await request({action: 'board', grade}); tries = 2; }   // a cold script: once more
+    if (last) Object.assign(last, {tries, ms: Date.now() - t0});                                         // (both tries)
+    const why = res.net ? res.status : !res.json || res.json.ok === false ? 'error' : res.json.enabled === false ? 'disabled' : null;
+    if (why === 'disabled') return {ok: false, why};
+    if (why) {
+      const old = lastGet(grade);                             // the network failed: the last good board, marked stale
+      return old ? {ok: true, data: old.data, at: old.at, stale: true, why} : {ok: false, why};
+    }
+    cachePut(grade, res.json); lastPut(grade, res.json);
     return {ok: true, data: res.json, at: Date.now()};
   }
   /** is this board entry this device? (the scoreboard's 6-character id, else the pid's start) */
@@ -172,5 +212,6 @@ window.Arcade = window.Arcade || {};
 
   A.Leaderboard = {available, settings, setGrade, setOn, canSend, stars, endless, play, board, mine, isMe, weekKey, GRADES,
     ENDLESS_GAMES: ['note-storm', 'note-ninja', 'lost-signal', 'vanishing-ink', 'keys-to-the-city', 'rhythm-dojo'],
+    warm, TIMEOUTS, lastRequest: () => last && Object.assign({}, last),
     queue: () => (D().queue || []).slice(), flush, _request: request};
 })(window.Arcade);

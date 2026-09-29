@@ -73,7 +73,9 @@ test.describe('app (dev copy)', () => {
     await page.locator('.app-restore').click();
     await expect(page.locator('.app-msg')).toContainText("doesn't look right");
     await page.locator('#appCode').fill(code);
+    const reloaded = page.waitForEvent('load');                             // RESTORE saves, then reloads the page (0.7 s)
     await page.locator('.app-restore').click();
+    await reloaded;
     await expect.poll(() => page.evaluate(() => window.Arcade && Arcade.store && Arcade.store.player), {timeout: 10_000}).toBe('clarinet');
     expect(await page.evaluate(() => Arcade.store.allStars('*'))).toBe(3);
     await expect(page.locator('.app-welcome')).toHaveCount(0);           // asked once
