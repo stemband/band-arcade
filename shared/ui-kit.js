@@ -2,7 +2,7 @@
    they look and when to use each; styles in shared/ui-kit.css). Loaded on every page by shared/version.js, before the
    page's own scripts; nothing here runs until a game calls it.
 
-   Arcade.UI.pause.mount({…})      THE PAUSE BUTTON + PAUSE MENU (RESUME · RESTART · SETTINGS · extras · BACK TO LEVELS)
+   Arcade.UI.pause.mount({…})      THE PAUSE BUTTON + PAUSE MENU (RESUME · RESTART · SETTINGS · extras · BACK TO LEVELS · BACK TO ARCADE GAMES)
    Arcade.UI.results.show({…})     THE RESULTS SCREEN (stars, title, stat tiles, NEXT / TRY AGAIN / LEVELS, new best)
    Arcade.UI.settings.open({…})    THE SETTINGS PANEL (sound, music, effects, motion, mic sensitivity + meter, the game's own)
    Arcade.UI.intro.show({…})       A LEVEL INTRO pop-up
@@ -107,6 +107,12 @@ window.Arcade = window.Arcade || {};
        confirmLeave: () => true,             leaving would lose progress (the default while a level runs)
        leaveTitle, leaveText, leaveYes,      that question's words ('Leave this level?', '…won't be saved.', 'Leave')
        confirmRestart: () => false,          ask before RESTART too (restartText)
+       arcade: true,                         BACK TO ARCADE GAMES (every game; false = none): after BACK TO LEVELS, it asks
+                                             first exactly like BACK TO LEVELS (confirmLeave), then stops the microphone
+                                             (Pitch.stop) and the voices, fades the music, and opens the arcade floor's
+                                             ALL GAMES view turned to this game (index.html#<game> with
+                                             sessionStorage bandarcade.from = {view: 'all'}: the lobby goes underneath)
+       onArcade(),                           the game's own clean-up just before it leaves (Dojo Duel's timers…)
        canPause: () => true,                 can it pause right now (not during a results moment…)
        pauseOnBlur: false,                   also pause when the window loses focus for 0.6 s (Music Highway)
        place: element,                       draw the button inside this element instead of the top-left corner
@@ -120,7 +126,7 @@ window.Arcade = window.Arcade || {};
   const PAUSE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>';
   function mountPause(o = {}) {
     if (P) { Object.assign(P.o, o); return P.api; }
-    const opt = Object.assign({levelsLabel: 'Back to levels', restartLabel: 'Restart', extras: [], confirmLeave: () => true, canPause: () => true}, o);
+    const opt = Object.assign({levelsLabel: 'Back to levels', restartLabel: 'Restart', extras: [], confirmLeave: () => true, canPause: () => true, arcade: true}, o);
     const btn = el(`<button type="button" class="ui-pause-btn${opt.place ? ' ui-inline' : ''} ${esc(opt.theme || '')}" id="uiPauseBtn" aria-label="Pause" hidden>${PAUSE_SVG}<span class="ui-pb-t">Pause</span></button>`);
     (opt.place || document.body).appendChild(btn);
     const ov = el(`<div class="overlay ui-ov ui-pause ${esc(opt.theme || '')}" id="uiPause" hidden><div class="panel ui-panel" role="dialog" aria-modal="true" aria-labelledby="uiPauseT">
@@ -159,6 +165,7 @@ window.Arcade = window.Arcade || {};
       items.push(['settings', 'Settings', 'btn-secondary']);
       (o.extras || []).forEach((x, i) => items.push(['x' + i, x.label, 'btn-secondary', x.id]));
       if (o.onLevels) items.push(['levels', o.levelsLabel, 'btn-danger']);
+      if (o.arcade !== false) items.push(['arcade', 'Back to Arcade Games', 'btn-secondary', 'uiPauseArcade']);
       m.innerHTML = items.map(([a, t, c, id]) => `<button type="button" class="btn ${c}" data-act="${a}"${id ? ` id="${esc(id)}"` : ''}>${esc(t)}</button>`).join('');
     }
     ov.querySelector('.ui-menu').addEventListener('click', e => {
@@ -178,10 +185,28 @@ window.Arcade = window.Arcade || {};
         return UI.confirm({title: o.leaveTitle || 'Leave this level?', text: esc(o.leaveText || 'Your progress in this level won’t be saved.'),
           yes: o.leaveYes || 'Leave', no: 'Keep playing', danger: true, theme: o.theme}).then(y => { if (y) go(); });
       }
+      if (a === 'arcade') {
+        const go = () => { closeMenu(); S.micWas = null; if (o.onArcade) o.onArcade(); toArcade(); };
+        if (!o.confirmLeave || !o.confirmLeave()) return go();
+        return UI.confirm({title: o.leaveTitle || 'Leave this level?', text: esc(o.leaveText || 'Your progress in this level won’t be saved.'),
+          yes: o.leaveYes || 'Leave', no: 'Keep playing', danger: true, theme: o.theme}).then(y => { if (y) go(); });
+      }
       if (a[0] === 'x') { const x = (o.extras || [])[+a.slice(1)]; if (x && x.onClick) { closeMenu(); S.paused = false; micBack(); x.onClick(); } }
     });
     trap(ov, {onEsc: () => api.resume()});
     function closeMenu() { hide(ov, {restore: false}); }
+    /* BACK TO ARCADE GAMES: the floor's ALL GAMES view, this game in front (arcade.js reads bandarcade.from the same
+       way as after "← Arcade"); the microphone off and every voice hushed first, the music fades as the page changes */
+    function toArcade() {
+      const Pi = A.Pitch;
+      if (Pi && Pi.stop) Pi.stop(); else if (Pi && Pi.pauseListening) Pi.pauseListening(true);
+      try { sessionStorage.setItem('bandarcade.from', JSON.stringify({view: 'all'})); } catch (e) { /* private mode */ }
+      const href = A.homeLink ? A.homeLink(A.pageGame || 'all-games') : '../index.html#all-games';
+      const Sf = A.Sfx;
+      if (Sf && Sf.hush) Sf.hush();
+      if (Sf && Sf.sync) Sf.sync();
+      if (Sf && Sf.playThenGo) Sf.playThenGo('ui-back', href); else location.href = href;
+    }
     btn.addEventListener('click', () => api.pause('button'));
     const api = {
       el: btn, menu: ov,

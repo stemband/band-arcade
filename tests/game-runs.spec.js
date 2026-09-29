@@ -19,6 +19,11 @@ async function pauseCheck(page, R) {
   const before = await page.evaluate(() => Arcade.UI.state().pause.paused);
   expect(before, `${R.name}: paused`).toBe(true);
   await shot(page, R.id, 'pause');
+  // every game's menu ends with BACK TO ARCADE GAMES (the kit's; secondary), right after the game's own BACK TO …
+  const acts = await page.locator('#uiPause .ui-menu button').evaluateAll(bs => bs.map(b => [b.dataset.act, b.className, b.textContent]));
+  expect(acts[acts.length - 1], `${R.name}: BACK TO ARCADE GAMES closes the pause menu`).toEqual(['arcade', 'btn btn-secondary', 'Back to Arcade Games']);
+  const lv = acts.findIndex(a => a[0] === 'levels');
+  if (lv >= 0) expect(lv, `${R.name}: after the game's own BACK TO …`).toBe(acts.length - 2);
   await page.locator('#uiPause [data-act=settings]').click();
   await expect(page.locator('#uiSettings')).toBeVisible();
   await shot(page, R.id, 'settings');

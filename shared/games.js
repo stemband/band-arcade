@@ -37,6 +37,13 @@
                 checks the instrument itself (unpitched / noPlay below).
      tool       optional: true = not a cabinet (the Note Checker): the lobby's TUNE UP button opens it instead
      demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
+     noInstrument optional: true = the game can be played all the way through WITHOUT A LIVE INSTRUMENT (touch, taps,
+                claps or on-screen keys: no microphone listening for notes). ALL GAMES' "No instrument needed" filter
+                shows only these, and their cards carry a small "No instrument needed" tag. Check the game's code before
+                setting it: a game that needs the microphone only for CLAPS still counts (Rhythm Dojo); one that needs
+                your instrument's notes for part of the game does not (Music Highway's PLAY, Arcade Quest's battles).
+                Today: Note Ninja, Keys to the City (its TOUCH mode), Chime Heist, Rhythm Dojo (TAP or CLAP), Ancient Ninja
+                Scrolls, Button Masher (fingerings on screen), Dojo Duel.
      unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
                 Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
@@ -147,6 +154,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'note-ninja',
+    noInstrument: true,
     zones: ['ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Ninja shows the notes your instrument reads, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Ninja',
@@ -163,6 +171,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'keys-to-the-city',
+    noInstrument: true,
     zones: ['note-reading'],
     name: 'Keys to the City',
     bg: {scene: 'keys-city', dim: .4, focus: .35},
@@ -195,6 +204,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'chime-heist',
+    noInstrument: true,
     zones: ['technique-lab'],
     fit: {only: ['bells'], tag: 'Bells only', why: 'Chime Heist is played on the bell kit. Switch your instrument to Bells to play it.'},
     name: 'Chime Heist',
@@ -212,6 +222,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'rhythm-dojo',
+    noInstrument: true,
     zones: ['ninja-dojo'],
     name: 'Rhythm Dojo',
     bg: {scene: 'taiko', dim: .4, focus: .35},
@@ -228,6 +239,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'ancient-ninja-scrolls',
+    noInstrument: true,
     zones: ['ninja-dojo'],
     name: 'Ancient Ninja Scrolls',
     bg: {scene: 'temple', dim: .4, focus: .35},
@@ -244,6 +256,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'button-masher',
+    noInstrument: true,
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'Button Masher is about fingerings and slide positions, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Button Masher',
@@ -347,6 +360,7 @@ window.Arcade.GAMES = [
   },
   {
     id: 'dojo-duel',
+    noInstrument: true,
     zones: ['ninja-dojo', 'two-player'],
     name: 'Dojo Duel',
     bg: {scene: 'night-dojo', dim: .4, focus: .35},

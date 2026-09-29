@@ -134,6 +134,18 @@ window.Arcade = window.Arcade || {};
       throw e;
     }
   };
+  /** Stop the microphone for good (the pause menu's BACK TO ARCADE GAMES, just before the page changes): nothing is
+      analysed any more, the browser's mic light goes off. Start again with P.start() (from a tap). */
+  P.stop = function () {
+    P.pauseListening(true);
+    if (env) { clearInterval(env.timer); env = null; }
+    if (mic) {
+      try { mic.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* already stopped */ }
+      try { mic.ctx.close(); } catch (e) { /* already closed */ }
+      mic = null;
+    }
+    P.active = false;
+  };
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && mic && mic.ctx.state === 'suspended') mic.ctx.resume();
   });

@@ -87,6 +87,10 @@
 <!-- ALL GAMES: every game once, as a card (lobby.js) -->
 <section class="allg" id="allView" hidden aria-labelledby="allTitle">
   <h2 class="sr" id="allTitle">All games</h2>
+  <div class="allg-bar" role="group" aria-label="Filter the games">
+    <button type="button" class="allg-chip" id="niFilter" aria-pressed="false"><span class="allg-chk" aria-hidden="true"></span>No instrument needed</button>
+    <span class="allg-count" id="allCount" aria-live="polite"></span>
+  </div>
   <div class="allg-grid" id="allGrid"></div>
 </section>
 
