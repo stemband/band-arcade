@@ -24,10 +24,18 @@
                  kind 'rain' (falls from the top) | 'side' (flies across) | 'burst' (a static burst flying outward)
                  | 'aimed' (heads for your note) | 'wave' (a row with one gap)
    rewards     {fade: {xp, tokens, item?}, befriend: {xp, tokens, item?}} (befriending always gives more)
+   companion   how it plays beside you once befriended (THE BAND, battle.js): {power, perk, hp?}
+                 power  its PLAY after each of yours: power × YOUR power × YOUR accuracy on that PLAY (.3–.5)
+                 perk   its flavor, also × your accuracy: {power: 1.25} hits a little harder, {calm: 6} adds CALM,
+                        {heal: 2} gives you back HP
+                 hp     its HP = your level's max HP × this (default .6)
+   area        where it lives: its HP and damage × QUEST_AREAS[area] (below; a later area = tougher ghosts)
    lines       its own words: intro, turn (before it attacks), hurt, calm, fade, befriend
    ALSO (Episode 1): test   shown in the TEST ARENA (the stage 1 test enemies)
                phases       a list of challenges used turn by turn (the mini-boss: long tone, then PLAY, then…)
-               mustHarmonize  its HP stops at 1: it can only be HARMONIZED (the mini-boss holds the attic door)
+               mustHarmonize  its HP stops at 1: it can only be HARMONIZED. STORY-CRITICAL ENEMIES ONLY (the Phantom
+                            Fermata holds the attic door, the Ghost Conductor ends Episode 1): every other enemy fades at
+                            0 HP, even with a full CALM (the student chooses: HARMONIZE to befriend, PLAY to defeat)
                listenBoost  CALM from notes is multiplied by this after you LISTEN to it once
                music        its battle music event (shared/sounds.js); leave out for quest-battle
                opens        a story flag set when it's befriended (the Phantom Fermata: 'atticOpen')
@@ -44,6 +52,13 @@
    DODGE KINDS for the final boss: 'baton' (a warning line, then the baton sweeps across the box), 'measure' (falling
    measures of music: a row with one gap), 'sweep' (small fermatas swooping across in a wave).
    Where each ghost wanders: data/maps/manor.js (a wisp's happy note can be set there per ghost). */
+/* THE AREAS: an enemy's HP and `atk` × its area's numbers, so ghosts in later areas stay fair against a stronger,
+   higher-level player (your power grows about 14 % a level: battle.js). Ghost Notes Manor (Episode 1) is the base.
+   A new area: add it here, e.g. {hp: 2.2, atk: 1.6} for students arriving around LV 8. */
+window.QUEST_AREAS = {
+  test:  {hp: 1, atk: 1},                 // the Test Arena
+  manor: {hp: 1, atk: 1},                 // Episode 1: Ghost Notes Manor
+};
 window.QUEST_ENEMIES = [
   {
     id: 'squawk', name: 'Squawk', sprite: 'squawk', hp: 32, atk: 2, test: 'PLAY',
@@ -53,6 +68,7 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'note', hold: 1.5},
     listen: ['SQUAWK. A sour note that escaped from a practice room.', 'It hates being played out of tune.', 'It loves {happy}. It calms down when you play clean notes.'],
     dodge: {seconds: 6, patterns: [{kind: 'rain', sprite: 'sour', every: 0.55, speed: 46}, {kind: 'side', sprite: 'sour', every: 1.6, speed: 58}]},
+    companion: {power: .35, perk: {power: 1.25}},
     rewards: {fade: {xp: 8, tokens: 3}, befriend: {xp: 18, tokens: 8, item: 'valve-oil'}},
     lines: {intro: 'Squawk bursts out of a busted speaker!', turn: ['Squawk honks a sour note!', 'Squawk flaps its flag at you.', 'SQUAAAWK!'],
       hurt: 'Squawk wobbles. That note was almost TOO clean.', calm: 'Squawk hums along a little.', fade: 'Squawk fades away grumbling about "perfect pitch."',
@@ -66,6 +82,7 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'note', hold: 2.5},
     listen: ['WARBLE. A tuning-fork moth that can\'t hold still.', 'Its wings buzz a little sharp, then a little flat, then sharp again.', 'It calms down if you hold a long, steady note.'],
     dodge: {seconds: 6, patterns: [{kind: 'wave', sprite: 'sour', every: 1.5, speed: 40}, {kind: 'aimed', sprite: 'rest', every: 1.3, speed: 44}]},
+    companion: {power: .3, perk: {calm: 6}},
     rewards: {fade: {xp: 9, tokens: 3}, befriend: {xp: 20, tokens: 9, item: 'metronome'}},
     lines: {intro: 'Warble flutters out of a jukebox, buzzing off-key!', turn: ['Warble buzzes sharp… then flat…', 'Warble zigzags around you.', 'Bzzzzzzzt?'],
       hurt: 'Warble spins in a circle.', calm: 'Warble\'s wings slow down.', fade: 'Warble drifts off, still buzzing a little flat.',
@@ -79,6 +96,7 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'articulate', taps: 6},
     listen: ['CLATTERBOX. A metronome robot whose arm won\'t stop clattering.', 'It ticks on every beat. Loudly.', 'It calms down with clean, separate notes: ta, ta, ta, ta.'],
     dodge: {seconds: 7, patterns: [{kind: 'rain', sprite: 'rest', every: 0.42, speed: 52}, {kind: 'burst', sprite: 'static', every: 2.2, count: 6, speed: 40}]},
+    companion: {power: .35, perk: {power: 1.2}},
     rewards: {fade: {xp: 9, tokens: 4}, befriend: {xp: 20, tokens: 10, item: 'cork-grease'}},
     lines: {intro: 'Clatterbox tick-tick-ticks out of the prize counter!', turn: ['TICK TICK TICK TICK!', 'Clatterbox swings its arm like a pendulum.', 'Clatterbox beeps: "OFF. THE. BEAT."'],
       hurt: 'Clatterbox\'s gears grind.', calm: 'Clatterbox ticks a little softer.', fade: 'Clatterbox rolls away, ticking grumpily.',
@@ -92,6 +110,7 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'note', hold: 1.5},
     listen: ['QUIZZLE. A grumpy old scroll that has read every page of the band book.', 'It loves being listened to. (CALM goes up!)', 'It calms down when you know your music words.'],
     dodge: {seconds: 6, patterns: [{kind: 'side', sprite: 'static', every: 0.9, speed: 50}, {kind: 'aimed', sprite: 'sour', every: 1.5, speed: 40}]},
+    companion: {power: .3, perk: {calm: 6}},
     rewards: {fade: {xp: 8, tokens: 3}, befriend: {xp: 18, tokens: 9, item: 'valve-oil'}},
     lines: {intro: 'Quizzle unrolls with a dusty harrumph. "POP QUIZ!"', turn: ['Quizzle flaps its pages at you.', '"Nobody reads the glossary anymore!"', 'Quizzle rolls up and bounces around.'],
       hurt: 'Quizzle crinkles.', calm: 'Quizzle nods slowly.', fade: 'Quizzle rolls itself up and grumbles off.',
@@ -105,6 +124,7 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'note', hold: 1.5},
     listen: ['STICKY VALVE. A brass gremlin whose three valves got stuck.', 'It squeaks every time someone uses the wrong fingering.', 'It calms down when you finger its note exactly right.'],
     dodge: {seconds: 6, patterns: [{kind: 'aimed', sprite: 'sour', every: 1, speed: 44}, {kind: 'rain', sprite: 'static', every: 0.8, speed: 40}]},
+    companion: {power: .3, perk: {heal: 2}},
     rewards: {fade: {xp: 8, tokens: 3}, befriend: {xp: 18, tokens: 9, item: 'cork-grease'}},
     lines: {intro: 'Sticky Valve squeaks out from under a pinball machine!', turn: ['Squeak! Squeak!', 'Sticky Valve pumps its stuck valves.', 'Sticky Valve spits valve oil… the sour kind.'],
       hurt: 'Sticky Valve rattles.', calm: 'Sticky Valve\'s valves loosen a little.', fade: 'Sticky Valve squeaks off in a huff.',
@@ -121,6 +141,7 @@ window.QUEST_ENEMIES = [
     listen: ['WISP. A little blue flame that floats through the halls, humming to itself.', 'It gets grumpy when nobody plays its favorite note.',
       'Its favorite note is {happy}. Play clean notes to calm it down.'],
     dodge: {seconds: 5, patterns: [{kind: 'rain', sprite: 'sour', every: 0.7, speed: 40}, {kind: 'side', sprite: 'rest', every: 1.8, speed: 48}]},
+    companion: {power: .3, perk: {heal: 2}},
     rewards: {fade: {xp: 6, tokens: 2}, befriend: {xp: 14, tokens: 5}},
     lines: {intro: 'A Wisp flickers out of a candle!', turn: ['The Wisp flares up!', 'The Wisp spins in a sulky circle.', 'Fwoosh!'],
       hurt: 'The Wisp flickers.', calm: 'The Wisp glows a little warmer.', fade: 'The Wisp fizzles off into the dark, muttering.',
@@ -135,6 +156,7 @@ window.QUEST_ENEMIES = [
     listen: ['SQUEAKER. A reed that got wet, got warped, and got really, really squeaky.', 'Rushing makes it squeak louder. It hates being hurried.',
       'It calms down when you play slowly and clearly. (Now your clean notes calm it twice as much!)'],
     dodge: {seconds: 6, patterns: [{kind: 'aimed', sprite: 'sour', every: 1.1, speed: 42}, {kind: 'rain', sprite: 'sour', every: 0.9, speed: 38}]},
+    companion: {power: .35, perk: {power: 1.25}},
     rewards: {fade: {xp: 7, tokens: 3}, befriend: {xp: 16, tokens: 6, item: 'cork-grease'}},
     lines: {intro: 'SQUEEEEAK! A Squeaker pops out of an old reed case!', turn: ['SQUEEEAK!', 'The Squeaker squeaks right in your ear.', 'The Squeaker wobbles like a warped reed.'],
       hurt: 'The Squeaker squeaks a little quieter.', calm: 'The Squeaker\'s squeaks get softer.', fade: 'The Squeaker squeaks off into a reed case. Squeak.',
@@ -149,6 +171,7 @@ window.QUEST_ENEMIES = [
     listen: ['HUSH. A librarian ghost. She has shushed every ghost in this manor. Twice.', 'She thinks nobody reads the music words anymore.',
       'She calms down when you know your Orange belt words. (She likes being listened to, too.)'],
     dodge: {seconds: 6, patterns: [{kind: 'side', sprite: 'static', every: 0.9, speed: 46}, {kind: 'wave', sprite: 'rest', every: 1.9, speed: 36}]},
+    companion: {power: .3, perk: {calm: 8}},
     rewards: {fade: {xp: 7, tokens: 3}, befriend: {xp: 16, tokens: 6, item: 'snack'}},
     lines: {intro: 'A Hush glides out from the shelves. "SHHHHH! Pop quiz."', turn: ['"SHHHHHH!"', 'The Hush slams a book shut. Thud.', 'The Hush peers over her glasses at you.'],
       hurt: 'The Hush straightens her glasses.', calm: 'The Hush nods. "Hm. Not bad."', fade: 'The Hush floats off to reshelve herself, grumbling.',
@@ -163,6 +186,7 @@ window.QUEST_ENEMIES = [
     listen: ['WOBBLE. A jelly ghost. It has been shaking since the dessert course in 1922.', 'Fast, jumpy notes make it jiggle even more.',
       'It calms down when you hold a long, steady note.'],
     dodge: {seconds: 6, patterns: [{kind: 'wave', sprite: 'sour', every: 1.6, speed: 38}, {kind: 'burst', sprite: 'static', every: 2.4, count: 6, speed: 36}]},
+    companion: {power: .3, perk: {heal: 3}},
     rewards: {fade: {xp: 7, tokens: 3}, befriend: {xp: 16, tokens: 6, item: 'valve-oil'}},
     lines: {intro: 'A Wobble jiggles out from under a table!', turn: ['Wibble wobble wibble!', 'The Wobble bounces off the walls.', 'The Wobble shakes like a subwoofer.'],
       hurt: 'The Wobble jiggles nervously.', calm: 'The Wobble slows to a gentle wiggle.', fade: 'The Wobble wobbles away, grumbling. Blorp.',
@@ -177,6 +201,7 @@ window.QUEST_ENEMIES = [
     listen: ['CHATTERBOX. A teacup ghost who has been talking since teatime. Which teatime? All of them.', 'It never takes a breath. Or a rest.',
       'It calms down when you play clean, separate notes: too, too, too, too.'],
     dodge: {seconds: 7, patterns: [{kind: 'rain', sprite: 'rest', every: 0.5, speed: 48}, {kind: 'aimed', sprite: 'sour', every: 1.5, speed: 40}]},
+    companion: {power: .35, perk: {power: 1.2}},
     rewards: {fade: {xp: 7, tokens: 3}, befriend: {xp: 16, tokens: 6, item: 'metronome'}},
     lines: {intro: 'A Chatterbox rattles off the counter. "And ANOTHER thing..."', turn: ['"...and then I said, and then she said, and then..."', 'The Chatterbox spills hot gossip everywhere.', 'Clink clink clink clink!'],
       hurt: 'The Chatterbox pauses. For almost a whole second.', calm: 'The Chatterbox is... listening? Wow.', fade: 'The Chatterbox clatters off, still talking.',
@@ -192,6 +217,7 @@ window.QUEST_ENEMIES = [
     listen: ['THE PHANTOM FERMATA. A huge ghostly fermata. It has held the attic door shut for ages.', 'It wants every note held long... and then played right.',
       'It can\'t be pushed aside, only HARMONIZED. Its happy note is {happy}: hold it long!'],
     dodge: {seconds: 7, patterns: [{kind: 'burst', sprite: 'static', every: 2.2, count: 6, speed: 38}, {kind: 'rain', sprite: 'sour', every: 0.85, speed: 42}, {kind: 'aimed', sprite: 'rest', every: 2.4, speed: 40}]},
+    companion: {power: .45, perk: {calm: 10}, hp: .8},
     rewards: {fade: {xp: 20, tokens: 10}, befriend: {xp: 40, tokens: 25, item: 'tuning-slide'}},
     lines: {intro: 'The Phantom Fermata rises over the attic door. "HOLLLLLLD..."', turn: ['"HOLD... THAT... NOTE..."', 'The Fermata\'s eye glows. Static crackles.', 'The Fermata stretches. Everything slows down.'],
       hurt: 'The Fermata wavers... but it holds on.', calm: 'The Fermata\'s eye softens.', fade: 'The Fermata shrinks back, still holding the door.',
@@ -220,6 +246,7 @@ window.QUEST_ENEMIES = [
       'Now he conducts silence, and he is FURIOUS about it. His baton never stops moving.',
       'He can\'t be pushed aside. Play your best until he hears real music again... then HARMONIZE.'],
     dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.2, speed: 1}]},
+    companion: {power: .5, perk: {power: 1.3}, hp: .8},
     rewards: {fade: {xp: 30, tokens: 15}, befriend: {xp: 60, tokens: 40, item: 'baton'}},
     lines: {intro: 'The Ghost Conductor taps his baton on the podium. Tap. Tap. TAP.', turn: ['"FROM THE TOP!"', 'The Conductor slashes his baton through the air!', '"Watch. My. BATON!"', 'The Conductor beats a furious 4/4.'],
       hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting.',

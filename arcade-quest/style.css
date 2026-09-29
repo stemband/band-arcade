@@ -62,6 +62,19 @@ button{font:inherit}
 .q-calm.full span{color:var(--q-gold)}
 .q-calm.full .q-bar i{background:var(--q-gold)}
 .q-shield{display:block;color:var(--q-gold)!important}
+/* THE BAND in the battle HUD: each companion's name, HP bar and HP; the member the enemy aims at is outlined; out of
+   breath = dimmed (battle.js) */
+.q-hname .q-party{color:var(--q-pink);font-size:calc(var(--px) * 5.5)}
+.q-comp{display:grid;grid-template-columns:minmax(0,1fr) calc(var(--px) * 30) auto;align-items:center;gap:calc(var(--px) * 2);margin-top:calc(var(--px) * 1.5)}
+.q-cname{font-size:calc(var(--px) * 6);color:var(--q-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-bar.chp{height:calc(var(--px) * 3);margin:0}
+.q-bar.chp i{background:var(--q-green)}
+.q-comp small{font-size:calc(var(--px) * 5)!important;white-space:nowrap}
+.q-comp.out{opacity:.5}
+.q-comp.out .q-cname{text-decoration:line-through}
+.q-hud-p.target{border-color:var(--q-pink)}
+.q-comp.target .q-cname{color:var(--q-pink)}
+.q-comp.target .q-cname::before{content:"▶ "}
 .q-gear{right:calc(var(--px) * 4);bottom:calc(var(--px) * 124);width:calc(var(--px) * 14);height:calc(var(--px) * 14);padding:0;background:var(--q-black);color:var(--q-white);
   border:calc(var(--px) * 1) solid var(--q-grey-d);cursor:pointer;font-size:calc(var(--px) * 8);display:none}
 .q-prompt{left:calc(var(--px) * 12);bottom:calc(var(--px) * 44);margin:0;color:var(--q-white);font-size:calc(var(--px) * 8)}

@@ -106,9 +106,18 @@
     return api;
   }
 
-  /* ---------- the Save Jukebox ---------- */
+  /* ---------- the Save Jukebox: SAVE (where you are + full HP + the save code) or YOUR BAND ---------- */
   async function jukebox() {
-    if (!(await A.UI.confirm({title: 'Save your game here?', text: 'The jukebox saves where you are and fills your HP.', yes: 'Save', no: 'Not now', theme: 'q-theme'}))) return;
+    for (;;) {
+      const pick = await new Promise(done => {
+        const p = panel('Save Jukebox', '<p>The jukebox saves where you are and fills your HP.</p>',
+          [{id: 'save', label: 'Save here'}, {id: 'band', label: Q.text('bandTitle')}, {id: null, label: 'Not now'}],
+          {cols: 3, cls: 'q-juke', onPick: it => { p.close(); done(it.id); }});
+      });
+      if (pick === 'band') { await Q.talk.band(); continue; }
+      if (pick === 'save') break;
+      return;
+    }
     const s = Q.save.get(), here = Q.world.here();
     s.world = here; s.hp = s.maxHp; Q.save.write();
     Q.sfx('quest-save'); Q.talk.hud();
@@ -305,6 +314,35 @@
       }});
     });
   }
+  /** THE BAND panel (the pause menu, the Save Jukebox, the Test Arena): pick up to 2 befriended ghosts to play beside
+      you in battle (engine/save.js Q.band). A third pick sends the one picked longest ago on a break. */
+  Q.talk.band = function () {
+    return new Promise(done => {
+      const E = id => Q.band.enemy(id), T = Q.text;
+      const perk = c => { const k = Object.keys(c.perk || {})[0]; return k === 'calm' ? T('bandPerkCalm') : k === 'heal' ? T('bandPerkHeal') : T('bandPerkPower'); };
+      const body = msg => {
+        const now = Q.band.members(), can = Q.band.choices();
+        return `<p>${!can.length ? T('bandEmpty') : now.length ? T('bandNow', {list: now.map(id => E(id).name).join(' and ')}) : T('bandSolo')}</p>` +
+          `<p class="q-small">${T('bandHow')}</p>` + (msg ? `<p class="q-good">${msg}</p>` : '');
+      };
+      const list = () => Q.band.choices().map(id => {
+        const on = Q.band.members().includes(id), c = E(id).companion;
+        return {id, label: (on ? '✓ ' : '') + E(id).name, sub: `${perk(c)} · ${T('bandPowerOf', {n: Math.round(c.power * 100)})}`, cls: on ? 'q-owned' : ''};
+      }).concat([{id: null, label: 'Done'}]);
+      panel(T('bandTitle'), body(), list(), {cols: 2, cls: 'q-shop q-band', onPick: (it, i, api) => {
+        if (!it.id) { api.close(); done(); return; }
+        let now = Q.band.members(), msg;
+        if (now.includes(it.id)) { now = now.filter(x => x !== it.id); msg = T('bandLeft', {band: E(it.id).name}); }
+        else {
+          if (now.length >= Q.band.MAX) { msg = T('bandFull', {band: E(now[0]).name, name: E(it.id).name}); now = now.slice(1); }
+          else msg = T('bandPicked', {band: E(it.id).name});
+          now.push(it.id);
+        }
+        Q.band.set(now); Q.sfx('charm-equip');
+        api.body.innerHTML = body(msg); api.rebuild(list());
+      }});
+    });
+  };
   /** the CHARMS panel (pause menu): 2 slots; pick an owned charm to wear or take it off */
   Q.talk.charms = function () {
     return new Promise(done => {

@@ -5,7 +5,9 @@
       flags: {name: true} (story flags: met-mezzo, songBb, reginaldAwake, atticOpen…),
       done: {'<room>:<ghost key>': 'befriend' | 'fade'} (manor ghosts already helped: they don't come back),
       converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>'),
-      charms: {owned: {charmId: true}, equipped: [charmId | null, charmId | null]} (v3: data/items.js QUEST_CHARMS)}
+      charms: {owned: {charmId: true}, equipped: [charmId | null, charmId | null]} (v3: data/items.js QUEST_CHARMS),
+      band: [enemyId…] | null (v4: the friends who play beside you in battle, up to 2; null = never chosen = the last
+            two befriended; [] = a solo)}
    maxHp = maxHpAt(level) + the equipped charms' maxHp (Q.charms.fixHp keeps it right).
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
@@ -21,7 +23,7 @@
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 4;
   const data = () => A.store.gameData(GAME);
   const CHARMS = () => window.QUEST_CHARMS || {};
   /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10,
@@ -35,12 +37,13 @@
   }
   const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
-    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}});
+    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null});
   /** older saves -> the current version, one step at a time */
   function upgrade(s) {
     if (!s || typeof s !== 'object' || !s.v) return fresh();
     if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
     if (s.v === 2) { s.charms = {owned: {}, equipped: [null, null]}; s.v = 3; }                           // v2 -> v3: charms
+    if (s.v === 3) { s.band = null; s.v = 4; }                                                            // v3 -> v4: the band (default)
     s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
     s.charms = s.charms || {owned: {}, equipped: [null, null]}; s.charms.owned = s.charms.owned || {};
     s.charms.equipped = [0, 1].map(i => { const id = (s.charms.equipped || [])[i]; return id && s.charms.owned[id] && CHARMS()[id] ? id : null; });
@@ -87,11 +90,32 @@
       return a;
     },
     xpToNext: level => 20 + (level - 1) * 15,
+    /** YOUR POWER at a level: about 14 % more every level (LV 1 10 · 2 11 · 3 13 · 5 17 · 8 25 · 10 33 · 15 63).
+        A PLAY does power × accuracy × (0.55 + 0.45 × speed) (battle.js); your band's companions scale with it too. */
+    powerAt: level => Math.round(10 * Math.pow(1.14, Math.max(0, level - 1))),
     maxHpAt: level => 20 + (level - 1) * 4,
     flag: name => !!(Q.save.get().flags || {})[name],
     setFlag(name, on = true) { const s = Q.save.get(); s.flags = s.flags || {}; if (on) s.flags[name] = true; else delete s.flags[name]; write(); },
     /** manor ghosts helped (befriended or faded), outside the Practice Hall */
     helped: () => Object.keys(Q.save.get().done || {}).length,
+  };
+
+  /* ---------- THE BAND: befriended ghosts (the roster) with a `companion` (data/enemies.js) who play beside you in
+     battle, up to 2 (a DUET or a TRIO). The choice is `band` in the save; never chosen (null, and every save from before
+     the band) = the last two befriended. ---------- */
+  const COMPANION = id => { const e = (window.QUEST_ENEMIES || []).find(x => x.id === id); return e && e.companion ? e : null; };
+  Q.band = {
+    MAX: 2,
+    /** every friend who can play beside you, in the order you befriended them */
+    choices: () => (Q.save.get().roster || []).filter(COMPANION),
+    /** who plays beside you now (the saved choice, else the last two befriended), as enemy ids */
+    members() {
+      const s = Q.save.get(), can = Q.band.choices();
+      return (Array.isArray(s.band) ? s.band.filter(id => can.includes(id)) : can.slice(-Q.band.MAX)).slice(0, Q.band.MAX);
+    },
+    /** choose the band ([] = a solo) */
+    set(ids) { const s = Q.save.get(), can = Q.band.choices(); s.band = [...new Set(ids)].filter(id => can.includes(id)).slice(0, Q.band.MAX); write(); return s.band; },
+    enemy: COMPANION,
   };
 
   /* ---------- CHARMS (ARCADE QUEST ONLY): 2 slots. Only battle.js and dodge.js read them, and only this game loads

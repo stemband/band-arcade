@@ -2,7 +2,7 @@
    walls you bump into, doors between rooms, candles and fog that flicker and drift.
    MOVING: one tile per step (arrows/WASD or the D-pad), smooth in between. A (Enter/Space) talks to whoever you
    face or inspects the thing in front of you; B (Backspace/X, the pad's B), Esc, P or the PAUSE button opens THE
-   PAUSE MENU (shared/ui-kit.js Arcade.UI.pause, pixel-themed in style.css: RESUME · SETTINGS · CHARMS · TITLE SCREEN,
+   PAUSE MENU (shared/ui-kit.js Arcade.UI.pause, pixel-themed in style.css: RESUME · SETTINGS · CHARMS · BAND · TITLE SCREEN,
    with LV/HP/XP/tokens). It exists only in the overworld (battles are turn-based and wait for you; cutscenes have SKIP);
    while it's open Q.paused stops the whole game loop, Q.wait and the text box. Esc during a conversation or a panel
    still means B (back / next line), so the two never both react.
@@ -49,10 +49,15 @@
       // never mid-battle-flash or while the microphone listens (the Butler's lesson); Esc/P only when you're free to walk
       canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
       note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
-      info: () => { const s = Q.save.get(); return [['Level', s.level], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', s.tokens]]; },
+      info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', s.tokens]]; },
       extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
         inCharms = true;
         try { await Q.talk.charms(); } finally { inCharms = false; }
+        if (!pause.active) return;
+        if (!pause.paused) pause.pause('button');
+      }}, {label: 'Band', id: 'qPauseBand', onClick: async () => {                    // THE BAND panel (who plays beside you)
+        inCharms = true;
+        try { await Q.talk.band(); } finally { inCharms = false; }
         if (!pause.active) return;
         if (!pause.paused) pause.pause('button');
       }}],
