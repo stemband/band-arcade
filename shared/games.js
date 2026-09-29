@@ -39,7 +39,8 @@
      demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
      noInstrument optional: true = the game can be played all the way through WITHOUT A LIVE INSTRUMENT (touch, taps,
                 claps or on-screen keys: no microphone listening for notes). ALL GAMES' "No instrument needed" filter
-                shows only these, and their cards carry a small "No instrument needed" tag. Check the game's code before
+                shows only these, and their cards carry a small "No instrument needed" tag. The lobby's NO INSTRUMENT
+                NEEDED zone (ZONES `auto: 'noInstrument'`) holds every one of them by itself: don't add it to `zones`. Check the game's code before
                 setting it: a game that needs the microphone only for CLAPS still counts (Rhythm Dojo); one that needs
                 your instrument's notes for part of the game does not (Music Highway's PLAY, Arcade Quest's battles).
                 Today: Note Ninja, Keys to the City (its TOUCH mode), Chime Heist, Rhythm Dojo (TAP or CLAP), Ancient Ninja
@@ -93,10 +94,17 @@ window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
      color    the sign's neon: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'blue' | 'white'
      tagline  one short line under the name
      order    optional: game ids in the order the zone shows them (the first one is in front when the zone opens);
-              games left out follow in games.js order */
+              games left out follow in games.js order
+     auto     optional: the name of a game flag (e.g. 'noInstrument'): the zone holds EVERY floor game with that flag
+              set, in games.js order, without listing the zone in each game's `zones` (a game added later with the flag
+              shows up here by itself; the games stay in their own zones too). Such a zone is a second way in: the FULL
+              ARCADE skips it (each cabinet still once, under its own zone), ALL GAMES' zone tags leave it out, and its
+              cabinets are never dimmed for the saved instrument (`fit`): they need no instrument */
 window.Arcade.ZONES = [
   {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, rhythms, words and duels.'},
+  // every game flagged noInstrument (below), filled in automatically
+  {id: 'no-instrument', name: 'No Instrument Needed', color: 'blue', tagline: 'Tap, clap and play: no instrument required.', auto: 'noInstrument'},
   {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.',
    // Showtime Malfunction first: every instrument can play it (Chime Heist, bells only, was in front for everyone)
    order: ['showtime-malfunction', 'music-highway', 'button-masher', 'sustain-speedway', 'chime-heist']},
