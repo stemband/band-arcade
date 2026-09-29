@@ -416,3 +416,7 @@ body.lb-open{overflow:hidden}
 .lb-tog{cursor:pointer;min-height:44px;font-weight:700}
 .lb-tog input{width:24px;height:24px;accent-color:var(--cyan)}
 .lb-teach{color:var(--yellow-hi)}
+
+/* ALL-CAPS TITLES (only these): the arcade's name (the lobby sign and PRESS START) and the Leaderboard (the top bar's
+   button and the leaderboard screen's heading). CSS only: the text itself (screen readers, <title>) stays as written. */
+#arcadeName,#psName,#lbBtn>span,#lbTitle{text-transform:uppercase}
