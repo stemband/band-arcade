@@ -126,11 +126,11 @@
     {id: 'donkey-riding', title: 'Donkey Riding', source: 'Traditional (Canadian folk song)', tier: 2, tempo: 96, timeSig: [2, 4], key: 'Eb', style: 'march',
      notes: N('1:.5 2:.5 3:.5 3:.5 | 4:.5 2:.5 3 | 3:.5 2:.5 2:.5 1:.5 | 3:.5 2:.5 2', '1:.5 2:.5 3:.5 3:.5 | 4:.5 2:.5 3 | 3:.5 2:.5 2:.5 3:.5 | 1 1')},
     {id: 'frogs-song', title: "The Frog's Song", source: 'Traditional (Japanese folk song)', tier: 2, tempo: 104, timeSig: [4, 4], key: 'Bb', style: 'rock',
-     notes: N('1 2 3 4 | 3 2 1:2 | 3 4 5 6 | 5 4 3:2', '1 r 1 r | 1 r 1 r | 1 2 3 5 | 3 2 1:2')},
+     notes: N('1 2 3 4 | 3 2 1:2 | 3 4 5 6 | 5 4 3:2', '1 r 1 r | 1 r 1 r | 1 2 3 6 | 3 2 1:2')},
     {id: 'san-sereni', title: 'San Serení', source: 'Traditional (Puerto Rican folk song)', tier: 2, tempo: 104, timeSig: [2, 4], key: 'Bb', style: 'rock',
      notes: N('5:2 | 3 4 | 5:2~ | 5 5 | 6 5 | 4 3 | 5:2 | 4:2', '4:2 | 2 3 | 4:2~ | 4 4 | 5 4 | 2 7, | 1:2~ | 1 r')},
     {id: 'nutcracker-theme', title: 'Theme from The Nutcracker', source: 'Pyotr Ilyich Tchaikovsky, 1892', tier: 2, tempo: 84, timeSig: [4, 4], key: 'Eb', style: 'march',
-     notes: N('1:.5 7,:.5 1:.5 7,:.5 1 7, | 2 1 3:2 | 4:.5 3:.5 4:.5 3:.5 2 1 | 7,:2 7,:2',
+     notes: N('1:.5 7,:.5 1:.5 7,:.5 1 7, | 2 1 3:2 | 4:.5 3:.5 4:.5 3:.5 2 1 | 1,:2 7,:2',
               '6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 6,:.5 6,:.5 6,:.5 6,:.5 6, 5, | 1:3 r:1')},
   ];
 })();
