@@ -1,0 +1,35 @@
+<!-- Band Arcade: THE APP ICON (source). The PNGs in shared/app/ were made from this drawing: open it in Chrome
+     (e.g. python3 -m http.server, then tools/app-icon.html) and save the drawing at 512 × 512 (icon-512.png), 192 × 192
+     (icon-192.png), 180 × 180 (apple-touch-icon.png, the mark at 92 %) and 512 × 512 with the mark at 80 % for the
+     maskable one (icon-maskable-512.png: Android crops it to a circle or a squircle, so everything stays in the middle
+     80 %). Colors = the arcade floor, --pink, --cyan and --yellow from shared/theme.css; the letters are the Monoton
+     neon-sign font (shared/fonts/monoton.woff2). -->
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:"GN Neon";src:url("../shared/fonts/monoton.woff2") format("woff2")}
+body{margin:0;background:#333}
+svg{display:block}
+</style></head><body>
+<svg id="art" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#2a1450"/><stop offset=".55" stop-color="#110a22"/><stop offset="1" stop-color="#06040d"/>
+    </radialGradient>
+    <filter id="glow" filterUnits="userSpaceOnUse" x="-64" y="-64" width="640" height="640">
+      <feGaussianBlur stdDeviation="7" result="b1"/><feGaussianBlur in="SourceGraphic" stdDeviation="16" result="b2"/>
+      <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g id="mark" transform="translate(256 256) scale(var(--s,1)) translate(-256 -256)">
+    <circle cx="256" cy="256" r="196" fill="none" stroke="#3ae8ff" stroke-width="10" filter="url(#glow)"/>
+    <circle cx="256" cy="256" r="196" fill="none" stroke="#a6f5ff" stroke-width="3"/>
+    <text x="256" y="300" text-anchor="middle" font-family="GN Neon" font-size="178" fill="#ff4fb3" filter="url(#glow)">BA</text>
+    <text x="256" y="300" text-anchor="middle" font-family="GN Neon" font-size="178" fill="#ffd0ea" opacity=".55">BA</text>
+    <g filter="url(#glow)" fill="none" stroke="#ffe14d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M232 372v-44l54-10v44"/>
+      <ellipse cx="220" cy="374" rx="14" ry="10" fill="#ffe14d"/>
+      <ellipse cx="274" cy="364" rx="14" ry="10" fill="#ffe14d"/>
+    </g>
+  </g>
+</svg>
+</body></html>

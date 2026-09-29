@@ -40,6 +40,9 @@
   $('demoNote').hidden = !A.DEMO;
   A.Sfx.mountControls($('soundCtl'));
   if (A.Backup) A.Backup.button($('soundCtl').querySelector('.snd-pop'), 'snd-backup');   // shared/backup.js: BACKUP / RESTORE
+  if (A.App) A.App.installButton($('soundCtl').querySelector('.snd-pop'));             // shared/app.js: INSTALL THE APP (teacher setting)
+  // the installed app's first launch asks for a Backup Code first (shared/app.js), then CHOOSE YOUR INSTRUMENT
+  const welcomeThen = fn => (A.App && A.App.welcome(fn)) || fn();
   A.Sfx.prefer('choose-instrument');                    // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)
   A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
   A.Sfx.mountControls($('spSound'));                     // the select view's own speaker button (same settings)
@@ -65,7 +68,7 @@
       setTimeout(() => {
         ps.hidden = true; ps.classList.remove('go');
         ['pointerdown', 'keydown', 'click'].forEach(t => removeEventListener(t, dismiss, true));
-        if (pickAfterStart && !A.SelectView.isOpen) openPick(null);        // then: CHOOSE YOUR INSTRUMENT (CONTINUE AS is one tap)
+        if (pickAfterStart && !A.SelectView.isOpen) welcomeThen(() => openPick(null));        // then: CHOOSE YOUR INSTRUMENT (CONTINUE AS is one tap)
         else focusView();
       }, 320);
     };
@@ -440,7 +443,7 @@
     const r = route();
     render(r);
     // no instrument yet (and no PRESS START to lead there): CHOOSE YOUR INSTRUMENT, once per page load
-    if (!A.store.player && !pressStart() && !autoPicked && r.view === 'lobby') { autoPicked = true; openPick(null); return; }
+    if (!A.store.player && !pressStart() && !autoPicked && r.view === 'lobby') { autoPicked = true; welcomeThen(() => openPick(null)); return; }
     if (afterPick) { const pg = afterPick; afterPick = null; if (fitOf(pg).ok) openGame(pg, current); }
     if (lastSelectGame && r.view === 'zone') { const i = ring.indexOf(lastSelectGame); if (i >= 0 && i !== cur) { cur = i; place(true); } }
     lastSelectGame = null;

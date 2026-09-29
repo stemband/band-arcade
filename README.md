@@ -793,6 +793,30 @@ file each page loads (`game.js?v=a1b2c3d`), so browsers fetch the new files at o
 reloads once to catch up. You never set it: in the repository it just says `'dev'` (which switches it off when you open
 the arcade from your own computer). Sounds keep their own number, `SOUNDS_VERSION` at the top of `shared/sounds.js`.
 
+## The app (Home Screen, offline)
+
+Band Arcade can be installed like an app: on an iPad, Safari's **Share → Add to Home Screen**; on a Chromebook, the
+**Install** icon at the right end of Chrome's address bar. It opens full screen with its own icon, starts fast, and
+keeps working on weak Wi-Fi or none: every game, the avatar editor and saved progress work offline (the leaderboard
+says it's taking a break). Pages and scripts are stored when the app is installed; sounds and pictures the first
+time they're used.
+
+- **Updates** still arrive at once: pages are always checked with the server when there's a connection. If the app
+  was left open during an update, a small **"New version ready — tap to update"** banner appears (never during a
+  game); ignored, the update is applied the next time the app opens. A page never mixes files from two versions.
+- **The INSTALL THE APP button** (the lobby's sound panel) is off for now: `SHOW_INSTALL_PROMPT` in
+  `shared/teacher-settings.js`. Turn it on once the site is at its final address: an installed app keeps the progress
+  of the address it was installed from. Installing by hand works either way.
+- **iPad progress:** a Home Screen app on an iPad has its OWN storage, separate from Safari. Its first launch asks for
+  a Backup Code ("Bring your progress": make it in Safari with Backup / Restore, paste it in the app) or
+  **Start fresh**.
+- **Microphone:** iPadOS allows the microphone in Home Screen apps. If a device refuses, the microphone panel
+  suggests opening Band Arcade in Safari instead.
+- The offline copy exists only on the published site (not from your computer), and only for the version that's
+  live. You never manage it: the publishing workflow writes the list of files into `sw.js` (`tools/stamp-version.py`).
+- The app's icons are `shared/app/` (drawn from `tools/app-icon.html`); its name and colors are in
+  `manifest.webmanifest`.
+
 ## Adding a game
 
 1. Copy the `ghost-notes/` folder and rename it, e.g. `echo-notes/`.

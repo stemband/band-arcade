@@ -50,6 +50,9 @@ window.Arcade = window.Arcade || {};
       } else {
         box.textContent = 'The microphone could not start. Close other apps that use the mic and try again.';
       }
+      // inside the installed Home Screen app: suggest the browser (shared/app.js)
+      const app = A.App && A.App.micHelp();
+      if (app && name !== 'NotFoundError') box.innerHTML = (name === 'Insecure' ? '' : box.innerHTML + '<br>') + app;
     }
   }
 
