@@ -183,20 +183,25 @@
   const OPTS = [['textSpeed', 'Text speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']]],
     ['dodge', 'Dodging', [['easy', 'Easy'], ['normal', 'Normal']]],
     ['assist', 'Assist mode', [['false', 'Off'], ['true', 'On']], 'On: enemies’ sour notes do half damage.']];
-  function questOptions(box) {
+  function questOptions(box, ctx) {
     const s = Q.settings.get();
     box.innerHTML = OPTS.map(([k, name, opts, note]) => `<div><span class="ui-label" id="qSet-${k}">${name}</span>` +
       `<div class="ui-seg ui-seg-sm" role="group" aria-labelledby="qSet-${k}" data-k="${k}">` +
       opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(s[k]) === v}">${l}</button>`).join('') + `</div>` +
       (note ? `<p class="ui-howto q-snote">${note}</p>` : '') + `</div>`).join('') +
       (A.AvatarCreator ? `<div><span class="ui-label">Your player</span><button type="button" class="btn btn-secondary btn-small q-edit-av">Edit player</button>` +
-        `<p class="ui-howto q-snote">Your look and your name, everywhere in the arcade.</p></div>` : '');
+        `<p class="ui-howto q-snote">Your look and your name, everywhere in the arcade.</p></div>` : '') +
+      // ARRANGE CONTROLS (engine/controls.js): touch screens only (the pad only shows there)
+      (Q.input.touch && Q.arrange ? `<div><span class="ui-label">On-screen controls</span><button type="button" class="btn btn-secondary btn-small q-arrange-btn">Arrange controls</button>` +
+        `<p class="ui-howto q-snote">Move the D-pad and the A/B buttons, change their size and how see-through they are.</p></div>` : '');
     box.querySelectorAll('.ui-seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
       const k = g.dataset.k, v = k === 'assist' ? b.dataset.v === 'true' : b.dataset.v;
       Q.settings.set({[k]: v}); Q.sfx('quest-select');
       g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
       if (Q.onSettings) Q.onSettings();
     })));
+    const ar = box.querySelector('.q-arrange-btn');
+    if (ar) ar.addEventListener('click', () => { if (ctx && ctx.close) ctx.close(); setTimeout(() => Q.arrange.open(), 50); });
     const ed = box.querySelector('.q-edit-av');                     // Create Your Player (shared/avatar-creator.js)
     if (ed) ed.addEventListener('click', () => A.AvatarCreator.open({onClose: () => { if (Q.onSettings) Q.onSettings(); if (ed.isConnected) ed.focus(); }}));
   }

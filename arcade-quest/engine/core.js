@@ -59,6 +59,7 @@ window.Arcade = window.Arcade || {};
     }
     if (vv && !zoomed && (scrollX || scrollY)) scrollTo(0, 0);           // a toolbar change can leave the page scrolled
     resize();
+    if (Q.arrange) Q.arrange.apply();                                     // ARRANGED controls, measured on the new layout
   }
   Q.layout = layout;
   /* letterbox: the biggest 16:9 box inside #viewport */

@@ -22,6 +22,7 @@
   if (A.holdGuard) A.holdGuard(document.querySelector('.q-wrap'));
   document.body.classList.toggle('q-touch', Q.input.touch);
   Q.init();
+  Q.arrange.init();                                   // ARRANGE CONTROLS (engine/controls.js): a saved layout, menus kept clear
   // ?test = the test arena; ?demo&warp=<room> = straight into a room of Ghost Notes Manor (foyer, hall, library,
   // ballroom, kitchen, stairs, attic, practice)
   const warp = A.DEMO && (/[?&]warp=([\w-]+)/.exec(location.search) || [])[1];

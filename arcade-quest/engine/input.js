@@ -5,6 +5,7 @@
    Q.input.on(fn)         fn(btn) on every press; returns an off() function. The newest listener goes first and can
                           return true to stop older ones from hearing it (a menu over a menu).
    Q.input.touch          true on touch screens (the pad is shown)
+   Q.input.arranging      true while ARRANGE CONTROLS is open (engine/controls.js): the pad presses nothing
    While a shared panel (shared/ui-kit.js: pause menu, settings, a yes/no question, the results) is open
    (body.ui-modal), or Create Your Player (body.avc-open), the game hears no keys.
    Keys go to buttons as normal when a real button has focus (Enter/Space click it), so menus stay accessible. */
@@ -57,6 +58,8 @@
       ['up', 'left', 'right', 'down'].map(d => `<button type="button" class="pb pb-${d}" data-b="${d}" aria-label="${d}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ARROW[d]}"/></svg></button>`).join('') +
       `</div><div class="abpad"><button type="button" class="pb pb-b" data-b="b" aria-label="B (back)"></button><button type="button" class="pb pb-a" data-b="a" aria-label="A (OK)"></button></div>`;
     if (A.holdGuard) A.holdGuard(el, {lock: true, touch: true});
+    // no double-tap zoom from quick taps on the pad (iPad Safari): its touches are the game's, never the browser's
+    el.addEventListener('touchend', e => { if (e.cancelable) e.preventDefault(); }, {passive: false});
     const dpad = el.querySelector('.dpad'), btn = d => dpad.querySelector(`[data-b="${d}"]`);
     let ptr = null, dir = null;
     const dirAt = e => {
@@ -73,7 +76,7 @@
     const endDir = e => { if (e.pointerId !== ptr) return; ptr = null; setDir(null); };
     dpad.addEventListener('pointerdown', e => {
       e.preventDefault();
-      if (ptr !== null) return;                                       // one finger steers
+      if (ptr !== null || input.arranging) return;                                       // one finger steers
       ptr = e.pointerId;
       try { dpad.setPointerCapture(e.pointerId); } catch (x) { /* not capturable: moves still arrive over the pad */ }
       setDir(dirAt(e));
@@ -85,7 +88,7 @@
       let bp = null;
       b.addEventListener('pointerdown', e => {
         e.preventDefault();
-        if (bp !== null) return;
+        if (bp !== null || input.arranging) return;
         bp = e.pointerId;
         try { b.setPointerCapture(e.pointerId); } catch (x) { /* fine */ }
         held[k] = true; b.classList.add('on'); input.press(k);
