@@ -19,9 +19,8 @@
 
 /* ---------- belt select ---------- */
 .hub-head{margin-bottom:18px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(40px,9vw,72px);line-height:.92;color:var(--white-hi);text-shadow:var(--glow-white)}
+.game-title{color:var(--white-hi);text-shadow:var(--glow-white)}
 .game-title span{color:var(--red);text-shadow:var(--glow-red)}
-.hub-head p{max-width:52ch;margin:10px 0 0}
 .fivecard{padding-bottom:4px;margin-bottom:14px}
 
 /* 10 belts: 5 × 2 on iPads and Chromebooks, 2 columns on phones */
@@ -112,7 +111,6 @@
 .letter:active{transform:translateY(2px);background:var(--red-ink)}
 @media (max-width:420px){ .letters{gap:4px} .letter{min-height:60px;border-radius:12px} }
 .demo-ans{text-align:center;font-size:13px;color:var(--text-lo);margin:6px 0 0}
-.quit{position:absolute;right:0;top:4px}
 /* short screens (iPad landscape, small Chromebooks): tighter, so the staff and the buttons both fit */
 @media (max-height:820px){
   .arena{height:78px}.ninja-spot{width:66px}.target{width:38px}
@@ -131,7 +129,7 @@
 .target.split .t-slash{animation:t-slash .3s ease-out}
 .scroll.shake{animation:shake .26s ease-in-out}
 .combo-pop.go{animation:pop 1s ease-out}
-.res-ninja{width:92px;margin:0 auto 4px}
+.res-ninja{width:92px;margin:0 auto}
 .res-ninja .cheer{animation:cheer .6s ease-out 2}
 @keyframes nj-lunge{40%{transform:translateX(22px)}}
 @keyframes nj-swing{40%{transform:rotate(95deg)}}
@@ -143,16 +141,8 @@
 @keyframes cheer{50%{transform:translateY(-6px)}}
 
 /* ---------- results ---------- */
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
-@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
-.res-score{margin:10px 0 0!important;color:var(--text-hi)!important;font-weight:700}
-.res-score b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--yellow)}
-.panel .best{font-size:14px;margin-top:8px}
+.res-combo{margin:0;text-align:center;color:var(--text-lo);font-weight:700}
+.res-combo b{font-family:var(--display);font-weight:400;font-size:20px;color:var(--yellow)}
 .panel{border-color:var(--red);box-shadow:var(--glow-red),0 30px 80px rgba(0,0,0,.6)}
 .panel h2{color:var(--white-hi)}
 

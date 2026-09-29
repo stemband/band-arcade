@@ -404,7 +404,7 @@ body.lb-open{overflow:hidden}
 .lb-row.me{outline:3px solid var(--cyan);outline-offset:2px;box-shadow:var(--glow-cyan)}
 .lb-you{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--cyan);color:var(--deep);font-size:11px;letter-spacing:.08em}
 .lb-id{margin-left:6px;padding:1px 6px;border-radius:6px;border:1px dashed var(--text-lo);color:var(--yellow-hi);font:700 13px ui-monospace,Menlo,Consolas,monospace}
-.lb-msg{margin:24px 0;text-align:center;color:var(--text-hi);font-size:18px}
+.lb-msg{margin:24px 0;text-align:center;color:var(--text-hi);font-size:18px}   /* + .ui-msg (shared/ui-kit.css) */
 .lb-break{color:var(--amber-hi)}
 .lb-own{margin:0;padding:10px 14px;border-radius:14px;border:2px dashed var(--cyan);color:var(--cyan-hi);font-weight:700;text-align:center}
 .lb-foot{margin:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;color:var(--text-lo)}

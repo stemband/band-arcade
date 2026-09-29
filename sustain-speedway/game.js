@@ -19,7 +19,7 @@
   A.Pitch.setInstrument(inst);
   A.mountTopbar(inst, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const gd = A.store.gameData(GAME_ID);
   const save = () => A.store.saveGameData(GAME_ID);
   const sfx = name => (A.Sfx ? A.Sfx.event(name) : 0);
@@ -31,7 +31,7 @@
 
   /* ---------- difficulty (remembered): Rookie ±20, Pro ±12, Virtuoso ±6 cents for full speed ---------- */
   const DIFF = R.difficulties, diffOf = id => DIFF.find(d => d.id === id) || DIFF[0];
-  $('diffBtns').innerHTML = DIFF.map(d => `<button type="button" class="seg" data-diff="${d.id}">${d.name}</button>`).join('');
+  $('diffBtns').innerHTML = DIFF.map(d => `<button type="button" data-diff="${d.id}">${d.name}</button>`).join('');
   function drawDiff() {
     const d = diffOf(gd.diff);
     document.querySelectorAll('[data-diff]').forEach(b => b.setAttribute('aria-pressed', b.dataset.diff === d.id));
@@ -55,7 +55,8 @@
     stopRace();
     A.ModePicker.useRange(picker.state);
     picker.refresh();
-    $('race').hidden = true; $('hub').hidden = false; $('results').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('race').hidden = true; $('hub').hidden = false;
     document.body.classList.remove('racing');
     const key = picker.state.progressKey;
     $('trackGrid').innerHTML = TRACKS.map((L, i) => {
@@ -78,6 +79,27 @@
 
   /* ---------- a race ---------- */
   let G = null, raf = 0, lastT = 0;
+  /* THE PAUSE MENU (shared/ui-kit.js): G.held stops the race clock, the car, the rivals and the pit stop. Paused during
+     the COUNTDOWN, it stops, and starts again from 3 on RESUME (as when the page is hidden). */
+  const pause = A.UI.pause.mount({
+    onPause: () => { if (!G) return; G.held = true; if (G.phase === 'count') stopCountdown(); },
+    onResume: () => {
+      if (!G) return;
+      G.held = false; lastT = performance.now();
+      resetHearing();                                         // the microphone starts fresh: only what is heard from now counts
+      if (G.phase === 'count' && !G.cd && !document.hidden) startCountdown();
+    },
+    onRestart: () => startRace(G ? G.lv : 1),
+    onLevels: showHub,
+    levelsLabel: 'Back to tracks',
+    canPause: () => !!G && G.phase !== 'done',
+    info: () => G ? [['Lap', `${Math.min(G.lap + 1, G.lens.length)}/${G.lens.length}`], ['Time', fmt(G.clock)], ['Position', ord(position())]] : [],
+  });
+  /** the countdown stops (the page hidden, or paused); it starts again from 3 */
+  function stopCountdown() {
+    if (!G.cd && !G.goHeard) return;
+    G.cd = null; G.goHeard = false; A.Sfx.hush(); banner(''); G.restarts = (G.restarts || 0) + 1;
+  }
   const S = {state: 'silent', cents: null, hist: [], wrongRun: 0, zoneSince: 0, I: 0, P: 0, V: 0, score: 0};   // what the mic hears
 
   function startRace(lv) {
@@ -94,7 +116,7 @@
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
-    $('hub').hidden = true; $('results').hidden = true; $('race').hidden = false; $('pit').hidden = true;
+    A.UI.results.hide(); $('hub').hidden = true; $('race').hidden = false; $('pit').hidden = true;
     document.body.classList.add('racing');
     $('raceDiff').textContent = `${d.name} · full speed within ±${d.tol}¢`;
     $('hudOf').textContent = `of ${rivals.length + 1}`;
@@ -103,10 +125,11 @@
     window.scrollTo(0, 0);
     resetHearing();
     A.Pitch.demoJitter = 0.01;
+    pause.setActive(true);
     lastT = performance.now(); raf = requestAnimationFrame(loop);
     // 3, 2, 1, GO! once its sounds are ready (at most 0.8 s: a sound still missing plays its fallback)
     const g = G;
-    A.Sfx.whenReady(COUNT_SOUNDS, 800).then(() => { if (G === g && G.phase === 'count' && !G.cd && !document.hidden) startCountdown(); });
+    A.Sfx.whenReady(COUNT_SOUNDS, 800).then(() => { if (G === g && G.phase === 'count' && !G.cd && !G.held && !document.hidden) startCountdown(); });
   }
   /* THE COUNTDOWN (shared/countdown.js, like Dojo Duel and Neon Face-Off): CLASSIC 3 · 2 · 1 one second apart, each
      number shown as its own voice clip plays (race-count-N, else Dojo Duel's), then a spoken "GO!". It runs on the race's
@@ -193,11 +216,11 @@
     if (!G) return;
     const raw = now - lastT, dt = Math.min(0.1, raw / 1000); lastT = now;
     demoDrive(now);
-    const paused = document.hidden || A.Pitch.isSuppressed(now);   // a sound is muting the mic: the race clock stops
+    const paused = document.hidden || G.held || A.Pitch.isSuppressed(now);   // a sound is muting the mic (or the pause menu is open): the race clock stops
     if (G.phase === 'count') {
-      if (!document.hidden) countTick(Math.min(raw, 250));
+      if (!document.hidden && !G.held) countTick(Math.min(raw, 250));
       // the race starts when the microphone is live again after "GO!": the sound manager's mute has really ended
-      if (G && G.goHeard && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); }
+      if (G && G.goHeard && !G.held && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); }
     } else if (G.phase === 'race' && !paused) {
       G.clock += dt; G.driveTime += dt;
       const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) : 0;
@@ -267,6 +290,7 @@
   }
   function finishRace() {
     G.phase = 'done'; G.v = 0;
+    pause.setActive(false);                         // the race is over: nothing left to pause
     G.ghostRec.push(G.lens.length);
     sfx('race-finish');
     banner('FINISH!', 'finish');
@@ -593,25 +617,24 @@
     save();
     // the numbers
     const n = g.laps.reduce((a, l) => a + l.n, 0), avg = n ? g.laps.reduce((a, l) => a + l.abs, 0) / n : 0;
-    $('resPos').textContent = `${ord(pos)} place`;
-    $('resPos').className = 'res-pos p' + pos;
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = pos === 1 ? 'Race won!' : stars ? 'On the podium!' : 'Race finished';
-    $('resMsg').textContent = pos === 1 ? (g.lv < TRACKS.length ? `You won ${g.L.name}! The next track is open.` : 'You won The Grand Prix!')
-      : `Finish 1st to open the next track. Faster = more in tune and steadier, and fewer breaths in the middle of a lap.`;
-    $('resTime').textContent = fmt(total);
-    $('resLap').textContent = `${bestLap.toFixed(1)} s`;
-    $('resCents').textContent = n ? `${Math.round(avg)}¢` : '–';
-    $('resZone').textContent = `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`;
-    $('resDiff').textContent = `${g.diff.name} (±${g.diff.tol}¢)`;
-    chart(g);
-    $('resBest').textContent = [newBest && old.best ? 'New best time!' : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' ');
     const hasNext = g.lv < TRACKS.length && (pos === 1 || A.DEMO);
-    $('resNext').hidden = !hasNext;
-    $('results').hidden = false;
+    A.UI.results.show({gameId: GAME_ID, wide: true, stars,
+      hero: `<p class="res-pos p${pos}" id="resPos">${ord(pos)} place</p>`,
+      title: pos === 1 ? 'Race won!' : stars ? 'On the podium!' : 'Race finished',
+      msg: pos === 1 ? (g.lv < TRACKS.length ? `You won ${g.L.name}! The next track is open.` : 'You won The Grand Prix!')
+        : `Finish 1st to open the next track. Faster = more in tune and steadier, and fewer breaths in the middle of a lap.`,
+      tiles: [['Total time', fmt(total), 'resTime'], ['Best lap', `${bestLap.toFixed(1)} s`, 'resLap'], ['Avg. off', n ? `${Math.round(avg)}¢` : '–', 'resCents'],
+        ['In the zone', `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`, 'resZone']],
+      newBest: newBest && !!old.best, newBestText: 'New best time!',
+      best: [old.best ? `Best time: ${fmt(Math.min(old.best, tenths) / 10)}` : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' · '),
+      extra: `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
+        <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
+        <div class="chart" id="resChart"></div><ul class="lap-notes" id="resLaps"></ul>`,
+      onShow: () => chart(g),
+      next: {label: 'Next track', hidden: !hasNext, onClick: () => A.requireMic(() => startRace(finished.lv + 1))},
+      retry: {label: 'Try again', onClick: () => A.requireMic(() => startRace(finished.lv))},
+      levels: {label: 'Tracks', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));     // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([pos <= 3 && stars ? 'podium' : 'level-failed', stars > old.stars && 'star-earned', newLap && oldLap && 'new-best-lap']);
     finished = g; G = null;
   }
@@ -641,16 +664,13 @@
     $('resChart').innerHTML = out + '</svg>';
     $('resLaps').innerHTML = lines.join('') || '<li>No notes were heard on target this race.</li>';
   }
-  $('resNext').addEventListener('click', () => A.requireMic(() => startRace(finished.lv + 1)));
-  $('resRetry').addEventListener('click', () => A.requireMic(() => startRace(finished.lv)));
-  $('resTracks').addEventListener('click', showHub);
-  $('quitRace').addEventListener('click', showHub);
   document.addEventListener('visibilitychange', () => {
     lastT = performance.now();
     // PAUSED during the countdown (the page hidden): it stops, and starts again from 3 when the page comes back
     if (!G || G.phase !== 'count') return;
-    if (document.hidden) { G.cd = null; G.goHeard = false; A.Sfx.hush(); banner(''); G.restarts = (G.restarts || 0) + 1; }
-    else startCountdown();
+    // (the pause menu opens too: its RESUME starts the countdown again)
+    if (document.hidden) stopCountdown();
+    else if (!G.held && !G.cd) startCountdown();
   });
 
   A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS};    // tests

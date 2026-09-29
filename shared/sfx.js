@@ -28,7 +28,8 @@
                                        passed; Dojo Duel's first countdown waits for it so the voices are on time
      Arcade.Sfx.use(...screens)        which sounds this page needs ('floor', 'select', 'game', a game id): they are
                                        preloaded after the first tap, two at a time (school Wi-Fi)
-     Arcade.Sfx.mountControls(el)      the speaker button: SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE sliders (saved on the device)
+     Arcade.Sfx.mountControls(el)      the top bar's SETTINGS button (a speaker showing sound on/off): opens the shared
+                                      Settings panel (shared/ui-kit.js); settingsChanged(k), loopNote(), refreshControls()
    THE MUSIC MANAGER (the only way background loops ever start; Arcade.sfx is the same object):
      Arcade.Sfx.setMusic(name | [names] | null, {builtIn})     the track this page WANTS on the MUSIC channel
      Arcade.Sfx.setAmbience(name | [names] | null, {builtIn})  the same for the AMBIENCE channel (the lobby room sound)
@@ -925,57 +926,37 @@ window.Arcade = window.Arcade || {};
     });
   }
 
-  /* ---------- the controls: a speaker button that opens SOUND ON/OFF and two volume sliders ---------- */
-  let popId = 0;
+  /* ---------- the controls: the top bar's SETTINGS button (a speaker that shows sound on/off). It opens THE SETTINGS
+     PANEL (shared/ui-kit.js: sound, music, effects, motion, mic sensitivity, the game's own options) ---------- */
   const SPK = '<svg class="snd-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l6 6M22 9l-6 6"/></svg>';
-  function mountControls(el) {
+  function mountControls(el, {lobby = false} = {}) {
     if (!el) return;
-    const id = 'sndPop' + (++popId);
     el.classList.add('sound-ctl');
-    el.innerHTML =
-      `<button type="button" class="snd-btn snd-open" aria-expanded="false" aria-controls="${id}" aria-label="Sound settings">${SPK}</button>` +
-      `<div class="snd-pop" id="${id}" role="group" aria-label="Sound settings" hidden>` +
-        `<button type="button" class="snd-btn snd-toggle">${SPK}<span class="snd-txt"></span></button>` +
-        `<label class="snd-row"><span>Effects</span><input type="range" min="0" max="100" step="5" data-k="sfxVol" aria-label="Effects volume"><output></output></label>` +
-        `<label class="snd-row"><span>Music</span><input type="range" min="0" max="100" step="5" data-k="musVol" aria-label="Music volume"><output></output></label>` +
-        `<label class="snd-row"><span>Ambience</span><input type="range" min="0" max="100" step="5" data-k="ambVol" aria-label="Ambience volume"><output></output></label>` +
-        `<p class="snd-note" hidden></p>` +
-      `</div>`;
-    const open = el.querySelector('.snd-open'), pop = el.querySelector('.snd-pop'), tg = el.querySelector('.snd-toggle');
-    if (A.Bg && A.Bg.control) A.Bg.control(pop);           // MOVING BACKGROUNDS on/off (shared/backgrounds.js)
+    el.innerHTML = `<button type="button" class="snd-btn snd-open" aria-haspopup="dialog">${SPK}<span class="snd-lbl">Settings</span></button>`;
+    const open = el.querySelector('.snd-open');
     function draw() {
       const on = store.sfx;
-      [open, tg].forEach(b => b.setAttribute('aria-pressed', on));
-      open.setAttribute('aria-label', `Sound settings (sound ${on ? 'on' : 'off'})`);
-      tg.querySelector('.snd-txt').textContent = on ? 'Sound on' : 'Sound off';
-      el.querySelectorAll('input[type=range]').forEach(r => {
-        r.value = Math.round(vol(r.dataset.k) * 100); r.nextElementSibling.textContent = r.value + '%';
-        r.disabled = !on;
-      });
-      // where the loops play, when it isn't here
-      const note = el.querySelector('.snd-note'), m = !CH.mus.want, a = !CH.amb.want;
-      note.hidden = !m && !a;
-      note.textContent = m && a ? 'Music plays on Choose Your Instrument, ambience on the arcade floor.' : m ? 'Music plays on Choose Your Instrument.' : a ? 'Ambience plays on the arcade floor.' : '';
+      open.setAttribute('aria-pressed', on);
+      open.setAttribute('aria-label', `Settings (sound ${on ? 'on' : 'off'})`);
     }
-    const show = v => { pop.hidden = !v; open.setAttribute('aria-expanded', v); };
-    open.addEventListener('click', () => { show(pop.hidden); if (!pop.hidden) tg.focus(); });
-    tg.addEventListener('click', () => {
-      store.setSfx(!store.sfx); draw(); applySettings(); applyAll();
-      if (store.sfx) playEvent('ui-toggle', {force: true}); refreshAll();
-    });
-    el.querySelectorAll('input[type=range]').forEach(r => {
-      r.addEventListener('input', () => {
-        store.setVolume(r.dataset.k, r.value / 100); r.nextElementSibling.textContent = r.value + '%';
-        applySettings(); if (r.dataset.k !== 'sfxVol') applyAll();
-      });
-      r.addEventListener('change', () => { if (r.dataset.k === 'sfxVol') playEvent('ui-toggle'); refreshAll(); });
-    });
-    document.addEventListener('pointerdown', e => { if (!pop.hidden && !el.contains(e.target)) show(false); });
-    el.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { e.stopPropagation(); show(false); open.focus(); } });
+    open.addEventListener('click', () => { if (A.UI && A.UI.settings) A.UI.settings.open({lobby, onClose: () => open.focus()}); });
     el._draw = draw;
     draw();
   }
   const refreshAll = () => document.querySelectorAll('.sound-ctl').forEach(c => c._draw && c._draw());
+  /** a sound setting changed in the Settings panel (k = 'sfx' | 'sfxVol' | 'musVol' | 'ambVol'; done = the slider was let go) */
+  function settingsChanged(k, done) {
+    applySettings();
+    if (k !== 'sfxVol') applyAll();
+    if (k === 'sfx' && store.sfx) playEvent('ui-toggle', {force: true});
+    if (done && k === 'sfxVol') playEvent('ui-toggle');
+    refreshAll();
+  }
+  /** where the loops play, when it isn't here (the Settings panel's note under the volumes) */
+  function loopNote() {
+    const m = !CH.mus.want, a = !CH.amb.want;
+    return m && a ? 'Music plays on the menus, the hum on the arcade floor.' : m ? 'Music plays on the menus.' : '';
+  }
 
   /* ---------- GAME MENU MUSIC (games.js `menuMusic`): one call whenever a game changes screen ----------
      gameMenuMusic(gameId)          a MENU screen (level select, mode picker, intro panels, results): the game's
@@ -1172,7 +1153,7 @@ window.Arcade = window.Arcade || {};
       const go = d => { if (d) setTimeout(() => { location.href = href; }, Math.min(GO_MAX, Math.max(120, d * 1000))); else location.href = href; };
       if (SOUNDS[name]) go(Sfx.play(name)); else eventSoon(name).then(go);
     },
-    mountControls,
+    mountControls, settingsChanged, loopNote, refreshControls: () => refreshAll(),
     /* for the Sound Board (sound-board/index.html) */
     board: {
       start() { unlock(); return ctx; },

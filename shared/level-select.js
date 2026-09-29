@@ -141,7 +141,7 @@ window.Arcade = window.Arcade || {};
     if (!row || !row.classList.contains('ls-row')) {
       row = document.createElement('div');
       row.className = 'ls-row';
-      row.innerHTML = '<h2 class="ls-head"></h2><div class="ls-go" aria-live="polite"></div>';
+      row.innerHTML = '<h2 class="ls-head ui-section"></h2><div class="ls-go" aria-live="polite"></div>';
       grid.parentNode.insertBefore(row, grid);
     }
     row.querySelector('.ls-head').innerHTML = (step ? '<span class="ls-step" aria-hidden="true">②</span> ' : '') + 'Select your level';
@@ -150,7 +150,7 @@ window.Arcade = window.Arcade || {};
   function notesHead(picker) {
     if (!picker || picker.querySelector('.ls-pick')) return;
     const h = document.createElement('h2');
-    h.className = 'ls-head ls-pick';
+    h.className = 'ls-head ui-section ls-pick';
     h.innerHTML = '<span class="ls-step" aria-hidden="true">①</span> Select your notes';
     picker.insertBefore(h, picker.firstChild);
     // a new note set: START's line follows (the level stays selected)
@@ -226,12 +226,10 @@ window.Arcade = window.Arcade || {};
     }
   }
   function toast(card, text) {
-    card.querySelectorAll(':scope>.ls-toast').forEach(x => x.remove());
-    const t = document.createElement('span');
-    t.className = 'ls-toast'; t.setAttribute('role', 'status'); t.textContent = text;
-    card.appendChild(t);
-    setTimeout(() => t.remove(), TOAST_MS);
+    card.querySelectorAll(':scope>.ui-toast').forEach(x => x.remove());
+    A.UI.toast(text, {near: card, ms: TOAST_MS});       // the shared toast (shared/ui-kit.js), over the card
   }
+
   /** START: what a tap on that card used to do, through the game's own click handler */
   function begin() {
     if (!S || S.sel === null) return;
@@ -303,7 +301,7 @@ window.Arcade = window.Arcade || {};
     if (st.endless) intercept(st.endless, 'endless');
     cards.forEach((c, i) => {
       c.classList.add('ls-card');
-      c.querySelectorAll(':scope>.ls-lock, :scope>.ls-toast').forEach(x => x.remove());
+      c.querySelectorAll(':scope>.ls-lock, :scope>.ui-toast').forEach(x => x.remove());
       const open = st.open(i);
       c.classList.toggle('ls-locked', !open);
       // a locked card stays tappable (to say what opens it) but reads as unavailable

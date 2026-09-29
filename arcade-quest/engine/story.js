@@ -228,26 +228,24 @@
     draw(ctx, now) { noise(ctx, now, 60, .25); },
   };
 
-  /* ---------- EPISODE 1 COMPLETE (the results screen: stats, your save code, skins earned) ---------- */
+  /* ---------- EPISODE 1 COMPLETE: the arcade's shared results screen (shared/ui-kit.js, pixel-themed in style.css):
+     stats, your save code, the UNLOCKED! card (Pixel Hero, the Baton), KEEP EXPLORING (the attic) / TITLE SCREEN ---------- */
   Q.scenes.complete = {
     enter({first}) {
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-victory');
       const s = Q.save.get(), code = Q.save.code();
       Q.save.achievements();
-      const p = Q.el('div', 'q-overlay q-complete');
-      p.innerHTML = `<div class="q-panel q-wpanel" role="dialog" aria-modal="true" aria-labelledby="qDoneT"><h2 id="qDoneT">Episode 1 complete!</h2>` +
-        `<p>Ghost Notes Manor has its music back. The Ghost Conductor joined your band.</p>` +
-        `<p><b>LV ${s.level}</b> · ${s.roster.length} band friends · <i class="q-coin" aria-hidden="true"></i>${s.tokens} tokens · Ghosts helped: ${Q.save.helped()}</p>` +
-        (code ? `<p class="q-small">Your save code:</p><p class="q-code">${code}</p>` : '') +
-        `<p class="q-small">The manor is still yours to explore. Episode 2 is coming...</p><div class="q-pmenu"></div></div>`;
-      Q.ui.appendChild(p);
-      const panel = p.querySelector('.q-panel');
-      if (A.Skins && A.Skins.announce) A.Skins.announce(panel);         // Pixel Hero (and the Baton, if every ghost kind is a friend)
-      panel.appendChild(p.querySelector('.q-pmenu'));                   // the buttons last, under any UNLOCKED! card
-      const m = Q.menu(p.querySelector('.q-pmenu'), [{id: 'world', label: 'Keep exploring'}, {id: 'title', label: 'Title screen'}], {cols: 2, label: 'Episode 1 complete',
-        onPick: it => { m.destroy(); if (it.id === 'world') Q.go('world', {map: 'attic', x: 7, y: 8, dir: 'up'}); else Q.go('title'); }});
+      const leave = then => { A.UI.results.hide(); then(); };
+      A.UI.results.show({gameId: 'arcade-quest', theme: 'q-theme', stars: null, title: 'Episode 1 complete!',
+        msg: 'Ghost Notes Manor has its music back. The Ghost Conductor joined your band.',
+        tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', s.tokens], ['Ghosts helped', Q.save.helped()]],
+        extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
+          `<p class="ui-howto">The manor is still yours to explore. Episode 2 is coming...</p>`,
+        next: {label: 'Keep exploring', onClick: () => leave(() => Q.go('world', {map: 'attic', x: 7, y: 8, dir: 'up'}))},
+        levels: {label: 'Title screen', onClick: () => leave(() => Q.go('title'))}});      // (announce: Pixel Hero, the Baton)
       if (first) Q.sfx('quest-levelup');
     },
+    exit() { A.UI.results.hide(); },
     draw(ctx, now) { party(ctx, now, true); },
   };
 })(window.Arcade);

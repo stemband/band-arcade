@@ -37,7 +37,7 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title">Chime <span>Heist</span></h1>
-      <p class="muted">You're a master safecracker, and every vault is locked with a musical chime keypad. Read each note of the code on the terminal and strike its bar on the bell kit. Stay quiet: wrong bars set off the alarm!</p>
+      <p class="ui-howto">You're a master safecracker, and every vault is locked with a musical chime keypad. Read each note of the code on the terminal and strike its bar on the bell kit. Stay quiet: wrong bars set off the alarm!</p>
     </div>
     <div class="ls-notes">
       <div id="modePick"></div>
@@ -78,7 +78,6 @@
     </div>
     <div class="play-foot">
       <p class="demo-ans" id="demoAns" hidden></p>
-      <button class="btn btn-ghost btn-small" id="quitPlay">Leave vault</button>
     </div>
   </section>
 </div>
@@ -93,28 +92,7 @@
   </div>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="res-treasure" id="resTreasure"></div>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Vault cracked</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Code</small><b id="resHits">0/0</b></div>
-      <div><small>Mistakes</small><b id="resWrong">0</b></div>
-      <div><small>Missed</small><b id="resMissed">0</b></div>
-      <div><small>Best streak</small><b id="resStreak">0</b></div>
-    </div>
-    <p class="res-score">Score <b id="resScore">0</b></p>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next vault</button>
-      <button class="btn btn-ghost" id="resRetry">Try again</button>
-      <button class="btn btn-ghost" id="resLevels">Vaults</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- No microphone in this game: no pitch.js, no mic-gate.js. The bells and effects come from shared/sfx.js. -->
 <script src="../shared/instruments.js"></script>

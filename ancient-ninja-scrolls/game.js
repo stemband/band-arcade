@@ -14,14 +14,59 @@
   const RANKS = [3, 4, 5, 6, 7, 8, 9, 10];
   const beltNo = rank => rank - 2;                     // Orange = belt 1 … Diamond = belt 8 (progress levels)
   const itemsOf = rank => ITEMS.filter(it => it.rank === rank);
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const pick = (a, n, not = []) => shuffle(a.filter(x => !not.includes(x))).slice(0, n);
 
-  A.mountTopbar(null, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Band Ninja'});
+  A.mountTopbar(null, '', GAME_ID, {fixed: 'Band Ninja'});
   const sfx = name => A.Sfx.event(name);
   $('demoHelp').hidden = !A.DEMO;
+
+  /* ---------- timers that hold still while the game is paused ---------- */
+  let timers = [];
+  function later(fn, ms) {
+    const t = {fn, left: ms, due: performance.now() + ms};
+    const run = () => { timers = timers.filter(x => x !== t); t.fn(); };
+    t.run = run; t.id = setTimeout(run, ms); timers.push(t);
+    return t;
+  }
+  function holdTimers() { const now = performance.now(); timers.forEach(t => { clearTimeout(t.id); t.left = Math.max(0, t.due - now); }); }
+  function resumeTimers() { const now = performance.now(); timers.forEach(t => { t.due = now + t.left; t.id = setTimeout(t.run, t.left); }); }
+  function clearTimers() { timers.forEach(t => clearTimeout(t.id)); timers = []; }
+
+  /* ---------- THE PAUSE MENU (shared/ui-kit.js): during a round (Train, Spar, Review) and the Belt Exam.
+     Spar's 60-second clock, the speed bonus and the wait before the next question all stop while paused.
+     BACK TO THE CHAMBER (the temple from Scroll Review) is the way out of a round or an exam. ---------- */
+  let pausedAt = 0;
+  const pause = A.UI.pause.mount({
+    onPause: () => { pausedAt = performance.now(); holdTimers(); },
+    onResume: () => { if (Q && Q.shownAt) Q.shownAt += performance.now() - pausedAt; resumeTimers(); },
+    onLevels: () => leave(),
+    info: () => {
+      if (view === 'exam' && E) return [['Answered', `${answeredCount()} / 15`]];
+      if (!Q) return [];
+      if (Q.mode === 'train') return [['Scrolls done', `${Q.done} / ${Q.total}`], ['Right first try', Q.firstTry]];
+      if (Q.mode === 'review') return [['Question', `${Math.min(Q.n + 1, Q.total)} / ${Q.total}`], ['Right', Q.right]];
+      return [['Time left', `${Math.ceil(Math.max(0, Q.endAt - pausedAt) / 1000)} s`], ['Score', Q.score]];
+    },
+  });
+  /** the pause menu's words for this round or exam */
+  function pauseFor(what) {
+    const toTemple = what === 'review';
+    pause.set(what === 'exam'
+      ? {onRestart: null, levelsLabel: 'Back to the chamber', leaveTitle: 'Leave the exam?',
+         leaveText: 'Your answers on this exam will be lost.', confirmLeave: () => !!E && !E.done && answeredCount() > 0}
+      : {onRestart: () => { if (Q) startQuiz(Q.mode); }, levelsLabel: toTemple ? 'Back to the temple' : 'Back to the chamber', leaveTitle: 'Leave this round?',
+         leaveText: 'Your mastered scrolls stay mastered, but this round won’t count.', confirmLeave: () => !!Q && Q.n > 0});
+    pause.setActive(true);
+  }
+  /** out of a round or an exam: back to the chamber (the temple from Scroll Review) */
+  function leave() {
+    const m = Q && Q.mode;
+    clearTimers(); stopTimer(); Q = null; E = null;
+    if (m === 'review') showHub(); else openChamber(rank);
+  }
 
   /* ---------- saved data ---------- */
   const gd = A.store.gameData(GAME_ID);
@@ -45,7 +90,8 @@
   }
   function showHub() {
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
-    stopTimer(); Q = null;
+    stopTimer(); clearTimers(); Q = null;
+    pause.setActive(false); A.UI.results.hide();
     $('chambers').innerHTML = RANKS.map(r => {
       const b = A.belt(r), p = A.store.level(GAME_ID, 'all', beltNo(r)), m = masteredIn(r), ready = gd.badges[r];
       return `<button class="chamber-card${b.sparkle ? ' sparkle' : ''}" data-r="${r}" style="--belt:var(--${b.color})">
@@ -77,7 +123,8 @@
   function openChamber(r) {
     A.LevelSelect.played(RANKS.indexOf(r));        // the temple comes back with this chamber selected
     A.Sfx.gameMenuMusic(GAME_ID);                   // a belt's chamber is a menu too
-    stopTimer(); Q = null; rank = r;
+    stopTimer(); clearTimers(); Q = null; rank = r;
+    pause.setActive(false); A.UI.results.hide();
     const b = A.belt(r), p = A.store.level(GAME_ID, 'all', beltNo(r)), ex = gd.exams[r];
     $('chamber').style.setProperty('--belt', `var(--${b.color})`);
     $('chamber').classList.toggle('sparkle', !!b.sparkle);
@@ -150,7 +197,7 @@
   let Q = null, timerId = 0;
   function startQuiz(mode) {
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
-    stopTimer();
+    stopTimer(); clearTimers(); A.UI.results.hide();
     const b = A.belt(rank);
     Q = {mode, n: 0, score: 0, combo: 0, bestCombo: 0, right: 0, wrong: 0, firstTry: 0, done: 0, answered: false, current: null, last: null};
     if (mode === 'train') {
@@ -170,6 +217,7 @@
     $('qComboBox').hidden = mode !== 'spar';
     $('qTimer').hidden = mode !== 'spar';
     show('quiz');
+    pauseFor(mode);
     if (mode === 'spar') startTimer();
     nextQuestion();
   }
@@ -247,14 +295,14 @@
       } else { Q.combo = 0; $('fbLine').textContent = `It was: ${rightLabel(q)}`; }
       $('feedback').className = 'feedback ' + (ok ? 'good' : 'bad');
       hud();
-      setTimeout(() => { if (Q && Q.mode === 'spar' && view === 'quiz') nextQuestion(); }, ok ? 350 : 1100);
+      later(() => { if (Q && Q.mode === 'spar' && view === 'quiz') nextQuestion(); }, ok ? 350 : 1100);
       return;
     }
     hud();
     if (ok) {
       $('fbLine').textContent = ['Correct!', 'Well done.', 'Yes!', 'The scroll agrees.'][Q.n % 4];
       $('feedback').className = 'feedback good';
-      setTimeout(() => { if (Q && view === 'quiz' && Q.answered) nextQuestion(); }, 750);
+      later(() => { if (Q && view === 'quiz' && Q.answered) nextQuestion(); }, 750);
     } else {
       $('fbLine').textContent = `The answer: ${rightLabel(q)}`;
       $('fbTip').textContent = tipOf(it) + (Q.mode === 'train' ? ' This one will come back.' : '');
@@ -267,9 +315,9 @@
   function unrolled(it) {                                 // a term is mastered: its scroll unrolls onto the rack
     sfx('scroll-unroll');
     const name = it.type === 'symbol' ? A.symbolName(it.answer) : it.answer;
-    const t = $('toast');
-    t.innerHTML = `<span class="mini-scroll" aria-hidden="true"></span>Scroll unrolled: <b>${esc(name)}</b>`;
-    t.classList.remove('go'); void t.offsetWidth; t.classList.add('go');
+    const t = A.UI.toast(`Scroll unrolled: ${name}`, {kind: 'good', ms: 2400});
+    t.classList.add('ans-toast');
+    t.insertAdjacentHTML('afterbegin', '<span class="mini-scroll" aria-hidden="true"></span>');
   }
 
   function startTimer() {
@@ -278,7 +326,7 @@
     let last = performance.now();
     timerId = setInterval(() => {
       const now = performance.now();
-      if (document.hidden) { Q.endAt += now - last; last = now; return; }
+      if (document.hidden || pause.paused) { Q.endAt += now - last; last = now; return; }   // the clock stops while paused
       last = now;
       const left = Math.max(0, Q.endAt - now);
       bar.style.transform = `scaleX(${left / (RULES.sparSeconds * 1000)})`;
@@ -290,45 +338,43 @@
   function stopTimer() { clearInterval(timerId); timerId = 0; }
 
   function finishQuiz() {
-    stopTimer();
+    stopTimer(); clearTimers();
     const b = A.belt(rank), mode = Q.mode;
-    let title, msg, best = '', stars = null, mood = 'happy';
+    let title, msg = '', best = '', stars = null, mood = 'happy', tiles, newBest = false;
     if (mode === 'train') {
       const pct = Math.round(100 * Q.firstTry / Q.total), all = masteredIn(rank) === 15;
       stars = all ? 3 : pct >= RULES.twoStarRate * 100 ? 2 : 1;
       const old = A.store.level(GAME_ID, 'all', beltNo(rank));
       A.store.setLevel(GAME_ID, 'all', beltNo(rank), {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best)}, stars);
       title = stars === 3 ? 'Every scroll mastered!' : 'Round complete';
-      msg = `${Q.firstTry} of ${Q.total} right the first time (${pct}%). ${masteredIn(rank)} of 15 ${b.name} scrolls unrolled.` +
-        (stars === 1 ? ' Get 90% right the first time for 2 stars.' : stars === 2 ? ' Master all 15 scrolls for 3 stars.' : '');
+      msg = stars === 1 ? 'Get 90% right the first time for 2 stars.' : stars === 2 ? 'Master all 15 scrolls for 3 stars.' : `All 15 ${b.name} scrolls are unrolled.`;
+      tiles = [['Right first try', `${Q.firstTry} / ${Q.total}`], ['First try', `${pct}%`], [`${b.name} scrolls`, `${masteredIn(rank)} / 15`]];
+      newBest = pct > old.best && old.best > 0;
       best = old.best ? `Best: ${Math.max(pct, old.best)}% first try` : '';
       A.Sfx.sequence(['level-complete', stars > old.stars && 'star-earned', pct > old.best && old.best > 0 && 'new-high-score']);
     } else if (mode === 'spar') {
       const old = gd.spar[rank] || 0;
       if (Q.score > old) { gd.spar[rank] = Q.score; save(); }
-      title = Q.score > old && old ? 'New best!' : 'Time!';
-      msg = `${Q.right} right, ${Q.wrong} missed, best combo ${Q.bestCombo}. Score ${Q.score}.`;
+      title = 'Time!';
+      tiles = [['Right', Q.right], ['Missed', Q.wrong], ['Best combo', Q.bestCombo], ['Score', Q.score]];
+      newBest = !!(Q.score > old && old);
       best = `Best: ${Math.max(old, Q.score)}`;
       mood = Q.right > Q.wrong ? 'happy' : 'hmm';
       A.Sfx.sequence(['level-complete', Q.score > old && old && 'new-high-score']);
     } else {
       title = 'Review complete';
-      msg = `${Q.right} of ${Q.total} right. The scrolls you miss most will keep coming back until they stick.`;
+      msg = 'The scrolls you miss most will keep coming back until they stick.';
+      tiles = [['Right', `${Q.right} / ${Q.total}`], ['Missed', Q.wrong]];
       mood = Q.right >= Q.total * .8 ? 'happy' : 'hmm';
       sfx('level-complete');
     }
-    $('resSensei').innerHTML = senseiSVG(mood, mode === 'review' ? 'belt-black' : b.color);
-    $('resStars').innerHTML = stars == null ? '' : A.starStr(stars);
-    $('resStars').hidden = stars == null;
-    $('resTitle').textContent = title; $('resMsg').textContent = msg; $('resBest').textContent = best;
-    $('resBack').textContent = mode === 'review' ? 'Temple' : 'Chamber';
-    $('results').hidden = false; $('resAgain').focus();
+    A.UI.results.show({gameId: GAME_ID, stars, title, msg, tiles, best, newBest,
+      hero: `<div class="res-sensei" aria-hidden="true">${senseiSVG(mood, mode === 'review' ? 'belt-black' : b.color)}</div>`,
+      retry: {label: 'Try again', onClick: () => { A.UI.results.hide(); startQuiz(mode); }},
+      levels: {label: mode === 'review' ? 'Temple' : 'Chamber', onClick: () => { A.UI.results.hide(); Q = null; if (mode === 'review') showHub(); else openChamber(rank); }},
+      announce: {members: [A.store.player]}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'), {members: [A.store.player]});
   }
-  $('resAgain').addEventListener('click', () => { $('results').hidden = true; startQuiz(Q.mode); });
-  $('resBack').addEventListener('click', () => { $('results').hidden = true; const m = Q && Q.mode; Q = null; if (m === 'review') showHub(); else openChamber(rank); });
-  $('quitQuiz').addEventListener('click', () => { const m = Q && Q.mode; stopTimer(); Q = null; if (m === 'review') showHub(); else openChamber(rank); });
 
   /* ---------- Belt Exam: the paper test ---------- */
   let E = null;
@@ -337,15 +383,17 @@
     const b = A.belt(rank);
     E = {rank, items: itemsOf(rank), placed: {}, syms: {}, chosen: null, target: null, done: false};
     E.symChoices = {};
+    clearTimers(); A.UI.results.hide();
     E.items.filter(it => it.type === 'symbol').forEach(it => { E.symChoices[it.id] = shuffle([it.answer, ...pick(A.SYMBOL_IDS, 3, [it.answer])]); });
     $('exam').style.setProperty('--belt', `var(--${b.color})`);
     $('exRank').textContent = `Rank ${rank}`;
     $('exName').textContent = `${b.name} Belt Exam`;
     $('exResult').hidden = true;
-    $('exSubmit').hidden = false; $('exSubmit').textContent = 'Submit exam';
+    $('exSubmit').hidden = false;
     $('exHow').hidden = false;
     drawExam();
     show('exam');
+    pauseFor('exam');
   }
   function drawExam() {
     const used = new Set(Object.values(E.placed));
@@ -397,19 +445,21 @@
     if (el && !el.disabled) el.focus({preventScroll: true});
   }
   const answeredCount = () => E.items.filter(it => it.type === 'symbol' ? E.syms[it.id] : E.placed[it.id]).length;
-  $('exSubmit').addEventListener('click', () => {
-    if (!E) return;
-    if (E.done) return startExam();
-    const n = answeredCount();
-    $('cfMsg').textContent = n < 15 ? `You've answered ${n} of 15. Blanks count as missed.` : 'All 15 answered. Check your work, then turn it in to the Sensei.';
-    $('confirm').hidden = false; $('cfYes').focus();
+  $('exSubmit').addEventListener('click', async () => {
+    if (!E || E.done) return;
+    const n = answeredCount(), ex = E;
+    const yes = await A.UI.confirm({title: 'Turn in your exam?', yes: 'Turn it in', no: 'Keep working',
+      text: n < 15 ? `You've answered ${n} of 15. Blanks count as missed.` : 'All 15 answered. Check your work, then turn it in to the Sensei.'});
+    if (yes && E === ex && !E.done) gradeExam();
   });
-  $('cfNo').addEventListener('click', () => { $('confirm').hidden = true; $('exSubmit').focus(); });
-  $('cfYes').addEventListener('click', () => { $('confirm').hidden = true; gradeExam(); });
-  $('exBack').addEventListener('click', () => { E = null; openChamber(rank); });
+  $('exResult').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    if (b.dataset.act === 'again') startExam(); else leave();
+  });
 
   function gradeExam() {
     sfx('gong');
+    pause.setActive(false);                          // the graded paper is a results screen: no pause here
     E.done = true; E.chosen = null; E.target = null;
     const right = E.items.filter(isRight).length, missed = 15 - right, allowed = PASS[E.rank], passed = missed <= allowed;
     const b = A.belt(E.rank), old = gd.exams[E.rank] || {best: 0, passed: false}, firstBadge = passed && !gd.badges[E.rank];
@@ -418,18 +468,22 @@
     save();
     const rule = allowed === 0 ? 'To pass: all 15 right.' : `To pass: miss ${allowed} or fewer.`;
     $('exResult').innerHTML = `<div class="res-sensei small" aria-hidden="true">${senseiSVG(passed ? 'happy' : 'hmm', b.color)}</div>` +
-      `<div><p class="ex-score">${right} / 15 <small>missed ${missed}</small></p>` +
-      `<p class="ex-verdict ${passed ? 'pass' : 'fail'}">${passed ? `Passed! ${rule}` : `Not yet. ${rule} Study the red ones and try again.`}</p>` +
+      `<div class="ex-res-body"><h3 class="ui-title">${passed ? 'Passed!' : 'Not yet'}</h3>` +
+      `<p class="ex-verdict">${passed ? rule : `${rule} Study the red ones and try again.`}</p>` +
+      `<div class="ui-tiles"><div class="ui-tile"><small>Right</small><b>${right} / 15</b></div><div class="ui-tile"><small>Missed</small><b>${missed}</b></div>` +
+      `<div class="ui-tile"><small>Best</small><b>${gd.exams[E.rank].best} / 15</b></div></div>` +
       (passed ? `<p class="ex-ready"><span class="ready-chip">Test Ready</span> You're ready to take your real Rank ${E.rank} test in person!</p>` : '') +
-      `<p class="ex-best">Best: ${gd.exams[E.rank].best} / 15</p></div>`;
+      `<div class="acts"><button type="button" class="btn btn-primary" id="exAgain" data-act="again">Take it again</button>` +
+      `<button type="button" class="btn btn-secondary" id="exChamber" data-act="chamber">Chamber</button></div></div>`;
     $('exResult').hidden = false;
-    $('exSubmit').textContent = 'Take it again';
+    $('exSubmit').hidden = true;
     $('exHow').hidden = true;
     drawExam();
     window.scrollTo(0, 0);
-    if (passed) setTimeout(() => presentBadge(E.rank, firstBadge), 900);
+    const r = E.rank, graded = E;
+    if (passed) setTimeout(() => { if (E === graded) presentBadge(r, firstBadge); }, 900);
     else setTimeout(() => sfx('level-failed'), 900);
-    const graded = E;                               // the menu music again once the exam's result sounds are done
+    // the menu music again once the exam's result sounds are done
     setTimeout(() => { if (E === graded && E.done) A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true}); }, 1000);
   }
   function presentBadge(r, first) {
@@ -441,11 +495,11 @@
     $('badge').hidden = false; $('bdOk').focus();
     A.Skins.announce($('badge').querySelector('.panel'), {members: [A.store.player]});   // a TEST READY badge unlocks the Ninja Mask
   }
-  $('bdOk').addEventListener('click', () => { $('badge').hidden = true; $('exSubmit').focus({preventScroll: true}); });
+  $('bdOk').addEventListener('click', () => { $('badge').hidden = true; const a = $('exAgain'); if (a) a.focus({preventScroll: true}); });
 
   /* ---------- keyboard: 1–4 pick an answer, Enter/Space go on after a miss ---------- */
   addEventListener('keydown', e => {
-    if (e.ctrlKey || e.metaKey || e.altKey || view !== 'quiz' || !Q || !$('results').hidden) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || view !== 'quiz' || !Q || pause.paused || A.UI.isOpen()) return;
     if (/^[1-4]$/.test(e.key) && !Q.answered) {
       const b = $('choices').children[+e.key - 1];
       if (b) { e.preventDefault(); answer(b.dataset.k); }

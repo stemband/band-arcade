@@ -12,16 +12,27 @@
   const VAULTS = window.HEIST_VAULTS, RULES = window.HEIST_RULES;
   const {noteLabel, writtenMidi, spell, mod12} = A.music;
   const GOLD = '#c98a12', MISS = '#d0503f';          // same found / missed colors as the other games
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
 
   const inst = A.getInstrument('bells');                // the bell kit, whatever instrument is saved
   const member = A.getMember(inst, 'bells');
   const SOUNDS = -member.sounds;                        // bells sound 24 semitones (two octaves) above written
-  A.mountTopbar(inst, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID, {fixed: 'Bell Kit', portrait: 'bells'});
+  A.mountTopbar(inst, '', GAME_ID, {fixed: 'Bell Kit', portrait: 'bells'});
   $('demoHelp').hidden = !A.DEMO;
   const sfx = name => A.Sfx.event(name);
 
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, group: inst, member, levels: VAULTS.length, onChange: () => showHub()});
+  // THE PAUSE MENU (shared/ui-kit.js): the note timer stops while paused; BACK TO LEVELS leaves the vault
+  // with nothing saved (as "Leave vault" did)
+  const pause = A.UI.pause.mount({
+    canPause: () => !!G && !G.over,
+    onPause: () => { if (G) G.paused = true; },
+    onResume: () => { if (G) G.paused = false; },
+    onRestart: () => startLevel(G.lv),
+    onLevels: showHub,
+    levelsLabel: 'Back to vaults', leaveTitle: 'Leave this vault?', leaveText: 'Your progress in this vault won’t be saved.',
+    info: () => G ? [['Code', `${Math.min(G.i + 1, G.count)} / ${G.count}`], ['Score', G.score]] : [],
+  });
 
   /* ---------- treasures: one for each vault ---------- */
   const TREASURES = {
@@ -41,7 +52,8 @@
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopTimer(); G = null;
     const st = picker.state, key = st.progressKey;
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('vaultOpen').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('play').hidden = true; $('hub').hidden = false; $('vaultOpen').hidden = true;
     $('wrap').classList.remove('playing'); lasers(0);
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
@@ -107,7 +119,8 @@
     c.classList.add('on');
   }
   addEventListener('keydown', e => {
-    if (!G || $('play').hidden || !$('results').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    // never while a panel is open (results, pause, settings, a confirm: shared/ui-kit.js) or paused
+    if (!G || G.paused || $('play').hidden || A.UI.isOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       const list = cur.row === 'nat' ? NAT : ACC;
@@ -119,7 +132,7 @@
         cur = {row: want, i: list.reduce((best, m, j) => Math.abs(posOf(m) - x) < Math.abs(posOf(list[best]) - x) ? j : best, 0)};
       }
     } else if (k === 'Enter' || k === ' ') {
-      if (e.target.closest && e.target.closest('button:not(.bar)')) return;   // Enter on "Leave vault" etc. does its own thing
+      if (e.target.closest && e.target.closest('button:not(.bar)')) return;   // Enter on the pause button etc. does its own thing
       strike(curMidi());
     } else return;
     e.preventDefault();
@@ -143,8 +156,9 @@
     const items = seq.items.map(it => ({n: it.n, show: it.show, midi: it.midi, label: it.label}));   // midi: the exact written bar
     G = {lv, V, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit,
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, alarm: 0, streak: 0, bestStreak: 0, locked: true, over: false};
-    $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false; $('vaultOpen').hidden = true;
+    A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false; $('vaultOpen').hidden = true;
     $('wrap').classList.add('playing');
+    pause.setActive(true);                         // after the play layout, so the button lines up with "← Arcade"
     $('hudNum').textContent = lv; $('hudVault').textContent = V.name;
     $('kit').dataset.labels = V.labels;
     $('codeLights').innerHTML = G.count <= 20 ? G.items.map(() => '<i></i>').join('') : '<b><i id="codeFill"></i></b>';
@@ -202,7 +216,8 @@
     let last = performance.now();
     timerId = setInterval(() => {
       const now = performance.now();
-      if (document.hidden) { G.noteStart += now - last; last = now; return; }
+      if (!G) return;
+      if (document.hidden || G.paused) { G.noteStart += now - last; last = now; return; }   // hidden tab or PAUSE: the clock stops
       last = now;
       if (!G || G.locked) return;
       const frac = 1 - (now - G.noteStart) / (G.V.time * 1000);
@@ -216,7 +231,7 @@
   /* ---------- a strike ---------- */
   function strike(m) {
     ring(m);                                                          // every bar rings, right or wrong
-    if (!G || G.locked || G.over) return;
+    if (!G || G.locked || G.over || G.paused) return;
     const it = current();
     if (m === it.midi) return correct();
     const sameLetter = mod12(m - it.midi) === 0;
@@ -261,7 +276,7 @@
     if (G.alarm >= G.V.alarm) caught();
   }
   function caught() {
-    G.over = true; G.locked = true; stopTimer();
+    G.over = true; G.locked = true; stopTimer(); pause.setActive(false);
     sfx('caught');
     setPrompt('CAUGHT! The alarm went off.', 'bad');
     document.body.classList.add('caught');
@@ -272,12 +287,13 @@
     stopTimer();
     G.i++;
     hud();
-    if (G.i >= G.count) { G.locked = true; G.over = true; setTimeout(() => finishLevel(false), Math.max(delay, 500)); return; }
+    const g = G;                                       // a RESTART from the pause menu makes a new G: old timeouts stop
+    if (G.i >= G.count) { G.locked = true; G.over = true; pause.setActive(false); setTimeout(() => { if (G === g) finishLevel(false); }, Math.max(delay, 500)); return; }
     if (G.i - G.gStart >= G.V.onScreen) {
       G.locked = true; G.gStart = G.i;
-      setTimeout(() => { if (G && !G.over && !$('play').hidden) drawGroup(); }, Math.max(delay, RULES.afterGroupMs));
+      setTimeout(() => { if (G === g && !G.over && !$('play').hidden) drawGroup(); }, Math.max(delay, RULES.afterGroupMs));
     } else if (delay) {
-      setTimeout(() => { if (G && !G.over && !$('play').hidden) { G.locked = false; nextNote(); } }, delay);
+      setTimeout(() => { if (G === g && !G.over && !$('play').hidden) { G.locked = false; nextNote(); } }, delay);
     } else nextNote();
   }
 
@@ -316,25 +332,24 @@
     const unlocked = stars > 0 && old.stars === 0 && lv < VAULTS.length;
     const show = () => {
       $('vaultOpen').hidden = true;
-      $('resTreasure').innerHTML = stars ? treasureSVG(V.treasure, 'glow') : '';
-      $('resStars').innerHTML = A.starStr(stars);
-      $('resTitle').textContent = wasCaught ? 'CAUGHT!' : stars === 3 ? 'Perfect heist!' : stars ? 'Vault cracked!' : 'So close';
-      $('resMsg').textContent = wasCaught ? 'The alarm went off. Slow down, read each note, and try again. You can do this!'
-        : stars ? (stars === 3 ? 'Every bar right, not a sound out of place.'
-          : stars === 2 ? 'Play the whole code with no mistakes for 3 stars.'
-          : `Play ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes in time for 2 stars.`) + (unlocked ? ` The ${VAULTS[lv].name} is open to you now!` : '')
-        : `Play ${Math.ceil(count * RULES.passRate)} of ${count} notes in time to crack this vault.`;
-      $('resHits').textContent = `${hits}/${count}`;
-      $('resWrong').textContent = wrong; $('resMissed').textContent = missed; $('resStreak').textContent = bestStreak;
-      $('resScore').textContent = score;
       const newBest = score > old.best && old.best > 0;
-      $('resBest').textContent = newBest ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
       const hasNext = lv < VAULTS.length && (stars > 0 || A.DEMO);
-      $('resNext').hidden = !hasNext;
-      $('results').hidden = false;
+      A.UI.results.show({gameId: GAME_ID, stars,
+        hero: stars ? `<div class="res-treasure" id="resTreasure">${treasureSVG(V.treasure, 'glow')}</div>` : '',
+        title: wasCaught ? 'CAUGHT!' : stars === 3 ? 'Perfect heist!' : stars ? 'Vault cracked!' : 'So close',
+        msg: wasCaught ? 'The alarm went off. Slow down, read each note, and try again. You can do this!'
+          : stars ? (stars === 3 ? 'Every bar right, not a sound out of place.'
+            : stars === 2 ? 'Play the whole code with no mistakes for 3 stars.'
+            : `Play ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes in time for 2 stars.`) + (unlocked ? ` The ${VAULTS[lv].name} is open to you now!` : '')
+          : `Play ${Math.ceil(count * RULES.passRate)} of ${count} notes in time to crack this vault.`,
+        tiles: [['Code', `${hits}/${count}`], ['Mistakes', wrong], ['Missed', missed], ['Score', score]],
+        extra: `<p class="res-streak">Best streak <b id="resStreak">${bestStreak}</b></p>`,
+        newBest, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+        next: {label: 'Next vault', hidden: !hasNext, onClick: () => startLevel(lv + 1)},
+        retry: {label: 'Try again', onClick: () => startLevel(lv)},
+        levels: {label: 'Vaults', onClick: showHub},
+        announce: {members: ['bells'], member: 'bells'}});   // the bells' stars; achievements count everywhere
       A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-      A.Skins.announce($('results').querySelector('.panel'), {members: ['bells'], member: 'bells'});   // the bells' stars; achievements count everywhere
-      (hasNext ? $('resNext') : $('resRetry')).focus();
       A.Sfx.sequence([stars ? 'level-complete' : !wasCaught && 'level-failed', stars > old.stars && 'star-earned', newBest && 'new-high-score', unlocked && 'vault-unlocked']);
     };
     if (stars) {                                       // the vault door swings open on the treasure
@@ -345,11 +360,6 @@
       setTimeout(show, reduced.matches ? 500 : 1500);
     } else show();
   }
-
-  $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
-  $('resRetry').addEventListener('click', () => startLevel(G.lv));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
 
   showHub();
 })(window.Arcade);

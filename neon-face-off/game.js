@@ -24,13 +24,13 @@
   const {$} = A;
   const GAME_ID = 'neon-face-off';
   const RIVALS = window.FACEOFF_RIVALS, DIFF = window.FACEOFF_DIFFICULTY, RULES = window.FACEOFF_RULES;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
 
   const inst1 = A.requireInstrument(GAME_ID); if (!inst1) return;
   const opp = A.store.opponent;
   if (!opp) { location.replace(A.playerLink(GAME_ID)); return; }       // Player 2 hasn't been chosen yet
   const vsCPU = opp === 'cpu';
-  A.mountTopbar(inst1, '<span class="sound-ctl" id="sndCtl"></span>', GAME_ID);
+  A.mountTopbar(inst1, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
   $('changePlayers').href = A.playerLink(GAME_ID);
 
@@ -59,17 +59,33 @@
     ? A.avatarHTML({size, member: p.n === 1 ? p.member.id : null, guest: p.n === 2, label: `${p.name}, ${p.inst}`}) + `<span class="pmark" aria-hidden="true">${p.n}P</span>`
     : A.portraitHTML(p.pic, {size, color: p.cpu ? `var(--${p.R.color})` : undefined, label: p.name});
   const pairKey = () => `${P[0].member.id}>${P[1].member.id}`;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+  /* THE PAUSE MENU (shared/ui-kit.js): the whole match freezes (the puck, both reaction clocks, the countdown, the CPU,
+     the serve's auto-strike: every pending timer waits), the kit pauses the microphone */
+  const pause = A.UI.pause.mount({
+    onPause: () => freeze(),
+    onResume: () => thaw(),
+    onRestart: () => startMatch(),
+    restartLabel: 'Restart match',
+    onLevels: showSetup,
+    levelsLabel: 'Back to setup',
+    leaveTitle: 'Leave this match?', leaveText: 'This match won’t count.',
+    canPause: () => !!M && !M.over && M.state !== 'over',
+    info: () => M ? [[P[0].cpu ? P[0].name : 'Player 1', P[0].score], [P[1].cpu ? P[1].name : 'Player 2', P[1].score]] : [],
+  });
 
   /* ---------- match setup ---------- */
   const pickers = [];
   function showSetup() {
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopMatch();
-    $('setup').hidden = false; $('match').hidden = true; $('results').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('setup').hidden = false; $('match').hidden = true;
     document.body.classList.remove('in-match');
     $('vsLine').innerHTML = `<span class="c1">${P[0].name}</span> vs <span class="c2">${vsCPU ? 'CPU' : P[1].name}</span>`;
     [0, 1].forEach(i => drawColumn(i));
-    $('pointBtns').innerHTML = RULES.points.map(n => `<button type="button" class="seg" data-points="${n}" aria-pressed="${n === saved.settings.points}">${n}</button>`).join('');
+    $('pointBtns').innerHTML = RULES.points.map(n => `<button type="button" data-points="${n}" aria-pressed="${n === saved.settings.points}">${n}</button>`).join('');
     $('pointBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { saved.settings.points = +b.dataset.points; remember(); showSetup(); }));
     const rec = saved.h2h[pairKey()];
     $('record').hidden = vsCPU;
@@ -101,8 +117,8 @@
     col.innerHTML = `<div class="col-head">${own ? `<button type="button" class="col-pic col-edit" aria-label="Edit your avatar, ${p.name}">${portrait(p, 'tile')}</button>` : `<span class="col-pic">${portrait(p, 'tile')}</span>`}<div><small>Player ${i + 1} · ${p.inst}</small><b>${p.name}</b>` +
       (i === 1 ? `<button type="button" class="guest-rand">Surprise me</button>` : '') + `</div></div>` +
       `<div class="col-modes"></div>` +
-      `<div class="diff"><span class="mp-lbl">Difficulty</span><div class="segs">` +
-      DIFF.map(x => `<button type="button" class="seg" data-diff="${x.id}" aria-pressed="${x.id === d}"><b>${x.label}</b><small>${x.window} s</small></button>`).join('') + `</div></div>`;
+      `<div class="diff"><span class="ui-label" id="diffLbl${i + 1}">Difficulty</span><div class="ui-seg" role="group" aria-labelledby="diffLbl${i + 1}">` +
+      DIFF.map(x => `<button type="button" data-diff="${x.id}" aria-pressed="${x.id === d}"><b>${x.label}</b><small>${x.window} s</small></button>`).join('') + `</div></div>`;
     pickers[i] = A.ModePicker.mount(col.querySelector('.col-modes'), {gameId: GAME_ID, group: p.group, member: p.member, levels: 8, memory: p.memory, stars: false, onChange: () => {}});
     col.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => { saved.settings['p' + (i + 1)].diff = b.dataset.diff; remember(); drawColumn(i); }));
     const ed = col.querySelector('.col-edit');
@@ -122,13 +138,40 @@
 
   /* ---------- the match ---------- */
   let M = null, raf = 0, timers = [];
-  const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
   const now = () => performance.now();
+  /** a timeout that waits while the match is paused (freeze/thaw keep what was left of it) */
+  function later(fn, ms) {
+    const t = {at: now() + ms, left: ms, id: 0};
+    t.run = () => { timers = timers.filter(x => x !== t); fn(); };
+    if (!(M && M.frozen)) t.id = setTimeout(t.run, ms);
+    timers.push(t);
+    return t;
+  }
+  /** PAUSE: every pending timer stops (its time left kept), the loop stops moving and drawing */
+  function freeze() {
+    if (!M || M.frozen) return;
+    M.frozen = now();
+    timers.forEach(t => { clearTimeout(t.id); t.id = 0; t.left = Math.max(0, t.at - M.frozen); });
+    A.Pitch.demoNote = null;
+  }
+  /** RESUME: every clock of the match moves on by the time it was paused, then the timers carry on */
+  function thaw() {
+    if (!M || !M.frozen) return;
+    const t = now(), d = t - M.frozen;
+    M.frozen = 0;
+    M.puck.t0 += d;
+    if (M.noteAt) M.noteAt += d;
+    if (M.pendingAt) M.pendingAt += d;
+    if (M.shake > t - d) M.shake += d;
+    M.fx.forEach(f => { f.t0 += d; });
+    M.lastT = t;
+    timers.forEach(x => { x.at = t + x.left; if (!x.id) x.id = setTimeout(x.run, x.left); });
+  }
   const sound = (name, opts) => (RULES.sounds ? A.Sfx.event(name, opts) : 0);
   const rally = () => ({muteCap: RULES.maxHitSuppressMs});                 // an in-rally sound mutes the mic at most this long
   /* the microphone pauses for the goal + the countdown (nothing counts), and listens again as the serve note appears */
   function micPause(on) { if (A.Pitch.pauseListening) A.Pitch.pauseListening(on); A.Sfx.sync(); }
-  function stopMatch() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0; if (M) M.over = true; A.Pitch.demoNote = null; showCount(''); }
+  function stopMatch() { timers.forEach(t => clearTimeout(t.id)); timers = []; cancelAnimationFrame(raf); raf = 0; if (M) M.over = true; A.Pitch.demoNote = null; showCount(''); }
 
   function startMatch() {
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
@@ -143,8 +186,9 @@
     });
     M = {points: saved.settings.points, server: 0, active: null, state: 'idle', noteAt: 0, rally: 0, base: RULES.serveTime,
          puck: {u: .12, v: 0, path: null, t0: 0, T: 1, seg: 0}, trail: [], fx: [], shake: 0, over: false};
-    $('setup').hidden = true; $('match').hidden = false; $('results').hidden = true;
+    A.UI.results.hide(); $('setup').hidden = true; $('match').hidden = false;
     document.body.classList.add('in-match');
+    pause.setActive(true);
     P.forEach((p, i) => {
       const s = $('side' + (i + 1));
       s.querySelector('.s-pic').innerHTML = portrait(p, 'tile');
@@ -317,17 +361,19 @@
   function setStatus(i, text, cls) { const s = $('side' + (i + 1)).querySelector('.s-status'); s.textContent = text; s.className = 's-status ' + (cls || ''); }
   function banner(cls, text, extra) { const b = $('banner'); b.hidden = !text; b.textContent = text || ''; b.className = 'banner ' + (cls || '') + (extra ? ' ' + extra : ''); }
 
-  /* ---------- results ---------- */
+  /* ---------- results (shared/ui-kit.js) ---------- */
   function finish(winner) {
     M.state = 'over'; stopMatch();
     sound('match-win');
-    const w = P[winner], l = P[1 - winner];
-    $('resTitle').textContent = `${w.cpu ? w.name : 'Player ' + (winner + 1)} wins!`;
-    $('resTitle').className = winner === 0 ? 'c1' : 'c2';
-    $('resScore').innerHTML = `<span class="c1">${P[0].name} ${P[0].score}</span> – <span class="c2">${P[1].score} ${P[1].name}</span>`;
-    $('resStats').innerHTML = P.map((p, i) => `<div class="p${i + 1}"><span class="res-pic">${portrait(p, 'tile')}</span><small>${p.name}</small><span><b>${p.returns}</b> returns · <b>${p.smashes}</b> smashes` +
-      (p.best != null ? ` · fastest <b>${p.best.toFixed(2)} s</b>` : '') + `</span></div>`).join('');
-    $('resStars').hidden = !vsCPU; $('resNext').hidden = true; $('resBest').textContent = '';
+    const w = P[winner];
+    const both = f => `${f(P[0])} – ${f(P[1])}`;
+    const o = {gameId: GAME_ID, theme: `nfo-res w-p${winner + 1}`, stars: null,
+      title: `${w.cpu ? w.name : 'Player ' + (winner + 1)} wins!`,
+      hero: `<div class="nfo-vs">` + P.map((p, i) => `<span class="nfo-who p${i + 1}"><span class="res-pic">${portrait(p, 'tile')}</span><b>${esc(p.name)}</b></span>`).join('<i aria-hidden="true">vs</i>') + `</div>`,
+      tiles: [['Score', both(p => p.score)], ['Returns', both(p => p.returns)], ['Smashes', both(p => p.smashes)],
+        ['Fastest', both(p => p.best != null ? p.best.toFixed(2) + ' s' : '–')]],
+      retry: {label: 'Rematch', onClick: () => A.requireMic(startMatch)},
+      levels: {label: 'Match setup', onClick: showSetup}};
     if (vsCPU) {
       const lv = P[1].rival, won = winner === 0, margin = P[0].score - P[1].score;
       const stars = !won ? 0 : P[1].score === 0 ? 3 : margin >= 4 ? 2 : 1;
@@ -338,33 +384,30 @@
         saved.cpuWins++; remember();
       }
       A.store.setLevel(GAME_ID, P[0].member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pts, old.best)}, stars);
-      $('resStars').innerHTML = A.starStr(stars);
-      $('resMsg').textContent = !won ? `${P[1].name} took this one. Play your notes a little sooner and try again!`
-        : stars === 3 ? 'A shutout! Perfect defense.' : stars === 2 ? 'Won by 4 or more. Keep them scoreless for 3 stars.' : 'You won! Win by 4 or more for 2 stars.';
-      $('resBest').textContent = pts > old.best && old.best ? 'New best score!' : `Score ${pts}`;
-      $('resNext').hidden = !(won || A.DEMO) || lv >= RIVALS.length;
+      Object.assign(o, {stars,
+        msg: !won ? `${P[1].name} took this one. Play your notes a little sooner and try again!`
+          : stars === 3 ? 'A shutout! Perfect defense.' : stars === 2 ? 'Won by 4 or more. Keep them scoreless for 3 stars.' : 'You won! Win by 4 or more for 2 stars.',
+        best: `Score ${pts}` + (old.best ? ` · Best ${Math.max(pts, old.best)}` : ''), newBest: pts > old.best && !!old.best,
+        next: {label: 'Next rival', hidden: !(won || A.DEMO) || lv >= RIVALS.length, onClick: () => { setRival(P[1].rival + 1); showSetup(); }}});
+      A.UI.results.show(o);                        // Player 1's skins (the kit calls A.Skins.announce)
       sound(won ? 'level-complete' : 'level-failed');
       if (stars > old.stars) later(() => sound('star-earned'), 520);
       if (pts > old.best && old.best) later(() => sound('new-high-score'), 900);
     } else {
       const rec = saved.h2h[pairKey()] || (saved.h2h[pairKey()] = {p1: 0, p2: 0});
       rec[winner === 0 ? 'p1' : 'p2']++; remember();
-      $('resMsg').innerHTML = `Head to head: <b class="c1">${P[0].name} ${rec.p1}</b> – <b class="c2">${rec.p2} ${P[1].name}</b>`;
+      o.msgHTML = `Head to head: <b class="c1">${esc(P[0].name)} ${rec.p1}</b> – <b class="c2">${rec.p2} ${esc(P[1].name)}</b>`;
+      o.announce = false;                          // two-player matches earn no stars
+      A.UI.results.show(o);
     }
-    $('results').hidden = false; $('resAgain').focus();
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    if (vsCPU) A.Skins.announce($('results').querySelector('.panel'));     // Player 1's skins (two-player matches earn no stars)
-    else if (A.Avatar && A.Avatar.freshItems().length) later(() => A.Skins.catchUp(A.store.player), 1200);   // a player item a two-player win unlocked (Air Rink)
+    if (!vsCPU && A.Avatar && A.Avatar.freshItems().length) later(() => A.Skins.catchUp(A.store.player), 1200);   // a player item a two-player win unlocked (Air Rink)
   }
-  $('resAgain').addEventListener('click', () => A.requireMic(startMatch));
-  $('resNext').addEventListener('click', () => { setRival(P[1].rival + 1); showSetup(); });
-  $('resSetup').addEventListener('click', showSetup);
-  $('quitMatch').addEventListener('click', showSetup);
 
   /* ---------- ?demo: hold Space = the active player's note, hold W = a wrong note ---------- */
   if (A.DEMO) {
     addEventListener('keydown', e => {
-      if (!M || M.over || M.active === null || P[M.active].cpu || e.repeat) return;
+      if (!M || M.over || M.frozen || M.active === null || P[M.active].cpu || e.repeat || A.UI.isOpen()) return;
       const t = P[M.active].target;
       if (e.key === ' ') { e.preventDefault(); A.Pitch.demoNote = t.sounding; }
       else if (e.key === 'w' || e.key === 'W') A.Pitch.demoNote = t.sounding + 2;
@@ -404,7 +447,7 @@
   }
   function loop() {
     raf = requestAnimationFrame(loop);
-    if (document.hidden || !M) return;
+    if (document.hidden || !M || M.frozen) return;          // paused: nothing moves (thaw() moves every clock on)
     const t = now(), dt = t - (M.lastT || t); M.lastT = t;
     goLiveIfReady(t);                                                   // the hit sound's mute is over: the receiver's turn starts
     // a later sound while a player's note is live: the puck and their reaction clock wait (the detector is deaf meanwhile)
@@ -478,6 +521,6 @@
 
   A.FaceOff = {P, get M() { return M; },                                  // for tests
     state: () => M && {state: M.state, active: M.active, live: M.live, noteAt: M.noteAt, liveWait: M.liveWait, countStyle: M.countStyle, countLog: M.countLog,
-      hold: !!M.puck.hold, T: M.puck.T, score: P.map(p => p.score), paused: !!A.Pitch.paused, suppressedFor: Math.max(0, Math.round(A.Pitch.suppressedUntil - now()))}};
+      hold: !!M.puck.hold, T: M.puck.T, score: P.map(p => p.score), paused: !!A.Pitch.paused, frozen: !!M.frozen, puckT0: M.puck.t0, timers: timers.length, suppressedFor: Math.max(0, Math.round(A.Pitch.suppressedUntil - now()))}};
   showSetup();
 })(window.Arcade);

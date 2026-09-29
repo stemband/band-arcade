@@ -2,14 +2,13 @@
    Colors are theme tokens (the canvas reads the --sw-* ones). prefers-reduced-motion: no pulses, no speed lines, no shake. */
 .speedway{--sw-hot:var(--pink);--sw-warm:var(--amber)}
 .hub-head{margin-bottom:14px}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(36px,8vw,64px);line-height:.95;font-style:italic;transform:skewX(-6deg);transform-origin:left}
+.game-title{font-style:italic;transform:skewX(-6deg);transform-origin:left}
 .game-title .t1{color:var(--amber-hi);text-shadow:var(--glow-amber)}
 .game-title .t2{color:var(--pink-hi);text-shadow:var(--glow-pink)}
-.hub-head p{max-width:66ch;margin:10px 0 12px}
 .diff-set{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
-#diffBtns{display:flex;gap:6px;flex-wrap:wrap}
-.seg{min-height:44px;min-width:92px;padding:6px 14px;border-radius:12px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);font-family:var(--display);font-size:15px;text-transform:uppercase}
-.seg[aria-pressed="true"]{border-color:var(--pink);color:var(--pink-hi);box-shadow:var(--glow-pink)}
+.diff-set .ui-label{margin:0}
+/* the difficulty toggle (shared .ui-seg): the pressed one lights in the track's neon pink */
+.sw-seg>button{--seg-on:var(--pink);min-width:92px;font-family:var(--display);font-weight:400;text-transform:uppercase}
 .diff-say{font-size:14px;color:var(--text-lo)}
 
 /* the track cards */
@@ -118,19 +117,10 @@
   .meter b{font-size:18px}
 }
 
-/* ---------- results ---------- */
-.res-panel{max-width:640px;width:100%}
-.overlay#results{align-items:flex-start;overflow-y:auto}
-.overlay#results>.panel{margin:auto}
+/* ---------- results (shared/ui-kit.js; the finishing position is the picture above the stars) ---------- */
 .res-pos{margin:0;font-family:var(--display);font-size:clamp(30px,min(7vw,7vh),56px);font-style:italic;text-transform:uppercase;color:var(--text-hi)}
 .res-pos.p1{color:var(--yellow);text-shadow:var(--glow-yellow)}.res-pos.p2{color:var(--white-hi)}.res-pos.p3{color:var(--amber-hi)}
-.panel .bigstars{font-size:34px;letter-spacing:6px;color:var(--text-dim);margin:0 0 4px}
-.panel .bigstars .on{color:var(--yellow)}
-.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:10px 0 6px;font-variant-numeric:tabular-nums}
-.stats div{background:var(--deep);border-radius:12px;padding:8px 4px}
-.stats small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:17px}
-@media (max-width:560px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.res-diff{margin:0 0 4px;text-align:center;font-size:14px;font-weight:700;color:var(--text-lo)}
 .chart-title{margin:10px 0 2px;font-weight:700;color:var(--text-hi)}
 .chart-title small{display:block;font-weight:400;font-size:12.5px;color:var(--text-lo)}
 .chart{background:var(--deep);border-radius:12px;padding:6px}
@@ -147,7 +137,6 @@
 .lap-notes li::before{content:"";position:absolute;left:0;top:.45em;width:8px;height:8px;border-radius:2px;background:var(--text-lo)}
 .lap-notes li.ok::before{background:var(--green)}.lap-notes li.sharp::before{background:var(--amber)}.lap-notes li.flat::before{background:var(--cyan)}
 .lap-notes b{color:var(--text-hi)}
-.best{color:var(--yellow-hi);font-weight:700;min-height:1.2em}
 
 @media (prefers-reduced-motion:no-preference){
   .breath .ring{animation:breathe 3.5s ease-in-out infinite}

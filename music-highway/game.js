@@ -25,7 +25,7 @@
   A.mountTopbar(inst, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
   { const l = A.link('songs.html'); $('boardLink').href = l + (l.includes('?') ? '&' : '?') + 'm=' + encodeURIComponent(member.id); }
-  const RM = matchMedia('(prefers-reduced-motion: reduce)'), reduced = () => RM.matches;
+  const RM = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')), reduced = () => RM.matches;
 
   /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, speed ('slow' | 'normal' |
      'turbo'; old saves: slow), mode ('play' | 'practice'), melody, melVol, wide, names, sticking, fx, turbo ({member:
@@ -58,7 +58,7 @@
     $('pracOpts').hidden = playMode !== 'practice';
     $('melOn').setAttribute('aria-pressed', String(melody)); $('melOff').setAttribute('aria-pressed', String(!melody));
     $('melVol').value = Math.round(melVol * 100); $('melVol').disabled = !melody;
-    $('hpBtn').setAttribute('aria-pressed', String(hp)); $('hpBtn').classList.toggle('on', hp);
+    $('hpBtn').setAttribute('aria-pressed', String(hp));
     $('spcNormal').setAttribute('aria-pressed', String(!wide)); $('spcWide').setAttribute('aria-pressed', String(wide));
     $('stickOpt').hidden = $('stickNote').hidden = !unpitched;
     if (unpitched) $('hubBlurb').textContent = 'Neon lights race down the highway with the band: the left lane is your left hand, the right lane your right hand. Hit the drum as each light reaches its gate.';
@@ -78,12 +78,28 @@
   $('melOn').onclick = () => { melody = true; save({melody}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('melOff').onclick = () => { melody = false; save({melody}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('melVol').oninput = () => { melVol = $('melVol').value / 100; save({melVol}); };
-  $('spcNormal').onclick = () => { wide = false; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
-  $('spcWide').onclick = () => { wide = true; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  const setWide = v => { wide = v; save({wide}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('spcNormal').onclick = () => setWide(false); $('spcWide').onclick = () => setWide(true);
   $('stickAlt').onclick = () => { sticking = 'alternate'; save({sticking}); A.Sfx.event('ui-toggle'); drawOpts(); };
   $('stickDown').onclick = () => { sticking = 'downbeats'; save({sticking}); A.Sfx.event('ui-toggle'); drawOpts(); };
-  $('namesOn').onclick = () => { names = true; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
-  $('namesOff').onclick = () => { names = false; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  const setNames = v => { names = v; save({names}); A.Sfx.event('ui-toggle'); drawOpts(); };
+  $('namesOn').onclick = () => setNames(true); $('namesOff').onclick = () => setNames(false);
+  /* THE SETTINGS PANEL (shared/ui-kit.js, also from the pause menu): NOTE SPACING and LETTER NAMES are display options,
+     saved in the same place as the song select's toggles. Letter names change at once; a new note spacing is laid out
+     when the song resumes (it rewinds a measure and counts in, so the lights never jump under the student). */
+  A.UI.settings.register(box => {
+    const seg = (label, id, opts, get, set) => {
+      const row = document.createElement('div');
+      row.innerHTML = `<span class="ui-label" id="${id}">${label}</span><div class="ui-seg" role="group" aria-labelledby="${id}">` +
+        opts.map(([v, t]) => `<button type="button" data-v="${v}">${t}</button>`).join('') + '</div>';
+      const draw = () => row.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(get()))));
+      row.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { set(b.dataset.v === 'true'); draw(); }));
+      draw(); box.appendChild(row);
+    };
+    seg('Note spacing', 'mhSetSpc', [['false', 'Normal'], ['true', 'Wide']], () => wide, setWide);
+    seg('Letter names in the lights', 'mhSetNames', [['true', 'On'], ['false', 'Off']], () => names, setNames);
+    if (G) { const n = document.createElement('p'); n.className = 'ui-snote'; n.textContent = 'A new note spacing shows when you resume.'; box.appendChild(n); }
+  });
   $('hpBtn').onclick = () => {
     A.Sfx.event('ui-toggle');
     if (hp) { hp = false; save({hp}); drawOpts(); return; }
@@ -95,7 +111,8 @@
   function showHub() {
     stopSong();
     A.Sfx.gameMenuMusic(GAME_ID);
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('pausePanel').hidden = true;
+    $('play').hidden = true; $('hub').hidden = false; A.UI.results.hide();
+    pause.setActive(false);
     document.documentElement.classList.remove('mh-playing');
     drawOpts();
     $('songGrid').innerHTML = SONGS.map((s, i) => {
@@ -118,6 +135,7 @@
 
   /** START on a song: the microphone, then (once) the headphones check and the timing check, then the song */
   function begin(i, opts = {}) {
+    A.UI.results.hide();
     const guide = opts.guide != null ? opts.guide : playMode === 'practice';
     if (guide) return startSong(i, Object.assign({}, opts, {guide: true}));   // PRACTICE: never asks for the microphone
     A.requireMic(() => {
@@ -195,8 +213,9 @@
     G = {i, song, map, lanes, rate, practice, guide, speed: practice ? 'practice' : speed, slow: !practice && speed === 'slow', T, fv: {n: T.notes.fvTotal || 0, held: 0, pts: 0}, phase: 'count', score: 0, combo: 0, maxCombo: 0, mult: 1,
          counts: {perfect: 0, good: 0, ok: 0, early: 0, late: 0, miss: 0}, value: 0, judged: 0, pendingAtk: [], recent: [], soft: [],
          bleed: 0, bleedSamples: [], hits: [], lag: lagMs(), paused: false, loopStats: {}, log: []};
-    $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
+    $('hub').hidden = true; A.UI.results.hide(); $('play').hidden = false;
     document.documentElement.classList.add('mh-playing');
+    pause.setActive(true);                                          // the arcade's PAUSE button (shared/ui-kit.js)
     $('hudSong').textContent = song.title + (practice ? ' · practice' : speed === 'slow' ? ' · slow' : speed === 'turbo' ? ' · turbo' : '');
     $('hudPractice').hidden = !guide; $('play').classList.toggle('guide', guide);
     // PRACTICE: the melody the band plays (the snare hears the song's concert melody for context)
@@ -491,6 +510,9 @@
     V.bg = drawStatic(W, roadH, dpr);
     $('staffBox').style.height = staffH + 'px';
     P.style.setProperty('--sy', V.sy + 'px');
+    // the arcade's PAUSE button (shared/ui-kit.js) sits over the top-left of the highway: the HUD starts right of it
+    const pb = pause.el.getBoundingClientRect();
+    P.querySelector('.mh-hud').style.paddingLeft = pb.width ? Math.round(pb.right + 12) + 'px' : '';
     GL.lanes = Array.from({length: V.nl}, () => ({v: 0, target: 0, n: null, offAt: -1e9, col: 'c', badAt: -1e9}));
   }
   /* the drawing itself is shared/highway-draw.js (Arcade.HighwayDraw), which the cabinet's attract screen uses too */
@@ -686,47 +708,46 @@
     }
     $('play').hidden = true; document.documentElement.classList.remove('mh-playing');
     const shownStars = g.practice || g.slow ? null : stars;
-    $('resStars').innerHTML = shownStars == null ? '' : A.starStr(shownStars);
-    ['resFvBox', 'resCounts'].forEach(id => { $(id).hidden = false; }); $('resPlay').hidden = true; $('resRetry').textContent = 'Play again';
-    document.querySelector('#results .mh-stats').hidden = false;
-    $('resFvBox').hidden = !g.fv.n;                                 // FULL VALUE HELD: quarter notes and longer (not the snare)
-    $('resFv').textContent = g.fv.n ? Math.round(g.fv.held / g.fv.n * 100) + '%' : '–';
-    $('resTitle').textContent = g.practice ? 'Practice done' : g.slow ? 'Slow practice done' : stars ? (stars === 3 ? 'Superstar!' : 'Song complete!') : 'Keep practicing!';
-    $('resMsg').textContent = g.practice ? `You looped measures ${g.practice.from}–${g.practice.to}. Try the whole song again!` :
-      g.slow ? 'Slow mode is for practice (no stars). Ready for full speed?' :
-      stars === 3 ? 'Right on the beat. The band loves you!' : stars ? `${Math.round(R.stars[stars] || 100)}% accuracy gets the next star.` : `Reach ${R.stars[0]}% accuracy for a star. Practice the trouble spot below, then try again!`;
-    $('resScore').textContent = g.score; $('resAcc').textContent = Math.round(acc) + '%'; $('resCombo').textContent = g.maxCombo;
     const c = g.counts;
-    $('resCounts').innerHTML = [['perfect', 'Perfect'], ['good', 'Good'], ['ok', 'OK'], ['early', 'Early'], ['late', 'Late'], ['miss', 'Miss']]
+    const extra = document.createElement('div');
+    extra.innerHTML = `<div class="mh-counts" id="resCounts">` + [['perfect', 'Perfect'], ['good', 'Good'], ['ok', 'OK'], ['early', 'Early'], ['late', 'Late'], ['miss', 'Miss']]
       .map(([k, l]) => `<span class="mc-${k}"><b>${c[k]}</b>${l}</span>`).join('') + (g.bonus ? `<span class="mc-bonus"><b>+${g.bonus}</b>Hold bonus</span>` : '') +
-      (g.fv.pts ? `<span class="mc-bonus"><b>+${g.fv.pts}</b>Full value</span>` : '');
-    $('resBest').textContent = (turboNew ? '⚡ TURBO badge earned! ' : '') + (g.practice || g.slow ? '' : newBest && prev.best ? `New best score! (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : '');
-    trouble(g);
+      (g.fv.pts ? `<span class="mc-bonus"><b>+${g.fv.pts}</b>Full value</span>` : '') + '</div>' +
+      `<div class="mh-trouble" id="trouble" hidden><h3 class="ui-section">Trouble spot</h3><p id="troubleMsg"></p><div class="stage mh-tstaff" id="troubleStaff"></div>` +
+      `<button type="button" class="btn btn-secondary" id="practiceBtn">Practice this part</button></div>`;
     const next = g.i + 1 < SONGS.length && unlocked(g.i + 1);
-    $('resNext').hidden = !next || !!g.practice;
-    $('results').hidden = false;
-    $('results').dataset.song = g.i; $('results').dataset.guide = '';
     lastG = g; G = null;
+    A.UI.results.show({gameId: GAME_ID, wide: true, stars: shownStars,
+      title: g.practice ? 'Practice done' : g.slow ? 'Slow practice done' : stars ? (stars === 3 ? 'Superstar!' : 'Song complete!') : 'Keep practicing!',
+      msg: g.practice ? `You looped measures ${g.practice.from}–${g.practice.to}. Try the whole song again!` :
+        g.slow ? 'Slow mode is for practice (no stars). Ready for full speed?' :
+        stars === 3 ? 'Right on the beat. The band loves you!' : stars ? `${Math.round(R.stars[stars] || 100)}% accuracy gets the next star.` : `Reach ${R.stars[0]}% accuracy for a star. Practice the trouble spot below, then try again!`,
+      // FULL VALUE HELD: quarter notes and longer (not the snare)
+      tiles: [['Score', g.score], ['Accuracy', Math.round(acc) + '%'], ['Max combo', g.maxCombo], g.fv.n ? ['Full value held', Math.round(g.fv.held / g.fv.n * 100) + '%'] : null],
+      newBest: newBest && !!prev.best,
+      best: (turboNew ? '⚡ TURBO badge earned! ' : '') + (g.practice || g.slow ? '' : newBest && prev.best ? `Best: ${g.score} (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : ''),
+      extra, onShow: () => trouble(g),
+      next: {label: 'Next song', hidden: !next || !!g.practice, onClick: () => begin(g.i + 1, {guide: false})},
+      retry: {label: 'Try again', onClick: () => begin(g.i, {guide: false})},
+      levels: {label: 'Songs', onClick: () => showHub()}});
     const snd = [!g.practice && !g.slow ? (stars ? 'level-complete' : 'level-failed') : 'level-complete'];
     if (stars > (prev.stars || 0)) snd.push('star-earned');
     if (newBest && prev.best) snd.push('new-high-score');
     A.Sfx.sequence(snd, 120, {channel: GAME_ID});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
-    A.Skins.announce($('results').querySelector('.panel'));
   }
   let lastG = null;
   /* the end of a PRACTICE run: no score, no stars, nothing saved */
   function practiceDone(g) {
     $('play').hidden = true; document.documentElement.classList.remove('mh-playing');
-    $('resStars').innerHTML = ''; $('resTitle').textContent = 'Practice complete!';
-    $('resMsg').textContent = unpitched ? 'You heard the whole song and saw every stick. Ready to play it for real?' : 'You heard every note of the song. Ready to play it for real?';
-    document.querySelector('#results .mh-stats').hidden = true; $('resCounts').hidden = true; $('resBest').textContent = ''; $('trouble').hidden = true;
-    $('resPlay').hidden = false; $('resNext').hidden = true; $('resRetry').textContent = 'Practice again';
-    $('results').hidden = false; $('results').dataset.song = g.i; $('results').dataset.guide = '1';
     lastG = g; G = null;
+    A.UI.results.show({gameId: GAME_ID, stars: null, title: 'Practice complete!',
+      msg: unpitched ? 'You heard the whole song and saw every stick. Ready to play it for real?' : 'You heard every note of the song. Ready to play it for real?',
+      next: {label: 'Play this song', onClick: () => { playMode = 'play'; save({mode: 'play'}); drawOpts(); begin(g.i, {guide: false}); }},
+      retry: {label: 'Practice again', onClick: () => begin(g.i, {guide: true})},
+      levels: {label: 'Songs', onClick: () => showHub()}});
     A.Sfx.sequence(['level-complete'], 120, {channel: GAME_ID});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
-    A.Skins.announce($('results').querySelector('.panel'));
   }
   /* a quiet FULL VALUE pop-up over the note's gate (a fade, never a flash) */
   let fvT = 0;
@@ -767,20 +788,16 @@
     $('practiceBtn').onclick = () => begin(g.i, {practice: {from, to}});
     box.hidden = false;
   }
-  $('resRetry').onclick = () => begin(+$('results').dataset.song, {guide: $('results').dataset.guide === '1'});
-  $('resPlay').onclick = () => { playMode = 'play'; save({mode: 'play'}); drawOpts(); begin(+$('results').dataset.song, {guide: false}); };
-  $('resNext').onclick = () => { const i = +$('results').dataset.song + 1; $('results').hidden = true; begin(i, {guide: false}); };
-  $('resSongs').onclick = () => showHub();
 
-  /* ================= PAUSE ================= */
-  /* ================= PAUSE =================
+  /* ================= PAUSE (the arcade's pause button + menu: shared/ui-kit.js) =================
      Pausing stops the scheduler and every scheduled or sounding backing sound (drums, clicks, the headphones band), the
      song clock and the drawing freeze where they are (frame() draws nothing while paused), and nothing heard counts.
      RESUME goes back ONE MEASURE (never before the start), counts in one measure and plays on from there, on a new
      clock start: drums, pads, staff and judging stay in step. Notes already judged keep their result (judge() skips them).
-     Auto-pause: a hidden tab, a locked device, or the window losing focus for more than PAUSE_BLUR_MS. */
-  const PAUSE_BLUR_MS = 600;
-  function pause() {
+     Auto-pause (the kit): a hidden tab, a locked device, or the window losing focus for more than 0.6 s (pauseOnBlur);
+     Esc or P. SONG MENU (the kit's "back to levels"): the song ends at once: no results, no stars, nothing saved; the song
+     select comes back with this song still selected (LevelSelect remembered it when it started). */
+  function pauseSong() {
     if (!G || G.paused || G.phase === 'done') return;
     G.pausedRaw = songNow(); G.pausedAt = Math.max(0, G.pausedRaw); G.paused = true; G.pauses = (G.pauses || 0) + 1;
     clearInterval(sched); sched = 0;
@@ -789,40 +806,30 @@
     G.T.notes.forEach(n => { n.holding = false; });                // a held note stops counting (its bonus so far stays)
     glowOff(); showCount('');
     A.Pitch.demoAttacks = false;
-    $('pScore').textContent = G.guide ? '–' : G.score;
-    $('pAccL').textContent = G.practice ? 'This loop' : 'Accuracy';
-    $('pAcc').textContent = $('hudAcc').textContent;
-    $('pausePanel').hidden = false;
-    setTimeout(() => $('resumeBtn').focus(), 0);
   }
   function resume() {
     if (!G || !G.paused) return;
-    $('pausePanel').hidden = true;
     const T = G.T, bar = T.per * T.spb;
     const beat = Math.floor(G.pausedAt / T.spb + 1e-6) * T.spb;     // back one measure from the beat we stopped on
     const from = Math.max(0, beat - bar);
     G.fileStarted = false;
     G.resumes = (G.resumes || []).concat({at: +G.pausedAt.toFixed(3), from: +from.toFixed(3)});
-    A.Pitch.demoAttacks = true; A.Pitch.ignoreCurrent();
+    A.Pitch.demoAttacks = !G.guide; A.Pitch.ignoreCurrent();
+    if (G.spacing && G.spacing.wide !== wide) spacing();             // NOTE SPACING changed in the Settings panel
     play(from);
   }
-  $('pauseBtn').onclick = () => pause();
-  $('resumeBtn').onclick = resume;
-  $('restartBtn').onclick = () => { const i = G ? G.i : 0, pr = G && G.practice, gd2 = !!(G && G.guide); $('pausePanel').hidden = true; startSong(i, {practice: pr, guide: gd2}); };
-  /* SONG MENU: the song ends at once: no results, no stars, nothing saved; the song select comes back with this song
-     still selected (LevelSelect remembered it when it started) */
-  $('quitBtn').onclick = () => { $('pausePanel').hidden = true; showHub(); };
-  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-  addEventListener('pagehide', () => pause());
-  let blurT = 0;
-  addEventListener('blur', () => { clearTimeout(blurT); blurT = setTimeout(() => { if (!document.hasFocus()) pause(); }, PAUSE_BLUR_MS); });
-  addEventListener('focus', () => clearTimeout(blurT));
-  addEventListener('keydown', e => {
-    if (!G || $('play').hidden || e.repeat) return;
-    const k = e.key;
-    if (k !== 'Escape' && k !== 'p' && k !== 'P') return;
-    e.preventDefault();
-    if (!G.paused) pause(); else if (k === 'Escape' || k === 'p' || k === 'P') resume();
+  const pause = A.UI.pause.mount({
+    onPause: pauseSong,
+    onResume: resume,
+    onRestart: () => { const i = G ? G.i : 0, pr = G && G.practice, gd2 = !!(G && G.guide); startSong(i, {practice: pr, guide: gd2}); },
+    onLevels: () => showHub(),
+    levelsLabel: 'Song menu',
+    leaveTitle: 'Leave this song?', leaveText: 'Your score for this song won’t be saved.',
+    confirmLeave: () => !!G && !G.guide && !G.practice && !G.slow,
+    canPause: () => !!G && G.phase !== 'done',
+    pauseOnBlur: true,
+    note: 'The band waits for you. RESUME goes back one measure and counts you in.',
+    info: () => G ? [['Score', G.guide ? '–' : G.score], [G.practice ? 'This loop' : 'Accuracy', G.guide ? '–' : $('hudAcc').textContent]] : [],
   });
   addEventListener('resize', () => { if (G && !$('play').hidden) { layout(); spacing(); buildStaff(); } });
 

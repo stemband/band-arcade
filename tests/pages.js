@@ -19,6 +19,7 @@ const PAGES = [
   {name: 'Art Board', url: 'art-board/index.html'},
   {name: 'Song Board', url: 'music-highway/songs.html'},
   {name: 'avatar card', url: 'avatar-card/index.html'},
+  {name: 'UI gallery', url: 'docs/gallery.html'},
   {name: 'old Select Player address', url: 'select-player/index.html?game=note-storm'},
 ];
 module.exports = {PAGES};

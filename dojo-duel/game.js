@@ -25,7 +25,7 @@
   const tok = name => getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const line = (k, name) => pick(LINES[k] || ['']).replace(/\{name\}/g, name || '');
-  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = () => (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches;
 
   A.mountTopbar(null, '', GAME_ID, {fixed: 'Band Ninja'});
   if (A.DEMO) $('demoHelp').hidden = false;
@@ -99,13 +99,13 @@
     el.innerHTML =
       `<div class="pc-head"><span class="pmark">${pi + 1}P</span><button type="button" class="pc-pic" data-act="edit" aria-label="Edit ${pi ? 'Player 2' : 'your player'}">${pic(pi, 'tile')}</button>` +
       `<div class="pc-name"><b data-name>${esc(nameOf(pi))}</b><small>${esc(recordText(nameOf(pi)))}</small></div></div>` +
-      `<div class="pc-btns"><div class="seg seg-sm" role="group" aria-label="Name">${seg([{v: 0, html: `Player ${pi + 1}`}, {v: 1, html: esc(avName(pi))}], +p.named, 'named')}</div>` +
-      `<button type="button" class="btn btn-ghost btn-small" data-act="edit">${pi ? 'Edit player 2' : 'Edit player'}</button>` +
-      (pi ? `<button type="button" class="btn btn-ghost btn-small" data-act="random">Surprise me</button>` : '') + `</div>` +
-      `<div class="pc-row"><span class="dd-lbl">Clef</span><div class="seg" role="group" aria-label="Clef">${seg([{v: 'treble', html: '<i class="clef">𝄞</i> Treble'}, {v: 'bass', html: '<i class="clef">𝄢</i> Bass'}], p.clef, 'clef')}</div></div>` +
-      `<div class="pc-row"><span class="dd-lbl">Notes</span><div class="seg seg-notes" role="group" aria-label="Notes">` +
+      `<div class="pc-btns"><div class="ui-seg ui-seg-sm seg-name" role="group" aria-label="Name">${seg([{v: 0, html: `Player ${pi + 1}`}, {v: 1, html: esc(avName(pi))}], +p.named, 'named')}</div>` +
+      `<button type="button" class="btn btn-secondary btn-small" data-act="edit">${pi ? 'Edit player 2' : 'Edit player'}</button>` +
+      (pi ? `<button type="button" class="btn btn-secondary btn-small" data-act="random">Surprise me</button>` : '') + `</div>` +
+      `<div class="pc-row"><span class="ui-label">Clef</span><div class="ui-seg seg-clef" role="group" aria-label="Clef">${seg([{v: 'treble', html: '<i class="clef">𝄞</i> Treble'}, {v: 'bass', html: '<i class="clef">𝄢</i> Bass'}], p.clef, 'clef')}</div></div>` +
+      `<div class="pc-row"><span class="ui-label">Notes</span><div class="ui-seg seg-notes" role="group" aria-label="Notes">` +
       notesChoices(pi).map(c => `<button type="button" data-notes="${c.id}" aria-pressed="${c.id === p.notes}"><b>${c.name}</b><small>${c.sub}</small></button>`).join('') + `</div></div>` +
-      `<div class="pc-row"><span class="dd-lbl">Belt</span><div class="belts" role="group" aria-label="Belt">${belts}</div></div>` +
+      `<div class="pc-row"><span class="ui-label">Belt</span><div class="belts" role="group" aria-label="Belt">${belts}</div></div>` +
       `<p class="pc-note"><b>${BELTS[p.belt - 1].name} belt:</b> ${beltText(p.belt)}</p>`;
   }
   function onCard(pi, e) {
@@ -156,7 +156,7 @@
         A.AnswerPad.LETTERS.map((l, i) => `<span><kbd>${K.show[i]}</kbd>${l}</span>`).join('') +
         `<span><kbd>${K.fs[0]}</kbd>♭</span><span><kbd>${K.fs[1]}</kbd>♯</span></span></div>`;
     };
-    $('keymap').innerHTML = `<p class="dd-lbl">Keyboard (Chromebooks)</p>` +
+    $('keymap').innerHTML = `<p class="ui-label">Keyboard (Chromebooks)</p>` +
       (cpuOn() ? row(0, 'You') : row(0, 'Player 1 (left)') + row(1, 'Player 2 (right)')) +
       `<p class="km-note">Tap ♭ or ♯ first, then the letter (like Note Ninja's buttons). Touch screens: just tap your own buttons; both players can tap at the same time.</p>`;
   }
@@ -170,8 +170,9 @@
   function showSetup() {
     stopLoop(); M = null;
     A.Sfx.cancelAll('dojo'); A.Sfx.hush();                        // nothing from the last match plays later
+    pause.setActive(false);
     document.body.classList.remove('dueling');
-    $('duel').hidden = true; $('paused').hidden = true; $('wrap').hidden = false;
+    $('duel').hidden = true; $('wrap').hidden = false;
     holdOrientation();
     A.Sfx.setMusic(['dojo-music'], {builtIn: true});
     if (A.Bg) A.Bg.menu(true);                      // the setup screen's background (shared/backgrounds.js)
@@ -247,7 +248,7 @@
     A.store.noteActivity({game: GAME_ID, play: 1});             // seasonal events: a game played today
     M = {to: S.to, clock: 0, last: 0, paused: false, running: false, phase: 'count', first: true, pt: null, P: [makePlayer(0), makePlayer(1)], mpShown: [false, false],
          cpu: cpuOn() ? CPUS.find(c => c.id === S.cpu) : null, angle0: angle(), timers: []};
-    $('wrap').hidden = true; $('paused').hidden = true;
+    $('wrap').hidden = true;
     document.body.classList.add('dueling');
     const d = $('duel'); d.hidden = false;
     M.P.forEach(P => {
@@ -265,6 +266,7 @@
     if (A.Bg) A.Bg.menu(false);                     // none in a match
     if (screen.orientation && screen.orientation.lock && M.layout === 'table') screen.orientation.lock(screen.orientation.type).catch(() => {});
     M.running = true;
+    pause.setActive(true);                         // the pause button in the center strip, Esc / P, a hidden tab
     countdown();                                   // the gong + the Sensei's line, then a CLASSIC 3-2-1
     M.last = performance.now(); raf = requestAnimationFrame(loop);
   }
@@ -590,46 +592,50 @@
     $('mpb0').hidden = $('mpb1').hidden = true;
     M.P.forEach(P => $('h' + (P.pi + 1)).classList.remove('won'));
     ['sc1', 'sc2'].forEach(id => $(id).classList.remove('mp'));
-    M.P.forEach(P => {
+    pause.setActive(false);
+    const firsts = M.P.map(P => {
       $('body' + P.pi).hidden = true;
       $('h' + (P.pi + 1)).classList.add('done');
       const res = $('res' + P.pi); res.hidden = false;
-      res.innerHTML = resultsHTML(P, W, Lz);
-      res.querySelector('[data-act="rematch"]').addEventListener('click', () => startMatch());
-      res.querySelector('[data-act="setup"]').addEventListener('click', () => { A.Sfx.event('ui-back'); showSetup(); });
-      res.querySelector('[data-act="exit"]').addEventListener('click', () => { A.Sfx.cancelAll('dojo'); A.Sfx.hush(); A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)); });
+      const r = renderResults(P, W, Lz, res);
       ninja(P.pi, P === W ? 'win' : 'bow');
+      return r.first;
     });
     later(1400, () => M.P.forEach(P => ninja(P.pi, 'bow')));
     const first = M.P.find(P => !P.cpu && P === W) || M.P[0];
-    const btn = $('res' + first.pi).querySelector('[data-act="rematch"]'); if (btn) btn.focus({preventScroll: true});
+    if (firsts[first.pi]) firsts[first.pi].focus({preventScroll: true});
     // a player item this win unlocked (the Dojo Night background: 5 wins): the UNLOCKED! card, after the victory sounds
     later(2600, () => { if (!M.running && A.Avatar && A.Avatar.freshItems().length && A.Skins.catchUp) A.Skins.catchUp(A.store.player); });
   }
-  function resultsHTML(P, W, Lz) {
+  /** THE RESULTS SCREEN (shared/ui-kit.js UI.results.render) inside this player's half, so the far half's faces its
+      player: both ninjas bowing, the title, the Sensei's words, the numbers, the dojo record, PRACTICE THESE */
+  function renderResults(P, W, Lz, host) {
     const won = P === W, st = P.stats, taps = st.right + st.wrong;
     const acc = taps ? Math.round(st.right / taps * 100) + '%' : '–';
     const avg = st.times.length ? (st.times.reduce((a, b) => a + b, 0) / st.times.length / 1000).toFixed(1) + ' s' : '–';
     const bows = `<div class="bows" aria-hidden="true">` +
       [W, Lz].map(Q => `<span class="bow-n${Q === W ? ' champ' : ''}" style="--belt:var(--${Q.belt.color})"><span class="nj-pic">${pic(Q.pi, 'tile')}</span>` +
         `${Q.cpu ? '' : '<i class="band"><b></b></i>'}<small>${esc(Q.name)}</small></span>`).join('<i class="bow-vs">🙇</i>') + `</div>`;
-    const kicker = won ? 'VICTORY!' : 'WELL FOUGHT!';
-    const msg = P.cpu ? line(won ? 'win' : 'lose', W.name)
-      : won ? line('win', P.name) : W.cpu ? line('senseiWins') : line('lose', P.name);
+    const buttons = {
+      retry: {label: 'Rematch', act: 'rematch', onClick: () => startMatch()},
+      levels: {label: 'Change setup', act: 'setup', onClick: () => { A.Sfx.event('ui-back'); showSetup(); }},
+      more: [{label: 'Exit', act: 'exit', onClick: exitGame}]};
+    let o;
     if (P.cpu) {
-      return `<div class="res-in"><p class="res-k">${won ? 'THE SENSEI WINS' : `${esc(W.name).toUpperCase()} WINS!`}</p>${bows}` +
-        `<p class="res-say">“${esc(won ? 'Well fought, young one. Practice these and challenge me again!' : 'The student becomes the master!')}”</p>` +
-        `<p class="res-score">${W.score} – ${Lz.score}</p>${actsHTML()}</div>`;
+      o = {hero: bows, title: won ? 'THE SENSEI WINS' : `${W.name.toUpperCase()} WINS!`,
+        msg: `“${won ? 'Well fought, young one. Practice these and challenge me again!' : 'The student becomes the master!'}”`,
+        tiles: [['Score', `${W.score} – ${Lz.score}`]]};
+    } else {
+      const msg = won ? line('win', P.name) : W.cpu ? line('senseiWins') : line('lose', P.name);
+      o = {hero: bows, title: won ? 'VICTORY!' : 'WELL FOUGHT!', msg: `“${msg}”`,
+        tiles: [['Score', `${P.score} – ${(P === W ? Lz : W).score}`], ['Accuracy', acc], ['Avg answer', avg]],
+        best: recordText(P.name), extra: practiceHTML(P)};
     }
-    return `<div class="res-in"><div class="res-a"><p class="res-k${won ? ' win' : ''}">${kicker}</p>${bows}` +
-      `<p class="res-say">“${esc(msg)}”</p></div><div class="res-b">` +
-      `<div class="res-stats"><div><small>Score</small><b>${P.score} – ${(P === W ? Lz : W).score}</b></div>` +
-      `<div><small>Accuracy</small><b>${acc}</b></div><div><small>Avg answer</small><b>${avg}</b></div></div>` +
-      `<p class="res-rec">${esc(recordText(P.name))}</p>` +
-      practiceHTML(P) + actsHTML() + `</div></div>`;
+    const r = A.UI.results.render(host, Object.assign({stars: null}, o, buttons));
+    r.panel.classList.add('dd-res');
+    if (won) r.panel.classList.add('win');
+    return r;
   }
-  const actsHTML = () => `<div class="res-acts"><button type="button" class="btn btn-gold" data-act="rematch">Rematch</button>` +
-    `<button type="button" class="btn btn-ghost" data-act="setup">Change setup</button><button type="button" class="btn btn-ghost" data-act="exit">Exit</button></div>`;
   /** "Practice these": the notes this player missed (wrong taps, then no answer, then lost), or was slowest on */
   function practiceHTML(P) {
     const recs = Object.values(P.stats.notes);
@@ -643,28 +649,29 @@
     const sig = P.seq.sig, sigW = A.keySigWidth(sig), gap = 78, start = 96 + sigW, W = start + gap * (list.length - 1) + 60;
     const svg = A.staffSVG(P.clef, list.map((r, k) => ({n: r.it.show, x: start + k * gap, caption: r.it.label})),
       {fit: list.map(r => r.it.show), keySig: sig, width: W, label: 'Practice these: ' + list.map(r => r.it.label).join(', ')});
-    return `<div class="res-prac"><p class="dd-lbl">Practice these</p><div class="stage mini">${svg}</div></div>`;
+    return `<div class="res-prac"><h3 class="ui-section">Practice these</h3><div class="stage mini">${svg}</div></div>`;
   }
+  function exitGame() { stopLoop(); A.Sfx.cancelAll('dojo'); A.Sfx.hush(); A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)); }
 
-  /* ---------- pause (button, Esc, hidden tab) ---------- */
-  function pause(on) {
-    if (!M) return;
-    M.paused = on;
-    $('paused').hidden = !on;
-    if (on) $('resumeBtn').focus({preventScroll: true});
-    else M.last = performance.now();
-  }
-  $('pauseBtn').addEventListener('click', () => { if (M && M.running) pause(true); });
-  $('resumeBtn').addEventListener('click', () => pause(false));
-  $('pauseSetup').addEventListener('click', () => showSetup());
-  $('pauseExit').addEventListener('click', () => { stopLoop(); A.Sfx.cancelAll('dojo'); A.Sfx.hush(); A.Sfx.playThenGo('ui-back', A.homeLink(GAME_ID)); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && M && M.running && !M.paused) pause(true); });
+  /* ---------- THE PAUSE MENU (shared/ui-kit.js): the button between the two players; Esc / P; a hidden tab.
+     The game clock (every timer, the note clock, the Sensei) stops while paused. ---------- */
+  const pause = A.UI.pause.mount({
+    place: $('midC'), theme: 'dd-pause',
+    note: 'Take a breath. The note clock is stopped.',
+    onPause: () => { if (M) M.paused = true; },
+    onResume: () => { if (M) { M.paused = false; M.last = performance.now(); } },
+    onRestart: () => startMatch(), restartLabel: 'Restart match',
+    onLevels: () => showSetup(), levelsLabel: 'Change setup',
+    leaveTitle: 'Leave this match?', leaveText: 'This match won’t count.',
+    extras: [{label: 'Exit', id: 'pauseExit', onClick: exitGame}],
+    canPause: () => !!M && M.running,
+    info: () => M ? M.P.map(P => [P.name, `${P.score} of ${M.to}`]) : [],
+  });
 
   /* ---------- keyboards: each player has their own key group ---------- */
   addEventListener('keydown', e => {
     if (!M || $('duel').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape') { if (M.running) pause(!M.paused); return; }
-    if (M.paused || e.repeat) return;
+    if (M.paused || e.repeat || A.UI.isOpen()) return;          // a panel (the pause menu, settings) is open: its keys
     for (let k = 0; k < 2; k++) {
       const K = KEYS[k], pi = cpuOn() ? 0 : k, P = M.P[pi];
       const li = K.letters.indexOf(e.code);

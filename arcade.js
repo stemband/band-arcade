@@ -31,16 +31,20 @@
 (function (A) {
   "use strict";
   const {$} = A;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const ss = {get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } }};
 
   $('arcadeName').innerHTML = A.ARCADE_NAME.replace(/ (\S+)$/, ' <span>$1</span>');
   $('arcadeTagline').textContent = A.ARCADE_TAGLINE;
   document.title = A.ARCADE_NAME;
   $('demoNote').hidden = !A.DEMO;
-  A.Sfx.mountControls($('soundCtl'));
-  if (A.Backup) A.Backup.button($('soundCtl').querySelector('.snd-pop'), 'snd-backup');   // shared/backup.js: BACKUP / RESTORE
-  if (A.App) A.App.installButton($('soundCtl').querySelector('.snd-pop'));             // shared/app.js: INSTALL THE APP (teacher setting)
+  // THE SETTINGS PANEL (shared/ui-kit.js) from the lobby: the shared settings + the arcade's own tools
+  A.Sfx.mountControls($('soundCtl'), {lobby: true});
+  A.UI.settings.register(box => {
+    const row = document.createElement('div'); row.className = 'acts'; row.style.justifyContent = 'flex-start'; box.appendChild(row);
+    if (A.Backup) A.Backup.button(row, 'btn btn-secondary btn-small');   // shared/backup.js: BACKUP / RESTORE
+    if (A.App) A.App.installButton(row);                                 // shared/app.js: INSTALL THE APP (teacher setting)
+  }, {title: 'Your progress', lobby: true});
   // the installed app's first launch asks for a Backup Code first (shared/app.js), then CHOOSE YOUR INSTRUMENT
   const welcomeThen = fn => (A.App && A.App.welcome(fn)) || fn();
   A.Sfx.prefer('choose-instrument');                    // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)

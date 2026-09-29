@@ -1,17 +1,44 @@
 /* GAME RUNS (?demo, Chromium and WebKit): every game from PRESS START to its results screen, with its stars saved.
-   Which games and how: tests/games.js. */
+   Which games and how: tests/games.js. On the way, in every game: PAUSE (the shared pause menu opens), SETTINGS
+   (a setting changed), RESUME, and at the end the results screen's buttons are there and LEVELS goes back.
+   GALLERY=1 also saves screenshots of each game's level select, pause menu, settings panel and results screen into
+   docs/gallery/ (docs/gallery.html shows them): `GALLERY=1 npx playwright test game-runs --project=chromium`. */
+const path = require('path');
 const {test, expect} = require('@playwright/test');
-const {prepare, device, saved, starsIn} = require('./helpers');
+const {prepare, device, saved, starsIn, ROOT} = require('./helpers');
 const {RUNS, click} = require('./games');
+const GALLERY = !!process.env.GALLERY;
+const shot = (page, id, kind) => GALLERY ? page.screenshot({path: path.join(ROOT, 'docs/gallery', `${id}-${kind}.jpg`), type: 'jpeg', quality: 72}) : null;
+
+/* the shared pause menu (shared/ui-kit.js), once, as soon as the level shows its pause button */
+async function pauseCheck(page, R) {
+  const btn = page.locator('#uiPauseBtn');
+  if (!(await btn.isVisible().catch(() => false))) return false;
+  await btn.click();
+  await expect(page.locator('#uiPause'), `${R.name}: the pause menu`).toBeVisible();
+  const before = await page.evaluate(() => Arcade.UI.state().pause.paused);
+  expect(before, `${R.name}: paused`).toBe(true);
+  await shot(page, R.id, 'pause');
+  await page.locator('#uiPause [data-act=settings]').click();
+  await expect(page.locator('#uiSettings')).toBeVisible();
+  await shot(page, R.id, 'settings');
+  const vol = page.locator('#uiSettings input[data-k=sfxVol]');
+  if (await vol.isEnabled()) await vol.fill('55');
+  await page.locator('#uiSettings [data-act=done]').click();
+  await expect(page.locator('#uiSettings')).toHaveCount(0);
+  await page.locator('#uiPause [data-act=resume]').click();
+  await expect(page.locator('#uiPause')).toBeHidden();
+  return true;
+}
 
 /* overlays that open before or during a level and just want their main button (a story, an intro, "Turn on the
    microphone": the demo stands in for it). The results, pause and ending panels are left alone. */
-const LEAVE = ['results', 'pausePanel', 'ending', 'finale', 'files', 'jumpWarn'];
+const LEAVE = ['results', 'uiPause', 'uiSettings', 'uiConfirm', 'ending', 'finale', 'files'];
 async function dismiss(page) {
   return page.evaluate(leave => {
     for (const ov of document.querySelectorAll('.overlay')) {
       if (ov.hidden || leave.includes(ov.id) || !ov.getClientRects().length || getComputedStyle(ov).display === 'none') continue;
-      const b = ov.querySelector('[data-act="go"]') || ov.querySelector('.btn-gold, .btn-primary') || ov.querySelector('button.btn');
+      const b = ov.querySelector('[data-act="go"]') || ov.querySelector('.btn-primary') || ov.querySelector('button.btn');
       if (b && b.getClientRects().length) { b.click(); return ov.id || 'overlay'; }
     }
     return null;
@@ -59,8 +86,10 @@ for (const R of RUNS) {
     test.skip(R.skip === browserName, `not in ${browserName}`);
     test.setTimeout(R.limit + 60_000);
     const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
+    if (GALLERY) await page.setViewportSize({width: 1180, height: 820});
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);
     if (R.setup) await R.setup(page);
+    if (GALLERY) { await page.waitForTimeout(900); await shot(page, R.id, 'levels'); }
     if (R.start) await R.start(page);
     else {
       await page.locator('.ls-card:not(.ls-endless)').first().click();
@@ -68,12 +97,22 @@ for (const R of RUNS) {
     }
     const done = R.done || resultsShown;
     const until = Date.now() + R.limit;
+    let paused = R.pause === false;
     while (!(await done(page)) && Date.now() < until) {
       if (await dismiss(page)) { await page.waitForTimeout(300); continue; }
+      if (!paused && await pauseCheck(page, R)) { paused = true; continue; }
       await step(page, R, R.play);
     }
     if (!(await done(page))) expect(false, `${R.name}: the results screen never showed. The page: ${await diag(page)}`).toBe(true);
+    expect(paused, `${R.name}: the pause button showed during the level`).toBe(true);
     if (R.stars) expect(starsIn(await saved(page), R.key), `${R.name}: stars saved for level 1`).toBeGreaterThan(0);
+    if (!R.done) {                                   // the shared results screen: its buttons, and LEVELS goes back
+      await page.waitForTimeout(GALLERY ? 1800 : 300);
+      await shot(page, R.id, 'results');
+      await expect(page.locator('#resRetry')).toBeVisible();
+      await page.locator('#resLevels').click();
+      await expect(page.locator('#results')).toBeHidden();
+    }
     watch.check();
   });
 }
@@ -86,7 +125,7 @@ for (const R of RUNS.filter(r => r.endless)) {
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);
     await page.locator('.ls-endless').first().click();
     await page.locator('.ls-start').click();
-    const over = () => page.locator('#edOverTitle').isVisible().catch(() => false);
+    const over = () => page.locator('#results.ed-over').isVisible().catch(() => false);
     const until = Date.now() + 100_000;
     while (!(await over()) && Date.now() < until) {
       if (await dismiss(page)) { await page.waitForTimeout(300); continue; }

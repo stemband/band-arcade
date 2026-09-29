@@ -23,12 +23,12 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title"><span class="t1">Sustain</span> <span class="t2">Speedway</span></h1>
-      <p class="muted">Your instrument is the engine. Your car only moves while you hold the lap's note, and it goes faster the more <b>in tune</b> and <b>steady</b> you are. Breathe whenever you need to (the car coasts), and rest in the pit stop between laps.</p>
+      <p class="ui-howto">Your instrument is the engine. Your car only moves while you hold the lap's note, and it goes faster the more <b>in tune</b> and <b>steady</b> you are. Breathe whenever you need to (the car coasts), and rest in the pit stop between laps.</p>
     </div>
     <div id="modePick"></div>
     <div class="tracks" id="trackGrid"></div>
     <div class="hub-more">
-      <div class="diff-set" role="group" aria-labelledby="diffLbl"><span class="mp-lbl" id="diffLbl">Difficulty</span><span id="diffBtns"></span>
+      <div class="diff-set"><span class="ui-label" id="diffLbl">Difficulty</span><div class="ui-seg sw-seg" id="diffBtns" role="group" aria-labelledby="diffLbl"></div>
         <span class="diff-say" id="diffSay"></span></div>
     </div>
     <p class="demo-help" id="demoHelp" hidden>Demo: every track is unlocked. In a race, hold <b>Space</b> = the right note, perfectly in tune; hold <b>D</b> = the right note drifting sharp (+25 to +35 cents, wobbling); hold <b>W</b> = a wrong note; hold <b>E</b> = the right note, centered but wobbling (no nitro); let go = breathing (the car coasts).</p>
@@ -69,38 +69,13 @@
         <p class="zone" id="zoneTxt">Hold within ±5 cents, steady, for 2 seconds: IN THE ZONE!</p>
         <div class="race-foot">
           <span class="diff-tag" id="raceDiff"></span>
-          <button class="btn btn-ghost btn-small" id="quitRace">Leave the race</button>
         </div>
       </div>
     </div>
   </section>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel res-panel">
-    <p class="res-pos" id="resPos">1st place</p>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Race won!</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Total time</small><b id="resTime">0:00.0</b></div>
-      <div><small>Best lap</small><b id="resLap">0.0 s</b></div>
-      <div><small>Avg. off</small><b id="resCents">0¢</b></div>
-      <div><small>In the zone</small><b id="resZone">0%</b></div>
-      <div><small>Difficulty</small><b id="resDiff">Rookie</b></div>
-    </div>
-    <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
-    <div class="chart" id="resChart"></div>
-    <ul class="lap-notes" id="resLaps"></ul>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next track</button>
-      <button class="btn btn-ghost" id="resRetry">Race again</button>
-      <button class="btn btn-ghost" id="resTracks">Tracks</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- The microphone listens for the whole race: no engine sound, music or ambience; the only sounds play before GO and in the pit stops. -->
 <script src="../shared/instruments.js"></script>

@@ -1,14 +1,12 @@
 /* Keys to the City: the city map, the skyline keyboard, the signs, the staff, the Mayor. Colors: --kt-* tokens only. */
 .hub-head{display:flex;gap:16px;align-items:center;margin-bottom:12px}
 .mayor-hi{width:92px;flex:none}
-.game-title{font-family:var(--display);font-weight:400;font-size:clamp(34px,8vw,64px);line-height:.95}
 .game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
-.hub-head p{max-width:56ch;margin:8px 0 0}
-.kt-opts{display:flex;flex-wrap:wrap;gap:10px 14px;margin:6px 0}
-.kt-opt{display:inline-flex;align-items:center;border:2px solid var(--floor-3);border-radius:12px;overflow:hidden}
-.kt-ol{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:0 10px}
-.kt-seg{min-height:44px;padding:0 14px;background:var(--floor-2);color:var(--text-lo);border:0;border-left:1px solid var(--floor-3);font:700 15px var(--text);cursor:pointer}
-.kt-seg[aria-pressed="true"]{background:var(--yellow);color:var(--deep)}
+.hub-head .ui-howto{max-width:56ch;margin:8px 0 0}
+.kt-opts{display:flex;flex-wrap:wrap;gap:10px 18px;margin:6px 0 8px}
+.kt-opt{display:flex;flex-direction:column;align-items:flex-start}
+.kt-opt .ui-label{margin-bottom:4px}
+.kt-opts .ui-seg>button{--seg-on:var(--yellow)}
 .kt-optnote{margin:0 0 12px;font-size:14px;color:var(--text-lo)}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 @media (max-width:760px){.levels{grid-template-columns:repeat(2,1fr)}}
@@ -122,17 +120,11 @@ body.kt-playing .wrap{padding-bottom:8px}
 .my-key{fill:none;stroke:var(--kt-gold);stroke-width:3;stroke-linecap:round}.my-keyring{fill:none;stroke:var(--kt-gold);stroke-width:3}
 /* ---------- panels ---------- */
 .kt-intro-mayor{width:110px;margin:0 auto}
-.kt-intro-signs p{color:var(--text-lo);font-size:15px}
 .kt-gold{width:90px;margin:0 auto 4px}
+/* the finale (a ceremony after The Mayor's Challenge) sits above the results screen it follows */
+.ui-ov.kt-finale-ov{z-index:65}
 .kt-finale-key{display:flex;align-items:center;justify-content:center;gap:10px}
 .kt-finale-key .gk{width:120px}.kt-finale-key .mayor-svg{width:110px}
-.panel .bigstars{font-size:46px;letter-spacing:6px;color:var(--text-dim);margin:4px 0 8px}
-.panel .bigstars .on{color:var(--yellow)}
-.panel .best{font-size:14px;margin-top:8px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
-.stats div{background:var(--deep);border-radius:12px;padding:10px 6px}
-.stats small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
-.stats b{font-size:22px}
 @media (prefers-reduced-motion:reduce){
   .kt-strip,.sky-signs,.kt-cfl,.k .k-body,.k .win,.kt-staff .ksig{transition:none}
 }

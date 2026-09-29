@@ -22,7 +22,7 @@
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
-  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const RM = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const FAMILY = {woodwind: 'pink', brass: 'amber', percussion: 'cyan'};
   const familyOf = member => { const m = member && A.memberById ? A.memberById(member) : null; return (m && m.family) || 'brass'; };
   const ready = () => !!(A.Avatar && A.Avatar.fightSprites && window.QUEST_ART && window.QUEST_ART.POSES);

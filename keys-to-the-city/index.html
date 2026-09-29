@@ -25,21 +25,21 @@
       <div class="mayor-hi" id="hubMayor" aria-hidden="true"></div>
       <div>
         <h1 class="game-title">Keys to <span>the City</span></h1>
-        <p class="muted">The piano keyboard is the city skyline. Find the keys, name them and build scales. Clear every district to win the keys to the city!</p>
+        <p class="ui-howto">The piano keyboard is the city skyline. Find the keys, name them and build scales. Clear every district to win the keys to the city!</p>
       </div>
     </div>
     <div class="kt-opts">
-      <div class="kt-opt" role="group" aria-label="How you answer">
-        <span class="kt-ol">Play by</span>
-        <button class="kt-seg" id="modeTouch" aria-pressed="true">Touch</button>
-        <button class="kt-seg" id="modeInst" aria-pressed="false">My instrument</button>
-      </div>
-      <div class="kt-opt" role="group" aria-label="Clef">
-        <span class="kt-ol">Clef</span>
-        <button class="kt-seg" data-clef="treble" aria-pressed="true">Treble</button>
-        <button class="kt-seg" data-clef="bass" aria-pressed="false">Bass</button>
-        <button class="kt-seg" data-clef="both" aria-pressed="false">Both</button>
-      </div>
+      <div class="kt-opt"><span class="ui-label" id="lPlayBy">Play by</span>
+        <div class="ui-seg" role="group" aria-labelledby="lPlayBy">
+          <button type="button" id="modeTouch" aria-pressed="true">Touch</button>
+          <button type="button" id="modeInst" aria-pressed="false">My instrument</button>
+        </div></div>
+      <div class="kt-opt"><span class="ui-label" id="lClef">Clef</span>
+        <div class="ui-seg" role="group" aria-labelledby="lClef">
+          <button type="button" data-clef="treble" aria-pressed="true">Treble</button>
+          <button type="button" data-clef="bass" aria-pressed="false">Bass</button>
+          <button type="button" data-clef="both" aria-pressed="false">Both</button>
+        </div></div>
     </div>
     <p class="kt-optnote" id="optNote"></p>
     <div class="levels kt-map" id="levelGrid"></div>
@@ -71,51 +71,20 @@
       <div class="kt-view" id="kbView"><div class="kt-strip" id="kbStrip"></div></div>
     </div>
     <div class="play-foot" id="playFoot">
-      <button class="btn btn-ghost btn-small" id="signsBtn">Show signs</button>
-      <button class="btn btn-ghost btn-small" id="quitPlay">Leave district</button>
+      <button class="btn btn-secondary btn-small" id="signsBtn">Show signs</button>
     </div>
   </section>
 </div>
 
-<!-- A DISTRICT'S INTRO (the Mayor) -->
-<div class="overlay" id="intro" hidden>
-  <div class="panel kt-intro">
-    <div class="kt-intro-mayor" id="introMayor" aria-hidden="true"></div>
-    <h2 id="introTitle">Downtown C</h2>
-    <p id="introSay"></p>
-    <div class="kt-intro-signs" id="introSigns"></div>
-    <div class="acts"><button class="btn btn-gold" id="introGo">Let's go!</button></div>
-  </div>
-</div>
-
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel">
-    <div class="kt-gold" id="resKey" hidden aria-hidden="true"></div>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">District cleared</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Right</small><b id="resRight">0/0</b></div>
-      <div><small>Best streak</small><b id="resStreak">0</b></div>
-      <div><small>Score</small><b id="resScore">0</b></div>
-    </div>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next district</button>
-      <button class="btn btn-ghost" id="resRetry">Try again</button>
-      <button class="btn btn-ghost" id="resLevels">City map</button>
-    </div>
-  </div>
-</div>
+<!-- the district intro, the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- KEYS TO THE CITY: the celebration after The Mayor's Challenge -->
-<div class="overlay" id="finale" hidden>
-  <div class="panel kt-finale">
+<div class="overlay ui-ov kt-finale-ov" id="finale" hidden>
+  <div class="panel ui-panel kt-finale" role="dialog" aria-modal="true" aria-labelledby="finaleTitle">
     <div class="kt-finale-key" aria-hidden="true" id="finaleKey"></div>
-    <h2>The Keys to the City!</h2>
+    <h2 class="ui-title" id="finaleTitle">The Keys to the City!</h2>
     <p id="finaleSay">You know every street in this town. Here are the keys to the city!</p>
-    <div class="acts"><button class="btn btn-gold" id="finaleGo">Thank you, Mayor!</button></div>
+    <div class="acts"><button class="btn btn-primary" id="finaleGo">Thank you, Mayor!</button></div>
   </div>
 </div>
 

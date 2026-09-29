@@ -17,8 +17,9 @@
   const {$} = A;
   const GAME_ID = 'vanishing-ink';
   const LEVELS = window.INK_LEVELS, RULES = window.INK_RULES, GEN = window.INK_GEN, END = window.INK_ENDLESS;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const LAYOUT = {gap: 78, minW: 470};                 // the scroll's staff: room per note, narrowest drawing
   const STUDY = new Set(['brush', 'study', 'reveal']);  // phases where the ink shows: nothing played counts
 
@@ -37,11 +38,35 @@
   let listening = false;
   function mic(on) {
     listening = !!on;
-    A.Pitch.pauseListening(!on);
+    A.Pitch.pauseListening(!on || paused);             // never while the pause menu is open
     if (on) A.Pitch.ignoreCurrent();
     if (A.Sfx.sync) A.Sfx.sync();
     $('hearBox').classList.toggle('off', !on);
   }
+  /* ---------- THE PAUSE MENU (shared/ui-kit.js): the study clock, the fade, the reveal, the brush-in and the echo's
+     slot clock all hold; RESUME puts the microphone back the way the round wants it (mic()) ---------- */
+  let paused = false, held = [], slotLeft = null;
+  const unpaused = () => paused ? new Promise(r => held.push(r)) : Promise.resolve();
+  function unhold() { paused = false; const h = held; held = []; h.forEach(r => r()); }
+  const pause = A.UI.pause.mount({
+    onPause: () => {
+      paused = true;
+      cancelAnimationFrame(raf); raf = 0;
+      hideNope();
+      const R = G && G.R;
+      slotLeft = R && R.phase === 'echo' && echo.i >= 0 ? performance.now() - echo.slotStart : null;
+    },
+    onResume: () => {
+      const R = G && G.R;
+      if (slotLeft != null) { echo.slotStart = performance.now() - slotLeft; slotLeft = null; }
+      unhold();                                          // (paused = false first: mic() reads it)
+      mic(listening);                                    // the round's own listening decides, not the pause
+      if (R) { R.last = 0; kick(); }
+    },
+    onRestart: () => { unhold(); slotLeft = null; if (G.endless) startEndless(); else startLevel(G.lv); },
+    onLevels: () => { unhold(); slotLeft = null; showHub(); },
+    info: () => G ? (G.endless ? [['Round', G.round], ['Score', G.score]] : [['Scroll', `${G.r} / ${G.L.rounds}`], ['Score', G.score]]) : [],
+  });
   const menuMusic = on => { A.Sfx.setMusic(on ? ['vanishing-ink-music'] : null); if (A.Bg) A.Bg.menu(on); };   // a file only (nothing pitched is generated); + the menu background
 
   /* ---------- the note set and the patterns (shared/patterns.js) ---------- */
@@ -54,11 +79,14 @@
   let G = null, run = 0, hub = true;
   function showHub() {
     run++; G = null; hub = true;
+    cancelAnimationFrame(raf); raf = 0;
+    unhold(); slotLeft = null;
+    pause.setActive(false); A.UI.results.hide(); A.UI.intro.hide();
     if (A.Pitch.active || A.Pitch.demoReady) mic(false);
     menuMusic(true);
     const st = picker.state, key = st.progressKey;
     A.ModePicker.useRange(st);
-    ['play', 'results', 'intro', 'ending'].forEach(id => { $(id).hidden = true; });
+    ['play', 'ending'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('in-play');
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
@@ -89,16 +117,13 @@
   function intro(lv) {
     A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
-    $('introMaster').innerHTML = inkMasterSVG(lv === LEVELS.length ? 'happy' : 'calm');
-    $('introSay').textContent = `“${L.say}”`;
-    $('introKicker').textContent = `Level ${lv} · ${L.rounds} scrolls`;
-    $('introTitle').textContent = L.name;
-    $('introNow').textContent = L.nowWhat + (stepOnly() ? ' (Scale Order: every scroll moves step by step.)' : '');
-    $('intro').hidden = false;
-    $('introGo').onclick = () => { $('intro').hidden = true; A.requireMic(() => startLevel(lv)); };
-    $('introGo').focus();
+    const now = L.nowWhat + (stepOnly() ? ' (Scale Order: every scroll moves step by step.)' : '');
+    A.UI.intro.show({theme: 'vi-theme',
+      hero: `<div class="im-talk"><div class="vi-master" id="introMaster">${inkMasterSVG(lv === LEVELS.length ? 'happy' : 'calm')}</div><p class="say" id="introSay">“${esc(L.say)}”</p></div>`,
+      kicker: `Level ${lv} · ${L.rounds} scrolls`, title: L.name, extra: `<p class="now" id="introNow">${esc(now)}</p>`,
+      go: {label: 'Start reading', onClick: () => A.requireMic(() => startLevel(lv))},
+      back: {label: 'Levels', onClick: () => { if (!hub) showHub(); }}});   // from a results screen: back to the level select
   }
-  $('introBack').addEventListener('click', () => { $('intro').hidden = true; });
 
   /* ---------- play ---------- */
   function startLevel(lv) {
@@ -121,12 +146,15 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // the hidden menu's button keeps no focus
     menuMusic(false);                                   // never music while the scroll is on
     A.ModePicker.useRange(picker.state);
-    ['hub', 'results', 'intro'].forEach(id => { $(id).hidden = true; });
+    A.UI.results.hide(); A.UI.intro.hide();
+    $('hub').hidden = true;
     $('play').hidden = false; $('wrap').classList.add('in-play');
+    pause.setActive(true);
     $('hudLevelLabel').textContent = label; $('hudLevelName').textContent = name;
     $('hudMidLabel').textContent = G.endless ? 'Longest' : 'Scroll';
     $('hudRightLabel').textContent = G.endless ? 'Lives' : 'Reveals';
-    $('quitPlay').textContent = G.endless ? 'Quit scroll' : 'Quit level';
+    pause.set({leaveTitle: G.endless ? 'Leave the scroll?' : 'Leave this level?',
+      leaveText: G.endless ? 'This run ends and its score won’t be saved.' : 'Your progress in this level won’t be saved.'});
     window.scrollTo(0, 0);
   }
 
@@ -181,6 +209,7 @@
   async function brushIn(tok) {
     if (reduced.matches) { setInk(1); A.Sfx.event('ink-brush'); return; }
     for (let k = 0; k < notes.length; k++) {
+      await unpaused();                                 // paused: the brush waits
       if (tok !== run) return;
       const g = notes[k];
       g.style.opacity = 1;
@@ -215,6 +244,7 @@
   const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
   function tick(now) {
     raf = 0;
+    if (paused) return;                                 // the pause menu holds the clock (RESUME kicks it again)
     const R = G && G.R;
     if (!R || (R.phase !== 'study' && R.phase !== 'reveal')) return;
     const dt = R.last ? Math.min(100, now - R.last) : 0; R.last = now;
@@ -312,7 +342,7 @@
      (the clock pauses while the tab is hidden and while a sound mutes the mic) */
   const echo = A.Echo.create({
     slots: $('slots'), slotHTML: '<i></i>', timer: $('slotTimer'), slotMs: RULES.slotMs, pauseSuppressed: true,
-    running: () => !!(G && G.R && G.R.phase === 'echo' && listening),
+    running: () => !!(G && G.R && G.R.phase === 'echo' && listening && !paused),
     answering: () => !!(G && G.R && G.R.phase === 'echo'),
     sounds: {ok: 'ink-note-correct', bad: 'ink-note-wrong'},
     onFill: () => updateReveal(),
@@ -369,33 +399,22 @@
     const stars = acc === 1 && reveals === 0 ? 3 : acc >= RULES.twoStar ? 2 : acc >= RULES.oneStar ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
     A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = stars === 3 ? 'Perfect memory!' : stars ? 'Scroll mastered!' : 'The ink got away';
-    $('resMsg').textContent = stars === 3 ? 'Every note, no reveals. Your eyes are as sharp as a brush tip!'
-      : stars === 2 ? 'Remember every note with no reveals for 3 stars.'
-      : stars === 1 ? `Remember ${Math.ceil(RULES.twoStar * 100)}% of the notes for 2 stars.`
-      : `Try again, young ninja. Remember ${Math.round(RULES.oneStar * 100)}% of the notes to clear this level.`;
-    $('resHits').textContent = `${hits}/${total}`;
-    $('resAcc').textContent = Math.round(acc * 100) + '%';
-    $('resReveals').textContent = reveals;
-    $('resScore').textContent = score;
-    $('resBest').textContent = score > old.best && old.best ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const ending = lv === LEVELS.length && stars > 0;
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !(hasNext || ending);
-    $('resNext').textContent = ending ? 'The Ink Master\'s last words' : 'Next level';
-    $('results').hidden = false;
-    A.Skins.announce($('results').querySelector('.panel'));
-    ($('resNext').hidden ? $('resRetry') : $('resNext')).focus();
+    A.UI.results.show({gameId: GAME_ID, theme: 'vi-theme', stars,
+      title: stars === 3 ? 'Perfect memory!' : stars ? 'Scroll mastered!' : 'The ink got away',
+      msg: stars === 3 ? 'Every note, no reveals. Your eyes are as sharp as a brush tip!'
+        : stars === 2 ? 'Remember every note with no reveals for 3 stars.'
+        : stars === 1 ? `Remember ${Math.ceil(RULES.twoStar * 100)}% of the notes for 2 stars.`
+        : `Try again, young ninja. Remember ${Math.round(RULES.oneStar * 100)}% of the notes to clear this level.`,
+      tiles: [['Notes remembered', `${hits}/${total}`], ['Accuracy', Math.round(acc * 100) + '%'], ['Reveals', reveals], ['Score', score]],
+      newBest: score > old.best && old.best > 0, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: ending ? 'The Ink Master\'s last words' : 'Next level', hidden: !(hasNext || ending),
+        onClick: () => { A.UI.results.hide(); if (lv === LEVELS.length) showEnding(); else intro(lv + 1); }},
+      retry: {label: 'Try again', onClick: () => { A.UI.results.hide(); intro(lv); }},
+      levels: {label: 'Levels', onClick: showHub}});
     A.Sfx.sequence([stars ? 'ink-level-clear' : 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best && 'new-high-score']);
   }
-  $('resNext').addEventListener('click', () => {
-    if (!G) return;
-    $('results').hidden = true;
-    if (G.lv === LEVELS.length) showEnding(); else intro(G.lv + 1);
-  });
-  $('resRetry').addEventListener('click', () => { $('results').hidden = true; intro(G.lv); });
-  $('resLevels').addEventListener('click', showHub);
   function showEnding() {
     $('endMaster').innerHTML = inkMasterSVG('happy');
     $('endText').innerHTML = window.INK_ENDING.map(t => `<p>${t}</p>`).join('');
@@ -480,9 +499,8 @@
       '</svg>';
   }
 
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && G && G.R) { G.R.last = 0; kick(); } });
-  $('quitPlay').addEventListener('click', showHub);
-  A.VanishingInk = {state: () => G, echo: () => echo, levels: LEVELS, inkMasterSVG};   // tests
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !paused && G && G.R) { G.R.last = 0; kick(); } });
+  A.VanishingInk = {state: () => G, paused: () => paused, echo: () => echo, levels: LEVELS, inkMasterSVG};   // tests
 
   showHub();
 })(window.Arcade);

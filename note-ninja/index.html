@@ -24,7 +24,7 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title">Note <span>Ninja</span></h1>
-      <p class="muted">A note appears on the scroll. Tap its name before time runs out. Fast, correct answers build your combo. No instrument needed!</p>
+      <p class="ui-howto">A note appears on the scroll. Tap its name before time runs out. Fast, correct answers build your combo. No instrument needed!</p>
     </div>
     <div class="ls-notes">
       <div id="modePick"></div>
@@ -51,7 +51,6 @@
       <div class="ninja-spot" id="ninja" aria-hidden="true"></div>
       <div class="combo-pop" id="comboPop" aria-hidden="true"></div>
       <div class="ed-flash" id="edFlash" aria-live="polite"></div>
-      <button class="btn btn-ghost btn-small quit" id="quitPlay">Quit belt</button>
       <div class="target" id="target" aria-hidden="true">
         <svg viewBox="0 0 60 110">
           <g class="t-post"><rect x="27" y="70" width="6" height="40"/><rect x="18" y="104" width="24" height="6" rx="2"/></g>
@@ -81,30 +80,8 @@
   </section>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="res-ninja" id="resNinja"></div>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">Belt cleared</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Named</small><b id="resHits">0/0</b></div>
-      <div><small>Mistakes</small><b id="resWrong">0</b></div>
-      <div><small>Missed</small><b id="resMissed">0</b></div>
-      <div><small>Best combo</small><b id="resCombo">0</b></div>
-    </div>
-    <p class="res-score">Score <b id="resScore">0</b></p>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next belt</button>
-      <button class="btn btn-ghost" id="resRetry">Try again</button>
-      <button class="btn btn-ghost" id="resLevels">Belts</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
-<!-- No microphone in this game: no pitch.js, no mic-gate.js. Sound effects are allowed (shared/sfx.js). -->
 <script src="../shared/instruments.js"></script>
 <script src="../shared/storage.js"></script>
 <script src="../shared/belts.js"></script>

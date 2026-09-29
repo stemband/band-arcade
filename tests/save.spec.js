@@ -29,7 +29,7 @@ test('Arcade Backup Code: export → clear → import', async ({page}) => {
   await page.evaluate(() => Arcade.Backup.open());
   await page.locator('.bk-in').fill(code);
   await page.locator('.bk-restore').click();
-  await page.locator('.bk-yes').click();
+  await page.locator('#uiConfirm [data-act=yes]').click();
   // the panel reloads the page itself; the restored device is then read in a fresh tab of the same browser
   // (Linux WebKit's test build can crash while reloading an arcade page, which isn't what this test is about)
   await expect.poll(() => page.evaluate(() => !!localStorage.getItem('bandarcade.v1') && JSON.parse(localStorage.getItem('bandarcade.v1')).player).catch(() => null), {timeout: 15_000}).toBe('clarinet');

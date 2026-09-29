@@ -746,7 +746,7 @@ window.Arcade = window.Arcade || {};
     const key = JSON.stringify([av, member, eq.color, eq.acc]);
     if (spriteCache.has(key)) return spriteCache.get(key);
     // animated items play their 4 frames here too (none with reduced motion: every frame is frame 0)
-    const moving = isAnimated(av, eq, {bust: false}) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = isAnimated(av, eq, {bust: false}) && !(window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches;
     const F = moving ? [0, 1, 2, 3] : [0];
     const pals = F.map(f => palette(av, eq, {f}));
     const heads = F.map(f => ({front: headAndBody(av, eq, 'front', f), side: headAndBody(av, eq, 'side', f), back: headAndBody(av, eq, 'back', f)}));
@@ -836,7 +836,7 @@ window.Arcade = window.Arcade || {};
     eq = eq || eqFor(member);
     const key = JSON.stringify([av, member, eq.color, eq.acc]);
     if (fightCache.has(key)) return fightCache.get(key);
-    const moving = isAnimated(av, eq, {bust: false}) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = isAnimated(av, eq, {bust: false}) && !(window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches;
     const F = moving ? [0, 1, 2, 3] : [0];
     const pals = F.map(f => palette(av, eq, {f}));
     const heads = F.map(f => ({front: headAndBody(av, eq, 'front', f), side: headAndBody(av, eq, 'side', f)}));

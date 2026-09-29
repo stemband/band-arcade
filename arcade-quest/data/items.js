@@ -14,7 +14,7 @@ window.QUEST_ITEMS = {
 };
 
 /* ARCADE QUEST: THE CHARMS (power-ups). ARCADE QUEST ONLY: they change Quest battles and NOTHING else (stars in the
-   practice games always show what a student can really play). Wear up to 2 at once: Menu (B) → CHARMS.
+   practice games always show what a student can really play). Wear up to 2 at once: the Pause menu (B, Esc or PAUSE) → CHARMS.
    MAT: edit names, words, prices and strengths freely; never rename an id (saves and save codes use it) and add new
    charms at the end (the save code has room for 8: shared/backup.js QUEST_V2.charms).
    effect: {maxHp: +HP} | {calm: × CALM gained} | {dodge: × enemy note speed} | {block: hits blocked per battle}

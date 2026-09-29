@@ -15,6 +15,14 @@
   $('demoHelp').hidden = !A.DEMO;
 
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub()});
+  // THE PAUSE MENU (shared/ui-kit.js): the note clock stops while paused
+  const pause = A.UI.pause.mount({
+    onPause: () => { if (G) G.paused = true; },
+    onResume: () => { if (G) { G.paused = false; G.lastFrame = performance.now(); } },
+    onRestart: () => startLevel(G.lv),
+    onLevels: showHub,
+    info: () => G ? [['Note', `${Math.min(G.i + 1, G.count)} / ${G.count}`], ['Score', G.score]] : [],
+  });
   const VIS_TEXT = {1: 'Names showing.', .5: 'The names start to fade.', .2: 'The names are barely there.', flash: 'Each name flashes, then vanishes.', 0: 'No names. Read the staff.'};
 
   /* ---------- level select ---------- */
@@ -23,7 +31,8 @@
     G = null;
     const st = picker.state, key = st.progressKey;
     A.ModePicker.useRange(st);
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('play').hidden = true; $('hub').hidden = false;
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap;
     $('hubConcert').textContent = card.sub;
@@ -58,7 +67,8 @@
     const seq = A.ModePicker.sequence(st, L, lv), items = seq.items;
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit, name: seq.name,
          i: 0, score: 0, hits: 0, wrong: 0, noteStart: 0, locked: true};
-    $('results').hidden = true; $('hub').hidden = true; $('play').hidden = false;
+    A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
+    pause.setActive(true);
     $('hudLevelLabel').textContent = `Level ${lv}`;
     $('hudLevelName').textContent = L.name;
     $('hudScore').textContent = '0';
@@ -122,8 +132,8 @@
     $('hearBars').querySelectorAll('i').forEach((b, i) => b.classList.toggle('on', i < bars));
     if (G.locked) return;
     const dt = now - (G.lastFrame || now); G.lastFrame = now;
-    // the clock stops while the tab is hidden and while a sound plays (the detector is deaf then, shared/pitch.js)
-    if (document.hidden || A.Pitch.isSuppressed(now)) { G.noteStart += dt; return; }
+    // the clock stops while the tab is hidden, while paused and while a sound plays (the detector is deaf then, shared/pitch.js)
+    if (document.hidden || G.paused || A.Pitch.isSuppressed(now)) { G.noteStart += dt; return; }
     const frac = 1 - (now - G.noteStart) / (G.L.time * 1000);
     const t = $('timer'); t.firstElementChild.style.transform = `scaleX(${Math.max(0, frac)})`; t.classList.toggle('low', frac < .3);
     if (frac <= 0) {
@@ -148,32 +158,25 @@
     const old = A.store.level(key, inst.id, lv);
     A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
     G.locked = true;
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = stars ? (stars === 3 ? 'Perfect!' : 'Level cleared') : 'So close';
-    $('resMsg').textContent = stars
-      ? (stars === 3 ? 'Every note, no wrong notes.'
-        : stars === 2 ? 'Get every note with no wrong notes for 3 stars.'
-        : `Hit ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes for 2 stars.`)
-      : `You need ${Math.ceil(count * RULES.passRate)} of ${count} notes to clear this level.`;
-    $('resHits').textContent = `${hits}/${count}`;
-    $('resWrong').textContent = wrong;
-    $('resScore').textContent = score;
-    $('resBest').textContent = score > old.best && old.best ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !hasNext;
-    $('results').hidden = false;
+    A.UI.results.show({gameId: GAME_ID, stars,
+      title: stars ? (stars === 3 ? 'Perfect!' : 'Level cleared') : 'So close',
+      msg: stars
+        ? (stars === 3 ? 'Every note, no wrong notes.'
+          : stars === 2 ? 'Get every note with no wrong notes for 3 stars.'
+          : `Hit ${Math.ceil(count * RULES.twoStarRate)} of ${count} notes for 2 stars.`)
+        : `You need ${Math.ceil(count * RULES.passRate)} of ${count} notes to clear this level.`,
+      tiles: [['Notes', `${hits}/${count}`], ['Wrong', wrong], ['Score', score]],
+      newBest: score > old.best && old.best > 0, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: 'Next level', hidden: !hasNext, onClick: () => startLevel(G.lv + 1)},
+      retry: {label: 'Try again', onClick: () => startLevel(G.lv)},
+      levels: {label: 'Levels', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned', score > old.best && old.best > 0 && 'new-high-score']);
   }
 
   A.ModePicker.demoSpace(() => G && !G.locked && G.note && G.note.sounding != null ? G.note.sounding : null);   // ?demo scales: Space plays the note
 
-  $('resNext').addEventListener('click', () => startLevel(G.lv + 1));
-  $('resRetry').addEventListener('click', () => startLevel(G.lv));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
 
   showHub();
 })(window.Arcade);

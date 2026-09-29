@@ -793,6 +793,23 @@ file each page loads (`game.js?v=a1b2c3d`), so browsers fetch the new files at o
 reloads once to catch up. You never set it: in the repository it just says `'dev'` (which switches it off when you open
 the arcade from your own computer). Sounds keep their own number, `SOUNDS_VERSION` at the top of `shared/sounds.js`.
 
+## One arcade, one look (the UI kit)
+
+Every game uses the same pieces, so the arcade feels like one place:
+- **The pause button** is top-left, where "← Arcade" is on the level select. Esc and P also pause, and so does
+  hiding the tab. The pause menu is always RESUME · RESTART · SETTINGS · BACK TO LEVELS; BACK TO LEVELS asks first,
+  because the level's progress would be lost.
+- **The results screen** has the stars (they pop in one by one), a big title, 2–4 stat tiles, a NEW BEST!
+  ribbon, the game's own extras (trouble spots, missed notes…), and then NEXT · TRY AGAIN · LEVELS in that order.
+- **The Settings panel** opens from every top bar (the speaker button), the pause menu and the lobby. It has
+  Sound on/off, Music, Effects, Motion (animations on/off) and Mic sensitivity with a live level meter, plus the
+  game's own options. Every setting is remembered on the device and shared by every game.
+- Level intros, yes/no questions (never a browser pop-up) and short toasts all use the same pieces too.
+
+The rules (colors, fonts, headings, buttons, words, motion, sound) are one page: **docs/STYLE.md**. To see every
+piece and every game's level select, pause menu, settings and results side by side, open **docs/gallery.html**
+(not linked for students). Refresh its pictures with `cd tests && GALLERY=1 npx playwright test game-runs --project=chromium`.
+
 ## The app (Home Screen, offline)
 
 Band Arcade can be installed like an app: on an iPad, Safari's **Share → Add to Home Screen**; on a Chromebook, the

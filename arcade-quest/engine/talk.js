@@ -3,8 +3,8 @@
    Q.talk.thing(thing)    a sign or object from a map: `say` (data/dialogue.js QUEST_SIGNS) and/or `use`
                           ('jukebox' saves, 'booth' = Token Booth Terry, 'shop' = Rusty)
    Q.talk.sign(id)        one sign's lines
-   Q.talk.pause()         the pause menu (B): your stats, bag and band, SETTINGS, back to the title
-   Q.talk.hud()           the little status line (LV, HP, tokens) and the MENU button (touch)
+   Q.talk.hud()           the little status line (LV, HP, tokens)
+   (THE PAUSE MENU is the arcade's shared one: engine/world.js mounts Arcade.UI.pause; its CHARMS opens Q.talk.charms.)
    THE TOKEN BOOTH turns stars from the other arcade games into Arcade Tokens: RATE tokens per star. It counts the
    player's instrument (store.allStars(member): every game and mode) plus games with a fixed player (Chime Heist,
    Ancient Ninja Scrolls) that instrument doesn't already cover, and remembers each source's stars in
@@ -23,9 +23,7 @@
   Q.talk = {};
   Q.talk.mount = function () {
     Q.ui.innerHTML = `<div class="q-whud" id="qWHud" aria-live="off"></div><p class="q-area" id="qArea" aria-live="polite"></p>` +
-      `<button type="button" class="q-menu-btn" id="qMenuBtn">Menu</button>` +
       `<p class="q-mictag" id="qMicTag" hidden><span class="q-dot"></span> The mic is listening</p>`;
-    Q.$('qMenuBtn').addEventListener('click', () => Q.input.press('b'));
   };
   Q.talk.hud = function () {
     const el = Q.$('qWHud'); if (!el) return;
@@ -87,7 +85,7 @@
     if (th.charm && Q.charms.get(th.charm) && !Q.charms.owned(th.charm)) {       // a hidden charm (data/maps: charm)
       await Q.talk.sign(th.found || th.say);
       Q.charms.give(th.charm); Q.sfx('quest-item');
-      await Q.say([`You found a charm: the ${Q.charms.get(th.charm).name}! ${Q.charms.get(th.charm).desc}`, 'Wear it from the Menu: CHARMS. (Charms work in Arcade Quest only.)']);
+      await Q.say([`You found a charm: the ${Q.charms.get(th.charm).name}! ${Q.charms.get(th.charm).desc}`, 'Wear it from the Pause menu: CHARMS. (Charms work in Arcade Quest only.)']);
       return;
     }
     if (th.say) await Q.talk.sign(th.say);
@@ -96,7 +94,7 @@
   Q.talk.intro = () => Q.say(['Whoa! The Ghost Notes cabinet pulled you right through the screen!',
     'You land on a dusty carpet. Candles flicker. Somewhere, a ghost is singing.']);
 
-  /* ---------- a panel with a menu (shop, booth, pause, yes/no) ---------- */
+  /* ---------- a panel with a menu (shop, booth, charms, save code) ---------- */
   function panel(title, html, items, {cols = 1, onPick, cls = ''} = {}) {
     const p = Q.el('div', 'q-overlay');
     p.innerHTML = `<div class="q-panel q-wpanel ${cls}" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><div class="q-pbody">${html}</div><div class="q-pmenu"></div></div>`;
@@ -107,14 +105,10 @@
     build(items);
     return api;
   }
-  function ask(question, yes = 'Yes', no = 'No') {
-    return new Promise(done => panel(question, '', [{id: true, label: yes}, {id: false, label: no}], {cols: 2, cls: 'q-ask',
-      onPick: (it, i, api) => { api.close(); done(it.id === true); }}));
-  }
 
   /* ---------- the Save Jukebox ---------- */
   async function jukebox() {
-    if (!(await ask('Save your game here?', 'Save', 'Not now'))) return;
+    if (!(await A.UI.confirm({title: 'Save your game here?', text: 'The jukebox saves where you are and fills your HP.', yes: 'Save', no: 'Not now', theme: 'q-theme'}))) return;
     const s = Q.save.get(), here = Q.world.here();
     s.world = here; s.hp = s.maxHp; Q.save.write();
     Q.sfx('quest-save'); Q.talk.hud();
@@ -302,11 +296,11 @@
       panel('Charms', tokensLine(note), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
         if (!it.id) { api.close(); done(); return; }
         const c = C[it.id], s = Q.save.get();
-        if (Q.charms.owned(it.id)) { api.body.innerHTML = tokensLine({cls: 'q-good', text: `You have the ${c.name}. Wear it from the Menu: CHARMS.`}); return; }
+        if (Q.charms.owned(it.id)) { api.body.innerHTML = tokensLine({cls: 'q-good', text: `You have the ${c.name}. Wear it from the Pause menu: CHARMS.`}); return; }
         if (s.tokens < c.price) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${c.name} costs ${c.price} tokens.`}); Q.sfx('note-wrong'); return; }
         s.tokens -= c.price; Q.charms.give(it.id); Q.save.write(); Q.sfx('item-purchase'); Q.talk.hud();
         if (Q.charms.equipped().includes(null)) Q.charms.equip(Q.charms.equipped().indexOf(null), it.id);   // a free slot: wear it
-        api.body.innerHTML = tokensLine({cls: 'q-good', text: `The ${c.name} is yours!${Q.charms.equipped().includes(it.id) ? ' You\'re wearing it.' : ' Wear it from the Menu: CHARMS.'}`}); api.rebuild(list());
+        api.body.innerHTML = tokensLine({cls: 'q-good', text: `The ${c.name} is yours!${Q.charms.equipped().includes(it.id) ? ' You\'re wearing it.' : ' Wear it from the Pause menu: CHARMS.'}`}); api.rebuild(list());
       }});
     });
   }
@@ -367,29 +361,4 @@
     await sayAs(D, ok ? node.yes : node.no);
   }
 
-  /* ---------- the pause menu ---------- */
-  Q.talk.pause = function () {
-    let done;
-    const wait = new Promise(r => { done = r; });
-    show();
-    return wait;
-    function show() {
-      const s = Q.save.get(), E = window.QUEST_ENEMIES || [];
-      const bag = Object.keys(s.items).filter(k => s.items[k] > 0 && ITEMS()[k]).map(k => `${ITEMS()[k].name} ×${s.items[k]}`).join(', ') || 'empty';
-      const band = s.roster.map(id => (E.find(e => e.id === id) || {name: id}).name).join(', ') || 'nobody yet';
-      const html = `<p><b>${A.currentMember().name}</b> · LV ${s.level} · HP ${s.hp}/${s.maxHp} · XP ${s.xp}/${Q.save.xpToNext(s.level)} · ` +
-        `<i class="q-coin" aria-hidden="true"></i>${s.tokens}</p><p>Bag: ${bag}</p><p>Your band: ${band}</p>` +
-        `<p>Ghosts helped: ${Q.save.helped()}${Q.save.flag('songBb') ? ' · You know the B♭ Blast' : ''}</p>` +
-        `<p>Charms: ${Q.charms.equipped().filter(Boolean).map(id => Q.charms.get(id).name).join(', ') || 'none worn'}</p>` +
-        `<p class="q-small">Save your spot at a Save Jukebox. Your level, items and friends save on their own.</p>`;
-      panel('Paused', html, [{id: 'resume', label: 'Back to the game'}, {id: 'charms', label: 'Charms'}, {id: 'settings', label: 'Settings'}, {id: 'title', label: 'Title screen'}], {cols: 4, cls: 'q-pause',
-        onPick: async (it, i, api) => {
-          if (it.id === 'settings') { Q.settings.open(); return; }
-          if (it.id === 'charms') { api.close(); await Q.talk.charms(); show(); return; }
-          api.close();
-          if (it.id === 'title') { done(); Q.go('title'); return; }
-          done();
-        }});
-    }
-  };
 })(window.Arcade);

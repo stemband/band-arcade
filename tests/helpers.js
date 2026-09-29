@@ -14,7 +14,7 @@ const LB_HOSTS = /^(script\.google\.com|script\.googleusercontent\.com)$/;
    A 404 there is normal. Any other missing local file fails the test. */
 const OPTIONAL = [
   /\/shared\/sounds\//, /\/shared\/portraits\//, /\/shared\/marquees\//, /\/shared\/backgrounds\//, /\/arcade-quest\/art\//,
-  /\/favicon\.ico$/,
+  /\/favicon\.ico$/, /\/docs\/gallery\//,     // the UI gallery's pictures come from GALLERY=1 test runs
 ];
 const optional = url => OPTIONAL.some(r => r.test(new URL(url).pathname));
 

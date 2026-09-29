@@ -31,7 +31,7 @@
   A.Pitch.setInstrument(inst);
   A.mountTopbar(inst, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const gd = A.store.gameData(GAME_ID);
   const save = () => A.store.saveGameData(GAME_ID);
   const sfx = name => A.Sfx && A.Sfx.event(name);
@@ -55,25 +55,28 @@
     if (gd.spooky === 'jump' && (!jumpAllowed() || gd.jumpDay !== dayKey())) { gd.spooky = 'spooky'; save(); }   // a new day, or switched off
     document.body.classList.toggle('spooky-mode', spookyOn());
     document.body.classList.toggle('jump-mode', jumpOn());
-    document.querySelector('[data-spooky="jump"]').hidden = !jumpAllowed();
+    document.querySelectorAll('[data-spooky="jump"]').forEach(b => { b.hidden = !jumpAllowed(); });
     document.querySelectorAll('[data-spooky]').forEach(b => b.setAttribute('aria-pressed', b.dataset.spooky === (gd.spooky || 'mild')));
   }
+  /** Jump Scare: asked every time it's turned on (shared/ui-kit.js confirm; the safe answer has the focus) */
   function askJump() {
-    $('jwVisual').checked = !!gd.scareVisual;
-    $('jumpWarn').hidden = false; $('jwNo').focus();
+    A.UI.confirm({title: 'Jump Scare mode', theme: 'st-jump', danger: true, yes: 'Yes', no: 'No',
+      text: '<b>This mode has sudden jump scares with loud sounds. Are you sure?</b>',
+      extra: `<label class="jw-check"><input type="checkbox" id="jwVisual"${gd.scareVisual ? ' checked' : ''}> Visual scares only (no scare sounds)</label>`,
+      onYes: panel => { gd.scareVisual = panel.querySelector('#jwVisual').checked; }})
+      .then(yes => { if (yes) { setSpooky('jump'); sfx('ui-toggle'); } });
   }
-  function closeJump(yes) {
-    $('jumpWarn').hidden = true;
-    if (yes) { gd.scareVisual = $('jwVisual').checked; setSpooky('jump'); sfx('ui-toggle'); }
-    document.querySelector('[data-spooky="' + (gd.spooky || 'mild') + '"]').focus();
-  }
-  $('jwYes').addEventListener('click', () => closeJump(true));
-  $('jwNo').addEventListener('click', () => closeJump(false));
-  $('jumpWarn').addEventListener('keydown', e => { if (e.key === 'Escape') closeJump(false); });
-  document.querySelectorAll('[data-spooky]').forEach(b => b.addEventListener('click', () => {
+  // the spooky level's buttons: on the showtime screen, and in the Settings panel (so it can change from the pause menu)
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('button[data-spooky]'); if (!b) return;
     if (b.dataset.spooky === 'jump') { if (!jumpOn()) askJump(); return; }
     setSpooky(b.dataset.spooky); sfx('ui-toggle');
-  }));
+  });
+  A.UI.settings.register(box => {
+    box.innerHTML = `<span class="ui-label" id="spookySetLbl">Spooky level</span>
+      <div class="ui-seg st-seg" role="group" aria-labelledby="spookySetLbl"><button type="button" data-spooky="mild">Mild</button><button type="button" data-spooky="spooky">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" hidden>Jump Scare</button></div>`;
+    drawSpooky();
+  });
   drawSpooky();
 
   /* ---------- THE MALFUNCTION FILES: every special machine; a silhouette until met, the whole file once rebooted ---------- */
@@ -154,7 +157,8 @@
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     stopShow();
     if (picker) { picker.refresh(); A.ModePicker.useRange(picker.state); }   // star totals for the chosen difficulty
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true;
+    pause.setActive(false); A.UI.results.hide();
+    $('play').hidden = true; $('hub').hidden = false;
     document.body.classList.remove('in-show');
     drawDiff(); drawSpooky(); drawFilesCount();
     const key = progressKey(), x = isExtra();
@@ -184,6 +188,38 @@
 
   /* ---------- a showtime ---------- */
   let G = null, raf = 0, lastT = 0, lastAttack = 0, heldSince = 0, W = 0, H = 0;
+  /* THE PAUSE MENU (shared/ui-kit.js). Its own flag (G.held), separate from G.paused (a special machine's card):
+     the band, the game clock, the spawning, a jump scare in progress and every timer of the show hold still.
+     The show's timers run on showClock(), which stops while paused (later()). */
+  let heldMs = 0, heldAt = 0;
+  const showClock = () => (heldAt || performance.now()) - heldMs;
+  function later(fn, ms) { if (G) G.timers.push({at: showClock() + ms, fn}); }
+  function runTimers() {
+    if (!G || heldAt) return;
+    const now = showClock(), due = G.timers.filter(t => t.at <= now);
+    if (!due.length) return;
+    G.timers = G.timers.filter(t => t.at > now);
+    due.forEach(t => t.fn());
+  }
+  const pause = A.UI.pause.mount({
+    onPause: () => { if (!G) return; G.held = true; heldAt = performance.now(); document.body.classList.add('st-frozen'); },
+    onResume: () => {
+      document.body.classList.remove('st-frozen');
+      if (!G) return;
+      const gap = performance.now() - heldAt;
+      heldMs += gap; heldAt = 0;
+      G.spawnAt += gap;                                       // the next animatronic waits as long as the pause did
+      G.bots.forEach(b => { b.nextLurch += gap; });
+      G.held = false; lastT = performance.now();
+      if (G.scare) A.Pitch.suppress(Math.max(0, G.scareEnd - showClock()));   // a scare still going: nothing counts until it's over
+    },
+    onRestart: () => { const lv = G ? G.lv : 1; unfreeze(); startShow(lv); },
+    onLevels: () => { unfreeze(); showHub(); },
+    levelsLabel: 'Back to showtimes',
+    canPause: () => !!G && !G.over,
+    info: () => G ? [['Rebooted', `${G.rebooted} / ${G.total}`], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Score', G.score]] : [],
+  });
+  function unfreeze() { document.body.classList.remove('st-frozen'); if (heldAt) { heldMs += performance.now() - heldAt; heldAt = 0; } }
   const arena = $('arena');
   function measure() {
     W = arena.clientWidth; H = arena.clientHeight;
@@ -213,9 +249,9 @@
       // the game clock (s: stops with the band), the pool the specials' extra notes come from, the special on the floor,
       // the intro card's pause, recent attacks (the Lurker's roll), the jump scares planned (game-clock seconds)
       t: 0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
-      scare: null, scareAt: planScares(), lastScare: null, scares: []};
+      scare: null, scareAt: planScares(), lastScare: null, scares: [], held: false, timers: []};
     G.ext = extentOf(G.fit);
-    $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
+    A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
     $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Nightmare' : ''}`; $('hudLevelName').textContent = L.name;
     $('bots').innerHTML = ''; $('band').innerHTML = ''; banner('');
@@ -225,13 +261,15 @@
     measure();
     A.Pitch.ignoreCurrent();
     A.Pitch.demoAttacks = true;
-    banner("It's showtime!", 'go'); setTimeout(() => { if (G && !G.over) banner(''); }, 1300);
+    pause.setActive(true);
+    banner("It's showtime!", 'go'); later(() => { if (G && !G.over) banner(''); }, 1300);
     sfx('showtime-start');
     G.spawnAt = performance.now() + 1200;
     lastT = performance.now(); raf = requestAnimationFrame(loop);
   }
   function stopShow() {
     cancelAnimationFrame(raf); raf = 0;
+    unfreeze();
     $('scare').className = 'scare'; arena.classList.remove('band-snap'); $('specialCard').hidden = true;
     if (G) G.over = true;
     G = null; A.Pitch.demoAttacks = false;
@@ -386,7 +424,7 @@
     return n > 1 ? [t1, t1 + SCARES.apart + rand(0, 15)] : [t1];
   }
   function scareTick() {
-    if (!G.scareAt.length || G.t < G.scareAt[0]) return;
+    if (!G.scareAt.length || G.t < G.scareAt[0] || !jumpOn()) return;   // switched off mid-show (Settings): no more scares
     const walking = G.bots.filter(b => b.state === 'walk');
     const boss = walking.find(b => b.boss);
     // never in the last seconds of a boss phase, never closer than `apart` to the last one, and only with someone on the floor
@@ -401,7 +439,7 @@
     if (kind === 'band' && !G.band.length) kind = 'lunge';
     if (reduced.matches) kind = 'fade';                     // reduced motion: a quick fade to darkness and eyes, nothing moves
     const el = $('scare'), ms = SCARES.ms;
-    G.scare = {kind, from: src ? src.kind : null};
+    G.scare = {kind, from: src ? src.kind : null}; G.scareEnd = showClock() + ms + SCARES.beat;
     G.scares.push({kind, t: +G.t.toFixed(1)});
     A.Pitch.suppress(ms + SCARES.beat);                    // nothing heard counts until the band moves again
     const who = src && src.kind !== 'duet-dolls' ? src.kind : pick(['walrus', 'owl', 'raccoon', 'gator']);
@@ -409,8 +447,8 @@
     el.className = 'scare on sct-' + kind;
     if (kind === 'band') arena.classList.add('band-snap');
     if (!gd.scareVisual) sfx('scare-sting-' + randInt([1, 3]));
-    setTimeout(() => { el.classList.add('out'); arena.classList.remove('band-snap'); }, ms);
-    setTimeout(() => {
+    later(() => { el.classList.add('out'); arena.classList.remove('band-snap'); }, ms);
+    later(() => {
       el.className = 'scare';
       if (G && G.scare) { G.scare = null; A.Pitch.ignoreCurrent(); lastT = performance.now(); }
     }, ms + SCARES.beat);
@@ -550,7 +588,10 @@
     const dt = Math.min(.1, (now - lastT) / 1000); lastT = now;
     // the band stands still while a sound plays (the detector is deaf then) or the tab is hidden
     // …and while a special machine's card is open, or during a jump scare
-    const still = G.over || G.paused || !!G.scare || document.hidden || A.Pitch.isSuppressed(now);
+    // …and while the pause menu is open (G.held)
+    runTimers();
+    if (!G) return;
+    const still = G.over || G.paused || G.held || !!G.scare || document.hidden || A.Pitch.isSuppressed(now);
     if (!still) {
       G.t += dt;
       if (G.bossPending && now >= G.spawnAt) { G.bossPending = false; spawn({kind: 'moose', count: snare ? G.L.boss.snare : G.L.boss.count, item: G.bossItems[0] || null}, true); G.spawnAt = now + 2500; }
@@ -584,7 +625,7 @@
     else {
       b.state = 'gone'; b.el.classList.add('fizzle'); b.el.classList.remove('target');
       if (G.special === b) G.special = null;
-      setTimeout(() => b.el.remove(), 900);
+      later(() => b.el.remove(), 900);
     }
     setPrompt('A spotlight went out!', 'bad');
     hud();
@@ -595,7 +636,7 @@
   /* ---------- listening: every separate attack on the right note counts one down ---------- */
   A.Pitch.demoTarget = () => { const t = G && !G.over ? target() : null; return t && !snare && t.item ? {pc: t.item.pc, midi: t.item.sounding} : null; };
   A.Pitch.onAttack(a => {
-    if (!G || G.over || G.paused || G.scare) return;
+    if (!G || G.over || G.paused || G.held || G.scare) return;
     const t = target(); if (!t) return;
     lastAttack = a.time; heldSince = 0;
     const tNow = performance.now();
@@ -654,8 +695,8 @@
     setPrompt(`${SHOW.BAND[b.kind].name}${b.unit ? ' ' + b.unit : ''} rebooted!`, 'good');
     b.sign.innerHTML = '<div class="vb-top">Rebooted</div><div class="vb-main"><b class="vb-count">♪</b></div>';
     // it straightens up and shuffles back to the stage, where it joins the band
-    setTimeout(() => { b.el.classList.add('walk-home'); b.el.style.transform = `translate3d(${W / 2 - 20}px,${H * .1}px,0) scale(.12)`; }, reduced.matches ? 50 : 500);
-    setTimeout(() => { b.el.remove(); b.state = 'home'; joinBand(b); checkEnd(); }, reduced.matches ? 400 : 1700);
+    later(() => { b.el.classList.add('walk-home'); b.el.style.transform = `translate3d(${W / 2 - 20}px,${H * .1}px,0) scale(.12)`; }, reduced.matches ? 50 : 500);
+    later(() => { b.el.remove(); b.state = 'home'; joinBand(b); checkEnd(); }, reduced.matches ? 400 : 1700);
     lastTarget = null;
   }
   function joinBand(b) {
@@ -679,7 +720,7 @@
     $('hearNote').textContent = snare ? (level > A.Pitch.gate ? 'Hit' : '–') : r ? G.name(r.pc) : '–';
     const bars = A.Pitch.bars(level);
     $('hearBars').querySelectorAll('i').forEach((b, i) => b.classList.toggle('on', i < bars));
-    const t = !G.over && !G.paused && !G.scare && target();
+    const t = !G.over && !G.paused && !G.held && !G.scare && target();
     if (!t || t.special === 'long-tone-lurker') return;       // the Lurker WANTS a held note (lurkerTick)
     const holding = A.Pitch.demoHeld() || (r && (snare || (t.item && r.pc === t.item.pc)));
     if (!holding) { heldSince = 0; return; }
@@ -705,6 +746,7 @@
   /* ---------- the end of a showtime ---------- */
   function gameOver(culprit) {
     G.over = true; A.Pitch.demoAttacks = false;
+    pause.setActive(false);                         // the show is over: nothing left to pause
     drawPanel(null);
     sfx('showtime-over');
     banner("SHOWTIME'S OVER", 'over');
@@ -726,36 +768,29 @@
     const stars = !survived ? 0 : g.lights >= 3 ? 3 : g.lights === 2 ? 2 : 1;
     const old = A.store.level(g.key, who, g.lv), newBest = g.score > old.best && old.best > 0;
     A.store.setLevel(g.key, who, g.lv, {stars: Math.max(stars, old.stars), best: Math.max(g.score, old.best)}, stars);
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = !survived ? "Showtime's over" : stars === 3 ? 'Perfect show!' : 'Show saved!';
-    $('resMsg').textContent = !survived ? `The band got through all ${RULES.spotlights} spotlights. Start each note fresh and fast, and reboot the closest one first. You've got this!`
-      : stars === 3 ? `Every animatronic rebooted, every spotlight still shining.${g.L.boss ? ' Maestro Moose is back on the podium!' : ''}`
-      : stars === 2 ? 'One spotlight went out. Keep them all lit for 3 stars.' : 'You kept the show going! Lose one spotlight or fewer for 2 stars.';
-    $('resHits').textContent = `${g.rebooted}/${g.total}`;
-    $('resLights').textContent = `${g.lights}/${RULES.spotlights}`;
-    $('resScore').textContent = g.score;
-    $('resBest').textContent = newBest ? 'New best score!' : old.best ? `Best: ${Math.max(g.score, old.best)}` : '';
-    $('resBand').innerHTML = g.band.map(b => `<span class="bot fixed${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind, {unit: b.unit})}</span>`).join('');
-    $('resSpecial').hidden = !g.beaten;
-    $('resSpecial').textContent = g.beaten ? `Special machines rebooted: ${g.beaten} (+${g.specialPts} bonus points). See them in the Malfunction Files!` : '';
     const hasNext = g.lv < LEVELS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !hasNext;
     const unlockedNow = !g.extra && !g.wasOpen && extraEarned();       // The 5:00 Show cleared on Normal for the first time
-    $('resUnlock').hidden = !unlockedNow;
     if (unlockedNow) markExtraSeen();
-    $('results').hidden = false;
+    const extra = (unlockedNow ? '<p class="x-unlock" id="resUnlock"><b>NIGHTMARE unlocked!</b> The band is faster, and every voice box wants more plays. Pick it on the showtime screen.</p>' : '') +
+      (g.beaten ? `<p class="res-special" id="resSpecial">Special machines rebooted: ${g.beaten} (+${g.specialPts} bonus points). See them in the Malfunction Files!</p>` : '');
+    A.UI.results.show({gameId: GAME_ID, theme: 'st-results', stars,
+      hero: `<div class="res-band" id="resBand" aria-hidden="true">${g.band.map(b => `<span class="bot fixed${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind, {unit: b.unit})}</span>`).join('')}</div>`,
+      title: !survived ? "Showtime's over" : stars === 3 ? 'Perfect show!' : 'Show saved!',
+      msg: !survived ? `The band got through all ${RULES.spotlights} spotlights. Start each note fresh and fast, and reboot the closest one first. You've got this!`
+        : stars === 3 ? `Every animatronic rebooted, every spotlight still shining.${g.L.boss ? ' Maestro Moose is back on the podium!' : ''}`
+        : stars === 2 ? 'One spotlight went out. Keep them all lit for 3 stars.' : 'You kept the show going! Lose one spotlight or fewer for 2 stars.',
+      tiles: [['Rebooted', `${g.rebooted}/${g.total}`, 'resHits'], ['Spotlights', `${g.lights}/${RULES.spotlights}`, 'resLights'], ['Score', g.score, 'resScore']],
+      newBest, best: old.best ? `Best: ${Math.max(g.score, old.best)}` : '',
+      extra,
+      next: {label: 'Next showtime', hidden: !hasNext, onClick: () => A.requireMic(() => startShow(finished.lv + 1))},
+      retry: {label: 'Try again', onClick: () => A.requireMic(() => startShow(finished.lv))},
+      levels: {label: 'Showtimes', onClick: showHub}});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
-    A.Skins.announce($('results').querySelector('.panel'));        // skins earned by this result (shared/skins.js)
-    (hasNext ? $('resNext') : $('resRetry')).focus();
     A.Sfx.sequence([stars ? 'level-complete' : null, stars > old.stars && 'star-earned', newBest && 'new-high-score', unlockedNow && 'nightmare-unlocked']);
     G = null;
     finished = g;
   }
   let finished = null;
-  $('resNext').addEventListener('click', () => A.requireMic(() => startShow(finished.lv + 1)));
-  $('resRetry').addEventListener('click', () => A.requireMic(() => startShow(finished.lv)));
-  $('resLevels').addEventListener('click', showHub);
-  $('quitPlay').addEventListener('click', showHub);
 
   A.Showtime.debug = () => G;                              // tests
   A.Showtime.scare = type => G && !G.scare && scare(type, G.bots.find(b => b.state === 'walk'));   // tests: one scare now

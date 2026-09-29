@@ -71,7 +71,7 @@
   <p class="sb-intro muted">Every sound in the Band Arcade, from <code>shared/sounds.js</code>. Upload a recording into <code>shared/sounds/</code> with the file name shown (<code>.m4a</code> or <code>.mp3</code>), then press <b>RELOAD ALL SOUNDS</b>. This page always asks the server for the live files (it skips the browser's saved copies), so a file you just uploaded, replaced or deleted shows up right away; GitHub Pages can take a minute to publish an upload. Game pages keep their fast saved copies: after replacing sounds, add 1 to <code>SOUNDS_VERSION</code> at the top of <code>shared/sounds.js</code> so students get the new files. <b>YOUR FILE</b> = your recording plays. <b>FALLBACK</b> = the arcade's own built-in sound for that moment. <b>MISSING FILE, USING GENERATED</b> = a short generic beep until you add one. This page isn't linked from the arcade. The PLAY buttons play even when SOUND is off; the effects volume still applies.</p>
   <p class="sb-intro muted"><b>Music Highway's songs:</b> the <a href="../music-highway/songs.html">Song Board</a> shows every song on a staff (concert pitch and any instrument) and plays it with its drums.</p>
   <div class="sb-bar">
-    <div class="sb-reload"><button type="button" class="btn btn-gold sb-big" id="check">Reload all sounds</button>
+    <div class="sb-reload"><button type="button" class="btn btn-primary sb-big" id="check">Reload all sounds</button>
       <small id="checkedAt" aria-live="polite">Not checked yet</small></div>
     <div class="sb-meter" aria-live="off">
       <small>Level meter (compare loudness: aim for similar peaks)</small>
@@ -124,10 +124,10 @@
         `<div class="sb-when">${esc(e.when || '')}<small><code>shared/sounds/${e.file}.m4a</code> or <code>.mp3</code></small>${tags}<p class="sb-warn" data-warn hidden></p></div>` +
         `<span class="sb-status" data-status>not checked</span>` +
         `<span class="sb-peak" data-peak>–</span>` +
-        (e.loop ? `<button type="button" class="btn btn-ghost sb-play" data-loop>Loop test</button>` : `<button type="button" class="btn btn-ghost sb-play" data-play>Play</button>`) +
-        (e.loop ? `<div class="sb-loop" hidden><button type="button" class="btn btn-ghost btn-small" data-loopgo="start">Play from the start</button>` +
-          `<button type="button" class="btn btn-ghost btn-small" data-loopgo="seam">Jump to 3 s before the loop point</button>` +
-          `<button type="button" class="btn btn-ghost btn-small" data-loopgo="stop">Stop</button><p data-loopinfo></p></div>` : '') +
+        (e.loop ? `<button type="button" class="btn btn-secondary sb-play" data-loop>Loop test</button>` : `<button type="button" class="btn btn-secondary sb-play" data-play>Play</button>`) +
+        (e.loop ? `<div class="sb-loop" hidden><button type="button" class="btn btn-secondary btn-small" data-loopgo="start">Play from the start</button>` +
+          `<button type="button" class="btn btn-secondary btn-small" data-loopgo="seam">Jump to 3 s before the loop point</button>` +
+          `<button type="button" class="btn btn-secondary btn-small" data-loopgo="stop">Stop</button><p data-loopinfo></p></div>` : '') +
         `</div>`;
     }).join('') + `</div>`).join('');
 
@@ -145,8 +145,8 @@
     `<div class="sb-name"><b>${esc(m.who)}</b>${m.room ? `<small>track <code>${esc(m.n)}</code></small>` : ''}</div>` +
     `<div class="sb-when"><code>shared/sounds/${m.n}.m4a</code></div>` +
     `<span class="sb-status" data-mstatus>not checked</span><span class="sb-peak" data-peak>–</span>` +
-    `<span class="sb-mbtns"><button type="button" class="btn btn-ghost sb-play" data-loopgo="start">Play</button>` +
-    `<button type="button" class="btn btn-ghost sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`;
+    `<span class="sb-mbtns"><button type="button" class="btn btn-secondary sb-play" data-loopgo="start">Play</button>` +
+    `<button type="button" class="btn btn-secondary sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`;
   $('rooms').innerHTML = ROOMS.map(mrow).join('');
   MUSIC.push(...ROOMS.filter(m => !MUSIC.some(x => x.n === m.n)));
   $('music').innerHTML = MUSIC.filter(m => !m.room).map(mrow).join('');

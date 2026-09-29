@@ -39,11 +39,9 @@
           else if (it.id === 'avatar') A.AvatarCreator.open({onClose: () => { me(); const b = Q.$('qTitleMenu').querySelector('.q-btn:nth-child(' + (items.findIndex(x => x.id === 'avatar') + 1) + ')'); if (b) b.focus(); }});   // Create Your Player
           else if (it.id === 'code') Q.talk.enterCode().then(ok => { if (ok) { m.destroy(); Q.go('world', {continue: true}); } });
           else if (!started) { m.destroy(); newGame(); }
-          else {                                                  // a new game over a saved one: ask first
-            m.destroy();
-            const c = Q.menu(Q.$('qTitleMenu'), [{id: 'yes', label: 'Yes, start over', sub: 'Level, items, tokens and friends reset'}, {id: 'no', label: 'No, go back'}],
-              {cols: 2, label: 'Start a new game?', start: 1, onPick: x => { c.destroy(); if (x.id === 'yes') newGame(); else menu(); },
-                onBack: () => { c.destroy(); menu(); }});
+          else {                                                  // a new game over a saved one: ask first (the arcade's own question)
+            A.UI.confirm({title: 'Start a new game?', text: 'Your level, items, tokens and band friends start over.', yes: 'Yes, start over', no: 'No, go back',
+              danger: true, theme: 'q-theme'}).then(yes => { if (yes && Q.$('qTitleMenu')) { m.destroy(); newGame(); } });
           }
         }});
         // CONTINUE (or NEW GAME) glows, has the focus and gets the idle hint (shared/level-select.js)
@@ -110,7 +108,8 @@
         {cols: 3, label: 'Arena options', cls: 'q-small-menu', keys: false, onPick: it => {
           if (it.id === 'settings') Q.settings.open().then(me);
           else if (it.id === 'title') { m.destroy(); f.destroy(); Q.go('title'); }
-          else if (confirm('Start the Arcade Quest save over? (Level, tokens, items and band friends.)')) { m.destroy(); f.destroy(); Q.save.reset(); Q.go('arena'); }
+          else A.UI.confirm({title: 'Start your save over?', text: 'Your Arcade Quest level, tokens, items and band friends start over.', yes: 'Start over', no: 'Keep my save',
+            danger: true, theme: 'q-theme'}).then(yes => { if (yes && Q.$('qFoes')) { m.destroy(); f.destroy(); Q.save.reset(); Q.go('arena'); } });
         }});
       this.menu = m;
     },

@@ -34,20 +34,20 @@
   <section id="hub">
     <div class="hub-head">
       <h1 class="game-title"><span class="vs-l">Button</span> <span class="vs-r">Masher</span></h1>
-      <p class="muted">Every fingering is a special move. A note appears on the staff: press the right keys, valves or slide position on your instrument, then hit <b>STRIKE!</b> to blast your rival. Wrong combos let the rival counter.</p>
+      <p class="ui-howto">Every fingering is a special move. A note appears on the staff: press the right keys, valves or slide position on your instrument, then hit <b>STRIKE!</b> to blast your rival. Wrong combos let the rival counter.</p>
     </div>
     <section class="perc" id="percussion" hidden>
-      <h2>Percussion: try Chime Heist!</h2>
+      <h2 class="ui-title">Percussion: try Chime Heist!</h2>
       <p class="muted">Bells and mallet percussion don't use fingerings, so there's nothing to mash here. Chime Heist is your mallet keyboard game.</p>
       <div class="acts">
-        <a class="btn btn-gold" id="chimeLink" href="../chime-heist/index.html">Play Chime Heist</a>
-        <a class="btn btn-ghost" id="percOther" href="../index.html?game=button-masher">I play a different instrument</a>
+        <a class="btn btn-primary" id="chimeLink" href="../chime-heist/index.html">Play Chime Heist</a>
+        <a class="btn btn-secondary" id="percOther" href="../index.html?game=button-masher">I play a different instrument</a>
       </div>
     </section>
     <div id="hubMain" hidden>
       <div class="hub-bar">
-        <p class="eyebrow">8 rivals · one for each set of notes</p>
-        <button type="button" class="btn btn-ghost btn-small chart-btn" id="chartBtn">Chart</button>
+        <p class="ui-kicker">8 rivals · one for each set of notes</p>
+        <button type="button" class="btn btn-secondary btn-small chart-btn" id="chartBtn">Chart</button>
       </div>
       <div class="levels" id="rivalGrid"></div>
       <p class="demo-help" id="demoHelp" hidden>Demo: every rival unlocked, and the right keys have a faint dashed outline. The answer is written under the diagram.</p>
@@ -90,13 +90,12 @@
     <div class="pad" id="pad"></div>
     <div class="combo-row">
       <div class="combo" id="combo" aria-label="Your combo"></div>
-      <button type="button" class="btn btn-ghost clear-btn" id="clearBtn">Clear</button>
+      <button type="button" class="btn btn-secondary clear-btn" id="clearBtn">Clear</button>
       <button type="button" class="btn strike-btn" id="strikeBtn">Strike!</button>
     </div>
     <div class="play-foot">
       <p class="keys-help" id="keysHelp"></p>
       <p class="demo-ans" id="demoAns" hidden></p>
-      <button type="button" class="btn btn-ghost btn-small" id="quitPlay">Leave match</button>
     </div>
   </section>
 </div>
@@ -105,35 +104,15 @@
 <div class="overlay chart" id="chart" tabindex="-1" hidden>
   <div class="panel chart-panel" role="dialog" aria-modal="true" aria-labelledby="chartTitle">
     <div class="chart-head">
-      <h2 id="chartTitle">Fingering chart</h2>
-      <button type="button" class="btn btn-gold chart-close" id="chartClose">Close</button>
+      <h2 class="ui-title" id="chartTitle">Fingering chart</h2>
+      <button type="button" class="btn btn-primary chart-close" id="chartClose">Close</button>
     </div>
     <p class="muted chart-sub">The main fingering is filled in on each diagram. Other fingerings that also count are listed under it.</p>
     <div class="chart-body" id="chartBody"></div>
   </div>
 </div>
 
-<!-- RESULTS -->
-<div class="overlay" id="results" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="res-faces"><span class="res-you" id="resYou"></span><div class="res-rival" id="resRival"></div></div>
-    <div class="bigstars" id="resStars"></div>
-    <h2 id="resTitle">K.O.!</h2>
-    <p id="resMsg"></p>
-    <div class="stats">
-      <div><small>Hits</small><b id="resHits">0/0</b></div>
-      <div><small>Mistakes</small><b id="resWrong">0</b></div>
-      <div><small>Best combo</small><b id="resCombo">0</b></div>
-    </div>
-    <p class="res-score">Score <b id="resScore">0</b></p>
-    <p id="resBest" class="best"></p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resNext">Next rival</button>
-      <button class="btn btn-ghost" id="resRetry">Rematch</button>
-      <button class="btn btn-ghost" id="resLevels">Rivals</button>
-    </div>
-  </div>
-</div>
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- No microphone in this game: no pitch.js, no mic-gate.js. Sounds come from shared/sfx.js. -->
 <script src="../shared/instruments.js"></script>

@@ -17,8 +17,9 @@
   const {$} = A;
   const GAME_ID = 'lost-signal';
   const LEVELS = window.SIGNAL_LEVELS, RULES = window.SIGNAL_RULES, GEN = window.SIGNAL_GEN, END = window.SIGNAL_ENDLESS;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
   const inst = A.requireInstrument(GAME_ID);
   if (!inst) return;
@@ -31,15 +32,45 @@
   const picker = A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub()});
   const endKey = () => ({gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: A.Endless.setKey(picker.state)});
 
-  /* ---------- the microphone: listening only in the student's turn ---------- */
+  /* ---------- the microphone: listening only in the student's turn (and never while the pause menu is open) ---------- */
   let listening = false;
   function mic(on) {
     listening = !!on;
-    A.Pitch.pauseListening(!on);
+    A.Pitch.pauseListening(!on || paused);
     if (on) A.Pitch.ignoreCurrent();                  // whatever is already sounding never counts
     if (A.Sfx.sync) A.Sfx.sync();
     $('hearBox').classList.toggle('off', !on);
   }
+
+  /* ---------- THE PAUSE MENU (shared/ui-kit.js). Pausing stops the tones (the transmission plays again from the start
+     on RESUME, as after a hidden tab), holds the echo's slot clock, and holds every step that waits for its turn
+     (unpaused()); RESUME puts the microphone back the way the game wants it (mic()). ---------- */
+  let paused = false, held = [], slotLeft = null;
+  const unpaused = () => paused ? new Promise(r => held.push(r)) : Promise.resolve();
+  function unhold() { paused = false; const h = held; held = []; h.forEach(r => r()); }
+  const pause = A.UI.pause.mount({
+    onPause: () => {
+      paused = true;
+      const tx = G && G.tx;
+      if (tx && tx.phase === 'playing' && tonesNow) { stopTones(); tx.interrupted = true; }
+      else stopTones();                                  // "Hear it again" on a result
+      slotLeft = tx && tx.phase === 'echo' && echo.i >= 0 ? performance.now() - echo.slotStart : null;
+    },
+    onResume: () => {
+      const tx = G && G.tx;
+      if (slotLeft != null) { echo.slotStart = performance.now() - slotLeft; slotLeft = null; }
+      unhold();                                          // (paused = false first: mic() reads it)
+      mic(listening);                                    // the game's own turn-taking decides, not the pause
+      if (tx && tx.interrupted) {                        // the transmission plays again from the start (free)
+        tx.interrupted = false;
+        const tok = run, phase = tx.found ? 'echo' : 'find';
+        playPattern(tok).then(ok => { if (ok) yourTurn(tok, phase); });
+      }
+    },
+    onRestart: () => { unhold(); slotLeft = null; stopTones(); if (G.endless) startEndless(); else startLevel(G.lv); },
+    onLevels: () => { unhold(); slotLeft = null; showHub(); },
+    info: () => G ? (G.endless ? [['Round', G.round], ['Score', G.score]] : [['Transmission', `${G.t} / ${G.L.count}`], ['Score', G.score]]) : [],
+  });
   /** play a lost-signal-* sound and wait for it to end (the mic is paused for every one of them) */
   const snd = name => wait(Math.max(0, A.Sfx.event(name) || 0) * 1000);
   const menuMusic = on => { A.Sfx.setMusic(on ? ['lost-signal-music'] : null, {builtIn: true}); if (A.Bg) A.Bg.menu(on); };   // + the menu background
@@ -64,11 +95,13 @@
   let G = null, run = 0, hub = true;
   function showHub() {
     run++; stopTones(); G = null; hub = true;
+    unhold(); slotLeft = null;
+    pause.setActive(false); A.UI.results.hide(); A.UI.intro.hide();
     if (A.Pitch.active || A.Pitch.demoReady) mic(false);
     menuMusic(true);
     const st = picker.state, key = st.progressKey;
     A.ModePicker.useRange(st);
-    ['play', 'results', 'intro', 'ending'].forEach(id => { $(id).hidden = true; });
+    ['play', 'ending'].forEach(id => { $(id).hidden = true; });
     $('hub').hidden = false; $('wrap').classList.remove('playing');
     const card = A.ModePicker.hubCard(st);
     $('hubCap').textContent = card.cap; $('hubConcert').textContent = card.sub; $('hubStaff').innerHTML = card.html;
@@ -100,20 +133,15 @@
   function intro(lv) {
     A.LevelSelect.played(lv - 1);                   // the level select comes back with this level selected
     const L = LEVELS[lv - 1];
-    $('introKicker').textContent = `Level ${lv} · ${L.count} transmissions`;
-    $('introTitle').textContent = L.name;
-    $('introStory').textContent = L.story;
-    $('introNow').textContent = L.nowWhat + (stepOnly() ? ' (Scale Order: every transmission moves step by step.)' : '');
-    soundWarning($('introWarn'));
-    $('intro').hidden = false;
-    $('introGo').onclick = () => { $('intro').hidden = true; A.requireMic(() => startLevel(lv)); };
-    $('introGo').focus();
+    const now = L.nowWhat + (stepOnly() ? ' (Scale Order: every transmission moves step by step.)' : '');
+    A.UI.intro.show({theme: 'ls-theme', kicker: `Level ${lv} · ${L.count} transmissions`, title: L.name, text: esc(L.story),
+      extra: `<p class="now" id="introNow">${esc(now)}</p>` + soundWarning(),
+      go: {label: 'Start listening', onClick: () => A.requireMic(() => startLevel(lv))},
+      back: {label: 'Levels', onClick: () => { if (!hub) showHub(); }}});   // from a results screen: back to the level select
   }
-  $('introBack').addEventListener('click', () => { $('intro').hidden = true; });
-  function soundWarning(el) {
-    const off = !A.store.sfx;
-    el.hidden = !off;
-    el.textContent = off ? 'Sound is off in the arcade. Tap the speaker button (top right) and turn SOUND ON to hear the transmissions.' : '';
+  /** the intro's warning when the arcade's sound is off */
+  function soundWarning() {
+    return A.store.sfx ? '' : '<p class="warn" id="introWarn">Sound is off in the arcade. Tap the speaker button (top right) and turn SOUND ON to hear the transmissions.</p>';
   }
 
   /* ---------- play ---------- */
@@ -139,12 +167,15 @@
     hub = false;
     menuMusic(false);                                   // never music during a transmission
     A.ModePicker.useRange(picker.state);
-    ['hub', 'results', 'intro'].forEach(id => { $(id).hidden = true; });
+    A.UI.results.hide(); A.UI.intro.hide();
+    $('hub').hidden = true;
     $('play').hidden = false; $('wrap').classList.add('playing');
+    pause.setActive(true);
     $('hudLevelLabel').textContent = label; $('hudLevelName').textContent = name;
     $('hudMidLabel').textContent = G.endless ? 'Longest' : 'Transmission';
     $('hudRightLabel').textContent = G.endless ? 'Lives' : 'Replays';
-    $('quitPlay').textContent = G.endless ? 'Quit scan' : 'Quit level';
+    pause.set({leaveTitle: G.endless ? 'Leave the scan?' : 'Leave this level?',
+      leaveText: G.endless ? 'This scan ends and its score won’t be saved.' : 'Your progress in this level won’t be saved.'});
     scope.fit();
     window.scrollTo(0, 0);
   }
@@ -187,6 +218,8 @@
     const tx = G.tx;
     tx.phase = 'playing';
     mic(false);
+    await unpaused();                                    // never a tone behind the pause menu
+    if (tok !== run || tx.interrupted) return false;
     $('replayBtn').hidden = true;
     const h = tonesNow = A.tones.play(tx.pattern.map(it => it.sounding + tx.shift), {noteMs: G.noteMs, gapMs: G.gapMs,
       onNote: i => { if (tok === run) { scope.ping(i, tx.pattern.length, tx.pattern[i].sounding, tx.pattern); echo.pulse(i); } }});
@@ -203,11 +236,14 @@
   /** the student's turn: "your turn" (mic still paused), then listen */
   async function yourTurn(tok, phase) {
     const tx = G.tx;
+    await unpaused();
+    if (tok !== run) return;
     setStatus(phase === 'find' ? 'FIND THE SIGNAL' : 'YOUR TURN · ECHO THE SIGNAL');
     await snd('lost-signal-your-turn');
     if (tok !== run) return;
     await wait(250);
-    if (tok !== run) return;
+    await unpaused();                                    // paused during "your turn": the turn starts on RESUME
+    if (tok !== run || tx.interrupted) return;
     tx.phase = phase;
     if (phase === 'echo') {
       echo.start();
@@ -268,7 +304,7 @@
      (the clock pauses while the tab is hidden) */
   const echo = A.Echo.create({
     slots: $('slots'), slotHTML: '<i></i><i></i><i></i><i></i>', timer: $('slotTimer'), slotMs: RULES.slotMs,
-    running: () => !!(G && G.tx && G.tx.phase === 'echo' && listening),
+    running: () => !!(G && G.tx && G.tx.phase === 'echo' && listening && !paused),
     answering: () => !!(G && G.tx && G.tx.phase === 'echo'),
     sounds: {ok: 'lost-signal-correct', bad: 'lost-signal-wrong'},
     onFill: () => updateReplay(),
@@ -359,33 +395,22 @@
     const stars = acc === 1 && replays === 0 ? 3 : acc >= RULES.twoStar ? 2 : acc >= RULES.oneStar ? 1 : 0;
     const old = A.store.level(key, inst.id, lv);
     A.store.setLevel(key, inst.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(score, old.best)}, stars);
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resTitle').textContent = stars === 3 ? 'Perfect contact!' : stars ? 'Transmission decoded!' : 'Weak signal';
-    $('resMsg').textContent = stars === 3 ? 'Every note, no replays. Crystal-clear signal, operator!'
-      : stars === 2 ? 'Echo every note with no replays for 3 stars.'
-      : stars === 1 ? `Echo ${Math.ceil(RULES.twoStar * 100)}% of the notes for 2 stars.`
-      : `Weak signal — try again, operator. Echo ${Math.round(RULES.oneStar * 100)}% of the notes to clear this level.`;
-    $('resHits').textContent = `${hits}/${total}`;
-    $('resAcc').textContent = Math.round(acc * 100) + '%';
-    $('resReplays').textContent = replays;
-    $('resScore').textContent = score;
-    $('resBest').textContent = score > old.best && old.best ? 'New best score!' : old.best ? `Best: ${Math.max(score, old.best)}` : '';
     const ending = lv === LEVELS.length && stars > 0;
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
-    $('resNext').hidden = !(hasNext || ending);
-    $('resNext').textContent = ending ? 'The end of the story' : 'Next level';
-    $('results').hidden = false;
-    A.Skins.announce($('results').querySelector('.panel'));
-    ($('resNext').hidden ? $('resRetry') : $('resNext')).focus();
+    A.UI.results.show({gameId: GAME_ID, theme: 'ls-theme', stars,
+      title: stars === 3 ? 'Perfect contact!' : stars ? 'Transmission decoded!' : 'Weak signal',
+      msg: stars === 3 ? 'Every note, no replays. Crystal-clear signal, operator!'
+        : stars === 2 ? 'Echo every note with no replays for 3 stars.'
+        : stars === 1 ? `Echo ${Math.ceil(RULES.twoStar * 100)}% of the notes for 2 stars.`
+        : `Weak signal — try again, operator. Echo ${Math.round(RULES.oneStar * 100)}% of the notes to clear this level.`,
+      tiles: [['Notes decoded', `${hits}/${total}`], ['Accuracy', Math.round(acc * 100) + '%'], ['Replays', replays], ['Score', score]],
+      newBest: score > old.best && old.best > 0, best: old.best ? `Best: ${Math.max(score, old.best)}` : '',
+      next: {label: ending ? 'The end of the story' : 'Next level', hidden: !(hasNext || ending),
+        onClick: () => { A.UI.results.hide(); if (lv === LEVELS.length) showEnding(); else intro(lv + 1); }},
+      retry: {label: 'Try again', onClick: () => { A.UI.results.hide(); intro(lv); }},
+      levels: {label: 'Levels', onClick: showHub}});
     A.Sfx.event(stars ? 'lost-signal-level-clear' : 'lost-signal-partial');
   }
-  $('resNext').addEventListener('click', () => {
-    if (!G) return;
-    if (G.lv === LEVELS.length) { $('results').hidden = true; showEnding(); return; }
-    $('results').hidden = true; intro(G.lv + 1);
-  });
-  $('resRetry').addEventListener('click', () => { $('results').hidden = true; intro(G.lv); });
-  $('resLevels').addEventListener('click', showHub);
   function showEnding() {
     $('endText').innerHTML = window.SIGNAL_ENDING.map(t => `<p>${t}</p>`).join('');
     $('ending').hidden = false; $('endOk').focus();
@@ -519,7 +544,7 @@
     $('check').hidden = false;
     $('checkTitle').textContent = 'Signal check';
     $('checkMsg').textContent = 'Turn your volume up (Chromebooks are often muted), then press the button to hear a test signal.';
-    $('checkActs').innerHTML = '<button type="button" class="btn btn-gold" id="checkPlay">Play test signal</button><button type="button" class="btn btn-ghost" id="checkSkip">Not now</button>';
+    $('checkActs').innerHTML = '<button type="button" class="btn btn-primary" id="checkPlay">Play test signal</button><button type="button" class="btn btn-secondary" id="checkSkip">Not now</button>';
     $('checkPlay').focus();
     $('checkSkip').onclick = () => { $('check').hidden = true; };
     $('checkPlay').onclick = playCheck;
@@ -531,10 +556,10 @@
     const h = A.tones.test();
     if (h.muted) {
       $('checkMsg').textContent = 'Sound is off in the arcade. Tap the speaker button (top right), turn SOUND ON, then try again.';
-      $('checkActs').innerHTML = '<button type="button" class="btn btn-gold" id="checkAgain">Try again</button><button type="button" class="btn btn-ghost" id="checkSkip">Not now</button>';
+      $('checkActs').innerHTML = '<button type="button" class="btn btn-primary" id="checkAgain">Try again</button><button type="button" class="btn btn-secondary" id="checkSkip">Not now</button>';
     } else {
       $('checkMsg').textContent = 'Can you hear the signal? If not, turn your volume up and play it again.';
-      $('checkActs').innerHTML = '<button type="button" class="btn btn-gold" id="checkYes">Yes, I hear it</button><button type="button" class="btn btn-ghost" id="checkAgain">Play it again</button>';
+      $('checkActs').innerHTML = '<button type="button" class="btn btn-primary" id="checkYes">Yes, I hear it</button><button type="button" class="btn btn-secondary" id="checkAgain">Play it again</button>';
       await h.done;
     }
     $('checkAgain').onclick = playCheck;
@@ -544,19 +569,7 @@
   }
   $('checkBtn').addEventListener('click', signalCheck);
 
-  /* a hidden tab stops the tones: the transmission plays again from the start when the student comes back (free) */
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && tonesNow && G && G.tx && G.tx.phase === 'playing') {
-      stopTones(); G.tx.interrupted = true;
-    } else if (!document.hidden && G && G.tx && G.tx.interrupted) {
-      G.tx.interrupted = false;
-      const tok = run, phase = G.tx.found ? 'echo' : 'find';
-      playPattern(tok).then(ok => { if (ok) yourTurn(tok, phase); });
-    }
-  });
-
-  $('quitPlay').addEventListener('click', showHub);
-  A.LostSignal = {state: () => G, generate, nextNote, shiftFor, noteSet, levels: LEVELS};   // tests
+  A.LostSignal = {state: () => G, paused: () => paused, generate, nextNote, shiftFor, noteSet, levels: LEVELS};   // tests
 
   showHub();
   if (!gd.signalChecked) signalCheck();

@@ -50,7 +50,7 @@
         if (!cps) return finishLine();
         typing = true; line.textContent = '';
         timer = setInterval(() => {
-          if (document.hidden) return;
+          if (document.hidden || Q.paused) return;
           shown++;
           line.textContent = full.slice(0, shown);
           if (shown % 3 === 1 && full[shown - 1] !== ' ' && !(A.Pitch && A.Pitch.listening())) Q.sfx('quest-text');

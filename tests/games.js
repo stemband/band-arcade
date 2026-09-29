@@ -17,7 +17,8 @@
      limit     ms the whole level may take (default 70 s)
      endlessPlay  the step in its ENDLESS run (a game whose page has an Endless card is also run to GAME OVER):
                default 'wrong' (tap W = a wrong note, which costs a heart); 'idle' = do nothing (notes run out)
-     skip      'chromium' | 'webkit': a reason not to run in that browser */
+     skip      'chromium' | 'webkit': a reason not to run in that browser
+     pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise) */
 const fs = require('fs');
 const path = require('path');
 const {games} = require('./arcade');
@@ -96,10 +97,10 @@ const STEPS = {
     play: async page => { await page.evaluate(() => { const H = Arcade.Highway; if (!window.__auto && H.state().phase !== 'menu') { window.__auto = true; H.autoPlay(0); } }); await page.waitForTimeout(400); }},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
   'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
-  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext'},
-  'vanishing-ink': {next: '#rrNext'},
+  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute
+  'vanishing-ink': {next: '#rrNext', limit: 100_000},
   'arcade-quest': {url: 'arcade-quest/index.html?demo&test', store: {gameData: {'arcade-quest': {settings: {textSpeed: 'instant', dodge: 'easy', assist: true}}}}, start: async page => { await page.waitForTimeout(1200); await page.keyboard.press('Enter'); },
-    play: questTurn, stars: false, limit: 150_000,
+    play: questTurn, stars: false, limit: 150_000, pause: false,   // a battle waits for you: no pause there
     done: page => page.evaluate(() => { const Q = Arcade.Quest, b = Q.battleState && Q.battleState(), s = Q.save.get();
       return (!!b && (b.state === 'friend' || b.state === 'fading')) || (s.battles || 0) > 0 || (s.roster || []).length > 0; })},
 };

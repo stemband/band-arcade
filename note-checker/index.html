@@ -18,8 +18,8 @@
 <div class="wrap">
   <div id="topbar"></div>
 
-  <h1 class="page-title">Note Checker</h1>
-  <div class="modes" role="group" aria-label="What to check">
+  <h1 class="game-title">Note Checker</h1>
+  <div class="ui-seg modes" role="group" aria-label="What to check">
     <button class="mode-btn" type="button" data-mode="five" aria-pressed="true">First 5</button>
     <button class="mode-btn" type="button" data-mode="Bb" aria-pressed="false" aria-label="Concert B flat scale">B♭</button>
     <button class="mode-btn" type="button" data-mode="Eb" aria-pressed="false" aria-label="Concert E flat scale">E♭</button>
@@ -30,16 +30,16 @@
   </div>
 
   <div id="fivePanel">
-    <p class="muted lede">Play each of your five notes and hold it. A note turns gold once the game hears it, so you know you're ready to play.</p>
+    <p class="ui-howto lede">Play each of your five notes and hold it. A note turns gold once the game hears it, so you know you're ready to play.</p>
     <div class="stage" style="padding-bottom:6px"><div id="ckStaff"></div></div>
   </div>
 
   <div id="fullPanel" hidden>
     <div id="fullMain">
-      <p class="muted lede" id="fullLede"></p>
+      <p class="ui-howto lede" id="fullLede"></p>
       <div class="full-head">
         <p class="playing">Playing: <b id="memberName"></b></p>
-        <button class="btn btn-ghost btn-small dir-btn" type="button" id="dirBtn" aria-pressed="false">Going down</button>
+        <div class="ui-seg ui-seg-sm" role="group" aria-label="Which way" id="dirSeg"><button type="button" data-down="false" aria-pressed="true">Going up</button><button type="button" data-down="true" aria-pressed="false">Going down</button></div>
       </div>
       <div class="stage full-stage"><div id="fullStaff"></div></div>
       <p class="octave-hint" id="fullHint" aria-live="polite"></p>
@@ -49,7 +49,7 @@
 
   <!-- ARTICULATION: counts every separate attack (shared/pitch.js onAttack) -->
   <div id="artPanel" hidden>
-    <p class="muted lede" id="artLede">Play the same note again and again, starting each one fresh. Every attack the mic catches counts.</p>
+    <p class="ui-howto lede" id="artLede">Play the same note again and again, starting each one fresh. Every attack the mic catches counts.</p>
     <div class="art-box">
       <div class="art-count" id="artCount" aria-live="polite" aria-atomic="true">0</div>
       <div class="art-side">
@@ -59,12 +59,12 @@
       </div>
     </div>
     <p class="art-tip" id="artTip">Tongue each note: ta ta ta ta.</p>
-    <div class="found"><span class="muted" id="artHint" aria-live="polite">&nbsp;</span><button class="btn btn-ghost btn-small" id="artReset">Reset</button></div>
+    <div class="found"><span class="muted" id="artHint" aria-live="polite">&nbsp;</span><button type="button" class="btn btn-secondary btn-small" id="artReset">Reset</button></div>
     <p class="demo-help" id="artDemo" hidden>Demo: tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note (no new attacks).</p>
   </div>
 
   <div class="startrow" id="startRow">
-    <button class="btn btn-gold" id="startBtn">Start listening</button>
+    <button type="button" class="btn btn-primary btn-big" id="startBtn">Start listening</button>
   </div>
 
   <div class="readout">
@@ -95,15 +95,16 @@
 
   <div class="found" id="foundRow">
     <b id="ckFound" aria-live="polite">0 of 5 notes found</b>
-    <button class="btn btn-ghost btn-small" id="ckReset">Reset</button>
+    <button type="button" class="btn btn-secondary btn-small" id="ckReset">Reset</button>
   </div>
 
-  <div class="sens">
-    <label for="sens">Mic sensitivity</label>
-    <div class="sens-row"><span class="muted">Less</span><input type="range" id="sens" min="0" max="100" value="50"><span class="muted">More</span></div>
-    <div class="levelbar" aria-hidden="true"><i id="lvlFill"></i><em id="lvlGate"></em></div>
-    <p>The bar shows how loud the mic hears you. The games only listen when the bar passes the red mark. Other people playing nearby? Slide toward Less. Game not hearing you? Slide toward More. This setting is shared by every game.</p>
-  </div>
+  <section class="sens" aria-labelledby="sensT">
+    <h2 class="ui-section" id="sensT">Mic sensitivity</h2>
+    <div class="sens-row"><span class="muted">Less</span><input type="range" id="sens" min="0" max="100" value="50" aria-labelledby="sensT"><span class="muted">More</span></div>
+    <span class="ui-label">Mic level</span>
+    <div class="ui-meter" aria-hidden="true"><i id="lvlFill"></i><em id="lvlGate"></em></div>
+    <p class="ui-howto">The bar shows how loud the mic hears you. The games only listen when the bar passes the red mark. Other people playing nearby? Slide toward Less. Game not hearing you? Slide toward More. This setting is shared by every game.</p>
+  </section>
 </div>
 
 <script src="../shared/instruments.js"></script>

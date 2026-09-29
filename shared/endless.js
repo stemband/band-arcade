@@ -66,7 +66,7 @@ window.Arcade = window.Arcade || {};
           <div><h2 class="ed-title" id="edTileTitle">${esc(title || 'Endless')}</h2>
             <p class="ed-blurb">${esc(blurb)}</p>
             <p class="ed-set">${esc(label)}</p></div>
-          <button type="button" class="btn btn-gold ed-go">Play Endless</button>
+          <button type="button" class="btn btn-primary ed-go">Play Endless</button>
         </div>
         <div class="ed-tile-top"><p class="ed-top-h">Top 5 on this device</p>${E.listHTML(list)}</div>
       </section>`;
@@ -95,24 +95,17 @@ window.Arcade = window.Arcade || {};
         list = E.top(gameId, instKey, setKey);
       }
       const newTop = rank === 0 && entry.score > 0;
-      const ov = overlay();
-      ov.querySelector('.ed-new').hidden = demo || !(rank >= 0 && entry.score > 0);
-      ov.querySelector('.ed-new').textContent = rank < 0 ? '' : newTop ? (before.length ? 'NEW HIGH SCORE!' : 'FIRST HIGH SCORE!') : `#${rank + 1} on your Top 5!`;
-      ov.querySelector('.ed-new').classList.toggle('top', newTop);
       const stats = run.stats || [['Score', entry.score.toLocaleString()], ['Notes cleared', run.notes],
         ['Top speed', (+run.speed || 0).toFixed(1)], ['Longest combo', run.combo]];
-      ov.querySelector('.stats').innerHTML = stats.map(([k, v]) => `<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
-      ov.querySelector('#edOverTitle').textContent = title || 'Game Over';
-      ov.querySelector('.ed-kicker').innerHTML = `<span aria-hidden="true">∞</span> ${esc(kicker || 'Endless')}`;
-      ov.querySelector('.ed-demo').hidden = !demo;
-      ov.querySelector('.ed-list').innerHTML = E.listHTML(demo ? before : list, demo ? null : (rank >= 0 ? rank : null));
-      const again = ov.querySelector('.ed-again'), back = ov.querySelector('.ed-back');
-      back.textContent = backLabel || 'Levels';
-      again.onclick = () => { close(); onAgain(); };
-      back.onclick = () => { close(); onBack(); };
-      ov.hidden = false;
-      if (A.Skins) A.Skins.announce(ov.querySelector('.panel'));     // the player's avatar and name at the top
-      again.focus();
+      // THE RESULTS SCREEN (shared/ui-kit.js): no stars; the new place as the NEW BEST ribbon; the Top 5 as the extra
+      const placed = !demo && rank >= 0 && entry.score > 0;
+      A.UI.results.show({gameId, theme: 'ed-over', stars: null, kicker: '∞ ' + (kicker || 'Endless'), title: title || 'Game Over',
+        newBest: placed, newBestText: !placed ? '' : newTop ? (before.length ? 'New high score!' : 'First high score!') : `#${rank + 1} on your Top 5!`,
+        tiles: stats,
+        extra: (demo ? '<p class="ed-demo">Demo run — score not saved</p>' : '') + '<p class="ed-top-h">Top 5 on this device</p>' +
+          `<div class="ed-list">${E.listHTML(demo ? before : list, demo ? null : (rank >= 0 ? rank : null))}</div>`,
+        retry: {label: 'Play again', onClick: () => { A.UI.results.hide(); onAgain(); }},
+        levels: {label: backLabel || 'Levels', onClick: () => { A.UI.results.hide(); onBack(); }}});
       const snd = Object.assign({over: 'endless-game-over', top: 'endless-high-score'}, sounds);
       A.Sfx.sequence([snd.over, newTop && !demo && snd.top]);
       return rank;
@@ -126,32 +119,4 @@ window.Arcade = window.Arcade || {};
     try { return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}); } catch (e) { return iso; }
   }
 
-  let ov = null;
-  function overlay() {
-    if (ov) return ov;
-    ov = document.createElement('div');
-    ov.className = 'overlay ed-over'; ov.hidden = true;
-    ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="edOverTitle">
-      <p class="ed-kicker"><span aria-hidden="true">∞</span> Endless</p>
-      <h2 id="edOverTitle">Game Over</h2>
-      <p class="ed-new" aria-live="polite" hidden></p>
-      <div class="stats">
-        <div><small>Score</small><b id="edScore">0</b></div>
-        <div><small>Notes cleared</small><b id="edNotes">0</b></div>
-        <div><small>Top speed</small><b id="edSpeed">0</b></div>
-        <div><small>Longest combo</small><b id="edCombo">0</b></div>
-      </div>
-      <p class="ed-demo" hidden>Demo run — score not saved</p>
-      <p class="ed-top-h">Top 5 on this device</p>
-      <div class="ed-list"></div>
-      <div class="acts">
-        <button type="button" class="btn btn-gold ed-again">Play again</button>
-        <button type="button" class="btn btn-ghost ed-back">Levels</button>
-      </div>
-    </div>`;
-    document.body.appendChild(ov);
-    ov.addEventListener('keydown', e => { if (e.key === 'Escape') ov.querySelector('.ed-back').click(); });
-    return ov;
-  }
-  function close() { if (ov) ov.hidden = true; }
 })(window.Arcade);

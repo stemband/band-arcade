@@ -47,7 +47,7 @@
     <label for="inst">Show written for</label>
     <select id="inst"></select>
     <label><input type="checkbox" id="drums" checked> Drums</label>
-    <button class="btn btn-ghost btn-small" id="stopAll">Stop</button>
+    <button class="btn btn-secondary btn-small" id="stopAll">Stop</button>
   </div>
   <div id="list"></div>
 </div>
@@ -127,7 +127,7 @@
         <div class="song-h"><h2>${i + 1}. ${esc(s.title)}</h2><span class="tier t${s.tier}">Tier ${s.tier}</span></div>
         <p class="meta">${esc(s.source)} · ${s.tempo} beats a minute · ${s.timeSig[0]}/${s.timeSig[1]} · ${s.style} groove · ${c.keyName} · ${c.notes.length} notes · id <code>${s.id}</code></p>
         ${probs.length ? `<p class="warn">⚠ ${probs.map(esc).join('<br>')}</p>` : ''}
-        <div class="btns"><button class="btn btn-gold btn-small" data-play="1">▶ Play</button><button class="btn btn-ghost btn-small" data-play=".75">▶ Slow (75%)</button></div>
+        <div class="btns"><button class="btn btn-primary btn-small" data-play="1">▶ Play</button><button class="btn btn-secondary btn-small" data-play=".75">▶ Slow (75%)</button></div>
         <h3>Concert pitch (${c.keyName})</h3>${rows(c, s)}${letters(c)}
         <h3>Written for ${esc(o.label)}${w.unpitched ? ' (rhythm only)' : ` (${w.writtenKey})`}</h3>${rows(w, s)}${letters(w)}
       </article>`;
@@ -141,7 +141,7 @@
   function play(i, rate) {
     stop();
     const out = A.Sfx.output();
-    if (!out) { alert('Sound is off (or not started yet). Turn the sound on with the speaker button, then press Play again.'); return; }
+    if (!out) { A.UI.notice({title: 'Sound is off', text: 'Turn the sound on in Settings (the speaker button), then press Play again.'}); return; }
     const o = opts.find(x => x.v === $('inst').value) || opts[0], s = SONGS[i];
     const map = o.m.pitched === false ? SM.forMember(s, concertMember, concertGroup) : SM.forMember(s, o.m, o.g);
     const kit = A.MHBacking.create(out.ctx, out.out), spb = 60 / (s.tempo * rate), per = map.beatsPerMeasure;

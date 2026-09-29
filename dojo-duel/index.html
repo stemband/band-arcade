@@ -27,26 +27,26 @@
       <div class="dd-sensei" id="setupSensei" aria-hidden="true"></div>
       <div>
         <h1 class="game-title">Dojo <span>Duel</span></h1>
-        <p class="muted">Two ninjas, one screen. A note appears for each of you: the first to tap its name wins the point. A wrong tap makes you dizzy for a second! No instrument needed.</p>
+        <p class="ui-howto">Two ninjas, one screen. A note appears for each of you: the first to tap its name wins the point. A wrong tap makes you dizzy for a second! No instrument needed.</p>
       </div>
     </div>
 
     <div class="dd-row">
-      <div class="dd-field"><span class="dd-lbl" id="lblMode">Mode</span>
-        <div class="seg" role="group" aria-labelledby="lblMode" id="segMode">
+      <div class="dd-field"><span class="ui-label" id="lblMode">Mode</span>
+        <div class="ui-seg" role="group" aria-labelledby="lblMode" id="segMode">
           <button type="button" data-v="2p">2 Players</button><button type="button" data-v="cpu">Solo vs. Sensei</button>
         </div></div>
-      <div class="dd-field" id="fieldCpu"><span class="dd-lbl" id="lblCpu">Sensei</span>
-        <div class="seg" role="group" aria-labelledby="lblCpu" id="segCpu"></div></div>
-      <div class="dd-field"><span class="dd-lbl" id="lblTo">Match length</span>
-        <div class="seg" role="group" aria-labelledby="lblTo" id="segTo"></div></div>
-      <div class="dd-field" id="fieldLayout"><span class="dd-lbl" id="lblLayout">Layout</span>
-        <div class="seg seg-pic" role="group" aria-labelledby="lblLayout" id="segLayout">
+      <div class="dd-field" id="fieldCpu"><span class="ui-label" id="lblCpu">Sensei</span>
+        <div class="ui-seg" role="group" aria-labelledby="lblCpu" id="segCpu"></div></div>
+      <div class="dd-field"><span class="ui-label" id="lblTo">Match length</span>
+        <div class="ui-seg" role="group" aria-labelledby="lblTo" id="segTo"></div></div>
+      <div class="dd-field" id="fieldLayout"><span class="ui-label" id="lblLayout">Layout</span>
+        <div class="ui-seg seg-pic" role="group" aria-labelledby="lblLayout" id="segLayout">
           <button type="button" data-v="table"><i class="lay lay-ico-table" aria-hidden="true"><b></b><b></b></i>Tabletop</button>
           <button type="button" data-v="side"><i class="lay lay-ico-side" aria-hidden="true"><b></b><b></b></i>Side by side</button>
         </div></div>
-      <div class="dd-field"><span class="dd-lbl" id="lblCount">Countdown</span>
-        <div class="seg" role="group" aria-labelledby="lblCount" id="segCount">
+      <div class="dd-field"><span class="ui-label" id="lblCount">Countdown</span>
+        <div class="ui-seg" role="group" aria-labelledby="lblCount" id="segCount">
           <button type="button" data-v="quick">Quick</button><button type="button" data-v="classic">Classic</button><button type="button" data-v="off">Off</button>
         </div></div>
     </div>
@@ -61,7 +61,7 @@
     <div class="keymap" id="keymap"></div>
 
     <div class="dd-go">
-      <button class="btn btn-gold btn-big" id="goBtn">Begin the duel</button>
+      <button class="btn btn-primary btn-big" id="goBtn">Begin the duel</button>
     </div>
     <p class="demo-help" id="demoHelp" hidden>Demo: every belt is open and the answers show under each staff.</p>
   </section>
@@ -72,9 +72,8 @@
   <div class="half h2" id="h2"></div>
   <div class="mid" id="mid">
     <div class="sc sc1" id="sc1"></div>
-    <div class="mid-c">
+    <div class="mid-c" id="midC">
       <div class="mid-sensei" id="midSensei" aria-hidden="true"></div>
-      <button type="button" class="pause" id="pauseBtn" aria-label="Pause">❚❚</button>
     </div>
     <div class="sc sc2" id="sc2"></div>
   </div>
@@ -82,18 +81,7 @@
   <div class="dd-call" id="call" aria-live="assertive"><span class="c1"></span><span class="c2"></span></div>
 </div>
 
-<!-- PAUSE -->
-<div class="overlay" id="paused" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
-    <h2 id="pauseTitle">Paused</h2>
-    <p>Take a breath. The note clock is stopped.</p>
-    <div class="acts">
-      <button class="btn btn-gold" id="resumeBtn">Resume</button>
-      <button class="btn btn-ghost" id="pauseSetup">Change setup</button>
-      <button class="btn btn-ghost" id="pauseExit">Exit</button>
-    </div>
-  </div>
-</div>
+<!-- the pause menu: shared/ui-kit.js (its button sits in the center strip, between the players) -->
 
 <!-- No microphone in this game: no pitch.js, no mic-gate.js. Sound effects and music are fine (shared/sfx.js). -->
 <script src="../shared/instruments.js"></script>

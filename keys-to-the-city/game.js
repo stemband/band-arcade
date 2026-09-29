@@ -18,7 +18,7 @@
   const {$} = A;
   const GAME_ID = 'keys-to-the-city';
   const LEVELS = window.KTTC_LEVELS, RULES = window.KTTC_RULES, NIGHT = window.KTTC_NIGHT, K = A.KTTC;
-  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const RM = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const mod = (a, n) => ((a % n) + n) % n;
   const GOLD = '#c98a12', MISS = '#d0503f';          // the staff's found / missed note colors (as in every game)
@@ -312,7 +312,8 @@
   function showHub() {
     stop();
     A.Sfx.gameMenuMusic(GAME_ID);
-    $('play').hidden = true; $('hub').hidden = false; $('results').hidden = true; $('intro').hidden = true;
+    $('play').hidden = true; $('hub').hidden = false; A.UI.results.hide(); A.UI.intro.hide();
+    pause.setActive(false);
     drawOpts();
     $('levelGrid').innerHTML = LEVELS.map((L, i) => {
       const lv = i + 1, p = prog(lv), open = unlocked(i);
@@ -337,20 +338,21 @@
 
   /* START: instrument mode asks for the microphone first; a district starts with the Mayor's intro */
   function begin(lv) {
+    A.UI.results.hide();                                                 // RETRY / NEXT DISTRICT: the intro replaces the results
     const go = () => lv === 'endless' ? startEndless() : intro(lv);
     if (mode === 'inst') A.requireMic(go); else go();
   }
+  /* THE DISTRICT INTRO (shared/ui-kit.js UI.intro): the Mayor, the district's name and words, and on every district with
+     signs (not the Mayor's Challenge) the mini keyboard */
   function intro(lv) {
     const L = LEVELS[lv - 1];
-    $('introTitle').textContent = `District ${lv}: ${L.name}`;
-    $('introSay').textContent = L.say;
-    $('introMayor').innerHTML = mayorSVG(lv === LEVELS.length ? 'cheer' : 'point');
-    $('introSigns').hidden = !(Array.isArray(L.signs) ? L.signs[0] : L.signs);   // every district with signs (not the Mayor's Challenge)
-    if (!$('introSigns').hidden && !$('introSigns').firstChild) $('introSigns').innerHTML = miniKeyboard();
-    $('results').hidden = true;                                          // RETRY / NEXT DISTRICT: the intro replaces the results
-    $('intro').hidden = false;
+    const signs = !!(Array.isArray(L.signs) ? L.signs[0] : L.signs);
+    A.UI.intro.show({theme: 'kt-intro', kicker: `District ${lv}`, title: L.name, text: esc(L.say),
+      hero: `<div class="kt-intro-mayor" id="introMayor" aria-hidden="true">${mayorSVG(lv === LEVELS.length ? 'cheer' : 'point')}</div>`,
+      extra: signs ? `<div class="kt-intro-signs" id="introSigns">${miniKeyboard()}</div>` : '',
+      go: {label: 'Let\'s go!', onClick: () => startLevel(lv)},
+      back: {label: 'City map', onClick: () => showHub()}});
     A.Sfx.event('kttc-mayor-hello');
-    $('introGo').onclick = () => { $('intro').hidden = true; startLevel(lv); };
   }
 
   /* ================= PLAYING A DISTRICT ================= */
@@ -372,8 +374,9 @@
     nextRound();
   }
   function enterPlay(L) {
-    $('hub').hidden = true; $('results').hidden = true; $('play').hidden = false;
+    $('hub').hidden = true; A.UI.results.hide(); $('play').hidden = false;
     document.body.classList.add('kt-playing');
+    pause.setActive(true);                                               // the arcade's PAUSE button (shared/ui-kit.js)
     $('hudScore').textContent = '0';
     // the letter pad keeps its place for the whole district (the keyboard never jumps when a NAME round comes)
     const names = !!(L.types.name || L.types.circuit) || !!G.endless;
@@ -389,7 +392,7 @@
   const signsFor = () => fade(G.L.signs), labelsFor = () => fade(G.L.labels);
 
   function nextRound() {
-    clearTimeout(G.tNext); cancelAnimationFrame(timerRaf);
+    clearTimeout(G.tNext); G.tNextDue = 0; cancelAnimationFrame(timerRaf);
     if (!G.endless && G.i >= G.n) return finish();
     if (G.endless) G.L = nightLevel(G.stage);
     const L = G.L, r = K.round(L, {i: G.i, clefPref, prev: G.prev});
@@ -513,7 +516,7 @@
       if (r.type === 'find' || r.type === 'circuit') drawStaff(r, [{n: r.target.show, caption: name, color: GOLD}]);
       say(praise(r), 'happy');
       A.Sfx.event(G.streak % RULES.streak === 0 ? 'kttc-block-lights' : 'kttc-correct');
-      G.tNext = setTimeout(advance, RULES.afterRightMs);
+      later(RULES.afterRightMs);
     } else {
       G.streak = 0;
       if (tapped != null && tapped !== r.target.midi) mark(tapped, 'bad');
@@ -526,12 +529,14 @@
       else say(r.type === 'scale' ? `That scale goes ${r.scale.map(x => K.label(x.n)).join(' ')}.` : named ? `That key is ${name}.` : `It was ${name}. You'll get the next one!`, 'oops');
       A.Sfx.event('kttc-wrong');
       if (G.endless) { G.lives--; $('hudLives').innerHTML = A.Endless.hearts(G.lives, NIGHT.lives); if (G.lives > 0) A.Sfx.event('endless-life-lost'); }
-      G.tNext = setTimeout(advance, RULES.afterWrongMs + (hint ? 500 : 0));
+      later(RULES.afterWrongMs + (hint ? 500 : 0));
     }
     $('hudScore').textContent = G.score;
   }
+  /** the next round after a moment (paused: the wait stops and goes on after RESUME) */
+  function later(ms) { G.tNextDue = performance.now() + ms; G.tNext = setTimeout(advance, ms); }
   function advance() {
-    if (!G) return;
+    if (!G || G.paused) return;
     G.i++;
     if (G.endless) {
       if (G.lives <= 0) return nightOver();
@@ -570,17 +575,47 @@
     say(kind === 'chop' ? 'C is right next to the Chopsticks!' : 'F is right next to the Fork!', 'point');
     hintVoice(kind);
   }
-  $('quitPlay').onclick = () => { if (G && G.endless && G.right) return nightOver(); showHub(); };
+  /* THE PAUSE MENU (shared/ui-kit.js): the round clock (the Mayor's Challenge, Night Shift) and the wait before the next
+     round stop while paused (and while the tab is hidden); nothing can be answered. BACK TO THE CITY MAP = what "Leave
+     district" did: a Night Shift with keys already right ends as a shift (its score goes in the Top 5). */
+  const pause = A.UI.pause.mount({
+    onPause() {
+      if (!G) return;
+      const now = performance.now();
+      G.paused = true; G.pausedAt = now;
+      cancelAnimationFrame(timerRaf);
+      if (G.tNextDue) { clearTimeout(G.tNext); G.advLeft = Math.max(0, G.tNextDue - now); G.tNextDue = 0; }
+      A.Pitch.demoNote = null;
+    },
+    onResume() {
+      if (!G || !G.paused) return;
+      G.t0 += performance.now() - G.pausedAt;                            // the paused time never counts against a round
+      G.paused = false;
+      if (G.advLeft != null) { const ms = Math.max(300, G.advLeft); G.advLeft = null; later(ms); }
+      else if (!G.done && (G.L.time || G.endless)) tickTimer();
+    },
+    onRestart() { const g = G; stop(); if (g && g.endless) startEndless(); else startLevel(g ? g.lv : 1); },
+    onLevels() { if (G && G.endless && G.right) return nightOver(); showHub(); },
+    levelsLabel: 'Back to the city map',
+    leaveTitle: 'Leave this district?',
+    confirmLeave: () => !!G && !(G.endless && G.right),
+    canPause: () => !!G,
+    info: () => !G ? [] : G.endless ? [['Stage', G.stage + 1], ['Keys right', G.right], ['Score', G.score]]
+      : [['Round', `${Math.min(G.i + 1, G.n)} / ${G.n}`], ['Score', G.score]],
+  });
 
   /* the Mayor's Challenge timer (and Night Shift's): a bar that runs down; time up = a wrong answer */
   /* taps a round needs: FIND 1; NAME 1 (+1 for a ♯/♭); FULL CIRCUIT the name + its place on the staff (levels.js TIMED ROUNDS) */
   const tapsFor = r => r.type === 'scale' ? 8 : (r.type === 'find' ? 1 : 1 + (r.target.n.acc ? 1 : 0) + (r.type === 'circuit' ? 1 : 0));
   function runTimer() {
-    const limit = (G.endless ? G.limit : G.L.time) + RULES.perTap * (tapsFor(G.r) - 1), t = $('timer'), bar = t.firstElementChild;
-    G.roundLimit = limit;
-    t.hidden = false;
+    G.roundLimit = (G.endless ? G.limit : G.L.time) + RULES.perTap * (tapsFor(G.r) - 1);
+    $('timer').hidden = false;
+    tickTimer();
+  }
+  function tickTimer() {
+    const limit = G.roundLimit, t = $('timer'), bar = t.firstElementChild;
     const tick = () => {
-      if (!G || G.done) return;
+      if (!G || G.done || G.paused) return;
       if (mode === 'inst' && A.Pitch.isSuppressed()) G.t0 += 16;          // a sound's mute window doesn't cost time
       const left = 1 - (performance.now() - G.t0) / 1000 / limit;
       bar.style.transform = `scaleX(${Math.max(0, left)})`; t.classList.toggle('low', left < .3);
@@ -592,7 +627,7 @@
 
   /* INSTRUMENT MODE: a FIND THE KEY round is answered by playing the note (any octave) */
   A.Pitch.onHeld(pc => {
-    if (!G || G.done || mode !== 'inst' || G.r.type !== 'find') return;
+    if (!G || G.done || G.paused || mode !== 'inst' || G.r.type !== 'find') return;
     judge(pc === mod(G.r.target.midi, 12), null);
   });
 
@@ -605,31 +640,35 @@
     const lastOne = g.lv === LEVELS.length, clearedNow = stars > 0;
     if (lastOne && clearedNow) { const a = gd().achievements || {}; a.mayor = true; save({achievements: a}); }
     $('play').hidden = true; document.body.classList.remove('kt-playing');
-    $('resStars').innerHTML = A.starStr(stars);
-    $('resKey').hidden = !clearedNow; $('resKey').innerHTML = KEY_ICON;
-    $('resTitle').textContent = clearedNow ? (lastOne ? 'The city is yours!' : `${g.L.name} cleared!`) : 'Almost there!';
-    $('resMsg').textContent = clearedNow ? (stars === 3 ? 'Every round right. The Mayor gives you a golden key!' : 'The Mayor gives you a golden key for this district!')
-      : `Get ${Math.ceil(RULES.stars[0] * g.n)} of ${g.n} rounds right to clear the district. Try again!`;
-    $('resRight').textContent = `${g.right}/${g.n}`; $('resStreak').textContent = g.best; $('resScore').textContent = g.score;
-    $('resBest').textContent = newBest && prev.best ? `New best score! (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : '';
-    $('resNext').hidden = !(clearedNow && g.lv < LEVELS.length);
-    $('results').hidden = false; $('results').dataset.lv = g.lv;
+    const finaleNext = lastOne && clearedNow;                            // the finale comes first, then the UNLOCKED! card
+    A.UI.results.show({gameId: GAME_ID, stars,
+      hero: clearedNow ? `<div class="kt-gold" id="resKey" aria-hidden="true">${KEY_ICON}</div>` : '',
+      title: clearedNow ? (lastOne ? 'The city is yours!' : `${g.L.name} cleared!`) : 'Almost there!',
+      msg: clearedNow ? (stars === 3 ? 'Every round right. The Mayor gives you a golden key!' : 'The Mayor gives you a golden key for this district!')
+        : `Get ${Math.ceil(RULES.stars[0] * g.n)} of ${g.n} rounds right to clear the district. Try again!`,
+      tiles: [['Right', `${g.right}/${g.n}`], ['Best streak', g.best], ['Score', g.score]],
+      newBest: newBest && !!prev.best,
+      best: prev.best ? (newBest ? `Best: ${g.score} (was ${prev.best})` : `Best: ${Math.max(prev.best, g.score)}`) : '',
+      next: {label: 'Next district', hidden: !(clearedNow && g.lv < LEVELS.length), onClick: () => begin(g.lv + 1)},
+      retry: {label: 'Try again', onClick: () => begin(g.lv)},
+      levels: {label: 'City map', onClick: () => showHub()},
+      announce: !finaleNext});
     const snd = [clearedNow ? 'kttc-golden-key' : 'level-failed'];
     if (stars > (prev.stars || 0)) snd.push('star-earned');
     if (newBest && prev.best) snd.push('new-high-score');
     A.Sfx.sequence(snd, 120, {channel: GAME_ID});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
-    if (lastOne && clearedNow) setTimeout(finale, 900); else A.Skins.announce($('results').querySelector('.panel'));
+    if (finaleNext) setTimeout(finale, 900);
   }
+  /* KEYS TO THE CITY: the ceremony after The Mayor's Challenge (over the results screen), then the UNLOCKED! card */
   function finale() {
+    if (!A.UI.results.shown) return;                                     // (the results were left already)
     $('finaleKey').innerHTML = KEY_ICON + mayorSVG('cheer');
     $('finale').hidden = false;
     A.Sfx.cancelAll(GAME_ID); A.Sfx.event('kttc-keys-to-city');
-    $('finaleGo').onclick = () => { $('finale').hidden = true; A.Skins.announce($('results').querySelector('.panel')); };
+    $('finaleGo').onclick = () => { $('finale').hidden = true; const p = A.UI.results.el; if (p) { A.Skins.announce(p.querySelector('.panel')); const f = p.querySelector('.btn-primary'); if (f) f.focus(); } };
+    $('finaleGo').focus();
   }
-  $('resRetry').onclick = () => begin(+$('results').dataset.lv);
-  $('resNext').onclick = () => begin(+$('results').dataset.lv + 1);
-  $('resLevels').onclick = () => showHub();
   function stop() { if (G) { clearTimeout(G.tNext); cancelAnimationFrame(timerRaf); } G = null; $('timer').hidden = true; document.body.classList.remove('kt-playing'); }
 
   /* ================= NIGHT SHIFT (endless) ================= */
@@ -653,7 +692,7 @@
   }
   function nightOver() {
     const g = G; stop();
-    $('play').hidden = true;
+    $('play').hidden = true; pause.setActive(false);
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
     A.Endless.gameOver({gameId: GAME_ID, instKey: 'all', setKey: 'night-shift', title: 'SHIFT OVER',
       run: {score: g.score, notes: g.right, speed: g.stage + 1, combo: g.best,
@@ -664,7 +703,7 @@
   /* ================= ?demo: Space = the right answer, W = a wrong one (instrument mode: hold Space to "play") ================= */
   if (A.DEMO) {
     addEventListener('keydown', e => {
-      if (!G || G.done || e.repeat || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      if (!G || G.done || G.paused || e.repeat || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
       const r = G.r, k = e.key.toLowerCase();
       if (k !== ' ' && k !== 'w') return;
       e.preventDefault();

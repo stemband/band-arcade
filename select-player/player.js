@@ -20,7 +20,7 @@
   "use strict";
   const {$} = A;
   const ROOT = '';                                          // this view lives on the floor page, at the site root
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const {noteLabel} = A.music;
   const FAMILY = {woodwind: 'Woodwind', brass: 'Brass', percussion: 'Percussion'};
   const KEY = {0: 'Concert pitch', 2: 'B♭ instrument', 7: 'F instrument', 9: 'E♭ instrument'};

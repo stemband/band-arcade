@@ -5,6 +5,8 @@
    Q.input.on(fn)         fn(btn) on every press; returns an off() function. The newest listener goes first and can
                           return true to stop older ones from hearing it (a menu over a menu).
    Q.input.touch          true on touch screens (the pad is shown)
+   While a shared panel (shared/ui-kit.js: pause menu, settings, a yes/no question, the results) is open
+   (body.ui-modal), or Create Your Player (body.avc-open), the game hears no keys.
    Keys go to buttons as normal when a real button has focus (Enter/Space click it), so menus stay accessible. */
 (function (A) {
   "use strict";
@@ -25,6 +27,9 @@
   addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     if (document.body.classList.contains('avc-open')) return;   // Create Your Player is open: its own keys
+    if (document.body.classList.contains('ui-modal')) return;   // a shared panel is open (pause, settings, a question…)
+    // Esc while the shared PAUSE button shows and nothing else is on screen: the kit's pause has it (never both)
+    if (e.key === 'Escape' && Q.pauseOwnsEsc && Q.pauseOwnsEsc()) return;
     const k = KEYS[e.key] || KEYS[e.key.toLowerCase && e.key.toLowerCase()];
     if (!k) return;
     if (input.blocked) return;                                  // a playing challenge: the keys are the demo notes
