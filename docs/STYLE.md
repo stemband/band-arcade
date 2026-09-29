@@ -43,7 +43,8 @@ Every button uses `.btn` plus one style class, and is at least 44 px tall.
 - `.ui-seg` is a row of choices where one is pressed (difficulty, speed, clef). Use it for every option toggle;
   a game may recolor the pressed choice with `--seg-on`.
 - **Button order is always the same**: on results, NEXT, then TRY AGAIN, then LEVELS. In the pause menu, RESUME,
-  RESTART, SETTINGS, then the game's extras, then BACK TO LEVELS.
+  RESTART, SETTINGS, then the game's extras, then BACK TO LEVELS, then BACK TO ARCADE GAMES (the kit adds it to every
+  game; it asks first like BACK TO LEVELS and opens the arcade's ALL GAMES).
 
 ## Glow
 - Glow is for neon things only: titles, borders, the primary button, the selected choice.
@@ -87,7 +88,7 @@ Every button uses `.btn` plus one style class, and is at least 44 px tall.
 ## The shared pieces (shared/ui-kit.js)
 | Piece | Call | Notes |
 |---|---|---|
-| Pause | `Arcade.UI.pause.mount({onPause, onResume, onRestart, onLevels, extras})`, then `pause.setActive(true)` while a level runs | The button sits top-left, where "← Arcade" is on the level select. Esc or P pauses. It also pauses by itself when the tab is hidden. BACK TO LEVELS asks first. |
+| Pause | `Arcade.UI.pause.mount({onPause, onResume, onRestart, onLevels, extras})`, then `pause.setActive(true)` while a level runs | The button sits top-left, where "← Arcade" is on the level select. Esc or P pauses. It also pauses by itself when the tab is hidden. BACK TO LEVELS asks first. BACK TO ARCADE GAMES comes last in every game (asks the same way, stops the microphone, opens ALL GAMES); never build your own exit button. |
 | Results | `Arcade.UI.results.show({stars, title, msg, tiles, best, newBest, extra, next, retry, levels})` | Stars pop in the same way everywhere. The results show the avatar and the UNLOCKED! card by themselves. |
 | Settings | the top bar's Settings button, the pause menu, or `Arcade.UI.settings.open()` | Sound, Music, Effects, Motion, Mic sensitivity with a live meter. A game adds its own options with `UI.settings.register(fn)`. |
 | Level intro | `Arcade.UI.intro.show({kicker, title, text, go, back})` | |

@@ -2,7 +2,9 @@
    THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (games.js ZONES: its color, name, tagline, small
    silhouettes of its cabinets and the student's stars there for the current instrument), and on top a CONTINUE card
    (the last game opened on this device) and the ASSIGNED card (shared/featured.js).
-   ALL GAMES: every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED.
+   ALL GAMES: every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
+   and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
+   (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
    The marquee pictures are still frames from shared/marquees.js (Arcade.Marquee.thumb: drawn once, then kept).
    A game that doesn't suit the instrument (games.js fit) stays, dimmed, with its short tag.
      Arcade.Lobby.render({onZone(zone), onGame(game, from)})
@@ -66,18 +68,34 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- ALL GAMES ---------- */
+  const NI_KEY = 'bandarcade.noinst';
+  const niOn = () => { try { return sessionStorage.getItem(NI_KEY) === '1'; } catch (e) { return false; } };
   function renderAll({onGame, focus}) {
-    const F = A.featuredGame();
-    $('allGrid').innerHTML = A.floorGames().map(g => {
+    const F = A.featuredGame(), only = niOn();
+    const chip = $('niFilter');
+    if (chip) {
+      chip.setAttribute('aria-pressed', String(only));
+      chip.onclick = () => {
+        try { sessionStorage.setItem(NI_KEY, niOn() ? '0' : '1'); } catch (e) { /* private mode: still toggles below */ }
+        if (A.Sfx) A.Sfx.event('ui-toggle');
+        renderAll({onGame, focus: null});
+        chip.focus({preventScroll: true});
+      };
+    }
+    const games = A.floorGames().filter(g => !only || g.noInstrument);
+    const count = $('allCount');
+    if (count) count.textContent = only ? `${games.length} game${games.length === 1 ? '' : 's'} you can play without your instrument` : '';
+    $('allGrid').innerHTML = games.map(g => {
       const f = fitOf(g), zones = A.zonesOf(g);
       const foot = g.maxStars ? `<span class="gc-stars">${starsHTML(A.gameStars(g))}</span>`
         : `<span class="gc-sum">${esc((g.summary && g.summary(A.store)) || 'No stars: just play!')}</span>`;
       return `<button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
-        `aria-label="${esc(g.name)}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
+        `aria-label="${esc(g.name)}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${g.noInstrument ? ', no instrument needed' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
         `<span class="gc-pic">${thumb(g)}</span>` +               // the marquee alone: badges never cover its title
         `<span class="gc-body"><span class="gc-head"><span class="gc-name">${esc(g.name)}</span><span class="gc-badges">` +
         (F === g ? `<span class="badge b-assigned">Assigned</span>` : '') + (twoP(g) ? `<span class="badge b-2p">2P</span>` : '') + `</span></span><span class="gc-skill">${esc(g.skill || '')}</span>` +
-        `<span class="gc-zones">${zones.map(z => `<span class="ztag" style="${zoneStyle(z)}">${esc(z.name)}</span>`).join('')}</span>` +
+        `<span class="gc-zones">${zones.map(z => `<span class="ztag" style="${zoneStyle(z)}">${esc(z.name)}</span>`).join('')}` +
+        (g.noInstrument ? `<span class="ni-tag">No instrument needed</span>` : '') + `</span>` +
         `<span class="gc-foot">${foot}${f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`}</span></span></button>`;
     }).join('');
     $('allGrid').querySelectorAll('.gcard').forEach(b => b.addEventListener('click', () =>

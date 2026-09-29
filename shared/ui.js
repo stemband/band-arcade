@@ -322,6 +322,7 @@ window.Arcade = window.Arcade || {};
   A.mountTopbar = function (inst, extraRightHTML = '', gameId = '', {fixed, portrait} = {}) {
     if (A.Bg && gameId) A.Bg.mount(gameId);                // the game's menu background (shared/backgrounds.js)
     if (A.PressStart && gameId) A.PressStart.show(gameId);   // the PRESS START title screen, once per page (shared/press-start.js)
+    if (gameId) A.pageGame = gameId;                        // this page's game (the pause menu's BACK TO ARCADE GAMES)
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;

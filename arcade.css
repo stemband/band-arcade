@@ -272,6 +272,17 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .gc-zones{display:flex;flex-wrap:wrap;gap:4px}
 .ztag{padding:2px 8px;border-radius:999px;border:2px solid var(--z);color:var(--z-hi);font-size:12px;font-weight:700;background:var(--deep)}
 .gc-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:2px;font-size:15px}
+/* "No instrument needed": the card's tag and ALL GAMES' filter chip (lobby.js; games.js noInstrument) */
+.ni-tag{padding:2px 8px;border-radius:999px;border:2px dashed var(--cyan);color:var(--cyan-hi);font-size:12px;font-weight:700;background:var(--deep)}
+.allg-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;max-width:1200px;margin:0 auto 12px}
+.allg-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px;border-radius:999px;cursor:pointer;
+  border:2px solid var(--cyan);background:var(--deep);color:var(--cyan-hi);font:700 15px var(--text)}
+.allg-chip:hover{background:var(--floor-3)}
+.allg-chip:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+.allg-chip[aria-pressed="true"]{background:var(--cyan);color:var(--deep);box-shadow:var(--glow-cyan)}
+.allg-chk{width:16px;height:16px;border-radius:4px;border:2px solid currentColor;flex:none;position:relative}
+.allg-chip[aria-pressed="true"] .allg-chk::after{content:'';position:absolute;left:3px;top:0;width:5px;height:9px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.allg-count{color:var(--text-lo);font-size:14px}
 .gc-stars{font-variant-numeric:tabular-nums}
 .gc-sum{color:var(--text-lo);font-size:14px}
 .mq-none{display:grid;place-items:center;aspect-ratio:4/1;background:var(--deep);font:400 18px var(--display)}

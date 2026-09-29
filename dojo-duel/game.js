@@ -663,7 +663,7 @@
     onRestart: () => startMatch(), restartLabel: 'Restart match',
     onLevels: () => showSetup(), levelsLabel: 'Change setup',
     leaveTitle: 'Leave this match?', leaveText: 'This match won’t count.',
-    extras: [{label: 'Exit', id: 'pauseExit', onClick: exitGame}],
+    onArcade: () => { stopLoop(); A.Sfx.cancelAll('dojo'); },   // BACK TO ARCADE GAMES (the kit's; it was this game's EXIT)
     canPause: () => !!M && M.running,
     info: () => M ? M.P.map(P => [P.name, `${P.score} of ${M.to}`]) : [],
   });
