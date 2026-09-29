@@ -8,16 +8,25 @@
 const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
-/* a microphone the browser "has": getUserMedia gives a silent stream (counted), or refuses when window.__denyMic */
+/* a microphone the browser "has": getUserMedia gives a silent stream (counted), or refuses when window.__denyMic.
+   The stream is an empty MediaStream marked __fake, and the page's own AudioContext turns it into a silent node:
+   a stream made by ANOTHER AudioContext outside a tap is refused by WebKit, while pitch.js's real start-up (the
+   permission request, resume, the analyser) runs unchanged. */
 async function fakeMic(page) {
   await page.addInitScript(() => {
     window.__micAsks = 0;
     if (!navigator.mediaDevices) return;
+    [window.AudioContext, window.webkitAudioContext].forEach(AC => {
+      if (!AC || AC.prototype.__fakeMic) return;
+      const real = AC.prototype.createMediaStreamSource;
+      AC.prototype.createMediaStreamSource = function (s) { return s && s.__fake ? this.createGain() : real.call(this, s); };
+      AC.prototype.__fakeMic = true;
+    });
     navigator.mediaDevices.getUserMedia = async () => {
       window.__micAsks++;
       if (window.__denyMic) throw new DOMException('Permission denied', 'NotAllowedError');
-      const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC();
-      return ctx.createMediaStreamDestination().stream;
+      const s = new MediaStream(); s.__fake = true;
+      return s;
     };
   });
 }
