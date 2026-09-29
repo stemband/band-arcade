@@ -51,10 +51,24 @@ test.describe('play session', () => {
     await fakeMic(page);
     // the first listening game: the reminder, then the microphone
     await page.goto('ghost-notes/index.html?nostart');
+    // remember why the microphone didn't start, if it doesn't (the failure message says what the browser was missing)
+    await page.evaluate(() => {
+      const start = Arcade.Pitch.start;
+      Arcade.Pitch.start = async function () {
+        try { return await start.apply(this, arguments); } catch (e) { window.__startErr = e && (e.name || '') + ': ' + (e.message || ''); throw e; }
+      };
+    });
     await startLevel(page);
     await expect(page.locator('#micGateTitle')).toBeVisible();
     await page.locator('[data-act=go]').click();
-    await expect(page.locator('#play')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => !document.getElementById('play').hidden || !!window.__startErr), {timeout: 10_000}).toBe(true);
+    const why = await page.evaluate(() => {
+      const AC = window.AudioContext || window.webkitAudioContext, err = document.querySelector('.overlay .err');
+      return {startErr: window.__startErr || null, err: err && !err.hidden ? err.textContent.trim().slice(0, 120) : null, secure: window.isSecureContext,
+        mediaDevices: !!navigator.mediaDevices, gum: typeof (navigator.mediaDevices && navigator.mediaDevices.getUserMedia), audioContext: typeof AC,
+        asks: window.__micAsks, active: Arcade.Pitch.active};
+    });
+    await expect(page.locator('#play'), `the microphone didn't start: ${JSON.stringify(why)}`).toBeVisible();
     expect(await page.evaluate(() => [Arcade.Pitch.active, window.__micAsks])).toEqual([true, 1]);
     // the next game in the same tab: no reminder, the microphone starts straight from the tap (permission asked again)
     await page.goto('note-storm/index.html?nostart');
