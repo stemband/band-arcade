@@ -11,6 +11,15 @@ progress. To move a student's progress from one address (or device) to another, 
 old one (BACKUP / RESTORE in the arcade floor's speaker panel or under the Select Player card) and restore it on the
 new one.
 
+## Automatic tests
+
+Every pull request shows a check: a green ✓ means all tests passed; a red ✗ means something broke. Open 'Details' to see which test failed and its screenshot. Don't merge a red ✗; paste the failure into Claude Code and ask it to fix it.
+
+(What the tests do: they open every page of the arcade in Chrome and in Safari's engine at iPad and Chromebook sizes,
+play Level 1 of every game in demo mode, check the pitch detector with made-up instrument sounds, check that nothing
+is sent anywhere except the leaderboard, and check that a Backup Code brings everything back. Details:
+`tests/README.md`. The screenshots are in the "test-report-chromium" or "test-report-webkit" download at the bottom of a failed run's Summary page.)
+
 ## What's in here
 
 ```

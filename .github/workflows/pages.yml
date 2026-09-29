@@ -39,6 +39,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Stamp the site version (the commit's short id)
         run: python3 tools/stamp-version.py "${GITHUB_SHA::7}"
+      - name: Leave the test tooling out of the published site (tests/ is never loaded by the site)
+        run: rm -rf tests
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
