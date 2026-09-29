@@ -64,11 +64,10 @@
 .rd-sheet.cnt-hide .rc{opacity:0}
 .rd-sheet .lit{color:var(--rd-lit)!important;fill:var(--rd-lit)}
 .rd-sheet .rn.lit{color:var(--rd-lit)}
-/* feedback: green on time, yellow early/late/short, red missed/extra */
+/* feedback: green on time, yellow early/late, red missed/extra */
 .rd-sheet .rc.ok,.rd-sheet .rn.ok,.rd-sheet .rc.ok .rc-small,.rd-sheet .rc.ok .rc-u{color:var(--rd-ok)}
 .rd-sheet .rc.near,.rd-sheet .rn.near,.rd-sheet .rc.near .rc-small,.rd-sheet .rc.near .rc-u{color:var(--rd-near)}
 .rd-sheet .rc.bad,.rd-sheet .rn.bad,.rd-sheet .rc.bad .rc-small,.rd-sheet .rc.bad .rc-u{color:var(--rd-bad)}
-.rd-sheet .rc.short .rc-small,.rd-sheet .rc.short .rc-u{color:var(--rd-near)}
 .rd-sheet .rc.extra .rc-small,.rd-sheet .rc.extra .rc-u{color:var(--rd-bad)}
 .rd-sheet .rc.bad .rc-big{text-decoration:line-through;text-decoration-thickness:2px}
 .rd-ph{position:absolute;top:4%;height:60%;width:4px;margin-left:-2px;border-radius:2px;background:var(--pink-ink);box-shadow:0 0 8px var(--pink);pointer-events:none}

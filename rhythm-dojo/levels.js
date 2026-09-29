@@ -58,9 +58,6 @@ window.RD_RULES = {
   lateMs: 360,          // beyond OK up to this: EARLY or LATE (counts a little, shown yellow); farther = not this note
   /* what each result is worth (accuracy = the average; every EXTRA clap/tap counts as one more missed note) */
   value: {perfect: 1, good: .85, ok: .6, early: .3, late: .3, miss: 0},
-  shortShare: .75,      // TAP mode: a note a quarter or longer must be held at least this share of its length…
-  shortValue: .5,       // …else it's SHORT and worth this share of its timing value
-  holdFrom: 12,         // TAP mode: notes this long (ticks: 12 = a quarter) or longer are held
   /* stars from a level's average accuracy (SLOW gives no stars) */
   oneStar: .6, twoStar: .8, threeStar: .95,
   clearAt: .6,          // a round this good or better turns the round's belt stripe on (just a picture)

@@ -1,16 +1,18 @@
 /* Rhythm Dojo: read a rhythm on a one-line percussion staff (shared/rhythm-staff.js) with Mr. Graham's counting
    underneath (shared/counting.js), then PERFORM it: CLAP (the microphone hears claps as sharp onsets:
-   shared/onsets.js, never pitch), TAP (a big drum pad or Space; hold long notes) or SNARE (the microphone, like CLAP).
+   shared/onsets.js, never pitch), TAP (a big drum pad or Space) or SNARE (the microphone, like CLAP).
    The counting fades as the level goes on (the Counting setting: SHOW / AUTO / HIDE).
      levels.js   RD_LEVELS (the levels), RD_RULES (judging windows, stars, the timing check), RD_MARATHON (endless)
    A ROUND: the rhythm shows (study) → HEAR IT (optional: the woodblock over a click, a playhead, each syllable lights as
    it sounds; the microphone is NOT listening) → PERFORM: "Ready!" (rd-count-in), a one-measure count-in (clicks + big
    1 2 3 4), then a moving playhead and a pulse light on every beat (smooth, ≤ 3 a second). CLAP/SNARE: no clicks after
    the count-in (the microphone listens; HEADPHONES mode, after the headphones check, keeps clicking). TAP: the clicks
-   keep going; a note a quarter or longer is HELD (let go before RD_RULES.shortShare of it = SHORT).
+   keep going; a tap counts on pointerdown / Space keydown, and letting go never matters.
+   NOTHING IS HELD in any mode (a clap, a tap or a snare hit can't sustain): a note is judged only by when it starts;
+   the student SAYS the small underlined counts of a long note while waiting for the next one.
    JUDGING: each attack against its note after the timing check's offset: PERFECT / GOOD / OK / EARLY / LATE / MISS,
    an attack far from every note (a rest, or one too many) = EXTRA. Then the FEEDBACK: the counting again with every
-   syllable colored (green on time, yellow early/late/short, red missed/extra) and a one-line tip; TRY AGAIN / NEXT.
+   syllable colored (green on time, yellow early/late, red missed/extra) and a one-line tip; TRY AGAIN / NEXT.
    CLOCK: everything is scheduled on the arcade's AudioContext and judged in AUDIBLE time (shared/calibration.js).
    Progress: setLevel('rhythm-dojo', 'all', level, {stars, best}) (games.js player: 'all'); SLOW gives no stars.
    DOJO MARATHON (the Endless card): shared/endless.js Top 5 per performing mode ('clap' | 'tap' | 'snare'). */
@@ -122,7 +124,7 @@
     $('hpBtn').textContent = `🎧 Headphones: ${opt.hp ? 'on' : 'off'}`;
     $('hpBtn').setAttribute('aria-pressed', String(opt.hp));
     const c = calib();
-    $('optNote').textContent = (opt.mode === 'tap' ? 'Tap the big drum pad or press Space. Hold it for long notes.'
+    $('optNote').textContent = (opt.mode === 'tap' ? 'Tap the big drum pad or press Space on each note.'
       : opt.mode === 'snare' ? 'Play the rhythm on your snare. The microphone listens for each hit.'
       : 'Clap the rhythm. The microphone listens for each clap (nothing is recorded).') +
       (c ? ` Timing check: ${c.ms} ms.` : ' Do the timing check once on this device.') + (opt.speed === 'slow' ? ' SLOW: practice speed, no stars.' : '');
@@ -247,7 +249,7 @@
     stopAll();
     const p = C.parse(text, time), gs = C.groups(p), M = p.meter;
     const spt = 60 / tempo / M.beat;                                   // seconds per tick (6/8: the tempo counts eighths)
-    const targets = gs.filter(g => !g.rest).map(g => ({g: g.g, t: g.t * spt, end: g.end * spt, ticks: g.end - g.t, hold: g.end - g.t >= R.holdFrom, res: null, d: null}));
+    const targets = gs.filter(g => !g.rest).map(g => ({g: g.g, t: g.t * spt, end: g.end * spt, ticks: g.end - g.t, res: null, d: null}));
     G.R = {text, time, tempo, p, gs, M, spt, targets, total: p.total * spt, phase: 'study', attempts: 0, best: null};
     drawSheet();
     applyCounting();
@@ -447,21 +449,13 @@
   function tapDown(p) {
     if (opt.mode !== 'tap') return;
     if (G && G.R && G.R.phase === 'perform') {
-      if (G.R.att && G.R.att.down) tapUp(p);
-      addAttack(p);
-      if (G.R.att) G.R.att.down = G.R.att.attacks[G.R.att.attacks.length - 1] || null;
+      addAttack(p);                                                      // only the press counts: letting go is never measured
       if (kit) kit.block(CLK.now(), .55);                                // the pad knocks back (TAP mode: no microphone)
     } else strike();
   }
-  function tapUp(p) {
-    const a = G && G.R && G.R.att;
-    if (!a || !a.down) return;
-    a.down.up = CLK.audAt(p) - a.lag / 1000 - a.T.T0;
-    a.down = null;
-  }
   const pad = $('pad');
-  pad.addEventListener('pointerdown', e => { e.preventDefault(); pad.setPointerCapture && pad.setPointerCapture(e.pointerId); pad.classList.add('down'); tapDown(e.timeStamp || performance.now()); });
-  const padUp = e => { pad.classList.remove('down'); tapUp(e.timeStamp || performance.now()); };
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (_) { /* a pointer the browser no longer tracks: the tap still counts */ } pad.classList.add('down'); tapDown(e.timeStamp || performance.now()); });
+  const padUp = () => pad.classList.remove('down');               // the pressed look only
   pad.addEventListener('pointerup', padUp); pad.addEventListener('pointercancel', padUp);
   A.holdGuard && A.holdGuard(pad, {lock: true});
   addEventListener('keydown', e => {
@@ -470,11 +464,11 @@
     if (opt.mode === 'tap') { e.preventDefault(); if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur(); pad.classList.add('down'); tapDown(performance.now()); }
     else if (A.DEMO && G.R && G.R.phase === 'perform') { e.preventDefault(); A.Onsets.fake(performance.now(), .3); }   // ?demo: Space = a clap
   });
-  addEventListener('keyup', e => { if (e.key === ' ' && opt.mode === 'tap' && G) { pad.classList.remove('down'); tapUp(performance.now()); } });
+  addEventListener('keyup', e => { if (e.key === ' ' && opt.mode === 'tap' && G) pad.classList.remove('down'); });
 
   /* ---------- JUDGING ---------- */
   function judge(Rd) {
-    const a = Rd.att, tg = Rd.targets.map(x => Object.assign({}, x, {res: null, d: null, short: false, a: null}));
+    const a = Rd.att, tg = Rd.targets.map(x => Object.assign({}, x, {res: null, d: null, a: null}));
     const extras = [];
     a.attacks.filter(x => x.rel <= Rd.total + R.lateMs / 1000).forEach(x => {
       let best = null;
@@ -484,18 +478,11 @@
       t.d = d; t.a = x;
       t.res = ad <= R.perfectMs ? 'perfect' : ad <= R.goodMs ? 'good' : ad <= R.okMs ? 'ok' : d < 0 ? 'early' : 'late';
     });
-    tg.forEach(t => {
-      if (!t.res) t.res = 'miss';
-      // TAP: a long note must be held (let go too soon = SHORT)
-      if (opt.mode === 'tap' && t.hold && t.a) {
-        const up = t.a.up == null ? Rd.total + 1 : t.a.up;
-        if (up - t.a.rel < R.shortShare * (t.end - t.t)) t.short = true;
-      }
-    });
-    const val = t => (R.value[t.res] || 0) * (t.short ? R.shortValue : 1);
+    tg.forEach(t => { if (!t.res) t.res = 'miss'; });                 // a note is judged only by when it starts
+    const val = t => R.value[t.res] || 0;
     const sum = tg.reduce((s, t) => s + val(t), 0);
     const acc = tg.length + extras.length ? sum / (tg.length + extras.length) : 1;
-    const perfects = tg.filter(t => t.res === 'perfect' && !t.short).length;
+    const perfects = tg.filter(t => t.res === 'perfect').length;
     const pts = Math.max(0, Math.round(tg.reduce((s, t) => s + 100 * val(t), 0) - 50 * extras.length) * (G.hideAll ? 1 + R.hideBonus : 1));
     return {tg, extras, acc, perfects, pts: Math.round(pts)};
   }
@@ -526,18 +513,17 @@
     $('rdNext').focus({preventScroll: true});
   }
 
-  /* THE FEEDBACK COLORS: every counting group (and its note) green / yellow / red; SHORT = yellow held syllables; an
-     EXTRA inside a rest = the rest red, inside a held note = its held syllables red */
+  /* THE FEEDBACK COLORS: every counting group (and its note) green / yellow / red; an
+     EXTRA inside a rest = the rest red, inside a long note = its small (counted, not played) syllables red */
   function clearMarks() {
-    $('rows').querySelectorAll('.rc, .rn').forEach(e => e.classList.remove('ok', 'near', 'bad', 'short', 'extra', 'lit'));
+    $('rows').querySelectorAll('.rc, .rn').forEach(e => e.classList.remove('ok', 'near', 'bad', 'extra', 'lit'));
   }
   function paint(res) {
     if (!res) return;
     clearMarks();
     const Rd = G.R, cls = {perfect: 'ok', good: 'ok', ok: 'near', early: 'near', late: 'near', miss: 'bad'};
     const mark = (g, c) => $('rows').querySelectorAll(`.rc[data-g="${g}"], .rn[data-g="${g}"]`).forEach(e => e.classList.add(c));
-    // SHORT: the held (small) syllables go yellow; a note with none (a quarter) goes yellow itself
-    res.tg.forEach(t => { const smalls = Rd.gs[t.g].small.length; mark(t.g, t.short && !smalls && cls[t.res] === 'ok' ? 'near' : cls[t.res]); if (t.short && smalls) mark(t.g, 'short'); });
+    res.tg.forEach(t => mark(t.g, cls[t.res]));
     Rd.gs.filter(g => g.rest).forEach(g => mark(g.g, 'ok'));
     res.extras.forEach(x => {
       const tick = x.rel / Rd.spt + 1, g = Rd.gs.find(g => tick >= g.t && tick < g.end) || Rd.gs[Rd.gs.length - 1];   // (+1 tick: right on a rest's start is in the rest)
@@ -561,8 +547,6 @@
     if (res.extras.length) return {kind: 'bad', text: `One ${opt.mode === 'tap' ? 'tap' : opt.mode === 'snare' ? 'hit' : 'clap'} too many. Each note gets just one!`};
     const off = res.tg.filter(t => t.d != null && Math.abs(t.d) > R.goodMs).sort((a, b) => Math.abs(b.d) - Math.abs(a.d))[0];
     if (off) return off.d < 0 ? {kind: 'near', text: `You rushed ${where(gT(off.g), M)}! Wait for it.`} : {kind: 'near', text: `You dragged ${where(gT(off.g), M)}. Stay with the pulse!`};
-    const sh = res.tg.find(t => t.short);
-    if (sh) return {kind: 'near', text: `Hold ${where(gT(sh.g), M)} for its full value: count the small numbers!`};
     const mean = res.tg.filter(t => t.d != null).reduce((s, t, _, arr) => s + t.d / arr.length, 0);
     if (mean < -45) return {kind: 'near', text: 'A little early overall. Relax and let the beat come to you.'};
     if (mean > 45) return {kind: 'near', text: 'A little late overall. Feel the pulse and move with it.'};
@@ -635,7 +619,7 @@
   }
   function marathonRound(res) {
     const Rd = G.R;
-    const perfect = res.tg.every(t => t.res === 'perfect' && !t.short) && !res.extras.length;
+    const perfect = res.tg.every(t => t.res === 'perfect') && !res.extras.length;
     const pts = Math.round(res.pts * (perfect ? MAR.perfectBonus : 1));
     G.score += pts; G.notes += res.tg.filter(t => t.res !== 'miss').length;
     if (perfect) G.perfectRounds++;
@@ -766,26 +750,25 @@
     Rd.targets.forEach((t, i) => {
       if (o.skip && o.skip.includes(i)) return;
       const off = (Array.isArray(o.offset) ? o.offset[i] || 0 : o.offset || 0) / 1000;
-      const at = perfAt(T.T0 + t.t + off + lag / 1000), upAt = perfAt(T.T0 + t.t + off + lag / 1000 + ((o.short === true || (Array.isArray(o.short) && o.short.includes(i))) && t.hold ? .3 : .9) * (t.end - t.t));
-      setTimeout(() => { if (G && G.R === Rd && Rd.phase === 'perform') { if (opt.mode === 'tap') { tapDown(at); } else A.Onsets.fake(at, .3); } }, Math.max(0, at - performance.now()));
-      if (opt.mode === 'tap') setTimeout(() => { if (G && G.R === Rd) tapUp(upAt); }, Math.max(0, upAt - performance.now()));
+      const at = perfAt(T.T0 + t.t + off + lag / 1000);
+      setTimeout(() => { if (G && G.R === Rd && Rd.phase === 'perform') { if (opt.mode === 'tap') tapDown(at); else A.Onsets.fake(at, .3); } }, Math.max(0, at - performance.now()));
     });
-    (o.extra || []).forEach(s => { const at = perfAt(T.T0 + s + lag / 1000); setTimeout(() => { if (G && G.R === Rd && Rd.phase === 'perform') opt.mode === 'tap' ? (tapDown(at), tapUp(at + 60)) : A.Onsets.fake(at, .3); }, Math.max(0, at - performance.now())); });
+    (o.extra || []).forEach(s => { const at = perfAt(T.T0 + s + lag / 1000); setTimeout(() => { if (G && G.R === Rd && Rd.phase === 'perform') opt.mode === 'tap' ? tapDown(at) : A.Onsets.fake(at, .3); }, Math.max(0, at - performance.now())); });
     if (!o.persist) auto = null;
   }
   A.RhythmDojo = {
     state: () => G ? {lv: G.lv || null, endless: !!G.endless, round: G.endless ? G.round : G.r, lives: G.lives, score: G.score, paused: !!G.paused,
       phase: G.R && G.R.phase, text: G.R && G.R.text, time: G.R && G.R.time, tempo: G.R && G.R.tempo, fade: G.R && G.R.fade, counting: G.R && C.text(G.R.gs),
       targets: G.R && G.R.targets.length, attempts: G.R && G.R.attempts,
-      last: G.R && G.R.shown ? {acc: +G.R.shown.acc.toFixed(3), res: G.R.shown.tg.map(t => t.res + (t.short ? '+short' : '')), extras: G.R.shown.extras.length, tip: $('tip').textContent} : null,
+      last: G.R && G.R.shown ? {acc: +G.R.shown.acc.toFixed(3), res: G.R.shown.tg.map(t => t.res), extras: G.R.shown.extras.length, tip: $('tip').textContent} : null,
       clock: CLK.ctx ? 'audio' : 'perf', mode: opt.mode, lag: lagMs()} : {phase: 'menu', mode: opt.mode},
-    /** the next performances play themselves: offset ms (or one per note), skip [note indexes], extra [seconds], short (tap: let go early), persist */
+    /** the next performances play themselves: offset ms (or one per note), skip [note indexes], extra [seconds], persist */
     autoPlay(offset = 0, o = {}) { auto = Object.assign({offset}, o); },
     judge: () => G && G.R && G.R.att ? judge(G.R) : null,
     /** the performance's bleed rule: the clicks' level and how late they were heard in the count-in (ms) */
     bleed: () => G && G.R && G.R.att ? {level: G.R.att.bleed, lagMs: Math.round(clickLag(G.R.att) * 1000), heard: G.R.att.offs.length, offs: G.R.att.offs.map(o => Math.round(o * 1000))} : null,
-    /** the performance in progress: its rhythm's start (AudioContext time) and each note's time after it (s) */
-    timeline: () => G && G.R && G.R.att ? {T0: G.R.att.T.T0, notes: G.R.targets.map(t => t.t)} : null,
+    /** the performance in progress: its rhythm's start (AudioContext time), each note's time after it (s) and when to press for it (performance.now() ms) */
+    timeline: () => G && G.R && G.R.att ? {T0: G.R.att.T.T0, notes: G.R.targets.map(t => t.t), perf: G.R.targets.map(t => perfAt(G.R.att.T.T0 + t.t + G.R.att.lag / 1000))} : null,
     set: patch => { Object.assign(opt, patch); save(patch); if (!G) showHub(); },
     calibration: () => lastCal, headphones: () => hpResult,
     /** the timing check's clicks as performance.now() times (tests: tap along with them) */

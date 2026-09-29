@@ -35,12 +35,13 @@ window.Arcade = window.Arcade || {};
 
   let mic = null, inst = null, range = null;
   const frameFns = [], heldFns = [];
-  const H = {pc: null, note: null, since: 0, last: 0, fired: false, cand: null};   // hold tracker
+  const H = {pc: null, note: null, since: 0, last: 0, fired: false, cand: null, stale: null};   // hold tracker (stale: see STALE SOUND)
 
   P.setInstrument = i => { inst = i; sizeEnvelope(); };
   P.setRange = function (lowMidi, highMidi) {
     range = lowMidi == null ? null : {lo: lowMidi, hi: highMidi, minF: mtof(lowMidi) * 0.78, maxF: Math.min(7000, mtof(highMidi) * 2.3)};
     sizeEnvelope();
+    if (H.pc != null) staleNow('any');                // a sound still ringing never counts as a new note in the new range (even misread)
     H.pc = H.note = null; H.fired = false;
   };
   P.instrument = () => inst;                  // read-only: the group being listened for, and the range (null = default)
@@ -50,7 +51,21 @@ window.Arcade = window.Arcade || {};
   P.onFrame = fn => frameFns.push(fn);
   P.onHeld  = fn => heldFns.push(fn);
   /** treat whatever is sounding right now as already counted (use when a new target appears) */
-  P.ignoreCurrent = () => { H.fired = true; };
+  /* STALE SOUND: a note already sounding when the page resets what it listens for (setRange, pauseListening(false),
+     ignoreCurrent) never counts as a new note, even though the hold tracker starts over: a reset used to forget the
+     note, so the next reading of the SAME ringing sound (the other player's note in Neon Face-Off, a tone still
+     fading) looked brand new and fired onHeld 280 ms later. H.stale = that concert pc (ignoreCurrent: a slur to another
+     pitch still counts), or 'any' (setRange: the new range can misread the old sound, e.g. a lower instrument's note
+     below this range read a half step off; pauseListening(false): only when a sound is really in the mic as it resumes); it is dropped after a real gap (110 ms with nothing heard) or when a different pitch
+     takes over (for a known pc), so only a fresh note counts. */
+  function staleNow(pc) { if (pc != null) { H.stale = pc; H.last = performance.now(); } }
+  /** is a pitched sound in the microphone RIGHT NOW? (one analysis on the spot: while paused nothing was tracked, so a
+      sound is marked old only when it is really there as listening resumes, never a note the student starts after) */
+  function soundingNow() {
+    if (!mic || !inst) return false;
+    try { mic.an.getFloatTimeDomainData(mic.buf); return !!analyse(mic.buf, mic.sr).reading; } catch (e) { return false; }
+  }
+  P.ignoreCurrent = () => { H.fired = true; staleNow(H.pc); };
   /** SOUND AND THE MICROPHONE: hear nothing for ms (a sound is playing through the speaker), then ignore whatever
       is still sounding, so only a fresh note (a new attack or a different pitch) can count afterwards.
       shared/sfx.js calls it for EVERY sound played while listening (the sound's length + 250 ms of room echo).
@@ -71,7 +86,7 @@ window.Arcade = window.Arcade || {};
   P.paused = false;
   P.pauseListening = on => {
     P.paused = !!on;
-    if (!on) { H.pc = H.note = null; H.fired = true; if (env) env.hist.length = 0; }   // start fresh: only a new note counts
+    if (!on) { H.pc = H.note = null; H.fired = true; if (soundingNow()) staleNow('any'); if (env) env.hist.length = 0; }   // start fresh: only a new note counts
   };
   P.heldPc = () => H.pc;
   /** THE SETTINGS PANEL's mic meter (shared/ui-kit.js): how loud the microphone is right now, read even while listening
@@ -439,6 +454,12 @@ window.Arcade = window.Arcade || {};
         H.note = reading.note;
         H.last = now;
       } else if (H.pc !== null && now - H.last > 110) { H.pc = null; H.fired = false; }
+    }
+    // STALE SOUND (above): the sound that was ringing at the reset stays counted until a gap or a different pitch
+    if (H.stale !== null) {
+      if (!reading) { if (now - H.last > 110) H.stale = null; }
+      else if (H.stale === 'any' || H.stale === H.pc) H.fired = true;
+      else H.stale = null;
     }
 
     // a sound effect is playing: keep tracking what is heard but count none of it. Anything still sounding when the

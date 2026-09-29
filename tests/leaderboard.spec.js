@@ -36,7 +36,7 @@ async function openBoard(page) {
 test.describe('leaderboard on a slow scoreboard', () => {
   test.skip(!LB_URL, 'the leaderboard is switched off (no address in shared/leaderboard-config.js)');
 
-  test('warm-up: one quiet status request as the arcade opens (not again within 10 minutes); no preflights', async ({page}) => {
+  test('warm-up: one quiet status request as the arcade opens (not again within 10 minutes); no preflights', async ({page, browserName}) => {
     const watch = await prepare(page, {store: withGrade()});
     const log = await scoreboard(page, 'ok');
     await page.goto('index.html');
@@ -56,8 +56,12 @@ test.describe('leaderboard on a slow scoreboard', () => {
     await openBoard(page);
     await expect(page.locator('.lb-row').first()).toBeVisible();
     expect(log.some(r => r.method === 'OPTIONS')).toBe(false);
+    // (WebKit reports Cache-Control / Pragma on the intercepted requests although the page sets no cache option, and it
+    // sends no OPTIONS preflight for them, so they come from below the page (Playwright's routing turns the cache off);
+    // the cache-header check is Chromium's, the no-preflight check runs everywhere)
+    const banned = browserName === 'webkit' ? /^(content-type|x-)/i : /^(content-type|cache-control|pragma|x-)/i;
     for (const r of log.filter(x => x.method === 'GET')) {
-      expect(Object.keys(r.headers).filter(h => /^(content-type|cache-control|pragma|x-)/i.test(h)), `${r.action} request headers`).toEqual([]);
+      expect(Object.keys(r.headers).filter(h => banned.test(h)), `${r.action} request headers`).toEqual([]);
     }
     watch.check();
   });
