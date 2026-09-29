@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="shared/cabinets.css">
 <link rel="stylesheet" href="arcade.css">
 <link rel="stylesheet" href="select-player/style.css">
+<link rel="stylesheet" href="shared/locker.css">
 </head>
 <body class="floor-page">
 <!-- PRESS START: the attract screen on the first visit (arcade.js). Any tap, click or key starts the arcade; that same
@@ -156,25 +157,6 @@
 </div>
 
 <!-- THE LOCKER: avatar items (shared/avatar-parts.js unlocks, worn everywhere) + skins (shared/skins.js, per instrument) -->
-<div class="overlay sk-locker" id="locker" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
-    <div class="lk-head">
-      <div class="lk-stage"><div class="lk-pic" id="lkPic"></div></div>
-      <div class="lk-info">
-        <p class="card-fam">Locker</p>
-        <h2 id="lkTitle">Trumpet</h2>
-        <p class="lk-now" id="lkNow" aria-live="polite"></p>
-        <p class="muted lk-how">Earn items with stars from every game, special wins, or tokens at Arcade Quest's Token Booth. Tap one to wear it.</p>
-      </div>
-    </div>
-    <div class="lk-tabs" role="tablist" aria-label="Locker sections" id="lkTabs">
-      <button type="button" role="tab" data-tab="outfit" id="lkTab-outfit">Outfit</button><button type="button" role="tab" data-tab="hats" id="lkTab-hats">Hats</button><button type="button" role="tab" data-tab="extras" id="lkTab-extras">Extras</button><button type="button" role="tab" data-tab="pets" id="lkTab-pets">Pets</button><button type="button" role="tab" data-tab="backgrounds" id="lkTab-backgrounds">Backgrounds</button><button type="button" role="tab" data-tab="effects" id="lkTab-effects">Effects</button>
-    </div>
-    <div class="lk-body" id="lkBody" role="tabpanel"></div>
-    <div class="acts"><button type="button" class="btn btn-primary" id="lkDone">Done</button></div>
-  </div>
-</div>
-
 <!-- PLAYER 1 READY: a flash across the screen, then the game -->
 <div class="ready" id="ready" hidden aria-live="assertive"><div class="flash"></div><p><span>Player 1</span><span>Ready</span></p></div>
 </div>
@@ -196,6 +178,7 @@
 <script src="shared/avatar-bg.js"></script>
 <script src="shared/avatar-fx.js"></script>
 <script src="shared/avatar-badge.js"></script>
+<script src="shared/locker.js"></script>
 <script src="shared/avatar-creator.js"></script>
 <script src="shared/games.js"></script>
 <script src="shared/featured.js"></script>

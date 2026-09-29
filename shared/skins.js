@@ -359,6 +359,15 @@ window.Arcade = window.Arcade || {};
       if (acts) host.insertBefore(card, acts); else host.appendChild(card);         // after the stars and the result, above the buttons
       const ov = host.closest('.overlay'); if (ov) ov.classList.add('sk-tall');      // a taller panel scrolls
       wire(card, shownFor);
+      // THE LOCKER from the results (shared/locker.js via avatar-badge.js): everything, NEW ones marked; closes back here
+      if (A.Locker && A.Locker.open) {
+        const row = document.createElement('div');
+        row.className = 'sk-u-more';
+        row.innerHTML = `<button type="button" class="btn btn-secondary btn-small sk-u-locker">Open Locker</button>`;
+        card.appendChild(row);
+        row.firstChild.addEventListener('click', () => A.Locker.open({member: shownFor || st().player, onClose: () => row.firstChild.focus({preventScroll: true})}));
+      }
+      if (A.Locker && A.Locker.changed) A.Locker.changed();        // the avatar badge's NEW dot
       setTimeout(() => sfx(items.length ? 'item-unlocked' : 'skin-unlocked'), 650);
       return items.map(item => ({item})).concat(found);
     },
