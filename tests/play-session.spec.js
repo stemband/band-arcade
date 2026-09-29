@@ -9,34 +9,35 @@ const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
 /* a microphone the browser "has": getUserMedia gives a silent stream (counted), or refuses when window.__denyMic.
-   The stream is an empty MediaStream marked __fake, and the page's own AudioContext turns it into a silent node:
-   a stream made by ANOTHER AudioContext outside a tap is refused by WebKit, while pitch.js's real start-up (the
-   permission request, resume, the analyser) runs unchanged. The machine's audio device is faked too (resume's wait
-   capped): headless WebKit on CI has no running audio clock. Where the browser has no media devices at all (Playwright's
-   WebKit on Linux), navigator.mediaDevices itself is supplied. */
+   - It's INSTALLED with Object.defineProperty (on the object and on MediaDevices.prototype): WebKit ignores a plain
+     assignment to navigator.mediaDevices.getUserMedia and ran its real one, which fails on the CI machine (no
+     microphone: "OverconstrainedError: Invalid constraint").
+   - The stream is an empty MediaStream marked __fake, which the page's own AudioContext turns into a silent node (a
+     stream with no audio track can't feed a real MediaStreamSource).
+   - resume()'s wait is capped: headless WebKit on CI has no running audio clock (see rhythm-dojo.spec.js).
+   pitch.js's real start-up (the permission request, resume, the analyser) runs unchanged. */
 async function fakeMic(page) {
   await page.addInitScript(() => {
     window.__micAsks = 0;
-    // Playwright's WebKit on Linux has no media-stream support at all (no navigator.mediaDevices, no MediaStream):
-    // give it the device the test needs
     if (!navigator.mediaDevices) { try { Object.defineProperty(navigator, 'mediaDevices', {value: {}, configurable: true}); } catch (e) { return; } }
     [window.AudioContext, window.webkitAudioContext].forEach(AC => {
       if (!AC || AC.prototype.__fakeMic) return;
       const real = AC.prototype.createMediaStreamSource;
       AC.prototype.createMediaStreamSource = function (s) { return s && s.__fake ? this.createGain() : real.call(this, s); };
-      // …and an audio device: the CI machine's WebKit has none, so resume() never settles there (see rhythm-dojo.spec.js);
-      // the real resume() is still called, only the wait is capped
       const resume = AC.prototype.resume;
       if (resume) AC.prototype.resume = function () { return Promise.race([resume.call(this), new Promise(r => setTimeout(r, 300))]); };
       AC.prototype.__fakeMic = true;
     });
-    navigator.mediaDevices.getUserMedia = async () => {
+    const fake = async () => {
       window.__micAsks++;
       if (window.__denyMic) throw new DOMException('Permission denied', 'NotAllowedError');
       const s = window.MediaStream ? new MediaStream() : {getTracks: () => [], getAudioTracks: () => []};
       s.__fake = true;
       return s;
     };
+    const put = o => { try { Object.defineProperty(o, 'getUserMedia', {value: fake, configurable: true, writable: true}); } catch (e) { /* not ours to change */ } };
+    if (window.MediaDevices) put(MediaDevices.prototype);
+    put(navigator.mediaDevices);
   });
 }
 const reminder = page => page.evaluate(() => !!(Arcade.requireMic.showing && Arcade.requireMic.showing()));
