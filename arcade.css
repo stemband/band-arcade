@@ -406,6 +406,8 @@ body.lb-open{overflow:hidden}
 .lb-id{margin-left:6px;padding:1px 6px;border-radius:6px;border:1px dashed var(--text-lo);color:var(--yellow-hi);font:700 13px ui-monospace,Menlo,Consolas,monospace}
 .lb-msg{margin:24px 0;text-align:center;color:var(--text-hi);font-size:18px}   /* + .ui-msg (shared/ui-kit.css) */
 .lb-break{color:var(--amber-hi)}
+.lb-stale{margin:10px 0 0;text-align:center;color:var(--amber-hi);font-size:15px}   /* the last good board, shown when a refresh failed */
+.lb-diag{text-align:center;color:var(--yellow-hi)}
 .lb-own{margin:0;padding:10px 14px;border-radius:14px;border:2px dashed var(--cyan);color:var(--cyan-hi);font-weight:700;text-align:center}
 .lb-foot{margin:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;color:var(--text-lo)}
 .lb-ref{min-height:40px;padding:4px 14px;border-radius:999px;border:2px solid var(--text-lo);background:var(--deep);color:var(--text-hi);cursor:pointer;font:700 14px var(--text)}

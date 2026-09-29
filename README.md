@@ -617,7 +617,15 @@ Code, so a student's streak follows them to a new device.
 
 **Hiding a player (teacher):** open the leaderboard with `?teacher` in the address
 (`bandarcade.org/index.html?teacher`). Every entry then shows its 6-character id; paste it into the **Blocked**
-tab of the scoreboard Sheet.
+tab of the scoreboard Sheet. Under the board it also says how the last request went: "OK in 3.2 s", or why it
+failed ("timeout after 25 s", "offline", "HTTP 500", "not JSON", "network error (CORS or blocked)") and how long it
+took. That's the line to look at when a school device says the leaderboard is taking a break.
+
+**A slow scoreboard:** a Google Apps Script that hasn't run for a while can take 10–20 seconds to answer. So the arcade
+wakes it quietly when it opens (and when the lobby shows again 10+ minutes later), a board read waits up to 25 s and
+is tried once more if that runs out, the screen says "Loading the leaderboard…" while it waits, and if it still can't
+get through it shows the last board this device saw ("Couldn't refresh — showing the board from 2 hours ago"). Only a
+device that has never loaded a board shows "Leaderboard is taking a break".
 
 Names: every word in `shared/avatar-names.js` has a permanent number (its place in its list), so the lists are
 append-only now: add new words at the end, and retire a word with a `#` in front (`'#Word'`) instead of deleting it.
