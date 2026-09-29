@@ -1,7 +1,7 @@
 /* Showtime Malfunction: THE SHOWTIME BAND, the arcade's old animatronic house band, drawn in SVG (original designs).
    Cartoon-creepy machines: worn felt, metal joints and bolts, glowing eyes (red while malfunctioning, friendly blue
    once rebooted: the eye color comes from CSS, .bot.glitch / .bot.fixed). No gore, nobody inside: just machines.
-     Arcade.Showtime.botSVG(kind, {label, unit, plates})   kind: 'walrus' | 'owl' | 'gator' | 'raccoon' | 'moose' | 'clone',
+     Arcade.Showtime.botSVG(kind, {label, plates})   kind: 'walrus' | 'owl' | 'gator' | 'raccoon' | 'moose',
        or a SPECIAL MACHINE: 'turbo-tin' | 'tuba-tank' | 'long-tone-lurker' | 'duet-dolls' | 'glitch-jester' |
        'split-sprocket' (+ 'sprocket-mini', its two halves) | 'blackout-bot' | 'oil-can-ollie' (levels.js SHOWTIME_SPECIALS)
        plates: Tuba Tank's armor plates (.a-plate, data-i 0…n-1; game.js pops them off with .popped)
@@ -16,7 +16,6 @@ window.Arcade = window.Arcade || {};
     gator:   {name: 'Snapjaw Sal',     plays: 'snare',  felt: 'anim-gator',   felt2: 'anim-gator-2'},
     raccoon: {name: 'Rico Bandit',     plays: 'sax',    felt: 'anim-raccoon', felt2: 'anim-raccoon-2'},
     moose:   {name: 'Maestro Moose',   plays: 'baton',  felt: 'anim-moose',   felt2: 'anim-moose-2'},
-    clone:   {name: 'Sal Unit',        plays: 'snare',  felt: 'anim-clone',   felt2: 'anim-gator-2'},
     // the SPECIAL MACHINES (levels.js SHOWTIME_SPECIALS): original designs, same worn-felt-and-bolts style
     'turbo-tin':        {name: 'Turbo Tin',        plays: 'horn',    felt: 'anim-tin',      felt2: 'anim-tin-2',      special: true},
     'tuba-tank':        {name: 'Tuba Tank',        plays: 'tuba',    felt: 'anim-tank',     felt2: 'anim-tank-2',     special: true},
@@ -50,11 +49,10 @@ window.Arcade = window.Arcade || {};
       `<path class="a-felt2" d="M44 44Q44 30 58 30Q70 32 70 44Q70 58 58 58Q44 58 44 44ZM70 44Q70 32 82 30Q96 30 96 44Q96 58 82 58Q70 58 70 44Z"/>` +
       eyes([[57, 44], [83, 44]], 6) + `<path class="a-beak" d="M64 54L70 64L76 54Z"/>` +
       `<path class="a-cap" d="M40 20L70 10L100 20L70 28Z"/><path class="a-rod" d="M92 18V30"/><circle class="a-bolt" cx="92" cy="31" r="2.4"/>`,
-    gator: (unit) => `<path class="a-felt" d="M34 50Q32 22 62 22Q80 22 84 34H122Q130 36 128 46Q126 52 118 52H84Q80 66 62 66Q36 66 34 50Z"/>` +
+    gator: () => `<path class="a-felt" d="M34 50Q32 22 62 22Q80 22 84 34H122Q130 36 128 46Q126 52 118 52H84Q80 66 62 66Q36 66 34 50Z"/>` +
       `<path class="a-teeth" d="M86 52l4 6 4-6 4 6 4-6 4 6 4-6 4 6 4-6Z"/><path class="a-felt2" d="M84 56H118Q124 58 122 64Q120 68 112 68H84Z"/>` +
       `<circle class="a-felt" cx="54" cy="26" r="11"/><circle class="a-felt" cx="74" cy="26" r="11"/>` + eyes([[54, 26], [74, 26]], 5) +
-      `<circle class="a-dark" cx="120" cy="40" r="1.8"/><circle class="a-dark" cx="114" cy="40" r="1.8"/>` + bolt(84, 54) +
-      (unit ? `<rect class="a-tag" x="42" y="44" width="30" height="12" rx="2"/><text class="a-tagtxt" x="57" y="53.5" text-anchor="middle">SAL-${unit}</text>` : ''),
+      `<circle class="a-dark" cx="120" cy="40" r="1.8"/><circle class="a-dark" cx="114" cy="40" r="1.8"/>` + bolt(84, 54),
     raccoon: () => `<path class="a-felt" d="M40 24L50 10L60 24Q70 20 80 24L90 10L100 24Q108 36 104 52Q98 70 70 70Q42 70 36 52Q32 36 40 24Z"/>` +
       `<path class="a-mask" d="M40 36Q54 28 70 38Q86 28 100 36L98 48Q84 50 70 44Q56 50 42 48Z"/>` + eyes([[55, 40], [85, 40]], 4.8) +
       `<path class="a-felt2" d="M58 52Q70 46 82 52Q80 64 70 64Q60 64 58 52Z"/><ellipse class="a-nose" cx="70" cy="54" rx="4" ry="3"/>` + bolt(40, 52) + bolt(100, 52),
@@ -63,7 +61,6 @@ window.Arcade = window.Arcade || {};
       `<path class="a-felt2" d="M52 58Q70 50 88 58Q88 78 70 80Q52 78 52 58Z"/><ellipse class="a-dark" cx="62" cy="66" rx="3" ry="2"/><ellipse class="a-dark" cx="78" cy="66" rx="3" ry="2"/>` +
       eyes([[58, 38], [82, 38]], 5) + `<path class="a-seam" d="M46 50Q70 44 94 50"/>` + bolt(44, 44) + bolt(96, 44),
   };
-  HEADS.clone = HEADS.gator;
   Object.assign(HEADS, {
     // a tin can with a racing visor, a lightning stripe and a stubby antenna
     'turbo-tin': () => `<path class="a-felt" d="M44 22H96Q100 22 100 26V62Q100 66 96 66H44Q40 66 40 62V26Q40 22 44 22Z"/>` +
@@ -134,15 +131,14 @@ window.Arcade = window.Arcade || {};
     baton: `<path class="a-coat" d="M42 92L36 150H56L70 110L84 150H104L98 92Z"/><path class="a-bow" d="M60 80L70 86L80 80V92L70 86L60 92Z"/>` +
       `<path class="a-felt2 arm-r" d="M96 92Q112 84 116 64L108 60Q104 78 90 86Z"/><path class="a-stick" d="M112 62L128 30"/>${bolt(94, 95)}`,
   };
-  /** one animatronic as an SVG string. unit = a clone's number */
   /** Tuba Tank's armor: n plates over the torso and arms (a 2 × 4 grid, filled in order) */
   function plates(n) {
     const spots = [[46, 96], [74, 96], [46, 116], [74, 116], [46, 134], [74, 134], [28, 104], [100, 104]];
     return spots.slice(0, n).map(([x, y], i) => `<g class="a-plate" data-i="${i}"><rect x="${x}" y="${y}" width="${i > 5 ? 12 : 22}" height="${i > 5 ? 18 : 16}" rx="2"/>` +
       `<circle cx="${x + 3}" cy="${y + 3}" r="1.3"/><circle cx="${x + (i > 5 ? 9 : 19)}" cy="${y + 3}" r="1.3"/></g>`).join('');
   }
-  /** one animatronic as an SVG string. unit = a clone's number */
-  function botSVG(kind, {label = '', unit = null, plates: nPlates = 0} = {}) {
+  /** one animatronic as an SVG string */
+  function botSVG(kind, {label = '', plates: nPlates = 0} = {}) {
     const b = BAND[kind] || BAND.gator;
     const style = `--felt:var(--${b.felt});--felt2:var(--${b.felt2})`;
     const aria = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
@@ -153,7 +149,7 @@ window.Arcade = window.Arcade || {};
       : kind === 'long-tone-lurker' ? frame({torso: 'M48 92Q46 80 56 76H84Q94 80 92 92L94 146Q70 154 46 146Z'})
       : frame();
     return `<svg class="bot-svg" viewBox="0 0 140 200" style="${style}" ${aria} overflow="visible">` +
-      `<g class="bot-body">${body}${HOLDS[b.plays] || ''}${nPlates ? plates(nPlates) : ''}</g><g class="bot-head">${HEADS[kind] ? HEADS[kind](unit) : ''}</g>` +
+      `<g class="bot-body">${body}${HOLDS[b.plays] || ''}${nPlates ? plates(nPlates) : ''}</g><g class="bot-head">${HEADS[kind] ? HEADS[kind]() : ''}</g>` +
       `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
   }
   /** the special machines' ids, in the Malfunction Files' order */

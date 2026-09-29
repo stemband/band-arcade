@@ -60,7 +60,14 @@
       : {onRestart: () => { if (Q) startQuiz(Q.mode); }, levelsLabel: toTemple ? 'Back to the temple' : 'Back to the chamber', leaveTitle: 'Leave this round?',
          leaveText: 'Your mastered scrolls stay mastered, but this round won’t count.', confirmLeave: () => !!Q && Q.n > 0});
     pause.setActive(true);
+    pauseGutter(); requestAnimationFrame(pauseGutter);
   }
+  /** the strip under the pause button (style.css): as tall as the button's row, wherever the kit put it */
+  function pauseGutter() {
+    const b = document.getElementById('uiPauseBtn'), r = b && b.getClientRects().length ? b.getBoundingClientRect() : null;
+    if (r && r.bottom > 0) document.documentElement.style.setProperty('--an-top', Math.ceil(r.bottom + 8) + 'px');
+  }
+  addEventListener('resize', () => requestAnimationFrame(pauseGutter));
   /** out of a round or an exam: back to the chamber (the temple from Scroll Review) */
   function leave() {
     const m = Q && Q.mode;

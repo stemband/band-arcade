@@ -205,3 +205,11 @@
 @media (prefers-reduced-motion:reduce){
   .mist,.lantern,.scroll.open .sc-paper,.sensei.happy,.sensei.present,.medal-in{animation:none}
 }
+
+/* ---------- THE PAUSE BUTTON'S STRIP (during a round or the Belt Exam): the kit's pause button stays in the top-left
+   corner, and a plain strip as tall as its row covers the top of the screen, so the page scrolls UNDER the strip (never
+   under the button) and the word bank sticks just below it. --an-top = the button's bottom + 8 px (game.js pauseGutter). */
+html.ui-in-level body::before{content:'';position:fixed;left:0;right:0;top:0;height:var(--an-top,76px);z-index:4;pointer-events:none;
+  background:var(--floor);box-shadow:0 1px 0 var(--floor-3),0 8px 14px rgba(6,4,13,.55)}
+html.ui-in-level #topbar{position:relative;z-index:6}
+html.ui-in-level .bank{top:var(--an-top,76px)}

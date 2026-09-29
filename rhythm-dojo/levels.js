@@ -69,8 +69,10 @@ window.RD_RULES = {
   hideBonus: .1,        // HIDE from the start: +10 % score
   slowRate: .8,         // SLOW: 80 % of the tempo (no stars)
   /* CLAP/SNARE mode: an attack within bleedMs of a click the speakers played must be bleedK × louder than the clicks the
-     microphone heard during the count-in (headphones mode keeps clicking during the performance) */
-  bleedMs: 90, bleedK: 2.2,
+     microphone heard during the count-in (headphones mode keeps clicking during the performance). The count-in also
+     measures HOW LATE the clicks are heard (any onset within bleedLearnMs of a click; the median is used), so a device
+     whose speaker + microphone delay is long still recognizes its own clicks */
+  bleedMs: 90, bleedK: 2.2, bleedLearnMs: 250,
   /* THE TIMING CHECK (shared/calibration.js): 4 clicks to listen to, then clap/tap on the next 8 */
   calLead: 4, calClicks: 8, calBpm: 90, calNeed: 5, maxLagMs: 400, calMinSpreadMs: 3, calClickMaxMs: 25, calTooEarlyMs: 120,
   defaultLag: {clap: 60, tap: 40},   // ms, until the timing check has been done

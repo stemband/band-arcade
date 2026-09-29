@@ -96,12 +96,17 @@ window.SHOWTIME_SPECIALS = {
   },
 };
 
-/* JUMP SCARE MODE (the third SPOOKY LEVEL, after a warning; only if shared/teacher-settings.js allows it): 1–2 sudden
-   scares a showtime. Numbers here; the scares pause the band, the clocks and the microphone, and never cost a spotlight.
-     perShow     [fewest, most] scares in one showtime
-     notBefore   never in the first seconds of a showtime
-     apart       at least this many seconds between two scares
+/* JUMP SCARE MODE (the third SPOOKY LEVEL, after a warning; only if shared/teacher-settings.js allows it): EVERY
+   showtime played in it gets its scares, timed by PROGRESS through the show (never by fixed seconds: a quick player
+   finishes the early showtimes in 20–30 seconds). The scares pause the band, the clocks and the microphone, and never
+   cost a spotlight.
+     at          when, as shares of the showtime's animatronics that have walked on: a scare comes `delay` seconds after
+                 that many have entered. `short` = a showtime with fewer than `longFrom` animatronics (1 scare), `long` =
+                 one with `longFrom` or more, or with Maestro Moose (2 scares). Never the last one to walk on, so a scare
+                 never lands in the last seconds of a show.
+     delay       seconds (game clock) after that animatronic walks on
+     notBefore   never in the first seconds of a showtime (it waits)
+     apart       at least this many seconds between two scares (the second waits)
      bossGuard   never in the last seconds of a boss phase (the Maestro this close to the front, or 2 plays or fewer left)
-     ms          how long a scare lasts, and `beat` = the pause after it before the band moves again
-     window      [from, to] seconds: when the scares may be planned (the showtime's game clock) */
-window.SHOWTIME_SCARES = {perShow: [1, 2], notBefore: 10, apart: 25, bossGuard: 5, ms: 1300, beat: 700, window: [12, 70]};
+     ms          how long a scare lasts, and `beat` = the pause after it before the band moves again */
+window.SHOWTIME_SCARES = {at: {short: [.4], long: [.25, .55]}, longFrom: 7, delay: 1, notBefore: 6, apart: 6, bossGuard: 5, ms: 1300, beat: 700};
