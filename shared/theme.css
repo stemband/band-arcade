@@ -119,6 +119,13 @@
   --sw-far:#1b0a31; --sw-near:#28104a; --sw-window:#ffcf5a; --sw-water:#0d2346; --sw-tunnel:#040209;
   --sw-tail:#ff2a55; --sw-glass:#23305e; --sw-tire:#07050c; --sw-nitro:#5ef0ff;
   --sw-chrome:#c9ced8; --sw-tread:#2a2436; --sw-plate:#f4ecff; --sw-plate-ink:#150b26; --sw-gold:#ffd54f; --sw-flame-1:#ff6a2a; --sw-flame-2:#ffe14d;
+  /* Sustain Speedway's TIMES OF DAY (levels.js `time`: sustain-speedway/scenery.js) and its roadside scenery */
+  --sw-dawn-top:#1d2552; --sw-dawn-mid:#7a5a9e; --sw-dawn-low:#ffb38a; --sw-noon-top:#2a78d6; --sw-noon-mid:#6fb3ee; --sw-noon-low:#ffe2a8;
+  --sw-noon-ground:#3a2414; --sw-sand:#c98a4b; --sw-neon-top:#05020f; --sw-neon-mid:#1b0640; --sw-neon-low:#6a1a9a; --sw-golden-low:#ffa94d;
+  --sw-lamp:#ffe6a3; --sw-lamp-pole:#3b3350; --sw-smoke:#cfc8dc; --sw-fog:#a99cc4; --sw-haze:#ffe2a8;
+  --sw-palm:#1f5e3a; --sw-pine:#123a2c; --sw-trunk:#5a3a24; --sw-cactus:#2f7a45; --sw-rock:#5a3d52; --sw-buoy:#ff6b3d;
+  --sw-crowd-1:#ff8fc8; --sw-crowd-2:#8ff0ff; --sw-crowd-3:#ffe98a; --sw-stand:#2b1d44;
+  --sw-snow:#f4f8ff; --sw-petal:#ffb3d6; --sw-leaf:#e0772b; --sw-bat:#140820; --sw-pumpkin:#ff8a1f; --sw-pumpkin-eye:#ffe14d;
   /* Music Highway: the night highway (canvas colors are read from these) and one card color per note letter */
   --mh-sky:#1a0838; --mh-road:#12061f; --mh-lane:#8a5cff; --mh-sun1:#ffd166; --mh-sun2:#ff3fa4;
   --mh-c:#ff5a6e; --mh-d:#ff9a3c; --mh-e:#ffe14d; --mh-f:#4dff88; --mh-g:#3ae8ff; --mh-a:#5b8cff; --mh-b:#c77dff;

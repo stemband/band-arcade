@@ -239,3 +239,29 @@
 .tn-tips{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
 .tn-tips li{padding:6px 10px;border-radius:10px;background:var(--floor-2);color:var(--text-hi);font-size:14px;line-height:1.35}
 @media (max-width:560px){ .tn-row{grid-template-columns:3em 1fr} .tn-word{grid-column:1 / -1} .panel .tn-scale{grid-template-columns:3em 1fr} }
+
+/* ---------- THE PODIUM (after the finish, before the results; a tap / Enter skips it) ---------- */
+.podium{position:absolute;inset:0;z-index:5;display:grid;align-content:center;justify-items:center;gap:6px;padding:10px;
+  background:color-mix(in srgb,var(--deep) 80%,transparent);cursor:pointer;outline:none}
+.pd-title{margin:0;font-family:var(--display);font-style:italic;font-size:clamp(24px,min(5vw,6vh),48px);color:var(--yellow);text-shadow:var(--glow-yellow);text-transform:uppercase}
+.pd-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:8px;width:min(560px,96%)}
+.pd-slot{display:grid;justify-items:center;align-content:end;gap:2px;text-align:center}
+.pd-car{width:min(110px,90%);height:auto}
+.pd-av{display:block;width:clamp(36px,6vw,58px)}
+.pd-av .pt-box{width:100%}
+.pd-name{font-size:clamp(11px,1.5vw,14px);color:var(--text-hi);line-height:1.15;overflow-wrap:break-word;max-width:100%}
+.pd-slot.me .pd-name{color:var(--yellow)}
+.pd-step{width:100%;display:grid;place-items:center;border-radius:8px 8px 0 0;background:var(--floor-2);border:2px solid var(--floor-3);border-bottom:0;
+  font-family:var(--display);font-size:clamp(16px,2.4vw,26px);color:var(--text-hi)}
+.pd-slot.p1 .pd-step{height:clamp(46px,11vh,96px);border-color:var(--yellow);color:var(--yellow)}
+.pd-slot.p2 .pd-step{height:clamp(32px,7.5vh,68px);border-color:var(--white);color:var(--white-hi)}
+.pd-slot.p3 .pd-step{height:clamp(22px,5vh,48px);border-color:var(--amber);color:var(--amber-hi)}
+.pd-slot.me .pd-step{box-shadow:var(--glow-yellow)}
+.pd-off{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:12px;background:var(--floor-2);border:2px solid var(--yellow)}
+.pd-off .pd-car{width:70px}.pd-off .pd-av{width:36px}
+.pd-off small{font-family:var(--display);font-size:18px;color:var(--yellow)}
+.pd-skip{margin:0;font-size:13px;font-weight:700;color:var(--text-lo)}
+@media (prefers-reduced-motion:no-preference){ html:not(.no-motion) .pd-slot{animation:pd-rise .45s cubic-bezier(.2,1.4,.4,1) backwards} html:not(.no-motion) .pd-slot.p2{animation-delay:.12s} html:not(.no-motion) .pd-slot.p3{animation-delay:.24s} }
+@keyframes pd-rise{from{transform:translateY(24px);opacity:0}}
+/* the Settings panel's Graphics row */
+.sw-gfx .ui-seg>button{min-width:64px}

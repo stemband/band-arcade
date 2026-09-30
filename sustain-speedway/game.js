@@ -121,8 +121,10 @@
     G = {car: Garage.look(), lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
       steer: 0, steerRec: [0], notes: {},                                // PITCH STEERING (drawing only) + THE INTONATION REPORT
+      fx: {}, season: SC.season(),                                       // the scenery: effects, the SEASONAL look (scenery.js)
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
+    G.props = SC.propsFor(L, G.season); G.air = SC.airFor(L, G.season); FX.clear();
     A.UI.results.hide(); $('hub').hidden = true; $('race').hidden = false; $('pit').hidden = true;
     document.body.classList.add('racing');
     $('raceDiff').textContent = `${d.name} · full speed within ±${d.tol}¢`;
@@ -170,7 +172,7 @@
   }
   function stopRace() {
     cancelAnimationFrame(raf); raf = 0;
-    G = null; demoKey = null; A.Pitch.demoNote = null; A.Pitch.demoJitter = 0.2;
+    G = null; demoKey = null; A.Pitch.demoNote = null; A.Pitch.demoJitter = 0.2; FX.clear(); hidePodium();
     banner('');
   }
   function resetHearing() { endHold(); S.state = 'silent'; S.cents = null; S.hist = []; S.wrongRun = 0; S.zoneSince = 0; S.score = 0; if (G) G.nitro = false; A.Pitch.ignoreCurrent(); }
@@ -278,6 +280,7 @@
     raf = requestAnimationFrame(loop);
     if (!G) return;
     const raw = now - lastT, dt = Math.min(0.1, raw / 1000); lastT = now;
+    perfWatch(raw);
     demoDrive(now);
     const paused = document.hidden || G.held || A.Pitch.isSuppressed(now);   // a sound is muting the mic (or the pause menu is open): the race clock stops
     if (G.phase === 'count') {
@@ -365,14 +368,49 @@
     drawNote(); resetHearing();
     banner('GO!', 'go', 600);
   }
+  /* THE FINISH LINE MOMENT: the checkered flag waves as you cross (FINISH!), confetti for 1st place (sparkles for 2nd
+     and 3rd; none in LITE), then THE PODIUM for about FINISH.podiumMs (a tap, Enter or Space skips it), then the results. */
+  const FINISH = {flagMs: 1500, podiumMs: 2200};
   function finishRace() {
     G.phase = 'done'; G.v = 0; steerWord('');
     pause.setActive(false);                         // the race is over: nothing left to pause
-    G.ghostRec.push(G.lens.length);
+    G.ghostRec.push(G.lens.length); G.steerRec.push(0);
     sfx('race-finish');
     banner('FINISH!', 'finish');
     const g = G;
-    setTimeout(() => { if (G === g) results(g); }, 1500);
+    g.fx.flagAt = performance.now();
+    celebrate(placeOf(g));
+    setTimeout(() => { if (G === g) showPodium(g); }, FINISH.flagMs);
+  }
+  /** your finishing place: 1 + the rivals whose (steady-pace) finish time beats yours */
+  const placeOf = g => 1 + g.rivals.filter(r => paceFinish(r.pace) < g.clock).length;
+  let podium = null;
+  function showPodium(g) {
+    const place = placeOf(g), el = $('podium');
+    // everyone in finishing order: you (your time) and the rivals (their steady-pace times)
+    const order = [{you: true, t: g.clock}].concat(g.rivals.map(r => ({r, t: paceFinish(r.pace)}))).sort((a, b) => a.t - b.t || (a.you ? -1 : 1));
+    const sky = css('sw-sky-low');
+    const carImg = o => `<img class="pd-car" alt="" src="${Cars.thumbURL(Object.assign({}, o.you ? g.car : {body: o.r.body || 'coupe', color: C[o.r.color] || C.cyan, decal: 'none'}, {sky}), 110)}">`;
+    const who = o => o.you ? `<span class="pd-av">${A.avatarHTML ? A.avatarHTML({size: 'tile', member: member.id}) : ''}</span>${carImg(o)}<b class="pd-name">You</b>`
+      : `${carImg(o)}<b class="pd-name">${o.r.name}</b>`;
+    const step = n => `<div class="pd-slot p${n}${order[n - 1].you ? ' me' : ''}" data-place="${n}">${who(order[n - 1])}<div class="pd-step"><span>${ord(n)}</span></div></div>`;
+    el.innerHTML = `<p class="pd-title">${place === 1 ? 'You win!' : place <= 3 ? `${ord(place)} place!` : `${ord(place)} place`}</p>
+      <div class="pd-steps">${step(2)}${step(1)}${step(3)}</div>
+      ${place > 3 ? `<div class="pd-off me" data-place="${place}">${who(order[place - 1])}<small>${ord(place)}</small></div>` : ''}
+      <p class="pd-skip">${matchMedia('(hover: none)').matches ? 'Tap' : 'Click, or press Enter,'} to continue</p>`;
+    el.hidden = false; banner(''); celebrate(place);               // a second wave with the podium
+    const done = () => { if (podium && podium.g === g) { hidePodium(); if (G === g) results(g); } };
+    const key = e => { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); done(); } };
+    el.addEventListener('pointerdown', done, {once: true});
+    addEventListener('keydown', key, true);
+    podium = {g, place, order: order.map(o => (o.you ? 'you' : o.r.name)), key, t: setTimeout(done, FINISH.podiumMs)};
+    el.focus({preventScroll: true});
+  }
+  function hidePodium() {
+    if (!podium) return;
+    clearTimeout(podium.t); removeEventListener('keydown', podium.key, true);
+    const el = $('podium'); el.hidden = true; el.innerHTML = '';
+    podium = null;
   }
 
   /* ---------- ?demo: hold Space = the right note in tune; D = drifting sharp (+25 cents, drifting to +45 over 4 s);
@@ -482,7 +520,8 @@
       sun1: css('sw-sun-1'), sun2: css('sw-sun-2'), moon: css('sw-moon'), star: css('sw-star'), ground: css('sw-ground'), grid: css('sw-grid'),
       road: css('sw-road'), road2: css('sw-road-2'), lane: css('sw-lane'), far: css('sw-far'), near: css('sw-near'), win: css('sw-window'),
       water: css('sw-water'), tunnel: css('sw-tunnel'), tail: css('sw-tail'), glass: css('sw-glass'), tire: css('sw-tire'), nitro: css('sw-nitro'),
-      pink: css('pink'), cyan: css('cyan'), red: css('red'), yellow: css('yellow'), amber: css('amber'), green: css('green'), purple: css('purple'), white: css('white-hi')};
+      pink: css('pink'), cyan: css('cyan'), red: css('red'), yellow: css('yellow'), amber: css('amber'), green: css('green'), purple: css('purple'), white: css('white-hi'),
+      chrome: css('sw-chrome'), smoke: css('sw-smoke'), lamp: css('sw-lamp')};
   }
   function resize() {
     if (!G) return;
@@ -495,93 +534,142 @@
   }
   addEventListener('resize', resize);
   const HOR = () => H * .42;                                // the horizon
-  /* the skyline, drawn once per size into its own canvas (then just copied each frame) */
+  /* THE SCENERY LAYERS (parallax, drawn once per size, then only copied): FAR = the distant skyline / mountains (slides
+     a little with the bends), MID = the nearer row (slides more; the Grand Prix's grandstands and banners); the NEAR
+     layer is the roadside things (scenery.js sprites) rushing past on the road itself, drawn each frame. LITE: far only. */
   function buildScenery() {
-    const L = G.L, off = document.createElement('canvas'), w = Math.ceil(W * 1.3), h = Math.ceil(HOR() + 2);
-    off.width = w; off.height = h;
-    const g = off.getContext('2d'); let seed = G.lv * 97;
+    const L = G.L, w = Math.ceil(W * 1.3), h = Math.ceil(HOR() + 2);
+    let seed = G.lv * 97;
     const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    const base = h - 1;
+    const layer = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+    const far = layer(), mid = layer(), gf = far.getContext('2d'), gm = mid.getContext('2d'), base = h - 1;
+    const T = SC.timeOf(L);
     if (L.scene === 'mountain' || L.scene === 'desert' || L.scene === 'sunset') {
-      [[C.far, .45, 9], [C.near, .3, 6]].forEach(([col, hh, n]) => {
-        g.fillStyle = col; g.beginPath(); g.moveTo(0, base);
+      [[gf, C.far, .45, 9], [gm, C.near, .3, 6]].forEach(([g, col, hh, n]) => {
+        g.fillStyle = L.scene === 'desert' && g === gm ? css('sw-sand') : col; g.beginPath(); g.moveTo(0, base);
         for (let i = 0; i <= n; i++) {
           const x = i / n * w, peak = base - h * hh * (.45 + rnd() * .55);
           if (L.scene === 'desert') { g.lineTo(x, peak); g.lineTo(x + w / n * .6, peak); } else g.lineTo(x + w / n / 2, peak);
           g.lineTo(x + w / n, base - h * .05);
         }
         g.lineTo(w, base); g.closePath(); g.fill();
+        if (L.scene === 'desert' && g === gm) { g.globalAlpha = .35; g.fillStyle = C.far; g.fill(); g.globalAlpha = 1; }
       });
-      if (L.scene === 'mountain') { g.strokeStyle = C.purple; g.globalAlpha = .5; g.lineWidth = 1; g.stroke(); g.globalAlpha = 1; }
+      if (L.scene === 'mountain') { gf.strokeStyle = C.purple; gf.globalAlpha = .5; gf.lineWidth = 1; gf.stroke(); gf.globalAlpha = 1; }
     } else {
       // a city (river / harbor / grand prix variations): two rows of buildings with lit windows
-      [[C.far, .55, .6], [C.near, .38, 1]].forEach(([col, hh, winA]) => {
+      [[gf, C.far, .55, .6], [gm, C.near, .38, 1]].forEach(([g, col, hh, winA]) => {
         let x = 0;
         while (x < w) {
           const bw = w * (.02 + rnd() * .045), bh = h * hh * (.35 + rnd() * .65);
           g.fillStyle = col; g.fillRect(x, base - bh, bw, bh);
-          g.fillStyle = C.win; g.globalAlpha = .55 * winA;
+          g.fillStyle = C.win; g.globalAlpha = .55 * winA * (T.lights || T.body === 'none' ? 1.3 : .8);
           for (let yy = base - bh + 5; yy < base - 4; yy += 7) for (let xx = x + 3; xx < x + bw - 3; xx += 6) if (rnd() < .35) g.fillRect(xx, yy, 2, 3);
+          if (T.body === 'none' && rnd() < .25) { g.globalAlpha = .9; g.fillStyle = rnd() < .5 ? C.pink : C.cyan; g.fillRect(x + 2, base - bh + 2, bw - 4, 2); }   // neon rooftops
           g.globalAlpha = 1;
           x += bw + (L.scene === 'harbor' ? w * .02 * rnd() : 1);
         }
       });
       if (L.scene === 'harbor') {                            // cranes over the water
-        g.strokeStyle = C.amber; g.lineWidth = 2; g.globalAlpha = .8;
-        for (let i = 0; i < 3; i++) { const x = w * (.2 + i * .3); g.beginPath(); g.moveTo(x, base); g.lineTo(x, base - h * .6); g.lineTo(x + w * .1, base - h * .6); g.moveTo(x - w * .03, base - h * .6); g.lineTo(x, base - h * .6); g.stroke(); }
-        g.globalAlpha = 1;
+        gm.strokeStyle = C.amber; gm.lineWidth = 2; gm.globalAlpha = .8;
+        for (let i = 0; i < 3; i++) { const x = w * (.2 + i * .3); gm.beginPath(); gm.moveTo(x, base); gm.lineTo(x, base - h * .6); gm.lineTo(x + w * .1, base - h * .6); gm.moveTo(x - w * .03, base - h * .6); gm.lineTo(x, base - h * .6); gm.stroke(); }
+        gm.globalAlpha = 1;
       }
-      if (L.scene === 'grandprix') {                        // grandstand lights
-        g.fillStyle = C.white; for (let i = 0; i < 40; i++) { g.globalAlpha = .4 + rnd() * .5; g.fillRect(rnd() * w, base - h * (.05 + rnd() * .12), 2, 2); }
-        g.globalAlpha = 1;
+      if (L.scene === 'grandprix') {                        // the GRANDSTANDS: tiers of fans and race banners across the horizon
+        gm.clearRect(0, 0, w, h);
+        const fans = [css('sw-crowd-1'), css('sw-crowd-2'), css('sw-crowd-3')], top = base - h * .3;
+        gm.fillStyle = css('sw-stand'); gm.fillRect(0, top, w, base - top);
+        for (let y = top + 4; y < base - 3; y += 4) for (let x = 2; x < w; x += 4) if (rnd() < .6) { gm.fillStyle = fans[Math.floor(rnd() * 3)]; gm.globalAlpha = .55 + rnd() * .4; gm.fillRect(x, y, 2, 2); }
+        gm.globalAlpha = 1;
+        gm.fillStyle = C.red; gm.fillRect(0, top - 3, w, 3);
+        for (let x = w * .05; x < w; x += w * .16) {          // banners on the stand's roof: checkered and red
+          gm.fillStyle = C.chrome; gm.fillRect(x, top - h * .16, 2, h * .16);
+          if ((x / (w * .16)) % 2 < 1) SC.checker(gm, x + 2, top - h * .16, w * .06, h * .06, 6, 2, C.tire, C.white);
+          else { gm.fillStyle = C.red; gm.fillRect(x + 2, top - h * .16, w * .06, h * .06); gm.fillStyle = C.white; gm.fillRect(x + 4, top - h * .13, w * .06 - 4, 2); }
+        }
       }
     }
-    return off;
+    // the time of day's light over the scenery (night darker; nothing for day)
+    if (T.shade) [gf, gm].forEach(g => { g.globalCompositeOperation = 'source-atop'; g.globalAlpha = T.shade; g.fillStyle = C.tunnel; g.fillRect(0, 0, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; });
+    return {far, mid};
   }
-  function skyGradient() {
-    const low = G.L.sky === 'night' ? C.night : G.L.sky === 'dusk' ? C.dusk : C.skyLow;
-    const g = cx.createLinearGradient(0, 0, 0, HOR());
-    g.addColorStop(0, C.skyTop); g.addColorStop(.55, C.skyMid); g.addColorStop(1, low);
-    return g;
+  /* ---------- GRAPHICS: Auto (default) | Full | Lite (the Settings panel; gameData.gfx) ----------
+     AUTO measures the frame time in the first seconds of a race (PERF): an average over PERF.ms = LITE for good on this
+     device (gameData.gfxSlow), without a word. LITE = the far scenery layer only, no roadside things, no particles or
+     weather, no blur, no shake, fewer speed lines. */
+  const PERF = {from: .5, to: 3.5, ms: 22};
+  const gfxMode = () => (['full', 'lite'].includes(gd.gfx) ? gd.gfx : 'auto');
+  const lite = () => gfxMode() === 'lite' || (gfxMode() === 'auto' && !!gd.gfxSlow);
+  function perfWatch(raw) {
+    if (!G || gfxMode() !== 'auto' || gd.gfxSlow || G.phase !== 'race' || document.hidden || G.held) return;
+    const t = (performance.now() - (G.liveAt || 0)) / 1000;
+    if (t < PERF.from || raw > 250) return;
+    const P = G.perf || (G.perf = {n: 0, sum: 0});
+    if (t <= PERF.to) { P.n++; P.sum += raw; return; }
+    if (P.done) return;
+    P.done = true; P.avg = P.n ? P.sum / P.n : 0;
+    if (P.n >= 10 && P.avg > PERF.ms) { gd.gfxSlow = true; save(); FX.clear(); }
+  }
+  A.UI.settings.register(box => {
+    box.insertAdjacentHTML('beforeend', `<div class="ui-srow sw-gfx"><span class="ui-sname" id="swGfxL">Graphics<small>Lite is smoother on older devices</small></span>
+      <div class="ui-seg" role="group" aria-labelledby="swGfxL">${['auto', 'full', 'lite'].map(m => `<button type="button" data-gfx="${m}" aria-pressed="${gfxMode() === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div></div>`);
+    box.querySelectorAll('[data-gfx]').forEach(b => b.addEventListener('click', () => {
+      gd.gfx = b.dataset.gfx; save(); FX.clear();
+      box.querySelectorAll('[data-gfx]').forEach(x => x.setAttribute('aria-pressed', x === b));
+      if (A.Sfx) A.Sfx.event('ui-toggle');
+    }));
+  }, {title: 'Sustain Speedway'});
+
+  /* ---------- SPEED FEEL + THE FINISH (Full graphics; the particles are scenery.js's pool) ---------- */
+  const SC = A.SpeedwayScene, FX = SC.Particles(180);
+  const noMotion = () => reduced.matches;                    // (Arcade.reducedMotion: the device's setting OR Motion off)
+  function smoke(x, y, n, spread) {                           // tire smoke puffs from the rear tires
+    if (lite()) return;
+    for (let i = 0; i < n; i++) FX.add({kind: 'smoke', color: C.smoke, x: x + (Math.random() - .5) * spread, y: y - 2, vx: (Math.random() - .5) * 60, vy: 10 + Math.random() * 30,
+      r: 4 + Math.random() * 5, grow: 26 + Math.random() * 20, life: .7 + Math.random() * .4, a: .55});
+  }
+  function celebrate(place) {                                 // confetti for 1st, sparkles for 2nd and 3rd
+    if (lite() || place > 3) return;
+    const cols = [C.pink, C.cyan, C.yellow, C.green, C.amber, C.white];
+    if (place === 1) for (let i = 0; i < 90; i++) FX.add({kind: 'confetti', color: cols[i % cols.length], x: Math.random() * W, y: -Math.random() * H * .6,
+      vx: (Math.random() - .5) * 40, vy: 70 + Math.random() * 90, r: 3 + Math.random() * 3, vr: (Math.random() - .5) * 8, life: 4 + Math.random() * 2, sway: 2 + Math.random() * 2});
+    else for (let i = 0; i < 26; i++) FX.add({kind: 'spark', color: place === 2 ? C.white : C.amber, x: W * (.15 + Math.random() * .7), y: H * (.1 + Math.random() * .5),
+      r: 4 + Math.random() * 5, life: .8 + Math.random() * .9, fadeIn: 0});
   }
   // world: 1 unit = one second at full speed. The road is drawn in bands from near to far.
-  const SEG = 0.35, ZN = 1, ZF = 34, CAM = 1.1;
+  const SEG = 0.35, ZN = 1, ZF = 34, CAM = 1.1, PROP_GAP = 2.6;
   const curveAt = w => (reduced.matches ? .5 : 1) * (Math.sin(w * .09 + G.lv) * .9 + Math.sin(w * .031) * .6);
   const tunnelAt = (lapFrac) => G.L.tunnels && lapFrac > .28 && lapFrac < .72;
+  let fxT = 0;
   function render(now) {
     if (!W) resize();
-    const hor = HOR(), bot = H;
+    const hor = HOR(), bot = H, LITE = lite(), still = noMotion(), T = SC.timeOf(G.L);
+    const fdt = fxT ? Math.min(.1, (now - fxT) / 1000) : 0; fxT = now;
     const cam = G.world * 6, curve = curveAt(G.world);
     const lapFrac = G.phase === 'pit' ? 0 : G.dist / G.lens[G.lap];
     const inTunnel = G.phase === 'race' && tunnelAt(lapFrac);
     const light = inTunnel ? (S.state === 'on' ? .25 + .75 * S.I : .15) : 1;
-    // sky, sun or moon, skyline
-    cx.fillStyle = skyGradient(); cx.fillRect(0, 0, W, hor + 1);
-    const night = G.L.sky === 'night';
-    if (night) {
-      cx.fillStyle = C.star;
-      for (let i = 0; i < 40; i++) { cx.globalAlpha = .3 + (i % 5) / 8; cx.fillRect((i * 173) % W, (i * 53 % 100) / 100 * hor * .7, 1.5, 1.5); }
-      cx.globalAlpha = 1; cx.fillStyle = C.moon; cx.beginPath(); cx.arc(W * .72, hor * .32, Math.min(W, H) * .05, 0, Math.PI * 2); cx.fill();
-    } else {
-      const sr = Math.min(W * .16, hor * .62), sx = W / 2 - curve * W * .04, sy = hor - sr * .15;
-      const sg = cx.createLinearGradient(0, sy - sr, 0, sy + sr); sg.addColorStop(0, C.sun1); sg.addColorStop(1, C.sun2);
-      cx.save(); cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.clip();
-      cx.fillStyle = sg; cx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
-      cx.fillStyle = skyGradient();                          // synthwave stripes across the lower sun
-      for (let i = 0; i < 6; i++) { const y = sy - sr * .1 + i * sr * .16; cx.fillRect(sx - sr, y, sr * 2, 1.5 + i * 1.3); }
-      cx.restore();
+    // NITRO: a light shake (never with reduced motion / Motion off, never in LITE)
+    const shake = G.nitro && G.phase === 'race' && !still && !LITE;
+    cx.save();
+    if (shake) { cx.translate(Math.sin(now / 37) * 1.6, Math.cos(now / 29) * 1.2); G.fx.shook = (G.fx.shook || 0) + 1; }
+    // THE SKY (cached per size and time of day), sliding a little with the bends
+    cx.drawImage(SC.sky(G.L, W, hor), -W * .1 - curve * W * .03, 0);
+    // THE SCENERY: far (slow) and mid (faster) layers
+    if (scenery) {
+      cx.drawImage(scenery.far, -W * .15 - curve * W * .04, hor - scenery.far.height + 1);
+      if (!LITE) cx.drawImage(scenery.mid, -W * .15 - curve * W * .1, hor - scenery.mid.height + 1);
     }
-    if (scenery) cx.drawImage(scenery, -W * .15 - curve * W * .05, hor - scenery.height + 1, scenery.width, scenery.height);
     // the ground and its glowing grid
-    cx.fillStyle = G.L.scene === 'river' || G.L.scene === 'harbor' ? C.water : C.ground;
+    cx.fillStyle = G.L.scene === 'river' || G.L.scene === 'harbor' ? C.water : css(T.ground);
     cx.fillRect(0, hor, W, bot - hor);
     cx.strokeStyle = C.grid; cx.lineWidth = 1;
     for (let k = 1; k < 16; k++) {                            // horizontal grid lines, rushing toward you
       const z = ZF / (k + ((cam / 4) % 1));
       const y = hor + (bot - hor) * CAM / z * 3.2; if (y > bot) continue;
-      cx.globalAlpha = .12 + .35 * (1 - z / ZF); cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke();
+      cx.globalAlpha = (.12 + .35 * (1 - z / ZF)) * T.grid; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke();
     }
-    cx.globalAlpha = .22;
+    cx.globalAlpha = .22 * T.grid;
     for (let k = -12; k <= 12; k++) { cx.beginPath(); cx.moveTo(W / 2 + k * W * .012 - curve * W * .04, hor); cx.lineTo(W / 2 + k * W * .16, bot); cx.stroke(); }
     cx.globalAlpha = 1;
     // the road, far to near
@@ -591,18 +679,52 @@
     let prev = null;
     // the rumble strip on the side you're drifting to glows (a soft 2-a-second pulse; steady with reduced motion)
     const rumbleEdge = Math.abs(G.steer) >= R.steer.rumble && G.phase === 'race' ? Math.sign(G.steer) : 0;
-    const rumbleGlow = reduced.matches ? .55 : .45 + .25 * Math.sin(now / 80);
+    const rumbleGlow = still ? .55 : .45 + .25 * Math.sin(now / 80);
     for (let i = bands; i >= 0; i--) {
       const z = ZN + (ZF - ZN) * Math.pow(i / bands, 1.8);
       const p = proj(z);
       if (prev) {
         const stripe = Math.floor((z + cam) / SEG) % 2 === 0;
         quad(prev, p, 1.12, stripe ? C.red : C.white, .9);                 // rumble strips: red and white
+        if (!LITE && z < 14) { quad(prev, p, .012, C.tire, .5, 1.06); quad(prev, p, .012, C.tire, .5, -1.06); }   // their ridges
         quad(prev, p, 1, stripe ? C.road : C.road2, 1);                    // the road
         if (stripe) { quad(prev, p, .025, C.lane, .8, -.34); quad(prev, p, .025, C.lane, .8, .34); }   // lane dashes
         if (rumbleEdge && z < 9) quad(prev, p, .09, C.yellow, rumbleGlow * (1 - z / 9), rumbleEdge * 1.03);   // the strip you're on lights up
       }
       prev = p;
+    }
+    // THE FINISH GATE on the last lap: a checkered line on the road and a banner over it (road units: 6 per second)
+    const last = G.lap === G.lens.length - 1 && (G.phase === 'race' || G.phase === 'done');
+    if (last) {
+      const z = 1.1 + Math.max(0, G.lens[G.lap] - G.dist) * 6;
+      if (z < ZF && z > ZN) {
+        const a = proj(z), b = proj(z + .35);
+        cx.save(); cx.beginPath(); cx.moveTo(a.x - a.w, a.y); cx.lineTo(a.x + a.w, a.y); cx.lineTo(b.x + b.w, b.y); cx.lineTo(b.x - b.w, b.y); cx.closePath(); cx.clip();
+        SC.checker(cx, a.x - a.w, b.y, a.w * 2, Math.max(1, a.y - b.y), 14, 2, C.tire, C.white); cx.restore();
+        SC.gate(cx, a, C);
+      }
+    }
+    // THE NEAR LAYER: roadside things rushing past (every PROP_GAP road units, alternating sides), far first
+    if (!LITE && G.props.length) {
+      for (let k = Math.floor((cam + ZF) / PROP_GAP); k * PROP_GAP > cam + ZN; k--) {
+        const z = k * PROP_GAP - cam, pr = G.props[((k % G.props.length) + G.props.length) % G.props.length], side = k % 2 ? 1 : -1;
+        const p = proj(z), spr = SC.propSprite(pr), sh = p.w * (pr.kind === 'stand' ? .8 : pr.kind === 'lamp' || pr.kind === 'banner' || pr.kind === 'bulbs' ? 1.25 : .9);
+        const sw = sh * spr.width / spr.height, x = p.x + side * p.w * 1.3;
+        if (x + sw < 0 || x - sw > W || sh < 2) continue;
+        cx.globalAlpha = Math.min(1, (ZF - z) / 8);
+        if (side < 0) cx.drawImage(spr, x - sw, p.y - sh, sw, sh);
+        else { cx.save(); cx.translate(x + sw, p.y - sh); cx.scale(-1, 1); cx.drawImage(spr, 0, 0, sw, sh); cx.restore(); }   // mirrored on the right
+        if (pr.kind === 'lamp' && pr.lit) { cx.globalAlpha *= .22; cx.fillStyle = C.lamp; cx.beginPath(); cx.ellipse(p.x + side * p.w * .75, p.y, p.w * .5, p.w * .08, 0, 0, Math.PI * 2); cx.fill(); }   // its pool of light
+      }
+      cx.globalAlpha = 1;
+    }
+    // weather near the horizon: MIST (a low fog band), HAZE (heat shimmer color), the spooky season's FOG
+    const fog = !LITE && (G.L.weather === 'mist' || G.L.weather === 'haze' || (G.season && G.season.fog));
+    if (fog) {
+      const col = G.L.weather === 'haze' ? css('sw-haze') : css('sw-fog'), fg = G.fogGrad || (G.fogGrad = {});
+      const key = `${W}|${H}|${col}`;
+      if (fg.key !== key) { const g = cx.createLinearGradient(0, hor - H * .12, 0, hor + H * .22); g.addColorStop(0, 'transparent'); g.addColorStop(.45, col); g.addColorStop(1, 'transparent'); fg.key = key; fg.g = g; }
+      cx.globalAlpha = G.L.weather === 'haze' ? .22 : .3; cx.fillStyle = fg.g; cx.fillRect(0, hor - H * .12, W, H * .34); cx.globalAlpha = 1;
     }
     // tunnels: dark, with arches that light up while you're in tune
     if (inTunnel) {
@@ -625,30 +747,67 @@
     const gp = G.phase !== 'count' && gridAmount() === 0 ? ghostProgress(G.clock) : null;
     if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {}), idx: G.rivals.length, look: G.car, ghost: true, name: 'Best run', steer: ghostSteer(G.clock)});   // the ghost = your own car, see-through
     // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
-    const sway = reduced.matches ? 0 : -curve * W * .02;
+    const sway = still ? 0 : -curve * W * .02;
     const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
     // PITCH STEERING: the road's half-width where the car sits; the steer (−1 … 1) moves the car's center up to the edge
     const road = proj(CAM * .95 * (bot - hor) / Math.max(1, mine.y - hor));
     mine.x += G.steer * Math.max(0, road.w - mine.w * .5);
     const rumbleSide = Math.abs(G.steer) >= R.steer.rumble && G.phase === 'race' ? (G.steer < 0 ? 'l' : 'r') : '';
-    if (rumbleSide && !reduced.matches) { mine.x += Math.sin(now / 28) * Math.max(1, W * .002); mine.y += Math.sin(now / 19); }   // the rumble: a small wobble
+    if (rumbleSide && !still) { mine.x += Math.sin(now / 28) * Math.max(1, W * .002); mine.y += Math.sin(now / 19); }   // the rumble: a small wobble
     steerWord(rumbleSide);
     G.carX = mine.x - W / 2;
-    const sky = G.L.sky === 'night' ? C.night : G.L.sky === 'dusk' ? C.dusk : C.skyLow;          // the rim light on every car
-    const dpr = Math.min(1.5, devicePixelRatio || 1), still = reduced.matches;
+    const sky = css(T.rim);                                   // the rim light on every car: the time of day's
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
     placeCars(cars, proj, mine, now).forEach(c => Cars.draw(cx, c.x, c.y, c.w, Object.assign({}, c.look || {body: c.who.body || 'coupe', color: C[c.who.color] || C.cyan, decal: 'none'},
       {sky, dpr, t: now, reduced: still, alpha: c.ghost ? .38 : 1})));
+    // TIRE SMOKE: a burst at GO, and while braking hard (scaled by the speed)
+    if (!LITE && G.phase === 'race') {
+      if (G.liveAt && !G.fx.goSmoke) { G.fx.goSmoke = true; smoke(mine.x, mine.y, 14, mine.w * .7); }
+      if (S.state === 'wrong' && G.v > .05 && Math.random() < G.v * 1.6) smoke(mine.x, mine.y, 1, mine.w * .6);
+    }
+    FX.step(fdt, W, H);
+    // the smoke goes under your car; everything else in the air over it
+    FX.draw(cx, C, p => p.kind === 'smoke');
     Cars.draw(cx, mine.x, mine.y, mine.w, Object.assign({}, G.car, {sky, dpr, t: now, reduced: still, nitro: G.nitro && G.phase === 'race', braking: S.state === 'wrong'}));
+    // SPEED LINES at the screen's edges, growing with the speed (fewer in LITE; none with reduced motion)
+    const sp = clamp((G.v - .35) / .8, 0, 1);
+    if (!still && sp > 0 && G.phase === 'race') {
+      cx.strokeStyle = C.white; cx.lineWidth = 1.5;
+      const n = LITE ? 4 : 10;
+      for (let i = 0; i < n; i++) {
+        const side = i % 2 ? 1 : -1, k = ((now / (900 - 400 * sp) + i * .173) % 1);
+        const y = hor + (bot - hor) * (.15 + .85 * ((i * .37) % 1)), x = side < 0 ? W * (.02 + .08 * k) : W * (.98 - .08 * k), len = W * (.03 + .12 * sp) * k;
+        cx.globalAlpha = .35 * sp * Math.sin(Math.PI * k); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x + side * len, y + len * .35); cx.stroke();
+      }
+      cx.globalAlpha = 1;
+    }
     // nitro speed lines (not with reduced motion)
-    if (G.nitro && !reduced.matches) {                       // short streaks rushing past the sides of the road
+    if (G.nitro && !still) {                                  // short streaks rushing past the sides of the road
       cx.strokeStyle = C.nitro; cx.lineWidth = 2;
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < (LITE ? 6 : 12); i++) {
         const side = i % 2 ? 1 : -1, k = ((now / 700 + i * .37) % 1), x0 = W / 2 + side * W * (.18 + (i % 3) * .07);
         const y = hor + (bot - hor) * k * k, x = x0 + side * W * .35 * k * k, len = 10 + 50 * k;
         cx.globalAlpha = .15 + .45 * k; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x + side * len * .9, y + len * .5); cx.stroke();
       }
       cx.globalAlpha = 1;
     }
+    // WEATHER + SEASONAL AIR (snow, petals, leaves, rain, bats, notes, hearts) and the finish's confetti / sparkles
+    if (!LITE) SC.fillAir(FX, G.air, W, H, hor);
+    FX.draw(cx, C, p => p.kind !== 'smoke');
+    // NITRO MOTION BLUR (Full graphics only): long soft streaks fanning out from the vanishing point toward the edges
+    // (cheap lines: redrawing the frame over itself cost old iPads too much)
+    if (shake) {
+      cx.strokeStyle = C.white; cx.lineWidth = 3;
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * Math.PI * 2 + 0.2, k = ((now / 420 + i * .29) % 1), r0 = Math.max(W, H) * (.35 + .5 * k), r1 = r0 + Math.max(W, H) * .12;
+        cx.globalAlpha = .1 * Math.sin(Math.PI * k);
+        cx.beginPath(); cx.moveTo(W / 2 + Math.cos(a) * r0, hor + Math.sin(a) * r0 * .6); cx.lineTo(W / 2 + Math.cos(a) * r1, hor + Math.sin(a) * r1 * .6); cx.stroke();
+      }
+      cx.globalAlpha = 1;
+    }
+    cx.restore();
+    // THE CHECKERED FLAG, waving as you cross (still with reduced motion)
+    if (G.phase === 'done' && G.fx.flagAt && now - G.fx.flagAt < 1500) SC.flag(cx, W * .5 - Math.min(W * .2, 150) / 2, H * .08, Math.min(W * .2, 150), now, still, C);
   }
   /* ---------- NO TWO CARS EVER OVERLAP ON SCREEN, AND NOTHING GLITCHES ----------
      Three lanes (the road's dashes at ±.34): the other cars keep to a side lane (rivals left, right, left…; the ghost
@@ -887,6 +1046,9 @@
   });
 
   A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car,    // tests
-    steer: () => G && {steer: G.steer, x: G.carX, word: steerShown}, lastRace: () => finished, tipsFor, steerOf: c => steerOf(c), driveStep: dt => driveStep(dt)};
+    steer: () => G && {steer: G.steer, x: G.carX, word: steerShown},
+    podium: () => podium && {place: podium.place, order: podium.order, shown: !$('podium').hidden},
+    fx: () => ({lite: lite(), mode: gfxMode(), particles: FX.n, kinds: [...new Set(FX.list.map(p => p.kind))], props: G ? G.props.map(p => p.kind) : [], season: G && G.season ? G.season.id : null,
+      air: G && G.air ? G.air.kind : null, perf: G && G.perf, shook: G ? G.fx.shook || 0 : 0, time: G ? (G.L.time || G.L.sky) : null}), lastRace: () => finished, tipsFor, steerOf: c => steerOf(c), driveStep: dt => driveStep(dt)};
   showHub();
 })(window.Arcade);

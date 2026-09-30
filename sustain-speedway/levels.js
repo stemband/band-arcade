@@ -6,27 +6,30 @@
      lap      seconds of good tone a lap takes at full speed; [first, last] = the laps get longer through the race
      pool     3 = the smaller starting note pool on the first track (sequences.js), 5 = the whole pool
      scene    the scenery: 'city' | 'river' | 'sunset' | 'harbor' | 'mountain' | 'desert' | 'grandprix'
-     sky      'sunset' | 'dusk' | 'night'
+     sky      'sunset' | 'dusk' | 'night' (the cars' rim light; also the fallback when `time` is left out)
+     time     the TIME OF DAY and its light (scenery.js TIMES): 'sunset' | 'golden' (late afternoon) | 'dusk' (streetlights
+              coming on) | 'dawn' | 'noon' (bright desert sun) | 'night' (moon, stars, streetlights) | 'neon' (a neon city night)
+     weather  optional: 'mist' (low fog) | 'haze' (heat haze near the horizon) | 'rain' (a light drizzle). Off in LITE graphics.
      tunnels  true = parts of every lap are in a tunnel: the road is dark, and staying in tune lights it
      rivals   the CPU cars: name, body (a car shape from SPEEDWAY_GARAGE.bodies, or 'maestro' = The Maestro's gold-trimmed
               open-wheel racer), color (a theme token), pace (0–1 of full speed; they never breathe, but pit like you)
    STARS per track: 1st = 3, 2nd = 2, 3rd = 1, last = 0. Winning (1st) opens the next track. */
 window.SPEEDWAY_TRACKS = [
-  {name: 'Downtown Loop',         blurb: 'A short city loop. Gentle rivals: hold each note and cruise.', laps: 4, lap: 5, pool: 3, scene: 'city', sky: 'sunset',
+  {name: 'Downtown Loop',         blurb: 'A short city loop. Gentle rivals: hold each note and cruise.', laps: 4, lap: 5, pool: 3, scene: 'city', sky: 'sunset', time: 'sunset',
     rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .42}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .5}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}]},
-  {name: 'River Street Run',      blurb: 'Along the river lights. A little longer each lap.', laps: 4, lap: 6, pool: 5, scene: 'river', sky: 'sunset',
+  {name: 'River Street Run',      blurb: 'Along the river lights. A little longer each lap.', laps: 4, lap: 6, pool: 5, scene: 'river', sky: 'sunset', time: 'dusk', weather: 'rain',
     rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .48}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .56}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .63}]},
-  {name: 'Sunset Strip',          blurb: 'Five laps into the sunset.', laps: 5, lap: 7, pool: 5, scene: 'sunset', sky: 'sunset',
+  {name: 'Sunset Strip',          blurb: 'Five laps into the sunset.', laps: 5, lap: 7, pool: 5, scene: 'sunset', sky: 'sunset', time: 'golden',
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .52}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .6}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .67}]},
-  {name: 'Tunnel Vision',         blurb: 'The road goes dark in the tunnels. Stay in tune to light it up.', laps: 5, lap: 8, pool: 5, scene: 'city', sky: 'dusk', tunnels: true,
+  {name: 'Tunnel Vision',         blurb: 'The road goes dark in the tunnels. Stay in tune to light it up.', laps: 5, lap: 8, pool: 5, scene: 'city', sky: 'dusk', tunnels: true, time: 'neon',
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .55}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .63}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .7}]},
-  {name: 'Harbor Lights',         blurb: 'Six laps past the cranes and the water.', laps: 6, lap: 9, pool: 5, scene: 'harbor', sky: 'dusk',
+  {name: 'Harbor Lights',         blurb: 'Six laps past the cranes and the water.', laps: 6, lap: 9, pool: 5, scene: 'harbor', sky: 'dusk', time: 'dawn', weather: 'mist',
     rivals: [{name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .66}, {name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .73}]},
-  {name: 'Midnight Mountain',     blurb: 'Night climbs, ten seconds a lap. Breathe in the pits.', laps: 6, lap: 10, pool: 5, scene: 'mountain', sky: 'night',
+  {name: 'Midnight Mountain',     blurb: 'Night climbs, ten seconds a lap. Breathe in the pits.', laps: 6, lap: 10, pool: 5, scene: 'mountain', sky: 'night', time: 'night', weather: 'mist',
     rivals: [{name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .6}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .69}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .76}]},
-  {name: 'Neon Desert Endurance', blurb: 'Long, steady laps across the desert.', laps: 6, lap: 12, pool: 5, scene: 'desert', sky: 'sunset',
+  {name: 'Neon Desert Endurance', blurb: 'Long, steady laps across the desert.', laps: 6, lap: 12, pool: 5, scene: 'desert', sky: 'sunset', time: 'noon', weather: 'haze',
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .63}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .72}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .79}]},
-  {name: 'The Grand Prix',        blurb: 'Eight laps, 12 to 15 seconds each, against the fastest cars.', laps: 8, lap: [12, 15], pool: 5, scene: 'grandprix', sky: 'night',
+  {name: 'The Grand Prix',        blurb: 'Eight laps, 12 to 15 seconds each, against the fastest cars.', laps: 8, lap: [12, 15], pool: 5, scene: 'grandprix', sky: 'night', time: 'night',
     rivals: [{name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .68}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .77}, {name: 'The Maestro', body: 'maestro', color: 'yellow', pace: .84}]},
 ];
 
