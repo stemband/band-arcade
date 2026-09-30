@@ -1,7 +1,13 @@
-/* ARCADE QUEST: THE BATTLE SCENE. Turn-based: your turn (PLAY · LISTEN · ITEM · HARMONIZE), then the enemy's turn
-   (a dodge). Player HP, enemy HP and the enemy's CALM meter (0–100).
-     PLAY       the enemy's challenge (challenges.js). Damage = your power × accuracy × speed; right notes raise CALM.
-     LISTEN     its description, weakness and what calms it (some enemies calm down just from being listened to).
+/* ARCADE QUEST: THE BATTLE SCENE. Turn-based: your turn (PLAY · SERENADE · LISTEN · ITEM · HARMONIZE), then the enemy's
+   turn (a dodge). Player HP, enemy HP and the enemy's CALM meter (0–100). TWO WAYS TO WIN, about equally long:
+   DEFEAT (PLAY until its HP is 0) or BEFRIEND (SERENADE until its CALM is full, then HARMONIZE).
+     PLAY       the enemy's challenge (challenges.js). Damage = your power × accuracy × speed; right notes raise CALM a little.
+     SERENADE   its happy note (HARMONIZE's challenge, shorter; the Snare Drum: a gentle, steady beat). CALM +=
+                RULES.serenadeCalm × accuracy × the CALM SCALE; NO damage. Your band follows your lead: after a
+                SERENADE each companion adds CALM (your CALM × its companion.power, + its calm perk) instead of playing
+                at the enemy. Not against the final boss (`serenade: false`: his finale is the story's own).
+     LISTEN     its description, weakness and what calms it (some enemies calm down just from being listened to), and
+                "It calms down when you play its happy notes: SERENADE." The first battle ever says the two ways once.
      ITEM       Valve Oil (heal), Cork Grease (shield), Metronome (slower next dodge)… (data/items.js)
      HARMONIZE  only with a full CALM meter: its happy-note challenge. Success = it joins your band (bigger rewards).
    Enemy HP 0 = it fades away grumbling (smaller rewards), WHATEVER ITS CALM: the student chooses. A full CALM offers
@@ -10,6 +16,12 @@
    Episode 1: the Phantom Fermata and the Ghost Conductor have ALTERNATE ROUTES instead (data/enemies.js
    `opensIfFaded`: defeating the Fermata opens the Hidden Passage; the Conductor's `finale` holds him at 1 HP ONCE,
    then HARMONIZE = the best ending, PLAY on = the defeat ending, engine/world.js).
+   THE SAFETY NET (once per battle, not the final boss): a PLAY that would bring its HP to 0 while CALM ≥ RULES.netCalm
+   (50) leaves it at 1 HP: "It's barely standing… but it's listening." + "SERENADE to befriend it, or PLAY to finish
+   it." The next PLAY defeats it; SERENADE / HARMONIZE carry on the befriend path.
+   THE CALM SCALE (B.calmScale): every CALM gain but LISTEN's (SERENADE, PLAY's per-note/success CALM, the companions')
+   × powerAt(level) / powerAt(1) × RULES.calmRef (30) / its HP (base × area × band size), so CALM rises exactly like
+   damage: befriending stays as long as defeating at every level, area and band size.
    Your HP 0 = "out of breath": nothing is lost, HP refills.
    YOUR POWER = Q.save.powerAt(level) (engine/save.js): about 14 % more every level. A PLAY does
    power × accuracy × (0.55 + 0.45 × speed) (× 1.3 for the B♭ Blast).
@@ -21,11 +33,13 @@
    companion still playing); you still play the dodge, and the sour notes that get through hurt that member. A
    companion at 0 HP is "out of breath" and sits out the rest of the battle (never lost); everyone is back for the next.
    FAIR FIGHTS: the enemy's HP × (1 + 0.3 per companion; a boss 0.45) and HP/atk × its area (data/enemies.js
-   QUEST_AREAS). Turns to defeat a standard enemy (30 HP, the manor), playing at 80 % accuracy, 70 % speed (a PLAY =
-   power × 0.69; companions .3–.35 power each):
-       LV 1  (power 10)   solo 5 turns   trio 4–5 turns (48 HP)
-       LV 5  (power 17)   solo 3 turns   trio 3 turns
-       LV 10 (power 33)   solo 2 turns   trio 2 turns
+   QUEST_AREAS). THE TURNS TABLE: a standard enemy (30 HP, the manor; a trio fights 48 HP), playing at 80 % accuracy,
+   70 % speed (a PLAY = power × 0.69; companions .3 power each; a SERENADE = 38 × .8 × the CALM SCALE, companions .3
+   of yours). DEFEAT = PLAYs until 0 HP; BEFRIEND = SERENADEs until CALM 100, + 1 HARMONIZE:
+                          DEFEAT (solo / trio)   BEFRIEND (solo / trio)
+       LV 1  (power 10)   5 / 5 turns            4 + 1 = 5 / 4 + 1 = 5 turns
+       LV 5  (power 17)   3 / 3 turns            2 + 1 = 3 / 2 + 1 = 3 turns
+       LV 10 (power 33)   2 / 2 turns            1 + 1 = 2 / 1 + 1 = 2 turns
    (a boss: the Phantom Fermata, 64 HP (trio 122) at LV 4 (power 15): solo about 7 PLAYs, trio 7: the band shares the
    dodging, not the win). A later area multiplies HP (QUEST_AREAS) to keep fights this length at the levels students
    arrive with.
@@ -45,7 +59,11 @@
   "use strict";
   const Q = A.Quest;
   const RULES = {calmMax: 100, harmonizeMiss: 30, speedWeight: .45, blast: 1.3, breath: .3,
-    partyHp: .3, bossPartyHp: .45, compHp: .6};            // enemy HP per companion; a companion's HP share (see the header)
+    partyHp: .3, bossPartyHp: .45, compHp: .6,             // enemy HP per companion; a companion's HP share (see the header)
+    serenadeCalm: 38,                                      // SERENADE: CALM = this × accuracy × the CALM SCALE (see the header)
+    compCalm: 1,                                           // after a SERENADE a companion adds your CALM × its companion.power × this (+ its calm perk)
+    calmRef: 30,                                           // the CALM SCALE's reference HP (a standard enemy)
+    netCalm: 50};                                          // THE SAFETY NET: a PLAY that would defeat it with CALM ≥ this holds it at 1 HP (once)
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
 
@@ -125,10 +143,11 @@
       const canHarm = B.calm >= RULES.calmMax;
       const m = Q.menu(cmd, [
         {id: 'play', label: Q.text('play'), sub: Q.text('playSub'), cls: 'c-play'},
+      ].concat(canSerenade() ? [{id: 'serenade', label: Q.text('serenade'), sub: Q.text('serenadeSub'), cls: 'c-ser'}] : [], [
         {id: 'listen', label: Q.text('listen'), sub: Q.text('listenSub'), cls: 'c-listen'},
         {id: 'item', label: Q.text('item'), sub: Q.text('itemSub'), cls: 'c-item'},
         {id: 'harmonize', label: Q.text('harmonize'), sub: canHarm ? Q.text('harmonizeSub') : Q.text('harmonizeLocked'), cls: 'c-harm' + (canHarm ? ' ready' : ''), disabled: !canHarm},
-      ], {cols: 4, label: 'Your turn', start: B.lastCmd || 0,
+      ]), {cols: canSerenade() ? 5 : 4, cls: canSerenade() ? 'q-five' : '', label: 'Your turn', start: B.lastCmd || 0,
         onPick: (it, i) => { B.lastCmd = i; m.destroy(); cmd.hidden = true; done(it.id); },
         onBack: () => { Q.settings.open().then(() => { B.player = Q.playerId(B.member.id); }); }});
       const p = Q.$('qPrompt'); p.hidden = false; p.textContent = Q.text('menuPrompt', {you: B.member.short});
@@ -153,7 +172,13 @@
       B.e.hp = 1; B.finale = true; B.calm = RULES.calmMax; B.choiceSaid = true;
       B.queue.push(...[].concat(B.e.finale), Q.text('finaleChoice', {name: B.e.name})); Q.sfx('quest-boss-phase');
     } else if (B.e.finale && B.finaleHeldThisPlay) B.e.hp = 1;     // (not in the same PLAY that started the finale)
-    else if (B.e.mustHarmonize) {
+    else if (B.e.finale) return;
+    else if (B.netThisPlay) B.e.hp = 1;                           // (your band can't finish it in the same PLAY either)
+    else if (!B.netUsed && !B.e.mustHarmonize && B.calm >= RULES.netCalm) {
+      // THE SAFETY NET (once per battle): almost befriended, so it holds on at 1 HP; the next PLAY defeats it
+      B.e.hp = 1; B.netUsed = B.netThisPlay = true;
+      B.queue.push(Q.text('netLine', {name: B.e.name}), Q.text('netHint', {name: B.e.name}));
+    } else if (B.e.mustHarmonize) {
       B.e.hp = 1;
       if (!B.heldSaid) { B.heldSaid = true; B.queue.push(B.e.lines.hold); }
     }
@@ -172,7 +197,7 @@
       setTimeout(() => { if (B && B.band.includes(c)) float('-' + dmg, 186, 40 + 10 * i, 'dmg band'); }, 250 + 300 * i);
       hurtFoe(dmg);
       B.queue.push(Q.text('bandHit', {band: c.name, name: B.e.name, n: dmg}));
-      if (perk.calm) { B.queue.push(Q.text('bandCalm', {band: c.name, name: B.e.name})); addCalm(perk.calm * res.acc); }
+      if (perk.calm) { B.queue.push(Q.text('bandCalm', {band: c.name, name: B.e.name})); addCalm(perk.calm * res.acc * B.calmScale); }
       if (perk.heal && B.save.hp < B.save.maxHp) {
         const n = Math.min(B.save.maxHp - B.save.hp, Math.max(1, Math.round(perk.heal * res.acc)));
         B.save.hp += n; float('+' + n, 40, 60, 'heal'); B.queue.push(Q.text('bandHeal', {band: c.name, n}));
@@ -181,6 +206,26 @@
     hud();
   }
   const bandNames = list => list.map(c => c.name).join(' and ');
+  /** after a SERENADE: your band follows your lead and plays softly too: CALM instead of damage (your accuracy) */
+  function bandSerenade(res, gain) {
+    const active = B.band.filter(c => !c.out);
+    if (!active.length) return;
+    if (!(gain > 0)) { B.queue.push(Q.text('bandRest', {band: bandNames(active)})); return; }
+    active.forEach((c, i) => {
+      const p = c.def.companion, perk = p.perk || {};
+      const n = gain * p.power * RULES.compCalm + (perk.calm ? perk.calm * res.acc * B.calmScale : 0);
+      c.hop = performance.now() + 250 + 300 * i;
+      B.queue.push(Q.text('bandSerenade', {band: c.name, name: B.e.name}));
+      addCalm(n);
+      if (perk.heal && B.save.hp < B.save.maxHp) {
+        const h = Math.min(B.save.maxHp - B.save.hp, Math.max(1, Math.round(perk.heal * res.acc)));
+        B.save.hp += h; float('+' + h, 40, 60, 'heal'); B.queue.push(Q.text('bandHeal', {band: c.name, n: h}));
+      }
+    });
+    hud();
+  }
+  /** SERENADE is offered to every enemy but the final boss (his finale is the story's own befriending moment) */
+  const canSerenade = () => B.e.serenade !== false;
 
   /* ---------- actions ---------- */
   async function doPlay() {
@@ -192,7 +237,7 @@
     const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: foe()});
     if (B === null) return false;
     const power = Q.save.powerAt(B.save.level);
-    B.heldSaid = false; B.finaleHeldThisPlay = !B.finale;          // the PLAY that reaches the finale can't also end it
+    B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;          // the PLAY that reaches the finale can't also end it
     let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
     const fork = Q.charms.effects().find(e => e.inTune && res.acc >= (e.at || .9));    // the Tuning Fork
     if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
@@ -207,14 +252,27 @@
     } else B.queue.push(Q.text('miss'));
     if (B.finale) hud();
     const perNote = (B.e.calm.perNote || 0) * (B.listened && B.e.listenBoost ? B.e.listenBoost : 1);
-    addCalm(perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0), true);
+    addCalm((perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0)) * B.calmScale, true);
     bandPlay(res);                                              // your band plays along (your accuracy)
     // 0 HP = it fades away, whatever its CALM (run() ends the battle): with a full CALM the student chose to keep playing
     await sayQ();
     return true;
   }
+  /** SERENADE: its happy notes (its CALM challenge, shorter than HARMONIZE); CALM up, no damage */
+  async function doSerenade() {
+    if (!(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    const res = await Q.challenge.run(null, {enemy: B.e, serenade: true});
+    if (B === null) return false;
+    const gain = RULES.serenadeCalm * res.acc * B.calmScale;
+    B.lastSerenade = gain;
+    if (gain > 0) { B.queue.push(Q.text(res.acc >= .9 ? 'serenadeGreat' : 'serenadeGood', {name: B.e.name})); addCalm(gain); }
+    else B.queue.push(Q.text('serenadeMiss', {name: B.e.name}));
+    bandSerenade(res, gain);
+    await sayQ();
+    return true;
+  }
   async function doListen() {
-    const lines = B.e.listen.map(l => l.replace('{happy}', Q.happyLabel(B.e)));
+    const lines = B.e.listen.map(l => l.replace('{happy}', Q.happyLabel(B.e))).concat(canSerenade() ? [Q.text('listenSerenade')] : []);
     await Q.say(lines, {name: B.e.name, portrait: B.e.sprite});
     B.listened = true;
     if (B.e.calm.listen) { addCalm(B.e.calm.listen); await sayQ(Q.text('listenCalm', {name: B.e.name})); }
@@ -319,12 +377,13 @@
   async function run() {
     const b = B;
     await Q.say(b.e.lines.intro);
+    if (!Q.save.flag('pathsTip') && b.e.serenade !== false) { await Q.say(Q.text('twoPaths')); Q.save.setFlag('pathsTip'); }   // the first battle: the two ways to win
     while (B === b) {
       await stageStart();
       if (B !== b) return;
       const id = await command();
       if (B !== b) return;
-      let r = id === 'play' ? await doPlay() : id === 'listen' ? await doListen() : id === 'item' ? await doItem() : await doHarmonize();
+      let r = id === 'play' ? await doPlay() : id === 'serenade' ? await doSerenade() : id === 'listen' ? await doListen() : id === 'item' ? await doItem() : await doHarmonize();
       if (B !== b) return;
       if (r === 'over') break;
       if (r === false) continue;                                  // backed out: still your turn
@@ -359,6 +418,8 @@
       const hp = Math.round(src.hp * (area.hp || 1) * (1 + (src.boss ? RULES.bossPartyHp : RULES.partyHp) * band.length));
       B = {e: Object.assign({}, src, {maxHp: hp, hp, atk: (src.atk || 2) * (area.atk || 1)}), save, member, back, band, aim: null, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
         player: Q.playerId(member.id)};
+      // THE CALM SCALE: CALM rises like damage does: with your power (level) and against its HP (area × band size)
+      B.calmScale = Q.save.powerAt(save.level) / Q.save.powerAt(1) * RULES.calmRef / hp;
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +
         `<div class="q-calm" id="qCalmBox"><span>CALM</span><div class="q-bar calm"><i id="qCalm"></i></div></div></div>` +
@@ -403,6 +464,6 @@
     },
   };
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
-    power: Q.save.powerAt(B.save.level), aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
+    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out}))};   // tests
 })(window.Arcade);
