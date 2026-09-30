@@ -28,6 +28,7 @@ window.Arcade = window.Arcade || {};
      opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count},
              sigStyle: 'big' (the Note Checker: the key signature further from the clef, larger ♯/♭),
              box: [top, height] (the drawing's own vertical window instead of the one fit gives; Keys to the City),
+             extra: SVG drawn last (Scale Audition: beams, bar lines, the time signature),
              capY: the captions' baseline (default: the bottom of the drawing)}
      With a key signature, start the notes keySigWidth(sig, sigStyle) further right so nothing collides. */
   const STAFF_BOTTOM = 120, MID_LINE = 88;
@@ -37,7 +38,9 @@ window.Arcade = window.Arcade || {};
   }
   A.noteY = noteY;
   /* one note (ledger lines, accidental, head, stem, optional caption at capY) at it.x.
-     staffSVG uses it; games that move notes on their own layer can use it too. */
+     staffSVG uses it; games that move notes on their own layer can use it too.
+     Optional (Scale Audition's rhythm picture): it.whole = an open head with no stem; it.stemUp = force the stem's
+     side (default: up below the middle line); it.stemTo = where the stem ends (y), so stems meet a beam. */
   A.noteGlyph = function (clef, it, capY) {
     const x = it.x, y = noteY(clef, it.n), col = it.color || INK;
     let g = '';
@@ -45,10 +48,12 @@ window.Arcade = window.Arcade || {};
     for (let ly = 40; ly >= y; ly -= 16)  g += `<line x1="${x - 15}" y1="${ly}" x2="${x + 15}" y2="${ly}" stroke="${INK}" stroke-width="1.6"/>`;
     if (it.n.acc) g += `<text class="head" x="${x - 31}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">${it.n.acc < 0 ? '♭' : '♯'}</text>`;
     else if (it.n.natural) g += `<text class="head" x="${x - 27}" y="${y + 6}" ${MUSIC_FONT} font-size="54" fill="${col}">♮</text>`;
-    g += `<ellipse class="head" cx="${x}" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y})" fill="${col}"/>`;
-    g += y > MID_LINE
-      ? `<line class="stem" x1="${x + 8.3}" y1="${y - 2}" x2="${x + 8.3}" y2="${y - 52}" stroke="${col}" stroke-width="2"/>`
-      : `<line class="stem" x1="${x - 8.3}" y1="${y + 2}" x2="${x - 8.3}" y2="${y + 52}" stroke="${col}" stroke-width="2"/>`;
+    if (it.whole) g += `<ellipse class="head whole" cx="${x}" cy="${y}" rx="10.5" ry="7" transform="rotate(-20 ${x} ${y})" fill="none" stroke="${col}" stroke-width="3.2"/>`;
+    else g += `<ellipse class="head" cx="${x}" cy="${y}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y})" fill="${col}"/>`;
+    const up = it.stemUp != null ? it.stemUp : y > MID_LINE;
+    if (!it.whole) g += up
+      ? `<line class="stem" x1="${x + 8.3}" y1="${y - 2}" x2="${x + 8.3}" y2="${it.stemTo != null ? it.stemTo : y - 52}" stroke="${col}" stroke-width="2"/>`
+      : `<line class="stem" x1="${x - 8.3}" y1="${y + 2}" x2="${x - 8.3}" y2="${it.stemTo != null ? it.stemTo : y + 52}" stroke="${col}" stroke-width="2"/>`;
     if (it.caption && capY) g += `<text class="ncap" x="${x}" y="${capY}" text-anchor="middle" font-family='"GN Text",system-ui,sans-serif' font-weight="700" font-size="15" fill="#4b5570">${it.caption}</text>`;
     return g;
   };
@@ -89,7 +94,7 @@ window.Arcade = window.Arcade || {};
       : `<text x="16" y="111" ${MUSIC_FONT} font-size="62" fill="${INK}">𝄢</text>`;
     s += keySigSVG(clef, opts.keySig, opts.sigStyle);
     items.forEach(it => { s += `<g${it.id ? ` id="${it.id}"` : ''}>${A.noteGlyph(clef, it, capY)}</g>`; });
-    return s + `</svg>`;
+    return s + (opts.extra || '') + `</svg>`;
   };
   /* ---------- music symbols for vocabulary games (Ancient Ninja Scrolls) ----------
      Each is drawn on a short staff so it looks the way it does in a part. */

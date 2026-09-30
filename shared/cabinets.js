@@ -156,6 +156,23 @@ window.Arcade = window.Arcade || {};
               '<path class="s-tkband" d="M106 566Q150 584 194 566"/>',
       slots: {marquee: [34, 40, 232, 72], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
+    /* audition: the Scale Audition cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
+       slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
+       with ticks) on the lower right */
+    audition: {
+      outline: 'M22 20H278L268 104H258V598H42V104H32Z',
+      face: 'M54 104H246V598H54Z', kick: [54, 246],
+      bezel: 'M66 116H234Q242 116 242 124V294Q242 302 234 302H66Q58 302 58 294V124Q58 116 66 116Z',
+      panel: 'M50 310H250L280 372H20Z', lip: 'M20 372H280V386H20Z',
+      joy: [74, 342], btns: [[178, 338], [208, 338], [238, 338]],
+      door: {x: 108, y: 452, w: 84, h: 84},
+      extras: '<path class="s-stand" d="M26 18H274"/>' +
+              '<path class="s-standpole" d="M86 470V570M86 570L66 590M86 570L106 590"/><path class="s-standdesk" d="M60 440H112L108 470H64Z"/>' +
+              '<rect class="s-sheet" x="66" y="422" width="40" height="24" rx="2"/>' +
+              '<rect class="s-clip" x="198" y="456" width="36" height="46" rx="3"/><rect class="s-clipbar" x="208" y="452" width="16" height="7" rx="2"/>' +
+              '<path class="s-tick" d="M204 472l4 4 8-8M204 486l4 4 8-8"/><path class="s-line" d="M220 474H230M220 488H230"/>',
+      slots: {marquee: [36, 26, 228, 72], screen: [70, 128, 160, 162], start: [78, 398, 144, 48]},
+    },
     /* showtime: the old cabinet from the back room. A crooked top, a cracked side panel, a dangling wire, tape on the
        control panel and one button missing (Showtime Malfunction) */
     showtime: {
@@ -556,6 +573,38 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = css('rd-head'); x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.fill();
         x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('yellow'); x.lineWidth = Math.max(1.5, H * .02);
         x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
+      },
+    },
+    /* Scale Audition: a scale on a little staff, notes turning green one by one as they are "played" up and down,
+       and a time bar under it shrinking; a small ALL-STATE READY tag at the end of each run. A canvas screen (2D and 3D). */
+    audition: {
+      html() { return `<div class="scr scr-audition scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const seq = [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0], loop = seq.length * .45 + 2, tt = t == null ? 3.2 : t % loop, k = Math.floor(tt / .45);
+        x.fillStyle = css('sa-wall'); x.fillRect(0, 0, W, H);
+        const cx0 = W * .05, cy0 = H * .1, cw = W * .9, ch = H * .58;
+        x.fillStyle = css('screen'); x.fillRect(cx0, cy0, cw, ch);
+        const top = cy0 + ch * .22, gap = ch * .12, ink = css('ink');
+        x.strokeStyle = ink; x.lineWidth = Math.max(1, H * .008);
+        for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(cx0 + cw * .04, top + i * gap); x.lineTo(cx0 + cw * .96, top + i * gap); x.stroke(); }
+        seq.forEach((d, i) => {
+          const nx = cx0 + cw * (.08 + .84 * i / (seq.length - 1)), ny = top + 5 * gap - d * gap / 2;
+          x.fillStyle = i < k ? css('sa-ok') : i === k && tt < seq.length * .45 ? css('sa-cur') : ink;
+          x.beginPath(); x.ellipse(nx, ny, H * .028, H * .02, -.35, 0, 7); x.fill();
+        });
+        // the time bar (no alarm: amber near the end)
+        const f = Math.max(0, 1 - tt / (seq.length * .45 + .6));
+        x.fillStyle = css('floor-3'); x.fillRect(cx0, H * .76, cw, H * .06);
+        x.fillStyle = f < .25 ? css('amber') : css('cyan'); x.fillRect(cx0, H * .76, cw * f, H * .06);
+        if (tt >= seq.length * .45) {
+          x.globalAlpha = Math.min(1, (tt - seq.length * .45) * 2);
+          x.fillStyle = css('yellow'); x.font = `${H * .1}px "GN Display", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+          x.fillText('ALL-STATE READY!', W / 2, H * .91); x.globalAlpha = 1;
+        }
+        // the loop restarts through a soft fade (never a jump: nothing changes much in one frame)
+        const edge = Math.min(tt, loop - tt);
+        if (t != null && edge < .6) { x.globalAlpha = 1 - edge / .6; x.fillStyle = css('sa-wall'); x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
       },
     },
     /* Arcade Quest: glitchy static, and an 8-bit microphone flickering through it (something is waking up) */

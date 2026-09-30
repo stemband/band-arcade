@@ -544,6 +544,48 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* SCALE AUDITION: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
+     stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
+     The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
+  S.audition = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .74;
+    vgrad(x, W, H, [[0, col('sa-wall')], [.55, col('sa-wall-2')], [.62, mix('sa-wall-2', 'sa-wood', .35)], [.74, col('sa-wood-2')], [.74, col('sa-wood')], [1, col('deep')]]);
+    x.fillStyle = col('deep', .35); x.fillRect(0, fy, W, H - fy);
+    x.strokeStyle = col('sa-wood-2', .8); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * W / 12, fy); x.lineTo(W / 2 + (i * W / 12 - W / 2) * 1.5, H); x.stroke(); }
+    x.strokeStyle = col('sa-wood', .45);                                   // the wainscoting's rail
+    x.beginPath(); x.moveTo(0, H * .6); x.lineTo(W, H * .6); x.stroke();
+    const breath = .5 + .5 * Math.sin(t * TAU / 6);
+    // the judges' table at the right: a blue cloth, three chairs behind it, two lamps with warm pools
+    const tx = W * .74, tw = W * .3, ty = H * .6;
+    [.2, .5, .8].forEach(u => { x.fillStyle = col('sa-chair'); x.fillRect(tx + tw * u - m * .035, ty - m * .12, m * .07, m * .12); });
+    x.fillStyle = col('sa-cloth'); x.fillRect(tx, ty, tw, H * .16);
+    x.fillStyle = col('sa-cloth-2'); x.fillRect(tx, ty, tw, H * .02);
+    [.28, .72].forEach((u, i) => {
+      const lx = tx + tw * u, b = i ? 1 - breath * .5 : .5 + breath * .5;
+      glow(x, lx, ty + H * .01, m * .28, col('sa-lamp', .1 + .08 * b), col('sa-lamp', 0));
+      x.strokeStyle = col('sa-stand', .8); x.lineWidth = Math.max(1, m / 200);
+      x.beginPath(); x.moveTo(lx, ty); x.lineTo(lx - m * .02, ty - m * .07); x.lineTo(lx + m * .02, ty - m * .1); x.stroke();
+      x.fillStyle = col('sa-lamp', .55 + .25 * b); x.beginPath(); x.moveTo(lx, ty - m * .11); x.lineTo(lx + m * .05, ty - m * .1); x.lineTo(lx + m * .035, ty - m * .075); x.closePath(); x.fill();
+      x.fillStyle = col('sa-sheet', .25); x.fillRect(lx - m * .03, ty - m * .006, m * .045, m * .006);   // the score sheets on the table
+    });
+    // the music stand at the left, its sheet catching a little light
+    const sx = W * .12, sy = H * .42;
+    x.strokeStyle = col('sa-stand', .75); x.lineWidth = Math.max(1.5, m / 140); x.lineCap = 'round';
+    x.beginPath(); x.moveTo(sx, sy + m * .08); x.lineTo(sx, fy + H * .05); x.moveTo(sx, fy + H * .05); x.lineTo(sx - m * .06, fy + H * .1); x.moveTo(sx, fy + H * .05); x.lineTo(sx + m * .06, fy + H * .1); x.stroke();
+    x.fillStyle = col('sa-stand', .6); x.beginPath(); x.moveTo(sx - m * .13, sy); x.lineTo(sx + m * .13, sy); x.lineTo(sx + m * .12, sy + m * .09); x.lineTo(sx - m * .12, sy + m * .09); x.closePath(); x.fill();
+    glow(x, sx, sy - m * .02, m * .2, col('sa-sheet', .05 + .03 * breath), col('sa-sheet', 0));
+    x.fillStyle = col('sa-sheet', .5); x.fillRect(sx - m * .11, sy - m * .13, m * .22, m * .14);
+    x.strokeStyle = col('sa-wall', .5); x.lineWidth = Math.max(1, m / 500);
+    for (let r = 0; r < 3; r++) for (let l = 0; l < 5; l++) { const ly = sy - m * .115 + r * m * .045 + l * m * .006; x.beginPath(); x.moveTo(sx - m * .1, ly); x.lineTo(sx + m * .1, ly); x.stroke(); }
+    x.lineCap = 'butt';
+    // dust in the lamp light
+    for (let i = 0; i < 14; i++) {
+      const px = tx + tw * (.1 + .8 * hash(i + 60)) + Math.sin(t * .3 + i) * m * .01, py = H * (.3 + .3 * fract(hash(i + 61) - t * (.008 + .006 * hash(i + 62))));
+      x.fillStyle = col('sa-lamp', .1 + .12 * hash(i + 63)); x.beginPath(); x.arc(px, py, m * .0028, 0, TAU); x.fill();
+    }
+  };
+
   /* OFFICIAL BAND NINJA GEAR (the Diamond belt code; avatar backgrounds only): the night dojo with diamond-blue lanterns,
      a Diamond belt hung on the back wall, and small diamond glints drifting down slowly (they fade, never blink) */
   S['diamond-dojo'] = (x, W, H, t) => {
@@ -1055,7 +1097,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

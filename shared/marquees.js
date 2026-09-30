@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -752,6 +752,43 @@ window.Arcade = window.Arcade || {};
           x.fillStyle = tok('rd-head'); x.beginPath(); x.ellipse(dx, cy - rh * .1, rw * .72, rh * .66, 0, 0, 7); x.fill();
           x.strokeStyle = rgba(c[0], .55 + .45 * pulse); x.lineWidth = Math.max(2, H * .035);
           x.beginPath(); x.ellipse(dx, cy - rh * .1, rw * .72, rh * .66, 0, 0, 7); x.stroke();
+        });
+      },
+    },
+    /* SCALE AUDITION. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
+       of the sign under a warm lamp glow, and a major scale's eight notes on a faint staff between them, climbing and
+       coming back down; the note being "played" swells softly and fades (about 2 notes a second, a smooth fade each,
+       never a blink, and never more than one note bright at once). */
+    audition: {
+      colors: ['sa-stand', 'yellow', 'sa-lamp'], still: 1.1,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('sa-wall')], [1, tok('deep')]]); x.fillRect(0, 0, W, H);
+        glow(x, W * .1, H * .2, H * .9, c[2], .16); glow(x, W * .9, H * .2, H * .9, c[2], .16);
+        // the faint staff
+        const top = H * .3, gap = H * .085;
+        x.strokeStyle = rgba(c[1], .16); x.lineWidth = Math.max(1, H * .012);
+        for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(W * .2, top + i * gap); x.lineTo(W * .8, top + i * gap); x.stroke(); }
+        // the scale: 1 2 3 4 5 6 7 8 up, then down; the sounding note glows
+        const seq = [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1], p = wrap(t * 2, seq.length), k = Math.floor(p), f = p - k;
+        for (let i = 0; i < 8; i++) {
+          const nx = W * (.24 + .52 * i / 7), ny = top + 4 * gap - i * gap / 2 + gap * .5;
+          let lit = 0;
+          if (seq[k] === i) lit = 1 - smooth(Math.max(0, f - .5) * 2);
+          x.fillStyle = rgba(c[1], .28 + .6 * lit);
+          if (lit > .05) glow(x, nx, ny, H * .2, c[1], .35 * lit);
+          x.beginPath(); x.ellipse(nx, ny, H * .05, H * .036, -.35, 0, 7); x.fill();
+          x.strokeStyle = rgba(c[1], .28 + .6 * lit); x.lineWidth = Math.max(1, H * .014);
+          x.beginPath(); x.moveTo(nx + H * .045, ny - H * .01); x.lineTo(nx + H * .045, ny - H * .24); x.stroke();
+        }
+        // two music stands: a slanted desk with a sheet, a pole, three feet
+        [W * .08, W * .92].forEach(sx => {
+          x.strokeStyle = tok(c[0]); x.lineWidth = Math.max(1.5, H * .025); x.lineCap = 'round';
+          x.beginPath(); x.moveTo(sx, H * .55); x.lineTo(sx, H * .92); x.moveTo(sx, H * .92); x.lineTo(sx - H * .12, H); x.moveTo(sx, H * .92); x.lineTo(sx + H * .12, H); x.stroke();
+          x.lineCap = 'butt';
+          x.fillStyle = tok(c[0]); x.beginPath(); x.moveTo(sx - H * .26, H * .5); x.lineTo(sx + H * .26, H * .5); x.lineTo(sx + H * .23, H * .6); x.lineTo(sx - H * .23, H * .6); x.closePath(); x.fill();
+          x.fillStyle = tok('sa-sheet'); x.fillRect(sx - H * .2, H * .2, H * .4, H * .3);
+          x.fillStyle = rgba('sa-wall', .55);
+          for (let l = 0; l < 3; l++) x.fillRect(sx - H * .16, H * (.26 + l * .075), H * .32, Math.max(1, H * .01));
         });
       },
     },

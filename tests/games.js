@@ -106,6 +106,8 @@ const STEPS = {
       await page.evaluate(() => { const D = Arcade.RhythmDojo; if (!window.__auto) { window.__auto = true; D.autoPlay(0, {persist: true}); } if (D.state().phase === 'study') document.getElementById('rdGo').click(); });
       await page.waitForTimeout(400);
     }},
+  // Scale Audition: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
+  'scale-audition': {every: 200, limit: 90_000},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
   'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
   'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute

@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -146,6 +146,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* audition: the Scale Audition cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
+       sheet of music, on a pole), a neon edge along the desk */
+    audition: {
+      width: 0.94, topper: 'stand',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
     quest: {
       width: 0.94,
@@ -162,7 +170,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -192,7 +200,8 @@ window.Arcade = window.Arcade || {};
    'belt-white', 'belt-yellow', 'vi-paper', 'vi-paper-2', 'vi-rod', 'vi-rod-cap', 'vi-ink', 'vi-ink-2',
    'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b',
    'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow',
-   'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand'].forEach(n => { tok[n] = cssVar(n); });
+   'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand',
+   'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -483,6 +492,12 @@ window.Arcade = window.Arcade || {};
     highway(x, W, H, t) {
       if (A.HighwayDraw) return A.HighwayDraw.attract(x, W, H, t);
       x.fillStyle = tok['mh-sky']; x.fillRect(0, 0, W, H);
+    },
+    /* Scale Audition: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.audition) */
+    audition(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.audition;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['sa-wall']; x.fillRect(0, 0, W, H);
     },
     /* Rhythm Dojo: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.taiko) */
     taiko(x, W, H, t) {
@@ -858,6 +873,22 @@ window.Arcade = window.Arcade || {};
         const leg = new THREE.Mesh(new THREE.BoxGeometry(.03, .06, .03), lambert(col('vi-rod-cap'))); leg.position.set(sd * sw / 2, topY + .02, fz); group.add(detail(leg));
       });
       neon([new THREE.Vector3(-sw / 2, cy + sh / 2 + .01, fz + .004), new THREE.Vector3(sw / 2, cy + sh / 2 + .01, fz + .004)]);
+    } else if (P.topper === 'stand') {
+      // a music stand on the roof: a slanted desk holding a lit sheet of music (a staff with a few notes), a pole and a
+      // small base; a neon edge in the trim color along the desk's lip (Scale Audition)
+      const fz = frontTop + zc - .16, dw = W * .62, dh = .26, cy = topY + .2 + dh / 2;
+      const c = canvas(256, 108), cx = c.getContext('2d');
+      cx.fillStyle = tok['sa-sheet']; cx.fillRect(0, 0, 256, 108);
+      cx.strokeStyle = tok.ink; cx.lineWidth = 1.5;
+      for (let r = 0; r < 2; r++) for (let i = 0; i < 5; i++) { cx.beginPath(); cx.moveTo(12, 16 + r * 50 + i * 7); cx.lineTo(244, 16 + r * 50 + i * 7); cx.stroke(); }
+      for (let i = 0; i < 8; i++) { noteHead(cx, 30 + i * 28, 44 - i * 3.5, 6, tok.ink); noteHead(cx, 30 + i * 28, 94 - (7 - i) * 3.5, 6, tok.ink); }
+      const desk = new THREE.Mesh(new THREE.PlaneGeometry(dw, dh), basic(new THREE.Color(1, 1, 1), {map: new THREE.CanvasTexture(c)}));
+      desk.position.set(0, cy, fz); desk.rotation.x = -.28; desk.userData.pick = true; group.add(desk);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(dw + .04, dh + .03, .02), lambert(col('sa-stand'))); back.position.set(0, cy, fz - .016); back.rotation.x = -.28; group.add(detail(back));
+      const lip = new THREE.Mesh(new THREE.BoxGeometry(dw + .04, .025, .05), lambert(col('sa-stand'))); lip.position.set(0, cy - dh / 2 * Math.cos(.28) - .01, fz + .04); group.add(detail(lip));
+      neon([new THREE.Vector3(-dw / 2, cy - dh / 2 * Math.cos(.28) + .005, fz + .07), new THREE.Vector3(dw / 2, cy - dh / 2 * Math.cos(.28) + .005, fz + .07)]);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .22, 8), lambert(col('sa-stand'))); pole.position.set(0, topY + .1, fz - .04); group.add(detail(pole));
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(.08, .09, .02, 12), lambert(col('sa-stand'))); foot.position.set(0, topY + .01, fz - .04); group.add(detail(foot));
     } else if (P.topper === 'taiko') {
       // a taiko drum on a low wooden stand on the roof: a warm-wood barrel body, iron bands, a row of gold studs, its head
       // facing out with a neon ring in the SECOND trim color (Rhythm Dojo, the bamboo dojo: a gold rim on a jade cabinet)

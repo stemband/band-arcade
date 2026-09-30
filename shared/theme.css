@@ -75,6 +75,12 @@
   --rd-body:#8a5a2e; --rd-body-2:#5a3819; --rd-head:#f1e3c4; --rd-head-2:#d8c39a; --rd-iron:#2a1c10; --rd-stud:#e8c264; --rd-stand:#3a2317;
   --rd-night:#06140f; --rd-jade:#2fe0b0; --rd-jade-hi:#a9f5de; --rd-jade-ink:#00735f;
   --rd-ok:#0a7d3b; --rd-near:#a35f00; --rd-bad:#c0392b; --rd-lit:#00735f;
+  /* Scale Audition: the audition room (a music stand, the judges' table under warm lamps) and the score marks
+     (clean / fixed / missed on the light staff and the score sheet: dark enough on --screen, AA) */
+  --sa-wall:#140f1f; --sa-wall-2:#1d1530; --sa-wood:#4a3020; --sa-wood-2:#2a1a12; --sa-cloth:#1f3a5c; --sa-cloth-2:#16283f;
+  --sa-lamp:#ffcf7a; --sa-stand:#9aa3b8; --sa-sheet:#f4f1e6; --sa-chair:#2b2238;
+  --sa-ok:#0a7d3b; --sa-fix:#a35f00; --sa-bad:#c0392b; --sa-cur:#1257c4; --sa-guide:#00a3a3;
+  --sa-ok-lt:#4dff88; --sa-fix-lt:#ffab2e; --sa-bad-lt:#ff6b6b; --sa-none:#3a3350;
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;
