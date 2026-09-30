@@ -187,6 +187,14 @@
 .g-req{min-height:1.4em;margin:10px 0 0;color:var(--pink-hi)}
 /* the results: your car under the place, and NEW IN THE GARAGE! */
 .res-car{display:block;width:170px;max-width:60%;height:auto;margin:4px auto 0}
+/* the results' buttons come right after the tiles (UI.results actsFirst): on short screens the place, the car and the
+   stars shrink a little so NEXT TRACK / TRY AGAIN / TRACKS / GARAGE show without scrolling */
+.ui-acts-first .res-car{width:clamp(96px,19vh,170px)}
+.ui-acts-first .res-pos{font-size:clamp(26px,min(7vw,5.5vh),56px)}
+.ui-acts-first .ui-stars{font-size:clamp(34px,6.2vh,52px)}
+/* "Race details": a small heading so the report below the buttons reads as optional detail */
+.res-more{margin:4px 0 8px;padding-top:12px;border-top:1px solid var(--floor-3);text-align:center;font:700 12.5px/1.2 var(--text);
+  letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
 .sw-newcar{margin:0 auto 12px;max-width:420px;padding:10px 12px;border-radius:14px;border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--floor-2));box-shadow:var(--glow-amber)}
 .panel .sw-newcar-t{margin:0;text-align:center;font-family:var(--display);color:var(--amber-hi);letter-spacing:.04em}   /* (.panel p would make it lavender) */
 /* the results' GARAGE (after every race): the track menu's look (amber outline, amber-hi text, the car icon), as tall as

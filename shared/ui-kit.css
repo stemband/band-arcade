@@ -124,6 +124,9 @@ html.ui-in-level #topbar .brand{visibility:hidden}
 .ui-newbest.go{animation:ui-ribbon .6s ease-out 1.1s both}
 @keyframes ui-ribbon{0%{opacity:0;transform:translateY(10px) scale(.8)}100%{opacity:1;transform:none}}
 .ui-res-acts .btn{min-width:130px}
+/* actsFirst: the buttons above the game's extra part (a little room between them) */
+.ui-res-acts.ui-res-first{margin-top:14px}
+.ui-res-first+.ui-res-extra{margin-top:18px}
 /* UI.results.render(el): the same screen inside an element (no overlay, no frame of its own) */
 .ui-res-inline{text-align:center}
 .ui-res-inline .ui-res-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}

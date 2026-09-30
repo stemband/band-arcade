@@ -356,7 +356,9 @@ window.Arcade = window.Arcade || {};
       if (items.length) AV().markSeen(items);
       const wrap = document.createElement('div'); wrap.innerHTML = Skins.cardHTML(items.map(item => ({item})).concat(found), shownFor);
       const card = wrap.firstChild, acts = [...host.children].find(c => c.classList.contains('acts'));
-      if (acts) host.insertBefore(card, acts); else host.appendChild(card);         // after the stars and the result, above the buttons
+      // after the stars and the result, above the buttons; with the buttons first (UI.results actsFirst) right under them
+      const at = acts && acts.classList.contains('ui-res-first') ? acts.nextElementSibling : acts;
+      if (at) host.insertBefore(card, at); else host.appendChild(card);
       const ov = host.closest('.overlay'); if (ov) ov.classList.add('sk-tall');      // a taller panel scrolls
       wire(card, shownFor);
       // THE LOCKER from the results (shared/locker.js via avatar-badge.js): everything, NEW ones marked; closes back here

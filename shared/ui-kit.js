@@ -346,6 +346,8 @@ window.Arcade = window.Arcade || {};
        levels: {label, onClick},         LEVELS (back to the level select)
        more: [{label, onClick, id}],     any other buttons (after these); any button may add `act` (data-act) and
                                          `primary: true` (it becomes the yellow one instead)
+       actsFirst: false,                 true = the buttons come right after the tiles / best line, ABOVE the extra
+                                         part (a long report reads as optional detail under them: Sustain Speedway)
        idPrefix,                          (render only) no ids on the buttons, so two copies can share a page
        announce: true | {members, member} | false,   the UNLOCKED! card + the avatar (shared/skins.js)
        onShow(panel) })                  wire the extra part
@@ -363,8 +365,8 @@ window.Arcade = window.Arcade || {};
       (o.newBest ? `<p class="ui-newbest">${esc(o.newBestText || 'New best!')}</p>` : '') +
       (tiles.length ? `<div class="ui-tiles">${tiles.map(([k, v, id]) => `<div class="ui-tile"><small>${esc(k)}</small><b${id ? ` id="${esc(id)}"` : ''}>${esc(v)}</b></div>`).join('')}</div>` : '') +
       `<p class="ui-res-best" id="resBest">${esc(o.best || '')}</p>` +
-      `<div class="ui-res-extra"></div>` +
-      `<div class="acts ui-res-acts"></div>`;
+      (o.actsFirst ? `<div class="acts ui-res-acts ui-res-first"></div><div class="ui-res-extra"></div>`
+        : `<div class="ui-res-extra"></div><div class="acts ui-res-acts"></div>`);
   }
   function fillResults(panel, o) {
     panel.innerHTML = resultsHTML(o);
@@ -398,7 +400,7 @@ window.Arcade = window.Arcade || {};
         document.body.appendChild(RES);
         trap(RES, {});
       }
-      RES.className = `overlay ui-ov ui-results${o.wide ? ' ui-wide' : ''} ${o.theme || ''}`;
+      RES.className = `overlay ui-ov ui-results${o.wide ? ' ui-wide' : ''}${o.actsFirst ? ' ui-acts-first' : ''} ${o.theme || ''}`;
       if (o.gameId) RES.dataset.game = o.gameId;
       const panel = RES.querySelector('.panel');
       const first = fillResults(panel, o);
