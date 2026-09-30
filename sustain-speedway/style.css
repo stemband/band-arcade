@@ -203,3 +203,39 @@
 @media (prefers-reduced-motion:reduce){ .garage-btn.garage-fill{animation:none} }
 .sw-newcar-l{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 8px}
 .sw-newcar-l span{padding:2px 9px;border-radius:999px;background:var(--floor-3);color:var(--text-hi);font-weight:700;font-size:13px}
+
+/* ---------- PITCH STEERING: "FLAT ◀" / "▶ SHARP" at the side the car is drifting to, and the one-time hint ---------- */
+.steer-word{position:absolute;bottom:22%;margin:0;padding:4px 12px;border-radius:10px;font-family:var(--display);font-size:clamp(18px,3vw,30px);
+  background:color-mix(in srgb,var(--deep) 80%,transparent);pointer-events:none;letter-spacing:.04em}
+.steer-word.l{left:10px;color:var(--cyan-hi);border:2px solid var(--cyan)}
+.steer-word.r{right:10px;color:var(--amber-hi);border:2px solid var(--amber)}
+.steer-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);margin:0;width:min(92%,520px);padding:8px 12px;border-radius:12px;text-align:center;
+  font-weight:700;font-size:clamp(13px,1.7vw,16px);color:var(--text-hi);background:color-mix(in srgb,var(--deep) 86%,transparent);border:2px solid var(--green);pointer-events:none}
+@media (max-width:560px){ .steer-word{bottom:30%;font-size:16px} .steer-hint{bottom:auto;top:62px} }
+
+/* ---------- THE INTONATION REPORT (results: "Your tuning") ---------- */
+.tuning{margin:0 auto 12px;max-width:620px;text-align:left;background:var(--deep);border-radius:14px;padding:10px 12px;border:1px solid var(--floor-3)}
+.panel .tn-title{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:18px;color:var(--cyan-hi);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.panel .tn-scale{display:grid;grid-template-columns:3.6em minmax(90px,1fr) minmax(0,1.3fr);gap:0 10px;margin:0 0 2px;font-size:11.5px;font-weight:700;color:var(--text-lo)}
+.tn-sc{display:flex;justify-content:space-between}
+.tn-sc i{font-style:normal}
+.tn-rows{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.tn-row{display:grid;grid-template-columns:3.6em minmax(90px,1fr) minmax(0,1.3fr);align-items:center;gap:4px 10px;font-size:14px;color:var(--text-hi)}
+.tn-note{font-family:var(--display);font-weight:400;font-size:20px;font-family:var(--display),var(--music)}
+.tn-note sub{font-size:.55em;vertical-align:baseline;margin-left:1px;color:var(--text-lo)}
+.tn-bar{position:relative;height:16px;border-radius:8px;background:var(--floor-3)}
+.tn-band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--green) 40%,transparent);border-radius:4px}
+.tn-mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--text-lo)}
+.tn-dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--text-hi);border:2px solid var(--deep)}
+.tn-row.ok .tn-dot{background:var(--green-hi)}.tn-row.sharp .tn-dot{background:var(--amber)}.tn-row.flat .tn-dot{background:var(--cyan)}
+.tn-word{font-weight:700}
+.tn-row.ok .tn-word{color:var(--green-hi)}.tn-row.sharp .tn-word{color:var(--amber-hi)}.tn-row.flat .tn-word{color:var(--cyan-hi)}
+.tn-word small{display:block;font-weight:400;font-size:12px;color:var(--text-lo)}
+.tn-trend{grid-column:2 / -1;font-size:12.5px;font-weight:700;color:var(--text-lo)}
+.tn-trend.closer{color:var(--green-hi)}
+.tn-trend small{font-size:12.5px}
+.panel .tn-great{margin:8px 0 0;text-align:center;font-family:var(--display);color:var(--green-hi);font-size:18px}
+.panel .tn-none{margin:0;text-align:center;color:var(--text-lo)}
+.tn-tips{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.tn-tips li{padding:6px 10px;border-radius:10px;background:var(--floor-2);color:var(--text-hi);font-size:14px;line-height:1.35}
+@media (max-width:560px){ .tn-row{grid-template-columns:3em 1fr} .tn-word{grid-column:1 / -1} .panel .tn-scale{grid-template-columns:3em 1fr} }

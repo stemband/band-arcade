@@ -30,6 +30,7 @@
   const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
   const fmt = s => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
   const signed = c => { const a = Math.round(Math.abs(c)); return (a === 0 ? '' : c > 0 ? '+' : '−') + a + '¢'; };   // "+12¢", "−8¢", "0¢"
+  const dayKey = () => { const d = A.store.today ? A.store.today() : new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
   const css = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim();
 
   /* ---------- difficulty (remembered): Rookie ±20, Pro ±12, Virtuoso ±6 cents for full speed ---------- */
@@ -119,6 +120,7 @@
     const ghost = (gd.ghosts || {})[recKey(lv)] || null;
     G = {car: Garage.look(), lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
+      steer: 0, steerRec: [0], notes: {},                                // PITCH STEERING (drawing only) + THE INTONATION REPORT
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
     A.UI.results.hide(); $('hub').hidden = true; $('race').hidden = false; $('pit').hidden = true;
@@ -171,7 +173,7 @@
     G = null; demoKey = null; A.Pitch.demoNote = null; A.Pitch.demoJitter = 0.2;
     banner('');
   }
-  function resetHearing() { S.state = 'silent'; S.cents = null; S.hist = []; S.wrongRun = 0; S.zoneSince = 0; S.score = 0; if (G) G.nitro = false; A.Pitch.ignoreCurrent(); }
+  function resetHearing() { endHold(); S.state = 'silent'; S.cents = null; S.hist = []; S.wrongRun = 0; S.zoneSince = 0; S.score = 0; if (G) G.nitro = false; A.Pitch.ignoreCurrent(); }
   const item = () => G && G.items[Math.min(G.lap, G.items.length - 1)];
 
   /* ---------- listening: ~25 readings a second ---------- */
@@ -204,16 +206,72 @@
       G.nitro = zone && now - S.zoneSince >= R.nitro.holdMs;
       if (G.nitro && !was) { banner('IN THE ZONE!', 'zone', 1400); }
       const lp = G.laps[G.lap]; lp.n++; lp.sum += dev; lp.abs += Math.abs(dev);
+      holdReading(now, dev);
     } else if (r) {                                          // a different note: brake (after a couple of readings)
       if (++S.wrongRun >= R.wrongFrames) {
         if (S.state !== 'wrong') { G.flashUntil = now + 900; flashTarget(); }
-        S.state = 'wrong'; S.cents = null; S.hist = []; S.zoneSince = 0; G.nitro = false; S.score = 0;
+        S.state = 'wrong'; S.cents = null; S.hist = []; S.zoneSince = 0; G.nitro = false; S.score = 0; endHold();
       }
     } else {                                                 // silence (breathing), or nothing clear: coast
-      S.wrongRun = 0; S.state = 'silent'; S.cents = null; S.hist = []; S.zoneSince = 0; G.nitro = false; S.score = 0;
+      S.wrongRun = 0; S.state = 'silent'; S.cents = null; S.hist = []; S.zoneSince = 0; G.nitro = false; S.score = 0; endHold();
     }
     drawGaugeNeedle(S.state === 'on' ? S.cents : null);
   });
+
+  /* ---------- THE INTONATION REPORT's numbers: one HOLD = the lap's note sounding without a break ----------
+     Per target note (its WRITTEN name with the octave, e.g. "D4"): the holds of at least RULES.report.reportHoldSec s
+     add their readings (average signed cents), their wobble (the hold's standard deviation, weighted by its length),
+     and the longest unbroken run within the difficulty's tolerance (hold). Time in the zone comes from the loop. */
+  const noteKey = it => it.label + (it.n && it.n.oct != null ? it.n.oct : '');
+  function noteStat(it) {
+    const k = noteKey(it);
+    return G.notes[k] || (G.notes[k] = {key: k, label: it.label, oct: it.n && it.n.oct, n: 0, sum: 0, wob: 0, dur: 0, zone: 0, hold: 0});
+  }
+  function holdReading(now, dev) {
+    let h = S.seg;
+    if (!h) h = S.seg = {t0: now, t1: now, n: 0, sum: 0, sq: 0, tolAt: null, best: 0, lap: G.lap};
+    h.t1 = now; h.n++; h.sum += dev; h.sq += dev * dev;
+    if (Math.abs(dev) <= G.diff.tol) { if (h.tolAt === null) h.tolAt = now; h.best = Math.max(h.best, (now - h.tolAt) / 1000); }
+    else h.tolAt = null;
+  }
+  function endHold() {
+    const h = S.seg; S.seg = null;
+    if (!h || !G || !G.items[h.lap]) return;
+    const dur = (h.t1 - h.t0) / 1000;
+    if (dur < R.report.reportHoldSec || h.n < 3) return;
+    const st = noteStat(G.items[h.lap]), m = h.sum / h.n;
+    st.n += h.n; st.sum += h.sum; st.wob += Math.sqrt(Math.max(0, h.sq / h.n - m * m)) * dur; st.dur += dur;
+    st.hold = Math.max(st.hold, h.best);
+  }
+
+  /* ---------- PITCH STEERING: the car's sideways place shows the pitch (drawing only) ---------- */
+  /** −1 (the left edge: flat) … 0 (the center line: in tune) … 1 (the right edge: sharp) for a pitch `c` cents off */
+  function steerOf(c) {
+    const a = Math.abs(c), tol = G.diff.tol;
+    if (a <= tol) return 0;
+    return Math.sign(c) * clamp((a - tol) / Math.max(1, R.steer.edge - tol), 0, 1);
+  }
+  function steerTick(dt) {
+    const on = G.phase === 'race' && S.state === 'on' && S.cents !== null;
+    const want = on ? steerOf(S.cents) : 0, tau = (on ? R.steer.smoothMs : R.steer.backMs) / 1000;
+    G.steer += (want - G.steer) * (1 - Math.exp(-dt / tau));
+    if (Math.abs(G.steer) < 1e-4) G.steer = 0;
+  }
+  let steerShown = '';
+  function steerWord(side) {                               // "FLAT ◀" on the left, "▶ SHARP" on the right, or nothing
+    if (side === steerShown) return;
+    steerShown = side;
+    const w = $('steerWord');
+    w.hidden = !side; w.className = 'steer-word ' + (side || '');
+    w.textContent = side === 'l' ? 'FLAT ◀' : side === 'r' ? '▶ SHARP' : '';
+  }
+  /* the one-time hint on the first race after the update (gameData.steerHint) */
+  function steerHint() {
+    if (gd.steerHint) return;
+    gd.steerHint = true; save();
+    const h = $('steerHint'); h.hidden = false;
+    clearTimeout(steerHint.t); steerHint.t = setTimeout(() => { h.hidden = true; }, 7000);
+  }
 
   /* ---------- the loop: the car, the clock, laps, pit stops, rivals ---------- */
   function loop(now) {
@@ -225,23 +283,28 @@
     if (G.phase === 'count') {
       if (!document.hidden && !G.held) countTick(Math.min(raw, 250));
       // the race starts when the microphone is live again after "GO!": the sound manager's mute has really ended
-      if (G && G.goHeard && !G.held && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); }
+      if (G && G.goHeard && !G.held && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); steerHint(); }
     } else if (G.phase === 'race' && !paused) {
       G.clock += dt; G.driveTime += dt;
-      const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) : 0;
-      if (S.state === 'on') G.v = target > G.v ? Math.min(target, G.v + R.accel * dt) : Math.max(target, G.v - R.ease * dt);
-      else if (S.state === 'wrong') G.v = Math.max(0, G.v - R.brake * dt);
-      else G.v = Math.max(0, G.v - R.coast * dt);
-      if (G.nitro) { G.zoneTime += dt; G.laps[G.lap].zone += dt; }
-      G.dist += G.v * dt; G.world += G.v * dt;
+      driveStep(dt);
+      if (G.nitro) { G.zoneTime += dt; G.laps[G.lap].zone += dt; noteStat(item()).zone += dt; }
       if (G.dist >= G.lens[G.lap]) lapDone(now);
     } else if (G.phase === 'pit' && !paused) {
       G.clock += dt;
       pitCoach();
       if (G.clock >= G.pitEnd) leavePit();
     }
-    if (G && G.phase !== 'done' && G.clock >= G.nextRec) { G.ghostRec.push(+progress().toFixed(3)); G.nextRec += R.ghostEvery; }
+    if (G && !paused) steerTick(dt);
+    if (G && G.phase !== 'done' && G.clock >= G.nextRec) { G.ghostRec.push(+progress().toFixed(3)); G.steerRec.push(+G.steer.toFixed(2)); G.nextRec += R.ghostEvery; }
     if (G) { hud(); render(now); }
+  }
+  /** THE CAR'S SPEED: from what is heard only (S: the score, nitro, a wrong note, silence), never from the steering */
+  function driveStep(dt) {
+    const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) : 0;
+    if (S.state === 'on') G.v = target > G.v ? Math.min(target, G.v + R.accel * dt) : Math.max(target, G.v - R.ease * dt);
+    else if (S.state === 'wrong') G.v = Math.max(0, G.v - R.brake * dt);
+    else G.v = Math.max(0, G.v - R.coast * dt);
+    G.dist += G.v * dt; G.world += G.v * dt;
   }
   function progress() { return G.phase === 'pit' ? G.lap + 1 : G.lap + Math.min(1, G.dist / G.lens[G.lap]); }
   /** a rival's (or anyone's) progress at race time t, driving at `pace` and pitting like everyone else */
@@ -257,6 +320,12 @@
     return G.lens.length;
   }
   const paceFinish = pace => G.total / pace + (G.lens.length - 1) * R.pitSec;
+  /** the ghost's own steering at race time t (an older ghost has none: straight) */
+  function ghostSteer(t) {
+    const s = G.ghost && G.ghost.s; if (!s || !s.length) return 0;
+    const k = t / R.ghostEvery, i = Math.min(s.length - 1, Math.floor(k)), j = Math.min(s.length - 1, i + 1);
+    return s[i] + (s[j] - s[i]) * (k - i);
+  }
   function ghostProgress(t) {
     const p = G.ghost && G.ghost.p; if (!p || !p.length) return null;
     const k = t / R.ghostEvery, i = Math.floor(k);
@@ -268,6 +337,7 @@
     return 1 + G.rivals.filter(r => paceProgress(r.pace, G.clock) > me).length;
   }
   function lapDone(now) {
+    endHold();
     const t = G.clock - G.lapStart;
     G.lapTimes.push(t);
     const lp = G.laps[G.lap];                                   // a PERFECT-PITCH LAP (the garage's Flames)
@@ -296,7 +366,7 @@
     banner('GO!', 'go', 600);
   }
   function finishRace() {
-    G.phase = 'done'; G.v = 0;
+    G.phase = 'done'; G.v = 0; steerWord('');
     pause.setActive(false);                         // the race is over: nothing left to pause
     G.ghostRec.push(G.lens.length);
     sfx('race-finish');
@@ -305,13 +375,14 @@
     setTimeout(() => { if (G === g) results(g); }, 1500);
   }
 
-  /* ---------- ?demo: hold Space = the right note in tune; D = drifting sharp; W = a wrong note; E = centered but wobbly ---------- */
-  let demoKey = null;
+  /* ---------- ?demo: hold Space = the right note in tune; D = drifting sharp (+25 cents, drifting to +45 over 4 s);
+     F = the same drifting flat; W = a wrong note; E = centered but wobbly ---------- */
+  let demoKey = null, demoSince = 0;
   if (A.DEMO) {
     addEventListener('keydown', e => {
       if (!G || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key === ' ' ? 'space' : e.key.toLowerCase();
-      if (['space', 'd', 'w', 'e'].includes(k)) { demoKey = k; e.preventDefault(); }
+      if (['space', 'd', 'f', 'w', 'e'].includes(k)) { demoKey = k; demoSince = performance.now(); e.preventDefault(); }
     });
     addEventListener('keyup', e => { const k = e.key === ' ' ? 'space' : e.key.toLowerCase(); if (k === demoKey) { demoKey = null; A.Pitch.demoNote = null; } });
   }
@@ -320,7 +391,10 @@
     const it = item();
     if (!demoKey || !it) { A.Pitch.demoNote = null; return; }
     if (demoKey === 'space') { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
-    else if (demoKey === 'd') { A.Pitch.demoJitter = 0.2; A.Pitch.demoNote = it.sounding + 0.3 + 0.05 * Math.sin(now / 260); }
+    else if (demoKey === 'd' || demoKey === 'f') {                // drifting: +25 cents at first, +45 after 4 s (F: flat)
+      const off = .25 + .2 * Math.min(1, (now - demoSince) / 4000) + .04 * Math.sin(now / 260);
+      A.Pitch.demoJitter = 0.1; A.Pitch.demoNote = it.sounding + (demoKey === 'd' ? off : -off);
+    }
     else if (demoKey === 'e') { A.Pitch.demoJitter = 0.2; A.Pitch.demoNote = it.sounding; }         // centered, but wobbling ±10 cents
     else { A.Pitch.demoJitter = 0.02; A.Pitch.demoNote = it.sounding + 2; }
   }
@@ -381,7 +455,7 @@
       `<path class="g-zone" d="${arc(-tol, tol, GA.r)}"/><path class="g-nitro" d="${arc(-R.nitro.cents, R.nitro.cents, GA.r)}"/>` +
       `<path class="g-speed-bg" d="${arc(-50, 50, GA.r - 38)}"/><path class="g-speed" id="gSpeed" d="${arc(-50, 50, GA.r - 38)}" pathLength="100" stroke-dasharray="0 100"/>` +
       ticks +
-      `<text class="g-lbl" x="${GA.cx - GA.r + 4}" y="${GA.cy + 18}">♭ flat</text><text class="g-lbl" x="${GA.cx + GA.r - 4}" y="${GA.cy + 18}" text-anchor="end">sharp ♯</text>` +
+      `<text class="g-lbl" x="${GA.cx - GA.r + 4}" y="${GA.cy + 18}">◀ flat</text><text class="g-lbl" x="${GA.cx + GA.r - 4}" y="${GA.cy + 18}" text-anchor="end">sharp ▶</text>` +
       `<text class="g-lbl mid" x="${GA.cx}" y="${GA.cy - GA.r - 6}" text-anchor="middle">IN TUNE</text>` +
       `<g id="gNeedle" class="g-needle off"><path d="M${GA.cx - 4} ${GA.cy}L${GA.cx} ${GA.cy - GA.r + 8}L${GA.cx + 4} ${GA.cy}Z"/><circle cx="${GA.cx}" cy="${GA.cy}" r="8"/></g>`;
     drawGaugeNeedle(null);
@@ -408,7 +482,7 @@
       sun1: css('sw-sun-1'), sun2: css('sw-sun-2'), moon: css('sw-moon'), star: css('sw-star'), ground: css('sw-ground'), grid: css('sw-grid'),
       road: css('sw-road'), road2: css('sw-road-2'), lane: css('sw-lane'), far: css('sw-far'), near: css('sw-near'), win: css('sw-window'),
       water: css('sw-water'), tunnel: css('sw-tunnel'), tail: css('sw-tail'), glass: css('sw-glass'), tire: css('sw-tire'), nitro: css('sw-nitro'),
-      pink: css('pink'), cyan: css('cyan'), yellow: css('yellow'), amber: css('amber'), green: css('green'), purple: css('purple'), white: css('white-hi')};
+      pink: css('pink'), cyan: css('cyan'), red: css('red'), yellow: css('yellow'), amber: css('amber'), green: css('green'), purple: css('purple'), white: css('white-hi')};
   }
   function resize() {
     if (!G) return;
@@ -515,14 +589,18 @@
     const proj = z => ({y: hor + (bot - hor) * CAM / z * .95, w: W * .62 / z * ZN, x: W / 2 + curve * W * .35 * Math.pow(1 - ZN / z, 2)});
     const bands = 60;
     let prev = null;
+    // the rumble strip on the side you're drifting to glows (a soft 2-a-second pulse; steady with reduced motion)
+    const rumbleEdge = Math.abs(G.steer) >= R.steer.rumble && G.phase === 'race' ? Math.sign(G.steer) : 0;
+    const rumbleGlow = reduced.matches ? .55 : .45 + .25 * Math.sin(now / 80);
     for (let i = bands; i >= 0; i--) {
       const z = ZN + (ZF - ZN) * Math.pow(i / bands, 1.8);
       const p = proj(z);
       if (prev) {
         const stripe = Math.floor((z + cam) / SEG) % 2 === 0;
-        quad(prev, p, 1.12, stripe ? C.pink : C.cyan, .9);                 // rumble strips
+        quad(prev, p, 1.12, stripe ? C.red : C.white, .9);                 // rumble strips: red and white
         quad(prev, p, 1, stripe ? C.road : C.road2, 1);                    // the road
         if (stripe) { quad(prev, p, .025, C.lane, .8, -.34); quad(prev, p, .025, C.lane, .8, .34); }   // lane dashes
+        if (rumbleEdge && z < 9) quad(prev, p, .09, C.yellow, rumbleGlow * (1 - z / 9), rumbleEdge * 1.03);   // the strip you're on lights up
       }
       prev = p;
     }
@@ -545,10 +623,17 @@
     G.rivals.forEach((r, i) => cars.push({d: G.phase === 'count' ? 0 : toDist(paceProgress(r.pace, G.clock)) - myD, who: r, idx: i, name: r.name}));
     // the ghost isn't on the starting grid: it joins once the grid has faded (it would sweep through the pack)
     const gp = G.phase !== 'count' && gridAmount() === 0 ? ghostProgress(G.clock) : null;
-    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {}), idx: G.rivals.length, look: G.car, ghost: true, name: 'Best run'});   // the ghost = your own car, see-through
+    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {}), idx: G.rivals.length, look: G.car, ghost: true, name: 'Best run', steer: ghostSteer(G.clock)});   // the ghost = your own car, see-through
     // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
     const sway = reduced.matches ? 0 : -curve * W * .02;
     const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
+    // PITCH STEERING: the road's half-width where the car sits; the steer (−1 … 1) moves the car's center up to the edge
+    const road = proj(CAM * .95 * (bot - hor) / Math.max(1, mine.y - hor));
+    mine.x += G.steer * Math.max(0, road.w - mine.w * .5);
+    const rumbleSide = Math.abs(G.steer) >= R.steer.rumble && G.phase === 'race' ? (G.steer < 0 ? 'l' : 'r') : '';
+    if (rumbleSide && !reduced.matches) { mine.x += Math.sin(now / 28) * Math.max(1, W * .002); mine.y += Math.sin(now / 19); }   // the rumble: a small wobble
+    steerWord(rumbleSide);
+    G.carX = mine.x - W / 2;
     const sky = G.L.sky === 'night' ? C.night : G.L.sky === 'dusk' ? C.dusk : C.skyLow;          // the rim light on every car
     const dpr = Math.min(1.5, devicePixelRatio || 1), still = reduced.matches;
     placeCars(cars, proj, mine, now).forEach(c => Cars.draw(cx, c.x, c.y, c.w, Object.assign({}, c.look || {body: c.who.body || 'coupe', color: C[c.who.color] || C.cyan, decal: 'none'},
@@ -595,7 +680,7 @@
   function placeCars(cars, proj, mine, now) {
     const dt = laneT ? Math.min(.1, (now - laneT) / 1000) : 0; laneT = now;
     const grid = gridAmount(), still = reduced.matches;
-    const at = (c, off, d) => { const p = proj(ZN + d * 4.4), w = p.w * .42, x = p.x + off * p.w; return {x, y: p.y, w, box: carBox(x, p.y, w)}; };
+    const at = (c, off, d) => { const p = proj(ZN + d * 4.4), w = p.w * .42, x = p.x + (off + (c.steer || 0) * .28) * p.w; return {x, y: p.y, w, box: carBox(x, p.y, w)}; };   // the ghost replays its own steering in its lane
     const taken = [carBox(mine.x, mine.y, mine.w)];
     const clear = box => !taken.some(t => hits(t, box));
     const off = k => LANES[k === -1 ? 0 : k === 1 ? 1 : 2];
@@ -662,11 +747,13 @@
     A.store.setLevel(key, who, g.lv, {stars: Math.max(stars, old.stars), best: old.best ? Math.min(old.best, tenths) : tenths}, stars);
     // the ghost car = your best run on this track, mode and instrument; best lap too
     gd.ghosts = gd.ghosts || {}; gd.bestLap = gd.bestLap || {};
-    if (!gd.ghosts[rk] || total < gd.ghosts[rk].t) gd.ghosts[rk] = {t: +total.toFixed(2), p: g.ghostRec};
+    if (!gd.ghosts[rk] || total < gd.ghosts[rk].t) gd.ghosts[rk] = {t: +total.toFixed(2), p: g.ghostRec, s: g.steerRec};   // s = its steering
     const bestLap = Math.min(...g.lapTimes), oldLap = gd.bestLap[rk], newLap = !oldLap || bestLap < oldLap - 0.05;
     if (newLap) gd.bestLap[rk] = +bestLap.toFixed(2);
     if (pos === 1 && g.diff.id === 'virtuoso') (gd.achievements = gd.achievements || {})['virtuoso-win'] = true;   // the Helmet skin
     if (pos === 1) gd.wins = (gd.wins || 0) + 1;
+    save();
+    const tuning = report(g);                                   // THE INTONATION REPORT (+ the history it adds to)
     save();
     const fresh = Garage.fresh();                               // NEW IN THE GARAGE! (earned by this race)
     // the numbers
@@ -681,7 +768,7 @@
         ['In the zone', `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`, 'resZone']],
       newBest: newBest && !!old.best, newBestText: 'New best time!',
       best: [old.best ? `Best time: ${fmt(Math.min(old.best, tenths) / 10)}` : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' · '),
-      extra: (fresh.length ? Garage.cardHTML(fresh) : '') + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
+      extra: (fresh.length ? Garage.cardHTML(fresh) : '') + tuning.html + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
         <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
         <div class="chart" id="resChart"></div><ul class="lap-notes" id="resLaps"></ul>`,
       onShow: () => {
@@ -701,6 +788,69 @@
     A.Sfx.sequence([pos <= 3 && stars ? 'podium' : 'level-failed', stars > old.stars && 'star-earned', newLap && oldLap && 'new-best-lap']);
     finished = g; G = null;
   }
+  /* ---------- THE INTONATION REPORT: "Your tuning" ----------
+     One row per target note (written, with its octave) held at least RULES.report.reportHoldSec s: a centered bar from
+     −50 (flat, left) to +50 cents (sharp, right) with the in-tune band shaded, a kid-friendly word, and a trend arrow
+     when this instrument has history (gameData.tuning[member] = the last RULES.report.history races:
+     [{d: 'YYYY-MM-DD', n: {<note>: average cents}}]). Then up to RULES.report.maxTips TIPS from tips.js (tipsFor). */
+  const TIPS = window.SPEEDWAY_TIPS || {};
+  const normNote = n => String(n).replace(/^([A-Ga-g])#/, '$1♯').replace(/^([A-Ga-g])b/, '$1♭').replace(/^[a-g]/, c => c.toUpperCase());
+  function wordFor(m, tol) {
+    const a = Math.abs(m);
+    return a <= tol ? 'right on!' : m > 0 ? (a > 25 ? 'high (sharp)' : 'a little high (sharp)') : (a > 25 ? 'low (flat)' : 'a little low (flat)');
+  }
+  function byMember(table, key) {                              // tips.js lookups: the member first, then its family, then 'any'
+    if (!table) return null;
+    return table[who] || table[member.family] || table.any || null;
+  }
+  function tipsFor(rows, tol, extra = []) {
+    const out = [], add = t => { if (t && !out.includes(t) && out.length < R.report.maxTips) out.push(t); };
+    extra.forEach(add);                                        // (the dynamics tips come first: tipsFor's caller decides)
+    const n = rows.reduce((a, r) => a + r.n, 0), overall = n ? rows.reduce((a, r) => a + r.m * r.n, 0) / n : 0;
+    if (Math.abs(overall) >= R.report.tendency) { const g = byMember(TIPS.general); if (g) add(g[overall > 0 ? 'sharp' : 'flat']); }
+    rows.filter(r => Math.abs(r.m) > tol).sort((a, b) => Math.abs(b.m) - Math.abs(a.m)).forEach(r => {
+      const dir = r.m > 0 ? 'sharp' : 'flat';
+      const hit = (TIPS.notes || []).find(t => [].concat(t.member).includes(who) && t.dir === dir && (t.notes || []).map(normNote).includes(r.key));
+      add(hit ? hit.text : (TIPS.air || {})[dir]);
+    });
+    return out;
+  }
+  function report(g) {
+    const tol = g.diff.tol, H = R.report;
+    const rows = Object.values(g.notes).filter(st => st.n && st.dur >= H.reportHoldSec)
+      .map(st => ({key: st.key, label: st.label, oct: st.oct, n: st.n, m: st.sum / st.n, wob: st.wob / st.dur, zone: st.zone, hold: st.hold, dur: st.dur}));
+    // the history (this instrument): the trend compares with the average of the earlier races that had the note
+    const hist = ((gd.tuning = gd.tuning || {})[who] = gd.tuning[who] || []);
+    rows.forEach(r => {
+      const past = hist.map(h => h.n[r.key]).filter(v => typeof v === 'number');
+      if (!past.length) return;
+      const before = past.reduce((a, v) => a + Math.abs(v), 0) / past.length, now = Math.abs(r.m);
+      r.trend = now <= tol && before <= tol ? 'same' : now < before - 2 ? 'closer' : now > before + 2 ? 'farther' : 'same';
+    });
+    if (rows.length) {
+      hist.push({d: dayKey(), n: Object.fromEntries(rows.map(r => [r.key, +r.m.toFixed(1)]))});
+      while (hist.length > H.history) hist.shift();
+    }
+    const allIn = rows.length > 0 && rows.every(r => Math.abs(r.m) <= tol);
+    const tips = allIn ? [] : tipsFor(rows, tol, g.dynTips ? g.dynTips(rows) : []);
+    const pct = c => (50 + clamp(c, -50, 50)) + '%';
+    const TREND = {closer: ['▲', 'getting closer!'], farther: ['▼', 'a bit farther off than before'], same: ['●', 'about the same as before']};
+    const rowHTML = r => {
+      const cls = Math.abs(r.m) <= tol ? 'ok' : r.m > 0 ? 'sharp' : 'flat', t = r.trend && TREND[r.trend];
+      return `<li class="tn-row ${cls}" data-note="${r.key}" data-cents="${r.m.toFixed(1)}">
+        <b class="tn-note">${r.label}<sub>${r.oct != null ? r.oct : ''}</sub></b>
+        <span class="tn-bar" role="img" aria-label="${r.label}${r.oct != null ? r.oct : ''}: ${signed(r.m)}, ${wordFor(r.m, tol)}"><i class="tn-band" style="left:${pct(-tol)};right:${(50 - Math.min(50, tol))}%"></i><i class="tn-mid"></i><i class="tn-dot" style="left:${pct(r.m)}"></i></span>
+        <span class="tn-word">${wordFor(r.m, tol)} <small>${signed(r.m)} · wobble ${Math.round(r.wob)}¢${r.zone >= .5 ? ` · ${r.zone.toFixed(1)} s in the zone` : ''}</small></span>
+        ${t ? `<span class="tn-trend ${r.trend}" title="${t[1]}">${t[0]} <small>${t[1]}</small></span>` : ''}${r.extra || ''}</li>`;
+    };
+    const html = `<section class="tuning" id="resTuning" aria-labelledby="tnTitle"><h3 class="tn-title" id="tnTitle">Your tuning</h3>
+      ${rows.length ? `<p class="tn-scale" aria-hidden="true"><span></span><span class="tn-sc"><i>◀ flat</i><i>in tune</i><i>sharp ▶</i></span><span></span></p><ul class="tn-rows">${rows.map(rowHTML).join('')}</ul>`
+        : '<p class="tn-none">Hold each note for at least a second to get your tuning report.</p>'}
+      ${g.dynRowsHTML ? g.dynRowsHTML(rows) : ''}
+      ${allIn ? '<p class="tn-great" id="tnGreat">Right on pitch! Great ears.</p>' : tips.length ? `<ul class="tn-tips" id="tnTips">${tips.map(t => `<li>💡 ${t}</li>`).join('')}</ul>` : ''}</section>`;
+    return {rows, tips, allIn, html};
+  }
+
   /* the per-lap tuning chart: each lap's average (above = sharp, below = flat) with the in-tune band for this difficulty */
   function chart(g) {
     const w = 340, h = 170, top = 18, mid = 82, sc = 55 / 40, n = g.laps.length, bw = Math.min(34, (w - 50) / n * .6);
@@ -736,6 +886,7 @@
     else if (!G.held && !G.cd) startCountdown();
   });
 
-  A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car};    // tests
+  A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car,    // tests
+    steer: () => G && {steer: G.steer, x: G.carX, word: steerShown}, lastRace: () => finished, tipsFor, steerOf: c => steerOf(c), driveStep: dt => driveStep(dt)};
   showHub();
 })(window.Arcade);

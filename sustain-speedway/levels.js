@@ -56,6 +56,17 @@ window.SPEEDWAY_RULES = {
   pitSec: 3.5,             // the pit stop between laps (a rest: breathe, get the next fingering ready). Rivals pit too.
   topSpeed: 180,           // the speed shown at full speed (display only)
   ghostEvery: 0.5,         // the ghost car records your position every this many seconds
+  /* PITCH STEERING (drawing only: speed, times and stars never read it). While the lap's note sounds, the car's
+     sideways place shows the pitch: within the difficulty's `tol` = straight down the center line; beyond it the car
+     drifts (flat = LEFT, sharp = RIGHT), reaching the road's edge at `edge` cents. The pitch is smoothed over `smoothMs`
+     so the detector's jitter never shakes the car; not holding the note (breath, pit, a wrong note) = it eases back to
+     the center over `backMs`. Past `rumble` of the way to an edge: the rumble strip lights, the car wobbles a little
+     (never with reduced motion) and "FLAT ◀" / "▶ SHARP" shows on that side. */
+  steer: {edge: 50, smoothMs: 250, backMs: 450, rumble: .75},
+  /* THE INTONATION REPORT (results: "Your tuning"): only holds of at least `reportHoldSec` seconds count; the overall
+     tendency tip (tips.js "general") shows when the average of every note is `tendency` cents or more sharp / flat;
+     at most `maxTips` tips; the last `history` races per instrument are kept for the trend arrows. */
+  report: {reportHoldSec: 1, tendency: 10, maxTips: 2, history: 10},
 };
 
 /* THE GARAGE (inside Sustain Speedway only: the GARAGE button on the track select; garage.js + cars.js). The student's
