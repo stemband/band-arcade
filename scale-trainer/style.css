@@ -1,4 +1,4 @@
-/* Scale Audition: the audition room. Tokens: --sa-* (theme.css). */
+/* Scale Trainer: the audition room. Tokens: --sa-* (theme.css). */
 .hub-head{margin-bottom:12px}
 .game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
 .sa-rule{margin:0 0 6px;font-weight:700;color:var(--yellow-hi);font-size:15px}

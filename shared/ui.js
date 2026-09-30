@@ -28,7 +28,7 @@ window.Arcade = window.Arcade || {};
      opts:  {label, fit: notes[] to size the drawing for (default: items), width, keySig: {type: '#'|'b', count},
              sigStyle: 'big' (the Note Checker: the key signature further from the clef, larger ♯/♭),
              box: [top, height] (the drawing's own vertical window instead of the one fit gives; Keys to the City),
-             extra: SVG drawn last (Scale Audition: beams, bar lines, the time signature),
+             extra: SVG drawn last (Scale Trainer: beams, bar lines, the time signature),
              capY: the captions' baseline (default: the bottom of the drawing)}
      With a key signature, start the notes keySigWidth(sig, sigStyle) further right so nothing collides. */
   const STAFF_BOTTOM = 120, MID_LINE = 88;
@@ -39,7 +39,7 @@ window.Arcade = window.Arcade || {};
   A.noteY = noteY;
   /* one note (ledger lines, accidental, head, stem, optional caption at capY) at it.x.
      staffSVG uses it; games that move notes on their own layer can use it too.
-     Optional (Scale Audition's rhythm picture): it.whole = an open head with no stem; it.stemUp = force the stem's
+     Optional (Scale Trainer's rhythm picture): it.whole = an open head with no stem; it.stemUp = force the stem's
      side (default: up below the middle line); it.stemTo = where the stem ends (y), so stems meet a beam. */
   A.noteGlyph = function (clef, it, capY) {
     const x = it.x, y = noteY(clef, it.n), col = it.color || INK;

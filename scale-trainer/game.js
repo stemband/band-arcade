@@ -1,4 +1,4 @@
-/* Scale Audition: the GMEA Middle School All-State (First Round) / District Honor Band scale audition. The same four
+/* Scale Trainer: the GMEA Middle School All-State (First Round) / District Honor Band scale audition. The same four
    scales and the same rules for both: Concert F, B♭, E♭ and A♭ (in that order), each up and down with its arpeggio,
    from memory, against the sheet's time limit, then the chromatic.
    THE GMEA SHEETS ARE THE SOURCE: every scale (the written starting note, 1 or 2 octaves, the time) is the AUDITION
@@ -13,7 +13,7 @@
 (function (A) {
   "use strict";
   const {$} = A;
-  const GAME_ID = 'scale-audition';
+  const GAME_ID = 'scale-trainer';
 
   /* ---------- TUNING: every number the game uses ---------- */
   const STABLE_FRAMES = 3;              // a new note: the same pitch class read this many frames in a row (~40 ms each = 120 ms)
@@ -647,7 +647,7 @@
   }
 
   /* tests */
-  A.ScaleAudition = {
+  A.ScaleTrainer = {
     state: () => G ? {kind: G.kind, arg: G.arg, si: G.si, listening: G.listening, ms: G.ms, limit: G.limit, timeUp: G.timeUp, memory: G.memory, done: !!G.done,
       runs: G.runs.map(r => ({id: r.sc.id, i: r.i, n: r.sc.notes.length, res: r.res.slice(), started: r.started, done: r.done, inTime: r.inTime, wrong: r.wrong}))} : null,
     want: () => G && G.listening && cur().i < cur().sc.notes.length ? cur().sc.notes[cur().i] : null,

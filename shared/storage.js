@@ -78,6 +78,62 @@ window.Arcade = window.Arcade || {};
       done['players-v1'] = true;
       save();
     }
+    // Scale Audition was renamed Scale Trainer (id 'scale-audition' → 'scale-trainer'): its stars, its gameData
+    // (ALL-STATE READY badges, best clean runs, chromatic best times, options), the level select's memory, the lobby's
+    // CONTINUE, the activity log and queued leaderboard events move to the new id. On a clash the better value stays.
+    // It runs on a restored backup too (importAll calls migrate()), so an old Backup Code lands in the new keys.
+    if (!done['scale-trainer-rename']) {
+      renameGame('scale-audition', 'scale-trainer', {
+        gameData(o, n) {                                      // n wins except where o holds a better record
+          const out = Object.assign({}, o, n);
+          if (o.ready || n.ready) {                            // ALL-STATE READY per member: kept, the earlier date
+            out.ready = Object.assign({}, n.ready || {});
+            Object.entries(o.ready || {}).forEach(([m, d]) => { if (!out.ready[m] || d < out.ready[m]) out.ready[m] = d; });
+          }
+          if (o.practice || n.practice) {                     // best clean run per scale: the faster (tenths)
+            out.practice = JSON.parse(JSON.stringify(n.practice || {}));
+            Object.entries(o.practice || {}).forEach(([m, sc]) => { const t = out.practice[m] || (out.practice[m] = {}); Object.entries(sc || {}).forEach(([id, v]) => { if (!(t[id] <= v)) t[id] = v; }); });
+          }
+          if (o.chrom || n.chrom) {                           // the Chromatic Challenge: the faster time, the more stars
+            out.chrom = JSON.parse(JSON.stringify(n.chrom || {}));
+            Object.entries(o.chrom || {}).forEach(([m, c]) => { const t = out.chrom[m] || (out.chrom[m] = {});
+              if (c.t && !(t.t <= c.t)) t.t = c.t; if ((c.stars || 0) > (t.stars || 0)) t.stars = c.stars; });
+          }
+          return out;
+        },
+      });
+      done['scale-trainer-rename'] = true;
+      save();
+    }
+  }
+  /** a game's id changed: move everything saved under the old id (and its '<old>:…' progress keys) to the new one.
+      games: per instrument and level the more stars and the higher best stay; gameData: merge(old, new) (default: new
+      wins, old fills the gaps); the level select's memory ('<old>[:mode]|player|inst'), the lobby's CONTINUE, the
+      activity log's games played, queued leaderboard events. */
+  function renameGame(OLD, NEW, {gameData: merge} = {}) {
+    const moved = k => (k === OLD || k.startsWith(OLD + ':') || k.startsWith(OLD + '|')) ? NEW + k.slice(OLD.length) : null;
+    const G = data.games || {};
+    Object.keys(G).forEach(k => {
+      const nk = moved(k); if (!nk) return;
+      const to = G[nk] || (G[nk] = {});
+      Object.entries(G[k] || {}).forEach(([inst, lvs]) => {
+        const t = to[inst] || (to[inst] = {});
+        Object.entries(lvs || {}).forEach(([lv, p]) => {
+          const q = t[lv];
+          if (!q) { t[lv] = p; return; }
+          t[lv] = Object.assign({}, q, {stars: Math.max(q.stars || 0, (p && p.stars) || 0), best: Math.max(q.best || 0, (p && p.best) || 0)});
+        });
+      });
+      delete G[k];
+    });
+    const GD = data.gameData || {};
+    if (GD[OLD]) { GD[NEW] = merge ? merge(GD[OLD], GD[NEW] || {}) : Object.assign({}, GD[OLD], GD[NEW] || {}); delete GD[OLD]; }
+    const ls = GD['level-select'];
+    if (ls) Object.keys(ls).forEach(k => { const nk = moved(k); if (nk) { if (!(nk in ls)) ls[nk] = ls[k]; delete ls[k]; } });
+    if (GD.floor && GD.floor.last === OLD) GD.floor.last = NEW;
+    Object.values(data.activity || {}).forEach(a => { if (a && a.g && a.g[OLD]) { a.g[NEW] = 1; delete a.g[OLD]; } });
+    const lb = GD.leaderboard;
+    if (lb && Array.isArray(lb.queue)) lb.queue.forEach(e => { if (e && e.game === OLD) e.game = NEW; });
   }
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }

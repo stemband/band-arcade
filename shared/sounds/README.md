@@ -102,7 +102,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Keys to the City | `keys-to-the-city-menu` | `keys-to-the-city-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Music Highway | `music-highway-menu` | `music-highway-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Rhythm Dojo | `rhythm-dojo-menu` | `rhythm-dojo-menu.m4a` (or .mp3) | the arcade’s select-music |
-| Scale Audition | `scale-audition-menu` | `scale-audition-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Scale Trainer | `scale-trainer-menu` | `scale-trainer-menu.m4a` (or .mp3) | a file already uploaded under the game's old name, `scale-audition-menu.m4a` (or .mp3), then the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -487,7 +487,7 @@ the feedback sounds play after it stops).
 | `rd-miss` | `rd-miss.m4a` or `rd-miss.mp3` | After a performance under 60 %: a gentle "try again". Kind, never harsh. Falls back to level-failed. | under 0.6 s |
 | `rd-level-clear` | `rd-level-clear.m4a` or `rd-level-clear.mp3` | A level cleared (its results screen): the big taiko finish. Falls back to level-complete. | 1–2.5 s |
 
-### Scale Audition
+### Scale Trainer
 
 The microphone listens the whole time a scale is played (an audition, a practice run, the Chromatic Challenge), so
 **nothing plays during a scale**: no note sounds, no metronome, no alarm when time runs out (like the real audition
@@ -495,9 +495,10 @@ room). The adjudicator's line and the countdown play before the microphone start
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
-| `scale-audition-menu` | `scale-audition-menu.m4a` or `scale-audition-menu.mp3` | Scale Audition: menu music (the mode and level select, the score sheet). Never while the microphone listens. | 30–90 s loop |
+| `scale-trainer-menu` | `scale-trainer-menu.m4a` or `scale-trainer-menu.mp3` | Scale Trainer: menu music (the mode and level select, the score sheet). Never while the microphone listens. | 30–90 s loop |
+| `scale-trainer-menu-oldfile` | `scale-audition-menu.m4a` or `scale-audition-menu.mp3` | The game's old name: its menu music, played only when `scale-trainer-menu` is missing. Better: upload it again as `scale-trainer-menu`. | 30–90 s loop |
 | `sa-adjudicator` | `sa-adjudicator.m4a` or `sa-adjudicator.mp3` | Optional voice: the adjudicator before an audition, "Please play your scales in order, from memory." (the words also show on screen). Silent until recorded. **voice** | 2–4 s |
-| `audition-count-3` | `audition-count-3.m4a` or `audition-count-3.mp3` | Scale Audition countdown voice; optional, falls back to the Dojo Duel voice (`dojo-count-3`, then the `dojo-count` tick). The spoken "3!". **voice** | under 0.8 s |
+| `audition-count-3` | `audition-count-3.m4a` or `audition-count-3.mp3` | Scale Trainer countdown voice; optional, falls back to the Dojo Duel voice (`dojo-count-3`, then the `dojo-count` tick). The spoken "3!". **voice** | under 0.8 s |
 | `audition-count-2` | `audition-count-2.m4a` or `audition-count-2.mp3` | The spoken "2!" (falls back to `dojo-count-2`). **voice** | under 0.8 s |
 | `audition-count-1` | `audition-count-1.m4a` or `audition-count-1.mp3` | The spoken "1!" (falls back to `dojo-count-1`). **voice** | under 0.8 s |
 | `audition-count-go` | `audition-count-go.m4a` or `audition-count-go.mp3` | "Begin!": the microphone listens and the timer starts when it has ended, so keep it short and trimmed (falls back to `dojo-count-go`, then `dojo-reveal`). **voice** | under 0.6 s |
