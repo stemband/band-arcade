@@ -755,7 +755,7 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
-    /* SCALE AUDITION. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
+    /* SCALE TRAINER. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
        of the sign under a warm lamp glow, and a major scale's eight notes on a faint staff between them, climbing and
        coming back down; the note being "played" swells softly and fades (about 2 notes a second, a smooth fade each,
        never a blink, and never more than one note bright at once). */

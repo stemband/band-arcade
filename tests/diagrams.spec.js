@@ -54,3 +54,23 @@ test('clarinet and sax diagrams: the left pinky keys above the body, nothing ove
   }
   watch.check();
 });
+
+test('every diagram (with the keys added for the full GMEA ranges): no key or caption overlaps another, all inside the picture', async ({page}) => {
+  const watch = await prepare(page, {store: device('clarinet')});
+  await page.goto('button-masher/index.html?demo&nostart');
+  const bad = await page.evaluate(() => Object.keys(Arcade.Masher.DIAGRAMS).map(id => {
+    const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:0;top:0;width:900px';
+    box.innerHTML = Arcade.Masher.diagramSVG(id, {interactive: true}); document.body.appendChild(box);
+    const svg = box.querySelector('svg'), vb = svg.viewBox.baseVal;
+    const items = [...svg.querySelectorAll('.key')].map(k => ({n: k.dataset.k, b: k.querySelector('.k-base').getBBox()}))
+      .concat([...svg.querySelectorAll('.dg-draw text, svg > text')].map(t => ({n: t.textContent, b: t.getBBox()})));
+    const hit = (a, c) => a.x < c.x + c.width && c.x < a.x + a.width && a.y < c.y + c.height && c.y < a.y + a.height;
+    const out = [];
+    for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) if (hit(items[i].b, items[j].b)) out.push(`${id}: ${items[i].n} × ${items[j].n}`);
+    items.filter(x => x.b.x < vb.x || x.b.y < vb.y || x.b.x + x.b.width > vb.x + vb.width || x.b.y + x.b.height > vb.y + vb.height).forEach(x => out.push(`${id}: ${x.n} outside`));
+    box.remove();
+    return out;
+  }).flat());
+  expect(bad).toEqual([]);
+  watch.check();
+});

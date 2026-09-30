@@ -1,6 +1,6 @@
 /* THE FINGERING DIAGRAMS (drawn in SVG, no images) and the fingering table reader (shared/fingerings.js).
-   Used by Button Masher and Arcade Quest's FINGERING challenge (Music Highway loads fingerings.js + this file only for
-   its octave fit; it draws no diagrams): never copy them.
+   Used by Button Masher, Arcade Quest's FINGERING challenge and Scale Trainer (its fingering card and NOTE BY NOTE;
+   display only) (Music Highway loads fingerings.js + this file only for its octave fit; it draws no diagrams): never copy them.
    A diagram is a picture of the instrument turned sideways, left hand on the left, with every key a real
    tappable button. Clarinet (+ bass clarinet) and saxes: the LEFT pinky keys sit ABOVE the body (between the throat /
    palm keys and the side keys), the right pinky keys below. Chart-style: finger holes are circles, keys are rounded bars, pressed = filled.
@@ -29,25 +29,28 @@ window.Arcade = window.Arcade || {};
     flute: {
       view: [0, 30, 720, 240],
       body: tube(24, 700) + '<ellipse class="dg-lip" cx="70" cy="120" rx="16" ry="9"/>' + hands(262, 502) +
-        text(125, 250, 'left thumb') + text(372, 250, 'left pinky') + text(630, 250, 'right pinky'),
+        text(125, 250, 'left thumb') + text(372, 250, 'left pinky') + text(642, 258, 'right pinky'),
       keys: [
         bar('T', 98, 204, 'B', 'B thumb key'), bar('Tb', 154, 204, 'B♭', 'B♭ thumb lever'),
         hole('1', 200, 120), hole('2', 262, 120), hole('3', 324, 120),
         bar('G#', 372, 204, 'G♯', 'G♯ key (left pinky)'),
         hole('4', 440, 120), hole('5', 502, 120), hole('6', 564, 120),
         bar('Eb', 630, 204, 'E♭', 'E♭ key (right pinky)'),
+        // the footjoint rollers (right pinky): low C♯ and low C
+        bar('C#', 686, 184, 'C♯', 'low C♯ roller (right pinky)', {w: 34, h: 28}), bar('C', 686, 222, 'C', 'low C roller (right pinky)', {w: 34, h: 28}),
       ],
     },
     oboe: {
-      view: [0, 30, 720, 240],
+      view: [0, 16, 720, 254],
       body: tube(30, 700, 120, 46) + '<path class="dg-reed" d="M8 114L36 117V123L8 126Z"/>' + hands(272, 540) +
-        text(100, 250, 'left thumb') + text(180, 44, 'side octave') + text(404, 256, 'left pinky') + text(668, 256, 'right pinky'),
+        text(100, 250, 'left thumb') + text(180, 38, 'side octave') + text(404, 256, 'left pinky') + text(668, 256, 'right pinky'),
       keys: [
         bar('Oct', 100, 204, 'Oct', 'thumb octave key'), bar('Oct2', 180, 62, 'Oct 2', 'side octave key'),
         hole('1', 210, 120, {half: true, name: 'finger 1 (tap again for half-hole)'}), hole('2', 272, 120), hole('3', 334, 120),
         bar('G#', 382, 176, 'G♯', 'G♯ key (left pinky)'), bar('LEb', 382, 216, 'E♭', 'left E♭ key'), bar('LF', 434, 196, 'F', 'left F key'),
         hole('4', 478, 120), hole('5', 540, 120), hole('6', 602, 120),
         bar('REb', 668, 176, 'E♭', 'right E♭ key'), bar('RF', 668, 216, 'F', 'right F key'),
+        bar('RC#', 614, 180, 'C♯', 'low C♯ key (right pinky)', {w: 40, h: 28}), bar('RC', 614, 220, 'C', 'low C key (right pinky)', {w: 40, h: 28}),
       ],
     },
     clarinet: {
@@ -62,6 +65,7 @@ window.Arcade = window.Arcade || {};
         bar('LF#', 384, 30, 'F♯', 'left F♯/C♯ key'), bar('LE', 384, 70, 'E', 'left E/B key'), bar('LF', 436, 50, 'F', 'left F/C key'),
         bar('SEb', 500, 58, 'E♭', 'side E♭/B♭ key'), bar('SBb', 560, 58, 'B♭', 'side B♭ trill key'),
         hole('4', 486, 120), hole('5', 548, 120), hole('6', 610, 120),
+        bar('Sl', 598, 198, 'sl', 'C♯/G♯ sliver key (right hand)', {w: 34, h: 24}),
         bar('RAb', 664, 176, 'A♭', 'right A♭/E♭ key'), bar('RE', 664, 216, 'E', 'right E/B key'), bar('RF', 712, 196, 'F', 'right F/C key', {w: 44}),
       ],
     },
@@ -83,11 +87,13 @@ window.Arcade = window.Arcade || {};
       ],
     },
     bassoon: {
-      view: [0, 26, 720, 250],
+      view: [0, 10, 720, 288],
       body: tube(30, 700, 120, 50) + '<path class="dg-reed" d="M4 116L32 118V122L4 124Z"/>' + hands(272, 532) +
-        text(200, 36, 'flick keys (left thumb)') + text(96, 252, 'whisper') + text(386, 262, 'left pinky') + text(505, 262, 'right thumb') + text(660, 262, 'right pinky'),
+        text(200, 28, 'flick keys (left thumb)') + text(96, 180, 'whisper') + text(110, 290, 'low keys (left thumb)') + text(386, 262, 'left pinky') + text(505, 262, 'right thumb') + text(660, 262, 'right pinky'),
       keys: [
         bar('W', 96, 204, 'W', 'whisper key (left thumb)'),
+        bar('LBb', 38, 250, 'B♭', 'low B♭ key (left thumb)', {w: 40, h: 26}), bar('LB', 84, 250, 'B', 'low B key (left thumb)', {w: 40, h: 26}),
+        bar('LC', 130, 250, 'C', 'low C key (left thumb)', {w: 40, h: 26}), bar('LD', 176, 250, 'D', 'low D key (left thumb)', {w: 40, h: 26}),
         bar('fA', 150, 56, 'A', 'A flick key', {w: 44}), bar('fC', 200, 50, 'C', 'C flick key', {w: 44}), bar('fD', 250, 56, 'D', 'D flick key', {w: 44}),
         hole('1', 210, 120, {half: true, name: 'finger 1 (tap again for half-hole)'}), hole('2', 272, 120), hole('3', 334, 120),
         bar('C#', 386, 180, 'C♯', 'C♯ key (left pinky)', {w: 46}), bar('Eb', 386, 220, 'E♭', 'E♭ key (left pinky)', {w: 46}),
