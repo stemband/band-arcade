@@ -9,7 +9,12 @@
    HEARING: the expected notes are followed IN ORDER from Pitch.onFrame readings (never onHeld: students play fast and
    may slur): a new note = the same pitch class read STABLE_FRAMES frames in a row AND a change from the last counted
    pitch, or a fresh attack (Pitch.onAttack), or a short silence first. Judged by pitch class (the scale's order
-   catches octave mistakes). Nothing plays while a scale is heard; the clock pauses during Pitch suppression. */
+   catches octave mistakes). Nothing plays while a scale is heard; the clock pauses during Pitch suppression.
+   THE FINGERING CARD: tap (or Enter on) any note on the staff, NOTE BY NOTE's note, a live dot or a score-sheet dot:
+   a small card beside it with the written name, the concert pitch, the primary fingering drawn (shared/diagrams.js,
+   display only), the alternates in words (trombone: "or 6th"); mallets: the bars, the one to strike lit. It never
+   pauses, restarts or judges anything, plays no sound (a sound would mute the microphone), never covers the tapped
+   note or the current one, and never opens while a from-memory run (levels 3–4) is playing. */
 (function (A) {
   "use strict";
   const {$} = A;
@@ -177,6 +182,13 @@
     el.classList.toggle('sa-names', names);
     el.innerHTML = rows.map(r => `<div class="sa-row">${rowSVG(sc, r, prefix, minW, {names, box})}</div>`).join('');
     el.dataset.w = el.clientWidth;
+    el.querySelectorAll(`g[id^="${prefix}"]`).forEach(g => {
+      const i = +g.id.slice(prefix.length);
+      g.classList.add('fc-note'); g.dataset.i = i;
+      g.setAttribute('role', 'button'); g.setAttribute('tabindex', i ? '-1' : '0');
+      g.setAttribute('aria-label', `${nameOf(sc.notes[i])} (Enter shows the fingering)`);
+    });
+    Card.redrawn();
   }
   addEventListener('resize', () => {                                          // a turned iPad: the rows are packed again
     const el = $('sheet');
@@ -198,9 +210,14 @@
       g.appendChild(t);
     }
   }
-  function dotsHTML(res, n) {
-    return `<span class="sa-dotrow">${Array.from({length: n}, (_, i) => `<i class="${res[i] || 'none'}"></i>`).join('')}</span>`;
+  /** one dot per note; run = the run's index (the score sheet: every dot is a note you can tap or focus) */
+  function dotsHTML(res, n, run = null) {
+    if (run == null) return `<span class="sa-dotrow">${Array.from({length: n}, (_, i) => `<i class="${res[i] || 'none'}"></i>`).join('')}</span>`;
+    const notes = G.runs[run].sc.notes;
+    return `<span class="sa-dotrow fc-row" data-run="${run}" role="group" aria-label="${esc(G.runs[run].sc.label)}: the notes (Enter shows a fingering)">` +
+      Array.from({length: n}, (_, i) => `<i class="${res[i] || 'none'} fc-note" data-i="${i}" role="button" tabindex="${i ? -1 : 0}" aria-label="${esc(nameOf(notes[i]))}, ${esc(RES_WORD[res[i] || 'none'])}"></i>`).join('') + `</span>`;
   }
+  const RES_WORD = {ok: 'clean', fix: 'fixed', bad: 'missed or skipped', none: 'not played'};
 
   /* ---------- the state of a run ---------- */
   let G = null;
@@ -208,7 +225,7 @@
 
   /* ---------- MODE + LEVEL SELECT ---------- */
   const pause = A.UI.pause.mount({
-    onPause: () => { if (G) G.paused = true; },
+    onPause: () => { Card.close(); if (G) G.paused = true; },
     onResume: () => { if (G) { G.paused = false; G.last = performance.now(); } },
     onLevels: showHub,
     info: () => G ? [[G.kind === 'audition' ? 'Scale' : 'Note', G.kind === 'audition' ? `${G.si + 1} of ${G.runs.length}` : `${cur().i + 1} of ${cur().sc.notes.length}`], ['Time', fmt(G.ms)]] : [],
@@ -303,6 +320,7 @@
     t.id = setTimeout(run, ms); timers.push(t);
   }
   function stopRun() {
+    Card.close();
     timers.forEach(t => clearTimeout(t.id)); timers = [];
     cancelAnimationFrame(raf); raf = 0;
     if (G) { G.tok = -1; G.listening = false; }
@@ -382,9 +400,13 @@
     if (!G.memory && !G.nbn) { r.res.forEach((st, i) => markNote(i, st)); if (r.i < n) setCur(r.i); }
     $('liveDots').innerHTML = dotsHTML(r.res, n);
     if (G.nbn && r.i < n) drawNbn(r.sc.notes[r.i], r.i, n);
+    Card.follow();                                            // an open card moves out of the current note's way
   }
   function drawNbn(note, i, n) {
     $('nbnStaff').innerHTML = A.staffSVG(clef, [{n: note.show, x: 150 + A.keySigWidth(r0().sc.sig), id: 'nb'}], {width: 240 + A.keySigWidth(r0().sc.sig), keySig: r0().sc.sig, label: 'Play this note'});
+    const g = document.getElementById('nb');
+    if (g) { g.classList.add('fc-note'); g.dataset.i = i; g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', `${nameOf(note)} (Enter shows the fingering)`); }
+    Card.nbnMoved(i);
     $('nbnName').textContent = nameOf(note);
     $('nbnOf').textContent = `Note ${i + 1} of ${n}`;
     const T = A.Masher && A.Masher.table(member), fs = T && T.notes(note.midi);
@@ -522,10 +544,10 @@
   }
   const cleanOf = r => r.res.filter(x => x === 'ok').length;
   function sheetRow(r, label) {
-    const n = r.sc.notes.length, clean = cleanOf(r);
+    const n = r.sc.notes.length, clean = cleanOf(r), run = G.runs.indexOf(r);
     const status = r.done && r.inTime ? '<b class="sa-ok">✓ finished</b>' : r.done ? '<b class="sa-late">✓ finished after time</b>' : '<b class="sa-bad">✗ time</b>';
     return `<tr><th scope="row">${esc(label || r.sc.label)}</th><td>${status}</td><td class="sa-num">${clean}/${n}</td><td class="sa-num">${r.started ? fmt1(r.done ? r.ms : G.ms - r.ms0) : '–'}</td></tr>
-      <tr class="sa-dotline"><td colspan="4">${dotsHTML(r.res, n)}${artHTML(r)}</td></tr>`;
+      <tr class="sa-dotline"><td colspan="4">${dotsHTML(r.res, n, run)}${artHTML(r)}</td></tr>`;
   }
   /** ARTICULATION: for every note the follower counted, was an attack heard for it? Tongued notes (going up) want one,
       notes under a slur (after its first note) want none. The attack of note i falls between the previous note's count
@@ -588,6 +610,7 @@
       retry: {label: 'Try again', onClick: () => A.requireMic(() => begin('audition', lv))},
       levels: {label: 'Levels', onClick: showHub},
       announce: true});                           // (UI.results calls Skins.announce: the UNLOCKED! card + the avatar)
+    Card.guard(document.getElementById('scoreSheet'));
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > old.stars && 'star-earned']);
     G.done = true;
@@ -608,6 +631,7 @@
       extra: sheetHTML(sheetRow(r, CHROM.label)),
       retry: {label: 'Try again', onClick: () => A.requireMic(() => begin('chrom', 0))},
       levels: {label: 'Back', onClick: showHub}});
+    Card.guard(document.getElementById('scoreSheet'));
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
     A.Sfx.sequence([stars ? 'level-complete' : 'level-failed', stars > oldStars && 'star-earned']);
     G.done = true;
@@ -622,9 +646,245 @@
       extra: sheetHTML(sheetRow(r)),
       retry: {label: 'Play it again', onClick: () => A.requireMic(() => begin('practice', G ? G.arg : 0))},
       levels: {label: 'Scales', onClick: showHub}});
+    Card.guard(document.getElementById('scoreSheet'));
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
     G.done = true;
   }
+
+  /* ---------- THE FINGERING CARD: tap (or Enter on) a note to see its fingering or slide position ----------
+     Where: the staff (practice, levels 1–2, the chromatic), NOTE BY NOTE's note, the live dots and the score sheet's dots.
+     Never while a from-memory run (levels 3–4) is playing. It never pauses, restarts or judges anything and plays no
+     sound (a sound would mute the microphone). A tap picks the NEAREST note in the row it lands on (a band at least
+     CARD.hit px tall), so small notes and dots are easy to hit with a finger; taps never move the page. */
+  const CARD = {hit: 44, gap: 10, edge: 8, keep: 6, bars: 12};   // min hit band (px), gap to the note, screen margin, room kept around notes, bars each side (mallets)
+  const Card = (() => {
+    const T = MALLET || !A.Masher ? null : A.Masher.table(member);
+    const D = T && A.Masher.DIAGRAMS[T.diagram];
+    let el = null, src = null;
+    /* the note a source points at, its anchor element and its group (for arrow keys) */
+    const runs = () => (G ? G.runs : []);
+    function noteOf(sr) {
+      const r = sr.kind === 'dots' ? runs()[sr.run] : G && cur();
+      return r ? r.sc.notes[sr.i] : null;
+    }
+    function anchorOf(sr) {
+      if (sr.kind === 'sheet') { const g = noteEl(sr.i); return g && (g.querySelector('ellipse.head') || g); }
+      if (sr.kind === 'nbn') { const g = document.getElementById('nb'); return g && (g.querySelector('ellipse.head') || g); }
+      if (sr.kind === 'live') return $('liveDots').querySelectorAll('i')[sr.i] || null;
+      const row = document.querySelector(`#scoreSheet .fc-row[data-run="${sr.run}"]`);
+      return row && row.querySelector(`i[data-i="${sr.i}"]`);
+    }
+    const focusEl = sr => sr.kind === 'sheet' ? noteEl(sr.i) : sr.kind === 'nbn' ? document.getElementById('nb') : sr.kind === 'dots' ? anchorOf(sr) : null;
+    /** the card may open here now: never over a from-memory run that is playing (its staff is hidden anyway) */
+    const allowed = sr => sr.kind === 'dots' || (G && !G.memory && !G.done);
+    const same = (a, b) => a && b && a.kind === b.kind && a.i === b.i && a.run === b.run;
+
+    /* ---------- what the card shows ---------- */
+    const concertOf = n => { const c = A.music.spell(n.sounding, n.acc <= 0); return 'Concert ' + A.music.noteLabel(c) + c.oct; };
+    function fingerHTML(n) {
+      const name = nameOf(n);
+      if (MALLET) return barsSVG(n) + `<p class="fc-prim">Mallets: the lit bar</p>`;
+      const fs = T ? T.notes(n.midi) : [];
+      if (!fs.length || !D) return `<p class="fc-prim">No fingering listed yet for ${esc(name)}.</p>`;
+      const slide = !!D.slide;
+      const alt = fs.slice(1).map(f => slide ? A.Masher.ordinal(f.raw) : f.text);
+      return A.Masher.diagramSVG(T.diagram, {label: `${slide ? 'Slide position' : 'Fingering'} for ${name}: ${fs[0].text}`}) +
+        `<p class="fc-prim">${esc(fs[0].text)}</p>` +
+        (alt.length ? `<p class="fc-alt">${slide ? 'or ' + esc(alt.join(' or ')) : 'Also: ' + esc(alt.join(' · '))}</p>` : '');
+    }
+    /** MALLETS: the bars about two octaves around the note, the one to strike lit (naturals below, accidentals
+        raised, the bars shorter as the pitch rises: the bell kit's layout) */
+    function barsSVG(n) {
+      let lo = n.midi - CARD.bars, hi = n.midi + CARD.bars;        // (the audition's mallet range goes past the bell kit's)
+      const isAcc = m => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
+      if (isAcc(lo)) lo--; if (isAcc(hi)) hi++;
+      const nat = []; for (let m = lo; m <= hi; m++) if (!isAcc(m)) nat.push(m);
+      const W = 20, pos = m => isAcc(m) ? nat.indexOf(m - 1) + .5 : nat.indexOf(m), len = m => 1 - .3 * pos(m) / Math.max(1, nat.length - 1);
+      let h = '';
+      for (let m = lo; m <= hi; m++) {
+        const acc = isAcc(m), x = pos(m) * W + (acc ? W * .6 : 2), w = acc ? W * .8 : W - 4, bh = (acc ? 46 : 62) * len(m), y = acc ? 8 + (46 - bh) / 2 : 58 + (62 - bh) / 2;
+        const lit = m === n.midi, lbl = !acc && (m % 12 === 0 || lit) ? `<text class="fc-bl" x="${x + w / 2}" y="${y + bh - 6}" text-anchor="middle">${lit ? A.music.noteLabel(n) : 'C'}</text>` : '';
+        h += `<rect class="fc-bar${acc ? ' acc' : ''}${lit ? ' lit' : ''}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${bh.toFixed(1)}" rx="3"/>${lbl}`;
+        if (lit && acc) h += `<text class="fc-bl lit" x="${x + w / 2}" y="${y - 2 > 12 ? y - 2 : y + bh + 12}" text-anchor="middle">${A.music.noteLabel(n)}</text>`;
+      }
+      return `<svg class="fc-bars" viewBox="0 0 ${nat.length * W} 126" role="img" aria-label="The mallet bars: ${esc(nameOf(n))} is lit">${h}</svg>`;
+    }
+
+    /* ---------- open / move / close ---------- */
+    function build() {
+      el = document.createElement('div');
+      el.className = 'fc'; el.id = 'fcard'; el.hidden = true;
+      el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'false');
+      el.innerHTML = `<button type="button" class="fc-x" aria-label="Close the fingering card">✕</button><div class="fc-body"></div>`;
+      el.querySelector('.fc-x').addEventListener('click', () => close(true));
+      A.holdGuard(el);
+      document.body.appendChild(el);
+    }
+    function open(sr, {focus = false} = {}) {
+      const n = noteOf(sr), a = anchorOf(sr);
+      if (!n || !a || !allowed(sr)) return close();
+      if (!el) build();
+      unring();
+      src = Object.assign({}, sr, {sid: sr.kind === 'dots' ? null : cur().sc.id + ':' + G.si});
+      const name = nameOf(n);
+      el.setAttribute('aria-label', `${MALLET ? 'Bar' : T && D && D.slide ? 'Slide position' : 'Fingering'} for ${name}`);
+      el.querySelector('.fc-body').innerHTML = `<p class="fc-name">${esc(name)}</p><p class="fc-concert">${esc(concertOf(n))}</p>${fingerHTML(n)}`;
+      const svg = el.querySelector('svg.diagram'), fs = T ? T.notes(n.midi) : [];
+      if (svg && fs.length) A.Masher.setState(svg, A.Masher.pressedOf(fs[0].keys));
+      ring(sr);
+      el.hidden = false;
+      place();
+      const f = focusEl(sr);
+      if (focus && f) { rove(f); f.focus({preventScroll: true}); }
+    }
+    function close(back = false) {
+      if (!el || el.hidden) { src = null; return; }
+      const f = back && src && focusEl(src);
+      el.hidden = true; unring(); src = null;
+      if (f && f.isConnected) f.focus({preventScroll: true});
+    }
+    /* the tapped note's ring */
+    function ring(sr) {
+      const a = anchorOf(sr); if (!a) return;
+      if (a.tagName.toLowerCase() === 'i') { a.classList.add('fc-on'); return; }
+      const b = a.getBBox ? a.getBBox() : null; if (!b) return;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('class', 'fc-ring'); c.setAttribute('cx', b.x + b.width / 2); c.setAttribute('cy', b.y + b.height / 2); c.setAttribute('r', Math.max(b.width, b.height) / 2 + 7);
+      a.parentNode.appendChild(c);
+    }
+    function unring() {
+      document.querySelectorAll('.fc-ring').forEach(c => c.remove());
+      document.querySelectorAll('.fc-on').forEach(i => i.classList.remove('fc-on'));
+    }
+    /** beside the note, never covering the tapped note or the current one (the note being played), on screen: first
+        below or above its whole row (the other notes of that row stay tappable), else below, above, right or left of
+        the note itself */
+    function place() {
+      if (!el || el.hidden || !src) return;
+      const a = anchorOf(src);
+      if (!a || !a.isConnected) return close();
+      const r = a.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
+      if (r.bottom < 0 || r.top > vh) return close();               // scrolled away
+      el.style.left = '0px'; el.style.top = '0px';
+      const w = el.offsetWidth, h = el.offsetHeight, g = CARD.gap, e = CARD.edge;
+      const curG = src.kind !== 'dots' && G && G.listening ? document.querySelector('#sheet g.cur ellipse.head') : null;
+      const avoid = [r].concat(curG ? [curG.getBoundingClientRect()] : []).map(b => ({l: b.left - CARD.keep, t: b.top - CARD.keep, r: b.right + CARD.keep, b: b.bottom + CARD.keep}));
+      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+      const clampX = x => Math.min(Math.max(x, e), vw - e - w), clampY = y => Math.min(Math.max(y, e), vh - e - h);
+      const rowEl = src.kind === 'sheet' ? a.closest('svg') : src.kind === 'nbn' ? $('nbnStaff') : a.parentNode, row = rowEl && rowEl.getBoundingClientRect();
+      const cands = [
+        row && {x: clampX(cx - w / 2), y: row.bottom + g, side: 'below-row'},
+        row && {x: clampX(cx - w / 2), y: row.top - g - h, side: 'above-row'},
+        {x: clampX(cx - w / 2), y: r.bottom + g, side: 'below'},
+        {x: clampX(cx - w / 2), y: r.top - g - h, side: 'above'},
+        {x: r.right + g, y: clampY(cy - h / 2), side: 'right'},
+        {x: r.left - g - w, y: clampY(cy - h / 2), side: 'left'},
+      ].filter(Boolean);
+      const onScreen = c => c.x >= e - .5 && c.y >= e - .5 && c.x + w <= vw - e + .5 && c.y + h <= vh - e + .5;
+      const covers = c => avoid.some(b => c.x < b.r && b.l < c.x + w && c.y < b.b && b.t < c.y + h);
+      // on screen and clear of both notes; else pulled onto the screen and still clear; else below, on screen
+      const best = cands.find(c => onScreen(c) && !covers(c)) ||
+        cands.map(c => ({x: clampX(c.x), y: clampY(c.y), side: c.side + '-fit'})).find(c => !covers(c)) || {x: clampX(cands[0].x), y: clampY(cands[0].y), side: 'clamped'};
+      el.style.left = Math.round(best.x) + 'px'; el.style.top = Math.round(best.y) + 'px';
+      el.dataset.side = best.side;
+    }
+
+    /* ---------- finding the note under a tap: the nearest one in the row it lands on ---------- */
+    function pick(x, y) {
+      const band = (rect, min) => { const extra = Math.max(0, (min - rect.height) / 2); return y >= rect.top - extra && y <= rect.bottom + extra; };
+      const nearest = (els, maxDx) => {
+        let best = null, bd = Infinity;
+        els.forEach(g => { const b = (g.querySelector && g.querySelector('ellipse.head') || g).getBoundingClientRect(), d = Math.abs((b.left + b.right) / 2 - x) + .25 * Math.abs((b.top + b.bottom) / 2 - y); if (d < bd) { bd = d; best = g; } });
+        if (!best) return null;
+        const b = (best.querySelector && best.querySelector('ellipse.head') || best).getBoundingClientRect();
+        return Math.abs((b.left + b.right) / 2 - x) <= maxDx ? best : null;
+      };
+      const sheet = $('sheet');
+      if (!sheet.hidden && G && !G.memory) for (const svg of sheet.querySelectorAll('.sa-row svg')) {
+        if (!band(svg.getBoundingClientRect(), CARD.hit)) continue;
+        const g = nearest([...svg.querySelectorAll('g.fc-note')], CARD.hit);
+        if (g) return {kind: 'sheet', i: +g.dataset.i};
+      }
+      const nb = document.getElementById('nb');
+      if (nb && !$('nbn').hidden && G && !G.done) {
+        const b = nb.getBoundingClientRect(), pad = Math.max(0, (CARD.hit - b.width) / 2) + 8;
+        if (x >= b.left - pad && x <= b.right + pad && band(b, CARD.hit + 16)) return {kind: 'nbn', i: +nb.dataset.i};
+      }
+      const live = $('liveDots');
+      if (!$('play').hidden && G && !G.memory && !G.done && band(live.getBoundingClientRect(), CARD.hit)) {
+        const d = nearest([...live.querySelectorAll('i')], CARD.hit / 2);
+        if (d) return {kind: 'live', i: [...live.querySelectorAll('i')].indexOf(d)};
+      }
+      const ss = document.getElementById('scoreSheet');
+      if (ss) for (const row of ss.querySelectorAll('.fc-row')) {
+        if (!band(row.getBoundingClientRect(), CARD.hit)) continue;
+        const d = nearest([...row.querySelectorAll('i')], CARD.hit / 2);
+        if (d) return {kind: 'dots', run: +row.dataset.run, i: +d.dataset.i};
+      }
+      return null;
+    }
+    document.addEventListener('pointerdown', e => {
+      if (e.button > 0 || (el && el.contains(e.target))) return;
+      if (e.target.closest('button, a, input, select, textarea')) { close(); return; }   // a real button: never a note
+      const sr = pick(e.clientX, e.clientY);
+      if (!sr) { close(); return; }
+      e.preventDefault();                                    // no focus scroll, no text selection: the page never moves
+      if (same(sr, src) && el && !el.hidden) close(); else open(sr);
+    });
+
+    /* ---------- keys: the notes are focusable in order (one tab stop per staff / dot row, arrows move) ---------- */
+    const srcOf = t => {
+      if (t.closest('#sheet')) return {kind: 'sheet', i: +t.dataset.i};
+      if (t.id === 'nb') return {kind: 'nbn', i: +t.dataset.i};
+      const row = t.closest('#scoreSheet .fc-row');
+      return row ? {kind: 'dots', run: +row.dataset.run, i: +t.dataset.i} : null;
+    };
+    const groupOf = t => t.closest('#sheet') ? [...$('sheet').querySelectorAll('g.fc-note')] : t.closest('.fc-row') ? [...t.closest('.fc-row').querySelectorAll('.fc-note')] : [t];
+    function rove(t) { groupOf(t).forEach(x => x.setAttribute('tabindex', x === t ? '0' : '-1')); }
+    document.addEventListener('keydown', e => {
+      const t = e.target && e.target.closest && e.target.closest('.fc-note');
+      if (!t || e.ctrlKey || e.metaKey || e.altKey) return;
+      const sr = srcOf(t); if (!sr) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); e.stopPropagation();             // (never the ?demo Space)
+        if (e.repeat) return;
+        if (same(sr, src) && el && !el.hidden) close(true); else open(sr, {focus: true});
+        return;
+      }
+      const step = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[e.key], list = groupOf(t);
+      const to = step ? list[list.indexOf(t) + step] : e.key === 'Home' ? list[0] : e.key === 'End' ? list[list.length - 1] : null;
+      if (!step && !to) return;
+      e.preventDefault(); e.stopPropagation();
+      if (!to) return;
+      rove(to); to.focus({preventScroll: true});
+      if (el && !el.hidden) open(srcOf(to), {focus: true});   // the card follows
+    });
+    // Esc closes the card first (before the pause menu or a panel's own Esc)
+    addEventListener('keydown', e => { if (e.key === 'Escape' && el && !el.hidden) { e.preventDefault(); e.stopPropagation(); close(true); } }, true);
+    addEventListener('resize', () => place());
+    addEventListener('scroll', () => place(), true);
+
+    return {
+      open, close: () => close(false), guard: box => { if (box) { A.holdGuard(box); } },
+      follow: () => { if (src && src.kind === 'live' && el && !el.hidden) { unring(); ring(src); } place(); },   // (the live dots are drawn anew for every note)
+      /** the sheet was drawn again (LOOP, a resize): the card follows its note, or closes */
+      redrawn: () => {                                     // the same scale (LOOP, a resize): stay on the note; another scale: close
+        if (!src || src.kind === 'dots' || src.kind === 'live') return;
+        if (src.kind === 'nbn' || !G || src.sid !== cur().sc.id + ':' + G.si) return close();
+        unring(); ring(src); place();
+      },
+      /** NOTE BY NOTE drew its next note: a card on the old one closes */
+      nbnMoved: i => { if (src && src.kind === 'nbn' && src.i !== i) close(); },
+      state: () => ({open: !!(el && !el.hidden), src: src && Object.assign({}, src), side: el && el.dataset.side,
+        rect: el && !el.hidden ? (b => ({left: b.left, top: b.top, right: b.right, bottom: b.bottom, width: b.width, height: b.height}))(el.getBoundingClientRect()) : null,
+        name: el && !el.hidden ? el.querySelector('.fc-name').textContent : null, concert: el && !el.hidden ? el.querySelector('.fc-concert').textContent : null,
+        prim: el && !el.hidden ? (el.querySelector('.fc-prim') || {}).textContent : null, alt: el && !el.hidden ? (el.querySelector('.fc-alt') || {textContent: ''}).textContent : null,
+        diagram: el && !el.hidden && el.querySelector('svg.diagram') ? [...el.querySelector('svg.diagram').classList].find(c => /^dg-/.test(c)) : null,
+        pressed: el && !el.hidden ? [...el.querySelectorAll('svg.diagram .key[data-state="1"], svg.diagram .key[data-state="h"]')].map(k => k.dataset.k + (k.dataset.state === 'h' ? 'h' : '')).sort() : [],
+        bars: el && !el.hidden ? el.querySelectorAll('.fc-bar').length : 0, lit: el && !el.hidden ? el.querySelectorAll('.fc-bar.lit').length : 0}),
+    };
+  })();
+  $('sheet').classList.add('fc-tappable'); A.holdGuard($('sheet')); A.holdGuard($('nbnStaff')); A.holdGuard($('liveDots'));
 
   /* ---------- ?demo: Space = the next note (hold = keep playing), W = a wrong note, K = skip one ---------- */
   if (A.DEMO) {
@@ -657,6 +917,7 @@
     attack: (t = performance.now()) => G && G.attacks.push(t),                 // an attack heard at t (as Pitch.onAttack reports it)
     articulation: () => G ? G.runs.map(articulation) : null,
     ARTICULATION_COUNTS,
+    card: () => Card.state(), openCard: (kind, i, run) => Card.open({kind, i, run}), closeCard: () => Card.close(),
   };
 
   showHub();

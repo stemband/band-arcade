@@ -544,7 +544,7 @@ window.Arcade = window.Arcade || {};
     }
   };
 
-  /* SCALE AUDITION: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
+  /* SCALE TRAINER: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
      stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
      The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
   S.audition = (x, W, H, t) => {

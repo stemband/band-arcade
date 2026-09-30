@@ -81,6 +81,7 @@
   --sa-lamp:#ffcf7a; --sa-stand:#9aa3b8; --sa-sheet:#f4f1e6; --sa-chair:#2b2238;
   --sa-ok:#0a7d3b; --sa-fix:#a35f00; --sa-bad:#c0392b; --sa-cur:#1257c4; --sa-guide:#00a3a3;
   --sa-ok-lt:#4dff88; --sa-fix-lt:#ffab2e; --sa-bad-lt:#ff6b6b; --sa-none:#3a3350;
+  --sa-tap:#8f1fb0; --sa-bar:#c9c3b3; --sa-bar-acc:#7d7690; --sa-bar-lit:#ffd23f;   /* the fingering card: the tapped note's ring (on the light staff), the mallet bars */
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;

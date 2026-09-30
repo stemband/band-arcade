@@ -127,3 +127,31 @@
 
 @media (max-height:700px){.sa-nbn-staff svg{max-height:30vh}}
 @media (prefers-reduced-motion:reduce){.sa-count.count,.sa-count.go{animation:none}}
+
+/* ---------- THE FINGERING CARD: tap a note (the staff, NOTE BY NOTE, the dots) to see its fingering ---------- */
+.fc-tappable,.sa-nbn-staff,#liveDots,.sa-scoresheet .fc-row{touch-action:manipulation}   /* no double-tap zoom: taps never move the page */
+.sa-sheet g.fc-note,.sa-nbn-staff g.fc-note,.fc-row .fc-note{cursor:pointer;outline:none}
+.sa-sheet g.fc-note:focus-visible ellipse.head,.sa-nbn-staff g.fc-note:focus-visible ellipse.head{stroke:var(--sa-tap);stroke-width:4}
+.fc-ring{fill:none;stroke:var(--sa-tap);stroke-width:3;pointer-events:none}
+.fc-row{padding:6px 0}
+.fc-row .fc-note{position:relative}
+.fc-row .fc-note:focus-visible,.sa-dotrow i.fc-on{box-shadow:0 0 0 2px var(--deep),0 0 0 4px var(--yellow)}
+.sa-dotrow i.fc-on{transform:scale(1.35)}
+.fc{position:fixed;left:0;top:0;z-index:88;width:min(300px,calc(100vw - 16px));padding:10px 12px 10px;border-radius:14px;
+  background:var(--night-2);border:2px solid var(--yellow);box-shadow:var(--glow-yellow),0 10px 28px rgba(0,0,0,.55);color:var(--text-hi)}
+.fc[hidden]{display:none}
+.fc-x{position:absolute;top:4px;right:4px;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--text-lo);font-size:20px;cursor:pointer}
+.fc-x:hover,.fc-x:focus-visible{color:var(--text-hi);background:var(--floor-3)}
+.fc-name{margin:0 44px 0 0;font-family:var(--display),var(--music);font-weight:400;font-size:26px;line-height:1.15;color:var(--yellow-hi)}
+.fc-concert{margin:0 44px 4px 0;font-size:13px;color:var(--text-lo)}
+.fc .diagram{width:100%;height:auto;max-height:118px;pointer-events:none}
+.fc-prim{margin:4px 0 0;font-weight:700;font-size:15px;color:var(--text-hi)}
+.fc-alt{margin:2px 0 0;font-size:14px;color:var(--text-lo)}
+/* mallets: the bars, the one to strike lit */
+.fc-bars{display:block;width:100%;height:auto;max-height:118px}
+.fc-bar{fill:var(--sa-bar);stroke:var(--deep);stroke-width:1}
+.fc-bar.acc{fill:var(--sa-bar-acc)}
+.fc-bar.lit{fill:var(--sa-bar-lit);stroke:var(--yellow-hi);stroke-width:2}
+.fc-bl{font:700 10px var(--text);fill:var(--deep)}
+.fc-bl.lit{fill:var(--yellow-hi);font-size:12px}
+@media (prefers-reduced-motion:reduce){.sa-dotrow i.fc-on{transform:none}}

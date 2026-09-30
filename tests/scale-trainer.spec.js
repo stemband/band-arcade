@@ -1,4 +1,4 @@
-/* SCALE AUDITION (scale-trainer/, the AUDITION table in shared/scales.js): the GMEA MS All-State / District Honor Band
+/* SCALE TRAINER (scale-trainer/, the AUDITION table in shared/scales.js): the GMEA MS All-State / District Honor Band
    scale audition. The table builds the right notes for every member, in audition order; a whole level-4 audition
    played through Pitch.demoNote (the detector's own ?demo input, so the note follower is the real one) earns 3 stars;
    a wrong note turns red then amber when fixed; a skipped note turns red and the follower moves on; time running out
@@ -516,7 +516,9 @@ test('no file mentions the old name, except the migration, the redirect, the old
       if (!/\.(js|html|css|md|json|py|yml|txt|webmanifest)$/.test(f.name)) continue;
       const lines = fs.readFileSync(p, 'utf8').split('\n');
       lines.forEach((l, i) => {
-        if (!(l.includes(OLD) || l.includes(OLDNAME) || l.includes('Scale' + 'Audition'))) return;
+        // the name as written, in ALL CAPS, run together, or split by a tag ("Scale <span>Audition</span>")
+        const t = l.replace(/<[^>]+>/g, '');
+        if (!(l.includes(OLD) || t.includes(OLDNAME) || t.includes(OLDNAME.toUpperCase()) || l.includes('Scale' + 'Audition'))) return;
         const ok = rel in ALLOWED && (ALLOWED[rel] === null || ALLOWED[rel](l));
         if (!ok) bad.push(`${rel}:${i + 1}: ${l.trim().slice(0, 120)}`);
       });
@@ -524,3 +526,216 @@ test('no file mentions the old name, except the migration, the redirect, the old
   })(ROOT);
   expect(bad).toEqual([]);
 });
+
+/* ---------- THE FINGERING CARD + the fingering table covering every GMEA chromatic note ---------- */
+test('the fingering table covers every note of every member\'s GMEA chromatic range, with key names each diagram draws', async ({page}) => {
+  const warns = [];
+  page.on('console', m => { if (/fingerings\.js/.test(m.text())) warns.push(m.text()); });
+  const watch = await open(page);
+  const missing = await page.evaluate(() => {
+    const out = [];
+    Object.values(Arcade.INSTRUMENTS).forEach(g => g.members.forEach(m => {
+      if (m.id === 'bells' || m.pitched === false || !m.chromatic) return;
+      const T = Arcade.Masher.table(m);
+      for (let x = m.lowMidi; x <= m.highMidi; x++) if (!T.has(x)) out.push(`${m.id} ${x}`);
+    }));
+    return [...new Set(out)];
+  });
+  expect(missing).toEqual([]);
+  expect(warns).toEqual([]);                                                   // every key id exists on its diagram
+  watch.check();
+});
+
+/** tap a note on the sheet (dy: how far above its head, px) */
+async function tapNote(page, i, dy = 0) {
+  const head = page.locator(`#sn${i} ellipse.head`);
+  await head.scrollIntoViewIfNeeded();
+  const b = await head.boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2 - dy);
+}
+const card = page => page.evaluate(() => Arcade.ScaleTrainer.card());
+/** the card is fully on screen and covers neither the tapped note nor the current one */
+async function clearOfNotes(page) {
+  return page.evaluate(() => {
+    const c = Arcade.ScaleTrainer.card(), r = c.rect, vw = innerWidth, vh = innerHeight;
+    const s = c.src, sel = s.kind === 'dots' ? `#scoreSheet .fc-row[data-run="${s.run}"] i[data-i="${s.i}"]` : s.kind === 'live' ? `#liveDots i:nth-child(${s.i + 1})` : s.kind === 'nbn' ? '#nb ellipse.head' : `#sn${s.i} ellipse.head`;
+    const boxes = [document.querySelector(sel), document.querySelector('#sheet g.cur ellipse.head')].filter(Boolean).map(e => e.getBoundingClientRect());
+    const hit = boxes.some(b => r.left < b.right && b.left < r.right && r.top < b.bottom && b.top < r.bottom);
+    return {onScreen: r.left >= 0 && r.top >= 0 && r.right <= vw && r.bottom <= vh, covers: hit};
+  });
+}
+
+test('tap a scale note in Practice: the card shows its written name, concert pitch and the primary fingering drawn, alternates in words', async ({page}) => {
+  const watch = await open(page);                                              // trumpet: Concert F = written G major, from G3
+  await start(page, 'practice', 0);
+  const sounds = await page.evaluate(() => Arcade.Sfx.history.length);
+  await tapNote(page, 5, 18);                                                   // 18 px above the head still picks it (a finger-sized hit band)
+  const c = await card(page);
+  expect(c.open).toBe(true);
+  expect(c.src).toMatchObject({kind: 'sheet', i: 5});
+  const exp = await page.evaluate(() => { const n = Arcade.ScaleTrainer.scales()[0].notes[5], T = Arcade.Masher.table({id: 'trumpet'}), f = T.notes(n.midi);
+    return {name: Arcade.music.noteLabel(n) + n.oct, keys: f[0].keys.slice().sort(), prim: f[0].text, alt: f.slice(1).map(x => x.text)}; });
+  expect(c.name).toBe(exp.name);                                                // E4
+  expect(c.concert).toBe('Concert D4');
+  expect(c.diagram).toBe('dg-trumpet');
+  expect(c.pressed).toEqual(exp.keys);
+  expect(c.prim).toBe(exp.prim);
+  expect(c.alt).toBe(exp.alt.length ? 'Also: ' + exp.alt.join(' · ') : '');
+  expect(await page.locator('.fc-ring').count()).toBe(1);                       // the tapped note's ring
+  expect(await page.locator('#fcard .diagram .key[role="button"]').count()).toBe(0);   // display only: no pressable keys
+  // another note moves the card; the same note, a tap outside and ✕ close it
+  await tapNote(page, 9);
+  expect((await card(page)).src.i).toBe(9);
+  await tapNote(page, 9);
+  expect((await card(page)).open).toBe(false);
+  await tapNote(page, 2);
+  await page.mouse.click(5, 300);
+  expect((await card(page)).open).toBe(false);
+  await tapNote(page, 2);
+  await page.locator('#fcard .fc-x').click();
+  expect((await card(page)).open).toBe(false);
+  expect(await page.evaluate(() => Arcade.Sfx.history.length)).toBe(sounds);   // no sound, ever (it would mute the microphone)
+  watch.check();
+});
+
+test('the chromatic coming down shows the flat spelling', async ({page}) => {
+  const watch = await open(page);
+  await start(page, 'practice', 4);                                             // trumpet: Chromatic
+  const i = await page.evaluate(() => { const n = Arcade.ScaleTrainer.chromatic().notes, half = Math.ceil(n.length / 2); return n.findIndex((x, k) => k >= half && x.acc < 0); });
+  expect(i).toBeGreaterThan(0);
+  await tapNote(page, i);
+  const c = await card(page);
+  expect(c.name).toMatch(/♭\d$/);
+  expect(c.pressed.length).toBeGreaterThan(0);
+  watch.check();
+});
+
+test('the trombone shows a slide position, alternates as "or 6th"', async ({page}) => {
+  const watch = await open(page, 'trombone');
+  await start(page, 'practice', 0);                                             // Concert F
+  // F3 = 1st or 6th position (the first note of the scale with an alternate)
+  const k = await page.evaluate(() => { const T = Arcade.Masher.table({id: 'trombone'}); return Arcade.ScaleTrainer.scales()[0].notes.findIndex(n => n.midi === 53 && T.notes(53).length === 2); });
+  expect(k).toBeGreaterThanOrEqual(0);
+  await tapNote(page, k);
+  const t = await card(page);
+  expect(t.diagram).toBe('dg-trombone');
+  expect(t.prim).toBe('1st position');
+  expect(t.alt).toBe('or 6th');
+  expect(t.pressed).toEqual(['pos1']);
+  watch.check();
+});
+
+test('the card never stops the note follower: notes played while it is open keep counting', async ({page}) => {
+  const watch = await open(page);
+  await start(page, 'practice', 1);                                             // Concert B♭ (1 octave)
+  await tapNote(page, 8);
+  expect((await card(page)).open).toBe(true);
+  await playAll(page, 6);
+  const s = await page.evaluate(() => Arcade.ScaleTrainer.state());
+  expect(s.listening).toBe(true);
+  expect(s.runs[0].i).toBe(6);
+  expect(s.runs[0].res.slice(0, 6)).toEqual(['ok', 'ok', 'ok', 'ok', 'ok', 'ok']);
+  expect(await page.evaluate(() => Arcade.UI.pause.get().paused)).toBe(false);
+  const c = await card(page);
+  expect(c.open).toBe(true);
+  expect(await clearOfNotes(page)).toEqual({onScreen: true, covers: false});   // still clear of the current note as it moves
+  watch.check();
+});
+
+test('NOTE BY NOTE: its own fingering stays; a tapped dot shows that note on top without changing the note it waits for', async ({page}) => {
+  const watch = await open(page, 'trumpet', {gameData: {'scale-trainer': {nbn: true}}});
+  await start(page, 'practice', 0);
+  const before = await page.evaluate(() => Arcade.ScaleTrainer.want().midi);
+  const dot = await page.locator('#liveDots i').nth(7).boundingBox();
+  await page.mouse.click(dot.x + dot.width / 2, dot.y + dot.height / 2 + 12);   // a little under the dot: still that dot
+  const c = await card(page);
+  expect(c.src).toMatchObject({kind: 'live', i: 7});
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.want().midi)).toBe(before);
+  await expect(page.locator('#nbnFing svg.diagram')).toBeVisible();
+  watch.check();
+});
+
+test('levels 3–4: no card while the run plays (the staff is hidden); the score sheet\'s dots open it afterwards', async ({page}) => {
+  const watch = await open(page);
+  await start(page, 'audition', 2);                                             // Hallway: from memory, timed
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().memory)).toBe(true);
+  await page.evaluate(() => Arcade.ScaleTrainer.openCard('sheet', 0));
+  expect((await card(page)).open).toBe(false);
+  const m = await page.locator('#memory').boundingBox();
+  await page.mouse.click(m.x + m.width / 2, m.y + m.height / 2);
+  const dots = await page.locator('#liveDots').boundingBox();
+  await page.mouse.click(dots.x + 4, dots.y + dots.height / 2);
+  expect((await card(page)).open).toBe(false);
+  await playAll(page, 3);                                                       // start scale 1, then the time runs out
+  await page.evaluate(() => Arcade.ScaleTrainer.setMs(1e9));
+  await expect(page.locator('#scoreSheet')).toBeVisible({timeout: 20000});
+  await playAll(page);                                                          // (time's up: the first scale may finish)
+  await expect(page.locator('#scoreSheet .fc-row').first()).toBeVisible({timeout: 30000});
+  const d = page.locator('#scoreSheet .fc-row').first().locator('i').nth(2);
+  await d.scrollIntoViewIfNeeded();
+  const b = await d.boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2 - 14);
+  const c = await card(page);
+  expect(c.src).toMatchObject({kind: 'dots', run: 0, i: 2});
+  expect(c.name).toBe(await page.evaluate(() => { const n = Arcade.ScaleTrainer.scales()[0].notes[2]; return Arcade.music.noteLabel(n) + n.oct; }));
+  expect(c.diagram).toBe('dg-trumpet');
+  expect((await clearOfNotes(page)).onScreen).toBe(true);
+  watch.check();
+});
+
+test('mallets: no fingering: the bars, about two octaves around the note, the one to strike lit', async ({page}) => {
+  const watch = await open(page, 'bells');
+  await start(page, 'practice', 0);
+  await tapNote(page, 3);
+  const c = await card(page);
+  expect(c.diagram).toBe(null);
+  expect(c.prim).toBe('Mallets: the lit bar');
+  expect(c.bars).toBeGreaterThanOrEqual(24);
+  expect(c.lit).toBe(1);
+  watch.check();
+});
+
+test('keyboard: Enter opens the card, the arrows move it note by note, Esc closes it (not the pause menu)', async ({page}) => {
+  const watch = await open(page);
+  await start(page, 'practice', 0);
+  await page.locator('#sn0').focus();
+  await page.keyboard.press('Enter');
+  expect((await card(page)).src).toMatchObject({kind: 'sheet', i: 0});
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  let c = await card(page);
+  expect(c.open).toBe(true);
+  expect(c.src.i).toBe(2);
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('sn2');
+  expect(await page.evaluate(() => [...document.querySelectorAll('#sheet .fc-note[tabindex="0"]')].map(g => g.id))).toEqual(['sn2']);   // one tab stop
+  await page.keyboard.press('ArrowLeft');
+  expect((await card(page)).src.i).toBe(1);
+  await page.keyboard.press('Escape');
+  c = await card(page);
+  expect(c.open).toBe(false);
+  expect(await page.evaluate(() => Arcade.UI.pause.get().paused)).toBe(false);
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('sn1');
+  await page.keyboard.press(' ');                                               // Space opens it too (and never "plays" a ?demo note)
+  expect((await card(page)).src.i).toBe(1);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().runs[0].i)).toBe(0);
+  watch.check();
+});
+
+for (const [label, vp] of [['iPad portrait', {width: 768, height: 1024}], ['phone', {width: 390, height: 844}]]) {
+  test(`the card stays on screen and clear of the notes (${label})`, async ({page}) => {
+    await page.setViewportSize(vp);
+    const watch = await open(page);
+    await start(page, 'practice', 0);
+    const n = await page.evaluate(() => Arcade.ScaleTrainer.scales()[0].notes.length);
+    for (const i of [0, 1, 6, 13, 20, Math.floor(n / 2) + 3, n - 3, n - 1]) {
+      await page.evaluate(() => Arcade.ScaleTrainer.closeCard());
+      await tapNote(page, i);
+      const c = await card(page);
+      expect(c.open, `note ${i}`).toBe(true);
+      expect(c.src.i, `note ${i}`).toBe(i);
+      expect(await clearOfNotes(page), `note ${i}`).toEqual({onScreen: true, covers: false});
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    watch.check();
+  });
+}
