@@ -1333,9 +1333,12 @@
         ['In the zone', `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`, 'resZone']],
       newBest: newBest && !!old.best, newBestText: 'New best time!',
       best: [old.best ? `Best time: ${fmt(Math.min(old.best, tenths) / 10)}` : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' · '),
-      extra: (tg ? `<p class="res-tg ${tg.by > 0 ? 'won' : ''}" id="resTeacher">${tg.by > 0 ? `You beat ${tg.name}'s ghost by ${tg.by.toFixed(1)} s!` : `${tg.name}'s ghost won by ${Math.max(.1, -tg.by).toFixed(1)} s: try again!`}</p>` : '')
+      // THE BUTTONS FIRST (actsFirst): then NEW IN THE GARAGE! (its filled GARAGE button), then the race's details
+      actsFirst: true,
+      extra: (fresh.length ? Garage.cardHTML(fresh) : '') + `<h3 class="res-more" id="resMore">Race details</h3>`
+        + (tg ? `<p class="res-tg ${tg.by > 0 ? 'won' : ''}" id="resTeacher">${tg.by > 0 ? `You beat ${tg.name}'s ghost by ${tg.by.toFixed(1)} s!` : `${tg.name}'s ghost won by ${Math.max(.1, -tg.by).toFixed(1)} s: try again!`}</p>` : '')
         + (breath.race >= B.minSec ? `<p class="res-breath" id="resBreath">Longest steady hold: <b>${fmtS(breath.race)}</b>${breath.rec || breath.first ? ' <span class="br-new">(new record!)</span>' : ''}${breath.rec ? ' <span class="br-badge" id="brBadge">🌬️ Breath record!</span>' : ''}</p>` : '')
-        + (fresh.length ? Garage.cardHTML(fresh) : '') + tuning.html + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
+        + tuning.html + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
         <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
         <div class="chart" id="resChart"></div><ul class="lap-notes" id="resLaps"></ul>`,
       onShow: () => {
