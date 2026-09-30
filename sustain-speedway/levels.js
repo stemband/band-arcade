@@ -8,25 +8,26 @@
      scene    the scenery: 'city' | 'river' | 'sunset' | 'harbor' | 'mountain' | 'desert' | 'grandprix'
      sky      'sunset' | 'dusk' | 'night'
      tunnels  true = parts of every lap are in a tunnel: the road is dark, and staying in tune lights it
-     rivals   the CPU cars: name, color (a theme token), pace (0–1 of full speed; they never breathe, but pit like you)
+     rivals   the CPU cars: name, body (a car shape from SPEEDWAY_GARAGE.bodies, or 'maestro' = The Maestro's gold-trimmed
+              open-wheel racer), color (a theme token), pace (0–1 of full speed; they never breathe, but pit like you)
    STARS per track: 1st = 3, 2nd = 2, 3rd = 1, last = 0. Winning (1st) opens the next track. */
 window.SPEEDWAY_TRACKS = [
   {name: 'Downtown Loop',         blurb: 'A short city loop. Gentle rivals: hold each note and cruise.', laps: 4, lap: 5, pool: 3, scene: 'city', sky: 'sunset',
-    rivals: [{name: 'Volt Viper', color: 'cyan', pace: .42}, {name: 'Neon Nomad', color: 'yellow', pace: .5}, {name: 'Chrome Comet', color: 'green', pace: .58}]},
+    rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .42}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .5}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}]},
   {name: 'River Street Run',      blurb: 'Along the river lights. A little longer each lap.', laps: 4, lap: 6, pool: 5, scene: 'river', sky: 'sunset',
-    rivals: [{name: 'Volt Viper', color: 'cyan', pace: .48}, {name: 'Neon Nomad', color: 'yellow', pace: .56}, {name: 'Chrome Comet', color: 'green', pace: .63}]},
+    rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .48}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .56}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .63}]},
   {name: 'Sunset Strip',          blurb: 'Five laps into the sunset.', laps: 5, lap: 7, pool: 5, scene: 'sunset', sky: 'sunset',
-    rivals: [{name: 'Turbo Tempo', color: 'amber', pace: .52}, {name: 'Volt Viper', color: 'cyan', pace: .6}, {name: 'Chrome Comet', color: 'green', pace: .67}]},
+    rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .52}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .6}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .67}]},
   {name: 'Tunnel Vision',         blurb: 'The road goes dark in the tunnels. Stay in tune to light it up.', laps: 5, lap: 8, pool: 5, scene: 'city', sky: 'dusk', tunnels: true,
-    rivals: [{name: 'Turbo Tempo', color: 'amber', pace: .55}, {name: 'Neon Nomad', color: 'yellow', pace: .63}, {name: 'Violet Vortex', color: 'purple', pace: .7}]},
+    rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .55}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .63}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .7}]},
   {name: 'Harbor Lights',         blurb: 'Six laps past the cranes and the water.', laps: 6, lap: 9, pool: 5, scene: 'harbor', sky: 'dusk',
-    rivals: [{name: 'Chrome Comet', color: 'green', pace: .58}, {name: 'Violet Vortex', color: 'purple', pace: .66}, {name: 'Turbo Tempo', color: 'amber', pace: .73}]},
+    rivals: [{name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .66}, {name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .73}]},
   {name: 'Midnight Mountain',     blurb: 'Night climbs, ten seconds a lap. Breathe in the pits.', laps: 6, lap: 10, pool: 5, scene: 'mountain', sky: 'night',
-    rivals: [{name: 'Neon Nomad', color: 'yellow', pace: .6}, {name: 'Volt Viper', color: 'cyan', pace: .69}, {name: 'Violet Vortex', color: 'purple', pace: .76}]},
+    rivals: [{name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .6}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .69}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .76}]},
   {name: 'Neon Desert Endurance', blurb: 'Long, steady laps across the desert.', laps: 6, lap: 12, pool: 5, scene: 'desert', sky: 'sunset',
-    rivals: [{name: 'Turbo Tempo', color: 'amber', pace: .63}, {name: 'Chrome Comet', color: 'green', pace: .72}, {name: 'Violet Vortex', color: 'purple', pace: .79}]},
+    rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .63}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .72}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .79}]},
   {name: 'The Grand Prix',        blurb: 'Eight laps, 12 to 15 seconds each, against the fastest cars.', laps: 8, lap: [12, 15], pool: 5, scene: 'grandprix', sky: 'night',
-    rivals: [{name: 'Violet Vortex', color: 'purple', pace: .68}, {name: 'Volt Viper', color: 'cyan', pace: .77}, {name: 'The Maestro', color: 'yellow', pace: .84}]},
+    rivals: [{name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .68}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .77}, {name: 'The Maestro', body: 'maestro', color: 'yellow', pace: .84}]},
 ];
 
 /* HOW SPEED WORKS. The car moves only while the lap's note is sounding (same letter, any octave). Each moment:
@@ -55,4 +56,53 @@ window.SPEEDWAY_RULES = {
   pitSec: 3.5,             // the pit stop between laps (a rest: breathe, get the next fingering ready). Rivals pit too.
   topSpeed: 180,           // the speed shown at full speed (display only)
   ghostEvery: 0.5,         // the ghost car records your position every this many seconds
+};
+
+/* THE GARAGE (inside Sustain Speedway only: the GARAGE button on the track select; garage.js + cars.js). The student's
+   car = BODY + PAINT + DECAL (+ a number 1–99), saved per device in store.gameData('sustain-speedway').garage.
+   Never rename an id (saved choices use them); add new ones at the end.
+   UNLOCK RULES (earned in Sustain Speedway; old progress counts, any instrument and any NOTES × ORDER mode):
+     {free: true}            open from the start
+     {stars: n}              n ★ in Sustain Speedway on this device (every instrument, every mode)
+     {tracks: n}             finished n different tracks (any place)
+     {wins: n}               won (1st place) n different tracks
+     {winCount: n}           won n races (every win counts, repeats too; before the garage: one per track, instrument, mode)
+     {track: n}              won track n            {achievement: id}   gameData achievements ('virtuoso-win', 'perfect-lap')
+     {bestLap: true}         set a best lap on any track        {any: [rules…]}   any one of them
+   A PERFECT-PITCH LAP = a finished lap whose average tuning (how far off, either way) was within RULES.nitro.cents
+   (the IN THE ZONE window), from at least perfectLapReadings readings (achievement 'perfect-lap'). */
+window.SPEEDWAY_GARAGE = {
+  bodies: [
+    {id: 'coupe',     name: 'Coupe',            unlock: {free: true}},
+    {id: 'mini',      name: 'Mini',             unlock: {free: true}},
+    {id: 'muscle',    name: 'Muscle',           unlock: {tracks: 3, text: 'Finish any 3 tracks'}},
+    {id: 'wagon',     name: 'Retro Wagon',      unlock: {stars: 15, text: 'Earn 15 ★ in Speedway'}},
+    {id: 'buggy',     name: 'Dune Buggy',       unlock: {wins: 1, text: 'Win any track (1st place)'}},
+    {id: 'openwheel', name: 'Open-Wheel Racer', unlock: {wins: 4, text: 'Get 3 ★ on 4 tracks'}},
+    {id: 'hover',     name: 'Hover Racer',      unlock: {any: [{track: 8}, {achievement: 'virtuoso-win'}], text: 'Win The Grand Prix, or win any race on Virtuoso'}},
+  ],
+  // 'instrument' = your instrument's color (and an equipped color skin's); 4 paints free, one more every 5 ★
+  paints: [
+    {id: 'instrument', name: "My instrument's color", unlock: {free: true}},
+    {id: 'pink',   name: 'Neon Pink',   unlock: {free: true}},
+    {id: 'cyan',   name: 'Electric Cyan', unlock: {free: true}},
+    {id: 'yellow', name: 'Sunshine',    unlock: {free: true}},
+    {id: 'green',  name: 'Laser Lime',  unlock: {free: true}},
+    {id: 'amber',  name: 'Amber',       unlock: {stars: 5}},
+    {id: 'purple', name: 'Violet',      unlock: {stars: 10}},
+    {id: 'red',    name: 'Rocket Red',  unlock: {stars: 15}},
+    {id: 'blue',   name: 'Deep Blue',   unlock: {stars: 20}},
+    {id: 'white-hi', name: 'Pearl White', unlock: {stars: 25}},
+    {id: 'belt-orange', name: 'Tangerine', unlock: {stars: 30}},
+  ],
+  decals: [
+    {id: 'none',      name: 'None',           unlock: {free: true}},
+    {id: 'stripes',   name: 'Racing stripes', unlock: {free: true}},
+    {id: 'number',    name: 'Your number',    unlock: {free: true}},
+    {id: 'flames',    name: 'Flames',         unlock: {achievement: 'perfect-lap', text: 'Drive a perfect-pitch lap (average within ±5¢)'}},
+    {id: 'stars',     name: 'Stars',          unlock: {stars: 10}},
+    {id: 'checker',   name: 'Checkerboard',   unlock: {winCount: 3, text: 'Win 3 races'}},
+    {id: 'lightning', name: 'Lightning',      unlock: {bestLap: true, text: 'Set a best lap on any track'}},
+  ],
+  perfectLapReadings: 10,
 };

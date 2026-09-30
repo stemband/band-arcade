@@ -149,3 +149,39 @@
 @media (prefers-reduced-motion:reduce){ .g-needle,.bar i{transition:none} }
 
 .hub-more{margin:16px 0 4px}
+
+/* ---------- THE GARAGE (garage.js): above the results screen (60), under Settings (70) ---------- */
+.hub-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.garage-btn{display:inline-flex;align-items:center;gap:8px;border-color:var(--amber);color:var(--amber-hi)}
+.garage-btn svg{width:30px;height:18px}
+.g-dot{padding:1px 7px;border-radius:999px;background:var(--pink);color:var(--deep);font:700 11px var(--text);text-transform:uppercase;letter-spacing:.06em}
+.overlay.sw-garage-ov{z-index:65}
+.panel.sw-garage{width:min(680px,100%);border-color:var(--amber);box-shadow:var(--glow-amber),0 30px 80px rgba(0,0,0,.6);padding:18px 16px}
+.sw-garage h2{color:var(--amber-hi);text-transform:uppercase;letter-spacing:.06em}
+.g-stage{background:linear-gradient(180deg,var(--sw-sky-top),var(--sw-sky-mid) 70%,var(--sw-sky-low));border-radius:16px;border:2px solid var(--floor-3);padding:6px 6px 8px;margin-bottom:12px}
+.g-prev{display:block;width:100%;height:clamp(140px,26vh,220px)}
+.g-name{margin:0;font-weight:700;color:var(--text-hi);text-shadow:0 1px 0 var(--deep)}
+.g-tabs{justify-content:center;margin-bottom:10px}
+.g-tabs>button{--seg-on:var(--amber);min-width:96px;font-family:var(--display);font-weight:400;text-transform:uppercase}
+.g-opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;text-align:center}
+.g-opt{position:relative;display:grid;justify-items:center;align-content:start;gap:4px;min-height:96px;padding:8px 6px;border-radius:14px;
+  background:var(--floor-2);border:2px solid var(--floor-3);color:var(--text-hi);font:700 13px/1.2 var(--text);cursor:pointer}
+.g-opt:hover:not(.locked){border-color:var(--amber)}
+.g-opt[aria-pressed="true"]{border-color:var(--amber);box-shadow:var(--glow-amber);background:color-mix(in srgb,var(--amber) 14%,var(--floor-2))}
+.g-opt[aria-pressed="true"]::after{content:"✓";position:absolute;top:4px;right:8px;color:var(--amber-hi);font-size:15px}
+.g-opt.locked{cursor:not-allowed;color:var(--text-lo)}
+.g-thumb{width:100%;max-width:110px;height:auto;aspect-ratio:1.78}
+.g-swatch{width:46px;height:46px;border-radius:50%;background:var(--sw);border:3px solid var(--floor-3);box-shadow:inset 0 -8px 12px rgba(0,0,0,.35),inset 0 6px 8px rgba(255,255,255,.3)}
+.g-swatch.inst{border-style:dashed;border-color:var(--text-lo)}
+.g-lock{position:absolute;top:6px;left:8px;font-size:14px}
+.g-need{font-weight:400;font-size:11.5px;color:var(--text-lo);line-height:1.25}
+.g-num{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
+.g-num .ui-label{margin:0}
+.g-num b{min-width:2.4ch;font-family:var(--display);font-weight:400;font-size:26px;color:var(--amber-hi)}
+.g-req{min-height:1.4em;margin:10px 0 0;color:var(--pink-hi)}
+/* the results: your car under the place, and NEW IN THE GARAGE! */
+.res-car{display:block;width:170px;max-width:60%;height:auto;margin:4px auto 0}
+.sw-newcar{margin:0 auto 12px;max-width:420px;padding:10px 12px;border-radius:14px;border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--floor-2));box-shadow:var(--glow-amber)}
+.sw-newcar-t{margin:0;font-family:var(--display);color:var(--amber-hi);letter-spacing:.04em}
+.sw-newcar-l{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 8px}
+.sw-newcar-l span{padding:2px 9px;border-radius:999px;background:var(--floor-3);color:var(--text-hi);font-weight:700;font-size:13px}

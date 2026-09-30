@@ -4,7 +4,8 @@
    Progress: per instrument MEMBER (games.js byMember): setLevel(<progress key>, member id, track, {stars, best});
    best = the best finish time in tenths of a second. Ghost cars and best laps live in store.gameData('sustain-speedway'):
      {diff, ghosts: {'<progress key>|<member>|<track>': {t (total s), p: [progress every RULES.ghostEvery s]}},
-      bestLap: {same key: seconds}, achievements: {'virtuoso-win': true}}
+      bestLap: {same key: seconds}, achievements: {'virtuoso-win': true, 'perfect-lap': true}, wins (races won),
+      garage: {body, paint, decal, number} + garageSeen (THE GARAGE: garage.js, the cars: cars.js)}
    THE MICROPHONE listens for the whole race: nothing plays while racing (only the countdown before GO, and pit-in
    during a pit stop, which is a rest). The race clock stops while a sound mutes the detector (Pitch.isSuppressed). */
 (function (A) {
@@ -24,6 +25,8 @@
   const save = () => A.store.saveGameData(GAME_ID);
   const sfx = name => (A.Sfx ? A.Sfx.event(name) : 0);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const Garage = A.SpeedwayGarage, Cars = A.SpeedwayCars;
+  if (gd.wins == null) { gd.wins = Garage.stats().winCount; save(); }   // races won (before the garage: one per track, instrument and mode)
   const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
   const fmt = s => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
   const signed = c => { const a = Math.round(Math.abs(c)); return (a === 0 ? '' : c > 0 ? '+' : '−') + a + '¢'; };   // "+12¢", "−8¢", "0¢"
@@ -72,6 +75,7 @@
       </button>`;
     }).join('');
     $('trackGrid').querySelectorAll('.trk').forEach(b => b.addEventListener('click', () => { const lv = +b.dataset.l; A.requireMic(() => startRace(lv)); }));
+    $('garageDot').hidden = !Garage.fresh().length;
     A.LevelSelect.show({screen: $('hub'), grid: $('trackGrid'), cards: $('trackGrid').querySelectorAll('.trk'), picker: $('modePick'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars >= 3,
       lockText: i => `Win Track ${i} to unlock`});
@@ -112,7 +116,7 @@
     const lens = lapLens(L);
     const rivals = L.rivals.map((r, i) => Object.assign({home: i % 2 ? 1 : -1}, r));      // home lane: left, right, left… (LANES)
     const ghost = (gd.ghosts || {})[recKey(lv)] || null;
-    G = {lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
+    G = {car: Garage.look(), lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
@@ -265,6 +269,8 @@
   function lapDone(now) {
     const t = G.clock - G.lapStart;
     G.lapTimes.push(t);
+    const lp = G.laps[G.lap];                                   // a PERFECT-PITCH LAP (the garage's Flames)
+    if (lp.n >= window.SPEEDWAY_GARAGE.perfectLapReadings && lp.abs / lp.n <= R.nitro.cents) (gd.achievements = gd.achievements || {})['perfect-lap'] = true;
     if (G.lap === G.lens.length - 1) return finishRace(now);
     // PIT STOP: a short, required rest; the next note is shown so the student can get ready
     G.phase = 'pit'; G.pitEnd = G.clock + R.pitSec; G.pitStart = G.clock; G.v = 0;
@@ -534,16 +540,18 @@
     const me = progress(), cars = [];
     const toDist = pr => { const i = Math.min(G.lens.length - 1, Math.floor(pr)); return G.lens.slice(0, i).reduce((a, b) => a + b, 0) + (pr - i) * G.lens[i]; };
     const myD = toDist(me);
-    if (G.phase !== 'count') G.rivals.forEach(r => cars.push({d: toDist(paceProgress(r.pace, G.clock)) - myD, who: r, color: C[r.color] || C.cyan, name: r.name}));
+    if (G.phase !== 'count') G.rivals.forEach(r => cars.push({d: toDist(paceProgress(r.pace, G.clock)) - myD, who: r, name: r.name}));
     const gp = G.phase !== 'count' ? ghostProgress(G.clock) : null;
-    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {home: 1}), color: C.white, ghost: true, name: 'Best run'});
-    if (G.phase === 'count') G.rivals.forEach((r, i) => cars.push({d: .45 + i * .25, who: r, color: C[r.color] || C.cyan}));
+    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {home: 1}), look: G.car, ghost: true, name: 'Best run'});   // the ghost = your own car, see-through
+    if (G.phase === 'count') G.rivals.forEach((r, i) => cars.push({d: .45 + i * .25, who: r, name: r.name}));
     // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
     const sway = reduced.matches ? 0 : -curve * W * .02;
-    const col = carColor();
     const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
-    placeCars(cars, proj, mine, now).forEach(c => drawCar(c.x, c.y, c.w, c.color, {ghost: c.ghost}));
-    drawCar(mine.x, mine.y, mine.w, col.body, {tail: true, nitro: G.nitro && G.phase === 'race', stripes: col.stripes, me: true, braking: S.state === 'wrong'});
+    const sky = G.L.sky === 'night' ? C.night : G.L.sky === 'dusk' ? C.dusk : C.skyLow;          // the rim light on every car
+    const dpr = Math.min(1.5, devicePixelRatio || 1), still = reduced.matches;
+    placeCars(cars, proj, mine, now).forEach(c => Cars.draw(cx, c.x, c.y, c.w, Object.assign({}, c.look || {body: c.who.body || 'coupe', color: C[c.who.color] || C.cyan, decal: 'none'},
+      {sky, dpr, t: now, reduced: still, alpha: c.ghost ? .38 : 1})));
+    Cars.draw(cx, mine.x, mine.y, mine.w, Object.assign({}, G.car, {sky, dpr, t: now, reduced: still, nitro: G.nitro && G.phase === 'race', braking: S.state === 'wrong'}));
     // nitro speed lines (not with reduced motion)
     if (G.nitro && !reduced.matches) {                       // short streaks rushing past the sides of the road
       cx.strokeStyle = C.nitro; cx.lineWidth = 2;
@@ -588,8 +596,8 @@
       taken.push(pos.box);
       out.push(Object.assign({}, c, pos, {drawnD: d}));
     });
-    G.carsDrawn = out.map(c => ({name: c.name || null, d: +c.d.toFixed(3), drawnD: +c.drawnD.toFixed(3), off: +c.who.off.toFixed(2), box: c.box}));
-    G.carsDrawn.push({name: 'you', box: taken[0]});
+    G.carsDrawn = out.map(c => ({name: c.name || null, body: c.look ? c.look.body : c.who.body || 'coupe', ghost: !!c.ghost, d: +c.d.toFixed(3), drawnD: +c.drawnD.toFixed(3), off: +c.who.off.toFixed(2), box: c.box}));
+    G.carsDrawn.push({name: 'you', body: G.car.body, box: taken[0]});
     return out.sort((a, b) => b.drawnD - a.drawnD);                        // far first
   }
   /** one band of the road between two projected rows: `k` = its width (share of the road), `off` = its center offset */
@@ -599,39 +607,8 @@
     cx.lineTo(b.x + (off + k) * b.w, b.y); cx.lineTo(b.x + (off - k) * b.w, b.y);
     cx.closePath(); cx.fill(); cx.globalAlpha = 1;
   }
-  /** a car from behind: x = center, y = where it touches the road, w = its width */
-  function drawCar(x, y, w, color, {ghost, tail, nitro, stripes, braking} = {}) {
-    const h = w * .42;
-    cx.save();
-    cx.globalAlpha = ghost ? .38 : 1;
-    cx.fillStyle = C.tire; cx.fillRect(x - w * .48, y - h * .32, w * .16, h * .32); cx.fillRect(x + w * .32, y - h * .32, w * .16, h * .32);   // tires
-    cx.fillStyle = color; cx.beginPath();                    // the body
-    cx.moveTo(x - w * .5, y - h * .18); cx.lineTo(x - w * .46, y - h * .62); cx.lineTo(x - w * .3, y - h * .74);
-    cx.lineTo(x + w * .3, y - h * .74); cx.lineTo(x + w * .46, y - h * .62); cx.lineTo(x + w * .5, y - h * .18); cx.closePath(); cx.fill();
-    cx.beginPath();                                          // the cabin
-    cx.moveTo(x - w * .3, y - h * .74); cx.lineTo(x - w * .22, y - h * 1.08); cx.lineTo(x + w * .22, y - h * 1.08); cx.lineTo(x + w * .3, y - h * .74); cx.closePath(); cx.fill();
-    cx.fillStyle = C.glass; cx.beginPath();                  // the rear window
-    cx.moveTo(x - w * .25, y - h * .77); cx.lineTo(x - w * .19, y - h * 1.02); cx.lineTo(x + w * .19, y - h * 1.02); cx.lineTo(x + w * .25, y - h * .77); cx.closePath(); cx.fill();
-    if (stripes) { cx.fillStyle = C.white; cx.globalAlpha = ghost ? .3 : .85; cx.fillRect(x - w * .09, y - h * 1.08, w * .06, h * .9); cx.fillRect(x + w * .03, y - h * 1.08, w * .06, h * .9); cx.globalAlpha = ghost ? .38 : 1; }
-    cx.fillStyle = C.tire; cx.fillRect(x - w * .4, y - h * .36, w * .8, h * .1);   // the bumper line
-    cx.fillStyle = braking ? C.white : C.tail;               // tail lights (flare white while braking)
-    cx.fillRect(x - w * .44, y - h * .56, w * .22, h * .1); cx.fillRect(x + w * .22, y - h * .56, w * .22, h * .1);
-    if (tail) { cx.globalAlpha = .25; cx.fillRect(x - w * .48, y - h * .62, w * .3, h * .22); cx.fillRect(x + w * .18, y - h * .62, w * .3, h * .22); cx.globalAlpha = 1; }
-    cx.fillStyle = color; cx.fillRect(x - w * .42, y - h * .82, w * .84, h * .06);   // the spoiler
-    if (nitro) {                                             // nitro flames from the exhausts
-      cx.fillStyle = C.nitro; cx.globalAlpha = .85;
-      [-.18, .18].forEach(k => { cx.beginPath(); cx.moveTo(x + k * w - w * .04, y - h * .2); cx.lineTo(x + k * w, y + h * (.25 + (reduced.matches ? 0 : Math.random() * .2))); cx.lineTo(x + k * w + w * .04, y - h * .2); cx.closePath(); cx.fill(); });
-    }
-    cx.restore();
-  }
-  /** the car's color: the equipped color skin's (shared/skins.js), else the instrument's own color */
-  function carColor() {
-    let body = css('pt-' + who) || C.pink, stripes = false;
-    const eq = A.Skins && A.Skins.equipped(who), sk = eq && A.Skins.LIST.find(s => s.id === eq.color);
-    if (sk && sk.id !== 'classic' && sk.look && sk.look.colors) body = css(sk.look.colors[0] === 'white' ? 'white-hi' : sk.look.colors[0]) || body;
-    if (sk && sk.look && sk.look.stripes) stripes = true;
-    return {body, stripes};
-  }
+  const carName = c => { const b = window.SPEEDWAY_GARAGE.bodies.find(x => x.id === c.body); return b ? b.name : 'Coupe'; };
+  $('garageBtn').addEventListener('click', () => Garage.open({onClose: () => { $('garageDot').hidden = !Garage.fresh().length; }}));
 
   /* ---------- results ---------- */
   let finished = null;
@@ -649,12 +626,14 @@
     const bestLap = Math.min(...g.lapTimes), oldLap = gd.bestLap[rk], newLap = !oldLap || bestLap < oldLap - 0.05;
     if (newLap) gd.bestLap[rk] = +bestLap.toFixed(2);
     if (pos === 1 && g.diff.id === 'virtuoso') (gd.achievements = gd.achievements || {})['virtuoso-win'] = true;   // the Helmet skin
+    if (pos === 1) gd.wins = (gd.wins || 0) + 1;
     save();
+    const fresh = Garage.fresh();                               // NEW IN THE GARAGE! (earned by this race)
     // the numbers
     const n = g.laps.reduce((a, l) => a + l.n, 0), avg = n ? g.laps.reduce((a, l) => a + l.abs, 0) / n : 0;
     const hasNext = g.lv < TRACKS.length && (pos === 1 || A.DEMO);
     A.UI.results.show({gameId: GAME_ID, wide: true, stars,
-      hero: `<p class="res-pos p${pos}" id="resPos">${ord(pos)} place</p>`,
+      hero: `<p class="res-pos p${pos}" id="resPos">${ord(pos)} place</p><img class="res-car" id="resCar" alt="Your car: ${carName(g.car)}" src="${Cars.thumbURL(Object.assign({}, g.car, {sky: css('sw-sky-low')}), 170)}">`,
       title: pos === 1 ? 'Race won!' : stars ? 'On the podium!' : 'Race finished',
       msg: pos === 1 ? (g.lv < TRACKS.length ? `You won ${g.L.name}! The next track is open.` : 'You won The Grand Prix!')
         : `Finish 1st to open the next track. Faster = more in tune and steadier, and fewer breaths in the middle of a lap.`,
@@ -662,10 +641,14 @@
         ['In the zone', `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`, 'resZone']],
       newBest: newBest && !!old.best, newBestText: 'New best time!',
       best: [old.best ? `Best time: ${fmt(Math.min(old.best, tenths) / 10)}` : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' · '),
-      extra: `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
+      extra: (fresh.length ? Garage.cardHTML(fresh) : '') + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
         <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
         <div class="chart" id="resChart"></div><ul class="lap-notes" id="resLaps"></ul>`,
-      onShow: () => chart(g),
+      onShow: () => {
+        chart(g);
+        const b = $('gNewBtn'); if (b) b.addEventListener('click', () => Garage.open());
+        if (fresh.length) Garage.markSeen(fresh);
+      },
       next: {label: 'Next track', hidden: !hasNext, onClick: () => A.requireMic(() => startRace(finished.lv + 1))},
       retry: {label: 'Try again', onClick: () => A.requireMic(() => startRace(finished.lv))},
       levels: {label: 'Tracks', onClick: showHub}});
@@ -708,6 +691,6 @@
     else if (!G.held && !G.cd) startCountdown();
   });
 
-  A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS};    // tests
+  A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car};    // tests
   showHub();
 })(window.Arcade);
