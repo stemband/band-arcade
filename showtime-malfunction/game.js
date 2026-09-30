@@ -109,7 +109,8 @@
       </div>`;
     };
     $('filesGrid').innerHTML = SHOW.SPECIAL_IDS.map(card).join('') +
-      `<h3 class="ui-section files-sec">Hybrids</h3><p class="f-sub">Two machines stitched together. They show up from Showtime ${SPEC.hybrids.from} on.</p>` + SHOW.HYBRID_IDS.map(card).join('');
+      `<h3 class="ui-section files-sec">Hybrids</h3><p class="f-sub">Two machines stitched together. They show up from Showtime ${SPEC.hybrids.from} on.</p>` + SHOW.HYBRID_IDS.map(card).join('') +
+      (SN ? SN.filesHTML() : '');
     $('files').hidden = false; $('filesClose').focus();
   }
   $('filesBtn').addEventListener('click', () => { showFiles(); sfx('ui-toggle'); });
@@ -162,6 +163,17 @@
   const picker = snare ? null : A.ModePicker.mount($('modePick'), {gameId: GAME_ID, levels: LEVELS.length, onChange: () => showHub(),
     keySuffix: () => isExtra() ? EXTRA : '', max: LEVELS.length * 3});            // stars for the chosen difficulty, out of 24
   $('snareCard').hidden = !snare;
+  /* THE SNARE DRUM'S JOBS (snare.js, levels.js SNARE_RULES): exact counts, freeze, rhythm and accent machines, soft
+     and loud, even and crescendo rolls, the tempo-lock Maestro. Wind players never create it (SN = null) */
+  const SN = snare && A.ShowtimeSnare ? A.ShowtimeSnare.create({
+    G: () => G, target: () => target(), setPrompt: (t, c) => setPrompt(t, c), drawPanel: t => drawPanel(t), drawSign: b => drawSign(b),
+    counted: t => counted(t), countedMore: t => countedMore(t), complete: t => complete(t), hud: () => hud(), banner: (t, c) => banner(t, c),
+    sour: b => { b.sign.classList.remove('sour'); void b.sign.offsetWidth; b.sign.classList.add('sour'); },
+    attacked: p => { lastAttack = p; heldSince = 0; }, rowFor: (lv, x) => rowFor(lv, x), isExtra: () => isExtra(),
+    meet: (id, def) => meetDrum(id, def), fileOf: id => fileOf(id), save: () => save(), gd,
+    lurkerNeed: lv => MACH['long-tone-lurker'].roll[lv - 1], fairBase: () => SPEC.hybrids.fair,
+    hubRefresh: () => showHub()}) : null;
+  if (SN) SN.card($('snareCard'));
   const progressKey = () => (snare ? SNARE_KEY : picker.state.progressKey) + (isExtra() ? EXTRA : '');
   drawDiff();
 
@@ -174,6 +186,7 @@
     $('play').hidden = true; $('hub').hidden = false;
     document.body.classList.remove('in-show');
     drawDiff(); drawSpooky(); drawFilesCount();
+    if (SN) SN.card($('snareCard'));
     const key = progressKey(), x = isExtra();
     $('levelGrid').innerHTML = LEVELS.map((_, i) => {
       const lv = i + 1, L = rowFor(lv, x), p = A.store.level(key, who, lv);
@@ -191,7 +204,7 @@
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => {
       const lv = +b.dataset.l;
-      const go = () => A.requireMic(() => startShow(lv));
+      const go = () => A.requireMic(() => SN ? SN.before(lv, () => startShow(lv)) : startShow(lv));
       if (!gd.storySeen && RULES.storyOnce) showStory(go); else go();
     }));
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: picker ? $('modePick') : null,
@@ -277,6 +290,7 @@
     banner("It's showtime!", 'go'); later(() => { if (G && !G.over) banner(''); }, 1300);
     sfx('showtime-start');
     G.spawnAt = performance.now() + 1200;
+    if (SN) SN.start();
     lastT = performance.now(); raf = requestAnimationFrame(loop);
   }
   function stopShow() {
@@ -284,6 +298,7 @@
     unfreeze();
     $('scare').className = 'scare'; arena.classList.remove('band-snap'); $('specialCard').hidden = true;
     if (G) G.over = true;
+    if (SN) SN.stop();
     G = null; A.Pitch.demoAttacks = false;
   }
 
@@ -316,6 +331,7 @@
   function chooseSpecial() {
     if (G.special && G.special.state === 'walk') return null;
     if (FORCE) return FORCE;
+    if (SN && SN.forced()) return null;                          // ?demo&snarejob=…: the regular band only (tests)
     const base = SPEC.chance[G.lv - 1] || 0, ch = base + (G.extra && base > 0 ? SPEC.nightmare : 0);
     if (!(ch > 0 && Math.random() < ch)) return null;
     // a share of the specials are HYBRIDS, only from Showtime hybrids.from on (one special on the floor at a time, so
@@ -353,6 +369,8 @@
     if (M.hybrid) fair(s);
     return s;
   }
+  /** the snare's job for a machine walking on (snare.js: a count, a rhythm, p / f, accents; the fairness check); wind: as it is */
+  const job = (spec, boss) => SN ? SN.job(spec, {boss: !!boss}) : spec;
   /** THE FAIRNESS CHECK (hybrids): slow it down until it can be beaten while its note shows (levels.js hybrids.fair) */
   function fair(s) {
     const F = SPEC.hybrids.fair, walk = G.L.walk / s.speed, shows = 1 - (s.dark ? s.revealAt : 0);
@@ -368,6 +386,8 @@
     f.seen = 1; save();
     if (!first) { sfx('special-' + (b.hybrid ? b.traits[0] : b.special)); return; }   // a hybrid: its first parent's sound
     G.paused = true;
+    $('spKick').textContent = 'New malfunction detected!'; $('specialCard').classList.remove('drum'); $('spArt').classList.add('bot', 'glitch');
+    document.querySelectorAll('#specialCard .sp-drum').forEach(p => p.remove());
     $('spArt').innerHTML = SHOW.botSVG(b.kind, {plates: b.plates});
     $('spHybrid').hidden = !b.hybrid;
     if (b.hybrid) $('spParents').textContent = parentsOf(b.special);
@@ -375,6 +395,24 @@
     $('spHow').textContent = howFor(b.special);
     $('specialCard').hidden = false; $('spGo').focus();
     A.Sfx.sequence(['special-alert', 'special-intro'], 60, {channel: 'showtime'});
+  }
+  /** a NEW DRUM CHALLENGE (the snare, snare.js): the first time a device meets one, the show waits for its card */
+  function meetDrum(id, def) {
+    const f = fileOf(id), first = !f.seen;
+    f.seen = 1; save();
+    if (!first || !G) return false;
+    if (!$('specialCard').hidden) {                          // a machine's own card is open: one card, with this as one more line
+      const p = document.createElement('p'); p.className = 'sp-drum'; p.innerHTML = `<b>New drum challenge: ${def.name}.</b> ${def.how}`;
+      $('spHow').after(p); return true;
+    }
+    G.paused = true;
+    $('spKick').textContent = 'New drum challenge!'; $('specialCard').classList.add('drum'); $('spArt').classList.remove('bot', 'glitch');
+    document.querySelectorAll('#specialCard .sp-drum').forEach(p => p.remove());
+    $('spArt').innerHTML = def.art; $('spHybrid').hidden = true;
+    $('spTitle').textContent = def.name; $('spHow').textContent = def.how;
+    $('specialCard').hidden = false; $('spGo').focus();
+    A.Sfx.sequence(['special-alert'], 60, {channel: 'showtime'});
+    return true;
   }
   $('spGo').addEventListener('click', () => {
     $('specialCard').hidden = true;
@@ -412,16 +450,18 @@
     const M = MACH['long-tone-lurker'];
     // the Glitch Lurker: halfway, the note glitches (wind: switch notes and keep holding; snare: roll faster)
     const half = t.holdP >= t.need * MACH['glitch-jester'].switchAt;
-    if (t.lurkGlitch && half && !t.switched) { jesterSwap(t); t.graceUntil = G.t + MACH['glitch-jester'].glitchMs / 1000 + 1.5; drawSign(t); drawPanel(t); }
-    if (t.rollRate2 && half && !t.fast) { t.fast = true; setPrompt(`Faster! Roll ${t.rollRate2} hits a second!`, 'bad'); drawPanel(t); }
+    if (t.lurkGlitch && half && !t.switched && !t.cresc) {   /* (the snare's crescendo roll has no glitch: a sound mid-roll would mute the mic) */
+      jesterSwap(t); t.graceUntil = G.t + MACH['glitch-jester'].glitchMs / 1000 + 1.5; drawSign(t); drawPanel(t); }
+    if (t.rollRate2 && !t.cresc && half && !t.fast) { t.fast = true; setPrompt(`Faster! Roll ${t.rollRate2} hits a second!`, 'bad'); drawPanel(t); }
     const rate = t.fast ? t.rollRate2 : t.rollRate;
-    let holding;
-    if (snare) holding = A.Pitch.demoHeld() === 'drum' || G.attacks.filter(x => now - x < 1000).length >= rate;
+    let holding, mul = 1, msg = null;
+    if (snare) ({holding, mul, msg} = SN.roll(t, now, rate));   // fast enough AND even (snare.js); NIGHTMARE's Glitch Lurker: a crescendo
     else holding = A.Pitch.demoHeld() === t.item.pc || !!(lastRead && now - lastRead.at < 250 && lastRead.r && lastRead.r.pc === t.item.pc);
     // the ring keeps what it had while the student moves to the glitched note
-    t.holdP = holding ? Math.min(t.need, t.holdP + dt) : t.graceUntil && G.t < t.graceUntil ? t.holdP : Math.max(0, t.holdP - dt * M.drain);
+    t.holdP = holding ? Math.min(t.need, t.holdP + dt * mul) : t.graceUntil && G.t < t.graceUntil ? t.holdP : Math.max(0, t.holdP - dt * M.drain);
     setHold(t);
-    if (holding && !t.wasHolding) setPrompt(snare ? 'Keep rolling! Steady…' : 'Hold it! One long, steady note.', 'good');
+    if (msg) setPrompt(msg, 'hint');
+    else if (holding && !t.wasHolding) setPrompt(snare ? 'Keep rolling! Steady…' : 'Hold it! One long, steady note.', 'good');
     t.wasHolding = holding;
     if (t.holdP >= t.need) { t.left = 0; G.score += RULES.points.tick * Math.round(t.need * 2); reboot(t); hud(); }
   }
@@ -451,8 +491,8 @@
     const M = b.splitCfg || MACH['split-sprocket'], n = G.L.lanes, l = b.lane;
     const lanes = n === 2 ? [0, 1] : l === 0 ? [0, 1] : l === 2 ? [1, 2] : [0, 2];
     // the Sprocket Dolls: each mini keeps one doll's note
-    lanes.forEach((lane, i) => spawn({kind: 'sprocket-mini', mini: true, count: randInt(snare ? M.miniSnare : M.miniCount),
-      item: b.duet ? b.duet[i] : G.pool.length ? pick(G.pool) : b.item, walk: G.L.walk / M.miniSpeed}, false, {lane, z: Math.max(.05, b.z - .04)}));
+    lanes.forEach((lane, i) => spawn(job({kind: 'sprocket-mini', mini: true, count: randInt(snare ? M.miniSnare : M.miniCount),
+      item: b.duet ? b.duet[i] : G.pool.length ? pick(G.pool) : b.item, walk: G.L.walk / M.miniSpeed}), false, {lane, z: Math.max(.05, b.z - .04)}));
     G.total += lanes.length;
     sfx('special-split-sprocket');
     setPrompt(`${MACH[b.special].name} split in two! One play each.`, 'bad');
@@ -529,7 +569,8 @@
     let staff = !snare && b.item ? noteStaff(b.item) : '<span class="drum-ico big" aria-hidden="true"></span>';
     let count = `<b class="vb-count">× ${n}</b>`;
     if (b.duet) staff = b.duet.map((it, i) => `<span class="duet-n${i === b.turn ? ' now' : ''}">${noteStaff(it)}</span>`).join('');
-    if (has(b, 'long-tone-lurker')) count = holdRing(b.need, snare ? 'Roll' : 'Hold');
+    if (has(b, 'long-tone-lurker')) count = holdRing(b.need, snare ? 'Roll' : 'Hold', b.cresc);
+    if (SN) { const o = SN.sign(b); if (o) { staff = o.staff; count = o.count; } }
     const oil = b.oiled ? `<span class="vb-oil" aria-label="Oiled: plus ${b.oiled}">${'<i></i>'.repeat(b.oiled)}</span>` : '';
     b.sign.innerHTML = `<div class="vb-top">${b.special ? MACH[b.special].name : 'Voice box'}${b.boss ? ` · phase ${b.phase}/${b.phases}` : ''}<span class="vb-next">Next</span></div>` +
       `<div class="vb-main">${staff}${count}${oil}<span class="vb-dark" aria-hidden="true">?</span></div>`;
@@ -537,8 +578,8 @@
   }
   /* pseudo-3D: the back of the arcade (z 0) is small and near the horizon; the front (z 1) is big, at the bottom */
   /** the Long Tone Lurker's ring (fills with --p on the bot or the panel) and its seconds */
-  const holdRing = (need, word) => `<span class="hold-ring" role="img" aria-label="${word} for ${need} seconds"><svg viewBox="0 0 44 44" aria-hidden="true">` +
-    `<circle class="hr-bg" cx="22" cy="22" r="18"/><circle class="hr-fill" cx="22" cy="22" r="18" pathLength="100"/></svg><b>${need}s</b><small>${word}</small></span>`;
+  const holdRing = (need, word, cresc) => `<span class="hold-ring${cresc ? ' cresc' : ''}" role="img" aria-label="${word} for ${need} seconds${cresc ? ', growing louder' : ''}"><svg viewBox="0 0 44 44" aria-hidden="true">` +
+    `<circle class="hr-bg" cx="22" cy="22" r="18"/><circle class="hr-fill" cx="22" cy="22" r="18" pathLength="100"/>${cresc ? '<path class="hr-hair" d="M13 34L31 30M13 34L31 38"/>' : ''}</svg><b>${need}s</b><small>${word}</small></span>`;
   function place(b) {
     if (!W) measure();
     const z = b.zShown, sc = (.3 + .7 * z) * (b.boss ? 1.3 : b.mini ? .72 : 1);
@@ -569,6 +610,7 @@
     if (t === lastTarget) return;
     if (lastTarget) lastTarget.el.classList.remove('target');
     lastTarget = t;
+    if (SN) SN.onTarget(t);
     drawPanel(t);
     if (t) {
       t.el.classList.remove('next');
@@ -580,6 +622,7 @@
 
   const doll = t => t.turn ? 'second' : 'first';
   function targetPrompt(t) {
+    const sp = SN && SN.prompt(t); if (sp) return sp;
     if (has(t, 'long-tone-lurker')) return snare ? `Keep a steady roll (${t.fast ? t.rollRate2 : t.rollRate} hits a second) until the ring fills!${t.rollRate2 && !t.fast ? ' It speeds up halfway.' : ''}`
       : `Hold ${t.item.label} until the ring fills. One long, steady note.${t.lurkGlitch && !t.switched ? ' Halfway it glitches: switch notes!' : ''}`;
     if (t.dark) return `${MACH[t.special].name}! Its note is hidden in the dark. Watch closely…`;
@@ -591,7 +634,7 @@
   function drawPanel(t) {
     const el = $('tpanel');
     el.classList.toggle('idle', !t);
-    if (!t) { tpShown = tpLook = null; $('tpWho').textContent = G && !G.over ? 'Get ready…' : ''; $('tpStaff').innerHTML = ''; $('tpCount').textContent = ''; tether(null); return; }
+    if (!t) { tpShown = tpLook = null; $('tpWho').textContent = G && !G.over ? 'Get ready…' : ''; $('tpStaff').innerHTML = ''; $('tpCount').textContent = ''; tether(null); if (SN) SN.panel(null); return; }
     const key = t.id + ':' + t.phase;
     // what the staff shows: the note (the Duet Dolls: the one whose turn it is; Blackout Bot: nothing while it's dark)
     const look = key + ':' + (t.item ? t.item.label + t.item.midi : '') + ':' + (t.dark ? 'dark' : '');
@@ -606,8 +649,9 @@
         : !snare && t.item ? noteStaff(t.item, {fitted: true}) : '<span class="drum-ico huge" aria-hidden="true"></span>';
       el.classList.toggle('tp-special', !!t.special);
     }
+    if (SN && SN.panel(t)) return;                          // the snare's rhythm / accent / p / f / tempo jobs, and exact counts
     if (has(t, 'long-tone-lurker')) {
-      if (!$('tpCount').querySelector('.hold-ring')) $('tpCount').innerHTML = holdRing(t.need, snare ? 'Roll' : 'Hold');
+      if (!$('tpCount').querySelector('.hold-ring')) $('tpCount').innerHTML = holdRing(t.need, snare ? 'Roll' : 'Hold', t.cresc);
       $('tpCount').setAttribute('aria-label', `${snare ? 'Roll' : 'Hold'} for ${t.need} seconds`);
       el.style.setProperty('--p', (t.holdP / t.need).toFixed(3));
       return;
@@ -650,16 +694,17 @@
     const still = G.over || G.paused || G.held || !!G.scare || document.hidden || A.Pitch.isSuppressed(now);
     if (!still) {
       G.t += dt;
-      if (G.bossPending && now >= G.spawnAt) { G.bossPending = false; spawn({kind: 'moose', count: snare ? G.L.boss.snare : G.L.boss.count, item: G.bossItems[0] || null}, true); G.spawnAt = now + 2500; }
+      if (SN) SN.tick(dt, now);
+      if (G.bossPending && now >= G.spawnAt) { G.bossPending = false; spawn(job({kind: 'moose', count: snare ? G.L.boss.snare : G.L.boss.count, item: G.bossItems[0] || null}, true), true); G.spawnAt = now + 2500; }
       const walking = G.bots.filter(b => b.state === 'walk' && !b.boss).length;
       if (G.queue.length && walking < G.L.atOnce && now >= G.spawnAt) {
-        spawn(specialize(G.queue.shift()));
+        spawn(job(specialize(G.queue.shift())));
         G.entered++; armScares();
         G.spawnAt = now + G.L.walk * 1000 / (G.L.atOnce + .6);
       }
       G.bots.forEach(b => {
         if (!G || b.state !== 'walk') return;                 // (the last one reaching the front can end the show mid-loop)
-        b.z = Math.min(1, b.z + dt / b.walk);
+        b.z = Math.min(1, b.z + dt / b.walk * (SN ? SN.walkMul() : 1));
         if (reduced.matches) b.zShown = b.z;
         else if (now >= b.nextLurch) {                         // stop-motion: a jerky step, and a twitch
           b.zShown = b.z; b.nextLurch = now + rand(...RULES.lurchMs);
@@ -672,7 +717,7 @@
       if (!G) return;
       lurkerTick(dt, now);
       scareTick();
-    }
+    } else if (SN) SN.still(now);
     markTarget();
     tether(G.over ? null : lastTarget);
   }
@@ -694,6 +739,7 @@
   /* ---------- listening: every separate attack on the right note counts one down ---------- */
   A.Pitch.demoTarget = () => { const t = G && !G.over ? target() : null; return t && !snare && t.item ? {pc: t.item.pc, midi: t.item.sounding} : null; };
   A.Pitch.onAttack(a => {
+    if (snare) return;                                          // the snare is heard by shared/onsets.js (snare.js): when, how loud
     if (!G || G.over || G.paused || G.held || G.scare) return;
     const t = target(); if (!t) return;
     lastAttack = a.time; heldSince = 0;
@@ -713,20 +759,31 @@
       if (a.pc !== null) setPrompt(`That's ${G.name(a.pc)}. Play ${t.item.label}.`, 'bad');
       return;
     }
+    counted(t);
+    if (t.left > 0) countedMore(t); else complete(t);
+    hud();
+  });
+  /** one counted play on t (its spark, its armor plate, the Duet Dolls' turn) */
+  function counted(t) {
     t.left--; G.score += RULES.points.tick;
     t.el.classList.remove('spark'); void t.el.offsetWidth; t.el.classList.add('spark');
     if (t.plates) popPlates(t);
     if (t.duet) { t.turn = 1 - t.turn; t.item = t.duet[t.turn]; t.el.classList.toggle('duet-b', t.turn === 1); }
-    if (t.left > 0) {
-      const swapped = t.switchLeft != null && !t.switched && t.left <= t.switchLeft;
-      if (swapped) jesterSwap(t);
-      drawSign(t); t.sign.classList.remove('tick'); void t.sign.offsetWidth; t.sign.classList.add('tick');
-      drawPanel(t); tickPanel();
-      if (!swapped) sfx('attack-tick');
-      if (swapped) { /* its own message */ }
-      else if (t.duet) setPrompt(`${t.left} more! Now the ${doll(t)} doll: ${t.item.label}.`, 'good');
-      else setPrompt(snare ? `${t.left} more!` : `${t.left} more ${t.item.label}${t.left > 1 ? 's' : ''}!`, 'good');
-    } else if (t.boss && t.phase < t.phases) {                  // the Maestro: next phase, next note, a stagger back
+  }
+  /** plays still to go: the voice box and the panel tick (the snare: no tick sound, see snare.js) */
+  function countedMore(t) {
+    const swapped = t.switchLeft != null && !t.switched && t.left <= t.switchLeft;
+    if (swapped) jesterSwap(t);
+    drawSign(t); t.sign.classList.remove('tick'); void t.sign.offsetWidth; t.sign.classList.add('tick');
+    drawPanel(t); tickPanel();
+    if (!swapped && !snare) sfx('attack-tick');
+    if (swapped) { /* its own message */ }
+    else if (t.duet) setPrompt(`${t.left} more! Now the ${doll(t)} doll: ${t.item.label}.`, 'good');
+    else setPrompt(snare ? `${t.left} more!` : `${t.left} more ${t.item.label}${t.left > 1 ? 's' : ''}!`, 'good');
+  }
+  /** its count is done: Maestro Moose's next phase, or a reboot */
+  function complete(t) {
+    if (t.boss && t.phase < t.phases) {                         // the Maestro: next phase, next note, a stagger back
       t.phase++; t.left = snare ? G.L.boss.snare : G.L.boss.count; t.item = G.bossItems[t.phase - 1] || t.item;
       t.z = Math.max(.05, t.z - RULES.bossStagger); t.zShown = t.z; place(t); drawSign(t);
       G.score += RULES.points.reboot;
@@ -734,8 +791,7 @@
       setPrompt(`Phase ${t.phase} of ${t.phases}! ${snare ? '' : 'New note: ' + t.item.label + '.'}`, 'good');
       lastTarget = null;
     } else reboot(t);
-    hud();
-  });
+  }
   function reboot(b) {
     b.state = 'reboot';
     b.el.classList.remove('glitch', 'target'); b.el.classList.add('fixed');
@@ -899,6 +955,13 @@
   const resBandMax = () => Math.max(70, Math.min(150, innerHeight * .2));
 
   A.Showtime.debug = () => G;                              // tests
+  // tests: the snare's state, the timing of the rhythm being played, a machine's job + fairness, the soundcheck
+  A.Showtime.snare = () => SN && SN.state();
+  A.Showtime.snarePlan = () => SN && SN.plan();
+  A.Showtime.snareRoll = () => { const t = target(); return SN && t && has(t, 'long-tone-lurker') ? SN.roll(t, performance.now(), t.fast ? t.rollRate2 : t.rollRate) : null; };
+  A.Showtime.snareJob = (spec, boss) => G && job(spec, boss);
+  A.Showtime.soundcheck = () => SN && SN.soundcheck();
+  A.Showtime.timingCheck = () => SN && SN.timing();
   A.Showtime.choose = () => G && chooseSpecial();         // tests: which special (if any) would walk on next
   A.Showtime.specialize = spec => G && specialize(spec);  // tests: a spec turned into the (forced) special
   A.Showtime.lineup = lineup;                              // tests: lay out a stage/results band

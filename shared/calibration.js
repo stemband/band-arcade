@@ -68,6 +68,20 @@ window.Arcade = window.Arcade || {};
     return {offs, median, spread: +spread.toFixed(1), accepted: offs.length, rejectedAsClick: clicky, bleed: +bleed.toFixed(4), clickLike, ok: !why, why};
   }
 
+  /* THE DEVICE'S TIMING CHECK, saved once for the whole arcade (Rhythm Dojo's gameData, so the Backup Code carries it):
+       Calibration.saved(key)  {ms, n, at} or null   ('clap' = claps AND snare hits, heard by the microphone; 'tap' = the touch pad)
+       Calibration.lag(key)    the delay (ms) to take off every hit: the saved one, else DEFAULT_LAG (Rhythm Dojo's
+                               RD_RULES.defaultLag when its levels.js is on the page)
+       Calibration.store(key, result)   a successful check (TimingCheck does it) */
+  const HOME = 'rhythm-dojo', DEFAULT_LAG = {clap: 60, tap: 40};
+  const saved = key => { const g = A.store && A.store.gameData(HOME), c = g && g.calib && g.calib[key]; return c && typeof c.ms === 'number' ? c : null; };
+  const lag = key => { const c = saved(key); return c ? c.ms : ((window.RD_RULES && window.RD_RULES.defaultLag) || DEFAULT_LAG)[key]; };
+  function store(key, res) {
+    const g = A.store.gameData(HOME);
+    g.calib = Object.assign({}, g.calib || {}, {[key]: {ms: Math.round(res.median), n: res.accepted, at: Date.now()}});
+    A.store.saveGameData(HOME);
+  }
+
   A.AudioClock = {create};
-  A.Calibration = {analyse};
+  A.Calibration = {analyse, saved, lag, store, DEFAULT_LAG};
 })(window.Arcade);

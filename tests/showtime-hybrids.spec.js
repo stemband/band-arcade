@@ -9,7 +9,8 @@ const HYBRIDS = ['glitch-lurker', 'blackout-jester', 'sprocket-dolls', 'oil-tank
 // the play-throughs run at Showtime 2 (one animatronic on the floor at a time): at Showtime 5 two walk at once and a
 // regular one can pass the (slowed) hybrid and become the target, so holding its note stops counting for the hybrid
 const SOLO = 2;
-const store = (member = 'trumpet', extra = {}) => device(member, {gameData: {'showtime-malfunction': Object.assign({storySeen: true}, extra)}});
+// (the snare's device did the soundcheck, which runs before a showtime with soft and loud machines)
+const store = (member = 'trumpet', extra = {}) => device(member, {gameData: {'showtime-malfunction': Object.assign({storySeen: true}, member === 'snare' ? {snareDyn: {soft: .05, loud: .4, split: .1414}} : {}, extra)}});
 
 async function start(page, lv = 1) {
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
