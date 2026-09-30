@@ -181,3 +181,75 @@ test.describe('touch screens (iPad)', () => {
     });
   }
 });
+
+/* THE BATTLE MENU (style.css .q-btn.sel, engine/text.js Q.menu): selecting any of the five actions never changes a
+   button's size or covers "What will you do?"; exactly one button looks selected (filled + ▶); the mouse moves it */
+async function battle(page, size, touch) {
+  await page.setViewportSize(size);
+  const watch = await prepare(page, {store: store({keysTip: true})});
+  await page.goto('arcade-quest/index.html?demo&test');
+  await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName === 'arena');
+  await page.evaluate(() => { Arcade.Quest.save.setFlag('pathsTip'); Arcade.Quest.go('battle', {enemy: 'squawk', back: 'arena'}); });
+  for (let i = 0; i < 40 && !(await page.locator('#qCmd:not([hidden]) .q-btn').count()); i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(100); }
+  await expect(page.locator('#qCmd .q-btn')).toHaveCount(5);
+  return watch;
+}
+const menuBoxes = page => page.evaluate(() => {
+  const bs = [...document.querySelectorAll('#qCmd .q-btn')], pr = document.getElementById('qPrompt').getBoundingClientRect();
+  const sel = bs.filter(b => b.classList.contains('sel'));
+  return {boxes: bs.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }),
+    prompt: [Math.round(pr.left), Math.round(pr.top), Math.round(pr.bottom)], top: Math.min(...bs.map(b => b.getBoundingClientRect().top)),
+    sel: sel.map(b => b.querySelector('.q-bl').textContent), filled: bs.map(b => getComputedStyle(b).backgroundColor),
+    wraps: bs.some(b => { const l = b.querySelector('.q-bl'); return l.scrollWidth > l.clientWidth + 1 || l.getClientRects().length > 1; }),
+    pointer: sel.map(b => getComputedStyle(b, '::before').content)};
+});
+for (const [name, size, touch] of [['laptop', LAPTOP, false], ['phone', {width: 390, height: 844}, true], ['iPad landscape', LAND, true], ['iPad portrait', PORT, true]]) {
+  test.describe(`the battle menu (${name})`, () => {
+    if (touch) test.use({hasTouch: true});
+    test('selecting each action keeps every button\'s box and the prompt; exactly one looks selected', async ({page}) => {
+      const watch = await battle(page, size, touch);
+      const first = await menuBoxes(page);
+      const labels = await page.locator('#qCmd .q-btn .q-bl').allTextContents();
+      expect(labels).toEqual(['PLAY', 'SERENADE', 'LISTEN', 'ITEM', 'HARMONIZE']);
+      const seen = [];
+      // HARMONIZE is disabled (CALM not full): the arrows skip it; the fifth press wraps to PLAY
+      for (let k = 0; k < 5; k++) {
+        const m = await menuBoxes(page);
+        expect(m.boxes, `${name} step ${k}`).toEqual(first.boxes);                   // no button moves or grows
+        expect(m.prompt).toEqual(first.prompt);
+        expect(m.prompt[2]).toBeLessThanOrEqual(m.top);                             // the prompt is above, never covered
+        expect(m.wraps).toBe(false);
+        expect(m.sel).toHaveLength(1);
+        const i = labels.indexOf(m.sel[0]), rest = m.filled.filter((_, j) => j !== i && j !== 4);
+        expect(new Set(rest).size).toBe(1);                                          // the others all alike…
+        expect(rest[0]).not.toBe(m.filled[i]);                                       // …and the selected one filled
+        expect(m.pointer[0]).toContain('▶');
+        seen.push(m.sel[0]);
+        await page.keyboard.press('ArrowRight');
+        await page.waitForTimeout(60);
+      }
+      expect(seen).toEqual(['PLAY', 'SERENADE', 'LISTEN', 'ITEM', 'PLAY']);
+      // unselected ones all look alike (the same background), the selected one differs
+      const m = await menuBoxes(page), i = labels.indexOf(m.sel[0]);
+      const others = m.filled.filter((_, j) => j !== i && j !== 4);
+      expect(new Set(others).size).toBe(1);
+      expect(others[0]).not.toBe(m.filled[i]);
+      watch.check();
+    });
+  });
+}
+test('the battle menu: the mouse moves the ONE selection (never a hovered box and another selected one)', async ({page}) => {
+  const watch = await battle(page, LAPTOP, false);
+  for (const label of ['LISTEN', 'SERENADE', 'ITEM']) {
+    await page.locator('#qCmd .q-btn', {hasText: label}).hover();
+    await expect.poll(async () => (await menuBoxes(page)).sel).toEqual([label]);
+  }
+  // a disabled HARMONIZE can't take it
+  await page.locator('#qCmd .q-btn', {hasText: 'HARMONIZE'}).hover();
+  await page.waitForTimeout(100);
+  expect((await menuBoxes(page)).sel).toEqual(['ITEM']);
+  // and the keys carry on from where the mouse left it
+  await page.keyboard.press('ArrowLeft');
+  await expect.poll(async () => (await menuBoxes(page)).sel).toEqual(['LISTEN']);
+  watch.check();
+});

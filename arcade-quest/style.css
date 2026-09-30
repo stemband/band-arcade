@@ -32,19 +32,39 @@ button{font:inherit}
 @keyframes q-bob{50%{transform:translateY(calc(var(--px) * 2))}}
 
 /* ---------- pixel buttons and menus ---------- */
-.q-menu{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:calc(var(--px) * 3)}
-.q-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--px) * 1);min-height:calc(var(--px) * 22);
+/* ONE "you're about to pick this" look everywhere (Q.menu, engine/text.js: the arrows, the D-pad, the mouse and Tab all
+   move the ONE selection, .sel): FILLED in the cursor color with dark text, and a ▶ pointer in the gap to its left that
+   takes no space (absolutely placed) and hops in steps. Nothing about the selection changes a button's size. Every
+   other button is dark with a grey border; an action's identity is a thin stripe at the TOP inside it (PLAY gold,
+   SERENADE pink), never a border that could look like a second selection. */
+.q-menu{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:calc(var(--px) * 3) calc(var(--px) * 6)}
+.q-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--px) * 1);min-height:calc(var(--px) * 22);min-width:0;
   padding:calc(var(--px) * 3) calc(var(--px) * 4);background:var(--q-black);color:var(--q-white);border:calc(var(--px) * 1.5) solid var(--q-grey);
   border-radius:0;cursor:pointer;font-weight:700;font-size:calc(var(--px) * 9);letter-spacing:.03em;text-align:center;box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3)}
+.q-btn .q-bl{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .q-btn small{font-weight:400;font-size:calc(var(--px) * 6);color:var(--text-lo);letter-spacing:0;line-height:1.15}
-.q-five .q-btn small{font-size:calc(var(--px) * 5)}          /* five battle actions: every description stays on 2 lines (under the prompt) */
-.q-btn:hover,.q-btn.sel,.q-btn:focus-visible{border-color:var(--q-cursor);color:var(--q-cursor);outline:none}
-.q-btn.sel .q-bl::before,.q-btn:focus-visible .q-bl::before{content:"▸ "}
+.q-five .q-btn{font-size:calc(var(--px) * 7.5)}             /* five battle actions: every label on one line */
+.q-five .q-btn small{font-size:calc(var(--px) * 5)}          /* … and every description on 2 lines (under the prompt) */
+.q-btn:focus-visible{outline:none}
 .q-btn:disabled{opacity:.45;cursor:default;border-style:dashed}
 .q-btn:disabled small{color:var(--text-lo)}
-.c-play{border-color:var(--q-gold)}
-.c-ser{border-color:var(--q-pink)}
-.c-harm.ready{border-color:var(--q-pink);color:var(--q-pink);animation:q-pulse 1.2s steps(2) infinite}
+/* the identities: a stripe at the top inside (kept when selected) */
+.c-play{box-shadow:inset 0 calc(var(--px) * 1.5) 0 var(--q-gold),inset 0 calc(var(--px) * -2) 0 var(--floor-3)}
+.c-ser{box-shadow:inset 0 calc(var(--px) * 1.5) 0 var(--q-pink),inset 0 calc(var(--px) * -2) 0 var(--floor-3)}
+/* HARMONIZE ready: pink letters + a slow pink pulse around it */
+.c-harm.ready{color:var(--q-pink);animation:q-pulse 1.2s steps(2) infinite}
+/* THE SELECTION (after the identities: the fill always wins, HARMONIZE-ready included) */
+.q-btn.sel{background:var(--q-cursor);border-color:var(--q-cursor);color:var(--q-black)}
+.q-btn.sel small,.q-btn.sel.c-harm.ready{color:var(--q-black)}
+.q-btn.sel::before{content:"\25B6";position:absolute;left:calc(var(--px) * -5.5);top:50%;margin-top:calc(var(--px) * -3);
+  font:700 calc(var(--px) * 5)/calc(var(--px) * 6) "GN Quest",var(--text);color:var(--q-cursor);pointer-events:none;animation:q-hop .8s steps(2) infinite}
+@keyframes q-hop{50%{transform:translateX(calc(var(--px) * -1))}}
+/* the level-select "main button" (shared/level-select.js LevelSelect.highlight: CONTINUE / NEW GAME) is a gold stripe
+   at the top here, like PLAY's, never a ring that looks like a second selection */
+.q-btn.ls-main{box-shadow:inset 0 calc(var(--px) * 1.5) 0 var(--q-gold),inset 0 calc(var(--px) * -2) 0 var(--floor-3)!important}
+/* a plain .q-btn outside a menu (Load, Check, PRESS START…): the same fill on hover */
+.q-btn:not(.q-menu > .q-btn):hover,.q-btn:not(.q-menu > .q-btn):focus-visible{background:var(--q-cursor);border-color:var(--q-cursor);color:var(--q-black)}
+.q-btn:not(.q-menu > .q-btn):hover small{color:var(--q-black)}
 @keyframes q-pulse{50%{box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3),0 0 0 calc(var(--px) * 1.5) var(--q-pink)}}
 
 /* ---------- battle HUD ---------- */
@@ -79,9 +99,10 @@ button{font:inherit}
 .q-comp.target .q-cname::before{content:"▶ "}
 .q-gear{right:calc(var(--px) * 4);bottom:calc(var(--px) * 124);width:calc(var(--px) * 14);height:calc(var(--px) * 14);padding:0;background:var(--q-black);color:var(--q-white);
   border:calc(var(--px) * 1) solid var(--q-grey-d);cursor:pointer;font-size:calc(var(--px) * 8);display:none}
-.q-prompt{left:calc(var(--px) * 12);bottom:calc(var(--px) * 44);margin:0;color:var(--q-white);font-size:calc(var(--px) * 8)}
+.q-prompt{left:calc(var(--px) * 12);bottom:calc(var(--px) * 46);margin:0;color:var(--q-white);font-size:calc(var(--px) * 8)}
 .q-prompt[hidden],.q-cmd[hidden]{display:none}
 .q-cmd{left:calc(var(--px) * 8);right:calc(var(--px) * 8);bottom:calc(var(--px) * 8)}
+.q-cmd .q-btn{height:calc(var(--px) * 30);min-height:0}   /* one fixed height for every battle button (the prompt sits above, at 46) */
 .q-mictag{left:50%;transform:translateX(-50%);top:calc(var(--px) * 2);margin:0;padding:calc(var(--px) * 1) calc(var(--px) * 4);background:var(--q-black);
   color:var(--q-red);border:calc(var(--px) * 1) solid var(--q-red);font-size:calc(var(--px) * 6);z-index:6}
 .q-mictag[hidden]{display:none}
@@ -207,7 +228,7 @@ body.q-arranging .q-wrap .dpad,body.q-arranging .q-wrap .abpad{position:relative
 body.q-touch .q-gear{display:block}
 
 @media (prefers-reduced-motion:reduce){
-  .q-tmore,.c-harm.ready,.q-dot{animation:none}
+  .q-tmore,.c-harm.ready,.q-dot,.q-btn.sel::before{animation:none}
   .q-float{animation:q-fade 1.1s forwards}
   .q-bar i{transition:none}
 }
