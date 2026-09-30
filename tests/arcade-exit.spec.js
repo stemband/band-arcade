@@ -73,7 +73,7 @@ test.describe('BACK TO ARCADE GAMES', () => {
   });
 });
 
-const FLAGGED = ['note-ninja', 'keys-to-the-city', 'chime-heist', 'rhythm-dojo', 'ancient-ninja-scrolls', 'button-masher', 'dojo-duel'];
+const FLAGGED = ['note-ninja', 'keys-to-the-city', 'chime-heist', 'rhythm-dojo', 'ancient-ninja-scrolls', 'button-masher', 'dojo-duel', 'blocktave'];
 
 for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['iPad landscape', 1180, 820], ['laptop', 1366, 768]]) {
   test(`ALL GAMES: "No instrument needed" shows exactly the flagged games (${name})`, async ({page}) => {
