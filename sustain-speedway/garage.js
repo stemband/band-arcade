@@ -109,8 +109,11 @@
   function cardHTML(list) {
     return `<div class="sw-newcar" id="gNew"><p class="sw-newcar-t">NEW IN THE GARAGE!</p>` +
       `<p class="sw-newcar-l">${list.map(k => `<span>${nameOf(k)}</span>`).join('')}</p>` +
-      `<button type="button" class="btn btn-secondary btn-small" id="gNewBtn">Garage</button></div>`;
+      `<button type="button" class="btn garage-btn garage-fill" id="gNewBtn">${ICON}<span class="gb-t">Garage</span></button></div>`;
   }
+  /** the garage's car icon (the track menu's GARAGE button has the same one) */
+  const ICON = '<svg class="gb-i" viewBox="0 0 40 24" aria-hidden="true"><path d="M3 18V12L8 10L12 4H28L32 10L37 12V18Z" fill="currentColor"/>' +
+    '<circle cx="11" cy="19" r="4" fill="var(--gb-wheel,var(--deep))" stroke="currentColor" stroke-width="2"/><circle cx="29" cy="19" r="4" fill="var(--gb-wheel,var(--deep))" stroke="currentColor" stroke-width="2"/></svg>';
 
   /* ---------- THE GARAGE panel ---------- */
   let ov = null, cur = null, tab = 'body', raf = 0, back = null, onClose = null;
@@ -233,6 +236,6 @@
     ov.querySelector('#gName').textContent = `${b ? b.name : ''} · ${p ? p.name : ''}${d !== 'none' ? ' · ' + (d === 'number' ? '#' + c.number : item('decal', d).name) : ''}`;
   }
 
-  A.SpeedwayGarage = {choice, look, set, pick, open, close, stats, unlocked, requirement, keys, fresh, markSeen, cardHTML, instrumentLook,
+  A.SpeedwayGarage = {ICON, choice, look, set, pick, open, close, stats, unlocked, requirement, keys, fresh, markSeen, cardHTML, instrumentLook,
     state: () => ({open: !!ov, tab, choice: choice(), look: look(), unlocked: Object.fromEntries(Object.keys(KINDS).map(k => [k, KINDS[k].filter(it => unlocked(k, it.id)).map(it => it.id)]))})};
 })(window.Arcade);
