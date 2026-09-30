@@ -178,10 +178,10 @@ test('a wrong note turns the expected note red, then amber when it is played; a 
   watch.check();
 });
 
-test('time runs out mid-scale: that scale may finish, then "Time. Thank you."; scales not started score 0', async ({page}) => {
+test('time runs out mid-scale (level 3, the first timed level): that scale may finish, then "Time. Thank you."; scales not started score 0', async ({page}) => {
   test.setTimeout(90000);
   const watch = await open(page);
-  await start(page, 'audition', 0);
+  await start(page, 'audition', 2);
   await playAll(page, 5);                                        // the first scale is under way
   await page.evaluate(() => { const s = Arcade.ScaleAudition.state(); Arcade.ScaleAudition.setMs(s.limit + 10); });
   await page.waitForFunction(() => Arcade.ScaleAudition.state().timeUp);
@@ -246,5 +246,164 @@ test('practice: pick a scale, no clock and no stars; LOOP counts clean runs and 
   expect(await page.evaluate(() => Arcade.ScaleAudition.state().runs[0].i)).toBe(0);      // LOOP: back to the first note
   expect((await saved(page)).gameData['scale-audition'].practice.trumpet.Bb).toBeGreaterThan(0);
   await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
+  watch.check();
+});
+
+/* ---------- articulation, memory, and no timer on levels 1–2 ---------- */
+/** play every remaining note of the current run straight into the follower (no attacks), scale by scale */
+const hearAll = page => page.evaluate(() => { const SA = Arcade.ScaleAudition; for (let k = 0; k < 400; k++) { const w = SA.want(); if (!w) break; SA.heard(w.pc); } });
+const hearScale = page => page.evaluate(() => { const SA = Arcade.ScaleAudition, si = SA.state().si; for (let k = 0; k < 100; k++) { const w = SA.want(); if (!w || SA.state().si !== si) break; SA.heard(w.pc); } });
+
+test('slurs: scale top → tonic and arpeggio top → the final whole note, for 1 and 2 octaves; split at a line break; the drawing covers each span exactly', async ({page}) => {
+  test.setTimeout(90000);
+  const watch = await open(page);
+  const data = await page.evaluate(() => Arcade.ScaleAudition.scales().map(sc => {
+    const n = sc.notes, top = n.findIndex((x, i) => i > 0 && x.midi === Math.max(...n.slice(0, 2 * 7 * sc.octaves + 1).map(y => y.midi)));
+    const arp = n.slice(2 * 7 * sc.octaves + 1), arpTop = 2 * 7 * sc.octaves + 1 + arp.findIndex(x => x.midi === Math.max(...arp.map(y => y.midi)));
+    return {id: sc.id, oct: sc.octaves, slurs: sc.slurs, top, end: 2 * 7 * sc.octaves, arpTop, last: n.length - 1, endIsTonic: n[2 * 7 * sc.octaves].midi === n[0].midi};
+  }));
+  for (const d of data) {
+    expect(d.slurs, d.id).toEqual([[d.top, d.end], [d.arpTop, d.last]]);
+    expect(d.endIsTonic).toBe(true);
+    expect(d.slurs).toEqual(d.oct === 2 ? [[14, 28], [34, 40]] : [[7, 14], [17, 20]]);
+  }
+  // drawn: the 2-octave scale (card 0) on a phone wraps over several lines; the 1-octave one (card 1) on an iPad
+  for (const [card, size] of [[0, {width: 390, height: 844}], [0, {width: 1024, height: 768}], [1, {width: 1024, height: 768}]]) {
+    await page.setViewportSize(size);
+    await start(page, 'practice', card);
+    const want = data[card].slurs;
+    const parts = await page.evaluate(() => [...document.querySelectorAll('#sheet .sa-slur')].map(p => ({s: +p.dataset.slur, from: +p.dataset.from, to: +p.dataset.to, part: p.dataset.part,
+      row: [...document.querySelectorAll('#sheet .sa-row')].indexOf(p.closest('.sa-row'))})));
+    const rows = await page.locator('#sheet .sa-row').count();
+    want.forEach(([a, b], si) => {
+      const mine = parts.filter(p => p.s === si).sort((x, y) => x.row - y.row);
+      expect(mine[0].from, `slur ${si} starts`).toBe(a);
+      expect(mine[mine.length - 1].to, `slur ${si} ends`).toBe(b);
+      for (let k = 1; k < mine.length; k++) expect(mine[k].from, 'no gap at a line break').toBe(mine[k - 1].to + 1);
+      if (mine.length === 1) expect(mine[0].part).toBe('whole');
+      else { expect(mine[0].part).toBe('start'); expect(mine[mine.length - 1].part).toBe('end'); }
+    });
+    if (size.width === 390 && card === 0) { expect(rows).toBeGreaterThan(2); expect(parts.some(p => p.part === 'start')).toBe(true); }
+    await expect(page.locator('#artLine')).toBeVisible();
+    await expect(page.locator('#artLine')).toHaveText('Tongue going up, slur coming down.');
+    await page.evaluate(() => Arcade.ScaleAudition.begin && document.getElementById('uiPauseBtn').click());
+    await page.locator('#uiPause [data-act="levels"]').click();
+    const yes = page.locator('#uiConfirm .btn-danger, #uiConfirm .btn-primary').first();
+    if (await yes.isVisible({timeout: 1000}).catch(() => false)) await yes.click();
+    await expect(page.locator('#hub')).toBeVisible();
+  }
+  watch.check();
+});
+
+test('mallets: no slurs anywhere (data and staff), no articulation line', async ({page}) => {
+  test.setTimeout(60000);
+  const watch = await open(page, 'bells');
+  expect(await page.evaluate(() => Arcade.ScaleAudition.scales().map(sc => sc.slurs))).toEqual([[], [], [], []]);
+  await start(page, 'practice', 0);
+  await expect(page.locator('#sheet .sa-row').first()).toBeVisible();
+  await expect(page.locator('#sheet .sa-slur')).toHaveCount(0);
+  await expect(page.locator('#artLine')).toBeHidden();
+  watch.check();
+});
+
+test('levels 1–2: the staff for all four scales, no time bar, never end on time, "in order." without "from memory"; a slow clean run = 3 stars', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page);
+  for (const card of [0, 1]) {
+    await page.locator(`#modeSeg [data-mode="audition"]`).click();
+    await expect(page.locator('#levelGrid .lvl').nth(card)).toContainText('Music shown · No timer');
+    await page.locator('#levelGrid .lvl').nth(card).click();
+    await page.locator('.ls-start').click();
+    const mic = page.getByRole('button', {name: 'Turn on microphone'});
+    if (await mic.isVisible({timeout: 1500}).catch(() => false)) await mic.click();
+    await expect(page.locator('#adjText')).toHaveText('Please play your scales in order.');
+    await page.waitForFunction(() => { const s = Arcade.ScaleAudition.state(); return s && s.listening; }, null, {timeout: 20000});
+    expect(await page.evaluate(() => Arcade.ScaleAudition.state().limit)).toBe(0);
+    await expect(page.locator('#timeBar')).toBeHidden();
+    await expect(page.locator('#clockLabel')).toHaveText('Time');
+    // a very slow run: ten minutes on the stopwatch, still going
+    await page.evaluate(() => Arcade.ScaleAudition.setMs(600000));
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => Arcade.ScaleAudition.state().timeUp)).toBe(false);
+    for (let si = 0; si < 4; si++) {
+      await expect(page.locator('#sheet')).toBeVisible();
+      await expect(page.locator('#memory')).toBeHidden();
+      expect(await page.evaluate(() => Arcade.ScaleAudition.state().si)).toBe(si);
+      if (card === 0) await expect(page.locator('#sheet')).toHaveClass(/sa-names/);           // level 1: the note names
+      else await expect(page.locator('#sheet')).not.toHaveClass(/sa-names/);
+      await hearScale(page);
+    }
+    await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+    await expect(page.locator('#timeUp')).toBeHidden();
+    await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+    await expect(page.locator('#scoreSheet')).toContainText('Your time 10:');
+    await expect(page.locator('#scoreSheet')).toContainText('Audition limit 1:00');
+    await expect(page.locator('#scoreSheet')).not.toContainText('✗');
+    await page.locator('#resLevels').click();
+  }
+  const s = await saved(page);
+  expect(s.games['scale-audition'].trumpet[1].stars).toBe(3);
+  expect(s.games['scale-audition'].trumpet[2].stars).toBe(3);
+  watch.check();
+});
+
+test('levels 3–4: from memory ("…, from memory."), timed, the staff hidden for every scale; level 4 ends on time like before', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page);
+  await expect(page.locator('#levelGrid .lvl').nth(2)).toContainText('Memory · Timed');
+  await expect(page.locator('#levelGrid .lvl').nth(3)).toContainText('Memory · Audition time');
+  await start(page, 'audition', 2);
+  await expect(page.locator('#adjText')).toHaveText('Please play your scales in order, from memory.');
+  await expect(page.locator('#timeBar')).toBeVisible();
+  expect(await page.evaluate(() => Arcade.ScaleAudition.state().limit)).toBe(75000);            // trumpet 60 s × 1.25
+  for (let si = 0; si < 4; si++) {
+    await expect(page.locator('#sheet')).toBeHidden();
+    await expect(page.locator('#memory')).toBeVisible();
+    await hearScale(page);
+  }
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await page.locator('#resLevels').click();
+  // level 4: time runs out before a scale is started = the audition ends at once
+  await start(page, 'audition', 3);
+  await hearScale(page);                                                                        // scale 1 done
+  await page.evaluate(() => { const s = Arcade.ScaleAudition.state(); Arcade.ScaleAudition.setMs(s.limit + 10); });
+  await expect(page.locator('#timeUp')).toContainText('Time. Thank you.');
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(0);
+  await expect(page.locator('#scoreSheet')).toContainText('✗ time');
+  watch.check();
+});
+
+test('articulation: shown on the score sheet (✓, or what to check) but never changes the stars while ARTICULATION_COUNTS is false', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page);
+  expect(await page.evaluate(() => Arcade.ScaleAudition.ARTICULATION_COUNTS)).toBe(false);
+  // no attacks at all: every note slurred → "check tonguing going up", still 3 stars
+  await start(page, 'audition', 0);
+  await hearAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#scoreSheet .sa-art')).toHaveCount(4);
+  await expect(page.locator('#scoreSheet .sa-art').first()).toHaveText('Articulation: check tonguing going up');
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+  await page.locator('#resRetry').click();
+  // the demo's Space tongues where the music says (attacks going up, none under a slur): ✓
+  await page.waitForFunction(() => { const s = Arcade.ScaleAudition.state(); return s && s.listening; }, null, {timeout: 20000});
+  await page.evaluate(() => document.activeElement && document.activeElement.blur());
+  await page.keyboard.down('Space');
+  await expect(page.locator('#results')).toBeVisible({timeout: 60000});
+  await page.keyboard.up('Space');
+  const arts = await page.locator('#scoreSheet .sa-art').allTextContents();
+  expect(arts).toEqual(['Articulation: ✓', 'Articulation: ✓', 'Articulation: ✓', 'Articulation: ✓']);
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+  // every note tongued (an attack on the slurred ones too) = "check slurring coming down"
+  await page.locator('#resRetry').click();
+  await page.waitForFunction(() => { const s = Arcade.ScaleAudition.state(); return s && s.listening; }, null, {timeout: 20000});
+  await page.evaluate(async () => {
+    const SA = Arcade.ScaleAudition;
+    for (let k = 0; k < 400; k++) { const w = SA.want(); if (!w) break; SA.attack(performance.now() - 120); SA.heard(w.pc); await new Promise(r => setTimeout(r, 5)); }
+  });
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#scoreSheet .sa-art').first()).toHaveText('Articulation: check slurring coming down');
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
   watch.check();
 });
