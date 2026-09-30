@@ -429,3 +429,14 @@
 .shape-taiko .s-tkhead{fill:var(--rd-head);stroke:var(--u);stroke-width:2.5}
 .shape-taiko .s-tkband{fill:none;stroke:var(--rd-iron);stroke-width:3}
 .scr-taiko{background:var(--rd-night)}
+
+/* Scale Audition: a music-stand top, a stand painted on the lower left, the judge's clipboard on the right */
+.shape-audition .s-stand{stroke:var(--sa-stand);stroke-width:6;stroke-linecap:round}
+.shape-audition .s-standpole{fill:none;stroke:var(--sa-stand);stroke-width:5;stroke-linecap:round}
+.shape-audition .s-standdesk{fill:var(--sa-stand)}
+.shape-audition .s-sheet{fill:var(--sa-sheet)}
+.shape-audition .s-clip{fill:var(--sa-sheet)}
+.shape-audition .s-clipbar{fill:var(--sa-stand)}
+.shape-audition .s-tick{fill:none;stroke:var(--sa-ok);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.shape-audition .s-line{stroke:var(--ink);stroke-width:2}
+.scr-audition{background:var(--sa-wall)}

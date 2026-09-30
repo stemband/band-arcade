@@ -9,13 +9,13 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
                 | 'dojo' | 'heist' | 'scroll' | 'versus' | 'faceoff' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink'. The picture behind the
                 title is the game's own `marquee` entry (below)
-       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'insert'  (shared/cabinets.js, SCREENS)
+       screen   the attract-mode loop on the screen: 'ghost' | 'tuner' | 'storm' | 'ninja' | 'heist' | 'scrolls' | 'versus' | 'hockey' | 'taiko' | 'audition' | … | 'insert'  (shared/cabinets.js, SCREENS)
      player     optional: a game with its own fixed instrument group (e.g. 'bells'), or 'all' for a game that needs
                 no instrument: START skips Select Player, the saved instrument is left alone, and progress is
                 saved under that id. playerName: its label on the home page (leave out for none).
@@ -56,7 +56,7 @@
                 2D cabinets and Select Player). Optional: leave it out for a moving gradient in the game's color with
                 sparkles. {scene, colors, speed, still, every}:
        scene    'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll' | 'versus' | 'hockey' | 'curtain' | 'synthwave'
-                | 'pixel' | 'radio' | 'duel' | 'ink' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
+                | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
@@ -65,7 +65,7 @@
                 subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      bg         its MENU BACKGROUND (shared/backgrounds.js): {scene (shared/bg-scenes.js: 'storm' | 'manor' | 'bamboo' | 'ink'
-                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora'),
+                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora' | 'audition'),
                 dim (0–1: the dark overlay everywhere), focus (0–1: extra darkness in the middle, behind the menu)}.
                 A picture in shared/backgrounds/<id>.webp|.jpg|.png replaces the scene. Menu screens only, never in play.
      pressStart false = no shared PRESS START title screen (shared/press-start.js; Arcade Quest has its own). Every other
@@ -105,7 +105,7 @@ window.Arcade.ZONES = [
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, rhythms, words and duels.'},
   // every game flagged noInstrument (below), filled in automatically
   {id: 'no-instrument', name: 'No Instrument Needed', color: 'blue', tagline: 'Tap, clap and play: no instrument required.', auto: 'noInstrument'},
-  {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones and mallets.',
+  {id: 'technique-lab', name: 'Technique Lab',    color: 'yellow', tagline: 'Fingerings, tonguing, long tones, scales and mallets.',
    // Showtime Malfunction first: every instrument can play it (Chime Heist, bells only, was in front for everyone)
    order: ['showtime-malfunction', 'music-highway', 'button-masher', 'sustain-speedway', 'chime-heist']},
   {id: 'ear-training',  name: 'Ear Training',     color: 'green',  tagline: 'Listen closely, then play it back.'},
@@ -348,6 +348,22 @@ window.Arcade.GAMES = [
     marquee: {scene: 'highway', colors: ['mh-lane', 'pink', 'cyan']},
     cabinet: {shape: 'highway', trim: 'cyan', trim2: 'pink', marquee: 'highway', screen: 'highway'},
     cabinet3d: {profile: 'highway', body: 'cab-side'},
+  },
+  {
+    id: 'scale-audition',
+    zones: ['technique-lab'],
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Scale Audition listens for the notes of your scales, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
+    name: 'Scale Audition',
+    bg: {scene: 'audition', dim: .35, focus: .35},
+    menuMusic: 'scale-audition-menu',
+    skill: 'All-State scales',
+    blurb: 'Your GMEA All-State and District Honor Band scales, the way the judges hear them: Concert F, B♭, E♭ and A♭ from memory, against the clock, then the chromatic.',
+    maxStars: 12,                                    // 4 audition levels × 3 (the Chromatic Challenge keeps its own stars in gameData)
+    color: 'yellow',
+    byMember: true,                                  // each instrument has its own GMEA scales: stars per member
+    marquee: {scene: 'audition', colors: ['sa-stand', 'yellow', 'sa-lamp']},
+    cabinet: {shape: 'audition', trim: 'yellow', trim2: 'cyan', screen: 'audition'},
+    cabinet3d: {profile: 'audition', body: 'cab-side'},
   },
   {
     id: 'lost-signal',

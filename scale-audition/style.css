@@ -1,0 +1,120 @@
+/* Scale Audition: the audition room. Tokens: --sa-* (theme.css). */
+.hub-head{margin-bottom:12px}
+.game-title span{color:var(--yellow);text-shadow:var(--glow-yellow)}
+.sa-rule{margin:0 0 6px;font-weight:700;color:var(--yellow-hi);font-size:15px}
+.sa-modes{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:4px 0 10px}
+.sa-seg button{min-width:108px}
+.sa-opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;margin:0 0 8px}
+.sa-opt{display:flex;align-items:center;gap:10px}
+.sa-opt .ui-label{margin:0}
+.sa-note{margin:0 0 12px;color:var(--text-lo);font-size:15px;max-width:72ch}
+/* ALL-STATE READY: a gold badge (the level screen and the results) */
+.sa-ready{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text-lo);font-size:14px;font-weight:700}
+.sa-ready-b{display:inline-block;padding:5px 12px;border-radius:999px;background:var(--yellow);color:var(--deep);font:400 15px/1.1 var(--display);letter-spacing:.06em;box-shadow:var(--glow-yellow)}
+.sa-res-ready{justify-content:center;margin:0 0 10px;color:var(--yellow-hi)}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sa-grid-practice{grid-template-columns:repeat(5,1fr)}
+.sa-grid-chrom{grid-template-columns:minmax(0,520px)}
+@media (max-width:900px){.sa-grid-practice{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.levels,.sa-grid-practice{grid-template-columns:repeat(2,1fr)}.sa-grid-chrom{grid-template-columns:1fr}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--night-2);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:140px}
+.lvl:hover:not([disabled]){border-color:var(--yellow)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.lvl .t{grid-column:1/-1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--text-lo);line-height:1.35}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+
+/* ---------- play ---------- */
+#play{position:relative}
+.sa-hud{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.sa-who .pt-box{width:48px;height:48px}
+.sa-what,.sa-clock{display:flex;flex-direction:column}
+.sa-clock{text-align:right}
+.sa-hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.sa-hud b{font-size:22px;line-height:1.2}
+.sa-clock b{font-family:var(--display);font-weight:400;font-size:28px}
+/* the time bar: no alarm, it only turns amber in the last 15 s */
+.sa-timebar{height:10px;border-radius:999px;background:var(--floor-3);overflow:hidden;margin:0 0 10px}
+.sa-timebar i{display:block;height:100%;background:var(--cyan);transform-origin:left;transform:scaleX(1)}
+.sa-timebar.low i{background:var(--amber)}
+.sa-scale-head{text-align:center;margin:4px 0 8px}
+.sa-step{margin:0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700;min-height:1.2em}
+.sa-scale{margin:2px 0 0;font-family:var(--display);font-weight:400;font-size:clamp(20px,3.6vw,30px);color:var(--yellow-hi);text-wrap:balance}
+
+/* the sheet: every row's staff, notes colored as they are judged */
+.sa-sheet{padding:6px 8px 4px}
+.sa-row+.sa-row{margin-top:-10px}
+.sa-row svg{display:block;width:100%;height:auto}
+.sa-beam,.sa-bar-end{fill:var(--ink)}
+.sa-bar{stroke:var(--ink);stroke-width:1.6}
+.sa-tsig{font-family:var(--display);font-size:34px;fill:var(--ink)}
+.sa-sheet g.ok .head,.sa-nbn g.ok .head{fill:var(--sa-ok)}
+.sa-sheet g.ok .stem{stroke:var(--sa-ok)}
+.sa-sheet g.fix .head{fill:var(--sa-fix)}
+.sa-sheet g.fix .stem{stroke:var(--sa-fix)}
+.sa-sheet g.bad .head{fill:var(--sa-bad)}
+.sa-sheet g.bad .stem{stroke:var(--sa-bad)}
+.sa-sheet g .head.whole{fill:none}
+.sa-sheet g.ok .head.whole{stroke:var(--sa-ok)}.sa-sheet g.fix .head.whole{stroke:var(--sa-fix)}.sa-sheet g.bad .head.whole{stroke:var(--sa-bad)}
+.sa-sheet g.cur ellipse.head{stroke:var(--sa-cur);stroke-width:3.5}
+.sa-sheet g.cur ellipse.head:not(.whole){fill:var(--sa-cur)}
+.sa-sheet g.guide ellipse.head{stroke:var(--sa-guide);stroke-width:5}
+
+/* from memory (levels 3–4): only the scale's name */
+.sa-memory{background:var(--night-2);border:2px dashed var(--floor-3);border-radius:var(--r);padding:22px 16px;text-align:center}
+.sa-mem-k{margin:0;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.sa-mem-t{margin:6px 0 4px;font-family:var(--display);font-size:clamp(24px,5vw,40px);color:var(--text-hi);text-wrap:balance}
+.sa-mem-s{margin:0;color:var(--text-lo)}
+
+/* NOTE BY NOTE: one note, big, with its name and the fingering */
+.sa-nbn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:center}
+@media (max-width:640px){.sa-nbn{grid-template-columns:1fr}}
+.sa-nbn-staff svg{display:block;width:100%;height:auto;max-height:38vh}
+.sa-nbn-name{margin:0;font-family:var(--display);font-size:clamp(40px,8vw,64px);color:var(--yellow-hi);line-height:1}
+.sa-nbn-of{margin:4px 0 8px;color:var(--text-lo);font-weight:700}
+.sa-fing svg{width:100%;max-width:520px;height:auto}
+.sa-fing-t{margin:4px 0 0;font-weight:700;color:var(--text-hi)}
+.sa-fing-t small{color:var(--text-lo);font-weight:400}
+
+/* the dots: one per note (green clean, amber fixed, red missed/skipped, dim not played) */
+.sa-dots{display:flex;justify-content:center;margin:10px 0 0}
+.sa-dotrow{display:inline-flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:100%}
+.sa-dotrow i,.sa-ss-key i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sa-none)}
+.sa-scoresheet .sa-dotrow{gap:2px}
+.sa-dotrow i.ok,.sa-ss-key i.ok{background:var(--sa-ok-lt)}
+.sa-dotrow i.fix,.sa-ss-key i.fix{background:var(--sa-fix-lt)}
+.sa-dotrow i.bad,.sa-ss-key i.bad{background:var(--sa-bad-lt)}
+.prompt{min-height:28px;text-align:center;margin:10px 0 10px;font-size:18px;font-weight:700}
+.prompt.bad{color:var(--red-hi)}
+.prompt.good{color:var(--yellow-hi)}
+
+/* the adjudicator's line + the countdown, and "Time. Thank you." (calm: no flash, no alarm) */
+.sa-over{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:color-mix(in srgb,var(--deep) 82%,transparent)}
+.sa-over[hidden]{display:none}
+.sa-over-card{max-width:560px;width:100%;text-align:center;background:var(--night-2);border:2px solid var(--yellow);border-radius:var(--r);padding:22px 18px;box-shadow:var(--glow-yellow)}
+.sa-adj-k{margin:0;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.sa-adj-t{margin:8px 0 0;font-family:var(--display);font-size:clamp(22px,4.4vw,32px);line-height:1.2;color:var(--text-hi);text-wrap:balance}
+.sa-adj-s{margin:8px 0 0;color:var(--text-lo)}
+.sa-count{margin:14px 0 0;min-height:1.1em;font-family:var(--display);font-size:clamp(48px,11vw,86px);line-height:1;color:var(--yellow-hi)}
+.sa-count.count,.sa-count.go{animation:sa-in .3s ease-out}
+@keyframes sa-in{from{transform:scale(.7);opacity:.3}to{transform:none;opacity:1}}
+
+/* the judge's score sheet (the results' extra part) */
+.sa-scoresheet{background:var(--deep);border:1px solid var(--floor-3);border-radius:12px;padding:10px 10px 8px}
+.sa-ss-h{margin:0 0 6px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);font-weight:700}
+.sa-scoresheet table{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
+.sa-scoresheet th,.sa-scoresheet td{padding:6px 4px 0;text-align:left;vertical-align:top;color:var(--text-hi)}
+.sa-scoresheet thead th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);padding-top:0}
+.sa-scoresheet tbody th{font-weight:700;overflow-wrap:anywhere}
+.sa-scoresheet .sa-num{text-align:right;white-space:nowrap}
+.sa-dotline td{padding:3px 4px 6px;border-bottom:1px solid var(--floor-3)}
+.sa-dotline:last-child td{border-bottom:0}
+.sa-ok{color:var(--sa-ok-lt)}.sa-late{color:var(--sa-fix-lt)}.sa-bad{color:var(--sa-bad-lt)}
+.sa-ss-key{margin:6px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12.5px;color:var(--text-lo)}
+.sa-ss-key i{margin-right:-4px}
+.sa-ss-total{margin:6px 0 0;font-weight:700;color:var(--text-hi)}
+
+@media (max-height:700px){.sa-nbn-staff svg{max-height:30vh}}
+@media (prefers-reduced-motion:reduce){.sa-count.count,.sa-count.go{animation:none}}

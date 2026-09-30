@@ -37,6 +37,45 @@ window.Arcade = window.Arcade || {};
   };
   const LOW_REGISTER = ['trombone', 'euphbc', 'baritonetc', 'tuba', 'bassoon'];   // ties go up an octave
 
+  /*
+    THE AUDITION (Scale Audition): the GMEA Middle School All-State / District Honor Band scale audition, from the GMEA
+    MS All-State scale sheets (the First Round All-State and the District Honor Band auditions ask the same). THE GMEA
+    SHEETS ARE THE SOURCE: when a sheet changes, edit this table, never the game.
+      each member: per concert scale [the WRITTEN starting note, octaves (1 | 2)], and `time` = the sheet's limit (s)
+      for all four scales. The audition order is always Concert F, B♭, E♭, A♭ (AUDITION_ORDER), not LIST's order.
+    A scale is played up and down, then its arpeggio: 1 octave = 1-2-3-4-5-6-7-8-7-6-5-4-3-2-1 + 3-5-8-5-3-1 (21 notes);
+    2 octaves = up 2 octaves and down + 3-5-8-10-12-15-12-10-8-5-3-1 (41 notes). audition(member, id) builds it.
+    Mallets (bells): the same four scales, 2 octaves each (Mat's rule); played on a bigger instrument than the bell kit,
+    so no range check. The chromatic: the member's GMEA chromatic range (instruments.js); mallets: F4–F6 (AUDITION_CHROM).
+  */
+  const SAX = {F: ['D4', 2], Bb: ['G4', 1], Eb: ['C4', 2], Ab: ['F4', 1], time: 60};
+  const TPT = {F: ['G3', 2], Bb: ['C4', 1], Eb: ['F4', 1], Ab: ['Bb3', 1], time: 60};
+  const TBN = {F: ['F2', 2], Bb: ['Bb2', 1], Eb: ['Eb3', 1], Ab: ['Ab2', 1], time: 60};
+  const AUDITION = {
+    //            Concert F        Concert B♭        Concert E♭        Concert A♭        seconds
+    flute:      {F: ['F4', 2],  Bb: ['Bb4', 1], Eb: ['Eb4', 2], Ab: ['Ab4', 1], time: 60},
+    oboe:       {F: ['F4', 1],  Bb: ['Bb4', 1], Eb: ['Eb4', 1], Ab: ['Ab4', 1], time: 60},
+    clarinet:   {F: ['G3', 2],  Bb: ['C4', 2],  Eb: ['F3', 2],  Ab: ['Bb3', 2], time: 75},
+    basscl:     {F: ['G3', 2],  Bb: ['C4', 1],  Eb: ['F3', 2],  Ab: ['Bb3', 1], time: 60},
+    bassoon:    {F: ['F2', 2],  Bb: ['Bb1', 2], Eb: ['Eb2', 2], Ab: ['Ab2', 1], time: 75},
+    altosax: SAX, barisax: SAX,
+    tenorsax:   {F: ['G4', 1],  Bb: ['C4', 2],  Eb: ['F4', 1],  Ab: ['Bb4', 1], time: 60},
+    trumpet: TPT, baritonetc: TPT,
+    horn:       {F: ['C4', 1],  Bb: ['F3', 2],  Eb: ['Bb3', 1], Ab: ['Eb4', 1], time: 60},
+    trombone: TBN, euphbc: TBN,
+    tuba:       {F: ['F1', 2],  Bb: ['Bb1', 1], Eb: ['Eb2', 1], Ab: ['Ab1', 1], time: 60},
+    bells:      {F: ['F4', 2],  Bb: ['Bb3', 2], Eb: ['Eb4', 2], Ab: ['Ab3', 2], time: 60},   // Mat: confirm (no GMEA sheet time for mallets)
+  };
+  const AUDITION_ORDER = ['F', 'Bb', 'Eb', 'Ab'];
+  // the chromatic, audition only: mallets play 2 octaves up and down from concert F (the bells member is unchanged)
+  const AUDITION_CHROM = {bells: ['F4', 'F6']};
+  // the sheets' rhythm, only a picture (nothing is judged on it): beats per note, and the measures
+  const RHYTHM = {
+    1: [[1, .5, .5, .5, .5, .5, .5], [1, .5, .5, .5, .5, .5, .5], [1, .5, .5, 1, .5, .5], [4]],
+    2: [[.5, .25, .25, .25, .25, .25, .25, .5, .25, .25, .25, .25, .25, .25], [.5, .25, .25, .25, .25, .25, .25, .5, .25, .25, .25, .25, .25, .25],
+        [.5, .25, .25, .5, .25, .25, .5, .25, .25, .5, .25, .25], [4]],
+  };
+
   const LIST = [
     {id: 'Bb', concert: 'B♭', pc: 10},
     {id: 'Eb', concert: 'E♭', pc: 3},
@@ -146,6 +185,40 @@ window.Arcade = window.Arcade || {};
             label: key ? `${name} (your ${key})` : `Chromatic (${noteLabel(up[0])}${up[0].oct} to ${noteLabel(up[up.length - 1])}${up[up.length - 1].oct})`};
   }
 
+  /**
+   * THE AUDITION SCALE for a member (AUDITION above): {id, name, label, key, sig, octaves, notes, measures}
+   * notes: the scale up and down, then its arpeggio, each {letter, acc, oct, midi (written), sounding, pc, show, beats,
+   * measure}; measures = how many notes each measure holds (the sheet's 4/4 picture).
+   */
+  function audition(m, id) {
+    const e = AUDITION[m.id], s = LIST.find(x => x.id === id);
+    if (!e || !e[id] || !s) return null;
+    const [start, octaves] = e[id];
+    const t = writtenMidi(parseNote(start));
+    const up = majorScale(t).concat(octaves === 2 ? majorScale(t + 12).slice(1) : []);
+    const arp = (octaves === 2 ? [2, 4, 7, 9, 11, 14, 11, 9, 7, 4, 2, 0] : [2, 4, 7, 4, 2, 0]).map(i => up[i]);
+    const sig = keySignature(up[0]), key = noteLabel(up[0]) + ' Major';
+    const beats = [].concat(...RHYTHM[octaves]), bars = RHYTHM[octaves].map(r => r.length);
+    let k = 0;
+    const measureOf = bars.reduce((a, n, mi) => a.concat(Array(n).fill(mi)), []);
+    const notes = up.concat(up.slice(0, -1).reverse(), arp).map(n => Object.assign({}, n, {
+      sounding: n.midi - m.sounds, pc: mod12(n.midi - m.sounds), show: shown(n, sig), beats: beats[k], measure: measureOf[k++]}));
+    const name = 'Concert ' + s.concert;
+    return {id, name, short: s.concert, key, sig, octaves, notes, measures: bars, label: `${name} (your ${key})`};
+  }
+  /** the audition's chromatic scale for a member: its GMEA range (mallets: AUDITION_CHROM), sharps up, flats down */
+  function auditionChromatic(m) {
+    const o = AUDITION_CHROM[m.id];
+    const mm = o ? Object.assign({}, m, {low: parseNote(o[0]), high: parseNote(o[1]), lowMidi: writtenMidi(parseNote(o[0])), highMidi: writtenMidi(parseNote(o[1]))}) : m;
+    const up = A.chromaticScale(mm), down = A.chromaticScale(mm, {down: true}).slice(1);
+    const notes = up.concat(down).map(n => Object.assign({}, n, {sounding: n.midi - m.sounds, pc: mod12(n.midi - m.sounds), show: n, beats: .5}));
+    const lo = up[0], hi = up[up.length - 1];
+    return {id: 'chrom', name: 'Chromatic', short: 'Chromatic', key: null, sig: null, notes,
+      label: `Chromatic (${noteLabel(lo)}${lo.oct} to ${noteLabel(hi)}${hi.oct})`};
+  }
+  /** the sheet's time limit (s) for a member */
+  const auditionTime = m => (AUDITION[m.id] || {}).time || 60;
+
   /** a scale sequence at least `count` notes long: the scale up and down, then again from the second note */
   function sequence(scale, count) {
     const out = scale.notes.slice();
@@ -156,5 +229,6 @@ window.Arcade = window.Arcade || {};
   /** where a game saves progress for a scale (random mode keeps the plain game id) */
   const progressKey = (gameId, scaleId) => `${gameId}:scale-${scaleId}`;
 
-  A.Scales = {LIST, START, build, sequence, progressKey, keySignature, sigAcc, shown, ruleStart, startMidi};
+  A.Scales = {LIST, START, build, sequence, progressKey, keySignature, sigAcc, shown, ruleStart, startMidi,
+    AUDITION, AUDITION_ORDER, AUDITION_CHROM, audition, auditionChromatic, auditionTime};
 })(window.Arcade);

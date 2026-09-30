@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Scale Audition</title>
+<meta name="description" content="Practice your GMEA All-State and District Honor Band scales: Concert F, B♭, E♭ and A♭ from memory, against the clock, and the chromatic.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="../shared/diagrams.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- MODE + LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Scale <span>Audition</span></h1>
+      <p class="sa-rule" id="saRule">GMEA All-State (First Round) &amp; District Honor Band: same scales, same rules.</p>
+      <p class="ui-howto" id="howto">Play your four scales in audition order (Concert F, B♭, E♭, A♭), each up and down with its arpeggio, then the chromatic. The microphone follows every note.</p>
+    </div>
+    <div class="sa-modes">
+      <div class="ui-seg sa-seg" id="modeSeg" role="group" aria-label="Mode">
+        <button type="button" data-mode="practice" aria-pressed="false">Practice</button>
+        <button type="button" data-mode="audition" aria-pressed="true">Audition</button>
+        <button type="button" data-mode="chrom" aria-pressed="false">Chromatic</button>
+      </div>
+      <p class="sa-ready" id="readyBadge" hidden><span class="sa-ready-b">ALL-STATE READY</span> <span id="readyWho"></span></p>
+    </div>
+    <div class="sa-opts" id="practiceOpts" hidden>
+      <div class="sa-opt"><span class="ui-label" id="loopL">Loop</span><button type="button" class="ui-switch" role="switch" id="loopSw" aria-checked="false" aria-labelledby="loopL"></button></div>
+      <div class="sa-opt"><span class="ui-label">Slow guide</span>
+        <div class="ui-seg" id="guideSeg" role="group" aria-label="Slow guide">
+          <button type="button" data-g="0" aria-pressed="true">Off</button><button type="button" data-g="60" aria-pressed="false">♩ = 60</button><button type="button" data-g="80" aria-pressed="false">♩ = 80</button><button type="button" data-g="100" aria-pressed="false">♩ = 100</button>
+        </div></div>
+      <div class="sa-opt"><span class="ui-label" id="nbnL">Note by note</span><button type="button" class="ui-switch" role="switch" id="nbnSw" aria-checked="false" aria-labelledby="nbnL"></button></div>
+    </div>
+    <p class="sa-note" id="modeNote"></p>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: tap Space = the next note, hold Space = keep playing, W = a wrong note, K = skip a note.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="sa-hud">
+      <div class="sa-who" id="who"></div>
+      <div class="sa-what"><small id="hudKicker">Audition</small><b id="hudTitle">Warm-Up Room</b></div>
+      <div class="sa-clock"><small id="clockLabel">Time</small><b id="clock">0:00</b></div>
+    </div>
+    <div class="sa-timebar" id="timeBar" role="progressbar" aria-label="Time left" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div>
+    <div class="sa-scale-head">
+      <p class="sa-step" id="stepNo"></p>
+      <h2 class="sa-scale" id="scaleName">Concert F</h2>
+    </div>
+    <div class="stage sa-sheet" id="sheet"></div>
+    <div class="sa-memory" id="memory" hidden><p class="sa-mem-k">From memory</p><p class="sa-mem-t" id="memName"></p><p class="sa-mem-s" id="memSub"></p></div>
+    <div class="sa-nbn" id="nbn" hidden>
+      <div class="stage sa-nbn-staff" id="nbnStaff"></div>
+      <div class="sa-nbn-side"><p class="sa-nbn-name" id="nbnName"></p><p class="sa-nbn-of" id="nbnOf"></p><div class="sa-fing" id="nbnFing"></div></div>
+    </div>
+    <div class="sa-dots" id="liveDots" aria-hidden="true"></div>
+    <p class="prompt" id="prompt" aria-live="polite"></p>
+    <div class="hear">
+      <small>Hearing</small><b id="hearNote">–</b><span class="lvlbars" id="hearBars"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div class="sa-over" id="adj" hidden><div class="sa-over-card"><p class="sa-adj-k">The adjudicator</p><p class="sa-adj-t" id="adjText">Please play your scales in order, from memory.</p><p class="sa-count" id="count" aria-live="assertive"></p></div></div>
+    <div class="sa-over" id="timeUp" hidden><div class="sa-over-card"><p class="sa-adj-t">Time. Thank you.</p><p class="sa-adj-s" id="timeUpSub"></p></div></div>
+  </section>
+</div>
+
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/fingerings.js"></script>
+<script src="../shared/diagrams.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/countdown.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
