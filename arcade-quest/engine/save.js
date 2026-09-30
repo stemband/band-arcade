@@ -139,6 +139,17 @@
       const s = Q.save.get(), can = Q.band.choices();
       return (Array.isArray(s.band) ? s.band.filter(id => can.includes(id)) : can.slice(-Q.band.MAX)).slice(0, Q.band.MAX);
     },
+    /** true while the band is the automatic default (never chosen on the BAND screen: the two newest friends) */
+    auto: () => !Array.isArray(Q.save.get().band),
+    /** THE LINEUP for a battle against `enemyId`: a friend never plays against its own kind, so each one who can't
+        play is replaced, for this battle only, by the next friend available (the most recently befriended first, not
+        already in the band, not that kind); nobody left = the band plays short. -> {band, out, subs} (enemy ids) */
+    lineup(enemyId) {
+      const saved = Q.band.members(), out = saved.filter(id => id === enemyId);
+      const spare = Q.band.choices().slice().reverse().filter(id => !saved.includes(id) && id !== enemyId);
+      const band = saved.map(id => (id === enemyId ? spare.shift() : id)).filter(Boolean);
+      return {band, out, subs: band.filter(id => !saved.includes(id))};
+    },
     /** choose the band ([] = a solo) */
     set(ids) { const s = Q.save.get(), can = Q.band.choices(); s.band = [...new Set(ids)].filter(id => can.includes(id)).slice(0, Q.band.MAX); write(); return s.band; },
     enemy: COMPANION,

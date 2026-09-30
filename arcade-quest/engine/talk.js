@@ -323,11 +323,12 @@
       const body = msg => {
         const now = Q.band.members(), can = Q.band.choices();
         return `<p>${!can.length ? T('bandEmpty') : now.length ? T('bandNow', {list: now.map(id => E(id).name).join(' and ')}) : T('bandSolo')}</p>` +
-          `<p class="q-small">${T('bandHow')}</p>` + (msg ? `<p class="q-good">${msg}</p>` : '');
+          (can.length && Q.band.auto() ? `<p class="q-small">${T('bandAuto')}</p>` : '') +
+          `<p class="q-small">${T('bandHow')}</p><p class="q-small">${T('bandKind')}</p>` + (msg ? `<p class="q-good">${msg}</p>` : '');
       };
       const list = () => Q.band.choices().map(id => {
         const on = Q.band.members().includes(id), c = E(id).companion;
-        return {id, label: (on ? '✓ ' : '') + E(id).name, sub: `${perk(c)} · ${T('bandPowerOf', {n: Math.round(c.power * 100)})}`, cls: on ? 'q-owned' : ''};
+        return {id, label: (on ? '✓ ' : '') + E(id).name, sub: `${on ? T('bandIn') + ' · ' : ''}${perk(c)} · ${T('bandPowerOf', {n: Math.round(c.power * 100)})}`, cls: on ? 'q-owned' : ''};
       }).concat([{id: null, label: 'Done'}]);
       panel(T('bandTitle'), body(), list(), {cols: 2, cls: 'q-shop q-band', onPick: (it, i, api) => {
         if (!it.id) { api.close(); done(); return; }
