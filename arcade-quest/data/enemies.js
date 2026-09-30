@@ -16,7 +16,10 @@
    count       notes in one PLAY (1–4)            time     seconds for the whole challenge
    happy       its favorite note: an index into the first five (0 = concert B♭, shown in YOUR written pitch)
    calm        how the CALM meter rises (max 100): perNote (each right note), listen (using LISTEN), success
-               (a challenge played well: 80 % or better)
+               (a challenge played well: 80 % or better). SERENADE (its happy note, shorter than HARMONIZE: the
+               befriend path) adds its own CALM (battle.js RULES.serenadeCalm), the same for every enemy; every CALM gain
+               but LISTEN's grows with your level and shrinks with its HP, like damage (battle.js: THE CALM SCALE)
+   serenade    false = no SERENADE against it (the Ghost Conductor: his finale is the story's befriending moment)
    harmonize   its happy-note challenge when CALM is full: {type: 'note', hold: seconds} (hold its happy note),
                or {type: 'articulate', taps} (the Snare Drum always uses this one)
    listen      what LISTEN says (the last line is its weakness / what calms it)
@@ -231,7 +234,7 @@ window.QUEST_ENEMIES = [
   },
   {
     id: 'conductor', name: 'The Ghost Conductor', sprite: 'conductor', hp: 96, atk: 2, area: 'manor', boss: true, final: true, music: 'quest-boss', talk: 'conductor',
-    challenge: 'play', notes: 'first5', count: 4, time: 12, harmonizeKeep: true,
+    challenge: 'play', notes: 'first5', count: 4, time: 12, harmonizeKeep: true, serenade: false,
     happy: 0,
     calm: {perNote: 0, listen: 0, success: 0},
     stages: [

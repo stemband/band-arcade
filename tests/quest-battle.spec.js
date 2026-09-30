@@ -189,3 +189,100 @@ test('an old save (version 3, no band choice) keeps working and gets the default
   expect(r.band).toEqual(['hush', 'wobble']);
   watch.check();
 });
+
+/* SERENADE: the befriend path (battle.js THE CALM SCALE, THE SAFETY NET, the turns table) */
+/** one whole battle, counting YOUR turns (every command that ends in the enemy's turn or the end) */
+async function fight(page, enemy, pick) {
+  await start(page, enemy);
+  let turns = 0;
+  for (let i = 0; i < 600; i++) {
+    const s = await page.evaluate(() => ({b: Arcade.Quest.battleState(), scene: Arcade.Quest.sceneName, menu: (c => !!c && !c.hidden && c.querySelectorAll('.q-btn').length > 0)(document.getElementById('qCmd'))}));
+    if (s.scene !== 'battle') return {turns, save: await page.evaluate(() => Arcade.Quest.save.get())};
+    if (s.menu) {
+      const label = pick(s.b); turns++;
+      await page.evaluate(l => [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l)).click(), label);
+    } else await page.keyboard.press('Enter');
+    await page.waitForTimeout(30);
+  }
+  throw new Error('the battle never ended');
+}
+const PLAYED = {acc: .8, speed: .7, correct: 2, total: 3, success: true};   // "about 80 %" (the turns table)
+for (const level of [1, 10]) for (const trio of [false, true]) {
+  test(`SERENADE then HARMONIZE befriends in about as many turns as PLAY defeats (LV ${level}, ${trio ? 'trio' : 'solo'})`, async ({page}) => {
+    const band = trio ? ['wisp', 'hush'] : [];
+    const watch = await open(page, {level, roster: ['wisp', 'hush'], band});
+    // DEFEAT: PLAYs that add no CALM (so THE SAFETY NET, which adds one turn once CALM passes 50, stays out of it)
+    await page.evaluate(p => { window.__play = Object.assign({}, p, {correct: 0, success: false}); }, PLAYED);
+    const defeat = await fight(page, 'wobble', () => 'PLAY');
+    await page.evaluate(p => { window.__play = p; }, PLAYED);
+    expect(defeat.save.battles.faded).toBe(1);
+    const befriend = await fight(page, 'wobble', b => (b.calm >= 100 ? 'HARMONIZE' : 'SERENADE'));
+    expect(befriend.save.battles.befriended).toBe(1);
+    expect(befriend.save.roster).toContain('wobble');
+    // the same length within a turn (the table: LV 1 5 / 5, LV 10 2 / 2)
+    expect(Math.abs(befriend.turns - defeat.turns), `defeat ${defeat.turns}, befriend ${befriend.turns}`).toBeLessThanOrEqual(1);
+    expect(defeat.turns).toBe(level === 1 ? 5 : 2);
+    watch.check();
+  });
+}
+
+test('SERENADE does no damage; your band follows your lead with CALM (not damage); LISTEN names SERENADE; the first battle says the two ways once', async ({page}) => {
+  const watch = await open(page, {roster: ['wisp', 'hush'], band: ['wisp', 'hush']});
+  await page.evaluate(() => { window.__play = {acc: .5, speed: 1, correct: 1, total: 1, success: false}; });
+  await start(page, 'wobble');
+  await until(page, b => b && b.calm > 0, () => 'SERENADE');
+  const b = await state(page);
+  expect(b.hp).toBe(b.ehp);                                      // no damage from you or the band
+  // you: 38 × .5 × (30 / 48) = 11.9; Wisp .3 of yours = 3.6; Hush .3 of yours + its calm perk 8 × .5 × .625 = 6.1
+  expect(b.calm).toBeCloseTo(11.875 + 3.5625 + 3.5625 + 2.5, 1);
+  await until(page, b => b && b.aim);                            // (on to the enemy's turn)
+  let lines = await page.evaluate(() => window.__lines);
+  expect(lines.filter(l => /plays along softly|hums along with you/.test(l)).length).toBe(2);
+  expect(lines.some(l => /takes \d/.test(l))).toBe(false);
+  expect(lines.filter(l => /^Two ways to win: PLAY to defeat it, or SERENADE/.test(l))).toHaveLength(1);
+  await until(page, b => b && !b.aim);
+  for (let i = 0; i < 40 && !(await page.evaluate(() => window.__lines.includes('It calms down when you play its happy notes: SERENADE.'))); i++) await step(page, () => 'LISTEN');
+  expect(await page.evaluate(() => window.__lines.includes('It calms down when you play its happy notes: SERENADE.'))).toBe(true);
+  // a second battle: no tutorial line again
+  await page.evaluate(() => { window.__lines = []; window.__play = {acc: 1, speed: 1, correct: 3, total: 3, success: true}; });
+  await until(page, (b, scene) => scene !== 'battle');
+  await start(page, 'squawk');
+  await until(page, b => b && b.hp < b.ehp);
+  lines = await page.evaluate(() => window.__lines);
+  expect(lines.some(l => /^Two ways to win/.test(l))).toBe(false);
+  watch.check();
+});
+
+test('THE SAFETY NET: a PLAY that would defeat it with CALM ≥ 50 leaves it at 1 HP once; the next PLAY defeats it', async ({page}) => {
+  const watch = await open(page);
+  // Wobble: 30 HP, a perfect PLAY does 10 and 36 CALM: after two PLAYs CALM 72, so the third would defeat it
+  await start(page, 'wobble');
+  await until(page, b => b && b.net);
+  let b = await state(page);
+  expect([b.hp, b.state]).toEqual([1, 'fight']);
+  await until(page, b => b && b.aim);                            // its words, then the enemy's turn
+  const lines = await page.evaluate(() => window.__lines);
+  expect(lines.filter(l => l === 'It\'s barely standing… but it\'s listening.')).toHaveLength(1);
+  expect(lines).toContain('SERENADE to befriend it, or PLAY to finish it.');
+  await until(page, (b, scene) => scene !== 'battle');           // PLAY again: it fades
+  expect(await page.evaluate(() => Arcade.Quest.save.get().battles.faded)).toBe(1);
+  expect((await page.evaluate(() => window.__lines)).filter(l => /barely standing/.test(l))).toHaveLength(1);
+  watch.check();
+});
+
+test('the snare SERENADEs with a gentle steady beat (its own challenge), the Ghost Conductor has no SERENADE', async ({page}) => {
+  const watch = await prepare(page, {store: device('snare', {avatarOffered: true, gameData: {'arcade-quest': {settings: SETTINGS}}})});
+  await page.goto('arcade-quest/index.html?demo&test');
+  await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName === 'arena');
+  await page.evaluate(() => { const Q = Arcade.Quest; Q.save.reset(); Q.save.write(); Q.micReady = async () => true; });
+  await start(page, 'squawk');
+  for (let i = 0; i < 80 && !(await page.locator('.q-chal-t').count()); i++) await step(page, () => 'SERENADE');
+  await expect(page.locator('.q-chal-t')).toHaveText('SERENADE: a gentle, steady beat. 4 soft hits!');
+  expect(await page.locator('.q-taps i').count()).toBe(4);
+  // the final boss: PLAY · LISTEN · ITEM · HARMONIZE only
+  await page.evaluate(() => Arcade.Quest.go('arena'));
+  await start(page, 'conductor');
+  await expect.poll(async () => { for (let i = 0; i < 40 && !(await page.locator('#qCmd:not([hidden]) .q-btn').count()); i++) await page.keyboard.press('Enter'); return page.locator('#qCmd .q-btn .q-bl').allTextContents(); })
+    .toEqual(['PLAY', 'LISTEN', 'ITEM', 'HARMONIZE']);
+  watch.check();
+});

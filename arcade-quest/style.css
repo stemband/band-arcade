@@ -37,11 +37,13 @@ button{font:inherit}
   padding:calc(var(--px) * 3) calc(var(--px) * 4);background:var(--q-black);color:var(--q-white);border:calc(var(--px) * 1.5) solid var(--q-grey);
   border-radius:0;cursor:pointer;font-weight:700;font-size:calc(var(--px) * 9);letter-spacing:.03em;text-align:center;box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3)}
 .q-btn small{font-weight:400;font-size:calc(var(--px) * 6);color:var(--text-lo);letter-spacing:0;line-height:1.15}
+.q-five .q-btn small{font-size:calc(var(--px) * 5)}          /* five battle actions: every description stays on 2 lines (under the prompt) */
 .q-btn:hover,.q-btn.sel,.q-btn:focus-visible{border-color:var(--q-cursor);color:var(--q-cursor);outline:none}
 .q-btn.sel .q-bl::before,.q-btn:focus-visible .q-bl::before{content:"▸ "}
 .q-btn:disabled{opacity:.45;cursor:default;border-style:dashed}
 .q-btn:disabled small{color:var(--text-lo)}
 .c-play{border-color:var(--q-gold)}
+.c-ser{border-color:var(--q-pink)}
 .c-harm.ready{border-color:var(--q-pink);color:var(--q-pink);animation:q-pulse 1.2s steps(2) infinite}
 @keyframes q-pulse{50%{box-shadow:inset 0 calc(var(--px) * -2) 0 var(--floor-3),0 0 0 calc(var(--px) * 1.5) var(--q-pink)}}
 

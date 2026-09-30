@@ -1,8 +1,8 @@
 /* ARCADE QUEST: the playing challenges. Each returns a Promise of a result:
      {acc 0–1 (how accurate), speed 0–1 (time left), correct (right notes / hits), total, success (acc ≥ 0.8)}
    Q.challenge.resolve(type, enemy)  the challenge this instrument can actually do (fallbacks below)
-   Q.challenge.run(type, {enemy, harmonize})
-   THE MICROPHONE LISTENS ONLY HERE: Q.listen(true) at the start of PLAY / LONG TONE / ARTICULATE / HARMONIZE and
+   Q.challenge.run(type, {enemy, harmonize, serenade})   (serenade: its happy note, shorter than HARMONIZE's; snare: a gentle beat)
+   THE MICROPHONE LISTENS ONLY HERE: Q.listen(true) at the start of PLAY / SERENADE / LONG TONE / ARTICULATE / HARMONIZE and
    Q.listen(false) at the end (Pitch.pauseListening). VOCAB and FINGERING don't use the mic at all. The challenge
    clock stops while a sound is muting the mic (Pitch.isSuppressed).
    FALLBACKS: the Snare Drum can't play pitches: play/longtone/fingering -> articulate (count hits); Bells can't hold
@@ -295,10 +295,22 @@
     return longtone(enemy, {item, seq, hold: h.hold || 1.5, tol: 35, secs: (h.hold || 1.5) + 7, title: Q.text('harmonizeIntro', {note: item.label})});
   }
 
+  /* ---------- SERENADE: its CALM challenge = HARMONIZE's happy-note challenge, shorter (the befriend path) ---------- */
+  const SERENADE = {share: .6, minHold: 1, taps: 4, drumTaps: 4};
+  function serenade(enemy) {
+    const h = enemy.harmonize || {type: 'note', hold: 1.5};
+    if (unpitched) return articulate({taps: SERENADE.drumTaps, time: SERENADE.drumTaps + 6}, {title: Q.text('serenadeDrum', {n: SERENADE.drumTaps})});   // a gentle, steady beat
+    if (h.type === 'articulate') return articulate(enemy, {taps: SERENADE.taps, secs: SERENADE.taps + 5, title: Q.text('serenadeTaps', {n: SERENADE.taps})});
+    const {seq, item} = happyNote(enemy);
+    const hold = Math.max(SERENADE.minHold, Math.round((h.hold || 1.5) * SERENADE.share * 2) / 2);
+    return longtone(enemy, {item, seq, hold, tol: 35, secs: hold + 6, title: Q.text('serenadeIntro', {note: item.label, n: hold})});
+  }
+
   Q.challenge = {
     resolve,
-    run(type, {enemy, harmonize: harm} = {}) {
+    run(type, {enemy, harmonize: harm, serenade: ser} = {}) {
       if (harm) return harmonize(enemy);
+      if (ser) return serenade(enemy);
       const t = resolve(type);
       if (t === 'play') return play(enemy);
       if (t === 'longtone') {
