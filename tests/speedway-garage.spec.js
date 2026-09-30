@@ -215,3 +215,85 @@ for (const [name, size, touch] of [['phone', {width: 390, height: 844}, true], [
     });
   });
 }
+
+/* THE RESULTS' GARAGE: after every race. Nothing new = ONE outline GARAGE (the track menu's look, car icon) with the
+   results' buttons, NEXT still the yellow one; something unlocked = the NEW IN THE GARAGE! card (amber, centered
+   heading) and ITS filled GARAGE as the only one, centered in the card; opening and closing the garage comes back to
+   the same results. Each results screen is checked at phone, iPad and laptop sizes. */
+async function raceTo(page, store) {
+  const watch = await prepare(page, {store});
+  await page.setViewportSize({width: 1024, height: 768});
+  await page.goto(URL); await ready(page);
+  await page.evaluate(() => { document.querySelector('.trk[data-l="1"]').click(); document.querySelector('.ls-start').click(); });
+  for (let i = 0; i < 20 && !(await page.evaluate(() => { const G = Arcade.Speedway.debug(); return G && G.phase === 'race'; })); i++) {
+    await page.evaluate(() => { const b = document.querySelector('.overlay:not(#results) .btn-primary'); if (b && b.getClientRects().length) b.click(); });
+    await page.waitForTimeout(300);
+  }
+  await page.keyboard.down('Space');
+  await expect(page.locator('#results')).toBeVisible({timeout: 120000});
+  await page.keyboard.up('Space');
+  await page.waitForTimeout(400);
+  return watch;
+}
+const garageButtons = page => page.evaluate(() => [...document.querySelectorAll('#results .garage-btn')].map(b => {
+  const r = b.getBoundingClientRect(), cs = getComputedStyle(b), card = b.closest('.sw-newcar'), cr = card && card.getBoundingClientRect();
+  return {id: b.id, fill: b.classList.contains('garage-fill'), icon: !!b.querySelector('svg'), text: b.textContent.trim(), h: Math.round(r.height),
+    inActs: !!b.closest('.ui-res-acts'), bg: cs.backgroundColor, centered: cr ? Math.abs((r.left + r.right) / 2 - (cr.left + cr.right) / 2) < 2 : null,
+    onScreenX: r.left >= 0 && r.right <= innerWidth};
+}));
+const SIZES3 = [['phone', {width: 390, height: 844}], ['iPad portrait', {width: 768, height: 1024}], ['laptop', {width: 1366, height: 768}]];
+
+test('results with nothing new: ONE GARAGE button (outline, car icon) with the results\' buttons, NEXT still yellow; back from the garage to the same results', async ({page}) => {
+  test.setTimeout(150000);
+  const watch = await raceTo(page, device('trumpet', {games: progress([1]),
+    gameData: {'sustain-speedway': {achievements: {'perfect-lap': true}, bestLap: {'sustain-speedway|trumpet|1': 30}}}}));
+  await expect(page.locator('#gNew')).toHaveCount(0);
+  for (const [name, size] of SIZES3) {
+    await page.setViewportSize(size); await page.waitForTimeout(200);
+    const g = await garageButtons(page);
+    expect(g, name).toHaveLength(1);
+    expect(g[0]).toMatchObject({id: 'resGarage', fill: false, icon: true, text: 'Garage', inActs: true, onScreenX: true});
+    const acts = await page.evaluate(() => [...document.querySelectorAll('#results .ui-res-acts .btn')].map(b => [b.id, b.classList.contains('btn-primary')]));
+    expect(acts[0]).toEqual(['resNext', true]);                              // NEXT first, the yellow one
+    expect(acts.map(a => a[0])).toEqual(['resNext', 'resRetry', 'resLevels', 'resGarage']);
+    const next = await page.locator('#resNext').boundingBox();
+    expect(next.x).toBeGreaterThanOrEqual(0); expect(next.x + next.width).toBeLessThanOrEqual(size.width);
+  }
+  const before = await page.locator('#results .panel').innerHTML();
+  await page.locator('#resGarage').click();
+  await expect(page.locator('.sw-garage-ov')).toBeVisible();
+  await page.locator('#gDone').click();
+  await expect(page.locator('.sw-garage-ov')).toHaveCount(0);
+  await expect(page.locator('#results')).toBeVisible();
+  expect(await page.locator('#results .panel').innerHTML()).toBe(before);     // the same results, nothing replayed
+  await expect(page.locator('#resGarage')).toBeFocused();                     // focus back where it was
+  await page.locator('#resLevels').click();                                   // the buttons still work
+  await expect(page.locator('#hub')).toBeVisible();
+  watch.check();
+});
+
+test('results with an unlock: the NEW IN THE GARAGE! card (amber, centered) and ITS filled GARAGE is the only one; the "new" dot clears', async ({page}) => {
+  test.setTimeout(150000);
+  const watch = await raceTo(page, device('trumpet'));                        // a first win: the Dune Buggy
+  await expect(page.locator('#gNew')).toBeVisible();
+  const t = await page.evaluate(() => { const h = document.querySelector('.sw-newcar-t'), cs = getComputedStyle(h);
+    return {color: cs.color, align: cs.textAlign, amber: getComputedStyle(document.documentElement).getPropertyValue('--amber-hi').trim()}; });
+  expect(t.align).toBe('center');
+  const rgb = h => { const n = parseInt(h.slice(1), 16); return `rgb(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255})`; };
+  expect(t.color).toBe(rgb(t.amber));
+  for (const [name, size] of SIZES3) {
+    await page.setViewportSize(size); await page.waitForTimeout(200);
+    const g = await garageButtons(page);
+    expect(g, name).toHaveLength(1);
+    expect(g[0]).toMatchObject({id: 'gNewBtn', fill: true, icon: true, text: 'Garage', inActs: false, centered: true, onScreenX: true});
+    expect(g[0].h).toBeGreaterThanOrEqual(44);
+    expect(g[0].bg).not.toBe('rgba(0, 0, 0, 0)');                             // filled
+  }
+  await page.locator('#gNewBtn').click();
+  await expect(page.locator('.sw-garage-ov')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#results')).toBeVisible();
+  await page.locator('#resLevels').click();
+  await expect(page.locator('#garageDot')).toBeHidden();                      // seen: the track menu's "new" dot is gone
+  watch.check();
+});

@@ -687,11 +687,16 @@
       onShow: () => {
         chart(g);
         const b = $('gNewBtn'); if (b) b.addEventListener('click', () => Garage.open());
+        const gb = $('resGarage');                                // the results' GARAGE: the track menu's look + its car icon
+        if (gb) { gb.classList.add('garage-btn'); gb.innerHTML = Garage.ICON + '<span class="gb-t">Garage</span>'; gb.setAttribute('aria-label', 'Garage'); }
         if (fresh.length) Garage.markSeen(fresh);
       },
       next: {label: 'Next track', hidden: !hasNext, onClick: () => A.requireMic(() => startRace(finished.lv + 1))},
       retry: {label: 'Try again', onClick: () => A.requireMic(() => startRace(finished.lv))},
-      levels: {label: 'Tracks', onClick: showHub}});
+      levels: {label: 'Tracks', onClick: showHub},
+      // GARAGE after every race: here with the other buttons, unless something was unlocked (then the NEW IN THE
+      // GARAGE! card's filled button is the only one)
+      more: fresh.length ? [] : [{label: 'Garage', id: 'resGarage', onClick: () => Garage.open()}]});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Sfx.sequence([pos <= 3 && stars ? 'podium' : 'level-failed', stars > old.stars && 'star-earned', newLap && oldLap && 'new-best-lap']);
     finished = g; G = null;

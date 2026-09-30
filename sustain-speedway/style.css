@@ -158,8 +158,8 @@
   min-height:58px;padding:6px 16px;border-radius:16px;font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.06em}
 .garage-btn svg{width:30px;height:18px;flex:none}
 .garage-btn .g-dot{font-family:var(--text)}
-@media (max-width:560px){ .garage-btn{padding:6px 12px;position:relative} .garage-btn .gb-t{display:none}
-  .garage-btn .g-dot{position:absolute;top:-6px;right:-6px} }
+@media (max-width:560px){ .ls-go .garage-btn{padding:6px 12px;position:relative} .ls-go .garage-btn .gb-t{display:none}
+  .ls-go .garage-btn .g-dot{position:absolute;top:-6px;right:-6px} }
 .g-dot{padding:1px 7px;border-radius:999px;background:var(--pink);color:var(--deep);font:700 11px var(--text);text-transform:uppercase;letter-spacing:.06em}
 .overlay.sw-garage-ov{z-index:65}
 .panel.sw-garage{width:min(680px,100%);border-color:var(--amber);box-shadow:var(--glow-amber),0 30px 80px rgba(0,0,0,.6);padding:18px 16px}
@@ -188,6 +188,18 @@
 /* the results: your car under the place, and NEW IN THE GARAGE! */
 .res-car{display:block;width:170px;max-width:60%;height:auto;margin:4px auto 0}
 .sw-newcar{margin:0 auto 12px;max-width:420px;padding:10px 12px;border-radius:14px;border:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--floor-2));box-shadow:var(--glow-amber)}
-.sw-newcar-t{margin:0;font-family:var(--display);color:var(--amber-hi);letter-spacing:.04em}
+.panel .sw-newcar-t{margin:0;text-align:center;font-family:var(--display);color:var(--amber-hi);letter-spacing:.04em}   /* (.panel p would make it lavender) */
+/* the results' GARAGE (after every race): the track menu's look (amber outline, amber-hi text, the car icon), as tall as
+   the results' other buttons */
+.ui-res-acts .garage-btn{min-height:0;padding:0 18px;border-radius:12px}
+.garage-btn:focus-visible{outline:3px solid var(--amber-hi);outline-offset:3px}
+/* NEW IN THE GARAGE!: the card's button is the only GARAGE on the screen, FILLED (the brightest thing in the card),
+   centered, a soft glow that breathes twice then stays (none under reduced motion / Motion off) */
+.garage-btn.garage-fill{display:flex;margin:4px auto 0;min-height:48px;padding:6px 22px;background:var(--amber);border-color:var(--amber);color:var(--deep);
+  box-shadow:var(--glow-amber);--gb-wheel:var(--amber);animation:gb-breathe 1.6s ease-in-out 2}
+.garage-btn.garage-fill:hover{background:var(--amber-hi);border-color:var(--amber-hi)}
+.garage-btn.garage-fill:focus-visible{outline:3px solid var(--text-hi);outline-offset:3px}
+@keyframes gb-breathe{50%{box-shadow:var(--glow-amber),0 0 22px 6px color-mix(in srgb,var(--amber) 55%,transparent)}}
+@media (prefers-reduced-motion:reduce){ .garage-btn.garage-fill{animation:none} }
 .sw-newcar-l{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 8px}
 .sw-newcar-l span{padding:2px 9px;border-radius:999px;background:var(--floor-3);color:var(--text-hi);font-weight:700;font-size:13px}
