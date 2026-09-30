@@ -468,7 +468,7 @@
     sl.watch = false; sl.result = how;
     G.slurs.push({lap: sl.lap, a: sl.a.label, b: G.slurB[sl.lap].label, ok: how === 'slur', how});
     if (how === 'break') { S.slurSlowUntil = now + R.slur.slowMs; banner('Slur it!', 'bad', 1100); }
-    else if (how === 'slur') banner('Smooth!', 'zone', 800);
+    else if (how === 'slur') { banner('Smooth!', 'zone', 800); gd.slurSmooth = (gd.slurSmooth || 0) + 1; }
   }
 
   /* ---------- the loop: the car, the clock, laps, pit stops, rivals ---------- */
@@ -489,6 +489,12 @@
       slurTick(now);
       S.slurMul = now < (S.slurSlowUntil || 0) ? R.slur.slow : 1;
       const zn = zoneNow(); if (!zn) { S.dynMul = 1; dynShow(null); } else if (S.state !== 'on') dynShow(zn);
+      (G.zones[G.lap] || []).forEach(z => {                     // a zone passed: NAILED (the garage counts them)?
+        if (z.done || G.dist < z.to) return;
+        z.done = true;
+        const st = (G.zoneStats || {})[`${G.lap}:${z.from}`];
+        if (st && st.n >= 8 && st.ok / st.n >= window.SPEEDWAY_GARAGE.dynNailShare) { gd.dynNailed = (gd.dynNailed || 0) + 1; G.nailed = (G.nailed || 0) + 1; }
+      });
       driveStep(dt);
       if (G.nitro) { G.zoneTime += dt; G.laps[G.lap].zone += dt; noteStat(item()).zone += dt; }
       if (G.dist >= G.lens[G.lap]) lapDone(now);
@@ -546,6 +552,8 @@
     G.lapTimes.push(t);
     const lp = G.laps[G.lap];                                   // a PERFECT-PITCH LAP (the garage's Flames)
     if (lp.n >= window.SPEEDWAY_GARAGE.perfectLapReadings && lp.abs / lp.n <= R.nitro.cents) (gd.achievements = gd.achievements || {})['perfect-lap'] = true;
+    const could = t - R.nitro.holdMs / 1000;                   // A CLEAN LAP: in the zone the whole lap (from when nitro can start)
+    if (could > 0 && lp.zone >= could * window.SPEEDWAY_GARAGE.cleanLapShare) gd.cleanLaps = (gd.cleanLaps || 0) + 1;
     if (G.lap === G.lens.length - 1) return finishRace(now);
     // PIT STOP: a short, required rest; the next note is shown so the student can get ready
     G.phase = 'pit'; G.pitEnd = G.clock + R.pitSec; G.pitStart = G.clock; G.v = 0; dynShow(null);
@@ -1011,8 +1019,22 @@
     }
     FX.step(fdt, W, H);
     // the smoke goes under your car; everything else in the air over it
-    FX.draw(cx, C, p => p.kind === 'smoke');
-    Cars.draw(cx, mine.x, mine.y, mine.w, Object.assign({}, G.car, {sky, dpr, t: now, reduced: still, nitro: G.nitro && G.phase === 'race', braking: S.state === 'wrong'}));
+    // THE TRAIL (the garage's PARTS): behind your car at speed, never in LITE or with reduced motion
+    const trail = G.car.trail;
+    if (!LITE && !still && trail && trail !== 'none' && G.phase === 'race' && G.v > .45) {
+      if (trail === 'streak') {
+        [-1, 1].forEach(sd => { const tx = mine.x + sd * mine.w * .3, g = cx.createLinearGradient(0, mine.y - mine.w * .2, 0, H);
+          g.addColorStop(0, C.tail || C.red); g.addColorStop(1, 'transparent'); cx.globalAlpha = .35 * Math.min(1, G.v); cx.fillStyle = g;
+          cx.fillRect(tx - mine.w * .02, mine.y - mine.w * .2, mine.w * .04, H - mine.y + mine.w * .2); });
+        cx.globalAlpha = 1;
+      } else if (Math.random() < G.v * .9) {
+        const kind = trail === 'notes' ? 'note' : 'spark', col = trail === 'stars' ? C.yellow : trail === 'notes' ? C.white : C.cyan;
+        FX.add({kind, under: true, color: col, x: mine.x + (Math.random() - .5) * mine.w * .6, y: mine.y - mine.w * .15, vx: (Math.random() - .5) * 70, vy: 70 + Math.random() * 90,
+          r: trail === 'stars' ? 5 + Math.random() * 3 : 3 + Math.random() * 2, life: .55 + Math.random() * .3});
+      }
+    }
+    FX.draw(cx, C, p => p.kind === 'smoke' || p.under);
+    Cars.draw(cx, mine.x, mine.y, mine.w, Object.assign({}, G.car, {sky, dpr, t: now, reduced: still, lite: LITE, nitro: G.nitro && G.phase === 'race', braking: S.state === 'wrong'}));
     // SPEED LINES at the screen's edges, growing with the speed (fewer in LITE; none with reduced motion)
     const sp = clamp((G.v - .35) / .8, 0, 1);
     if (!still && sp > 0 && G.phase === 'race') {
@@ -1037,7 +1059,7 @@
     }
     // WEATHER + SEASONAL AIR (snow, petals, leaves, rain, bats, notes, hearts) and the finish's confetti / sparkles
     if (!LITE) SC.fillAir(FX, G.air, W, H, hor);
-    FX.draw(cx, C, p => p.kind !== 'smoke');
+    FX.draw(cx, C, p => p.kind !== 'smoke' && !p.under);
     // NITRO MOTION BLUR (Full graphics only): long soft streaks fanning out from the vanishing point toward the edges
     // (cheap lines: redrawing the frame over itself cost old iPads too much)
     if (shake) {
@@ -1157,10 +1179,13 @@
     cx.closePath(); cx.fill(); cx.globalAlpha = 1;
   }
   const carName = c => { const b = window.SPEEDWAY_GARAGE.bodies.find(x => x.id === c.body); return b ? b.name : 'Coupe'; };
-  function garageDot() {                                     // the "new" dot (and the button's name says so too)
+  function garageDot() {                                     // the "new" dot (and the button's name says so too) + THE NEXT UNLOCK
     const n = Garage.fresh().length;
     $('garageDot').hidden = !n;
     $('garageBtn').setAttribute('aria-label', n ? 'Garage: new items' : 'Garage');
+    const nx = Garage.nextUnlock(), el = $('garageNext');
+    el.hidden = !nx;
+    if (nx) el.innerHTML = `<span class="gn-k">Next unlock</span> <b>${nx.name}</b> <small>(${nx.what.toLowerCase()})</small>: ${nx.text}${nx.progress ? ` <span class="gn-p">· ${nx.progress}</span>` : ''}`;
   }
   $('garageBtn').addEventListener('click', () => Garage.open({onClose: garageDot}));
 

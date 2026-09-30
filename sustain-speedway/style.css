@@ -323,3 +323,38 @@
 .panel .res-tg.won{color:var(--sw-teacher-gold)}
 .tg-code{display:block;width:100%;margin:6px 0;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;background:var(--deep);color:var(--text-hi);border:1px solid var(--floor-3);border-radius:8px;padding:6px;resize:vertical;word-break:break-all}
 .panel .tg-meta{margin:0 0 6px;font-size:13px;color:var(--text-lo)}
+
+/* ---------- THE DEEPER GARAGE: sections, small tiles, parts, the plate, the side view, saved cars, the next unlock ---------- */
+.g-stage{position:relative}
+.g-view{position:absolute;top:8px;right:8px;min-height:36px;padding:2px 12px;font-size:13px}
+.g-body{display:grid;gap:10px}
+.g-sec{display:grid;gap:6px}
+.panel .g-sh{margin:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber-hi);text-align:left}
+.g-opts.g-small{grid-template-columns:repeat(auto-fill,minmax(86px,1fr))}
+.g-small .g-opt{min-height:74px;font-size:12px;padding:6px 4px}
+.g-small .g-swatch{width:34px;height:34px}
+.g-swatch.none{background:linear-gradient(135deg,var(--floor-2) 45%,var(--red) 45% 55%,var(--floor-2) 55%)}
+.g-swatch.auto{background:conic-gradient(var(--pink),var(--amber),var(--yellow),var(--green),var(--cyan),var(--purple),var(--pink))}
+.g-swatch.glow{box-shadow:0 0 12px 3px var(--sw),inset 0 -8px 12px rgba(0,0,0,.35)}
+.g-swatch.flame{border-radius:50% 50% 50% 50% / 60% 60% 40% 40%}
+.g-swatch.f-rainbow{background:linear-gradient(180deg,var(--pink),var(--amber),var(--yellow),var(--green),var(--cyan))}
+.g-rim{width:52px;height:52px}.g-rim.dim{filter:none;opacity:.25}
+.g-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--deep);font-size:20px;color:var(--cyan-hi)}
+.panel .g-note{margin:0;font-size:12.5px;color:var(--text-lo)}
+.g-words{grid-template-columns:repeat(auto-fill,minmax(98px,1fr))}
+.g-word{display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:12px;background:var(--floor-2);border:2px solid var(--floor-3);color:var(--text-hi);cursor:pointer;min-height:48px}
+.g-word[aria-pressed="true"]{border-color:var(--amber);box-shadow:var(--glow-amber)}
+.g-word small{font-size:11px;color:var(--text-lo)}
+.g-plate{display:inline-block;padding:3px 8px;border-radius:5px;background:var(--sw-plate);color:var(--sw-plate-ink);border:2px solid var(--sw-plate-ink);font:900 14px/1.1 var(--display);letter-spacing:.06em;white-space:nowrap}
+.g-digits{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.g-dig{display:grid;justify-items:center;gap:2px}
+.g-dig b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--amber-hi);min-width:1.4ch;text-align:center}
+.g-loads{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 4px}
+.g-loads .g-sh{flex-basis:100%}
+.g-load{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;border-radius:12px;background:var(--floor-2);border:1px solid var(--floor-3);flex:1 1 200px}
+.g-lname{flex:1 1 auto;min-height:44px;padding:4px 10px;border-radius:10px;border:2px dashed var(--amber);background:transparent;color:var(--amber-hi);font:700 14px var(--text);cursor:pointer}
+.sw-garage .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.g-next{margin:0;flex:1 1 260px;font-size:13.5px;color:var(--text-lo)}
+.g-next b{color:var(--amber-hi)}
+.g-next .gn-k{font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;color:var(--text-hi)}
+.g-next .gn-p{color:var(--text-hi)}

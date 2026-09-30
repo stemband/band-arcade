@@ -32,7 +32,7 @@ test('every body draws, small and large, with every decal and paint, braking or 
     }
     return {out, bodies: C.BODIES, levels: window.SPEEDWAY_TRACKS.flatMap(t => t.rivals.map(r => r.body))};
   });
-  expect(r.bodies).toEqual(['coupe', 'mini', 'muscle', 'wagon', 'buggy', 'openwheel', 'hover', 'maestro']);
+  expect(r.bodies).toEqual(['coupe', 'mini', 'muscle', 'wagon', 'buggy', 'openwheel', 'hover', 'maestro', 'pickup', 'rally', 'stock', 'hotrod', 'kart', 'supercar', 'monster', 'retrohover', 'bumper']);
   r.out.forEach(o => expect(o.painted, `${o.body} at ${o.w} px (${o.decal})`).toBeGreaterThan(.08));
   expect(new Set(r.levels)).toEqual(new Set(['openwheel', 'wagon', 'coupe', 'muscle', 'hover', 'maestro']));   // every rival has its own body
   watch.check();
@@ -42,11 +42,12 @@ test('an old save: a Coupe in its instrument\'s color, only the free items open;
   const watch = await prepare(page, {store: device('trumpet')});
   await page.goto(URL); await ready(page);
   const s = await page.evaluate(() => Arcade.SpeedwayGarage.state());
-  expect(s.choice).toMatchObject({body: 'coupe', paint: 'instrument', decal: null});
+  expect(s.choice).toMatchObject({body: 'coupe', paint: 'instrument', decal: null, finish: 'gloss', rims: 'classic', spoiler: 'stock', plate: {w: 'BAND'}});
   expect(s.look.decal).toBe('none');
   expect(s.unlocked.body).toEqual(['coupe', 'mini']);
-  expect(s.unlocked.paint).toEqual(['instrument', 'pink', 'cyan', 'yellow', 'green']);
-  expect(s.unlocked.decal).toEqual(['none', 'stripes', 'number']);
+  expect(s.unlocked.paint).toEqual(['instrument', 'pink', 'cyan', 'yellow', 'green', 'sw-paint-black']);   // Gloss Black is open from the start
+  expect(s.unlocked.decal).toEqual(['none', 'stripes', 'number', 'stripe1']);
+  expect(s.unlocked.finish).toEqual(['gloss']);
   expect(await page.evaluate(() => Arcade.SpeedwayGarage.pick('body', 'hover'))).toBe(false);
   expect(await page.evaluate(() => Arcade.SpeedwayGarage.choice().body)).toBe('coupe');
   // the panel: locked tiles are silhouettes with their requirement; a tap says how to earn it and picks nothing
@@ -70,13 +71,15 @@ test('unlocks come from existing progress; the choice saves and comes back after
   await page.goto(URL); await ready(page);
   const s = await page.evaluate(() => Arcade.SpeedwayGarage.state());
   // 5 wins (4 of them + The Grand Prix) + a 2nd place = 17 ★, 6 tracks finished
-  expect(s.unlocked.body).toEqual(['coupe', 'mini', 'muscle', 'wagon', 'buggy', 'openwheel', 'hover']);
-  expect(s.unlocked.paint).toEqual(['instrument', 'pink', 'cyan', 'yellow', 'green', 'amber', 'purple', 'red']);
-  expect(s.unlocked.decal).toEqual(['none', 'stripes', 'number', 'flames', 'stars', 'checker', 'lightning']);
+  expect(s.unlocked.body).toEqual(['coupe', 'mini', 'muscle', 'wagon', 'buggy', 'openwheel', 'hover', 'pickup', 'rally']);   // + 2 tracks, 5 wins
+  expect(s.unlocked.paint).toEqual(['instrument', 'pink', 'cyan', 'yellow', 'green', 'amber', 'purple', 'red', 'sw-paint-black', 'sw-paint-silver', 'sw-paint-teal',
+    'sw-paint-mint', 'sw-paint-navy', 'sw-paint-forest']);
+  expect(s.unlocked.decal).toEqual(['none', 'stripes', 'number', 'flames', 'stars', 'checker', 'lightning', 'stripe1', 'stripeoff', 'swoosh', 'dots']);   // dots: 17 Arcade ★
+  expect(s.unlocked.finish).toEqual(['gloss', 'matte', 'metallic', 'pearl']);
   await page.click('#garageBtn');
   await page.locator('.g-opt[data-id="hover"]').click();
   await page.locator('[data-tab="paint"]').click();
-  await page.locator('.g-opt[data-id="red"]').click();
+  await page.locator('.g-opt[data-kind="paint"][data-id="red"]').click();
   await page.locator('[data-tab="decal"]').click();
   await page.locator('.g-opt[data-id="number"]').click();
   for (let i = 0; i < 5; i++) await page.locator('[data-num="1"]').click();         // 7 → 12
@@ -84,7 +87,7 @@ test('unlocks come from existing progress; the choice saves and comes back after
   await page.locator('#gDone').click();
   await page.reload(); await ready(page);
   const c = await page.evaluate(() => ({choice: Arcade.SpeedwayGarage.choice(), look: Arcade.SpeedwayGarage.look(), red: getComputedStyle(document.documentElement).getPropertyValue('--red').trim()}));
-  expect(c.choice).toEqual({body: 'hover', paint: 'red', decal: 'number', number: 12});
+  expect(c.choice).toMatchObject({body: 'hover', paint: 'red', decal: 'number', number: 12});
   expect(c.look).toMatchObject({body: 'hover', decal: 'number', number: 12, color: c.red});
   watch.check();
 });
@@ -245,8 +248,9 @@ const SIZES3 = [['phone', {width: 390, height: 844}], ['iPad portrait', {width: 
 
 test('results with nothing new: ONE GARAGE button (outline, car icon) with the results\' buttons, NEXT still yellow; back from the garage to the same results', async ({page}) => {
   test.setTimeout(150000);
+  // (the counters a race can raise are already past their first unlocks here, so nothing is new)
   const watch = await raceTo(page, device('trumpet', {games: progress([1]),
-    gameData: {'sustain-speedway': {achievements: {'perfect-lap': true}, bestLap: {'sustain-speedway|trumpet|1': 30}}}}));
+    gameData: {'sustain-speedway': {achievements: {'perfect-lap': true}, bestLap: {'sustain-speedway|trumpet|1': 30}, cleanLaps: 50, breath: {trumpet: {best: 20, notes: {}, hist: []}}}}}));
   await expect(page.locator('#gNew')).toHaveCount(0);
   for (const [name, size] of SIZES3) {
     await page.setViewportSize(size); await page.waitForTimeout(200);
