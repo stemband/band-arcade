@@ -19,6 +19,11 @@ window.QUEST_TEXT = {
   twoPaths:        'Two ways to win: PLAY to defeat it, or SERENADE until its CALM is full, then HARMONIZE to make a friend!',
   netLine:         'It\'s barely standing… but it\'s listening.',
   netHint:         'SERENADE to befriend it, or PLAY to finish it.',
+  critSkill:       'A perfect note! CRITICAL HIT!',
+  critLucky:       'Critical hit!',
+  critFloat:       'CRITICAL!',
+  perfectFloat:    'PERFECT SERENADE!',
+  serenadePerfect: 'A perfect serenade! {name} melts a little.',
   noItems:         'Your bag is empty.',
   back:            'Back',
 

@@ -70,10 +70,10 @@ test('a well-played battle can end in a FADE, even with a full CALM (the student
   watch.check();
 });
 
-test('HARMONIZE with a full CALM still befriends', async ({page}) => {
+test('HARMONIZE with a full CALM still befriends (the befriend path: SERENADE, then HARMONIZE)', async ({page}) => {
   const watch = await open(page);
   await start(page, 'squawk');
-  await until(page, (b, scene) => scene !== 'battle', b => (b && b.calm >= 100 ? 'HARMONIZE' : 'PLAY'));
+  await until(page, (b, scene) => scene !== 'battle', b => (b && b.calm >= 100 ? 'HARMONIZE' : 'SERENADE'));
   await expect.poll(() => page.evaluate(() => Arcade.Quest.save.get().roster)).toEqual(['squawk']);
   expect(await page.evaluate(() => (Arcade.Quest.save.get().battles || {}).befriended)).toBe(1);
   watch.check();
@@ -168,8 +168,9 @@ test('damage grows with level: one perfect PLAY at LV 1 vs LV 10 (solo), shown a
     return {dmg: b.ehp - b.hp, power: b.power};
   };
   const lv1 = await hit(1), lv10 = await hit(10);
-  expect(lv1).toEqual({dmg: 10, power: 10});
-  expect(lv10).toEqual({dmg: 33, power: 33});
+  // a perfect PLAY (100 %, full speed) is a SKILL CRIT: power × 1.5
+  expect(lv1).toEqual({dmg: 15, power: 10});
+  expect(lv10).toEqual({dmg: Math.round(33 * 1.5), power: 33});
   // every level is clearly stronger than the last (about 14 %)
   const curve = await page.evaluate(() => Array.from({length: 15}, (_, i) => Arcade.Quest.save.powerAt(i + 1)));
   curve.slice(1).forEach((p, i) => expect(p / curve[i]).toBeGreaterThan(1.08));
@@ -211,8 +212,8 @@ for (const level of [1, 10]) for (const trio of [false, true]) {
   test(`SERENADE then HARMONIZE befriends in about as many turns as PLAY defeats (LV ${level}, ${trio ? 'trio' : 'solo'})`, async ({page}) => {
     const band = trio ? ['wisp', 'hush'] : [];
     const watch = await open(page, {level, roster: ['wisp', 'hush'], band});
-    // DEFEAT: PLAYs that add no CALM (so THE SAFETY NET, which adds one turn once CALM passes 50, stays out of it)
-    await page.evaluate(p => { window.__play = Object.assign({}, p, {correct: 0, success: false}); }, PLAYED);
+    // DEFEAT: PLAYs at 80 % (no lucky crit rolled: the table's average; crits have their own tests)
+    await page.evaluate(p => { window.__play = Object.assign({}, p, {correct: 0, success: false}); Math.random = () => 0.99; }, PLAYED);
     const defeat = await fight(page, 'wobble', () => 'PLAY');
     await page.evaluate(p => { window.__play = p; }, PLAYED);
     expect(defeat.save.battles.faded).toBe(1);
@@ -253,10 +254,13 @@ test('SERENADE does no damage; your band follows your lead with CALM (not damage
   watch.check();
 });
 
-test('THE SAFETY NET: a PLAY that would defeat it with CALM ≥ 50 leaves it at 1 HP once; the next PLAY defeats it', async ({page}) => {
+test('THE SAFETY NET: after a SERENADE, a PLAY that would defeat it with CALM ≥ 50 leaves it at 1 HP once; the next PLAY defeats it', async ({page}) => {
   const watch = await open(page);
-  // Wobble: 30 HP, a perfect PLAY does 10 and 36 CALM: after two PLAYs CALM 72, so the third would defeat it
+  // Wobble: 30 HP; one SERENADE at 60 % (CALM 22.8), then PLAYs at 90 % (no crit: 70 % speed; 9 damage, 36 CALM each)
+  await page.evaluate(() => { window.__play = {acc: .6, speed: 1, correct: 1, total: 1, success: false}; Math.random = () => 0.99; });
   await start(page, 'wobble');
+  await until(page, b => b && b.calm > 0, () => 'SERENADE');
+  await page.evaluate(() => { window.__play = {acc: .9, speed: .7, correct: 3, total: 3, success: true}; });
   await until(page, b => b && b.net);
   let b = await state(page);
   expect([b.hp, b.state]).toEqual([1, 'fight']);
@@ -284,5 +288,85 @@ test('the snare SERENADEs with a gentle steady beat (its own challenge), the Gho
   await start(page, 'conductor');
   await expect.poll(async () => { for (let i = 0; i < 40 && !(await page.locator('#qCmd:not([hidden]) .q-btn').count()); i++) await page.keyboard.press('Enter'); return page.locator('#qCmd .q-btn .q-bl').allTextContents(); })
     .toEqual(['PLAY', 'LISTEN', 'ITEM', 'HARMONIZE']);
+  watch.check();
+});
+
+/* CRITICAL HITS and the PERFECT SERENADE (battle.js RULES.crit*, perfect*); THE SAFETY NET only after a SERENADE */
+test('a SKILL CRIT: a PLAY at 96 % accuracy and 90 % speed is always critical (× 1.5, "CRITICAL!", its sound)', async ({page}) => {
+  const watch = await open(page, {level: 5});
+  await page.evaluate(() => { window.__play = {acc: .96, speed: .9, correct: 3, total: 3, success: true}; Math.random = () => 0.99;
+    const Q = Arcade.Quest, f = Q.sfx; window.__sfx = []; Q.sfx = (n, ...x) => { window.__sfx.push(n); return f(n, ...x); }; });
+  await start(page, 'wobble');
+  await until(page, b => b && b.hp < b.ehp);
+  const b = await state(page), power = b.power;
+  expect(b.crit).toBe('skill');
+  expect(b.ehp - b.hp).toBe(Math.round(Math.round(power * .96 * (.55 + .45 * .9)) * 1.5));
+  await expect(page.locator('.q-float.crit')).toHaveText('CRITICAL!');
+  expect(await page.evaluate(() => window.__sfx)).toContain('quest-crit');
+  await until(page, b => b && b.aim);
+  expect(await page.evaluate(() => window.__lines)).toContain('A perfect note! CRITICAL HIT!');
+  watch.check();
+});
+
+test('a LUCKY CRIT: 1 in 12 at 70 %+ (a seeded random), never below 70 %; the Sharp Ear charm makes it 1 in 6; the band hits × 1.2', async ({page}) => {
+  const watch = await open(page, {roster: ['wisp'], band: ['wisp']});
+  const one = async (acc, rnd, charm) => {
+    await page.evaluate(([acc, rnd, charm]) => {
+      window.__play = {acc, speed: .5, correct: 2, total: 3, success: acc >= .8};
+      Math.random = () => rnd;
+      const s = Arcade.Quest.save.get(); s.charms.owned['sharp-ear'] = true; s.charms.equipped = [charm ? 'sharp-ear' : null, null]; Arcade.Quest.save.write();
+    }, [acc, rnd, charm]);
+    await start(page, 'wobble');
+    await until(page, b => b && b.hp < b.ehp);
+    const b = await state(page);
+    return {crit: b.crit, dmg: b.ehp - b.hp, power: b.power};
+  };
+  // 1 / 12 = .0833: a roll of .08 crits, .09 doesn't
+  let r = await one(.8, .08, false);
+  expect(r.crit).toBe('lucky');
+  const you = Math.round(Math.round(r.power * .8 * (.55 + .45 * .5)) * 1.5), wisp = Math.max(1, Math.round(r.power * .3 * .8 * 1.2));
+  expect(r.dmg).toBe(you + wisp);
+  expect((await one(.8, .09, false)).crit).toBe(null);
+  expect((await one(.65, .01, false)).crit).toBe(null);                     // under 70 %: never lucky
+  // the Sharp Ear: 1 / 6 = .1667
+  expect((await one(.8, .15, true)).crit).toBe('lucky');
+  expect((await one(.8, .17, true)).crit).toBe(null);
+  // a statistical check of the plain chance with a seeded generator: about 1 in 12
+  const rate = await page.evaluate(() => { let x = 42; const rnd = () => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648);
+    let n = 0; for (let i = 0; i < 12000; i++) if (rnd() < 1 / 12) n++; return n / 12000; });
+  expect(rate).toBeGreaterThan(.07); expect(rate).toBeLessThan(.097);
+  expect(await page.evaluate(() => window.QUEST_CHARMS['sharp-ear'])).toMatchObject({name: 'Sharp Ear', effect: {crit: 1 / 6}, price: 300});
+  watch.check();
+});
+
+test('a PLAY-only battle is never held at 1 HP by THE SAFETY NET (even with a full CALM from PLAY)', async ({page}) => {
+  const watch = await open(page);
+  await page.evaluate(() => { window.__play = {acc: .9, speed: .7, correct: 3, total: 3, success: true}; Math.random = () => 0.99; });
+  await start(page, 'wobble');
+  let maxCalm = 0, held = false;
+  await until(page, (b, scene) => { if (b) { maxCalm = Math.max(maxCalm, b.calm); if (b.net || b.hp === 1) held = true; } return scene !== 'battle'; });
+  expect(maxCalm).toBeGreaterThanOrEqual(50);
+  expect(held).toBe(false);
+  expect(await page.evaluate(() => Arcade.Quest.save.get().battles.faded)).toBe(1);
+  expect((await page.evaluate(() => window.__lines)).some(l => /barely standing/.test(l))).toBe(false);
+  watch.check();
+});
+
+test('a PERFECT SERENADE (95 %+) gives CALM × 1.5 with "PERFECT SERENADE!"', async ({page}) => {
+  const watch = await open(page);
+  await page.evaluate(() => { window.__play = {acc: .96, speed: 1, correct: 1, total: 1, success: true}; });
+  await start(page, 'wobble');
+  await until(page, b => b && b.calm > 0, () => 'SERENADE');
+  const b = await state(page);
+  expect(b.perfect).toBe(true);
+  expect(b.calm).toBeCloseTo(38 * .96 * b.calmScale * 1.5, 5);
+  await expect(page.locator('.q-float.perfect')).toHaveText('PERFECT SERENADE!');
+  // not perfect: × 1
+  await page.evaluate(() => { window.__play = {acc: .9, speed: 1, correct: 1, total: 1, success: true}; });
+  const before = b.calm;
+  await until(page, s => s && s.calm > before, () => 'SERENADE');
+  const c = await state(page);
+  expect(c.perfect).toBe(false);
+  expect(c.calm - before).toBeCloseTo(38 * .9 * c.calmScale, 5);
   watch.check();
 });
