@@ -205,8 +205,13 @@ window.Arcade = window.Arcade || {};
     try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* older browsers, file:// */ }
     try { ta.focus(); ta.select(); return document.execCommand('copy'); } catch (e) { return false; }
   }
+  /* The panel opens ON TOP of whatever opened it (Settings, the leaderboard, Choose Your Instrument, Arcade Quest's
+     panels, the app's first launch): Arcade.UI.layer (shared/ui-kit.js) lifts it above them (at least z 80, the
+     BACKUP layer), below the yes/no question it asks (the kit's confirm, lifted above it) and the toasts. Focus goes
+     in (MAKE MY BACKUP CODE), Tab stays inside, Esc closes (not while its question is open), the focus goes back to
+     the button that opened it. iPad: the overlay scrolls, and a focused code box is kept above the on-screen
+     keyboard (visualViewport). */
   function open() {
-    const prev = document.activeElement;
     const ov = document.createElement('div');
     ov.className = 'overlay bk-overlay';
     const quest = ((A.store.gameData('arcade-quest') || {}).save) || null;
@@ -255,12 +260,32 @@ window.Arcade = window.Arcade || {};
       msg('Restored! Reloading…', 'good');
       setTimeout(() => location.reload(), 700);
     });
-    const close = () => { ov.remove(); removeEventListener('keydown', key); if (prev && prev.focus) prev.focus(); };
-    const key = e => { if (e.key === 'Escape') close(); };
-    addEventListener('keydown', key);
+    // iPad's on-screen keyboard: room under the panel for it, and the focused code box scrolled into the visible part
+    const vv = window.visualViewport;
+    const keepVisible = () => {
+      const f = document.activeElement;
+      if (!f || !ov.contains(f) || !/^(TEXTAREA|INPUT)$/.test(f.tagName)) { ov.style.paddingBottom = ''; return; }
+      const kb = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0;
+      ov.style.paddingBottom = kb ? `${kb + 16}px` : '';
+      // the overlay scrolls itself (theme.css .overlay): center the box in the part the keyboard leaves visible
+      const r = f.getBoundingClientRect(), top = vv ? vv.offsetTop : 0, bottom = vv ? vv.offsetTop + vv.height : innerHeight;
+      if (r.bottom > bottom - 8 || r.top < top) ov.scrollTop += (r.top + r.height / 2) - (top + bottom) / 2;
+    };
+    const later = () => setTimeout(keepVisible, 320);                 // after the keyboard has slid up
+    ov.addEventListener('focusin', later);
+    if (vv) vv.addEventListener('resize', keepVisible);
+    const close = () => {
+      if (!ov.isConnected) return;
+      if (vv) vv.removeEventListener('resize', keepVisible);
+      ov.remove();
+      if (A.UI && A.UI.layer) A.UI.layer.close(ov);
+    };
     $('.bk-close').addEventListener('click', close);
     ov.addEventListener('click', e => { if (e.target === ov) close(); });
-    $('.bk-make').focus();
+    ['keydown', 'keyup'].forEach(t => ov.addEventListener(t, e => e.stopPropagation()));   // keys typed here never reach the page underneath
+    if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 80, trap: true, onEsc: close, focus: '.bk-make'});
+    else { ov.style.zIndex = '80'; $('.bk-make').focus(); }
+    ov.close = close;
     return ov;
   }
   function button(el, cls = 'btn btn-secondary btn-small') {

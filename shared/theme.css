@@ -503,7 +503,7 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 }
 
 /* ---------- BACKUP / RESTORE (shared/backup.js) ---------- */
-.bk-overlay{z-index:60;align-items:start;overflow-y:auto}
+.bk-overlay{z-index:80;align-items:start;overflow-y:auto}   /* BACKUP / RESTORE: above Settings (70) and the leaderboard (70), below yes/no (90) and toasts (95); UI.layer lifts it above anything else open */
 .bk-panel{max-width:560px;width:100%;margin:auto;text-align:left}
 .bk-panel h2{text-align:center;font-family:var(--display);font-weight:400;color:var(--cyan)}
 .bk-panel h3{margin:0 0 8px;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}

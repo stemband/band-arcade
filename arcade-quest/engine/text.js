@@ -144,7 +144,7 @@
     });
     if (items[cur] && items[cur].disabled) { const k = items.findIndex(x => !x.disabled); if (k >= 0) cur = k; }
     mark();
-    setTimeout(() => { if (live && keys && btns[cur]) btns[cur].focus({preventScroll: true}); }, 30);
+    setTimeout(() => { if (live && keys && btns[cur] && !document.body.classList.contains('ui-modal')) btns[cur].focus({preventScroll: true}); }, 30);   // never out of a panel opened on top meanwhile (Backup)
     return {el: grid, destroy() { live = false; off(); grid.remove(); }, get index() { return cur; }};
   };
 })(window.Arcade);

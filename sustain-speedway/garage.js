@@ -201,6 +201,7 @@
       <div class="g-loads" id="gLoads" role="group" aria-label="Saved loadouts"></div>
       <div class="acts"><button type="button" class="btn btn-secondary" id="gRandom">Randomize</button><button type="button" class="btn btn-primary" id="gDone">Done</button></div></div>`;
     document.body.appendChild(ov);
+    if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 65});   // on top of whatever opened it (shared/ui-kit.js UI.layer)
     if (A.lockScroll) A.lockScroll(true);
     ov.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; drawTabs(); tick('ui-toggle'); }));
     ov.querySelector('#gDone').addEventListener('click', close);
@@ -230,7 +231,7 @@
   function close() {
     if (!ov) return;
     cancelAnimationFrame(raf); raf = 0;
-    ov.remove(); ov = null;
+    ov.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(ov); ov = null;
     if (A.lockScroll) A.lockScroll(false);
     markSeen();
     if (back && back.focus) back.focus({preventScroll: true});

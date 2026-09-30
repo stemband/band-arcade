@@ -154,6 +154,7 @@ window.Arcade = window.Arcade || {};
         </section>
       </div></div>`;
     document.body.appendChild(root);
+    if (A.UI && A.UI.layer) A.UI.layer.open(root, {min: 80});   // on top of whatever opened it (shared/ui-kit.js UI.layer)
     document.body.classList.add('avc-open');
     if (A.lockScroll) A.lockScroll(true);
     sfx('avatar-open');                                      // and the music steps back a little while it's open
@@ -247,7 +248,7 @@ window.Arcade = window.Arcade || {};
     if (!S) return;
     const {root, onClose, guest} = S;
     cancelAnimationFrame(S.raf); clearTimeout(S.tick);
-    root.remove();
+    root.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(root);
     document.body.classList.remove('avc-open');
     if (A.lockScroll) A.lockScroll(false);
     if (A.Sfx && A.Sfx.duckHold) A.Sfx.duckHold(false);
