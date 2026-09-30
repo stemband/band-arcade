@@ -152,8 +152,14 @@
 
 /* ---------- THE GARAGE (garage.js): above the results screen (60), under Settings (70) ---------- */
 .hub-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.garage-btn{display:inline-flex;align-items:center;gap:8px;border-color:var(--amber);color:var(--amber-hi)}
-.garage-btn svg{width:30px;height:18px}
+/* GARAGE sits just left of START in the level select's sticky row (LevelSelect.show({beside})): a secondary button,
+   narrower than START, as tall; on a narrow phone only its icon (aria-label "Garage"), so START never wraps */
+.garage-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-color:var(--amber);color:var(--amber-hi);
+  min-height:58px;padding:6px 16px;border-radius:16px;font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.06em}
+.garage-btn svg{width:30px;height:18px;flex:none}
+.garage-btn .g-dot{font-family:var(--text)}
+@media (max-width:560px){ .garage-btn{padding:6px 12px;position:relative} .garage-btn .gb-t{display:none}
+  .garage-btn .g-dot{position:absolute;top:-6px;right:-6px} }
 .g-dot{padding:1px 7px;border-radius:999px;background:var(--pink);color:var(--deep);font:700 11px var(--text);text-transform:uppercase;letter-spacing:.06em}
 .overlay.sw-garage-ov{z-index:65}
 .panel.sw-garage{width:min(680px,100%);border-color:var(--amber);box-shadow:var(--glow-amber),0 30px 80px rgba(0,0,0,.6);padding:18px 16px}

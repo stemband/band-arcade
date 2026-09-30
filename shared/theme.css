@@ -634,6 +634,10 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .ls-start.ls-in{animation:ls-in .35s ease-out}
 @keyframes ls-in{from{opacity:0;transform:translateX(24px)}}
 @media (max-width:560px){ .ls-go{width:100%;margin-left:0} .ls-start,.ls-need{width:100%} }
+/* an element beside START (LevelSelect.show({beside})): to its left, as tall as START; START keeps the row's width on phones */
+.ls-go.ls-has-beside{gap:10px;flex-wrap:nowrap}
+.ls-beside{flex:none;min-height:58px;align-self:stretch}
+@media (max-width:560px){ .ls-go.ls-has-beside .ls-start,.ls-go.ls-has-beside .ls-need{width:auto;flex:1 1 auto;min-width:0} }
 /* a selected level: the chosen note set's look (lit border, glow) + a check */
 .ls-card{position:relative}
 .ls-card.ls-sel{border-color:var(--yellow)!important;background:var(--floor-lit);box-shadow:0 0 0 2px var(--yellow),var(--glow-yellow)}
