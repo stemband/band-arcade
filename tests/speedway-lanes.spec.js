@@ -27,7 +27,8 @@ async function race(page, size, drive) {
   });
   await page.evaluate(() => { document.querySelector('.trk[data-l="8"]').click(); document.querySelector('.ls-start').click(); });
   for (let i = 0; i < 30 && !(await page.evaluate(() => { const G = Arcade.Speedway.debug(); return G && G.phase === 'race'; })); i++) {
-    await page.evaluate(() => { const b = document.querySelector('.overlay:not(#results) [data-act="go"], .overlay:not(#results) .btn-primary'); if (b && b.getClientRects().length) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('.overlay:not(#results) [data-act="go"], .overlay:not(#results) .btn-primary'); if (b && b.getClientRects().length) b.click();
+      Arcade.Speedway.skipChecks(); });                                  // (The Grand Prix has dynamics: no volume check here)
     await page.waitForTimeout(250);
   }
   if (drive) await page.keyboard.down('Space');

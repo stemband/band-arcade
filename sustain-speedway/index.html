@@ -30,10 +30,12 @@
     <div class="hub-more">
       <!-- GARAGE: moved beside START in the level select's sticky row (game.js: LevelSelect.show({beside})) -->
       <button type="button" class="btn btn-secondary garage-btn" id="garageBtn" aria-label="Garage"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M3 18V12L8 10L12 4H28L32 10L37 12V18Z" fill="currentColor"/><circle cx="11" cy="19" r="4" fill="var(--deep)" stroke="currentColor" stroke-width="2"/><circle cx="29" cy="19" r="4" fill="var(--deep)" stroke="currentColor" stroke-width="2"/></svg><span class="gb-t">Garage</span> <span class="g-dot" id="garageDot" hidden>new</span></button>
+      <p class="g-next" id="garageNext" hidden></p>
       <div class="diff-set"><span class="ui-label" id="diffLbl">Difficulty</span><div class="ui-seg sw-seg" id="diffBtns" role="group" aria-labelledby="diffLbl"></div>
         <span class="diff-say" id="diffSay"></span></div>
     </div>
-    <p class="demo-help" id="demoHelp" hidden>Demo: every track is unlocked. In a race, hold <b>Space</b> = the right note, perfectly in tune; hold <b>D</b> = the right note drifting sharp (+25 to +35 cents, wobbling); hold <b>W</b> = a wrong note; hold <b>E</b> = the right note, centered but wobbling (no nitro); let go = breathing (the car coasts).</p>
+    <section class="records" id="records" hidden aria-labelledby="recT"></section>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every track is unlocked. In a race, hold <b>Space</b> = the right note, perfectly in tune; hold <b>D</b> = the right note drifting sharp (+25 cents, drifting to +45), <b>F</b> = drifting flat; hold <b>W</b> = a wrong note; hold <b>S</b> / <b>L</b> = the right note SOFT / LOUD (Space plays each zone's dynamic by itself); hold <b>B</b> = like Space, but with a BREAK at a slur; hold <b>E</b> = the right note, centered but wobbling (no nitro); let go = breathing (the car coasts).</p>
   </section>
 
   <!-- A RACE -->
@@ -48,6 +50,11 @@
           <b class="note-name" id="noteName"></b><span class="note-flash" id="noteFlash"></span></div>
       </div>
       <p class="banner" id="banner" hidden aria-live="assertive"></p>
+      <div class="vcheck" id="vcheck" hidden role="dialog" aria-label="Volume check"></div>
+      <div class="dyn-badge" id="dynBadge" hidden aria-live="polite"></div>
+      <div class="podium" id="podium" hidden tabindex="-1" role="dialog" aria-label="The podium"></div>
+      <p class="steer-word" id="steerWord" hidden aria-live="polite"></p>
+      <p class="steer-hint" id="steerHint" hidden role="status">Steer with your pitch! Flat drifts left, sharp drifts right. Stay on the center line.</p>
       <div class="pit" id="pit" hidden>
         <div class="pit-card">
           <p class="pit-title">Pit stop</p>
@@ -111,8 +118,12 @@
 <script src="../shared/marquees.js"></script>
 <script src="../shared/press-start.js"></script>
 <script src="../shared/level-select.js"></script>
+<script src="../shared/fingerings.js"></script>
 <script src="levels.js"></script>
+<script src="tips.js"></script>
+<script src="teacher-ghosts.js"></script>
 <script src="cars.js"></script>
+<script src="scenery.js"></script>
 <script src="garage.js"></script>
 <script src="game.js"></script>
 </body>

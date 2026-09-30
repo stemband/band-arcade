@@ -203,3 +203,158 @@
 @media (prefers-reduced-motion:reduce){ .garage-btn.garage-fill{animation:none} }
 .sw-newcar-l{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 8px}
 .sw-newcar-l span{padding:2px 9px;border-radius:999px;background:var(--floor-3);color:var(--text-hi);font-weight:700;font-size:13px}
+
+/* ---------- PITCH STEERING: "FLAT ◀" / "▶ SHARP" at the side the car is drifting to, and the one-time hint ---------- */
+.steer-word{position:absolute;bottom:22%;margin:0;padding:4px 12px;border-radius:10px;font-family:var(--display);font-size:clamp(18px,3vw,30px);
+  background:color-mix(in srgb,var(--deep) 80%,transparent);pointer-events:none;letter-spacing:.04em}
+.steer-word.l{left:10px;color:var(--cyan-hi);border:2px solid var(--cyan)}
+.steer-word.r{right:10px;color:var(--amber-hi);border:2px solid var(--amber)}
+.steer-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);margin:0;width:min(92%,520px);padding:8px 12px;border-radius:12px;text-align:center;
+  font-weight:700;font-size:clamp(13px,1.7vw,16px);color:var(--text-hi);background:color-mix(in srgb,var(--deep) 86%,transparent);border:2px solid var(--green);pointer-events:none}
+@media (max-width:560px){ .steer-word{bottom:30%;font-size:16px} .steer-hint{bottom:auto;top:62px} }
+
+/* ---------- THE INTONATION REPORT (results: "Your tuning") ---------- */
+.tuning{margin:0 auto 12px;max-width:620px;text-align:left;background:var(--deep);border-radius:14px;padding:10px 12px;border:1px solid var(--floor-3)}
+.panel .tn-title{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:18px;color:var(--cyan-hi);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.panel .tn-scale{display:grid;grid-template-columns:3.6em minmax(90px,1fr) minmax(0,1.3fr);gap:0 10px;margin:0 0 2px;font-size:11.5px;font-weight:700;color:var(--text-lo)}
+.tn-sc{display:flex;justify-content:space-between}
+.tn-sc i{font-style:normal}
+.tn-rows{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.tn-row{display:grid;grid-template-columns:3.6em minmax(90px,1fr) minmax(0,1.3fr);align-items:center;gap:4px 10px;font-size:14px;color:var(--text-hi)}
+.tn-note{font-family:var(--display);font-weight:400;font-size:20px;font-family:var(--display),var(--music)}
+.tn-note sub{font-size:.55em;vertical-align:baseline;margin-left:1px;color:var(--text-lo)}
+.tn-bar{position:relative;height:16px;border-radius:8px;background:var(--floor-3)}
+.tn-band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--green) 40%,transparent);border-radius:4px}
+.tn-mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--text-lo)}
+.tn-dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--text-hi);border:2px solid var(--deep)}
+.tn-row.ok .tn-dot{background:var(--green-hi)}.tn-row.sharp .tn-dot{background:var(--amber)}.tn-row.flat .tn-dot{background:var(--cyan)}
+.tn-word{font-weight:700}
+.tn-row.ok .tn-word{color:var(--green-hi)}.tn-row.sharp .tn-word{color:var(--amber-hi)}.tn-row.flat .tn-word{color:var(--cyan-hi)}
+.tn-word small{display:block;font-weight:400;font-size:12px;color:var(--text-lo)}
+.tn-trend{grid-column:2 / -1;font-size:12.5px;font-weight:700;color:var(--text-lo)}
+.tn-trend.closer{color:var(--green-hi)}
+.tn-trend small{font-size:12.5px}
+.panel .tn-great{margin:8px 0 0;text-align:center;font-family:var(--display);color:var(--green-hi);font-size:18px}
+.panel .tn-none{margin:0;text-align:center;color:var(--text-lo)}
+.tn-tips{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.tn-tips li{padding:6px 10px;border-radius:10px;background:var(--floor-2);color:var(--text-hi);font-size:14px;line-height:1.35}
+@media (max-width:560px){ .tn-row{grid-template-columns:3em 1fr} .tn-word{grid-column:1 / -1} .panel .tn-scale{grid-template-columns:3em 1fr} }
+
+/* ---------- THE PODIUM (after the finish, before the results; a tap / Enter skips it) ---------- */
+.podium{position:absolute;inset:0;z-index:5;display:grid;align-content:center;justify-items:center;gap:6px;padding:10px;
+  background:color-mix(in srgb,var(--deep) 80%,transparent);cursor:pointer;outline:none}
+.pd-title{margin:0;font-family:var(--display);font-style:italic;font-size:clamp(24px,min(5vw,6vh),48px);color:var(--yellow);text-shadow:var(--glow-yellow);text-transform:uppercase}
+.pd-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:8px;width:min(560px,96%)}
+.pd-slot{display:grid;justify-items:center;align-content:end;gap:2px;text-align:center}
+.pd-car{width:min(110px,90%);height:auto}
+.pd-av{display:block;width:clamp(36px,6vw,58px)}
+.pd-av .pt-box{width:100%}
+.pd-name{font-size:clamp(11px,1.5vw,14px);color:var(--text-hi);line-height:1.15;overflow-wrap:break-word;max-width:100%}
+.pd-slot.me .pd-name{color:var(--yellow)}
+.pd-step{width:100%;display:grid;place-items:center;border-radius:8px 8px 0 0;background:var(--floor-2);border:2px solid var(--floor-3);border-bottom:0;
+  font-family:var(--display);font-size:clamp(16px,2.4vw,26px);color:var(--text-hi)}
+.pd-slot.p1 .pd-step{height:clamp(46px,11vh,96px);border-color:var(--yellow);color:var(--yellow)}
+.pd-slot.p2 .pd-step{height:clamp(32px,7.5vh,68px);border-color:var(--white);color:var(--white-hi)}
+.pd-slot.p3 .pd-step{height:clamp(22px,5vh,48px);border-color:var(--amber);color:var(--amber-hi)}
+.pd-slot.me .pd-step{box-shadow:var(--glow-yellow)}
+.pd-off{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:12px;background:var(--floor-2);border:2px solid var(--yellow)}
+.pd-off .pd-car{width:70px}.pd-off .pd-av{width:36px}
+.pd-off small{font-family:var(--display);font-size:18px;color:var(--yellow)}
+.pd-skip{margin:0;font-size:13px;font-weight:700;color:var(--text-lo)}
+@media (prefers-reduced-motion:no-preference){ html:not(.no-motion) .pd-slot{animation:pd-rise .45s cubic-bezier(.2,1.4,.4,1) backwards} html:not(.no-motion) .pd-slot.p2{animation-delay:.12s} html:not(.no-motion) .pd-slot.p3{animation-delay:.24s} }
+@keyframes pd-rise{from{transform:translateY(24px);opacity:0}}
+/* the Settings panel's Graphics row */
+.sw-gfx .ui-seg>button{min-width:64px}
+
+/* ---------- DYNAMICS ZONES: the badge (the marking you're in + a hint word) and THE VOLUME CHECK ---------- */
+.dyn-badge{position:absolute;left:10px;top:38%;display:grid;justify-items:center;gap:0;min-width:96px;padding:6px 10px;border-radius:14px;
+  background:var(--screen);color:var(--ink);border:3px solid var(--dz,var(--cyan));pointer-events:none}
+.dyn-badge.k-p{--dz:var(--cyan)}.dyn-badge.k-f{--dz:var(--pink)}.dyn-badge.k-cresc{--dz:var(--amber)}.dyn-badge.k-decresc{--dz:var(--purple)}
+.dyn-mark{font:italic 700 clamp(26px,4vw,40px)/1 Georgia,'Times New Roman',serif}
+.dyn-mark svg{width:58px;height:24px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.dyn-say{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.dyn-hint{margin-top:2px;padding:1px 8px;border-radius:8px;background:var(--red);color:var(--white-hi);font-weight:700;font-size:14px}
+.dyn-badge.bad{border-color:var(--red)}
+@media (max-width:560px){ .dyn-badge{top:auto;bottom:8px;min-width:0;padding:4px 8px} .dyn-mark{font-size:24px} }
+.vcheck{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:10px;background:color-mix(in srgb,var(--deep) 78%,transparent)}
+.vc-card{display:grid;justify-items:center;gap:6px;width:min(440px,94%);padding:14px 18px;border-radius:18px;background:var(--floor-2);border:2px solid var(--cyan);box-shadow:var(--glow-cyan);text-align:center}
+.vc-card p{margin:0}
+.vc-title{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--cyan-hi)}
+.vc-say{font-family:var(--display);font-size:clamp(22px,3.4vw,32px);color:var(--text-hi)}
+.vc-say.soft{color:var(--cyan-hi)}.vc-say.loud{color:var(--pink-hi)}.vc-say.ok{color:var(--green-hi)}.vc-say.bad{color:var(--amber-hi)}
+.vc-note{font-size:14.5px;color:var(--text-lo)}
+.vc-note b{color:var(--text-hi)}
+.vc-time,.vc-meter{width:100%;height:10px;border-radius:6px;background:var(--deep);overflow:hidden}
+.vc-time i,.vc-meter i{display:block;height:100%;width:0;background:var(--cyan)}
+.vc-meter{height:16px}.vc-meter i{background:linear-gradient(90deg,var(--cyan),var(--pink))}
+.vc-acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+/* a SLUR LAP's card: two notes and the arc */
+.note-card.slur{border-color:var(--green);box-shadow:var(--glow-green)}
+.slur-arc{color:var(--green-ink)}
+.banner.b-slur{color:var(--green-hi);font-size:clamp(24px,min(5.5vw,7vh),56px)}
+.banner.b-bad{color:var(--amber-hi);font-size:clamp(24px,min(5.5vw,7vh),56px)}
+/* the report's extra rows */
+.panel .tn-sub{margin:10px 0 4px;font-weight:700;color:var(--text-hi);font-size:14px}
+.tn-dynrow .tn-note{font-family:var(--text);font-size:15px;font-weight:700}
+.panel .tn-slurs{margin:8px 0 0;font-size:14px;color:var(--text-lo)}
+.panel .tn-slurs b{color:var(--green-hi)}
+
+/* ---------- BREATH STATS: the results line + PERSONAL RECORDS on the track select ---------- */
+.panel .res-breath{margin:0 0 8px;text-align:center;font-size:15px;color:var(--text-hi)}
+.res-breath b{color:var(--cyan-hi);font-family:var(--display);font-weight:400}
+.br-new{color:var(--green-hi);font-weight:700}
+.br-badge{display:inline-block;margin-left:6px;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--cyan) 18%,var(--floor-2));border:1px solid var(--cyan);color:var(--cyan-hi);font-weight:700;font-size:13px}
+.records{margin:14px 0 4px;padding:10px 14px;border-radius:16px;background:var(--floor-2);border:2px solid var(--floor-3)}
+.rec-title{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:16px;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan-hi)}
+.rec-title small{font-family:var(--text);font-size:12px;color:var(--text-lo);text-transform:none;letter-spacing:0;margin-left:6px}
+.rec-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 18px}
+.rec-main small{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo)}
+.rec-main b{font-family:var(--display);font-weight:400;font-size:28px;color:var(--text-hi)}
+.rec-trend{display:flex;align-items:flex-end;gap:8px;font-size:13px;font-weight:700;color:var(--text-lo)}
+.rec-spark{height:26px;width:auto}
+.rec-spark rect{fill:var(--cyan-ink)}.rec-spark rect.last{fill:var(--cyan)}
+.rec-notes{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.rec-notes li{padding:3px 10px;border-radius:999px;background:var(--deep);font-size:13px;color:var(--text-lo)}
+.rec-notes b{font-family:var(--display),var(--music);font-weight:400;color:var(--text-hi);margin-right:4px}
+.rec-notes sub{font-size:.7em;vertical-align:baseline}
+/* ---------- THE TEACHER GHOST: the track card's badge, the results line, the code box (?teacher) ---------- */
+.tg-badge{align-self:flex-start;margin-top:4px;padding:2px 8px;border-radius:8px;background:var(--sw-teacher-gold);color:var(--deep);font:700 11.5px var(--text);letter-spacing:.06em;text-transform:uppercase}
+.panel .res-tg{margin:0 0 8px;text-align:center;font-weight:700;font-size:16px;color:var(--amber-hi)}
+.panel .res-tg.won{color:var(--sw-teacher-gold)}
+.tg-code{display:block;width:100%;margin:6px 0;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;background:var(--deep);color:var(--text-hi);border:1px solid var(--floor-3);border-radius:8px;padding:6px;resize:vertical;word-break:break-all}
+.panel .tg-meta{margin:0 0 6px;font-size:13px;color:var(--text-lo)}
+
+/* ---------- THE DEEPER GARAGE: sections, small tiles, parts, the plate, the side view, saved cars, the next unlock ---------- */
+.g-stage{position:relative}
+.g-view{position:absolute;top:8px;right:8px;min-height:36px;padding:2px 12px;font-size:13px}
+.g-body{display:grid;gap:10px}
+.g-sec{display:grid;gap:6px}
+.panel .g-sh{margin:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber-hi);text-align:left}
+.g-opts.g-small{grid-template-columns:repeat(auto-fill,minmax(86px,1fr))}
+.g-small .g-opt{min-height:74px;font-size:12px;padding:6px 4px}
+.g-small .g-swatch{width:34px;height:34px}
+.g-swatch.none{background:linear-gradient(135deg,var(--floor-2) 45%,var(--red) 45% 55%,var(--floor-2) 55%)}
+.g-swatch.auto{background:conic-gradient(var(--pink),var(--amber),var(--yellow),var(--green),var(--cyan),var(--purple),var(--pink))}
+.g-swatch.glow{box-shadow:0 0 12px 3px var(--sw),inset 0 -8px 12px rgba(0,0,0,.35)}
+.g-swatch.flame{border-radius:50% 50% 50% 50% / 60% 60% 40% 40%}
+.g-swatch.f-rainbow{background:linear-gradient(180deg,var(--pink),var(--amber),var(--yellow),var(--green),var(--cyan))}
+.g-rim{width:52px;height:52px}.g-rim.dim{filter:none;opacity:.25}
+.g-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--deep);font-size:20px;color:var(--cyan-hi)}
+.panel .g-note{margin:0;font-size:12.5px;color:var(--text-lo)}
+.g-words{grid-template-columns:repeat(auto-fill,minmax(98px,1fr))}
+.g-word{display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:12px;background:var(--floor-2);border:2px solid var(--floor-3);color:var(--text-hi);cursor:pointer;min-height:48px}
+.g-word[aria-pressed="true"]{border-color:var(--amber);box-shadow:var(--glow-amber)}
+.g-word small{font-size:11px;color:var(--text-lo)}
+.g-plate{display:inline-block;padding:3px 8px;border-radius:5px;background:var(--sw-plate);color:var(--sw-plate-ink);border:2px solid var(--sw-plate-ink);font:900 14px/1.1 var(--display);letter-spacing:.06em;white-space:nowrap}
+.g-digits{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.g-dig{display:grid;justify-items:center;gap:2px}
+.g-dig b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--amber-hi);min-width:1.4ch;text-align:center}
+.g-loads{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 4px}
+.g-loads .g-sh{flex-basis:100%}
+.g-load{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;border-radius:12px;background:var(--floor-2);border:1px solid var(--floor-3);flex:1 1 200px}
+.g-lname{flex:1 1 auto;min-height:44px;padding:4px 10px;border-radius:10px;border:2px dashed var(--amber);background:transparent;color:var(--amber-hi);font:700 14px var(--text);cursor:pointer}
+.sw-garage .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.g-next{margin:0;flex:1 1 260px;font-size:13.5px;color:var(--text-lo)}
+.g-next b{color:var(--amber-hi)}
+.g-next .gn-k{font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;color:var(--text-hi)}
+.g-next .gn-p{color:var(--text-hi)}
