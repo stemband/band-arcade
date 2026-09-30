@@ -11,7 +11,13 @@ window.BT_RULES = {
     shallow: 7,               // rows below the local surface that still count as "surface" (the FIRST FIVE)
     caves: .42,               // 0–1: how much of the underground is cave (higher = more caves)
     oreEvery: 1,              // ore density multiplier (1 = normal)
+    corkChance: .1,           // Reed Marsh: the chance a patch of dry ground grows a Cork tree …
+    mapleChance: .05,         // … or a Maple tree
   },
+  /* THE STARTER GUARANTEE: every world (and, once, every older saved world) has chapter 1's materials near the spawn */
+  starterRange: 16,           // within this many tiles of the spawn …
+  starter: {maple: 2, cork: 2,          // … at least this many Maple and Cork trees on dry ground …
+            toneOre: 12, oreDepth: 8},  // … and this much Tone Ore at most oreDepth tiles below the ground
   /* the three biomes, left to right: [from, to) columns (they share the world's width) */
   biomes: [
     {id: 'marsh',  name: 'Reed Marsh',        from: 0,   to: 86},

@@ -57,7 +57,7 @@ const diag = page => page.evaluate(() => {
   let state = null;
   try {
     const hook = (A.Showtime && A.Showtime.debug && (() => { const G = A.Showtime.debug(); return G && {t: G.t, rebooted: G.rebooted, total: G.total, lights: G.lights, paused: G.paused, bots: G.bots.map(b => b.state + ':' + b.left)}; }))
-      || (A.Highway && A.Highway.state) || (A.Duel && A.Duel.state) || (A.FaceOff && A.FaceOff.state) || (A.Quest && A.Quest.battleState) || null;
+      || (A.Blocktave && (() => { const s = A.Blocktave.state(); return {screen: s.screen, inv: s.inv, held: s.held, card: s.card, panel: s.panel, stats: A.Blocktave.demo && A.Blocktave.demo.stats()}; })) || (A.Highway && A.Highway.state) || (A.Duel && A.Duel.state) || (A.FaceOff && A.FaceOff.state) || (A.Quest && A.Quest.battleState) || null;
     state = hook ? hook() : null;
   } catch (e) { state = 'state error: ' + e.message; }
   const sfx = A.Sfx && A.Sfx.output ? (A.Sfx.output() ? 'audio running' : 'no audio output') : '';
