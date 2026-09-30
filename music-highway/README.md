@@ -93,7 +93,8 @@ beats.
    key, drawn under its key signature.
 4. **The octave.** Tier 1: degree 1 lands exactly on the first note of the student's first five. Tiers 2–3: the octave
    that fits the member's GMEA chromatic range best, closest to its first five, preferring notes with a fingering in
-   `shared/fingerings.js`.
+   `shared/fingerings.js`. A note that octave still leaves outside the range (a song wider than the instrument's range)
+   moves by an octave into it, so every note is playable (tier 1 keeps the first five exactly).
 5. **Matching** is by concert pitch class (any octave), from the note's attack.
 6. **The snare** plays the same rhythm: every note is a hit (R / L sticking), any clean attack counts.
 

@@ -22,7 +22,8 @@
    THE OCTAVE RULE: tier 1 = degree 1 lands exactly on the first note of the student's first five (its written
    note), so a tier-1 song only uses the notes they know. Tiers 2–3 try every octave and keep the one whose notes sit
    best inside the member's GMEA chromatic range and closest to its first five, preferring notes that have a fingering
-   in shared/fingerings.js. */
+   in shared/fingerings.js. THE RANGE RULE: in tiers 2–3 a note still outside the GMEA range after that moves by an
+   octave into it (`folded`: ±12), so every instrument can play every note of every song. */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -241,12 +242,19 @@ window.Arcade = window.Arcade || {};
     const k = fitOctave(song, list, member, group, table);
     const wKey = mod12(concertKeyPc + member.sounds), sig = keySig(wKey);
     const notes = list.filter(e => !e.rest).map(e => {
-      const w = e.concert + member.sounds + k;
+      let w = e.concert + member.sounds + k, fold = 0;
+      // THE RANGE RULE (tiers 2–3): a note the chosen octave still leaves outside the member's GMEA range moves by whole
+      // octaves into it (a song wider than the range: the oboe's top D, the F horn's low E), so every note is playable.
+      // Tier 1 keeps the group's first five exactly (the C–G horn's G5 is one of them).
+      if (song.tier !== 1 && member.lowMidi != null && member.highMidi - member.lowMidi >= 12) {
+        while (w < member.lowMidi) { w += 12; fold += 12; }
+        while (w > member.highMidi) { w -= 12; fold -= 12; }
+      }
       const n = spellDeg(w, wKey, e.deg, song.mode === 'minor');
       const fs = table ? table.notes(w) : [];
       let fing = fs[0] || null;
       if (fing && member.id === 'horn' && hornSide === 'Bb') fing = fs.find(f => /^T/.test(String(f.raw))) || fing;
-      return Object.assign({}, e, {concert: e.concert + k, midi: w, n, show: showUnder(n, sig), label: noteLabel(n), fing, fings: fs});
+      return Object.assign({}, e, {concert: e.concert + k + fold, midi: w, n, show: showUnder(n, sig), label: noteLabel(n), fing, fings: fs}, fold ? {folded: fold} : null);
     });
     return Object.assign(base, {clef: group.clef, sig, octave: k, writtenKey: song.mode === 'minor' ? minorLabel(wKey) + ' minor' : keyLabel(wKey) + ' major', notes, diagram: table ? table.diagram : 'none'});
   }

@@ -1,6 +1,6 @@
 /* MUSIC HIGHWAY: THE 20 SONGS FROM MR. GRAHAM'S TRUMPET BOOK (songs 27–46) AND THE THREE NEW METERS (2/2, 6/8, 3/8).
    The songs: at the END in book order, every song passes the bar check, maxStars = 46 × 3, every new song draws on the
-   Song Board (concert + trumpet, horn, alto sax, trombone, tuba, snare) with no problem and fits each range.
+   Song Board (concert + trumpet, horn, alto sax, trombone, tuba, snare) with no problem, and every note of every tier 2–3 song fits every instrument's GMEA range (THE RANGE RULE).
    The meters (beats stay QUARTER notes): the engraving (¢ for 2/2, 6/8 beamed in threes with dotted-quarter rests and a
    tie across the middle of the bar, 3/8 beamed a whole measure together), the grooves' hit positions, the count-in
    (at least 4 clicks on the PRIMARY beat: 2/2 two bars of halves, 6/8 two bars of dotted quarters, 3/8 four bars of
@@ -57,7 +57,7 @@ test.describe('music highway: the book songs and the new meters', () => {
           const map = Arcade.SongMap.forMember(s, mem, g, {}), ws = map.notes.map(n => n.midi).filter(x => x != null);
           const svgs = [...card.querySelectorAll('svg')];
           return {id, warn: !!card.querySelector('.warn'), svgs: svgs.length, bad: svgs.some(v => /NaN|undefined|Infinity/.test(v.outerHTML)),
-            heads: card.querySelectorAll('svg .head').length, inRange: map.unpitched || (Math.min(...ws) >= mem.lowMidi && Math.max(...ws) <= mem.highMidi), lowBy: map.unpitched ? 0 : mem.lowMidi - Math.min(...ws),
+            heads: card.querySelectorAll('svg .head').length, inRange: map.unpitched || (Math.min(...ws) >= mem.lowMidi && Math.max(...ws) <= mem.highMidi),
             lanes: Arcade.SongMap.lanes(s, map, g).lanes.length, max: map.unpitched ? 2 : Arcade.SongMap.MAX_LANES[s.tier]};
         });
       }, [m, gid, NEW]);
@@ -66,14 +66,32 @@ test.describe('music highway: the book songs and the new meters', () => {
         expect(x.svgs, `${x.id} ${m}`).toBeGreaterThanOrEqual(2);      // concert rows + the instrument's rows
         expect(x.bad, `${x.id} ${m}`).toBe(false);
         expect(x.heads, `${x.id} ${m}`).toBeGreaterThan(10);
-        // the one exception: The Merry Minstrels spans 17 half steps, so for the F horn no whole octave fits its GMEA
-        // range (F3–F5): the engine picks E3–A4, one half step under it (the notes stay exactly as transcribed)
-        if (!(x.id === 'the-merry-minstrels' && m === 'horn')) expect(x.inRange, `${x.id} ${m}`).toBe(true);
-        else expect(x.lowBy, x.id).toBeLessThanOrEqual(1);
+        expect(x.inRange, `${x.id} ${m}`).toBe(true);
         expect(x.lanes, `${x.id} ${m}`).toBeLessThanOrEqual(x.max);
       }
     }
     await expect(page.locator('.song').filter({hasText: 'The Stars and Stripes Forever'}).locator('.meta')).toContainText('¢ 2/2');
+    watch.check();
+  });
+
+  test('THE RANGE RULE: every note of every tier 2–3 song is inside every instrument\'s GMEA range; trumpet unchanged', async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
+    await board(page);
+    const r = await page.evaluate(() => {
+      const SM = Arcade.SongMap, out = [], folded = {};
+      MH_SONGS.filter(s => s.tier > 1).forEach(s => Arcade.PLAYERS.forEach(id => Arcade.groupsOf(id).forEach(g => {
+        const mem = g.members.find(x => x.id === id); if (mem.pitched === false) return;
+        const map = SM.forMember(s, mem, g, {});
+        map.notes.forEach(n => { if (n.midi < mem.lowMidi || n.midi > mem.highMidi) out.push(`${s.id} ${id} ${n.midi}`); });
+        const f = map.notes.filter(n => n.folded).length; if (f) folded[`${s.id} ${id}`] = f;
+      })));
+      return {out, folded};
+    });
+    expect(r.out).toEqual([]);
+    // the notes moved by an octave (a song wider than the range); the trumpet never needs one
+    expect(r.folded).toMatchObject({'the-merry-minstrels oboe': 3, 'the-merry-minstrels horn': 1, 'the-merry-minstrels tenorsax': 1,
+      'march-of-the-toreadors oboe': 1, 'theme-from-the-barber-of-seville tenorsax': 4});
+    expect(Object.keys(r.folded).filter(k => / trumpet$/.test(k))).toEqual([]);
     watch.check();
   });
 
@@ -148,6 +166,10 @@ test.describe('music highway: the book songs and the new meters', () => {
     watch.check();
   });
 
+  // the three full-song runs one after another (never side by side in this file): a long main-thread stall on a busy
+  // machine lets the game's miss sweep run before the test's autoPlay tick (a harness artifact, not the judging)
+  test.describe('full songs', () => {
+  test.describe.configure({mode: 'serial'});
   for (const [id, clicks] of [['the-stars-and-stripes-forever', [-8, -6, -4, -2]], ['lisbon-bay', [-6, -4.5, -3, -1.5]], ['the-merry-minstrels', [-6, -4.5, -3, -1.5]]]) {
     test(`?demo autoPlay: ${id} scores 100 % with no drift; the count-in (also after RESUME) is 4 primary beats`, async ({page, browserName}) => {
       test.setTimeout(150_000);
@@ -156,7 +178,6 @@ test.describe('music highway: the book songs and the new meters', () => {
       await page.evaluate(i => { Arcade.Highway.start(i); }, i);
       const m0 = await page.evaluate(() => Arcade.Highway.meter());
       expect(m0.clicks).toEqual(clicks);
-      await page.evaluate(() => Arcade.Highway.autoPlay(0));
       // pause after a few seconds, resume: back one measure, the same 4-click count-in on the primary beat
       await page.waitForFunction(() => Arcade.Highway.state().phase === 'play' && Arcade.Highway.state().t > 4, null, {timeout: 30_000});
       await page.evaluate(() => document.getElementById('uiPauseBtn').click());
@@ -165,7 +186,9 @@ test.describe('music highway: the book songs and the new meters', () => {
       await expect.poll(() => page.evaluate(() => Arcade.Highway.paused())).toBe(false);
       const m1 = await page.evaluate(() => Arcade.Highway.meter());
       expect(m1.clicks.map(c => +(c - m1.from).toFixed(3))).toEqual(clicks);
-      expect(m1.from % m1.pulse).toBeCloseTo(0, 6);                     // resumed on a beat
+      expect(m1.from % m1.pulse).toBeCloseTo(0, 6);                     // resumed on a primary beat
+      // then the whole song from the top, every note on time (autoPlay: through the real judging)
+      await page.evaluate(i => { Arcade.Highway.start(i); Arcade.Highway.autoPlay(0); }, i);
       await expect(page.locator('#results')).toBeVisible({timeout: 90_000});
       const r = await page.evaluate(() => ({res: Arcade.Highway.results()}));
       expect(r.res.every(x => x === 'perfect'), r.res.join(' ')).toBe(true);
@@ -173,6 +196,8 @@ test.describe('music highway: the book songs and the new meters', () => {
       watch.check();
     });
   }
+
+  });
 
   test('drum hits sit exactly on the meter\'s grid (no drift) in each new meter', async ({page, browserName}) => {
     test.skip(browserName === 'webkit', 'WebKit runs the game with SOUND OFF: no drums are scheduled');
