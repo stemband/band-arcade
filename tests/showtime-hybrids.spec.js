@@ -6,6 +6,9 @@ const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
 const HYBRIDS = ['glitch-lurker', 'blackout-jester', 'sprocket-dolls', 'oil-tank', 'turbo-blackout', 'duet-tank'];
+// the play-throughs run at Showtime 2 (one animatronic on the floor at a time): at Showtime 5 two walk at once and a
+// regular one can pass the (slowed) hybrid and become the target, so holding its note stops counting for the hybrid
+const SOLO = 2;
 const store = (member = 'trumpet', extra = {}) => device(member, {gameData: {'showtime-malfunction': Object.assign({storySeen: true}, extra)}});
 
 async function start(page, lv = 1) {
@@ -84,7 +87,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     test.setTimeout(90_000);
     const watch = await prepare(page, {store: store()});
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=glitch-lurker');
-    await start(page, 5);
+    await start(page, SOLO);
     await meet(page, 'glitch-lurker');
     await expect.poll(() => page.evaluate(() => { const G = Arcade.Showtime.debug(); return !!G.bots.find(b => b.special && b.state === 'walk'); })).toBe(true);
     const first = (await bot(page)).item;
@@ -104,7 +107,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     test.setTimeout(90_000);
     const watch = await prepare(page, {store: store()});
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=sprocket-dolls');
-    await start(page, 5);
+    await start(page, SOLO);
     await meet(page, 'sprocket-dolls');
     const b = await bot(page);
     // ?demo: Space = an attack on the target's note (the doll whose turn it is); spaced out past each tick sound's mute
@@ -148,7 +151,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     expect(out['sprocket-dolls'].how).toMatch(/one hit for each mini/);
     // the roll speeds up halfway (hold S = a steady roll in ?demo)
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=glitch-lurker');
-    await start(page, 5);
+    await start(page, SOLO);
     await meet(page, 'glitch-lurker');
     await page.keyboard.down('s');
     await expect.poll(async () => (await bot(page)).fast, {timeout: 20_000}).toBe(true);
@@ -156,7 +159,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     await page.keyboard.up('s');
     // the Sprocket Dolls' minis: one hit each
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=sprocket-dolls');
-    await start(page, 5);
+    await start(page, SOLO);
     await meet(page, 'sprocket-dolls');
     for (let k = 0; k < 40 && !(await page.evaluate(() => Arcade.Showtime.debug().bots.some(x => x.mini))); k++) { await page.keyboard.press('Space'); await page.waitForTimeout(450); }
     await expect.poll(() => page.evaluate(() => Arcade.Showtime.debug().bots.filter(x => x.mini).map(x => x.count)), {timeout: 10_000}).toEqual([1, 1]);
