@@ -8,14 +8,16 @@
        measure), timeSig, measures, events: [{t (beats from the first measure), beats, rest?, n (written note),
        label (the letter name / R or L), id?, slur? (its slur group), slurFirst?, slurLast?}], header: 'time' | 'full' | 'none', showTime, x0, width (justify a row
        to this width), captions, final (a double bar at the end)})
-       -> {svg, vb: {top, h, w}, xAt(beats) (the smooth time -> x map), points: [{t, x}], bars: [x], shortest}
+       -> {svg, vb: {top, h, w}, xAt(beats) (the smooth time -> x map), points: [{t, x}], bars: [x], shortest, layout() (tests)}
+       2/2 draws ¢; 6/8 and 3/8 beam by the dotted quarter (3/8: the whole measure), may use dotted rests, and tie a note
+       across the middle of a 6/8 bar instead of writing it over the dotted-quarter beat
      Arcade.MHNotation.pinSVG({clef, sig, top, h}) -> the clef + key signature alone, the same height (the fixed part
        on the left of the scrolling staff)
 
    HOW A MEASURE IS LAID OUT: each note is split into the values it can be written as (whole, dotted half, half, dotted
    quarter, quarter, dotted eighth, eighth, sixteenth), tied across bar lines and awkward beats; rests the same (not
-   dotted, except in 6/8), a whole measure of rest = a whole rest. Eighths and sixteenths are beamed in groups (4/4: a
-   half measure; 2/4 and 3/4: a beat; 6/8: three eighths); stems go up below the middle line, down on or above it (a
+   dotted, except in 6/8 and 3/8), a whole measure of rest = a whole rest. Eighths and sixteenths are beamed in groups (4/4
+   and 2/2: a half measure; 2/4 and 3/4: a beat; 6/8 and 3/8: three eighths); stems go up below the middle line, down on or above it (a
    beamed group follows its majority). Space after a note = base × (1 + grow × log2(its length ÷ the song's shortest)),
    never under noteMin; an accidental and a dot add their own room; every bar line gets a fixed pad on both sides. The
    time -> x map runs through every note and rest (their onsets) with a monotone curve, so the playhead reaches each
@@ -49,7 +51,13 @@ window.Arcade = window.Arcade || {};
   function fits(v, p, rest, per, compound) {
     const on = g => Math.abs(p / g - Math.round(p / g)) < EPS;
     if (v.b === 4) return p < EPS && per >= 4;
-    if (rest && v.dot && !compound) return false;          // rests are not dotted (except in 6/8)
+    if (rest && v.dot && !compound) return false;          // rests are not dotted (except in 6/8 and 3/8)
+    if (compound) {                                        // 6/8, 3/8: nothing crosses a dotted-quarter beat (the middle of a
+      const inBeat = q(p - Math.floor(p / 1.5 + EPS) * 1.5); // 6/8 bar): a longer note is tied across it, like the book; a value
+      if (inBeat > EPS ? inBeat + v.b > 1.5 + EPS : Math.abs(v.b / 1.5 - Math.round(v.b / 1.5)) > EPS && v.b > 1.5) return false;   // from a beat = whole beats or less
+      if (rest && v.b >= 1.5) return inBeat < EPS && v.b <= 1.5 + EPS;   // a dotted quarter rest on a beat (whole measures: the whole rest)
+      if (rest) return v.b >= 1 ? on(.5) && inBeat + v.b <= 1.5 + EPS : v.b >= .5 ? on(.25) : true;
+    }
     if (v.b >= 2) return rest ? on(2) || (per % 2 === 1 && on(1)) : on(1);
     if (v.b >= 1) return rest ? on(1) : on(.5);
     if (v.b >= .5) return on(.25);
@@ -84,7 +92,9 @@ window.Arcade = window.Arcade || {};
   /* ================= ENGRAVE ================= */
   function engrave(o) {
     const st = S(), per = o.per, M = o.measures, clef = o.clef || null, pitched = !!clef;
-    const ts = o.timeSig || [per, 4], compound = ts[1] === 8 && ts[0] % 3 === 0 && ts[0] > 3;
+    // 6/8 and 3/8 (`compound`): beams by the dotted quarter (3/8: the whole measure's three eighths together), dotted
+    // rests, nothing across the middle of a 6/8 bar (tied instead); 2/2 beams by the half (like 4/4) and shows ¢
+    const ts = o.timeSig || [per, 4], compound = ts[1] === 8 && ts[0] % 3 === 0;
     const groupLen = compound ? 1.5 : per === 4 ? 2 : 1;
     const events = o.events.slice().sort((a, b) => a.t - b.t);
 
@@ -325,7 +335,10 @@ window.Arcade = window.Arcade || {};
     });
     const svg = `<svg class="staff mh-staffsvg" viewBox="0 ${top} ${f1(W)} ${bot - top}" style="color:var(--ink)" role="img" aria-label="${o.label || 'The song on the staff'}">` +
       lines + head + rests + beamSVG + notesSVG + slurSVG + `</svg>`;
-    return {svg, vb: {top, h: bot - top, w: W}, xAt, points: pts, bars, shortest, pieces: all.length};
+    return {svg, vb: {top, h: bot - top, w: W}, xAt, points: pts, bars, shortest, pieces: all.length,
+      // tests: every piece as written ({t (beats), b (its value), rest, dot, tie (into the next piece)}) and the beamed groups
+      layout: () => ({pieces: all.map(pc => ({t: q(pc.m * per + pc.p), b: pc.v.b, rest: !!pc.rest, full: !!pc.full, dot: !!pc.v.dot, tie: !!pc.tieNext})),
+        beams: beams.map(B => B.notes.map(pc => q(pc.m * per + pc.p)))})};
   }
 
   /* the clef + key signature at the start of a row */
@@ -335,6 +348,11 @@ window.Arcade = window.Arcade || {};
       A.keySigSVG(clef, sig).replace(/fill="[^"]*"/g, 'fill="currentColor"');
   }
   function timeSVG(ts, x, pitched) {
+    if (ts[0] === 2 && ts[1] === 2) {                      // CUT TIME: a C with a vertical line through it (drawn, no font glyph)
+      const cx = x + 2, r = 14;
+      return `<g class="cut-time"><path d="M${f1(cx + r * .8)} ${f1(MID - r * .62)}A${r} ${r} 0 1 0 ${f1(cx + r * .8)} ${f1(MID + r * .62)}" fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="round"/>` +
+        `<line x1="${f1(cx)}" y1="${MID - 26}" x2="${f1(cx)}" y2="${MID + 26}" stroke="currentColor" stroke-width="3"/></g>`;
+    }
     const t = (y, v) => `<text x="${f1(x)}" y="${y}" text-anchor="middle" ${NUM_FONT} font-weight="900" font-size="41" fill="currentColor">${v}</text>`;
     return pitched ? t(86, ts[0]) + t(118, ts[1]) : t(84, ts[0]) + t(118, ts[1]);
   }

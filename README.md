@@ -110,7 +110,7 @@ rhythm-dojo/          Rhythm reading: read the rhythm and Mr. Graham's counting,
   examples.js         The Counting Board's 49 examples (each with the counting it must show: the tests check them)
   counting.html       THE COUNTING BOARD (not linked for students): every case of the counting, drawn on the staff
 music-highway/        Play-along rhythm game: your fingerings fly down a neon highway with the band; play each note on the line
-  songs.js            THE SONG LIST (26 songs in 3 tiers, as concert scale degrees in B♭, E♭ or F; minor songs use `mode: 'minor'`). Edit here; never reorder (stars = song number)
+  songs.js            THE SONG LIST (46 songs in 3 tiers, as concert scale degrees in B♭, E♭, F or A♭; 4/4, 3/4, 2/4, 2/2, 6/8, 3/8; minor songs use `mode: 'minor'`). Edit here; never reorder (stars = song number)
   song-map.js         Songs -> each instrument's written notes, octave, chords · settings.js: judging windows, stars, volumes
   backing.js          The generated drums (and the headphones-mode band), on the audio clock
   game.js             The highway, the judge, calibration, the headphones check, results, PRACTICE THIS PART

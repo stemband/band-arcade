@@ -17,7 +17,8 @@
        file(t, buffer, offset, rate)   the uploaded backing-drums file, from `offset` seconds into it
        stopAll()                       stops everything scheduled or sounding (pause, quit)
        count()                         how many sounds are still waiting to start (tests)
-     Arcade.MHBacking.groove(style, beatsPerMeasure) -> [[beat, 'kick'|'snare'|'hat', velocity], …] for one measure */
+     Arcade.MHBacking.groove(style, timeSig) -> [[beat, 'kick'|'snare'|'hat', velocity], …] for one measure (beats in
+       quarters; timeSig [4, 4] | [3, 4] (always the waltz) | [2, 4] | [2, 2] | [6, 8] | [3, 8], see the meters above GROOVES) */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -35,7 +36,18 @@ window.Arcade = window.Arcade || {};
   };
   const MARCH2 = [[0, 'kick', 1], [0, 'hat', .6], [.5, 'hat', .4], [1, 'snare', .85], [1, 'hat', .5], [1.5, 'snare', .4], [1.5, 'hat', .4]];
   const ROCK2 = [[0, 'kick', 1], [0, 'hat', .6], [.5, 'hat', .4], [1, 'snare', .85], [1, 'hat', .5], [1.5, 'hat', .4]];
-  function groove(style, per) {
+  /* the meters whose beat isn't the quarter (positions still in QUARTER beats):
+     2/2 = a march "in 2": kick on 1, snare on 3, hi-hats on the quarters (the half-note beats a little stronger);
+     6/8 = two dotted-quarter beats: kick on 1, snare on 4 (= beat 1.5), a hi-hat on every eighth, those on 1 and 4 stronger;
+     3/8 = one pulse a measure: kick on 1, soft hi-hats on the three eighths, no snare */
+  const CUT = [[0, 'kick', 1], [2, 'snare', .85], [0, 'hat', .6], [1, 'hat', .4], [2, 'hat', .55], [3, 'hat', .4]];
+  const SIX8 = [[0, 'kick', 1], [1.5, 'snare', .8], [0, 'hat', .65], [.5, 'hat', .35], [1, 'hat', .35], [1.5, 'hat', .6], [2, 'hat', .35], [2.5, 'hat', .35]];
+  const THREE8 = [[0, 'kick', .9], [0, 'hat', .45], [.5, 'hat', .3], [1, 'hat', .3]];
+  /** one measure of the groove for a style in a time signature ([4, 4] …; a plain number = beats a measure, the old way) */
+  function groove(style, ts) {
+    const t = Array.isArray(ts) ? ts : [ts, 4], per = t[0] * 4 / t[1];
+    if (t[0] === 2 && t[1] === 2) return CUT;
+    if (t[1] === 8) return t[0] === 3 ? THREE8 : SIX8;
     if (per === 2) return style === 'march' ? MARCH2 : ROCK2;
     if (per === 3) return GROOVES.waltz;
     return GROOVES[style] || GROOVES.rock;
@@ -164,5 +176,5 @@ window.Arcade = window.Arcade || {};
     return kit;
   }
 
-  A.MHBacking = {create, groove, renderClick, CLICK: CLICK_P, BLOCK, GROOVES};
+  A.MHBacking = {create, groove, renderClick, CLICK: CLICK_P, BLOCK, GROOVES, METERS: {cut: CUT, six8: SIX8, three8: THREE8}};
 })(window.Arcade);

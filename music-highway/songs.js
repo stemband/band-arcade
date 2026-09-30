@@ -7,7 +7,10 @@
      source    composer or source ("Traditional (American folk song)", "Scott Joplin, 1902")
      tier      1 = only degrees 1–5 in the first-five octave · 2 = the whole scale · 3 = wider range, minor, accidentals, syncopation
      tempo     quarter notes per minute (Slow mode plays 75 % of it)
-     timeSig   [beats per measure, 4]: [4, 4], [3, 4] or [2, 4]
+     timeSig   as printed: [4, 4], [3, 4], [2, 4], [2, 2] (cut time, drawn ¢), [6, 8] or [3, 8]. Beats are always QUARTER
+               notes (a 6/8 measure = 3 beats, 3/8 = 1.5) and `tempo` is quarter notes a minute; the drums, the count-in,
+               the chords, the highway's lines and the snare's DOWNBEATS RIGHT follow the PRIMARY beat (2/2: two halves;
+               6/8: two dotted quarters; 3/8: one dotted quarter)
      key       the CONCERT major key the song is written in: 'Bb' (the default; every group except the C–G horn reads it
                with its own key signature). The engine moves the song to a C–G horn's first five (concert F) itself.
      mode      optional: 'minor' = degree 1 is the key's relative minor (in 'Bb': G minor, same key signature)
@@ -140,7 +143,12 @@
               '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':2.25')},
 
     /* ---------- ADDED LATER (always at the end: stars are saved by song number). Transcribed by Mr. Graham from trumpet
-       (B♭) parts: written C major = concert 'Bb', written F major = concert 'Eb'. ---------- */
+       (B♭) parts, one step up from concert:
+         written C major = concert 'Bb'            written D minor = 'Eb' + mode: 'minor'
+         written F major = concert 'Eb'            written A minor = 'Bb' + mode: 'minor'
+         written G major = concert 'F'             written E minor = 'F'  + mode: 'minor'
+         written B♭ major = concert 'Ab'
+       Repeats, 1st/2nd endings and D.C. al Fine are written out (the game plays straight through). ---------- */
     {id: 'good-king-wenceslas', title: 'Good King Wenceslas', source: 'Traditional (English carol)', tier: 1, tempo: 100, timeSig: [4, 4], key: 'Bb', style: 'march',
      notes: N('4 4 4 5 | 4 4 1:2 | 2 1 2 3 | 4 r 4 r', '4 4 4 5 | 4 4 1:2 | 2 1 2 3 | 4 r 4 r')},
     // the book's repeat with 1st/2nd endings, written out
@@ -171,5 +179,108 @@
     {id: 'dies-irae', title: 'Dies Irae', source: 'Gregorian chant (13th century)', tier: 3, tempo: 72, timeSig: [4, 4], key: 'Eb', mode: 'minor', style: 'march',
      chords: 'i | i | i | v | i | i | i',
      notes: N('3 2 3 1 | 2 7, 1:2', '3 3 4 3 | 2 1 7, 2 | 3 2 1:2', '3 2 3 1 | 2 7, 1:2')},
+    // D.C. al Fine written out: the whole piece, then the first line again to Fine
+    {id: 'largo-symphony-9', title: '"Largo" from Symphony No. 9', source: 'Antonín Dvořák', tier: 2, tempo: 56, timeSig: [4, 4], key: 'Eb', style: 'rock',
+     notes: N("(3:1.5 5:.5) 5:2 | (3:1.5 2:.5) 1:2 | (2:1.5 3:.5 5:1.5 3:.5) | 2:4",
+     "(3:1.5 5:.5) 5:2 | (3:1.5 2:.5) 1:2 | 2 3 (2:1.5 1:.5) | 1:4",
+     "(6,:1.5 1:.5) 1:2 | (7, 5,) 6,:2 | (6, 1 7, 5,) | 6,:4",
+     "(6,:1.5 1:.5) 1:2 | (7, 5,) 6,:2 | (6, 1 7, 5,) | 6,:4",
+     "(3:1.5 5:.5) 5:2 | (3:1.5 2:.5) 1:2 | (2:1.5 3:.5 5:1.5 3:.5) | 2:4",
+     "(3:1.5 5:.5) 5:2 | (3:1.5 2:.5) 1:2 | 2 3 (2:1.5 1:.5) | 1:4")},
+    // Repeat with 1st/2nd endings written out: m1-7 + 1st ending, m1-6 + 2nd ending.
+    {id: 'the-wabash-cannonball', title: 'The Wabash Cannonball', source: 'Traditional (American folk song)', tier: 2, tempo: 96, timeSig: [2, 4], key: 'Eb', style: 'march',
+     notes: N('5,:.5 5,:.5 1:.5 2:.5 | 3:.5 5 1:.5 | 2:.5 1:.5 1:.5 6,:.5 | 5,:1.5 6,:.5 | 5,:.5 5,:.5 7,:.5 2:.5 | 3:.5 2 2:.5 | 1:.5 2:.5 1:.5 6,:.5 | 5,:1.5 5,:.5',
+     '5,:.5 5,:.5 1:.5 2:.5 | 3:.5 5 1:.5 | 2:.5 1:.5 1:.5 6,:.5 | 5,:1.5 6,:.5 | 5,:.5 5,:.5 7,:.5 2:.5 | 3:.5 2 2:.5 | 7,:.5 5,:.5 7,:.5 2:.5 | 1:2')},
+    {id: 'still-still-still', title: 'Still, Still, Still', source: 'Austrian Carol', tier: 2, tempo: 76, timeSig: [4, 4], key: 'Bb', style: 'rock',
+     notes: N("(5 1') (3 5) | 1:3 (1:.5 3:.5) | 2 (2:.5 4:.5) 7, (7,:.5 2:.5) | 1:3 3",
+     "2 (2:.5 3:.5) 4 2 | 3 (3:.5 4:.5) 5 3",
+     "2 (2:.5 3:.5) 4 2 | 3 (3:.5 4:.5) 5 3",
+     "(5 1') (3 5) | 1:3 (1:.5 3:.5) | 2 (2:.5 4:.5) 7, (7,:.5 2:.5) | 1:3 r")},
+    // repeat + 1st/2nd endings written out; the 2nd ending's shouted "Hey!" = a quarter rest
+    {id: 'minka-minka', title: 'Minka, Minka', source: 'Ukrainian Folk Song', tier: 3, tempo: 120, timeSig: [2, 4], key: 'Bb', mode: 'minor', style: 'march',
+     notes: N("1':.5 1':.5 1':.5 1':.5 | 1':.5 3':.5 2':.5 1':.5 | #7:.5 #7:.5 #7:.5 #7:.5 | #7:.5 2':.5 1':.5 #7:.5",
+     "1':.5 1':.5 1':.5 1':.5 | 1':.5 3':.5 2':.5 1':.5 | #7:.5 5:.5 #6:.5 #7:.5 | 1' 1'",
+     "1':.5 1':.5 1':.5 1':.5 | 1':.5 3':.5 2':.5 1':.5 | #7:.5 #7:.5 #7:.5 #7:.5 | #7:.5 2':.5 1':.5 #7:.5",
+     "1':.5 1':.5 1':.5 1':.5 | 1':.5 3':.5 2':.5 1':.5 | #7:.5 5:.5 #6:.5 #7:.5 | 1' r")},
+    // repeat + 1st/2nd endings written out: intro | A + 1st ending | A + 2nd ending
+    {id: 'el-capitan', title: 'El Capitan', source: 'John Philip Sousa', tier: 3, tempo: 120, timeSig: [2, 4], key: 'Bb', style: 'march',
+     notes: N("1':.5 r:.5 1':.5 r:.5 | 1':.5 r:.5 5",
+     "1':2 | 7 3 | 6:.5 3:.5 3 | r:.5 3:.5 2:.5 1:.5 | 4:2 | 3 2 | 3:.5 5:.5 5 | r:.5 5:.5 6:.5 7:.5",
+     "1':2 | 7 3 | 6:.5 3:.5 3 | r:.5 3:.5 2:.5 1:.5 | #5:2 | r:.5 5:.5 5:.5 5:.5 | 1':2~ | 1' 5",
+     "1':2 | 7 3 | 6:.5 3:.5 3 | r:.5 3:.5 2:.5 1:.5 | 4:2 | 3 2 | 3:.5 5:.5 5 | r:.5 5:.5 6:.5 7:.5",
+     "1':2 | 7 3 | 6:.5 3:.5 3 | r:.5 3:.5 2:.5 1:.5 | #5:2 | r:.5 5:.5 5:.5 5:.5 | 1':2~ | 1':.5 r:.5 1':.5 r:.5")},
+    // Written E minor (1 sharp, tune ends on E; no D-sharps). 2-beat pickup padded with rests.
+    {id: 'theme-from-the-barber-of-seville', title: 'Theme from "The Barber of Seville"', source: 'Gioacchino Rossini (from "The Barber of Seville")', tier: 3, tempo: 120, timeSig: [4, 4], key: 'F', mode: 'minor', style: 'rock',
+     notes: N('r:2.5 5:.5 5:.5 5:.5 | (6:.5 5:.5) r r:.5 5:.5 5:.5 5:.5 | (6:.5 5:.5) r r:.5 5:.5 5:.5 5:.5 | (6:.5 5:.5) r:.5 4:.5 (4:.5 3:.5) r:.5 2:.5 | (2:.5 1:.5) 1 r:.5 3:.5 3:.5 3:.5',
+     '(2:.5 1:.5) r:.5 3:.5 (2:.5 1:.5) r:.5 3:.5 | (5:.5 2:.5) 2 r:.5 1:.5 7,:.5 6,:.5 | 5,:.5 1:.5 7,:.5 6,:.5 5,:.5 1:.5 7,:.5 6,:.5 | (6,:.5 5,:.5) (5,:.5 4:.5) (4:.5 3:.5) (3:.5 2:.5) | 1:2~ 1:.5 r:.5 r')},
+    // Only the first line is visible; it ends with a repeat sign, so it is written out twice.
+    {id: 'the-old-brass-wagon', title: 'The Old Brass Wagon', source: 'Traditional (American folk song)', tier: 3, tempo: 96, timeSig: [2, 4], key: 'F', style: 'march',
+     notes: N('1:.25 1:.25 1:.25 1:.25 1 | 1:.5 1:.5 (6,:.5 5,:.5) | 2:.25 2:.25 2:.25 2:.25 2 | 5,:.5 5,:.5 (6,:.5 1:.5) | 3:.25 3:.25 3:.25 3:.25 3 | 2:.5 1:.5 (6,:.5 1:.5) | 2:.5 3:.5 5,:.5 6,:.5 | 1 1',
+     '1:.25 1:.25 1:.25 1:.25 1 | 1:.5 1:.5 (6,:.5 5,:.5) | 2:.25 2:.25 2:.25 2:.25 2 | 5,:.5 5,:.5 (6,:.5 1:.5) | 3:.25 3:.25 3:.25 3:.25 3 | 2:.5 1:.5 (6,:.5 1:.5) | 2:.5 3:.5 5,:.5 6,:.5 | 1 1')},
+    // written out: the whole tune is repeated (repeat sign at the end)
+    {id: 'the-galway-piper', title: 'The Galway Piper', source: 'Traditional (Irish reel)', tier: 3, tempo: 96, timeSig: [2, 4], key: 'Eb', style: 'march',
+     notes: N('1:.5 3:.5 1:.5 3:.5 | 1:.5 3:.5 (4:.25 3:.25 2:.25 1:.25) | 7,:.5 2:.5 7,:.5 2:.5 | 7,:.5 2:.5 (3:.25 2:.25 1:.25 7,:.25)',
+     '1:.5 3:.5 1:.5 3:.5 | 1:.5 3:.5 5 | (4:.25 3:.25 2:.25 1:.25) 7,:.5 2:.5 | 1:.5 3:.5 1:.5 r:.5',
+     // repeat
+     '1:.5 3:.5 1:.5 3:.5 | 1:.5 3:.5 (4:.25 3:.25 2:.25 1:.25) | 7,:.5 2:.5 7,:.5 2:.5 | 7,:.5 2:.5 (3:.25 2:.25 1:.25 7,:.25)',
+     '1:.5 3:.5 1:.5 3:.5 | 1:.5 3:.5 5 | (4:.25 3:.25 2:.25 1:.25) 7,:.5 2:.5 | 1:.5 3:.5 1:.5 r:.5')},
+    // written out: the whole tune is repeated (repeat sign at the end)
+    {id: 'sourwood-mountain', title: 'Sourwood Mountain', source: 'Traditional (American folk song)', tier: 3, tempo: 108, timeSig: [2, 4], key: 'F', style: 'march',
+     notes: N('3:.5 3:.5 1:.25 1:.25 1:.5 | 2:.5 1:.5 6,:.5 5,:.5 | 1:.5 2:.5 3:.5 5:.5 | 3:.25 3:.25 2:.25 2:.25 1',
+     '3:.5 3:.5 1:.25 1:.25 1:.5 | 2:.5 1:.5 6,:.5 5,:.5 | 1:.5 2:.5 3:.5 5:.5 | 3:.25 3:.25 2:.25 2:.25 1',
+     // repeat
+     '3:.5 3:.5 1:.25 1:.25 1:.5 | 2:.5 1:.5 6,:.5 5,:.5 | 1:.5 2:.5 3:.5 5:.5 | 3:.25 3:.25 2:.25 2:.25 1',
+     '3:.5 3:.5 1:.25 1:.25 1:.5 | 2:.5 1:.5 6,:.5 5,:.5 | 1:.5 2:.5 3:.5 5:.5 | 3:.25 3:.25 2:.25 2:.25 1')},
+    {id: 'o-tannenbaum', title: 'O Tannenbaum', source: 'Traditional (German folk song)', tier: 2, tempo: 76, timeSig: [3, 4], key: 'Ab', style: 'waltz',
+     notes: N('r:2 5 | 1:.75 1:.25 1 2 | 3:.75 3:.25 3:1.5 3:.5 | 2:.5 3:.5 4 7, | (2 1) 5',
+     '1:.75 1:.25 1 2 | 3:.75 3:.25 3:1.5 3:.5 | 2:.5 3:.5 4 7, | (2 1) r')},
+    {id: 'procession-of-the-nobles', title: 'Procession of the Nobles', source: 'Nicolai Rimsky-Korsakov', tier: 3, tempo: 84, timeSig: [3, 4], key: 'Eb', style: 'waltz',
+     notes: N('1:.5 1:.25 7,:.25 1:.5 2:.5 3:.5 5:.5 | (2:.75 3:.25) 1:.5 2:.5 2 | 2:.75 1:.25 2:.25 3:.25 4:.25 3:.25 2:.5 1:.5 | 7,:.5 1:.25 6,:.25 5,:.5 2:.5 7, | 2:.25 3:.25 4:.25 3:.25 2:.5 1:.5 7,:.5 1:.25 6,:.25',
+     '5,:.5 2:.25 1:.25 2:.5 3:.5 1:.5 3:.5 | 2:.25 3:.25 4:.25 3:.25 2:.5 1:.5 7,:.5 1:.25 6,:.25 | 5,:.5 2:.25 1:.25 2 3 | 1:3~ | 1:.5 r:.5 1:.5 r:.5 r')},
+    {id: 'yankee-doodle-march', title: 'Yankee Doodle (March)', source: 'Traditional (American folk song)', tier: 2, tempo: 96, timeSig: [2, 4], key: 'F', style: 'march',
+     notes: N('1:.5 1:.5 2:.5 3:.5 | 1:.5 3:.5 2:.5 5,:.5 | 1:.5 1:.5 2:.5 3:.5 | 1 7,',
+     '1:.5 1:.5 2:.5 3:.5 | 4:.5 3:.5 2:.5 1:.5 | 7,:.5 5,:.5 6,:.5 7,:.5 | 1 1')},
+    {id: 'cindy', title: 'Cindy', source: 'Traditional (American folk song)', tier: 3, tempo: 108, timeSig: [2, 4], key: 'Eb', style: 'march',
+     notes: N('r 5 | 6:.5 5:.5 3:.75 3:.25 | 2:.5 1 5:.5 | 6:.5 5:.5 3:.5 5:.5 | 5 r:.5 5:.5',
+     '6:.5 5:.5 3:.75 3:.25 | 2:.5 1:.5 1:.75 2:.25 | 3:.5 2:.5 1:.5 6,:.5 | 1 1:.25 1:.25 1:.5',
+     '6, 6,:.75 5,:.25 | 6,:.5 1:.5 1:.25 1:.25 1:.5 | 5 5:.75 5:.25 | 3:.5 5:.5 1:.25 1:.25 1:.5',
+     '6, 6,:.75 5,:.25 | 6,:.5 1 2:.5 | 3:.5 3:.5 2:.5 2:.5 | 1 r')},
+    {id: 'anvil-chorus', title: 'Anvil Chorus from "Il Trovatore"', source: 'Giuseppe Verdi (from "Il Trovatore")', tier: 3, tempo: 84, timeSig: [4, 4], key: 'F', style: 'march',
+     notes: N('3 3 3:.75 2:.25 1:.75 6,:.25 | 5,:.75 7,:.25 2:.75 4:.25 3 1',
+     '3 3 3:.75 2:.25 1:.75 6,:.25 | 5,:.75 7,:.25 2:.75 4:.25 3:.5 1:.5 r')},
+    {id: 'march-of-the-toreadors', title: 'March of the Toreadors', source: 'Georges Bizet (from "Carmen")',
+     tier: 3, tempo: 108, timeSig: [4, 4], key: 'Eb', style: 'march',
+     notes: N('5 6:.75 5:.25 3 3 | 3:.75 2:.25 3:.75 4:.25 3:2 | 4 2:.75 5:.25 3:2 | 1 6,:.75 2:.25 5,:2',
+     '2 2~ 2:.5 6:.5 5:.5 4:.5 | 3:.5 2:.5 3:.5 4:.5 3:2',
+     '(7, 3) 3 #2:.75 #4:.25 | 7:4',
+     'r:.5 (6:.5 #5:.5) 6:.5 2:.5 3:.5 4 | r:.5 (3:.5 1:.5) 6:.5 5:2 | r:.5 1:.5 5,:.5 4:.5 3 2 | 1:3 r')},
+    // cut time, half-note pickup padded with a half rest; m11-12 print stacked octave Fs (F4 + F5): the LOWER (F4) is used
+    {id: 'the-stars-and-stripes-forever', title: 'The Stars and Stripes Forever', source: 'John Philip Sousa',
+     tier: 3, tempo: 120, timeSig: [2, 2], key: 'Eb', style: 'march',
+     notes: N('r:2 5:2 | 5:2 (4 3) | 3:2 (#2 3) | 3:4~ | 3:2 (#2 3) | 3:2 (#2 3) | 5:2 3:1.5 5:.5 | (4:4 | 2:2) r 1',
+     '1:2 (7, 1) | b3:2 (2 1) | 1:4~ | 1 (1 2 3) | 5 (1 2 3) | 5 (5, 6, 3) | (2:4 | 1) r 1 r')},
+    // a ROUND: the printed repeat sign is for going around again; here it is played through ONE time only
+    {id: 'the-merry-minstrels', title: 'The Merry Minstrels (Round)', source: 'Henry Purcell',
+     tier: 3, tempo: 99, timeSig: [3, 8], key: 'Bb', style: 'waltz',
+     notes: N("1':.5 1':.5 1':.5 | 7:.5 7:.5 7:.5 | 6:.5 6:.5 6:.5 | 5 5:.5 | 4:.5 4:.5 4:.5 | 3:.5 3:.5 3:.5 | 2:.5 2:.5 2:.5 | 1 r:.5",
+     "3':.5 3':.5 3':.5 | 2':.5 2':.5 2':.5 | 1':.5 1':.5 1':.5 | 7 7:.5 | 6:.5 6:.5 6:.5 | 5:.5 5:.5 5:.5 | 4:.5 4:.5 4:.5 | 3 r:.5",
+     "1:.5 1:.5 3:.5 | 5:.5 5:.5 5:.5 | 6:.5 6:.5 6:.5 | 3 3:.5 | 4:.5 4:.5 6:.5 | 1':.5 1:.5 1:.5 | 4:.5 2:.5 7,:.5 | 1 r:.5")},
+    // Written C with B-flats (C mixolydian flavour) -> key Bb, B-flat = b7. Eighth pickup padded.
+    // Repeat with 1st/2nd endings written out: m1-3 + 1st ending, m1-3 + 2nd ending, then m5-12.
+    {id: 'lisbon-bay', title: 'Lisbon Bay', source: 'Traditional (English folk song)', tier: 3, tempo: 90, timeSig: [6, 8], key: 'Bb', style: 'march',
+     notes: N('r:2.5 4:.5 | 5 6:.5 5 2:.5 | 1:1.5 1 2:.5 | 3 1:.5 4 3:.5 | 1:1.5~ 1 4:.5',
+     '5 6:.5 5 2:.5 | 1:1.5 1 2:.5 | 3 1:.5 4 3:.5 | 1:1.5~ 1 2:.5',
+     '3 4:.5 5 1\':.5 | 1\' b7:.5 5 6:.5 | b7 1\':.5 b7 5:.5 | 4:1.5~ 4 4:.5 | 5 6:.5 5 2:.5 | 1:1.5 1 2:.5 | 3 1:.5 4 3:.5 | 1:1.5~ 1:.5 r:.5 r:.5')},
+    {id: 'habanera', title: 'Habanera from "Carmen"', source: 'Georges Bizet (from "Carmen")', tier: 3, tempo: 96, timeSig: [2, 4], key: 'Eb', mode: 'minor', style: 'rock',
+     notes: N('1\' #7 | 7:.5 7 7:.5 | #6 6 | 5:1.5 5:.5 | #4 4 | (3:.5 4:.25 3:.25) 2:.5 3:.5 | 4 3 | 2:1.5 r:.5',
+     '1\' #7 | 7:.5 7 7:.5 | #6 6 | 5:1.5 5:.5 | 4 3 | (2:.5 3:.25 2:.25) 1:.5 2:.5 | 3 2 | 1:2')},
+    // written D minor; the printed repeat (back to the start) is written out: measures 1-8 played twice
+    {id: 'la-cumparsita', title: 'La Cumparsita', source: 'Gerardo H. Matos Rodríguez',
+     tier: 3, tempo: 96, timeSig: [4, 4], key: 'Eb', mode: 'minor', style: 'rock',
+     notes: N('5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 5 5 3 1 | r:.5 (5:.5 6:.5 5:.5) #4 5',
+     '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 1 r:.5 (6:.5 5:.5) 4:.5 3:.5 2:.5 | 1 r:.5 5:.5 1\' r',
+     // repeat
+     '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 5 5 3 1 | r:.5 (5:.5 6:.5 5:.5) #4 5',
+     '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 1 r:.5 (6:.5 5:.5) 4:.5 3:.5 2:.5 | 1 r:.5 5:.5 1\' r')},
   ];
 })();

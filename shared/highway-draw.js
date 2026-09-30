@@ -13,7 +13,8 @@
                                              a pad keeps the line's speed at full size
      paintStatic(V, labels, {dpr, q})        the still layer, drawn ONCE: the sunset, the road, its edges, the strike line,
                                              the unlit gates and their letter names -> a canvas (V.sun = the sun)
-     drawRoad(g, V, {t, spb, per, still})    ONLY THE ROAD MOVES: one cross line per beat (crossing the gates ON the beat,
+     drawRoad(g, V, {t, spb, per, pulse, still})  ONLY THE ROAD MOVES: one cross line per PRIMARY beat (`pulse` quarters: 1,
+                                             2/2 = 2, 6/8 and 3/8 = 1.5) (crossing the gates ON the beat,
                                              downbeats magenta) and the lane dividers' dashes rolling with them
      drawSlurs(g, V, notes, {from, t, q})    a thin ribbon joining each slurred pad to the next (`slurTo`)
      drawTrails(g, V, notes, {from, t, q})   the light trails of notes with `trail` (burning bright while `holding`)
@@ -75,7 +76,9 @@ window.Arcade = window.Arcade || {};
   /* ONLY THE ROAD MOVES: the sky, sun, mountains and the ground beside the road are the still layer. On the road: one
      cross line per beat, crossing the gates ON the beat (downbeats magenta), and the lane dividers' dashes rolling toward
      the player with them. still (reduced motion) = the road stands still too. */
-  function drawRoad(g, V, {t, spb, per, still}) {
+  function drawRoad(g, V, {t, spb, per, pulse = 1, still}) {
+    spb *= pulse;                                                   // one line per PRIMARY beat (2/2: halves; 6/8, 3/8: dotted quarters)
+    const perP = Math.max(1, Math.round(per / pulse));
     const tg = still ? 0 : t, dMax = Math.pow(1 + V.K, 1.6), Hr = V.sy - V.hy, thin = Math.max(.8, Math.min(1.2, V.W / 700));
     const yAt = dt => { const p = proj(V, dt); return p.d > dMax ? null : p.y; };
     const hw = y => V.half * (y - V.hy) / Hr;                       // the road's half width at height y (through the vanishing point)
@@ -83,7 +86,7 @@ window.Arcade = window.Arcade || {};
     const b0 = Math.floor((tg - V.lead) / spb) - 1, b1 = Math.floor((tg + V.lead * 1.6) / spb) + 1;
     for (let b = b0; b <= b1; b++) {
       const y = yAt(b * spb - tg); if (y == null || y > V.roadH) continue;
-      const down = ((b % per) + per) % per === 0, w = hw(y);
+      const down = ((b % perP) + perP) % perP === 0, w = hw(y);
       g.strokeStyle = tok(down ? 'mh-grid-2' : 'mh-grid'); g.lineWidth = (down ? 2 : 1.2) * thin; g.globalAlpha = (down ? .75 : .5) * fadeAt(y);
       g.beginPath(); g.moveTo(V.cx - w, y); g.lineTo(V.cx + w, y); g.stroke();
     }

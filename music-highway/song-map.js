@@ -14,6 +14,8 @@
           rests: [{t, beats, measure}], sig ({type, count} | null), clef, shift, keyName ('Concert B♭'), writtenKey ('C major'), unpitched,
           chords: [{measure, root, tones: [concert midis], name}], beatsPerMeasure, measures}
          the snare (unpitched): every note has pc null, no written note; the rhythm is the same.
+     Arcade.SongMap.meter(song | timeSig)      -> {per, pulse, pulses, countBars, countClicks, countBeats, cut, compound, label}:
+                                                  the PRIMARY beat, the count-in, '¢ 2/2' (see meter() below)
      Arcade.SongMap.fitOctave(...)             the octave rule (below)
      Arcade.SongMap.lanes(song, map, group)    -> THE PITCH LANES of the highway: {lanes: [{midis, label, count}], of(note)}
                                                   (low = left; see LANES below)
@@ -38,6 +40,23 @@ window.Arcade = window.Arcade || {};
     return LETTERS[li] + (acc < 0 ? '♭' : acc > 0 ? '♯' : ''); };
 
   const beatsPer = song => (song.timeSig || [4, 4])[0] * 4 / (song.timeSig || [4, 4])[1];
+
+  /** THE METER (every length in QUARTER-note beats, whatever the time signature): `per` beats a measure, the PRIMARY
+      beat `pulse` (4/4, 3/4, 2/4: the quarter; 2/2: the half; 6/8 and 3/8: the dotted quarter) and `pulses` of them a
+      measure, the count-in (`countBars` measures of `countClicks` clicks on the primary beat: a quarter-beat meter keeps
+      its one measure; the others get at least 4 clicks, so a quick measure never gives a too-short count-in), and the
+      label as printed ('¢ 2/2' for cut time). The drums, the chords, the highway's cross lines and the snare's
+      DOWNBEATS RIGHT all follow `pulse`. */
+  function meter(songOrTs) {
+    const ts = Array.isArray(songOrTs) ? songOrTs : (songOrTs && songOrTs.timeSig) || [4, 4];
+    const per = ts[0] * 4 / ts[1], cut = ts[0] === 2 && ts[1] === 2, eighths = ts[1] === 8;
+    const pulse = cut ? 2 : eighths && ts[0] % 3 === 0 ? 1.5 : eighths ? .5 : 1;
+    const pulses = Math.max(1, Math.round(per / pulse)), countBars = pulse === 1 ? 1 : Math.max(1, Math.ceil(4 / pulses));
+    return {ts, per, pulse, pulses, cut, compound: eighths && ts[0] % 3 === 0, countBars, countClicks: countBars * pulses, countBeats: countBars * per,
+      label: (cut ? '¢ ' : '') + ts[0] + '/' + ts[1]};
+  }
+  /** is beat t (from the start of the song) on a primary beat of its measure? (the downbeat is one too) */
+  const onPulse = (M, t) => { const p = ((t % M.per) + M.per) % M.per; return Math.abs(p / M.pulse - Math.round(p / M.pulse)) < 1e-6; };
 
   /** every measure must add up; returns a list of problems (empty = fine) */
   function check(song) {
@@ -152,7 +171,7 @@ window.Arcade = window.Arcade || {};
   /* chords: the song's own ('I IV V I'), else the best of I / IV / V (i / iv / v) for each measure's melody */
   const ROMAN = {i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7};
   function chordsFor(song, list, base) {
-    const per = beatsPer(song), sc = song.mode === 'minor' ? MINOR : MAJOR;
+    const per = beatsPer(song), sc = song.mode === 'minor' ? MINOR : MAJOR, M = meter(song);
     const measures = Math.ceil((list.total || 0) / per - 1e-6);
     const given = song.chords ? String(song.chords).split(/[\s|]+/).filter(Boolean) : null;
     const triad = d => [0, 2, 4].map(s => { const idx = d - 1 + s; return base + sc[idx % 7] + 12 * Math.floor(idx / 7); });
@@ -167,7 +186,9 @@ window.Arcade = window.Arcade || {};
         let bestD = prev, bestS = -1;
         [1, 4, 5].forEach(d => {
           const pcs = triad(d).map(mod12);
-          let s = 0; inM.forEach(e => { if (pcs.includes(e.pc)) s += e.beats * (Math.abs(e.t % per) < 1e-6 ? 1.5 : 1); });
+          // a note on the downbeat weighs 1.5×; in 2/2, 6/8 and 3/8 one on the measure's other PRIMARY beat 1.25× (a
+          // quarter-beat meter keeps its old weights: every quarter is a primary beat there)
+          let s = 0; inM.forEach(e => { if (pcs.includes(e.pc)) s += e.beats * (Math.abs(e.t % per) < 1e-6 ? 1.5 : M.pulse !== 1 && onPulse(M, e.t) ? 1.25 : 1); });
           if (d === prev) s += .01; if (d === 1) s += .005;
           if (s > bestS) { bestS = s; bestD = d; }
         });
@@ -184,14 +205,14 @@ window.Arcade = window.Arcade || {};
   /** the song for one instrument member (see the top) */
   /* STICKING (the snare): the song's own `sticking` (R/L letters, one per note in order; spaces and | are ignored) when
      it has one, else the student's pattern: 'alternate' (hand to hand note by note, every measure starts with R; rests
-     don't count) | 'downbeats' (a note on a beat = R, off the beat (the "&", "e", "a") = L). A long note (a roll, a half
-     note) just takes the hand the rule gives it. */
+     don't count) | 'downbeats' (a note on a PRIMARY beat = R, off it = L: 4/4 the quarters, 2/2 the halves, 6/8 and
+     3/8 the dotted quarters, see meter()). A long note (a roll, a half note) just takes the hand the rule gives it. */
   function stickings(song, notes, pattern) {
-    const own = song.sticking ? String(song.sticking).toUpperCase().replace(/[^RL]/g, '').split('') : null;
+    const own = song.sticking ? String(song.sticking).toUpperCase().replace(/[^RL]/g, '').split('') : null, M = meter(song);
     let m = -1, hand = 0;
     return notes.map((e, i) => {
       if (own && own[i]) return own[i];
-      if (pattern === 'downbeats') return Math.abs(e.t - Math.round(e.t)) < 1e-6 ? 'R' : 'L';
+      if (pattern === 'downbeats') return onPulse(M, e.t) ? 'R' : 'L';
       if (e.measure !== m) { m = e.measure; hand = 0; }
       return hand++ % 2 ? 'L' : 'R';
     });
@@ -271,7 +292,7 @@ window.Arcade = window.Arcade || {};
     return {lanes: L, of};
   }
 
-  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, keyLabel, KEYS, lanes, MAX_LANES, stickings};
+  A.SongMap = {check, events, concert, forMember, fitOctave, chordsFor, beatsPer, meter, onPulse, keyLabel, KEYS, lanes, MAX_LANES, stickings};
   // measure problems show in the console (and on the Song Board), so a typo in songs.js is found at once
   if (window.MH_SONGS) window.MH_SONGS.forEach(s => check(s).forEach(p => console.warn('Music Highway songs.js: ' + p)));
 })(window.Arcade);

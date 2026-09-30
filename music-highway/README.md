@@ -27,8 +27,8 @@ reorder or remove songs. Add new ones at the end.**
   source: 'Ludwig van Beethoven (Symphony No. 9, main theme)',
   tier: 1,                       // 1 = degrees 1–5 only (first-five octave) · 2 = whole scale · 3 = wider range, minor, accidentals, syncopation
   tempo: 100,                    // quarter notes per minute
-  timeSig: [4, 4],               // [4, 4] | [3, 4] | [2, 4]
-  key: 'Bb',                     // the CONCERT major key (its key signature): 'Bb' (trumpet in C) or 'Eb' (trumpet in F)
+  timeSig: [4, 4],               // [4, 4] | [3, 4] | [2, 4] | [2, 2] (cut time, drawn ¢) | [6, 8] | [3, 8]
+  key: 'Bb',                     // the CONCERT major key (its key signature): 'Bb' (trumpet in C), 'Eb' (F), 'F' (G), 'Ab' (B♭)
   mode: 'minor',                 // optional: degree 1 = the key's relative minor (in B♭: G minor)
   style: 'rock',                 // drum groove: 'rock' | 'march' | 'swing' | 'waltz'
   sticking: 'RLRL RRLL …',        // optional, the snare: one R/L per note (left out = the student's ALTERNATE / DOWNBEATS RIGHT)
@@ -59,6 +59,30 @@ notes; it may cross bar lines and hold a tie: `(5:2~ | 5 4) 3`; an unclosed `(`,
 a rest inside one or a one-note slur are reported; the staff draws the arc, the highway a ribbon; the snare ignores it), `|` = a bar line that is CHECKED: a
 measure that doesn't add up is reported in the browser console and on the Song Board). `N()` turns the text into the
 objects above, which are the real format.
+
+### Transcribing from a trumpet (B♭) part
+
+The trumpet reads one whole step above concert pitch, so: written C major = `key: 'Bb'`, F major = `'Eb'`, G major =
+`'F'`, B♭ major = `'Ab'`; written D minor = `'Eb'` + `mode: 'minor'`, A minor = `'Bb'` + minor, E minor = `'F'` + minor.
+Repeats, 1st/2nd endings and D.C. al Fine are written out (the game plays straight through); a pickup is padded with
+rests to a full first measure.
+
+### Meters
+
+Beats are always QUARTER notes (`tempo` = quarter notes a minute; a 6/8 measure = 3 beats, 3/8 = 1.5). Everything else
+follows the meter's PRIMARY beat (`SongMap.meter(song)`): 4/4, 3/4, 2/4 the quarter; 2/2 the half; 6/8 and 3/8 the
+dotted quarter.
+
+| Meter | Count-in | Drums | Staff |
+|---|---|---|---|
+| 4/4, 3/4, 2/4 | one measure of quarter clicks | the style's groove (3/4 = the waltz) | beams: 4/4 half a measure, 2/4 & 3/4 a beat |
+| 2/2 | 2 bars of half-note clicks | a march in 2: kick 1, snare 3, hats on the quarters | ¢, beamed by the half |
+| 6/8 | 2 bars of dotted-quarter clicks | kick 1, snare 4, hats on every eighth (1 and 4 stronger) | beamed in threes, dotted-quarter rests, ties across the middle of the bar |
+| 3/8 | 4 bars of one dotted-quarter click | kick 1, soft hats on the three eighths, no snare | the whole measure beamed together |
+
+The count-in's first click of each bar is the strong one, and RESUME (back one measure) counts in the same way. The
+highway draws one cross line per primary beat (downbeats magenta), and the snare's DOWNBEATS RIGHT puts R on the primary
+beats.
 
 ### What the engine does with it
 
