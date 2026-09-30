@@ -209,7 +209,12 @@ window.Arcade = window.Arcade || {};
     const notes = up.concat(up.slice(0, -1).reverse(), arp).map(n => Object.assign({}, n, {
       sounding: n.midi - m.sounds, pc: mod12(n.midi - m.sounds), show: shown(n, sig), beats: beats[k], measure: measureOf[k++]}));
     const name = 'Concert ' + s.concert;
-    return {id, name, short: s.concert, key, sig, octaves, notes, measures: bars, label: `${name} (your ${key})`};
+    // ARTICULATION, as on the GMEA sheets: tongue going up, slur coming down. slurs = [first, last] note indexes: the
+    // scale's top note down to the tonic where the scale ends, then the arpeggio's top note down to the final whole
+    // note (the arpeggio going up stays tongued). Mallets can't slur: none.
+    const top = 7 * octaves, arpTop = 2 * top + 1 + (octaves === 2 ? 5 : 2);
+    const slurs = m.family === 'percussion' ? [] : [[top, 2 * top], [arpTop, notes.length - 1]];
+    return {id, name, short: s.concert, key, sig, octaves, notes, measures: bars, slurs, label: `${name} (your ${key})`};
   }
   /** the audition's chromatic scale for a member: its GMEA range (mallets: AUDITION_CHROM), sharps up, flats down */
   function auditionChromatic(m) {
@@ -218,7 +223,7 @@ window.Arcade = window.Arcade || {};
     const up = A.chromaticScale(mm), down = A.chromaticScale(mm, {down: true}).slice(1);
     const notes = up.concat(down).map(n => Object.assign({}, n, {sounding: n.midi - m.sounds, pc: mod12(n.midi - m.sounds), show: n, beats: .5}));
     const lo = up[0], hi = up[up.length - 1];
-    return {id: 'chrom', name: 'Chromatic', short: 'Chromatic', key: null, sig: null, notes,
+    return {id: 'chrom', name: 'Chromatic', short: 'Chromatic', key: null, sig: null, notes, slurs: [],   // tongued or slurred: the student's choice
       label: `Chromatic (${noteLabel(lo)}${lo.oct} to ${noteLabel(hi)}${hi.oct})`};
   }
   /** the sheet's time limit (s) for a member */

@@ -19,13 +19,21 @@
   const STABLE_FRAMES = 3;              // a new note: the same pitch class read this many frames in a row (~40 ms each = 120 ms)
   const GAP_FRAMES = 3;                 // …or after this many silent frames, the same pitch again is a new note (a soft re-tongue)
   const ATTACK_NEW_MS = 60;             // an attack at least this long after the last counted note = a fresh attack (a repeated note)
-  const LEVELS = [                      // AUDITION: time = the sheet's time × mult; staff: false = from memory (the scale's name only)
-    {name: 'Warm-Up Room',  mult: 2.0,  staff: true,  blurb: 'Double time, the music on the stand.'},
-    {name: 'Practice Room', mult: 1.5,  staff: true,  blurb: 'More time than the real room, the music on the stand.'},
-    {name: 'Hallway',       mult: 1.25, staff: false, blurb: 'From memory: only the scale\'s name.'},
-    {name: 'Audition Room', mult: 1.0,  staff: false, blurb: 'The real thing: the GMEA sheet\'s time, from memory.'},
+  // AUDITION levels. Levels 1–2 never ask for memory or time: the music is on the stand for every scale, no timer (a
+  // stopwatch only). Levels 3–4 are from memory (the scale's name only) and timed: the sheet's time × mult.
+  const LEVELS = [
+    {name: 'Warm-Up Room',  staff: true,  names: true, tag: 'Music shown · No timer', blurb: 'The music on the stand, and each note\'s name as you play it.'},
+    {name: 'Practice Room', staff: true,               tag: 'Music shown · No timer', blurb: 'The music on the stand.'},
+    {name: 'Hallway',       staff: false, mult: 1.25,  tag: 'Memory · Timed',         blurb: 'From memory: only the scale\'s name. The first timed level.'},
+    {name: 'Audition Room', staff: false, mult: 1.0,   tag: 'Memory · Audition time', blurb: 'The real thing: from memory, in the GMEA sheet\'s time.'},
   ];
-  const TWO_STARS_CLEAN = .9;           // 2 ★: at least this share of every note clean (and all four finished in time)
+  // ARTICULATION (winds): tongue going up, slur coming down (the slurs are in the scale data, shared/scales.js). Checked
+  // with Pitch.onAttack and shown on the score sheet, but ARTICULATION_COUNTS = false: attack detection at speed isn't
+  // reliable enough on every mic to cost a student stars (true = 3 ★ also need every scale's articulation ✓).
+  const ARTICULATION_COUNTS = false;
+  const ARTICULATION_TOLERANCE = .8;    // the line shows ✓ when at least this share of the notes matches (tongued / slurred)
+  const ATTACK_LAG_MS = STABLE_FRAMES * 40;   // a note is counted about this long after its attack (the follower waits for stable frames)
+  const TWO_STARS_CLEAN = .9;           // 2 ★: at least this share of every note clean (and all four finished; in time on levels 3–4)
   const LOW_TIME_S = 15;                // the time bar turns amber in the last 15 s (no alarm, ever)
   const TIME_UP_IDLE_S = 12;            // after time: the scale being played may finish; nothing heard this long = it ends
   const THANKS_MS = 2400;               // the "Time. Thank you." / "Thank you." screen before the score sheet
@@ -78,7 +86,19 @@
     return out;
   }
   /** one row of the sheet: staffSVG + beams, bar lines and the time signature (the `extra` layer) */
-  function rowSVG(sc, row, prefix, minW = 0) {
+  const topOf = it => {                                                      // the top of a drawn note (its stem when it points up)
+    const y = A.noteY(clef, it.n), up = it.stemUp != null ? it.stemUp : y > MID;
+    return it.whole || !up ? y - 8 : (it.stemTo != null ? it.stemTo : y - 52);
+  };
+  /** the vertical window every row of a scale shares: the notes, the captions (level 1) and room for the slurs */
+  function boxOf(sc, names) {
+    const ys = sc.notes.map(n => A.noteY(clef, n.show));
+    let top = Math.min(30, ...ys.map(y => (y > MID ? y - 60 : y - 14)));
+    const bot = Math.max(146, ...ys.map(y => (y > MID ? y + 14 : y + 60))) + (names ? 30 : 6);   // level 1: room for the name under the lowest note
+    (sc.slurs || []).forEach(([a, b]) => { for (let i = a; i <= b; i++) top = Math.min(top, ys[i] - (ys[i] > MID ? 52 : 8) - 44); });
+    return [top, bot - top];
+  }
+  function rowSVG(sc, row, prefix, minW = 0, o = {}) {
     const ks = A.keySigWidth(sc.sig);
     let x = 70 + ks + (row.first ? 34 : 0) + 14;
     const items = [], meta = [];
@@ -127,26 +147,56 @@
       extra += `<text class="sa-tsig" x="${tx}" y="84">4</text><text class="sa-tsig" x="${tx}" y="116">4</text>`;
     }
     bars.forEach(bx => { extra += `<line class="sa-bar" x1="${bx}" y1="56" x2="${bx}" y2="120"/>`; });
+    // SLURS: a curve above the notes, split at a line break (the part on this row runs to the row's edge)
+    const k0 = row.idx[0], k1 = row.idx[row.idx.length - 1], xOf = i => items[i - k0].x, rowStart = 70 + ks + (row.first && sc.measures ? 34 : 0);
+    (sc.slurs || []).forEach(([a, b], si) => {
+      if (b < k0 || a > k1) return;
+      const i0 = Math.max(a, k0), i1 = Math.min(b, k1), starts = a >= k0, ends = b <= k1;
+      const pts = []; for (let i = i0; i <= i1; i++) pts.push([xOf(i), topOf(items[i - k0]) - 7]);   // just above each note (its stem when up)
+      const [px0, py0] = pts[0], [px1, py1] = pts[pts.length - 1];
+      const x1 = starts ? px0 : rowStart, x2 = ends ? px1 : natural - 8;
+      const y1 = starts ? py0 : py0 - 6, y2 = ends ? py1 : py1 - 6;
+      // the curve follows the line between its ends and bends up just enough to clear every note under it (a
+      // quadratic curve: the bend at a point t along it is 4·h·t·(1 − t))
+      let h = 7;
+      pts.forEach(([x, y]) => { const t = (x - x1) / ((x2 - x1) || 1); if (t <= .02 || t >= .98) return; const line = y1 + (y2 - y1) * t; h = Math.max(h, (line - y) / (4 * t * (1 - t))); });
+      h = Math.min(h, 40);
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 2 * h, th = 3.2;
+      extra += `<path class="sa-slur" data-slur="${si}" data-from="${i0}" data-to="${i1}" data-part="${starts && ends ? 'whole' : starts ? 'start' : ends ? 'end' : 'middle'}" ` +
+        `d="M${x1} ${y1}Q${mx} ${my} ${x2} ${y2}Q${mx} ${my + th} ${x1} ${y1}Z"/>`;
+    });
     if (row.last && sc.measures) extra += `<line class="sa-bar" x1="${natural - 16}" y1="56" x2="${natural - 16}" y2="120"/><rect class="sa-bar-end" x="${natural - 12}" y="56" width="5" height="64"/>`;
-    return A.staffSVG(clef, items, {width: W, fit: sc.notes.map(n => n.show), keySig: sc.sig, extra, label: `${sc.label}, notes ${row.idx[0] + 1} to ${row.idx[row.idx.length - 1] + 1}`});
+    return A.staffSVG(clef, items, {width: W, box: o.box, keySig: sc.sig, extra, label: `${sc.label}, notes ${row.idx[0] + 1} to ${row.idx[row.idx.length - 1] + 1}`});
   }
-  function drawSheet(el, sc, prefix = 'sn') {
+  function drawSheet(el, sc, {prefix = 'sn', names = false} = {}) {
     const rows = rowsOf(sc, (el.clientWidth || 700) - 16);
     const wOf = r => 70 + A.keySigWidth(sc.sig) + (r.first && sc.measures ? 34 : 0) + 14 + r.idx.reduce((a, i) => a + noteW(sc.notes[i]), 0) + 14 +
       (r.bars ? 8 * (new Set(r.idx.map(i => sc.notes[i].measure)).size - 1) : 0);
     const minW = Math.max(...rows.map(wOf));                                    // every row the same scale, left-aligned like a printed part
-    el.innerHTML = rows.map(r => `<div class="sa-row">${rowSVG(sc, r, prefix, minW)}</div>`).join('');
+    const box = boxOf(sc, names);
+    el.classList.toggle('sa-names', names);
+    el.innerHTML = rows.map(r => `<div class="sa-row">${rowSVG(sc, r, prefix, minW, {names, box})}</div>`).join('');
     el.dataset.w = el.clientWidth;
   }
   addEventListener('resize', () => {                                          // a turned iPad: the rows are packed again
     const el = $('sheet');
-    if (G && !el.hidden && Math.abs((+el.dataset.w || 0) - el.clientWidth) > 40) { drawSheet(el, cur().sc); drawNow(); }
+    if (G && !el.hidden && Math.abs((+el.dataset.w || 0) - el.clientWidth) > 40) { drawSheet(el, cur().sc, {names: G.names}); drawNow(); }
   });
   const noteEl = i => document.getElementById('sn' + i);
   function markNote(i, cls) { const g = noteEl(i); if (g) { g.classList.remove('ok', 'fix', 'bad', 'cur'); if (cls) g.classList.add(cls); } }
   function setCur(i) {
     document.querySelectorAll('#sheet g.cur').forEach(g => g.classList.remove('cur'));
-    const g = noteEl(i); if (g) g.classList.add('cur');
+    document.querySelectorAll('#sheet .sa-name').forEach(t => t.remove());
+    const g = noteEl(i); if (!g) return;
+    g.classList.add('cur');
+    if (G && G.names) {                                       // level 1: the note's name right under its notehead (or its stem)
+      const n = cur().sc.notes[i], y = A.noteY(clef, n.show), head = g.querySelector('ellipse.head'), x = head ? +head.getAttribute('cx') : 0;
+      const stemDown = [...g.querySelectorAll('.stem')].some(l => +l.getAttribute('y2') > y);
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('class', 'sa-name'); t.setAttribute('x', x); t.setAttribute('y', Math.max(stemDown ? +g.querySelector('.stem').getAttribute('y2') : y, 120) + 24);
+      t.setAttribute('text-anchor', 'middle'); t.textContent = nameOf(n);
+      g.appendChild(t);
+    }
   }
   function dotsHTML(res, n) {
     return `<span class="sa-dotrow">${Array.from({length: n}, (_, i) => `<i class="${res[i] || 'none'}"></i>`).join('')}</span>`;
@@ -154,7 +204,7 @@
 
   /* ---------- the state of a run ---------- */
   let G = null;
-  const scaleRun = sc => ({sc, res: [], i: 0, started: false, done: false, inTime: false, ms0: 0, ms: 0, wrong: 0});
+  const scaleRun = sc => ({sc, res: [], at: [], i: 0, started: false, done: false, inTime: false, ms0: 0, ms: 0, wrong: 0});
 
   /* ---------- MODE + LEVEL SELECT ---------- */
   const pause = A.UI.pause.mount({
@@ -179,7 +229,7 @@
     $('readyWho').textContent = r ? `${member.short} · earned ${r}` : '';
     $('modeNote').textContent = {
       practice: 'Pick a scale and play it as many times as you like: no clock, no stars. LOOP starts it again after the last note; SLOW GUIDE shows where you should be; NOTE BY NOTE waits for each note.',
-      audition: `All four scales in order, F, B♭, E♭, A♭, one try each, like the real room. The GMEA sheet's time for ${member.name}: ${fmt(SHEET_S * 1000)}. No alarm: when time runs out you may finish the scale you are on.`,
+      audition: `All four scales in order, F, B♭, E♭, A♭, one try each, like the real room. Levels 1–2: the music on the stand and no timer. Levels 3–4: from memory and timed (the GMEA sheet's time for ${member.name}: ${fmt(SHEET_S * 1000)}); no alarm: when time runs out you may finish the scale you are on.`,
       chrom: 'Tongued or slurred, any rhythm you choose — the judges listen for evenness, accuracy and speed.',
     }[opt.mode];
   }
@@ -202,8 +252,8 @@
         return `<button class="lvl sa-lvl" data-l="${lv}" ${open ? '' : 'disabled'}>
           <span class="n">Level ${lv}</span>
           <span class="t">${esc(L.name)}</span>
-          <span class="d">${esc(L.blurb)} ${fmt(SHEET_S * L.mult * 1000)} for all four scales.</span>
-          <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${p.best ? `Best ${p.best}% clean` : L.staff ? 'Music shown' : 'From memory'}</span></span>
+          <span class="d">${esc(L.blurb)} ${L.mult ? `${fmt(SHEET_S * L.mult * 1000)} for all four scales.` : 'Take your time: the run ends with the last note.'}${p.best ? ` Best ${p.best}% clean.` : ''}</span>
+          <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span class="sa-tag">${esc(L.tag)}</span></span>
         </button>`;
       }).join('');
       isOpen = unlocked; label = i => `Level ${i + 1} · ${LEVELS[i].name}`; lockText = i => `Earn a star in the ${LEVELS[i - 1].name} to unlock`;
@@ -270,8 +320,8 @@
     const L = kind === 'audition' ? LEVELS[arg - 1] : null;
     const list = kind === 'audition' ? SCALES : kind === 'chrom' ? [CHROM] : [PRACTICE_LIST[arg]];
     G = {kind, arg, L, tok, runs: list.map(scaleRun), si: 0, ms: 0, last: performance.now(), clockOn: false, listening: false, paused: false,
-      limit: kind === 'audition' ? SHEET_S * L.mult * 1000 : 0, timeUp: false, lastNoteAt: 0, cleanRuns: 0, laps: 0,
-      memory: kind === 'audition' && !L.staff, nbn: kind === 'practice' && opt.nbn, guide: kind === 'practice' ? opt.guide : 0, loop: kind === 'practice' && opt.loop,
+      limit: kind === 'audition' && L.mult ? SHEET_S * L.mult * 1000 : 0, timeUp: false, lastNoteAt: 0, cleanRuns: 0, laps: 0, attacks: [],
+      memory: kind === 'audition' && !L.staff, names: kind === 'audition' && !!L.names, nbn: kind === 'practice' && opt.nbn, guide: kind === 'practice' ? opt.guide : 0, loop: kind === 'practice' && opt.loop,
       f: {cand: null, gap: 99, lastPc: null, lastAt: 0, attackAt: 0}};
     A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
     // one try each, like the real room: no RESTART in an audition or the Chromatic Challenge (practice has one)
@@ -281,8 +331,8 @@
     $('who').innerHTML = A.avatarHTML({size: 'chip', member: member.id});
     $('hudKicker').textContent = kind === 'audition' ? `Audition · Level ${arg}` : kind === 'chrom' ? 'Chromatic Challenge' : 'Practice';
     $('hudTitle').textContent = kind === 'audition' ? L.name : kind === 'chrom' ? member.short : G.runs[0].sc.name;
-    $('clockLabel').textContent = kind === 'audition' ? 'Time left' : 'Time';
-    $('timeBar').hidden = kind !== 'audition';
+    $('clockLabel').textContent = G.limit ? 'Time left' : 'Time';
+    $('timeBar').hidden = !G.limit;                  // levels 1–2, practice, the chromatic: a stopwatch only
     $('clock').textContent = fmt(G.limit);
     showScale();
     setPrompt('');
@@ -294,7 +344,7 @@
       return;
     }
     $('adj').hidden = false;
-    $('adjText').textContent = kind === 'audition' ? 'Please play your scales in order, from memory.' : 'Please play your chromatic scale, up and down.';
+    $('adjText').textContent = kind === 'audition' ? (G.memory ? 'Please play your scales in order, from memory.' : 'Please play your scales in order.') : 'Please play your chromatic scale, up and down.';
     $('count').textContent = '';
     const voice = kind === 'audition' ? A.Sfx.event('sa-adjudicator') * 1000 : 0;
     later(Math.max(READ_MS, voice + 300), () => {
@@ -319,11 +369,12 @@
     const r = cur(), sc = r.sc;
     $('stepNo').textContent = G.kind === 'audition' ? `Scale ${G.si + 1} of ${G.runs.length}` : G.kind === 'chrom' ? CHROM.label : (G.loop ? `Clean runs: ${G.cleanRuns}` : '');
     $('scaleName').textContent = G.kind === 'chrom' ? 'Chromatic' : sc.label;
+    $('artLine').hidden = MALLET || G.kind === 'chrom' || G.memory || !(sc.slurs || []).length;   // winds, with the music shown
     $('memory').hidden = !G.memory;
     $('sheet').hidden = G.memory || G.nbn;
     $('nbn').hidden = !G.nbn;
     if (G.memory) { $('memName').textContent = sc.label; $('memSub').textContent = `${sc.octaves} octave${sc.octaves > 1 ? 's' : ''}, up and down, then the arpeggio.`; }
-    else if (!G.nbn) drawSheet($('sheet'), sc);
+    else if (!G.nbn) drawSheet($('sheet'), sc, {names: G.names});
     drawNow();
   }
   function drawNow() {
@@ -346,7 +397,7 @@
   function setPrompt(text, cls) { const p = $('prompt'); p.textContent = text; p.className = 'prompt ' + (cls || ''); }
 
   /* ---------- HEARING: follow the notes in order ---------- */
-  A.Pitch.onAttack(a => { if (G && G.listening) G.f.attackAt = a.time; });
+  A.Pitch.onAttack(a => { if (G && G.listening) { G.f.attackAt = a.time; G.attacks.push(a.time); } });
   A.Pitch.onFrame((r, level, now) => {
     const hb = $('hearNote');
     hb.textContent = r ? inst.writtenName(r.pc) : '–';
@@ -374,8 +425,8 @@
     if (r.i >= notes.length) return;
     const want = notes[r.i], next = notes[r.i + 1], prev = r.i > 0 ? notes[r.i - 1] : null;
     if (!r.started) { r.started = true; r.ms0 = G.ms; if (G.guide) G.guideAt = G.ms; }
-    if (pc === want.pc) { r.res[r.i] = r.res[r.i] === 'bad' ? 'fix' : 'ok'; advance(1); }
-    else if (next && pc === next.pc) { r.res[r.i] = 'bad'; r.res[r.i + 1] = 'ok'; r.skipped = (r.skipped || 0) + 1; setPrompt(`Skipped ${nameOf(want)}.`, 'bad'); advance(2); }
+    if (pc === want.pc) { r.res[r.i] = r.res[r.i] === 'bad' ? 'fix' : 'ok'; r.at[r.i] = now; advance(1); }
+    else if (next && pc === next.pc) { r.res[r.i] = 'bad'; r.res[r.i + 1] = 'ok'; r.at[r.i + 1] = now; r.skipped = (r.skipped || 0) + 1; setPrompt(`Skipped ${nameOf(want)}.`, 'bad'); advance(2); }
     else if (prev && pc === prev.pc) { /* the note just counted, played again: ignored */ }
     else {
       r.wrong++;
@@ -393,7 +444,7 @@
   }
   function scaleDone() {
     const r = cur();
-    r.done = true; r.ms = G.ms - r.ms0; r.inTime = G.kind !== 'audition' || !G.timeUp;
+    r.done = true; r.ms = G.ms - r.ms0; r.inTime = !G.timeUp;
     drawNow();
     if (G.kind === 'practice') return practiceDone();
     if (G.kind === 'chrom') return finish();
@@ -427,7 +478,7 @@
     if (!G) return;
     const dt = now - G.last; G.last = now;
     if (G.clockOn && !G.paused && !document.hidden && !A.Pitch.isSuppressed(now)) G.ms += Math.min(dt, 250);
-    if (G.kind === 'audition') {
+    if (G.limit) {                                   // the timed levels (3–4)
       const left = G.limit - G.ms;
       $('clock').textContent = fmt(Math.ceil(Math.max(0, left) / 1000) * 1000);
       const bar = $('timeBar'), frac = Math.max(0, left / G.limit);
@@ -462,7 +513,7 @@
     G.listening = false; G.clockOn = false;
     A.Pitch.pauseListening(true); A.Sfx.sync();
     const done = () => (G.kind === 'audition' ? results() : G.kind === 'chrom' ? chromResults() : practiceResults());
-    if (G.kind === 'audition') {
+    if (G.kind === 'audition' && G.limit) {         // the timed levels: "Time. Thank you." / "Thank you." (levels 1–2 go straight to the sheet)
       $('timeUp').hidden = false;
       $('timeUpSub').textContent = G.timeUp ? '' : 'All four scales played.';
       $('timeUp').querySelector('.sa-adj-t').textContent = G.timeUp ? 'Time. Thank you.' : 'Thank you.';
@@ -474,7 +525,33 @@
     const n = r.sc.notes.length, clean = cleanOf(r);
     const status = r.done && r.inTime ? '<b class="sa-ok">✓ finished</b>' : r.done ? '<b class="sa-late">✓ finished after time</b>' : '<b class="sa-bad">✗ time</b>';
     return `<tr><th scope="row">${esc(label || r.sc.label)}</th><td>${status}</td><td class="sa-num">${clean}/${n}</td><td class="sa-num">${r.started ? fmt1(r.done ? r.ms : G.ms - r.ms0) : '–'}</td></tr>
-      <tr class="sa-dotline"><td colspan="4">${dotsHTML(r.res, n)}</td></tr>`;
+      <tr class="sa-dotline"><td colspan="4">${dotsHTML(r.res, n)}${artHTML(r)}</td></tr>`;
+  }
+  /** ARTICULATION: for every note the follower counted, was an attack heard for it? Tongued notes (going up) want one,
+      notes under a slur (after its first note) want none. The attack of note i falls between the previous note's count
+      and its own count, both shifted back by ATTACK_LAG_MS. {tongue, slur: {n, ok} | null, good} or null (mallets,
+      the chromatic, nothing counted) */
+  function articulation(r) {
+    const sc = r.sc, slurs = sc.slurs || [];
+    if (MALLET || !slurs.length) return null;
+    const inSlur = i => slurs.some(([a, b]) => i > a && i <= b), slurFirst = i => slurs.some(([a]) => i === a);
+    const T = {n: 0, ok: 0}, L = {n: 0, ok: 0};
+    for (let i = 0; i < sc.notes.length; i++) {
+      if (!(r.res[i] === 'ok' || r.res[i] === 'fix') || r.at[i] == null || slurFirst(i)) continue;   // never judge a note that wasn't counted
+      const prev = i > 0 && r.at[i - 1] != null ? r.at[i - 1] : r.at[i] - 700;
+      const lo = prev - ATTACK_LAG_MS + 60, hi = r.at[i] - ATTACK_LAG_MS + 80;
+      const had = G.attacks.some(t => t > lo && t <= hi), c = inSlur(i) ? L : T;
+      c.n++; if (inSlur(i) ? !had : had) c.ok++;
+    }
+    if (!T.n && !L.n) return null;
+    const pass = c => !c.n || c.ok / c.n >= ARTICULATION_TOLERANCE;
+    return {tongue: T, slur: L, tongueOk: pass(T), slurOk: pass(L), good: pass(T) && pass(L)};
+  }
+  function artHTML(r) {
+    const a = articulation(r);
+    if (!a) return '';
+    const what = [!a.tongueOk && 'tonguing going up', !a.slurOk && 'slurring coming down'].filter(Boolean).join(' / ');
+    return `<p class="sa-art ${a.good ? 'ok' : 'check'}">Articulation: ${a.good ? '✓' : 'check ' + what}</p>`;
   }
   function sheetHTML(rows, total) {
     return `<div class="sa-scoresheet" id="scoreSheet"><p class="sa-ss-h">Judge's score sheet · ${esc(member.name)}</p>
@@ -485,8 +562,9 @@
   function results() {
     const lv = G.arg, runs = G.runs;
     const total = runs.reduce((a, r) => a + r.sc.notes.length, 0), clean = runs.reduce((a, r) => a + cleanOf(r), 0);
-    const allInTime = runs.every(r => r.done && r.inTime);
-    const stars = !allInTime ? 0 : clean === total ? 3 : clean / total >= TWO_STARS_CLEAN ? 2 : 1;
+    const allInTime = runs.every(r => r.done && r.inTime);                 // levels 1–2: every scale finished (no timer)
+    const artGood = runs.every(r => { const a = articulation(r); return !a || a.good; });
+    const stars = !allInTime ? 0 : clean === total && (!ARTICULATION_COUNTS || artGood) ? 3 : clean / total >= TWO_STARS_CLEAN ? 2 : 1;
     const pct = Math.round(clean / total * 100);
     const old = prog(lv);
     A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best || 0)}, stars);
@@ -495,14 +573,15 @@
     const ready = lv === LEVELS.length && stars === 3;
     const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
     const extra = (ready ? `<p class="sa-ready sa-res-ready" id="resReady"><span class="sa-ready-b">ALL-STATE READY</span> ${newReady ? 'New!' : ''}</p>` : '') +
-      sheetHTML(runs.map(r => sheetRow(r)).join(''), `Total time ${fmt1(G.ms)} of ${fmt(G.limit)}${G.timeUp ? ' · time ran out' : ''}`);
+      sheetHTML(runs.map(r => sheetRow(r)).join(''), G.limit ? `Total time ${fmt1(G.ms)} of ${fmt(G.limit)}${G.timeUp ? ' · time ran out' : ''}`
+        : `Your time ${fmt(G.ms)} · Audition limit ${fmt(SHEET_S * 1000)}`);   // levels 1–2: information only
     A.UI.results.show({gameId: GAME_ID, stars, wide: true, actsFirst: true,
       title: stars === 3 ? (ready ? 'All-State ready!' : 'Perfect audition!') : stars ? 'Audition finished' : 'Time. Thank you.',
-      msg: stars === 3 ? 'Every note clean, all four scales in time.'
+      msg: stars === 3 ? (G.limit ? 'Every note clean, all four scales in time.' : 'Every note clean, all four scales.')
         : stars === 2 ? 'Every note clean for 3 stars.'
         : stars === 1 ? `Get ${Math.round(TWO_STARS_CLEAN * 100)} % of the notes clean for 2 stars.`
         : 'Finish all four scales in time for a star. Practice mode has no clock.',
-      tiles: [['Clean notes', `${clean}/${total}`], ['Clean', `${pct}%`], ['Scales in time', `${runs.filter(r => r.done && r.inTime).length}/4`]],
+      tiles: [['Clean notes', `${clean}/${total}`], ['Clean', `${pct}%`], G.limit ? ['Scales in time', `${runs.filter(r => r.done && r.inTime).length}/4`] : ['Your time', fmt(G.ms)]],
       best: old.best ? `Best: ${Math.max(pct, old.best)}% clean` : '', newBest: old.best > 0 && pct > old.best, newBestText: 'New best!',
       extra,
       next: {label: 'Next level', hidden: !hasNext, onClick: () => A.requireMic(() => begin('audition', lv + 1))},
@@ -551,7 +630,12 @@
   if (A.DEMO) {
     let hold = 0;
     const wantPc = () => G && G.listening && cur().i < cur().sc.notes.length ? cur().sc.notes[cur().i] : null;
-    const play = () => { const w = wantPc(); if (w) heard(w.pc, performance.now()); };
+    const play = () => {
+      const w = wantPc(); if (!w) return;
+      const r = cur(), now = performance.now();
+      if (!(r.sc.slurs || []).some(([a, b]) => r.i > a && r.i <= b)) G.attacks.push(now - ATTACK_LAG_MS);   // tongued where the music says so
+      heard(w.pc, now);
+    };
     addEventListener('keydown', e => {
       if (!G || !G.listening || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && e.key === ' ') return;
       const k = e.key.toLowerCase();
@@ -570,6 +654,9 @@
     heard: pc => G && heard(pc, performance.now()),
     scales: () => SCALES, chromatic: () => CHROM, begin, setMs: ms => { if (G) G.ms = ms; },
     member: () => member.id,
+    attack: (t = performance.now()) => G && G.attacks.push(t),                 // an attack heard at t (as Pitch.onAttack reports it)
+    articulation: () => G ? G.runs.map(articulation) : null,
+    ARTICULATION_COUNTS,
   };
 
   showHub();

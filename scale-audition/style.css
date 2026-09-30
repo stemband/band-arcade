@@ -61,6 +61,11 @@
 .sa-sheet g.cur ellipse.head{stroke:var(--sa-cur);stroke-width:3.5}
 .sa-sheet g.cur ellipse.head:not(.whole){fill:var(--sa-cur)}
 .sa-sheet g.guide ellipse.head{stroke:var(--sa-guide);stroke-width:5}
+/* the sheet's articulation (as on the GMEA sheets): slurs above the notes */
+.sa-slur{fill:var(--ink)}
+.sa-artline{margin:4px 0 0;font-size:14.5px;font-weight:700;color:var(--text-lo)}
+/* level 1: the name of the note being played, under its notehead (only the current one) */
+.sa-name{font:700 17px var(--text);fill:var(--sa-cur)}
 
 /* from memory (levels 3–4): only the scale's name */
 .sa-memory{background:var(--night-2);border:2px dashed var(--floor-3);border-radius:var(--r);padding:22px 16px;text-align:center}
@@ -115,6 +120,10 @@
 .sa-ss-key{margin:6px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12.5px;color:var(--text-lo)}
 .sa-ss-key i{margin-right:-4px}
 .sa-ss-total{margin:6px 0 0;font-weight:700;color:var(--text-hi)}
+.sa-art{margin:4px 0 0;font-size:13px;font-weight:700}
+.sa-art.ok{color:var(--sa-ok-lt)}
+.sa-art.check{color:var(--sa-fix-lt)}
+.sa-tag{font-weight:700;color:var(--text-hi)}
 
 @media (max-height:700px){.sa-nbn-staff svg{max-height:30vh}}
 @media (prefers-reduced-motion:reduce){.sa-count.count,.sa-count.go{animation:none}}
