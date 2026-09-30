@@ -461,6 +461,9 @@ test.describe('Blocktave: controls and layout', () => {
 test.describe('Blocktave: performance', () => {
   test('a 60 s run at 4× CPU throttle averages at least 30 frames a second', async ({page, browserName}) => {
     test.skip(browserName !== 'chromium', 'CPU throttling is a Chromium feature');
+    // a frame rate only means something with the machine to itself: this runs ALONE (PERF=1, one worker: its own CI step
+    // in .github/workflows/tests.yml), never beside other tests competing for the CPU
+    test.skip(!process.env.PERF, 'runs alone: PERF=1 npx playwright test blocktave -g performance --project=chromium --workers=1');
     test.setTimeout(150_000);
     await page.setViewportSize({width: 1180, height: 820});
     await enter(page, {mode: 'touch'});
