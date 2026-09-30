@@ -33,6 +33,9 @@ window.Arcade = window.Arcade || {};
   const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'], LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
   const ORDER = {b: ['B', 'E', 'A', 'D', 'G', 'C', 'F'], '#': ['F', 'C', 'G', 'D', 'A', 'E', 'B']};
   const keyLabel = pc => { const k = KEYS[pc]; return k[0] + (k[1] < 0 ? '♭' : ''); };
+  // the relative minor of a major key (by the major's pitch class), spelled from its letter: E♭ → C, F → D, B♭ → G, A → F♯
+  const minorLabel = pc => { const li = (LETTERS.indexOf(KEYS[pc][0]) + 5) % 7, acc = ((pc + 9 - LETTER_PC[li]) % 12 + 18) % 12 - 6;
+    return LETTERS[li] + (acc < 0 ? '♭' : acc > 0 ? '♯' : ''); };
 
   const beatsPer = song => (song.timeSig || [4, 4])[0] * 4 / (song.timeSig || [4, 4])[1];
 
@@ -172,7 +175,8 @@ window.Arcade = window.Arcade || {};
       }
       prev = deg;
       const tones = triad(deg);
-      out.push({measure: m, deg, root: tones[0], tones, name: (song.mode === 'minor' && deg !== 5 ? ['i', 'ii', 'III', 'iv', 'v', 'VI', 'VII'] : ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'])[deg - 1]});
+      // a chord the song writes keeps its own name ('v' in a natural-minor song is a minor v: its triad is the scale's own)
+      out.push({measure: m, deg, root: tones[0], tones, name: given && given[m - 1] ? given[m - 1] : (song.mode === 'minor' && deg !== 5 ?['i', 'ii', 'III', 'iv', 'v', 'VI', 'VII'] : ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'])[deg - 1]});
     }
     return out;
   }
@@ -205,7 +209,7 @@ window.Arcade = window.Arcade || {};
     const concertKeyPc = mod12(KEY_PC[song.key || 'Bb'] + shift);
     const rests = list.filter(e => e.rest).map(e => ({t: e.t, beats: e.beats, measure: e.measure}));
     const base = {beatsPerMeasure: beatsPer(song), measures: Math.ceil((list.total || 0) / beatsPer(song) - 1e-6), total: list.total, shift, unpitched, rests,
-      keyName: 'Concert ' + keyLabel(concertKeyPc) + (song.mode === 'minor' ? ' (' + keyLabel(mod12(concertKeyPc + 9)) + ' minor)' : ''),
+      keyName: 'Concert ' + keyLabel(concertKeyPc) + (song.mode === 'minor' ? ' (' + minorLabel(concertKeyPc) + ' minor)' : ''),
       chords: chordsFor(song, list, tonicMidi(song, shift) + (song.mode === 'minor' ? 0 : 0))};
     if (unpitched) {
       const ns = list.filter(e => !e.rest), st = stickings(song, ns, sticking);
@@ -223,7 +227,7 @@ window.Arcade = window.Arcade || {};
       if (fing && member.id === 'horn' && hornSide === 'Bb') fing = fs.find(f => /^T/.test(String(f.raw))) || fing;
       return Object.assign({}, e, {concert: e.concert + k, midi: w, n, show: showUnder(n, sig), label: noteLabel(n), fing, fings: fs});
     });
-    return Object.assign(base, {clef: group.clef, sig, octave: k, writtenKey: keyLabel(wKey) + ' major', notes, diagram: table ? table.diagram : 'none'});
+    return Object.assign(base, {clef: group.clef, sig, octave: k, writtenKey: song.mode === 'minor' ? minorLabel(wKey) + ' minor' : keyLabel(wKey) + ' major', notes, diagram: table ? table.diagram : 'none'});
   }
 
   /* LANES: one highway lane per written pitch, lowest on the left, so the melody's shape shows on the road.
