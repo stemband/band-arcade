@@ -11,6 +11,12 @@
               coming on) | 'dawn' | 'noon' (bright desert sun) | 'night' (moon, stars, streetlights) | 'neon' (a neon city night)
      weather  optional: 'mist' (low fog) | 'haze' (heat haze near the horizon) | 'rain' (a light drizzle). Off in LITE graphics.
      tunnels  true = parts of every lap are in a tunnel: the road is dark, and staying in tune lights it
+     dyn      DYNAMICS ZONES (from track 3): {zones: per lap, len: each zone's share of the lap, kinds: which markings
+              ('p' soft | 'f' loud | 'cresc' getting louder | 'decresc' getting softer)}. Slur laps have none.
+     slurLaps SLUR LAPS (from track 5): these laps (1 = the first) have TWO notes: the target switches halfway and the
+              student slurs to it (no break in the sound). The second note is picked from the NOTES setting's own notes:
+              brass = the same fingering (a lip slur) when there is one, else a step; woodwinds = a small interval that
+              doesn't cross the break (game.js slurPartner).
      rivals   the CPU cars: name, body (a car shape from SPEEDWAY_GARAGE.bodies, or 'maestro' = The Maestro's gold-trimmed
               open-wheel racer), color (a theme token), pace (0–1 of full speed; they never breathe, but pit like you)
    STARS per track: 1st = 3, 2nd = 2, 3rd = 1, last = 0. Winning (1st) opens the next track. */
@@ -19,17 +25,17 @@ window.SPEEDWAY_TRACKS = [
     rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .42}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .5}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}]},
   {name: 'River Street Run',      blurb: 'Along the river lights. A little longer each lap.', laps: 4, lap: 6, pool: 5, scene: 'river', sky: 'sunset', time: 'dusk', weather: 'rain',
     rivals: [{name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .48}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .56}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .63}]},
-  {name: 'Sunset Strip',          blurb: 'Five laps into the sunset.', laps: 5, lap: 7, pool: 5, scene: 'sunset', sky: 'sunset', time: 'golden',
+  {name: 'Sunset Strip',          blurb: 'Five laps into the sunset.', laps: 5, lap: 7, pool: 5, scene: 'sunset', sky: 'sunset', time: 'golden', dyn: {zones: 1, len: .3, kinds: ['p', 'f']},
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .52}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .6}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .67}]},
-  {name: 'Tunnel Vision',         blurb: 'The road goes dark in the tunnels. Stay in tune to light it up.', laps: 5, lap: 8, pool: 5, scene: 'city', sky: 'dusk', tunnels: true, time: 'neon',
+  {name: 'Tunnel Vision',         blurb: 'The road goes dark in the tunnels. Stay in tune to light it up.', laps: 5, lap: 8, pool: 5, scene: 'city', sky: 'dusk', tunnels: true, time: 'neon', dyn: {zones: 1, len: .35, kinds: ['p', 'f', 'cresc']},
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .55}, {name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .63}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .7}]},
-  {name: 'Harbor Lights',         blurb: 'Six laps past the cranes and the water.', laps: 6, lap: 9, pool: 5, scene: 'harbor', sky: 'dusk', time: 'dawn', weather: 'mist',
+  {name: 'Harbor Lights',         blurb: 'Six laps past the cranes and the water.', laps: 6, lap: 9, pool: 5, scene: 'harbor', sky: 'dusk', time: 'dawn', weather: 'mist', dyn: {zones: 2, len: .28, kinds: ['p', 'f', 'cresc', 'decresc']}, slurLaps: [3, 6],
     rivals: [{name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .58}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .66}, {name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .73}]},
-  {name: 'Midnight Mountain',     blurb: 'Night climbs, ten seconds a lap. Breathe in the pits.', laps: 6, lap: 10, pool: 5, scene: 'mountain', sky: 'night', time: 'night', weather: 'mist',
+  {name: 'Midnight Mountain',     blurb: 'Night climbs, ten seconds a lap. Breathe in the pits.', laps: 6, lap: 10, pool: 5, scene: 'mountain', sky: 'night', time: 'night', weather: 'mist', dyn: {zones: 2, len: .32, kinds: ['p', 'cresc', 'f', 'decresc']}, slurLaps: [2, 4, 6],
     rivals: [{name: 'Neon Nomad', body: 'wagon', color: 'yellow', pace: .6}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .69}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .76}]},
-  {name: 'Neon Desert Endurance', blurb: 'Long, steady laps across the desert.', laps: 6, lap: 12, pool: 5, scene: 'desert', sky: 'sunset', time: 'noon', weather: 'haze',
+  {name: 'Neon Desert Endurance', blurb: 'Long, steady laps across the desert.', laps: 6, lap: 12, pool: 5, scene: 'desert', sky: 'sunset', time: 'noon', weather: 'haze', dyn: {zones: 2, len: .36, kinds: ['cresc', 'p', 'decresc', 'f']}, slurLaps: [2, 4, 6],
     rivals: [{name: 'Turbo Tempo', body: 'muscle', color: 'amber', pace: .63}, {name: 'Chrome Comet', body: 'coupe', color: 'green', pace: .72}, {name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .79}]},
-  {name: 'The Grand Prix',        blurb: 'Eight laps, 12 to 15 seconds each, against the fastest cars.', laps: 8, lap: [12, 15], pool: 5, scene: 'grandprix', sky: 'night', time: 'night',
+  {name: 'The Grand Prix',        blurb: 'Eight laps, 12 to 15 seconds each, against the fastest cars.', laps: 8, lap: [12, 15], pool: 5, scene: 'grandprix', sky: 'night', time: 'night', dyn: {zones: 3, len: .26, kinds: ['p', 'f', 'cresc', 'decresc']}, slurLaps: [2, 4, 6, 8],
     rivals: [{name: 'Violet Vortex', body: 'hover', color: 'purple', pace: .68}, {name: 'Volt Viper', body: 'openwheel', color: 'cyan', pace: .77}, {name: 'The Maestro', body: 'maestro', color: 'yellow', pace: .84}]},
 ];
 
@@ -70,6 +76,18 @@ window.SPEEDWAY_RULES = {
      tendency tip (tips.js "general") shows when the average of every note is `tendency` cents or more sharp / flat;
      at most `maxTips` tips; the last `history` races per instrument are kept for the trend arrows. */
   report: {reportHoldSec: 1, tendency: 10, maxTips: 2, history: 10},
+  /* DYNAMICS ZONES. THE VOLUME CHECK (once per play session, before the first race with zones) learns this device's
+     SOFT and LOUD levels: `checkSec` s of each, after `readySec` s to get ready; less than `minSpread` dB apart = "Try a
+     bigger difference" (CONTINUE then uses `fallbackSpread`). In a zone the loudness (smoothed over `smoothMs`, as a share
+     0 = the soft level … 1 = the loud level) must be: p ≤ `softMax`, f ≥ `loudMin`, cresc / decresc within `rampWindow`
+     of a ramp from `ramp[0]` to `ramp[1]` (or back). Wrong for `graceMs` = the car's speed × `slow` (a small, clear
+     penalty) and a hint word. The zones start `startAt` into a lap. */
+  dyn: {checkSec: 3, readySec: 1.2, minSpread: 4, fallbackSpread: 12, smoothMs: 200, softMax: .45, loudMin: .55, ramp: [.1, .9], rampWindow: .35,
+    graceMs: 350, slow: .8, startAt: .12},
+  /* SLUR LAPS: after the switch the old note still counts for `graceMs` (while the student moves to the new one);
+     a gap in the sound of `gapMs` or more around the switch = a BREAK: the speed × `slow` for `slowMs` + "slur it!".
+     (The detector's own note change can drop one or two readings: keep gapMs above ~120 ms.) */
+  slur: {graceMs: 1200, gapMs: 150, slow: .55, slowMs: 1000},
 };
 
 /* THE GARAGE (inside Sustain Speedway only: the GARAGE button on the track select; garage.js + cars.js). The student's

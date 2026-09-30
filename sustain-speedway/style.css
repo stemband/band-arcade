@@ -265,3 +265,36 @@
 @keyframes pd-rise{from{transform:translateY(24px);opacity:0}}
 /* the Settings panel's Graphics row */
 .sw-gfx .ui-seg>button{min-width:64px}
+
+/* ---------- DYNAMICS ZONES: the badge (the marking you're in + a hint word) and THE VOLUME CHECK ---------- */
+.dyn-badge{position:absolute;left:10px;top:38%;display:grid;justify-items:center;gap:0;min-width:96px;padding:6px 10px;border-radius:14px;
+  background:var(--screen);color:var(--ink);border:3px solid var(--dz,var(--cyan));pointer-events:none}
+.dyn-badge.k-p{--dz:var(--cyan)}.dyn-badge.k-f{--dz:var(--pink)}.dyn-badge.k-cresc{--dz:var(--amber)}.dyn-badge.k-decresc{--dz:var(--purple)}
+.dyn-mark{font:italic 700 clamp(26px,4vw,40px)/1 Georgia,'Times New Roman',serif}
+.dyn-mark svg{width:58px;height:24px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.dyn-say{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.dyn-hint{margin-top:2px;padding:1px 8px;border-radius:8px;background:var(--red);color:var(--white-hi);font-weight:700;font-size:14px}
+.dyn-badge.bad{border-color:var(--red)}
+@media (max-width:560px){ .dyn-badge{top:auto;bottom:8px;min-width:0;padding:4px 8px} .dyn-mark{font-size:24px} }
+.vcheck{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:10px;background:color-mix(in srgb,var(--deep) 78%,transparent)}
+.vc-card{display:grid;justify-items:center;gap:6px;width:min(440px,94%);padding:14px 18px;border-radius:18px;background:var(--floor-2);border:2px solid var(--cyan);box-shadow:var(--glow-cyan);text-align:center}
+.vc-card p{margin:0}
+.vc-title{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--cyan-hi)}
+.vc-say{font-family:var(--display);font-size:clamp(22px,3.4vw,32px);color:var(--text-hi)}
+.vc-say.soft{color:var(--cyan-hi)}.vc-say.loud{color:var(--pink-hi)}.vc-say.ok{color:var(--green-hi)}.vc-say.bad{color:var(--amber-hi)}
+.vc-note{font-size:14.5px;color:var(--text-lo)}
+.vc-note b{color:var(--text-hi)}
+.vc-time,.vc-meter{width:100%;height:10px;border-radius:6px;background:var(--deep);overflow:hidden}
+.vc-time i,.vc-meter i{display:block;height:100%;width:0;background:var(--cyan)}
+.vc-meter{height:16px}.vc-meter i{background:linear-gradient(90deg,var(--cyan),var(--pink))}
+.vc-acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+/* a SLUR LAP's card: two notes and the arc */
+.note-card.slur{border-color:var(--green);box-shadow:var(--glow-green)}
+.slur-arc{color:var(--green-ink)}
+.banner.b-slur{color:var(--green-hi);font-size:clamp(24px,min(5.5vw,7vh),56px)}
+.banner.b-bad{color:var(--amber-hi);font-size:clamp(24px,min(5.5vw,7vh),56px)}
+/* the report's extra rows */
+.panel .tn-sub{margin:10px 0 4px;font-weight:700;color:var(--text-hi);font-size:14px}
+.tn-dynrow .tn-note{font-family:var(--text);font-size:15px;font-weight:700}
+.panel .tn-slurs{margin:8px 0 0;font-size:14px;color:var(--text-lo)}
+.panel .tn-slurs b{color:var(--green-hi)}

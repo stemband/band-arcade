@@ -71,7 +71,7 @@
       return `<button class="trk sc-${L.scene}" data-l="${lv}" ${open ? '' : 'disabled'}>
         <span class="n">Track ${lv}</span><span class="t">${L.name}</span>
         <span class="d">${L.blurb}</span>
-        <span class="facts">${L.laps} laps · ${lapTxt} a lap${L.tunnels ? ' · tunnels' : ''}</span>
+        <span class="facts">${L.laps} laps · ${lapTxt} a lap${L.tunnels ? ' · tunnels' : ''}${L.dyn ? ' · dynamics' : ''}${L.slurLaps ? ' · slurs' : ''}</span>
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${!open ? '' : p.best ? 'Best ' + fmt(p.best / 10) + (bl ? ` · lap ${bl.toFixed(1)} s` : '') : ''}</span></span>
       </button>`;
     }).join('');
@@ -125,6 +125,10 @@
       laps: lens.map(() => ({n: 0, sum: 0, abs: 0, zone: 0})), world: 0, flashUntil: 0, finishedAt: 0};
     G.total = lens.reduce((a, b) => a + b, 0);
     G.props = SC.propsFor(L, G.season); G.air = SC.airFor(L, G.season); FX.clear();
+    G.slurB = lens.map((_, i) => (L.slurLaps || []).includes(i + 1) ? slurPartner(G.items[i], seq) : null);   // SLUR LAPS
+    G.zones = makeZones(L, lens, G.slurB);                                                                     // DYNAMICS ZONES
+    G.dynPitch = {soft: {n: 0, sum: 0}, loud: {n: 0, sum: 0}}; G.slurs = [];
+    S.dynMul = 1; S.slurMul = 1; S.slurSlowUntil = 0; S.dbS = null; dynShow(null);
     A.UI.results.hide(); $('hub').hidden = true; $('race').hidden = false; $('pit').hidden = true;
     document.body.classList.add('racing');
     $('raceDiff').textContent = `${d.name} · full speed within ±${d.tol}¢`;
@@ -138,6 +142,7 @@
     lastT = performance.now(); raf = requestAnimationFrame(loop);
     // 3, 2, 1, GO! once its sounds are ready (at most 0.8 s: a sound still missing plays its fallback)
     const g = G;
+    if (L.dyn && !dynLevels()) volumeCheck();                  // THE VOLUME CHECK (once per play session) before the countdown
     A.Sfx.whenReady(COUNT_SOUNDS, 800).then(() => { if (G === g && G.phase === 'count' && !G.cd && !G.held && !document.hidden) startCountdown(); });
   }
   /* THE COUNTDOWN (shared/countdown.js, like Dojo Duel and Neon Face-Off): CLASSIC 3 · 2 · 1 one second apart, each
@@ -172,11 +177,17 @@
   }
   function stopRace() {
     cancelAnimationFrame(raf); raf = 0;
-    G = null; demoKey = null; A.Pitch.demoNote = null; A.Pitch.demoJitter = 0.2; FX.clear(); hidePodium();
+    if (G && G.phase === 'vcheck') { $('vcheck').hidden = true; $('vcheck').innerHTML = ''; }
+    G = null; demoKey = null; A.Pitch.demoNote = null; A.Pitch.demoJitter = 0.2; A.Pitch.demoLevel = null; dynShow(null); FX.clear(); hidePodium();
     banner('');
   }
   function resetHearing() { endHold(); S.state = 'silent'; S.cents = null; S.hist = []; S.wrongRun = 0; S.zoneSince = 0; S.score = 0; if (G) G.nitro = false; A.Pitch.ignoreCurrent(); }
-  const item = () => G && G.items[Math.min(G.lap, G.items.length - 1)];
+  /** the note to play NOW: the lap's note, or on a SLUR LAP its second note once the car is past halfway */
+  const item = () => {
+    if (!G) return null;
+    const i = Math.min(G.lap, G.items.length - 1), b = G.slurB && G.slurB[i];
+    return b && G.sl && G.sl.lap === i && G.sl.switched ? b : G.items[i];
+  };
 
   /* ---------- listening: ~25 readings a second ---------- */
   const std = a => { if (a.length < 2) return 0; const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) * (y - m), 0) / a.length); };
@@ -188,12 +199,25 @@
     return R.low.credit * clamp((50 - a) / (50 - R.low.cents), 0, 1);
   }
   A.Pitch.onFrame((r, level, now) => {
+    if (G && G.phase === 'vcheck') { volumeReading(r, level); return; }
     if (!G || G.phase !== 'race') { if (G) drawGaugeNeedle(null); return; }
-    const it = item();
+    let it = item();
+    // A SLUR: just after the switch the first note still counts (the student is moving to the new one), and a gap in
+    // the sound around the switch is a BREAK
+    const sl = G.sl && G.sl.watch ? G.sl : null;
+    if (sl) {
+      if (r && r.pc === sl.a.pc && r.pc !== it.pc && now - sl.at < R.slur.graceMs) it = sl.a;
+      if (!r) { if (sl.gapFrom == null) sl.gapFrom = now; if (now - sl.gapFrom >= R.slur.gapMs) sl.broke = true; }
+      else sl.gapFrom = null;
+      if (r && r.pc === G.slurB[sl.lap].pc) slurDone(now, sl.broke ? 'break' : 'slur');
+      else if (now - sl.at >= R.slur.graceMs) slurDone(now, 'missed');
+    }
+    if (r) S.lastSound = now;
     // cents from the TARGET (any octave): the engine's own `cents` is from the nearest semitone
     const dev = r ? (((r.midi - it.pc) % 12 + 18) % 12 - 6) * 100 : null;
     if (r && r.pc === it.pc && Math.abs(dev) <= 50) {
       S.wrongRun = 0; S.state = 'on'; S.cents = dev;
+      dynReading(now, level, dev);
       S.hist.push({t: now, c: dev, db: 20 * Math.log10(Math.max(level, 1e-5))});
       while (S.hist.length && now - S.hist[0].t > R.windowMs) S.hist.shift();
       S.I = intonation(dev, G.diff.tol);
@@ -231,17 +255,17 @@
   }
   function holdReading(now, dev) {
     let h = S.seg;
-    if (!h) h = S.seg = {t0: now, t1: now, n: 0, sum: 0, sq: 0, tolAt: null, best: 0, lap: G.lap};
+    if (!h) h = S.seg = {t0: now, t1: now, n: 0, sum: 0, sq: 0, tolAt: null, best: 0, lap: G.lap, it: item()};
     h.t1 = now; h.n++; h.sum += dev; h.sq += dev * dev;
     if (Math.abs(dev) <= G.diff.tol) { if (h.tolAt === null) h.tolAt = now; h.best = Math.max(h.best, (now - h.tolAt) / 1000); }
     else h.tolAt = null;
   }
   function endHold() {
     const h = S.seg; S.seg = null;
-    if (!h || !G || !G.items[h.lap]) return;
+    if (!h || !G || !h.it) return;
     const dur = (h.t1 - h.t0) / 1000;
     if (dur < R.report.reportHoldSec || h.n < 3) return;
-    const st = noteStat(G.items[h.lap]), m = h.sum / h.n;
+    const st = noteStat(h.it), m = h.sum / h.n;
     st.n += h.n; st.sum += h.sum; st.wob += Math.sqrt(Math.max(0, h.sq / h.n - m * m)) * dur; st.dur += dur;
     st.hold = Math.max(st.hold, h.best);
   }
@@ -275,6 +299,176 @@
     clearTimeout(steerHint.t); steerHint.t = setTimeout(() => { h.hidden = true; }, 7000);
   }
 
+  /* ---------- DYNAMICS ZONES ----------
+     Per lap: `dyn.zones` stretches of `dyn.len` of the lap each (none on a slur lap), spread evenly after dyn.startAt,
+     with the markings taken in turn from `dyn.kinds` (a random start per race). Levels come from THE VOLUME CHECK. */
+  const D = R.dyn;
+  function makeZones(L, lens, slurB) {
+    const k0 = Math.floor(Math.random() * 4);
+    return lens.map((len, lap) => {
+      if (!L.dyn || slurB[lap]) return [];
+      const n = L.dyn.zones, room = (1 - D.startAt) / n;
+      return [...Array(n)].map((_, i) => {
+        const from = D.startAt + room * i + Math.max(0, room - L.dyn.len) / 2;
+        return {from: from * len, to: Math.min(.98, from + L.dyn.len) * len, kind: L.dyn.kinds[(k0 + lap * n + i) % L.dyn.kinds.length]};
+      });
+    });
+  }
+  const zoneNow = () => (G && G.phase === 'race' && G.zones[G.lap] || []).find(z => G.dist >= z.from && G.dist < z.to) || null;
+  const zoneProg = z => clamp((G.dist - z.from) / (z.to - z.from), 0, 1);
+  /** where the loudness should be now in zone z (0 = your soft level … 1 = your loud level): [low, high] */
+  function dynWant(z) {
+    if (z.kind === 'p') return [-1, D.softMax];
+    if (z.kind === 'f') return [D.loudMin, 2];
+    const k = zoneProg(z), c = z.kind === 'cresc' ? D.ramp[0] + (D.ramp[1] - D.ramp[0]) * k : D.ramp[1] - (D.ramp[1] - D.ramp[0]) * k;
+    return [c - D.rampWindow, c + D.rampWindow];
+  }
+  const dbOf = level => 20 * Math.log10(Math.max(level, 1e-5));
+  function dynReading(now, level, dev) {
+    const db = dbOf(level), dt = S.lastDbT ? now - S.lastDbT : 40; S.lastDbT = now;
+    S.dbS = S.dbS == null ? db : S.dbS + (db - S.dbS) * (1 - Math.exp(-dt / D.smoothMs));
+    const z = zoneNow(), lv = dynLevels();
+    if (!z || !lv) { S.dynMul = 1; S.dynBad = 0; dynShow(z); return; }
+    const norm = (S.dbS - lv.soft) / Math.max(1, lv.loud - lv.soft), [lo, hi] = dynWant(z);
+    const hint = norm < lo ? 'louder!' : norm > hi ? 'softer!' : '';
+    if (hint) { if (!S.dynBad) S.dynBad = now; } else S.dynBad = 0;
+    const wrong = !!hint && now - S.dynBad >= D.graceMs;
+    S.dynMul = wrong ? D.slow : 1;
+    S.norm = norm;
+    // the pitch in soft and loud places (the report's "Pitch in soft / loud zones")
+    const k = zoneProg(z), soft = z.kind === 'p' || (z.kind === 'decresc' && k > .6) || (z.kind === 'cresc' && k < .4);
+    const loud = z.kind === 'f' || (z.kind === 'cresc' && k > .6) || (z.kind === 'decresc' && k < .4);
+    if (soft || loud) { const d = G.dynPitch[soft ? 'soft' : 'loud']; d.n++; d.sum += dev; }
+    const zz = G.zoneStats || (G.zoneStats = {}), key = `${G.lap}:${z.from}`;
+    const st = zz[key] || (zz[key] = {n: 0, ok: 0}); st.n++; if (!hint) st.ok++;
+    dynShow(z, wrong ? hint : '');
+  }
+  const DYN_WORD = {p: ['p', 'piano: soft'], f: ['f', 'forte: loud'], cresc: ['cresc.', 'get louder'], decresc: ['decresc.', 'get softer']};
+  let dynShown = '';
+  function dynShow(z, hint = '') {
+    const key = z ? z.kind + '|' + hint : '';
+    if (key === dynShown) return;
+    dynShown = key;
+    const b = $('dynBadge');
+    if (!z) { b.hidden = true; return; }
+    b.hidden = false; b.className = 'dyn-badge k-' + z.kind + (hint ? ' bad' : '');
+    b.innerHTML = `<b class="dyn-mark">${z.kind === 'cresc' ? '<svg viewBox="0 0 60 24" aria-hidden="true"><path d="M58 3L2 12L58 21"/></svg>' : z.kind === 'decresc' ? '<svg viewBox="0 0 60 24" aria-hidden="true"><path d="M2 3L58 12L2 21"/></svg>' : DYN_WORD[z.kind][0]}</b>
+      <span class="dyn-say">${DYN_WORD[z.kind][1]}</span>${hint ? `<span class="dyn-hint">${hint}</span>` : ''}`;
+  }
+  /* THE VOLUME CHECK: "Play your note SOFT… now LOUD" (dyn.checkSec each), learning this device's levels for the play
+     session (Arcade.session 'sw-dyn' + sessionStorage bandarcade.sw-dyn), RETRY or LET'S RACE. */
+  const DYN_KEY = 'bandarcade.sw-dyn';
+  function dynLevels() {
+    if (!A.session || !A.session.has('sw-dyn')) return null;
+    try { const v = JSON.parse(sessionStorage.getItem(DYN_KEY) || 'null'); return v && v.who === who ? v : null; } catch (e) { return null; }
+  }
+  function setDynLevels(soft, loud) {
+    try { sessionStorage.setItem(DYN_KEY, JSON.stringify({who, soft: +soft.toFixed(1), loud: +loud.toFixed(1)})); } catch (e) { /* private mode: asked again next race */ }
+    if (A.session) A.session.mark('sw-dyn');
+  }
+  function volumeCheck() {
+    G.phase = 'vcheck';
+    G.vc = {step: 'ready-soft', t: 0, soft: [], loud: []};
+    $('vcheck').hidden = false; drawCheck();
+  }
+  function volumeReading(r, level) { const vc = G.vc; if (r && vc && (vc.step === 'soft' || vc.step === 'loud')) vc[vc.step].push(dbOf(level)); drawMeter(level); }
+  const median = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : null; };
+  function volumeTick(dt) {
+    const vc = G.vc; if (!vc || vc.step === 'done') return;
+    vc.t += dt;
+    const lim = vc.step.startsWith('ready') ? D.readySec : D.checkSec;
+    if (vc.t < lim) { const bar = $('vcBar'); if (bar) bar.style.width = (vc.t / lim * 100) + '%'; return; }
+    vc.t = 0;
+    vc.step = {'ready-soft': 'soft', soft: 'ready-loud', 'ready-loud': 'loud', loud: 'done'}[vc.step];
+    if (vc.step === 'done') {
+      const soft = median(vc.soft), loud = median(vc.loud);
+      vc.result = soft == null || loud == null ? {ok: false, why: 'I didn’t hear your note. Play the note on the card, then try again.'}
+        : loud - soft < D.minSpread ? {ok: 'close', soft, loud, why: 'Those sounded about the same. Try again with a bigger difference: really soft, then really loud!'}
+        : {ok: true, soft, loud};
+    }
+    drawCheck();
+  }
+  function drawCheck() {
+    const vc = G.vc, it = G.items[0], box = $('vcheck');
+    const say = {'ready-soft': 'Get ready…', soft: 'Play your note SOFT…', 'ready-loud': 'Now get ready for LOUD…', loud: '…now LOUD!'};
+    if (vc.step !== 'done') {
+      box.innerHTML = `<div class="vc-card"><p class="vc-title">Volume check</p><p class="vc-say ${vc.step.replace('ready-', '')}">${say[vc.step]}</p>
+        <p class="vc-note">Play <b>${it.label}</b> (or any note) · ${D.checkSec} s each</p>
+        <div class="vc-time"><i id="vcBar"></i></div><div class="vc-meter" aria-hidden="true"><i id="vcMeter"></i></div></div>`;
+      return;
+    }
+    const r = vc.result;
+    box.innerHTML = `<div class="vc-card"><p class="vc-title">Volume check</p>
+      ${r.ok === true ? `<p class="vc-say ok">Got it!</p><p class="vc-note">Soft and loud are set for this session. Watch for <b>p</b>, <b>f</b>, cresc. and decresc. signs on the road.</p>`
+        : `<p class="vc-say bad">Hmm…</p><p class="vc-note">${r.why}</p>`}
+      <div class="vc-acts"><button type="button" class="btn btn-secondary" id="vcRetry">Retry</button>
+      ${r.ok ? '<button type="button" class="btn btn-primary" id="vcGo">Let’s race!</button>' : ''}</div></div>`;
+    $('vcRetry').addEventListener('click', () => { G.vc = {step: 'ready-soft', t: 0, soft: [], loud: []}; drawCheck(); });
+    const go = $('vcGo');
+    if (go) { go.addEventListener('click', () => endCheck(r.ok === true ? r.soft : r.soft, r.ok === true ? r.loud : r.soft + D.fallbackSpread)); go.focus(); }
+  }
+  function drawMeter(level) { const m = $('vcMeter'); if (m) m.style.width = clamp((dbOf(level) + 50) / 44, 0, 1) * 100 + '%'; }
+  function endCheck(soft, loud) {
+    setDynLevels(soft, loud);
+    $('vcheck').hidden = true; $('vcheck').innerHTML = '';
+    if (!G || G.phase !== 'vcheck') return;
+    G.phase = 'count'; G.vc = null;
+    if (!G.cd && !G.held && !document.hidden) startCountdown();
+  }
+  A.UI.settings.register(box => {
+    box.insertAdjacentHTML('beforeend', `<div class="ui-srow"><span class="ui-sname">Volume check<small>for the dynamics tracks (p, f, cresc., decresc.)</small></span><span></span>
+      <button type="button" class="btn btn-secondary btn-small" id="swRedoVol">Redo</button><p class="ui-snote" id="swRedoNote"></p></div>`);
+    box.querySelector('#swRedoVol').addEventListener('click', () => {
+      try { sessionStorage.removeItem(DYN_KEY); } catch (e) { /* nothing saved */ }
+      box.querySelector('#swRedoNote').textContent = 'It will run before your next race with dynamics.';
+    });
+  }, {title: 'Sustain Speedway'});
+
+  /* ---------- SLUR LAPS ----------
+     The second note comes from the NOTES setting's own pool (never a note outside it): BRASS = a note with the SAME
+     primary fingering / slide position (a lip slur: shared/fingerings.js) when the pool has one, else the nearest step;
+     WOODWINDS = 1 to 5 half steps away without crossing the break (clarinets: written B♭4 | B4; saxophones: C♯5 | D5). */
+  const FING = (() => {                                        // written midi → the primary fingering, for this member
+    const t = ((window.MASHER_FINGERINGS || {})[who] || {}).notes || {}, out = {};
+    Object.keys(t).forEach(k => { try { out[A.music.writtenMidi(A.music.parseNote(k))] = String([].concat(t[k])[0]); } catch (e) { /* skip */ } });
+    return out;
+  })();
+  const BREAK = {clarinet: 70.5, basscl: 70.5, altosax: 73.5, tenorsax: 73.5, barisax: 73.5};
+  function slurPartner(a, seq) {
+    const pool = (seq.pool || []).filter(p => p.midi !== a.midi && p.pc !== a.pc), pick = l => l[Math.floor(Math.random() * l.length)];
+    if (!pool.length) return null;
+    const dist = p => Math.abs(p.midi - a.midi);
+    if (member.family === 'brass') {
+      const same = pool.filter(p => FING[a.midi] != null && FING[p.midi] === FING[a.midi] && dist(p) <= 12);
+      if (same.length) return same.sort((x, y) => dist(x) - dist(y))[0];
+    }
+    const br = BREAK[who];
+    const ok = pool.filter(p => dist(p) >= 1 && dist(p) <= 5 && (br == null || (p.midi < br) === (a.midi < br)));
+    const best = ok.filter(p => dist(p) >= 2 && dist(p) <= 4);
+    return best.length ? pick(best) : ok.length ? pick(ok) : null;
+  }
+  function slurTick(now) {
+    const b = G.slurB[G.lap];
+    if (!b) return;
+    if (!G.sl || G.sl.lap !== G.lap) G.sl = {lap: G.lap, a: G.items[G.lap], switched: false};
+    const sl = G.sl;
+    if (!sl.switched && G.dist >= G.lens[G.lap] / 2) {        // THE SWITCH (halfway)
+      endHold();
+      sl.switched = true; sl.watch = true; sl.at = now; sl.broke = false;
+      sl.gapFrom = S.state === 'on' ? null : (S.lastSound || now);
+      if (sl.gapFrom != null && now - sl.gapFrom >= R.slur.gapMs) sl.broke = true;
+      drawNote();
+      banner(`SLUR TO ${b.label}!`, 'slur', 900);
+    }
+  }
+  function slurDone(now, how) {
+    const sl = G.sl; if (!sl || !sl.watch) return;
+    sl.watch = false; sl.result = how;
+    G.slurs.push({lap: sl.lap, a: sl.a.label, b: G.slurB[sl.lap].label, ok: how === 'slur', how});
+    if (how === 'break') { S.slurSlowUntil = now + R.slur.slowMs; banner('Slur it!', 'bad', 1100); }
+    else if (how === 'slur') banner('Smooth!', 'zone', 800);
+  }
+
   /* ---------- the loop: the car, the clock, laps, pit stops, rivals ---------- */
   function loop(now) {
     raf = requestAnimationFrame(loop);
@@ -283,12 +477,16 @@
     perfWatch(raw);
     demoDrive(now);
     const paused = document.hidden || G.held || A.Pitch.isSuppressed(now);   // a sound is muting the mic (or the pause menu is open): the race clock stops
-    if (G.phase === 'count') {
+    if (G.phase === 'vcheck') { if (!document.hidden && !G.held) volumeTick(Math.min(raw, 250) / 1000); }
+    else if (G.phase === 'count') {
       if (!document.hidden && !G.held) countTick(Math.min(raw, 250));
       // the race starts when the microphone is live again after "GO!": the sound manager's mute has really ended
       if (G && G.goHeard && !G.held && !A.Pitch.isSuppressed(now)) { G.phase = 'race'; G.liveAt = now; banner('GO!', 'go', 700); resetHearing(); steerHint(); }
     } else if (G.phase === 'race' && !paused) {
       G.clock += dt; G.driveTime += dt;
+      slurTick(now);
+      S.slurMul = now < (S.slurSlowUntil || 0) ? R.slur.slow : 1;
+      const zn = zoneNow(); if (!zn) { S.dynMul = 1; dynShow(null); } else if (S.state !== 'on') dynShow(zn);
       driveStep(dt);
       if (G.nitro) { G.zoneTime += dt; G.laps[G.lap].zone += dt; noteStat(item()).zone += dt; }
       if (G.dist >= G.lens[G.lap]) lapDone(now);
@@ -303,7 +501,8 @@
   }
   /** THE CAR'S SPEED: from what is heard only (S: the score, nitro, a wrong note, silence), never from the steering */
   function driveStep(dt) {
-    const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) : 0;
+    // (DYNAMICS ZONES: the wrong dynamic × dyn.slow; a SLUR broken: × slur.slow for a moment)
+    const target = S.state === 'on' ? S.score * (G.nitro ? R.nitro.boost : 1) * (S.dynMul || 1) * (S.slurMul || 1) : 0;
     if (S.state === 'on') G.v = target > G.v ? Math.min(target, G.v + R.accel * dt) : Math.max(target, G.v - R.ease * dt);
     else if (S.state === 'wrong') G.v = Math.max(0, G.v - R.brake * dt);
     else G.v = Math.max(0, G.v - R.coast * dt);
@@ -347,12 +546,13 @@
     if (lp.n >= window.SPEEDWAY_GARAGE.perfectLapReadings && lp.abs / lp.n <= R.nitro.cents) (gd.achievements = gd.achievements || {})['perfect-lap'] = true;
     if (G.lap === G.lens.length - 1) return finishRace(now);
     // PIT STOP: a short, required rest; the next note is shown so the student can get ready
-    G.phase = 'pit'; G.pitEnd = G.clock + R.pitSec; G.pitStart = G.clock; G.v = 0;
+    G.phase = 'pit'; G.pitEnd = G.clock + R.pitSec; G.pitStart = G.clock; G.v = 0; dynShow(null);
     resetHearing(); drawGaugeNeedle(null);
     $('pitLap').textContent = `${G.lap + 2} of ${G.lens.length}`;
     const nx = G.items[G.lap + 1];
-    $('pitStaff').innerHTML = staff(nx, 260);
-    $('pitName').textContent = nx.label;
+    const nb = G.slurB[G.lap + 1];
+    $('pitStaff').innerHTML = nb ? slurStaff(nx, nb, 260) : staff(nx, 260);
+    $('pitName').textContent = nb ? `${nx.label} ⌒ ${nb.label} (slur!)` : nx.label;
     $('pit').hidden = false; $('coach').textContent = 'Breathe in…';
     banner(`LAP ${G.lap + 1} · ${t.toFixed(1)} s`, 'lap', 1200);
     sfx('pit-in');                                              // a rest: the mic is ignored here anyway
@@ -420,15 +620,24 @@
     addEventListener('keydown', e => {
       if (!G || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key === ' ' ? 'space' : e.key.toLowerCase();
-      if (['space', 'd', 'f', 'w', 'e'].includes(k)) { demoKey = k; demoSince = performance.now(); e.preventDefault(); }
+      if (['space', 'd', 'f', 'w', 'e', 's', 'l', 'b'].includes(k)) { demoKey = k; demoSince = performance.now(); e.preventDefault(); }
     });
     addEventListener('keyup', e => { const k = e.key === ' ' ? 'space' : e.key.toLowerCase(); if (k === demoKey) { demoKey = null; A.Pitch.demoNote = null; } });
   }
   function demoDrive(now) {
     if (!A.DEMO || !G) return;
     const it = item();
-    if (!demoKey || !it) { A.Pitch.demoNote = null; return; }
-    if (demoKey === 'space') { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
+    if (!demoKey || !it) { A.Pitch.demoNote = null; A.Pitch.demoLevel = null; return; }
+    // the loudness: Space (and B) = the right dynamic for the zone you're in; S = soft, L = loud (from the volume check)
+    const lv = dynLevels() || {soft: -30, loud: -14}, z = zoneNow(), lvl = n => Math.pow(10, (lv.soft + (lv.loud - lv.soft) * n) / 20);
+    if (demoKey === 's') A.Pitch.demoLevel = lvl(0);
+    else if (demoKey === 'l') A.Pitch.demoLevel = lvl(1);
+    else if (z) { const [lo, hi] = dynWant(z); A.Pitch.demoLevel = lvl(clamp((Math.max(0, lo) + Math.min(1, hi)) / 2, 0, 1)); }
+    else A.Pitch.demoLevel = null;
+    if (G.phase === 'vcheck') { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; return; }
+    // B = a BREAK at a slur's switch: 300 ms of silence, then the new note
+    if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && now - G.sl.at < 300) { A.Pitch.demoNote = null; return; }
+    if (['space', 's', 'l', 'b'].includes(demoKey)) { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
     else if (demoKey === 'd' || demoKey === 'f') {                // drifting: +25 cents at first, +45 after 4 s (F: flat)
       const off = .25 + .2 * Math.min(1, (now - demoSince) / 4000) + .04 * Math.sin(now / 260);
       A.Pitch.demoJitter = 0.1; A.Pitch.demoNote = it.sounding + (demoKey === 'd' ? off : -off);
@@ -442,7 +651,24 @@
     const sigW = A.keySigWidth(G.seq.sig), width = w + sigW;
     return A.staffSVG(inst.clef, [{n: it.show, x: (84 + sigW + width - 30) / 2}], {fit: G.seq.fit, keySig: G.seq.sig, width, label: `Play ${it.label}`});
   }
-  function drawNote() { const it = item(); $('noteStaff').innerHTML = staff(it); $('noteName').textContent = it.label; $('noteFlash').textContent = ''; $('noteCard').classList.remove('flash'); }
+  /** a SLUR LAP's card: both notes joined by a slur arc (the current one dark, the other grey) */
+  function slurStaff(a, b, w = 200, cur = 0) {
+    const sigW = A.keySigWidth(G.seq.sig), width = w + sigW + 40, x0 = 84 + sigW + 26, x1 = width - 40;
+    let svg = A.staffSVG(inst.clef, [{n: a.show, x: x0, color: cur === 1 ? 'var(--ink-2)' : null}, {n: b.show, x: x1, color: cur === 0 ? 'var(--ink-2)' : null}],
+      {fit: G.seq.fit.concat([a.show, b.show]), keySig: G.seq.sig, width, label: `Slur ${a.label} to ${b.label}`});
+    const ya = A.noteY(inst.clef, a.show), yb = A.noteY(inst.clef, b.show), y = Math.max(ya, yb) + 16;   // the arc under the heads
+    return svg.replace('</svg>', `<path class="slur-arc" d="M${x0 + 4} ${ya + 12}Q${(x0 + x1) / 2} ${y + 22} ${x1 - 4} ${yb + 12}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`);
+  }
+  function drawNote() {
+    const it = item(), i = Math.min(G.lap, G.items.length - 1), b = G.slurB[i];
+    if (b) {
+      const second = it === b;
+      $('noteStaff').innerHTML = slurStaff(G.items[i], b, 200, second ? 1 : 0);
+      $('noteName').textContent = second ? `→ ${b.label}` : `${G.items[i].label} ⌒ ${b.label}`;
+    } else { $('noteStaff').innerHTML = staff(it); $('noteName').textContent = it.label; }
+    $('noteCard').classList.toggle('slur', !!b);
+    $('noteFlash').textContent = ''; $('noteCard').classList.remove('flash');
+  }
   function flashTarget() {
     const c = $('noteCard'), it = item();
     $('noteFlash').textContent = `Target: ${it.label}`;
@@ -521,7 +747,7 @@
       road: css('sw-road'), road2: css('sw-road-2'), lane: css('sw-lane'), far: css('sw-far'), near: css('sw-near'), win: css('sw-window'),
       water: css('sw-water'), tunnel: css('sw-tunnel'), tail: css('sw-tail'), glass: css('sw-glass'), tire: css('sw-tire'), nitro: css('sw-nitro'),
       pink: css('pink'), cyan: css('cyan'), red: css('red'), yellow: css('yellow'), amber: css('amber'), green: css('green'), purple: css('purple'), white: css('white-hi'),
-      chrome: css('sw-chrome'), smoke: css('sw-smoke'), lamp: css('sw-lamp')};
+      chrome: css('sw-chrome'), smoke: css('sw-smoke'), lamp: css('sw-lamp'), screen: css('screen'), ink: css('ink')};
   }
   function resize() {
     if (!G) return;
@@ -530,6 +756,7 @@
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
     C = C || colors();
+    Object.assign(DYN_COL, {p: C.cyan, f: C.pink, cresc: C.amber, decresc: C.purple});
     scenery = buildScenery();
   }
   addEventListener('resize', resize);
@@ -680,18 +907,24 @@
     // the rumble strip on the side you're drifting to glows (a soft 2-a-second pulse; steady with reduced motion)
     const rumbleEdge = Math.abs(G.steer) >= R.steer.rumble && G.phase === 'race' ? Math.sign(G.steer) : 0;
     const rumbleGlow = still ? .55 : .45 + .25 * Math.sin(now / 80);
+    // DYNAMICS ZONES ahead on this lap: a colored band on the road (+ a sign at its start, below); road units: 6 a second
+    const zAt = d => 1.1 + (d - G.dist) * 6;
+    const spans = G.phase === 'race' || G.phase === 'count' ? (G.zones[G.lap] || []).map(zn => ({z0: zAt(zn.from), z1: zAt(zn.to), zn})).filter(x => x.z1 > ZN && x.z0 < ZF) : [];
+    let zPrev = ZF;
     for (let i = bands; i >= 0; i--) {
       const z = ZN + (ZF - ZN) * Math.pow(i / bands, 1.8);
       const p = proj(z);
       if (prev) {
+        const band = spans.find(x => x.z0 < zPrev && x.z1 > z);
         const stripe = Math.floor((z + cam) / SEG) % 2 === 0;
         quad(prev, p, 1.12, stripe ? C.red : C.white, .9);                 // rumble strips: red and white
         if (!LITE && z < 14) { quad(prev, p, .012, C.tire, .5, 1.06); quad(prev, p, .012, C.tire, .5, -1.06); }   // their ridges
         quad(prev, p, 1, stripe ? C.road : C.road2, 1);                    // the road
         if (stripe) { quad(prev, p, .025, C.lane, .8, -.34); quad(prev, p, .025, C.lane, .8, .34); }   // lane dashes
         if (rumbleEdge && z < 9) quad(prev, p, .09, C.yellow, rumbleGlow * (1 - z / 9), rumbleEdge * 1.03);   // the strip you're on lights up
+        if (band) quad(prev, p, .98, DYN_COL[band.zn.kind], .2);
       }
-      prev = p;
+      prev = p; zPrev = z;
     }
     // THE FINISH GATE on the last lap: a checkered line on the road and a banner over it (road units: 6 per second)
     const last = G.lap === G.lens.length - 1 && (G.phase === 'race' || G.phase === 'done');
@@ -714,10 +947,13 @@
         cx.globalAlpha = Math.min(1, (ZF - z) / 8);
         if (side < 0) cx.drawImage(spr, x - sw, p.y - sh, sw, sh);
         else { cx.save(); cx.translate(x + sw, p.y - sh); cx.scale(-1, 1); cx.drawImage(spr, 0, 0, sw, sh); cx.restore(); }   // mirrored on the right
-        if (pr.kind === 'lamp' && pr.lit) { cx.globalAlpha *= .22; cx.fillStyle = C.lamp; cx.beginPath(); cx.ellipse(p.x + side * p.w * .75, p.y, p.w * .5, p.w * .08, 0, 0, Math.PI * 2); cx.fill(); }   // its pool of light
+        if (pr.kind === 'lamp' && pr.lit) { cx.globalAlpha *= .1; cx.fillStyle = C.lamp; cx.beginPath(); cx.ellipse(p.x + side * p.w * .75, p.y, p.w * .5, p.w * .08, 0, 0, Math.PI * 2); cx.fill(); }   // its pool of light
       }
       cx.globalAlpha = 1;
     }
+    // the ROADSIDE SIGNS: each dynamics zone's marking at its start, and a slur lap's SLUR sign at the switch
+    spans.forEach(x => { if (x.z0 > ZN + .3) roadSign(proj(x.z0), x.zn.kind); });
+    if (G.phase === 'race' && G.slurB[G.lap] && !(G.sl && G.sl.switched)) { const z = zAt(G.lens[G.lap] / 2); if (z > ZN + .3 && z < ZF) roadSign(proj(z), 'slur'); }
     // weather near the horizon: MIST (a low fog band), HAZE (heat shimmer color), the spooky season's FOG
     const fog = !LITE && (G.L.weather === 'mist' || G.L.weather === 'haze' || (G.season && G.season.fog));
     if (fog) {
@@ -808,6 +1044,24 @@
     cx.restore();
     // THE CHECKERED FLAG, waving as you cross (still with reduced motion)
     if (G.phase === 'done' && G.fx.flagAt && now - G.fx.flagAt < 1500) SC.flag(cx, W * .5 - Math.min(W * .2, 150) / 2, H * .08, Math.min(W * .2, 150), now, still, C);
+  }
+  /* a big roadside sign on the right: p / f (bold italic, like printed music), the cresc. / decresc. hairpins, a slur */
+  const DYN_COL = {};
+  function roadSign(p, kind) {
+    const col = kind === 'slur' ? C.green : DYN_COL[kind], bw = p.w * .62, bh = p.w * .4, x = p.x + p.w * 1.2, y = p.y - p.w * .78;
+    if (bh < 3 || x > W + bw) return;
+    cx.fillStyle = C.chrome; cx.fillRect(x + bw * .45, y + bh, Math.max(1, bw * .06), p.y - y - bh);
+    cx.fillStyle = C.screen; cx.strokeStyle = col; cx.lineWidth = Math.max(1, bh * .08);
+    cx.beginPath(); cx.roundRect ? cx.roundRect(x, y, bw, bh, bh * .15) : cx.rect(x, y, bw, bh); cx.fill(); cx.stroke();
+    cx.fillStyle = C.ink; cx.strokeStyle = C.ink; cx.lineWidth = Math.max(1, bh * .07);
+    if (kind === 'p' || kind === 'f') { cx.font = `italic 700 ${Math.round(bh * .8)}px Georgia, 'Times New Roman', serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(kind, x + bw / 2, y + bh * .52); }
+    else if (kind === 'slur') { cx.beginPath(); cx.moveTo(x + bw * .15, y + bh * .4); cx.quadraticCurveTo(x + bw / 2, y + bh * .95, x + bw * .85, y + bh * .4); cx.stroke(); }
+    else {
+      const l = x + bw * .12, r = x + bw * .88, m = y + bh / 2, o = bh * .3;
+      cx.beginPath();
+      if (kind === 'cresc') { cx.moveTo(r, m - o); cx.lineTo(l, m); cx.lineTo(r, m + o); } else { cx.moveTo(l, m - o); cx.lineTo(r, m); cx.lineTo(l, m + o); }
+      cx.stroke();
+    }
   }
   /* ---------- NO TWO CARS EVER OVERLAP ON SCREEN, AND NOTHING GLITCHES ----------
      Three lanes (the road's dashes at ±.34): the other cars keep to a side lane (rivals left, right, left…; the ghost
@@ -991,23 +1245,32 @@
       while (hist.length > H.history) hist.shift();
     }
     const allIn = rows.length > 0 && rows.every(r => Math.abs(r.m) <= tol);
-    const tips = allIn ? [] : tipsFor(rows, tol, g.dynTips ? g.dynTips(rows) : []);
+    // PITCH IN SOFT / LOUD ZONES (dynamics tracks): the classic problem = flat when soft, sharp when loud
+    const dyn = ['soft', 'loud'].map(k => ({k, d: g.dynPitch[k]})).filter(x => x.d.n >= 20).map(x => ({k: x.k, m: x.d.sum / x.d.n, n: x.d.n}));
+    const dynTips = dyn.filter(x => Math.abs(x.m) > Math.max(6, tol * .6)).map(x => {
+      const tab = TIPS.dynamics || {}, key = x.k + (x.m < 0 ? 'Flat' : 'Sharp');
+      return [tab[who], tab[member.family], tab.any].map(t => t && t[key]).find(Boolean);
+    }).filter(Boolean);
+    const dynAllIn = dyn.every(x => Math.abs(x.m) <= tol);
+    const allInAll = allIn && dynAllIn;
+    const tips = allInAll ? [] : tipsFor(rows, tol, dynTips);
     const pct = c => (50 + clamp(c, -50, 50)) + '%';
     const TREND = {closer: ['▲', 'getting closer!'], farther: ['▼', 'a bit farther off than before'], same: ['●', 'about the same as before']};
     const rowHTML = r => {
       const cls = Math.abs(r.m) <= tol ? 'ok' : r.m > 0 ? 'sharp' : 'flat', t = r.trend && TREND[r.trend];
-      return `<li class="tn-row ${cls}" data-note="${r.key}" data-cents="${r.m.toFixed(1)}">
+      return `<li class="tn-row ${cls}${r.dynRow ? ' tn-dynrow' : ''}" data-note="${r.key}" data-cents="${r.m.toFixed(1)}">
         <b class="tn-note">${r.label}<sub>${r.oct != null ? r.oct : ''}</sub></b>
         <span class="tn-bar" role="img" aria-label="${r.label}${r.oct != null ? r.oct : ''}: ${signed(r.m)}, ${wordFor(r.m, tol)}"><i class="tn-band" style="left:${pct(-tol)};right:${(50 - Math.min(50, tol))}%"></i><i class="tn-mid"></i><i class="tn-dot" style="left:${pct(r.m)}"></i></span>
-        <span class="tn-word">${wordFor(r.m, tol)} <small>${signed(r.m)} · wobble ${Math.round(r.wob)}¢${r.zone >= .5 ? ` · ${r.zone.toFixed(1)} s in the zone` : ''}</small></span>
+        <span class="tn-word">${wordFor(r.m, tol)} <small>${signed(r.m)}${r.dynRow ? '' : ` · wobble ${Math.round(r.wob)}¢`}${r.zone >= .5 ? ` · ${r.zone.toFixed(1)} s in the zone` : ''}</small></span>
         ${t ? `<span class="tn-trend ${r.trend}" title="${t[1]}">${t[0]} <small>${t[1]}</small></span>` : ''}${r.extra || ''}</li>`;
     };
     const html = `<section class="tuning" id="resTuning" aria-labelledby="tnTitle"><h3 class="tn-title" id="tnTitle">Your tuning</h3>
       ${rows.length ? `<p class="tn-scale" aria-hidden="true"><span></span><span class="tn-sc"><i>◀ flat</i><i>in tune</i><i>sharp ▶</i></span><span></span></p><ul class="tn-rows">${rows.map(rowHTML).join('')}</ul>`
         : '<p class="tn-none">Hold each note for at least a second to get your tuning report.</p>'}
-      ${g.dynRowsHTML ? g.dynRowsHTML(rows) : ''}
-      ${allIn ? '<p class="tn-great" id="tnGreat">Right on pitch! Great ears.</p>' : tips.length ? `<ul class="tn-tips" id="tnTips">${tips.map(t => `<li>💡 ${t}</li>`).join('')}</ul>` : ''}</section>`;
-    return {rows, tips, allIn, html};
+      ${dyn.length ? `<p class="tn-sub">Pitch in soft / loud zones</p><ul class="tn-rows tn-dyn">${dyn.map(x => rowHTML({key: x.k, label: x.k === 'soft' ? 'Soft' : 'Loud', oct: null, m: x.m, wob: 0, zone: 0, dynRow: true})).join('')}</ul>` : ''}
+      ${g.slurs.length ? `<p class="tn-slurs" id="tnSlurs">Slurs: <b>${g.slurs.filter(x => x.ok).length} of ${g.slurs.length}</b> smooth${g.slurs.some(x => x.how === 'break') ? ' · keep the air going while you change notes' : ''}</p>` : ''}
+      ${allInAll ? '<p class="tn-great" id="tnGreat">Right on pitch! Great ears.</p>' : tips.length ? `<ul class="tn-tips" id="tnTips">${tips.map(t => `<li>💡 ${t}</li>`).join('')}</ul>` : ''}</section>`;
+    return {rows, tips, allIn: allInAll, dyn, html};
   }
 
   /* the per-lap tuning chart: each lap's average (above = sharp, below = flat) with the in-tune band for this difficulty */
@@ -1047,6 +1310,9 @@
 
   A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car,    // tests
     steer: () => G && {steer: G.steer, x: G.carX, word: steerShown},
+    skipChecks: () => { if (!dynLevels()) setDynLevels(-30, -14); if (G && G.phase === 'vcheck') endCheck(-30, -14); },
+    dyn: () => G && {levels: dynLevels(), zone: zoneNow(), mul: S.dynMul, norm: S.norm, zones: G.zones, check: G.vc && {step: G.vc.step, result: G.vc.result}},
+    slur: () => G && {laps: G.slurB.map(b => b && b.label), sl: G.sl && {lap: G.sl.lap, switched: G.sl.switched, result: G.sl.result, broke: G.sl.broke}, slurs: G.slurs, mul: S.slurMul, target: item() && item().label},
     podium: () => podium && {place: podium.place, order: podium.order, shown: !$('podium').hidden},
     fx: () => ({lite: lite(), mode: gfxMode(), particles: FX.n, kinds: [...new Set(FX.list.map(p => p.kind))], props: G ? G.props.map(p => p.kind) : [], season: G && G.season ? G.season.id : null,
       air: G && G.air ? G.air.kind : null, perf: G && G.perf, shook: G ? G.fx.shook || 0 : 0, time: G ? (G.L.time || G.L.sky) : null}), lastRace: () => finished, tipsFor, steerOf: c => steerOf(c), driveStep: dt => driveStep(dt)};
