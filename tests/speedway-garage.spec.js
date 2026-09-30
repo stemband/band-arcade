@@ -180,6 +180,7 @@ for (const [name, size, touch] of [['phone', {width: 390, height: 844}, true], [
       await page.goto(URL); await ready(page);
       await page.evaluate(() => { document.querySelector('.trk[data-l="1"]').click(); window.scrollTo(0, 0); });   // a track selected: START shows
       await expect(page.locator('.ls-start')).toBeVisible();
+      await page.waitForTimeout(600);                                     // START's slide-in has finished
       const r = await page.evaluate(() => {
         const g = document.getElementById('garageBtn'), s = document.querySelector('.ls-start'), row = document.querySelector('.ls-row');
         const gr = g.getBoundingClientRect(), sr = s.getBoundingClientRect(), label = g.querySelector('.gb-t');

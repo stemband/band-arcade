@@ -59,7 +59,7 @@ test.describe('a keyboard (laptop)', () => {
     let k = await page.evaluate(() => Arcade.Quest.keyHints.state());
     expect(k).toMatchObject({shown: true, dim: false, text: 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu · H: hide hints'});
     await expect.poll(() => page.evaluate(() => Arcade.Quest.keyHints.state().dim), {timeout: 14_000}).toBe(true);
-    expect(await page.evaluate(() => getComputedStyle(document.getElementById('qKeys')).opacity)).not.toBe('0.95');
+    await expect.poll(() => page.evaluate(() => +getComputedStyle(document.getElementById('qKeys')).opacity)).toBeLessThan(.9);   // (it fades)
     await page.keyboard.press('Shift');
     expect(await page.evaluate(() => Arcade.Quest.keyHints.state().dim)).toBe(false);
     // said only once on this device
