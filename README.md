@@ -65,6 +65,7 @@ shared/               The engine every game uses
   counting.js         MR. GRAHAM'S COUNTING (1 & 2 &, 1 e & a, 1 la le, 6/8…): rhythms as text, the counting of each note
   rhythm-staff.js     Draws a rhythm on a one-line percussion staff with the counting underneath (true superscripts)
   onsets.js           Hears claps and drum hits (sharp onsets, never pitch) from the same microphone as pitch.js
+  pad-arrange.js      ARRANGE CONTROLS for on-screen pads (Arcade Quest, Blocktave): move, size and fade the buttons
   calibration.js      The audio clock (what the student hears, when) and the timing check's math (Music Highway, Rhythm Dojo)
   cabinets.js / .css  The arcade cabinets (drawn in SVG + HTML, no images) and their attract-mode screens
   theme.css           Colors, type, buttons, overlays shared by every page
@@ -120,6 +121,12 @@ lost-signal/          Pitch memory: an alien probe plays a melody, echo it back 
 vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
   levels.js           The 8 levels (First Stroke … Invisible Master), rules, the pattern weights and Endless Scroll. Edit here
   game.js             The round (brush in, study, fade/vanish, answer, results), the Ink Master, reveals, Endless Scroll
+blocktave/            Blocktave: a block-building survival world where playing your instrument mines and crafts (touch mode too)
+  rules.js            EVERY tuning number (world size, day/night, reach, challenge sizes, creatures, light, saving). Edit here
+  recipes.js          The items, THE RECIPES (4 ingredients in order + a performance) and the 5 chapters' milestones (the only stars)
+  world.js            The blocks, the seeded world generator, the saved world format (run-length chunks), light and rooms
+  challenges.js       The challenge card: notes, scales, long tones, rhythms, rests, counts and rolls (mic or touch)
+  game.js             The world: drawing, the pad, mining, building, the Measure, creatures, saving to a file, milestones
 arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor)
   sprites.js          THE PIXEL ART: every enemy as a small pixel map + palette (theme tokens); the instruments the
                       hero holds are in shared/instrument-sprites.js. Edit here

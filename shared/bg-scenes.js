@@ -586,6 +586,63 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* BLOCKTAVE: the block world at dusk. Rolling hills of blocks along the bottom with a glowing moss edge, a few music
+     blocks in the ground whose note glows breathe slowly (8 s), a big soft moon, two stage beams leaning in from the
+     edges and swaying slowly. Dark in the middle, activity along the bottom and the edges. */
+  S.blocks = (x, W, H, t) => {
+    const m = Math.min(W, H);
+    vgrad(x, W, H, [[0, col('bt-sky-night')], [.7, col('bt-sky-night-2')], [1, col('deep')]]);
+    glow(x, W * .82, H * .2, m * .25, col('bt-rest', .12), col('bt-rest', 0));
+    x.fillStyle = col('bt-rest', .35); x.beginPath(); x.arc(W * .82, H * .2, m * .05, 0, TAU); x.fill();
+    [[.04, 1], [.96, -1]].forEach(([bx, d], i) => {                        // two stage beams from the edges
+      const a = d * (.35 + .12 * Math.sin(t * TAU / 14 + i * 2));
+      x.fillStyle = col('bt-beam', .05); x.beginPath(); x.moveTo(W * bx, H); x.lineTo(W * bx + Math.sin(a - .12) * H * 1.3, 0); x.lineTo(W * bx + Math.sin(a + .12) * H * 1.3, 0); x.fill();
+    });
+    const s = Math.max(12, m * .07), n = Math.ceil(W / s) + 1;
+    for (let i = 0; i < n; i++) {
+      const top = Math.round(H / s - 3 - 1.4 * (.5 + .5 * Math.sin(i * .45)) - (hash(i + 5) > .8 ? 1 : 0));
+      for (let j = top; j * s < H; j++) {
+        const X = i * s, Y = j * s;
+        x.fillStyle = col(j > top + 1 ? 'bt-slate' : 'bt-dirt', .85); x.fillRect(X, Y, s - 1, s - 1);
+        if (j === top) { x.fillStyle = col('bt-moss', .7); x.fillRect(X, Y, s - 1, Math.max(2, s * .18)); }
+        if (j > top + 1 && hash(i * 5 + j * 11) > .8) {
+          const on = .5 + .5 * Math.sin(t * TAU / 8 + hash(i + j) * TAU);
+          glow(x, X + s / 2, Y + s / 2, s, col('bt-tone', .18 * on), col('bt-tone', 0));
+          x.fillStyle = col('bt-tone', .5 + .35 * on); x.beginPath(); x.ellipse(X + s * .45, Y + s * .6, s * .15, s * .1, -.35, 0, TAU); x.fill();
+        }
+      }
+    }
+  };
+  /* BLOCKTAVE'S BAND HALL (the Encore chapter's avatar background): a brick hall with a gold-mortar wall, a stage floor
+     with a lit edge, a Stage Lamp's warm pool on each side breathing slowly (7 s), a music stand in the middle of the
+     stage and a few notes drifting up. Nothing flashes. */
+  S.bandhall = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .72;
+    x.fillStyle = col('bt-brick'); x.fillRect(0, 0, W, fy);
+    const bh = Math.max(6, m * .06), bw = bh * 2.2;
+    x.fillStyle = col('bt-brick-mortar', .35);
+    for (let r = 0; r * bh < fy; r++) { x.fillRect(0, r * bh, W, Math.max(1, m * .006)); for (let c = (r % 2) * bw / 2; c < W; c += bw) x.fillRect(c, r * bh, Math.max(1, m * .006), bh); }
+    vgrad(x, W, fy, [[0, col('deep', .55)], [1, col('deep', .15)]]);
+    x.fillStyle = col('bt-stage'); x.fillRect(0, fy, W, H - fy);
+    x.fillStyle = col('bt-stage-edge', .85); x.fillRect(0, fy, W, Math.max(2, m * .012));
+    const b = .5 + .5 * Math.sin(t * TAU / 7);
+    [.18, .82].forEach((u, i) => {
+      const lx = W * u, k = i ? 1 - b * .5 : .5 + b * .5;
+      glow(x, lx, fy, m * .45, col('bt-lamp', .14 + .1 * k), col('bt-lamp', 0));
+      x.fillStyle = col('bt-slate-2'); x.fillRect(lx - m * .03, fy - m * .2, m * .06, m * .05); x.fillRect(lx - m * .004, fy - m * .15, m * .008, m * .15);
+      x.fillStyle = col('bt-lamp', .7 + .3 * k); x.beginPath(); x.arc(lx, fy - m * .175, m * .015, 0, TAU); x.fill();
+    });
+    const sx = W / 2;                                                      // the music stand
+    x.strokeStyle = col('bt-slate-2'); x.lineWidth = Math.max(1.5, m / 120);
+    x.beginPath(); x.moveTo(sx, fy); x.lineTo(sx, fy - m * .16); x.stroke();
+    x.fillStyle = col('bt-screen', .8); x.fillRect(sx - m * .08, fy - m * .24, m * .16, m * .09);
+    for (let i = 0; i < 5; i++) {                                          // notes drifting up
+      const p = fract(hash(i + 20) + t * (.04 + .01 * i)), nx = W * (.3 + .4 * hash(i + 21)) + Math.sin(t * .6 + i) * m * .02, ny = fy - p * H * .7;
+      x.fillStyle = col('bt-brick-mortar', .5 * Math.sin(p * Math.PI)); x.beginPath(); x.ellipse(nx, ny, m * .014, m * .01, -.35, 0, TAU); x.fill();
+      x.fillRect(nx + m * .011, ny - m * .04, Math.max(1, m * .003), m * .04);
+    }
+  };
+
   /* OFFICIAL BAND NINJA GEAR (the Diamond belt code; avatar backgrounds only): the night dojo with diamond-blue lanterns,
      a Diamond belt hung on the back wall, and small diamond glints drifting down slowly (they fade, never blink) */
   S['diamond-dojo'] = (x, W, H, t) => {
@@ -1097,7 +1154,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

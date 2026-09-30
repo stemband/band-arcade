@@ -587,6 +587,34 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
+    /* BLOCKTAVE. colors: [the moss's glow, the music blocks' glow, the stage lights]. A side view of a neon block world:
+       rolling hills of blocks with a glowing moss edge, music blocks in the ground whose note glows breathe slowly in
+       turn, two soft stage beams sweeping the sky (slow; nothing flashes) */
+    blocks: {
+      colors: ['bt-moss', 'bt-tone', 'bt-beam'], still: 1.4,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('bt-sky-night')], [1, tok('bt-sky-night-2')]]); x.fillRect(0, 0, W, H);
+        [.25, .75].forEach((bx, i) => {                                  // two stage beams, swaying slowly
+          const a = Math.sin(t * .35 + i * 2.2) * .35;
+          x.fillStyle = rgba(c[2], .08); x.beginPath(); x.moveTo(W * bx, H); x.lineTo(W * bx + Math.sin(a - .25) * H * 1.4, -H * .1); x.lineTo(W * bx + Math.sin(a + .25) * H * 1.4, -H * .1); x.fill();
+        });
+        const s = H / 6, n = Math.ceil(W / s) + 1;
+        for (let i = 0; i < n; i++) {
+          const top = Math.round(3 + 1.5 * Math.sin(i * .7) + (hash(i + 9) > .7 ? -1 : 0));
+          for (let j = top; j < 7; j++) {
+            const X = i * s, Y = j * s;
+            x.fillStyle = tok(j === top ? 'bt-dirt' : j > top + 1 ? 'bt-slate' : 'bt-dirt'); x.fillRect(X, Y, s - 1, s - 1);
+            if (j === top) { x.fillStyle = tok(c[0]); x.fillRect(X, Y, s - 1, Math.max(2, s * .2)); }
+            if (j > top + 1 && hash(i * 7 + j) > .72) {               // a music block: its note glow breathes (≥ 4 s a cycle)
+              const on = .45 + .55 * (.5 + .5 * Math.sin(t * 1.4 + hash(i + j * 3) * 6.28));
+              glow(x, X + s / 2, Y + s / 2, s * .9, c[1], .35 * on);
+              x.fillStyle = rgba(c[1], .6 + .4 * on); x.beginPath(); x.ellipse(X + s * .45, Y + s * .6, s * .16, s * .11, -.35, 0, 7); x.fill();
+              x.fillRect(X + s * .58, Y + s * .22, Math.max(1, s * .05), s * .36);
+            }
+          }
+        }
+      },
+    },
     /* MUSIC HIGHWAY. colors: [lanes + beat lines, road edges, stars]. A neon road running into a starfield: five lanes
        from the horizon, beat lines rolling toward you, small neon pads gliding down the lanes (slow; nothing flashes). */
     highway: {
@@ -860,7 +888,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', blocks: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)

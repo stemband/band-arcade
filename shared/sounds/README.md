@@ -103,6 +103,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Music Highway | `music-highway-menu` | `music-highway-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Rhythm Dojo | `rhythm-dojo-menu` | `rhythm-dojo-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Scale Trainer | `scale-trainer-menu` | `scale-trainer-menu.m4a` (or .mp3) | a file already uploaded under the game's old name, `scale-audition-menu.m4a` (or .mp3), then the arcade’s select-music |
+| Blocktave | `blocktave-menu` | `blocktave-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -502,6 +503,33 @@ room). The adjudicator's line and the countdown play before the microphone start
 | `audition-count-2` | `audition-count-2.m4a` or `audition-count-2.mp3` | The spoken "2!" (falls back to `dojo-count-2`). **voice** | under 0.8 s |
 | `audition-count-1` | `audition-count-1.m4a` or `audition-count-1.mp3` | The spoken "1!" (falls back to `dojo-count-1`). **voice** | under 0.8 s |
 | `audition-count-go` | `audition-count-go.m4a` or `audition-count-go.mp3` | "Begin!": the microphone listens and the timer starts when it has ended, so keep it short and trimmed (falls back to `dojo-count-go`, then `dojo-reveal`). **voice** | under 0.6 s |
+
+### Blocktave
+
+The world's music is two loops, DAY and NIGHT (the MUSIC slider); like every loop they stop while the microphone
+listens (a challenge card is open, or a creature is near in INSTRUMENT mode) and come back after. Every effect is
+unpitched noise; the "during play" ones are short because a sound played while the microphone listens mutes it for
+the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched sound ever plays while listening
+(the Conductor's Podium's ▶ LISTEN uses the built-in piano, only when nothing listens).
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `blocktave-menu` | `blocktave-menu.m4a` or `blocktave-menu.mp3` | Blocktave: menu music (the title screen with the chapters and Survival Nights, the results). | 30–90 s loop |
+| `blocktave-day` | `blocktave-day.m4a` or `blocktave-day.mp3` | DAY music in the world. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
+| `blocktave-night` | `blocktave-night.m4a` or `blocktave-night.mp3` | NIGHT music in the world: a little mysterious, never scary. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
+| `bt-break` | `bt-break.m4a` or `bt-break.mp3` | A block breaks. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-mined` | `bt-mined.m4a` or `bt-mined.mp3` | A challenge passed: a music block breaks and drops its loot. **during play: under 0.5 s, unpitched** | under 0.3 s |
+| `bt-place` | `bt-place.m4a` or `bt-place.mp3` | A block placed, a door opened or closed. **during play: under 0.5 s, unpitched** | under 0.15 s |
+| `bt-pickup` | `bt-pickup.m4a` or `bt-pickup.mp3` | Your bag picked up, a Snack Bag eaten. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-wrong` | `bt-wrong.m4a` or `bt-wrong.mp3` | A challenge card missed (the card shakes; the block stays). **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-craft` | `bt-craft.m4a` or `bt-craft.mp3` | A performance passed at the Measure: the item is made. **during play: under 0.5 s, unpitched** | under 0.4 s |
+| `bt-calm` | `bt-calm.m4a` or `bt-calm.mp3` | A creature calmed (a Night Clam, a Sour Wisp, a Rusher). **during play: under 0.5 s, unpitched** | under 0.4 s |
+| `bt-hurt` | `bt-hurt.m4a` or `bt-hurt.mp3` | You lose a heart. A soft bump, never scary. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-powered` | `bt-powered.m4a` or `bt-powered.mp3` | A Composer row powered at its Conductor's Podium (it lights up, its door opens). Falls back to star-earned. | 0.5–1.5 s |
+| `bt-milestone` | `bt-milestone.m4a` or `bt-milestone.mp3` | A milestone done: a star! Falls back to star-earned. | 0.5–1.5 s |
+| `bt-night` | `bt-night.m4a` or `bt-night.mp3` | Night falls (a soft, low whoosh; never scary). | 0.5–2 s |
+| `bt-dawn` | `bt-dawn.m4a` or `bt-dawn.mp3` | Morning comes: you survived the night! | 0.5–2 s |
+| `bt-respawn` | `bt-respawn.m4a` or `bt-respawn.mp3` | Out of breath: you wake up at your cot (your bag waits where you fell). | 0.5–1.5 s |
 
 ### Arcade Quest
 

@@ -154,6 +154,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* blocks: the Blocktave cabinet: a classic body with a little stack of neon blocks on the roof (dirt blocks with
+       glowing moss tops, a music block in the middle with its note glowing) */
+    blocks: {
+      width: 0.94, topper: 'blocks',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* quest: a pixel-art cabinet (Arcade Quest): stepped, blocky edges front to back, like it was built from pixels */
     quest: {
       width: 0.94,
@@ -170,7 +178,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -201,7 +209,8 @@ window.Arcade = window.Arcade || {};
    'mh-sky', 'mh-road', 'mh-lane', 'mh-c', 'mh-e', 'mh-g', 'mh-b',
    'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow',
    'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand',
-   'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur'].forEach(n => { tok[n] = cssVar(n); });
+   'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur',
+   'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -498,6 +507,12 @@ window.Arcade = window.Arcade || {};
       const scr = A.CAB_SCREENS && A.CAB_SCREENS.audition;
       if (scr && scr.draw) return scr.draw(x, W, H, t);
       x.fillStyle = tok['sa-wall']; x.fillRect(0, 0, W, H);
+    },
+    /* Blocktave: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.blocks) */
+    blocks(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.blocks;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['bt-sky-night']; x.fillRect(0, 0, W, H);
     },
     /* Rhythm Dojo: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.taiko) */
     taiko(x, W, H, t) {
@@ -903,6 +918,16 @@ window.Arcade = window.Arcade || {};
       drum.userData.pick = true; group.add(detail(drum));
       const wood = lambert(col('rd-stand'));
       [-1, 1].forEach(sd => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.035, .12, .16), wood); leg.position.set(sd * R0 * .75, topY + .06, fz); group.add(detail(leg)); });
+    } else if (P.topper === 'blocks') {
+      // a little stack of neon blocks on the roof (Blocktave): dirt blocks with glowing moss tops, and a music block
+      // (slate) in the middle with its cyan note glowing on the front
+      const fz = frontTop + zc - .14, b = .15;
+      [[-1, 0, 'bt-dirt'], [0, 0, 'bt-slate'], [1, 0, 'bt-dirt'], [-.5, 1, 'bt-dirt'], [.5, 1, 'bt-dirt']].forEach(([i, j, c]) => {
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(b, b, b), lambert(col(c))); cube.position.set(i * b * 1.02, topY + b / 2 + j * b * 1.02, fz); group.add(detail(cube));
+        if (c === 'bt-dirt') { const moss = new THREE.Mesh(new THREE.BoxGeometry(b * 1.01, b * .18, b * 1.01), basic(col('bt-moss'))); moss.position.set(i * b * 1.02, topY + b * .92 + j * b * 1.02, fz); group.add(detail(moss)); }
+      });
+      const note = new THREE.Mesh(new THREE.CircleGeometry(b * .2, 12), basic(col('bt-tone'))); note.scale.set(1.3, .9, 1); note.position.set(0, topY + b * .45, fz + b / 2 + .002); note.userData.pick = true; group.add(note);
+      const halo = new THREE.Mesh(new THREE.CircleGeometry(b * .5, 16), basic(col('bt-tone'), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); halo.position.set(0, topY + b * .45, fz + b / 2 + .004); group.add(halo);
     } else if (P.topper === 'fins') {
       const bolt = new THREE.Shape([[0, 0], [.18, .34], [.08, .34], [.2, .62], [-.04, .26], [.06, .26], [-.06, 0]].map(([a, b]) => new THREE.Vector2(a, b)));
       [-1, 1].forEach(s => {

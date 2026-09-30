@@ -77,6 +77,28 @@ async function questTurn(page) {
   await page.waitForTimeout(250);
 }
 
+/* Blocktave: CHAPTER 1 through the game's own demo hooks (the real mining, crafting and building code): mine maple and
+   cork, craft Maple Planks and the Wooden Mallet (each a performance card, answered right), mine 10 Tone Ore, then
+   build a shelter with a door. The chapter's results screen shows when its 3rd milestone is done. One action a step. */
+async function blocktaveStep(page) {
+  await page.evaluate(() => {
+    const B = Arcade.Blocktave, d = B.demo, s = B.state();
+    if (s.screen !== 'world') return;
+    if (Arcade.BlocktaveCard.current) { d.answer(); return; }
+    if (s.held) return;                                   // a first-time card: the run's dismiss() closes it
+    const inv = s.inv || {}, go = k => { const t = d.find(k); if (t) { d.standBy(t.x, t.y); d.mine(t.x, t.y); } };
+    if (!inv.mallet1 && !inv.mallet2) {
+      if (!inv.cork) return go('cork');
+      if ((inv.planks || 0) >= 2) return d.craft('wooden-mallet');
+      if (inv.maple) return d.craft('maple-planks');
+      return go('maple');
+    }
+    if (d.stats().ore < 10) return go('toneOre');
+    d.shelter();
+  });
+  await page.waitForTimeout(600);
+}
+
 const STEPS = {
   'ghost-notes': {play: 'hold'},
   'note-storm': {play: 'hold', endlessPlay: 'idle'},
@@ -112,6 +134,9 @@ const STEPS = {
   'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
   'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute
   'vanishing-ink': {next: '#rrNext', limit: 100_000},
+  // Blocktave: chapter 1 (above); its Survival Nights run: every step a creature's bump costs a heart (the demo hook)
+  'blocktave': {play: blocktaveStep, every: 600, limit: 100_000, key: 'blocktave',
+    endlessPlay: async page => { await page.evaluate(() => { const B = Arcade.Blocktave; if (B.state().screen === 'world' && !B.state().held) B.demo.hurt(1); }); await page.waitForTimeout(400); }},
   'arcade-quest': {url: 'arcade-quest/index.html?demo&test', store: {gameData: {'arcade-quest': {settings: {textSpeed: 'instant', dodge: 'easy', assist: true}}}}, start: async page => { await page.waitForTimeout(1200); await page.keyboard.press('Enter'); },
     play: questTurn, stars: false, limit: 150_000, pause: false,   // a battle waits for you: no pause there
     done: page => page.evaluate(() => { const Q = Arcade.Quest, b = Q.battleState && Q.battleState(), s = Q.save.get();

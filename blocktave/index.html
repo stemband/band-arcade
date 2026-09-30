@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Blocktave</title>
+<meta name="description" content="A block-building survival world where playing your instrument is how you mine and craft.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- THE TITLE SCREEN: the chapters (level select) and Survival Nights -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Block<span>tave</span></h1>
+      <p class="ui-howto">Your own world of neon blocks. Mine by playing your instrument, craft by performing, build a shelter before night falls, and calm the silly creatures with your music.</p>
+    </div>
+    <div class="bt-opts">
+      <span class="ui-label" id="lPlayBy">Play by</span>
+      <div class="ui-seg" role="group" aria-labelledby="lPlayBy">
+        <button type="button" id="modeInst" aria-pressed="true">My instrument</button>
+        <button type="button" id="modeTouch" aria-pressed="false">Touch</button>
+      </div>
+      <p class="bt-optnote" id="modeNote"></p>
+    </div>
+    <p class="bt-world" id="worldLine"></p>
+    <div class="levels bt-chapters" id="levelGrid"></div>
+    <div id="endlessTile"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: in a challenge card, hold Space to play the right note (W = a wrong one); in TOUCH mode tap the answer. ?seed=123 picks a new world's seed.</p>
+  </section>
+</div>
+
+<!-- THE WORLD (full screen while playing) -->
+<section id="play" class="bt-play" hidden>
+  <canvas id="btCanvas" aria-label="Your Blocktave world" role="img"></canvas>
+  <canvas id="btOver" aria-hidden="true"></canvas>
+  <div class="bt-hud">
+    <div class="bt-hearts" id="hearts" role="img"></div>
+    <div class="bt-clock" id="clock"></div>
+    <div class="bt-zone" id="zone"></div>
+    <div class="bt-badge" id="modeBadge"></div>
+    <div class="bt-survived" id="survived" hidden></div>
+  </div>
+  <div class="bt-goals" id="goals"></div>
+  <div class="ed-flash" id="edFlash" aria-live="polite"></div>
+  <div class="bt-bottom">
+    <div class="bt-tool"><span id="toolIcon"></span><small id="toolName">Hands</small></div>
+    <div class="bt-hotbar" id="hotbar" role="group" aria-label="Hotbar"></div>
+    <button type="button" class="btn btn-secondary btn-small bt-sidebtn" id="invBtn">Inventory</button>
+    <button type="button" class="btn btn-primary btn-small bt-sidebtn" id="craftBtn">Craft</button>
+  </div>
+  <div class="bt-pad" id="pad">
+    <div class="bt-move" id="padMove">
+      <button type="button" class="bt-pbtn" id="padL" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5L8 12L15 19"/></svg></button>
+      <button type="button" class="bt-pbtn" id="padR" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5L16 12L9 19"/></svg></button>
+    </div>
+    <div class="bt-act" id="padAct">
+      <button type="button" class="bt-pbtn bt-mode" id="modeBtn" aria-pressed="false" aria-label="Mine or build">MINE</button>
+      <button type="button" class="bt-pbtn bt-jump" id="padJ" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15L12 8L19 15"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<!-- INVENTORY (and a Band Locker's slots) -->
+<div class="bt-panel" id="inv" hidden role="dialog" aria-labelledby="invTitle">
+  <div class="bt-panel-h"><h2 class="ui-title" id="invTitle">Inventory</h2><button type="button" class="btn btn-secondary btn-small" id="invClose">Close</button></div>
+  <p class="bt-small" id="invTool"></p>
+  <div class="bt-lockerbox" id="lockerBox" hidden><h3 class="ui-kicker">In the locker</h3><div class="bt-grid" id="lockerGrid"></div><h3 class="ui-kicker">Yours</h3></div>
+  <div class="bt-grid" id="invGrid"></div>
+  <p class="bt-small" id="invHint"></p>
+</div>
+
+<!-- CRAFT: THE MEASURE (4 slots in order), your items, the Recipe Book -->
+<div class="bt-panel bt-craft" id="craft" hidden role="dialog" aria-labelledby="craftTitle">
+  <div class="bt-panel-h"><h2 class="ui-title" id="craftTitle">Craft</h2>
+    <button type="button" class="btn btn-secondary btn-small" id="bookBtn" aria-pressed="false">Recipe Book <small id="bookCount"></small></button>
+    <button type="button" class="btn btn-secondary btn-small" id="craftClose">Close</button></div>
+  <div class="bt-measure" id="measure" role="group" aria-label="The measure: 4 slots, in order"></div>
+  <div class="bt-recipe" id="recipeLine"></div>
+  <div class="bt-perform-row"><button type="button" class="btn btn-primary" id="perform" hidden>Perform</button></div>
+  <div class="bt-book" id="book" hidden></div>
+  <h3 class="ui-kicker">Your items</h3>
+  <div class="bt-grid" id="craftItems"></div>
+</div>
+
+<!-- A COMPOSER BLOCK's note / A CONDUCTOR'S PODIUM's melody -->
+<div class="bt-panel" id="composer" hidden role="dialog" aria-labelledby="compTitle">
+  <div class="bt-panel-h"><h2 class="ui-title" id="compTitle">Composer Block</h2><button type="button" class="btn btn-secondary btn-small" id="compDone">Done</button></div>
+  <div class="stage bt-compstaff" id="compStaff"></div>
+  <p class="bt-small" id="compSay"></p>
+  <div class="bt-compacts"><span id="compActs"></span><button type="button" class="btn btn-secondary" id="compPlay" hidden>▶ Listen</button></div>
+</div>
+<input type="file" id="worldFile" accept=".json,application/json" hidden>
+
+<!-- the results screen, the intro cards and the pause menu: shared/ui-kit.js -->
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/pitch.js"></script>
+<script src="../shared/mic-gate.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/instrument-sprites.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sequences.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="../shared/endless.js"></script>
+<script src="../shared/answer-pad.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/onsets.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../shared/rhythm-judge.js"></script>
+<script src="../shared/pad-arrange.js"></script>
+<script src="../rhythm-dojo/levels.js"></script>
+<script src="rules.js"></script>
+<script src="recipes.js"></script>
+<script src="world.js"></script>
+<script src="challenges.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

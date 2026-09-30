@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko', 'blocks'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -187,6 +187,22 @@ window.Arcade = window.Arcade || {};
               '<path class="s-crack" d="M250 410l-9 18 7 10-10 20 5 12M241 428l-8 4"/>' +               // a cracked side panel
               '<path class="s-wire" d="M262 112q12 34-4 60q-6 12 4 22"/><circle class="s-lamp" cx="262" cy="194" r="3"/>',   // a loose wire
       slots: {marquee: [40, 34, 220, 68], screen: [70, 134, 160, 156], start: [78, 398, 144, 48]},
+    },
+    /* blocks: the Blocktave cabinet. Its top is a stack of blocks (a stepped row of cubes, the middle one a glowing
+       music block), little blocks on the lower side panels and a mallet (never a pickaxe) on the kick plate */
+    blocks: {
+      outline: 'M30 58H70V34H110V14H190V34H230V58H270V112H258V598H42V112H30Z',
+      face: 'M54 112H246V598H54Z', kick: [54, 246],
+      bezel: 'M66 122H234Q242 122 242 130V294Q242 302 234 302H66Q58 302 58 294V130Q58 122 66 122Z',
+      panel: 'M50 310H250L280 372H20Z', lip: 'M20 372H280V386H20Z',
+      joy: [74, 342], btns: [[178, 338], [208, 338], [238, 338]],
+      door: {x: 104, y: 450, w: 92, h: 92},
+      extras: '<rect class="s-blk" x="72" y="36" width="36" height="22"/><rect class="s-blk s-blk-music" x="112" y="16" width="76" height="42"/>' +
+              '<rect class="s-blk" x="192" y="36" width="36" height="22"/><path class="s-moss" d="M72 38H108M112 18H188M192 38H228"/>' +
+              '<ellipse class="s-bnote" cx="146" cy="44" rx="7" ry="5" transform="rotate(-20 146 44)"/><path class="s-bstem" d="M152.5 43V24"/>' +
+              '<rect class="s-blk" x="60" y="552" width="30" height="30"/><rect class="s-blk" x="60" y="522" width="30" height="30"/><rect class="s-blk" x="210" y="552" width="30" height="30"/>' +
+              '<path class="s-mhandle" d="M118 584L172 560"/><ellipse class="s-mhead" cx="180" cy="556" rx="14" ry="10" transform="rotate(-24 180 556)"/>',
+      slots: {marquee: [40, 60, 220, 50], screen: [70, 134, 160, 156], start: [78, 398, 144, 48]},
     },
     /* the default: flat top with an overhanging marquee, straight sides */
     classic: {
@@ -573,6 +589,46 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = css('rd-head'); x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.fill();
         x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('yellow'); x.lineWidth = Math.max(1.5, H * .02);
         x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
+      },
+    },
+    /* Blocktave: a tiny side view of the block world: the avatar walks up to a glowing Tone Ore block, a note bubble
+       shows, the block breaks into sparks and a note floats up; day slowly turns to night and back. A canvas screen
+       (2D and 3D); slow, nothing flashes. */
+    blocks: {
+      html() { return `<div class="scr scr-blocks scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const loop = 6, tt = t == null ? 3.1 : t % loop, s = H / 5;
+        const night = t == null ? 0 : .5 + .5 * Math.sin((t || 0) / 12);
+        x.fillStyle = css(night > .5 ? 'bt-sky-night' : 'bt-sky-day'); x.fillRect(0, 0, W, H);
+        x.globalAlpha = .6 * night; x.fillStyle = css('bt-sky-night-2'); x.fillRect(0, 0, W, H); x.globalAlpha = 1;
+        const cols = Math.ceil(W / s), oreX = Math.floor(cols * .62);
+        for (let i = 0; i < cols; i++) for (let j = 3; j < 5; j++) {
+          const X = i * s, Y = j * s;
+          x.fillStyle = css(j === 3 ? 'bt-dirt' : 'bt-slate'); x.fillRect(X, Y, s - 1, s - 1);
+          if (j === 3) { x.fillStyle = css('bt-moss'); x.fillRect(X, Y, s - 1, Math.max(2, s * .18)); }
+        }
+        const broke = tt > 3.6;
+        if (!broke) {                                                     // the Tone Ore block, sitting on the ground
+          const X = oreX * s, Y = 2 * s;
+          x.fillStyle = css('bt-slate'); x.fillRect(X, Y, s - 1, s - 1);
+          x.fillStyle = css('bt-tone'); x.beginPath(); x.ellipse(X + s * .45, Y + s * .6, s * .17, s * .12, -.35, 0, 7); x.fill();
+          x.fillRect(X + s * .6, Y + s * .2, Math.max(1, s * .05), s * .4);
+        } else if (tt < 4.8) {                                            // sparks and a floating note
+          const k = (tt - 3.6) / 1.2;
+          x.globalAlpha = 1 - k; x.fillStyle = css('bt-tone');
+          for (let q = 0; q < 6; q++) x.fillRect(oreX * s + s / 2 + Math.cos(q) * s * k, 2.5 * s - Math.sin(q + 1) * s * k, s * .12, s * .12);
+          x.beginPath(); x.ellipse(oreX * s + s * .5, 2 * s - k * s * 1.2, s * .14, s * .1, -.35, 0, 7); x.fill(); x.globalAlpha = 1;
+        }
+        const px = Math.min(oreX - 1.2, tt * 1.2) * s;                  // the player (a small neon figure), walking in
+        x.fillStyle = css('cyan'); x.fillRect(px + s * .3, 1.2 * s, s * .4, s * .8); x.beginPath(); x.arc(px + s * .5, 1.05 * s, s * .2, 0, 7); x.fill();
+        if (tt > 1.9 && tt < 3.6) {                                       // the note bubble over the block
+          const bx = oreX * s - s * .2, by = s * .35, bw = s * 1.4, bh = s * .95;
+          x.fillStyle = css('screen'); x.fillRect(bx, by, bw, bh);
+          x.strokeStyle = css('ink'); x.lineWidth = 1;
+          for (let l = 0; l < 5; l++) { x.beginPath(); x.moveTo(bx + 3, by + bh * (.2 + l * .15)); x.lineTo(bx + bw - 3, by + bh * (.2 + l * .15)); x.stroke(); }
+          x.fillStyle = css('ink'); x.beginPath(); x.ellipse(bx + bw * .55, by + bh * .575, s * .11, s * .08, -.35, 0, 7); x.fill();
+        }
       },
     },
     /* Scale Trainer: a scale on a little staff, notes turning green one by one as they are "played" up and down,
