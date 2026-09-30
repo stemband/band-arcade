@@ -210,7 +210,8 @@ window.Arcade = window.Arcade || {};
    'kt-night', 'kt-night-2', 'kt-street', 'kt-street-2', 'kt-bldg', 'kt-win-on', 'kt-win-off', 'kt-chop', 'kt-fork', 'kt-glow',
    'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand',
    'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur',
-   'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone'].forEach(n => { tok[n] = cssVar(n); });
+   'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone',
+   'pz-peg', 'pz-peg-hole', 'pz-wood', 'pz-wood-2', 'pz-paper', 'pz-glass', 'pz-warm'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -1035,6 +1036,44 @@ window.Arcade = window.Arcade || {};
     });
     scene.add(hazeGroup);
 
+    /* THE PRIZE COUNTER along the back wall (shared/prizes.js): a pegboard with prizes, a lit PRIZES sign and a counter
+       with a glass case, one textured plane drawn once (no motion). A real HTML button sits over it (placePrize), so
+       clicking it, or tabbing to it, opens the Prize Counter. Layer 1: never in the floor reflection. */
+    let prize = null, prizeBtn = null;
+    if (A.Prizes) {
+      const c = canvas(512, 360), x = c.getContext('2d');
+      x.fillStyle = tok['pz-peg']; x.fillRect(20, 60, 472, 220);
+      x.fillStyle = tok['pz-peg-hole'];
+      for (let yy = 72; yy < 270; yy += 16) for (let xx = 32; xx < 484; xx += 16) { x.beginPath(); x.arc(xx, yy, 2, 0, 7); x.fill(); }
+      const warm = x.createRadialGradient(256, 60, 10, 256, 60, 300); warm.addColorStop(0, tok['pz-warm'] + '66'); warm.addColorStop(1, 'transparent');
+      x.fillStyle = warm; x.fillRect(20, 60, 472, 220);
+      x.fillStyle = tok['pz-wood-2']; [150, 214].forEach(yy => x.fillRect(30, yy, 452, 8));
+      const prizeCols = [tok.pink, tok.cyan, tok.yellow, tok.purple, tok.green, tok.amber];
+      for (let i = 0; i < 7; i++) {                          // prizes on the shelves: little round plushies and boxes
+        const px = 62 + i * 64;
+        x.fillStyle = prizeCols[i % prizeCols.length];
+        x.beginPath(); x.arc(px, 132, 16, 0, 7); x.fill(); x.fillRect(px - 14, 180, 28, 32);
+        x.fillStyle = tok['pz-paper']; x.fillRect(px + 6, 150 - 2, 14, 10);
+      }
+      x.strokeStyle = tok['text-hi']; x.lineWidth = 2;
+      [110, 256, 402].forEach(px => { x.beginPath(); x.moveTo(px, 60); x.lineTo(px, 78); x.stroke(); x.fillStyle = prizeCols[(px / 7 | 0) % 6]; x.beginPath(); x.arc(px, 92, 14, 0, 7); x.fill(); });
+      x.save(); x.shadowColor = tok.amber; x.shadowBlur = 18; x.fillStyle = tok['amber-hi']; x.textAlign = 'center'; x.textBaseline = 'middle';
+      fitText(x, 'PRIZES', '"GN Neon", "GN Display", sans-serif', 54, 420); x.fillText('PRIZES', 256, 32); x.restore();
+      x.fillStyle = tok['pz-wood']; x.fillRect(0, 280, 512, 80);                  // the counter
+      x.fillStyle = tok['pz-glass'] + '44'; x.fillRect(40, 290, 432, 56);        // its glass case
+      x.strokeStyle = tok['pz-glass']; x.lineWidth = 3; x.strokeRect(40, 290, 432, 56);
+      x.fillStyle = tok.yellow; x.beginPath(); x.arc(452, 280, 12, Math.PI, 0); x.fill();   // the counter bell
+      const tex = new THREE.CanvasTexture(c);
+      prize = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4 * 360 / 512), new THREE.MeshBasicMaterial({map: tex, transparent: true, fog: false, color: new THREE.Color(.85, .85, .85)}));
+      prize.position.set(-6.2, 2.4 * 360 / 512 / 2, -6.8); prize.rotation.y = .38; prize.layers.set(1);
+      prize.userData.tex = tex;
+      scene.add(prize);
+      prizeBtn = document.createElement('button');
+      prizeBtn.type = 'button'; prizeBtn.className = 'prize3d'; prizeBtn.hidden = true;
+      prizeBtn.setAttribute('aria-label', 'Prize Counter');
+      prizeBtn.addEventListener('click', e => { e.stopPropagation(); A.Prizes.open({onClose: () => prizeBtn.focus({preventScroll: true})}); });
+    }
+
     /* the cabinets. Each place on the ring is a SLOT: a holder the carousel moves, with either the FULL cabinet
        (only the front one and its neighbors: NEAR places away) or a FLAT stand-in (one textured plane: a lit
        silhouette with the marquee) farther out. setRing() swaps the whole set (a new zone) and disposes the old. */
@@ -1138,7 +1177,7 @@ window.Arcade = window.Arcade || {};
     const start = document.createElement('a');
     start.className = 'start3d';
     start.textContent = 'Start';
-    aisle.appendChild(cvs); aisle.appendChild(start);
+    aisle.appendChild(cvs); aisle.appendChild(start); if (prizeBtn) aisle.appendChild(prizeBtn);
     aisle.classList.add('is-3d');
 
     /* ---------- layout ---------- */
@@ -1198,6 +1237,20 @@ window.Arcade = window.Arcade || {};
       if (start.style.top !== t) start.style.top = t;
     }
 
+    /** the Prize Counter's button over its picture (hidden when it's off screen or too small to tap) */
+    const PV = new THREE.Vector3();
+    function placePrize() {
+      if (!prize) return;
+      const w = 1.2, h = 2.4 * 360 / 512 / 2, pts = [[-w, -h], [w, -h], [-w, h], [w, h]].map(([dx, dy]) => {
+        PV.set(dx * Math.cos(prize.rotation.y), dy, -dx * Math.sin(prize.rotation.y)).add(prize.position).project(camera);
+        return [(PV.x + 1) / 2 * Wpx, (1 - PV.y) / 2 * Hpx];
+      });
+      const l = Math.min(...pts.map(p => p[0])), r = Math.max(...pts.map(p => p[0])), t = Math.min(...pts.map(p => p[1])), b = Math.max(...pts.map(p => p[1]));
+      const show = l >= 0 && r <= Wpx && t >= 0 && b <= Hpx && r - l >= 44 && b - t >= 44;
+      prizeBtn.hidden = !show;
+      if (show) Object.assign(prizeBtn.style, {left: Math.round(l) + 'px', top: Math.round(t) + 'px', width: Math.round(r - l) + 'px', height: Math.round(b - t) + 'px'});
+    }
+
     /* ---------- rendering: only while something moves ---------- */
     let raf = 0, lastFrame = 0, lastRender = 0, lastScreen = 0, lastMarquee = 0, animT0 = performance.now();
     let sample = [], sampleStart = 0;
@@ -1245,7 +1298,7 @@ window.Arcade = window.Arcade || {};
         const fr = frontSlot() && frontSlot().full;
         if (fr && !reduced.matches && now - lastScreen > 60) { fr.screen.draw(t); lastScreen = now; }
         if (fr && !reduced.matches && now - lastMarquee > 1000 / (A.Marquee.FPS / (level ? 2 : 1)) - 2) { fr.marquee.draw(t); lastMarquee = now; }
-        layout(now); placeStart(); render(); lastRender = now; stats.frames++;
+        layout(now); placeStart(); placePrize(); render(); lastRender = now; stats.frames++;
       }
       if (turning || !reduced.matches) raf = requestAnimationFrame(frame);
       else lastFrame = 0;
@@ -1280,12 +1333,13 @@ window.Arcade = window.Arcade || {};
       Object.values(cache).forEach(c => (c.texture || c).dispose());
       floorTex.dispose();
       renderer.dispose();
-      cvs.remove(); start.remove(); if (fpsBox) fpsBox.remove();
+      cvs.remove(); start.remove(); if (fpsBox) fpsBox.remove(); if (prizeBtn) prizeBtn.remove();
+      if (prize) prize.userData.tex.dispose();
       aisle.classList.remove('is-3d');
       A.Floor3D.stats = null; A.Floor3D.look = null;
     }
     // for testing and tuning: frame times (ms, averaged per few seconds), downgrade level, draw calls per frame (both passes)
-    A.Floor3D.stats = () => Object.assign({}, stats, {pixelRatio: renderer.getPixelRatio(), haze: !!scene.fog});
+    A.Floor3D.stats = () => Object.assign({}, stats, {pixelRatio: renderer.getPixelRatio(), haze: !!scene.fog, prize: !!(prizeBtn && !prizeBtn.hidden)});
     /* THE SEASONAL LOOK (season-look.js): the haze and the two side lights take its colors (the backdrop itself shows
        through the see-through canvas); none = the arcade's own pink / cyan / purple. Called again when it changes. */
     A.Floor3D.look = function () {
@@ -1328,7 +1382,7 @@ window.Arcade = window.Arcade || {};
         if (instant) { pos = from = to = target; turning = false; sync(pos, pos); }
         else { from = pos; to = target; t0 = performance.now(); turning = true; turnMs = Math.abs(target - pos) > SPIN_FROM ? SPIN_MS : TURN_MS; }
         kick();
-        if (instant && reduced.matches) { layout(performance.now()); placeStart(); render(); }
+        if (instant && reduced.matches) { layout(performance.now()); placeStart(); placePrize(); render(); }
       },
       pick(e) {
         if (e.target !== cvs) return null;

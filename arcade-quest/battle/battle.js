@@ -372,7 +372,7 @@
   /* ---------- endings ---------- */
   async function rewards(kind) {
     const r = (B.e.rewards || {})[kind] || {xp: 5, tokens: 1}, s = B.save;
-    s.xp += r.xp; s.tokens += r.tokens;
+    s.xp += r.xp; A.Tokens.add(r.tokens);                              // THE SHARED WALLET (shared/tokens.js)
     const lines = [Q.text('rewards', {n: r.xp, tokens: r.tokens})];
     if (r.item && ITEMS()[r.item]) { s.items[r.item] = (s.items[r.item] || 0) + 1; lines.push(Q.text('gotItem', {item: ITEMS()[r.item].name})); }
     if (kind === 'befriend') Object.keys(Q.charms.list()).forEach(id => {       // a charm for befriending this ghost

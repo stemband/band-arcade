@@ -13,7 +13,9 @@
    install help, the first-launch "Bring your progress" panel), so no page has to list them. A page that must not
    (the avatar card, shown inside other sites) has <meta name="arcade-app" content="off"> above its version lines.
    THE UI KIT: checkVersion also loads shared/ui-kit.css (before the page's own stylesheets, so a game can re-theme a
-   piece) and shared/ui-kit.js (Arcade.UI: pause, results, settings, intro, confirm, toast) on every page.
+   piece) and shared/ui-kit.js (Arcade.UI: pause, results, settings, intro, confirm, toast) on every page, and
+   shared/tokens.js (Arcade.Tokens: the shared wallet, whose line "+3 ★ = 15 tokens at the Prize Counter" every results
+   screen shows).
    MOTION: Arcade.reducedMotion.matches is true when the device asks for less motion OR the Settings panel's Motion
    switch is off; html.no-motion is set here, before anything draws. Scripts read it instead of their own matchMedia.
    NEVER EDIT VERSION BY HAND: in the repository it stays 'dev', which switches all of this off (opening a page from
@@ -95,6 +97,7 @@ window.Arcade.VERSION = 'dev';
       '<meta name="apple-mobile-web-app-title" content="Band Arcade">' +
       '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">';
     h += `<link rel="stylesheet" href="${A.v(R + 'shared/ui-kit.css')}"><script src="${A.v(R + 'shared/ui-kit.js')}"><\/script>`;
+    h += `<script src="${A.v(R + 'shared/tokens.js')}"><\/script>`;              // THE SHARED WALLET (Arcade.Tokens): every page
     if (!off) h += `<script src="${A.v(R + 'shared/app.js')}"><\/script>`;
     document.write(h);
   }

@@ -647,7 +647,9 @@ window.AVATAR_PARTS = {};
        {game, wins: 10, text}               matches won on this device (Neon Face-Off, Dojo Duel: shared/skins.js WINS)
        {bandninja: 'diamond', text}         OFFICIAL BAND NINJA GEAR: that belt's code from class, entered at the Token Booth
        {bandninja: 'all', text}             LEGENDARY: all 10 belt codes (Arcade.BandNinja.hasAll()); give it legendary: true
-       {shop: 250}                          bought for 250 Arcade Tokens at Arcade Quest's Token Booth (owned forever)
+       {shop: 250}                          bought for 250 Arcade Tokens at the Prize Counter or Arcade Quest's Token Booth
+                                            (one shared wallet: shared/tokens.js; owned forever). + booth: 'quest' = only
+                                            at Arcade Quest's booth: set by the MANOR_COLLECTION list at the end
      IDENTITY ITEMS ARE ALWAYS FREE AND CAN NEVER BE LOCKED (avatar.js enforces it, whatever a rule says): no head
      covering at all, the hijab, headwrap, turban, patka, kufi, headscarf (tichel) and durag, hearing aids, the wheelchair
      and glasses.
@@ -661,10 +663,10 @@ window.AVATAR_PARTS = {};
      HOW TO ADD AN ITEM: add it to its list (EYES, MOUTHS, HAIR_COLORS, HEADS, TOPS, SHOES, PETS, BACKS, HANDS, EFFECTS or PLATES) with a new id
      and a name, draw its maps like the parts above, and give it an `unlock` rule (or none: free). An UNLOCKED! card
      shows the first time a student has earned it (results screens and Select Player), and old progress counts.
-     A {shop} item: add '<field>:<id>' (e.g. 'pet:penguin') to the END of QUEST_V4.cosmetics in shared/backup.js so
-     save codes carry it (QUEST CODE v4: room for 88 in all), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
-     A {shop} item appears on the Token Booth's PLAYER ITEMS shelf by itself (keep prices 50–500).
-     (QUEST_V4 in shared/backup.js has room for 40 more; a new {shop} item goes at the END of QUEST_V4.cosmetics.)
+     A {shop} item: add '<field>:<id>' (e.g. 'pet:penguin') to the END of QUEST_V5.cosmetics in shared/backup.js so
+     save codes carry it (QUEST CODE v5: room for 90 in all; QUEST_V1–V4 are frozen), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
+     A {shop} item appears on the Prize Counter's shelves and the Token Booth's PLAYER ITEMS shelf by itself (keep
+     prices 50–500; the Prize Counter shelves it by price). Arcade Quest only: add it to MANOR_COLLECTION at the end.
      ===================================================================================================================== */
   const recolor = (map, from, to) => map && Object.assign({}, map, map.half ? {half: map.half.map(r => r.replace(from, to))} : {rows: map.rows.map(r => r.replace(from, to))});
   const deep = o => JSON.parse(JSON.stringify(o));
@@ -1010,7 +1012,7 @@ window.AVATAR_PARTS = {};
     {id: 'aurora', name: 'Aurora', kind: 'scene', scene: 'aurora', lift: 2, main: 'green-ink', unlock: {stars: 150}},
     {id: 'galaxyswirl', name: 'Galaxy Swirl', kind: 'scene', scene: 'galaxy', lift: 1.6, main: 'purple-ink', unlock: {stars: 250}},
     {id: 'goldrecords', name: 'Gold Record Wall', kind: 'scene', scene: 'records', lift: 1, main: 'amber-ink', unlock: {stars: 400}},
-    // ---- the Token Booth (Arcade Quest) ----
+    // ---- for tokens (the Prize Counter + Arcade Quest's Token Booth; Fireflies Night: the Manor Collection) ----
     {id: 'bubbles', name: 'Underwater Bubbles', kind: 'scene', scene: 'bubbles', lift: 1.2, main: 'cyan-ink', unlock: {shop: 150}},
     {id: 'fireflies', name: 'Fireflies Night', kind: 'scene', scene: 'fireflies', lift: 1.2, main: 'blue-ink', unlock: {shop: 200}},
     {id: 'lavalamp', name: 'Lava Lamp', kind: 'scene', scene: 'lavalamp', lift: 1.1, main: 'purple-ink', unlock: {shop: 250}},
@@ -1264,4 +1266,18 @@ window.AVATAR_PARTS = {};
      side: kit(32).spans(1, [[11, 16], [10, 17], [9, 18], [8, 19]], 'u').spans(0, [[12, 15], [12, 15]], 'A').spans(0, [[12, 15]], 'B').spans(5, [[8, 22]], 'U').map(),
      back: kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [9, 22]], 'u').spans(0, [[14, 17], [14, 17]], 'A').spans(0, [[14, 17]], 'B').spans(5, [[8, 23]], 'U').map()});
   P.BGS.push({id: 'bandhall', name: 'Band Hall', kind: 'scene', scene: 'bandhall', lift: 1.6, main: 'red-ink', unlock: BT_RULE});
+
+  /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
+     Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
+     "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:
+     only here!", and they are never the Prize of the Week (shared/tokens.js). Anyone who owns one keeps it. Every other
+     {shop} item is sold at BOTH counters for the same price. ---------- */
+  const MANOR_COLLECTION = ['head:pirate', 'hand:wand', 'bg:fireflies', 'head:royalcrown'];
+  const LISTS = {head: P.HEADS, hand: P.HANDS, bg: P.BGS};
+  MANOR_COLLECTION.forEach(k => {
+    const [f, id] = k.split(':'), part = (LISTS[f] || []).find(x => x.id === id);
+    if (part && part.unlock && part.unlock.shop) part.unlock = Object.assign({}, part.unlock, {booth: 'quest'});
+    else if (window.console) console.warn(`avatar-parts.js: MANOR_COLLECTION ${k} is not a {shop} item`);
+  });
+  P.MANOR_COLLECTION = MANOR_COLLECTION;
 })(window.AVATAR_PARTS);

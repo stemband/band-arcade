@@ -186,6 +186,10 @@
   --glow-blue:0 0 4px rgba(77,141,255,.9),0 0 14px rgba(77,141,255,.45);
   /* cabinet woodwork: side panels, front face, control panel (darkest to lightest) */
   --cab-side:#120c22; --cab-face:#1b1433; --cab-panel:#2a2148; --cab-metal:#6d6590;
+  /* THE PRIZE COUNTER (shared/prizes.css): the pegboard wall, the wooden shelves and counter, the paper price tags,
+     the glass case and the warm lights */
+  --pz-peg:#2a1d18; --pz-peg-hole:#140d0b; --pz-wood:#6b3f22; --pz-wood-2:#8a5530; --pz-wood-hi:#b5773f;
+  --pz-paper:#f3e6c4; --pz-paper-ink:#3b2410; --pz-glass:#8fe9ff; --pz-warm:#ffb347; --pz-bot:#9aa3c7; --pz-bot-2:#5d6690;
 
   /* older names, kept so every game's style.css follows the theme */
   --night:var(--floor); --night-2:var(--floor-2); --night-3:var(--floor-3);
@@ -759,6 +763,7 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .sk-u-more{display:flex;justify-content:center;margin-top:10px}
 .avb-lk-n{font-size:13px;font-weight:700;color:var(--text-lo)}
 .avb-lk-new{margin-left:4px;padding:1px 8px;border-radius:999px;background:var(--pink);color:var(--deep);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.avb-tk{flex:none;width:22px;text-align:center;font-size:18px;line-height:1}
 .avb-btn{position:relative}
 .avb-dot{position:absolute;top:2px;left:30px;width:12px;height:12px;border-radius:50%;background:var(--pink);box-shadow:0 0 0 2px var(--deep),0 0 8px var(--pink)}
 .avb-item:hover,.avb-item:focus-visible{border-color:var(--yellow);background:var(--floor-lit);outline:none;box-shadow:var(--glow-yellow)}

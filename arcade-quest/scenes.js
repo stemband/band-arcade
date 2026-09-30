@@ -91,7 +91,7 @@
       const befriended = id => s.roster.includes(id);
       const items = Object.keys(s.items).filter(k => s.items[k] > 0 && window.QUEST_ITEMS[k]).map(k => `${window.QUEST_ITEMS[k].name} ×${s.items[k]}`).join(', ') || 'none';
       Q.ui.innerHTML = `<div class="q-arena"><h2 class="q-ah">Test Arena</h2>` +
-        `<p class="q-stats"><b>LV ${s.level}</b> · ${Q.text('power')} ${Q.save.powerAt(s.level)} · HP ${s.hp}/${s.maxHp} · XP ${s.xp}/${Q.save.xpToNext(s.level)} · ${s.tokens} Tokens</p>` +
+        `<p class="q-stats"><b>LV ${s.level}</b> · ${Q.text('power')} ${Q.save.powerAt(s.level)} · HP ${s.hp}/${s.maxHp} · XP ${s.xp}/${Q.save.xpToNext(s.level)} · ${A.Tokens.balance()} Tokens</p>` +
         `<p class="q-stats q-small">Bag: ${items} · Friends: ${s.roster.length ? s.roster.map(id => (window.QUEST_ENEMIES.find(e => e.id === id) || {name: id}).name).join(', ') : 'nobody yet'}` +
         ` · Playing beside you: ${Q.band.members().map(id => Q.band.enemy(id).name).join(', ') || 'just you'}</p>` +
         `<div id="qFoes"></div><div class="q-arena-foot" id="qFoot"></div></div>`;

@@ -266,6 +266,18 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 }
 @keyframes zs-on{0%{opacity:.18}18%{opacity:.7}30%{opacity:.35}55%{opacity:1}66%{opacity:.8}100%{opacity:1}}
 @keyframes zs-hum{0%,100%{text-shadow:0 0 3px var(--z-hi),0 0 12px var(--z),0 0 26px var(--z-ink)}50%{text-shadow:0 0 3px var(--z-hi),0 0 8px var(--z),0 0 18px var(--z-ink)}}
+/* THE PRIZE COUNTER's sign (lobby.js prizeSign; the counter itself: shared/prizes.css): the balance and the WISH bar */
+.zs-prize .zs-bal{display:flex;align-items:center;gap:6px;color:var(--text-hi);font-size:16px}
+.zs-prize .zs-bal b{font:400 20px var(--display);color:var(--yellow)}
+.zs-prize .zs-bal small{color:var(--text-lo);font-size:14px}
+.zs-prize .pz-coin{display:inline-block;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--yellow-hi),var(--yellow) 45%,var(--amber-ink));box-shadow:inset 0 0 0 2px var(--amber-ink)}
+.zs-wish{display:flex;flex-direction:column;align-items:center;gap:3px;width:min(92%,300px);font-size:14px;color:var(--text-lo)}
+.zs-wish-t{color:var(--text-hi);font-weight:700;text-wrap:balance}
+.zs-bar{display:flex;width:100%;height:10px;border-radius:6px;background:var(--floor-3);overflow:hidden;box-shadow:inset 0 0 0 1px var(--amber-ink)}
+.zs-have{background:var(--yellow)}.zs-wait{background:color-mix(in srgb,var(--yellow) 38%,transparent)}
+.zs-wish-go{color:var(--yellow);font-weight:700}
+@media (prefers-reduced-motion:no-preference){ .zs-wish.ready .zs-wish-go{animation:zs-ready 2.4s ease-in-out infinite} }
+@keyframes zs-ready{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* ---------- ALL GAMES (lobby.js): every game once, as a card; the page scrolls ---------- */
 .allg{padding:4px max(16px,env(safe-area-inset-left,0px)) calc(28px + env(safe-area-inset-bottom,0px))}
@@ -539,3 +551,16 @@ html.slook-still .slook *{animation:none!important}
 .slook[data-look=frost] .sl-sky{background:radial-gradient(45% 40% at 8% 6%,color-mix(in srgb,var(--cyan) 16%,transparent),transparent 70%),
   radial-gradient(45% 40% at 92% 94%,color-mix(in srgb,var(--blue) 18%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--blue-ink) 16%,var(--deep)),var(--deep))}
 .sl-crystal .cr{fill:none;stroke:var(--cyan-hi);stroke-width:1.4;stroke-linecap:round;opacity:.22}.sl-crystal.c3 .cr{opacity:.3}
+
+/* THE PRIZE COUNTER in a zone's aisle (shared/prizes.js opens on a tap): 3D = a see-through button over the counter
+   arcade3d.js draws on the back wall; 2D = a small counter drawn here, top left (hidden on narrow screens) */
+.prize3d{position:absolute;z-index:5;padding:0;border:0;border-radius:12px;background:transparent;cursor:pointer}
+.prize3d:hover{box-shadow:0 0 0 2px var(--amber),0 0 18px var(--amber-ink)}
+.prize3d:focus-visible,.prize2d:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+.prize2d{position:absolute;z-index:6;top:8px;left:8px;display:grid;grid-template-rows:auto 1fr auto;width:clamp(96px,10vw,132px);height:clamp(76px,8vw,104px);padding:4px;
+  border:2px solid var(--pz-wood-2);border-radius:10px;background:var(--pz-peg);cursor:pointer;opacity:.9}
+.prize2d:hover{opacity:1;box-shadow:0 0 14px var(--amber-ink)}
+.p2-sign{font:400 clamp(13px,1.4vw,17px) var(--neon-font,var(--display));letter-spacing:.06em;text-transform:uppercase;color:var(--amber-hi);text-shadow:0 0 4px var(--amber),0 0 10px var(--amber-ink)}
+.p2-wall{background-image:radial-gradient(circle,var(--pz-peg-hole) 22%,transparent 24%);background-size:10px 10px;border-bottom:4px solid var(--pz-wood-2)}
+.p2-counter{height:14px;border-radius:0 0 6px 6px;background:linear-gradient(color-mix(in srgb,var(--pz-glass) 30%,transparent),var(--pz-wood) 60%)}
+@media (max-width:700px){ .prize2d{display:none} }

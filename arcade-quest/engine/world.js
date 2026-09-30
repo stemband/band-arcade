@@ -60,7 +60,7 @@
       // never mid-battle-flash or while the microphone listens (the Butler's lesson); Esc/P only when you're free to walk
       canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
       note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
-      info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', s.tokens]]; },
+      info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', A.Tokens.balance()]]; },
       extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
         inCharms = true;
         try { await Q.talk.charms(); } finally { inCharms = false; }

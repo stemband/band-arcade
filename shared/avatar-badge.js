@@ -14,6 +14,8 @@
    loaded the first time EDIT AVATAR is used on a page that doesn't already have it.
 
      Arcade.AvatarBadge.mount(el, {member, instLabel, changeInstrument: href | fn | null})   draws the badge into el
+     the menu also has "🎟 142 tokens · PRIZE COUNTER": the Prize Counter over this page when it has shared/prizes.js
+     (the floor), else the floor page with ?prizes, which opens it there
      Arcade.AvatarBadge.edit({member, onClose, tab})   the creator for the device's avatar (loads it first if needed)
    THE NAME UPGRADE NOTE: after the name migration (shared/avatar.js: a NEVER-USE word or an old initial was replaced),
    the first badge on the next page shows "Your name got an upgrade! Tap your name to change it." once, under the
@@ -135,6 +137,7 @@ window.Arcade = window.Arcade || {};
       `<button type="button" class="avb-item avb-edit">${PENCIL}<span>Edit avatar</span></button>` +
       `<button type="button" class="avb-item avb-share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg><span>Share to Band Ninja</span></button>` +
       `<button type="button" class="avb-item avb-locker"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 12h14M9 7h2M9 16h2"/></svg><span class="avb-lk-t">Locker</span></button>` +
+      (A.Tokens && A.store ? `<button type="button" class="avb-item avb-prize"><span class="avb-tk" aria-hidden="true">🎟</span><span class="avb-pz-t">Prize Counter</span></button>` : '') +
       (opts.changeInstrument ? `<button type="button" class="avb-item avb-inst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg><span>Change instrument</span></button>` : '') +
       `</div>`;
     const btn = el.querySelector('.avb-btn'), menu = el.querySelector('.avb-menu');
@@ -173,6 +176,13 @@ window.Arcade = window.Arcade || {};
     el.querySelector('.avb-locker').addEventListener('click', () => {    // THE LOCKER, over this page (shared/locker.js)
       close(false);
       openLocker({member: opts.member || (A.store && A.store.player) || undefined, onClose: () => { btn.focus({preventScroll: true}); draw(b); }});
+    });
+    const pz = el.querySelector('.avb-prize');                         // THE PRIZE COUNTER (shared/prizes.js): here, or on the floor
+    if (pz) pz.addEventListener('click', () => {
+      close(false);
+      if (A.Prizes) { A.Prizes.open({onClose: () => btn.focus({preventScroll: true})}); return; }
+      const href = A.linkTo((A.ROOT || '../') + 'index.html', {prizes: ''});
+      if (A.Sfx && A.Sfx.playThenGo) A.Sfx.playThenGo('ui-toggle', href); else location.href = href;
     });
     const inst = el.querySelector('.avb-inst');
     if (inst) inst.addEventListener('click', () => {
@@ -219,8 +229,10 @@ window.Arcade = window.Arcade || {};
     lockerLabel(b);
   }
   const newCount = opts => { try { return fresh(opts.member || (A.store && A.store.player)).length; } catch (e) { return 0; } };
-  /** the menu's "Locker · 12 of 58" (+ "· 2 NEW") */
+  /** the menu's "Locker · 12 of 58" (+ "· 2 NEW") and "🎟 142 tokens · Prize counter" */
   function lockerLabel(b) {
+    const pz = b.el.querySelector('.avb-pz-t');
+    if (pz) { let n = 0; try { n = A.Tokens.balance(); } catch (e) { /* no wallet on this page */ } pz.innerHTML = `${n} tokens <small class="avb-lk-n">· Prize Counter</small>`; }
     const t = b.el.querySelector('.avb-lk-t'); if (!t) return;
     let c = {have: 0, total: 0}, n = 0;
     try { c = count(b.opts.member); n = newCount(b.opts); } catch (e) { /* no avatar parts on this page */ }

@@ -4,7 +4,10 @@
       world: {map, x, y, dir} (where you last saved at a Save Jukebox; null = never),
       flags: {name: true} (story flags: met-mezzo, songBb, reginaldAwake, atticOpen…),
       done: {'<room>:<ghost key>': 'befriend' | 'fade'} (manor ghosts already helped: they don't come back),
-      converted: {'<source>': stars} (stars already turned into tokens at the Token Booth: 'm:<member>' or 'g:<game>'),
+      converted: {'<source>': stars} (stars already turned into tokens: 'm:<member>' or 'g:<game>'),
+      tokens, converted and convertedLeft are THE SHARED WALLET: only shared/tokens.js (Arcade.Tokens) reads or writes
+      them, for the Prize Counter and the Token Booth alike. A save with no `v` holding only {wallet, tokens, converted}
+      (the Prize Counter used before Arcade Quest was ever opened) becomes a fresh save that keeps them.
       charms: {owned: {charmId: true}, equipped: [charmId | null, charmId | null]} (v3: data/items.js QUEST_CHARMS),
       band: [enemyId…] | null (v4: the friends who play beside you in battle, up to 2; null = never chosen = the last
             two befriended; [] = a solo),
@@ -19,7 +22,7 @@
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
    Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
-   SAVE CODES (shared/backup.js, format version 1): Q.save.code() = the 25-character code shown at the jukebox;
+   SAVE CODES (shared/backup.js, format version 5): Q.save.code() = the 65-character code shown at the jukebox;
    Q.save.fromCode(code) -> {ok, error} replaces this device's save with it (ENTER SAVE CODE on the title screen).
    `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
    star sources the next time the Token Booth counts (engine/talk.js).
@@ -64,7 +67,14 @@
   }
   /** older saves -> the current version, one step at a time */
   function upgrade(s) {
-    if (!s || typeof s !== 'object' || !s.v) return fresh();
+    if (!s || typeof s !== 'object') return fresh();
+    if (!s.v) {          // no save yet, or only THE SHARED WALLET (shared/tokens.js: the Prize Counter was used first): keep it
+      const f = fresh();
+      f.tokens = Math.max(0, Math.round(+s.tokens || 0));
+      if (s.converted && typeof s.converted === 'object') f.converted = s.converted;
+      if (s.convertedLeft > 0) f.convertedLeft = s.convertedLeft;
+      return f;
+    }
     if (s.v === 1) { Object.assign(s, {world: null, flags: {}, done: {}, converted: {}}); s.v = 2; }    // v1 -> v2: Episode 1
     if (s.v === 2) { s.charms = {owned: {}, equipped: [null, null]}; s.v = 3; }                           // v2 -> v3: charms
     if (s.v === 3) { s.band = null; s.v = 4; }                                                            // v3 -> v4: the band (default)
@@ -80,7 +90,17 @@
     VERSION: SAVE_VERSION,
     get() { const d = data(); d.save = upgrade(d.save); return d.save; },
     write,
-    reset() { data().save = fresh(); write(); return data().save; },
+    /** NEW GAME: a fresh save that KEEPS THE SHARED WALLET (tokens, stars already turned in: shared/tokens.js), which
+        belongs to the whole arcade (the Prize Counter spends it too), so no star is ever counted twice */
+    reset() {
+      const old = data().save, s = fresh();
+      if (old && typeof old === 'object') {
+        s.tokens = Math.max(0, Math.round(+old.tokens || 0));
+        if (old.converted && typeof old.converted === 'object') s.converted = old.converted;
+        if (old.convertedLeft > 0) s.convertedLeft = old.convertedLeft;
+      }
+      data().save = s; write(); return s;
+    },
     /** this save as a 25-character save code (shared/backup.js) */
     code: () => A.Backup ? A.Backup.questEncode(Q.save.get()) : '',
     /** replace this device's save with a save code: {ok: true} or {ok: false, error} */
@@ -88,9 +108,10 @@
       const r = A.Backup ? A.Backup.questDecode(code) : {ok: false, error: 'Save codes need shared/backup.js.'};
       if (!r.ok) return r;
       const f = r.fields, s = fresh(), friends = f.roster.filter(id => !['squawk', 'warble', 'clatterbox', 'quizzle', 'stickyvalve'].includes(id));
-      Object.assign(s, {level: f.level, xp: f.xp, tokens: f.tokens, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world: f.world,
-        convertedLeft: f.convertedLeft, maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms});
+      Object.assign(s, {level: f.level, xp: f.xp, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world: f.world,
+        maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms});
       data().save = s; Q.charms.fixHp(s);
+      if (A.Tokens) A.Tokens.restore(f); else Object.assign(s, {tokens: f.tokens, convertedLeft: f.convertedLeft});   // THE SHARED WALLET
       s.hp = s.maxHp;
       // avatar items (version-2 codes): unlocked ones become owned on this device, the worn ones go back on
       if (f.cosmetics) {
