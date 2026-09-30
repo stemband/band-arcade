@@ -78,6 +78,7 @@
     perfectSerenade: .95, perfectMult: 1.5};
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
+  const INTRO_SLIDE = 550;                                     // ms: the band sliding in beside you (THE LINEUP)
 
   const hud = () => {
     if (!B) return;
@@ -394,7 +395,9 @@
     if (B.e.opens) Q.save.setFlag(B.e.opens);                  // e.g. the Phantom Fermata opens the attic
     Q.save.achievements();                                      // skins: every kind of manor ghost befriended
     Q.save.write();
-    await Q.say([B.e.lines.befriend.replace(/\{you\}/g, B.member.short).replace(/\{hero\}/g, Q.hero()), Q.text('befriended', {name: B.e.name})], {name: B.e.name, portrait: B.e.sprite});
+    // NEW FRIEND, CLEAR CHOICE: on the automatic band it joins (the two newest friends play); a band the student picked stays
+    const joins = Q.band.choices().includes(B.e.id) ? Q.text(Q.band.auto() ? 'bandNewAuto' : 'bandNewChosen', {name: B.e.name}) : Q.text('befriended', {name: B.e.name});
+    await Q.say([B.e.lines.befriend.replace(/\{you\}/g, B.member.short).replace(/\{hero\}/g, Q.hero()), joins], {name: B.e.name, portrait: B.e.sprite});
     await rewards('befriend');
   }
   async function fade() {
@@ -407,6 +410,12 @@
   async function run() {
     const b = B;
     await Q.say(b.e.lines.intro);
+    const L = b.lineup;
+    if (L && L.out.length) {                                      // the lineup isn't the saved band: say why, once
+      const out = Q.band.enemy(L.out[0]).name, left = b.band.length;
+      await Q.say(L.subs.length ? Q.text('lineupSub', {band: out, sub: L.subs.map(id => Q.band.enemy(id).name).join(' and ')})
+        : Q.text(left ? 'lineupDuet' : 'lineupSolo', {band: out}));
+    }
     if (!Q.save.flag('pathsTip') && b.e.serenade !== false) { await Q.say(Q.text('twoPaths')); Q.save.setFlag('pathsTip'); }   // the first battle: the two ways to win
     while (B === b) {
       await stageStart();
@@ -440,14 +449,16 @@
       const save = Q.save.get(), member = A.currentMember();
       A.store.noteActivity({game: 'arcade-quest', play: 1});      // seasonal events: a game played today
       // THE BAND (everyone at full HP: they refill after every battle) and a fight that stays fair for its size
-      const band = Q.band.members().filter(id => id !== src.id).map(id => {
+      // THE LINEUP (engine/save.js Q.band.lineup): a friend of the enemy's own kind sits out and the next friend steps in
+      const L = Q.band.lineup(src.id);
+      const band = L.band.map(id => {
         const def = Q.band.enemy(id), maxHp = Math.max(4, Math.round(Q.save.maxHpAt(save.level) * (def.companion.hp || RULES.compHp)));
         return {id, def, name: def.name, sprite: def.sprite, maxHp, hp: maxHp, out: false, hop: 0};
       });
       const area = (window.QUEST_AREAS || {})[src.area || (src.test ? 'test' : '')] || {hp: 1, atk: 1};
       const hp = Math.round(src.hp * (area.hp || 1) * (1 + (src.boss ? RULES.bossPartyHp : RULES.partyHp) * band.length));
       B = {e: Object.assign({}, src, {maxHp: hp, hp, atk: (src.atk || 2) * (area.atk || 1)}), save, member, back, band, aim: null, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
-        player: Q.playerId(member.id)};
+        player: Q.playerId(member.id), lineup: L, introAt: performance.now()};
       // THE CALM SCALE: CALM rises like damage does: with your power (level) and against its HP (area × band size)
       B.calmScale = Q.save.powerAt(save.level) / Q.save.powerAt(1) * RULES.calmRef / hp;
       Q.ui.innerHTML = `<div class="q-hud">` +
@@ -486,7 +497,9 @@
       // your band beside you (happy faces; out of breath = faded; a little hop when they play)
       if (!dodging) B.band.forEach((c, i) => {
         const hop = now < c.hop && now > c.hop - 250 && !Q.reduced() ? -3 : 0;
-        Q.draw(ctx, c.sprite, 72, 60 + 28 * i + hop, {t: now, frame: 2, alpha: c.out ? .35 : 1});
+        // THE LINEUP slides in beside you as the battle opens (INTRO_SLIDE ms, one after the other; still under reduced motion)
+        const p = Q.reduced() ? 1 : Math.max(0, Math.min(1, (now - B.introAt - 150 * i) / INTRO_SLIDE)), slide = Math.round((1 - p) * (1 - p) * -70);
+        Q.draw(ctx, c.sprite, 72 + slide, 60 + 28 * i + hop, {t: now, frame: 2, alpha: c.out ? .35 : 1});
       });
       // you
       if (!dodging) Q.draw(ctx, B.player, 6, B.band.length ? 58 : 52, {scale: 2, t: now});   // switches to its PLAYING pose during a challenge
@@ -495,5 +508,5 @@
   };
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
     power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
-    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out}))};   // tests
+    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup};   // tests
 })(window.Arcade);

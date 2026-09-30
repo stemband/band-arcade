@@ -370,3 +370,69 @@ test('a PERFECT SERENADE (95 %+) gives CALM × 1.5 with "PERFECT SERENADE!"', as
   expect(c.calm - before).toBeCloseTo(38 * .9 * c.calmScale, 5);
   watch.check();
 });
+
+/* THE LINEUP (engine/save.js Q.band.lineup): a friend never plays against its own kind; the next friend steps in
+   (the most recently befriended first) or the band plays short, and the battle says so; a new friend joins an
+   automatic band but never changes a band the student picked */
+test('fighting a Wisp with a Wisp in the band: the newest spare friend steps in, and the battle says so', async ({page}) => {
+  const watch = await open(page, {roster: ['squawk', 'hush', 'wisp', 'wobble'], band: ['wisp', 'hush']});
+  await start(page, 'wisp');
+  await expect.poll(async () => { const s = await state(page); return s && s.lineup && s.band.map(c => c.id); }).toEqual(['wobble', 'hush']);
+  const s = await state(page);
+  expect(s.lineup).toEqual({band: ['wobble', 'hush'], out: ['wisp'], subs: ['wobble']});
+  await expect(page.locator('#qHudP .q-party')).toHaveText('TRIO');
+  await until(page, () => false, () => 'LISTEN', 12).catch(() => {});
+  expect(await page.evaluate(() => window.__lines)).toContain('Wisp won\'t play against another Wisp, so Wobble joins you instead!');
+  // for this battle only: the saved band is unchanged
+  expect(await page.evaluate(() => Arcade.Quest.save.get().band)).toEqual(['wisp', 'hush']);
+  watch.check();
+});
+
+test('no spare friend: a duet this time (and the line says so); the same kind in a solo band = a solo', async ({page}) => {
+  const watch = await open(page, {roster: ['wisp', 'hush'], band: ['wisp', 'hush']});
+  await start(page, 'wisp');
+  await expect.poll(async () => { const s = await state(page); return s && s.band.map(c => c.id); }).toEqual(['hush']);
+  await expect(page.locator('#qHudP .q-party')).toHaveText('DUET');
+  await until(page, () => false, () => 'LISTEN', 12).catch(() => {});
+  expect(await page.evaluate(() => window.__lines)).toContain('Wisp won\'t play against another Wisp, so it\'s a duet this time.');
+  // a band without that kind: no line at all
+  await page.evaluate(() => { window.__lines = []; Arcade.Quest.go('arena'); });
+  await start(page, 'squawk');
+  await until(page, () => false, () => 'LISTEN', 12).catch(() => {});
+  expect((await page.evaluate(() => window.__lines)).some(l => /won't play against/.test(l))).toBe(false);
+  expect(await page.evaluate(() => Arcade.Quest.band.lineup('wisp'))).toEqual({band: ['hush'], out: ['wisp'], subs: []});
+  await page.evaluate(() => Arcade.Quest.band.set(['wisp']));
+  expect(await page.evaluate(() => Arcade.Quest.band.lineup('wisp'))).toEqual({band: ['hush'], out: ['wisp'], subs: ['hush']});
+  await page.evaluate(() => Arcade.Quest.save.get().roster.splice(1));      // only the Wisp left
+  expect(await page.evaluate(() => Arcade.Quest.band.lineup('wisp'))).toEqual({band: [], out: ['wisp'], subs: []});
+  watch.check();
+});
+
+test('a new friend: joins an automatic band (and says how to change it); a band the student picked stays as it was', async ({page}) => {
+  // a picked band
+  let watch = await open(page, {roster: ['wisp', 'hush'], band: ['wisp']});
+  await start(page, 'squawk');
+  await until(page, (b, scene) => scene !== 'battle', b => (b && b.calm >= 100 ? 'HARMONIZE' : 'SERENADE'));
+  let r = await page.evaluate(() => ({band: Arcade.Quest.save.get().band, members: Arcade.Quest.band.members(), roster: Arcade.Quest.save.get().roster, lines: window.__lines}));
+  expect(r.roster).toContain('squawk');
+  expect(r.band).toEqual(['wisp']);
+  expect(r.members).toEqual(['wisp']);
+  expect(r.lines).toContain('Squawk is ready to join: MENU → Band.');
+  watch.check();
+  // the automatic band: the new friend joins, and the line says how to change it
+  watch = await open(page, {roster: ['wisp', 'hush']});
+  await start(page, 'squawk');
+  await until(page, (b, scene) => scene !== 'battle', b => (b && b.calm >= 100 ? 'HARMONIZE' : 'SERENADE'));
+  r = await page.evaluate(() => ({band: Arcade.Quest.save.get().band, members: Arcade.Quest.band.members(), lines: window.__lines}));
+  expect(r.band == null).toBe(true);
+  expect(r.members).toEqual(['hush', 'squawk']);
+  expect(r.lines).toContain('Squawk joins your band! (Change your band anytime: MENU → Band.)');
+  // the BAND screen: the current two marked, the automatic note and the own-kind line
+  await page.evaluate(() => { Arcade.Quest.talk.band(); });
+  const panel = page.locator('.q-band');
+  await expect(panel).toContainText('Automatic: your two newest friends play.');
+  await expect(panel).toContainText('Friends never play against their own kind');
+  await expect(panel.locator('.q-btn', {hasText: 'Squawk'})).toContainText('In your band');
+  await expect(panel.locator('.q-btn', {hasText: 'Wisp'})).not.toContainText('In your band');
+  watch.check();
+});
