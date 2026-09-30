@@ -16,8 +16,8 @@
    Episode 1: the Phantom Fermata and the Ghost Conductor have ALTERNATE ROUTES instead (data/enemies.js
    `opensIfFaded`: defeating the Fermata opens the Hidden Passage; the Conductor's `finale` holds him at 1 HP ONCE,
    then HARMONIZE = the best ending, PLAY on = the defeat ending, engine/world.js).
-   THE SAFETY NET (once per battle, not the final boss): a PLAY that would bring its HP to 0 while CALM ≥ RULES.netCalm
-   (50) leaves it at 1 HP: "It's barely standing… but it's listening." + "SERENADE to befriend it, or PLAY to finish
+   THE SAFETY NET (once per battle, not the final boss, and ONLY after at least one SERENADE this battle: a PLAY-only
+   battle always ends at 0 HP): a PLAY that would bring its HP to 0 while CALM ≥ RULES.netCalm (50) leaves it at 1 HP: "It's barely standing… but it's listening." + "SERENADE to befriend it, or PLAY to finish
    it." The next PLAY defeats it; SERENADE / HARMONIZE carry on the befriend path.
    THE CALM SCALE (B.calmScale): every CALM gain but LISTEN's (SERENADE, PLAY's per-note/success CALM, the companions')
    × powerAt(level) / powerAt(1) × RULES.calmRef (30) / its HP (base × area × band size), so CALM rises exactly like
@@ -40,6 +40,13 @@
        LV 1  (power 10)   5 / 5 turns            4 + 1 = 5 / 4 + 1 = 5 turns
        LV 5  (power 17)   3 / 3 turns            2 + 1 = 3 / 2 + 1 = 3 turns
        LV 10 (power 33)   2 / 2 turns            1 + 1 = 2 / 1 + 1 = 2 turns
+   CRITICAL HITS (PLAY and the B♭ Blast, RULES.crit*): at 80 % a LUCKY CRIT (1 in 12, × 1.5) adds about 4 % to the
+   average PLAY, so the table above is unchanged. A SKILL CRIT (95 % accuracy and 80 % speed: always × 1.5; your band
+   × 1.2 that turn, never a crit of its own) and a PERFECT SERENADE (95 %+: CALM × 1.5) reward a near-perfect player
+   (100 %, 90 % speed; measured with the same rounding):
+                          DEFEAT solo / trio        BEFRIEND solo / trio
+       LV 1               3 → 2 / 3 → 3 turns       4 → 3 / 4 → 3 turns
+       LV 5, LV 10        unchanged (2 / 2 and 1 / 1: already the fewest turns) and befriend 3 / 3, 2 / 2
    (a boss: the Phantom Fermata, 64 HP (trio 122) at LV 4 (power 15): solo about 7 PLAYs, trio 7: the band shares the
    dodging, not the win). A later area multiplies HP (QUEST_AREAS) to keep fights this length at the levels students
    arrive with.
@@ -63,7 +70,12 @@
     serenadeCalm: 38,                                      // SERENADE: CALM = this × accuracy × the CALM SCALE (see the header)
     compCalm: 1,                                           // after a SERENADE a companion adds your CALM × its companion.power × this (+ its calm perk)
     calmRef: 30,                                           // the CALM SCALE's reference HP (a standard enemy)
-    netCalm: 50};                                          // THE SAFETY NET: a PLAY that would defeat it with CALM ≥ this holds it at 1 HP (once)
+    netCalm: 50,                                           // THE SAFETY NET: after a SERENADE, a PLAY that would defeat it with CALM ≥ this holds it at 1 HP (once)
+    // CRITICAL HITS (PLAY and the B♭ Blast): a SKILL CRIT at critSkill accuracy AND critSpeed speed, always; otherwise a
+    // LUCKY CRIT at critLuckyFrom accuracy or better, 1 in 12 (critChance; the Sharp Ear charm: 1 in 6). × critMult;
+    // your band hits × critBand that turn. PERFECT SERENADE: accuracy ≥ perfectSerenade = CALM × perfectMult
+    critSkill: .95, critSpeed: .8, critLuckyFrom: .7, critChance: 1 / 12, critMult: 1.5, critBand: 1.2,
+    perfectSerenade: .95, perfectMult: 1.5};
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
 
@@ -174,8 +186,9 @@
     } else if (B.e.finale && B.finaleHeldThisPlay) B.e.hp = 1;     // (not in the same PLAY that started the finale)
     else if (B.e.finale) return;
     else if (B.netThisPlay) B.e.hp = 1;                           // (your band can't finish it in the same PLAY either)
-    else if (!B.netUsed && !B.e.mustHarmonize && B.calm >= RULES.netCalm) {
-      // THE SAFETY NET (once per battle): almost befriended, so it holds on at 1 HP; the next PLAY defeats it
+    else if (!B.netUsed && !B.e.mustHarmonize && B.serenaded && B.calm >= RULES.netCalm) {
+      // THE SAFETY NET (once per battle, only after the student has SERENADEd: they're trying to befriend it; a
+      // PLAY-only battle ends at 0 HP, even though PLAY raises CALM a little): it holds on at 1 HP; the next PLAY defeats it
       B.e.hp = 1; B.netUsed = B.netThisPlay = true;
       B.queue.push(Q.text('netLine', {name: B.e.name}), Q.text('netHint', {name: B.e.name}));
     } else if (B.e.mustHarmonize) {
@@ -184,7 +197,7 @@
     }
   }
   /** after each of YOUR PLAYs: every companion still playing plays too, as well as you just did (your accuracy) */
-  function bandPlay(res) {
+  function bandPlay(res, crit) {
     const active = B.band.filter(c => !c.out);
     if (!active.length) return;
     if (!(res.acc > 0)) { B.queue.push(Q.text('bandRest', {band: bandNames(active)})); return; }
@@ -192,7 +205,7 @@
     active.forEach((c, i) => {
       if (B.e.hp <= 0) return;                                  // already fading: nothing left to play against
       const p = c.def.companion, perk = p.perk || {};
-      const dmg = Math.max(1, Math.round(power * p.power * res.acc * (perk.power || 1)));
+      const dmg = Math.max(1, Math.round(power * p.power * res.acc * (perk.power || 1) * (crit ? RULES.critBand : 1)));   // they follow your lead: never a crit of their own
       c.hop = performance.now() + 250 + 300 * i;
       setTimeout(() => { if (B && B.band.includes(c)) float('-' + dmg, 186, 40 + 10 * i, 'dmg band'); }, 250 + 300 * i);
       hurtFoe(dmg);
@@ -227,6 +240,13 @@
   /** SERENADE is offered to every enemy but the final boss (his finale is the story's own befriending moment) */
   const canSerenade = () => B.e.serenade !== false;
 
+  /** a critical hit? 'skill' (a near-perfect, quick PLAY), 'lucky' (a good one, by chance) or null */
+  function critOf(res) {
+    if (res.acc >= RULES.critSkill && res.speed >= RULES.critSpeed) return 'skill';
+    const chance = Math.max(RULES.critChance, ...Q.charms.effects().map(e => e.crit || 0));    // the Sharp Ear charm
+    return res.acc >= RULES.critLuckyFrom && Math.random() < chance ? 'lucky' : null;
+  }
+
   /* ---------- actions ---------- */
   async function doPlay() {
     const which = await playMenu();
@@ -243,17 +263,24 @@
     if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
     const boosted = B.boost && dmg > 0 ? B.boost : 0;
     if (boosted) { dmg = Math.round(dmg * boosted); B.boost = 0; }
+    const crit = dmg > 0 ? critOf(res) : null;
+    if (crit) dmg = Math.round(dmg * RULES.critMult);
+    B.lastCrit = crit;
     if (dmg > 0) {
       hurtFoe(dmg);
       float('-' + dmg, 170, 30, 'dmg'); hud();
       B.queue.unshift(Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
+      if (crit) {                                                  // CRITICAL! (a big gold float, a stronger shake, its own sound)
+        B.queue.unshift(Q.text(crit === 'skill' ? 'critSkill' : 'critLucky'));
+        float(Q.text('critFloat'), 160, 12, 'crit'); Q.shake(5, 380); Q.sfx('quest-crit');
+      }
       if (boosted) B.queue.unshift(Q.text('boosted', {n: boosted}));
       if (B.e.hp > 1 && B.e.hp <= B.e.maxHp / 2 && !B.saidHurt) { B.saidHurt = true; B.queue.push(B.e.lines.hurt); }
     } else B.queue.push(Q.text('miss'));
     if (B.finale) hud();
     const perNote = (B.e.calm.perNote || 0) * (B.listened && B.e.listenBoost ? B.e.listenBoost : 1);
     addCalm((perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0)) * B.calmScale, true);
-    bandPlay(res);                                              // your band plays along (your accuracy)
+    bandPlay(res, crit);                                        // your band plays along (your accuracy; ×1.2 after a critical)
     // 0 HP = it fades away, whatever its CALM (run() ends the battle): with a full CALM the student chose to keep playing
     await sayQ();
     return true;
@@ -263,9 +290,12 @@
     if (!(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     const res = await Q.challenge.run(null, {enemy: B.e, serenade: true});
     if (B === null) return false;
-    const gain = RULES.serenadeCalm * res.acc * B.calmScale;
-    B.lastSerenade = gain;
-    if (gain > 0) { B.queue.push(Q.text(res.acc >= .9 ? 'serenadeGreat' : 'serenadeGood', {name: B.e.name})); addCalm(gain); }
+    B.serenaded = true;                                           // (THE SAFETY NET is for a student trying to befriend)
+    const perfect = res.acc >= RULES.perfectSerenade;
+    const gain = RULES.serenadeCalm * res.acc * B.calmScale * (perfect ? RULES.perfectMult : 1);
+    B.lastSerenade = gain; B.lastPerfect = perfect;
+    if (perfect) { float(Q.text('perfectFloat'), 160, 12, 'perfect'); Q.sfx('quest-serenade-perfect'); B.queue.push(Q.text('serenadePerfect', {name: B.e.name})); }
+    if (gain > 0) { if (!perfect) B.queue.push(Q.text(res.acc >= .9 ? 'serenadeGreat' : 'serenadeGood', {name: B.e.name})); addCalm(gain); }
     else B.queue.push(Q.text('serenadeMiss', {name: B.e.name}));
     bandSerenade(res, gain);
     await sayQ();
@@ -464,6 +494,6 @@
     },
   };
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
-    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
+    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out}))};   // tests
 })(window.Arcade);

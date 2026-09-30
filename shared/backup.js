@@ -86,7 +86,7 @@ window.Arcade = window.Arcade || {};
   };
   const QUEST_V2 = {
     version: 2,
-    charms: ['golden-mouthpiece', 'lucky-reed', 'metronome-charm', 'silver-mute', 'tuning-fork', 'echo-chime'],      // 8 places (append only)
+    charms: ['golden-mouthpiece', 'lucky-reed', 'metronome-charm', 'silver-mute', 'tuning-fork', 'echo-chime', 'sharp-ear'],      // 8 places (append only)
     cosmetics: ['eyes:stars', 'eyes:hearts', 'eyes:wink', 'mouth:tongue', 'mouth:whistle', 'hairColor:gold', 'hairColor:neon',
       'hairColor:galaxy', 'hairColor:flametip', 'head:tophat', 'head:wizard', 'head:plumeshako', 'head:royalcrown', 'head:diamondband',
       'top:rockstar', 'top:tuxedo', 'top:champion', 'top:sequin', 'pet:ghost', 'pet:animatronic', 'pet:note', 'pet:star', 'pet:metronome',

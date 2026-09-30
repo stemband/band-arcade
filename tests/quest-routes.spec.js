@@ -52,12 +52,13 @@ async function room(page, map, x, y, dir = 'up') {
   await page.evaluate(([map, x, y, dir]) => Arcade.Quest.go('world', {map, x, y, dir}), [map, x, y, dir]);
   await drive(page, idleIn(map));
 }
-/** fight one ghost: 'befriend' (calm PLAYs, then HARMONIZE) or 'fade' (full-power PLAYs) */
+/** fight one ghost: 'befriend' (SERENADEs, then HARMONIZE) or 'fade' (full-power PLAYs) */
 async function fight(page, map, key, how) {
   await page.evaluate(p => { window.__play = p; }, PLAY[how]);
   expect(await page.evaluate(k => Arcade.Quest.world.fight(k), key)).toBe(true);
   await drive(page, s => s.scene === 'battle');
-  await drive(page, idleIn(map), b => (how === 'befriend' && b && b.calm >= 100 ? 'HARMONIZE' : 'PLAY'));
+  // befriend = SERENADE until CALM is full, then HARMONIZE (the befriend path); fade = PLAY
+  await drive(page, idleIn(map), b => (how === 'befriend' ? (b && b.calm >= 100 ? 'HARMONIZE' : 'SERENADE') : 'PLAY'));
   expect(await page.evaluate(k => Arcade.Quest.save.get().done[k], `${map}:${key}`)).toBe(how);
 }
 /** A (Enter) at whatever you face. A focused button takes Enter for itself (keyboard access; WebKit can leave one

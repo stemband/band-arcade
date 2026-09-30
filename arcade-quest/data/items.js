@@ -29,4 +29,6 @@ window.QUEST_CHARMS = {
   'tuning-fork':       {name: 'Tuning Fork', icon: 'fork', desc: 'In-tune playing (90% or better) hits 25% harder.', effect: {inTune: 1.25, at: 0.9}, found: 'library'},
   // THE ALTERNATE ROUTE's treasure: only in the Hidden Passage (opened by DEFEATING the Phantom Fermata)
   'echo-chime':        {name: 'Echo Chime', icon: 'chime', desc: '+4 max HP, and CALM rises 15% faster. It rings with the old orchestra.', effect: {maxHp: 4, calm: 1.15}, found: 'passage'},
+  // crit: a LUCKY CRIT's chance (battle.js RULES.critChance is 1 in 12 without it)
+  'sharp-ear':         {name: 'Sharp Ear', icon: 'ear', desc: 'Critical hits come twice as often (1 in 6).', effect: {crit: 1 / 6}, price: 300},
 };
