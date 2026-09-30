@@ -41,6 +41,50 @@
     if (e.repeat && !/up|down|left|right/.test(k)) return;     // holding A or B doesn't repeat; arrows do (menus)
     input.press(k);
   });
+  /* KEYBOARD HINTS (keyboards only: !input.touch; touch screens have the pad, whose A and B match the words):
+     Q.keyHints.label('a')  "A (Z / Enter)" on a keyboard, "A" on touch   ·   Q.keyHints.more  the text box's ▼ (+ "Enter")
+     THE KEY LEGEND (#qKeys, the game screen's bottom-left corner, while you're free to walk: engine/world.js calls
+     show(free) every frame): "Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu". It fades to
+     low opacity after FADE_MS without a key press and comes back on a key, on hover and when a new scene or room loads
+     (wake()). Settings: "Show key hints" (Q.settings keyHints, default On).
+     THE FIRST TIME the game is played on a keyboard (gameData keysTip), one line after the opening story: tip(). */
+  const FADE_MS = 10000;
+  const LEGEND = 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu';
+  let hintEl = null, fadeT = 0, shown = false;
+  const hintsOn = () => !input.touch && !(Q.settings && Q.settings.get().keyHints === false);
+  const legend = () => {
+    if (hintEl && hintEl.isConnected) return hintEl;
+    const stage = document.getElementById('stage'); if (!stage) return null;
+    hintEl = Q.el('p', 'q-keys', LEGEND); hintEl.id = 'qKeys'; hintEl.hidden = true; hintEl.setAttribute('aria-hidden', 'true');
+    hintEl.addEventListener('mouseenter', () => Q.keyHints.wake());
+    stage.appendChild(hintEl);
+    return hintEl;
+  };
+  Q.keyHints = {
+    LEGEND, FADE_MS,
+    label: b => (input.touch ? b.toUpperCase() : b === 'a' ? 'A (Z / Enter)' : b === 'b' ? 'B (X / Esc)' : b.toUpperCase()),
+    get more() { return input.touch ? '▼' : '▼ Enter'; },
+    show(on) {
+      on = !!on && hintsOn();
+      const el = on || shown ? legend() : null;
+      if (!el || on === shown) return;
+      shown = on; el.hidden = !on;
+      if (on) Q.keyHints.wake();
+    },
+    wake() {
+      clearTimeout(fadeT);
+      if (hintEl) hintEl.classList.remove('dim');
+      fadeT = setTimeout(() => { if (hintEl) hintEl.classList.add('dim'); }, FADE_MS);
+    },
+    state: () => ({shown: !!hintEl && !hintEl.hidden, dim: !!hintEl && hintEl.classList.contains('dim'), text: hintEl ? hintEl.textContent : ''}),
+    firstTip: () => !input.touch && !A.store.gameData('arcade-quest').keysTip,
+    tip() {
+      if (!Q.keyHints.firstTip()) return Promise.resolve();
+      const d = A.store.gameData('arcade-quest'); d.keysTip = true; A.store.saveGameData('arcade-quest');
+      return Q.say('On a keyboard: Z or Enter = A, X or Esc = B, M = Menu.');
+    },
+  };
+  addEventListener('keydown', () => { if (shown) Q.keyHints.wake(); }, true);
   addEventListener('keyup', e => { const k = KEYS[e.key] || KEYS[e.key.toLowerCase && e.key.toLowerCase()]; if (k) held[k] = false; });
   addEventListener('blur', () => input.clear());
 

@@ -36,10 +36,21 @@
   const idle = () => !!W && !W.busy && !W.fade && !W.fighting;
   /** Esc belongs to the pause menu only when nothing else is on screen (engine/input.js asks) */
   Q.pauseOwnsEsc = () => !!pause && pause.active && Q.sceneName === 'world' && idle();
+  /* THE MENU BUTTON: the kit's pause button, placed in the game screen's top-right corner (#qMenuSlot, beside the
+     canvas, never inside #ui, which every scene redraws) and dressed as "☰ MENU". It shows only while you're free
+     to walk (the same as when Esc/P/B/M may pause: no battle, no conversation, no panel); engine/controls.js keeps an
+     arranged pad clear of it. */
+  function menuSlot() {
+    let slot = document.getElementById('qMenuSlot');
+    if (!slot) { slot = Q.el('div', 'q-menuslot'); slot.id = 'qMenuSlot'; document.getElementById('stage').appendChild(slot); }
+    return slot;
+  }
+  const MENU_ICON = '<svg viewBox="0 0 7 6" aria-hidden="true" shape-rendering="crispEdges"><rect y="0" width="7" height="1"/><rect y="2.5" width="7" height="1"/><rect y="5" width="7" height="1"/></svg>';
   function kitPause() {
     if (pause || !A.UI || !A.UI.pause) return pause;
     pause = A.UI.pause.mount({
       theme: 'q-theme',
+      place: menuSlot(),
       onPause: freeze,
       onResume: () => {
         if (!inCharms) unfreeze();                                     // (the tab hidden over CHARMS: that panel is still open)
@@ -68,6 +79,17 @@
       leaveText: 'Where you are in the manor is kept only from your last Save Jukebox. Your level, items, tokens and friends are already saved.',
       leaveYes: 'Title screen',
     });
+    pause.el.classList.add('q-menubtn');
+    pause.el.innerHTML = `${MENU_ICON}<span class="ui-pb-t">Menu</span>`;
+    pause.el.setAttribute('aria-label', 'Menu');
+    // M opens (and closes) the menu too, like Esc, P and B
+    addEventListener('keydown', e => {
+      if ((e.key !== 'm' && e.key !== 'M') || e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (!pause.active || Q.sceneName !== 'world') return;
+      if (pause.paused) { if (pause.open() && A.UI.state().modals <= 1) { e.preventDefault(); pause.resume(); } return; }
+      if (document.body.classList.contains('ui-modal') || document.body.classList.contains('avc-open') || !idle()) return;
+      e.preventDefault(); pause.pause('key');
+    }, true);                                              // (capture: the open menu keeps its keys from bubbling)
     return pause;
   }
 
@@ -114,6 +136,7 @@
   function roomMusic(id) { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(musicFor(id), {fade: ROOM_XF}); }
 
   function load(mapId, at, dir) {
+    Q.keyHints.wake();                                   // a new room: the key legend comes back
     const def = MAPS()[mapId] || MAPS().foyer, id = MAPS()[mapId] ? mapId : 'foyer';
     const [x, y] = at || spawnFor(def);
     const save = Q.save.get();
@@ -286,7 +309,8 @@
     enter(args = {}) {
       Q.listen(false);
       Q.talk.mount();
-      if (kitPause()) pause.setActive(true);
+      if (kitPause()) { pause.setActive(true); document.documentElement.classList.add('ui-in-level'); }
+      Q.keyHints.wake();
       if (args.resume && W) {
         roomMusic(W.map);                                // the room's music again, from where it stopped
         Q.talk.hud();
@@ -302,11 +326,15 @@
         if (btn === 'b') { if (pause) pause.pause('button'); return true; }
         return false;
       });
-      if (args.intro) { W.busy = true; Q.talk.intro().then(() => { if (W) W.busy = false; }); }
+      // the opening story (NEW GAME), then, the first time the game is played on a keyboard, the keys in one line
+      if (args.intro || Q.keyHints.firstTip()) { W.busy = true; (args.intro ? Q.talk.intro() : Promise.resolve()).then(() => Q.keyHints.tip()).then(() => { if (W) W.busy = false; }); }
     },
-    exit() { if (offKeys) offKeys(); offKeys = null; if (pause) pause.setActive(false); unfreeze(); Q.input.clear(); },
+    exit() { if (offKeys) offKeys(); offKeys = null; Q.keyHints.show(false); if (pause) pause.setActive(false); unfreeze(); Q.input.clear(); },
     update(dt) {
       if (!W) return;
+      const free = idle() && !Q.paused && !Q.input.blocked;
+      if (pause && pause.active && pause.el.hidden === free) { pause.el.hidden = !free; }
+      Q.keyHints.show(free);
       if (W.grace > 0) W.grace -= dt;
       if (W.fade) {
         W.fade.t += dt / 0.22;

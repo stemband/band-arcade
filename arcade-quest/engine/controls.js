@@ -13,7 +13,7 @@
    cluster's center as a share of the window; s = size; op = opacity). The page layout never changes (the game keeps
    its size): an arranged cluster is only moved and scaled with a transform from its normal place (.q-wrap.pad-free).
    THE CONTROLS NEVER BLOCK A MENU OR THE TEXT: whenever a menu (the battle's PLAY · LISTEN · ITEM · HARMONIZE, any
-   Q.menu), a text box or a challenge's buttons show,
+   Q.menu), a text box, a challenge's buttons or the ☰ MENU button show,
    a cluster that would overlap it is nudged clear (the nearest free spot above, below or beside it); it goes back to
    its saved spot when that's gone. Keyboard play is unchanged. Q.arrange.open() / close() / state() (tests). */
 (function (A) {
@@ -86,7 +86,8 @@
   /** the menus and the text the controls must never cover (only the ones on screen) */
   function obstacles() {
     const ui = $('ui'); if (!ui) return [];
-    return [...ui.querySelectorAll('.q-menu, .q-textbox, .q-chal button')].filter(el => el.offsetParent !== null && !el.closest('[hidden]'))
+    // (+ the ☰ MENU button, which sits beside #ui in the game screen's corner: engine/world.js)
+    return [...ui.querySelectorAll('.q-menu, .q-textbox, .q-chal button'), ...document.querySelectorAll('#qMenuSlot .ui-pause-btn')].filter(el => el.offsetParent !== null && !el.hidden && !el.closest('[hidden]'))
       .map(el => el.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
   }
   const hits = (a, b) => a.left < b.right + GAP && a.right > b.left - GAP && a.top < b.bottom + GAP && a.bottom > b.top - GAP;
@@ -128,7 +129,7 @@
   function watch() {
     const ui = $('ui'); if (!ui || watch.on) return;
     watch.on = true;
-    new MutationObserver(soon).observe(ui, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class']});
+    new MutationObserver(soon).observe(ui.parentNode || ui, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class']});   // #stage: #ui and the ☰ MENU button
   }
 
   /* the edit mode */

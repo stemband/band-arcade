@@ -24,7 +24,7 @@
    `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
    star sources the next time the Token Booth counts (engine/talk.js).
    Every write also stores `progress` = {pct, friends} for the arcade floor's line ("Episode 1: 60% · 7 friends").
-   SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool} (your look and name: Create Your Player, EDIT PLAYER here).
+   SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool, keyHints: bool (keyboards: the key legend)} (your look and name: Create Your Player, EDIT PLAYER here).
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
    Q.settings.open() shows the arcade's shared SETTINGS panel (shared/ui-kit.js) with these options under "Arcade Quest". */
 (function (A) {
@@ -176,16 +176,21 @@
     },
   };
 
-  const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false};
+  const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false, keyHints: true};
   /* THE SETTINGS PANEL is the arcade's shared one (shared/ui-kit.js Arcade.UI.settings: sound, music, effects, motion,
      mic sensitivity), pixel-themed in style.css; Arcade Quest adds its own options under "This game" (registered once,
      so they're there however it opens: the title, the arena, a battle's ⚙, the pause menu or the top bar). */
   const OPTS = [['textSpeed', 'Text speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast'], ['instant', 'Instant']]],
     ['dodge', 'Dodging', [['easy', 'Easy'], ['normal', 'Normal']]],
-    ['assist', 'Assist mode', [['false', 'Off'], ['true', 'On']], 'On: enemies’ sour notes do half damage.']];
+    ['assist', 'Assist mode', [['false', 'Off'], ['true', 'On']], 'On: enemies’ sour notes do half damage.'],
+    ['keyHints', 'Show key hints', [['true', 'On'], ['false', 'Off']], 'The keys in the corner while you explore.', 'keyboard']];
+  const BOOL = ['assist', 'keyHints'];
+  /* THE CONTROLS (every key engine/input.js knows, + M for the menu), listed under "Controls" */
+  const CONTROLS = [['Arrows or W A S D', 'Move'], ['Z, Enter or Space', 'A: talk, check, choose'], ['X, Esc or Backspace', 'B: back'],
+    ['M, Esc, P or B', 'Menu (while you explore)']];
   function questOptions(box, ctx) {
     const s = Q.settings.get();
-    box.innerHTML = OPTS.map(([k, name, opts, note]) => `<div><span class="ui-label" id="qSet-${k}">${name}</span>` +
+    box.innerHTML = OPTS.filter(o => !(o[4] === 'keyboard' && Q.input.touch)).map(([k, name, opts, note]) => `<div><span class="ui-label" id="qSet-${k}">${name}</span>` +
       `<div class="ui-seg ui-seg-sm" role="group" aria-labelledby="qSet-${k}" data-k="${k}">` +
       opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(s[k]) === v}">${l}</button>`).join('') + `</div>` +
       (note ? `<p class="ui-howto q-snote">${note}</p>` : '') + `</div>`).join('') +
@@ -193,9 +198,12 @@
         `<p class="ui-howto q-snote">Your look and your name, everywhere in the arcade.</p></div>` : '') +
       // ARRANGE CONTROLS (engine/controls.js): touch screens only (the pad only shows there)
       (Q.input.touch && Q.arrange ? `<div><span class="ui-label">On-screen controls</span><button type="button" class="btn btn-secondary btn-small q-arrange-btn">Arrange controls</button>` +
-        `<p class="ui-howto q-snote">Move the D-pad and the A/B buttons, change their size and how see-through they are.</p></div>` : '');
+        `<p class="ui-howto q-snote">Move the D-pad and the A/B buttons, change their size and how see-through they are.</p></div>` : '') +
+      `<div><span class="ui-label" id="qSetKeys">Controls</span><dl class="q-keylist" aria-labelledby="qSetKeys">` +
+      CONTROLS.map(([k, what]) => `<dt>${k}</dt><dd>${what}</dd>`).join('') + `</dl>` +
+      (Q.input.touch ? `<p class="ui-howto q-snote">On this screen: the D-pad, A, B and the ☰ MENU button.</p>` : '') + `</div>`;
     box.querySelectorAll('.ui-seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-      const k = g.dataset.k, v = k === 'assist' ? b.dataset.v === 'true' : b.dataset.v;
+      const k = g.dataset.k, v = BOOL.includes(k) ? b.dataset.v === 'true' : b.dataset.v;
       Q.settings.set({[k]: v}); Q.sfx('quest-select');
       g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
       if (Q.onSettings) Q.onSettings();

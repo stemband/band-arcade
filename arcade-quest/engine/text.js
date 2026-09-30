@@ -25,7 +25,7 @@
     if (!b) {
       b = Q.el('div', 'q-textbox');
       b.id = 'qText';
-      b.innerHTML = '<div class="q-portrait" aria-hidden="true"></div><div class="q-tbody"><p class="q-tname"></p><p class="q-tline"></p><span class="q-tmore" aria-hidden="true">▼</span></div><p class="sr" aria-live="polite"></p>';
+      b.innerHTML = `<div class="q-portrait" aria-hidden="true"></div><div class="q-tbody"><p class="q-tname"></p><p class="q-tline"></p><span class="q-tmore" aria-hidden="true">${Q.keyHints ? Q.keyHints.more : '▼'}</span></div><p class="sr" aria-live="polite"></p>`;
       Q.ui.appendChild(b);
     }
     return b;
