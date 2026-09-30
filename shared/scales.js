@@ -69,11 +69,16 @@ window.Arcade = window.Arcade || {};
   const AUDITION_ORDER = ['F', 'Bb', 'Eb', 'Ab'];
   // the chromatic, audition only: mallets play 2 octaves up and down from concert F (the bells member is unchanged)
   const AUDITION_CHROM = {bells: ['F4', 'F6']};
-  // the sheets' rhythm, only a picture (nothing is judged on it): beats per note, and the measures
+  // the sheets' rhythm (4/4), only a picture (nothing is judged on it): beats per note, one list per measure. The SAME
+  // note values for 1 and 2 octaves (a 2-octave scale just has more measures): scale measures = quarter, 2 eighths,
+  // 4 eighths (7 notes); arpeggio measures = quarter, 2 eighths, quarter, 2 eighths (6 notes; the first starts on the
+  // scale's last note); a final whole note.
+  //   1 octave:  | 1 2 3 4 5 6 7 | 8 7 6 5 4 3 2 | 1 3 5 8 5 3 | 1 |                                (21 notes, 4 bars)
+  //   2 octaves: | 1–7 | 8–14 | 15 14 … 9 | 8 7 … 2 | 1 3 5 8 10 12 | 15 12 10 8 5 3 | 1 |       (41 notes, 7 bars)
+  const SCALE_BAR = [1, .5, .5, .5, .5, .5, .5], ARP_BAR = [1, .5, .5, 1, .5, .5];
   const RHYTHM = {
-    1: [[1, .5, .5, .5, .5, .5, .5], [1, .5, .5, .5, .5, .5, .5], [1, .5, .5, 1, .5, .5], [4]],
-    2: [[.5, .25, .25, .25, .25, .25, .25, .5, .25, .25, .25, .25, .25, .25], [.5, .25, .25, .25, .25, .25, .25, .5, .25, .25, .25, .25, .25, .25],
-        [.5, .25, .25, .5, .25, .25, .5, .25, .25, .5, .25, .25], [4]],
+    1: [SCALE_BAR, SCALE_BAR, ARP_BAR, [4]],
+    2: [SCALE_BAR, SCALE_BAR, SCALE_BAR, SCALE_BAR, ARP_BAR, ARP_BAR, [4]],
   };
 
   const LIST = [

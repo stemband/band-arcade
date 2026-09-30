@@ -71,6 +71,42 @@ test('the AUDITION table: every member, every scale: 21 or 41 notes, the right k
   watch.check();
 });
 
+test('the rhythm picture: a 2-octave scale is 7 bars, a 1-octave scale 4 bars, only quarters, eighths and one whole note (never sixteenths)', async ({page}) => {
+  const watch = await open(page);                                           // trumpet: Concert F = 2 octaves, B♭ = 1 octave
+  const data = await page.evaluate(() => Arcade.ScaleAudition.scales().map(sc => ({id: sc.id, oct: sc.octaves, bars: sc.measures,
+    beats: sc.notes.map(n => n.beats), sums: sc.measures.map((c, m) => sc.notes.filter(n => n.measure === m).reduce((a, n) => a + n.beats, 0))})));
+  const SCALE = [1, .5, .5, .5, .5, .5, .5], ARP = [1, .5, .5, 1, .5, .5];
+  for (const d of data) {
+    expect(d.bars.length, d.id).toBe(d.oct === 2 ? 7 : 4);
+    expect(d.sums.every(x => x === 4), d.id + ': every bar is 4/4').toBe(true);
+    expect(d.beats.every(b => b === 1 || b === .5 || b === 4), d.id + ': only quarters, eighths and a whole note').toBe(true);
+    expect(d.beats.filter(b => b === 4)).toEqual([4]);
+    expect(d.beats[d.beats.length - 1]).toBe(4);
+    const want = d.oct === 2 ? [SCALE, SCALE, SCALE, SCALE, ARP, ARP, [4]] : [SCALE, SCALE, ARP, [4]];
+    expect(d.beats).toEqual([].concat(...want));
+  }
+  // …and drawn that way: every bar line (plus each row break) accounts for every measure, one whole note, no second beams
+  for (const [card, bars] of [[0, 7], [1, 4]]) {
+    await page.locator('#modeSeg [data-mode="practice"]').click();
+    await page.locator('#levelGrid .lvl').nth(card).click();
+    await page.locator('.ls-start').click();
+    const mic = page.getByRole('button', {name: 'Turn on microphone'});
+    if (await mic.isVisible({timeout: 1500}).catch(() => false)) await mic.click();
+    await expect(page.locator('#sheet .sa-row').first()).toBeVisible();
+    const d = await page.evaluate(() => ({rows: document.querySelectorAll('#sheet .sa-row').length, lines: document.querySelectorAll('#sheet .sa-bar').length,
+      whole: document.querySelectorAll('#sheet .head.whole').length, beams: document.querySelectorAll('#sheet .sa-beam').length}));
+    expect(d.lines - 1 + d.rows, `card ${card}: measures drawn`).toBe(bars);   // bar lines inside rows + row breaks (the final thin line counted once)
+    expect(d.whole).toBe(1);
+    expect(d.beams).toBe(bars === 7 ? 4 * 3 + 2 * 2 : 2 * 3 + 2);                // one beam per eighth pair: 3 per scale bar, 2 per arpeggio bar
+    await page.keyboard.press('Escape');
+    await page.locator('#uiPause .btn-danger, #uiPause [data-act="levels"]').first().click();
+    const yes = page.locator('#uiConfirm .btn-danger, #uiConfirm .btn-primary').first();
+    if (await yes.isVisible({timeout: 1000}).catch(() => false)) await yes.click();
+    await expect(page.locator('#hub')).toBeVisible();
+  }
+  watch.check();
+});
+
 test('a level-4 audition played through Pitch.demoNote: in time, every note clean = 3 stars, the score sheet and ALL-STATE READY', async ({page}) => {
   test.setTimeout(120000);
   const watch = await open(page);
