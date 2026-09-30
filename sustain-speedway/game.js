@@ -72,11 +72,12 @@
         <span class="n">Track ${lv}</span><span class="t">${L.name}</span>
         <span class="d">${L.blurb}</span>
         <span class="facts">${L.laps} laps · ${lapTxt} a lap${L.tunnels ? ' · tunnels' : ''}${L.dyn ? ' · dynamics' : ''}${L.slurLaps ? ' · slurs' : ''}</span>
+        ${teacherFor(lv) ? `<span class="tg-badge">Beat ${teacherFor(lv).name}</span>` : ''}
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${!open ? '' : p.best ? 'Best ' + fmt(p.best / 10) + (bl ? ` · lap ${bl.toFixed(1)} s` : '') : ''}</span></span>
       </button>`;
     }).join('');
     $('trackGrid').querySelectorAll('.trk').forEach(b => b.addEventListener('click', () => { const lv = +b.dataset.l; A.requireMic(() => startRace(lv)); }));
-    garageDot();
+    garageDot(); drawRecords();
     // GARAGE (beside): just left of START, in the level select's sticky row
     A.LevelSelect.show({screen: $('hub'), grid: $('trackGrid'), beside: $('garageBtn'), cards: $('trackGrid').querySelectorAll('.trk'), picker: $('modePick'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars >= 3,
@@ -118,7 +119,8 @@
     const lens = lapLens(L);
     const rivals = L.rivals.map((r, i) => Object.assign({home: i % 2 ? 1 : -1}, r));      // home lane: left, right, left… (LANES)
     const ghost = (gd.ghosts || {})[recKey(lv)] || null;
-    G = {car: Garage.look(), lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
+    const teacher = teacherFor(lv);                                       // THE TEACHER GHOST CHALLENGE (teacher-ghosts.js)
+    G = {car: Garage.look(), lv, L, diff: d, seq, items: seq.items, lens, rivals, ghost, teacher, lap: 0, dist: 0, v: 0, clock: 0, lapStart: 0, lapTimes: [],
       phase: 'count', pitEnd: 0, nitro: false, zoneTime: 0, driveTime: 0, ghostRec: [0], nextRec: R.ghostEvery,
       steer: 0, steerRec: [0], notes: {},                                // PITCH STEERING (drawing only) + THE INTONATION REPORT
       fx: {}, season: SC.season(),                                       // the scenery: effects, the SEASONAL look (scenery.js)
@@ -528,10 +530,10 @@
     const k = t / R.ghostEvery, i = Math.min(s.length - 1, Math.floor(k)), j = Math.min(s.length - 1, i + 1);
     return s[i] + (s[j] - s[i]) * (k - i);
   }
-  function ghostProgress(t) {
-    const p = G.ghost && G.ghost.p; if (!p || !p.length) return null;
+  function ghostProgress(t, ghost = G.ghost) {
+    const p = ghost && ghost.p; if (!p || !p.length) return null;
     const k = t / R.ghostEvery, i = Math.floor(k);
-    if (i >= p.length - 1) return t >= G.ghost.t ? G.lens.length : p[p.length - 1];
+    if (i >= p.length - 1) return t >= ghost.t ? G.lens.length : p[p.length - 1];
     return p[i] + (p[i + 1] - p[i]) * (k - i);
   }
   function position() {
@@ -982,6 +984,10 @@
     // the ghost isn't on the starting grid: it joins once the grid has faded (it would sweep through the pack)
     const gp = G.phase !== 'count' && gridAmount() === 0 ? ghostProgress(G.clock) : null;
     if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {}), idx: G.rivals.length, look: G.car, ghost: true, name: 'Best run', steer: ghostSteer(G.clock)});   // the ghost = your own car, see-through
+    // THE TEACHER'S GHOST: a gold see-through car with the teacher's name over it
+    const tp = G.teacher && G.phase !== 'count' && gridAmount() === 0 ? ghostProgress(G.clock, G.teacher) : null;
+    if (tp !== null) cars.push({d: toDist(tp) - myD, who: G.teacherCar || (G.teacherCar = {}), idx: G.rivals.length + 1, look: {body: 'openwheel', color: css('sw-teacher-gold'), decal: 'stripes'},
+      ghost: true, teacher: true, name: G.teacher.name});
     // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
     const sway = still ? 0 : -curve * W * .02;
     const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
@@ -994,8 +1000,10 @@
     G.carX = mine.x - W / 2;
     const sky = css(T.rim);                                   // the rim light on every car: the time of day's
     const dpr = Math.min(1.5, devicePixelRatio || 1);
-    placeCars(cars, proj, mine, now).forEach(c => Cars.draw(cx, c.x, c.y, c.w, Object.assign({}, c.look || {body: c.who.body || 'coupe', color: C[c.who.color] || C.cyan, decal: 'none'},
-      {sky, dpr, t: now, reduced: still, alpha: c.ghost ? .38 : 1})));
+    const placed = placeCars(cars, proj, mine, now);
+    placed.forEach(c => Cars.draw(cx, c.x, c.y, c.w, Object.assign({}, c.look || {body: c.who.body || 'coupe', color: C[c.who.color] || C.cyan, decal: 'none'},
+      {sky, dpr, t: now, reduced: still, alpha: c.teacher ? .55 : c.ghost ? .38 : 1})));
+    placed.filter(c => c.teacher).forEach(c => nameTag(c.x, c.box.t - 4, c.name, Math.max(10, Math.min(16, c.w * .16))));
     // TIRE SMOKE: a burst at GO, and while braking hard (scaled by the speed)
     if (!LITE && G.phase === 'race') {
       if (G.liveAt && !G.fx.goSmoke) { G.fx.goSmoke = true; smoke(mine.x, mine.y, 14, mine.w * .7); }
@@ -1044,6 +1052,14 @@
     cx.restore();
     // THE CHECKERED FLAG, waving as you cross (still with reduced motion)
     if (G.phase === 'done' && G.fx.flagAt && now - G.fx.flagAt < 1500) SC.flag(cx, W * .5 - Math.min(W * .2, 150) / 2, H * .08, Math.min(W * .2, 150), now, still, C);
+  }
+  /** the name tag over the teacher's ghost car */
+  function nameTag(x, y, text, size) {
+    cx.font = `700 ${Math.round(size)}px ${css('text') || 'sans-serif'}`; cx.textAlign = 'center'; cx.textBaseline = 'bottom';
+    const w = cx.measureText(text).width + size;
+    cx.globalAlpha = .9; cx.fillStyle = C.tunnel; cx.fillRect(x - w / 2, y - size * 1.35, w, size * 1.35);
+    cx.strokeStyle = css('sw-teacher-gold'); cx.lineWidth = 1.5; cx.strokeRect(x - w / 2, y - size * 1.35, w, size * 1.35);
+    cx.fillStyle = css('sw-teacher-gold'); cx.globalAlpha = 1; cx.fillText(text, x, y - size * .15);
   }
   /* a big roadside sign on the right: p / f (bold italic, like printed music), the cresc. / decresc. hairpins, a slur */
   const DYN_COL = {};
@@ -1148,6 +1164,113 @@
   }
   $('garageBtn').addEventListener('click', () => Garage.open({onClose: garageDot}));
 
+  /* ---------- BREATH STATS: the longest STEADY HOLD (unbroken tone within the difficulty's tolerance) ----------
+     gameData.breath[member] = {best (s), notes: {<written note>: {s, m (midi, for the order)}}, hist: [{d, best}] (the
+     last RULES.breath.history races)}. breathRecord(g) saves a race and says whether it set a new record. */
+  const B = R.breath;
+  function breathRecord(g) {
+    const all = (gd.breath = gd.breath || {}), me = (all[who] = all[who] || {best: 0, notes: {}, hist: []});
+    const notes = Object.values(g.notes).filter(st => st.hold >= B.minSec);
+    const race = notes.reduce((a, st) => Math.max(a, st.hold), 0), prev = me.best || 0;
+    const newNotes = [];
+    notes.forEach(st => {
+      const k = st.key, old = me.notes[k];
+      if (!old || st.hold > old.s + .05) { if (old) newNotes.push(k); me.notes[k] = {s: +st.hold.toFixed(1), m: noteMidiOf(g, k)}; }
+    });
+    const rec = race >= B.minSec && race > prev + .05;
+    if (race >= B.minSec) { me.hist.push({d: dayKey(), best: +race.toFixed(1)}); while (me.hist.length > B.history) me.hist.shift(); }
+    if (rec) me.best = +race.toFixed(1);
+    return {race, prev, rec: rec && prev > 0, first: rec && !prev, newNotes};
+  }
+  const noteMidiOf = (g, k) => { const it = g.items.concat(g.slurB.filter(Boolean)).find(x => noteKey(x) === k); return it ? it.midi : null; };   // (written)
+  const fmtS = s => `${s.toFixed(1)} s`;
+  function spark(hist) {                                        // a tiny bar chart of the last races' longest holds
+    if (!hist || hist.length < 2) return '';
+    const max = Math.max(...hist.map(h => h.best)), w = 8, gap = 3, H = 26;
+    return `<svg class="rec-spark" viewBox="0 0 ${hist.length * (w + gap)} ${H}" role="img" aria-label="Your last ${hist.length} races: ${hist.map(h => h.best).join(', ')} seconds">${
+      hist.map((h, i) => { const hh = Math.max(2, h.best / max * (H - 2)); return `<rect x="${i * (w + gap)}" y="${H - hh}" width="${w}" height="${hh}" rx="2"${i === hist.length - 1 ? ' class="last"' : ''}/>`; }).join('')}</svg>`;
+  }
+  function trendWord(hist) {
+    if (!hist || hist.length < 3) return '';
+    const n = hist.length, recent = hist.slice(-3).reduce((a, h) => a + h.best, 0) / 3, earlier = hist.slice(0, n - 3).concat(hist.slice(0, 1)).reduce((a, h) => a + h.best, 0) / Math.max(1, n - 3 + 1);
+    return recent > earlier + .3 ? '▲ getting longer!' : recent < earlier - .3 ? '▼ a bit shorter lately' : '● steady';
+  }
+  /** THE PERSONAL RECORDS panel on the track select (this instrument) */
+  function drawRecords() {
+    const me = ((gd.breath || {})[who]) || null, box = $('records');
+    if (!me || !me.best) { box.hidden = true; box.innerHTML = ''; return; }
+    const notes = Object.entries(me.notes || {}).sort((a, b) => b[1].s - a[1].s).slice(0, 8);
+    box.hidden = false;
+    box.innerHTML = `<h2 class="rec-title" id="recT">Personal records <small>${member.short}</small></h2>
+      <div class="rec-main"><div><small>Longest steady hold</small><b id="recBest">${fmtS(me.best)}</b></div>
+        <div class="rec-trend">${spark(me.hist)}<span>${trendWord(me.hist)}</span></div></div>
+      ${notes.length ? `<ul class="rec-notes">${notes.map(([k, v]) => `<li><b>${k.replace(/(\d)$/, '<sub>$1</sub>')}</b> ${fmtS(v.s)}</li>`).join('')}</ul>` : ''}`;
+  }
+
+  /* ---------- THE TEACHER GHOST CHALLENGE (teacher-ghosts.js; ?teacher saves one) ----------
+     THE CODE: "SSG1-<payload>-<check>". payload = 1~track~notes~order~difficulty~total tenths~progress, where progress
+     = the ghost samples (one every RULES.ghostEvery s) as thousandths of a lap, stored as the steps between samples in
+     base 36, with runs written "step*count" (so a steady drive is a few characters). check = FNV-1a of the payload, base
+     36. A code that doesn't decode, checks out wrong, or doesn't fit its track is ignored (?demo: a console warning). */
+  const TEACHER_MODE = /[?&]teacher(=|&|$)/.test(location.search);
+  const fnv = str => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36).padStart(7, '0'); };
+  function ghostCode(g) {
+    const q = g.ghostRec.map(p => Math.round(p * 1000)), steps = q.map((v, i) => Math.max(0, i ? v - q[i - 1] : v));
+    const runs = [];
+    steps.forEach(v => { const r = runs[runs.length - 1]; if (r && r[0] === v) r[1]++; else runs.push([v, 1]); });
+    const prog = runs.map(([v, n]) => v.toString(36) + (n > 1 ? '*' + n.toString(36) : '')).join('.');
+    const payload = ['1', g.lv, picker.state.notes, picker.state.order, g.diff.id, Math.round(g.clock * 10), prog].join('~');
+    return `SSG1-${payload}-${fnv(payload)}`;
+  }
+  function decodeGhost(code) {
+    const m = /^SSG1-([^-]+)-([0-9a-z]{7})$/.exec(String(code || '').trim());
+    if (!m || fnv(m[1]) !== m[2]) return null;
+    const f = m[1].split('~');
+    if (f.length !== 7 || f[0] !== '1') return null;
+    const lv = +f[1], L = TRACKS[lv - 1], t = +f[5] / 10;
+    if (!L || !DIFF.some(d => d.id === f[4]) || !(t > 0)) return null;
+    const q = []; let acc = 0;
+    for (const tok of f[6].split('.')) {
+      const [v, n] = tok.split('*'), step = parseInt(v, 36), times = n ? parseInt(n, 36) : 1;
+      if (!(step >= 0) || !(times >= 1) || times > 5000) return null;
+      for (let i = 0; i < times; i++) { acc += step; q.push(acc / 1000); }
+    }
+    if (q.length < 2 || Math.abs(q[q.length - 1] - L.laps) > .01) return null;     // it must finish that track
+    return {lv, notes: f[2], order: f[3], diff: f[4], t, p: q};
+  }
+  let TG = null;
+  function teacherGhosts() {
+    if (TG) return TG;
+    TG = {};
+    (window.SPEEDWAY_TEACHER_GHOSTS || []).forEach((e, i) => {
+      try {
+        const g = e && decodeGhost(e.code);
+        if (!g) { if (A.DEMO) console.warn(`Sustain Speedway: teacher ghost #${i + 1} (${e && e.name}) is not a valid code: ignored`); return; }
+        const cur = TG[g.lv], week = String(e.week || '');
+        if (!cur || week >= cur.week) TG[g.lv] = Object.assign(g, {name: String(e.name || 'Teacher').slice(0, 30), week});
+      } catch (err) { if (A.DEMO) console.warn('Sustain Speedway: a teacher ghost was ignored', err); }
+    });
+    return TG;
+  }
+  const teacherFor = lv => teacherGhosts()[lv] || null;
+  function showGhostCode(g) {
+    const code = ghostCode(g), today = dayKey();
+    const line = `{name: "Mr. Graham", week: "${today}", code: "${code}"},`;
+    A.UI.confirm({title: 'Teacher ghost', yes: 'Done', no: null,
+      text: `Paste this into <b>sustain-speedway/teacher-ghosts.js</b> on GitHub (one line in the list; change the name if you like).`,
+      extra: `<textarea class="tg-code" id="tgCode" readonly rows="5" aria-label="Teacher ghost code">${line}</textarea>
+        <p class="tg-meta">${g.L.name} · ${fmt(g.clock)} · ${g.diff.name} · ${picker.state.label || picker.state.notes}</p>
+        <button type="button" class="btn btn-secondary btn-small" id="tgCopy">Copy</button>`});
+    const ta = $('tgCode'), cp = $('tgCopy');
+    cp.addEventListener('click', () => {
+      ta.select();
+      const ok = () => { cp.textContent = 'Copied!'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(line).then(ok, () => { try { document.execCommand('copy'); ok(); } catch (e) { /* select it by hand */ } });
+      else { try { document.execCommand('copy'); ok(); } catch (e) { /* select it by hand */ } }
+    });
+    return code;
+  }
+
   /* ---------- results ---------- */
   let finished = null;
   function results(g) {
@@ -1167,6 +1290,10 @@
     if (pos === 1) gd.wins = (gd.wins || 0) + 1;
     save();
     const tuning = report(g);                                   // THE INTONATION REPORT (+ the history it adds to)
+    const breath = breathRecord(g);                             // BREATH STATS
+    // THE TEACHER'S GHOST: beaten = the Teacher's Gold paint (once)
+    const tg = g.teacher ? {name: g.teacher.name, by: g.teacher.t - total} : null;
+    if (tg && tg.by > 0) (gd.achievements = gd.achievements || {})['teacher-ghost'] = true;
     save();
     const fresh = Garage.fresh();                               // NEW IN THE GARAGE! (earned by this race)
     // the numbers
@@ -1181,7 +1308,9 @@
         ['In the zone', `${Math.round(g.driveTime ? g.zoneTime / g.driveTime * 100 : 0)}%`, 'resZone']],
       newBest: newBest && !!old.best, newBestText: 'New best time!',
       best: [old.best ? `Best time: ${fmt(Math.min(old.best, tenths) / 10)}` : '', newLap && oldLap ? `New best lap: ${bestLap.toFixed(1)} s!` : ''].filter(Boolean).join(' · '),
-      extra: (fresh.length ? Garage.cardHTML(fresh) : '') + tuning.html + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
+      extra: (tg ? `<p class="res-tg ${tg.by > 0 ? 'won' : ''}" id="resTeacher">${tg.by > 0 ? `You beat ${tg.name}'s ghost by ${tg.by.toFixed(1)} s!` : `${tg.name}'s ghost won by ${Math.max(.1, -tg.by).toFixed(1)} s: try again!`}</p>` : '')
+        + (breath.race >= B.minSec ? `<p class="res-breath" id="resBreath">Longest steady hold: <b>${fmtS(breath.race)}</b>${breath.rec || breath.first ? ' <span class="br-new">(new record!)</span>' : ''}${breath.rec ? ' <span class="br-badge" id="brBadge">🌬️ Breath record!</span>' : ''}</p>` : '')
+        + (fresh.length ? Garage.cardHTML(fresh) : '') + tuning.html + `<p class="res-diff" id="resDiff">Difficulty: ${g.diff.name} (±${g.diff.tol}¢)</p>
         <p class="chart-title">Tuning each lap <small>(above the line = sharp, below = flat; green band = in tune on this difficulty)</small></p>
         <div class="chart" id="resChart"></div><ul class="lap-notes" id="resLaps"></ul>`,
       onShow: () => {
@@ -1196,7 +1325,8 @@
       levels: {label: 'Tracks', onClick: showHub},
       // GARAGE after every race: here with the other buttons, unless something was unlocked (then the NEW IN THE
       // GARAGE! card's filled button is the only one)
-      more: fresh.length ? [] : [{label: 'Garage', id: 'resGarage', onClick: () => Garage.open()}]});
+      more: (fresh.length ? [] : [{label: 'Garage', id: 'resGarage', onClick: () => Garage.open()}])
+        .concat(TEACHER_MODE ? [{label: 'Save as teacher ghost', id: 'resTeacherGhost', onClick: () => showGhostCode(g)}] : [])});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // the menu music again, after the result sounds
     A.Sfx.sequence([pos <= 3 && stars ? 'podium' : 'level-failed', stars > old.stars && 'star-earned', newLap && oldLap && 'new-best-lap']);
     finished = g; G = null;
@@ -1313,6 +1443,7 @@
     skipChecks: () => { if (!dynLevels()) setDynLevels(-30, -14); if (G && G.phase === 'vcheck') endCheck(-30, -14); },
     dyn: () => G && {levels: dynLevels(), zone: zoneNow(), mul: S.dynMul, norm: S.norm, zones: G.zones, check: G.vc && {step: G.vc.step, result: G.vc.result}},
     slur: () => G && {laps: G.slurB.map(b => b && b.label), sl: G.sl && {lap: G.sl.lap, switched: G.sl.switched, result: G.sl.result, broke: G.sl.broke}, slurs: G.slurs, mul: S.slurMul, target: item() && item().label},
+    ghostCode: () => finished && ghostCode(finished), decodeGhost, teacher: lv => teacherFor(lv), breath: () => (gd.breath || {})[who] || null,
     podium: () => podium && {place: podium.place, order: podium.order, shown: !$('podium').hidden},
     fx: () => ({lite: lite(), mode: gfxMode(), particles: FX.n, kinds: [...new Set(FX.list.map(p => p.kind))], props: G ? G.props.map(p => p.kind) : [], season: G && G.season ? G.season.id : null,
       air: G && G.air ? G.air.kind : null, perf: G && G.perf, shook: G ? G.fx.shook || 0 : 0, time: G ? (G.L.time || G.L.sky) : null}), lastRace: () => finished, tipsFor, steerOf: c => steerOf(c), driveStep: dt => driveStep(dt)};

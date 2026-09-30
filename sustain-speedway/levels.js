@@ -88,6 +88,9 @@ window.SPEEDWAY_RULES = {
      a gap in the sound of `gapMs` or more around the switch = a BREAK: the speed × `slow` for `slowMs` + "slur it!".
      (The detector's own note change can drop one or two readings: keep gapMs above ~120 ms.) */
   slur: {graceMs: 1200, gapMs: 150, slow: .55, slowMs: 1000},
+  /* BREATH STATS: the longest STEADY HOLD = seconds of unbroken tone within the difficulty's tolerance (per note and
+     per race). Kept per instrument in gameData('sustain-speedway').breath; the trend shows the last `history` races. */
+  breath: {history: 10, minSec: 1},
 };
 
 /* THE GARAGE (inside Sustain Speedway only: the GARAGE button on the track select; garage.js + cars.js). The student's
@@ -99,7 +102,8 @@ window.SPEEDWAY_RULES = {
      {tracks: n}             finished n different tracks (any place)
      {wins: n}               won (1st place) n different tracks
      {winCount: n}           won n races (every win counts, repeats too; before the garage: one per track, instrument, mode)
-     {track: n}              won track n            {achievement: id}   gameData achievements ('virtuoso-win', 'perfect-lap')
+     {track: n}              won track n            {achievement: id}   gameData achievements ('virtuoso-win', 'perfect-lap',
+                                                                         'teacher-ghost' = beat a teacher ghost: teacher-ghosts.js)
      {bestLap: true}         set a best lap on any track        {any: [rules…]}   any one of them
    A PERFECT-PITCH LAP = a finished lap whose average tuning (how far off, either way) was within RULES.nitro.cents
    (the IN THE ZONE window), from at least perfectLapReadings readings (achievement 'perfect-lap'). */
@@ -126,6 +130,7 @@ window.SPEEDWAY_GARAGE = {
     {id: 'blue',   name: 'Deep Blue',   unlock: {stars: 20}},
     {id: 'white-hi', name: 'Pearl White', unlock: {stars: 25}},
     {id: 'belt-orange', name: 'Tangerine', unlock: {stars: 30}},
+    {id: 'sw-teacher-gold', name: "Teacher's Gold", unlock: {achievement: 'teacher-ghost', text: "Beat your teacher's ghost (a BEAT MR. GRAHAM track)"}},
   ],
   decals: [
     {id: 'none',      name: 'None',           unlock: {free: true}},

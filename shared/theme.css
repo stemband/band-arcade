@@ -122,7 +122,7 @@
   /* Sustain Speedway's TIMES OF DAY (levels.js `time`: sustain-speedway/scenery.js) and its roadside scenery */
   --sw-dawn-top:#1d2552; --sw-dawn-mid:#7a5a9e; --sw-dawn-low:#ffb38a; --sw-noon-top:#2a78d6; --sw-noon-mid:#6fb3ee; --sw-noon-low:#ffe2a8;
   --sw-noon-ground:#3a2414; --sw-sand:#c98a4b; --sw-neon-top:#05020f; --sw-neon-mid:#1b0640; --sw-neon-low:#6a1a9a; --sw-golden-low:#ffa94d;
-  --sw-lamp:#ffe6a3; --sw-lamp-pole:#3b3350; --sw-smoke:#cfc8dc; --sw-fog:#a99cc4; --sw-haze:#ffe2a8;
+  --sw-teacher-gold:#ffc83d; --sw-lamp:#ffe6a3; --sw-lamp-pole:#3b3350; --sw-smoke:#cfc8dc; --sw-fog:#a99cc4; --sw-haze:#ffe2a8;
   --sw-palm:#1f5e3a; --sw-pine:#123a2c; --sw-trunk:#5a3a24; --sw-cactus:#2f7a45; --sw-rock:#5a3d52; --sw-buoy:#ff6b3d;
   --sw-crowd-1:#ff8fc8; --sw-crowd-2:#8ff0ff; --sw-crowd-3:#ffe98a; --sw-stand:#2b1d44;
   --sw-snow:#f4f8ff; --sw-petal:#ffb3d6; --sw-leaf:#e0772b; --sw-bat:#140820; --sw-pumpkin:#ff8a1f; --sw-pumpkin-eye:#ffe14d;

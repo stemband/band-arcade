@@ -298,3 +298,28 @@
 .tn-dynrow .tn-note{font-family:var(--text);font-size:15px;font-weight:700}
 .panel .tn-slurs{margin:8px 0 0;font-size:14px;color:var(--text-lo)}
 .panel .tn-slurs b{color:var(--green-hi)}
+
+/* ---------- BREATH STATS: the results line + PERSONAL RECORDS on the track select ---------- */
+.panel .res-breath{margin:0 0 8px;text-align:center;font-size:15px;color:var(--text-hi)}
+.res-breath b{color:var(--cyan-hi);font-family:var(--display);font-weight:400}
+.br-new{color:var(--green-hi);font-weight:700}
+.br-badge{display:inline-block;margin-left:6px;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--cyan) 18%,var(--floor-2));border:1px solid var(--cyan);color:var(--cyan-hi);font-weight:700;font-size:13px}
+.records{margin:14px 0 4px;padding:10px 14px;border-radius:16px;background:var(--floor-2);border:2px solid var(--floor-3)}
+.rec-title{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:16px;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan-hi)}
+.rec-title small{font-family:var(--text);font-size:12px;color:var(--text-lo);text-transform:none;letter-spacing:0;margin-left:6px}
+.rec-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 18px}
+.rec-main small{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lo)}
+.rec-main b{font-family:var(--display);font-weight:400;font-size:28px;color:var(--text-hi)}
+.rec-trend{display:flex;align-items:flex-end;gap:8px;font-size:13px;font-weight:700;color:var(--text-lo)}
+.rec-spark{height:26px;width:auto}
+.rec-spark rect{fill:var(--cyan-ink)}.rec-spark rect.last{fill:var(--cyan)}
+.rec-notes{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.rec-notes li{padding:3px 10px;border-radius:999px;background:var(--deep);font-size:13px;color:var(--text-lo)}
+.rec-notes b{font-family:var(--display),var(--music);font-weight:400;color:var(--text-hi);margin-right:4px}
+.rec-notes sub{font-size:.7em;vertical-align:baseline}
+/* ---------- THE TEACHER GHOST: the track card's badge, the results line, the code box (?teacher) ---------- */
+.tg-badge{align-self:flex-start;margin-top:4px;padding:2px 8px;border-radius:8px;background:var(--sw-teacher-gold);color:var(--deep);font:700 11.5px var(--text);letter-spacing:.06em;text-transform:uppercase}
+.panel .res-tg{margin:0 0 8px;text-align:center;font-weight:700;font-size:16px;color:var(--amber-hi)}
+.panel .res-tg.won{color:var(--sw-teacher-gold)}
+.tg-code{display:block;width:100%;margin:6px 0;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;background:var(--deep);color:var(--text-hi);border:1px solid var(--floor-3);border-radius:8px;padding:6px;resize:vertical;word-break:break-all}
+.panel .tg-meta{margin:0 0 6px;font-size:13px;color:var(--text-lo)}
