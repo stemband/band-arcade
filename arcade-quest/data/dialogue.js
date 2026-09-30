@@ -26,7 +26,7 @@ window.QUEST_DIALOGUE = {
   conductor: {name: 'The Ghost Conductor', sprite: 'conductor', area: 'The Attic', talk: [
     {if: '!met-conductor', set: 'met-conductor', lines: [
       'SILENCE! Who dares make a sound in MY attic?',
-      'I am the Ghost Conductor. My orchestra played in this manor for a hundred years.',
+      'I am the Ghost Conductor. My band played in this manor for a hundred years.',
       'Then the static came. It swallowed their sound. Every note. Every last one.',
       'Now there is only silence. And silence, I will conduct FOREVER!',
       '...Unless you think you can play? Hmph. Show me. From the top!',
@@ -44,7 +44,7 @@ window.QUEST_DIALOGUE = {
     ]},
     {if: 'atticPassage', cycle: [
       ['You got past the Fermata the OTHER way? Through the walls? Darling, that is SO backstage of you.',
-        'The orchestra used that passage to sneak in late. Every. Single. Rehearsal.'],
+        'The band used that passage to sneak in late. Every. Single. Rehearsal.'],
       ['A grand entrance is lovely. A secret entrance is legendary. I would know.'],
     ]},
     {if: 'atticOpen', cycle: [
@@ -258,7 +258,7 @@ window.QUEST_SIGNS = {
   'hall-portrait-2': ['"Lady in Red." She played trumpet. She always warmed up first.'],
   'hall-portrait-3': ['A painting of the moon. Someone wrote "Moonlight Sonata" on the frame.'],
   'hall-portrait-4': ['A portrait of Sir Reginald, asleep. The painter did too.'],
-  'hall-portrait-5': ['"The Conductor." His baton is raised. The whole orchestra holds its breath.'],
+  'hall-portrait-5': ['"The Conductor." His baton is raised. The whole band holds its breath.'],
   'book-1': ['"Dynamics for Beginners": p = piano = soft. f = forte = loud.'],
   'book-2': ['"Tempo Tales": Largo is very slow. Allegro is fast and lively.'],
   'book-3': ['"The Staff and You": five lines, four spaces. Notes live on both.'],
@@ -273,7 +273,7 @@ window.QUEST_SIGNS = {
   'library-table': ['A stack of flash cards. One says "FORTE." It is written very large.'],
   'piano': ['A grand piano. Middle C is near the middle. Close enough.', 'Someone left a note on it: "Please practice. Love, the Butler."'],
   'ballroom-portrait': ['A dancing couple, mid-spin. They have been spinning since 1922.'],
-  'ballroom-portrait-2': ['A ghost orchestra. The second clarinet is waving at you.'],
+  'ballroom-portrait-2': ['A ghost band. The second clarinet is waving at you.'],
   'ballroom-window': ['Moonlight pours in. For a moment you hear a waltz. Then static.'],
   'ballroom-table': ['A table set for a party that never ended. The cake is a ghost too.'],
   'stove': ['A ghostly stove. The kettle whistles a perfect A. That\'s 440 vibrations a second!'],
@@ -291,11 +291,11 @@ window.QUEST_SIGNS = {
   // THE ALTERNATE ROUTE (defeating the Phantom Fermata opens the Hidden Passage)
   'crack': ['A thin crack runs up the wall. Cold air whistles through it... in B♭.', 'Something big is holding this whole stairwell together.'],
   'attic-crack': ['A crack in the attic wall. On the other side, a staircase creaks all by itself.'],
-  'passage-case': ['An old instrument case. The label says "PROPERTY OF THE MANOR ORCHESTRA. DO NOT OPEN DURING STATIC."'],
-  'passage-case-2': ['A cello case with a hundred years of dust on it. Someone drew a smiley face in the dust. Recently.'],
-  'passage-board': ['The orchestra\'s old rehearsal board. "TONIGHT: the Grand Finale. The Conductor will be VERY particular."',
+  'passage-case': ['An old instrument case. The label says "PROPERTY OF THE MANOR BAND. DO NOT OPEN DURING STATIC."'],
+  'passage-case-2': ['A tuba case with a hundred years of dust on it. Someone drew a smiley face in the dust. Recently.'],
+  'passage-board': ['The band\'s old rehearsal board. "TONIGHT: the Grand Finale. The Conductor will be VERY particular."',
     'Pinned under it: a small silver chime, still humming softly.'],
-  'passage-board-found': ['The orchestra\'s old rehearsal board. "TONIGHT: the Grand Finale."', 'You find a small silver chime pinned under it, still humming the orchestra\'s last note!'],
+  'passage-board-found': ['The band\'s old rehearsal board. "TONIGHT: the Grand Finale."', 'You find a small silver chime pinned under it, still humming the orchestra\'s last note!'],
   'attic-window': ['From up here you can see the whole arcade, glowing in the dark.'],
   'attic-end': ['A note, scribbled in shaky handwriting: "IT HEARS EVERYTHING."', 'Under it, in the Conductor\'s neat hand: "Then let us give it something worth hearing."'],
   'practice-sign': ['PRACTICE HALL: these ghosts come back every visit. Practice makes permanent!'],
@@ -323,7 +323,7 @@ window.QUEST_CUTSCENES = {
   ending: {music: 'quest-victory', shots: [
     {show: 'party', lines: ['The Ghost Conductor raises his baton... and the whole manor fills with music!',
       'Color floods back into every room. The candles glow gold again.']},
-    {show: 'party', lines: ['@conductor Listen! My orchestra has its sound back!', '@conductor Bravo, {hero}! BRAVO!',
+    {show: 'party', lines: ['@conductor Listen! My band has its sound back!', '@conductor Bravo, {hero}! BRAVO!',
       '@mezzo BRAVISSIMA! Encore! ENCORE! Darling, you did it!',
       'Every ghost you helped is dancing. Even Sir Reginald is awake. Mostly.']},
   ]},
@@ -331,7 +331,7 @@ window.QUEST_CUTSCENES = {
   // finished either way; befriending him is the best ending (the full party, the Baton).
   'ending-fade': {music: 'quest-victory', shots: [
     {show: 'rafters', lines: ['The Ghost Conductor drifts up into the rafters, still waving his baton.',
-      '@conductor Hmph. Not bad, {hero}. Not bad at all. Maybe my orchestra should hear THAT.',
+      '@conductor Hmph. Not bad, {hero}. Not bad at all. Maybe my band should hear THAT.',
       'Down below, one instrument starts to hum... then another... then the whole manor!']},
     {show: 'party', lines: ['The music is back! Your ghost friends cheer. You did it your way.',
       '@mezzo Darling! He\'ll be humming that in the rafters for a century. BRAVISSIMA!']},
@@ -357,8 +357,8 @@ window.QUEST_CREDITS = [
   {h: 'Created by', lines: ['Mr. Graham']},
   {h: 'Starring', lines: ['{hero}, on {you}']},
   {h: 'Ghost Notes Manor', lines: ['Madame Mezzo', 'Rusty', 'Token Booth Terry', 'Loopy Lou', 'Sir Reginald Rest', 'Forgetful Fran', 'Tilly & Tally', 'The Butler', 'Dizzy Dot', 'Sous-Chef Sizzle']},
-  {h: 'The ghosts', lines: ['Wisps, Squeakers, Hushes, Wobbles and Chatterboxes', 'The Phantom Fermata', 'The Ghost Conductor and his orchestra']},
+  {h: 'The ghosts', lines: ['Wisps, Squeakers, Hushes, Wobbles and Chatterboxes', 'The Phantom Fermata', 'The Ghost Conductor and his band']},
   {h: 'Special cameo', lines: ['The Showtime Band: Tubby Tusk, Professor Hoot, Snapjaw Sal, Rico Bandit and Maestro Moose (from Showtime Malfunction)']},
   {h: 'And', lines: ['The Mysterious Microphone, who is still listening']},
-  {h: 'Thank you for playing!', lines: ['Keep practicing. Every clean note counts.']},
+  {h: 'Thank you for playing!', lines: ['Now go practice!']},
 ];
