@@ -167,3 +167,51 @@ for (const [name, size, touch] of [['phone', {width: 390, height: 844}, true], [
     });
   });
 }
+
+/* GARAGE beside START (LevelSelect.show({beside})): in the sticky heading row, just left of START, visible at the top
+   without scrolling, as tall as START and narrower; on a narrow phone only its icon; Tab reaches it before START */
+for (const [name, size, touch] of [['phone', {width: 390, height: 844}, true], ['small phone', {width: 360, height: 740}, true], ['iPad portrait', {width: 768, height: 1024}, true],
+  ['iPad landscape', {width: 1024, height: 768}, true], ['laptop', {width: 1366, height: 768}, false]]) {
+  test.describe(`GARAGE beside START (${name})`, () => {
+    if (touch) test.use({hasTouch: true});
+    test('left of START in the sticky row, on screen at the top, Tab order GARAGE then START, still opens the garage', async ({page}) => {
+      await page.setViewportSize(size);
+      const watch = await prepare(page, {store: device('trumpet')});
+      await page.goto(URL); await ready(page);
+      await page.evaluate(() => { document.querySelector('.trk[data-l="1"]').click(); window.scrollTo(0, 0); });   // a track selected: START shows
+      await expect(page.locator('.ls-start')).toBeVisible();
+      const r = await page.evaluate(() => {
+        const g = document.getElementById('garageBtn'), s = document.querySelector('.ls-start'), row = document.querySelector('.ls-row');
+        const gr = g.getBoundingClientRect(), sr = s.getBoundingClientRect(), label = g.querySelector('.gb-t');
+        return {inRow: row.contains(g) && g.parentElement === s.parentElement, before: g.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING,
+          left: gr.right <= sr.left + 1, sameLine: Math.abs((gr.top + gr.bottom) / 2 - (sr.top + sr.bottom) / 2) < 4, sameHeight: Math.abs(gr.height - sr.height) <= 2,
+          narrower: gr.width < sr.width, onScreen: gr.top >= 0 && gr.bottom <= innerHeight && gr.left >= 0 && sr.right <= innerWidth + 1,
+          startOnScreen: sr.top >= 0 && sr.bottom <= innerHeight,
+          startOneLine: s.querySelector('.ls-start-t').getClientRects().length === 1 && sr.height < 80,
+          iconOnly: !label || getComputedStyle(label).display === 'none', aria: g.getAttribute('aria-label')};
+      });
+      // on screen at the top with no scrolling wherever START is (a 740 px phone shows the picker first: there START and
+      // GARAGE both come into view together, and stick once scrolled to)
+      expect(r).toMatchObject({inRow: true, left: true, sameLine: true, sameHeight: true, narrower: true, startOneLine: true, aria: 'Garage'});
+      expect(r.onScreen).toBe(r.startOnScreen);
+      if (size.height >= 768) expect(r.onScreen).toBe(true);
+      expect(r.before).toBeTruthy();
+      expect(r.iconOnly).toBe(size.width <= 560);                         // the label hides only on a narrow phone
+      // the row sticks: scrolled down to the last tracks, GARAGE is still at the top
+      await page.evaluate(() => { const t = document.querySelector('.trk[data-l="8"]'); t.scrollIntoView({block: 'end'}); });
+      await page.waitForTimeout(150);
+      const top = await page.evaluate(() => { const b = document.getElementById('garageBtn').getBoundingClientRect(); return b.top >= -1 && b.bottom <= innerHeight; });
+      expect(top).toBe(true);
+      // keyboard: Tab from GARAGE goes to START
+      await page.locator('#garageBtn').focus();
+      await page.keyboard.press('Tab');
+      expect(await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('ls-start'))).toBe(true);
+      // it still opens the garage
+      await page.locator('#garageBtn').click();
+      await expect(page.locator('.sw-garage-ov')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('.sw-garage-ov')).toHaveCount(0);
+      watch.check();
+    });
+  });
+}

@@ -35,6 +35,8 @@
      label(i),        START's name for level i (default: the card's `.n` text, e.g. "Level 4", "Track 2")
      gameId,          the progress memory's key (default: the page's folder)
      fresh,           true = treat this as the screen appearing again even if it never looked hidden
+     beside,          an element placed immediately to the LEFT of START, in the sticky heading row (Sustain Speedway's
+                      GARAGE): it keeps its own listeners; Tab reaches it before START; it gets the class .ls-beside
    })  Call it every time the cards are drawn. The screen APPEARING (the first call, or the first after the screen was
        hidden) restores the choice and brings the voice line and the idle hint; a redraw while it stays up (a new note
        set) keeps the selection and updates START's line.
@@ -174,6 +176,14 @@ window.Arcade = window.Arcade || {};
     const c = S.cards[i], n = c && c.querySelector('.n, .cc-rank');
     return n ? n.textContent.trim() : `Level ${i + 1}`;
   }
+  /** the game's element beside START (opts.beside): always the first thing in the START area, so it sits to START's left */
+  function beside() {
+    const go = S.row.querySelector('.ls-go'), el = S.opts && S.opts.beside;
+    go.classList.toggle('ls-has-beside', !!el);
+    if (!el) return;
+    el.classList.add('ls-beside');
+    if (go.firstChild !== el) go.insertBefore(el, go.firstChild);
+  }
   /** the START area: the button with its line once a level is selected, else the dim hint */
   function drawStart(announce) {
     if (!S || !S.row) return;
@@ -182,6 +192,7 @@ window.Arcade = window.Arcade || {};
     if (!S.ready) {
       go.innerHTML = `<p class="ls-need">${S.picker ? 'Select your notes and level' : 'Select your level'}</p>`;
       S.start = null;
+      beside();
     } else {
       S.summary = [levelName(S.sel), noteSet()].filter(Boolean).join(' · ');
       let b = go.querySelector('.ls-start');
@@ -190,6 +201,7 @@ window.Arcade = window.Arcade || {};
         b = go.querySelector('.ls-start');
         b.addEventListener('click', () => begin());
       }
+      beside();
       b.querySelector('.ls-sum').textContent = S.summary;
       b.setAttribute('aria-label', `Start: ${S.summary}`);
       S.start = b;

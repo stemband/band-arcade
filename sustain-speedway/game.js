@@ -75,8 +75,9 @@
       </button>`;
     }).join('');
     $('trackGrid').querySelectorAll('.trk').forEach(b => b.addEventListener('click', () => { const lv = +b.dataset.l; A.requireMic(() => startRace(lv)); }));
-    $('garageDot').hidden = !Garage.fresh().length;
-    A.LevelSelect.show({screen: $('hub'), grid: $('trackGrid'), cards: $('trackGrid').querySelectorAll('.trk'), picker: $('modePick'),
+    garageDot();
+    // GARAGE (beside): just left of START, in the level select's sticky row
+    A.LevelSelect.show({screen: $('hub'), grid: $('trackGrid'), beside: $('garageBtn'), cards: $('trackGrid').querySelectorAll('.trk'), picker: $('modePick'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars >= 3,
       lockText: i => `Win Track ${i} to unlock`});
   }
@@ -642,7 +643,12 @@
     cx.closePath(); cx.fill(); cx.globalAlpha = 1;
   }
   const carName = c => { const b = window.SPEEDWAY_GARAGE.bodies.find(x => x.id === c.body); return b ? b.name : 'Coupe'; };
-  $('garageBtn').addEventListener('click', () => Garage.open({onClose: () => { $('garageDot').hidden = !Garage.fresh().length; }}));
+  function garageDot() {                                     // the "new" dot (and the button's name says so too)
+    const n = Garage.fresh().length;
+    $('garageDot').hidden = !n;
+    $('garageBtn').setAttribute('aria-label', n ? 'Garage: new items' : 'Garage');
+  }
+  $('garageBtn').addEventListener('click', () => Garage.open({onClose: garageDot}));
 
   /* ---------- results ---------- */
   let finished = null;
