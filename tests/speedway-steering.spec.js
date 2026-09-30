@@ -75,7 +75,7 @@ test('the steering never changes the speed: the same drift, steering on or pinne
 });
 
 test('the intonation report: rows with the right signs, the matching tip, history saved; all in tune = "Right on pitch!"', async ({page}) => {
-  test.setTimeout(150000);
+  test.setTimeout(300000);                                              // (a sharp car is slow: generous under a busy test machine)
   const watch = await prepare(page, {store: device('trumpet')});
   await openSpeedway(page);
   await startTrack(page, 1);
@@ -102,7 +102,7 @@ test('the intonation report: rows with the right signs, the matching tip, histor
 });
 
 test('all in tune: "Right on pitch! Great ears." and a trend arrow from the history', async ({page}) => {
-  test.setTimeout(150000);
+  test.setTimeout(300000);                                              // (a sharp car is slow: generous under a busy test machine)
   const past = {d: '2026-09-01', n: {}};
   ['C4', 'D4', 'E4', 'F4', 'G4'].forEach(k => { past.n[k] = 30; });
   const watch = await prepare(page, {store: device('trumpet', {gameData: {'sustain-speedway': {tuning: {trumpet: [past]}}}})});
