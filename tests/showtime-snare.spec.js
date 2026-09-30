@@ -323,18 +323,23 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     const watch = await open(page, {lv: 2, job: null, q: '&special=long-tone-lurker'});
     await waitFor(page, s => s.target.job.type === 'roll');
     await quiet(page);
-    const rateOf = async gaps => {
-      const r = roll(page, 1900, gaps);
-      await page.waitForTimeout(1200);
-      const a = await holdP(page); await page.waitForTimeout(500); const b = await holdP(page, a.id);
-      await r;
-      return (b.p - a.p) / (b.t - a.t);
-    };
-    const uneven = await rateOf([40, 210]);                                               // 8 a second, but clumpy (gaps 40 / 210 ms)
-    expect(uneven).toBeGreaterThan(.15); expect(uneven).toBeLessThan(.45);
-    await expect(page.locator('#prompt')).toContainText('Smooth it out');
-    const even = await rateOf([125]);
-    expect(even).toBeGreaterThan(.8);
+    // the judgment itself (hits already in, then asked now: timers can't bunch them up on a busy machine)
+    const judge = gaps => page.evaluate(gaps => {
+      const now = performance.now(), times = [];
+      for (let t = 950, k = 0; t >= 0; t -= gaps[k % gaps.length], k++) times.push(now - t);
+      times.forEach(at => Arcade.Onsets.fake(at, .3));
+      return Arcade.Showtime.snareRoll();
+    }, gaps);
+    const uneven = await judge([40, 210]);                                               // 8 a second, but clumpy (gaps 40 / 210 ms)
+    expect(uneven.holding).toBe(true); expect(uneven.mul).toBe(.3); expect(uneven.msg).toContain('Smooth it out');
+    await page.waitForTimeout(1100);                                                       // (those hits leave the 1 s window)
+    const even = await judge([125]);
+    expect(even.holding).toBe(true); expect(even.mul).toBe(1);
+    const slow = await (async () => { await page.waitForTimeout(1100); return judge([300]); })();   // too slow: not a roll
+    expect(slow.holding).toBe(false);
+    // and the ring really fills while an even roll goes on
+    const a = await holdP(page); await roll(page, 1500, [125]); const b = await holdP(page, a.id);
+    expect(b ? b.p : Infinity).toBeGreaterThan(a.p);
     watch.check();
   });
 
@@ -343,15 +348,24 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     await waitFor(page, s => s.target.job.type === 'roll' && s.target.cresc);
     await quiet(page);
     await expect(page.locator('#tpCount .hold-ring.cresc')).toBeVisible();                 // the ring shows a hairpin
-    // one even roll: 3.2 s never getting louder, then 2 s louder (in one go: a pause would drain the ring)
-    const both = Promise.all([roll(page, 3200, [125], .2), page.waitForTimeout(3200).then(() => roll(page, 2000, [125], .3))]);
-    await page.waitForTimeout(3050);
-    const flat = await holdP(page);
-    expect(flat.p).toBeLessThan(flat.need / 3 + .15);
-    await expect(page.locator('#prompt')).toContainText('Louder');
-    await both;
-    const up = await holdP(page, flat.id);
-    expect(up ? up.p : Infinity).toBeGreaterThan(flat.need / 3 + .3);                      // louder: the next third fills (or it's rebooted)
+    // the level of each third is learned from its hits; past the first third the roll must be crescK louder than the
+    // third before (hits already in, then asked now: timers can't bunch them up on a busy machine)
+    const judge = (level, share) => page.evaluate(([level, share]) => {
+      const now = performance.now(), b = Arcade.Showtime.debug().bots.find(x => x.special && x.state === 'walk');
+      b.holdP = b.need * share;                                                            // (how full the ring is)
+      for (let t = 950; t >= 0; t -= 125) Arcade.Onsets.fake(now - t, level);
+      return Object.assign({id: b.id}, Arcade.Showtime.snareRoll());
+    }, [level, share]);
+    const first = await judge(.2, 0), id = first.id;
+    expect(first.mul).toBe(1);                                                 // the first third: any steady level
+    const thirds = await page.evaluate(i => Arcade.Showtime.debug().bots.find(x => x.id === i).thirds, id);
+    expect(thirds[0].avg).toBeCloseTo(.2, 5);
+    await page.waitForTimeout(1100);
+    const flat = await judge(.2, .4);                                                      // the second third, no louder
+    expect(flat.holding).toBe(true); expect(flat.mul).toBe(0); expect(flat.msg).toContain('Louder');
+    await page.waitForTimeout(1100);
+    const up = await judge(.3, .4);                                                        // louder: it fills again
+    expect(up.holding).toBe(true); expect(up.mul).toBe(1);
     watch.check();
   });
 

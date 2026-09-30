@@ -958,6 +958,7 @@
   // tests: the snare's state, the timing of the rhythm being played, a machine's job + fairness, the soundcheck
   A.Showtime.snare = () => SN && SN.state();
   A.Showtime.snarePlan = () => SN && SN.plan();
+  A.Showtime.snareRoll = () => { const t = target(); return SN && t && has(t, 'long-tone-lurker') ? SN.roll(t, performance.now(), t.fast ? t.rollRate2 : t.rollRate) : null; };
   A.Showtime.snareJob = (spec, boss) => G && job(spec, boss);
   A.Showtime.soundcheck = () => SN && SN.soundcheck();
   A.Showtime.timingCheck = () => SN && SN.timing();
