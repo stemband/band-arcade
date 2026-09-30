@@ -1023,7 +1023,7 @@
         vy += RM.matches ? 0 : Math.sin(c.t * 2.2) * .4;
         let nx = c.x + vx * dt, ny = c.y + vy * dt;
         for (const t of G.gear.tuner) { const td = Math.hypot(nx - t.x, ny - t.y); if (td < R.tunerRadius) { nx = t.x + (nx - t.x) / td * R.tunerRadius; ny = t.y + (ny - t.y) / td * R.tunerRadius; } }
-        if (!solid(nx, ny)) { c.x = nx; c.y = ny; }
+        if (!solid(nx, ny)) { c.x = nx; c.y = ny; } else if (!solid(nx, c.y)) c.x = nx; else if (!solid(c.x, ny)) c.y = ny;   // slides along walls
         if (d < R.wisp.drain) { c.drainT += dt; if (c.drainT >= R.wispDrainS) { c.drainT = 0; hurt(.5, c, true); } } else c.drainT = 0;
       } else if (c.kind === 'rusher') {
         c.vy = Math.min(R.player.maxFall, c.vy + R.player.gravity * dt);
@@ -1421,7 +1421,7 @@
       place: (x, y, id) => { if (!have(id)) gain(id, 1); return place(x, y, id); },
       answer: () => { const c = Card.current; if (c) c.answer(); return !!c; },
       craft: id => { const r = RECIPES.find(x => x.id === id); if (!r) return false; if (!G.panel) openCraft(); slots.fill(null); r.in.forEach((k, i) => { slots[i] = k; }); drawCraft(); perform(); return !!Card.current; },
-      spawn: (kind, dx = 6) => { const x = G.p.x + dx; return spawn(kind, x, G.p.y).id; },
+      spawn: (kind, dx = 6) => { const x = G.p.x + dx; return spawn(kind, x, kind === 'wisp' ? G.p.y - 1.5 : G.p.y).id; },
       hurt: (n = 1) => { G.p.hurtT = 0; hurt(n, null); },
       time: t => { G.w.time = t; },
       heard: pc => heardNote(pc),

@@ -148,8 +148,10 @@ window.Arcade = window.Arcade || {};
       vein(x, y, oreFor(x, y), 2 + Math.floor(r() * 4));
     }
     // the SPAWN: in the Reed Marsh, on dry ground; Tone Ore close by and a little way down (chapter 1 needs 10)
-    let sx = Math.round(marsh.from + (marsh.to - marsh.from) * .3);
-    for (let k = 0; k < 30 && heights[sx] >= R.world.sea - 1; k++) sx++;
+    // (the dry column nearest 30 % into the marsh: a wet marsh can flood a long way)
+    const aim = Math.round(marsh.from + (marsh.to - marsh.from) * .3);
+    let sx = aim;
+    for (let k = 0; k < W; k++) { const x = aim + (k % 2 ? -1 : 1) * Math.ceil(k / 2); if (x > 14 && x < W - 15 && heights[x] <= R.world.sea - 1) { sx = x; break; } }
     const sy = heights[sx] - 1;
     for (let k = 0; k < 6; k++) {
       const x = sx - 14 + Math.floor(r() * 28), y = heights[Math.max(0, Math.min(W - 1, x))] + 5 + Math.floor(r() * 5);
@@ -185,7 +187,17 @@ window.Arcade = window.Arcade || {};
       }
     }
     // a few trees always stand near the spawn (the first mallet needs Maple Planks and Cork)
-    [[-6, ID.maple], [7, ID.cork], [12, ID.maple]].forEach(([dx, t]) => { const x = sx + dx; if (x > 1 && x < W - 2 && get(x, heights[x] - 1) === ID.air) tree(x, t); });
+    // (each one looks outward from its spot for open ground; a tree needs air where its trunk goes)
+    const hasTree = (x, t) => get(x, heights[x] - 1) === t;
+    [[-6, ID.maple], [7, ID.cork], [12, ID.maple], [-11, ID.cork]].forEach(([dx, t]) => {
+      for (let k = 0; k < 24; k++) {
+        const x = sx + dx + (k % 2 ? -1 : 1) * Math.ceil(k / 2) * Math.sign(dx);
+        if (x < 3 || x > W - 4 || Math.abs(x - sx) < 3) continue;
+        if (get(x - 1, heights[x] - 1) === t || get(x + 1, heights[x] - 1) === t) continue;
+        if (get(x, heights[x] - 1) === ID.reed) set(x, heights[x] - 1, ID.air);
+        if (get(x, heights[x] - 1) === ID.air && heights[x] <= R.world.sea) { tree(x, t); if (hasTree(x, t)) break; }
+      }
+    });
     return {v: 1, seed: seed >>> 0, w: W, h: H, b, meta: {}, bags: [], spawn: {x: sx, y: sy}, time: 20, nights: 0, survived: 0, player: null, cot: null, dirty: true};
   }
 

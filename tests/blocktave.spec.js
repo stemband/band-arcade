@@ -42,7 +42,7 @@ test.describe('Blocktave: the world', () => {
       const BW = Arcade.BlocktaveWorld, R = window.BT_RULES, B = BW.BLOCKS, ID = BW.ID;
       const same = (a, b) => a.b.length === b.b.length && a.b.every((v, i) => v === b.b[i]);
       const out = {same: [], differ: same(BW.generate(1, R), BW.generate(2, R)), worlds: []};
-      for (const seed of [1, 7, 42, 2026, 99999]) {
+      for (const seed of [1, 2, 7, 8, 21, 41, 42, 2026, 99999]) {
         const a = BW.generate(seed, R), b = BW.generate(seed, R);
         out.same.push(same(a, b) && JSON.stringify(a.spawn) === JSON.stringify(b.spawn));
         const has = (key, bi) => { for (let i = 0; i < a.b.length; i++) if (a.b[i] === ID[key] && (!bi || BW.biomeOf(R, i % a.w).id === bi)) return true; return false; };
@@ -51,17 +51,21 @@ test.describe('Blocktave: the world', () => {
         out.worlds.push({marsh: has('reed', 'marsh') && (has('cork', 'marsh') || has('maple', 'marsh')) && has('water', 'marsh'),
           brass: has('brassOre', 'brass') && has('springVein', 'brass'), canyon: has('clay', 'canyon') && has('rhythmRock', 'canyon'),
           peaks, depths, ores: ['toneOre', 'scaleVein', 'sustain', 'restCrystal'].every(k => has(k)),
+          // the first mallet's materials and the chapter's Tone Ore are always near the (dry) spawn
+          start: ['cork', 'maple', 'toneOre'].every(k => { for (let i = 0; i < a.b.length; i++) if (a.b[i] === ID[k] && Math.abs(i % a.w - a.spawn.x) < 25) return true; return false; })
+            && Arcade.BlocktaveWorld.top(a, a.spawn.x) <= R.world.sea,
           zones: [BW.zone(a, 10, 30, R).biome, BW.zone(a, 120, 30, R).biome, BW.zone(a, 220, 30, R).biome, BW.zone(a, 10, R.world.deepY + 2, R).layer]});
       }
       return out;
     });
-    expect(r.same, 'a seed always makes the same world').toEqual([true, true, true, true, true]);
+    expect(r.same, 'a seed always makes the same world').toEqual(new Array(9).fill(true));
     expect(r.differ, 'two seeds make different worlds').toBe(false);
     r.worlds.forEach(w => {
       expect(w.marsh && w.brass && w.canyon, `the three biomes have their materials: ${JSON.stringify(w)}`).toBe(true);
       expect(w.peaks, 'the Treble Peaks: mountain tops above the peaks row').toBeGreaterThan(8);
       expect(w.depths, 'the Bass Depths').toBeGreaterThan(500);
       expect(w.ores).toBe(true);
+      expect(w.start, 'Cork, Maple and Tone Ore near a dry spawn').toBe(true);
       expect(w.zones).toEqual(['marsh', 'brass', 'canyon', 'depths']);
     });
   });
@@ -112,7 +116,8 @@ test.describe('Blocktave: the world', () => {
     });
     expect(b.same, 'saving the world leaves the backed-up store alone').toBe(true);
     expect(b.chunks, 'the Backup Code has no world in it').toBe(false);
-    expect(Math.abs(b.len1 - b.len2), 'the Backup Code keeps its size').toBeLessThanOrEqual(2);
+    // (the code carries its making time, so its compressed length can wobble by a few letters: never by a world's worth)
+    expect(Math.abs(b.len1 - b.len2), 'the Backup Code keeps its size').toBeLessThanOrEqual(12);
     expect(b.world).toBeGreaterThan(b.len2);
     watch.check();
   });
@@ -341,7 +346,9 @@ test.describe('Blocktave: creatures', () => {
 
   test('creatures freeze while a sound mutes the microphone', async ({page}) => {
     await enter(page, {mode: 'inst'});
-    await page.evaluate(() => { Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 30); Arcade.Blocktave.demo.spawn('wisp', 6); });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y);
+      for (let dx = 1; dx <= 7; dx++) for (let dy = -3; dy <= -1; dy++) d.put(x + dx, y + dy, 'air');   // open air between it and you
+      d.time(window.BT_RULES.dayS + 30); d.spawn('wisp', 6); });
     await expect.poll(() => page.evaluate(() => Arcade.Pitch.listening())).toBe(true);
     const pos = () => page.evaluate(() => { const c = Arcade.Blocktave.state().creatures[0]; return [c.x, c.y]; });
     await page.evaluate(() => Arcade.Pitch.suppress(1800));
