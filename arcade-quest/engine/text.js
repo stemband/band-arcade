@@ -3,6 +3,7 @@
                                     setting. Tap/click the box, A (Enter/Space) or B to finish the line, again for the
                                     next one. Resolves when the last line is dismissed. portrait: a sprite id.
    Q.menu(el, items, {cols, onPick, onBack, cls, keys})   big pixel buttons in a grid: arrows/D-pad move, A picks, B backs;
+                                    the mouse and Tab move the same ONE selection (.sel: filled + a ▶, style.css);
                                     taps and clicks pick directly. keys: false = taps, clicks and Tab only (a second menu). items: [{id, label, sub, disabled, title}].
    Q.text(key, vars)                a battle message from data/battle-text.js, with {name} placeholders filled in. */
 (function (A) {
@@ -75,12 +76,20 @@
       const b = Q.el('button', 'q-btn' + (it.cls ? ' ' + it.cls : ''), `<span class="q-bl">${it.label}</span>${it.sub ? `<small>${it.sub}</small>` : ''}`);
       b.type = 'button'; b.disabled = !!it.disabled; if (it.title) b.title = it.title;
       b.addEventListener('click', () => { if (!b.disabled) pick(i); });
-      b.addEventListener('focus', () => { cur = i; mark(); });
+      b.addEventListener('focus', () => { cur = i; engaged = true; mark(); });
+      // THE MOUSE MOVES THE SELECTION (never a hovered box and a different selected one); a disabled button can't be it
+      b.addEventListener('pointerenter', e => {
+        if (e.pointerType === 'touch' || b.disabled || !live || cur === i) return;
+        cur = i; engaged = true; mark();
+        if (keys) b.focus({preventScroll: true});
+      });
       grid.appendChild(b); return b;
     });
     el.appendChild(grid);
-    let cur = Math.max(0, Math.min(start, items.length - 1)), live = true;
-    const mark = () => btns.forEach((b, k) => b.classList.toggle('sel', keys && k === cur));
+    let cur = Math.max(0, Math.min(start, items.length - 1)), live = true, engaged = false;
+    // ONE selection (style.css .q-btn.sel): shown from the start in a keyboard menu, in a tap-only menu once the mouse
+    // or Tab reaches it
+    const mark = () => btns.forEach((b, k) => b.classList.toggle('sel', (keys || engaged) && k === cur));
     const move = d => {
       for (let k = 1; k <= items.length; k++) {
         const n = (cur + d * k + items.length * 4) % items.length;
