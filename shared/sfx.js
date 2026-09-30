@@ -988,7 +988,8 @@ window.Arcade = window.Arcade || {};
       menuT = 0;
       const wait = afterEffects ? Math.max(busyFor(), seqs.size ? 200 : 0) : 0;
       if (wait > 30) { menuT = setTimeout(go, Math.min(wait + 100, 1000)); return; }
-      want(CH.mus, [g && g.menuMusic, 'select-music'], {builtIn: true, fade: MENU_XF});
+      const legacy = g && g.menuMusic && (entry(g.menuMusic) || {}).legacy;   // a track uploaded under an older name (sounds.js `legacy`)
+      want(CH.mus, [g && g.menuMusic, legacy, 'select-music'], {builtIn: true, fade: MENU_XF});
       applyAll();
     };
     if (afterEffects) menuT = setTimeout(go, 150);          // the result sounds start in the same moment: let them register

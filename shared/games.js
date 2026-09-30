@@ -350,12 +350,12 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'highway', body: 'cab-side'},
   },
   {
-    id: 'scale-audition',
+    id: 'scale-trainer',
     zones: ['technique-lab'],
-    fit: {not: ['snare'], tag: 'Not for snare', why: 'Scale Audition listens for the notes of your scales, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
-    name: 'Scale Audition',
+    fit: {not: ['snare'], tag: 'Not for snare', why: 'Scale Trainer listens for the notes of your scales, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
+    name: 'Scale Trainer',
     bg: {scene: 'audition', dim: .35, focus: .35},
-    menuMusic: 'scale-audition-menu',
+    menuMusic: 'scale-trainer-menu',
     skill: 'All-State scales',
     blurb: 'Your GMEA All-State and District Honor Band scales, the way the judges hear them: Concert F, B♭, E♭ and A♭ from memory, against the clock, then the chromatic.',
     maxStars: 12,                                    // 4 audition levels × 3 (the Chromatic Challenge keeps its own stars in gameData)

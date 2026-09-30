@@ -38,7 +38,7 @@ window.Arcade = window.Arcade || {};
   const LOW_REGISTER = ['trombone', 'euphbc', 'baritonetc', 'tuba', 'bassoon'];   // ties go up an octave
 
   /*
-    THE AUDITION (Scale Audition): the GMEA Middle School All-State / District Honor Band scale audition, from the GMEA
+    THE AUDITION (Scale Trainer): the GMEA Middle School All-State / District Honor Band scale audition, from the GMEA
     MS All-State scale sheets (the First Round All-State and the District Honor Band auditions ask the same). THE GMEA
     SHEETS ARE THE SOURCE: when a sheet changes, edit this table, never the game.
       each member: per concert scale [the WRITTEN starting note, octaves (1 | 2)], and `time` = the sheet's limit (s)

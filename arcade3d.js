@@ -146,7 +146,7 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
-    /* audition: the Scale Audition cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
+    /* audition: the Scale Trainer cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
        sheet of music, on a pole), a neon edge along the desk */
     audition: {
       width: 0.94, topper: 'stand',
@@ -493,7 +493,7 @@ window.Arcade = window.Arcade || {};
       if (A.HighwayDraw) return A.HighwayDraw.attract(x, W, H, t);
       x.fillStyle = tok['mh-sky']; x.fillRect(0, 0, W, H);
     },
-    /* Scale Audition: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.audition) */
+    /* Scale Trainer: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.audition) */
     audition(x, W, H, t) {
       const scr = A.CAB_SCREENS && A.CAB_SCREENS.audition;
       if (scr && scr.draw) return scr.draw(x, W, H, t);
@@ -875,7 +875,7 @@ window.Arcade = window.Arcade || {};
       neon([new THREE.Vector3(-sw / 2, cy + sh / 2 + .01, fz + .004), new THREE.Vector3(sw / 2, cy + sh / 2 + .01, fz + .004)]);
     } else if (P.topper === 'stand') {
       // a music stand on the roof: a slanted desk holding a lit sheet of music (a staff with a few notes), a pole and a
-      // small base; a neon edge in the trim color along the desk's lip (Scale Audition)
+      // small base; a neon edge in the trim color along the desk's lip (Scale Trainer)
       const fz = frontTop + zc - .16, dw = W * .62, dh = .26, cy = topY + .2 + dh / 2;
       const c = canvas(256, 108), cx = c.getContext('2d');
       cx.fillStyle = tok['sa-sheet']; cx.fillRect(0, 0, 256, 108);

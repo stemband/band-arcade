@@ -156,7 +156,7 @@ window.Arcade = window.Arcade || {};
               '<path class="s-tkband" d="M106 566Q150 584 194 566"/>',
       slots: {marquee: [34, 40, 232, 72], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
-    /* audition: the Scale Audition cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
+    /* audition: the Scale Trainer cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
        slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
        with ticks) on the lower right */
     audition: {
@@ -575,7 +575,7 @@ window.Arcade = window.Arcade || {};
         x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
       },
     },
-    /* Scale Audition: a scale on a little staff, notes turning green one by one as they are "played" up and down,
+    /* Scale Trainer: a scale on a little staff, notes turning green one by one as they are "played" up and down,
        and a time bar under it shrinking; a small ALL-STATE READY tag at the end of each run. A canvas screen (2D and 3D). */
     audition: {
       html() { return `<div class="scr scr-audition scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
