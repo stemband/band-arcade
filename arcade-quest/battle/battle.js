@@ -89,7 +89,7 @@
     Q.$('qCalmBox').classList.toggle('full', B.calm >= RULES.calmMax);
     Q.$('qPHp').style.width = Math.max(0, s.hp / s.maxHp * 100) + '%';
     Q.$('qPHpN').textContent = `${Math.max(0, s.hp)}/${s.maxHp} · ${Q.text('power')} ${Q.save.powerAt(s.level)}`;
-    Q.$('qLv').textContent = 'LV ' + s.level;
+    const lv = Q.$('qLv'); if (lv.textContent !== 'LV ' + s.level) { lv.textContent = 'LV ' + s.level; Q.fitText(lv.parentElement); }
     Q.$('qHudP').classList.toggle('target', B.aim === 'you');
     B.band.forEach((c, i) => {
       const row = Q.$('qComp' + i); if (!row) return;
@@ -172,7 +172,7 @@
       const bag = B.save.items, list = Object.keys(bag).filter(k => bag[k] > 0 && ITEMS()[k]);
       const items = list.map(k => ({id: k, label: `${ITEMS()[k].name} ×${bag[k]}`, sub: ITEMS()[k].desc}))
         .concat([{id: null, label: Q.text('back'), sub: list.length ? '' : Q.text('noItems'), cls: 'c-back'}]);
-      const m = Q.menu(cmd, items, {cols: Math.min(4, items.length), label: 'Items',
+      const m = Q.menu(cmd, items, {cols: Math.min(4, items.length), label: 'Items', cls: 'q-items',
         onPick: it => { m.destroy(); cmd.hidden = true; done(it.id); }, onBack: () => { m.destroy(); cmd.hidden = true; done(null); }});
     });
   }
@@ -472,6 +472,7 @@
         `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>`;
       Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id); }));
       hud();
+      Q.ui.querySelectorAll('.q-hname,.q-cname').forEach(Q.fitText);     // long names shrink (then wrap), never "…"
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(src.music || 'quest-battle');
       run();
     },
