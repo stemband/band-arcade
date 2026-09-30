@@ -52,7 +52,7 @@
       // page starts the title music (shared/sfx.js unlocks on that same tap) instead of leaving the title at once
       if (A.Sfx && !A.Sfx.unlocked) {
         const box = Q.$('qTitleMenu');
-        box.innerHTML = `<button type="button" class="q-btn q-press" id="qPress">Press start<small>${Q.input.touch ? 'Tap anywhere' : 'Press any key'}</small></button>`;
+        box.innerHTML = `<button type="button" class="q-btn q-press" id="qPress">Press start<small>${Q.input.touch ? 'Tap anywhere' : 'Press Enter (or any key)'}</small></button>`;
         // any click/tap (it ends with a click), any key or the on-screen pad; the menu appears just AFTER that gesture,
         // so the same tap can't also press a menu button that appears under the finger
         const done = () => { off(); document.removeEventListener('click', go, true); document.removeEventListener('keydown', key, true); };
