@@ -82,10 +82,10 @@ test('back from a game opened here returns to this zone; the Full Arcade shows e
 });
 
 test('nothing in the zone is dimmed for the saved instrument, and opening one needs no switch', async ({page}) => {
-  const watch = await prepare(page, {store: device('snare')});                  // a snare: Chime Heist is "bells only" elsewhere
+  const watch = await prepare(page, {store: device('snare')});                  // a snare: Button Masher + Sustain Speedway are dimmed elsewhere
   await page.goto('index.html?demo&nostart&flat#zone=technique-lab&game=chime-heist');
   await expect.poll(async () => (await state(page)).game).toBe('chime-heist');
-  await expect(page.locator('.slot.nofit')).not.toHaveCount(0);                  // its own zone still dims it
+  await expect(page.locator('.slot.nofit')).not.toHaveCount(0);                  // its own zone still dims others
   await page.goto(`index.html?demo&nostart&flat#zone=${ZONE}&game=chime-heist`);
   await expect.poll(async () => (await state(page)).zone).toBe(ZONE);
   await expect(page.locator('.slot')).not.toHaveCount(0);

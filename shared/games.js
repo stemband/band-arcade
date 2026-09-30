@@ -214,12 +214,11 @@ window.Arcade.GAMES = [
     id: 'chime-heist',
     noInstrument: true,
     zones: ['technique-lab'],
-    fit: {only: ['bells'], tag: 'Bells only', why: 'Chime Heist is played on the bell kit. Switch your instrument to Bells to play it.'},
     name: 'Chime Heist',
     bg: {scene: 'vault', dim: .4, focus: .35},
     menuMusic: 'chime-heist-menu',
     skill: 'Mallet keyboard',
-    blurb: 'Crack the vault codes: read each note and strike its bar on the chime lock. No mic needed!',
+    blurb: 'Crack the vault codes on the bell kit: read each note and strike its bar. No mic and no instrument needed!',
     maxStars: 24,
     color: 'cyan',
     player: 'bells', playerName: 'Bell Kit',        // always the bell kit: START skips Select Player

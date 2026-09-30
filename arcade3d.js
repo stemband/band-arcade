@@ -66,8 +66,8 @@ window.Arcade = window.Arcade || {};
     /* vault: an upright cabinet with a round vault door (bolts, spoked handle) standing on top, a safe door below */
     vault: {
       width: 0.94, topper: 'vault', dial: true,
-      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.84, 0.84], [0.84, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.62, 1.46], [0.62, 1.62], [0, 1.62]],
-      marquee: [[0.62, 1.47], [0.62, 1.61]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
+      points: [[0, 0], [0.62, 0], [0.62, 0.76], [0.84, 0.84], [0.84, 0.90], [0.56, 1.00], [0.46, 1.02], [0.42, 1.42], [0.62, 1.46], [0.62, 1.66], [0, 1.66]],
+      marquee: [[0.62, 1.47], [0.62, 1.65]], screen: [[0.455, 1.05], [0.425, 1.39]], panel: [[0.84, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.12, y1: 0.56}, start: [0.62, 0.68],
     },
     /* temple: an upright cabinet under a temple gate (upswept top beam, tie beam, posts) with belt-color lanterns */
