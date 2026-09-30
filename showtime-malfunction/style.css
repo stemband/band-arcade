@@ -436,3 +436,107 @@ body.st-frozen #arena *,body.st-frozen #arena *::before,body.st-frozen #arena *:
    itself, and the card sits above the whole page */
 .arena{isolation:isolate}
 .overlay.special-ov{z-index:700}
+
+/* ---------- THE SNARE DRUM'S JOBS (snare.js, levels.js SNARE_RULES; only the snare: .sn-on) ---------- */
+/* THE SILENT BEAT: the panel's border and the stage lights swell on every beat (--pulse 0–1, set per frame; smooth,
+   at most one swell a beat: ≤ 2.2 a second; steady with reduced motion) */
+.tpanel.sn-on{position:relative;box-shadow:0 0 calc(6px + 18px * var(--pulse,0)) color-mix(in srgb,var(--yellow) calc(35% + 50% * var(--pulse,0)),transparent)}
+.tpanel.sn-on{border-color:color-mix(in srgb,var(--yellow) calc(55% + 45% * var(--pulse,0)),var(--floor-3))}
+#arena .spot.on::before{opacity:calc(.75 + .25 * var(--pulse,0))}
+.tp-beats{display:flex;justify-content:center;gap:10px;min-height:14px}
+.tp-beats i{width:13px;height:13px;border-radius:50%;background:var(--floor-3);box-shadow:inset 0 0 0 2px var(--floor-3)}
+.tp-beats i.on{background:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+.tp-beats.freeze i{background:color-mix(in srgb,var(--cyan) 30%,var(--floor-3))}
+.tp-beats.freeze i.on{background:var(--cyan-hi);box-shadow:var(--glow-cyan)}
+/* the count-in's big beat numbers (over the panel's count, never over the notation) */
+.tp-in{position:absolute;right:12px;top:40px;min-width:1.2em;font-family:var(--display);font-size:clamp(40px,7vw,72px);line-height:1;color:var(--cyan-hi);text-shadow:var(--glow-cyan);text-align:center;pointer-events:none;opacity:0}
+.tp-in.on{opacity:1}
+/* FREEZE: the Maestro's hand (on the panel and above the stage) */
+.tp-freeze{position:absolute;inset:40px 10px auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--deep) 88%,transparent);border:2px solid var(--cyan);z-index:3}
+.tp-freeze span{font-size:clamp(44px,7vw,80px);line-height:1}
+.tp-freeze b{font-family:var(--display);font-weight:400;font-size:clamp(22px,3.4vw,36px);color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+.tpanel.sn-frozen{border-color:var(--cyan)}
+.st-hand{position:absolute;left:50%;top:2%;transform:translateX(-50%);z-index:4;font-size:clamp(40px,8vw,84px);line-height:1;filter:none;text-shadow:0 0 18px color-mix(in srgb,var(--cyan) 70%,transparent)}
+@media (prefers-reduced-motion:no-preference){.st-hand:not([hidden]){animation:st-hand-up .35s ease-out}}
+@keyframes st-hand-up{from{transform:translate(-50%,40%);opacity:0}to{transform:translateX(-50%);opacity:1}}
+/* counts: "…and STOP", STOP while it waits; p / f */
+.sn-andstop{display:block;font-family:var(--text);font-weight:700;font-size:clamp(14px,1.8vw,20px);color:var(--text-hi);text-shadow:none;letter-spacing:.04em}
+.sn-stop{color:var(--st-red);text-shadow:0 0 12px color-mix(in srgb,var(--red) 50%,transparent)}
+.sn-dyn{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;color:var(--ink)}
+.tp-staff .sn-own{position:absolute;inset:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.tp-staff .sn-own .drum-ico.huge{position:static;width:min(46%,130px)}
+.tp-staff .sn-own .sn-dyn{position:absolute;right:10%;bottom:8%;font-size:clamp(52px,7vw,84px);line-height:1}
+.tp-staff .sn-own svg.rs{display:block;width:100%;height:auto;max-height:100%;color:var(--ink)}
+.sn-note{margin:0;font-size:13px;font-weight:700;color:var(--ink)}
+.sn-acc{font:700 26px var(--text);fill:currentColor}
+.sn-tick{stroke-width:5;stroke-linecap:round}
+.sn-tick.early,.sn-tick.late{stroke:var(--amber)}
+.sn-tick.extra{stroke:var(--red)}
+.sn-miss{fill:none;stroke:var(--red);stroke-width:3}
+.tpanel.sn-clean .tp-staff{box-shadow:inset 0 0 0 4px var(--green)}
+.tpanel.sn-fail .tp-staff{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--red) 70%,transparent)}
+.sn-meas{display:block;font-size:clamp(18px,2.6vw,28px);color:var(--text-hi);text-shadow:none}
+.tpanel.sn-hit .tp-staff{animation:sn-hit .18s ease-out}
+@keyframes sn-hit{from{box-shadow:inset 0 0 0 4px var(--cyan)}to{box-shadow:none}}
+/* the voice boxes: a small preview of the rhythm; p / f next to the drum */
+.sign .sn-mini{display:block;width:118px;background:var(--screen);border-radius:6px;color:var(--ink)}
+.sign .sn-mini svg{display:block;width:100%;height:auto}
+.sign .sn-dyn{font-size:30px;margin-left:-8px}
+/* the tempo-lock Maestro: a baton that swings with the pulse, the phase's meter */
+.sn-baton{display:inline-block;width:10px;height:44px;border-radius:5px;background:linear-gradient(var(--screen) 0 12%,var(--anim-baton) 12%);transform-origin:50% 100%;transform:rotate(calc(-24deg + 48deg * var(--pulse,0)))}
+.sn-baton.big{height:70px;width:12px}
+.sn-tempo{display:flex;align-items:center;gap:16px;color:var(--ink);text-align:left}
+.sn-tempo p{margin:0;font-size:clamp(15px,1.8vw,19px)}
+.sn-bpm{font-size:18px}
+.sn-fill{display:block;width:min(100%,220px);height:18px;margin:0 auto;border-radius:9px;background:var(--floor-3);overflow:hidden}
+.sn-fill i{display:block;height:100%;background:var(--cyan);transform-origin:left}
+.hold-ring .hr-hair{fill:none;stroke:var(--anim-hold);stroke-width:2.4}
+/* THE SNARE CARD: what each showtime adds, the timing check, the soundcheck */
+.sn-card ul.sn-adds{margin:6px 0 0;padding-left:18px;color:var(--text-lo);font-size:14.5px}
+.sn-card .sn-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+/* the timing check and soundcheck panels (like Rhythm Dojo's) */
+.st-cal-ov .panel{max-width:460px;text-align:center}
+.st-cal-dots{display:flex;justify-content:center;gap:8px;margin:12px 0}
+.st-cal-dots i{width:14px;height:14px;border-radius:50%;background:var(--floor-3)}
+.st-cal-dots i.lead{box-shadow:inset 0 0 0 2px var(--text-lo)}
+.st-cal-dots i.on{background:var(--yellow-hi);box-shadow:var(--glow-yellow)}
+.st-cal-dots.big i{width:22px;height:22px}
+.st-cal-say{min-height:1.4em;font-weight:700;color:var(--text-hi)}
+.st-sound-step{font-size:20px;color:var(--text-hi)}
+.st-sound-step .sn-dyn,.st-cal-ov .sn-dyn{color:var(--yellow-hi);font-size:1.3em}
+.st-cal-pad{display:block;width:140px;height:90px;margin:8px auto;border-radius:16px;background:var(--floor-3);border:3px solid var(--yellow)}
+/* NEW DRUM CHALLENGE cards (the special card, .drum) and their tiny animated examples */
+#specialCard.drum .special-panel{border-color:var(--cyan);box-shadow:0 0 18px color-mix(in srgb,var(--cyan) 50%,transparent),0 30px 80px rgba(0,0,0,.6)}
+#specialCard.drum .sp-alert{color:var(--cyan-hi);text-shadow:var(--glow-cyan)}
+#specialCard.drum .sp-art{height:auto;aspect-ratio:auto;width:min(100%,240px);margin:6px auto 8px}
+.dc-art{display:block;width:min(100%,220px);height:auto;margin:0 auto;border-radius:12px;background:var(--screen)}
+.dc-art .dc-line,.dc-art .dc-notes path{stroke:var(--ink);stroke-width:2.4;fill:none}
+.dc-art .dc-notes ellipse{fill:var(--ink)}
+.dc-art .dc-head{fill:var(--cyan)}
+.dc-art .dc-ring{fill:none;stroke:var(--cyan);stroke-width:4}
+.dc-art .dc-emo{font-size:40px}
+.dc-art .dc-p,.dc-art .dc-f{font:italic 700 46px Georgia,'Times New Roman',serif;fill:var(--ink)}
+.dc-art .dc-acc{font:700 26px var(--text);fill:var(--ink)}
+.dc-art .dc-dot{fill:var(--ink)}
+.dc-art .dc-hair{fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+.dc-art .dc-baton path{stroke:var(--anim-baton);stroke-width:5;stroke-linecap:round}
+.dc-art .dc-baton circle{fill:var(--ink)}
+@media (prefers-reduced-motion:no-preference){
+  .dc-rhythm .dc-head{animation:dc-play 2.4s linear infinite}
+  .dc-dyn .dc-p{animation:dc-soft 2s ease-in-out infinite}.dc-dyn .dc-f{animation:dc-loud 2s ease-in-out infinite}
+  .dc-accent .dc-acc{animation:dc-soft 1.2s ease-in-out infinite}.dc-accent .dc-acc2{animation-delay:.6s}
+  .dc-roll .dc-dot{animation:dc-soft 1s ease-in-out infinite}
+  .dc-cresc .dc-hair{animation:dc-grow 2.4s ease-in-out infinite;transform-origin:14px 40px}
+  .dc-tempo .dc-baton{animation:dc-baton 1.2s ease-in-out infinite alternate;transform-origin:60px 70px}
+  .dc-freeze .dc-emo{animation:dc-soft 1.6s ease-in-out infinite}
+}
+@keyframes dc-play{from{transform:translateX(0)}to{transform:translateX(96px)}}
+@keyframes dc-soft{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes dc-loud{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes dc-grow{0%{transform:scaleX(.2)}100%{transform:scaleX(1)}}
+@keyframes dc-baton{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+.file.f-drum .dc-box{width:100%;max-width:150px}
+.file.f-drum.f-none .dc-art{opacity:.35;filter:grayscale(1)}
+@media (prefers-reduced-motion:reduce){.tpanel.sn-hit .tp-staff{animation:none}}
+.special-panel .sp-drum{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--cyan) 12%,var(--deep));border:1px solid var(--cyan);color:var(--text-hi);font-size:14.5px}
+.special-panel .sp-drum b{color:var(--cyan-hi)}

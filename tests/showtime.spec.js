@@ -63,7 +63,7 @@ test.describe('Showtime Malfunction', () => {
   });
 
   test('Snare: the same band, specials and Maestro Moose as everyone else', async ({page}) => {
-    const watch = await prepare(page, {store: device('snare', {gameData: {'showtime-malfunction': {storySeen: true}}})});
+    const watch = await prepare(page, {store: device('snare', {gameData: {'showtime-malfunction': {storySeen: true, snareDyn: {soft: .05, loud: .4, split: .1414}}}})});   // (the soundcheck done)
     await page.goto('showtime-malfunction/index.html?demo&nostart');
     await start(page, 8);
     const s = await page.evaluate(() => {

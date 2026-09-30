@@ -150,7 +150,7 @@
   --kt-good:#7dffb0; --kt-bad:#ff6b6b; --kt-answer:#ffcf4a; --kt-chop:#3ae8ff; --kt-fork:#ff7ad9; --kt-lamp:#ffd166;
   --kt-fur:#f2a65a; --kt-fur-d:#b86e2c; --kt-hat:#1c1830; --kt-sash:#e0343f; --kt-gold:#ffcf4a; --kt-gold-d:#b8860b;
   --anim-chrome:#d9e1ec; --anim-crack:#262b36; --anim-emergency:#ff2a2a;
-  --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6;
+  --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6; --anim-baton:#5a3a22;
   --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;
   /* text on the floor (all pass WCAG AA on --floor-3 and darker) */
   --text-hi:#f6f2ff; --text-lo:#c3bbe0; --text-dim:#9990bd;

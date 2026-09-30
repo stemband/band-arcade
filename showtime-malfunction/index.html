@@ -97,7 +97,7 @@
 <!-- A SPECIAL MACHINE's first appearance on this device: the game pauses for its card -->
 <div class="overlay special-ov" id="specialCard" hidden>
   <div class="panel special-panel" role="dialog" aria-modal="true" aria-labelledby="spTitle">
-    <p class="ui-kicker sp-alert">New malfunction detected!</p>
+    <p class="ui-kicker sp-alert" id="spKick">New malfunction detected!</p>
     <div class="sp-art bot glitch" id="spArt" aria-hidden="true"></div>
     <p class="sp-hybrid" id="spHybrid" hidden><span class="sp-badge">Hybrid!</span> <span id="spParents"></span></p>
     <h2 class="ui-title" id="spTitle">Turbo Tin</h2>
@@ -116,6 +116,27 @@
   </div>
 </div>
 
+<!-- THE SNARE: the timing check (shared/timing-check.js, the same flow as Rhythm Dojo's) and the soundcheck (snare.js) -->
+<div class="overlay st-cal-ov" id="stCal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="stCalTitle">
+    <h2 class="ui-title" id="stCalTitle">Timing check</h2>
+    <p id="stCalMsg"></p>
+    <div class="st-cal-dots" id="stCalDots" aria-hidden="true"></div>
+    <button type="button" class="st-cal-pad" id="stCalPad" hidden aria-label="Tap here on every click"></button>
+    <p class="st-cal-say" id="stCalSay" aria-live="polite"></p>
+    <div class="acts"><button type="button" class="btn btn-primary" id="stCalGo">Start</button><button type="button" class="btn btn-secondary" id="stCalSkip">Cancel</button></div>
+  </div>
+</div>
+<div class="overlay st-cal-ov" id="stSound" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="stSoundTitle">
+    <h2 class="ui-title" id="stSoundTitle">Soundcheck</h2>
+    <p>Some machines only listen to SOFT hits (<b class="sn-dyn">p</b>), some only to LOUD ones (<b class="sn-dyn">f</b>). Show the microphone your two sounds.</p>
+    <p class="st-sound-step" id="stSoundStep"></p>
+    <div class="st-cal-dots big" id="stSoundDots" aria-hidden="true"></div>
+    <p class="st-cal-say" id="stSoundSay" aria-live="polite"></p>
+    <div class="acts"><button type="button" class="btn btn-secondary" id="stSoundSkip">Cancel</button></div>
+  </div>
+</div>
 <!-- the Jump Scare warning, the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- The microphone listens during a showtime: every sound mutes it for a moment (shared/sfx.js), and the band stands still meanwhile. -->
@@ -150,8 +171,17 @@
 <script src="../shared/press-start.js"></script>
 <script src="../shared/level-select.js"></script>
 <script src="../shared/teacher-settings.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/onsets.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../shared/rhythm-judge.js"></script>
+<script src="../shared/timing-check.js"></script>
+<script src="../music-highway/backing.js"></script>
+<script src="../rhythm-dojo/levels.js"></script>
 <script src="levels.js"></script>
 <script src="characters.js"></script>
+<script src="snare.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

@@ -503,17 +503,8 @@
 
   /* ---------- JUDGING ---------- */
   function judge(Rd) {
-    const a = Rd.att, tg = Rd.targets.map(x => Object.assign({}, x, {res: null, d: null, a: null}));
-    const extras = [];
-    a.attacks.filter(x => x.rel <= Rd.total + R.lateMs / 1000).forEach(x => {
-      let best = null;
-      tg.forEach(t => { if (t.res) return; const d = (x.rel - t.t) * 1000; if (Math.abs(d) <= R.lateMs && (!best || Math.abs(d) < Math.abs(best.d))) best = {t, d}; });
-      if (!best) { extras.push(x); return; }
-      const t = best.t, d = best.d, ad = Math.abs(d);
-      t.d = d; t.a = x;
-      t.res = ad <= R.perfectMs ? 'perfect' : ad <= R.goodMs ? 'good' : ad <= R.okMs ? 'ok' : d < 0 ? 'early' : 'late';
-    });
-    tg.forEach(t => { if (!t.res) t.res = 'miss'; });                 // a note is judged only by when it starts
+    // each hit claims the nearest note within lateMs; a note left over is a MISS (shared/rhythm-judge.js)
+    const {tg, extras} = A.RhythmJudge.match(Rd.targets, Rd.att.attacks.filter(x => x.rel <= Rd.total + R.lateMs / 1000), R);
     const val = t => R.value[t.res] || 0;
     const sum = tg.reduce((s, t) => s + val(t), 0);
     const acc = tg.length + extras.length ? sum / (tg.length + extras.length) : 1;
@@ -681,67 +672,12 @@
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
   }
 
-  /* ================= THE TIMING CHECK (shared/calibration.js) ================= */
-  let calRun = null;
+  /* ================= THE TIMING CHECK (the shared flow: shared/timing-check.js + shared/calibration.js) ================= */
+  const calEls = () => ({panel: $('calPanel'), title: $('calTitle'), msg: $('calMsg'), dots: $('calDots'), say: $('calSay'), pad: $('calPad'), go: $('calGo'), skip: $('calSkip')});
   function calibrate(done, {first = false} = {}) {
-    const P = $('calPanel'), tap = !micMode(), key = calKey();
-    $('calTitle').textContent = 'Timing check' + (tap ? ' (tapping)' : ' (clapping)');
-    $('calMsg').textContent = (first ? 'First, a quick timing check. ' : '') + `Every microphone, screen and speaker adds a tiny delay. Listen to ${R.calLead} clicks, then ${tap ? 'tap the pad (or press Space)' : 'clap'} on each of the next ${R.calClicks} clicks, right with them.`;
-    $('calDots').innerHTML = Array.from({length: R.calLead + R.calClicks}, (_, k) => `<i class="${k < R.calLead ? 'lead' : ''}"></i>`).join('');
-    $('calSay').textContent = '';
-    $('calPad').hidden = true;
-    $('calGo').hidden = false; $('calGo').textContent = 'Start';
-    $('calSkip').textContent = first ? 'Skip for now' : 'Cancel';
-    P.hidden = false; $('calGo').focus();
-    const close = ok => { P.hidden = true; if (calRun) { clearInterval(calRun.timer); if (calRun.kit) calRun.kit.stopAll(); if (calRun.sub) calRun.sub.stop(); } calRun = null; A.Pitch.pauseListening(true); A.Sfx.gameMenuMusic(GAME_ID); drawOpts(); if (done) done(ok); };
-    $('calSkip').onclick = () => close(false);
-    $('calGo').onclick = () => {
-      $('calGo').hidden = true;
-      A.Sfx.gameMenuMusic(GAME_ID, false);
-      CLK.start();
-      const k2 = newKit(true), spb = 60 / R.calBpm, t0 = CLK.now() + .6, n = R.calLead + R.calClicks;
-      const clicks = Array.from({length: n}, (_, k) => t0 + k * spb);
-      if (k2) clicks.forEach((t, k) => k2.click(t, R.clickVol, k % 4 === 0));
-      calRun = {attacks: [], clicks, kit: k2};
-      if (tap) { $('calPad').hidden = false; }
-      else { A.Pitch.pauseListening(false); A.Onsets.ensure(); calRun.sub = A.Onsets.listen(o => calRun && calRun.attacks.push({time: o.time, level: o.level})); }
-      const dots = $('calDots').children;
-      calRun.timer = setInterval(() => {
-        CLK.sample();
-        const now = CLK.audAt(performance.now()), k = clicks.findIndex(t => t > now) - 1, kk = k < 0 ? (now > clicks[n - 1] ? n - 1 : -1) : k;
-        [...dots].forEach((d, j) => d.classList.toggle('on', j <= kk));
-        $('calSay').textContent = kk < 0 ? 'Get ready…' : kk < R.calLead ? `Listen… ${R.calLead - kk}` : tap ? 'Tap on every click!' : 'Clap on every click!';
-        if (now > clicks[n - 1] + .7) { clearInterval(calRun.timer); calDone(); }
-      }, 40);
-    };
-    function calDone() {
-      A.Pitch.pauseListening(true);
-      if (calRun.sub) calRun.sub.stop();
-      $('calPad').hidden = true;
-      const res = A.Calibration.analyse({clicks: calRun.clicks, lead: R.calLead, attacks: calRun.attacks, audAt: p => CLK.audAt(p), rules: R});
-      lastCal = res;
-      if (!res.ok) {
-        $('calSay').textContent = res.why === 'click' ? 'I heard the click, not your claps. Try clapping a little louder or moving the device a bit farther from the speaker.'
-          : res.accepted ? `I heard ${res.accepted} of ${R.calClicks}. ${tap ? 'Tap' : 'Clap'} right on each click. Let's try again!`
-          : `I didn't hear anything. ${tap ? 'Tap the pad or press Space' : 'Check the microphone and clap a little louder'}. Let's try again!`;
-        $('calGo').hidden = false; $('calGo').textContent = 'Try again';
-        return;
-      }
-      const c = Object.assign({}, gd().calib || {}); c[key] = {ms: Math.round(res.median), n: res.accepted, at: Date.now()};
-      save({calib: c});
-      $('calSay').textContent = `All set! Your timing check: ${Math.round(res.median)} ms.`;
-      setTimeout(() => close(true), 1100);
-    }
+    A.TimingCheck.open({els: calEls(), tap: !micMode(), first, rules: R, clock: CLK, kit: newKit, key: calKey(), gameId: GAME_ID,
+      onClose: ok => { drawOpts(); if (done) done(ok); }});
   }
-  let lastCal = null;
-  const calPad = $('calPad');
-  calPad.addEventListener('pointerdown', e => { e.preventDefault(); if (calRun) calRun.attacks.push({time: e.timeStamp || performance.now(), level: null}); calPad.classList.add('down'); });
-  calPad.addEventListener('pointerup', () => calPad.classList.remove('down'));
-  addEventListener('keydown', e => {                                   // Space on the clicks (the panel's button has gone)
-    if ($('calPanel').hidden) return;
-    if (e.key === ' ' && calRun && !micMode() && !e.repeat) { e.preventDefault(); calRun.attacks.push({time: performance.now(), level: null}); }
-    if (e.key === ' ' && calRun && micMode() && A.DEMO && !e.repeat) { e.preventDefault(); A.Onsets.fake(performance.now(), .3); }
-  });
 
   /* ================= THE HEADPHONES CHECK: can the microphone hear the clicks? ================= */
   let hpResult = null;
@@ -805,9 +741,9 @@
     /** the performance in progress: its rhythm's start (AudioContext time), each note's time after it (s) and when to press for it (performance.now() ms) */
     timeline: () => G && G.R && G.R.att ? {T0: G.R.att.T.T0, notes: G.R.targets.map(t => t.t), perf: G.R.targets.map(t => perfAt(G.R.att.T.T0 + t.t + G.R.att.lag / 1000))} : null,
     set: patch => { Object.assign(opt, patch); save(patch); if (!G) showHub(); },
-    calibration: () => lastCal, headphones: () => hpResult,
+    calibration: () => A.TimingCheck.state().last, headphones: () => hpResult,
     /** the timing check's clicks as performance.now() times (tests: tap along with them) */
-    calClicks: () => calRun ? calRun.clicks.map(c => perfAt(c)) : null,
+    calClicks: () => { const c = A.TimingCheck.state().clicks; return c ? c.map(x => perfAt(x)) : null; },
     setRound: (text, time, tempo) => { if (G) setRound(text, time, tempo || 80); },
   };
 

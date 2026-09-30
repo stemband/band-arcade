@@ -51,6 +51,66 @@ window.SHOWTIME_RULES = {
   storyOnce: true,        // show the story before the first showtime (it can always be read again from the level screen)
 };
 
+/* THE SNARE DRUM'S JOBS (only when the player is the Snare Drum: wind players never see any of this). The microphone
+   hears WHEN a hit lands and HOW LOUD it is (shared/onsets.js), never which hand played: nothing here judges sticking.
+   Every time below is on the game clock: it stops with the band (a sound playing, PAUSE, a special's card, a scare).
+   Arrays with 8 numbers = one per showtime (1–8). `from` = the first showtime a job appears in.
+   THE BEAT is SILENT (no click: a sound would mute the microphone): the stage lights and the target panel's border
+   swell on every beat (never more than 2.2 swells a second: keep every bpm ≤ 132), a row of beat dots on the panel. */
+window.SNARE_RULES = {
+  // the silent pulse's tempo on count machines (beats a minute), and the demo keys' hit loudness (?demo: Space)
+  beat: {bpm: [72, 72, 76, 80, 84, 88, 96, 100], maxSwells: 2.2},
+  // EXACT COUNTS (every showtime): at 0 the machine waits confirmMs; a hit then = an OVER-HIT (+overhitAdd, count again);
+  // silence = reboot. The next target listens only after gapMs of silence (a hit in the gap starts the gap again)
+  exact: {confirmMs: 350, overhitAdd: 2, gapMs: 400},
+  // FREEZE (from showtime 2): at a `chance` share of count machines, when `at` of its hits are done, the Maestro's hand
+  // rises for `beats` beats: every machine walks at walkMul, a hit = +penalty hits. Never in the last `guard` seconds
+  // before the target reaches the front
+  freeze: {from: 2, chance: [0, .3, .3, .3, .35, .35, .4, .4], beats: [0, 2, 2, 3, 3, 3, 4, 4], at: .5, walkMul: .5, penalty: 2, guard: 2},
+  // RHYTHM MACHINES (from showtime 3): a `share` of the regular machines ask for `measures` one-measure rhythms (4/4,
+  // SNARE_RHYTHMS below) played in time after a one-measure silent count-in. Every written note needs a hit within
+  // `window` ms and no extra hits (rests included); a failed measure is played again. bpm × nightmareBpm on NIGHTMARE
+  rhythm: {from: 3, share: [0, 0, .35, .35, .3, .25, .25, .25], measures: [0, 0, 1, 1, 1, 2, 2, 2],
+    window: [0, 0, 160, 150, 145, 140, 130, 120], bpm: [0, 0, 76, 80, 84, 88, 96, 100], nightmareBpm: 1.1, leadS: .4},
+  // SOFT AND LOUD (from showtime 5): a `share` of the regular machines are p (only soft hits count; a loud one = +1) or
+  // f (only loud hits count). THE SOUNDCHECK (before the first dynamics showtime, and "Redo soundcheck" on the snare
+  // card): `hits` soft, then `hits` loud; the split = halfway between them on a log scale; loud must be ≥ minRatio × soft
+  dyn: {from: 5, share: [0, 0, 0, 0, .25, .2, .2, .2], hits: 4, minRatio: 2},
+  // ACCENT MACHINES (from showtime 6): a `share` of the regular machines: 8 eighth notes (a 4-long pattern plays twice)
+  // in time with the pulse like a rhythm machine; every > hit loud and every other hit soft (the soundcheck's split)
+  accent: {from: 6, share: [0, 0, 0, 0, 0, .2, .2, .2], measures: [0, 0, 0, 0, 0, 1, 1, 1],
+    patterns: ['> - - -', '- - > -', '> - - - > - - -', '> - > - - > - -']},
+  // THE LONG TONE LURKER'S ROLL fills only while it's fast enough (its rollRate) AND even: the gaps' spread (coefficient
+  // of variation over the last `windowS` s) ≤ maxCv (NIGHTMARE: maxCvNightmare); a clumpy roll fills at clumpyMul.
+  // NIGHTMARE: the Glitch Lurker's roll is a CRESCENDO: each third of the ring crescK × louder than the one before
+  roll: {maxCv: .35, maxCvNightmare: .25, clumpyMul: .3, windowS: 1, crescK: 1.15, crescListenS: .4},
+  // THE TEMPO-LOCK MAESTRO (NIGHTMARE, showtime 8): each phase at its own bpm, after a one-measure count-in: steady
+  // EIGHTH notes; a hit within `window` ms of the eighth grid fills 1/(2 × beats) of the phase, a hit off it drains the
+  // same; the average drift over the last beat says "rushing" / "dragging"
+  maestro: {bpm: [84, 96, 108], beats: 8, window: 90},
+  // THE FAIRNESS CHECK for every snare job (as the hybrids'): a machine is slowed until its job (hits ÷ `rate` a second,
+  // the confirm wait, freeze beats, count-in + measures, the roll) fits in `margin` of the time it walks
+  fair: {rate: 4, margin: .7},
+  // THE TIMING CHECK (shared/timing-check.js, the same as Rhythm Dojo's; saved for the whole arcade): 4 clicks to listen
+  // to, then hit on 8. Rhythm jobs take this device's delay off every hit (none yet = Rhythm Dojo's default)
+  timing: {calLead: 4, calClicks: 8, calBpm: 90, calNeed: 5, maxLagMs: 400, calMinSpreadMs: 3, calClickMaxMs: 25, calTooEarlyMs: 120,
+    bleedMs: 90, bleedK: 2.2, clickVol: .9},
+  demo: {level: .3, soft: .06, loud: .4},
+};
+
+/* THE SNARE'S RHYTHMS: loaded from Rhythm Dojo's vetted one-measure cells (rhythm-dojo/levels.js RD_LEVELS, 4/4 only),
+   filtered by what each showtime allows (a rhythm is drawn at random, never the same twice in a row). A showtime's
+   pool = every 4/4 cell whose tokens are all in `allow`; `sync: false` = no syncopation (a quarter or longer starting
+   off the beat); `more` = extra rhythms written here (counting.js text, one measure). */
+window.SNARE_RHYTHMS = {
+  3: {allow: 'q e', sync: false},                                       // quarters and eighths
+  4: {allow: 'q e qr er', sync: false},                                 // + quarter and eighth rests
+  5: {allow: 'q e qr er q. e_ q_', sync: false, more: ['q. e q. e', 'q_ e e q q']},   // + dotted quarter–eighth, ties
+  6: {allow: 'q e qr er q. e_ q_ [ ]', sync: false},                    // + eighth-note triplets
+  7: {allow: 'q e qr er q. e_ q_ [ ] s', sync: false, more: ['e s s e s s q q', 's s e q q q', 's s s s s s s s q q']},   // + sixteenth combos
+  8: {allow: '*', sync: true},                                          // everything, syncopation too
+};
+
 /* THE SPECIAL MACHINES: rare bonus animatronics with an ability. A special REPLACES a regular animatronic when it
    walks on (the showtime has the same number of machines; only Split Sprocket's two minis are extra), and never more
    than one special is on the floor at once (the minis don't count). Stars work exactly as before; rebooting a special
