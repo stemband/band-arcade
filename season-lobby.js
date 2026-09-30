@@ -68,7 +68,7 @@ window.Arcade = window.Arcade || {};
     return url ? `<span class="pt-box pt-box-tile ev-sprite"><img src="${url}" alt="" draggable="false"></span>` : '';
   }
   let ov = null;
-  function close() { if (!ov) return; ov.remove(); ov = null; document.removeEventListener('keydown', onKey); if (A.lockScroll) A.lockScroll(false); render(); }
+  function close() { if (!ov) return; ov.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(ov); ov = null; document.removeEventListener('keydown', onKey); if (A.lockScroll) A.lockScroll(false); render(); }
   const onKey = e => { if (e.key === 'Escape' && !document.querySelector('.sk-catchup')) close(); };
   function open() {
     const o = S() && S().active();
@@ -79,6 +79,7 @@ window.Arcade = window.Arcade || {};
       ov = document.createElement('div');
       ov.className = 'overlay ev-overlay';
       document.body.appendChild(ov);
+      if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 0});   // on top of whatever opened it (shared/ui-kit.js UI.layer)
       document.addEventListener('keydown', onKey);
       if (A.lockScroll) A.lockScroll(true);
       ov.addEventListener('click', e => { if (e.target === ov) close(); });

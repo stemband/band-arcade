@@ -24,7 +24,7 @@ jobs:
   test:
     name: tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40                 # WebKit is the slow one: its full run passed 25 minutes as the Speedway tests grew
     strategy:
       fail-fast: false
       matrix:

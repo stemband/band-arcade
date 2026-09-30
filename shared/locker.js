@@ -164,6 +164,7 @@ window.Arcade = window.Arcade || {};
     if (!guest && A.Locker) A.Locker.markOpened(member);
     draw();
     ov.hidden = false; ov.scrollTop = 0;
+    if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 85});   // on top of whatever opened it (shared/ui-kit.js UI.layer)
     document.body.classList.add('lk-open');
     if (A.lockScroll) A.lockScroll(true);
     $('lkTab-' + S.tab).focus({preventScroll: true});
@@ -173,7 +174,7 @@ window.Arcade = window.Arcade || {};
   function close() {
     const ov = $('locker');
     if (!ov || ov.hidden) return;
-    ov.hidden = true;
+    ov.hidden = true; if (A.UI && A.UI.layer) A.UI.layer.close(ov);
     document.body.classList.remove('lk-open');
     if (A.lockScroll) A.lockScroll(false);
     const cb = S.onClose, prev = S.prev;

@@ -49,14 +49,82 @@ window.Arcade = window.Arcade || {};
     });
     ov.addEventListener('keyup', e => e.stopPropagation());
   }
+  /* ---------- LAYERS: "OPEN A PANEL ON TOP" ----------
+     A panel opened from inside another panel (Backup / Restore from Settings, the Locker from a results card, the
+     creator from the Locker…) must never open BEHIND it. UI.layer.open(el) gives the element an inline z-index one
+     above whatever is showing now (the highest visible fixed/absolute child of <body>, toasts aside), never below its
+     own CSS layer (`min`); UI.layer.close(el) puts it back. Kit panels use it too (show/hide), so a yes/no question
+     asked from any panel (min 90) is always on top of it, and toasts (min 95) on top of that.
+     With {trap: true} it also runs the dialog plumbing for a panel that isn't a kit panel: focus in (`focus`, a
+     selector or element, else the first control), Tab stays inside, Esc (only while it's the TOP layer) calls onEsc,
+     body.ui-modal while open (Arcade Quest's keys stop), and close() gives the focus back to what opened it. */
+  const LAYERS = [];
+  function topZ(except) {
+    let z = 0;
+    for (const c of document.body.children) {
+      if (c === except || c.classList.contains('ui-toast') || !visible(c)) continue;
+      const cs = getComputedStyle(c);
+      if (cs.position !== 'fixed' && cs.position !== 'absolute') continue;
+      const v = parseInt(cs.zIndex, 10);
+      if (v > z) z = v;
+    }
+    return z;
+  }
+  function lift(el, min) {
+    el.style.zIndex = '';
+    const own = parseInt(getComputedStyle(el).zIndex, 10) || 0;
+    el.style.zIndex = String(Math.max(own, min || 0, topZ(el) + 1));
+  }
+  UI.layer = {
+    open(el, {min = 80, trap: t = false, onEsc = null, focus = null} = {}) {
+      lift(el, min);
+      const L = {el, prev: document.activeElement, onEsc, trap: t};
+      LAYERS.push(L);
+      if (t) {
+        open.add(el); syncBody();
+        L.key = e => {
+          if (LAYERS[LAYERS.length - 1] !== L) return;                    // a panel above it has the keys
+          if (e.key === 'Escape' && L.onEsc) { e.preventDefault(); e.stopPropagation(); L.onEsc(); return; }
+          if (e.key === 'Tab') {
+            const f = [...el.querySelectorAll(FOCUSABLE)].filter(visible);
+            if (!f.length) return;
+            const i = f.indexOf(document.activeElement);
+            if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+            else if (!e.shiftKey && (i === f.length - 1 || i < 0)) { e.preventDefault(); f[0].focus(); }
+          }
+        };
+        document.addEventListener('keydown', L.key, true);
+        const f = typeof focus === 'string' ? el.querySelector(focus) : focus || [...el.querySelectorAll(FOCUSABLE)].filter(visible)[0];
+        if (f && f.focus) f.focus({preventScroll: true});
+      }
+      return L;
+    },
+    close(el, {restore = true} = {}) {
+      const i = LAYERS.findIndex(L => L.el === el);
+      if (i < 0) return;
+      const [L] = LAYERS.splice(i, 1);
+      el.style.zIndex = '';
+      if (L.trap) {
+        document.removeEventListener('keydown', L.key, true);
+        open.delete(el); syncBody();
+        const p = L.prev;
+        if (restore && p && p.focus && document.contains(p) && visible(p)) p.focus({preventScroll: true});
+      }
+    },
+    /** the element on the top layer (null = none) */
+    top: () => (LAYERS.length ? LAYERS[LAYERS.length - 1].el : null),
+    topZ: () => topZ(null),
+    state: () => LAYERS.map(L => ({id: L.el.id, cls: L.el.className, z: +L.el.style.zIndex})),
+  };
   function show(ov, focusSel) {
     ov.hidden = false; open.add(ov); syncBody();
+    UI.layer.close(ov); UI.layer.open(ov, {min: 0});                    // on top of whatever is showing (its CSS layer at least)
     const f = (focusSel && ov.querySelector(focusSel)) || [...ov.querySelectorAll(FOCUSABLE)].filter(visible)[0];
     if (f) f.focus({preventScroll: true});
   }
   function hide(ov, {restore = true} = {}) {
     if (!ov || ov.hidden) return;
-    ov.hidden = true; open.delete(ov); syncBody();
+    ov.hidden = true; open.delete(ov); syncBody(); UI.layer.close(ov);
     const p = ov._prev; ov._prev = null;
     if (restore && p && p.focus && document.contains(p) && visible(p)) p.focus({preventScroll: true});
   }
@@ -90,7 +158,7 @@ window.Arcade = window.Arcade || {};
     const t = el(`<div class="ui-toast ${esc(kind)}${near ? ' near' : ''}" role="status" aria-live="polite"></div>`);
     t.textContent = text;
     t.style.setProperty('--ui-toast-ms', ms + 'ms');
-    if (near) near.appendChild(t); else document.body.appendChild(t);
+    if (near) near.appendChild(t); else { document.body.appendChild(t); t.style.zIndex = String(Math.max(95, topZ(t) + 1)); }   // above every open panel
     setTimeout(() => t.remove(), ms + 100);
     return t;
   };

@@ -131,7 +131,8 @@
     return new Promise(done => {
       const p = panel('Your save code', `<p class="q-code" aria-label="Save code: ${code.split('').join(' ')}">${code}</p>` +
         `<p class="q-small">Write it down! On any device, pick ENTER SAVE CODE on the title screen to carry on from here.</p><p class="q-small q-copied" aria-live="polite"></p>`,
-        [{id: 'copy', label: 'Copy'}, {id: null, label: 'Done'}], {cols: 2, cls: 'q-codep', onPick: (it, i, api) => {
+        [{id: 'copy', label: 'Copy'}].concat(A.Backup ? [{id: 'backup', label: 'Backup'}] : [], [{id: null, label: 'Done'}]), {cols: A.Backup ? 3 : 2, cls: 'q-codep', onPick: (it, i, api) => {
+          if (it.id === 'backup') { A.Backup.open(); return; }        // the whole arcade's BACKUP / RESTORE, on top of this panel
           if (it.id === 'copy') {
             const ok = () => { api.el.querySelector('.q-copied').textContent = 'Copied!'; };
             if (navigator.clipboard) navigator.clipboard.writeText(code).then(ok, () => {}); return;
@@ -147,7 +148,7 @@
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
         `<label class="q-small" for="qCodeIn">45 letters and numbers (older codes: 40 or 25). Spaces and dashes don't matter.</label>` +
         `<input id="qCodeIn" class="q-codein" type="text" maxlength="90" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
-        `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button><button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
+        `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button>${A.Backup ? '<button type="button" class="q-btn" data-a="backup">Backup</button>' : ''}<button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
       let confirming = false;
@@ -168,9 +169,11 @@
         Q.save.fromCode(inp.value); Q.sfx('quest-save'); close(true);
       };
       p.querySelector('[data-a="load"]').addEventListener('click', load);
+      const bk = p.querySelector('[data-a="backup"]');               // the whole arcade's BACKUP / RESTORE (a full backup code), on top
+      if (bk) bk.addEventListener('click', () => A.Backup.open());
       p.querySelector('[data-a="back"]').addEventListener('click', () => close(false));
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); load(); } else if (e.key === 'Escape') close(false); });
-      setTimeout(() => inp.focus(), 30);
+      setTimeout(() => { if (!document.body.classList.contains('ui-modal')) inp.focus(); }, 30);
     });
   };
 

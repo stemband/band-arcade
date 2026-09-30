@@ -107,7 +107,8 @@ window.Arcade = window.Arcade || {};
     const prev = document.activeElement;
     const ov = el(`<div class="overlay app-overlay"><div class="panel app-panel" role="dialog" aria-modal="true" aria-labelledby="appT">${html}</div></div>`);
     document.body.appendChild(ov);
-    const close = () => { ov.remove(); removeEventListener('keydown', key, true); if (prev && prev.focus) prev.focus(); if (onClose) onClose(); };
+    if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 0});   // on top of whatever opened it (shared/ui-kit.js UI.layer)
+    const close = () => { ov.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(ov); removeEventListener('keydown', key, true); if (prev && prev.focus) prev.focus(); if (onClose) onClose(); };
     const key = e => { if (e.key === 'Escape' && !ov.dataset.noEsc) { e.stopPropagation(); close(); } };
     addEventListener('keydown', key, true);
     ov.addEventListener('click', e => { if (e.target === ov && !ov.dataset.noEsc) close(); });
@@ -165,12 +166,14 @@ window.Arcade = window.Arcade || {};
       <textarea id="appCode" class="bk-in" rows="3" spellcheck="false" autocapitalize="characters" autocomplete="off"></textarea>
       <p class="bk-msg app-msg" role="alert"></p>
       <div class="acts"><button type="button" class="btn btn-primary app-restore">Bring my progress</button>
-        <button type="button" class="btn btn-secondary app-fresh">Start fresh</button></div>`, null);
+        <button type="button" class="btn btn-secondary app-fresh">Start fresh</button></div>
+      <p class="app-note app-bk">Want to see every backup option? <button type="button" class="btn btn-secondary btn-small app-backup">Backup / Restore</button></p>`, null);
     p.ov.dataset.noEsc = '1';
     p.ov.classList.add('app-welcome');
     // typing and tapping here belong to this panel only (not PRESS START's "any key", not the floor's keys)
     ['keydown', 'pointerdown', 'click'].forEach(t => p.ov.addEventListener(t, e => e.stopPropagation()));
     const msg = (t, cls = '') => { const m = p.$('.app-msg'); m.textContent = t; m.className = 'bk-msg app-msg ' + cls; };
+    p.$('.app-backup').addEventListener('click', () => A.Backup.open());          // shared/backup.js, on top of this panel
     p.$('.app-fresh').addEventListener('click', () => { ls.set(WELCOME, 'done'); S.welcome = false; sfx('ui-toggle'); p.close(); if (then) then(); });
     p.$('.app-restore').addEventListener('click', async () => {
       const res = await A.Backup.fullDecode(p.$('#appCode').value);
