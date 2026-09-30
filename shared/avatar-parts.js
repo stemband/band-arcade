@@ -1252,4 +1252,16 @@ window.AVATAR_PARTS = {};
     {id: 'butterfly', name: 'Butterfly', unlock: ev('spring'), pal: {P: 'pink', p: 'yellow', K: 'av-black'}, seq: [0, 0, 1, 0],
      rows: ['.K....K.', '..K..K..', 'PP.KK.PP', 'PPPKKPPP', 'PpPKKPpP', '.PPKKPP.', '.PP..PP.', '........'],
      frames: [null, ['.K....K.', '..K..K..', '.P.KK.P.', '.PPKKPP.', '.PpKKpP.', '..PKKP..', '..P..P..', '........']]});
+
+  /* ---------- BLOCKTAVE (blocktave/): the Blocktave Builder hat (a builder's hard hat in the student's head color with
+     a little neon block on top: its slate A and moss glow B) and the Band Hall background (the Encore chapter's scene,
+     bg-scenes.js S.bandhall). Both: 3 ★ on Blocktave's Chapter 5 (every Encore milestone). Never at the Token Booth. ---------- */
+  const BT_RULE = {game: 'blocktave', level: 5, stars: 3, text: 'Finish the Encore chapter in Blocktave (all 3 milestones)'};
+  P.HEADS.push(
+    {id: 'blocktave', name: 'Blocktave Builder', unlock: BT_RULE, hides: 'top', clip: {front: 6, side: 6, back: 6, bust: 11}, pal: {A: 'bt-slate-2', B: 'bt-moss'},
+     bust: kit(36).spans(4, [[14, 21], [12, 23], [10, 25], [9, 26], [9, 26], [9, 26]], 'u').spans(1, [[15, 20], [15, 20], [15, 20]], 'A').spans(1, [[15, 20]], 'B').spans(10, [[6, 29]], 'U').map(),
+     front: kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [9, 22]], 'u').spans(0, [[14, 17], [14, 17]], 'A').spans(0, [[14, 17]], 'B').spans(5, [[7, 24]], 'U').map(),
+     side: kit(32).spans(1, [[11, 16], [10, 17], [9, 18], [8, 19]], 'u').spans(0, [[12, 15], [12, 15]], 'A').spans(0, [[12, 15]], 'B').spans(5, [[8, 22]], 'U').map(),
+     back: kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [9, 22]], 'u').spans(0, [[14, 17], [14, 17]], 'A').spans(0, [[14, 17]], 'B').spans(5, [[8, 23]], 'U').map()});
+  P.BGS.push({id: 'bandhall', name: 'Band Hall', kind: 'scene', scene: 'bandhall', lift: 1.6, main: 'red-ink', unlock: BT_RULE});
 })(window.AVATAR_PARTS);

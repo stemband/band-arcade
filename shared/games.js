@@ -402,6 +402,23 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'duel', body: 'cab-side'},
   },
   {
+    id: 'blocktave',
+    noInstrument: true,                              // TOUCH mode: tap note names and rhythms (no microphone)
+    zones: ['adventure'],
+    name: 'Blocktave',
+    bg: {scene: 'blocks', dim: .4, focus: .35},
+    menuMusic: 'blocktave-menu',
+    skill: 'Build & survive',
+    blurb: 'Your own world of neon blocks! Mine by playing your instrument, craft by performing, build a shelter before night falls and calm the silly creatures with your music. Or play by touch: no instrument needed.',
+    maxStars: 15,                                    // 5 chapters × 3 MILESTONES (blocktave/recipes.js BT_CHAPTERS): stars never come from mining more
+    color: 'green',
+    byMember: true,                                  // the milestone stars are per instrument member (the world is shared by the device)
+    unpitched: true,                                 // the Snare Drum mines with counts, rhythms and even rolls
+    marquee: {scene: 'blocks', colors: ['bt-moss', 'bt-tone', 'bt-beam']},
+    cabinet: {shape: 'blocks', trim: 'green', trim2: 'cyan', marquee: 'blocks', screen: 'blocks'},
+    cabinet3d: {profile: 'blocks', body: 'cab-side'},
+  },
+  {
     id: 'arcade-quest',
     zones: ['adventure'],
     name: 'Arcade Quest',

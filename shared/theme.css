@@ -149,6 +149,22 @@
   --kt-bldg:#171529; --kt-bldg-2:#2a2550; --kt-win-off:#3b3566; --kt-win-on:#ffd970; --kt-glow:#ffe58a;
   --kt-good:#7dffb0; --kt-bad:#ff6b6b; --kt-answer:#ffcf4a; --kt-chop:#3ae8ff; --kt-fork:#ff7ad9; --kt-lamp:#ffd166;
   --kt-fur:#f2a65a; --kt-fur-d:#b86e2c; --kt-hat:#1c1830; --kt-sash:#e0343f; --kt-gold:#ffcf4a; --kt-gold-d:#b8860b;
+  /* BLOCKTAVE (blocktave/): a neon, stage-lit block world. Sky (day / night), the ground, the music blocks' glows,
+     building blocks, creatures (Night Clams, Sour Wisps, Rushers) */
+  --bt-sky-day:#2c3f8f; --bt-sky-day-2:#8c4fb8; --bt-sky-night:#070514; --bt-sky-night-2:#1a1040; --bt-star:#e9e4ff; --bt-beam:#fff3c4;
+  --bt-dirt:#3a2436; --bt-dirt-2:#6b3d5c; --bt-moss:#5dffd0; --bt-moss-2:#1f6f67; --bt-sand:#d9b98a; --bt-sand-2:#a8845a;
+  --bt-clay:#8a3e2c; --bt-clay-2:#b7583c; --bt-slate:#2a2f4d; --bt-slate-2:#46507d; --bt-bedrock:#0c0b18;
+  --bt-water:#2b78d6; --bt-water-hi:#9fd4ff; --bt-leaf:#1c6b4a; --bt-leaf-hi:#6dffbe; --bt-reed:#8fd46a;
+  --bt-cork:#c99a63; --bt-cork-2:#8a6038; --bt-maple:#9a4b2e; --bt-maple-2:#6a2f1c; --bt-felt:#6e4fb8; --bt-felt-2:#b8a4ff;
+  --bt-rawhide:#e8d3a4; --bt-rawhide-2:#b99d68;
+  --bt-tone:#3ae8ff; --bt-brass:#ffc23a; --bt-scale:#ff5fd2; --bt-spring:#c38bff; --bt-sustain:#5d8dff; --bt-sustain-hi:#d0ddff;
+  --bt-rhythm:#5dff86; --bt-rest:#f4f1ff; --bt-silver:#d7dcee; --bt-pearl:#fff1fb;
+  --bt-plank:#b3713a; --bt-plank-2:#7b4620; --bt-panel:#4a4c62; --bt-panel-2:#6e7195; --bt-brick:#8f1f3a; --bt-brick-mortar:#e9b94a;
+  --bt-stage:#15121f; --bt-stage-2:#2a2438; --bt-stage-edge:#ffd166; --bt-door-window:#9fe8ff; --bt-glass:#bfe9ff; --bt-glass-edge:#dff6ff;
+  --bt-lamp:#fff0a8; --bt-locker:#3b6fa8; --bt-locker-2:#223f63; --bt-screen:#f4f1e6; --bt-composer:#1d1740; --bt-powered:#ffd166;
+  --bt-snack:#ff8a4d; --bt-bag:#6e4fb8;
+  --bt-clam:#f2a0c8; --bt-clam-2:#8a3a66; --bt-wisp:#c8ff5d; --bt-rusher:#ff8a3a; --bt-ink:#18203a; --bt-bubble:#f4f1e6;
+  --bt-mine:#5dffd0; --bt-build:#ffd166; --bt-far:#ff6b6b; --bt-heart:#ff6b9a;
   --anim-chrome:#d9e1ec; --anim-crack:#262b36; --anim-emergency:#ff2a2a;
   --anim-eye-bad:#ff3d3d; --anim-eye-good:#52c8ff; --anim-drum:#b8322f; --anim-drumhead:#ece6d6; --anim-baton:#5a3a22;
   --stage-wood:#3a2418; --stage-curtain:#5a1830; --fluoro:#dff7ff;

@@ -211,7 +211,7 @@ window.Arcade = window.Arcade || {};
   const isMe = entry => !!entry && !!entry.id && (entry.id === D().id || (!D().id && D().pid && entry.id === D().pid.slice(0, 6)));
 
   A.Leaderboard = {available, settings, setGrade, setOn, canSend, stars, endless, play, board, mine, isMe, weekKey, GRADES,
-    ENDLESS_GAMES: ['note-storm', 'note-ninja', 'lost-signal', 'vanishing-ink', 'keys-to-the-city', 'rhythm-dojo'],
+    ENDLESS_GAMES: ['note-storm', 'note-ninja', 'lost-signal', 'vanishing-ink', 'keys-to-the-city', 'rhythm-dojo', 'blocktave'],
     warm, TIMEOUTS, lastRequest: () => last && Object.assign({}, last),
     queue: () => (D().queue || []).slice(), flush, _request: request};
 })(window.Arcade);

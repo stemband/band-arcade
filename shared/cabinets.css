@@ -440,3 +440,14 @@
 .shape-audition .s-tick{fill:none;stroke:var(--sa-ok);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .shape-audition .s-line{stroke:var(--ink);stroke-width:2}
 .scr-audition{background:var(--sa-wall)}
+
+/* Blocktave: a stack of blocks on top (the middle one a music block), little blocks on the lower sides, a mallet on the kick plate */
+.shape-blocks .s-blk{fill:var(--bt-dirt);stroke:var(--bt-dirt-2);stroke-width:2}
+.shape-blocks .s-blk-music{fill:var(--bt-slate);stroke:var(--t)}
+.shape-blocks .s-moss{fill:none;stroke:var(--bt-moss);stroke-width:4}
+.shape-blocks .s-bnote{fill:var(--bt-tone)}
+.shape-blocks .s-bstem{stroke:var(--bt-tone);stroke-width:2.5}
+.shape-blocks .s-mhandle{stroke:var(--bt-plank);stroke-width:7;stroke-linecap:round}
+.shape-blocks .s-mhead{fill:var(--bt-cork);stroke:var(--bt-cork-2);stroke-width:2}
+.mq-blocks{background:linear-gradient(180deg,var(--bt-slate),var(--bt-sky-night));color:var(--u-hi);border:.12em solid var(--t);border-radius:.2em;box-shadow:var(--t-glow)}
+.scr-blocks{background:var(--bt-sky-night)}
