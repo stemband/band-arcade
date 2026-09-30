@@ -1,6 +1,6 @@
 /* Note Ninja: a neon dojo at night. Dark wood, paper screens lit from behind, red and white neon,
-   belt-colored accents. Reading comes first: the staff sits large and still on a lit scroll;
-   the action (the ninja, the target) happens above it. */
+   belt-colored accents. Reading comes first: the staff sits large and still on a lit scroll; the Sensei stands at
+   its right end (inside the drawing, game.js drawGroup) and slices every note you name. */
 
 /* ---------- the dojo ---------- */
 .dojo-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
@@ -76,17 +76,20 @@
 .belt-chip{position:relative;display:inline-block;width:22px;height:10px;border-radius:3px;background:var(--belt);box-shadow:0 0 0 1.5px var(--text-dim)}
 #hudCombo.hot{color:var(--yellow);text-shadow:var(--glow-yellow)}
 
-/* the action strip above the scroll: ninja, practice target, combo pop */
-.arena{position:relative;height:96px;display:flex;align-items:flex-end;gap:4px;margin:0 0 -6px 4px}
-.ninja-spot{width:82px;flex:none}
-.ninja-spot svg,.res-ninja svg{display:block;width:100%;height:auto;overflow:visible}
-.target{width:46px;flex:none}
-.target svg{display:block;width:100%;height:auto;overflow:visible}
-.t-post rect{fill:var(--dojo-wood-2)}
-.t-top rect,.t-bot rect{fill:var(--dojo-paper-dim);stroke:var(--dojo-wood);stroke-width:2}
-.t-top path,.t-bot path{stroke:var(--red);stroke-width:2.5}
-.t-slash{fill:none;stroke:var(--white-hi);stroke-width:4;stroke-linecap:round;stroke-dasharray:60;stroke-dashoffset:60;opacity:0}
-.combo-pop{position:absolute;left:150px;right:0;top:30px;text-align:center;font-family:var(--display);font-size:clamp(18px,4vw,26px);color:var(--yellow);text-shadow:var(--glow-yellow);opacity:0;pointer-events:none}
+/* the strip above the scroll: the combo pop and Endless's SPEED UP! (the Sensei is in the scroll) */
+.arena{position:relative;height:34px;margin:0 0 -4px 4px}
+.combo-pop{position:absolute;left:0;right:0;top:4px;text-align:center;font-family:var(--display);font-size:clamp(18px,4vw,26px);color:var(--yellow);text-shadow:var(--glow-yellow);opacity:0;pointer-events:none}
+
+/* THE SLICE (game.js slice): a bright streak along the cut, the note's two gold halves sliding apart and fading
+   (the motion is WAAPI; reduced motion = a fade in place). A combo milestone: a longer, golden, thicker streak. */
+.nn-streak{stroke:var(--white-hi);stroke-width:4;stroke-linecap:round}
+.nn-streak.glow{stroke:var(--yellow);stroke-width:11;opacity:.35}          /* the glow: a wide soft line under it (no blur filter) */
+.nn-slice.big .nn-streak{stroke:var(--yellow-hi);stroke-width:6.5}
+.nn-slice.big .nn-streak.glow{stroke:var(--yellow);stroke-width:17;opacity:.4}
+.nn-slice{pointer-events:none}
+/* the Sensei in the staff's slot: a quick lunge toward the note on a strike (none under reduced motion) */
+#nnSensei.swing svg{animation:ss-lunge .3s ease-out}
+@keyframes ss-lunge{35%{transform:translateX(-6px)}}
 
 /* the staff: large, still, crisp */
 .play-scroll{flex:none}
@@ -113,7 +116,7 @@
 .demo-ans{text-align:center;font-size:13px;color:var(--text-lo);margin:6px 0 0}
 /* short screens (iPad landscape, small Chromebooks): tighter, so the staff and the buttons both fit */
 @media (max-height:820px){
-  .arena{height:78px}.ninja-spot{width:66px}.target{width:38px}
+  .arena{height:30px}
   .hud{margin-bottom:2px}.hud b{font-size:19px}
   .play-scroll .staff{max-height:min(33vh,300px);max-height:min(33svh,300px)}
   .prompt{margin:8px 0 4px}
@@ -121,21 +124,12 @@
   .wrap.playing .topbar{margin-bottom:10px}
 }
 
-/* ---------- motion: strike, split, stumble, shake (all short; off for reduced motion) ---------- */
-.ninja-spot.strike svg{animation:nj-lunge .34s ease-out}
-.ninja-spot.strike .nj-arm{transform-box:view-box;transform-origin:65px 62px;animation:nj-swing .34s ease-out}
-.ninja-spot.stumble svg{animation:nj-stumble .42s ease-in-out}
-.target.split .t-top{transform-box:view-box;transform-origin:30px 44px;animation:t-split .5s ease-out}
-.target.split .t-slash{animation:t-slash .3s ease-out}
+/* ---------- motion: the scroll shakes on a mistake, the combo pops (short; off for reduced motion) ---------- */
 .scroll.shake{animation:shake .26s ease-in-out}
 .combo-pop.go{animation:pop 1s ease-out}
 .res-ninja{width:92px;margin:0 auto}
-.res-ninja .cheer{animation:cheer .6s ease-out 2}
-@keyframes nj-lunge{40%{transform:translateX(22px)}}
-@keyframes nj-swing{40%{transform:rotate(95deg)}}
-@keyframes nj-stumble{30%{transform:translateX(-8px) rotate(-9deg)}65%{transform:translateX(4px) rotate(4deg)}}
-@keyframes t-split{35%{transform:translate(7px,-8px) rotate(-18deg);opacity:1}100%{transform:translate(12px,-4px) rotate(-30deg);opacity:0}}
-@keyframes t-slash{0%{opacity:1;stroke-dashoffset:60}60%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+.res-ninja svg{display:block;width:100%;height:auto;overflow:visible}
+.res-ninja.cheer svg{animation:cheer .6s ease-out 2}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @keyframes pop{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-18px)}}
 @keyframes cheer{50%{transform:translateY(-6px)}}
@@ -149,8 +143,7 @@
 .topbar-right .sound-ctl{flex-wrap:nowrap}
 
 @media (prefers-reduced-motion:reduce){
-  .ninja-spot.strike svg,.ninja-spot.strike .nj-arm,.ninja-spot.stumble svg,.target.split .t-top,.scroll.shake,.res-ninja .cheer{animation:none}
-  .target.split .t-slash{animation:t-slash .01s}
+  #nnSensei.swing svg,.scroll.shake,.res-ninja.cheer svg{animation:none}
   .combo-pop.go{animation-duration:1.2s}
   .ptr{transition:none}
   .sparkle .belt-knot,.belt-chip.sparkle{animation:none;background-position:50% 0}
