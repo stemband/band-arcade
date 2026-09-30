@@ -11,6 +11,8 @@
                    else the last game played here, else the first. The same carousel as a zone (arcade.js treats it as
                    one: `zone` is FULL).
      SELECT PLAYER index.html?game=<id> (select-player/player.js; a two-player game, or no instrument saved yet)
+     PRIZE COUNTER an overlay over any view (shared/prizes.js): the lobby's sign, the avatar badge's menu, the counter
+                   at the back of a zone's aisle (3D: arcade3d.js; 2D: .prize2d), or index.html?prizes
    Every step is a browser history entry, so Back (and the iPad back-swipe) goes game → zone → lobby, and a zone can be
    linked straight to. A game page's "← ARCADE" comes back as index.html#<game id>: the student returns to the zone
    (or ALL GAMES, or the lobby) they left from (sessionStorage), with that game's cabinet in front.
@@ -108,6 +110,13 @@
     aisle.innerHTML = ring.map((g, r) =>
       `<div class="slot${fitOf(g).ok ? '' : ' nofit'}" data-r="${r}">${A.cabinetHTML(g, {href: gameHref(g)})}${isFull() && tagOf(g) ? zoneTagHTML(g) : ''}</div>`).join('');
     const slots = [...aisle.querySelectorAll('.slot')];
+    // THE PRIZE COUNTER at the back of the aisle (the 3D view draws its own: arcade3d.js); hidden on narrow screens
+    let prize2d = null;
+    if (A.Prizes) {
+      aisle.insertAdjacentHTML('beforeend', '<button type="button" class="prize2d" aria-label="Prize Counter"><span class="p2-sign" aria-hidden="true">Prizes</span><span class="p2-wall" aria-hidden="true"></span><span class="p2-counter" aria-hidden="true"></span></button>');
+      prize2d = aisle.lastElementChild;
+      prize2d.addEventListener('click', e => { e.stopPropagation(); A.Prizes.open({onClose: () => prize2d.focus({preventScroll: true})}); });
+    }
     if (A.Marquee) A.Marquee.hydrate(aisle);                  // the marquees' still frames (shared/marquees.js)
     if (A.hydrateScreens) A.hydrateScreens(aisle);             // canvas screens' still frames (shared/cabinets.js)
     return {
@@ -128,7 +137,7 @@
         const slot = e.target.closest('.slot');
         return slot ? +slot.dataset.d : null;
       },
-      destroy() { A.setAttract(null); slots.forEach(el => el.remove()); },
+      destroy() { A.setAttract(null); slots.forEach(el => el.remove()); if (prize2d) prize2d.remove(); },
     };
   }
   const zoneTagHTML = g => { const z = fullZoneOf[g.id]; return `<span class="ztag cab-ztag" style="${A.Lobby.zoneStyle(z)}" aria-hidden="true">${esc(z.name)}</span>`; };
@@ -599,5 +608,14 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && current === 'lobby') warmBoard(); });
   warmBoard();
   showView();                              // the address decides: lobby, a zone, ALL GAMES or Select Player
+  /* index.html?prizes: the PRIZE COUNTER (shared/prizes.js), from a game page's avatar badge. It opens over the view
+     (once), and the flag leaves the address. */
+  if (A.params.has('prizes')) {
+    const p = new URLSearchParams(location.search); p.delete('prizes');
+    const q = p.toString().replace(/=(?=&|$)/g, '');
+    try { history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (e) { /* file:// */ }
+    A.params = new URLSearchParams(location.search);
+    if (A.Prizes && !pressStart()) setTimeout(() => A.Prizes.open({onClose: focusView}), 0);
+  }
   A.Arcade = {state: () => ({view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
 })(window.Arcade);

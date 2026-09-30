@@ -14,6 +14,10 @@ const PAGES = [
     await page.locator('.lb-g').first().click();          // "What grade are you in?"
     await page.getByText('Resets every Monday', {exact: false}).first().waitFor();
   }},
+  {name: 'Prize Counter', url: 'index.html', open: async page => {
+    await page.locator('#prizeSign').click();
+    await page.locator('#prizes .pz-prize').first().waitFor();
+  }},
   ...games.map(g => ({name: g.tool ? `${g.name} (tool)` : g.name, url: `${g.id}/index.html`, game: g})),
   {name: 'Sound Board', url: 'sound-board/index.html'},
   {name: 'Art Board', url: 'art-board/index.html'},

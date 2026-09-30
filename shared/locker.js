@@ -10,6 +10,7 @@
    through Arcade.Locker.open (avatar-badge.js).
      Arcade.LockerUI.open({member, guest, tab, onChange, onClose})   member = the instrument whose skins show
      Arcade.LockerUI.close()
+     Arcade.LockerUI.picOf(field, id, member, avatar)   an item's thumbnail (the Prize Counter's shelves use it too)
      Arcade.LockerUI.state()   tests: {open, member, tab, fresh: [keys shown as NEW]} */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -41,7 +42,7 @@ window.Arcade = window.Arcade || {};
     ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
       <div class="lk-head"><div class="lk-stage"><div class="lk-pic" id="lkPic"></div></div>
         <div class="lk-info"><p class="lk-kicker">Locker</p><h2 id="lkTitle"></h2><p class="lk-now" id="lkNow" aria-live="polite"></p>
-          <p class="muted lk-how">Earn items with stars from every game, special wins, or tokens at Arcade Quest's Token Booth. Tap one to wear it.</p></div></div>
+          <p class="muted lk-how">Earn items with stars from every game, special wins, or tokens at the Prize Counter. Tap one to wear it.</p></div></div>
       <div class="lk-tabs" role="tablist" aria-label="Locker sections" id="lkTabs">${Object.keys(TABS).map(t => `<button type="button" role="tab" data-tab="${t}" id="lkTab-${t}">${TAB_NAMES[t]}</button>`).join('')}</div>
       <div class="lk-panel" id="lkBody" role="tabpanel"></div>
       <div class="acts"><button type="button" class="btn btn-primary" id="lkDone">Done</button></div></div>`;
@@ -181,6 +182,6 @@ window.Arcade = window.Arcade || {};
     S.onClose = S.onChange = null; S.member = null; S.fresh = new Set();
     if (cb) cb(); else if (prev && prev.isConnected && prev.focus) prev.focus({preventScroll: true});
   }
-  A.LockerUI = {open, close, TABS, get isOpen() { return !!($('locker') && !$('locker').hidden); },
+  A.LockerUI = {open, close, TABS, picOf, get isOpen() { return !!($('locker') && !$('locker').hidden); },
     state: () => ({open: !!($('locker') && !$('locker').hidden), member: S.member, guest: S.guest, tab: S.tab, fresh: [...S.fresh]})};
 })(window.Arcade);

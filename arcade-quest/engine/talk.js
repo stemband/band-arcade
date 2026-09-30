@@ -5,17 +5,19 @@
    Q.talk.sign(id)        one sign's lines
    Q.talk.hud()           the little status line (LV, HP, tokens)
    (THE PAUSE MENU is the arcade's shared one: engine/world.js mounts Arcade.UI.pause; its CHARMS opens Q.talk.charms.)
-   THE TOKEN BOOTH turns stars from the other arcade games into Arcade Tokens: RATE tokens per star. It counts the
-   player's instrument (store.allStars(member): every game and mode) plus games with a fixed player (Chime Heist,
-   Ancient Ninja Scrolls) that instrument doesn't already cover, and remembers each source's stars in
-   save.converted, so a star is only ever turned in once. It also SELLS: avatar items (shared/avatar-parts.js items with
-   unlock {shop: price}: the arcade's own, owned forever and worn everywhere: Arcade.store.ownItem) and CHARMS
-   (data/items.js QUEST_CHARMS with a price; ARCADE QUEST ONLY). Q.talk.charms() = the CHARMS panel (pause menu):
-   2 slots, owned charms to wear, and how to find the rest. */
+   THE TOKEN BOOTH turns stars from the other arcade games into Arcade Tokens. ONE WALLET, TWO COUNTERS: the wallet,
+   the star sources, the rate, the prices and buying are shared/tokens.js (Arcade.Tokens), shared with the arcade's own
+   PRIZE COUNTER (shared/prizes.js), so a star turned in at either counter is never counted again and an item bought at
+   either shows OWNED at the other. The booth SELLS: avatar items (shared/avatar-parts.js items with unlock {shop:
+   price}: owned forever and worn everywhere), including the MANOR COLLECTION (unlock.booth 'quest': only here, tagged
+   "MANOR COLLECTION: only here!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
+   QUEST_CHARMS with a price; ARCADE QUEST ONLY). Q.talk.charms() = the CHARMS panel (pause menu): 2 slots, owned
+   charms to wear, and how to find the rest. */
 (function (A) {
   "use strict";
   const Q = A.Quest;
-  const RATE = 5, REGINALD_NEEDS = 8;
+  const REGINALD_NEEDS = 8;
+  const T = () => A.Tokens;                                    // THE SHARED WALLET (shared/tokens.js)
   const DLG = () => window.QUEST_DIALOGUE || {}, SIGNS = () => window.QUEST_SIGNS || {}, ITEMS = () => window.QUEST_ITEMS || {};
   const unpitched = () => { const i = A.currentInstrument && A.currentInstrument(); return !!(i && i.pitched === false); };
 
@@ -28,7 +30,7 @@
   Q.talk.hud = function () {
     const el = Q.$('qWHud'); if (!el) return;
     const s = Q.save.get();
-    el.innerHTML = `<b>LV ${s.level}</b> <span>HP ${s.hp}/${s.maxHp}</span> <span class="q-tok"><i class="q-coin" aria-hidden="true"></i>${s.tokens}<span class="sr"> tokens</span></span>`;
+    el.innerHTML = `<b>LV ${s.level}</b> <span>HP ${s.hp}/${s.maxHp}</span> <span class="q-tok"><i class="q-coin" aria-hidden="true"></i>${T().balance()}<span class="sr"> tokens</span></span>`;
   };
   let bannerT = 0;
   Q.talk.banner = function (name) {
@@ -124,7 +126,7 @@
     await Q.say(['Saved! The jukebox plays your theme song. Your HP is full again.']);
     await Q.talk.showCode();
   }
-  /** the SAVE CODE panel: this save as 45 characters (shared/backup.js), to write down or copy */
+  /** the SAVE CODE panel: this save as 65 characters (shared/backup.js version 5), to write down or copy */
   Q.talk.showCode = function () {
     const code = Q.save.code();
     if (!code) return Promise.resolve();
@@ -146,8 +148,8 @@
     return new Promise(done => {
       const p = Q.el('div', 'q-overlay');
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
-        `<label class="q-small" for="qCodeIn">45 letters and numbers (older codes: 40 or 25). Spaces and dashes don't matter.</label>` +
-        `<input id="qCodeIn" class="q-codein" type="text" maxlength="90" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<label class="q-small" for="qCodeIn">65 letters and numbers (older codes: 60, 45, 40 or 25). Spaces and dashes don't matter.</label>` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="90" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
         `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button>${A.Backup ? '<button type="button" class="q-btn" data-a="backup">Backup</button>' : ''}<button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
@@ -155,7 +157,7 @@
       const close = ok => { off(); p.remove(); done(ok); };
       const off = Q.input.on(btn => { if (btn === 'b') close(false); return true; });
       inp.addEventListener('input', () => {                   // tidy as they type: upper case, groups of 5
-        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 45);
+        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 65);
         inp.value = (raw.match(/.{1,5}/g) || []).join('-'); msg.textContent = ''; confirming = false;
       });
       const load = () => {
@@ -177,31 +179,17 @@
     });
   };
 
-  /* ---------- Token Booth Terry ---------- */
-  function starSources() {
-    const m = A.currentMember(), st = A.store, groups = A.groupsOf(m.id).map(g => g.id);
-    const list = [{key: 'm:' + m.id, label: `${m.name} stars`, stars: st.allStars(m.id)}];
-    (A.ALL_GAMES || A.GAMES).forEach(g => {
-      if (!g.player || !g.maxStars || groups.includes(g.player)) return;           // bells already count Chime Heist
-      list.push({key: 'g:' + g.id, label: g.name, stars: st.allStars(g.player, g.id)});
-    });
-    const s = Q.save.get(), conv = s.converted || (s.converted = {});
-    if (s.convertedLeft > 0) {                           // a save code's turned-in stars: spread over this device's sources
-      list.forEach(x => { const n = Math.min(s.convertedLeft, Math.max(0, x.stars - (conv[x.key] || 0))); conv[x.key] = (conv[x.key] || 0) + n; s.convertedLeft -= n; });
-      Q.save.write();
-    }
-    list.forEach(s => { s.done = Math.min(s.stars, conv[s.key] || 0); s.fresh = Math.max(0, s.stars - (conv[s.key] || 0)); });
-    return list;
-  }
+  /* ---------- Token Booth Terry (the wallet: shared/tokens.js) ---------- */
+  const starSources = () => { Q.save.get(); return T().starSources(); };
   Q.talk.starSources = starSources;
   function booth(D) {
     return new Promise(done => {
       const render = () => {
-        const src = starSources(), fresh = src.reduce((n, s) => n + s.fresh, 0);
+        const src = starSources(), fresh = src.reduce((n, s) => n + s.fresh, 0), RATE = T().RATE;
         return {fresh, html: `<table class="q-stars"><tr><th>Where</th><th>Stars</th><th>New</th></tr>` +
           src.map(s => `<tr><td>${s.label}</td><td>${s.stars}</td><td>${s.fresh}</td></tr>`).join('') + `</table>` +
           `<p>${fresh ? `${fresh} new star${fresh === 1 ? '' : 's'} = <b>${fresh * RATE} Arcade Tokens</b> (${RATE} per star)` : 'No new stars yet. Earn stars in the other arcade games, then come back!'}</p>` +
-          `<p class="q-small">You have <i class="q-coin" aria-hidden="true"></i><b>${Q.save.get().tokens}</b> tokens.</p>`};
+          `<p class="q-small">You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens. (The same tokens as the arcade's Prize Counter.)</p>`};
       };
       let r = render();
       const items = () => (r.fresh ? [{id: 'turn', label: `Turn in ${r.fresh} ★`}] : []).concat([{id: 'looks', label: 'Player items', sub: 'For your avatar'},
@@ -214,9 +202,7 @@
           return;
         }
         if (it.id === 'turn') {
-          const s = Q.save.get(); s.converted = s.converted || {};
-          starSources().forEach(x => { s.converted[x.key] = x.stars; });
-          s.tokens += r.fresh * RATE; Q.save.write(); Q.sfx('quest-tokens'); Q.talk.hud();
+          Q.save.get(); T().turnIn(); Q.sfx('quest-tokens'); Q.talk.hud();
           r = render(); api.body.innerHTML = r.html + `<p class="q-good">Ka-ching! Pleasure doing business.</p>`; api.rebuild(items());
           return;
         }
@@ -266,11 +252,12 @@
   };
 
   /* ---------- the Token Booth's shelves: avatar items and charms ---------- */
-  const tokensLine = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${Q.save.get().tokens}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
+  const tokensLine = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
   /** avatar items for tokens (shared/avatar-parts.js unlock {shop}): owned forever, worn everywhere in the arcade */
   function cosmeticShop() {
     return new Promise(done => {
-      const AV = A.Avatar, stock = AV ? AV.items().filter(it => it.shop) : [];
+      // every item for tokens (shared/tokens.js catalog): the Manor Collection first (only here!), then by price
+      const AV = A.Avatar, stock = AV ? T().catalog().slice().sort((a, b) => (b.questOnly - a.questOnly) || (a.full - b.full)) : [];
       const bgOf = it => it.field === 'bg' && A.AvatarBg ? ` style="background-image:url(${A.AvatarBg.stillURL(it.id, 128)})"` : '';   // a background: behind you
       const bust = it => AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null});
       const pic = it => {
@@ -279,15 +266,19 @@
         if (fx) return `<span class="q-cos q-cos-fx"><img alt="" src="${fx.back}"><img alt="" src="${bust(it)}"><img alt="" src="${fx.front}"></span>`;
         return `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${bust(it)}">`;
       };
-      const own = it => !!A.store.ownedItems[it.key] || AV.isUnlocked(it.field, it.id);
-      const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}`, sub: own(it) ? 'OWNED' : `${it.shop} tokens`, cls: own(it) ? 'q-owned' : ''}))
+      const own = it => T().owned(it.key);
+      const tags = it => (it.questOnly ? '<span class="q-tag q-manor">MANOR COLLECTION: only here!</span>' : '') + (T().price(it.key).weekly ? '<span class="q-tag q-weekly">⭐ WEEKLY</span>' : '');
+      const cost = it => { const p = T().price(it.key); return p.weekly ? `<s>${p.full}</s> ${p.price} tokens` : `${p.price} tokens`; };
+      const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}${tags(it)}`, sub: own(it) ? 'OWNED' : cost(it), cls: (own(it) ? 'q-owned' : '') + (it.questOnly ? ' q-manoritem' : '')}))
         .concat([{id: null, label: 'Back'}]);
       panel('Player items', tokensLine({cls: 'q-small', text: 'For your player, everywhere in the arcade. Yours forever!'}), list(), {cols: 4, cls: 'q-shop q-cosshop', onPick: (it, i, api) => {
         if (!it.id) { api.close(); done(); return; }
-        const item = stock.find(x => x.key === it.id), s = Q.save.get();
+        const item = stock.find(x => x.key === it.id);
         if (own(item)) { api.body.innerHTML = tokensLine({cls: 'q-good', text: `You own the ${item.name}. Wear it from the LOCKER or EDIT PLAYER.`}); return; }
-        if (s.tokens < item.shop) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${item.name} costs ${item.shop} tokens. Turn in stars to get more!`}); Q.sfx('note-wrong'); return; }
-        s.tokens -= item.shop; Q.save.write(); A.store.ownItem(item.key); Q.sfx('item-purchase'); Q.talk.hud();
+        Q.save.get();
+        const r = T().buy(item.key, {counter: 'quest'});
+        if (!r.ok) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${item.name} costs ${r.price} tokens. Turn in stars to get more!`}); Q.sfx('note-wrong'); return; }
+        Q.sfx('item-purchase'); Q.talk.hud();
         const av = AV.get(); av[item.field] = item.id; AV.set(av);                     // wear it right away
         if (Q.onSettings) Q.onSettings();
         api.body.innerHTML = tokensLine({cls: 'q-good', text: `The ${item.name} is yours! You're wearing it now (change it any time in the LOCKER).`}); api.rebuild(list());
@@ -308,10 +299,11 @@
       const note = {cls: 'q-small', text: 'ARCADE QUEST ONLY: charms power you up in Quest battles. They never change the other games.'};
       panel('Charms', tokensLine(note), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
         if (!it.id) { api.close(); done(); return; }
-        const c = C[it.id], s = Q.save.get();
+        const c = C[it.id];
+        Q.save.get();
         if (Q.charms.owned(it.id)) { api.body.innerHTML = tokensLine({cls: 'q-good', text: `You have the ${c.name}. Wear it from the Pause menu: CHARMS.`}); return; }
-        if (s.tokens < c.price) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${c.name} costs ${c.price} tokens.`}); Q.sfx('note-wrong'); return; }
-        s.tokens -= c.price; Q.charms.give(it.id); Q.save.write(); Q.sfx('item-purchase'); Q.talk.hud();
+        if (!T().spend(c.price)) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${c.name} costs ${c.price} tokens.`}); Q.sfx('note-wrong'); return; }
+        Q.charms.give(it.id); Q.save.write(); Q.sfx('item-purchase'); Q.talk.hud();
         if (Q.charms.equipped().includes(null)) Q.charms.equip(Q.charms.equipped().indexOf(null), it.id);   // a free slot: wear it
         api.body.innerHTML = tokensLine({cls: 'q-good', text: `The ${c.name} is yours!${Q.charms.equipped().includes(it.id) ? ' You\'re wearing it.' : ' Wear it from the Pause menu: CHARMS.'}`}); api.rebuild(list());
       }});
@@ -382,14 +374,14 @@
   function shop(D) {
     return new Promise(done => {
       const stock = Object.keys(ITEMS()).filter(k => ITEMS()[k].price);
-      const html = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${Q.save.get().tokens}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
+      const html = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
       const list = () => stock.map(k => ({id: k, label: `${ITEMS()[k].name} · ${ITEMS()[k].price} tokens`, sub: `${ITEMS()[k].desc} You have ${Q.save.get().items[k] || 0}.`}))
         .concat([{id: null, label: 'Done'}]);
       panel('Rusty\'s Supplies', html(), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
         if (!it.id) { api.close(); Q.say(['Come back soon! Or don\'t! No pressure! Ahh!'], {name: D.name, portrait: D.sprite}).then(done); return; }
         const s = Q.save.get(), item = ITEMS()[it.id];
-        if (s.tokens < item.price) { api.body.innerHTML = html({cls: 'q-bad', text: `Not enough tokens for the ${item.name}. Terry can turn stars into tokens!`}); return; }
-        s.tokens -= item.price; s.items[it.id] = (s.items[it.id] || 0) + 1; Q.save.write(); Q.sfx('quest-tokens'); Q.talk.hud();
+        if (!T().spend(item.price)) { api.body.innerHTML = html({cls: 'q-bad', text: `Not enough tokens for the ${item.name}. Terry can turn stars into tokens!`}); return; }
+        s.items[it.id] = (s.items[it.id] || 0) + 1; Q.save.write(); Q.sfx('quest-tokens'); Q.talk.hud();
         api.body.innerHTML = html({cls: 'q-good', text: Q.text('bought', {item: item.name})}); api.rebuild(list());
       }});
     });

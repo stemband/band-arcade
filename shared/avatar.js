@@ -101,7 +101,7 @@ window.Arcade = window.Arcade || {};
   function requirement(field, id) {
     const u = (partFor(field, id) || {}).unlock;
     if (!u || identity(field, id)) return '';
-    if (u.shop) return `${u.shop} tokens at the Token Booth`;
+    if (u.shop) return u.booth === 'quest' ? `${u.shop} tokens at the Token Booth in Arcade Quest` : `${u.shop} tokens at the Prize Counter`;   // (shared/tokens.js)
     if (u.event) return A.Seasons ? A.Seasons.requirement(itemKey(field, id)) : u.text || 'A seasonal event item';
     if (u.stars && !u.game) return `Earn ${u.stars} ★`;
     return u.text || 'Keep playing to unlock';

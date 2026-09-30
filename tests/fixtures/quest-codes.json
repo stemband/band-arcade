@@ -171,5 +171,62 @@
     ]
    }
   }
+ },
+ "v4": {
+  "code": "AEBFZ-ZE2A2-4LNA6-A2L47-267S2-22226-JA2J2-22222-42622-22222-22222-228KP",
+  "fields": {
+   "level": 12,
+   "xp": 150,
+   "tokens": 2047,
+   "items": {
+    "valve-oil": 3,
+    "snack": 1
+   },
+   "roster": [
+    "wisp",
+    "hush",
+    "fermata"
+   ],
+   "flags": {
+    "songBb": true,
+    "atticOpen": true,
+    "met-terry": true
+   },
+   "done": {
+    "hall:w1": "befriend",
+    "library:h1": "befriend",
+    "kitchen:c2": "fade",
+    "stairs:boss": "befriend"
+   },
+   "world": {
+    "map": "attic",
+    "x": 2,
+    "y": 3,
+    "dir": "up"
+   },
+   "convertedLeft": 320,
+   "charms": {
+    "owned": {
+     "lucky-reed": true,
+     "sharp-ear": true
+    },
+    "equipped": [
+     "sharp-ear",
+     null
+    ]
+   },
+   "cosmetics": {
+    "owned": [
+     "bg:fireflies",
+     "head:pirate",
+     "pet:penguin",
+     "hand:tumbler-lime"
+    ],
+    "worn": [
+     "pet:penguin",
+     "hand:tumbler-lime"
+    ]
+   }
+  }
  }
 }

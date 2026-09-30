@@ -243,7 +243,7 @@
         msg: 'Ghost Notes Manor has its music back. ' + ((s.route || {}).conductor === 'fade'
           ? 'The Ghost Conductor faded into the rafters, humming along. (Befriend him next time for the best ending!)'
           : 'The Ghost Conductor joined your band.'),
-        tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', s.tokens], ['Ghosts helped', Q.save.helped()]],
+        tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', A.Tokens.balance()], ['Ghosts helped', Q.save.helped()]],
         extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
           `<p class="ui-howto">The manor is still yours to explore. Episode 2 is coming...</p>`,
         next: {label: 'Keep exploring', onClick: () => leave(() => Q.go('world', {map: 'attic', x: 7, y: 8, dir: 'up'}))},

@@ -101,9 +101,10 @@ for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], [
     await page.setViewportSize({width: w, height: h});
     const watch = await prepare(page, {store: device()});
     await page.goto('index.html?demo&nostart');
-    const signs = page.locator('.zsign');
+    const signs = page.locator('.zsign');                // the zones' signs + the PRIZE COUNTER's
     const n = await page.evaluate(() => Arcade.zoneList().length);
-    await expect(signs).toHaveCount(n);
+    await expect(page.locator('.zsign[data-zone]')).toHaveCount(n);
+    await expect(signs).toHaveCount(n + 1);
     const boxes = await signs.evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; }));
     const grid = await page.locator('#zones').evaluate(e => { const r = e.getBoundingClientRect(); return {x: r.x, w: r.width}; });
     for (const b of boxes) { expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x + b.w).toBeLessThanOrEqual(w + 0.5); }
