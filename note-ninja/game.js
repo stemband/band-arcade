@@ -123,7 +123,7 @@
       L.onStaff = END.readAhead.reduce((n, [from, v]) => S >= from ? v : n, 1);
       L.relabel = S >= END.noHintsFrom ? false : undefined;
     }
-    // the ninja wears the belt that matches this pace (the highest belt whose time per note is still at least this)
+    // the Sensei wears the belt that matches this pace (the highest belt whose time per note is still at least this)
     const belt = BELTS.filter(b => b.time >= L.time).pop() || BELTS[0];
     L.color = belt.color; L.sparkle = belt.sparkle;
   }
@@ -147,13 +147,13 @@
     G.beltColor = L.color;
     $('hudChip').style.setProperty('--belt', `var(--${L.color})`);
     $('hudChip').classList.toggle('sparkle', !!L.sparkle);
-    $('ninja').innerHTML = A.ninjaSVG({belt: L.color});
+    pose(G.pose || 'ready');                       // the Sensei's belt follows (Endless: the pace's belt)
   }
   function loseLife(k, color, text) {
     G.lives--; G.combo = 0; G.locked = true;
     reveal(k, color);
     sfx('endless-life-lost');
-    act('stumble');
+    act('hmm');
     setPrompt(text, 'bad');
     setAcc(0);
     hud();
@@ -191,9 +191,13 @@
     drawGroup();
   }
 
-  /* the current notes (1–4) on a still, crisp staff; answered notes stay put and turn gold.
-     Fewer notes = a narrower drawing, so it scales up bigger on the screen. */
+  /* the current notes (1–4) on a still, crisp staff; answered notes are sliced in two (their gold names stay).
+     Fewer notes = a narrower drawing, so it scales up bigger on the screen.
+     THE SENSEI stands INSIDE the drawing, in a slot at its right end (SENSEI_W units, the drawing's full height): the
+     drawing keeps the same width it always had (so the staff, clef, key signature and notes are never drawn smaller),
+     the staff lines stop before the slot, and the notes share the rest. */
   let W = 400;
+  const SENSEI_W = 100, SENSEI_GAP = 6;
   function drawGroup() {
     if (G.endless) {
       endlessRow(true); beltLook(G.L);
@@ -202,12 +206,18 @@
     const n = G.L.onStaff, grp = G.items.slice(G.gStart, G.gStart + n);
     const sigW = A.keySigWidth(G.sig), guides = G.L.guides > 0;
     W = [0, 290, 330, 380, 420][n] + sigW;
-    const start = 84 + sigW + (guides ? 34 : 0), end = W - 30;
+    const staffW = W - SENSEI_W - SENSEI_GAP;
+    const start = 84 + sigW + (guides ? 34 : 0), end = staffW - 22;
     G.xs = grp.map((_, k) => grp.length === 1 && n === 1 ? (start + end) / 2 : start + (end - start) * (k + .5) / n);
     let svg = A.staffSVG(inst.clef, grp.map((it, k) => ({n: it.show, x: G.xs[k], id: 'nn' + k})),
-      {fit: G.fit, keySig: G.sig, width: W, captions: true, label: n > 1 ? `${grp.length} notes, read left to right` : 'Name this note'});
+      {fit: G.fit, keySig: G.sig, width: staffW, captions: true, label: n > 1 ? `${grp.length} notes, read left to right` : 'Name this note'});
     if (guides) svg = svg.replace('</svg>', guideSVG(66 + sigW, G.L.guides) + '</svg>');
+    // widen the viewBox by the Sensei's slot (same total width as before) and put him in it, as tall as the drawing
+    const m = svg.match(/viewBox="0 (-?[\d.]+) ([\d.]+) ([\d.]+)"/), top = +m[1], vh = +m[3];
+    svg = svg.replace(m[0], `viewBox="0 ${top} ${W} ${vh}"`)
+      .replace('</svg>', `<g id="nnSensei" data-x="${staffW + SENSEI_GAP}" data-y="${top}" data-h="${vh}"></g></svg>`);
     $('playStaff').innerHTML = svg;
+    pose(G.pose || 'ready', true);
     G.locked = false;
     nextNote();
   }
@@ -229,9 +239,9 @@
   function placePointer() {
     const k = G.i - G.gStart, svg = $('playStaff').querySelector('svg'), ptr = $('ptr');
     if (!svg || G.xs[k] == null) { ptr.hidden = true; return; }
-    const r = svg.getBoundingClientRect(), box = $('scroll').getBoundingClientRect();
+    const box = $('scroll').getBoundingClientRect(), ctm = svg.getScreenCTM();
     ptr.hidden = G.L.onStaff < 2;                    // one note at a time needs no pointer
-    ptr.style.left = (r.left - box.left + G.xs[k] / W * r.width) + 'px';
+    if (ctm) ptr.style.left = (ctm.a * G.xs[k] + ctm.e - box.left) + 'px';   // the drawing is centered in its box
   }
   addEventListener('resize', () => { if (G && !$('play').hidden) placePointer(); });
 
@@ -301,6 +311,8 @@
       milestone = G.combo % RULES.comboStep === 0;
     }
     G.score += pts; G.hits++; G.bestCombo = Math.max(G.bestCombo, G.combo);
+    A.colorNote('nn' + k, GOLD);
+    slice(k, milestone);                                // the Sensei cuts the note in two (on top: nothing waits for it)
     reveal(k, GOLD);
     act('strike');
     if (milestone) { sfx('ninja-combo'); popCombo(); } else sfx('ninja-slash');
@@ -310,7 +322,7 @@
   function wrongAnswer(said) {
     if (G.endless) { G.wrong++; loseLife(G.i - G.gStart, MISS, `Not ${said}. That was ${current().label}.`); return; }
     G.wrong++; G.combo = 0;
-    act('stumble');
+    act('hmm');
     sfx('note-wrong');
     setPrompt(`Not ${said}. Look again.`, 'bad');
     hud();
@@ -320,6 +332,7 @@
     if (G.endless) { G.missed++; loseLife(k, MISS, `Time! That was ${it.label}.`); return; }
     G.missed++; G.combo = 0; G.locked = true;
     reveal(k, MISS);
+    act('hmm');
     sfx('note-missed');
     setPrompt(`Time! That was ${it.label}.`, 'bad');
     setAcc(0);
@@ -341,13 +354,80 @@
     } else nextNote();
   }
 
-  /* ---------- the ninja, the target, the scroll ---------- */
-  function act(kind) {
-    const nj = $('ninja'), tg = $('target'), sc = $('scroll');
-    if (kind === 'strike') { restart(nj, 'strike'); restart(tg, 'split'); }
-    else { restart(nj, 'stumble'); if (!reduced.matches) restart(sc, 'shake'); }
+  /* ---------- THE SENSEI and THE SLICE ----------
+     pose(mood): the Sensei in the staff's slot ('ready' while you read, 'strike' on a right answer, 'hmm' on a wrong
+     one or a timeout), wearing this belt (the level's, or Endless's pace belt). A pose lasts POSE_MS, then 'ready'.
+     slice(k, big): a bright streak crosses note k and the note splits along it into two gold halves that slide apart
+     and fade (SLICE_MS); the note itself is gone, its gold name stays. It never delays anything: the next note and
+     the timer start exactly when they always did, the halves fade on top. Reduced motion / MOTION off: no sliding
+     and no moving streak: the note splits in place and fades, the pose simply changes. */
+  const SLICE_MS = 300, POSE_MS = {strike: 320, hmm: 700};
+  let poseT = 0;
+  function pose(mood, redraw) {
+    if (!G) return;
+    const box = document.getElementById('nnSensei');
+    if (!box) { G.pose = mood; return; }
+    if (!redraw && box.dataset.mood === mood && box.dataset.belt === G.L.color) return;
+    const x = box.dataset.x, y = box.dataset.y, h = box.dataset.h;
+    box.innerHTML = A.senseiSVG(mood, G.L.color).replace('<svg ', `<svg x="${x}" y="${y}" width="${SENSEI_W}" height="${h}" preserveAspectRatio="xMidYMax meet" overflow="visible" `);
+    box.dataset.mood = mood; box.dataset.belt = G.L.color; G.pose = mood;
+    box.classList.toggle('swing', mood === 'strike' && !reduced.matches);
   }
-  function restart(el, cls) { el.classList.remove('strike', 'stumble', 'split', 'shake'); void el.getBoundingClientRect(); el.classList.add(cls); }
+  function act(kind) {
+    clearTimeout(poseT);
+    pose(kind);
+    const g = G;
+    poseT = setTimeout(() => { if (G === g) pose('ready'); }, POSE_MS[kind] || 400);
+    if (kind === 'hmm' && !reduced.matches) restart($('scroll'), 'shake');
+  }
+  function restart(el, cls) { el.classList.remove('shake'); void el.getBoundingClientRect(); el.classList.add(cls); }
+  const NS = 'http://www.w3.org/2000/svg';
+  function slice(k, big) {
+    const g = document.getElementById('nn' + k), svg = $('playStaff').querySelector('svg');
+    if (!g || !svg) return;
+    const head = g.querySelector('ellipse.head') || g, hb = head.getBBox(), bb = g.getBBox();
+    const cx = G.xs[k], cy = hb.y + hb.height / 2;
+    // the cut: a rising slash through the note head; each half = the note clipped to one side of it
+    const ang = -0.38, dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx;    // (nx, ny) = the side "below" the cut
+    const R = Math.max(bb.width, bb.height) + 40, id = 'nnCut' + (++cutN);
+    const side = sgn => [[cx - dx * R, cy - dy * R], [cx + dx * R, cy + dy * R], [cx + dx * R + sgn * nx * R, cy + dy * R + sgn * ny * R], [cx - dx * R + sgn * nx * R, cy - dy * R + sgn * ny * R]]
+      .map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+    const layer = document.createElementNS(NS, 'g'); layer.setAttribute('class', 'nn-slice' + (big ? ' big' : ''));
+    layer.innerHTML = `<defs><clipPath id="${id}a"><polygon points="${side(-1)}"/></clipPath><clipPath id="${id}b"><polygon points="${side(1)}"/></clipPath></defs>`;
+    const reduce = reduced.matches, halves = [];
+    [['a', -1], ['b', 1]].forEach(([s, sgn]) => {
+      const clip = document.createElementNS(NS, 'g'); clip.setAttribute('clip-path', `url(#${id}${s})`);
+      const half = document.createElementNS(NS, 'g'); half.setAttribute('class', 'nn-half');
+      half.style.transformBox = 'fill-box'; half.style.transformOrigin = 'center';
+      const copy = g.cloneNode(true); copy.removeAttribute('id'); copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      copy.querySelectorAll('.ncap').forEach(e => e.remove());
+      half.appendChild(copy); clip.appendChild(half); layer.appendChild(clip);
+      halves.push([half, sgn]);
+    });
+    // the streak: along the cut, longer and golden for a combo milestone
+    const L = (big ? 1.7 : 1.1) * Math.max(34, bb.width + 22);
+    const sg = document.createElementNS(NS, 'g'); sg.setAttribute('class', 'nn-streaks'); layer.appendChild(sg);
+    const streaks = ['nn-streak glow', 'nn-streak'].map(cls => {
+      const ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('class', cls); ln.setAttribute('x1', cx - dx * L / 2); ln.setAttribute('y1', cy - dy * L / 2);
+      ln.setAttribute('x2', cx + dx * L / 2); ln.setAttribute('y2', cy + dy * L / 2);
+      ln.style.strokeDasharray = `${L} ${L}`;
+      sg.appendChild(ln); return ln;
+    });
+    svg.appendChild(layer);
+    Array.from(g.children).forEach(e => { if (!e.classList.contains('ncap')) e.style.visibility = 'hidden'; });   // the note is cut: its halves take its place
+    g.dataset.sliced = '1';
+    const ease = 'cubic-bezier(.2,.7,.3,1)', gap = big ? 9 : 6;
+    const apart = f => `translate(${(f * (nx * gap + dx * 2)).toFixed(1)}px, ${(f * ny * gap).toFixed(1)}px) rotate(${(f * 8).toFixed(1)}deg)`;
+    halves.forEach(([h, sgn]) => h.animate(reduce ? [{opacity: 1}, {opacity: 1, offset: .35}, {opacity: 0}]
+      : [{transform: apart(0), opacity: 1}, {transform: apart(sgn * .45), opacity: 1, offset: .35}, {transform: apart(sgn), opacity: 0}],
+      {duration: SLICE_MS, easing: ease, fill: 'forwards'}));
+    // the streak draws itself along the cut (its first 40 %), then fades; reduced motion: it only fades
+    if (!reduce) streaks.forEach(ln => ln.animate([{strokeDashoffset: L}, {strokeDashoffset: 0, offset: .4}, {strokeDashoffset: 0}], {duration: SLICE_MS, easing: 'ease-out', fill: 'forwards'}));
+    sg.animate(reduce ? [{opacity: 1}, {opacity: 0}] : [{opacity: 1}, {opacity: 1, offset: .4}, {opacity: 0}], {duration: SLICE_MS, easing: 'ease-out', fill: 'forwards'});
+    setTimeout(() => layer.remove(), SLICE_MS + 40);
+  }
+  let cutN = 0;
   function popCombo() {
     const m = G.endless ? A.Endless.mult(G.combo) : Math.min(RULES.maxMultiplier, 1 + Math.floor(G.combo / RULES.comboStep));
     const p = $('comboPop'); p.textContent = `${G.combo} in a row! ×${m}`;
@@ -386,7 +466,7 @@
     const newBest = score > old.best && old.best > 0;
     const hasNext = lv < BELTS.length && (stars > 0 || A.DEMO || A.store.level(key, inst.id, lv + 1).stars > 0);
     A.UI.results.show({gameId: GAME_ID, stars,
-      hero: `<div class="res-ninja" id="resNinja">${A.ninjaSVG({belt: stars ? L.color : 'belt-white', cls: stars ? 'cheer' : ''})}</div>`,
+      hero: `<div class="res-ninja res-sensei${stars ? ' cheer' : ''}" id="resNinja">${A.senseiSVG(stars ? 'happy' : 'calm', L.color)}</div>`,
       title: stars === 3 ? 'Perfect!' : stars ? `${L.name} belt cleared` : 'So close',
       msg: stars
         ? (stars === 3 ? 'Every note, no mistakes. True ninja reading!'
@@ -405,7 +485,7 @@
       newBelt && (BELTS[lv].sparkle ? 'belt-diamond' : 'belt-earned')]);
   }
 
-  A.Ninja = {state: () => G};   // tests
+  A.Ninja = {state: () => G, sensei: () => G && G.pose, SLICE_MS};   // tests
 
   showHub();
 })(window.Arcade);

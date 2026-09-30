@@ -157,6 +157,9 @@ window.Arcade = window.Arcade || {};
   /* THE SENSEI (Band Ninja world: Ancient Ninja Scrolls, Dojo Duel): an original, kind old teacher (topknot, round
      glasses, long beard, indigo robe). mood: 'calm' | 'happy' | 'hmm' | 'present' (holding a scroll); belt = a --belt-* token.
      Styles: .ss-* in theme.css. */
+  /* the Sensei (Ancient Ninja Scrolls, Dojo Duel, Note Ninja). Moods: 'calm' | 'happy' | 'hmm' | 'present' (a scroll),
+     and Note Ninja's two SWORD POSES (a wooden practice sword, a bokken, light wood): 'ready' (held calmly, point up
+     to his right = your left) and 'strike' (mid-swing toward your left, a pale swoosh behind it). Parts: .ss-sword. */
   A.senseiSVG = function (mood = 'calm', belt = 'belt-black') {
     const happy = mood === 'happy' || mood === 'present';
     const eyes = happy
@@ -165,9 +168,19 @@ window.Arcade = window.Arcade || {};
     const brows = mood === 'hmm'
       ? '<path class="ss-brow" d="M56 44q-8-6-18 1M64 42q8-4 18 3"/>'
       : '<path class="ss-brow" d="M56 45q-8-4-18 5M64 45q8-4 18 5"/>';
-    const mouth = mood === 'hmm' ? '<path class="ss-line" d="M55 72h10"/>'
+    const mouth = mood === 'strike' ? '<ellipse class="ss-mouth" cx="60" cy="71" rx="4" ry="3.2"/>'
+      : mood === 'hmm' ? '<path class="ss-line" d="M55 72h10"/>'
       : happy ? '<path class="ss-mouth" d="M53 70q7 7 14 0z"/>' : '<path class="ss-line" d="M54 71q6 4 12 0"/>';
-    const hands = mood === 'present'
+    const hands = mood === 'ready'
+      ? '<g class="ss-sword"><path class="ss-arm" d="M34 102q6 12 22 6M86 102q-8 12-24 8"/>' +
+        '<path class="ss-grip" d="M64 114L54 99"/><path class="ss-bokken" d="M56 102L20 46"/>' +
+        '<ellipse class="ss-skin" cx="57" cy="104" rx="6" ry="5"/><ellipse class="ss-skin" cx="62" cy="110" rx="6" ry="5"/></g>'
+      : mood === 'strike'
+      ? '<g class="ss-sword"><path class="ss-swoosh" d="M26 36q-26 34-10 74"/>' +
+        '<path class="ss-arm" d="M36 100q-6 4-14 2M84 100q-24 12-54 6"/>' +
+        '<path class="ss-grip" d="M32 106L18 101"/><path class="ss-bokken" d="M20 102L-12 90"/>' +
+        '<ellipse class="ss-skin" cx="24" cy="102" rx="6" ry="5"/><ellipse class="ss-skin" cx="31" cy="106" rx="6" ry="5"/></g>'
+      : mood === 'present'
       ? '<rect class="ss-scroll" x="34" y="102" width="52" height="12" rx="3"/><circle class="ss-rod" cx="34" cy="108" r="6"/><circle class="ss-rod" cx="86" cy="108" r="6"/>' +
         '<ellipse class="ss-skin" cx="38" cy="112" rx="7" ry="5"/><ellipse class="ss-skin" cx="82" cy="112" rx="7" ry="5"/>'
       : '<path class="ss-sleeve" d="M38 104q22 12 44 0v10q-22 10-44 0z"/>';

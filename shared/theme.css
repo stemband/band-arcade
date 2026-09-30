@@ -38,7 +38,7 @@
   --dd-night:#0c0818; --dd-wood:#3a2317; --dd-wood-2:#4a2e1d; --dd-wood-line:#23140c; --dd-paper:#ffd9a0; --dd-lantern:#ff7a3a;   /* Dojo Duel */
   --temple-sky:#0d0a24; --temple-stone:#262235; --temple-stone-2:#34304a; --temple-wood:#3b2419; --temple-mist:rgba(196,186,255,.10);
   --scroll-paper:#fbf1d6; --scroll-paper-2:#ecdcb0; --scroll-rod:#6b3f22; --scroll-seal:#c43a3a;
-  --sensei-robe:#2e3170; --sensei-robe-2:#474c9e; --sensei-hair:#efebf7;
+  --sensei-robe:#2e3170; --sensei-robe-2:#474c9e; --sensei-hair:#efebf7; --sensei-bokken:#e6c796; --sensei-bokken-2:#a8783f;
   /* Button Masher: the versus arena, the fighter, the fingering keys */
   --arena:#120a26; --arena-grid:rgba(77,141,255,.16);
   --fighter-skin:#e8b894; --fighter-hair:#2b1d16; --fighter-pants:#2e3170; --fighter-shoe:#f4f0ff;
@@ -553,6 +553,11 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .ss-brow{fill:none;stroke:var(--sensei-hair);stroke-width:4;stroke-linecap:round}
 .ss-glass{fill:rgba(255,255,255,.18);stroke:var(--ink);stroke-width:1.8}
 .ss-scroll{fill:var(--scroll-paper)} .ss-rod{fill:var(--scroll-rod)}
+/* the Sensei's wooden practice sword (Note Ninja's 'ready' / 'strike' poses) */
+.ss-arm{fill:none;stroke:var(--sensei-robe-2);stroke-width:9;stroke-linecap:round}
+.ss-bokken{fill:none;stroke:var(--sensei-bokken);stroke-width:5;stroke-linecap:round}
+.ss-grip{fill:none;stroke:var(--sensei-bokken-2);stroke-width:5.5;stroke-linecap:round}
+.ss-swoosh{fill:none;stroke:var(--white-hi);stroke-width:3;stroke-linecap:round;opacity:.55}
 
 /* ---------- THE ANSWER PAD (shared/answer-pad.js: Note Ninja's layout, used by Dojo Duel) ----------
    --pad = the pad's neon color (a token); big thumb-sized buttons in one row */
