@@ -540,10 +540,11 @@
     const me = progress(), cars = [];
     const toDist = pr => { const i = Math.min(G.lens.length - 1, Math.floor(pr)); return G.lens.slice(0, i).reduce((a, b) => a + b, 0) + (pr - i) * G.lens[i]; };
     const myD = toDist(me);
-    if (G.phase !== 'count') G.rivals.forEach(r => cars.push({d: toDist(paceProgress(r.pace, G.clock)) - myD, who: r, name: r.name}));
-    const gp = G.phase !== 'count' ? ghostProgress(G.clock) : null;
-    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {home: 1}), look: G.car, ghost: true, name: 'Best run'});   // the ghost = your own car, see-through
-    if (G.phase === 'count') G.rivals.forEach((r, i) => cars.push({d: .45 + i * .25, who: r, name: r.name}));
+    // every car's REAL distance ahead of you (0 before GO); placeCars adds the starting grid on top (drawing only)
+    G.rivals.forEach((r, i) => cars.push({d: G.phase === 'count' ? 0 : toDist(paceProgress(r.pace, G.clock)) - myD, who: r, idx: i, name: r.name}));
+    // the ghost isn't on the starting grid: it joins once the grid has faded (it would sweep through the pack)
+    const gp = G.phase !== 'count' && gridAmount() === 0 ? ghostProgress(G.clock) : null;
+    if (gp !== null) cars.push({d: toDist(gp) - myD, who: G.ghostCar || (G.ghostCar = {}), idx: G.rivals.length, look: G.car, ghost: true, name: 'Best run'});   // the ghost = your own car, see-through
     // your car, from behind (drawn last, so it's on top; its box is where nobody else may be drawn)
     const sway = reduced.matches ? 0 : -curve * W * .02;
     const mine = {x: W / 2 + sway, y: bot - H * .04, w: Math.min(W * .24, H * .42)};
@@ -563,42 +564,75 @@
       cx.globalAlpha = 1;
     }
   }
-  /* ---------- NO TWO CARS EVER OVERLAP ON SCREEN ----------
+  /* ---------- NO TWO CARS EVER OVERLAP ON SCREEN, AND NOTHING GLITCHES ----------
      Three lanes (the road's dashes at ±.34): the other cars keep to a side lane (rivals left, right, left…; the ghost
-     right), and move over (a smooth lane change) when another car is there at the same spot on the screen; the middle
-     lane is yours, and they use it only well up the road from you. Nearest car first. If every lane is taken, the car
-     is drawn a little farther up the road until it's clear: a drawing gap only (progress, positions and the standings
-     are never touched). */
+     right); the middle lane is yours, and they use it only well up the road from you. Drawing only: the real progress,
+     positions, times and the standings are never touched.
+     THE STARTING GRID: before GO and for the first GRID.hold s of the race every rival sits in a fixed slot (2 a row,
+     GRID.d0 up the road, GRID.row between rows, lane by its index), drawn exactly there; over the next GRID.blend s
+     the grid offset fades out, so the cars leave the grid smoothly as their pace separates them. The ghost (your best
+     run) joins once the grid is gone.
+     STABLE LANES after that (memory on each car: lane, off, blockedAt, movedAt, dd): a car keeps its lane until it has
+     been blocked LANE_BLOCK_MS in a row, and after a change it stays LANE_STAY_MS; lane moves slide at LANE_SPEED
+     (never a jump, the first frame included: a car appears in its own lane). Ties in the order are broken by the
+     car's index, and cars are placed in the order they were DRAWN last frame, so nothing flips between frames.
+     NO POSITION JUMPS: a car that must be held back so it doesn't overlap has its DRAWN distance eased (EASE a
+     second) toward the clear spot and back; it is never drawn over another car or over yours (if the eased spot
+     would touch one, it takes the clear spot at once). Reduced motion: no sliding (lane and hold-back changes are
+     instant) and still at most one lane change per LANE_STAY_MS per car. */
   const LANES = [-.67, .67, 0];                            // offsets in road half-widths: left, right, the middle
-  const LANE_SPEED = 4;                                    // lane changes: half-widths a second (instant with reduced motion)
+  const LANE_SPEED = 4;                                    // lane changes: half-widths a second
+  const LANE_BLOCK_MS = 400, LANE_STAY_MS = 1500, EASE = 12, EASE_MAX = 2.5;   // EASE_MAX: road units a second at most
+  const GRID = {d0: .5, row: .55, hold: 1.5, blend: 2.5};
   const carBox = (x, y, w) => ({l: x - w * .5, r: x + w * .5, t: y - w * .42 * 1.12, b: y + 2});
   const hits = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+  const homeOf = i => (i % 2 ? 1 : -1);                    // left, right, left… (the ghost's index comes after the rivals')
+  const gridD = i => GRID.d0 + Math.floor(i / 2) * GRID.row;
+  /** how much of the starting grid is still drawn: 1 before GO and for GRID.hold s, then fading to 0 */
+  const gridAmount = () => (G.phase === 'count' ? 1 : G.clock < GRID.hold ? 1 : Math.max(0, 1 - (G.clock - GRID.hold) / GRID.blend));
   let laneT = 0;
   function placeCars(cars, proj, mine, now) {
     const dt = laneT ? Math.min(.1, (now - laneT) / 1000) : 0; laneT = now;
+    const grid = gridAmount(), still = reduced.matches;
     const at = (c, off, d) => { const p = proj(ZN + d * 4.4), w = p.w * .42, x = p.x + off * p.w; return {x, y: p.y, w, box: carBox(x, p.y, w)}; };
     const taken = [carBox(mine.x, mine.y, mine.w)];
     const clear = box => !taken.some(t => hits(t, box));
+    const off = k => LANES[k === -1 ? 0 : k === 1 ? 1 : 2];
     const out = [];
-    cars.filter(c => c.d > .05 && c.d < 7).sort((a, b) => a.d - b.d).forEach(c => {
-      const o = c.who;
-      if (o.lane == null) { o.lane = o.home; o.off = LANES[o.lane < 0 ? 0 : 1]; }
-      const off = k => LANES[k === -1 ? 0 : k === 1 ? 1 : 2];
-      // stay in this lane if it's clear, else the other side, else the middle (only where it doesn't touch your car)
-      const order = o.lane === 0 ? [o.home, -o.home, 0] : [o.lane, -o.lane, 0];
-      const free = order.find(k => clear(at(c, off(k), c.d).box));
-      if (free !== undefined) o.lane = free;
-      const target = off(o.lane);
-      o.off = reduced.matches || !dt ? target : o.off + Math.max(-LANE_SPEED * dt, Math.min(LANE_SPEED * dt, target - o.off));
-      let d = c.d, pos = at(c, o.off, d);
-      while (!clear(pos.box) && d < 7) { d += .03; pos = at(c, o.off, d); }   // still in the way: a small gap up the road
+    cars.forEach(c => { c.target = c.d + grid * gridD(c.idx); });
+    // THE ORDER never flips: by where each car was DRAWN last frame (else its target), ties by index; the nearer car
+    // claims its spot first and a car behind it in the same lane is pushed up the road a little at a time
+    const key = c => (c.who.dd != null && c.who.seenAt != null && now - c.who.seenAt <= 250 ? c.who.dd : c.target);
+    cars.filter(c => c.target > .05 && c.target < 7).sort((a, b) => key(a) - key(b) || a.idx - b.idx).forEach(c => {
+      const o = c.who, home = homeOf(c.idx);
+      const back = o.seenAt == null || now - o.seenAt > 250;               // (re)appearing: in its own lane, where it is
+      if (o.lane == null) { o.lane = home; o.off = off(home); o.movedAt = -1e9; o.blockedAt = null; }
+      if (grid > 0) { o.lane = home; o.blockedAt = null; }                  // on the grid: its slot, no lane logic
+      else if (clear(at(c, off(o.lane), c.target).box)) o.blockedAt = null;
+      else {
+        if (o.blockedAt == null) o.blockedAt = now;
+        if (now - o.blockedAt >= LANE_BLOCK_MS && now - o.movedAt >= LANE_STAY_MS) {
+          const k = (o.lane === 0 ? [home, -home] : [-o.lane, 0]).find(k => clear(at(c, off(k), c.target).box));
+          if (k !== undefined) { o.lane = k; o.movedAt = now; o.blockedAt = null; }
+        }
+      }
+      const tOff = off(o.lane);
+      o.off = still || back ? tOff : o.off + Math.max(-LANE_SPEED * dt, Math.min(LANE_SPEED * dt, tOff - o.off));
+      // the clear spot: at the car's target, else a little farther up the road
+      let need = c.target, pos = at(c, o.off, need);
+      while (!clear(pos.box) && need < 7) { need += .03; pos = at(c, o.off, need); }
       if (!clear(pos.box)) return;                                          // (never: nothing drawn over another car)
+      let d = still || back || !dt ? need : o.dd + Math.max(-EASE_MAX * dt, Math.min(EASE_MAX * dt, (need - o.dd) * Math.min(1, dt * EASE)));
+      pos = at(c, o.off, d);
+      if (!clear(pos.box)) { d = need; pos = at(c, o.off, d); }             // the eased spot would touch a car: the clear one
+      o.dd = d; o.seenAt = now;
       taken.push(pos.box);
       out.push(Object.assign({}, c, pos, {drawnD: d}));
     });
-    G.carsDrawn = out.map(c => ({name: c.name || null, body: c.look ? c.look.body : c.who.body || 'coupe', ghost: !!c.ghost, d: +c.d.toFixed(3), drawnD: +c.drawnD.toFixed(3), off: +c.who.off.toFixed(2), box: c.box}));
+    G.carsDrawn = out.map(c => ({name: c.name || null, idx: c.idx, body: c.look ? c.look.body : c.who.body || 'coupe', ghost: !!c.ghost, lane: c.who.lane, grid: +grid.toFixed(2),
+      d: +c.d.toFixed(3), drawnD: +c.drawnD.toFixed(3), off: +c.who.off.toFixed(2), box: c.box}));
     G.carsDrawn.push({name: 'you', body: G.car.body, box: taken[0]});
-    return out.sort((a, b) => b.drawnD - a.drawnD);                        // far first
+    return out.sort((a, b) => b.drawnD - a.drawnD || b.idx - a.idx);        // far first
   }
   /** one band of the road between two projected rows: `k` = its width (share of the road), `off` = its center offset */
   function quad(a, b, k, col, alpha, off = 0) {
