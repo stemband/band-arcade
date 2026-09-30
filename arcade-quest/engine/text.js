@@ -68,6 +68,39 @@
   };
   Q.hideText = () => { const b = Q.$('qText'); if (b) b.hidden = true; };
 
+  /* FIT INSTEAD OF CUT: a label too wide for its box shrinks a step at a time (FIT.step) down to FIT.min of its own size
+     (never under FIT.floor px) until it fits on ONE line; only if it still can't, it wraps (2 lines, balanced), starting
+     again from its own size and shrinking until the lines fit the box. Never an ellipsis, never a cut letter (style.css
+     gives the pixel font's tall glyphs room: line-height + a little padding). Every `.q-fit` element is refit when the
+     game resizes (core.js resize) and when a font arrives. */
+  const FIT = {step: 0.92, min: 0.65, floor: 9};
+  Q.FIT = FIT;
+  Q.fitText = function (el) {
+    if (!el || !el.isConnected) return;
+    el.classList.add('q-fit');
+    const box = el.closest('.q-btn'), sub = box && box.querySelector(':scope > small');
+    el.style.fontSize = ''; el.classList.remove('q-wrap2'); if (sub) sub.style.fontSize = '';
+    if (!el.clientWidth) return;                                      // hidden: fitted when it shows (the next resize)
+    const px = e => parseFloat(getComputedStyle(e).fontSize) || 12;
+    const base = px(el), min = Math.min(base, Math.max(FIT.floor, base * FIT.min));
+    const wide = () => el.scrollWidth > el.clientWidth + 0.5 || el.scrollHeight > el.clientHeight + 0.5;
+    // a fixed-height button (the battle's) must hold the label AND its description
+    const tall = () => !!box && (box.scrollHeight > box.clientHeight + 0.5 || box.scrollWidth > box.clientWidth + 0.5);
+    const shrink = (e, from, to, bad) => { let v = from; while (bad() && v * FIT.step >= to) { v *= FIT.step; e.style.fontSize = v + 'px'; } return v; };
+    // 1. one line, a step smaller at a time; 2. still too wide: two lines, from its own size again
+    let size = shrink(el, base, min, wide);
+    if (wide()) {
+      const lines = () => { const c = getComputedStyle(el); return Math.round((el.scrollHeight - parseFloat(c.paddingTop) - parseFloat(c.paddingBottom)) / parseFloat(c.lineHeight)); };
+      el.classList.add('q-wrap2'); el.style.fontSize = ''; size = shrink(el, base, min * 0.85, () => wide() || lines() > 2);
+    }
+    if (!tall()) return;
+    // 3. the button overflows: the description gets smaller first, then the label
+    if (sub) { const sb = px(sub); shrink(sub, sb, Math.min(sb, Math.max(FIT.floor * 0.8, sb * FIT.min)), tall); }
+    shrink(el, size, min * 0.85, tall);
+  };
+  Q.refit = root => (root || document).querySelectorAll('.q-fit').forEach(Q.fitText);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => Q.refit());
+
   Q.menu = function (el, items, {cols = items.length, onPick, onBack, cls = '', label = 'Menu', start = 0, keys = true} = {}) {
     el.innerHTML = '';
     const grid = Q.el('div', 'q-menu ' + cls); grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', label);
@@ -86,6 +119,8 @@
       grid.appendChild(b); return b;
     });
     el.appendChild(grid);
+    btns.forEach(b => Q.fitText(b.querySelector('.q-bl')));
+    requestAnimationFrame(() => btns.forEach(b => Q.fitText(b.querySelector('.q-bl'))));   // after a panel finishes laying out
     let cur = Math.max(0, Math.min(start, items.length - 1)), live = true, engaged = false;
     // ONE selection (style.css .q-btn.sel): shown from the start in a keyboard menu, in a tap-only menu once the mouse
     // or Tab reaches it

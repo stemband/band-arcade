@@ -69,6 +69,7 @@ window.Arcade = window.Arcade || {};
     stage.style.width = w + 'px'; stage.style.height = h + 'px';
     stage.style.setProperty('--px', (w / Q.W) + 'px');
     Q.scale = w / Q.W;
+    if (Q.refit) Q.refit(stage);                                          // labels fit their buttons again at the new size
   }
   Q.resize = resize;
   /** a point in the page -> game pixels */
