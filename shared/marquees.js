@@ -274,22 +274,28 @@ window.Arcade = window.Arcade || {};
         }
       },
     },
-    /* CHIME HEIST. colors: [laser 1, laser 2, dial glow]. A vault door with a slowly turning combination dial,
-       green and red laser beams sweeping behind the title. */
+    /* CHIME HEIST. colors: [laser 1, laser 2, dial glow]. A BACKLIT steel plate (lit like every other sign): green light
+       glowing through from behind, a vault door with a slowly turning combination dial, green and red laser beams
+       sweeping behind the title and a glowing red laser line along the bottom (it breathes slowly, never flashes). */
     vault: {
       colors: ['green', 'red', 'cyan'], still: 1.6,
       draw(x, W, H, t, c) {
-        x.fillStyle = vGrad(x, H, [[0, tok('cab-panel')], [1, tok('deep')]]); x.fillRect(0, 0, W, H);
-        x.strokeStyle = rgba('text-lo', .05); x.lineWidth = 1;
+        // the backlight: the plate glows green from behind, brightest in the middle
+        x.fillStyle = vGrad(x, H, [[0, tok('green-ink')], [.5, tok('cab-panel')], [1, tok('green-ink')]]); x.fillRect(0, 0, W, H);
+        x.save(); x.translate(W / 2, H / 2); x.scale(W / H * .6, 1);
+        glow(x, 0, 0, H * .9, c[0], .45); x.restore();
+        x.strokeStyle = rgba('text-hi', .06); x.lineWidth = 1;
         for (let y = 0; y < H; y += Math.max(2, H * .03)) { x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); }
         const vx = W * .5, vy = H * .5, R = H * .7;
-        x.fillStyle = tok('floor-3'); x.beginPath(); x.arc(vx, vy, R, 0, 7); x.fill();
-        x.strokeStyle = tok('cab-metal'); x.lineWidth = H * .06; x.beginPath(); x.arc(vx, vy, R * .92, 0, 7); x.stroke();
+        glow(x, vx, vy, R * 1.25, c[0], .55);                 // light spilling round the door's rim
+        x.fillStyle = rgba('floor-3', .55); x.beginPath(); x.arc(vx, vy, R, 0, 7); x.fill();
+        x.strokeStyle = rgba(c[0], .8); x.lineWidth = H * .05; x.beginPath(); x.arc(vx, vy, R * .92, 0, 7); x.stroke();
+        x.strokeStyle = tok('cab-metal'); x.lineWidth = H * .025; x.beginPath(); x.arc(vx, vy, R * .92, 0, 7); x.stroke();
         x.fillStyle = tok('cab-metal');
         for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; x.beginPath(); x.arc(vx + Math.cos(a) * R * .78, vy + Math.sin(a) * R * .78, H * .025, 0, 7); x.fill(); }
         // the dial turns one way, then back (a combination)
         const ang = t * .35 + Math.sin(t * .6) * 1.2, dr = H * .3;
-        glow(x, vx, vy, dr * 1.8, c[2], .18);
+        glow(x, vx, vy, dr * 1.8, c[2], .3);
         x.fillStyle = tok('cab-panel'); x.beginPath(); x.arc(vx, vy, dr, 0, 7); x.fill();
         x.strokeStyle = tok('cab-metal'); x.lineWidth = Math.max(1, H * .02); x.stroke();
         x.strokeStyle = rgba('text-hi', .6); x.lineWidth = Math.max(1, H * .012);
@@ -299,10 +305,16 @@ window.Arcade = window.Arcade || {};
         [[0, 0, .35, c[0], 0], [W, 0, Math.PI - .35, c[1], 1.3], [0, H, -.3, c[1], 2.1], [W, H, Math.PI + .3, c[0], 3.4]].forEach(([ox, oy, base, col, ph]) => {
           const a = base + Math.sin(t * .55 + ph) * .28, ex = ox + Math.cos(a) * W * 1.3, ey = oy + Math.sin(a) * W * 1.3;
           x.lineCap = 'round';
-          x.strokeStyle = rgba(col, .22); x.lineWidth = H * .05; x.beginPath(); x.moveTo(ox, oy); x.lineTo(ex, ey); x.stroke();
-          x.strokeStyle = rgba(col, .9); x.lineWidth = Math.max(1, H * .01); x.beginPath(); x.moveTo(ox, oy); x.lineTo(ex, ey); x.stroke();
-          glow(x, ox, oy, H * .12, col, .7);
+          x.strokeStyle = rgba(col, .35); x.lineWidth = H * .06; x.beginPath(); x.moveTo(ox, oy); x.lineTo(ex, ey); x.stroke();
+          x.strokeStyle = rgba(col + '-hi', 1); x.lineWidth = Math.max(1.5, H * .014); x.beginPath(); x.moveTo(ox, oy); x.lineTo(ex, ey); x.stroke();
+          glow(x, ox, oy, H * .16, col, .85);
         });
+        // the red laser underline: a glowing line along the bottom, breathing slowly (a 5 s swell, smooth)
+        const ly = H * .88, br = .8 + .2 * Math.sin(t * 1.25);
+        x.save(); x.translate(W / 2, ly); x.scale(W / H * 2.2, 1); glow(x, 0, 0, H * .16, c[1], .6 * br); x.restore();
+        x.lineCap = 'round';
+        x.strokeStyle = rgba(c[1], .5 * br); x.lineWidth = H * .05; x.beginPath(); x.moveTo(W * .06, ly); x.lineTo(W * .94, ly); x.stroke();
+        x.strokeStyle = rgba('red-hi', br); x.lineWidth = Math.max(1.5, H * .018); x.beginPath(); x.moveTo(W * .06, ly); x.lineTo(W * .94, ly); x.stroke();
       },
     },
     /* ANCIENT NINJA SCROLLS. colors: [sky, temple light]. An unrolled parchment scroll behind the title, a mountain
