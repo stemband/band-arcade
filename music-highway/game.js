@@ -131,7 +131,7 @@
       return `<button class="lvl mh-song t${s.tier}" data-i="${i}" ${open ? '' : 'disabled'}>
         <span class="n">${TIER_NAME[s.tier]}</span>
         <span class="t">${esc(s.title)}${turboBadge(s) ? ' <span class="mh-turbo" title="Cleared on Turbo">⚡ TURBO</span>' : ''}</span>
-        <span class="d">${esc(s.source)}<br>${s.tempo} beats a minute · ${s.timeSig[0]}/${s.timeSig[1]} · ${map.notes.length} notes · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span>
+        <span class="d">${esc(s.source)}<br>${s.tempo} beats a minute · ${SM.meter(s).label} · ${map.notes.length} notes · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span>
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${p.best ? 'Best ' + p.best : ''}</span></span>
       </button>`;
     }).join('');
@@ -196,7 +196,8 @@
     // a trail ends a little before the note does (trailGap of its length), so two notes in a row stay apart
     list.forEach(n => { n.tEnd = n.end - (n.trail ? R.trailGap * n.dur : 0); });
     list.fvTotal = list.filter(n => n.trail).length;
-    return {spb, per, notes: list, measures, total: measures * per * spb, loops, from, perLoop: practice ? list.length / loops : list.length,
+    const M = SM.meter(song);                                      // the PRIMARY beat + the count-in (song-map.js meter())
+    return {spb, per, pulse: M.pulse, meter: M, countBeats: M.countBeats, countClicks: M.countClicks, notes: list, measures, total: measures * per * spb, loops, from, perLoop: practice ? list.length / loops : list.length,
       loopLen: practice ? (practice.to - practice.from + 1) * per * spb : Infinity};
   }
 
@@ -238,22 +239,23 @@
     play(0);
   }
 
-  /** start (or resume) the song at `fromSec` of song time: a one-measure count-in, then the groove */
+  /** start (or resume) the song at `fromSec` of song time: the count-in (one measure; 2/2, 6/8 and 3/8: at least 4 clicks
+      on the PRIMARY beat, meter() in song-map.js), then the groove */
   function play(fromSec) {
-    const T = G.T;
-    const countIn = T.per * T.spb, lead = .7;                    // (after the menu music's 0.5 s microphone mute)
+    const T = G.T, M = T.meter;
+    const countIn = T.countBeats * T.spb, lead = .7;             // (after the menu music's 0.5 s microphone mute)
     sampleClock();
     G.T0 = nowCtx() + lead + countIn - fromSec;                  // context time of the song's beat 1 (song time 0)
     G.from = fromSec; G.phase = 'count'; G.paused = false;
     G.countAt = G.T0 + fromSec - countIn;
     G.nextBeat = Math.round(fromSec / T.spb * 4) / 4;            // the scheduler's cursor, in beats (16th grid)
     G.clicks = [];
-    for (let b = 0; b < T.per; b++) {                             // the count-in: stick clicks (accent on 1) over the hi-hat,
-      const t = G.countAt + b * T.spb;                             // and the kick: the game hears its own drums before
-      G.clicks.push(t);                                            // any note (a snare player's bleed level, see onAttack)
+    for (let b = 0; b < T.countClicks; b++) {                     // the count-in: stick clicks (accent on each measure's 1) over
+      const t = G.countAt + b * M.pulse * T.spb, down = b % M.pulses === 0;   // the hi-hat, and the kick: the game hears its own
+      G.clicks.push(t);                                            // drums before any note (a snare player's bleed level, see onAttack)
       if (kit) {                                                   // (the EFFECTS slider applies; the hat and kick stay under
-        const cp = kit.click(t, R.clickVol, b === 0), room = Math.max(0, .98 - cp);   // the headroom the click leaves: no clipping)
-        const hv = Math.min(.7 * R.drumVol, room * .25 / .16), kv = Math.min((b ? .8 : 1) * R.drumVol, Math.max(0, room - .16 * hv) / .55);
+        const cp = kit.click(t, R.clickVol, down), room = Math.max(0, .98 - cp);   // the headroom the click leaves: no clipping)
+        const hv = Math.min(.7 * R.drumVol, room * .25 / .16), kv = Math.min((down ? 1 : .8) * R.drumVol, Math.max(0, room - .16 * hv) / .55);
         kit.hat(t, hv); kit.kick(t, kv);
       }
     }
@@ -270,7 +272,7 @@
     if (G.drumFile && !G.fileStarted && G.T0 + G.from > now) {
       kit.file(G.T0 + G.from, G.drumFile, G.from, 1); G.fileStarted = true;
     }
-    const groove = A.MHBacking.groove(G.song.style, T.per);
+    const groove = A.MHBacking.groove(G.song.style, G.song.timeSig || [4, 4]);
     while (G.nextBeat * T.spb <= until && G.nextBeat * T.spb < T.total) {
       const b = G.nextBeat, t = G.T0 + b * T.spb, inMeasure = +(b % T.per).toFixed(3);
       if (!G.fileStarted) groove.forEach(([at, drum, v]) => { if (unpitched && !G.guide && drum === 'snare') return; if (Math.abs(at - inMeasure) < .01 || (at % .25 && Math.abs(Math.floor(at * 4) / 4 - inMeasure) < .01)) {
@@ -290,13 +292,14 @@
     const mv = G.guide ? (melody ? R.practiceMelodyVol * melVol : 0) : R.guideVol, bv = G.guide ? R.practiceBassVol : R.bassVol, pv = G.guide ? R.practicePadVol : R.padVol;
     const tone = (at, m, d, v, kind) => { kit.tone(at, m, d, v, kind); if (G.tones) G.tones.push({kind, at: +(at - G.T0).toFixed(4), m}); };
     if (mv > 0) (G.guide ? G.melody : T.notes).filter(n => Math.abs(n.t / T.spb - b) < .01 && n.midi != null).forEach(n => tone(G.T0 + n.t, n.midi, Math.max(.12, n.dur * .9), mv, 'guide'));
-    const inM = b % T.per;
-    if (Math.abs(inM) < .01 || (T.per === 4 && Math.abs(inM - 2) < .01)) {
+    const inM = b % T.per;                                         // bass on the half-measure beats (4/4, 2/2) or each dotted quarter (6/8)
+    const bassGap = T.per === 4 ? 2 : T.meter.compound && T.meter.pulses > 1 ? T.meter.pulse : T.per;
+    if (Math.abs(inM) < .01 || (bassGap < T.per && Math.abs(inM / bassGap - Math.round(inM / bassGap)) < .01)) {
       const m = Math.floor(b / T.per + 1e-6) + 1, orig = G.practice ? ((m - 1) % (G.practice.to - G.practice.from + 1)) + G.practice.from : m;
       const ch = G.map.chords[orig - 1];
       if (ch) {
         let root = ch.root; while (root > 50) root -= 12; while (root < 38) root += 12;
-        tone(t, root, T.spb * (T.per === 4 ? 1.8 : T.per * .9), bv, 'bass');
+        tone(t, root, T.spb * (T.per === 4 ? 1.8 : bassGap * .9), bv, 'bass');
         if (Math.abs(inM) < .01) ch.tones.forEach(m2 => { let x = m2; while (x > 67) x -= 12; while (x < 55) x += 12; tone(t, x, T.spb * T.per * .95, pv, 'pad'); });
       }
     }
@@ -459,9 +462,9 @@
     const t = songNow();
     // the count-in numbers (1 2 3 4 on the clicks), then play
     if (G.phase === 'count') {
-      const countStart = G.from - G.T.per * G.T.spb;
+      const countStart = G.from - G.T.countBeats * G.T.spb, cs = G.T.pulse * G.T.spb;   // one number per click (primary beat)
       if (t >= G.from) { G.phase = 'play'; showCount(''); }
-      else showCount(t >= countStart ? String(Math.min(G.T.per, Math.floor((t - countStart) / G.T.spb) + 1)) : '');
+      else showCount(t >= countStart ? String(Math.min(G.T.countClicks, Math.floor((t - countStart) / cs + 1e-6) + 1)) : '');
     }
     // misses: past the window (+ a moment for a late attack's pitch to settle)
     const late = R.outerMs / 1000 + .3;
@@ -559,7 +562,7 @@
     V.lead = G.lead;
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     g.drawImage(V.bg, 0, 0, W, V.roadH);
-    HD.drawRoad(g, V, {t, spb: T.spb, per: T.per, still: reduced()});
+    HD.drawRoad(g, V, {t, spb: T.spb, per: T.per, pulse: T.pulse, still: reduced()});
     while (G.ci < T.notes.length && T.notes[G.ci].end - t < -.8) G.ci++;
     HD.drawSlurs(g, V, T.notes, {from: G.ci, t, q: FX.q});
     HD.drawTrails(g, V, T.notes, {from: G.ci, t, q: FX.q});
@@ -840,7 +843,8 @@
   function resume() {
     if (!G || !G.paused) return;
     const T = G.T, bar = T.per * T.spb;
-    const beat = Math.floor(G.pausedAt / T.spb + 1e-6) * T.spb;     // back one measure from the beat we stopped on
+    const ps = T.pulse * T.spb;                                    // back one measure from the PRIMARY beat we stopped on
+    const beat = Math.floor(G.pausedAt / ps + 1e-6) * ps;           // (2/2: a half; 6/8, 3/8: a dotted quarter), so the count-in lands on the beats
     const from = Math.max(0, beat - bar);
     G.fileStarted = false;
     G.resumes = (G.resumes || []).concat({at: +G.pausedAt.toFixed(3), from: +from.toFixed(3)});
@@ -1034,6 +1038,9 @@
     /** tests: the resumes so far ([{at, from}]) and the drum hits scheduled (context s) with the song's clock start */
     pauses: () => G ? {n: G.pauses || 0, resumes: G.resumes || [], T0: G.T0, from: G.from, spb: G.T.spb, dur: G.T.total} : null,
     paused: () => !!(G && G.paused),
+    /** tests: the meter of the song playing: its count-in clicks and scheduled drum hits, in BEATS from the song's start */
+    meter: () => G ? {pulse: G.T.pulse, per: G.T.per, countBeats: G.T.countBeats, countClicks: G.T.countClicks, from: G.from / G.T.spb,
+      clicks: G.clicks.map(t => +((t - G.T0) / G.T.spb).toFixed(4)), hits: G.hits.map(t => +((t - G.T0) / G.T.spb).toFixed(4))} : null,
     stickCheck: () => G && G.stickCheck,
     /** tests: record every backing tone from now on ({kind, at (song s), m}) */
     tones: () => { if (G) G.tones = G.tones || []; return G && G.tones; },

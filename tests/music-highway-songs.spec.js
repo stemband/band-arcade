@@ -156,10 +156,10 @@ test.describe('music highway songs', () => {
           beats: map.notes.map(n => n.beats).join(' '), sticks: map.notes.map(n => n.stick || '').join(''), lanes: L.lanes.length,
           inRange: map.unpitched || (Math.min(...ws) >= mem.lowMidi && Math.max(...ws) <= mem.highMidi)};
       }
-      return {i, last: i === MH_SONGS.length - 1, tier: s.tier, check: SM.check(s), keyName: conc.keyName, measures: conc.measures,
+      return {i, last: MH_SONGS.length > i, tier: s.tier, check: SM.check(s), keyName: conc.keyName, measures: conc.measures,
         concert: conc.notes.map(n => n.concert % 12), chords: conc.chords.map(c => c.name).join(' '), per};
     });
-    expect([r.i, r.last, r.tier]).toEqual([25, true, 3]);                 // song 26, at the END; tier 3 (minor)
+    expect([r.i, r.last, r.tier]).toEqual([25, true, 3]);                 // song 26 (more songs were added after it); tier 3 (minor)
     expect(r.check).toEqual([]);
     expect(r.measures).toBe(7);
     expect(r.keyName).toBe('Concert E♭ (C minor)');
