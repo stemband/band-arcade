@@ -489,3 +489,152 @@ test.describe('Blocktave: performance', () => {
     expect(fps).toBeGreaterThanOrEqual(30);
   });
 });
+
+const R_NEAR = 16 + 8;   // rules.js starterRange + starter.oreDepth
+test.describe('Blocktave: every world can finish chapter 1', () => {
+  test('the starter check passes on 500 seeds (trees on dry ground, Tone Ore close under the ground)', async ({page}) => {
+    test.setTimeout(120_000);
+    await prepare(page, {store: store('trumpet', 'touch')});
+    await page.goto('blocktave/index.html?demo&nostart');
+    const bad = await page.evaluate(() => {
+      const BW = Arcade.BlocktaveWorld, R = window.BT_RULES, out = [];
+      for (let k = 0; k < 500; k++) { const seed = (k * 2654435761 + 97) >>> 0, w = BW.generate(seed, R), c = BW.starter(w, w, R); if (!c.ok) out.push([seed, c]); }
+      return out;
+    });
+    expect(bad, 'seeds missing chapter 1 materials near the spawn').toEqual([]);
+  });
+
+  test('chapter 1 end to end on 20 random seeds: Maple → planks → mallet → 10 Tone Ore → a shelter with a door', async ({page}) => {
+    test.setTimeout(600_000);
+    const seeds = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
+    const watch = await prepare(page, {store: store('trumpet', 'touch')});
+    for (const seed of seeds) {
+      await page.goto(`blocktave/index.html?demo&nostart&seed=${seed}`);
+      await page.locator('.ls-card:not(.ls-endless)').first().click();
+      await page.locator('.ls-start').click();
+      await into(page);
+      const craft = async id => { await page.evaluate(i => Arcade.Blocktave.demo.craft(i), id); await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page); };
+      /** mine the nearest block of this kind to the SPAWN; it must be within the starter range and dry/shallow */
+      const mineNear = async key => {
+        const t = await page.evaluate(k => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), R = window.BT_RULES;
+          const t = d.find(k, w.spawn); d.standBy(t.x, t.y); d.mine(t.x, t.y); d.answer(); return {d: Math.hypot(t.x - w.spawn.x, t.y - w.spawn.y), x: t.x, y: t.y}; }, key);
+        expect(t.d, `seed ${seed}: ${key} near the spawn`).toBeLessThanOrEqual(R_NEAR);
+        await waitCardGone(page);
+        return t;
+      };
+      await mineNear('maple'); await craft('maple-planks');
+      await mineNear('cork'); await craft('wooden-mallet');
+      expect((await st(page)).inv.mallet1, `seed ${seed}: the mallet`).toBe(1);
+      for (let k = 0; k < 10; k++) await mineNear('toneOre');
+      await mineNear('maple'); await craft('maple-planks'); await craft('door');
+      expect((await st(page)).inv.door, `seed ${seed}: a door`).toBe(1);
+      await page.evaluate(() => Arcade.Blocktave.demo.shelter());
+      await page.waitForTimeout(400);
+      const ms = await page.evaluate(() => ['mallet', 'ore10', 'shelter'].map(id => !!((Arcade.store.gameData('blocktave').ms || {}).trumpet || {})[id]));
+      expect(ms, `seed ${seed}: chapter 1's three milestones`).toEqual([true, true, true]);
+      await page.evaluate(() => { Arcade.Blocktave.showHub(); localStorage.clear(); });   // (the hub first: leaving the world saves it)
+    }
+    watch.check();
+  });
+
+  test('an older saved world without Cork is repaired ONCE, only in untouched ground; the player\'s blocks stay', async ({page}) => {
+    await prepare(page, {store: store('trumpet', 'touch')});
+    await page.goto('blocktave/index.html?demo&nostart');
+    const info = await page.evaluate(() => {
+      const BW = Arcade.BlocktaveWorld, R = window.BT_RULES, ID = BW.ID;
+      let seed = 1, w;
+      for (; seed < 500; seed++) { w = BW.generate(seed, R, 1); if (BW.starter(w, BW.generate(seed, R, 1), R).cork < R.starter.cork) break; }
+      w.repaired = 0;
+      // the player's work: a plank wall and a dug hole near the spawn
+      const sx = w.spawn.x, mine = [];
+      for (let dx = 3; dx <= 8; dx++) { const x = sx + dx, g = BW.top(w, x); BW.put(w, x, g - 1, ID.planks); mine.push([x, g - 1, ID.planks]); }
+      for (let dx = -8; dx <= -3; dx++) { const x = sx + dx, g = BW.top(w, x); BW.put(w, x, g, ID.air); mine.push([x, g, ID.air]); }
+      delete w.tops;
+      localStorage.setItem(Arcade.Blocktave.key, JSON.stringify(BW.encode(w)));
+      return {seed, mine};
+    });
+    await page.evaluate(() => { window.__toasts = []; });
+    await page.locator('.ls-card:not(.ls-endless)').first().click();
+    await page.evaluate(() => { const t = Arcade.UI.toast; Arcade.UI.toast = (s, o) => { (window.__toasts = window.__toasts || []).push(s); return t(s, o); }; });
+    await page.locator('.ls-start').click();
+    await into(page);
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(m => { const BW = Arcade.BlocktaveWorld, R = window.BT_RULES, w = Arcade.Blocktave.world();
+      const saved = BW.decode(JSON.parse(localStorage.getItem(Arcade.Blocktave.key)));
+      return {ok: BW.starter(w, BW.generate(w.seed, R, 1), R).ok, kept: m.every(([x, y, v]) => BW.at(w, x, y) === v), repaired: saved.repaired, gen: saved.gen, toasts: window.__toasts}; }, info.mine);
+    expect(r.ok, `seed ${info.seed}: the starter check passes after the repair`).toBe(true);
+    expect(r.kept, 'the player\'s blocks and holes are untouched').toBe(true);
+    expect([r.repaired, r.gen]).toEqual([1, 1]);
+    expect(r.toasts).toContain('New trees have grown near your camp!');
+    // once: loading again changes nothing and says nothing
+    const again = await page.evaluate(() => { const BW = Arcade.BlocktaveWorld, w = BW.decode(JSON.parse(localStorage.getItem(Arcade.Blocktave.key))); return BW.repair(w); });
+    expect(again).toBe(null);
+  });
+});
+
+test.describe('Blocktave: findable first steps and bonus milestones', () => {
+  test('the goals panel\'s "How?" hint, the Recipe Book\'s first recipes, and the Tone Ore card without a mallet', async ({page}) => {
+    const seen = Object.assign({}, SEEN);
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen}}}});
+    await expect(page.locator('#goals .bt-how')).toContainText('Tap a Maple Trunk to collect Maple');
+    await page.evaluate(() => Arcade.Blocktave.demo.award('mallet'));
+    await expect(page.locator('#goals .bt-how')).toContainText('Dig down near camp');
+    // the Recipe Book: Maple Planks, Wooden Mallet and Door with their ingredients, found or not
+    await page.locator('#craftBtn').click(); await page.locator('#bookBtn').click();
+    for (const id of ['maple-planks', 'wooden-mallet', 'door']) await expect(page.locator(`#book .bt-rec[data-id="${id}"] .ins img`).first()).toBeVisible();
+    await page.locator('#craftClose').click();
+    // Tone Ore with no mallet: a first-time card
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1; d.put(x, y, 'toneOre'); d.mine(x, y); });
+    await expect(page.locator('#intro')).toContainText('Planks, Planks, Cork');
+  });
+
+  test('a later chapter\'s milestone is a BONUS; its chapter\'s results wait until the player reaches it', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { window.__toasts = []; const t = Arcade.UI.toast; Arcade.UI.toast = (s, o) => { window.__toasts.push(s); return t(s, o); }; });
+    for (const id of ['lamp', 'night', 'clams']) await page.evaluate(i => Arcade.Blocktave.demo.award(i), id);
+    await page.waitForTimeout(900);
+    expect(await page.evaluate(() => window.__toasts)).toContain('★ Bonus milestone (Chapter 2): Place a Stage Lamp!');
+    await expect(page.locator('#results')).toBeHidden();
+    await expect(page.locator('#goals')).toContainText('Chapter 1');
+    await expect(page.locator('#goals .bt-bonus')).toHaveText('+ 3 milestones already done in later chapters');
+    // chapter 1 done: its results, then (KEEP BUILDING) chapter 2's, reached at last
+    for (const id of ['mallet', 'ore10', 'shelter']) await page.evaluate(i => Arcade.Blocktave.demo.award(i), id);
+    await expect(page.locator('#results')).toBeVisible();
+    await expect(page.locator('#results')).toContainText('First Steps: complete!');
+    await page.locator('#resRetry').click();
+    await expect(page.locator('#results')).toBeVisible();
+    await expect(page.locator('#results')).toContainText('First Night: complete!');
+    await page.locator('#resRetry').click();
+    await expect(page.locator('#goals')).toContainText('Chapter 3');
+    // back on the chapter select: it starts on Chapter 3; a later chapter done early says so
+    await page.evaluate(() => Arcade.Blocktave.demo.award('deep'));
+    await page.evaluate(() => { ['sustain', 'wisps'].forEach(i => Arcade.Blocktave.demo.award(i)); });
+    await page.evaluate(() => Arcade.Blocktave.showHub());
+    await expect(page.locator('.ls-card.ls-sel')).toContainText('Chapter 3');
+    await expect(page.locator('.bt-ch[data-l="4"] .foot')).toContainText('Complete · finished early');
+    await expect(page.locator('.bt-ch[data-l="1"] .foot')).toContainText('Complete');
+    await expect(page.locator('.bt-ch[data-l="1"] .foot')).not.toContainText('early');
+  });
+
+  for (const [name, w, h] of [['iPad landscape', 1180, 820], ['iPad portrait', 820, 1180], ['Chromebook', 1366, 768], ['phone', 390, 844]]) {
+    test(`the chapter cards hold their goals (${name})`, async ({page}) => {
+      await page.setViewportSize({width: w, height: h});
+      await prepare(page, {store: store('trumpet', 'touch')});
+      await page.goto('blocktave/index.html?demo&nostart');
+      await page.waitForSelector('.bt-ch');
+      const r = await page.evaluate(() => [...document.querySelectorAll('.bt-ch')].map(c => {
+        const b = c.getBoundingClientRect(), box = e => { const r = e.getBoundingClientRect(); return {l: r.left, t: r.top, r: r.right, b: r.bottom}; };
+        return {card: {l: b.left, t: b.top, r: b.right, b: b.bottom}, lines: [...c.querySelectorAll('.bt-card-goals li')].map(box), foot: box(c.querySelector('.foot')),
+          list: box(c.querySelector('.bt-card-goals'))};
+      }));
+      const inside = (a, c) => a.l >= c.l - .5 && a.r <= c.r + .5 && a.t >= c.t - .5 && a.b <= c.b + .5;
+      const hit = (a, b) => a.l < b.r - 1 && a.r > b.l + 1 && a.t < b.b - 1 && a.b > b.t + 1;
+      r.forEach((c, i) => {
+        expect(c.lines.length).toBe(3);
+        c.lines.forEach(l => expect(inside(l, c.card), `chapter ${i + 1}: a goal line inside its card`).toBe(true));
+        expect(c.foot.b <= c.list.t + .5, `chapter ${i + 1}: the stars line above the list`).toBe(true);
+        r.forEach((d, j) => { if (j > i) expect(hit(c.card, d.card), `cards ${i + 1} × ${j + 1}`).toBe(false); });
+      });
+    });
+  }
+});

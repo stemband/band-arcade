@@ -91,12 +91,18 @@ window.BT_RECIPES = [
 /* THE CHAPTERS: 5 chapters × 3 MILESTONES = the game's 15 stars (games.js maxStars). Stars come ONLY from these,
    never from mining or building more. Saved as setLevel('blocktave', member, chapter, {stars}) (per instrument).
    Chapter numbers are levels: never reorder. Each milestone's `id` is saved: never rename.
-     test  what completes it (game.js MILESTONE checks): see each line */
+     test  what completes it (game.js MILESTONE checks): see each line
+     hint  the "How?" line the in-game goals panel shows under the current unfinished goal (optional) */
+/* recipes the Recipe Book always shows (with their ingredients), found or not: the way to the first mallet and shelter */
+window.BT_ALWAYS_SHOWN = ['maple-planks', 'wooden-mallet', 'door'];
 window.BT_CHAPTERS = [
   {name: 'First Steps', goals: [
-    {id: 'mallet',  text: 'Make a Wooden Mallet'},
-    {id: 'ore10',   text: 'Mine 10 Tone Ore'},                            // rules.js goals.toneOre (Brass Ore counts)
-    {id: 'shelter', text: 'Build a shelter with a door'}]},               // an enclosed room (rules.js room)
+    {id: 'mallet',  text: 'Make a Wooden Mallet',
+     hint: 'Tap a Maple Trunk to collect Maple → make Maple Planks → Planks, Planks, Cork in the Measure.'},
+    {id: 'ore10',   text: 'Mine 10 Tone Ore',                             // rules.js goals.toneOre (Brass Ore counts)
+     hint: 'Dig down near camp and look for glowing Tone Ore. Your Wooden Mallet mines it.'},
+    {id: 'shelter', text: 'Build a shelter with a door',                  // an enclosed room (rules.js room)
+     hint: 'Wall in a small space and put a Door in the wall.'}]},
   {name: 'First Night', goals: [
     {id: 'night',   text: 'Survive a night'},                             // dawn comes without losing all your hearts
     {id: 'lamp',    text: 'Place a Stage Lamp'},

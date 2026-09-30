@@ -41,6 +41,19 @@
 
   /* ================= THE TITLE SCREEN (the level select: the 5 chapters + Survival Nights) ================= */
   const msDone = id => !!((gd().ms || {})[who] || {})[id];
+  const chDone = ci => CHAPTERS[ci].goals.every(g => msDone(g.id));
+  /** the CURRENT chapter (0-based): the lowest one not finished (all finished = the last) */
+  const curCh = () => { const i = CHAPTERS.findIndex((c, k) => !chDone(k)); return i < 0 ? CHAPTERS.length - 1 : i; };
+  /** a chapter is REACHED once every chapter before it is finished (its "complete!" results wait for that) */
+  const reached = ci => CHAPTERS.slice(0, ci).every((c, k) => chDone(k));
+  /** chapters whose "complete!" results were shown: gameData.shownCh[member] = {index: 1} (older saves: every finished one) */
+  function shownCh() {
+    const all = gd().shownCh || (gd().shownCh = {});
+    if (!all[who]) { all[who] = {}; CHAPTERS.forEach((c, k) => { if (chDone(k)) all[who][k] = 1; }); saveGd(); }
+    return all[who];
+  }
+  /** later chapters' milestones already done */
+  const bonusDone = () => CHAPTERS.slice(curCh() + 1).reduce((n, c) => n + c.goals.filter(g => msDone(g.id)).length, 0);
   function drawMode() {
     $('modeInst').setAttribute('aria-pressed', String(mode === 'inst'));
     $('modeTouch').setAttribute('aria-pressed', String(mode === 'touch'));
@@ -67,16 +80,24 @@
       return `<button class="lvl bt-ch${p.stars >= 3 ? ' cleared' : ''}" data-l="${i + 1}">
         <span class="n">Chapter ${i + 1}</span>
         <span class="t">${esc(ch.name)}</span>
-        <span class="d bt-goals">${ch.goals.map(g => `<span class="${msDone(g.id) ? 'ok' : ''}">${msDone(g.id) ? '✓' : '○'} ${esc(g.text)}</span>`).join('')}</span>
-        <span class="foot"><span class="stars">${A.starStr(p.stars || 0)}</span><span>${p.stars >= 3 ? 'Complete' : `${p.stars || 0} of 3`}</span></span>
+        <span class="foot"><span class="stars">${A.starStr(p.stars || 0)}</span><span>${chDone(i) ? (reached(i) ? 'Complete' : 'Complete · finished early') : `${ch.goals.filter(g => msDone(g.id)).length} of 3`}</span></span>
+        <ul class="bt-card-goals">${ch.goals.map(g => `<li class="${msDone(g.id) ? 'ok' : ''}">${msDone(g.id) ? '✓' : '○'} ${esc(g.text)}</li>`).join('')}</ul>
       </button>`;
     }).join('');
     $('levelGrid').querySelectorAll('.lvl').forEach(b => b.addEventListener('click', () => begin(+b.dataset.l)));
     A.Endless.tile($('endlessTile'), {gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: 'nights', title: 'SURVIVAL NIGHTS', label: 'One life',
       blurb: 'A fresh world and one life: how many nights can you survive? Build, light lamps and calm the creatures.', onPlay: () => begin('endless')});
     scrollTo(0, 0);
+    startOnCurrent();
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), endless: $('endlessTile'), unlocked: () => true,
       gameId: GAME_ID, label: i => `Chapter ${i + 1} · ${CHAPTERS[i].name}`});
+  }
+  // the chapter select starts on the CURRENT chapter (level-select.js remembers per game|player|group; Endless is kept)
+  function startOnCurrent() {
+    try {
+      const d = A.store.gameData('level-select'), k = [GAME_ID, A.store.player || '', A.store.instId || ''].join('|');
+      if (d[k] !== 'endless') { d[k] = curCh(); A.store.saveGameData('level-select'); }
+    } catch (e) { /* no storage */ }
   }
   function begin(ch) {
     A.UI.results.hide();
@@ -107,7 +128,8 @@
   function enterWorld(ch) {
     const endless = ch === 'endless';
     A.LevelSelect.played(endless ? 'endless' : ch - 1);
-    let w = endless ? null : loadWorld();
+    let w = endless ? null : loadWorld(), grew = null;
+    if (w) grew = BW.repair(w, R);                              // an older world: the starter check, once
     if (!w) w = BW.generate(newSeed(), R);
     if (endless) { w.time = R.endless.startS; }
     const P = w.player || {};
@@ -131,7 +153,9 @@
     G.running = true; G.last = performance.now();
     G.raf = requestAnimationFrame(frame);
     scrollTo(0, 0);
-    if (!endless) { if (!w.player) saveWorld(); }
+    if (!endless) { if (!w.player || w.dirty) saveWorld(); }
+    if (grew) setTimeout(() => A.UI.toast('New trees have grown near your camp!', {ms: 3200}), 600);
+    if (!endless) setTimeout(checkReached, 900);
     if (!seen('welcome')) firstCard('welcome', 'Welcome to Blocktave!', endless ? 'Survive as many nights as you can with one life! Build a shelter, light Stage Lamps and calm the creatures with your music.'
       : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
   }
@@ -545,7 +569,10 @@
     const b = B[BW.at(G.w, x, y)];
     if (!b.mine) { if (b.key !== 'air' && b.key !== 'water') A.UI.toast(`${b.name} can't be mined.`, {ms: 1400}); return false; }
     const need = b.tier || 0, have = tier();
-    if (have < need) { A.UI.toast(`${b.name} needs a ${R.tools[need]}. Tap CRAFT to make one!`, {ms: 2200}); return false; }
+    if (have < need) {
+      if (b.key === 'toneOre' && have < 1 && !seen('ore-mallet')) { firstCard('ore-mallet', 'Tone Ore!', 'You need a Wooden Mallet for this! Make one in the Measure: Planks, Planks, Cork.'); return false; }
+      A.UI.toast(`${b.name} needs a ${R.tools[need]}. Tap CRAFT to make one!`, {ms: 2200}); return false;
+    }
     if (b.mine === 'tap') { breakBlock(x, y, b, 1); return true; }
     return challengeFor(b, x, y);
   }
@@ -735,7 +762,8 @@
     // THE RECIPE BOOK
     $('bookBtn').setAttribute('aria-pressed', String(book));
     $('book').hidden = !book;
-    if (book) $('book').innerHTML = RECIPES.map(r => f[r.id]
+    const shown = r => f[r.id] || (window.BT_ALWAYS_SHOWN || []).includes(r.id);
+    if (book) $('book').innerHTML = RECIPES.map(r => shown(r)
       ? `<button type="button" class="bt-rec" data-id="${r.id}"><b>${esc(r.name)}</b><span class="ins">${r.in.map(i => `<img src="${iconURL(i)}" alt="${esc(itemName(i))}" title="${esc(itemName(i))}">`).join('<i>›</i>')}</span><small>${esc(perf(r))}${r.bench ? ' · at a Luthier\'s Bench' : ''}</small></button>`
       : `<div class="bt-rec unknown" aria-label="A recipe you haven't found yet"><b>?</b><span class="ins">${r.in.map(() => '<span class="q">?</span>').join('<i>›</i>')}</span></div>`).join('');
     if (book) $('book').querySelectorAll('.bt-rec[data-id]').forEach(b => b.onclick = () => { const r = RECIPES.find(x => x.id === b.dataset.id); slots.fill(null); r.in.forEach((k, i) => { slots[i] = k; }); book = false; drawCraft(); });
@@ -1190,27 +1218,36 @@
     const d = A.store.today ? A.store.today() : new Date(), p2 = n => String(n).padStart(2, '0');
     mine[id] = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
     saveGd();
-    const ci = CHAPTERS.findIndex(c => c.goals.some(g => g.id === id)), ch = CHAPTERS[ci];
+    const ci = CHAPTERS.findIndex(c => c.goals.some(g => g.id === id)), ch = CHAPTERS[ci], later = ci > curCh();
     const stars = ch.goals.filter(g => mine[g.id]).length, prev = A.store.level(GAME_ID, who, ci + 1);
     A.store.setLevel(GAME_ID, who, ci + 1, {stars: Math.max(stars, prev.stars || 0), best: Math.max(stars, prev.best || 0)}, stars);
     const g = ch.goals.find(x => x.id === id);
     A.Sfx.event('bt-milestone');
-    A.UI.toast(`★ Milestone: ${g.text}!`, {ms: 2600});
+    // a later chapter's milestone done early still counts: it says so
+    A.UI.toast(later ? `★ Bonus milestone (Chapter ${ci + 1}): ${g.text}!` : `★ Milestone: ${g.text}!`, {ms: 2600});
     drawGoals();
-    if (stars >= 3) setTimeout(() => chapterDone(ci), 700);
+    if (stars >= 3) setTimeout(checkReached, 700);
+  }
+  /** shows the "complete!" results of the first finished chapter the player has REACHED and not seen yet */
+  function checkReached() {
+    if (!G || G.endless || G.resultsUp) return;
+    const s = shownCh(), ci = CHAPTERS.findIndex((c, k) => chDone(k) && reached(k) && !s[k]);
+    if (ci < 0) return;
+    s[ci] = 1; saveGd();
+    chapterDone(ci);
   }
   function chapterDone(ci) {
     if (!G || G.endless) return;
     saveWorld();
-    G.held++;
+    G.held++; G.resultsUp = true;
     Card.close(); closePanels();
     pause.setActive(false);
     const next = ci + 1 < CHAPTERS.length;
     A.UI.results.show({gameId: GAME_ID, stars: 3, kicker: `Chapter ${ci + 1}`, title: `${CHAPTERS[ci].name}: complete!`,
-      msg: next ? `Every milestone done! Next up: Chapter ${ci + 2}, ${CHAPTERS[ci + 1].name}.` : 'You finished every chapter of Blocktave. Your Band Hall is ready for the concert!',
+      msg: next ? (chDone(ci + 1) ? `Every milestone done! Chapter ${ci + 2}, ${CHAPTERS[ci + 1].name}, is already finished too!` : `Every milestone done! Next up: Chapter ${ci + 2}, ${CHAPTERS[ci + 1].name}.`) : 'You finished every chapter of Blocktave. Your Band Hall is ready for the concert!',
       extra: `<ul class="bt-reslist">${CHAPTERS[ci].goals.map(g => `<li>★ ${esc(g.text)}</li>`).join('')}</ul>`,
       next: {hidden: true},
-      retry: {label: 'Keep building', onClick: () => { A.UI.results.hide(); if (G) { if (next && G.ch === ci + 1) { G.ch = ci + 2; drawGoals(); } G.held = Math.max(0, G.held - 1); pause.setActive(true); A.Sfx.gameMenuMusic(GAME_ID, false); worldMusic(true); } }},
+      retry: {label: 'Keep building', onClick: () => { A.UI.results.hide(); if (G) { G.resultsUp = false; G.ch = curCh() + 1; drawGoals(); G.held = Math.max(0, G.held - 1); pause.setActive(true); A.Sfx.gameMenuMusic(GAME_ID, false); worldMusic(true); setTimeout(checkReached, 600); } }},
       levels: {label: 'Chapters', onClick: () => showHub()}});
     A.Sfx.sequence(['level-complete', 'star-earned'], 120, {channel: GAME_ID});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
@@ -1252,10 +1289,14 @@
   function drawGoals() {
     if (!G) return;
     if (G.endless) { $('goals').hidden = true; return; }
-    const ch = CHAPTERS[(G.ch || 1) - 1] || CHAPTERS[0], s = stats();
+    const ci = curCh(), ch = CHAPTERS[ci], s = stats(), bonus = bonusDone();
+    G.ch = ci + 1;
+    const nextGoal = ch.goals.find(g => !msDone(g.id));
     const prog = {ore10: ` (${Math.min(s.ore, R.goals.toneOre)}/${R.goals.toneOre})`, clams: ` (${Math.min(s.clams, R.goals.clams)}/${R.goals.clams})`, wisps: ` (${Math.min(s.wisps, R.goals.wisps)}/${R.goals.wisps})`};
     $('goals').hidden = false;
-    $('goals').innerHTML = `<b>Chapter ${G.ch}: ${esc(ch.name)}</b>` + ch.goals.map(g => `<span class="${msDone(g.id) ? 'ok' : ''}">${msDone(g.id) ? '★' : '☆'} ${esc(g.text)}${msDone(g.id) ? '' : prog[g.id] || ''}</span>`).join('');
+    $('goals').innerHTML = `<b>Chapter ${G.ch}: ${esc(ch.name)}</b>` + ch.goals.map(g => `<span class="${msDone(g.id) ? 'ok' : ''}">${msDone(g.id) ? '★' : '☆'} ${esc(g.text)}${msDone(g.id) ? '' : prog[g.id] || ''}</span>` +
+      (g === nextGoal && g.hint ? `<small class="bt-how"><b>How?</b> ${esc(g.hint)}</small>` : '')).join('') +
+      (bonus ? `<span class="bt-bonus">+ ${bonus} ${bonus === 1 ? 'milestone' : 'milestones'} already done in later chapters</span>` : '');
   }
   function setBuild(on) {
     G.build = on;
