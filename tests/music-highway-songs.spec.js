@@ -112,7 +112,7 @@ test.describe('music highway songs', () => {
     const watch = await prepare(page, {store: device('trumpet')});
     await board(page);
     const r = await page.evaluate(() => {
-      const SM = Arcade.SongMap, nm = n => n.letter + (n.acc > 0 ? '♯' : n.acc < 0 ? '♭' : ''), out = {ids: MH_SONGS.slice(23).map(s => s.id), checks: []};
+      const SM = Arcade.SongMap, nm = n => n.letter + (n.acc > 0 ? '♯' : n.acc < 0 ? '♭' : ''), out = {ids: MH_SONGS.slice(23, 25).map(s => s.id), checks: []};
       for (const id of ['santa-lucia', 'werde-munter']) {
         const s = MH_SONGS.find(x => x.id === id), per = {};
         out.checks.push(...SM.check(s));
@@ -137,6 +137,64 @@ test.describe('music highway songs', () => {
       expect(p.lanes, `${id} ${who}`).toBeLessThanOrEqual(p.max);
     }
     expect([S.trumpet.slurred, W.trumpet.slurred, S.snare.slurred]).toEqual([8, 3, 0]);   // 4 two-note slurs; one three-note slur; the snare ignores them
+    watch.check();
+  });
+
+  /* song 26: Dies Irae, concert C minor ('Eb' + mode 'minor'), the NATURAL minor (degree 7 = B♭, no raised leading tone) */
+  test('Dies Irae: song 26, concert C minor, each instrument in its own minor key, natural 7th, the snare gets the rhythm', async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
+    await board(page);
+    const r = await page.evaluate(() => {
+      const SM = Arcade.SongMap, nm = n => n.letter + (n.acc > 0 ? '♯' : n.acc < 0 ? '♭' : '');
+      const i = MH_SONGS.findIndex(x => x.id === 'dies-irae'), s = MH_SONGS[i], per = {};
+      const flute = Arcade.groupFor('flute');
+      const conc = SM.forMember(s, flute.members.find(x => x.id === 'flute'), flute, {});
+      for (const [m, horn] of [['flute'], ['trumpet'], ['clarinet'], ['altosax'], ['horn', 'F'], ['horn', 'C'], ['tuba'], ['snare']]) {
+        const g = Arcade.groupFor(m, {hornStart: horn || 'F'}), mem = g.members.find(x => x.id === m), map = SM.forMember(s, mem, g, {}), L = SM.lanes(s, map, g);
+        const ws = map.notes.map(n => n.midi);
+        per[m + (horn || '')] = {key: map.writtenKey, sig: map.sig ? map.sig.count + map.sig.type : '', notes: map.unpitched ? '' : map.notes.map(n => nm(n.n)).join(' '),
+          beats: map.notes.map(n => n.beats).join(' '), sticks: map.notes.map(n => n.stick || '').join(''), lanes: L.lanes.length,
+          inRange: map.unpitched || (Math.min(...ws) >= mem.lowMidi && Math.max(...ws) <= mem.highMidi)};
+      }
+      return {i, last: i === MH_SONGS.length - 1, tier: s.tier, check: SM.check(s), keyName: conc.keyName, measures: conc.measures,
+        concert: conc.notes.map(n => n.concert % 12), chords: conc.chords.map(c => c.name).join(' '), per};
+    });
+    expect([r.i, r.last, r.tier]).toEqual([25, true, 3]);                 // song 26, at the END; tier 3 (minor)
+    expect(r.check).toEqual([]);
+    expect(r.measures).toBe(7);
+    expect(r.keyName).toBe('Concert E♭ (C minor)');
+    // concert: Eb D Eb C | D Bb C | Eb Eb F Eb | D C Bb D | Eb D C | Eb D Eb C | D Bb C  (B♭ below the C: the natural 7th)
+    expect(r.concert).toEqual([3, 2, 3, 0, 2, 10, 0, 3, 3, 5, 3, 2, 0, 10, 2, 3, 2, 0, 3, 2, 3, 0, 2, 10, 0]);
+    expect(r.chords).toBe('i i i v i i i');
+    const P = r.per;
+    expect([P.flute.key, P.flute.sig]).toEqual(['C minor', '3b']);
+    expect(P.flute.notes).toBe('E♭ D E♭ C D B♭ C E♭ E♭ F E♭ D C B♭ D E♭ D C E♭ D E♭ C D B♭ C');
+    expect([P.trumpet.key, P.trumpet.sig]).toEqual(['D minor', '1b']);
+    expect(P.trumpet.notes).toBe('F E F D E C D F F G F E D C E F E D F E F D E C D');   // C natural: no C♯ leading tone
+    expect([P.clarinet.key, P.clarinet.sig]).toEqual(['D minor', '1b']);
+    expect([P.altosax.key, P.altosax.sig]).toEqual(['A minor', '']);
+    expect(P.altosax.notes).toBe('C B C A B G A C C D C B A G B C B A C B C A B G A');     // G natural
+    expect([P.hornF.key, P.hornF.sig]).toEqual(['G minor', '2b']);
+    expect(P.hornF.notes).toBe('B♭ A B♭ G A F G B♭ B♭ C B♭ A G F A B♭ A G B♭ A B♭ G A F G');  // F natural
+    expect([P.tuba.key, P.tuba.sig]).toEqual(['C minor', '3b']);
+    for (const [who, p] of Object.entries(P)) {
+      expect(p.inRange, who).toBe(true);
+      expect(p.lanes, who).toBeLessThanOrEqual(who === 'snare' ? 2 : 12);
+    }
+    // the snare: the same rhythm, one stroke per note, alternating from R each measure
+    expect(P.snare.beats).toBe(P.trumpet.beats);
+    expect(P.snare.sticks).toBe('RLRL RLR RLRL RLRL RLR RLRL RLR'.replace(/ /g, ''));
+    expect(P.snare.key).toBe('');
+    watch.check();
+  });
+
+  test('the Song Board shows Dies Irae in C minor (concert) and D minor (trumpet)', async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
+    await board(page);
+    const card = page.locator('.song').filter({hasText: 'Dies Irae'});
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('Concert pitch (Concert E♭ (C minor))');
+    await expect(card).toContainText('(D minor)');
     watch.check();
   });
 });

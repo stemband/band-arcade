@@ -167,5 +167,9 @@
     {id: 'werde-munter', title: 'Werde munter (Jesu, Joy)', source: 'Johann Schop, 1642 (used by J.S. Bach in Cantata 147)', tier: 1, tempo: 84, timeSig: [3, 4], key: 'Bb', style: 'waltz',
      chords: 'I | I | IV | V | I | I | V | I',
      notes: N('3:2 4 | 5:2 5 | 4:2 3 | 2 2:2', '3:2 4 | 5:2 3 | (2:.5 4:.5 3) 2 | 1:3')},
+    // concert C minor = key 'Eb' + mode 'minor' (degree 1 = C; the natural minor: degree 7 = B♭, no raised leading tone)
+    {id: 'dies-irae', title: 'Dies Irae', source: 'Gregorian chant (13th century)', tier: 3, tempo: 72, timeSig: [4, 4], key: 'Eb', mode: 'minor', style: 'march',
+     chords: 'i | i | i | v | i | i | i',
+     notes: N('3 2 3 1 | 2 7, 1:2', '3 3 4 3 | 2 1 7, 2 | 3 2 1:2', '3 2 3 1 | 2 7, 1:2')},
   ];
 })();
