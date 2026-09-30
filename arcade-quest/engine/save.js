@@ -187,7 +187,7 @@
   const BOOL = ['assist', 'keyHints'];
   /* THE CONTROLS (every key engine/input.js knows, + M for the menu), listed under "Controls" */
   const CONTROLS = [['Arrows or W A S D', 'Move'], ['Z, Enter or Space', 'A: talk, check, choose'], ['X, Esc or Backspace', 'B: back'],
-    ['M, Esc, P or B', 'Menu (while you explore)']];
+    ['M, Esc, P or B', 'Menu (while you explore)'], ['H', 'Hide or show the key hints']];
   function questOptions(box, ctx) {
     const s = Q.settings.get();
     box.innerHTML = OPTS.filter(o => !(o[4] === 'keyboard' && Q.input.touch)).map(([k, name, opts, note]) => `<div><span class="ui-label" id="qSet-${k}">${name}</span>` +

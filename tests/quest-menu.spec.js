@@ -57,7 +57,7 @@ test.describe('a keyboard (laptop)', () => {
     await expect(btn(page)).toBeVisible();
     await expect(btn(page)).toHaveText('Menu');
     let k = await page.evaluate(() => Arcade.Quest.keyHints.state());
-    expect(k).toMatchObject({shown: true, dim: false, text: 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu'});
+    expect(k).toMatchObject({shown: true, dim: false, text: 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu · H: hide hints'});
     await expect.poll(() => page.evaluate(() => Arcade.Quest.keyHints.state().dim), {timeout: 14_000}).toBe(true);
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('qKeys')).opacity)).not.toBe('0.95');
     await page.keyboard.press('Shift');
@@ -97,6 +97,46 @@ test.describe('a keyboard (laptop)', () => {
     await expect(btn(page)).toBeVisible();
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => Arcade.Quest.keyHints.state().shown)).toBe(false);
+    watch.check();
+  });
+
+  test('H and the ✕ hide the key legend (saved, with a toast), H brings it back; the Settings switch follows', async ({page}) => {
+    const watch = await world(page, LAPTOP, {keysTip: true});
+    await settle(page);
+    const legend = page.locator('#qKeys');
+    await expect(legend).toBeVisible();
+    await page.keyboard.press('h');
+    await expect(legend).toBeHidden();
+    await expect(page.locator('.ui-toast')).toContainText('Key hints hidden: press H to show them.');
+    expect(await page.evaluate(() => Arcade.Quest.settings.get().keyHints)).toBe(false);
+    // the choice survives a reload
+    await page.reload();
+    await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName === 'world' && Arcade.Quest.world.state());
+    await settle(page);
+    await page.waitForTimeout(300);
+    await expect(legend).toBeHidden();
+    // the Settings switch shows Off
+    await page.evaluate(() => { Arcade.Quest.settings.open(); });
+    await expect(page.locator('#uiSettings .ui-seg[data-k="keyHints"] button[aria-pressed="true"]')).toHaveText('Off');
+    await expect(page.locator('#uiSettings .q-keylist')).toContainText('Hide or show the key hints');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => page.evaluate(() => Arcade.UI.state().settings)).toBe(false);
+    // H brings it back
+    await page.keyboard.press('h');
+    await expect(legend).toBeVisible();
+    await expect(page.locator('.ui-toast')).toContainText('Key hints on.');
+    expect(await page.evaluate(() => Arcade.Quest.settings.get().keyHints)).toBe(true);
+    // the ✕: hidden again, same setting; nothing else is left in that corner
+    await legend.locator('.q-keys-x').click();
+    await expect(legend).toBeHidden();
+    expect(await page.evaluate(() => Arcade.Quest.settings.get().keyHints)).toBe(false);
+    await page.evaluate(() => { Arcade.Quest.settings.open(); });
+    await expect(page.locator('#uiSettings .ui-seg[data-k="keyHints"] button[aria-pressed="true"]')).toHaveText('Off');
+    // …and the switch turns it back on
+    await page.locator('#uiSettings .ui-seg[data-k="keyHints"] button[data-v="true"]').click();
+    await page.keyboard.press('Escape');
+    await expect.poll(() => page.evaluate(() => Arcade.UI.state().settings)).toBe(false);
+    await expect(legend).toBeVisible();
     watch.check();
   });
 

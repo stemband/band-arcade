@@ -46,17 +46,21 @@
      THE KEY LEGEND (#qKeys, the game screen's bottom-left corner, while you're free to walk: engine/world.js calls
      show(free) every frame): "Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu". It fades to
      low opacity after FADE_MS without a key press and comes back on a key, on hover and when a new scene or room loads
-     (wake()). Settings: "Show key hints" (Q.settings keyHints, default On).
+     (wake()). Settings: "Show key hints" (Q.settings keyHints, default On). QUICK HIDE: H (in the world, any time) or the
+     legend's ✕ turn that same setting off (H turns it back on), saved, with a toast (Q.keyHints.set(on)).
      THE FIRST TIME the game is played on a keyboard (gameData keysTip), one line after the opening story: tip(). */
   const FADE_MS = 10000;
-  const LEGEND = 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu';
+  const LEGEND = 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu · H: hide hints';
+  const TOAST = {off: 'Key hints hidden: press H to show them.', on: 'Key hints on.'};
   let hintEl = null, fadeT = 0, shown = false;
   const hintsOn = () => !input.touch && !(Q.settings && Q.settings.get().keyHints === false);
   const legend = () => {
     if (hintEl && hintEl.isConnected) return hintEl;
     const stage = document.getElementById('stage'); if (!stage) return null;
-    hintEl = Q.el('p', 'q-keys', LEGEND); hintEl.id = 'qKeys'; hintEl.hidden = true; hintEl.setAttribute('aria-hidden', 'true');
+    hintEl = Q.el('p', 'q-keys', `<span class="q-keys-t">${LEGEND}</span><button type="button" class="q-keys-x" aria-label="Hide key hints" title="Hide key hints">✕</button>`);
+    hintEl.id = 'qKeys'; hintEl.hidden = true;
     hintEl.addEventListener('mouseenter', () => Q.keyHints.wake());
+    hintEl.querySelector('.q-keys-x').addEventListener('click', e => { e.currentTarget.blur(); Q.keyHints.set(false); });
     stage.appendChild(hintEl);
     return hintEl;
   };
@@ -76,7 +80,14 @@
       if (hintEl) hintEl.classList.remove('dim');
       fadeT = setTimeout(() => { if (hintEl) hintEl.classList.add('dim'); }, FADE_MS);
     },
-    state: () => ({shown: !!hintEl && !hintEl.hidden, dim: !!hintEl && hintEl.classList.contains('dim'), text: hintEl ? hintEl.textContent : ''}),
+    state: () => ({shown: !!hintEl && !hintEl.hidden, dim: !!hintEl && hintEl.classList.contains('dim'), text: hintEl ? hintEl.querySelector('.q-keys-t').textContent : '',
+      on: hintsOn()}),
+    /** the setting itself (H, the ✕, the Settings switch all share it), saved, with a toast */
+    set(on) {
+      Q.settings.set({keyHints: !!on});
+      if (A.UI && A.UI.toast) A.UI.toast(on ? TOAST.on : TOAST.off, {ms: 2600});
+      if (Q.onSettings) Q.onSettings();
+    },
     firstTip: () => !input.touch && !A.store.gameData('arcade-quest').keysTip,
     tip() {
       if (!Q.keyHints.firstTip()) return Promise.resolve();
@@ -85,6 +96,13 @@
     },
   };
   addEventListener('keydown', () => { if (shown) Q.keyHints.wake(); }, true);
+  // H: hide / show the key hints (keyboards, in the world, no panel open)
+  addEventListener('keydown', e => {
+    if ((e.key !== 'h' && e.key !== 'H') || e.repeat || e.ctrlKey || e.metaKey || e.altKey || input.touch || input.blocked) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || Q.sceneName !== 'world') return;
+    if (document.body.classList.contains('ui-modal') || document.body.classList.contains('avc-open')) return;
+    e.preventDefault(); Q.keyHints.set(!hintsOn());
+  });
   addEventListener('keyup', e => { const k = KEYS[e.key] || KEYS[e.key.toLowerCase && e.key.toLowerCase()]; if (k) held[k] = false; });
   addEventListener('blur', () => input.clear());
 
