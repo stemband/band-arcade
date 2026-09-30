@@ -4,8 +4,12 @@
      Arcade.Showtime.botSVG(kind, {label, plates})   kind: 'walrus' | 'owl' | 'gator' | 'raccoon' | 'moose',
        or a SPECIAL MACHINE: 'turbo-tin' | 'tuba-tank' | 'long-tone-lurker' | 'duet-dolls' | 'glitch-jester' |
        'split-sprocket' (+ 'sprocket-mini', its two halves) | 'blackout-bot' | 'oil-can-ollie' (levels.js SHOWTIME_SPECIALS)
+       or a HYBRID (two specials stitched together: 'glitch-lurker' | 'blackout-jester' | 'sprocket-dolls' | 'oil-tank' |
+       'turbo-blackout' | 'duet-tank'): HYBRIDS below says whose head sits on whose body; both parents' felt colors,
+       visible stitch seams, mismatched eyes (the right one from the other parent) and the parts that show the trick
        plates: Tuba Tank's armor plates (.a-plate, data-i 0…n-1; game.js pops them off with .popped)
      Arcade.Showtime.BAND                           who is who (name, instrument, felt colors: theme.css --anim-* tokens)
+     Arcade.Showtime.SPECIAL_IDS / HYBRID_IDS      the special machines and the hybrids, in the Malfunction Files' order
    Every drawing is on a 140 × 200 grid, feet at the bottom. Colors are classes styled in style.css. */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -26,7 +30,16 @@ window.Arcade = window.Arcade || {};
     'sprocket-mini':    {name: 'Sprocket Mini',    plays: null,      felt: 'anim-sprocket', felt2: 'anim-sprocket-2'},
     'blackout-bot':     {name: 'Blackout Bot',     plays: 'lantern', felt: 'anim-blackout', felt2: 'anim-blackout-2', special: true},
     'oil-can-ollie':    {name: 'Oil Can Ollie',    plays: 'oilcan',  felt: 'anim-ollie',    felt2: 'anim-ollie-2',    special: true},
+    // the HYBRIDS (levels.js SHOWTIME_SPECIALS: `hybrid: [A, B]`): stitched together from two specials (drawn below)
+    'glitch-lurker':    {name: 'Glitch Lurker',    hybrid: ['long-tone-lurker', 'glitch-jester'], special: true},
+    'blackout-jester':  {name: 'Blackout Jester',  hybrid: ['blackout-bot', 'glitch-jester'],     special: true},
+    'sprocket-dolls':   {name: 'Sprocket Dolls',   hybrid: ['split-sprocket', 'duet-dolls'],      special: true},
+    'oil-tank':         {name: 'Oil Tank',         hybrid: ['oil-can-ollie', 'tuba-tank'],        special: true},
+    'turbo-blackout':   {name: 'Turbo Blackout',   hybrid: ['turbo-tin', 'blackout-bot'],         special: true},
+    'duet-tank':        {name: 'Duet Tank',        hybrid: ['duet-dolls', 'tuba-tank'],           special: true},
   };
+  // a hybrid's felt: its first parent's for the head, its second's for the body (both colors show)
+  Object.values(BAND).forEach(b => { if (b.hybrid) { const [a, c] = b.hybrid.map(k => BAND[k]); Object.assign(b, {felt: a.felt, felt2: a.felt2, bodyFelt: c.felt, bodyFelt2: c.felt2}); } });
 
   const bolt = (x, y, r = 2.6) => `<circle class="a-bolt" cx="${x}" cy="${y}" r="${r}"/><path class="a-boltx" d="M${x - r * .6} ${y}h${r * 1.2}"/>`;
   const eyes = (pts, r = 5) => pts.map(([x, y]) => `<circle class="a-eyeglow" cx="${x}" cy="${y}" r="${r * 2.2}"/><circle class="a-eye" cx="${x}" cy="${y}" r="${r}"/><circle class="a-pupil" cx="${x + r * .25}" cy="${y - r * .2}" r="${r * .35}"/>`).join('');
@@ -105,11 +118,12 @@ window.Arcade = window.Arcade || {};
   }
   /* the Duet Dolls: two small wind-up dolls, button eyes, cheek dots, a big key between them (their own drawing, no
      shared frame). .doll-a / .doll-b: game.js lights the one whose note comes next (.duet-a / .duet-b on the bot) */
-  function dolls() {
+  function dolls({gearHeads = false} = {}) {
     const doll = (x, cls, felt) => `<g class="doll ${cls}" style="--felt:var(--${felt})">` +
       `<path class="a-rod" d="M${x - 8} 150V186M${x + 8} 150V186"/><path class="a-boot" d="M${x - 16} 184h14v8H${x - 18}ZM${x + 2} 184h14q2 0 2 8H${x + 2}Z"/>` +
       `<path class="a-felt" d="M${x - 20} 150L${x - 12} 108H${x + 12}L${x + 20} 150Q${x} 158 ${x - 20} 150Z"/><path class="a-seam" d="M${x - 16} 138H${x + 16}"/>` +
-      `<circle class="a-felt2" cx="${x}" cy="90" r="20"/><path class="a-felt" d="M${x - 22} 84Q${x - 20} 64 ${x} 66Q${x + 20} 64 ${x + 22} 84Q${x} 74 ${x - 22} 84Z"/>` +
+      (gearHeads ? `<g class="a-gear"><path class="a-felt2" style="fill:var(--anim-sprocket-2)" d="${gear(x, 90, 25, 19, 8)}"/></g><circle class="a-felt2" cx="${x}" cy="90" r="16"/>`
+        : `<circle class="a-felt2" cx="${x}" cy="90" r="20"/><path class="a-felt" d="M${x - 22} 84Q${x - 20} 64 ${x} 66Q${x + 20} 64 ${x + 22} 84Q${x} 74 ${x - 22} 84Z"/>`) +
       eyes([[x - 8, 90], [x + 8, 90]], 3.6) + `<circle class="a-cheek" cx="${x - 12}" cy="99" r="3"/><circle class="a-cheek" cx="${x + 12}" cy="99" r="3"/>` +
       `<path class="a-dark" d="M${x - 4} 102h8"/>${bolt(x, 120, 2.2)}</g>`;
     return `<path class="a-rod" d="M48 124H92"/><path class="a-brass-fill" d="M62 112Q70 104 78 112L74 124H66Z"/>` +
@@ -137,11 +151,60 @@ window.Arcade = window.Arcade || {};
     return spots.slice(0, n).map(([x, y], i) => `<g class="a-plate" data-i="${i}"><rect x="${x}" y="${y}" width="${i > 5 ? 12 : 22}" height="${i > 5 ? 18 : 16}" rx="2"/>` +
       `<circle cx="${x + 3}" cy="${y + 3}" r="1.3"/><circle cx="${x + (i > 5 ? 9 : 19)}" cy="${y + 3}" r="1.3"/></g>`).join('');
   }
+  /* ---------- THE HYBRIDS: two machines stitched together ---------- */
+  const stitch = d => `<path class="a-stitch" d="${d}"/>`;
+  const at = (x, y, svg, sc = 1) => `<g transform="translate(${x} ${y})${sc !== 1 ? ` scale(${sc})` : ''}">${svg}</g>`;
+  /** a head whose RIGHT eye comes from the other parent: bigger, ringed in that parent's color */
+  function oddEye(head, felt2) {
+    const all = [...head.matchAll(/<circle class="a-eye" cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"\/>/g)];
+    if (all.length < 2) return head;
+    const m = all.reduce((a, c) => +c[1] > +a[1] ? c : a), x = +m[1], y = +m[2], r = +m[3];
+    return head + `<circle class="a-eyering" style="stroke:var(--${felt2})" cx="${x}" cy="${y}" r="${(r * 1.75).toFixed(1)}"/>` +
+      `<circle class="a-eye" cx="${x}" cy="${y}" r="${(r * 1.3).toFixed(1)}"/><path class="a-pupil a-slit" d="M${x} ${(y - r).toFixed(1)}V${(y + r).toFixed(1)}"/>`;
+  }
+  /** the Lurker's ring, worn as a gauge on the chest */
+  const gauge = (x, y) => `<circle class="a-gauge" cx="${x}" cy="${y}" r="11"/><path class="a-gaugefill" d="M${x} ${y - 11}A11 11 0 0 1 ${x + 11} ${y}"/>${bolt(x, y, 2)}`;
+  const HYBRIDS = {
+    // the Jester's hood on the Lurker's telescoping neck, over its narrow bassoon body; the ring gauge on the chest
+    'glitch-lurker': () => ({head: `<path class="a-rod" d="M70 76V52"/>${bolt(70, 66, 2.2)}` + at(7, -8, HEADS['glitch-jester'](), .9) + stitch('M44 26Q70 17 96 26'),
+      body: frame({torso: 'M48 92Q46 80 56 76H84Q94 80 92 92L94 146Q70 154 46 146Z'}) + HOLDS.bassoon + gauge(58, 128), headFirst: true}),
+    // Blackout Bot's lamp shade with the Jester's two bell horns sticking out of it, on the Jester's clarinet body
+    'blackout-jester': () => ({head: `<path class="a-felt2" style="fill:var(--anim-jester-2)" d="M44 34Q30 14 14 20Q28 26 34 40ZM104 34Q118 14 134 20Q120 26 114 40Z"/>` +
+      `<circle class="a-brass-fill" cx="14" cy="20" r="5"/><circle class="a-brass-fill" cx="134" cy="20" r="5"/>` + HEADS['blackout-bot']() + stitch('M44 36H104'),
+      body: frame() + HOLDS.clarinet}),
+    // two wind-up dolls with gear heads, joined by a seam down the middle
+    'sprocket-dolls': () => ({whole: dolls({gearHeads: true}) + stitch('M70 104V150') + stitch('M48 124H92')}),
+    // the Tank's helmet with Ollie's spout for a nose, on the Tank's wide armored body, holding Ollie's oil can
+    'oil-tank': () => ({head: HEADS['tuba-tank']() + `<path class="a-felt2" style="fill:var(--anim-ollie-2)" d="M96 48L126 32L128 36L98 56Z"/><path class="a-oil" d="M127 38Q124 44 127 47Q130 44 127 38Z"/>` + stitch('M34 64H106'),
+      body: frame({torso: 'M34 94Q32 78 50 74H90Q108 78 106 94L108 148Q70 160 32 148Z'}) + HOLDS.oilcan}),
+    // Blackout Bot's lamp head with Turbo Tin's lightning stripe and exhaust fins, on Turbo Tin's horn body
+    'turbo-blackout': () => ({head: HEADS['blackout-bot']() + `<path class="a-felt2" style="fill:var(--anim-tin-2)" d="M78 10L68 26H76L66 38L88 20H80L88 10Z"/>` + stitch('M52 22L96 22'),
+      body: frame() + HOLDS.horn + `<path class="a-felt2" style="fill:var(--anim-tin)" d="M38 128L22 124V132L38 136ZM38 140L20 138V146L38 148Z"/>`}),
+    // one armored body with TWO doll heads side by side, stitched on at the neck
+    'duet-tank': () => ({head: at(-34, -42, `<g class="doll doll-a" style="--felt:var(--anim-doll)">${dollHead(70)}</g>`) + at(34, -42, `<g class="doll doll-b" style="--felt:var(--anim-doll-b)">${dollHead(70)}</g>`) +
+      stitch('M36 74H104') + `<path class="a-rod" d="M36 78V66M104 78V66"/>`,
+      body: frame({torso: 'M34 94Q32 78 50 74H90Q108 78 106 94L108 148Q70 160 32 148Z'}) + `<path class="a-rod" d="M48 124H92"/>`}),
+  };
+  function dollHead(x) {
+    return `<circle class="a-felt2" cx="${x}" cy="90" r="20"/><path class="a-felt" d="M${x - 22} 84Q${x - 20} 64 ${x} 66Q${x + 20} 64 ${x + 22} 84Q${x} 74 ${x - 22} 84Z"/>` +
+      eyes([[x - 8, 90], [x + 8, 90]], 3.6) + `<circle class="a-cheek" cx="${x - 12}" cy="99" r="3"/><circle class="a-cheek" cx="${x + 12}" cy="99" r="3"/>`;
+  }
+  function hybridSVG(kind, b, {aria, nPlates}) {
+    const [A0, B0] = b.hybrid.map(k => BAND[k]), H = HYBRIDS[kind]();
+    const headStyle = `--felt:var(--${A0.felt});--felt2:var(--${A0.felt2})`, bodyStyle = `--felt:var(--${B0.felt});--felt2:var(--${B0.felt2})`;
+    if (H.whole) return `<svg class="bot-svg hybrid" viewBox="0 0 140 200" style="${bodyStyle}" ${aria} overflow="visible"><g class="bot-body bot-head">${oddEye(H.whole, A0.felt2)}${nPlates ? plates(nPlates) : ''}</g>` +
+      `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
+    const head = `<g class="bot-head" style="${headStyle}">${oddEye(H.head, B0.felt2)}</g>`;
+    return `<svg class="bot-svg hybrid" viewBox="0 0 140 200" style="${bodyStyle}" ${aria} overflow="visible">` +
+      `<g class="bot-body">${H.body}${nPlates ? plates(nPlates) : ''}${stitch('M52 76Q70 82 88 76')}</g>${head}` +
+      `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
+  }
   /** one animatronic as an SVG string */
   function botSVG(kind, {label = '', plates: nPlates = 0} = {}) {
     const b = BAND[kind] || BAND.gator;
     const style = `--felt:var(--${b.felt});--felt2:var(--${b.felt2})`;
     const aria = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
+    if (b.hybrid) return hybridSVG(kind, b, {aria, nPlates});
     if (kind === 'duet-dolls') return `<svg class="bot-svg" viewBox="0 0 140 200" style="${style}" ${aria} overflow="visible"><g class="bot-body bot-head">${dolls()}</g>` +
       `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
     const body = kind === 'moose' ? frame({torso: 'M42 92Q40 80 52 76H88Q100 80 98 92L100 146Q70 156 40 146Z', arms: false})
@@ -153,6 +216,7 @@ window.Arcade = window.Arcade || {};
       `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
   }
   /** the special machines' ids, in the Malfunction Files' order */
-  const SPECIAL_IDS = Object.keys(BAND).filter(k => BAND[k].special);
-  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG, SPECIAL_IDS});
+  const SPECIAL_IDS = Object.keys(BAND).filter(k => BAND[k].special && !BAND[k].hybrid);
+  const HYBRID_IDS = Object.keys(BAND).filter(k => BAND[k].hybrid);
+  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG, SPECIAL_IDS, HYBRID_IDS});
 })(window.Arcade);

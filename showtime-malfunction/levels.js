@@ -67,7 +67,15 @@ window.SHOWTIME_RULES = {
      howSnare      the card's line for the Snare Drum, when the machine works differently there
    SNARE DRUM (count mode): Turbo Tin, Tuba Tank, Split Sprocket, Blackout Bot and Oil Can Ollie work with hits; the Long
    Tone Lurker wants a steady ROLL; the Duet Dolls and the Glitch Jester are ordinary counts (no notes to swap).
-   and its own settings, explained on its line. */
+   and its own settings, explained on its line.
+
+   HYBRIDS: stitched-together machines (`hybrid: [A, B]`, the two specials they're made of). A hybrid does BOTH parents'
+   tricks with the parents' own rules and settings; anything set on the hybrid's own line wins over the parents' (its
+   speed, a sooner reveal, a gentler count…). They appear only from Showtime `hybrids.from` on (NIGHTMARE too): a share
+   of the specials (`hybrids.share` by showtime) is a hybrid instead. Never two on the floor (one special at a time).
+     hybrids.fair  THE FAIRNESS CHECK: a hybrid is slowed down until it can be beaten in the time it walks: the time it
+                   needs (its plays ÷ `rate` a second (snare: `snareRate` hits), its hold, `glitch` s for a glitch) must
+                   fit in `margin` of the time its note shows before it reaches the front. */
 window.SHOWTIME_SPECIALS = {
   chance: [0, 0, .15, .15, .25, .25, .25, .30],
   nightmare: .10,
@@ -93,7 +101,35 @@ window.SHOWTIME_SPECIALS = {
     'blackout-bot':     {name: 'Blackout Bot', how: 'Its note is hidden in the dark. Watch closely: it fades in halfway.', revealAt: .5, fadeMs: 900, points: 75},
     // while on the floor, every `every` seconds it oils the nearest other machine: +1 play (at most `maxAdd` per machine)
     'oil-can-ollie':    {name: 'Oil Can Ollie', how: 'It oils the others: +1 play every few seconds. Reboot Ollie first!', every: 4, maxAdd: 3, points: 100},
+
+    /* ---------- HYBRIDS (both parents' tricks; the settings here win over the parents') ---------- */
+    // hold its note to fill the ring; halfway the note glitches: switch to the new note and keep holding (the ring keeps
+    // what it had). Snare: a steady roll whose speed jumps from rollRate to rollRate2 hits a second halfway
+    'glitch-lurker':    {name: 'Glitch Lurker', hybrid: ['long-tone-lurker', 'glitch-jester'], speed: .85, rollRate2: 8, points: 150,
+                         how: 'Hold its note to fill the ring. Halfway, the note glitches: switch to the new note and keep holding!',
+                         howSnare: 'Keep a steady roll until the ring fills. Halfway, roll faster: 8 hits a second!'},
+    // its note fades in late, then glitches into another note. Snare: an ordinary count (in the dark until it fades in)
+    'blackout-jester':  {name: 'Blackout Jester', hybrid: ['blackout-bot', 'glitch-jester'], revealAt: .4, points: 150,
+                         how: 'Its note is hidden in the dark until it fades in. Then, halfway, it glitches into another note!',
+                         howSnare: 'Hidden in the dark until it fades in, then just a count: hit it that many times.'},
+    // a duet pair (two notes, in turns); rebooted, it splits into two minis, each keeping one doll's note (1 play each).
+    // Snare: a count, then two 1-hit minis
+    'sprocket-dolls':   {name: 'Sprocket Dolls', hybrid: ['split-sprocket', 'duet-dolls'], speed: .9, miniSnare: [1, 1], points: 150,
+                         how: 'Take turns between the two dolls\' notes. Reboot it and it splits: each mini keeps one doll\'s note!',
+                         howSnare: 'Hit it that many times. Then it splits in two: one hit for each mini.'},
+    // armored and slow; while any plate is left it oils the others (+1 play every `every` s). The first `plates` plays
+    // each pop a plate: pop them all to stop the oiling
+    'oil-tank':         {name: 'Oil Tank', hybrid: ['oil-can-ollie', 'tuba-tank'], speed: .6, countMul: 1.5, plates: 4, popFirst: true, every: 4.5, points: 175,
+                         how: 'Armored and slow. While it has plates, it oils the others. Pop its plates to stop the oil!'},
+    // fast (Turbo Tin: 1–2 plays), its note hidden until a third of the way (sooner than Blackout Bot, so it's fair)
+    'turbo-blackout':   {name: 'Turbo Blackout', hybrid: ['turbo-tin', 'blackout-bot'], speed: 1.8, revealAt: .33, points: 150,
+                         how: 'Fast, and its note is hidden in the dark until a third of the way. Only 1 or 2 plays: be ready!'},
+    // take turns between two notes; each correct play pops a plate (1.5× the plays, not 2×)
+    'duet-tank':        {name: 'Duet Tank', hybrid: ['duet-dolls', 'tuba-tank'], speed: .7, countMul: 1.5, points: 175,
+                         how: 'Two heads, two notes: take turns. It\'s armored: every right note pops a plate.',
+                         howSnare: 'Armored: hit it that many times to pop every plate.'},
   },
+  hybrids: {from: 5, share: [0, 0, 0, 0, .3, .3, .4, .4], fair: {rate: 2, snareRate: 4, glitch: 1.2, margin: .7}},
 };
 
 /* JUMP SCARE MODE (the third SPOOKY LEVEL, after a warning; only if shared/teacher-settings.js allows it): EVERY

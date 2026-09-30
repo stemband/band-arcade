@@ -23,6 +23,11 @@
   // ?demo&special=<id> (or a part of it: lurker, dolls…): every animatronic that may be a special is that one, from
   // Showtime 1 on (tests). ?demo&scare=<type> (Jump Scare on): that kind of scare, 3 s into the showtime
   const FORCE = (() => { const q = A.DEMO && (A.params.get('special') || '').toLowerCase(); return !q ? null : MACH[q] ? q : Object.keys(MACH).find(k => k.includes(q)) || null; })();
+  /* A special's TRAITS: its parents' ids for a HYBRID, else its own id. Every trick's code asks has(b, '<parent id>'),
+     so a hybrid runs both parents' code paths; get(b, parent, key) = the hybrid's own setting, else the parent's */
+  const traitsOf = id => MACH[id] && MACH[id].hybrid ? MACH[id].hybrid.slice() : [id];
+  const has = (b, id) => !!(b && b.traits && b.traits.includes(id));
+  const get = (id, parent, k) => MACH[id] && MACH[id].hybrid && MACH[id][k] != null ? MACH[id][k] : MACH[parent][k];
   const FORCE_SCARE = A.DEMO && SCARE_TYPES.includes(A.params.get('scare')) ? A.params.get('scare') : null;
 
   const inst = A.requireInstrument(GAME_ID);            // the snare is welcome here (games.js unpitched: true)
@@ -85,20 +90,26 @@
   const files = () => gd.files || (gd.files = {});
   const fileOf = id => files()[id] || (files()[id] = {seen: 0, beaten: 0});
   const howFor = id => (snare && MACH[id].howSnare) || MACH[id].how;
+  const parentsOf = id => MACH[id].hybrid.map(p => MACH[p].name).join(' + ');
+  const ALL_IDS = SHOW.SPECIAL_IDS.concat(SHOW.HYBRID_IDS);
   function drawFilesCount() {
-    const n = SHOW.SPECIAL_IDS.filter(id => (files()[id] || {}).beaten).length;
-    $('filesCount').textContent = `${n}/${SHOW.SPECIAL_IDS.length}`;
+    const n = ALL_IDS.filter(id => (files()[id] || {}).beaten).length;
+    $('filesCount').textContent = `${n}/${ALL_IDS.length}`;
   }
+  /* the files: the special machines, then THE HYBRIDS (both parents named once met) */
   function showFiles() {
-    $('filesGrid').innerHTML = SHOW.SPECIAL_IDS.map(id => {
+    const card = id => {
       const f = files()[id] || {}, M = MACH[id], st = f.beaten ? 'done' : f.seen ? 'seen' : 'none';
-      return `<div class="file f-${st}">
+      return `<div class="file f-${st}${M.hybrid ? ' f-hybrid' : ''}" data-id="${id}">
         <span class="bot ${st === 'done' ? 'fixed' : 'glitch'}${st === 'none' ? ' silhouette' : ''}">${SHOW.botSVG(id, {label: st === 'none' ? 'Unknown machine' : M.name})}</span>
         <b class="f-name">${st === 'none' ? '???' : M.name}</b>
         <span class="f-how">${st === 'done' ? howFor(id) : st === 'seen' ? 'Spotted! Reboot one to complete its file.' : 'Not found yet. Keep playing!'}</span>
+        ${M.hybrid && st !== 'none' ? `<span class="f-parents"><span class="sp-badge">Hybrid</span> ${parentsOf(id)}</span>` : ''}
         <span class="f-count">${st === 'done' ? `Rebooted ${f.beaten} time${f.beaten === 1 ? '' : 's'}` : ''}</span>
       </div>`;
-    }).join('');
+    };
+    $('filesGrid').innerHTML = SHOW.SPECIAL_IDS.map(card).join('') +
+      `<h3 class="ui-section files-sec">Hybrids</h3><p class="f-sub">Two machines stitched together. They show up from Showtime ${SPEC.hybrids.from} on.</p>` + SHOW.HYBRID_IDS.map(card).join('');
     $('files').hidden = false; $('filesClose').focus();
   }
   $('filesBtn').addEventListener('click', () => { showFiles(); sfx('ui-toggle'); });
@@ -289,10 +300,10 @@
     const b = Object.assign({id: G.nextId++, lane, z: at.z || 0, zShown: at.z || 0, nextLurch: 0, state: 'walk', boss: !!isBoss, left: spec.count,
       phase: 1, phases: isBoss ? L.boss.phases : 1}, spec, {walk, total: spec.count});
     const el = document.createElement('div');
-    el.className = 'bot glitch' + (b.boss ? ' boss' : '') + (b.special ? ' special sp-' + b.special : '') + (b.mini ? ' mini' : '') + (b.dark ? ' dark' : '');
+    el.className = 'bot glitch' + (b.boss ? ' boss' : '') + (b.special ? ' special ' + b.traits.concat(b.special).map(t => 'sp-' + t).join(' ') + (b.hybrid ? ' hybrid' : '') : '') + (b.mini ? ' mini' : '') + (b.dark ? ' dark' : '');
     el.innerHTML = `<div class="ring" aria-hidden="true"></div><div class="sign${b.dark ? ' dark' : ''}"></div><div class="body">${SHOW.botSVG(b.kind, {plates: b.plates, label: SHOW.BAND[b.kind].name})}</div>`;
     b.el = el; b.sign = el.querySelector('.sign');
-    if (b.special === 'blackout-bot') el.style.setProperty('--fade', MACH['blackout-bot'].fadeMs + 'ms');
+    if (has(b, 'blackout-bot')) el.style.setProperty('--fade', MACH['blackout-bot'].fadeMs + 'ms');
     $('bots').appendChild(el);
     G.bots.push(b);
     drawSign(b); place(b);
@@ -306,7 +317,11 @@
     if (G.special && G.special.state === 'walk') return null;
     if (FORCE) return FORCE;
     const base = SPEC.chance[G.lv - 1] || 0, ch = base + (G.extra && base > 0 ? SPEC.nightmare : 0);
-    return ch > 0 && Math.random() < ch ? pick(SHOW.SPECIAL_IDS) : null;
+    if (!(ch > 0 && Math.random() < ch)) return null;
+    // a share of the specials are HYBRIDS, only from Showtime hybrids.from on (one special on the floor at a time, so
+    // never two hybrids either)
+    const H = SPEC.hybrids, share = G.lv >= H.from ? H.share[G.lv - 1] || 0 : 0;
+    return share > 0 && Math.random() < share ? pick(SHOW.HYBRID_IDS) : pick(SHOW.SPECIAL_IDS);
   }
   /** another note from the showtime's note set (a different pitch), for the Duet Dolls' second doll and the Jester's glitch */
   function otherItem(item) {
@@ -317,27 +332,45 @@
   function specialize(spec) {
     const id = chooseSpecial();
     if (!id) return spec;
-    const M = MACH[id], s = Object.assign({}, spec, {kind: id, special: id, speed: M.speed || 1});
-    if (id === 'turbo-tin') s.count = randInt(snare ? M.snare : M.count);
-    if (id === 'tuba-tank') { s.count = Math.round(spec.count * M.countMul); s.plates = Math.min(s.count, M.plates); }
-    if (id === 'long-tone-lurker') { s.count = 1; s.need = (snare ? M.roll : M.hold)[G.lv - 1]; s.holdP = 0; }
-    if (id === 'duet-dolls' && !snare) {
-      let c = Math.max(M.minCount, spec.count); if (c % 2) c++;
+    const M = MACH[id], T = traitsOf(id), g = (p, k) => get(id, p, k), is = p => T.includes(p);
+    const s = Object.assign({}, spec, {kind: id, special: id, traits: T, hybrid: !!M.hybrid, speed: M.speed != null ? M.speed : 1});
+    // each parent's trick, in an order that lets them combine (counts first, then who plays what)
+    if (is('turbo-tin')) s.count = randInt(snare ? g('turbo-tin', 'snare') : g('turbo-tin', 'count'));
+    if (is('tuba-tank')) { s.count = Math.max(1, Math.round(spec.count * g('tuba-tank', 'countMul'))); s.popFirst = !!g('tuba-tank', 'popFirst'); }
+    if (is('long-tone-lurker')) { s.count = 1; s.need = (snare ? MACH['long-tone-lurker'].roll : MACH['long-tone-lurker'].hold)[G.lv - 1]; s.holdP = 0; s.rollRate = MACH['long-tone-lurker'].rollRate; }
+    if (is('duet-dolls') && !snare) {
+      let c = Math.max(MACH['duet-dolls'].minCount, s.count); if (c % 2) c++;
       s.count = c; s.duet = [spec.item, otherItem(spec.item)]; s.turn = 0;
     }
-    if (id === 'glitch-jester' && !snare) { s.count = Math.max(2, spec.count); s.switchLeft = s.count - Math.ceil(s.count * M.switchAt); }
-    if (id === 'blackout-bot') s.dark = true;
-    if (id === 'oil-can-ollie') s.oilT = 0;
+    if (is('tuba-tank')) s.plates = Math.min(s.count, g('tuba-tank', 'plates'));
+    if (is('glitch-jester')) {
+      if (is('long-tone-lurker')) { if (!snare) s.lurkGlitch = true; else s.rollRate2 = M.rollRate2; }   // the Glitch Lurker: halfway through the hold
+      else if (!snare) { s.count = Math.max(2, s.count); s.switchLeft = s.count - Math.ceil(s.count * MACH['glitch-jester'].switchAt); }
+    }
+    if (is('blackout-bot')) { s.dark = true; s.revealAt = g('blackout-bot', 'revealAt'); }
+    if (is('oil-can-ollie')) { s.oilT = 0; s.oilEvery = g('oil-can-ollie', 'every'); }
+    if (is('split-sprocket')) s.splitCfg = {miniSpeed: g('split-sprocket', 'miniSpeed'), miniCount: g('split-sprocket', 'miniCount'), miniSnare: g('split-sprocket', 'miniSnare')};
+    if (M.hybrid) fair(s);
     return s;
+  }
+  /** THE FAIRNESS CHECK (hybrids): slow it down until it can be beaten while its note shows (levels.js hybrids.fair) */
+  function fair(s) {
+    const F = SPEC.hybrids.fair, walk = G.L.walk / s.speed, shows = 1 - (s.dark ? s.revealAt : 0);
+    const glitch = s.lurkGlitch || s.rollRate2 || s.switchLeft != null ? F.glitch : 0;
+    const need = (s.need != null ? s.need : s.count / (snare ? F.snareRate : F.rate)) + glitch;
+    s.needS = +need.toFixed(2);
+    if (need > walk * shows * F.margin) { s.speed = G.L.walk * shows * F.margin / need; s.slowed = true; }
   }
   /** a special walks on: its sound, or (the first time on this device) the game pauses for its card */
   function meetSpecial(b) {
     G.special = b; G.specials++;
     const f = fileOf(b.special), first = !f.seen;
     f.seen = 1; save();
-    if (!first) { sfx('special-' + b.special); return; }
+    if (!first) { sfx('special-' + (b.hybrid ? b.traits[0] : b.special)); return; }   // a hybrid: its first parent's sound
     G.paused = true;
     $('spArt').innerHTML = SHOW.botSVG(b.kind, {plates: b.plates});
+    $('spHybrid').hidden = !b.hybrid;
+    if (b.hybrid) $('spParents').textContent = parentsOf(b.special);
     $('spTitle').textContent = MACH[b.special].name;
     $('spHow').textContent = howFor(b.special);
     $('specialCard').hidden = false; $('spGo').focus();
@@ -349,20 +382,20 @@
   });
   /** every frame the band moves: Blackout Bot's note fading in, Oil Can Ollie's oil */
   function specialTick(b, dt) {
-    if (b.dark && b.z >= MACH['blackout-bot'].revealAt) {
+    if (b.dark && b.z >= b.revealAt) {
       b.dark = false; b.el.classList.remove('dark'); b.sign.classList.remove('dark');
       if (lastTarget === b) drawPanel(b);
     }
-    if (b.special === 'oil-can-ollie') {
+    if (has(b, 'oil-can-ollie') && (!b.popFirst || platesLeft(b) > 0)) {   // the Oil Tank oils only while it has plates
       const M = MACH['oil-can-ollie'];
       b.oilT += dt;
-      if (b.oilT >= M.every) { b.oilT -= M.every; oil(b, M); }
+      if (b.oilT >= b.oilEvery) { b.oilT -= b.oilEvery; oil(b, M); }
     }
   }
   /** Oil Can Ollie: +1 play on the nearest other machine still walking (at most maxAdd each; the Lurker holds, it isn't counted) */
   function oil(from, M) {
     const lx = b => laneX(b.lane, G.L.lanes);
-    const near = G.bots.filter(b => b !== from && b.state === 'walk' && b.special !== 'long-tone-lurker' && (b.oiled || 0) < M.maxAdd)
+    const near = G.bots.filter(b => b !== from && b.state === 'walk' && !has(b, 'long-tone-lurker') && (b.oiled || 0) < M.maxAdd)
       .sort((a, c) => Math.hypot(lx(a) - lx(from), a.z - from.z) - Math.hypot(lx(c) - lx(from), c.z - from.z))[0];
     if (!near) return;
     near.left++; near.total++; near.oiled = (near.oiled || 0) + 1;
@@ -375,12 +408,18 @@
   let lastRead = null;
   function lurkerTick(dt, now) {
     const t = target();
-    if (!t || t.special !== 'long-tone-lurker') return;
+    if (!t || !has(t, 'long-tone-lurker')) return;
     const M = MACH['long-tone-lurker'];
+    // the Glitch Lurker: halfway, the note glitches (wind: switch notes and keep holding; snare: roll faster)
+    const half = t.holdP >= t.need * MACH['glitch-jester'].switchAt;
+    if (t.lurkGlitch && half && !t.switched) { jesterSwap(t); t.graceUntil = G.t + MACH['glitch-jester'].glitchMs / 1000 + 1.5; drawSign(t); drawPanel(t); }
+    if (t.rollRate2 && half && !t.fast) { t.fast = true; setPrompt(`Faster! Roll ${t.rollRate2} hits a second!`, 'bad'); drawPanel(t); }
+    const rate = t.fast ? t.rollRate2 : t.rollRate;
     let holding;
-    if (snare) holding = A.Pitch.demoHeld() === 'drum' || G.attacks.filter(x => now - x < 1000).length >= M.rollRate;
+    if (snare) holding = A.Pitch.demoHeld() === 'drum' || G.attacks.filter(x => now - x < 1000).length >= rate;
     else holding = A.Pitch.demoHeld() === t.item.pc || !!(lastRead && now - lastRead.at < 250 && lastRead.r && lastRead.r.pc === t.item.pc);
-    t.holdP = holding ? Math.min(t.need, t.holdP + dt) : Math.max(0, t.holdP - dt * M.drain);
+    // the ring keeps what it had while the student moves to the glitched note
+    t.holdP = holding ? Math.min(t.need, t.holdP + dt) : t.graceUntil && G.t < t.graceUntil ? t.holdP : Math.max(0, t.holdP - dt * M.drain);
     setHold(t);
     if (holding && !t.wasHolding) setPrompt(snare ? 'Keep rolling! Steady…' : 'Hold it! One long, steady note.', 'good');
     t.wasHolding = holding;
@@ -398,22 +437,25 @@
     t.el.classList.remove('reglitch'); void t.el.offsetWidth; t.el.classList.add('reglitch');
     t.el.style.setProperty('--glitch', MACH['glitch-jester'].glitchMs + 'ms');
     sfx('special-glitch-jester');
-    setPrompt(`Glitch! Its note changed to ${t.item.label}.`, 'bad');
+    setPrompt(has(t, 'long-tone-lurker') ? `Glitch! Now hold ${t.item.label}. Keep going!` : `Glitch! Its note changed to ${t.item.label}.`, 'bad');
   }
   /** Tuba Tank: one armor plate pops off for every counted play (spread out when it needs more plays than it has plates) */
+  const platesLeft = b => b.popFirst ? Math.max(0, b.plates - (b.total - b.left)) : Math.ceil(b.left / b.total * b.plates);
+  /* (the Oil Tank, popFirst: its first plays each pop one plate, so the oiling can be stopped early) */
   function popPlates(b) {
-    const keep = Math.ceil(b.left / b.total * b.plates);
+    const keep = platesLeft(b);
     b.el.querySelectorAll('.body .a-plate').forEach(p => { if (+p.dataset.i >= keep && !p.classList.contains('popped')) p.classList.add('popped'); });
   }
   /** Split Sprocket rebooted: two minis in the lanes beside it (the middle lane: both sides), faster, one play each */
   function split(b) {
-    const M = MACH['split-sprocket'], n = G.L.lanes, l = b.lane;
+    const M = b.splitCfg || MACH['split-sprocket'], n = G.L.lanes, l = b.lane;
     const lanes = n === 2 ? [0, 1] : l === 0 ? [0, 1] : l === 2 ? [1, 2] : [0, 2];
-    lanes.forEach(lane => spawn({kind: 'sprocket-mini', mini: true, count: randInt(snare ? M.miniSnare : M.miniCount),
-      item: G.pool.length ? pick(G.pool) : b.item, walk: G.L.walk / M.miniSpeed}, false, {lane, z: Math.max(.05, b.z - .04)}));
+    // the Sprocket Dolls: each mini keeps one doll's note
+    lanes.forEach((lane, i) => spawn({kind: 'sprocket-mini', mini: true, count: randInt(snare ? M.miniSnare : M.miniCount),
+      item: b.duet ? b.duet[i] : G.pool.length ? pick(G.pool) : b.item, walk: G.L.walk / M.miniSpeed}, false, {lane, z: Math.max(.05, b.z - .04)}));
     G.total += lanes.length;
     sfx('special-split-sprocket');
-    setPrompt('Split Sprocket split in two! One play each.', 'bad');
+    setPrompt(`${MACH[b.special].name} split in two! One play each.`, 'bad');
   }
 
   /* ---------- JUMP SCARES (Jump Scare mode): every showtime gets 1 (2 on longer shows), timed by PROGRESS: a scare is
@@ -487,7 +529,7 @@
     let staff = !snare && b.item ? noteStaff(b.item) : '<span class="drum-ico big" aria-hidden="true"></span>';
     let count = `<b class="vb-count">× ${n}</b>`;
     if (b.duet) staff = b.duet.map((it, i) => `<span class="duet-n${i === b.turn ? ' now' : ''}">${noteStaff(it)}</span>`).join('');
-    if (b.special === 'long-tone-lurker') count = holdRing(b.need, snare ? 'Roll' : 'Hold');
+    if (has(b, 'long-tone-lurker')) count = holdRing(b.need, snare ? 'Roll' : 'Hold');
     const oil = b.oiled ? `<span class="vb-oil" aria-label="Oiled: plus ${b.oiled}">${'<i></i>'.repeat(b.oiled)}</span>` : '';
     b.sign.innerHTML = `<div class="vb-top">${b.special ? MACH[b.special].name : 'Voice box'}${b.boss ? ` · phase ${b.phase}/${b.phases}` : ''}<span class="vb-next">Next</span></div>` +
       `<div class="vb-main">${staff}${count}${oil}<span class="vb-dark" aria-hidden="true">?</span></div>`;
@@ -538,8 +580,9 @@
 
   const doll = t => t.turn ? 'second' : 'first';
   function targetPrompt(t) {
-    if (t.special === 'long-tone-lurker') return snare ? `Keep a steady roll (${MACH['long-tone-lurker'].rollRate} hits a second) until the ring fills!` : `Hold ${t.item.label} until the ring fills. One long, steady note.`;
-    if (t.dark) return 'Blackout Bot! Its note is hidden in the dark. Watch closely…';
+    if (has(t, 'long-tone-lurker')) return snare ? `Keep a steady roll (${t.fast ? t.rollRate2 : t.rollRate} hits a second) until the ring fills!${t.rollRate2 && !t.fast ? ' It speeds up halfway.' : ''}`
+      : `Hold ${t.item.label} until the ring fills. One long, steady note.${t.lurkGlitch && !t.switched ? ' Halfway it glitches: switch notes!' : ''}`;
+    if (t.dark) return `${MACH[t.special].name}! Its note is hidden in the dark. Watch closely…`;
     if (t.duet) return `Take turns: ${t.duet[0].label}, ${t.duet[1].label}, ${t.duet[0].label}… × ${t.left}. Now the ${doll(t)} doll.`;
     return snare ? `Hit ${t.left} times!` : `Play ${t.item.label} × ${t.left}. Tongue each one.`;
   }
@@ -563,7 +606,7 @@
         : !snare && t.item ? noteStaff(t.item, {fitted: true}) : '<span class="drum-ico huge" aria-hidden="true"></span>';
       el.classList.toggle('tp-special', !!t.special);
     }
-    if (t.special === 'long-tone-lurker') {
+    if (has(t, 'long-tone-lurker')) {
       if (!$('tpCount').querySelector('.hold-ring')) $('tpCount').innerHTML = holdRing(t.need, snare ? 'Roll' : 'Hold');
       $('tpCount').setAttribute('aria-label', `${snare ? 'Roll' : 'Hold'} for ${t.need} seconds`);
       el.style.setProperty('--p', (t.holdP / t.need).toFixed(3));
@@ -656,7 +699,7 @@
     lastAttack = a.time; heldSince = 0;
     const tNow = performance.now();
     G.attacks.push(tNow); while (G.attacks.length && tNow - G.attacks[0] > 1500) G.attacks.shift();
-    if (t.special === 'long-tone-lurker') {                     // tonguing doesn't count: it wants one long, steady note (snare: a roll)
+    if (has(t, 'long-tone-lurker')) {                           // tonguing doesn't count: it wants one long, steady note (snare: a roll)
       if (!snare) setPrompt('Hold it! One long, steady note.', 'hint');
       return;
     }
@@ -706,7 +749,7 @@
       if (G.special === b) G.special = null;
     }
     sfx('reboot');
-    if (b.special === 'split-sprocket') setTimeout(() => { if (G && !G.over) split(b); }, 0);
+    if (has(b, 'split-sprocket')) setTimeout(() => { if (G && !G.over) split(b); }, 0);
     setPrompt(`${SHOW.BAND[b.kind].name} rebooted!`, 'good');
     b.sign.innerHTML = '<div class="vb-top">Rebooted</div><div class="vb-main"><b class="vb-count">♪</b></div>';
     // it straightens up and shuffles back to the stage, where it joins the band
@@ -774,7 +817,7 @@
     const bars = A.Pitch.bars(level);
     $('hearBars').querySelectorAll('i').forEach((b, i) => b.classList.toggle('on', i < bars));
     const t = !G.over && !G.paused && !G.held && !G.scare && target();
-    if (!t || t.special === 'long-tone-lurker') return;       // the Lurker WANTS a held note (lurkerTick)
+    if (!t || has(t, 'long-tone-lurker')) return;             // the Lurker WANTS a held note (lurkerTick)
     const holding = A.Pitch.demoHeld() || (r && (snare || (t.item && r.pc === t.item.pc)));
     if (!holding) { heldSince = 0; return; }
     if (!heldSince) heldSince = now;
@@ -856,6 +899,8 @@
   const resBandMax = () => Math.max(70, Math.min(150, innerHeight * .2));
 
   A.Showtime.debug = () => G;                              // tests
+  A.Showtime.choose = () => G && chooseSpecial();         // tests: which special (if any) would walk on next
+  A.Showtime.specialize = spec => G && specialize(spec);  // tests: a spec turned into the (forced) special
   A.Showtime.lineup = lineup;                              // tests: lay out a stage/results band
   A.Showtime.finish = () => finish(true);                  // tests: end the show now (survived)
   A.Showtime.scare = type => G && !G.scare && scare(type, G.bots.find(b => b.state === 'walk'));   // tests: one scare now
