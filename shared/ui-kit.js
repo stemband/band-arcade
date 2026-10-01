@@ -351,6 +351,7 @@ window.Arcade = window.Arcade || {};
        idPrefix,                          (render only) no ids on the buttons, so two copies can share a page
        announce: true | {members, member} | false,   the UNLOCKED! card + the avatar (shared/skins.js)
        onShow(panel) })                  wire the extra part
+     Showing it marks the game (gameId, else the page's) FINISHED today (store.noteFinished: Today's Practice).
      The first shown of NEXT / TRY AGAIN is the yellow button and has the focus. UI.results.render(el, {…}) = the same
      screen inside an element (Dojo Duel: one per player, each facing its player). */
   let RES = null;
@@ -402,6 +403,8 @@ window.Arcade = window.Arcade || {};
       }
       RES.className = `overlay ui-ov ui-results${o.wide ? ' ui-wide' : ''}${o.actsFirst ? ' ui-acts-first' : ''} ${o.theme || ''}`;
       if (o.gameId) RES.dataset.game = o.gameId;
+      // a round played to its end: today's activity log `f` (Today's Practice checks its step off: shared/practice.js)
+      if (A.store && A.store.noteFinished) A.store.noteFinished(o.gameId || A.pageGame);
       const panel = RES.querySelector('.panel');
       const first = fillResults(panel, o);
       // "+3 ★ = 15 tokens at the Prize Counter" (shared/tokens.js): text only, when this result earned new stars

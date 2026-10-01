@@ -17,6 +17,10 @@
        tempo; STEP BACK goes down a step (at the next downbeat). At the goal: "You climbed to 100! 🎉" and a small fanfare
        once the click has stopped (never on a beat). 3 ladders of 8+ steps = the Ladder Climber name plate.
      A HIDDEN TAB stops it ("Paused — tap START").
+     TODAY'S PRACTICE (shared/practice.js, the snare's warm-up) reads two daily logs here: metroS['YYYY-MM-DD'] = the
+       seconds it really ran that day (counted on its own clock, the audio clock when the sound is on, only while this tab
+       shows; a jump over 1 s, a suspended clock, never counts) and ladderTop['YYYY-MM-DD'] = ladders that reached their
+       goal. The last 30 days are kept, like the Tuner's holds.
    Everything is remembered on the device: gameData('tuneup').metro and .ladder. No stars, no setLevel. */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -93,6 +97,7 @@ window.Arcade = window.Arcade || {};
   function newSeg(t, bpm) { R.seg = {t0: t, bpm, dur: beatDur(bpm) / R.sh.sub}; R.j = 0; showBpm(bpm); }
   function schedule() {
     if (!R.running) return;
+    countRun();
     const horizon = clk.now() + METRO.lookaheadS;
     let guard = 0;
     while (R.running && R.seg.t0 + R.j * R.seg.dur < horizon && guard++ < 200) if (!emitTick()) { endRun(); break; }
@@ -109,15 +114,32 @@ window.Arcade = window.Arcade || {};
     clk = R.sound ? A.AudioClock.create().start() : perfClock();
     R.sh = shape(); R.bar = ladder ? -1 : 0; R.beat = 0; R.sub = 0; R.pend = null; R.structPend = false; R.vis = []; R.endT = null;
     R.ladder = ladder ? newLadder() : null;
-    R.running = true; R.startedAt = clk.now();
+    R.running = true; R.startedAt = clk.now(); R.countAt = null;
     newSeg(clk.now() + METRO.startS, R.ladder ? R.ladder.rungs[0] : M.bpm);
     schedule();
     timer = setInterval(schedule, METRO.tickMs);
     drawRun(); loop();
   }
+  /* TODAY'S PRACTICE: the seconds the metronome really ran today (metroS[day], on its own clock; only while this tab shows) */
+  const dayKey = () => A.store.dayKey();
+  function keep30(o) { Object.keys(o).sort().slice(0, -30).forEach(x => delete o[x]); }
+  function countRun(final) {
+    const now = clk ? clk.now() : 0, was = R.countAt;
+    R.countAt = now;
+    if (was == null || T.tab !== 'metronome' || document.hidden) return;
+    const dt = now - was;
+    if (dt > 0 && dt <= 1) R.unsaved = (R.unsaved || 0) + dt;
+    if (R.unsaved >= 5 || (final && R.unsaved > 0)) {
+      const m = D.metroS || (D.metroS = {}), k = dayKey();
+      m[k] = Math.round(((m[k] || 0) + R.unsaved) * 10) / 10; R.unsaved = 0;
+      keep30(m); T.save();
+    }
+  }
   /** stop now (the clicks already scheduled are cut) */
   function stop() {
     if (!R.running && !R.ladder) return;
+    if (R.running) countRun(true);
+    R.countAt = null;
     R.running = false; clearInterval(timer); timer = 0;
     if (kit) { kit.stopAll(); kit = null; }
     R.vis = [];
@@ -127,6 +149,7 @@ window.Arcade = window.Arcade || {};
   }
   /* the ladder stopped at its goal: let the last clicks sound, then stop (and the fanfare after them) */
   function endRun() {
+    countRun(true); R.countAt = null;
     R.running = false; clearInterval(timer); timer = 0;
     const last = R.log.length ? R.log[R.log.length - 1].t : clk.now();
     const ms = Math.max(0, (last - clk.audAt(performance.now())) * 1000) + 250;
@@ -165,7 +188,10 @@ window.Arcade = window.Arcade || {};
     lad.reached = true;
     lad.msg = `You climbed to ${lad.rungs[lad.rungs.length - 1]}! 🎉`;
     $('ldMsg').textContent = lad.msg;
-    if (!lad.counted && lad.steps >= METRO.ladderPlate) { lad.counted = true; D.ladders = (D.ladders || 0) + 1; T.save(); }
+    const top = D.ladderTop || (D.ladderTop = {}), k = dayKey();         // Today's Practice: a ladder climbed to its goal today
+    top[k] = (top[k] || 0) + 1; keep30(top);
+    if (!lad.counted && lad.steps >= METRO.ladderPlate) { lad.counted = true; D.ladders = (D.ladders || 0) + 1; }
+    T.save();
   }
   /* after the click has stopped: the fanfare (never on a beat), then a new item if one was earned */
   function celebrate(lad) {
@@ -369,7 +395,8 @@ window.Arcade = window.Arcade || {};
     METRO, TEMPO_WORDS, tempoWord, METERS,
     state: () => ({running: R.running, bpm: R.seg ? R.seg.bpm : M.bpm, saved: Object.assign({}, M), ladder: R.ladder ? Object.assign({}, R.ladder, {rungs: R.ladder.rungs.slice()}) : null,
       ladderSettings: Object.assign({}, L), sound: R.sound, word: $('mtWord').textContent, shown: +$('mtBpm').textContent, paused: !$('mtPaused').hidden,
-      stat: $('ldStat').textContent, msg: $('ldMsg').textContent, ladders: D.ladders || 0, fanfares: R.fanfares || 0, kitCount: kit ? kit.count() : 0}),
+      stat: $('ldStat').textContent, msg: $('ldMsg').textContent, ladders: D.ladders || 0, fanfares: R.fanfares || 0, kitCount: kit ? kit.count() : 0,
+      today: (D.metroS || {})[dayKey()] || 0, ladderTop: (D.ladderTop || {})[dayKey()] || 0}),
     log: () => R.log.slice(), bops: () => bops.slice(), clear: () => { R.log.length = 0; bops.length = 0; },
     start, stop, setBpm, tap,
     /** the schedule's times for n ticks of one segment, exactly as emitTick computes them (no accumulation, no drift) */

@@ -141,6 +141,7 @@ game in `shared/games.js` gets its `select-<game id>` sound automatically, falli
 | `prize-hello` | `prize-hello.m4a` or `prize-hello.mp3` | Optional voice: the Prize Counter opens and Ticket the counter bot says its line ("Welcome to the Prize Counter!"…). Silent until recorded. | 0.8–2 s |
 | `prize-tokens` | `prize-tokens.m4a` or `prize-tokens.mp3` | The Prize Counter's TURN IN: stars drop into the Token Counter machine and tokens spill into the tray (a coin counter). falls back to `quest-tokens` | 0.6–1.5 s |
 | `prize-win` | `prize-win.m4a` or `prize-win.mp3` | The Prize Counter: a prize is bought (a short fanfare). falls back to `skin-unlocked` | 0.5–1.2 s |
+| `practice-done` | `practice-done.m4a` or `practice-done.mp3` | The lobby's TODAY'S PRACTICE card: all 3 steps done today (the card turns gold and gets its stamp, once a day). falls back to `level-complete` | 0.6–1.5 s |
 | `select-default` | `select-default.m4a` or `select-default.mp3` | START on the arcade floor, for any game without its own select-&lt;game&gt; sound. | 0.4–1.2 s |
 | `select-note-checker` | `select-note-checker.m4a` or `select-note-checker.mp3` | START on the arcade floor for Note Checker (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |
 | `select-ghost-notes` | `select-ghost-notes.m4a` or `select-ghost-notes.mp3` | START on the arcade floor for Ghost Notes (plays before the page changes; the page changes when it ends, 1.5 s at most). falls back to `select-default` | 0.4–1.2 s |

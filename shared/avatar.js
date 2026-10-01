@@ -115,6 +115,7 @@ window.Arcade = window.Arcade || {};
     const u = (partFor(field, id) || {}).unlock;
     if (!u || isUnlocked(field, id)) return '';
     if (u.stars && !u.game) return `${st().allStars("*")} of ${u.stars} ★ so far`;
+    if (u.tool === 'practice-pro') return A.Practice ? A.Practice.proProgress() : '';
     if (u.tool && A.Skins && A.Skins.toolCount) return u.tool === 'tuner-hold' ? `Best day so far: ${Math.min(u.n, A.Skins.toolCount(u.tool))} of ${u.n}` : `${Math.min(u.n, A.Skins.toolCount(u.tool))} of ${u.n} ladders so far`;
     if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
     if (u.bandninja === 'all' && A.BandNinja) return `${A.BandNinja.BELT_KEYS.filter(b => A.BandNinja.has(b)).length} of ${A.BandNinja.BELT_KEYS.length} belt codes so far`;

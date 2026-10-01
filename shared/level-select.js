@@ -17,6 +17,10 @@
                              (gameData('level-select')); restored when the screen opens (nothing when it's locked now or
                              gone). The note set is remembered by the picker. Arcade.LevelSelect.played(i) from a game's
                              start function (NEXT LEVEL, RETRY and START all go through it) keeps the level just played.
+     TODAY'S PRACTICE        a game opened from the lobby's practice card (shared/practice.js) leaves sessionStorage
+                             'bandarcade.practice-pick' = its game id: the screen's FIRST appearance on that game's page
+                             selects the first OPEN level with fewer than 3 ★ (the card's own stars), instead of the
+                             remembered one, and removes the flag (read once). Without the flag nothing changes.
      THE VOICE LINE          'select-level' ("Select your level") as the screen appears (after PRESS START, or back from a
                              level), at most once a minute, the music dipping while it speaks (Sfx.announce)
      IDLE HINT               5 s without a tap: a bouncing arrow points at what's missing: the level cards when none is
@@ -63,6 +67,15 @@ window.Arcade = window.Arcade || {};
     try { const d = memo(); d[memKey(gameId)] = v; A.store.saveGameData('level-select'); } catch (e) { /* no storage */ }
   }
   const recall = gameId => { const v = memo()[memKey(gameId)]; return v === undefined ? null : v; };
+  /* TODAY'S PRACTICE (shared/practice.js): the lobby's practice card opened this game: read the flag ONCE */
+  const PICK = 'bandarcade.practice-pick';
+  function practicePick() {
+    let v = null;
+    try { v = sessionStorage.getItem(PICK); if (v !== null) sessionStorage.removeItem(PICK); } catch (e) { /* no storage */ }
+    const game = A.pageGame || pageGame();
+    return v && (v === game || v === pageGame()) ? v : null;
+  }
+  const cardStars = c => c ? c.querySelectorAll('.stars .on').length : 0;
 
   /* ---------- the screen appearing / going ---------- */
   function watch(screen) {
@@ -327,6 +340,14 @@ window.Arcade = window.Arcade || {};
     if (!st.appeared) {                                            // the screen appears: the remembered choice
       const v = recall(st.gameId);
       st.sel = valid(v) ? v : null;
+      // TODAY'S PRACTICE: the first open level still short of 3 ★ (none left = the remembered one, as always)
+      if (!st.pickRead) {
+        st.pickRead = true;
+        if (practicePick()) {
+          const i = cards.findIndex((c, k) => valid(k) && cardStars(c) < 3);
+          if (i >= 0) { st.sel = i; st.practice = true; }
+        }
+      }
       // a Band Ninja link (shared/bandninja.js: ?belt= / ?rank=) asks for a level: that one if it's open, else the
       // highest open one below it, with a short line saying so
       const w = A.BandNinja && A.BandNinja.levelWish(st.gameId);
@@ -394,5 +415,5 @@ window.Arcade = window.Arcade || {};
   }
 
   A.LevelSelect = {show, played, highlight, IDLE_MS, VOICE_KEY,
-    state: () => S ? {sel: S.sel, ready: S.ready, hint: !!S.hint, hintAt: S.hint ? S.hintFor : null, appeared: S.appeared, summary: S.ready ? S.summary : ''} : null};
+    state: () => S ? {sel: S.sel, ready: S.ready, hint: !!S.hint, hintAt: S.hint ? S.hintFor : null, appeared: S.appeared, summary: S.ready ? S.summary : '', practice: !!S.practice} : null};
 })(window.Arcade);

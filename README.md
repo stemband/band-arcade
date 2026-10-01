@@ -58,6 +58,7 @@ shared/               The engine every game uses
   games.js            The list of games and the lobby's ZONES, which zone(s) each game is in, which instruments it
                       suits, and how each cabinet looks
   featured.js         The ASSIGNED game (edit it by hand: see "The zone lobby" below)
+  practice.js         TODAY'S PRACTICE, the lobby's 3-step routine (edit its PRACTICE block by hand: skills, bonus)
   belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
   sounds.js           THE SOUND LIST: every sound event, its file name, volume and rules (see sounds/README.md)
   sounds/             Mat's recorded sounds (.m4a / .mp3), and the list of file names to use (README.md)
@@ -170,6 +171,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
 | Adventure | Arcade Quest |
 
+- **TODAY'S PRACTICE** (the first card in the lobby, once an instrument is chosen): WARM UP → SKILL → PLAY, about 15 minutes. Each step opens a game (or the Tuner / Metronome) and checks itself off when the student FINISHES a round there today. All 3 done = 10 tokens (once a day) and a stamp on this week's row; 4 practice days in one week = the PRACTICE PRO name plate. To change the day's skills, set a one-day override or change the bonus, edit the `PRACTICE` block at the top of `shared/practice.js` (its first lines say how).
 - **CONTINUE** (top of the lobby): the last game opened on this device, one tap to play it again.
 - **ALL GAMES** (in the top bar everywhere): every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games.
 - **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
