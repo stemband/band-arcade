@@ -230,14 +230,40 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 /* ---------- TODAY'S PRACTICE (lobby.js practiceCard, shared/practice.js): the first card, the whole row. The steps in a row
    (stacked on narrow phones), THIS WEEK at the right (below on phones). Done = a green ✓ + "Done" (never color alone),
    dimmed a little; the next step glows gently (none under reduced motion); all 3 = gold + the stamp (once). ---------- */
-.pr-card{--pr:var(--cyan);--pr-hi:var(--cyan-hi);--pr-ink:var(--cyan-ink);flex:1 1 100%;max-width:1100px;min-width:0;box-sizing:border-box;display:grid;
-  grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;align-items:stretch;padding:12px 14px 14px;border-radius:18px;border:3px solid var(--pr);color:var(--text-hi);
+.pr-card{--pr:var(--cyan);--pr-hi:var(--cyan-hi);--pr-ink:var(--cyan-ink);flex:1 1 100%;max-width:1100px;min-width:0;box-sizing:border-box;display:flex;
+  flex-direction:column;gap:10px;padding:12px 14px 14px;border-radius:18px;border:3px solid var(--pr);color:var(--text-hi);
   background:radial-gradient(70% 90% at 0% 0%,color-mix(in srgb,var(--pr) 14%,transparent),transparent 70%),linear-gradient(90deg,var(--deep),var(--floor-2));
   box-shadow:0 0 0 3px var(--deep),0 0 16px color-mix(in srgb,var(--pr) 40%,transparent),inset 0 0 20px color-mix(in srgb,var(--pr) 12%,transparent)}
 .pr-card.gold{--pr:var(--yellow);--pr-hi:var(--yellow-hi);--pr-ink:var(--amber-ink)}
 html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(in srgb,var(--pr) 14%,transparent),transparent 70%),color-mix(in srgb,var(--deep) 88%,transparent)}
-.pr-main{min-width:0;display:flex;flex-direction:column;gap:10px}
-.pr-head{display:flex;flex-wrap:wrap;align-items:center;gap:2px 14px}
+.pr-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;align-items:stretch;min-width:0}
+.pr-body[hidden]{display:none}
+.pr-head{display:flex;flex-wrap:wrap;align-items:center;gap:2px 14px;cursor:pointer;min-width:0}
+/* ▲ / ▼: hide the card to its slim bar (lobby.js togglePractice); the chevron turns ▼ when collapsed */
+.pr-toggle{flex:none;display:grid;place-items:center;width:48px;height:48px;margin:-6px -6px -6px auto;border-radius:12px;border:2px solid transparent;
+  background:transparent;color:var(--pr-hi);cursor:pointer}
+.pr-toggle:hover{background:var(--floor-3)}
+.pr-toggle:focus-visible{outline:4px solid var(--text-hi);outline-offset:2px}
+.pr-toggle svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.pr-card.collapsed .pr-toggle svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:no-preference){ .pr-toggle svg{transition:transform .2s ease} }
+.pr-seal+.pr-toggle{margin-left:4px}
+/* THE SLIM BAR (collapsed): one line, the title, three small step dots, "1 of 3", ▼ */
+.pr-card.collapsed{padding:6px 10px 6px 14px}
+.pr-card.collapsed .pr-head{flex-wrap:nowrap;gap:10px}
+.pr-card.collapsed .pr-title{font-size:clamp(15px,2.2vw,22px);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pr-mini{display:flex;align-items:center;gap:8px;flex:none}
+.pr-dots{display:flex;gap:4px}
+.pr-mdot{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:2px solid var(--text-lo);box-sizing:border-box}
+.pr-mdot.on{border-color:var(--green);background:var(--green);color:var(--deep)}
+.pr-mdot svg{width:80%;height:80%;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.pr-count{font-weight:700;font-size:15px;color:var(--text-hi);white-space:nowrap}
+@media (max-width:480px){
+  .pr-card.collapsed{padding:4px 6px 4px 12px}
+  .pr-card.collapsed .pr-head{gap:7px}
+  .pr-card.collapsed .pr-title{font-size:13px;letter-spacing:.01em}
+  .pr-mini{gap:6px} .pr-dots{gap:3px} .pr-mdot{width:16px;height:16px} .pr-count{font-size:14px}
+}
 .pr-title{margin:0;font:400 clamp(20px,3vw,30px) var(--display);letter-spacing:.04em;text-transform:uppercase;line-height:1.1;color:var(--pr-hi);
   text-shadow:0 0 3px var(--pr-hi),0 0 12px var(--pr),0 0 24px var(--pr-ink)}
 .pr-plus{white-space:nowrap}
@@ -287,7 +313,7 @@ html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(
 @keyframes pr-stamp{0%{opacity:0;transform:rotate(-6deg) scale(2.2)}70%{opacity:1;transform:rotate(-6deg) scale(.92)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
 @keyframes pr-fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){ .pr-card.stamp-go .pr-seal{animation:pr-fade .5s ease-out both} }
-@media (max-width:860px){ .pr-card{grid-template-columns:minmax(0,1fr)} .pr-week{flex-direction:row;flex-wrap:wrap;gap:6px 14px} }
+@media (max-width:860px){ .pr-body{grid-template-columns:minmax(0,1fr)} .pr-week{flex-direction:row;flex-wrap:wrap;gap:6px 14px} }
 /* ---------- SAVE YOUR PROGRESS (shared/backup-nudge.js): now and then, a slim banner under the lobby cards (never a popup).
    A drawn floppy disk, one friendly line, SAVE NOW + Not now (48 px). It fades in once; no motion under reduced motion. ---------- */
 .save-nudge{max-width:1100px;margin:0 auto}

@@ -18,6 +18,8 @@
        an assigned game always replaces it.
      - Restart the cycle (a new semester): `rotationStart`, a Monday ('2026-08-03'). Weeks and days are counted from
        it, so every device shows the same games on the same day.
+     - The card's ▲ (hide it): `reopenDaily: true` = a hidden card opens again the next day, so each day's new plan is
+       seen once; false = it stays hidden until the student opens it.
 
    THE 3 STEPS (plan(date, member)):
      1. WARM UP  winds & brass: TUNE UP → TUNER, fill one HOLD IT ring today (gameData('tuneup').holds[day] ≥ 1);
@@ -40,12 +42,14 @@
    the first version, `plan` {date, …}, is read once and moved into `plans`.)
    SAVED (gameData('practice'), in the Arcade Backup Code): plans {day: {member, steps}}, paid {day: true} (the bonus:
    recorded BEFORE the tokens are added, so a reload or a second tab can never pay twice), days {day: true} (all 3
-   done: the week's stamps), stamped {day: true} (the gold stamp's one animation), pro (the day PRACTICE PRO was earned).
+   done: the week's stamps), stamped {day: true} (the gold stamp's one animation), pro (the day PRACTICE PRO was earned),
+   collapsed 'YYYY-MM-DD' (the day the student hid the card: hidden for the rest of that day; reopenDaily).
      Arcade.Practice.plan(date, memberId)    → [{step, word, game, tool?, title, task, why, done}]
      Arcade.Practice.today()                 → today's kept plan with live checks (null: no instrument saved)
      Arcade.Practice.settle()                → the lobby's check: pays the bonus once, records the day, PRACTICE PRO
      Arcade.Practice.week(date)              → {days: [{key, letter, name, on, today}], count, goal}
      Arcade.Practice.open(step, onGame)      → what a tap on a step does
+     Arcade.Practice.collapsed() / setCollapsed(on)   the card hidden to its slim bar (remembered, see reopenDaily)
      Arcade.Practice.state()                 → tests */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -73,6 +77,9 @@ window.Arcade = window.Arcade || {};
     play: ['music-highway', 'blocktave', 'arcade-quest', 'keys-to-the-city', 'chime-heist'],
     // The rotation counts weeks (and days) from this Monday, so every device agrees. Change it to restart the cycle.
     rotationStart: '2026-08-03',
+    // The card's ▲ hides it to a slim bar. true = it opens again the next day (so each day's new plan is seen once);
+    // false = it stays hidden until the student opens it.
+    reopenDaily: true,
   };
   /* ========================================================================= */
 
@@ -290,6 +297,14 @@ window.Arcade = window.Arcade || {};
     return {steps, all, paidNow, proNow, paid: !!(d.paid || {})[key], stampNow: all && !(d.stamped || {})[key]};
   }
   /** the gold stamp has played its one animation today */
+  /** the card hidden to its slim bar? gameData('practice').collapsed = the day it was hidden: that day only with
+      reopenDaily, else until it's opened */
+  function collapsed() {
+    const c = gd().collapsed;
+    if (!c) return false;
+    return PRACTICE.reopenDaily === false ? true : c === keyOf(st().today());
+  }
+  function setCollapsed(on) { const d = gd(); if (on) d.collapsed = keyOf(st().today()); else delete d.collapsed; save(); }
   function stamped() { const d = gd(), s = d.stamped || (d.stamped = {}); s[keyOf(st().today())] = true; keep(s); save(); }
 
   /** a tap on a step: a game opens exactly like the CONTINUE card (onGame = arcade.js openGame: the fit panel, Select
@@ -321,7 +336,8 @@ window.Arcade = window.Arcade || {};
   document.addEventListener('visibilitychange', () => { if (!document.hidden) st().reload(); });
 
   A.Practice = {PRACTICE, SKILL_NAMES, METRO_S, PICK, plan, today, week, settle, stamped, open, proProgress, kindOf, weakest, dayScale,
+    collapsed, setCollapsed,
     rotationPick, weekNo, dayIndex,
     get bonus() { return PRACTICE.bonus; },
-    state: () => ({plan: today(), week: week(), paid: !!(gd().paid || {})[keyOf(st().today())], pro: gd().pro || null})};
+    state: () => ({plan: today(), week: week(), paid: !!(gd().paid || {})[keyOf(st().today())], pro: gd().pro || null, collapsed: collapsed()})};
 })(window.Arcade);
