@@ -80,21 +80,29 @@ window.Arcade = window.Arcade || {};
      minutes", three step buttons (WARM UP · SKILL · PLAY: the game's marquee, the step, its one-line task, a big check
      circle; done = a green ✓ + "Done", slightly dimmed but still tappable; the next one to do glows gently), and THIS
      WEEK (7 stamps, Monday to Sunday). All 3 done: the card turns gold, "PRACTICE DONE! +10 tokens", a stamp (once),
-     the practice-done sound (only here, never while a page listens). Hidden with no instrument saved. ---------- */
+     the practice-done sound (only here, never while a page listens). Hidden with no instrument saved.
+     COLLAPSIBLE: the header's ▲ (or a tap on the title row) hides the card to ONE SLIM BAR in the same spot: "TODAY'S
+     PRACTICE", three small step dots (✓ filled = done), "1 of 3", ▼ (gold "PRACTICE DONE! ✓" when all 3 are done). The
+     body (steps + THIS WEEK) slides open/shut in ≈ 200 ms (no animation under reduced motion). Remembered for the day
+     (Practice.collapsed; PRACTICE.reopenDaily). Everything else runs the same while collapsed (the checks, the bonus,
+     the gold bar); only the stamp and its sound wait until the card is open. ---------- */
   let lastOnGame = null, rendering = false;
   const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';   // ▲ (turned to ▼ by CSS when collapsed)
+  const ANIM_MS = 200;
   function practiceCard() {
     if (!A.Practice || !A.store.player) return null;
     rendering = true;
     let s;
     try { s = A.Practice.settle(); } finally { rendering = false; }
     if (!s) return null;
-    const W = A.Practice.week(), bonus = A.Practice.bonus, gold = s.all;
+    const W = A.Practice.week(), bonus = A.Practice.bonus, gold = s.all, shut = A.Practice.collapsed();
+    const nDone = s.steps.filter(p => p.done).length;
     const steps = s.steps.map((p, i) => {
       const g = (A.GAMES || []).find(x => x.id === p.game);
       const where = p.tool ? `Tune Up ${p.tool === 'tuner' ? 'Tuner' : 'Metronome'}` : g ? g.name : '';
       const label = `Step ${p.step}, ${p.word}: ${where}. ${p.task}. ${p.done ? 'Done.' : 'Not done yet.'}`;
-      return `<li><button type="button" class="pr-step${p.done ? ' done' : ''}${p.next ? ' next' : ''}" data-i="${i}" aria-label="${esc(label)}">` +
+      return `<li><button type="button" class="pr-step${p.done ? ' done' : ''}${p.next && !shut ? ' next' : ''}" data-i="${i}" aria-label="${esc(label)}">` +
         `<span class="pr-pic">${g ? thumb(g) : ''}</span>` +
         `<span class="pr-txt"><span class="pr-word"><b class="pr-n">${p.step}</b> ${esc(p.word)}</span>` +
         `<span class="pr-task">${esc(p.task)}</span><span class="pr-why">${esc(p.why || '')}</span></span>` +
@@ -107,11 +115,18 @@ window.Arcade = window.Arcade || {};
       `<ol class="pr-stamps" aria-hidden="true">${W.days.map(d => `<li class="pr-stamp${d.on ? ' on' : ''}${d.today ? ' today' : ''}" title="${d.name}">` +
         `<span class="pr-day">${d.letter}</span><span class="pr-dot">${d.on ? CHECK : ''}</span></li>`).join('')}</ol>` +
       `<p class="pr-week-n" aria-hidden="true">${W.count} practice ${W.count === 1 ? 'day' : 'days'} this week</p></div>`;
-    const html = `<section class="pr-card${gold ? ' gold' : ''}" id="practiceCard" aria-labelledby="prTitle">` +
-      `<div class="pr-main"><header class="pr-head"><h2 class="pr-title" id="prTitle">${gold ? `Practice done! <span class="pr-plus">+${bonus} tokens</span>` : 'Today\'s Practice'}</h2>` +
-      `<p class="pr-sub">${gold ? 'Come back tomorrow for a new skill!' : 'About 15 minutes'}</p>` +
-      (gold ? `<span class="pr-seal" aria-hidden="true">${CHECK}<b>Done</b></span>` : '') + `</header>` +
-      `<ol class="pr-steps">${steps}</ol></div>${weekHTML}</section>`;
+    const title = shut ? (gold ? 'Practice done! ✓' : 'Today\'s Practice')
+      : gold ? `Practice done! <span class="pr-plus">+${bonus} tokens</span>` : 'Today\'s Practice';
+    const count = `${nDone} of 3`;
+    const toggleSay = `${shut ? 'Show' : 'Hide'} today's practice (${nDone} of 3 steps done)`;
+    const mini = `<span class="pr-mini"><span class="pr-dots" aria-hidden="true">${s.steps.map(p => `<i class="pr-mdot${p.done ? ' on' : ''}">${p.done ? CHECK : ''}</i>`).join('')}</span>` +
+      `<span class="pr-count">${count}<span class="sr"> steps done</span></span></span>`;
+    const html = `<section class="pr-card${gold ? ' gold' : ''}${shut ? ' collapsed' : ''}" id="practiceCard" aria-labelledby="prTitle">` +
+      `<header class="pr-head"><h2 class="pr-title" id="prTitle">${title}</h2>` +
+      (shut ? (gold ? '' : mini) : `<p class="pr-sub">${gold ? 'Come back tomorrow for a new skill!' : 'About 15 minutes'}</p>` +
+        (gold ? `<span class="pr-seal" aria-hidden="true">${CHECK}<b>Done</b></span>` : '')) +
+      `<button type="button" class="pr-toggle" id="prToggle" aria-expanded="${!shut}" aria-controls="prBody" aria-label="${esc(toggleSay)}">${CHEVRON}</button></header>` +
+      `<div class="pr-body" id="prBody"${shut ? ' hidden' : ''}><ol class="pr-steps">${steps}</ol>${weekHTML}</div></section>`;
     return {html, s};
   }
   /** where the stamp may animate and the sound may play: the lobby on screen, no PRESS START, no Choose Your Instrument */
@@ -120,24 +135,61 @@ window.Arcade = window.Arcade || {};
     const card = $('practiceCard');
     if (!card) return;
     card.querySelectorAll('.pr-step').forEach(b => b.addEventListener('click', () => A.Practice.open(pr.s.steps[+b.dataset.i], lastOnGame || (() => {}))));
-    if (!pr.s.stampNow || !lobbyShown()) return;              // the celebration waits until the lobby is really shown
+    $('prToggle').addEventListener('click', e => { e.stopPropagation(); togglePractice(); });
+    card.querySelector('.pr-head').addEventListener('click', () => togglePractice());   // the title row does the same
+    if (!lobbyShown()) return;                                // the celebration waits until the lobby is really shown
+    if (pr.s.proNow && A.Skins && A.Skins.catchUp) setTimeout(() => A.Skins.catchUp(A.store.player, {foot: `${A.Practice.PRACTICE.weekGoal} practice days this week. Find it in the <b>LOCKER</b> on the player card.`}), 1600);
+    celebrate(card, pr.s);
+  }
+  /** the gold stamp + the practice-done sound, once a day, and only while the card is OPEN (collapsed: they wait) */
+  function celebrate(card, s) {
+    if (!s.stampNow || card.classList.contains('collapsed')) return;
     A.Practice.stamped();
     if (!reduced.matches) card.classList.add('stamp-go'); else card.classList.add('stamp-fade');
     if (A.Sfx && !(A.Pitch && A.Pitch.listening && A.Pitch.listening())) A.Sfx.event('practice-done');
-    if (pr.s.proNow && A.Skins && A.Skins.catchUp) setTimeout(() => A.Skins.catchUp(A.store.player, {foot: `${A.Practice.PRACTICE.weekGoal} practice days this week. Find it in the <b>LOCKER</b> on the player card.`}), 1600);
+  }
+  /** ▲ / ▼: hide the card to its slim bar or open it again (remembered: Practice.setCollapsed). The body slides ≈ 200 ms
+      (none under reduced motion); the card is redrawn in its new state, the focus stays on the toggle. */
+  let animT = 0;
+  function togglePractice() {
+    const card = $('practiceCard'), body = $('prBody');
+    if (!card || card.dataset.anim) return;
+    const shut = !card.classList.contains('collapsed');
+    A.Practice.setCollapsed(shut);
+    if (A.Sfx) A.Sfx.event('ui-toggle');
+    const moving = !reduced.matches;
+    const slide = (el, from, to, done) => {
+      const c = $('practiceCard');
+      c.dataset.anim = '1';
+      el.style.overflow = 'hidden'; el.style.height = from + 'px'; void el.offsetHeight;
+      el.style.transition = `height ${ANIM_MS}ms ease`; el.style.height = to + 'px';
+      clearTimeout(animT);
+      animT = setTimeout(() => { el.style.cssText = ''; delete c.dataset.anim; if (done) done(); }, ANIM_MS + 20);
+    };
+    const refocus = () => { const t = $('prToggle'); if (t) t.focus({preventScroll: true}); };
+    if (shut) {                                               // closing: slide the body shut, then the slim bar
+      if (moving && body) slide(body, body.scrollHeight, 0, () => { redrawPractice(true); refocus(); });
+      else { redrawPractice(true); refocus(); }
+    } else {                                                  // opening: the full card, its body sliding open
+      redrawPractice(true); refocus();
+      const b = $('prBody');
+      if (moving && b) slide(b, 0, b.scrollHeight);
+    }
   }
   /** redraw just the practice card (coming back from a game, the tokens changed, a new day) */
-  function redrawPractice() {
+  function redrawPractice(force) {
     if (rendering || !lobbyShown()) return;
     const box = $('lobbyCards'), old = $('practiceCard');
-    if (!box) return;
-    const f = old && old.contains(document.activeElement) ? +(document.activeElement.dataset.i || -1) : null;
+    if (!box || (old && old.dataset.anim && !force)) return;     // mid-slide: the slide's own redraw follows
+    const onToggle = old && document.activeElement && document.activeElement.id === 'prToggle';
+    const f = old && old.contains(document.activeElement) && !onToggle ? +(document.activeElement.dataset.i || -1) : null;
     const pr = practiceCard();
     if (!pr) { if (old) old.remove(); box.hidden = !box.children.length; return; }
     const w = document.createElement('div'); w.innerHTML = pr.html;
     if (old) old.replaceWith(w.firstChild); else { box.insertBefore(w.firstChild, box.firstChild); box.hidden = false; }
     wirePractice(pr);
     if (f !== null) { const b = $('practiceCard').querySelector(`.pr-step[data-i="${f}"]`); if (b) b.focus({preventScroll: true}); }
+    if (onToggle) $('prToggle').focus({preventScroll: true});
   }
   addEventListener('pageshow', e => { if (e.persisted) redrawPractice(); });        // (arcade.js redraws the whole view too)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) redrawPractice(); });
