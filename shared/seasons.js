@@ -16,6 +16,11 @@
                'music' | 'flowers' | 'summer' | null
      countdown true = the banner counts down to the event's LAST day ("🎻 Concert in 5 days!", "Concert tonight!"):
                for a concert, make `end` the concert day and `start` the day the countdown should begin
+     token     THE TOKEN'S PICTURE while it runs (everywhere a token shows: the Prize Counter, results screens, the badge
+               menu, the lobby, Arcade Quest; only the picture changes, never the balance or the prices): 'candycorn' |
+               'snowflake' | 'candyheart' | 'goldnote' | 'blossom' | 'seashell' | 'coin'. A NEW event's token picture:
+               add its SVG to shared/tokens.css (.tk-<id>, + .tk-px.tk-<id> for Arcade Quest), then its id here.
+               No `token` (or an id with no picture yet) = the normal coin.
      jingle    the sound for the banner and the CLAIM moment (shared/sounds.js; it falls back to a built-in jingle)
      gift      the FREE GIFT: '<field>:<item id>', claimed with one tap in the event panel during the event
      ladder    the CHALLENGE LADDER, 3–5 steps, each {do, n, item}:
@@ -26,6 +31,10 @@
                      'days'    play on n different days
                  item: '<field>:<item id>' that the step unlocks
                Only what a student does DURING the event counts (by date).
+     bonus     OPTIONAL: a BONUS LADDER, the same step format as `ladder`, harder (for a long event). It opens once every
+               step of the main ladder is done; its progress counts the WHOLE event (the same activity log, from the
+               event's first day), so a student who already did a lot isn't sent back to zero. Any event can have one.
+     bonusEmoji  optional: after the panel's "BONUS CHALLENGES" heading ('👻')
    THE ITEMS themselves live in shared/avatar-parts.js (the SEASONAL ITEMS section at its end) with
    unlock: {event: '<event id>'}. A new item also goes at the END of its list in shared/avatar-code.js TABLE.
    Identity items (head coverings, glasses, hearing aids, the wheelchair) are never event items.
@@ -36,7 +45,7 @@
    ========================================================================================== */
 window.Arcade = window.Arcade || {};
 window.Arcade.SEASONS = [
-  {id: 'spooky', name: 'Spooky Season', emoji: '🎃', start: '10-01', end: '11-01', look: 'spooky', colors: ['purple', 'amber'], deco: 'spooky', jingle: 'event-spooky-jingle',
+  {id: 'spooky', name: 'Spooky Season', emoji: '🎃', start: '10-01', end: '11-01', look: 'spooky', colors: ['purple', 'amber'], deco: 'spooky', token: 'candycorn', jingle: 'event-spooky-jingle',
    gift: 'head:pumpkin',
    ladder: [
      {do: 'games', n: 3, item: 'head:witchhat'},
@@ -44,8 +53,18 @@ window.Arcade.SEASONS = [
      {do: 'levels', n: 5, item: 'back:batwings'},
      {do: 'endless', n: 500, item: 'effect:spookyglow'},
      {do: 'days', n: 3, item: 'bg:hauntedhallway'},
+   ],
+   // the BONUS LADDER (opens when all 5 challenges above are done; counts everything since Oct 1)
+   bonusEmoji: '👻',
+   bonus: [
+     {do: 'games', n: 8, item: 'hand:jacklantern'},
+     {do: 'stars', n: 30, item: 'top:mummywraps'},
+     {do: 'levels', n: 15, item: 'back:vampcape'},
+     {do: 'days', n: 8, item: 'effect:floatbats'},
+     {do: 'endless', n: 1500, item: 'plate:candycorn'},
+     {do: 'stars', n: 50, item: 'pet:reaper'},
    ]},
-  {id: 'winter', name: 'Winter Fest', emoji: '❄️', start: '12-01', end: '01-07', look: 'winter', colors: ['cyan', 'blue'], deco: 'winter', jingle: 'event-winter-jingle',
+  {id: 'winter', name: 'Winter Fest', emoji: '❄️', start: '12-01', end: '01-07', look: 'winter', colors: ['cyan', 'blue'], deco: 'winter', token: 'snowflake', jingle: 'event-winter-jingle',
    gift: 'top:scarf',
    ladder: [
      {do: 'levels', n: 3, item: 'head:earmuffs'},
@@ -54,28 +73,28 @@ window.Arcade.SEASONS = [
      {do: 'days', n: 4, item: 'effect:snowfall'},
      {do: 'endless', n: 750, item: 'bg:twinklelights'},
    ]},
-  {id: 'friendship', name: 'Friendship Week', emoji: '💖', start: '02-07', end: '02-14', look: 'friendship', colors: ['pink', 'red'], deco: 'hearts', jingle: 'event-friendship-jingle',
+  {id: 'friendship', name: 'Friendship Week', emoji: '💖', start: '02-07', end: '02-14', look: 'friendship', colors: ['pink', 'red'], deco: 'hearts', token: 'candyheart', jingle: 'event-friendship-jingle',
    gift: 'head:heartglasses',
    ladder: [
      {do: 'games', n: 2, item: 'hand:rose'},
      {do: 'stars', n: 8, item: 'effect:hearts'},
      {do: 'days', n: 3, item: 'plate:hearts'},
    ]},
-  {id: 'miosm', name: 'Music In Our Schools Month', emoji: '🎺', start: '03-01', end: '03-31', look: 'miosm', colors: ['yellow', 'red'], deco: 'music', jingle: 'event-miosm-jingle',
+  {id: 'miosm', name: 'Music In Our Schools Month', emoji: '🎺', start: '03-01', end: '03-31', look: 'miosm', colors: ['yellow', 'red'], deco: 'music', token: 'goldnote', jingle: 'event-miosm-jingle',
    gift: 'top:miosmsash',
    ladder: [
      {do: 'levels', n: 5, item: 'hand:goldbaton'},
      {do: 'games', n: 4, item: 'head:miosmplume'},
      {do: 'stars', n: 20, item: 'bg:concerthall'},
    ]},
-  {id: 'spring', name: 'Spring Bloom', emoji: '🌸', start: '04-01', end: '04-30', look: 'spring', colors: ['pink', 'green'], deco: 'flowers', jingle: 'event-spring-jingle',
+  {id: 'spring', name: 'Spring Bloom', emoji: '🌸', start: '04-01', end: '04-30', look: 'spring', colors: ['pink', 'green'], deco: 'flowers', token: 'blossom', jingle: 'event-spring-jingle',
    gift: 'head:flowercrown',
    ladder: [
      {do: 'stars', n: 10, item: 'pet:butterfly'},
      {do: 'levels', n: 5, item: 'effect:blossoms'},
      {do: 'days', n: 3, item: 'plate:blossom'},
    ]},
-  {id: 'summer', name: 'Summer Send-Off', emoji: '☀️', start: '05-01', end: '05-22', look: 'summer', colors: ['amber', 'cyan'], deco: 'summer', jingle: 'event-summer-jingle',
+  {id: 'summer', name: 'Summer Send-Off', emoji: '☀️', start: '05-01', end: '05-22', look: 'summer', colors: ['amber', 'cyan'], deco: 'summer', token: 'seashell', jingle: 'event-summer-jingle',
    gift: 'head:sunnies',
    ladder: [
      {do: 'games', n: 3, item: 'hand:beachball'},
@@ -92,7 +111,7 @@ window.Arcade.SEASONS = [
      of their list in shared/avatar-code.js TABLE), then put `gift: '<field>:<id>'` / `item: '<field>:<id>'` here.
      A concert wins over the yearly events and the background-only seasons on its days. */
   // {id: 'concert-2027-spring', name: 'Spring Concert', emoji: '🎻', start: '2027-04-20', end: '2027-05-04', look: 'concert', countdown: true,
-  //  colors: ['yellow', 'red'], deco: 'music', jingle: 'event-miosm-jingle',
+  //  colors: ['yellow', 'red'], deco: 'music', token: 'goldnote', jingle: 'event-miosm-jingle',
   //  ladder: [
   //    {do: 'days', n: 5},
   //    {do: 'stars', n: 15},
@@ -114,6 +133,9 @@ window.Arcade.SEASON_BACKDROPS = [
 /* ======================== the engine (no need to edit below) ========================
      Arcade.Seasons.active()          the event running today: {ev, from, to, key, daysLeft, preview} or null
      Arcade.Seasons.steps(occ)        the ladder with progress: [{i, do, n, have, done, owned, item, label}]
+     Arcade.Seasons.bonusOpen(occ)    the BONUS LADDER is open (the event has one and every main step is done)
+     Arcade.Seasons.bonusSteps(occ)   the bonus ladder with progress (the same rows + bonus: true), open or not
+     Arcade.Seasons.allSteps(occ)     the main ladder + the bonus ladder once it's open (what the banner counts)
      Arcade.Seasons.claim(occ)        the FREE GIFT (true if it was given now)
      Arcade.Seasons.check()           earn every finished step (the running event, and one that ended in the last
                                       14 days); returns the newly earned item keys. shared/skins.js calls it before
@@ -129,7 +151,7 @@ window.Arcade.SEASON_BACKDROPS = [
    PREVIEW (testing): ?season=<id> shows that event today (banner, panel, look, items) whatever the date, or a
    background-only season's look (?season=frost), or any look by its name (?season=concert). Its
    progress is TODAY's activity only, and its claims/earned items live in this tab only (sessionStorage): nothing is
-   saved. ?demo&today=YYYY-MM-DD pretends it is that date (saved normally: for testing dates like New Year's Eve).
+   saved. Background-only seasons never change the token (shared/tokens.js skin()). ?demo&today=YYYY-MM-DD pretends it is that date (saved normally: for testing dates like New Year's Eve).
    ?demo&unlockall opens every item, as with other unlocks. */
 (function (A) {
   'use strict';
@@ -236,12 +258,13 @@ window.Arcade.SEASON_BACKDROPS = [
     const list = {head: P.HEADS, top: P.TOPS, shoes: P.SHOES, pet: P.PETS, back: P.BACKS, hand: P.HANDS, effect: P.EFFECTS, bg: P.BGS, plate: P.PLATES, eyes: P.EYES, mouth: P.MOUTHS, hairColor: P.HAIR_COLORS}[field] || [];
     return list.find(x => x.id === id) || null;
   };
-  /** every item an event gives: [{key, field, id, part, gift, step}] */
+  /** every item an event gives: [{key, field, id, part, gift, step, bonus}] (step = its place in its own ladder) */
   function itemsOf(ev) {
     const out = [];
-    const add = (key, gift, step) => { if (!key) return; const [field, id] = key.split(':'); out.push({key, field, id, part: partOf(key), gift, step}); };
-    add(ev.gift, true, -1);
-    (ev.ladder || []).forEach((s, i) => add(s.item, false, i));
+    const add = (key, gift, step, bonus) => { if (!key) return; const [field, id] = key.split(':'); out.push({key, field, id, part: partOf(key), gift, step, bonus}); };
+    add(ev.gift, true, -1, false);
+    (ev.ladder || []).forEach((s, i) => add(s.item, false, i, false));
+    (ev.bonus || []).forEach((s, i) => add(s.item, false, i, true));
     return out;
   }
   const eventOf = key => LIST().find(ev => itemsOf(ev).some(it => it.key === key)) || null;
@@ -273,16 +296,21 @@ window.Arcade.SEASON_BACKDROPS = [
     p.games = Object.keys(games).length;
     return p;
   }
-  const LABEL = {stars: n => `Earn ${n} ★`, levels: n => `Clear ${n} level${n === 1 ? '' : 's'}`, games: n => `Play ${n} different games`,
-    endless: n => `Score ${n} in any Endless mode`, days: n => `Play on ${n} different days`};
+  const num = n => Number(n).toLocaleString('en-US');                  // 1,500
+  const LABEL = {stars: n => `Earn ${num(n)} ★`, levels: n => `Clear ${num(n)} level${n === 1 ? '' : 's'}`, games: n => `Play ${n} different games`,
+    endless: n => `Score ${num(n)} in any Endless mode`, days: n => `Play on ${n} different days`};
   const label = s => (LABEL[s.do] || (() => 'Keep playing'))(s.n);
-  function steps(o) {
-    const p = progress(o);
-    return (o.ev.ladder || []).map((s, i) => {
-      const have = Math.min(s.n, p[s.do] || 0);
-      return {i, do: s.do, n: s.n, have, done: have >= s.n, owned: s.item ? owned(s.item) : have >= s.n, item: s.item || null, part: s.item ? partOf(s.item) : null, label: label(s)};
-    });
-  }
+  const rowsOf = (list, p, bonus) => (list || []).map((s, i) => {
+    const have = Math.min(s.n, p[s.do] || 0);
+    return {i, do: s.do, n: s.n, have, done: have >= s.n, owned: s.item ? owned(s.item) : have >= s.n, item: s.item || null, part: s.item ? partOf(s.item) : null, label: label(s), bonus};
+  });
+  function steps(o, p = progress(o)) { return rowsOf(o.ev.ladder, p, false); }
+  /** THE BONUS LADDER: the same progress (the whole event), whether it's open yet or not */
+  function bonusSteps(o, p = progress(o)) { return rowsOf(o.ev.bonus, p, true); }
+  /** open = the event has a bonus ladder and every step of the main ladder is done */
+  function bonusOpen(o, p = progress(o)) { return !!(o.ev.bonus && o.ev.bonus.length) && steps(o, p).every(s => s.done); }
+  /** the main ladder, + the bonus ladder once it's open */
+  function allSteps(o) { const p = progress(o); return steps(o, p).concat(bonusOpen(o, p) ? bonusSteps(o, p) : []); }
   const claimed = o => o.preview ? !!pmem().claimed[o.key] : !!((A.store.gameData('seasons').claimed || {})[o.key]);
   /** the FREE GIFT: only while the event runs */
   function claim(o = active()) {
@@ -301,7 +329,7 @@ window.Arcade.SEASON_BACKDROPS = [
     if (!previewId()) LIST().forEach(ev => occurrences(ev, now).forEach(o => { if (o.to < now && now - o.to < 14 * DAY) occs.push(o); }));
     occs.forEach(o => {
       if (seen[o.key]) return; seen[o.key] = 1;
-      steps(o).forEach(s => { if (s.done && s.item && giveItem(s.item)) out.push(s.item); });
+      allSteps(o).forEach(s => { if (s.done && s.item && giveItem(s.item)) out.push(s.item); });
     });
     return out;
   }
@@ -310,7 +338,7 @@ window.Arcade.SEASON_BACKDROPS = [
     const ev = eventOf(key);
     if (!ev) return 'A seasonal event item';
     const o = active(), it = itemsOf(ev).find(x => x.key === key);
-    if (o && o.ev === ev) return it.gift ? `${ev.name} free gift: claim it in the lobby!` : `${ev.name}: ${label(ev.ladder[it.step])}`;
+    if (o && o.ev === ev) return it.gift ? `${ev.name} free gift: claim it in the lobby!` : it.bonus ? `${ev.name} bonus: ${label(ev.bonus[it.step])}` : `${ev.name}: ${label(ev.ladder[it.step])}`;
     if (oneOff(ev)) return nextStart(ev) ? `Only during ${ev.name}` : `${ev.name} has ended`;
     return `Returns next ${ev.name}!`;
   }
@@ -325,7 +353,7 @@ window.Arcade.SEASON_BACKDROPS = [
     else if (!it.part.unlock || it.part.unlock.event !== ev.id) console.warn(`[seasons] ${it.key} needs unlock: {event: '${ev.id}'}`);
   })), 0);
 
-  A.Seasons = {list: LIST, backdrops: BACKDROPS, LOOK_IDS, backdrop, look, lookOn, setLookOn, leftText, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, label, claimed, claim, check,
+  A.Seasons = {list: LIST, backdrops: BACKDROPS, LOOK_IDS, backdrop, look, lookOn, setLookOn, leftText, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, bonusSteps, bonusOpen, allSteps, label, claimed, claim, check,
     requirement, owned, when, get preview() { return !!previewId(); },
     /** a preview's UNLOCKED! cards are remembered in this tab only */
     previewSeen: key => !!(previewId() && (pmem().seen || {})[key]),

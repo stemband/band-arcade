@@ -252,7 +252,8 @@ test('the wish bar: tokens + stars waiting at the counter, then "You can get you
   expect(await sign.locator('.zs-have').evaluate(e => parseFloat(e.style.width))).toBeCloseTo(60, 3);
   expect(await sign.locator('.zs-wait').evaluate(e => parseFloat(e.style.width))).toBeCloseTo(10, 3);
   await page.evaluate(() => Arcade.Tokens.add(200));
-  await expect(sign).toContainText('You can get your wish! 🎟');
+  await expect(sign.locator('.zs-wish-go')).toHaveText('You can get your wish!');
+  await expect(sign.locator('.zs-wish-go .tk-ic.tk-coin[aria-hidden="true"]')).toHaveCount(1);
   await expect(sign).toContainText('300 / 300');
   watch.check();
 });

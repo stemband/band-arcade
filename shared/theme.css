@@ -379,6 +379,8 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-hearts::before,.av-plate-hearts::after{content:"♥";color:var(--pink-hi);margin:0 4px}
 .av-plate-blossom{border-color:var(--pink-hi);border-style:dotted;background:linear-gradient(180deg,color-mix(in srgb,var(--pink-hi) 18%,transparent),color-mix(in srgb,var(--green) 12%,transparent))}
 .av-plate-blossom::before{content:"✿";color:var(--pink-hi);margin-right:4px}
+/* Spooky Season's bonus: candy corn (white tip, amber middle, orange base), soft enough for the name to read on it */
+.av-plate-candycorn{border-color:var(--amber);border-radius:10px 10px 6px 6px;background:linear-gradient(180deg,color-mix(in srgb,var(--white-hi) 30%,transparent) 0 30%,color-mix(in srgb,var(--amber) 36%,transparent) 30% 66%,color-mix(in srgb,var(--av-orange) 50%,transparent) 66%);box-shadow:0 0 0 1px var(--av-orange-d) inset}
 .av-plate-sunset{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--cyan) 26%,transparent),color-mix(in srgb,var(--amber) 30%,transparent) 55%,color-mix(in srgb,var(--pink) 24%,transparent))}
 [class*="av-plate-belt-"]{border-width:2px 2px 2px 8px;border-color:var(--pb)}
 .av-plate-belt-white{--pb:var(--belt-white)}.av-plate-belt-yellow{--pb:var(--belt-yellow)}.av-plate-belt-orange{--pb:var(--belt-orange)}.av-plate-belt-green{--pb:var(--belt-green)}
@@ -791,6 +793,7 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .avb-lk-n{font-size:13px;font-weight:700;color:var(--text-lo)}
 .avb-lk-new{margin-left:4px;padding:1px 8px;border-radius:999px;background:var(--pink);color:var(--deep);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
 .avb-tk{flex:none;width:22px;text-align:center;font-size:18px;line-height:1}
+.avb-tk .tk-ic{display:block;margin:0 auto}
 .avb-btn{position:relative}
 .avb-dot{position:absolute;top:2px;left:30px;width:12px;height:12px;border-radius:50%;background:var(--pink);box-shadow:0 0 0 2px var(--deep),0 0 8px var(--pink)}
 .avb-item:hover,.avb-item:focus-visible{border-color:var(--yellow);background:var(--floor-lit);outline:none;box-shadow:var(--glow-yellow)}

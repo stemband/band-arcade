@@ -18,6 +18,7 @@
   const Q = A.Quest;
   const REGINALD_NEEDS = 8;
   const T = () => A.Tokens;                                    // THE SHARED WALLET (shared/tokens.js)
+  const coin = () => T().iconHTML({pixel: true});             // THE TOKEN ICON, pixel style (the season's picture: shared/tokens.css)
   const DLG = () => window.QUEST_DIALOGUE || {}, SIGNS = () => window.QUEST_SIGNS || {}, ITEMS = () => window.QUEST_ITEMS || {};
   const unpitched = () => { const i = A.currentInstrument && A.currentInstrument(); return !!(i && i.pitched === false); };
 
@@ -30,7 +31,7 @@
   Q.talk.hud = function () {
     const el = Q.$('qWHud'); if (!el) return;
     const s = Q.save.get();
-    el.innerHTML = `<b>LV ${s.level}</b> <span>HP ${s.hp}/${s.maxHp}</span> <span class="q-tok"><i class="q-coin" aria-hidden="true"></i>${T().balance()}<span class="sr"> tokens</span></span>`;
+    el.innerHTML = `<b>LV ${s.level}</b> <span>HP ${s.hp}/${s.maxHp}</span> <span class="q-tok">${coin()}${T().balance()}<span class="sr"> tokens</span></span>`;
   };
   let bannerT = 0;
   Q.talk.banner = function (name) {
@@ -189,7 +190,7 @@
         return {fresh, html: `<table class="q-stars"><tr><th>Where</th><th>Stars</th><th>New</th></tr>` +
           src.map(s => `<tr><td>${s.label}</td><td>${s.stars}</td><td>${s.fresh}</td></tr>`).join('') + `</table>` +
           `<p>${fresh ? `${fresh} new star${fresh === 1 ? '' : 's'} = <b>${fresh * RATE} Arcade Tokens</b> (${RATE} per star)` : 'No new stars yet. Earn stars in the other arcade games, then come back!'}</p>` +
-          `<p class="q-small">You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens. (The same tokens as the arcade's Prize Counter.)</p>`};
+          `<p class="q-small">You have ${coin()}<b>${T().balance()}</b> tokens. (The same tokens as the arcade's Prize Counter.)</p>`};
       };
       let r = render();
       const items = () => (r.fresh ? [{id: 'turn', label: `Turn in ${r.fresh} ★`}] : []).concat([{id: 'looks', label: 'Player items', sub: 'For your avatar'},
@@ -252,7 +253,7 @@
   };
 
   /* ---------- the Token Booth's shelves: avatar items and charms ---------- */
-  const tokensLine = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
+  const tokensLine = msg => `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
   /** avatar items for tokens (shared/avatar-parts.js unlock {shop}): owned forever, worn everywhere in the arcade */
   function cosmeticShop() {
     return new Promise(done => {
@@ -376,7 +377,7 @@
   function shop(D) {
     return new Promise(done => {
       const stock = Object.keys(ITEMS()).filter(k => ITEMS()[k].price);
-      const html = msg => `<p>You have <i class="q-coin" aria-hidden="true"></i><b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
+      const html = msg => `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
       const list = () => stock.map(k => ({id: k, label: `${ITEMS()[k].name} · ${ITEMS()[k].price} tokens`, sub: `${ITEMS()[k].desc} You have ${Q.save.get().items[k] || 0}.`}))
         .concat([{id: null, label: 'Done'}]);
       panel('Rusty\'s Supplies', html(), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
