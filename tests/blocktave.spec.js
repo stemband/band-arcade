@@ -511,9 +511,12 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
     expect(bad, 'seeds missing chapter 1 materials near the spawn').toEqual([]);
   });
 
-  test('chapter 1 end to end on 20 random seeds: Maple → planks → mallet → 10 Tone Ore → a shelter with a door', async ({page}) => {
-    test.setTimeout(600_000);
-    const seeds = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
+  // 20 random seeds, 5 per test: each test is its own page (a quarter of the world loads per page: one 20-load page ran
+  // ~8 minutes in WebKit and its process could crash), and the four run side by side
+  const SEEDS = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
+  for (let part = 0; part < 4; part++) test(`chapter 1 end to end on random seeds ${part * 5 + 1}–${part * 5 + 5} of 20: Maple → planks → mallet → 10 Tone Ore → a shelter with a door`, async ({page}) => {
+    test.setTimeout(300_000);
+    const seeds = SEEDS.slice(part * 5, part * 5 + 5);
     const watch = await prepare(page, {store: store('trumpet', 'touch')});
     for (const seed of seeds) {
       await page.goto(`blocktave/index.html?demo&nostart&seed=${seed}`);
