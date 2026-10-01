@@ -38,36 +38,110 @@ async function playAll(page, n = 1e9) {
   await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
 }
 
-test('the AUDITION table: every member, every scale: 21 or 41 notes, the right key signature, start and end on the given written note, inside the GMEA range (bells exempt), audition order F, B♭, E♭, A♭', async ({page}) => {
+test('the AUDITION table, every section: every member, every scale: 21 / 41 / 61 notes, the right written key, start and end on the given written note, inside the section\'s range (bells exempt), in the order printed, sameAs = its source', async ({page}) => {
   const watch = await open(page);
   const out = await page.evaluate(members => {
-    const S = Arcade.Scales, errs = [];
-    if (S.AUDITION_ORDER.join() !== 'F,Bb,Eb,Ab') errs.push('order ' + S.AUDITION_ORDER);
-    members.forEach(id => {
-      const m = Arcade.memberById(id) || Arcade.getMember(Arcade.getInstrument(Arcade.groupFor(id)), id), e = S.AUDITION[id];
-      if (!e) { errs.push(id + ': no AUDITION entry'); return; }
-      if (!(e.time > 0)) errs.push(id + ': no time');
-      const ids = S.AUDITION_ORDER.map(k => (S.audition(m, k) || {}).id);
-      if (ids.join() !== 'F,Bb,Eb,Ab') errs.push(id + ': order ' + ids);
-      S.AUDITION_ORDER.forEach(k => {
-        const sc = S.audition(m, k), [start, oct] = e[k], w = Arcade.music.writtenMidi(Arcade.music.parseNote(start));
-        const n = sc.notes, want = oct === 2 ? 41 : 21;
-        if (n.length !== want) errs.push(`${id} ${k}: ${n.length} notes, not ${want}`);
-        if (n[0].midi !== w || n[n.length - 1].midi !== w) errs.push(`${id} ${k}: starts ${n[0].midi} ends ${n[n.length - 1].midi}, not ${start}`);
-        const top = n[oct === 2 ? 14 : 7].midi;
-        if (top !== w + 12 * oct) errs.push(`${id} ${k}: the top is ${top}`);
-        const sig = S.keySignature(n[0]), b = S.build(m, k).sig;
-        if (JSON.stringify(sc.sig) !== JSON.stringify(sig) || sig.type !== b.type || sig.count !== b.count) errs.push(`${id} ${k}: key signature ${JSON.stringify(sc.sig)} vs ${JSON.stringify(b)}`);
-        if (n.some(x => x.pc !== ((x.midi - m.sounds) % 12 + 12) % 12)) errs.push(`${id} ${k}: a wrong concert pitch`);
-        const concertTonic = {F: 5, Bb: 10, Eb: 3, Ab: 8}[k];
-        if (n[0].pc !== concertTonic) errs.push(`${id} ${k}: tonic pc ${n[0].pc}`);
-        if (sc.measures.reduce((a, c) => a + c, 0) !== n.length) errs.push(`${id} ${k}: the rhythm picture has the wrong count`);
-        if (id !== 'bells' && n.some(x => x.midi < m.lowMidi || x.midi > m.highMidi)) errs.push(`${id} ${k}: outside the GMEA chromatic range ${m.lowMidi}–${m.highMidi}`);
+    const S = Arcade.Scales, errs = [], P = Arcade.music.parseNote, W = Arcade.music.writtenMidi;
+    const ORDER = {ms: 'F,Bb,Eb,Ab', cb: 'G,C,F,Bb,Eb,Ab,Db,Gb', sb: 'G,C,F,Bb,Eb,Ab,Db,Gb,B,E,A,D'};
+    if (S.SECTIONS.map(x => x.id).join() !== 'ms,cb,sb') errs.push('sections ' + S.SECTIONS.map(x => x.id));
+    Object.keys(ORDER).forEach(sec => {
+      if (S.AUDITION_ORDER[sec].join() !== ORDER[sec]) errs.push(sec + ' order ' + S.AUDITION_ORDER[sec]);
+      members.forEach(id => {
+        const m = Arcade.memberById(id), e = S.auditionEntry(m, sec), raw = S.AUDITION[sec][id];
+        if (!e || !raw) { errs.push(`${sec} ${id}: no AUDITION entry`); return; }
+        if (!(e.time > 0)) errs.push(`${sec} ${id}: no time`);
+        if (raw.sameAs) {                                          // the same written notes as its source, its own time
+          const a = S.auditionScales(m, sec), b = S.auditionScales(Arcade.memberById(raw.sameAs), sec);
+          if (JSON.stringify(a.map(x => x.notes.map(n => n.midi))) !== JSON.stringify(b.map(x => x.notes.map(n => n.midi)))) errs.push(`${sec} ${id}: not the same as ${raw.sameAs}`);
+        }
+        if (e.scales.map(x => x[0]).join() !== ORDER[sec]) errs.push(`${sec} ${id}: table order ${e.scales.map(x => x[0])}`);
+        const ids = S.auditionScales(m, sec).map(x => x.id);
+        if (ids.join() !== ORDER[sec]) errs.push(`${sec} ${id}: order ${ids}`);
+        const hs = sec !== 'ms', lo = hs ? W(P(S.CHROMATIC_HS[id][0])) : m.lowMidi, hi = hs ? W(P(S.CHROMATIC_HS[id][1])) : m.highMidi;
+        e.scales.forEach(([k, start, oct]) => {
+          const sc = S.audition(m, k, sec), w = W(P(start)), n = sc.notes, want = {1: 21, 2: 41, 3: 61}[oct];
+          if (n.length !== want) errs.push(`${sec} ${id} ${k}: ${n.length} notes, not ${want}`);
+          if (n[0].midi !== w || n[n.length - 1].midi !== w) errs.push(`${sec} ${id} ${k}: starts ${n[0].midi} ends ${n[n.length - 1].midi}, not ${start}`);
+          const p = P(start);
+          if (n[0].letter !== p.letter || n[0].acc !== p.acc) errs.push(`${sec} ${id} ${k}: spelled ${n[0].letter}${n[0].acc}, not ${start}`);
+          if (n[7 * oct].midi !== w + 12 * oct) errs.push(`${sec} ${id} ${k}: the top is ${n[7 * oct].midi}`);
+          if (JSON.stringify(sc.sig) !== JSON.stringify(S.keySignature(p))) errs.push(`${sec} ${id} ${k}: key signature ${JSON.stringify(sc.sig)}`);
+          if (sc.sig.count > 7) errs.push(`${sec} ${id} ${k}: ${sc.sig.count} accidentals`);
+          // every note spelled inside the written key: each letter once per octave, its accidental the key signature's
+          if (n.some(x => x.acc !== S.sigAcc(sc.sig, x.letter))) errs.push(`${sec} ${id} ${k}: a note outside the key signature`);
+          if (n.some(x => x.pc !== ((x.midi - m.sounds) % 12 + 12) % 12)) errs.push(`${sec} ${id} ${k}: a wrong concert pitch`);
+          if (n[0].pc !== S.CONCERT[k][1]) errs.push(`${sec} ${id} ${k}: tonic pc ${n[0].pc}`);
+          if (sc.measures.reduce((a, c) => a + c, 0) !== n.length) errs.push(`${sec} ${id} ${k}: the rhythm picture has the wrong count`);
+          if (id !== 'bells' && n.some(x => x.midi < lo || x.midi > hi)) errs.push(`${sec} ${id} ${k}: outside the range ${lo}–${hi}`);
+        });
       });
     });
     return errs;
   }, MEMBERS);
   expect(out).toEqual([]);
+  watch.check();
+});
+
+test('the written key comes from the written start note: trumpet concert B = D♭ major (5 flats), horn concert B = G♭ major, clarinet concert E = F♯ major, alto sax concert A = F♯ major', async ({page}) => {
+  const watch = await open(page);
+  const r = await page.evaluate(() => {
+    const S = Arcade.Scales, f = (id, k) => { const sc = S.audition(Arcade.memberById(id), k, 'sb'); return [sc.key, sc.sig.type, sc.sig.count, sc.label]; };
+    return {tpt: f('trumpet', 'B'), horn: f('horn', 'B'), cl: f('clarinet', 'E'), alto: f('altosax', 'A'), tptCb: S.audition(Arcade.memberById('trumpet'), 'Gb', 'cb').key};
+  });
+  expect(r.tpt).toEqual(['D♭ Major', 'b', 5, 'Concert B (your D♭ Major)']);
+  expect(r.horn).toEqual(['G♭ Major', 'b', 6, 'Concert B (your G♭ Major)']);
+  expect(r.cl).toEqual(['F♯ Major', '#', 6, 'Concert E (your F♯ Major)']);
+  expect(r.alto).toEqual(['F♯ Major', '#', 6, 'Concert A (your F♯ Major)']);
+  expect(r.tptCb).toBe('A♭ Major');
+  watch.check();
+});
+
+test('n-octave scales: 1, 2 and 3 octaves get 4, 7 and 10 bars in the same rhythm (never sixteenths), the arpeggio 3-5-8 in every octave, slurs from each top note', async ({page}) => {
+  const watch = await open(page);
+  const d = await page.evaluate(() => {
+    const S = Arcade.Scales, m = id => Arcade.memberById(id);
+    const of = (id, k, sec) => { const sc = S.audition(m(id), k, sec); return {oct: sc.octaves, n: sc.notes.length, bars: sc.measures, beats: sc.notes.map(x => x.beats), slurs: sc.slurs,
+      arp: sc.notes.slice(14 * sc.octaves + 1).map(x => x.midi - sc.notes[0].midi), sums: sc.measures.map((c, i) => sc.notes.filter(x => x.measure === i).reduce((a, x) => a + x.beats, 0))}; };
+    return {one: of('trumpet', 'C', 'cb'), two: of('trumpet', 'G', 'cb'), fluteC: [of('flute', 'C', 'cb'), of('flute', 'C', 'sb')], bsnBb: [of('bassoon', 'Bb', 'cb'), of('bassoon', 'Bb', 'sb')],
+      cl: [of('clarinet', 'F', 'cb'), of('clarinet', 'Eb', 'cb'), of('clarinet', 'E', 'sb'), of('clarinet', 'D', 'sb')]};
+  });
+  const SCALE = [1, .5, .5, .5, .5, .5, .5], ARP = [1, .5, .5, 1, .5, .5];
+  const rhythm = o => [].concat(...Array(2 * o).fill(SCALE), ...Array(o).fill(ARP), [4]);
+  expect(d.one.oct).toBe(1); expect(d.one.n).toBe(21); expect(d.one.bars.length).toBe(4); expect(d.one.beats).toEqual(rhythm(1));
+  expect(d.two.oct).toBe(2); expect(d.two.n).toBe(41); expect(d.two.bars.length).toBe(7); expect(d.two.beats).toEqual(rhythm(2));
+  expect(d.one.slurs).toEqual([[7, 14], [17, 20]]); expect(d.two.slurs).toEqual([[14, 28], [34, 40]]);
+  for (const t of [...d.fluteC, ...d.bsnBb, ...d.cl]) {
+    expect(t.oct).toBe(3); expect(t.n).toBe(61);
+    expect(t.bars).toEqual([7, 7, 7, 7, 7, 7, 6, 6, 6, 1]);
+    expect(t.beats).toEqual(rhythm(3));
+    expect(t.beats.every(b => b >= .5)).toBe(true);                                       // no sixteenths
+    expect(t.sums.every(x => x === 4)).toBe(true);
+    expect(t.arp).toEqual([4, 7, 12, 16, 19, 24, 28, 31, 36, 31, 28, 24, 19, 16, 12, 7, 4, 0]);   // 3-5-8-10-12-15-17-19-22 and back
+    expect(t.slurs).toEqual([[21, 42], [51, 60]]);
+  }
+  watch.check();
+});
+
+test('a 3-octave scale is drawn with the extended bars: flute Concert Band C (practice), 10 measures, one whole note, single beams only', async ({page}) => {
+  const watch = await open(page, 'flute', {gameData: {'scale-trainer': {section: 'cb'}}});
+  await start(page, 'practice', 1);                                                       // CB order G, C…: card 1 = Concert C, 3 octaves
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().runs[0].n)).toBe(61);
+  const d = await page.evaluate(() => ({rows: document.querySelectorAll('#sheet .sa-row').length, lines: document.querySelectorAll('#sheet .sa-bar').length,
+    whole: document.querySelectorAll('#sheet .head.whole').length, beams: document.querySelectorAll('#sheet .sa-beam').length,
+    notes: document.querySelectorAll('#sheet g.fc-note').length}));
+  expect(d.notes).toBe(61);
+  expect(d.lines - 1 + d.rows).toBe(10);
+  expect(d.whole).toBe(1);
+  expect(d.beams).toBe(6 * 3 + 3 * 2);                                                    // one beam per eighth pair (no second beams)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  watch.check();
+});
+
+test('Middle School bells: 75 s (the 2025-26 GMEA mallet sheet) and Concert F from F3', async ({page}) => {
+  const watch = await open(page, 'bells');
+  const r = await page.evaluate(() => { const S = Arcade.Scales, m = Arcade.memberById('bells'), f = S.audition(m, 'F', 'ms');
+    return {time: S.auditionTime(m, 'ms'), start: Arcade.music.noteLabel(f.notes[0]) + f.notes[0].oct, oct: f.octaves, others: ['Bb', 'Eb', 'Ab'].map(k => { const n = S.audition(m, k, 'ms').notes[0]; return Arcade.music.noteLabel(n) + n.oct; })}; });
+  expect(r).toEqual({time: 75, start: 'F3', oct: 2, others: ['B♭3', 'E♭4', 'A♭3']});
   watch.check();
 });
 
@@ -528,7 +602,7 @@ test('no file mentions the old name, except the migration, the redirect, the old
 });
 
 /* ---------- THE FINGERING CARD + the fingering table covering every GMEA chromatic note ---------- */
-test('the fingering table covers every note of every member\'s GMEA chromatic range, with key names each diagram draws', async ({page}) => {
+test('the fingering table covers every note of every member\'s GMEA chromatic range (middle school and high school), with key names each diagram draws', async ({page}) => {
   const warns = [];
   page.on('console', m => { if (/fingerings\.js/.test(m.text())) warns.push(m.text()); });
   const watch = await open(page);
@@ -538,6 +612,10 @@ test('the fingering table covers every note of every member\'s GMEA chromatic ra
       if (m.id === 'bells' || m.pitched === false || !m.chromatic) return;
       const T = Arcade.Masher.table(m);
       for (let x = m.lowMidi; x <= m.highMidi; x++) if (!T.has(x)) out.push(`${m.id} ${x}`);
+      // …and the HIGH SCHOOL range (shared/scales.js CHROMATIC_HS) with every note of the Concert Band / Symphonic Band scales
+      const hs = Arcade.Scales.CHROMATIC_HS[m.id], W = n => Arcade.music.writtenMidi(Arcade.music.parseNote(n));
+      for (let x = W(hs[0]); x <= W(hs[1]); x++) if (!T.has(x)) out.push(`${m.id} HS ${x}`);
+      ['cb', 'sb'].forEach(sec => Arcade.Scales.auditionScales(m, sec).forEach(sc => sc.notes.forEach(n => { if (!T.has(n.midi)) out.push(`${m.id} ${sec} ${sc.id} ${n.midi}`); })));
     }));
     return [...new Set(out)];
   });
@@ -739,3 +817,210 @@ for (const [label, vp] of [['iPad portrait', {width: 768, height: 1024}], ['phon
     watch.check();
   });
 }
+
+/* ---------- THE THREE SECTIONS: Middle School, Concert Band, Symphonic Band ---------- */
+test('the section picker: three cards, Middle School by default, the choice remembered; maxStars 36', async ({page}) => {
+  const watch = await open(page);
+  await expect(page.locator('#secPick .sa-sec')).toHaveCount(3);
+  await expect(page.locator('#secPick .sa-sec[aria-pressed="true"]')).toHaveAttribute('data-sec', 'ms');
+  await expect(page.locator('#secPick [data-sec="ms"]')).toContainText('6th–8th grade · 4 scales · memory');
+  await expect(page.locator('#secPick [data-sec="cb"]')).toContainText('9th–10th grade · 8 scales · music allowed');
+  await expect(page.locator('#secPick [data-sec="sb"]')).toContainText('11th–12th grade · all 12 scales · music allowed');
+  for (const c of await page.locator('#secPick .sa-sec').all()) await expect(c).toContainText('GMEA All-State (First Round) & District Honor Band');
+  expect(await page.evaluate(() => Arcade.GAMES.find(g => g.id === 'scale-trainer').maxStars)).toBe(36);
+  await page.locator('#secPick [data-sec="sb"]').click();
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.section())).toBe('sb');
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.scales().map(s => s.id).join())).toBe('G,C,F,Bb,Eb,Ab,Db,Gb,B,E,A,D');
+  expect((await saved(page)).gameData['scale-trainer'].section).toBe('sb');
+  await page.reload();
+  await page.waitForFunction(() => window.Arcade && Arcade.ScaleTrainer && document.querySelector('#secPick .sa-sec'));
+  await expect(page.locator('#secPick .sa-sec[aria-pressed="true"]')).toHaveAttribute('data-sec', 'sb');
+  await page.locator('#modeSeg [data-mode="practice"]').click();
+  await expect(page.locator('#levelGrid .lvl')).toHaveCount(13);                           // 12 scales + the chromatic
+  await expect(page.locator('#levelGrid .lvl').first()).toContainText('Scale 1 of 12');
+  watch.check();
+});
+
+const BEFORE = () => ({                                                                    // a save from before the sections
+  games: {'scale-trainer': {trumpet: {1: {stars: 3, best: 100}, 2: {stars: 2, best: 95}, 3: {stars: 3, best: 100}, 4: {stars: 3, best: 100}}}},
+  gameData: {'scale-trainer': {mode: 'audition', ready: {trumpet: '2026-05-01'}, practice: {trumpet: {F: 280, Bb: 200}}, chrom: {trumpet: {t: 250, stars: 3}}}},
+});
+
+test('a save from before: Middle School progress, ALL-STATE READY and the Audition Room are untouched; the high school sections start empty', async ({page}) => {
+  const watch = await open(page, 'trumpet', BEFORE());
+  await expect(page.locator('#readyBadge')).toBeVisible();
+  await expect(page.locator('#secPick [data-sec="ms"]')).toContainText('11/12 ★');
+  await expect(page.locator('#secPick [data-sec="ms"] .sa-ready-b')).toBeVisible();
+  await expect(page.locator('#secPick [data-sec="cb"]')).toContainText('0/12 ★');
+  await expect(page.locator('#secPick [data-sec="cb"] .sa-ready-b')).toHaveCount(0);
+  expect(await page.evaluate(() => Arcade.Avatar.isUnlocked('bg', 'auditionroom'))).toBe(true);
+  expect(await page.evaluate(() => Arcade.Avatar.isUnlocked('plate', 'cbready'))).toBe(false);
+  await page.locator('#secPick [data-sec="cb"]').click();
+  await expect(page.locator('#readyBadge')).toBeHidden();
+  await expect(page.locator('#levelGrid .lvl').nth(3).locator('.stars span.on')).toHaveCount(0);
+  await page.locator('#modeSeg [data-mode="chrom"]').click();
+  await expect(page.locator('#levelGrid .lvl')).not.toContainText('Best');               // the HS chromatic has its own best
+  await page.locator('#secPick [data-sec="ms"]').click();
+  await expect(page.locator('#levelGrid .lvl')).toContainText('Best 0:25.0');
+  const s = await saved(page), b = BEFORE();
+  expect(s.games['scale-trainer']).toEqual(b.games['scale-trainer']);
+  for (const k of ['scale-trainer:cb', 'scale-trainer:sb']) expect(Object.values((s.games[k] || {}).trumpet || {})).toEqual([]);   // nothing saved there
+  const g = s.gameData['scale-trainer'];
+  expect(g.ready).toEqual({trumpet: '2026-05-01'});
+  expect(g.practice).toEqual(b.gameData['scale-trainer'].practice);
+  expect(g.chrom).toEqual(b.gameData['scale-trainer'].chrom);
+  watch.check();
+});
+
+test('Concert Band: stars under scale-trainer:cb; 3 ★ on level 4 = ALL-STATE READY for Concert Band and its name plate (not the Middle School Audition Room)', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page, 'trumpet', {gameData: {'scale-trainer': {section: 'cb'}}});
+  await start(page, 'audition', 0);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().runs.length)).toBe(8);
+  await hearAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+  await expect(page.locator('#scoreSheet tbody tr:not(.sa-dotline)')).toHaveCount(8);
+  await expect(page.locator('#scoreSheet')).toContainText('Audition limit 2:00');
+  await page.locator('#resLevels').click();
+  await start(page, 'audition', 3);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().limit)).toBe(120000);      // trumpet CB 2:00
+  await hearAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#resReady')).toBeVisible();
+  await expect(page.locator('#resReady')).toContainText('Concert Band');
+  const s = await saved(page);
+  expect(s.games['scale-trainer:cb'].trumpet[1].stars).toBe(3);
+  expect(s.games['scale-trainer:cb'].trumpet[4].stars).toBe(3);
+  expect(Object.values((s.games['scale-trainer'] || {}).trumpet || {})).toEqual([]);      // Middle School untouched
+  expect(s.gameData['scale-trainer'].ready.cb.trumpet).toBeTruthy();
+  expect(s.gameData['scale-trainer'].ready.trumpet).toBeUndefined();
+  const u = await page.evaluate(() => ({cb: Arcade.Avatar.isUnlocked('plate', 'cbready'), sb: Arcade.Avatar.isUnlocked('plate', 'sbready'),
+    room: Arcade.Avatar.isUnlocked('bg', 'auditionroom'), all: Arcade.store.allStars('trumpet', 'scale-trainer')}));
+  expect(u).toEqual({cb: true, sb: false, room: false, all: 6});
+  await page.locator('#resLevels').click();
+  await expect(page.locator('#readyBadge')).toBeVisible();
+  await expect(page.locator('#secPick [data-sec="cb"] .sa-ready-b')).toBeVisible();
+  await expect(page.locator('#secPick [data-sec="ms"] .sa-ready-b')).toHaveCount(0);
+  watch.check();
+});
+
+test('Symphonic Band: stars under scale-trainer:sb, all 12 scales; its level 4 opens the Symphonic Band Ready plate', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page, 'horn', {gameData: {'scale-trainer': {section: 'sb'}}});
+  await start(page, 'audition', 3);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state())).toMatchObject({section: 'sb', limit: 150000, memory: false});
+  await hearAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#scoreSheet tbody tr:not(.sa-dotline)')).toHaveCount(12);
+  const s = await saved(page);
+  expect(s.games['scale-trainer:sb'].horn[4].stars).toBe(3);
+  expect(s.gameData['scale-trainer'].ready.sb.horn).toBeTruthy();
+  expect(await page.evaluate(() => Arcade.Avatar.isUnlocked('plate', 'sbready'))).toBe(true);
+  watch.check();
+});
+
+test('the memory rule: Concert Band levels 3–4 show the music; FROM MEMORY hides it and marks the result; Middle School levels 3–4 still hide it', async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page, 'trumpet', {gameData: {'scale-trainer': {section: 'cb'}}});
+  await expect(page.locator('#levelGrid .lvl').nth(2)).toContainText('Music shown · Timed');
+  await expect(page.locator('#levelGrid .lvl').nth(3)).toContainText('Music shown · Audition time');
+  await expect(page.locator('#auditionOpts')).toBeVisible();
+  await expect(page.locator('#memSw')).toHaveAttribute('aria-checked', 'false');
+  for (const card of [2, 3]) {
+    await start(page, 'audition', card);
+    await expect(page.locator('#adjText')).toHaveText('Please play your scales in order.');
+    expect(await page.evaluate(() => Arcade.ScaleTrainer.state())).toMatchObject({memory: false, fromMemory: false});
+    await expect(page.locator('#sheet')).toBeVisible();
+    await expect(page.locator('#memory')).toBeHidden();
+    await expect(page.locator('#timeBar')).toBeVisible();
+    await page.locator('#uiPauseBtn').click();
+    await page.locator('#uiPause [data-act="levels"]').click();
+    const yes = page.locator('#uiConfirm .btn-danger, #uiConfirm .btn-primary').first();
+    if (await yes.isVisible({timeout: 1000}).catch(() => false)) await yes.click();
+    await expect(page.locator('#hub')).toBeVisible();
+  }
+  // FROM MEMORY: levels 3–4 hide the music (levels 1–2 keep it), a "★ From memory" mark, the same stars
+  await page.locator('#memSw').click();
+  await expect(page.locator('#memSw')).toHaveAttribute('aria-checked', 'true');
+  expect((await saved(page)).gameData['scale-trainer'].fromMemory).toBe(true);
+  await expect(page.locator('#levelGrid .lvl').nth(2)).toContainText('From memory · Timed');
+  await expect(page.locator('#levelGrid .lvl').nth(0)).toContainText('Music shown · No timer');
+  await start(page, 'audition', 2);
+  await expect(page.locator('#adjText')).toHaveText('Please play your scales in order, from memory.');
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state())).toMatchObject({memory: true, fromMemory: true});
+  await expect(page.locator('#sheet')).toBeHidden();
+  await expect(page.locator('#memory')).toBeVisible();
+  await hearAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 8000});
+  await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+  await expect(page.locator('#memMark')).toHaveText('★ From memory');
+  await expect(page.locator('#results')).toContainText('★ From memory');
+  const s = await saved(page);
+  expect(s.games['scale-trainer:cb'].trumpet[3].stars).toBe(3);
+  expect(s.gameData['scale-trainer'].memRuns.cb.trumpet[3]).toBe(true);
+  await page.locator('#resLevels').click();
+  await expect(page.locator('#levelGrid .lvl').nth(2).locator('.sa-memmark')).toHaveText('★ From memory');
+  await start(page, 'audition', 0);                                                      // level 1: the music stays, even with the switch on
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().memory)).toBe(false);
+  await expect(page.locator('#sheet')).toBeVisible();
+  await page.locator('#uiPauseBtn').click();
+  await page.locator('#uiPause [data-act="levels"]').click();
+  const yes = page.locator('#uiConfirm .btn-danger, #uiConfirm .btn-primary').first();
+  if (await yes.isVisible({timeout: 1000}).catch(() => false)) await yes.click();
+  // Middle School: no switch; levels 3–4 are from memory as always
+  await page.locator('#secPick [data-sec="ms"]').click();
+  await expect(page.locator('#auditionOpts')).toBeHidden();
+  await expect(page.locator('#levelGrid .lvl').nth(2)).toContainText('Memory · Timed');
+  await start(page, 'audition', 3);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state())).toMatchObject({memory: true, fromMemory: false, section: 'ms'});
+  await expect(page.locator('#sheet')).toBeHidden();
+  watch.check();
+});
+
+test('the chromatic per section: trumpet Middle School F♯3–G5, high school F♯3–C6 (G♭3 coming down); bells high school C4–C6; oboe A♯3 going up', async ({page, browser}) => {
+  test.setTimeout(90000);
+  const watch = await open(page);
+  const names = (sec, id = 'trumpet') => page.evaluate(([sec, id]) => Arcade.Scales.auditionChromatic(Arcade.memberById(id), sec).notes.map(n => n.letter + (n.acc < 0 ? 'b' : n.acc > 0 ? '#' : '') + n.oct), [sec, id]);
+  const ms = await names('ms'), cb = await names('cb'), sb = await names('sb');
+  expect([ms[0], ms[25], ms[ms.length - 1], ms.length]).toEqual(['F#3', 'G5', 'F#3', 51]);
+  expect([cb[0], cb[30], cb[cb.length - 1], cb.length]).toEqual(['F#3', 'C6', 'Gb3', 61]);
+  expect(cb.filter(n => n === 'C6')).toHaveLength(1);                                    // the top note played once
+  expect(cb.slice(0, 3)).toEqual(['F#3', 'G3', 'G#3']);
+  expect(cb.slice(31, 34)).toEqual(['B5', 'Bb5', 'A5']);
+  expect(sb).toEqual(cb);
+  const bells = await names('cb', 'bells');
+  expect([bells[0], bells[24], bells[bells.length - 1], bells.length]).toEqual(['C4', 'C6', 'C4', 49]);
+  expect((await names('ms', 'bells'))[0]).toBe('F4');                                     // Middle School bells: still from F (Mat: decide)
+  const oboe = await names('sb', 'oboe');
+  expect([oboe[0], oboe[oboe.length - 1], oboe[31]]).toEqual(['A#3', 'Bb3', 'F6']);
+  // the game: the Concert Band chromatic challenge, and the microphone listens over the section's range
+  await page.locator('#secPick [data-sec="cb"]').click();
+  await start(page, 'chrom', 0);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.chromatic().notes.length)).toBe(61);
+  const r = await page.evaluate(() => ({range: Arcade.ScaleTrainer.range(), pitch: Arcade.Pitch.range()}));
+  expect(r.range).toEqual([52, 82]);                                                      // sounding F♯3−2 … C6−2 (the widest: the chromatic)
+  await playAll(page);
+  await expect(page.locator('#results')).toBeVisible({timeout: 15000});
+  await expect(page.locator('#scoreSheet')).toContainText('61/61');
+  const s = await saved(page);
+  expect(s.gameData['scale-trainer'].chrom.cb.trumpet.t).toBeGreaterThan(0);
+  expect(s.gameData['scale-trainer'].chrom.trumpet).toBeUndefined();
+  watch.check();
+});
+
+test('SLOW GUIDE: the sheet\'s tempo joins the choices (Concert Band ♩ = 132; Symphonic Band horn 144; none where the sheet prints none)', async ({page}) => {
+  const watch = await open(page, 'trumpet', {gameData: {'scale-trainer': {mode: 'practice'}}});
+  await expect(page.locator('#guideSeg button')).toHaveCount(4);
+  await page.locator('#secPick [data-sec="cb"]').click();
+  await expect(page.locator('#guideSeg button')).toHaveCount(5);
+  await expect(page.locator('#guideSeg button').last()).toHaveText('♩ = 132, audition tempo');
+  await page.locator('#guideSeg button').last().click();
+  expect((await saved(page)).gameData['scale-trainer'].guide).toBe(132);
+  await start(page, 'practice', 0);
+  expect(await page.evaluate(() => Arcade.ScaleTrainer.state().guide)).toBe(132);
+  const t = await page.evaluate(() => { const S = Arcade.Scales, m = id => Arcade.memberById(id);
+    return [S.auditionTempo(m('trumpet'), 'sb'), S.auditionTempo(m('horn'), 'sb'), S.auditionTempo(m('horn'), 'cb'), S.auditionTempo(m('flute'), 'cb'), S.auditionTempo(m('trumpet'), 'ms')]; });
+  expect(t).toEqual([null, 144, null, 132, null]);
+  watch.check();
+});

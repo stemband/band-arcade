@@ -1,8 +1,13 @@
-/* Scale Trainer: the GMEA Middle School All-State (First Round) / District Honor Band scale audition. The same four
-   scales and the same rules for both: Concert F, B♭, E♭ and A♭ (in that order), each up and down with its arpeggio,
-   from memory, against the sheet's time limit, then the chromatic.
-   THE GMEA SHEETS ARE THE SOURCE: every scale (the written starting note, 1 or 2 octaves, the time) is the AUDITION
-   table in shared/scales.js; edit it there, never here. Spelling and key signatures come from scales.js, the
+/* Scale Trainer: the GMEA All-State (First Round) / District Honor Band scale audition (the same scales and rules for
+   both), in THREE SECTIONS (shared/scales.js SECTIONS, the first thing on the level screen, remembered in
+   gameData.section): MIDDLE SCHOOL (grades 6–8: Concert F, B♭, E♭, A♭, from memory on levels 3–4), CONCERT BAND
+   (grades 9–10: G C F B♭ E♭ A♭ D♭ G♭) and SYMPHONIC BAND (grades 11–12: all 12 keys). Each scale up and down with its
+   arpeggio, in the order printed, against the sheet's time limit, then the chromatic. The high school sheets: "Scales
+   do not have to be memorized, but must be performed in the order printed": their levels 3–4 keep the music shown
+   (the FROM MEMORY switch hides it, a "★ From memory" mark, the same stars).
+   THE GMEA SHEETS ARE THE SOURCE: every scale (the written starting note, 1, 2 or 3 octaves, the time) is the AUDITION
+   table in shared/scales.js (AUDITION[section]); edit it there, never here. Progress: Middle School under the plain
+   'scale-trainer' key (as always), Concert Band 'scale-trainer:cb', Symphonic Band 'scale-trainer:sb'. Spelling and key signatures come from scales.js, the
    chromatic from Arcade.chromaticScale (instruments.js), the staff from Arcade.staffSVG (ui.js).
    Modes: PRACTICE (one scale, no clock: LOOP, SLOW GUIDE, NOTE BY NOTE; no stars), AUDITION (the levels: all four,
    one try each, one clock), CHROMATIC (the member's GMEA chromatic range, a stopwatch).
@@ -32,6 +37,13 @@
     {name: 'Hallway',       staff: false, mult: 1.25,  tag: 'Memory · Timed',         blurb: 'From memory: only the scale\'s name. The first timed level.'},
     {name: 'Audition Room', staff: false, mult: 1.0,   tag: 'Memory · Audition time', blurb: 'The real thing: from memory, in the GMEA sheet\'s time.'},
   ];
+  // the HIGH SCHOOL sections (Concert Band, Symphonic Band): "Scales do not have to be memorized" (the GMEA HS sheets), so
+  // levels 3–4 keep the music shown; the FROM MEMORY switch hides it there (memoryOk) for a "★ From memory" mark
+  const LEVELS_HS = [
+    LEVELS[0], LEVELS[1],
+    {name: 'Hallway',       staff: true, mult: 1.25, memoryOk: true, tag: 'Music shown · Timed',         blurb: 'The music on the stand, and a clock. The first timed level.'},
+    {name: 'Audition Room', staff: true, mult: 1.0,  memoryOk: true, tag: 'Music shown · Audition time', blurb: 'The real thing: in order, in the GMEA sheet\'s time.'},
+  ];
   // ARTICULATION (winds): tongue going up, slur coming down (the slurs are in the scale data, shared/scales.js). Checked
   // with Pitch.onAttack and shown on the score sheet, but ARTICULATION_COUNTS = false: attack detection at speed isn't
   // reliable enough on every mic to cost a student stars (true = 3 ★ also need every scale's articulation ✓).
@@ -56,18 +68,32 @@
   A.mountTopbar(inst, '', GAME_ID);
   $('demoHelp').hidden = !A.DEMO;
 
-  const S = A.Scales, ORDER = S.AUDITION_ORDER;
-  const SCALES = ORDER.map(id => S.audition(member, id)).filter(Boolean);
-  const CHROM = S.auditionChromatic(member);
-  const SHEET_S = S.auditionTime(member);
+  const S = A.Scales;
   const clef = inst.clef;
   const gd = A.store.gameData(GAME_ID);
   const save = () => A.store.saveGameData(GAME_ID);
+  /* THE SECTION: everything the level screen and a run need, from shared/scales.js */
+  const SECTION_IDS = S.SECTIONS.map(x => x.id);
+  function secData(id) {
+    const def = S.SECTIONS.find(x => x.id === id) || S.SECTIONS[0];
+    const scales = S.auditionScales(member, def.id), chrom = S.auditionChromatic(member, def.id), range = S.auditionRange(member, def.id);
+    return {id: def.id, def, scales, chrom, practice: scales.concat([chrom]), sheet: S.auditionTime(member, def.id), tempo: S.auditionTempo(member, def.id),
+      key: def.id === 'ms' ? GAME_ID : `${GAME_ID}:${def.id}`, levels: def.id === 'ms' ? LEVELS : LEVELS_HS,
+      sound: def.id === 'ms' ? [member.soundLow, member.soundHigh] : [range.low - member.sounds, range.high - member.sounds]};
+  }
+  let SEC = secData(SECTION_IDS.includes(gd.section) ? gd.section : 'ms');
+  /** a section's own record inside a gameData record keyed by member: Middle School = the record itself (where it always
+      was), Concert Band / Symphonic Band = record.cb / record.sb (member ids never clash with 'cb' / 'sb') */
+  const bySec = (rec, sec = SEC.id) => (sec === 'ms' ? rec : (rec[sec] = rec[sec] || {}));   // (to write)
+  const readSec = (rec, sec = SEC.id) => (sec === 'ms' ? rec || {} : (rec || {})[sec] || {});   // (to read: never adds anything)
+  const words = n => ({4: 'four', 8: 'eight', 12: 'twelve'}[n] || String(n));
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const nameOf = n => A.music.noteLabel(n) + n.oct;                          // "F♯3"
   const fmt = ms => { const s = Math.max(0, ms) / 1000, m = Math.floor(s / 60), r = s - m * 60; return `${m}:${String(Math.floor(r)).padStart(2, '0')}`; };
   const fmt1 = ms => { const s = Math.max(0, ms) / 1000, m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r.toFixed(1).padStart(4, '0')}`; };
-  const opt = {mode: ['practice', 'audition', 'chrom'].includes(gd.mode) ? gd.mode : 'audition', loop: !!gd.loop, guide: GUIDE_TEMPOS.includes(gd.guide) ? gd.guide : 0, nbn: !!gd.nbn};
+  const opt = {mode: ['practice', 'audition', 'chrom'].includes(gd.mode) ? gd.mode : 'audition', loop: !!gd.loop, guide: +gd.guide || 0, nbn: !!gd.nbn, fromMemory: !!gd.fromMemory};
+  const guideTempos = () => GUIDE_TEMPOS.concat(SEC.tempo && !GUIDE_TEMPOS.includes(SEC.tempo) ? [SEC.tempo] : []);
+  const guideNow = () => (guideTempos().includes(opt.guide) ? opt.guide : 0);
   const setOpt = patch => { Object.assign(opt, patch); Object.assign(gd, patch); save(); };
 
   /* ---------- the sheet: the scale on the staff like the GMEA sheet (4/4, the sheet's rhythm; only a picture) ---------- */
@@ -230,63 +256,97 @@
     onLevels: showHub,
     info: () => G ? [[G.kind === 'audition' ? 'Scale' : 'Note', G.kind === 'audition' ? `${G.si + 1} of ${G.runs.length}` : `${cur().i + 1} of ${cur().sc.notes.length}`], ['Time', fmt(G.ms)]] : [],
   });
-  const PRACTICE_LIST = SCALES.concat([CHROM]);
-  const readyFor = () => (gd.ready || {})[member.id];
-  const prog = lv => A.store.level(GAME_ID, member.id, lv);
+  /** ALL-STATE READY: the date it was earned (Middle School: gd.ready[member], as always; cb / sb: gd.ready.cb[member]…) */
+  const readyFor = (sec = SEC.id) => readSec(gd.ready, sec)[member.id];
+  const prog = (lv, sec = SEC) => A.store.level(sec.key, member.id, lv);
   const unlocked = i => A.DEMO || i === 0 || prog(i).stars > 0;
+  /** a run played FROM MEMORY on a high school level (levels 3–4 with the switch on): its mark on the level card */
+  const memMark = lv => !!(readSec(gd.memRuns)[member.id] || {})[lv];
+  const secStars = id => { const d = id === SEC.id ? SEC : secData(id); return [1, 2, 3, 4].reduce((a, lv) => a + (prog(lv, d).stars || 0), 0); };
+
+  /* ---------- THE SECTION PICKER: three big cards (Middle School, Concert Band, Symphonic Band) ---------- */
+  function drawSections() {
+    $('secPick').innerHTML = S.SECTIONS.map(def => {
+      const n = S.AUDITION_ORDER[def.id].length, on = def.id === SEC.id, r = readyFor(def.id);
+      return `<button type="button" class="sa-sec${on ? ' on' : ''}" data-sec="${def.id}" aria-pressed="${on}">
+        <span class="sa-sec-t">${esc(def.name)}</span>
+        <span class="sa-sec-d">${esc(def.grades)} · ${n === 12 ? 'all 12' : n} scales · ${def.memory ? 'memory' : 'music allowed'}</span>
+        <span class="sa-sec-foot"><span class="stars" aria-label="${secStars(def.id)} of 12 stars">${secStars(def.id)}/12 ★</span>${r ? '<span class="sa-ready-b sa-ready-s">ALL-STATE READY</span>' : ''}</span>
+        <span class="sa-sec-g">GMEA All-State (First Round) &amp; District Honor Band</span>
+      </button>`;
+    }).join('');
+  }
+  $('secPick').addEventListener('click', e => {
+    const b = e.target.closest('.sa-sec'); if (!b || b.dataset.sec === SEC.id) return;
+    SEC = secData(b.dataset.sec); setOpt({section: SEC.id}); A.Sfx.event('ui-toggle'); showHub();
+  });
 
   function drawOpts() {
     $('modeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === opt.mode)));
     $('practiceOpts').hidden = opt.mode !== 'practice';
     $('loopSw').setAttribute('aria-checked', String(opt.loop));
     $('nbnSw').setAttribute('aria-checked', String(opt.nbn));
-    $('guideSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.g === opt.guide)));
+    // SLOW GUIDE: ♩ = 60 / 80 / 100, + the sheet's own tempo where it prints one (Concert Band ♩ = 132, Symphonic horn 144)
+    const gs = $('guideSeg'), extra = SEC.tempo && !GUIDE_TEMPOS.includes(SEC.tempo) ? SEC.tempo : 0;
+    gs.querySelectorAll('[data-sheet]').forEach(b => { if (+b.dataset.g !== extra) b.remove(); });
+    if (extra && !gs.querySelector(`[data-g="${extra}"]`)) gs.insertAdjacentHTML('beforeend', `<button type="button" data-g="${extra}" data-sheet="1" aria-pressed="false">♩ = ${extra}, audition tempo</button>`);
+    gs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.g === guideNow())));
+    const hs = SEC.id !== 'ms';
+    $('auditionOpts').hidden = opt.mode !== 'audition' || !hs;
+    $('memSw').setAttribute('aria-checked', String(opt.fromMemory));
     const r = readyFor();
     $('readyBadge').hidden = !r;
-    $('readyWho').textContent = r ? `${member.short} · earned ${r}` : '';
+    $('readyWho').textContent = r ? `${member.short} · ${SEC.def.name} · earned ${r}` : '';
+    const order = SEC.scales.map(sc => sc.short).join(', '), n = SEC.scales.length;
+    $('howto').textContent = `Play your ${words(n)} scales in audition order (Concert ${order}), each up and down with its arpeggio, then the chromatic. The microphone follows every note.`;
     $('modeNote').textContent = {
       practice: 'Pick a scale and play it as many times as you like: no clock, no stars. LOOP starts it again after the last note; SLOW GUIDE shows where you should be; NOTE BY NOTE waits for each note.',
-      audition: `All four scales in order, F, B♭, E♭, A♭, one try each, like the real room. Levels 1–2: the music on the stand and no timer. Levels 3–4: from memory and timed (the GMEA sheet's time for ${member.name}: ${fmt(SHEET_S * 1000)}); no alarm: when time runs out you may finish the scale you are on.`,
+      audition: hs
+        ? `All ${words(n)} scales in the order printed (${order}), one try each, like the real room. The music may stay on the stand: the high school sheets don't ask for memory. Levels 1–2: no timer. Levels 3–4: timed (the GMEA sheet's time for ${member.name}: ${fmt(SEC.sheet * 1000)}); FROM MEMORY hides the music on levels 3–4 for a challenge (same stars). No alarm: when time runs out you may finish the scale you are on.`
+        : `All four scales in order, F, B♭, E♭, A♭, one try each, like the real room. Levels 1–2: the music on the stand and no timer. Levels 3–4: from memory and timed (the GMEA sheet's time for ${member.name}: ${fmt(SEC.sheet * 1000)}); no alarm: when time runs out you may finish the scale you are on.`,
       chrom: 'Tongued or slurred, any rhythm you choose — the judges listen for evenness, accuracy and speed.',
     }[opt.mode];
   }
+  $('memSw').addEventListener('click', () => { setOpt({fromMemory: !opt.fromMemory}); A.Sfx.event('ui-toggle'); showHub(); });
   $('modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.mode === opt.mode) return; setOpt({mode: b.dataset.mode}); A.Sfx.event('ui-toggle'); showHub(); });
   $('loopSw').addEventListener('click', () => { setOpt({loop: !opt.loop}); A.Sfx.event('ui-toggle'); drawOpts(); });
   $('nbnSw').addEventListener('click', () => { setOpt({nbn: !opt.nbn}); A.Sfx.event('ui-toggle'); drawOpts(); });
   $('guideSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setOpt({guide: +b.dataset.g}); A.Sfx.event('ui-toggle'); drawOpts(); });
 
-  const practiceBest = id => ((gd.practice || {})[member.id] || {})[id];
+  const practiceBest = id => (readSec(gd.practice)[member.id] || {})[id];
   function showHub() {
     stopRun();
     A.Sfx.gameMenuMusic(GAME_ID);                   // menu music (games.js menuMusic); a menu never listens
     pause.setActive(false); A.UI.results.hide();
     $('play').hidden = true; $('hub').hidden = false;
+    drawSections();
     drawOpts();
-    let cards = '', label, lockText, gameId = GAME_ID + ':' + opt.mode, isOpen = () => true;
+    const LV = SEC.levels, nSc = SEC.scales.length;
+    let cards = '', label, lockText, gameId = GAME_ID + (SEC.id === 'ms' ? '' : ':' + SEC.id) + ':' + opt.mode, isOpen = () => true;
     if (opt.mode === 'audition') {
-      cards = LEVELS.map((L, i) => {
-        const lv = i + 1, p = prog(lv), open = unlocked(i);
+      cards = LV.map((L, i) => {
+        const lv = i + 1, p = prog(lv), open = unlocked(i), mem = L.memoryOk && opt.fromMemory;
         return `<button class="lvl sa-lvl" data-l="${lv}" ${open ? '' : 'disabled'}>
           <span class="n">Level ${lv}</span>
           <span class="t">${esc(L.name)}</span>
-          <span class="d">${esc(L.blurb)} ${L.mult ? `${fmt(SHEET_S * L.mult * 1000)} for all four scales.` : 'Take your time: the run ends with the last note.'}${p.best ? ` Best ${p.best}% clean.` : ''}</span>
-          <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span class="sa-tag">${esc(L.tag)}</span></span>
+          <span class="d">${esc(mem ? 'From memory (your choice): only the scale\'s name.' : L.blurb)} ${L.mult ? `${fmt(SEC.sheet * L.mult * 1000)} for all ${words(nSc)} scales.` : 'Take your time: the run ends with the last note.'}${p.best ? ` Best ${p.best}% clean.` : ''}${L.memoryOk && memMark(lv) ? ' <b class="sa-memmark">★ From memory</b>' : ''}</span>
+          <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span class="sa-tag">${esc(mem ? L.tag.replace('Music shown', 'From memory') : L.tag)}</span></span>
         </button>`;
       }).join('');
-      isOpen = unlocked; label = i => `Level ${i + 1} · ${LEVELS[i].name}`; lockText = i => `Earn a star in the ${LEVELS[i - 1].name} to unlock`;
+      isOpen = unlocked; label = i => `Level ${i + 1} · ${LV[i].name}`; lockText = i => `Earn a star in the ${LV[i - 1].name} to unlock`;
     } else if (opt.mode === 'practice') {
-      cards = PRACTICE_LIST.map((sc, i) => {
+      cards = SEC.practice.map((sc, i) => {
         const b = practiceBest(sc.id);
         return `<button class="lvl sa-lvl" data-p="${i}">
-          <span class="n">${sc.id === 'chrom' ? 'Chromatic' : `Scale ${i + 1} of 4`}</span>
+          <span class="n">${sc.id === 'chrom' ? 'Chromatic' : `Scale ${i + 1} of ${nSc}`}</span>
           <span class="t">${esc(sc.label)}</span>
           <span class="d">${sc.id === 'chrom' ? `${sc.notes.length} notes, up and down.` : `${sc.octaves} octave${sc.octaves > 1 ? 's' : ''}, up and down + arpeggio: ${sc.notes.length} notes.`}</span>
           <span class="foot"><span>${b ? `Best clean run ${fmt1(b * 100)}` : 'No clean run yet'}</span></span>
         </button>`;
       }).join('');
-      label = i => PRACTICE_LIST[i].label;
+      label = i => SEC.practice[i].label;
     } else {
-      const c = (gd.chrom || {})[member.id] || {};
+      const c = readSec(gd.chrom)[member.id] || {}, CHROM = SEC.chrom;
       cards = `<button class="lvl sa-lvl" data-c="1">
           <span class="n">Chromatic Challenge</span>
           <span class="t">${esc(CHROM.label)}</span>
@@ -335,11 +395,12 @@
     A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
     A.Pitch.pauseListening(true);                   // …and the microphone waits for the countdown
     const tok = Date.now();
-    const L = kind === 'audition' ? LEVELS[arg - 1] : null;
-    const list = kind === 'audition' ? SCALES : kind === 'chrom' ? [CHROM] : [PRACTICE_LIST[arg]];
-    G = {kind, arg, L, tok, runs: list.map(scaleRun), si: 0, ms: 0, last: performance.now(), clockOn: false, listening: false, paused: false,
-      limit: kind === 'audition' && L.mult ? SHEET_S * L.mult * 1000 : 0, timeUp: false, lastNoteAt: 0, cleanRuns: 0, laps: 0, attacks: [],
-      memory: kind === 'audition' && !L.staff, names: kind === 'audition' && !!L.names, nbn: kind === 'practice' && opt.nbn, guide: kind === 'practice' ? opt.guide : 0, loop: kind === 'practice' && opt.loop,
+    const L = kind === 'audition' ? SEC.levels[arg - 1] : null;
+    const list = kind === 'audition' ? SEC.scales : kind === 'chrom' ? [SEC.chrom] : [SEC.practice[arg]];
+    const fromMemory = kind === 'audition' && !!L.memoryOk && opt.fromMemory;   // the high school sections' FROM MEMORY switch (levels 3–4)
+    G = {kind, arg, L, tok, sec: SEC, runs: list.map(scaleRun), si: 0, ms: 0, last: performance.now(), clockOn: false, listening: false, paused: false,
+      limit: kind === 'audition' && L.mult ? SEC.sheet * L.mult * 1000 : 0, timeUp: false, lastNoteAt: 0, cleanRuns: 0, laps: 0, attacks: [],
+      memory: kind === 'audition' && (!L.staff || fromMemory), fromMemory, names: kind === 'audition' && !!L.names, nbn: kind === 'practice' && opt.nbn, guide: kind === 'practice' ? guideNow() : 0, loop: kind === 'practice' && opt.loop,
       f: {cand: null, gap: 99, lastPc: null, lastAt: 0, attackAt: 0}};
     A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
     // one try each, like the real room: no RESTART in an audition or the Chromatic Challenge (practice has one)
@@ -347,7 +408,8 @@
       levelsLabel: kind === 'practice' ? 'Back to scales' : 'Back to levels', leaveTitle: kind === 'practice' ? 'Leave this scale?' : 'Leave the audition?'});
     pause.setActive(true);
     $('who').innerHTML = A.avatarHTML({size: 'chip', member: member.id});
-    $('hudKicker').textContent = kind === 'audition' ? `Audition · Level ${arg}` : kind === 'chrom' ? 'Chromatic Challenge' : 'Practice';
+    const secName = SEC.id === 'ms' ? '' : SEC.def.name + ' · ';
+    $('hudKicker').textContent = secName + (kind === 'audition' ? `Audition · Level ${arg}` : kind === 'chrom' ? 'Chromatic Challenge' : 'Practice');
     $('hudTitle').textContent = kind === 'audition' ? L.name : kind === 'chrom' ? member.short : G.runs[0].sc.name;
     $('clockLabel').textContent = G.limit ? 'Time left' : 'Time';
     $('timeBar').hidden = !G.limit;                  // levels 1–2, practice, the chromatic: a stopwatch only
@@ -373,7 +435,8 @@
   }
   function startListening() {
     if (!G) return;
-    if (MALLET) A.Pitch.setRange(MALLET_RANGE[0], MALLET_RANGE[1]); else A.Pitch.setRange(member.soundLow, member.soundHigh);
+    // the SECTION's range (the widest of its scales and its chromatic; Middle School: the member's GMEA range)
+    if (MALLET) A.Pitch.setRange(MALLET_RANGE[0], MALLET_RANGE[1]); else A.Pitch.setRange(G.sec.sound[0], G.sec.sound[1]);
     A.Pitch.pauseListening(false);
     A.Pitch.ignoreCurrent();                       // whatever is already sounding doesn't count
     A.Sfx.sync();
@@ -385,13 +448,13 @@
   /** draw the current scale (the sheet, or the memory card, or NOTE BY NOTE's single note) */
   function showScale() {
     const r = cur(), sc = r.sc;
-    $('stepNo').textContent = G.kind === 'audition' ? `Scale ${G.si + 1} of ${G.runs.length}` : G.kind === 'chrom' ? CHROM.label : (G.loop ? `Clean runs: ${G.cleanRuns}` : '');
+    $('stepNo').textContent = G.kind === 'audition' ? `Scale ${G.si + 1} of ${G.runs.length}` : G.kind === 'chrom' ? G.sec.chrom.label : (G.loop ? `Clean runs: ${G.cleanRuns}` : '');
     $('scaleName').textContent = G.kind === 'chrom' ? 'Chromatic' : sc.label;
     $('artLine').hidden = MALLET || G.kind === 'chrom' || G.memory || !(sc.slurs || []).length;   // winds, with the music shown
     $('memory').hidden = !G.memory;
     $('sheet').hidden = G.memory || G.nbn;
     $('nbn').hidden = !G.nbn;
-    if (G.memory) { $('memName').textContent = sc.label; $('memSub').textContent = `${sc.octaves} octave${sc.octaves > 1 ? 's' : ''}, up and down, then the arpeggio.`; }
+    if (G.memory) { $('memName').textContent = sc.label; $('memSub').textContent = `${sc.octaves} octave${sc.octaves > 1 ? 's' : ''}, up and down, then the arpeggio.`; $('memory').querySelector('.sa-mem-k').textContent = G.fromMemory ? 'From memory (your choice)' : 'From memory'; }
     else if (!G.nbn) drawSheet($('sheet'), sc, {names: G.names});
     drawNow();
   }
@@ -480,7 +543,7 @@
     const r = cur(), clean = r.res.filter(x => x === 'ok').length === r.sc.notes.length;
     if (clean) {
       G.cleanRuns++;
-      const tenths = Math.round(r.ms / 100), p = (gd.practice = gd.practice || {}), me = (p[member.id] = p[member.id] || {});
+      const tenths = Math.round(r.ms / 100), p = bySec(gd.practice = gd.practice || {}, G.sec.id), me = (p[member.id] = p[member.id] || {});
       if (!me[r.sc.id] || tenths < me[r.sc.id]) { me[r.sc.id] = tenths; save(); }
     }
     G.laps++;
@@ -537,7 +600,7 @@
     const done = () => (G.kind === 'audition' ? results() : G.kind === 'chrom' ? chromResults() : practiceResults());
     if (G.kind === 'audition' && G.limit) {         // the timed levels: "Time. Thank you." / "Thank you." (levels 1–2 go straight to the sheet)
       $('timeUp').hidden = false;
-      $('timeUpSub').textContent = G.timeUp ? '' : 'All four scales played.';
+      $('timeUpSub').textContent = G.timeUp ? '' : `All ${words(G.runs.length)} scales played.`;
       $('timeUp').querySelector('.sa-adj-t').textContent = G.timeUp ? 'Time. Thank you.' : 'Thank you.';
       later(THANKS_MS, () => { $('timeUp').hidden = true; done(); });
     } else done();
@@ -576,35 +639,39 @@
     return `<p class="sa-art ${a.good ? 'ok' : 'check'}">Articulation: ${a.good ? '✓' : 'check ' + what}</p>`;
   }
   function sheetHTML(rows, total) {
-    return `<div class="sa-scoresheet" id="scoreSheet"><p class="sa-ss-h">Judge's score sheet · ${esc(member.name)}</p>
+    return `<div class="sa-scoresheet" id="scoreSheet"><p class="sa-ss-h">Judge's score sheet · ${esc(member.name)}${G.sec.id !== 'ms' ? ' · ' + esc(G.sec.def.name) : ''}${G.fromMemory ? ' <b class="sa-memmark" id="memMark">★ From memory</b>' : ''}</p>
       <table><thead><tr><th scope="col">Scale</th><th scope="col">Result</th><th scope="col">Clean</th><th scope="col">Time</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="sa-ss-key"><i class="ok"></i> clean <i class="fix"></i> fixed <i class="bad"></i> missed or skipped <i class="none"></i> not played</p>
       ${total ? `<p class="sa-ss-total">${total}</p>` : ''}</div>`;
   }
   function results() {
-    const lv = G.arg, runs = G.runs;
+    const lv = G.arg, runs = G.runs, sec = G.sec, LV = sec.levels, nSc = runs.length;
     const total = runs.reduce((a, r) => a + r.sc.notes.length, 0), clean = runs.reduce((a, r) => a + cleanOf(r), 0);
     const allInTime = runs.every(r => r.done && r.inTime);                 // levels 1–2: every scale finished (no timer)
     const artGood = runs.every(r => { const a = articulation(r); return !a || a.good; });
     const stars = !allInTime ? 0 : clean === total && (!ARTICULATION_COUNTS || artGood) ? 3 : clean / total >= TWO_STARS_CLEAN ? 2 : 1;
     const pct = Math.round(clean / total * 100);
-    const old = prog(lv);
-    A.store.setLevel(GAME_ID, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best || 0)}, stars);
+    const old = prog(lv, sec);
+    A.store.setLevel(sec.key, member.id, lv, {stars: Math.max(stars, old.stars), best: Math.max(pct, old.best || 0)}, stars);
+    if (G.fromMemory && stars > 0) {                // a from-memory run (high school levels 3–4): its mark on the level card
+      const mr = bySec(gd.memRuns = gd.memRuns || {}, sec.id), me = (mr[member.id] = mr[member.id] || {});
+      if (!me[lv]) { me[lv] = true; save(); }
+    }
     let newReady = false;
-    if (lv === LEVELS.length && stars === 3) { const rd = (gd.ready = gd.ready || {}); newReady = !rd[member.id]; if (newReady) { rd[member.id] = A.store.today ? A.store.today() : new Date().toISOString().slice(0, 10); save(); } }
-    const ready = lv === LEVELS.length && stars === 3;
-    const hasNext = lv < LEVELS.length && (stars > 0 || A.DEMO);
-    const extra = (ready ? `<p class="sa-ready sa-res-ready" id="resReady"><span class="sa-ready-b">ALL-STATE READY</span> ${newReady ? 'New!' : ''}</p>` : '') +
+    if (lv === LV.length && stars === 3) { const rd = bySec(gd.ready = gd.ready || {}, sec.id); newReady = !rd[member.id]; if (newReady) { rd[member.id] = A.store.today ? A.store.today() : new Date().toISOString().slice(0, 10); save(); } }
+    const ready = lv === LV.length && stars === 3;
+    const hasNext = lv < LV.length && (stars > 0 || A.DEMO);
+    const extra = (ready ? `<p class="sa-ready sa-res-ready" id="resReady"><span class="sa-ready-b">ALL-STATE READY</span>${sec.id !== 'ms' ? ' ' + esc(sec.def.name) : ''} ${newReady ? 'New!' : ''}</p>` : '') +
       sheetHTML(runs.map(r => sheetRow(r)).join(''), G.limit ? `Total time ${fmt1(G.ms)} of ${fmt(G.limit)}${G.timeUp ? ' · time ran out' : ''}`
-        : `Your time ${fmt(G.ms)} · Audition limit ${fmt(SHEET_S * 1000)}`);   // levels 1–2: information only
+        : `Your time ${fmt(G.ms)} · Audition limit ${fmt(sec.sheet * 1000)}`);   // levels 1–2: information only
     A.UI.results.show({gameId: GAME_ID, stars, wide: true, actsFirst: true,
       title: stars === 3 ? (ready ? 'All-State ready!' : 'Perfect audition!') : stars ? 'Audition finished' : 'Time. Thank you.',
-      msg: stars === 3 ? (G.limit ? 'Every note clean, all four scales in time.' : 'Every note clean, all four scales.')
+      msg: stars === 3 ? (G.limit ? `Every note clean, all ${words(nSc)} scales in time.` : `Every note clean, all ${words(nSc)} scales.`)
         : stars === 2 ? 'Every note clean for 3 stars.'
         : stars === 1 ? `Get ${Math.round(TWO_STARS_CLEAN * 100)} % of the notes clean for 2 stars.`
-        : 'Finish all four scales in time for a star. Practice mode has no clock.',
-      tiles: [['Clean notes', `${clean}/${total}`], ['Clean', `${pct}%`], G.limit ? ['Scales in time', `${runs.filter(r => r.done && r.inTime).length}/4`] : ['Your time', fmt(G.ms)]],
-      best: old.best ? `Best: ${Math.max(pct, old.best)}% clean` : '', newBest: old.best > 0 && pct > old.best, newBestText: 'New best!',
+        : `Finish all ${words(nSc)} scales in time for a star. Practice mode has no clock.`,
+      tiles: [['Clean notes', `${clean}/${total}`], ['Clean', `${pct}%`], G.limit ? ['Scales in time', `${runs.filter(r => r.done && r.inTime).length}/${nSc}`] : ['Your time', fmt(G.ms)]],
+      best: (old.best ? `Best: ${Math.max(pct, old.best)}% clean` : '') + (G.fromMemory && stars > 0 ? `${old.best ? ' · ' : ''}★ From memory` : ''), newBest: old.best > 0 && pct > old.best, newBestText: 'New best!',
       extra,
       next: {label: 'Next level', hidden: !hasNext, onClick: () => A.requireMic(() => begin('audition', lv + 1))},
       retry: {label: 'Try again', onClick: () => A.requireMic(() => begin('audition', lv))},
@@ -619,7 +686,7 @@
     const r = G.runs[0], n = r.sc.notes.length, clean = cleanOf(r), miss = n - clean;
     const secs = Math.max(.1, r.ms / 1000), rate = clean / secs;
     const stars = !r.done ? 0 : rate >= CHROM_STARS.three.rate && miss <= CHROM_STARS.three.miss ? 3 : rate >= CHROM_STARS.two.rate && miss <= CHROM_STARS.two.miss ? 2 : 1;
-    const c = (gd.chrom = gd.chrom || {}), me = (c[member.id] = c[member.id] || {}), tenths = Math.round(r.ms / 100), oldT = me.t;
+    const c = bySec(gd.chrom = gd.chrom || {}, G.sec.id), me = (c[member.id] = c[member.id] || {}), tenths = Math.round(r.ms / 100), oldT = me.t;
     const newBest = r.done && (!oldT || tenths < oldT);
     const oldStars = me.stars || 0;
     if (r.done) { if (newBest) me.t = tenths; me.stars = Math.max(oldStars, stars); save(); }
@@ -628,7 +695,7 @@
       msg: stars === 3 ? 'The judges would love that.' : stars === 2 ? `${CHROM_STARS.three.rate} clean notes a second with no misses for 3 stars.` : `${CHROM_STARS.two.rate} clean notes a second with ${CHROM_STARS.two.miss} misses or fewer for 2 stars.`,
       tiles: [['Time', fmt1(r.ms)], ['Clean', `${clean}/${n}`], ['Notes a second', rate.toFixed(1)]],
       best: oldT || newBest ? `Best time: ${fmt1(Math.min(oldT || tenths, tenths) * 100)}` : '', newBest: newBest && !!oldT, newBestText: 'New best time!',
-      extra: sheetHTML(sheetRow(r, CHROM.label)),
+      extra: sheetHTML(sheetRow(r, G.sec.chrom.label)),
       retry: {label: 'Try again', onClick: () => A.requireMic(() => begin('chrom', 0))},
       levels: {label: 'Back', onClick: showHub}});
     Card.guard(document.getElementById('scoreSheet'));
@@ -908,11 +975,13 @@
 
   /* tests */
   A.ScaleTrainer = {
-    state: () => G ? {kind: G.kind, arg: G.arg, si: G.si, listening: G.listening, ms: G.ms, limit: G.limit, timeUp: G.timeUp, memory: G.memory, done: !!G.done,
+    state: () => G ? {kind: G.kind, arg: G.arg, si: G.si, listening: G.listening, ms: G.ms, limit: G.limit, timeUp: G.timeUp, memory: G.memory, fromMemory: G.fromMemory, section: G.sec.id, guide: G.guide, done: !!G.done,
       runs: G.runs.map(r => ({id: r.sc.id, i: r.i, n: r.sc.notes.length, res: r.res.slice(), started: r.started, done: r.done, inTime: r.inTime, wrong: r.wrong}))} : null,
     want: () => G && G.listening && cur().i < cur().sc.notes.length ? cur().sc.notes[cur().i] : null,
     heard: pc => G && heard(pc, performance.now()),
-    scales: () => SCALES, chromatic: () => CHROM, begin, setMs: ms => { if (G) G.ms = ms; },
+    scales: () => SEC.scales, chromatic: () => SEC.chrom, begin, setMs: ms => { if (G) G.ms = ms; },
+    section: () => SEC.id, setSection: id => { if (SECTION_IDS.includes(id)) { SEC = secData(id); setOpt({section: id}); showHub(); } },
+    range: () => (G ? G.sec : SEC).sound.slice(), guideTempos, sheetTime: () => SEC.sheet,
     member: () => member.id,
     attack: (t = performance.now()) => G && G.attacks.push(t),                 // an attack heard at t (as Pitch.onAttack reports it)
     articulation: () => G ? G.runs.map(articulation) : null,

@@ -1,7 +1,8 @@
 /* THE FINGERING TABLE (shared: Button Masher checks combos against it, Arcade Quest's FINGERING challenge draws from
    it, Scale Trainer's fingering card and NOTE BY NOTE show it, Music Highway's octave fit reads it). Every fingering
    Button Masher accepts, for every instrument. EVERY NOTE OF EVERY MEMBER'S GMEA CHROMATIC RANGE (instruments.js
-   `chromatic`) is listed (tests/scale-trainer.spec.js checks it), so every scale note has one too.
+   `chromatic`, middle school) AND OF THE HIGH SCHOOL RANGES (shared/scales.js CHROMATIC_HS) is listed
+   (tests/scale-trainer.spec.js checks both), so every scale note has one too.
    Verify against the 6th Grade Honor Band fingering charts.
 
    HOW TO READ IT
@@ -21,7 +22,7 @@
                 '1h' = key 1 HALF-HOLED (oboe, bassoon): the half state must match exactly.
                 Flute:     T (B thumb), Tb (B♭ thumb lever), G# (left pinky), Eb (right pinky),
                            C# C (the footjoint rollers: low C♯, low C; right pinky)
-                Oboe:      Oct (thumb octave key), Oct2 (side octave key), G# LEb LF (left pinky), REb RF RC# RC (right pinky)
+                Oboe:      Oct (thumb octave key), Oct2 (side octave key), G# LEb LF LB LBb (left pinky), REb RF RC# RC (right pinky)
                 Clarinet:  Th (thumb hole), Reg (register key), A, G# (throat keys), LE LF LF# (left pinky),
                            RE RF RAb (right pinky), SEb SBb (right-hand side keys: side E♭ and side B♭),
                            Sl (the C♯/G♯ sliver key, right hand)
@@ -65,6 +66,27 @@
      Euphonium B.C.: E2 1-2-3 (or 2-4) · F♯2 2-3 · B2 1-2-3 (or 2-4) · F♯3 2-3 · B3 1-2 (or 3) · C♯4 2 · E4 2 · F4 open
      Trombone:  E2 7th · F♯2 5th · B2 7th · F♯3 5th · B3 4th · C♯4 2nd (or 5th) · E4 2nd · F4 1st
      Tuba:      E1 1-2-3 (or 2-4) · F♯1 2-3 · B1 1-2-3 (or 2-4) · F♯2 2-3 · B2 1-2 (or 3) · C♯3 2 · E3 2 · F3 open
+
+   ADDED FOR SCALE TRAINER HS, PLEASE CHECK
+     The GMEA HIGH SCHOOL chromatic ranges (shared/scales.js CHROMATIC_HS) reach past the middle school ones: every note
+     below was missing. Primary first, then alternates; I'm confident of the valve brass and trombone, much less of the
+     woodwinds' top notes (marked ?): please check every one against your charts.
+     Trumpet and Baritone T.C. (to C6): A♭5 2-3 · A5 1-2 (or 3) · B♭5 1 · B5 2 · C6 open
+     Horn (to A5):  F♯5 2 (or T2) · A♭5 2-3 (or T2) · A5 1-2 (or T0)
+     Euphonium B.C. (to B♭4): F♯4 2-3 · G4 1-2 (or 3) · A♭4 1 (or 2-3) · A4 2 · B♭4 open
+     Tuba (to B♭3): F♯3 2-3 · G3 1-2 (or 3) · A♭3 1 (or 2-3) · A3 2 · B♭3 open
+     Trombone (to B♭4): F♯4 3rd (or 5th) · G4 2nd (or 4th) · A♭4 3rd (or 1st) · A4 2nd · B♭4 1st
+     Flute (to C7) ?: F♯6 T 1 3 | 6 E♭ · G6 1 2 3 | E♭ (no thumb) · A♭6 2 3 G♯ | E♭ · A6 T 1 | 5 E♭ ·
+                B♭6 T 1 G♯ | 4 E♭ · B6 T 1 3 G♯ | 4 + low C roller · C7 1 2 3 G♯ | 4 E♭
+     Oboe (B♭3 and B3 down low, to F6) ?: B♭3 1 2 3 + low B♭ (left pinky) | 4 5 6 + low C (or without low C) ·
+                B3 the same with low B · C♯6 Oct2 2 3 | 4 5 6 · D6 Oct2 1 2 3 | 4 5 · E♭6 Oct2 1 2 3 | 4 5 6 REb ·
+                E6 Oct2 1 2 | 4 5 RF · F6 Oct2 1 3 | 4 RF   (new keys on the oboe diagram: LB, LBb = low B and B♭, left pinky)
+     Clarinet (to G6, altissimo) ?: E♭6 Th Reg 2 3 | 5 6 + A♭/E♭ · E6 Th Reg 2 | 4 5 + A♭/E♭ · F6 Th Reg 2 | 4 + A♭/E♭ ·
+                F♯6 Th Reg 3 | 4 + A♭/E♭ · G6 Th Reg 3 | 5
+     Saxophones (B♭3 and B3 down low, to F6): B♭3 1 2 3 + low B♭ | 4 5 6 · B3 1 2 3 + low B | 4 5 6 ·
+                E♭6 Oct + palm D + palm E♭ · E6 … + side E · F6 … + side E + palm F
+     Bassoon (to B♭4) ?: F♯4 1 2 | 6 + F♯ (right thumb) · G4 1 2 | 4 5 + A♭ · A♭4 2 3 | 4 5 6 + A♭ · A4 2 3 | 4 5 ·
+                B♭4 2 3 | 4 5 + B♭ (right thumb)
 
    FINGERINGS I WAS NOT FULLY CERTAIN ABOUT (please check these first)
      Oboe (the whole oboe table deserves a check; student oboes vary):
@@ -125,6 +147,11 @@
     'F5':  ['1'],
     'F#5': ['2'],
     'G5':  ['0', '1-3'],
+    'Ab5': ['2-3'],                                     // added for Scale Trainer HS (to C6)
+    'A5':  ['1-2', '3'],
+    'Bb5': ['1'],
+    'B5':  ['2'],
+    'C6':  ['0'],
   };
 
   const HORN = {          // Horn in F (written). F side first, then B♭ side (thumb trigger)
@@ -153,7 +180,10 @@
     'Eb5': ['2', 'T1'],
     'E5':  ['0', 'T2'],
     'F5':  ['1', 'T0'],
+    'F#5': ['2', 'T2'],                                 // added for Scale Trainer HS (to A5)
     'G5':  ['0', 'T0', 'T1'],
+    'Ab5': ['2-3', 'T2'],
+    'A5':  ['1-2', 'T0'],
   };
 
   const EUPHONIUM = {     // Baritone / Euphonium B.C. (concert pitch). 4 = the 4th valve
@@ -183,6 +213,11 @@
     'Eb4': ['1'],
     'E4':  ['2'],
     'F4':  ['0'],
+    'F#4': ['2-3'],                                     // added for Scale Trainer HS (to B♭4)
+    'G4':  ['1-2', '3'],
+    'Ab4': ['1', '2-3'],
+    'A4':  ['2'],
+    'Bb4': ['0'],
   };
 
   const TUBA = {          // B♭ tuba (concert pitch). 4 = the 4th valve
@@ -212,6 +247,11 @@
     'Eb3': ['1'],
     'E3':  ['2'],
     'F3':  ['0'],
+    'F#3': ['2-3'],                                     // added for Scale Trainer HS (to B♭3)
+    'G3':  ['1-2', '3'],
+    'Ab3': ['1', '2-3'],
+    'A3':  ['2'],
+    'Bb3': ['0'],
   };
 
   /* ---------- trombone: slide positions ---------- */
@@ -242,6 +282,11 @@
     'Eb4': [3],
     'E4':  [2],
     'F4':  [1],
+    'F#4': [3, 5],                                      // added for Scale Trainer HS (to B♭4)
+    'G4':  [2, 4],
+    'Ab4': [3, 1],
+    'A4':  [2],
+    'Bb4': [1],
   };
 
   /* ---------- woodwinds ---------- */
@@ -276,9 +321,18 @@
     'Eb6': ['T 1 2 3 | 4 5 6 Eb'],
     'E6':  ['T 1 2 | 4 5 Eb'],
     'F6':  ['T 1 3 | 4 Eb'],
+    'F#6': ['T 1 3 | 6 Eb'],                            // added for Scale Trainer HS (to C7)
+    'G6':  ['1 2 3 | Eb'],
+    'Ab6': ['2 3 G# | Eb'],
+    'A6':  ['T 1 | 5 Eb'],
+    'Bb6': ['T 1 G# | 4 Eb'],
+    'B6':  ['T 1 3 G# | 4 C'],
+    'C7':  ['1 2 3 G# | 4 Eb'],
   };
 
   const OBOE = {
+    'Bb3': ['1 2 3 LBb | 4 5 6 RC', '1 2 3 LBb | 4 5 6'],     // added for Scale Trainer HS (low B♭ and B: left pinky)
+    'B3':  ['1 2 3 LB | 4 5 6 RC', '1 2 3 LB | 4 5 6'],
     'C4':  ['1 2 3 | 4 5 6 RC'],
     'C#4': ['1 2 3 | 4 5 6 RC#'],
     'D4':  ['1 2 3 | 4 5 6'],
@@ -304,6 +358,11 @@
     'Bb5': ['Oct 1 | 4'],
     'B5':  ['Oct 1', 'Oct2 1'],
     'C6':  ['Oct2 2', 'Oct 2'],
+    'C#6': ['Oct2 2 3 | 4 5 6'],                         // added for Scale Trainer HS (to F6)
+    'D6':  ['Oct2 1 2 3 | 4 5'],
+    'Eb6': ['Oct2 1 2 3 | 4 5 6 REb'],
+    'E6':  ['Oct2 1 2 | 4 5 RF'],
+    'F6':  ['Oct2 1 3 | 4 RF'],
   };
 
   const CLARINET = {      // B♭ Clarinet and Bass Clarinet (written)
@@ -342,9 +401,16 @@
     'C6':  ['Th Reg'],
     'C#6': ['Th Reg 2 3 | 4 5 RAb'],
     'D6':  ['Th Reg 2 3 | 4 RAb'],
+    'Eb6': ['Th Reg 2 3 | 5 6 RAb'],                     // added for Scale Trainer HS (to G6: altissimo)
+    'E6':  ['Th Reg 2 | 4 5 RAb'],
+    'F6':  ['Th Reg 2 | 4 RAb'],
+    'F#6': ['Th Reg 3 | 4 RAb'],
+    'G6':  ['Th Reg 3 | 5'],
   };
 
   const SAX = {           // Alto, Tenor and Baritone Sax (written)
+    'Bb3': ['1 2 3 LBb | 4 5 6'],                         // added for Scale Trainer HS (low B♭ and B)
+    'B3':  ['1 2 3 LB | 4 5 6'],
     'C4':  ['1 2 3 | 4 5 6 RC'],
     'C#4': ['1 2 3 LC# | 4 5 6'],
     'D4':  ['1 2 3 | 4 5 6'],
@@ -372,6 +438,9 @@
     'C6':  ['Oct 2', 'Oct 1 | SC'],
     'C#6': ['Oct'],
     'D6':  ['Oct pD'],
+    'Eb6': ['Oct pD pEb'],                                // added for Scale Trainer HS (to F6: palm keys)
+    'E6':  ['Oct pD pEb SE'],
+    'F6':  ['Oct pD pEb SE pF'],
   };
 
   const BASSOON = {
@@ -407,6 +476,11 @@
     'Eb4': ['1 2 Eb'],
     'E4':  ['1 2 | 4 5'],
     'F4':  ['1 2 | 4'],
+    'F#4': ['1 2 | 6 RF#'],                               // added for Scale Trainer HS (to B♭4)
+    'G4':  ['1 2 | 4 5 Ab'],
+    'Ab4': ['2 3 | 4 5 6 Ab'],
+    'A4':  ['2 3 | 4 5'],
+    'Bb4': ['2 3 | 4 5 RBb'],
   };
 
   /* instrument member id (shared/instruments.js) -> {diagram, notes}
