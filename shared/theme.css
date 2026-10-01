@@ -379,6 +379,8 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-hearts::before,.av-plate-hearts::after{content:"♥";color:var(--pink-hi);margin:0 4px}
 .av-plate-blossom{border-color:var(--pink-hi);border-style:dotted;background:linear-gradient(180deg,color-mix(in srgb,var(--pink-hi) 18%,transparent),color-mix(in srgb,var(--green) 12%,transparent))}
 .av-plate-blossom::before{content:"✿";color:var(--pink-hi);margin-right:4px}
+/* Spooky Season's bonus: candy corn (white tip, amber middle, orange base), soft enough for the name to read on it */
+.av-plate-candycorn{border-color:var(--amber);border-radius:10px 10px 6px 6px;background:linear-gradient(180deg,color-mix(in srgb,var(--white-hi) 30%,transparent) 0 30%,color-mix(in srgb,var(--amber) 36%,transparent) 30% 66%,color-mix(in srgb,var(--av-orange) 50%,transparent) 66%);box-shadow:0 0 0 1px var(--av-orange-d) inset}
 .av-plate-sunset{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--cyan) 26%,transparent),color-mix(in srgb,var(--amber) 30%,transparent) 55%,color-mix(in srgb,var(--pink) 24%,transparent))}
 [class*="av-plate-belt-"]{border-width:2px 2px 2px 8px;border-color:var(--pb)}
 .av-plate-belt-white{--pb:var(--belt-white)}.av-plate-belt-yellow{--pb:var(--belt-yellow)}.av-plate-belt-orange{--pb:var(--belt-orange)}.av-plate-belt-green{--pb:var(--belt-green)}

@@ -457,6 +457,16 @@ html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(
 .ev-pan .acts{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ev-decot{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--text-lo);cursor:pointer}
 .ev-decot input{width:22px;height:22px;accent-color:var(--ev)}
+/* THE BONUS LADDER (an event's optional `bonus`): locked = one line + the bonus items as dark silhouettes */
+.ev-bonus{margin-top:4px}
+.ev-bonus-locked{padding:10px 14px;border-radius:14px;border:1px dashed var(--ev2);background:color-mix(in srgb,var(--ev2) 8%,var(--deep))}
+.ev-bonus-locked h3{margin-top:0}
+.ev-bonus-line{margin:0;color:var(--text-hi);font-weight:700;text-wrap:balance}
+.ev-sils{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ev-sil{flex:none;width:52px;height:52px;display:grid;place-items:center;border-radius:10px;background:var(--floor-2);overflow:hidden}
+.ev-sil .pt-box{width:52px;height:52px}
+.ev-sil>*{filter:brightness(0) drop-shadow(0 0 1px var(--text-lo))}
+.ev-sil .ev-plate{font-size:8px;padding:0 2px}
 @media (max-width:520px){ .ev-step{grid-template-columns:1fr} .ev-giftbox{grid-template-columns:1fr} }
 
 .lobby>.sign,.lobby>.lobby-cards,.lobby>.save-nudge,.lobby>.zones{position:relative;z-index:1}

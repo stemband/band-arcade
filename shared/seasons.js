@@ -26,6 +26,10 @@
                      'days'    play on n different days
                  item: '<field>:<item id>' that the step unlocks
                Only what a student does DURING the event counts (by date).
+     bonus     OPTIONAL: a BONUS LADDER, the same step format as `ladder`, harder (for a long event). It opens once every
+               step of the main ladder is done; its progress counts the WHOLE event (the same activity log, from the
+               event's first day), so a student who already did a lot isn't sent back to zero. Any event can have one.
+     bonusEmoji  optional: after the panel's "BONUS CHALLENGES" heading ('👻')
    THE ITEMS themselves live in shared/avatar-parts.js (the SEASONAL ITEMS section at its end) with
    unlock: {event: '<event id>'}. A new item also goes at the END of its list in shared/avatar-code.js TABLE.
    Identity items (head coverings, glasses, hearing aids, the wheelchair) are never event items.
@@ -44,6 +48,16 @@ window.Arcade.SEASONS = [
      {do: 'levels', n: 5, item: 'back:batwings'},
      {do: 'endless', n: 500, item: 'effect:spookyglow'},
      {do: 'days', n: 3, item: 'bg:hauntedhallway'},
+   ],
+   // the BONUS LADDER (opens when all 5 challenges above are done; counts everything since Oct 1)
+   bonusEmoji: '👻',
+   bonus: [
+     {do: 'games', n: 8, item: 'hand:jacklantern'},
+     {do: 'stars', n: 30, item: 'top:mummywraps'},
+     {do: 'levels', n: 15, item: 'back:vampcape'},
+     {do: 'days', n: 8, item: 'effect:floatbats'},
+     {do: 'endless', n: 1500, item: 'plate:candycorn'},
+     {do: 'stars', n: 50, item: 'pet:reaper'},
    ]},
   {id: 'winter', name: 'Winter Fest', emoji: '❄️', start: '12-01', end: '01-07', look: 'winter', colors: ['cyan', 'blue'], deco: 'winter', jingle: 'event-winter-jingle',
    gift: 'top:scarf',
@@ -114,6 +128,9 @@ window.Arcade.SEASON_BACKDROPS = [
 /* ======================== the engine (no need to edit below) ========================
      Arcade.Seasons.active()          the event running today: {ev, from, to, key, daysLeft, preview} or null
      Arcade.Seasons.steps(occ)        the ladder with progress: [{i, do, n, have, done, owned, item, label}]
+     Arcade.Seasons.bonusOpen(occ)    the BONUS LADDER is open (the event has one and every main step is done)
+     Arcade.Seasons.bonusSteps(occ)   the bonus ladder with progress (the same rows + bonus: true), open or not
+     Arcade.Seasons.allSteps(occ)     the main ladder + the bonus ladder once it's open (what the banner counts)
      Arcade.Seasons.claim(occ)        the FREE GIFT (true if it was given now)
      Arcade.Seasons.check()           earn every finished step (the running event, and one that ended in the last
                                       14 days); returns the newly earned item keys. shared/skins.js calls it before
@@ -236,12 +253,13 @@ window.Arcade.SEASON_BACKDROPS = [
     const list = {head: P.HEADS, top: P.TOPS, shoes: P.SHOES, pet: P.PETS, back: P.BACKS, hand: P.HANDS, effect: P.EFFECTS, bg: P.BGS, plate: P.PLATES, eyes: P.EYES, mouth: P.MOUTHS, hairColor: P.HAIR_COLORS}[field] || [];
     return list.find(x => x.id === id) || null;
   };
-  /** every item an event gives: [{key, field, id, part, gift, step}] */
+  /** every item an event gives: [{key, field, id, part, gift, step, bonus}] (step = its place in its own ladder) */
   function itemsOf(ev) {
     const out = [];
-    const add = (key, gift, step) => { if (!key) return; const [field, id] = key.split(':'); out.push({key, field, id, part: partOf(key), gift, step}); };
-    add(ev.gift, true, -1);
-    (ev.ladder || []).forEach((s, i) => add(s.item, false, i));
+    const add = (key, gift, step, bonus) => { if (!key) return; const [field, id] = key.split(':'); out.push({key, field, id, part: partOf(key), gift, step, bonus}); };
+    add(ev.gift, true, -1, false);
+    (ev.ladder || []).forEach((s, i) => add(s.item, false, i, false));
+    (ev.bonus || []).forEach((s, i) => add(s.item, false, i, true));
     return out;
   }
   const eventOf = key => LIST().find(ev => itemsOf(ev).some(it => it.key === key)) || null;
@@ -273,16 +291,21 @@ window.Arcade.SEASON_BACKDROPS = [
     p.games = Object.keys(games).length;
     return p;
   }
-  const LABEL = {stars: n => `Earn ${n} ★`, levels: n => `Clear ${n} level${n === 1 ? '' : 's'}`, games: n => `Play ${n} different games`,
-    endless: n => `Score ${n} in any Endless mode`, days: n => `Play on ${n} different days`};
+  const num = n => Number(n).toLocaleString('en-US');                  // 1,500
+  const LABEL = {stars: n => `Earn ${num(n)} ★`, levels: n => `Clear ${num(n)} level${n === 1 ? '' : 's'}`, games: n => `Play ${n} different games`,
+    endless: n => `Score ${num(n)} in any Endless mode`, days: n => `Play on ${n} different days`};
   const label = s => (LABEL[s.do] || (() => 'Keep playing'))(s.n);
-  function steps(o) {
-    const p = progress(o);
-    return (o.ev.ladder || []).map((s, i) => {
-      const have = Math.min(s.n, p[s.do] || 0);
-      return {i, do: s.do, n: s.n, have, done: have >= s.n, owned: s.item ? owned(s.item) : have >= s.n, item: s.item || null, part: s.item ? partOf(s.item) : null, label: label(s)};
-    });
-  }
+  const rowsOf = (list, p, bonus) => (list || []).map((s, i) => {
+    const have = Math.min(s.n, p[s.do] || 0);
+    return {i, do: s.do, n: s.n, have, done: have >= s.n, owned: s.item ? owned(s.item) : have >= s.n, item: s.item || null, part: s.item ? partOf(s.item) : null, label: label(s), bonus};
+  });
+  function steps(o, p = progress(o)) { return rowsOf(o.ev.ladder, p, false); }
+  /** THE BONUS LADDER: the same progress (the whole event), whether it's open yet or not */
+  function bonusSteps(o, p = progress(o)) { return rowsOf(o.ev.bonus, p, true); }
+  /** open = the event has a bonus ladder and every step of the main ladder is done */
+  function bonusOpen(o, p = progress(o)) { return !!(o.ev.bonus && o.ev.bonus.length) && steps(o, p).every(s => s.done); }
+  /** the main ladder, + the bonus ladder once it's open */
+  function allSteps(o) { const p = progress(o); return steps(o, p).concat(bonusOpen(o, p) ? bonusSteps(o, p) : []); }
   const claimed = o => o.preview ? !!pmem().claimed[o.key] : !!((A.store.gameData('seasons').claimed || {})[o.key]);
   /** the FREE GIFT: only while the event runs */
   function claim(o = active()) {
@@ -301,7 +324,7 @@ window.Arcade.SEASON_BACKDROPS = [
     if (!previewId()) LIST().forEach(ev => occurrences(ev, now).forEach(o => { if (o.to < now && now - o.to < 14 * DAY) occs.push(o); }));
     occs.forEach(o => {
       if (seen[o.key]) return; seen[o.key] = 1;
-      steps(o).forEach(s => { if (s.done && s.item && giveItem(s.item)) out.push(s.item); });
+      allSteps(o).forEach(s => { if (s.done && s.item && giveItem(s.item)) out.push(s.item); });
     });
     return out;
   }
@@ -310,7 +333,7 @@ window.Arcade.SEASON_BACKDROPS = [
     const ev = eventOf(key);
     if (!ev) return 'A seasonal event item';
     const o = active(), it = itemsOf(ev).find(x => x.key === key);
-    if (o && o.ev === ev) return it.gift ? `${ev.name} free gift: claim it in the lobby!` : `${ev.name}: ${label(ev.ladder[it.step])}`;
+    if (o && o.ev === ev) return it.gift ? `${ev.name} free gift: claim it in the lobby!` : it.bonus ? `${ev.name} bonus: ${label(ev.bonus[it.step])}` : `${ev.name}: ${label(ev.ladder[it.step])}`;
     if (oneOff(ev)) return nextStart(ev) ? `Only during ${ev.name}` : `${ev.name} has ended`;
     return `Returns next ${ev.name}!`;
   }
@@ -325,7 +348,7 @@ window.Arcade.SEASON_BACKDROPS = [
     else if (!it.part.unlock || it.part.unlock.event !== ev.id) console.warn(`[seasons] ${it.key} needs unlock: {event: '${ev.id}'}`);
   })), 0);
 
-  A.Seasons = {list: LIST, backdrops: BACKDROPS, LOOK_IDS, backdrop, look, lookOn, setLookOn, leftText, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, label, claimed, claim, check,
+  A.Seasons = {list: LIST, backdrops: BACKDROPS, LOOK_IDS, backdrop, look, lookOn, setLookOn, leftText, today, dateKey, occurrence, occurrences, active, nextStart, itemsOf, eventOf, partOf, progress, steps, bonusSteps, bonusOpen, allSteps, label, claimed, claim, check,
     requirement, owned, when, get preview() { return !!previewId(); },
     /** a preview's UNLOCKED! cards are remembered in this tab only */
     previewSeen: key => !!(previewId() && (pmem().seen || {})[key]),

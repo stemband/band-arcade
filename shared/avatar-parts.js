@@ -752,6 +752,11 @@ window.AVATAR_PARTS = {};
      rows: ['.M....M.', '.MMMMMM.', 'MmmmmmmM', 'MmrmmrmM', 'MmmmmmmM', 'MmMMMMmM', '.MmmmmM.', '..M..M..']},
     {id: 'note', name: 'Note sprite', unlock: {stars: 150}, pal: {y: 'yellow', a: 'amber'},
      rows: ['....yy..', '....y.y.', '....y..y', '....y...', '..yyy...', '.yyyya..', '.yyyya..', '..aa....']},
+    // a round yellow happy face (an early first pet): smile, blink, a little hop (frames: below, with the other pets').
+    // Mr. Graham: to SELL it instead, make this unlock {shop: 150} and add 'pet:smiley' to the END of QUEST_V5.cosmetics
+    // in shared/backup.js.
+    {id: 'smiley', name: 'Smiley', unlock: {stars: 25}, pal: {y: 'yellow', a: 'amber', K: 'av-black'},
+     rows: ['........', '..aaaa..', '.ayyyya.', 'ayKyyKya', 'ayyyyyya', 'ayKyyKya', '.ayKKya.', '..aaaa..']},
     {id: 'star', name: 'Lucky star', unlock: {shop: 150}, pal: {y: 'yellow', a: 'amber', K: 'av-black'},
      rows: ['...yy...', '...yy...', 'yyyyyyyy', '.yKyyKy.', '..yyyy..', '.yyaayy.', 'yy....yy', '........']},
     {id: 'metronome', name: 'Metronome buddy', unlock: {shop: 250}, pal: {w: 'q-wood', W: 'q-wood-l', m: 'q-silver'},
@@ -936,6 +941,10 @@ window.AVATAR_PARTS = {};
   Object.assign(pet('ghost'), {seq: [0, 1, 0, 1], frames: [null, ['..WWWW..', '.WWWWWW.', '.WKWWKW.', '.WWWWWW.', '.WpWWpW.', '.WWWWWW.', 'W.WW.WW.', '.W..W..W']]});
   Object.assign(pet('metronome'), {seq: [0, 1, 0, 2], frames: [null, ['...ww...', '..wWWw..', '..wWmw..', '.wWWmWw.', '.wWmWWw.', 'wWWWWWWw', 'wwwwwwww', '........'],
     ['...ww...', '..wmWw..', '..wmWw..', '.wWmWWw.', '.wWmWWw.', 'wWWWWWWw', 'wwwwwwww', '........']]});
+  // Smiley: smile, smile, a 1 px hop, a blink (closed eyes = a short dash): 4 frames at 4 a second, a few pixels each
+  Object.assign(pet('smiley'), {seq: [0, 0, 2, 1], frames: [null,
+    ['........', '..aaaa..', '.ayyyya.', 'aKKyyKKa', 'ayyyyyya', 'ayKyyKya', '.ayKKya.', '..aaaa..'],
+    ['..aaaa..', '.ayyyya.', 'ayKyyKya', 'ayyyyyya', 'ayKyyKya', '.ayKKya.', '..aaaa..', '........']]});
   Object.assign(pet('star'), {seq: [0, 0, 1, 0], frames: [null, ['...yy...', '...yy...', 'yyyyyyyy', '.yKyyKy.', '..yyyy..', '.yyaayy.', 'yy....yy', '........'].map((r, y) => y === 3 ? '.yyyyyy.' : r)]});
 
   // ---- EFFECTS (the 'effect' slot): drawn around the avatar by shared/avatar-fx.js (never over the face or the name) ----
@@ -1254,6 +1263,51 @@ window.AVATAR_PARTS = {};
     {id: 'butterfly', name: 'Butterfly', unlock: ev('spring'), pal: {P: 'pink', p: 'yellow', K: 'av-black'}, seq: [0, 0, 1, 0],
      rows: ['.K....K.', '..K..K..', 'PP.KK.PP', 'PPPKKPPP', 'PpPKKPpP', '.PPKKPP.', '.PP..PP.', '........'],
      frames: [null, ['.K....K.', '..K..K..', '.P.KK.P.', '.PPKKPP.', '.PpKKpP.', '..PKKP..', '..P..P..', '........']]});
+
+  /* ---------- SPOOKY SEASON'S BONUS LADDER (shared/seasons.js `bonus`: opens after the 5 challenges). Earned, never
+     sold. Cute, never scary: a lantern with a smiling face, friendly wraps, a cape with a purple lining, cartoon bats
+     (shared/avatar-fx.js FX.floatbats), a candy corn name plate (theme.css) and the Lil' Reaper pet. ---------- */
+  // the glowing jack-o'-lantern lantern: hung from a little pole; its carved face glows and the candle flickers slowly
+  // (2 colors, each held half a second: a few pixels, never a flash)
+  P.HANDS.push(
+    {id: 'jacklantern', name: "Glowing jack-o'-lantern", unlock: ev('spooky'), pal: {I: 'amber', J: 'amber-ink', L: 'green', M: 'yellow'},
+     anim: {pal: {M: ['yellow', 'yellow', 'amber-hi', 'amber-hi']}},
+     bust(a) {
+       pxs(a, [[27, 13], [27, 12], [28, 11], [29, 10], [30, 10], [31, 10], [32, 11], [33, 12], [33, 13]], 'K');          // the wire handle
+       rowsAt(a, 13, [[28, 32], [27, 33], [27, 33], [27, 33], [27, 33], [27, 33], [28, 32]], 'I');
+       a.px(30, 12, 'L').px(31, 11, 'L');                                                                                  // the stem
+       pxs(a, [[30, 14], [30, 17]], 'J');                                                                                  // a rib
+       pxs(a, [[28, 15], [29, 15], [29, 16], [31, 15], [32, 15], [31, 16], [28, 18], [29, 18], [30, 18], [31, 18], [32, 18], [29, 19], [31, 19]], 'M');   // eyes + a grin, lit
+     }});
+  // mummy wraps: bandage bands over the student's own top (gaps show it), and a loose end that sways
+  const mummy = (x, y) => { const r = (y * 3 + Math.floor(x / 4)) % 9; return r < 6 ? 'D' : r < 8 ? 'E' : 'c'; };   // slanted bands, seams, a peek of the top
+  // the loose end: a 2-wide strip hanging off the right side; its lower part swings 1 px each way (d)
+  const looseEnd = (k, x, y0, n, d) => { for (let i = 0; i < n; i++) k.px(x + (i > 1 ? d : 0), y0 + i, 'D').px(x + 1 + (i > 1 ? d : 0), y0 + i, 'E'); return k; };
+  const mBust = d => looseEnd(bustBody(mummy).spans(27, [[15, 20]], 's'), 33, 29, 7, d).map(), mFront = d => looseEnd(torso(mummy), 20, 18, 4, d).map();
+  P.TOPS.push(
+    {id: 'mummywraps', name: 'Mummy wraps', unlock: ev('spooky'), sleeve: 1, sleeveCh: 'D', pal: {D: 'av-white', E: 'av-white-d'},
+     bust: mBust(0), front: mFront(0), side: sideT(mummy).map(), back: torso(mummy).map(),
+     anim: {maps: {bust: [0, 1, 0, -1].map(mBust), front: [0, 1, 0, -1].map(mFront)}}});
+  // the vampire cape: black outside, a purple lining, a high pointed collar behind the head; it sways like the capes
+  const vamp = (m, inside) => m && recolor(recolor(m, /1/g, inside ? 'O' : 'N'), /7/g, inside ? 'N' : 'O');
+  const vcBust = (() => { const b = vamp(cape.bustBehind, true); return {y: 16, half: ['....N.............', '....NN............', '....NON...........', '.....NON..........', '.....NOON.........',
+    '.....NOOON........', '......NOOON.......', '......NNOOON......', '.......NNNNNN.....', '..................'].concat(b.half)}; })();
+  const vcFront = (() => { const b = vamp(cape.behind.front, true); return {y: 11, half: ['........N.......', '........NO......', '........NON.....'].concat(b.half)}; })();
+  const vc = {bustBehind: vcBust, front: vcFront, side: vamp(cape.behind.side, false), back: vamp(cape.behind.back, false)};
+  P.BACKS.push({id: 'vampcape', name: 'Vampire cape', unlock: ev('spooky'), pal: {N: 'av-black', O: 'purple'},
+    bustBehind: vc.bustBehind, behind: {front: vc.front, side: vc.side, back: vc.back},
+    anim: {maps: {bustBehind: flap(vc.bustBehind, 13, 2), 'behind.front': flap(vc.front, 6), 'behind.back': flap(vc.back, 3)}}});
+  P.EFFECTS.push({id: 'floatbats', name: 'Floating bats', unlock: ev('spooky')});
+  P.PLATES.push({id: 'candycorn', name: 'Candy Corn name plate', unlock: ev('spooky')});
+  // Lil' Reaper: a tiny round friend in a dark purple hooded robe, big friendly eyes, a toy scythe with a rounded blade.
+  // Idle, bob (1 px down), wave (the scythe lifts), bob. No skull, no shadowed face.
+  P.PETS.push(
+    {id: 'reaper', name: "Lil' Reaper", unlock: ev('spooky'), pal: {R: 'purple-ink', r: 'purple', f: 'purple-hi', p: 'pink-hi', K: 'av-black', w: 'q-wood-l', b: 'q-silver'},
+     seq: [0, 1, 2, 1],
+     rows: ['...rrbbb', '..rRRr.w', '.rRffRrw', 'rRKffKRw', 'rRpffpRw', 'RRRRRRfw', 'RR.RR.Rw', '........'],
+     frames: [null,
+       ['........', '...rrbbb', '..rRRr.w', '.rRffRrw', 'rRKffKRw', 'rRpffpRw', 'RRRRRRfw', 'RR.RR.Rw'],
+       ['...rr.bb', '..rRRrbw', '.rRffRfw', 'rRKffKRw', 'rRpffpRw', 'RRRRRRR.', 'RR.RR.R.', '........']]});
 
   /* ---------- BLOCKTAVE (blocktave/): the Blocktave Builder hat (a builder's hard hat in the student's head color with
      a little neon block on top: its slate A and moss glow B) and the Band Hall background (the Encore chapter's scene,
