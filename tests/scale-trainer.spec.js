@@ -576,7 +576,7 @@ test('no file mentions the old name, except the migration, the redirect, the old
   const ALLOWED = {                                          // file → which lines may say it (null = any)
     'shared/storage.js': null,                               // the migration
     [OLD + '/index.html']: null,                             // the redirect
-    'CLAUDE.md': l => /RENAMED|redirect|scale-trainer-rename|old name/.test(l),
+    'docs/games/scale-trainer.md': l => /RENAMED|redirect|scale-trainer-rename|old name/.test(l),
     'shared/sounds.js': l => l.includes(OLD + '-menu') || /old name/.test(l),
     'shared/sounds/README.md': l => l.includes(OLD + '-menu'),
     'tests/scale-trainer.spec.js': null,                     // these tests
