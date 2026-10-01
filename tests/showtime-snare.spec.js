@@ -4,7 +4,7 @@
    fairness check at every showtime, and a wind player never seeing any of it. Hits are fired with the ?demo hook
    Arcade.Onsets.fake(time, level) (a hit at that exact moment and loudness). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageEvents} = require('./helpers');
 
 const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
@@ -30,7 +30,11 @@ async function card(page) { if (await page.locator('#spGo').isVisible()) await p
 /** wait until the target exists (and the check passes), closing any challenge card */
 async function waitFor(page, check, timeout = 30_000) {
   let s = null;
-  await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true);
+  try { await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true); } catch (e) {
+    const t = s && s.target, J = t && t.job;              // stuck: what the snare had, and what the page went through
+    e.message += `\n  the snare: ${JSON.stringify({phase: t && t.phase, job: J && {type: J.type, start: J.start, fill: J.fill, phaseDone: J.phaseDone}, log: s && s.log && s.log.slice(-12)})}\n  the page: ${await pageEvents(page)}`;
+    throw e;
+  }
   return s;
 }
 /** not muted (a sound playing mutes the microphone: nothing counts then) */
@@ -395,12 +399,16 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     let s = await waitFor(page, s => s.target.job.type === 'tempo' && s.target.job.start != null);
     expect(s.target.job.bpm).toBe(await page.evaluate(() => window.SNARE_RULES.maestro.bpm[0]));
     await freshCountIn(page);
+    // each eighth handed over up to 0.3 s before its moment, stamped with that moment (the Maestro judges every hit by its
+    // own time), so a busy machine's late timer can't push one out of the window
     const eighths = (spacing, n) => page.evaluate(([spacing, n]) => {
       const P = Arcade.Showtime.snarePlan(), e8 = P.beatS * 500;
-      for (let i = 0; i < n; i++) { const at = P.measureStartPerf + i * e8 * spacing; setTimeout(() => Arcade.Onsets.fake(at, .3), Math.max(0, at - performance.now())); }
+      for (let i = 0; i < n; i++) { const at = P.measureStartPerf + i * e8 * spacing; setTimeout(() => Arcade.Onsets.fake(at, .3), Math.max(0, at - 300 - performance.now())); }
       return P.beatS;
     }, [spacing, n]);
-    const beatS = await eighths(1, 16);
+    // 16 good eighths fill the meter (2 × maestro.beats); 4 spares, so one lost hit can't leave it a step short (the
+    // spares land in the next phase's count-in, which never counts)
+    const beatS = await eighths(1, 20);
     await page.waitForTimeout((4 + 8.5) * beatS * 1000);
     s = await waitFor(page, s => s.target.phase === 2 && s.target.job.start != null);
     expect(s.target.job.bpm).toBe(await page.evaluate(() => window.SNARE_RULES.maestro.bpm[1]));   // a new tempo each phase
