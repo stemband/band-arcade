@@ -4,7 +4,7 @@
      BW.starter(world, orig)   the STARTER CHECK (chapter 1's trees and Tone Ore near the spawn): {maple, cork, toneOre, ok}
      BW.repair(world)          the one-time repair of an older saved world (plants what the starter check misses)
      BW.generate(seed, R)      a new world {seed, w, h, b (Uint8Array, row-major), meta, bags, spawn, time, nights, …}
-     BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], …} (versioned)
+     BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], drops, …} (versioned: v 2; v 1 = no drops)
      BW.zone(world, x, y)      {biome, layer: 'peaks'|'surface'|'middle'|'depths'} (Treble Peaks / Bass Depths)
      BW.light(world, x, y, sky, lamps)   0–1
      BW.room(world, x, y)      the enclosed space around an air tile: {tiles, doors, walls} or null (open / too big)
@@ -211,7 +211,7 @@ window.Arcade = window.Arcade || {};
       }
     });
     const world = {v: 1, gen, seed: seed >>> 0, w: W, h: H, b, meta: {}, bags: [], spawn: {x: sx, y: sy}, time: 20, nights: 0, survived: 0,
-      player: null, cot: null, lockers: {}, repaired: REPAIR, dirty: true};
+      player: null, cot: null, lockers: {}, drops: [], repaired: REPAIR, dirty: true};
     if (gen >= 2) ensureStarter(world, world, R);             // THE STARTER GUARANTEE (below)
     delete world.tops;
     return world;
@@ -292,7 +292,9 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- SAVING: run-length encoded chunks of 16 columns (column by column), versioned ---------- */
-  const CHUNK = 16, VERSION = 1;
+  // VERSION 2 added `drops` (items lying in the world: [{x, y, item, n, t (seconds spent off screen)}]); a version-1 save
+  // loads with none
+  const CHUNK = 16, VERSION = 2;
   function encode(w) {
     const chunks = [];
     for (let c = 0; c < Math.ceil(w.w / CHUNK); c++) {
@@ -306,10 +308,10 @@ window.Arcade = window.Arcade || {};
     }
     return {v: VERSION, gen: w.gen || 1, repaired: w.repaired || 0, seed: w.seed, w: w.w, h: w.h, chunks, meta: w.meta, bags: w.bags,
       spawn: w.spawn, time: w.time, nights: w.nights, survived: w.survived, player: w.player, cot: w.cot, lockers: w.lockers || {},
-      stats: w.stats || {}};
+      drops: (w.drops || []).map(d => ({x: +d.x.toFixed(2), y: +d.y.toFixed(2), item: d.item, n: d.n, t: Math.round(d.t || 0)})), stats: w.stats || {}};
   }
   function decode(o) {
-    if (!o || typeof o !== 'object' || o.v !== VERSION || !Array.isArray(o.chunks) || !(o.w > 0) || !(o.h > 0)) return null;
+    if (!o || typeof o !== 'object' || !(o.v === 1 || o.v === VERSION) || !Array.isArray(o.chunks) || !(o.w > 0) || !(o.h > 0)) return null;
     const b = new Uint8Array(o.w * o.h);
     for (let c = 0; c < o.chunks.length; c++) {
       let x = c * CHUNK, y = 0;
@@ -323,7 +325,8 @@ window.Arcade = window.Arcade || {};
     }
     return {v: VERSION, gen: +o.gen || 1, repaired: +o.repaired || 0, seed: o.seed >>> 0, w: o.w, h: o.h, b, meta: o.meta || {}, bags: o.bags || [],
       spawn: o.spawn || {x: 20, y: 30}, time: +o.time || 0, nights: +o.nights || 0, survived: +o.survived || 0, player: o.player || null,
-      cot: o.cot || null, lockers: o.lockers || {}, stats: o.stats || {}};
+      cot: o.cot || null, lockers: o.lockers || {}, stats: o.stats || {},
+      drops: Array.isArray(o.drops) ? o.drops.filter(d => d && isFinite(d.x) && isFinite(d.y) && typeof d.item === 'string' && d.n > 0).map(d => ({x: +d.x, y: +d.y, item: d.item, n: +d.n, t: +d.t || 0})) : []};
   }
 
   /* ---------- queries ---------- */

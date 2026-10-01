@@ -523,10 +523,11 @@ the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched
 | `bt-break` | `bt-break.m4a` or `bt-break.mp3` | A block breaks. **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-mined` | `bt-mined.m4a` or `bt-mined.mp3` | A challenge passed: a music block breaks and drops its loot. **during play: under 0.5 s, unpitched** | under 0.3 s |
 | `bt-place` | `bt-place.m4a` or `bt-place.mp3` | A block placed, a door opened or closed. **during play: under 0.5 s, unpitched** | under 0.15 s |
-| `bt-pickup` | `bt-pickup.m4a` or `bt-pickup.mp3` | Your bag picked up, a Snack Bag eaten. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-pickup` | `bt-pickup.m4a` or `bt-pickup.mp3` | An item picked up (a drop in the world, your bag), a Snack Bag eaten. **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-wrong` | `bt-wrong.m4a` or `bt-wrong.mp3` | A challenge card missed (the card shakes; the block stays). **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-craft` | `bt-craft.m4a` or `bt-craft.mp3` | A performance passed at the Measure: the item is made. **during play: under 0.5 s, unpitched** | under 0.4 s |
 | `bt-calm` | `bt-calm.m4a` or `bt-calm.mp3` | A creature calmed (a Night Clam, a Sour Wisp, a Rusher). **during play: under 0.5 s, unpitched** | under 0.4 s |
+| `bt-poof` | `bt-poof.m4a` or `bt-poof.mp3` | A creature calmed: a soft, friendly poof (its item drops where it was). Falls back to bt-calm. **during play: under 0.5 s, unpitched** | under 0.4 s |
 | `bt-hurt` | `bt-hurt.m4a` or `bt-hurt.mp3` | You lose a heart. A soft bump, never scary. **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-powered` | `bt-powered.m4a` or `bt-powered.mp3` | A Composer row powered at its Conductor's Podium (it lights up, its door opens). Falls back to star-earned. | 0.5–1.5 s |
 | `bt-milestone` | `bt-milestone.m4a` or `bt-milestone.mp3` | A milestone done: a star! Falls back to star-earned. | 0.5–1.5 s |

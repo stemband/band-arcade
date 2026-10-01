@@ -117,6 +117,32 @@ window.BT_RULES = {
   bandHall: {minTiles: 24, brickShare: .8, stageMin: 3},
   composerMax: 8,             // a Composer row holds up to this many blocks
   doorWire: 2,                // a powered row opens doors this close to its blocks or its podium
+  /* ---------- WORLD DROPS: mined blocks and calmed creatures drop their item into the world ---------- */
+  pickupRadius: 1.5,          // every dropped item this close to you (tiles, to its center) is picked up by itself
+  magnetRadius: 2.5,          // … and from this close it glides toward you first (a short pull)
+  magnetSpeed: 9,             // the pull's speed, tiles a second
+  dropPop: [2.2, 6],          // a drop pops out: [sideways, up] speed (tiles a second), then falls with gravity
+  dropSpread: .35,            // INSTRUMENT mode's extra drops are spread this far apart (tiles)
+  dropBob: .08,               // a resting drop bobs this much (tiles; still with reduced motion)
+  dropDespawnS: 600,          // a drop OFF SCREEN this long disappears (never while you can see it; the lost-hearts bag never does)
+  maxDrops: 80,               // at most this many drops in the world: the oldest beyond that joins the nearest drop of its kind
+  invSlots: 24,               // your bag holds this many DIFFERENT items (tools aside); full = a drop stays on the ground
+  bagFullToastS: 3,           // "Bag full!" at most this often
+  /* ---------- LITTLE TOUCHES (reduced motion / the MOTION switch: no swing, poof or floating text) ---------- */
+  pickupLabelMs: 1100,        // "+1 Maple" over your head drifts up and fades over this long …
+  pickupMergeMs: 600,         // … the same item again within this long counts up in the same label ("+3 Maple")
+  pickupLabelsMax: 4,         // … at most this many labels at once
+  pickupAriaMs: 1500,         // screen readers hear the pickups at most this often (the labels' text, gathered)
+  tipDelayMs: 250,            // an item's tooltip shows after hovering / focusing this long …
+  tipLongPressMs: 400,        // … or a finger held on it this long (a normal tap still picks the item)
+  farFlashMs: 400,            // a tap on a block out of reach: its faint red outline shows this long …
+  farToastS: 3,               // … and "Too far: walk closer!" at most this often
+  swingMs: 260,               // mining / tapping a creature: the avatar's quick swing with its tool
+  chips: {n: 5, ms: 300},     // a block breaking: this many little chips, gone after this long
+  poofMs: 450,                // a creature calmed: a friendly puff of cloud and notes
+  /* the staffs on the cards: each note's room (staff units), plus extra in front of a note with a ♯ / ♭ / ♮ so its
+     accidental never touches the notehead before it or its own */
+  staffGap: 36, staffAccRoom: 16,
   /* ---------- SAVING ---------- */
   autosaveS: 30,              // the world saves itself this often (and on pause and when the page is hidden)
   /* ---------- DRAWING ---------- */

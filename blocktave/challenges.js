@@ -103,11 +103,19 @@ window.Arcade = window.Arcade || {};
   const loop = (c, fn) => { const tick = now => { if (C !== c || c.done) return; if (!c.paused) fn(now); c.raf = requestAnimationFrame(tick); }; c.raf = requestAnimationFrame(tick); };
 
   /* ---------- NOTES (played in order) ---------- */
+  /** where each note of a card's staff goes: every note gets rules.js staffGap, plus staffAccRoom in front of one with a
+      ♯ / ♭ / ♮, so an accidental never touches the notehead before it (nor its own: shared/ui.js draws it 31 units to
+      the left of its head). x0 = the first note's spot without an accidental. Returns {xs, end} (end = after the last). */
+  function spaceNotes(notes, x0) {
+    const xs = []; let x = x0;
+    notes.forEach(n => { if (n.acc || n.natural) x += R().staffAccRoom; xs.push(x); x += R().staffGap; });
+    return {xs, end: x - R().staffGap};
+  }
   function staffFor(c) {
-    const o = c.o, items = o.items, W = Math.max(260, 110 + A.keySigWidth(o.sig) + items.length * 46);
-    const x0 = 86 + A.keySigWidth(o.sig), step = items.length > 1 ? (W - x0 - 30) / items.length : 0;
+    const o = c.o, items = o.items, x0 = 78 + A.keySigWidth(o.sig);
+    const sp = spaceNotes(items.map(it => it.show), x0), W = Math.max(260, sp.end + 34);
     const cap = o.hint;
-    return A.staffSVG(o.clef, items.map((it, k) => ({n: it.show, x: items.length > 1 ? x0 + step * (k + .5) : (x0 + W) / 2 - 10, id: 'btn' + k,
+    return A.staffSVG(o.clef, items.map((it, k) => ({n: it.show, x: items.length > 1 ? sp.xs[k] : Math.max(sp.xs[0], (x0 + W) / 2 - 10), id: 'btn' + k,
       color: k < c.i ? '#0f8a5f' : k === c.i ? '#1d4fd8' : undefined, caption: cap ? it.label : ''})),
     {fit: o.fit || items.map(it => it.show), keySig: o.sig, width: W, captions: !!cap, label: 'The notes to play'});
   }
@@ -115,6 +123,7 @@ window.Arcade = window.Arcade || {};
     notes(c) {
       const o = c.o, items = o.items;
       const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
+      c.el.classList.toggle('wide', items.length > 4);
       draw();
       c.want = () => items[c.i];
       const right = () => { c.i++; draw(); if (c.i >= items.length) finish(c, true); };
@@ -166,12 +175,14 @@ window.Arcade = window.Arcade || {};
     /* ---------- KEY (TOUCH's long tone): a key signature or a scale to name ---------- */
     key(c) {
       const o = c.o, S = A.Scales, ids = S.LIST.map(s => s.id).filter(id => id !== 'chrom');
-      const all = ids.map(id => S.build(o.member, id)), pick = all[Math.floor(Math.random() * all.length)];
+      const all = ids.map(id => S.build(o.member, id)), pick = all.find(s => s.id === o.scale) || all[Math.floor(Math.random() * all.length)];
       const asSig = o.ask ? o.ask === 'sig' : Math.random() < .5;
-      const W = 330;
+      // "Name this scale": the notes with their own accidentals (no key signature), each spaced by its own width
+      const sp = spaceNotes(pick.up, 76);
       const staff = asSig
         ? A.staffSVG(o.clef, [], {fit: pick.up.slice(0, 1).map(n => n.show), keySig: pick.sig, width: 200, label: 'A key signature'})
-        : A.staffSVG(o.clef, pick.up.map((n, k) => ({n, x: 64 + k * 34})), {fit: pick.up, width: W, label: 'A scale'});
+        : A.staffSVG(o.clef, pick.up.map((n, k) => ({n, x: sp.xs[k]})), {fit: pick.up, width: sp.end + 30, label: 'A scale'});
+      c.el.classList.toggle('wide', !asSig);
       c.body.innerHTML = `<div class="bt-staff">${staff}</div>`;
       c.say.textContent = asSig ? 'Which key signature is this?' : 'Name this scale.';
       const order = all.slice().sort(() => Math.random() - .5);
@@ -319,7 +330,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('keyup', e => { if (A.DEMO && C && A.Pitch && (e.key === ' ' || e.key.toLowerCase() === 'w')) A.Pitch.demoNote = null; });
   addEventListener('resize', () => { if (C) place(C.el, C.o.at); });
 
-  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label,
+  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, spaceNotes,
     /** keep the open card beside its block as the camera moves (the game calls it a few times a second) */
     follow() { if (C && typeof C.o.at === 'function') place(C.el, C.o.at); }};
 })(window.Arcade);
