@@ -28,7 +28,7 @@ async function playBoss(page, {offsets = 0, intro = true} = {}) {
 }
 
 test.describe('music highway: the FINAL BOSS', () => {
-  test('the song: last, tier 4, passes the check, ≤ 12 lanes and no merged lane for every instrument, maxStars 141', async ({page, browserName}) => {
+  test('the song: last, tier 4, every note slurred, passes the check, ≤ 12 lanes and no merged lane for every instrument, maxStars 141', async ({page, browserName}) => {
     const watch = await game(page, browserName);
     const r = await page.evaluate(id => {
       const SM = Arcade.SongMap, i = MH_SONGS.findIndex(s => s.id === id), s = MH_SONGS[i], per = {};
@@ -40,12 +40,19 @@ test.describe('music highway: the FINAL BOSS', () => {
       }));
       const tr = Arcade.groupFor('trumpet'), tm = SM.forMember(s, tr.members.find(x => x.id === 'trumpet'), tr, {});
       return {last: i === MH_SONGS.length - 1, tier: s.tier, check: SM.check(s), per, max: Arcade.ALL_GAMES.find(g => g.id === 'music-highway').maxStars,
-        n: MH_SONGS.length, trumpet: tm.notes.map(n => n.label).join(' '), key: tm.writtenKey};
+        n: MH_SONGS.length, trumpet: tm.notes.map(n => n.label).join(' '), key: tm.writtenKey,
+        slur: SM.events(s).filter(e => !e.rest).map(e => [e.slur, !!e.slurFirst, !!e.slurLast])};
     }, ID);
     expect([r.last, r.tier, r.check]).toEqual([true, 4, []]);
     expect(r.max).toBe(r.n * 3);
     expect(r.max).toBe(141);
     expect(r.key).toBe('A minor');
+    // every note under ONE slur, from the first note to the last (the final rest stays outside it)
+    expect(r.slur.length).toBe(57);
+    expect(r.slur.every(x => x[0] === 1)).toBe(true);
+    expect(r.slur.map(x => x[1]).indexOf(true)).toBe(0);
+    expect(r.slur.map(x => x[2]).lastIndexOf(true)).toBe(56);
+    expect(r.slur.filter(x => x[1] || x[2]).length).toBe(2);
     expect(r.trumpet.split(' ').slice(0, 8).join(' ')).toBe('E D♯ D C♯ C F E D♯');
     expect(r.trumpet.split(' ').slice(32, 57).join(' ')).toBe('E F E D♯ E F E D♯ E F♯ G G♯ A B♭ A G♯ A G♯ G F♯ F F♯ G G♯ A');
     for (const [who, p] of Object.entries(r.per)) {
