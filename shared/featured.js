@@ -1,3 +1,4 @@
+/* keep-unminified */
 /* THE ASSIGNED GAME (Mr. Graham edits this file by hand).
    The arcade lobby shows a glowing ASSIGNED card for this game, with your note, and an ASSIGNED badge on its
    cabinet and in ALL GAMES.

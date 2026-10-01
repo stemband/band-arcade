@@ -60,6 +60,65 @@ window.Arcade.VERSION = 'dev';
     if (!ver || ver === 'dev' || !url || /^(data|blob):/.test(url)) return url;
     return url + (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + encodeURIComponent(ver);
   };
+  /** ON-DEMAND SCRIPTS: Arcade.need(paths) -> a Promise, resolved once every script has run. paths = one address or a
+      list, from the site's root ('shared/prizes.js', 'arcade3d.js'). Each script is added ONCE (a plain <script> tag
+      with the site version's ?v=, so it works from a double-clicked file too: no fetch, no eval), in order; a second
+      call returns the same Promise, and a script the page already lists is never added again. While it loads, the
+      button just tapped shows the UI kit's spinner; if it fails (offline and never stored) the toast "Couldn't open
+      that. Check your connection and try again." shows ({quiet: true}: no spinner, no toast: the caller has its own
+      fallback, as the 3D floor does) and the next call tries again. The floor's rarely used features load this way
+      (docs/engine/version-and-app.md "ON-DEMAND SCRIPTS"); a new rarely used lobby feature should too. */
+  const needs = {};
+  let tapped = null;
+  addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('button, a, [role="button"]');
+    tapped = b ? {el: b, t: Date.now()} : null;
+  }, true);
+  function addScript(path) {
+    if (needs[path]) return needs[path];
+    const url = (A.ROOT || '') + path, bare = u => u.split(/[?#]/)[0];
+    const had = [...document.scripts].some(s => s.src && bare(s.src) === bare(new URL(url, location.href).href));
+    needs[path] = had ? Promise.resolve() : new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = A.v(url); s.async = false;
+      s.onload = () => ok();
+      s.onerror = () => { s.remove(); delete needs[path]; fail(new Error('could not load ' + path)); };
+      document.head.appendChild(s);
+    });
+    return needs[path];
+  }
+  A.need = function (paths, {quiet = false} = {}) {
+    const list = [].concat(paths);
+    const p = list.reduce((prev, path) => prev.then(() => addScript(path)), Promise.resolve());
+    const btn = !quiet && tapped && Date.now() - tapped.t < 1500 && tapped.el.isConnected ? tapped.el : null;
+    let spin = null;
+    const t = btn && setTimeout(() => {               // a stored file runs at once: no spinner flash
+      spin = document.createElement('span'); spin.className = 'ui-spin'; spin.setAttribute('aria-hidden', 'true');
+      btn.appendChild(spin); btn.setAttribute('aria-busy', 'true');
+    }, 150);
+    const done = () => { clearTimeout(t); if (spin) { spin.remove(); btn.removeAttribute('aria-busy'); } };
+    p.then(done, e => {
+      done();
+      if (!quiet && A.UI && A.UI.toast) A.UI.toast("Couldn't open that. Check your connection and try again.", {kind: 'bad', ms: 3500});
+      if (window.console) console.warn('Band Arcade:', e && e.message);
+    });
+    return p;
+  };
+  /** a STAND-IN for a feature loaded on demand: A[name] = {lazy: true, load(), <each method>(...args)}; calling a
+      method loads the scripts (A.need) and then calls the real one (which the script put in A[name]), returning a
+      Promise of its answer (undefined when it couldn't load). `extra` = members that must work at once (e.g.
+      Backup.button draws its button). Never replaces a real one the page already has. */
+  A.lazy = function (name, paths, methods, extra = {}) {
+    if (A[name] && !A[name].lazy) return A[name];
+    const stub = Object.assign({lazy: true, isOpen: false, load: opts => A.need(paths, opts)}, extra);
+    methods.forEach(m => {
+      stub[m] = (...args) => A.need(paths).then(() => {
+        if (!A[name] || A[name].lazy) throw new Error(name + ' did not load');
+        return A[name][m](...args);
+      }, () => undefined);                            // couldn't load: the toast has said so; the answer is undefined
+    });
+    return (A[name] = stub);
+  };
   /** MOTION: the device's "reduce motion" OR the arcade's Motion switch (Settings; saved as gameData('bg').motion,
       which shared/storage.js keeps in localStorage 'bandarcade.v1'). Works like a MediaQueryList: .matches, and
       'change' listeners (called for both). */

@@ -1,3 +1,4 @@
+/* keep-unminified */
 /* Band Arcade: TEACHER SETTINGS. Switches for the teacher (Mat): edit a line, save, and push. Nothing here is ever
    changed by a student or saved on a device.
 

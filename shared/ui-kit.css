@@ -180,3 +180,9 @@ html.ui-in-level #topbar .brand{visibility:hidden}
 .ui-msg.loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border-radius:50%;border:3px solid var(--floor-3);border-top-color:var(--cyan);animation:ui-spin 1s linear infinite}
 @keyframes ui-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){ .ui-msg.loading::before{animation:none} }
+/* THE BUSY SPINNER on a button whose feature is still loading (Arcade.need, shared/version.js): the same spinner as
+   .ui-msg.loading, after the button's label */
+.ui-spin{display:inline-block;flex:none;width:14px;height:14px;margin-left:8px;vertical-align:-2px;border-radius:50%;border:3px solid var(--floor-3);border-top-color:var(--cyan);animation:ui-spin 1s linear infinite}
+[aria-busy="true"]{cursor:progress}
+@media (prefers-reduced-motion:reduce){ .ui-spin{animation:none;border-top-color:var(--floor-3);border-left-color:var(--cyan)} }
+html.no-motion .ui-spin{animation:none;border-top-color:var(--floor-3);border-left-color:var(--cyan)}

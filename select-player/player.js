@@ -187,7 +187,7 @@
   }
   on($('editBtn'), 'click', () => {
     const guest = phase === 2, id = ids[cur];
-    A.AvatarCreator.open({guest, member: info(id) ? id : null, onClose: () => { card(); $('editBtn').focus({preventScroll: true}); }});
+    A.AvatarBadge.edit({guest, member: info(id) ? id : null, onClose: () => { card(); $('editBtn').focus({preventScroll: true}); }});   // (loads shared/avatar-creator.js the first time)
   });
   on($('guestRand'), 'click', () => { A.Avatar.setGuest(A.Avatar.random()); A.Sfx.event('avatar-randomize'); card(); });
   function highlight(i, {focus = true, sound = true} = {}) {
@@ -291,14 +291,14 @@
     if (ids[cur] === id) card();
   }
   on($('skinsBtn'), 'click', openLocker);
-  on($('backupBtn'), 'click', () => A.Backup && A.Backup.open());       // shared/backup.js
+  on($('backupBtn'), 'click', () => A.Backup && A.Backup.open());       // shared/backup.js (on the floor: loaded on this tap)
 
   highlight(cur, {focus: false, sound: false});
   (saved && canPlay(saved) ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
   /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card. On a
      device's first visit, "Create your player?" comes first (once; skippable: the random avatar stays). */
   const catchUp = () => { if (live === me && saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)}); };
-  if (!A.AvatarCreator.offer({onDone: still(() => { card(); catchUp(); })})) catchUp();
+  if (!A.AvatarBadge.offer({onDone: still(() => { card(); catchUp(); })})) catchUp();          // (shared/avatar-badge.js)
   }
 
   function close() {

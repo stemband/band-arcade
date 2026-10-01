@@ -5,6 +5,10 @@
 # The stamp is made on the deploy's own copy of the files: nothing is committed back to main, so there is no loop
 # and nothing for anyone to remember. In the repository the version stays 'dev'.
 #
+# MINIFY: the same copy's scripts and stylesheets are made smaller (tools/minify-site.py, esbuild, one file at a time,
+# never bundled), so students' browsers have about half as much JavaScript to parse. Same file names and script tags;
+# a source map next to each file keeps DevTools' line numbers real. The repository stays plain files.
+#
 # SOUNDS: a push that adds or changes a sound in shared/sounds/ is published by compress-sounds.yml instead, after it
 # has made the sound small (the "sounds" job below skips the deploy here; compress-sounds.yml then starts this workflow).
 #
@@ -61,8 +65,15 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Stamp the site version (the commit's short id)
-        run: python3 tools/stamp-version.py "${GITHUB_SHA::7}"
+      # THE DEPLOY PIPELINE: stamp -> minify -> fingerprint -> publish, all on this copy (the repository is never
+      # minified, never commit minified files). tests.yml runs the same steps (tests/deploy.js) and the whole test
+      # suite on the result before anything merges.
+      - name: Stamp the site version (the commit's short id) into version.js and every page
+        run: python3 tools/stamp-version.py --stamp-only "${GITHUB_SHA::7}"
+      - name: Minify the published copy's .js and .css (tools/minify-site.py; a file esbuild can't read stays as it is)
+        run: python3 tools/minify-site.py
+      - name: The offline copy's file list (sw.js), fingerprinting the files exactly as published
+        run: python3 tools/stamp-version.py --fingerprints-only "${GITHUB_SHA::7}"
       - name: Leave the test tooling out of the published site (tests/ is never loaded by the site)
         run: rm -rf tests
       - uses: actions/configure-pages@v5

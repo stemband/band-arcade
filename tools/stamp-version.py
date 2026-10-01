@@ -2,7 +2,12 @@
 """Stamps the site version into the files GitHub Pages will serve (run by .github/workflows/pages.yml on every
 push to main, on the deploy's own copy: nothing is committed back to the repository).
 
-    python3 tools/stamp-version.py <version>        e.g. the commit's short id: a1b2c3d
+    python3 tools/stamp-version.py <version>        e.g. the commit's short id: a1b2c3d (both parts below)
+    python3 tools/stamp-version.py --stamp-only <version>          part 1 only (version.js + the pages)
+    python3 tools/stamp-version.py --fingerprints-only <version>   part 2 only (sw.js)
+
+THE DEPLOY PIPELINE (pages.yml): --stamp-only -> tools/minify-site.py (the published copy's .js/.css made smaller)
+-> --fingerprints-only, so sw.js fingerprints the files exactly as they are published (the MINIFIED ones).
 
   - shared/version.js:  Arcade.VERSION = 'dev'  ->  '<version>'
   - every .html page:   each local .js / .css it loads gets ?v=<version>;
@@ -17,7 +22,7 @@ import hashlib, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP = {'.git', '.github', 'node_modules', 'tests', 'tools'}
 # files a student's browser never loads (docs, tooling) stay out of the offline copy
-NOT_SERVED = {'.md', '.py', '.yml', '.yaml', '.txt', ''}
+NOT_SERVED = {'.md', '.py', '.yml', '.yaml', '.txt', '.map', ''}   # .map: the minified files' source maps (DevTools only)
 NOT_SERVED_NAMES = {'sw.js', 'CNAME', 'LICENSE', '.gitignore', '.nojekyll'}
 AT_INSTALL = {'.html', '.js', '.css', '.woff2', '.webmanifest'}
 
@@ -33,9 +38,7 @@ def offline_files():
     return files
 
 
-def main(version):
-    if not re.fullmatch(r'[A-Za-z0-9._-]{1,40}', version) or version == 'dev':
-        sys.exit(f'bad version: {version!r}')
+def stamp(version):
     vjs = ROOT / 'shared' / 'version.js'
     text, n = re.subn(r"window\.Arcade\.VERSION = '[^']*';", f"window.Arcade.VERSION = '{version}';", vjs.read_text(encoding='utf-8'), count=1)
     if n != 1:
@@ -52,6 +55,10 @@ def main(version):
         if out != html:
             page.write_text(out, encoding='utf-8')
             pages += 1
+    print(f'version {version}: shared/version.js + {pages} pages stamped')
+
+
+def fingerprints(version):
     sw = ROOT / 'sw.js'
     files = offline_files()
     text = sw.read_text(encoding='utf-8')
@@ -61,10 +68,22 @@ def main(version):
         sys.exit('sw.js: VERSION or FILES line not found')
     sw.write_text(text, encoding='utf-8')
     stored = sum(1 for v in files.values() if v[1] == 'p')
-    print(f'version {version}: shared/version.js + {pages} pages stamped; sw.js lists {len(files)} files ({stored} stored at install)')
+    print(f'version {version}: sw.js lists {len(files)} files ({stored} stored at install)')
+
+
+def main(args):
+    parts = [a for a in args if a.startswith('--')]
+    rest = [a for a in args if not a.startswith('--')]
+    if len(rest) != 1 or len(parts) > 1 or set(parts) - {'--stamp-only', '--fingerprints-only'}:
+        sys.exit(__doc__)
+    version = rest[0]
+    if not re.fullmatch(r'[A-Za-z0-9._-]{1,40}', version) or version == 'dev':
+        sys.exit(f'bad version: {version!r}')
+    if '--fingerprints-only' not in parts:
+        stamp(version)
+    if '--stamp-only' not in parts:
+        fingerprints(version)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    main(sys.argv[1])
+    main(sys.argv[1:])

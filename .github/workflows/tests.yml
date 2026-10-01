@@ -3,8 +3,9 @@
 # every test passed; a red ✗ = something broke: "Details" shows which test, and the "test-report-<browser>" download has the
 # screenshots.
 #
-# Test tooling lives ONLY in tests/ (its own package.json with Playwright) and here. The site itself stays plain files:
-# nothing is built, and the Pages deploy (pages.yml) doesn't wait for or depend on this workflow.
+# Test tooling lives ONLY in tests/ (its own package.json with Playwright and esbuild) and here. The site itself stays
+# plain files: nothing is built in the repository, and the Pages deploy (pages.yml) doesn't wait for or depend on this
+# workflow. Every test runs twice: on the repository's files and on the PUBLISHED copy (minified, as pages.yml makes it).
 name: Tests
 
 on:
@@ -22,13 +23,17 @@ concurrency:                  # a newer push to the same pull request cancels th
 
 jobs:
   test:
-    name: tests (${{ matrix.browser }})
+    # site: 'repository' = the files as they are in the repository (what Mat double-clicks); 'published' = the copy the
+    # Pages deploy publishes (tests/deploy.js: stamped with a test version and MINIFIED, the same steps as pages.yml),
+    # so anything minification breaks fails here before it merges. Both, in both browsers, must pass.
+    name: ${{ matrix.site == 'published' && format('tests on the published copy ({0})', matrix.browser) || format('tests ({0})', matrix.browser) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40                 # WebKit is the slow one: its full run passed 25 minutes as the Speedway tests grew
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, webkit]          # side by side, so the whole check takes about as long as one
+        site: [repository, published]
     defaults:
       run:
         working-directory: tests
@@ -43,12 +48,16 @@ jobs:
         run: npm ci
       - name: Install ${{ matrix.browser }}
         run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Make the published copy (stamp + minify + fingerprints, as pages.yml does)
+        if: matrix.site == 'published'
+        run: node deploy.js "$RUNNER_TEMP/site" testbuild
       - name: Run the tests (the site is served as-is with python3 -m http.server)
         run: npx playwright test --project=${{ matrix.browser }}
         env:
           CI: 'true'
+          ARCADE_SITE: ${{ matrix.site == 'published' && format('{0}/site', runner.temp) || '' }}
       - name: Blocktave's frame rate (alone on the machine, 4× CPU throttle)
-        if: matrix.browser == 'chromium'
+        if: matrix.browser == 'chromium' && matrix.site == 'repository'
         run: npx playwright test blocktave -g performance --project=chromium --workers=1
         env:
           CI: 'true'
@@ -57,7 +66,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-report-${{ matrix.browser }}
+          name: test-report-${{ matrix.browser }}-${{ matrix.site }}
           path: |
             tests/playwright-report/
             tests/test-results/
