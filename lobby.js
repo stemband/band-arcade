@@ -72,6 +72,7 @@ window.Arcade = window.Arcade || {};
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
     if (A.ChampionLobby) A.ChampionLobby.render();             // WEEKLY CHAMPIONS: the weekly check, the CHAMPION card (champion-lobby.js)
+    if (A.LeaderboardScreen) A.LeaderboardScreen.askGrade();   // "What grade are you in?" once there's a star and no grade (leaderboard-screen.js)
     if (A.BackupNudge) A.BackupNudge.refresh();                // now and then: "Save your progress!" (shared/backup-nudge.js)
   }
 
@@ -222,5 +223,15 @@ window.Arcade = window.Arcade || {};
     if (f) { f.scrollIntoView({block: 'center'}); f.focus({preventScroll: true}); }
   }
 
-  A.Lobby = {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice};
+  /** the lobby is on screen with NOTHING over it: no PRESS START, pick mode, panel, overlay, UNLOCKED! card or the
+      leaderboard (a lobby card that asks something, or a celebration, waits for this: champion-lobby.js, the grade card) */
+  function free() {
+    const l = $('lobby'), ps = $('pressStart');
+    if (!l || l.hidden || document.hidden || (ps && !ps.hidden)) return false;
+    if (document.body.classList.contains('in-select') || document.body.classList.contains('lb-open')) return false;
+    if (A.UI && ((A.UI.isOpen && A.UI.isOpen()) || (A.UI.layer && A.UI.layer.top()))) return false;
+    return ![...document.querySelectorAll('body > .overlay, .sk-catchup')].some(e => !e.hidden && e.getClientRects().length);
+  }
+
+  A.Lobby = {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice, free};
 })(window.Arcade);

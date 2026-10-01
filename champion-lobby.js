@@ -24,14 +24,7 @@ window.Arcade = window.Arcade || {};
   const ORD = {6: '6th', 7: '7th', 8: '8th'};
   let ov = null, waitT = 0, idleT = 0;
 
-  /** the lobby is on screen with nothing over it (PRESS START, pick mode, a panel, an overlay, the leaderboard) */
-  function lobbyFree() {
-    const l = $('lobby'), ps = $('pressStart');
-    if (!l || l.hidden || document.hidden || (ps && !ps.hidden)) return false;
-    if (document.body.classList.contains('in-select') || document.body.classList.contains('lb-open')) return false;
-    if (A.UI && ((A.UI.isOpen && A.UI.isOpen()) || (A.UI.layer && A.UI.layer.top()))) return false;
-    return ![...document.querySelectorAll('body > .overlay, .sk-catchup')].some(e => !e.hidden && e.getClientRects().length);
-  }
+  const lobbyFree = () => A.Lobby.free();                   // the lobby on screen with nothing over it (lobby.js)
   /* ---------- after the lobby is drawn: the check when the page is idle, then the card ---------- */
   function render() {
     if (!L() || !L().checkChampion) return;

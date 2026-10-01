@@ -699,3 +699,15 @@ html.no-motion .ch-confetti{display:none}
 .lb-champ-teach{margin-top:12px;padding-top:10px;border-top:1px dashed var(--floor-3)}
 .lb-champ-teach h3{margin:0 0 6px;font-size:15px}
 .lb-awards{margin:4px 0 8px;padding-left:18px}
+
+/* THE GRADE QUESTION (leaderboard-screen.js askGrade): a lobby card like SAVE YOUR PROGRESS */
+.grade-ask{max-width:1100px;margin:0 auto}
+.grade-ask:empty{display:none}
+.gq-icon{font-size:26px;line-height:1}
+.gq-card .gq-g{min-width:56px;font:400 20px var(--display)}
+
+/* ?teacher: this device's leaderboard state (leaderboard-screen.js deviceDiag) */
+.lb-dev{margin-top:12px;padding-top:10px;border-top:1px dashed var(--floor-3)}
+.lb-dev h3{margin:0 0 6px;font-size:15px}
+.lb-dev-list{margin:4px 0 8px;padding-left:18px}
+.lb-send-res{margin-top:6px}
