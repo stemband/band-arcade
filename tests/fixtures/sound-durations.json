@@ -9,6 +9,7 @@
   "arcade click.mp3": {"length": 0.3657, "sha": "889c5b2d883c"},
   "belt-diamond.mp3": {"length": 3.8771, "sha": "00245755e37b"},
   "belt-earned.mp3": {"length": 10.032, "sha": "1bd15e9c683f"},
+  "blocktave-cave.m4a": {"head": true, "length": 78.2977, "sha": "5a3c0c393b44", "tail": false},
   "blocktave-day.mp3": {"head": false, "length": 192.0, "sha": "07856900170f", "tail": false},
   "blocktave-menu.mp3": {"head": true, "length": 90.4196, "sha": "14bff80f002c", "tail": false},
   "blocktave-night.mp3": {"head": false, "length": 44.664, "sha": "07f501b246e0", "tail": true},
