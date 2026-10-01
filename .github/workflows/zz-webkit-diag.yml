@@ -1,0 +1,40 @@
+# TEMPORARY (removed before the pull request): the four WebKit tests that fail on a busy runner (Music Highway's full
+# songs and slurs, Sustain Speedway's slur lap and podium race), repeated, with their diagnostics in the log.
+name: WebKit diagnostics (temporary)
+
+on:
+  push:
+    branches: [claude/epic-thompson-d5v5rg]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webkit-diag-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diag:
+    name: webkit diag ${{ matrix.copy }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: The four tests, 3 times each, 2 browsers at a time (as the real WebKit shards)
+        run: npx playwright test music-highway-meters music-highway-slurs speedway-dynamics speedway-visuals --project=webkit --workers=2 --repeat-each=3 --retries=0 --reporter=list
+        env:
+          CI: 'true'
