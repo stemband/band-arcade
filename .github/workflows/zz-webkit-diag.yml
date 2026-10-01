@@ -34,18 +34,20 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps webkit
-      - name: Memory watch (every 2 s, in the background)
-        run: |
-          free -m; nproc
-          (while true; do echo "MEM $(date +%T) $(free -m | awk '/Mem:/{print "used="$3" avail="$7}') $(ps -eo rss,comm --sort=-rss | awk 'NR>1 && /WebKit|webkit|pw_run|MiniBrowser/{s+=$1; n++} END{print "webkit_rss_mb=" int(s/1024) " procs=" n}') top=$(ps -eo rss,comm --sort=-rss | awk 'NR==2{print int($1/1024)"MB:"$2}')"; sleep 2; done) > /tmp/mem.log 2>&1 &
-      - name: The two crashing specs, 3 times each, 2 browsers at a time (as the real WebKit shards)
-        run: npx playwright test music-highway-slurs speedway-visuals --project=webkit --workers=2 --repeat-each=3 --retries=0 --reporter=list
+      - name: gdb (to name the crash address)
+        run: sudo apt-get install -y -q gdb binutils elfutils > /dev/null
+      - name: The two crashing specs, 4 times each, 2 browsers at a time (as the real WebKit shards)
+        run: npx playwright test music-highway-slurs speedway-visuals --project=webkit --workers=2 --repeat-each=4 --retries=0 --reporter=list
         env:
           CI: 'true'
-          DEBUG: 'pw:browser'
-      - name: What the machine saw
+      - name: Where WebKit crashed
         if: always()
         run: |
-          awk '{print}' /tmp/mem.log | awk 'NR%5==1' | tail -400
-          echo "PEAK"; sort -t= -k4 -n /tmp/mem.log | tail -3
-          sudo dmesg -T | grep -i -E 'oom|killed process|out of memory|segfault|WebKit' | tail -40 || true
+          sudo dmesg -T | grep -i -E 'oom|killed process|out of memory|trap|segfault' | tail -40 || true
+          LIB=$(find ~/.cache/ms-playwright -name 'libWPEWebKit-2.0.so*' -type f | head -1); echo "LIB $LIB"; file "$LIB"
+          readelf -S "$LIB" | grep -E 'debug|symtab' || echo "no debug sections"
+          for off in $(sudo dmesg | grep -oP 'in libWPEWebKit[^\[]*\[\K[0-9a-f]+' | sort -u); do
+            echo "== offset 0x$off"
+            gdb -batch -ex "info symbol 0x$off" -ex "x/6i 0x$off-12" "$LIB" 2>&1 | tail -8
+            eu-addr2line -f -C -e "$LIB" 0x$off 2>&1 | head -4
+          done
