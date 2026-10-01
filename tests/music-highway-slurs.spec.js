@@ -3,7 +3,7 @@
    slurred pads, judging UNCHANGED (the same results whether slurred notes arrive tongued or smooth), and the feedback:
    SMOOTH vs "tongued" and the after-song tip (feedback only), with the Slur tips setting. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageEvents} = require('./helpers');
 
 const FROG = 20, SYDNEY = 18;                       // song indexes (0-based)
 const CAL = browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {});
@@ -15,9 +15,17 @@ async function board(page) {
 /** play one song start to finish through the game's own autoPlay hook; returns what the tests look at */
 async function play(page, i, o) {
   await page.evaluate(([i, o]) => { Arcade.Highway.start(i); Arcade.Highway.autoPlay(0, o); }, [i, o]);
-  await expect(page.locator('#results')).toBeVisible({timeout: 60_000});
+  try { await expect(page.locator('#results')).toBeVisible({timeout: 60_000}); } catch (e) { e.message += '\n' + await stuck(page); throw e; }
   return page.evaluate(() => ({log: Arcade.Highway.slurLog(), tip: Arcade.Highway.slurTip(), tipShown: document.getElementById('slurTip') ? document.getElementById('slurTip').textContent : null,
     counts: [...document.querySelectorAll('#resCounts span')].map(s => s.textContent), results: Arcade.Highway.results()}));
+}
+/** why a song didn't reach its results: the song's clock and phase, the audio context, the pause menu, the page's events */
+async function stuck(page) {
+  const g = await Promise.race([page.evaluate(() => { const s = Arcade.Highway.state(), o = Arcade.Sfx.output && Arcade.Sfx.output();
+    return JSON.stringify({phase: s.phase, t: s.t, judged: s.judged, total: s.total, paused: s.paused, clock: s.clock, ctx: o && o.ctx ? o.ctx.state : null,
+      pauseMenu: !document.getElementById('uiPause').hidden, hidden: document.hidden, focus: document.hasFocus()}); }).catch(e => 'page gone: ' + e.message.split('\n')[0]),
+    new Promise(r => setTimeout(() => r('no answer'), 3000))]);
+  return `  the song: ${g}\n  the page: ${await pageEvents(page)}`;
 }
 async function game(page, browserName, member = 'trumpet', extra = {}) {
   const store = device(member, CAL(browserName));

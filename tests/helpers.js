@@ -38,6 +38,15 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
     if (!mic && navigator.mediaDevices) {
       navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('No microphone in the tests', 'NotFoundError'));
     }
+    // what the page went through (pageEvents(page) prints it when a test is stuck): hidden / visible, pagehide, blur /
+    // focus, and the longest gap between animation frames
+    const E = window.__pageEvents = {gap: 0, log: []}; let last = 0;
+    const at = what => { if (E.log.length < 50) E.log.push(what + ' ' + Math.round(performance.now())); };
+    document.addEventListener('visibilitychange', () => at(document.hidden ? 'hidden' : 'visible'));
+    addEventListener('pagehide', () => at('pagehide'));
+    addEventListener('blur', () => at('blur'));
+    addEventListener('focus', () => at('focus'));
+    const f = t => { if (last) E.gap = Math.max(E.gap, Math.round(t - last)); last = t; requestAnimationFrame(f); }; requestAnimationFrame(f);
   }, [store, visit, mic]);
   page.on('pageerror', e => {
     // WebKit reports a download cancelled by a page change (the backup panel's reload) as an error "…/file due to access
@@ -142,6 +151,11 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
+/** what the page went through (prepare() records it), for a stuck test's error: '{gap, log}' or why it can't say */
+function pageEvents(page) {
+  return Promise.race([page.evaluate(() => JSON.stringify(window.__pageEvents || null)).catch(e => 'page gone: ' + e.message.split('\n')[0]),
+    new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
+}
 /** the memory (resident MB) of each page process this test worker's browser runs, biggest first: WebKit's
     WebKitWebProcess, Chromium's renderers. Linux only (it reads /proc); [] elsewhere. A diagnostic: it never fails. */
 function pageMemory() {
@@ -169,4 +183,4 @@ function pageMemory() {
   } catch (e) { return []; }
 }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, pageMemory};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, pageMemory, pageEvents};

@@ -6,7 +6,7 @@
    (at least 4 clicks on the PRIMARY beat: 2/2 two bars of halves, 6/8 two bars of dotted quarters, 3/8 four bars of
    one), the snare's DOWNBEATS RIGHT, and one ?demo autoPlay run per meter: 100 % PERFECT, every drum hit on the grid. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageEvents} = require('./helpers');
 
 const NEW = ['largo-symphony-9', 'the-wabash-cannonball', 'still-still-still', 'minka-minka', 'el-capitan', 'theme-from-the-barber-of-seville',
   'the-old-brass-wagon', 'the-galway-piper', 'sourwood-mountain', 'o-tannenbaum', 'procession-of-the-nobles', 'yankee-doodle-march', 'cindy',
@@ -189,7 +189,11 @@ test.describe('music highway: the book songs and the new meters', () => {
       expect(m1.from % m1.pulse).toBeCloseTo(0, 6);                     // resumed on a primary beat
       // then the whole song from the top, every note on time (autoPlay: through the real judging)
       await page.evaluate(i => { Arcade.Highway.start(i); Arcade.Highway.autoPlay(0); }, i);
-      await expect(page.locator('#results')).toBeVisible({timeout: 90_000});
+      try { await expect(page.locator('#results')).toBeVisible({timeout: 90_000}); } catch (e) {     // why it's stuck: the song, the audio, the page
+        const g = await page.evaluate(() => { const s = Arcade.Highway.state(), o = Arcade.Sfx.output && Arcade.Sfx.output();
+          return JSON.stringify({phase: s.phase, t: s.t, judged: s.judged, total: s.total, paused: s.paused, clock: s.clock, ctx: o && o.ctx ? o.ctx.state : null, pauseMenu: !document.getElementById('uiPause').hidden}); }).catch(x => 'page gone: ' + x.message.split('\n')[0]);
+        e.message += `\n  the song: ${g}\n  the page: ${await pageEvents(page)}`; throw e;
+      }
       const r = await page.evaluate(() => ({res: Arcade.Highway.results()}));
       expect(r.res.every(x => x === 'perfect'), r.res.join(' ')).toBe(true);
       await expect(page.locator('#results')).toContainText('100');
