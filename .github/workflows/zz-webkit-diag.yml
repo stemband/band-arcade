@@ -34,7 +34,18 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps webkit
-      - name: The four tests, 3 times each, 2 browsers at a time (as the real WebKit shards)
-        run: npx playwright test music-highway-meters music-highway-slurs speedway-dynamics speedway-visuals --project=webkit --workers=2 --repeat-each=3 --retries=0 --reporter=list
+      - name: Memory watch (every 2 s, in the background)
+        run: |
+          free -m; nproc
+          (while true; do echo "MEM $(date +%T) $(free -m | awk '/Mem:/{print "used="$3" avail="$7}') $(ps -eo rss,comm --sort=-rss | awk 'NR>1 && /WebKit|webkit|pw_run|MiniBrowser/{s+=$1; n++} END{print "webkit_rss_mb=" int(s/1024) " procs=" n}') top=$(ps -eo rss,comm --sort=-rss | awk 'NR==2{print int($1/1024)"MB:"$2}')"; sleep 2; done) > /tmp/mem.log 2>&1 &
+      - name: The two crashing specs, 3 times each, 2 browsers at a time (as the real WebKit shards)
+        run: npx playwright test music-highway-slurs speedway-visuals --project=webkit --workers=2 --repeat-each=3 --retries=0 --reporter=list
         env:
           CI: 'true'
+          DEBUG: 'pw:browser'
+      - name: What the machine saw
+        if: always()
+        run: |
+          awk '{print}' /tmp/mem.log | awk 'NR%5==1' | tail -400
+          echo "PEAK"; sort -t= -k4 -n /tmp/mem.log | tail -3
+          sudo dmesg -T | grep -i -E 'oom|killed process|out of memory|segfault|WebKit' | tail -40 || true
