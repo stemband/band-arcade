@@ -1101,7 +1101,9 @@ test.describe('Blocktave: world drops and the pickup radius', () => {
     const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 8); });
     await page.evaluate(i => Arcade.Blocktave.demo.calm(i), id);
     expect((await page.evaluate(() => Arcade.Blocktave.demo.stats())).clams, 'counted at the calming moment').toBe(1);
-    await page.waitForTimeout(800);
+    // it falls to the ground: the game's frames decide how fast (a slow runner's are slower), so wait for it to land
+    await expect.poll(async () => { const d = (await st(page)).drops.find(x => x.item === 'pearl'); return d ? Math.abs(d.y - (y0 - .22)) : 9; },
+      {message: 'it rests on the ground', timeout: 10_000}).toBeLessThan(.05);
     let s = await st(page);
     expect(s.inv.pearl || 0, 'not in your bag while you\'re far').toBe(0);
     expect(s.drops.filter(d => d.item === 'pearl').length).toBe(1);
