@@ -32,7 +32,9 @@ const nextTo = (page, key) => page.evaluate(k => { const d = Arcade.Blocktave.de
 const putBeside = (page, key) => page.evaluate(k => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
   d.put(x, y, k); d.put(x, y + 1, 'slate'); return {x, y}; }, key);
 const cardOpen = page => page.evaluate(() => !!Arcade.BlocktaveCard.current);
-const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000});
+// (checked every 100 ms, not on the page's animation frames: a card closes on a timer, and a busy WebKit runner can
+// starve a page's frames for seconds)
+const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000, polling: 100});
 
 test.describe('Blocktave: the world', () => {
   test('the same seed makes the same world; every biome and both deep layers exist', async ({page}) => {
@@ -518,7 +520,16 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
     test.setTimeout(300_000);
     const seeds = SEEDS.slice(part * 5, part * 5 + 5);
     const watch = await prepare(page, {store: store('trumpet', 'touch')});
-    for (const seed of seeds) {
+    // what the page saw (printed when a seed fails): the longest gap between animation frames, and any hidden / pagehide
+    await page.addInitScript(() => {
+      const L = window.__btLog = {gap: 0, vis: []}; let last = 0;
+      const f = t => { if (last) L.gap = Math.max(L.gap, Math.round(t - last)); last = t; requestAnimationFrame(f); }; requestAnimationFrame(f);
+      document.addEventListener('visibilitychange', () => L.vis.push((document.hidden ? 'hidden ' : 'visible ') + Math.round(performance.now())));
+      addEventListener('pagehide', () => L.vis.push('pagehide ' + Math.round(performance.now())));
+    });
+    const log = () => Promise.race([page.evaluate(() => JSON.stringify(window.__btLog)).catch(e => 'page gone: ' + e.message.split('\n')[0]),
+      new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
+    for (const seed of seeds) try {
       await page.goto(`blocktave/index.html?demo&nostart&seed=${seed}`);
       await page.locator('.ls-card:not(.ls-endless)').first().click();
       await page.locator('.ls-start').click();
@@ -530,7 +541,8 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
           const t = d.find(k, w.spawn); d.standBy(t.x, t.y); d.mine(t.x, t.y); d.answer(); return {d: Math.hypot(t.x - w.spawn.x, t.y - w.spawn.y), x: t.x, y: t.y}; }, key);
         expect(t.d, `seed ${seed}: ${key} near the spawn`).toBeLessThanOrEqual(R_NEAR);
         await waitCardGone(page);
-        await page.waitForFunction(() => !Arcade.Blocktave.state().drops.length, null, {timeout: 8000});   // the loot lands beside you: picked up
+        // the loot lands beside you: picked up (the world moves at most 50 ms a frame, so slow frames take longer)
+        await page.waitForFunction(() => !Arcade.Blocktave.state().drops.length, null, {timeout: 30_000, polling: 100});
         return t;
       };
       await mineNear('maple'); await craft('maple-planks');
@@ -544,7 +556,7 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
       const ms = await page.evaluate(() => ['mallet', 'ore10', 'shelter'].map(id => !!((Arcade.store.gameData('blocktave').ms || {}).trumpet || {})[id]));
       expect(ms, `seed ${seed}: chapter 1's three milestones`).toEqual([true, true, true]);
       await page.evaluate(() => { Arcade.Blocktave.showHub(); localStorage.clear(); });   // (the hub first: leaving the world saves it)
-    }
+    } catch (e) { e.message += `\n  seed ${seed}; the page: ${await log()}`; throw e; }
     watch.check();
   });
 

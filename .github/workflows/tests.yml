@@ -1,7 +1,7 @@
 # Band Arcade's AUTOMATIC TESTS: on every pull request (and every push to main), the whole arcade is opened in
 # Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how). A green ✓ on the pull request =
 # every test passed; a red ✗ = something broke: "Details" shows which test, and the "test-report-<browser>" download has the
-# screenshots (WebKit: test-report-webkit-<job number>, one per shard).
+# screenshots (test-report-<browser>-<job number>, one per shard).
 #
 # Test tooling lives ONLY in tests/ (its own package.json with Playwright) and here. The site itself stays plain files:
 # nothing is built, and the Pages deploy (pages.yml) doesn't wait for or depend on this workflow.
@@ -32,13 +32,15 @@ jobs:
         # took 35+ minutes (plus 5-11 to install it) and was cancelled at the 40-minute limit (October 2026, on main
         # too), so it runs as 4 SHARDS (Playwright's --shard: each job runs a quarter of the tests) on 4 machines,
         # with 2 browsers at a time each (--workers=2): with 4, a loaded runner's WebKit crashed Blocktave's pages
-        # ("Target crashed") and missed timing checks, though the page itself uses only a few MB.
+        # ("Target crashed") and missed timing checks, though the page itself uses only a few MB. Chromium runs as 2
+        # shards of 4 browsers: alone its tests took 33 minutes + 6 to install on a slow day and hit the limit too.
         include:
-          - browser: chromium
-          - {browser: webkit, shard: 1/4}
-          - {browser: webkit, shard: 2/4}
-          - {browser: webkit, shard: 3/4}
-          - {browser: webkit, shard: 4/4}
+          - {browser: chromium, shard: 1/2, workers: 4}
+          - {browser: chromium, shard: 2/2, workers: 4}
+          - {browser: webkit, shard: 1/4, workers: 2}
+          - {browser: webkit, shard: 2/4, workers: 2}
+          - {browser: webkit, shard: 3/4, workers: 2}
+          - {browser: webkit, shard: 4/4, workers: 2}
     defaults:
       run:
         working-directory: tests
@@ -54,11 +56,11 @@ jobs:
       - name: Install ${{ matrix.browser }}
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Run the tests (the site is served as-is with python3 -m http.server)
-        run: npx playwright test --project=${{ matrix.browser }} ${{ matrix.shard && format('--shard={0} --workers=2', matrix.shard) || '' }}
+        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --workers=${{ matrix.workers }}
         env:
           CI: 'true'
       - name: Blocktave's frame rate (alone on the machine, 4× CPU throttle)
-        if: matrix.browser == 'chromium'
+        if: matrix.browser == 'chromium' && matrix.shard == '1/2'
         run: npx playwright test blocktave -g performance --project=chromium --workers=1
         env:
           CI: 'true'
@@ -67,7 +69,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-report-${{ matrix.browser }}${{ matrix.shard && format('-{0}', strategy.job-index) || '' }}
+          name: test-report-${{ matrix.browser }}-${{ strategy.job-index }}
           path: |
             tests/playwright-report/
             tests/test-results/

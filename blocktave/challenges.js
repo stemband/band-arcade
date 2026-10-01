@@ -193,7 +193,7 @@ window.Arcade = window.Arcade || {};
       if (o.mode === 'inst') {
         c.say.textContent = items.length > 1 ? 'Play the notes in order on your instrument.' : 'Play this note on your instrument.';
         c.onHeld = pc => { if (c.done || c.paused) return; if (pc === items[c.i].pc) right(); else wrong(o.nameOf ? o.nameOf(pc) : null); };
-        c.answer = () => { while (!c.done && c.i < items.length) c.onHeld(items[c.i].pc); };
+        c.answer = () => { for (let k = c.i; k < items.length && !c.done; k++) c.onHeld(items[c.i].pc); };   // (paused: nothing, never a loop)
         if (A.Pitch) A.Pitch.ignoreCurrent();
       } else {
         c.say.textContent = items.length > 1 ? 'Tap the note names in order.' : 'Tap the note name.';
@@ -206,7 +206,7 @@ window.Arcade = window.Arcade || {};
         A.holdGuard && A.holdGuard(c.foot);
         c.pad = pad;
         c.onKey = e => { const k = e.key.toUpperCase(); if (/^[A-G]$/.test(k)) { pad.press(k, e); return true; } return false; };
-        c.answer = () => { while (!c.done && c.i < items.length) { const n = items[c.i].n; pad.setAcc(n.acc || 0); pad.press(n.letter, {timeStamp: performance.now()}); } };
+        c.answer = () => { for (let k = c.i; k < items.length && !c.done; k++) { const n = items[c.i].n; pad.setAcc(n.acc || 0); pad.press(n.letter, {timeStamp: performance.now()}); } };
       }
     },
 
