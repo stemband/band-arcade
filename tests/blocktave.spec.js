@@ -1106,6 +1106,315 @@ test.describe('Blocktave: the parallax backdrop', () => {
   });
 });
 
+test.describe('Blocktave: cave music deep underground', () => {
+  /** stand `depth` rows below the ground near the player (a pocket dug there), then let stepWay measure it */
+  const down = async (page, depth) => { await page.evaluate(dp => { const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), B = Arcade.BlocktaveWorld,
+      x = Math.floor(Arcade.Blocktave.state().player.x), g = B.top(W, x);
+    for (let y = g + dp - 3; y <= g + dp; y++) for (let k = -3; k <= 3; k++) d.put(x + k, y, 'air'); d.put(x, g + dp + 1, 'slate');
+    for (let k = -3; k <= 3; k++) d.put(x + k, g + dp + 1, 'slate'); d.tp(x, g + dp); }, depth);
+    await page.waitForFunction(dp => { const w = Arcade.Blocktave.state().way; return w && Math.abs(w.depth - dp) <= 1; }, depth, {timeout: 4000}); };
+  const surface = page => page.evaluate(() => { const W = Arcade.Blocktave.world(); Arcade.Blocktave.demo.tp(W.spawn.x, W.spawn.y); });
+
+  test('deeper than caveRows = the cave track (it wins over night); back above leaveRows = day/night; between them nothing switches', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.mouse.click(5, 300);                                            // a tap: the audio starts
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-day');
+    const M = await page.evaluate(() => window.BT_RULES.music);
+    await down(page, M.caveRows + 3);
+    await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-cave', null, {timeout: 4000});
+    await page.waitForFunction(() => { const m = Arcade.Sfx.musicState().music; return m.want === 'blocktave-cave' && m.playing === 'built-in'; }, null, {timeout: 6000});
+    // night + underground = cave
+    await page.evaluate(() => Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 30));
+    await page.waitForTimeout(400);
+    expect((await st(page)).music).toBe('blocktave-cave');
+    // hovering between leaveRows and caveRows: no switch either way
+    await down(page, Math.round((M.caveRows + M.leaveRows) / 2));
+    await page.waitForTimeout(700);
+    expect((await st(page)).music, 'still the cave on the way up').toBe('blocktave-cave');
+    await surface(page);
+    await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-night', null, {timeout: 4000});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-day', null, {timeout: 4000});
+    await down(page, Math.round((M.caveRows + M.leaveRows) / 2));
+    await page.waitForTimeout(700);
+    expect((await st(page)).music, 'not the cave yet on the way down').toBe('blocktave-day');
+    expect(await page.evaluate(() => Arcade.Sfx.musicState().music.want)).toBe('blocktave-day');
+  });
+
+  test('nothing plays while a card listens (INSTRUMENT mode); the cave track comes back after', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.mouse.click(5, 300);
+    const M = await page.evaluate(() => window.BT_RULES.music);
+    await down(page, M.caveRows + 3);
+    await page.waitForFunction(() => Arcade.Sfx.musicState().music.playing === 'built-in', null, {timeout: 6000});
+    const at = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+      d.give('mallet1', 1); d.put(x, y, 'toneOre'); d.mine(x, y); return !!Arcade.BlocktaveCard.current; });
+    expect(at).toBe(true);
+    await page.waitForFunction(() => Arcade.Pitch.listening() && Arcade.Sfx.musicState().music.playing === null, null, {timeout: 4000});
+    await page.evaluate(() => Arcade.BlocktaveCard.current.close());
+    await page.waitForFunction(() => Arcade.Sfx.musicState().music.playing === 'built-in', null, {timeout: 6000});
+  });
+});
+
+test.describe('Blocktave: the Recipe Book search', () => {
+  /** every recipe found, the craft panel + its book open */
+  const openBook = async page => {
+    await page.evaluate(() => { const g = Arcade.store.gameData('blocktave'); g.found = Object.fromEntries(window.BT_RECIPES.map(r => [r.id, 1])); Arcade.store.saveGameData('blocktave'); });
+    await page.keyboard.press('c');
+    await page.locator('#bookBtn').click();
+    await expect(page.locator('#bookSearch')).toBeVisible();
+  };
+  const selIndex = page => page.evaluate(() => [...document.querySelectorAll('.bt-hot')].findIndex(e => e.classList.contains('sel')));
+
+  test('"plank" finds Maple Planks and everything made with planks (marked); "xyz" says so; ✕ and Esc clear it; Esc again closes the book', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await openBook(page);
+    expect(await page.evaluate(() => document.activeElement && document.activeElement.id), 'never focused by itself').not.toBe('bookSearch');
+    await page.locator('#bookSearch').fill('PLANK');
+    const want = await page.evaluate(() => { const I = window.BT_ITEMS, n = id => (I[id] && I[id].name || id).toLowerCase();
+      return window.BT_RECIPES.filter(r => r.name.toLowerCase().includes('plank') || n(r.out).includes('plank') || r.in.some(i => n(i).includes('plank'))).map(r => r.id).sort(); });
+    const got = (await page.locator('#book .bt-rec[data-id]').evaluateAll(els => els.map(e => e.dataset.id))).sort();
+    expect(got).toEqual(want);
+    expect(got).toContain('maple-planks');
+    expect(got).toContain('wooden-mallet');
+    expect(got.length).toBeLessThan(await page.evaluate(() => window.BT_RECIPES.length));
+    await expect(page.locator('#book .bt-rec[data-id="maple-planks"] b mark')).toHaveText('Plank');
+    await expect(page.locator('#book .bt-rec[data-id="wooden-mallet"] .bt-why mark').first()).toHaveText('Plank');
+    // a performance word
+    await page.locator('#bookSearch').fill('scale');
+    expect(await page.locator('#book .bt-rec[data-id]').count()).toBeGreaterThan(0);
+    // nothing
+    await page.locator('#bookSearch').fill('xyz');
+    await expect(page.locator('#bookEmpty')).toHaveText("No recipes match 'xyz'.");
+    await expect(page.locator('#book')).toBeHidden();
+    // ✕ clears
+    await page.locator('#bookSearchX').click();
+    await expect(page.locator('#bookSearch')).toHaveValue('');
+    await expect(page.locator('#bookEmpty')).toBeHidden();
+    expect(await page.locator('#book .bt-rec[data-id]').count()).toBe(await page.evaluate(() => window.BT_RECIPES.length));
+    // Esc clears, a second Esc closes the book (never the pause menu)
+    await page.locator('#bookSearch').fill('mallet');
+    await page.locator('#bookSearch').press('Escape');
+    await expect(page.locator('#bookSearch')).toHaveValue('');
+    await expect(page.locator('#bookWrap')).toBeVisible();
+    await page.locator('#bookSearch').press('Escape');
+    await expect(page.locator('#bookWrap')).toBeHidden();
+    await expect(page.locator('#uiPause')).toBeHidden();
+    // closing the book clears the search; "/" focuses it
+    await page.locator('#bookBtn').click();
+    await page.locator('#bookSearch').fill('door');
+    await page.locator('#craftClose').click();
+    await page.keyboard.press('c');
+    await page.keyboard.press('/');
+    await expect(page.locator('#bookSearch')).toBeFocused();
+    await expect(page.locator('#bookSearch')).toHaveValue('');
+  });
+
+  test('typing in the field never controls the game: "e", "c", "1", Space, W/A/D, B', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await openBook(page);
+    const before = await st(page), sel0 = await selIndex(page);
+    await page.locator('#bookSearch').focus();
+    await page.keyboard.type('ec1 wad3 b');
+    await page.waitForTimeout(400);
+    const s = await st(page);
+    await expect(page.locator('#bookSearch')).toHaveValue('ec1 wad3 b');
+    expect(s.panel, 'still the craft panel (E / C did nothing)').toBe('craft');
+    expect(s.build).toBe(before.build);
+    expect(Math.abs(s.player.x - before.player.x)).toBeLessThan(.01);
+    expect(await selIndex(page), 'the hotbar slot did not change').toBe(sel0);
+  });
+
+  for (const [name, vp] of [['phone', {width: 390, height: 844}], ['iPad', {width: 820, height: 1180}], ['Chromebook', {width: 1366, height: 768}]]) {
+    test(`the search field fits (${name})`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      await openBook(page);
+      const r = await page.evaluate(() => { const a = document.getElementById('bookSearch').getBoundingClientRect(); return {left: a.left, right: a.right, h: a.height, vw: innerWidth}; });
+      expect(r.left).toBeGreaterThanOrEqual(0);
+      expect(r.right).toBeLessThanOrEqual(r.vw + .5);
+      expect(r.h).toBeGreaterThanOrEqual(44);
+      await page.locator('#bookSearch').fill('a');
+      const xb = await page.locator('#bookSearchX').boundingBox();
+      expect(xb.width).toBeGreaterThanOrEqual(44);
+      expect(xb.x + xb.width).toBeLessThanOrEqual(r.right + .5);
+    });
+  }
+});
+
+test.describe('Blocktave: PAUSE right above the milestones box', () => {
+  for (const [name, vp] of [['phone portrait', {width: 390, height: 844}], ['iPad portrait', {width: 820, height: 1180}], ['iPad landscape', {width: 1180, height: 820}],
+    ['Chromebook', {width: 1366, height: 768}], ['short landscape', {width: 844, height: 390}]]) {
+    test(`the pause button sits on top of the goals and covers no HUD piece (${name})`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      const r = await page.evaluate(() => {
+        const box = el => { if (!el || !el.getClientRects().length) return null; const b = el.getBoundingClientRect(); return b.width && b.height ? {l: b.left, t: b.top, r: b.right, b: b.bottom} : null; };
+        const p = box(document.getElementById('uiPauseBtn')), g = box(document.getElementById('goals'));
+        const others = {hearts: '#hearts', hud: '.bt-hud', hotbar: '#hotbar', bottom: '.bt-bottom', padMove: '#padMove', padAct: '#padAct', courage: '#courage'};
+        const hits = Object.entries(others).filter(([, q]) => { const o = box(document.querySelector(q)); return o && p.l < o.r && o.l < p.r && p.t < o.b && o.t < p.b; }).map(([k]) => k);
+        return {p, g, hits, inset: 12};
+      });
+      expect(r.p, 'the pause button shows').not.toBeNull();
+      expect(r.hits, 'nothing under the pause button').toEqual([]);
+      if (r.g) {
+        expect(Math.abs(r.p.l - r.g.l), 'the same left edge').toBeLessThanOrEqual(2);
+        const gap = r.g.t - r.p.b;
+        expect(gap, 'right above the goals').toBeGreaterThanOrEqual(0);
+        expect(gap).toBeLessThanOrEqual(16);
+      } else {
+        expect(name, 'the goals hide only in short landscape').toBe('short landscape');
+        expect(r.p.l).toBeGreaterThanOrEqual(10);
+        expect(r.p.t, 'in the goals\' spot: the top-left').toBeLessThanOrEqual(20);
+      }
+      // a card never sits under it
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+        d.give('mallet1', 1); d.put(x, y, 'toneOre'); d.mine(x, y); });
+      const cov = await page.evaluate(() => { const a = document.getElementById('uiPauseBtn').getBoundingClientRect(), c = document.querySelector('.bt-card'); if (!c) return false; const b = c.getBoundingClientRect();
+        return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; });
+      expect(cov, 'a card is never under the pause button').toBe(false);
+      await page.evaluate(() => Arcade.BlocktaveCard.current && Arcade.BlocktaveCard.current.close());
+      // P still pauses, P again resumes
+      await page.keyboard.press('p');
+      await expect(page.locator('#uiPause')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('#uiPause')).toBeHidden();
+    });
+  }
+});
+
+test.describe('Blocktave: the count-off you can hear on rhythm cards', () => {
+  /** a Rhythm Rock beside the player, mined: its card opens (the audio already started by a tap) */
+  const rockCard = page => page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+    d.give('mallet1', 1); d.put(x, y, 'rhythmRock'); d.mine(x, y); const c = Arcade.BlocktaveCard.current; return c && c.state(); });
+  const spacing = cs => cs.slice(1).map((k, i) => k.t - cs[i].t);
+
+  test('TOUCH: one measure of clicks on the audio clock (beat 1 accented, evenly spaced, none from the downbeat on); the setting OFF = silent', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.mouse.click(5, 300);
+    await page.waitForFunction(() => !!(Arcade.Sfx.output && Arcade.Sfx.output()));
+    const s = await rockCard(page);
+    expect(s.kind).toBe('rhythm');
+    const co = s.countOff, R = await page.evaluate(() => window.BT_RULES.rhythm);
+    expect(co.on).toBe(true);
+    expect(co.clicks.length).toBe(4);
+    expect(co.clicks.map(k => k.accent)).toEqual([true, false, false, false]);
+    const beat = 60 / R.bpm;
+    spacing(co.clicks).forEach(d => expect(Math.abs(d - beat) * 1000, 'beat spacing').toBeLessThan(2));
+    co.clicks.forEach(k => expect(k.perf, 'before the downbeat').toBeLessThan(s.t0 - 1));
+    expect(Math.abs(s.t0 - co.clicks[3].perf - beat * 1000), 'the downbeat comes a beat after the last click').toBeLessThan(2);
+    expect(co.muteUntil, 'no microphone: nothing muted').toBeNull();
+    await page.evaluate(() => Arcade.BlocktaveCard.current.close());
+    // the setting OFF
+    await page.evaluate(() => { const g = Arcade.store.gameData('blocktave'); g.countoff = false; Arcade.store.saveGameData('blocktave'); });
+    const off = await rockCard(page);
+    expect(off.countOff.on).toBe(false);
+    expect(off.countOff.silentWhy).toBe('setting off');
+    expect(off.countOff.clicks).toEqual([]);
+  });
+
+  test('3/4 counts three, 6/8 counts all six (eighth notes); 4/4 four', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.mouse.click(5, 300);
+    await page.waitForFunction(() => !!(Arcade.Sfx.output && Arcade.Sfx.output()));
+    for (const [time, text, n, ticks] of [['3/4', 'q q q', 3, 12], ['6/8', 'q. q.', 6, 6], ['4/4', 'q q q q', 4, 12]]) {
+      const s = await page.evaluate(({time, text}) => { const C = Arcade.BlocktaveCard; C.open({kind: 'rhythm', mode: 'touch', time, text, bpm: 80, at: {x: 300, y: 300}}); const st = C.current.state(); C.close(); return st; }, {time, text});
+      expect(s.countOff.clicks.length, time).toBe(n);
+      expect(s.countOff.clicks[0].accent).toBe(true);
+      const want = 60 / 80 * ticks / 12;
+      spacing(s.countOff.clicks).forEach(d => expect(Math.abs(d - want) * 1000, time).toBeLessThan(2));
+    }
+  });
+
+  test('INSTRUMENT: the clicks mute the microphone until they have died away, never into the first note; ?demo autoPlay still passes', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.mouse.click(5, 300);
+    await page.waitForFunction(() => !!(Arcade.Sfx.output && Arcade.Sfx.output()));
+    const s = await rockCard(page);
+    const co = s.countOff, R = await page.evaluate(() => window.BT_RULES);
+    expect(co.on).toBe(true);
+    expect(co.muteUntil).not.toBeNull();
+    // every click lands inside the mute, and the mute ends before the first note's window opens
+    for (const k of co.clicks) expect(await page.evaluate(t => Arcade.Pitch.isSuppressed(t), k.perf + 60)).toBe(true);
+    expect(co.muteUntil).toBeGreaterThanOrEqual(co.clicks[co.clicks.length - 1].perf + R.countOffEchoMs);
+    expect(co.muteUntil, 'the first note\'s window stays open').toBeLessThanOrEqual(s.t0 - R.rhythm.lateMs);
+    // a clap during the count-off never counts (it is before the first note), and the right performance, played by ?demo
+    // (onsets at every note, minus the saved delay), still passes: the Rhythm Rock breaks and drops its item
+    await page.evaluate(() => Arcade.Onsets.fake());
+    await page.evaluate(() => Arcade.BlocktaveCard.current.answer());
+    await waitCardGone(page);
+    await expect.poll(async () => { const s = await st(page); return (s.inv.rhythm || 0) + s.drops.filter(d => d.item === 'rhythm').length; }, {timeout: 6000}).toBeGreaterThan(0);
+  });
+
+  test('INSTRUMENT: a tempo so fast that the mute would reach the first note keeps the count-in silent', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.mouse.click(5, 300);
+    await page.waitForFunction(() => !!(Arcade.Sfx.output && Arcade.Sfx.output()));
+    const s = await page.evaluate(() => { Arcade.Pitch.pauseListening(false); const C = Arcade.BlocktaveCard; C.open({kind: 'rhythm', mode: 'inst', text: 'q q q q', bpm: 200, at: {x: 300, y: 300}}); const st = C.current.state(); C.close(); return st; });
+    expect(s.countOff.on).toBe(false);
+    expect(s.countOff.silentWhy).toMatch(/first note/);
+  });
+});
+
+test.describe('Blocktave: the Neon Torch', () => {
+  test('made from Planks + a Tone Shard; the first-time card; in the hotbar it lights the dark (drawn only: spawning unchanged); it can\'t be placed', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('planks', 1); d.give('tone', 1); d.craft('neon-torch'); d.answer(); });
+    await waitCardGone(page);
+    // the first time: the card ("A Neon Torch!")
+    await expect(page.locator('#intro')).toContainText('A Neon Torch!');
+    await page.locator('#intro [data-act=go]').click();
+    let s = await st(page);
+    expect(s.inv.torch).toBe(1);
+    expect(s.hot, 'it went into the hotbar').toContain('torch');
+    expect(s.torch).toBe(true);
+    // underground at noon, in a dark room 20 rows down: 6 tiles away the drawn light is ≥ caveMin + .3 with it, not without
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    const at = await page.evaluate(() => { const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), B = Arcade.BlocktaveWorld, x = Math.floor(Arcade.Blocktave.state().player.x), g = B.top(W, x), y = g + 20;
+      for (let xx = x - 10; xx <= x + 10; xx++) for (let yy = y - 9; yy <= y + 1; yy++) d.put(xx, yy, (yy === y + 1 || yy === y - 9) ? 'slate' : 'air');
+      d.tp(x, y); return {x, y}; });
+    const lit = () => page.evaluate(({x, y}) => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(Arcade.Blocktave.lightAt(x + 6, y - 1))))), at);
+    const R = await page.evaluate(() => window.BT_RULES.light);
+    const withTorch = await lit();
+    expect(withTorch).toBeGreaterThanOrEqual(R.caveMin + .3);
+    const spawn = await page.evaluate(({x, y}) => Arcade.Blocktave.demo.canSpawnAt(x + 6, y, 'clam'), at);
+    // out of the hotbar: the normal glow again (dimmer there)
+    await page.evaluate(() => Arcade.Blocktave.demo.hotbar('torch', false));
+    s = await st(page);
+    expect(s.torch).toBe(false);
+    const without = await lit();
+    expect(without).toBeLessThan(withTorch - .1);
+    // the spawn check is the same with or without it (night, the same tile)
+    await page.evaluate(() => Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 40));
+    const spawnNoTorch = await page.evaluate(({x, y}) => Arcade.Blocktave.demo.canSpawnAt(x + 6, y, 'clam'), at);
+    await page.evaluate(() => Arcade.Blocktave.demo.hotbar('torch', true));
+    const spawnTorch = await page.evaluate(({x, y}) => Arcade.Blocktave.demo.canSpawnAt(x + 6, y, 'clam'), at);
+    expect(spawnTorch, 'the torch never stops creatures appearing').toBe(spawnNoTorch);
+    expect(spawn).toBe(spawnNoTorch);
+    // it can't be placed
+    const placed = await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; return d.place(x + 1, y, 'torch'); }, at);
+    expect(placed).toBe(false);
+    await expect(page.locator('.ui-toast', {hasText: 'Carry it in your hotbar to light the way'})).toBeVisible();
+  });
+
+  test('its icon shows in the hotbar, the inventory, a tooltip and the Recipe Book', async ({page}) => {
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen: Object.assign({torch: 1}, {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1}), found: {'neon-torch': 1}}}}});
+    await page.evaluate(() => Arcade.Blocktave.demo.give('torch', 1));
+    const hot = page.locator('.bt-hot[data-item="torch"] img');
+    await expect(hot).toBeVisible();
+    expect(await hot.evaluate(i => i.naturalWidth)).toBeGreaterThan(0);
+    await hot.hover();
+    await expect(page.locator('#btTip')).toContainText('Neon Torch');
+    await page.keyboard.press('e');
+    await expect(page.locator('#invGrid [data-item="torch"] img')).toBeVisible();
+    await page.keyboard.press('e');
+    await page.keyboard.press('c');
+    await page.locator('#bookBtn').click();
+    await expect(page.locator('#book .bt-rec[data-id="neon-torch"]')).toBeVisible();
+  });
+});
+
 test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
   /** a room at the very bottom (bedrock below), the player in it; the courage clocks shortened (grace, drain) */
   const bottom = async (page, {grace = 1.2, drain = 2, dy = 0} = {}) => {

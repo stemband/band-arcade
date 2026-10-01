@@ -3,6 +3,7 @@
    THE ITEMS: id (never rename: saved worlds use it) → {name, kind, block?, tier?, desc, found?}
      kind  'material' (dropped when you lose all hearts: dropShare in rules.js) | 'block' (placeable, also dropped) |
            'tool' (a mallet: never dropped) | 'use' (eaten or used from the hotbar)
+     hotbar true = a tool that lives in the HOTBAR (the Neon Torch: it lights the dark while it's in any hotbar slot)
      block the block it places (world.js BLOCKS); tier: a tool's tier (rules.js tools)
      desc  the tooltip's one line (hover, focus or a long-press on any item: written for 6th graders)
      found materials: where to find it (the tooltip's "Found: …"); a tool's tooltip lists what it can mine by itself */
@@ -45,6 +46,7 @@ window.BT_ITEMS = {
   mallet2:   {name: 'Brass Mallet', kind: 'tool', tier: 2, desc: 'A brass mallet. Tone Ore asks only ONE note with it, and it opens Scale Veins.'},
   mallet3:   {name: 'Silver Mallet', kind: 'tool', tier: 3, desc: 'A silver mallet. It opens Sustain Stones and Rest Crystals.'},
   baton:     {name: 'Golden Baton', kind: 'tool', tier: 4, desc: 'The Golden Baton: the best tool. It mines everything, and long tones and rolls get shorter.'},
+  torch:     {name: 'Neon Torch', kind: 'tool', tier: 0, hotbar: true, desc: 'A glowing neon tube on a handle. Keep it in your hotbar and it lights the dark around you, at night and underground.'},
   snack:     {name: 'Snack Bag', kind: 'use', desc: 'A bag of snacks. Tap its hotbar slot twice to eat it and get hearts back.'},
 };
 
@@ -88,6 +90,8 @@ window.BT_RECIPES = [
   {id: 'podium',         name: "Conductor's Podium",  in: ['planks', 'planks', 'brass', 'gem'],   perf: 'scale',    out: 'podium',  n: 1, bench: true},
   // --- the first bench is made by hand ---
   {id: 'luthiers-bench', name: "Luthier's Bench",     in: ['planks', 'planks', 'planks', 'cork'], perf: 'note',     out: 'bench',   n: 1},
+  // --- added later (append only: never reorder) ---
+  {id: 'neon-torch',     name: 'Neon Torch',          in: ['planks', 'tone'],                     perf: 'note',     out: 'torch',   n: 1},
 ];
 
 /* THE CHAPTERS: 5 chapters × 3 MILESTONES = the game's 15 stars (games.js maxStars). Stars come ONLY from these,
