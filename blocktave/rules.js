@@ -27,6 +27,12 @@ window.BT_RULES = {
     {id: 'brass',  name: 'Brass Mountains',   from: 86,  to: 172},
     {id: 'canyon', name: 'Percussion Canyon', from: 172, to: 256},
   ],
+  /* ---------- THE MUSIC: day, night, and CAVE music deep underground (sounds.js blocktave-day / -night / -cave) ---------- */
+  music: {
+    caveRows: 12,             // deeper than this many rows below the ground nearby → the cave music (in a cave it wins over night)
+    leaveRows: 8,             // … back above this many rows → day or night music again (the gap stops it flickering at the edge)
+    fadeS: 2.5,               // the crossfade between tracks (s)
+  },
   /* ---------- DAY AND NIGHT ---------- */
   dayS: 360,                  // a day lasts 6 minutes …
   nightS: 180,                // … and a night 3 (creatures only come out in the dark)
@@ -73,6 +79,9 @@ window.BT_RULES = {
   rhythm: {bpm: 76, perfectMs: 70, goodMs: 140, okMs: 220, lateMs: 340,
            pass: .8,          // share of the notes that must be OK or better, with no extra hits
            leadS: .6},        // a moment before the count-in starts
+  countOffVol: .8,            // THE COUNT-OFF YOU CAN HEAR (rhythm cards): the clicks' level (the downbeat full, the others softer) …
+  countOffEchoMs: 250,        // … and while the microphone listens it hears nothing new until the last click has ended + this
+                              // (the "Count-off clicks" setting turns them off; a card whose mute would reach its first note stays silent)
   snareCount: [3, 5],         // Snare Drum's Tone Ore: "play exactly N hits" (random from this range), then STOP
   snareConfirmMs: 700,        // … silence this long after the last hit confirms the count
   /* ---------- TOOLS: what each tier can mine (a block's `tier` in world.js) ---------- */
@@ -93,6 +102,10 @@ window.BT_RULES = {
     playerRadius: 4.5,        // you always light the blocks around you this far (tiles) …
     playerGlow: .55,          // … this bright where you stand, fading out
     batonGlow: 1,             // the Golden Baton lights this many tiles farther
+    // THE NEON TORCH (carried: it lights while it's in ANY hotbar slot; drawn only, like the glow: never in the spawn check)
+    torchRadius: 7,           // instead of playerRadius while carried (the Golden Baton's batonGlow still adds) …
+    torchGlow: .9,            // … this bright at your body, fading out
+    torchTint: .1,            // a soft warm-cyan wash in its light (0 = none; it never flickers)
     openLift: .08,            // underground, open space looks this much lighter than rock (so the cave's shape reads)
     waterMin: .35,            // water is never drawn darker than this
     glint: .5,                // ores and veins keep a faint glow of their color in the dark (0 = none)

@@ -809,11 +809,66 @@ window.Arcade = window.Arcade || {};
     }
     if (waiting) { why(c, 'waiting for the file to load'); return; }   // it starts the moment its file has loaded
     if (!w.builtIn) { why(c, 'no file for ' + w.events.join(' / ') + ': silence'); fadeOut(c); return; }   // file-only music (Arcade Quest) and no file: silence
-    if (c.cur && c.cur.gen) return;                       // the built-in version is already playing
+    const gid = genLoopOf(w);                             // a track's own built-in loop (sounds.js genLoop), else the channel's
+    if (c.cur && c.cur.gen && (c.cur.genId || null) === gid) return;   // that built-in version is already playing
     fadeOut(c);
-    const g = c.gen(c);
+    const g = gid ? genLoop(c, gid) : c.gen(c);
     if (g) c.cur = g;
   }
+  /* A TRACK'S OWN BUILT-IN LOOP: a music event with `genLoop: '<id>'` in sounds.js (Blocktave's cave) plays this
+     generated loop until its file is uploaded, instead of the channel's chiptune. Rendered once per page
+     (OfflineAudioContext), with a baked crossfade at the loop point so it wraps without a seam; the MUSIC slider and
+     SOUND ON/OFF apply as to any loop. */
+  const genLoopOf = w => { for (const n of w.events) { const e = entry(n); if (e && e.genLoop && GEN_LOOPS[e.genLoop]) return e.genLoop; } return null; };
+  const genBufs = {}, genRendering = {};
+  function genLoop(c, id) {
+    if (genBufs[id]) return Object.assign(loopBuffer(c, genBufs[id], 0, genBufs[id].duration, GEN_LOOPS[id].level), {gen: true, genId: id});
+    if (!genRendering[id]) genRendering[id] = GEN_LOOPS[id].render().then(b => { genBufs[id] = b; applyAll(); }, () => {});
+    return null;
+  }
+  /** render `secs` (+ `xf` more) with draw(oc, out, sr), crossfade the extra tail into the start, normalize to .9 */
+  function renderLoop(secs, xf, draw) {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) return Promise.reject(new Error('no OfflineAudioContext'));
+    const sr = 22050, oc = new OAC(1, Math.ceil((secs + xf) * sr), sr), out = oc.createGain();
+    out.connect(oc.destination);
+    draw(oc, out, sr);
+    const done = new Promise(res => { oc.oncomplete = e => res(e.renderedBuffer); });
+    const p = oc.startRendering();
+    return (p && p.then ? p : done).then(full => {
+      const n = Math.round(secs * sr), m = Math.round(xf * sr), src = full.getChannelData(0);
+      const buf = new AudioBuffer({length: n, sampleRate: sr, numberOfChannels: 1}), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = src[i];
+      for (let i = 0; i < m; i++) { const k = i / m; d[i] = src[i] * k + src[n + i] * (1 - k); }   // the tail fades into the start
+      let peak = 0; for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(d[i]));
+      if (peak > 0) for (let i = 0; i < n; i++) d[i] *= 0.9 / peak;
+      return buf;
+    });
+  }
+  const GEN_LOOPS = {
+    /* Blocktave's cave: a slow, quiet ambience: a low soft drone (two sines with a slow swell), a faint airy hum
+       (filtered noise) and sparse soft water drips (a gentle attack: nothing sudden); no melody. 12 s, looping. */
+    cave: {level: 0.32, render: () => renderLoop(12, 1.5, (oc, out, sr) => {
+      const T = 13.5;
+      [[55, .5], [82.5, .22], [110.25, .08]].forEach(([f, v], i) => {
+        const o = oc.createOscillator(), g = oc.createGain(); o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(v * .6, 0);
+        for (let t = 0; t < T; t += 3) g.gain.linearRampToValueAtTime(v * (i % 2 ? .7 : 1), t + 1.5), g.gain.linearRampToValueAtTime(v * .6, t + 3);
+        o.connect(g); g.connect(out); o.start(0); o.stop(T);
+      });
+      const nb = oc.createBuffer(1, Math.ceil(T * sr), sr), nd = nb.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      const ns = oc.createBufferSource(), bp = oc.createBiquadFilter(), ng = oc.createGain();
+      ns.buffer = nb; bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = .7; ng.gain.value = .05;
+      ns.connect(bp); bp.connect(ng); ng.connect(out); ns.start(0);
+      [1.4, 4.1, 6.3, 9.7].forEach((t, k) => {                        // drips: a soft plink falling in pitch
+        const o = oc.createOscillator(), g = oc.createGain(), f0 = [1400, 1150, 1700, 1300][k];
+        o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * .55, t + .09);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.12, t + .008); g.gain.exponentialRampToValueAtTime(0.0001, t + .35);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + .4);
+      });
+    })},
+  };
   function applyAll() { Object.values(CH).forEach(apply); }
   function why(c, text) { if (c.why !== text) { c.why = text; mdbg(c.name + ': ' + text); } }
   function want(c, names, {builtIn = false, fade = null} = {}) {
