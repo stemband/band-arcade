@@ -1,3 +1,4 @@
+/* keep-unminified */
 /* Band Arcade: THE LEADERBOARD's address (Mat's Google Apps Script scoreboard; shared/leaderboard.js talks to it).
    This is the ONLY place the arcade ever sends anything off the device, and it sends only: a random device id, the
    grade (6/7/8), the avatar name as three word NUMBERS, and game/type/value/level for stars, Endless scores and one

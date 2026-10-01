@@ -24,7 +24,8 @@
    all-games-open, select-<game id> when a game opens.
 
    Two ways to draw a zone's cabinets ("views"), one set of controls:
-     3D   arcade3d.js + shared/vendor/three.min.js, loaded the first time a zone opens (the lobby never needs it).
+     3D   arcade3d.js + shared/vendor/three.min.js, loaded (Arcade.need) the first time a zone opens (the lobby never
+          needs them; the 2D view never loads them).
           Full cabinets only for the front one and its neighbors; setRing() swaps zones and disposes the old ones.
      2D   the CSS/SVG cabinets from shared/cabinets.js. Used with ?flat, when WebGL or three.js is missing, or when
           the 3D view gives up because the device is too slow.
@@ -33,6 +34,29 @@
 (function (A) {
   "use strict";
   const {$} = A;
+  /* ---------- THE ON-DEMAND SCRIPTS (Arcade.need / Arcade.lazy, shared/version.js) ----------
+     The floor's rarely used features aren't in index.html's script list: each loads the first time it's opened, so the
+     lobby has ~200 KB less JavaScript to parse at every load. Until then a STAND-IN answers for it (its methods load
+     the script, then call the real one). Anything the lobby needs AT LOAD stays in the list (the Prize Counter's
+     sign = shared/tokens.js; the Locker's counts and NEW dot = shared/avatar-badge.js).
+       shared/prizes.js       (+ shared/locker.js: the prizes' pictures) the PRIZE COUNTER
+       shared/backup.js       Settings / the player card's BACKUP / RESTORE, the app's "Bring your progress"
+       leaderboard-screen.js  the LEADERBOARD button
+       shared/avatar-creator.js, shared/locker.js   the avatar badge loads them (AvatarBadge.edit, Locker.open)
+       arcade3d.js            with three.js, the first time a zone opens in 3D (load3D below) */
+  A.lazy('Prizes', ['shared/locker.js', 'shared/prizes.js'], ['open', 'close', 'state', 'openCard', 'closeCard']);
+  A.lazy('LeaderboardScreen', ['leaderboard-screen.js'], ['open', 'close', 'state']);
+  A.lazy('Backup', ['shared/backup.js'], ['open', 'fullEncode', 'fullDecode', 'questEncode', 'questDecode'], {
+    /** BACKUP / RESTORE (the real one's button, drawn at once) */
+    button(el, cls = 'btn btn-secondary btn-small') {
+      if (!el) return null;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = cls + ' bk-btn'; b.textContent = 'Backup / Restore';
+      b.addEventListener('click', e => { e.stopPropagation(); A.Backup.open(); });
+      el.appendChild(b);
+      return b;
+    },
+  });
   const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const ss = {get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } }};
 
@@ -47,6 +71,8 @@
     if (A.Backup) A.Backup.button(row, 'btn btn-secondary btn-small');   // shared/backup.js: BACKUP / RESTORE
     if (A.App) A.App.installButton(row);                                 // shared/app.js: INSTALL THE APP (teacher setting)
   }, {title: 'Your progress', lobby: true});
+  // THE LEADERBOARD (the top bar's trophy): only when a scoreboard address is set; leaderboard-screen.js loads on the first tap
+  if (A.Leaderboard && A.Leaderboard.available()) { $('lbBtn').hidden = false; $('lbBtn').addEventListener('click', () => A.LeaderboardScreen.open()); }
   // the installed app's first launch asks for a Backup Code first (shared/app.js), then CHOOSE YOUR INSTRUMENT
   const welcomeThen = fn => (A.App && A.App.welcome(fn)) || fn();
   A.Sfx.prefer('choose-instrument');                    // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)
@@ -95,7 +121,7 @@
   const tagOf = g => { const z = fullZoneOf[g.id]; return z ? {text: z.name, color: z.color} : null; };
   const isFull = () => zone === FULL;
   let zone = null, ring = [], N = 0, cur = 0, view = null, v3 = null, loading3D = false;
-  let use3D = !A.params.has('flat') && hasWebGL() && !!A.Floor3D;
+  let use3D = !A.params.has('flat') && hasWebGL();
   const aisle = $('aisle');
   // ring offset, −N/2 < d ≤ N/2. Two cabinets are a straight row instead (no ring): with a ring both would stand on the
   // same side and one would vanish on every turn, so the second is always on the right of the first
@@ -318,13 +344,6 @@
       return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
     } catch (e) { return false; }
   }
-  function loadScript(src) {
-    return new Promise((ok, fail) => {
-      const s = document.createElement('script');
-      s.src = A.v ? A.v(src) : src; s.onload = ok; s.onerror = fail;   // ?v=<site version> (shared/version.js)
-      document.head.appendChild(s);
-    });
-  }
   function load3D() {
     loading3D = true;
     aisle.classList.add('loading-3d');     // hide the 2D cabinets for the moment the 3D ones take to load
@@ -336,7 +355,7 @@
     };
     const timer = setTimeout(giveUp, 8000);
     let made = null;                       // the cabinets it was made with (a zone change while loading: swap them)
-    (window.THREE ? Promise.resolve() : loadScript('shared/vendor/three.min.js'))
+    A.need(['shared/vendor/three.min.js', 'arcade3d.js'], {quiet: true})          // (2D if they can't load: giveUp)
       .then(() => { made = ring; return A.Floor3D.create(aisle, {ring, wrap, cur, fade, tag: isFull() ? tagOf : null, onGiveUp: giveUp}); })
       .then(v => {
         clearTimeout(timer); loading3D = false;

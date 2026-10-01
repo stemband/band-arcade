@@ -1,14 +1,14 @@
 /* THE APP (shared/app.js, sw.js, manifest.webmanifest): installable, offline, never a stale or mixed version.
    The offline copy exists only on the DEPLOYED site, so the service-worker tests make two deployed copies of the site
-   in a temporary folder (tools/stamp-version.py with the versions 'testv1' and 'testv2', exactly as the Pages deploy
-   does), serve them from one address, and switch that address from the first to the second (a new deploy).
+   in a temporary folder (deploy.js: stamped 'testv1' and 'testv2' and MINIFIED, exactly as the Pages deploy does), serve them from one address, and switch that address from the first to the second (a new deploy).
    Chromium only for those (Playwright's WebKit runs no service workers); the rest runs in both. */
 const {test, expect} = require('@playwright/test');
-const {spawn, execFileSync} = require('child_process');
+const {spawn} = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const {ROOT, prepare, device, LB_URL} = require('./helpers');
+const {prepare, device, LB_URL} = require('./helpers');
+const {copySite, deploy} = require('./deploy');
 
 /* ---------- the app's parts in the repository's own ('dev') copy ---------- */
 test.describe('app (dev copy)', () => {
@@ -114,15 +114,14 @@ test.describe('app (deployed copy: the service worker)', () => {
   test.skip(({browserName}) => browserName !== 'chromium', 'Playwright’s WebKit runs no service workers');
 
   let tmp, server, base;
-  const copy = (version, mark) => {
-    const dir = path.join(tmp, version);
-    fs.cpSync(ROOT, dir, {recursive: true, filter: s => !/[\\/](\.git|tests|node_modules)$/.test(s) && !/[\\/]shared[\\/]sounds$/.test(s)});
-    fs.symlinkSync(path.join(ROOT, 'shared/sounds'), path.join(dir, 'shared/sounds'));
+  const copy = (version, mark, change) => {
+    const dir = copySite(path.join(tmp, version), {linkSounds: true});
     if (mark) fs.appendFileSync(path.join(dir, 'shared/games.js'), `\nwindow.__deployMark = '${mark}';\n`);
-    execFileSync('python3', [path.join(dir, 'tools/stamp-version.py'), version], {stdio: 'pipe'});
+    if (change) fs.appendFileSync(path.join(dir, change), `\nwindow.__changed = '${version}';\n`);
+    deploy(dir, version);                                        // stamp -> minify -> fingerprints, as pages.yml does
     // python's test server answers "not modified" by the second: the later deploy's files get later times (GitHub
     // Pages compares contents: ETags)
-    const later = new Date(Date.now() + 60_000 * (version === 'testv2' ? 2 : 0));
+    const later = new Date(Date.now() + 60_000 * ({testv2: 2, testv3: 4}[version] || 0));
     const touch = d => fs.readdirSync(d, {withFileTypes: true}).forEach(e => {
       const f = path.join(d, e.name);
       if (e.isSymbolicLink()) return;
@@ -134,9 +133,11 @@ test.describe('app (deployed copy: the service worker)', () => {
   const serve = version => { const link = path.join(tmp, 'site'); try { fs.unlinkSync(link); } catch (e) { /* first time */ } fs.symlinkSync(path.join(tmp, version), link); };
 
   let port;
+  const served = [];                                                // every file the server sent (its request log)
   const start = async () => {
     server = spawn('python3', ['-m', 'http.server', String(port), '--bind', '127.0.0.1', '--directory', path.join(tmp, 'site')], {stdio: 'pipe'});
-    server.stdout.resume(); server.stderr.resume();                  // (its request log is not needed)
+    server.stdout.resume();
+    server.stderr.on('data', d => String(d).split('\n').forEach(l => { const m = /"GET (\S+) HTTP/.exec(l); if (m) served.push(m[1].split('?')[0].replace(/^\//, '')); }));
     for (let i = 0; i < 50; i++) { try { await fetch(base + 'index.html'); return; } catch (e) { await new Promise(r => setTimeout(r, 200)); } }
   };
   /** really offline: the site's server is gone (the browser's offline switch doesn't reach a service worker) */
@@ -147,7 +148,7 @@ test.describe('app (deployed copy: the service worker)', () => {
   };
   test.beforeAll(async ({}, info) => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-app-'));
-    copy('testv1', 'v1'); copy('testv2', 'v2'); serve('testv1');
+    copy('testv1', 'v1'); copy('testv2', 'v2'); copy('testv3', 'v2', 'shared/pitch.js'); serve('testv1');
     port = 8390 + info.workerIndex;
     base = `http://127.0.0.1:${port}/`;
     await start();
@@ -185,6 +186,14 @@ test.describe('app (deployed copy: the service worker)', () => {
     expect(await page.evaluate(() => [Arcade.VERSION, !!Arcade.requireInstrument, window.__deployMark])).toEqual(['testv1', true, 'v1']);
     await page.goto(base + 'index.html?demo&nostart');
     await expect(page.locator('.fbar')).toBeVisible();
+    // the lobby's ON-DEMAND scripts (Arcade.need) open offline on the first tap: they were stored at install
+    await page.locator('#prizeSign').click();
+    await expect(page.locator('#prizes')).toBeVisible();
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(async () => {
+      await Arcade.Backup.load(); await Arcade.AvatarBadge.load(); await Arcade.Locker.load(); await Arcade.LeaderboardScreen.load();
+      return [!Arcade.Backup.lazy, !!Arcade.AvatarCreator, !!Arcade.LockerUI, !Arcade.LeaderboardScreen.lazy, !document.querySelector('.ui-toast')];
+    })).toEqual([true, true, true, true, true]);
     if (LB_URL) {                                                    // the scoreboard is another site: offline = "taking a break"
       await page.evaluate(() => Arcade.store.gameData('leaderboard').grade = 6);
       await page.locator('#lbBtn').click();
@@ -209,7 +218,7 @@ test.describe('app (deployed copy: the service worker)', () => {
 
     serve('testv2');                                                    // a new deploy
     // a file this old page loads now still comes from ITS version
-    expect(await page.evaluate(async () => (await (await fetch(Arcade.v(Arcade.ROOT + 'shared/games.js'))).text()).includes("__deployMark = 'v1'"))).toBe(true);
+    expect(await page.evaluate(async () => /__deployMark\s*=\s*["']v1["']/.test(await (await fetch(Arcade.v(Arcade.ROOT + 'shared/games.js'))).text()))).toBe(true);
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());   // (the app also checks on its own)
     await expect(page.locator('.app-update')).toHaveText('New version ready — tap to update', {timeout: 60_000});
 
@@ -233,6 +242,36 @@ test.describe('app (deployed copy: the service worker)', () => {
     await stop(ctx);                                                    // and the new version works offline
     await page.goto(base + 'note-storm/index.html?demo&nostart');
     expect(await page.evaluate(() => [Arcade.VERSION, window.__deployMark])).toEqual(['testv2', 'v2']);
+    expect(errors).toEqual([]);
+    await ctx.close();
+  });
+
+  test('an update downloads only what changed: the published (minified) files are fingerprinted', async ({browser}) => {
+    // testv3 = testv2 + one change in shared/pitch.js: the pages (their ?v=) and version.js change with every version
+    const files = v => JSON.parse(/^const FILES = (.*);$/m.exec(fs.readFileSync(path.join(tmp, v, 'sw.js'), 'utf8'))[1]);
+    const a = files('testv2'), b = files('testv3');
+    const changed = Object.keys(b).filter(k => !a[k] || a[k][0] !== b[k][0]);
+    expect(changed.filter(k => !k.endsWith('.html')).sort()).toEqual(['shared/pitch.js', 'shared/version.js']);
+    expect(Object.keys(b).some(k => k.endsWith('.map')), 'source maps stay out of the offline copy').toBe(false);
+    expect(fs.readFileSync(path.join(tmp, 'testv3', 'shared/pitch.js'), 'utf8')).toMatch(/\n\/\/# sourceMappingURL=pitch\.js\.map\n$/);
+
+    serve('testv2');
+    if (!server) await start();
+    const ctx = await newCtx(browser);
+    const page = await ctx.newPage();
+    const errors = []; page.on('pageerror', e => errors.push(e.message));
+    await page.goto(base + 'index.html?demo&nostart');
+    await ready(page);
+    await expect.poll(async () => (await cacheInfo(page)).names, {timeout: 30_000}).toEqual(['band-arcade-testv2']);
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+
+    served.length = 0;
+    serve('testv3');                                                    // a new deploy that changed one script
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+    await page.waitForFunction(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!(r && r.waiting); }, null, {timeout: 60_000});
+    const scripts = [...new Set(served.filter(f => /\.(js|css)$/.test(f)))].sort();
+    expect(scripts, 'the install downloaded only the changed script (+ version.js and the worker itself)').toEqual(['shared/pitch.js', 'shared/version.js', 'sw.js']);
+    expect(served.some(f => f.endsWith('.map')), 'no source map is ever downloaded').toBe(false);
     expect(errors).toEqual([]);
     await ctx.close();
   });

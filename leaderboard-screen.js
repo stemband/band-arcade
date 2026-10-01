@@ -1,4 +1,5 @@
-/* THE LEADERBOARD SCREEN (the floor page; the top bar's trophy button). The data and every network call are in
+/* THE LEADERBOARD SCREEN (the floor page; the top bar's trophy button, which loads this file on its first tap:
+   arcade.js, Arcade.need). The data and every network call are in
    shared/leaderboard.js; this file only draws. A full screen in the arcade's look:
      - the first time: "What grade are you in?" 6 / 7 / 8 (remembered; changeable in MY SETTINGS below the board)
      - the grade switch (the student's own grade first; the other grades can be viewed too)
@@ -187,8 +188,6 @@ window.Arcade = window.Arcade || {};
       loading: S.loading, stale: !!(S.res && S.res.stale),
       rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
   }
-  // the top bar's trophy button (index.html #lbBtn): only when a scoreboard address is set
-  const btn = document.getElementById('lbBtn');
-  if (btn && L() && L().available()) { btn.hidden = false; btn.addEventListener('click', open); }
+  // the top bar's trophy button (index.html #lbBtn) is wired by arcade.js: this file loads on its first tap (Arcade.need)
   A.LeaderboardScreen = {open, close, state};
 })(window.Arcade);

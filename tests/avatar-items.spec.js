@@ -127,7 +127,7 @@ test('?unlockall shows the new items in the Locker and Create Your Player; the L
   await page.keyboard.press('Escape');
 
   // Create Your Player: the tumblers on HELD ITEM, the aura + Diamond Tumbler on the BAND NINJA tab (framed as legendary)
-  await page.evaluate(() => Arcade.AvatarCreator.open({}));
+  await page.evaluate(() => Arcade.AvatarBadge.edit({}));          // (loads shared/avatar-creator.js on the floor)
   await page.locator('#avcTab-hand').click();
   await expect(page.locator('.avc-opt[aria-label*="Arctic Blue Tumbler"], .avc-opt:has-text("Arctic Blue Tumbler")').first()).toBeAttached();
   await page.locator('#avcTab-bandninja').click();

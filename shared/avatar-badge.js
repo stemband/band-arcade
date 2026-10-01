@@ -44,8 +44,10 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- the creator, loaded on demand ---------- */
   let loading = null;
+  /** a script of this folder, once (Arcade.need: the tapped button's spinner, the "Couldn't open that" toast) */
   function script(src) {
-    return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = ver(src); s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
+    if (A.need && A.ROOT) return A.need('shared/' + src);
+    return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = ver(DIR + src); s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
   }
   function load() {
     if (A.AvatarCreator && window.QUEST_ART) return Promise.resolve();
@@ -53,15 +55,37 @@ window.Arcade = window.Arcade || {};
     if (!document.querySelector('link[href*="avatar.css"]')) {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = ver(DIR + 'avatar.css'); document.head.appendChild(l);
     }
-    loading = (window.QUEST_ART ? Promise.resolve() : script(DIR + 'instrument-sprites.js'))
-      .then(() => A.AvatarCreator ? null : script(DIR + 'avatar-creator.js'))
+    loading = (window.QUEST_ART ? Promise.resolve() : script('instrument-sprites.js'))
+      .then(() => A.AvatarCreator ? null : script('avatar-creator.js'))
       .catch(e => { loading = null; throw e; });
     return loading;
   }
   /** the creator for the device's own avatar, over this page */
-  function edit({member, onClose, tab} = {}) {
-    return load().then(() => A.AvatarCreator.open({member, onClose, tab}))
+  function edit({member, onClose, tab, guest} = {}) {
+    return load().then(() => A.AvatarCreator.open({guest, member, onClose, tab}))
       .catch(e => { if (window.console) console.warn('Band Arcade: the avatar editor could not load', e); });
+  }
+
+  /** THE ONE-TIME "Create your player?" card (Select Player, a device's first visit; skippable: the random avatar
+      stays). Here, not in the creator, so it shows at once; CREATE MY PLAYER loads the creator. false = already offered */
+  function offer({onDone} = {}) {
+    if (!A.store || !A.Avatar || !A.avatarHTML) return false;
+    if (A.store.avatarOffered) return false;
+    A.store.setAvatarOffered();
+    const ov = document.createElement('div');
+    ov.className = 'overlay avc-offer';
+    ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="avcOfferT">` +
+      `<div class="avc-offer-pic">${A.avatarHTML({size: 'big', skin: false})}</div>` +
+      `<h2 id="avcOfferT">Create your player?</h2><p>This is you in the arcade: <b>${esc(A.Avatar.nameOf(A.Avatar.get()))}</b>. Pick your own look and name, or keep this one. You can change it any time with EDIT PLAYER.</p>` +
+      `<div class="acts"><button type="button" class="btn btn-secondary" data-no>Maybe later</button><button type="button" class="btn btn-primary" data-yes>Create my player</button></div></div>`;
+    document.body.appendChild(ov);
+    const done = yes => { ov.remove(); document.removeEventListener('keydown', k, true); if (yes) edit({onClose: () => onDone && onDone()}); else if (onDone) onDone(); };
+    const k = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } };
+    document.addEventListener('keydown', k, true);
+    ov.querySelector('[data-no]').addEventListener('click', () => done(false));
+    ov.querySelector('[data-yes]').addEventListener('click', () => done(true));
+    ov.querySelector('[data-yes]').focus();
+    return true;
   }
 
   /* ---------- THE LOCKER: counts, what's NEW, and the Locker itself loaded on demand ---------- */
@@ -116,8 +140,8 @@ window.Arcade = window.Arcade || {};
     if (!document.querySelector('link[href*="locker.css"]')) {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = ver(DIR + 'locker.css'); document.head.appendChild(l);
     }
-    lkLoading = (window.QUEST_ART ? Promise.resolve() : script(DIR + 'instrument-sprites.js'))
-      .then(() => A.LockerUI ? null : script(DIR + 'locker.js'))
+    lkLoading = (window.QUEST_ART ? Promise.resolve() : script('instrument-sprites.js'))
+      .then(() => A.LockerUI ? null : script('locker.js'))
       .catch(e => { lkLoading = null; throw e; });
     return lkLoading;
   }
@@ -243,5 +267,5 @@ window.Arcade = window.Arcade || {};
   // the Locker opened (the NEW dot clears) or something was just unlocked (a results screen): redraw
   addEventListener('arcade:locker', () => badges.forEach(b => { if (b.el.isConnected) b.render(); else badges.delete(b); }));
 
-  A.AvatarBadge = {mount, edit, load};
+  A.AvatarBadge = {mount, edit, load, offer};
 })(window.Arcade);

@@ -147,6 +147,7 @@ test('the new items survive the Arcade Backup Code, the QUEST CODE and the avata
   const watch = await prepare(page, {store: store()});
   await floorAt(page, SPOOKY);
   const keys = await page.evaluate(() => Object.keys(window.AVATAR_PARTS.SEASON_SHOP));
+  await page.evaluate(() => Arcade.Backup.load());                    // the floor loads shared/backup.js on demand
   const r = await page.evaluate(ks => {
     ks.forEach(k => Arcade.store.ownItem(k));
     const B = Arcade.Backup, q = B.questEncode({level: 2, tokens: 3000, items: {}, roster: [], flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}});
@@ -161,6 +162,7 @@ test('the new items survive the Arcade Backup Code, the QUEST CODE and the avata
   const code = await page.evaluate(() => Arcade.Backup.fullEncode());
   await page.evaluate(() => localStorage.clear());
   await floorAt(page, SPOOKY);
+  await page.evaluate(() => Arcade.Backup.load());
   const back = await page.evaluate(async ([c, ks]) => { const d = await Arcade.Backup.fullDecode(c); Arcade.store.importAll(d.data); return ks.filter(k => !Arcade.store.ownedItems[k]); }, [code, keys]);
   expect(back).toEqual([]);
   // the frozen fixtures (v1–v4) still decode exactly
@@ -221,7 +223,7 @@ test('the event panel says "New on the Prize Counter: 3 Spooky Season prizes" an
   await floorAt(page, OFF);
   expect(await page.evaluate(() => Arcade.Avatar.requirement('pet', 'blackcat'))).toBe('Returns to the Prize Counter next Spooky Season');
   // the Locker shows it locked with those words
-  await page.evaluate(() => Arcade.LockerUI.open({tab: 'pets'}));
+  await page.evaluate(() => Arcade.Locker.open({tab: 'pets'}));       // (loads shared/locker.js on the floor)
   await expect(page.locator('#locker .sk-opt[data-item="blackcat"]')).toContainText('Returns to the Prize Counter next Spooky Season');
   watch.check();
 });

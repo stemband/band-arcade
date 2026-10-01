@@ -31,7 +31,7 @@
 <div class="room" aria-hidden="true"></div>
 
 <!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES, the FULL ARCADE; arcade.js): back, where you are, TUNE UP (the
-     Note Checker), ALL GAMES, FULL ARCADE, LEADERBOARD (leaderboard-screen.js; hidden when no scoreboard address is set), your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
+     Note Checker), ALL GAMES, FULL ARCADE, LEADERBOARD (leaderboard-screen.js, loaded on the first tap; hidden when no scoreboard address is set), your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
 <nav class="fbar" id="fbar" aria-label="Arcade">
   <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
   <h2 class="fb-title" id="fbTitle" hidden></h2>
@@ -179,9 +179,6 @@
 <script src="shared/avatar-bg.js"></script>
 <script src="shared/avatar-fx.js"></script>
 <script src="shared/avatar-badge.js"></script>
-<script src="shared/locker.js"></script>
-<script src="shared/prizes.js"></script>
-<script src="shared/avatar-creator.js"></script>
 <script src="shared/games.js"></script>
 <script src="shared/featured.js"></script>
 <script src="shared/scales.js"></script>
@@ -191,15 +188,14 @@
 <script src="shared/marquees.js"></script>
 <script src="shared/sounds.js"></script>
 <script src="shared/sfx.js"></script>
-<script src="shared/backup.js"></script>
 <script src="shared/teacher-settings.js"></script>
 <script src="shared/instrument-sprites.js"></script>
 <script src="select-player/player.js"></script>
 <script src="lobby.js"></script>
 <script src="season-lobby.js"></script>
 <script src="season-look.js"></script>
-<script src="leaderboard-screen.js"></script>
-<script src="arcade3d.js"></script>
 <script src="arcade.js"></script>
+<!-- LOADED ON DEMAND (Arcade.need; arcade.js "THE ON-DEMAND SCRIPTS"), not listed here: shared/prizes.js, shared/locker.js,
+     shared/avatar-creator.js, shared/backup.js, leaderboard-screen.js, arcade3d.js (+ shared/vendor/three.min.js) -->
 </body>
 </html>

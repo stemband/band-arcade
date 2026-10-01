@@ -177,6 +177,7 @@ window.Arcade = window.Arcade || {};
     p.$('.app-fresh').addEventListener('click', () => { ls.set(WELCOME, 'done'); S.welcome = false; sfx('ui-toggle'); p.close(); if (then) then(); });
     p.$('.app-restore').addEventListener('click', async () => {
       const res = await A.Backup.fullDecode(p.$('#appCode').value);
+      if (!res) return;                              // shared/backup.js couldn't load (the floor loads it on demand): its toast said so
       if (!res.ok) { msg(res.error, 'bad'); sfx('note-wrong'); return; }
       if (!A.store.importAll(res.data)) { msg(A.Backup.BAD, 'bad'); return; }
       ls.set(WELCOME, 'done');
@@ -184,6 +185,7 @@ window.Arcade = window.Arcade || {};
       setTimeout(() => location.reload(), 700);
     });
     p.$('#appCode').focus();
+    if (A.Backup.lazy) A.Backup.load({quiet: true}).catch(() => {});   // the floor's stand-in: shared/backup.js now, while they paste
     return true;
   }
 

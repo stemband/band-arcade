@@ -66,7 +66,10 @@ window.Arcade = window.Arcade || {};
     $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
+    // the first time: the signs are drawn and answer taps (tests/perf.spec.js measures the page load up to here)
+    if (!marked && window.performance && performance.mark) { marked = true; performance.mark('lobby-ready'); }
   }
+  let marked = false;
 
   /* ---------- THE PRIZE COUNTER's sign (shared/prizes.js; the wallet: shared/tokens.js): the last sign, the same size
      and style as the zones' (it flickers on with them), with the token balance and the WISH bar: "Wish: Jetpack ·

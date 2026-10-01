@@ -7,7 +7,8 @@
                (default the saved player)
        onClose(saved) runs after it closes (saved = true after SAVE)
        tab     the tab to open on ('name': "Tap your name to change it")
-     Arcade.AvatarCreator.offer({onDone})   the one-time "Create your player?" card (skippable)
+     Arcade.AvatarCreator.offer({onDone})   the one-time "Create your player?" card (skippable; it lives in
+                                            shared/avatar-badge.js: AvatarBadge.offer)
 
    A big live preview (the portrait bust, and the full-body sprite holding the instrument, which turns when you tap
    it; the background behind the bust moves: shared/avatar-bg.js), tabs FACE · HAIR · HEAD · CLOTHES · EXTRAS ·
@@ -419,24 +420,9 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- the one-time offer on Select Player ---------- */
-  function offer({onDone} = {}) {
-    if (A.store.avatarOffered) return false;
-    A.store.setAvatarOffered();
-    const ov = document.createElement('div');
-    ov.className = 'overlay avc-offer';
-    ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="avcOfferT">` +
-      `<div class="avc-offer-pic">${A.avatarHTML({size: 'big', skin: false})}</div>` +
-      `<h2 id="avcOfferT">Create your player?</h2><p>This is you in the arcade: <b>${esc(V().nameOf(V().get()))}</b>. Pick your own look and name, or keep this one. You can change it any time with EDIT PLAYER.</p>` +
-      `<div class="acts"><button type="button" class="btn btn-secondary" data-no>Maybe later</button><button type="button" class="btn btn-primary" data-yes>Create my player</button></div></div>`;
-    document.body.appendChild(ov);
-    const done = yes => { ov.remove(); document.removeEventListener('keydown', k, true); if (yes) open({onClose: () => onDone && onDone()}); else if (onDone) onDone(); };
-    const k = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } };
-    document.addEventListener('keydown', k, true);
-    ov.querySelector('[data-no]').addEventListener('click', () => done(false));
-    ov.querySelector('[data-yes]').addEventListener('click', () => done(true));
-    ov.querySelector('[data-yes]').focus();
-    return true;
-  }
+  /** "Create your player?" lives in shared/avatar-badge.js (AvatarBadge.offer), so Select Player can show it before
+      this file has loaded */
+  const offer = opts => A.AvatarBadge.offer(opts);
 
   A.AvatarCreator = {open, offer, get isOpen() { return !!S; }, close: () => close(false), state: () => S && {av: S.av, gear: S.gear, tab: S.tab, dirty: S.dirty}};
 })(window.Arcade);
