@@ -6,6 +6,8 @@
      title     as students see it
      source    composer or source ("Traditional (American folk song)", "Scott Joplin, 1902")
      tier      1 = only degrees 1–5 in the first-five octave · 2 = the whole scale · 3 = wider range, minor, accidentals, syncopation
+               · 4 = THE FINAL BOSS (its own section at the bottom of the song list; opens after stars on 3 tier-3 songs; lanes and
+               octave like tier 3)
      tempo     quarter notes per minute (Slow mode plays 75 % of it)
      timeSig   as printed: [4, 4], [3, 4], [2, 4], [2, 2] (cut time, drawn ¢), [6, 8] or [3, 8]. Beats are always QUARTER
                notes (a 6/8 measure = 3 beats, 3/8 = 1.5) and `tempo` is quarter notes a minute; the drums, the count-in,
@@ -30,7 +32,10 @@
    instrument. The Snare Drum plays the same rhythm (no pitch).
 
    NOTE TEXT: one string per phrase, notes separated by spaces, '|' = a bar line (checked: every measure must add up,
-   or the Song Board and the browser console say which one doesn't).
+   or the Song Board and the browser console say which one doesn't). PUT A | AFTER EVERY MEASURE (each string ends
+   one; the strings are joined with bar lines): only a bar line lets the check see a measure, and a stretch longer than
+   one measure with none is reported ("measure 2 has no bar line after it"), because a wrong rhythm there can hide
+   (The Entertainer's missing sixteenth rest once did).
        3        degree 3, one beat            3:2     degree 3, two beats          3:.5   an eighth note
        5,       degree 5 an octave LOWER      1'      degree 1 an octave HIGHER    #4     degree 4 raised   b7  lowered
        r:2      a rest, two beats
@@ -134,13 +139,9 @@
      notes: N('1:2 1 | 5:2 5 | 2:1.5 3:.5 2 | 1:3', 'r 5 7 | 1\':2 7 | 5 #6 4 | 5:3',
               'r 1\' 1\' | 1\':2 7 | 5 5 4 | 3 2 7,', '1:2 5 | 4:2 3 | 2 1 7, | 1:3')},
     {id: 'the-entertainer', title: 'The Entertainer', source: 'Scott Joplin, 1902 (opening strain)', tier: 3, tempo: 76, timeSig: [2, 4], key: 'Bb', style: 'march',
-     notes: N('r:1.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 1\':.25 2\':.25 #2\':.25 3\':.25',
-              '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':1.25 r:.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 6:.25 5:.25 #4:.25 6:.25',
-              '1\':.25 3\':.5 2\':.25 1\':.25 6:.25 2\':.5 2\':1.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 1\':.25 2\':.25 #2\':.25 3\':.25',
-              '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':2.25')},
+     notes: N("r:1.5 2:.25 #2:.25 | 3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 1':.25 2':.25 #2':.25 | 3':.25 1':.25 2':.25 3':.5 7:.25 2':.5 | 1' r:.5 2:.25 #2:.25",
+              "3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 6:.25 5:.25 #4:.25 | 6:.25 1':.25 3':.5 2':.25 1':.25 6:.25 2':.25~ | 2' r:.5 2:.25 #2:.25",
+              "3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 1':.25 2':.25 #2':.25 | 3':.25 1':.25 2':.25 3':.5 7:.25 2':.5 | 1':2")},
 
     /* ---------- ADDED LATER (always at the end: stars are saved by song number). Transcribed by Mr. Graham from trumpet
        (B♭) parts, one step up from concert:
@@ -282,5 +283,12 @@
      // repeat
      '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 5 5 3 1 | r:.5 (5:.5 6:.5 5:.5) #4 5',
      '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 1 r:.5 (6:.5 5:.5) 4:.5 3:.5 2:.5 | 1 r:.5 5:.5 1\' r')},
+    // FINAL BOSS (tier 4). Written A minor (trumpet) = concert G minor. Main theme after the intro, 8 bars of sixteenths.
+    // Transcribed from memory: Mr. Graham, check it on the Song Board (▶ PLAY) and fix any note here.
+    {id: 'flight-of-the-bumblebee', title: 'Flight of the Bumblebee', source: 'Nikolai Rimsky-Korsakov, 1900 (main theme)', tier: 4, tempo: 72, timeSig: [2, 4], key: 'Bb', mode: 'minor', style: 'rock',
+     notes: N("5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
+              "5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
+              "5:.25 6:.25 5:.25 #4:.25 5:.25 6:.25 5:.25 #4:.25 | 5:.25 #6:.25 7:.25 #7:.25 1':.25 b2':.25 1':.25 #7:.25",
+              "1':.25 #7:.25 7:.25 #6:.25 6:.25 #6:.25 7:.25 #7:.25 | 1' r")},
   ];
 })();

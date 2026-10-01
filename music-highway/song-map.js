@@ -4,7 +4,8 @@
    Loaded by the game (game.js) and the Song Board (songs.html). Needs shared/instruments.js (+ fingerings.js and
    diagrams.js for the fingering cards).
 
-     Arcade.SongMap.check(song)                -> [problems] (a measure that doesn't add up, a bad degree)
+     Arcade.SongMap.check(song)                -> [problems] (a measure that doesn't add up, a bad degree, a stretch of
+                                                  more than one measure with no bar line: "measure N has no bar line after it")
      Arcade.SongMap.events(song)               -> [{i, t, beats, measure, deg, oct, acc, tied?, slur, slurFirst?, slurLast?} | {rest}] in beats from the start
                                                   (a tied pair (NOTE TEXT '~') = one note)
      Arcade.SongMap.concert(song, {shift})     -> the same notes with `concert` (midi) and `pc`; shift = semitones the
@@ -78,6 +79,17 @@ window.Arcade = window.Arcade || {};
     // slurs: the NOTE TEXT reader's own reports (an unclosed '(', a ')' with no '(', a slur in a slur…)
     (song.notes && song.notes.problems || []).forEach(p => out.push(`${song.id}: ${p}`));
     if (Math.abs(t - Math.round(t / per) * per) > 1e-6) out.push(`${song.id}: the last measure has ${+(t % per).toFixed(3)} of ${per} beats`);
+    // A BAR LINE AFTER EVERY MEASURE: the check above only adds up the beats AT a '|', so a missing beat paid back later
+    // in the same stretch (by an over-long tied note) would pass. Notes running more than one measure past a bar line
+    // (or the start) without another '|' are reported, so every measure is checked on its own.
+    let seg = 0, ts = 0;
+    const segEnd = tEnd => { const m = Math.floor(seg / per + 1e-6), end = (m + 1) * per;
+      if (tEnd > end + 1e-6) out.push(`${song.id}: measure ${m + 1} has no bar line after it (add | so each measure is checked)`); };
+    (song.notes || []).forEach(n => {
+      if (n.bar) { segEnd(ts); seg = ts; return; }
+      ts += n.rest != null ? n.rest : n.beats;
+    });
+    if ((song.notes || []).length) segEnd(ts);
     if (song.sticking) { const n = String(song.sticking).toUpperCase().replace(/[^RL]/g, '').length, k = events(song).filter(x => !x.rest).length;   // a tied pair = one note
       if (n !== k) out.push(`${song.id}: sticking has ${n} letters for ${k} notes`); }
     if (song.tier === 1) (song.notes || []).forEach(n => { if (n.deg && (n.deg > 5 || n.oct || n.acc)) out.push(`${song.id}: tier 1 uses only degrees 1–5 in the first octave`); });
@@ -261,10 +273,10 @@ window.Arcade = window.Arcade || {};
 
   /* LANES: one highway lane per written pitch, lowest on the left, so the melody's shape shows on the road.
      Tier 1 = exactly the group's first five notes (even when a song leaves one out: beginners always see their five);
-     tiers 2 / 3 = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
+     tiers 2 / 3 / 4 (the boss) = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
      nearest neighbor's lane (order kept). The snare: two STICKING lanes, L (left hand) and R (right hand). A lane's label = its pitch's written name (a lane of
      two merged pitches: both, "E/F"; more: the most-used one's). */
-  const MAX_LANES = {1: 5, 2: 8, 3: 12};
+  const MAX_LANES = {1: 5, 2: 8, 3: 12, 4: 12};          // 4 = the FINAL BOSS: like tier 3
   function lanes(song, map, group) {
     if (map.unpitched) return {lanes: [{midis: [], label: 'L', count: map.notes.filter(n => n.stick === 'L').length}, {midis: [], label: 'R', count: map.notes.filter(n => n.stick === 'R').length}],
       of: n => n.stick === 'R' ? 1 : 0};                          // the snare: two sticking lanes, L on the left, R on the right

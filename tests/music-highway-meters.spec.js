@@ -26,18 +26,18 @@ async function game(page, browserName) {
 }
 
 test.describe('music highway: the book songs and the new meters', () => {
-  test('20 new songs at the END in book order, all 46 pass the check, maxStars = 138', async ({page}) => {
+  test('the 20 book songs are songs 27–46, in book order; every song passes the check; maxStars = songs × 3', async ({page}) => {
     const watch = await prepare(page, {store: device('trumpet')});
     await page.goto('music-highway/index.html?demo&nostart');
     await page.waitForFunction(() => window.Arcade && Arcade.SongMap && window.MH_SONGS && Arcade.ALL_GAMES);
-    const r = await page.evaluate(() => ({n: MH_SONGS.length, tail: MH_SONGS.slice(26).map(s => s.id), at25: MH_SONGS[25].id,
+    const r = await page.evaluate(() => ({n: MH_SONGS.length, tail: MH_SONGS.slice(26, 46).map(s => s.id), at25: MH_SONGS[25].id,
       checks: MH_SONGS.flatMap(s => Arcade.SongMap.check(s)), max: Arcade.ALL_GAMES.find(g => g.id === 'music-highway').maxStars,
       meters: Object.fromEntries(['the-stars-and-stripes-forever', 'lisbon-bay', 'the-merry-minstrels'].map(id => [id, Arcade.SongMap.meter(MH_SONGS.find(s => s.id === id)).label]))}));
-    expect(r.n).toBe(46);
+    expect(r.n).toBeGreaterThanOrEqual(46);                         // (song 47 = the FINAL BOSS: music-highway-boss.spec.js)
     expect(r.at25).toBe('dies-irae');                                // the old songs keep their numbers
     expect(r.tail).toEqual(NEW);
     expect(r.checks).toEqual([]);
-    expect(r.max).toBe(138);
+    expect(r.max).toBe(r.n * 3);
     expect(r.meters).toEqual({'the-stars-and-stripes-forever': '¢ 2/2', 'lisbon-bay': '6/8', 'the-merry-minstrels': '3/8'});
     watch.check();
   });
