@@ -172,6 +172,7 @@
   --bt-wood:#6b3e1f; --bt-wood-hi:#a8693a; --bt-wood-dark:#3f220f; --bt-wood-ink:#fff1dc; --bt-slot-bg:#2b1a0e;
   --bt-clam:#f2a0c8; --bt-clam-2:#8a3a66; --bt-wisp:#c8ff5d; --bt-rusher:#ff8a3a; --bt-ink:#18203a; --bt-bubble:#f4f1e6;
   --bt-mine:#5dffd0; --bt-build:#ffd166; --bt-far:#ff6b6b; --bt-heart:#ff6b9a;
+  --bt-courage:#ffb347; --bt-courage-core:#fff1b8; --bt-courage-low:#b98cff;   /* Blocktave's Courage meter (a little flame) */
   /* Blocktave's parallax backdrop (blocktave/backdrop.js): muted, darker than the world in front of it */
   --bt-marsh-far:#3d2c6b; --bt-marsh-far-2:#5a4590; --bt-marsh-mist:#c9b8ff; --bt-marsh-moon:#f1e9ff; --bt-marsh-water:#a8d8ff;
   --bt-marsh-mid:#1f4a46; --bt-marsh-cat:#5a3a26; --bt-marsh-near:#0d2224; --bt-firefly:#f6ff9e;
