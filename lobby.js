@@ -152,7 +152,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- THE PRIZE COUNTER's sign (shared/prizes.js; the wallet: shared/tokens.js): the last sign, the same size
      and style as the zones' (it flickers on with them), with the token balance and the WISH bar: "Wish: Jetpack ·
      180 / 300", a lighter part for the stars not turned in yet ("+60 waiting at the counter"), and "You can get your
-     wish! 🎟" (a gentle pulse; none with reduced motion) once it's affordable. ---------- */
+     wish!" + the token icon (a gentle pulse; none with reduced motion) once it's affordable. ---------- */
   function prizeSign(i, flicker) {
     if (!A.Tokens || !A.Prizes || !A.store) return '';
     const T = A.Tokens, bal = T.balance(), fresh = T.freshStars(), w = T.wishProgress();
@@ -163,14 +163,14 @@ window.Arcade = window.Arcade || {};
       wish = `<span class="zs-wish${ready ? ' ready' : ''}"><span class="zs-wish-t">Wish: ${esc(w.name)} · ${Math.min(w.have, w.price)} / ${w.price}</span>` +
         `<span class="zs-bar" aria-hidden="true"><i class="zs-have" style="width:${w.pct.toFixed(1)}%"></i><i class="zs-wait" style="width:${w.pctWaiting.toFixed(1)}%"></i></span>` +
         (w.season && w.left ? `<span class="zs-wish-left">${esc(w.left)}</span>` : '') +
-        (ready ? `<span class="zs-wish-go">${w.questOnly ? 'Get it at the Token Booth in Arcade Quest!' : 'You can get your wish! 🎟'}</span>` : w.waiting ? `<span class="zs-wish-w">+${w.waiting} waiting at the counter</span>` : '') + `</span>`;
+        (ready ? `<span class="zs-wish-go">${w.questOnly ? 'Get it at the Token Booth in Arcade Quest!' : `You can get your wish! ${A.Tokens.iconHTML()}`}</span>` : w.waiting ? `<span class="zs-wish-w">+${w.waiting} waiting at the counter</span>` : '') + `</span>`;
       say = (ready ? ` You can get your wish, the ${w.name}!` : ` Wish: ${w.name}, ${Math.min(w.have, w.price)} of ${w.price} tokens${w.waiting ? `, plus ${w.waiting} waiting at the counter` : ''}.`) + (w.season && w.left ? ` ${w.name}: ${w.left}` : '');
     }
     if (!w) { const g = T.wishGone(); if (g) { wish = `<span class="zs-wish"><span class="zs-wish-t">${esc(g.text)}</span></span>`; say = ' ' + g.text; } }
     return `<button type="button" class="zsign zs-prize${flicker ? ' flick' : ''}" id="prizeSign" style="--z:var(--amber);--z-hi:var(--amber-hi);--z-ink:var(--amber-ink);--i:${i}" ` +
       `aria-label="Prize Counter: ${bal} tokens${fresh ? `, ${fresh} new stars to turn in` : ''}.${esc(say)}">` +
       `<span class="zs-name">Prize Counter</span><span class="zs-tag">Turn your stars into prizes</span>` +
-      `<span class="zs-bal"><i class="pz-coin" aria-hidden="true"></i><b>${bal}</b> tokens${fresh ? ` <small>· ${fresh} new ★ to turn in</small>` : ''}</span>${wish}</button>`;
+      `<span class="zs-bal">${T.iconHTML()}<b>${bal}</b> tokens${fresh ? ` <small>· ${fresh} new ★ to turn in</small>` : ''}</span>${wish}</button>`;
   }
   function wirePrize() {
     const b = $('prizeSign');

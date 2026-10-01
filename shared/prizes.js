@@ -14,7 +14,8 @@
    disabled "Need 40 more tokens" when short), ☆ WISH, CLOSE. BUY asks first (UI.confirm "Buy the Jetpack for 300
    tokens?"), then the prize is owned (prize-win) and the card offers WEAR IT NOW / KEEP SHOPPING.
    KEYS: arrows move between the prizes (and the spotlight), Enter opens, Esc closes the card, then the counter.
-   MOTION: the neon's slow glow, the bulb, the stars dropping into the machine, the coins in the tray and the balance
+   MOTION: the neon's slow glow, the bulb, the stars dropping into the machine, the tokens in the tray (the season's
+   token: candy corns tumble in during Spooky Season) and the balance
    counting up; all still with reduced motion or the MOTION switch (Arcade.reducedMotion / html.no-motion).
    Where it opens: the lobby's PRIZE COUNTER sign (lobby.js), the avatar badge's menu (shared/avatar-badge.js), the 3D
    floor's counter (arcade3d.js + arcade.js), and index.html?prizes (from a game page's badge).
@@ -37,7 +38,8 @@ window.Arcade = window.Arcade || {};
     {id: 'case', title: 'Glass case', note: '50–150 tokens'},
   ];
   const tierOf = it => it.season ? 'season' : it.questOnly ? 'manor' : it.full >= 400 ? 'hang' : it.full >= 300 ? 'upper' : it.full >= 200 ? 'lower' : 'case';
-  const COIN = '<i class="pz-coin" aria-hidden="true"></i>';
+  // THE TOKEN ICON (Arcade.Tokens.iconHTML: the coin, or the running event's picture; sized by prizes.css)
+  const coin = () => T().iconHTML();
 
   /* ---------- TICKET, the counter bot (an original drawing: a boxy robot, a token-slot mouth, one antenna bulb) ---------- */
   const TICKET = `<svg class="pz-bot" viewBox="0 0 100 120" aria-hidden="true">
@@ -62,7 +64,7 @@ window.Arcade = window.Arcade || {};
     ov.innerHTML = `<div class="panel pz-panel" role="dialog" aria-modal="true" aria-labelledby="pzTitle">
       <header class="pz-head">
         <h2 class="pz-neon" id="pzTitle"><span class="sr">The Prize Counter: </span><span aria-hidden="true">Prizes</span></h2>
-        <p class="pz-wallet" aria-live="polite">${COIN}<b id="pzBal">0</b> <span>tokens</span></p>
+        <p class="pz-wallet" aria-live="polite">${coin()}<b id="pzBal">0</b> <span>tokens</span></p>
         <button type="button" class="pz-x" data-act="close" aria-label="Close the Prize Counter">✕</button>
       </header>
       <section class="pz-clerk" aria-label="Ticket, the counter bot">${TICKET}
@@ -221,7 +223,7 @@ window.Arcade = window.Arcade || {};
     if (!still()) {
       m.classList.add('go');
       const tray = m.querySelector('.pz-tray');
-      tray.innerHTML = Array.from({length: Math.min(12, 3 + r.stars)}, (_, i) => `<i class="pz-coin pz-spill" style="--k:${i}"></i>`).join('');
+      tray.innerHTML = Array.from({length: Math.min(12, 3 + r.stars)}, (_, i) => T().iconHTML({cls: 'pz-spill', style: `--k:${i}`})).join('');
     }
     const to = T().balance(), bal = S.el.querySelector('#pzBal'), t0 = performance.now(), MS = still() ? 0 : 900;
     const tick = now => {
@@ -260,8 +262,8 @@ window.Arcade = window.Arcade || {};
     const p = T().price(it.key), c = T().canBuy(it.key), own = T().owned(it.key), wish = T().wish() === it.key;
     const worn = A.Avatar.get()[it.field] === it.id, panel = S.card.querySelector('.pz-card');
     const ev = it.season && (A.SEASONS || []).find(e => e.id === it.season);
-    const priceLine = ev && !own ? `<p class="pz-card-price">${COIN}<b>${p.price}</b> tokens · ${esc(ev.name)} only${T().seasonal() ? ` · ${esc(T().seasonal().left)}` : ''}</p>` : it.questOnly ? `<p class="pz-card-price">${COIN}${p.full} tokens · <b>Only at the Token Booth in Arcade Quest!</b></p>`
-      : `<p class="pz-card-price">${COIN}${p.weekly ? `<s>${p.full}</s> ` : ''}<b>${p.price}</b> tokens${p.weekly ? ' · Prize of the week!' : ''}</p>`;
+    const priceLine = ev && !own ? `<p class="pz-card-price">${coin()}<b>${p.price}</b> tokens · ${esc(ev.name)} only${T().seasonal() ? ` · ${esc(T().seasonal().left)}` : ''}</p>` : it.questOnly ? `<p class="pz-card-price">${coin()}${p.full} tokens · <b>Only at the Token Booth in Arcade Quest!</b></p>`
+      : `<p class="pz-card-price">${coin()}${p.weekly ? `<s>${p.full}</s> ` : ''}<b>${p.price}</b> tokens${p.weekly ? ' · Prize of the week!' : ''}</p>`;
     let acts;
     if (msg && msg.bought) acts = `${worn ? '' : '<button type="button" class="btn btn-primary" data-c="wear">Wear it now</button>'}<button type="button" class="btn btn-secondary" data-c="close">Keep shopping</button>`;
     else if (own) acts = `${worn ? '' : '<button type="button" class="btn btn-primary" data-c="wear">Wear it</button>'}<button type="button" class="btn btn-secondary" data-c="close">Close</button>`;

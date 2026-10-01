@@ -68,7 +68,7 @@ window.Arcade = window.Arcade || {};
       `<h2 class="ui-title ch-title" id="chTitle"><span aria-hidden="true">🏆</span> CHAMPION!</h2>` +
       `<ul class="ch-lines" id="chLines">${list.map(a => `<li>${esc(lineOf(a, grade))}</li>`).join('')}</ul>` +
       (name ? `<p class="ch-name">${esc(name)}</p>` : '') +
-      `<p class="ch-tokens"><i class="pz-coin" aria-hidden="true"></i> +<b class="ch-n">${still() ? tokens : 0}</b> tokens<span class="sr"> (${tokens})</span></p>` +
+      `<p class="ch-tokens">${A.Tokens.iconHTML({size: 22})} +<b class="ch-n">${still() ? tokens : 0}</b> tokens<span class="sr"> (${tokens})</span></p>` +
       `<p class="ch-small">Show Mr. Graham this screen: ID <code>${esc(id)}</code></p>` +
       `<div class="acts"><button type="button" class="btn btn-primary ch-claim">Claim</button></div></div>`;
     document.body.appendChild(ov);

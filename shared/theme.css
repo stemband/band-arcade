@@ -793,6 +793,7 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .avb-lk-n{font-size:13px;font-weight:700;color:var(--text-lo)}
 .avb-lk-new{margin-left:4px;padding:1px 8px;border-radius:999px;background:var(--pink);color:var(--deep);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
 .avb-tk{flex:none;width:22px;text-align:center;font-size:18px;line-height:1}
+.avb-tk .tk-ic{display:block;margin:0 auto}
 .avb-btn{position:relative}
 .avb-dot{position:absolute;top:2px;left:30px;width:12px;height:12px;border-radius:50%;background:var(--pink);box-shadow:0 0 0 2px var(--deep),0 0 8px var(--pink)}
 .avb-item:hover,.avb-item:focus-visible{border-color:var(--yellow);background:var(--floor-lit);outline:none;box-shadow:var(--glow-yellow)}
