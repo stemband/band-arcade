@@ -138,7 +138,7 @@
       cycleCount: {}, spawnT: 0, died: false, calmed: 0, mined: 0, frames: [], listen: false, wispHold: 0, fx: {},
       p: {x: P.x != null ? P.x : w.spawn.x + .5, y: P.y != null ? P.y : w.spawn.y + 1, vx: 0, vy: 0, face: 1, ground: false, hurtT: 0,
         hearts: P.hearts > 0 ? P.hearts : (endless ? R.endless.hearts : R.player.hearts), inv: P.inv || {}, hot: P.hot || new Array(R.hotbar).fill(null), sel: P.sel || 0, walkT: 0}};
-    if (endless) Object.entries(R.endless.kit).forEach(([k, n]) => gain(k, n, true));
+    if (endless) Object.entries(R.endless.kit).forEach(([k, n]) => gain(k, n, true, false));
     G.nightWas = isNight();
     G.cycle = cycleNo();
     scanGear();
@@ -190,13 +190,63 @@
   }
 
   /* ================= INVENTORY ================= */
-  function gain(id, n, quiet) {
+  const MAX_ONE = () => R.player.stack * 9;
+  /** gain items: the hotbar, the Recipe Book, and (unless label === false) the "+1 Maple" label over your head */
+  function gain(id, n, quiet, label = true) {
     const inv = G.p.inv;
-    inv[id] = Math.min(R.player.stack * 9, (inv[id] || 0) + n);
+    inv[id] = Math.min(MAX_ONE(), (inv[id] || 0) + n);
     const it = ITEMS[id];
     if (it && it.kind !== 'tool' && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) G.p.hot[k] = id; }
     findRecipes();
+    if (label) pickupLabel(id, n);
     if (!quiet) drawHot();
+  }
+  /** room in your bag for this item? (rules.js invSlots different items, tools aside; one item up to its stack limit) */
+  function canHold(id) {
+    const inv = G.p.inv;
+    if (inv[id] > 0) return inv[id] < MAX_ONE();
+    const kinds = Object.keys(inv).filter(k => inv[k] > 0 && !(ITEMS[k] && ITEMS[k].kind === 'tool')).length;
+    return (ITEMS[id] && ITEMS[id].kind === 'tool') || kinds < R.invSlots;
+  }
+
+  /* ================= "+1 MAPLE": the pickup labels over your head (and the same words for screen readers) =================
+     Drawn on the sharp overlay after the light (readable in the dark: a dark outline). The same item within
+     pickupMergeMs counts up in one label; at most pickupLabelsMax; reduced motion = no drift, only the fade. */
+  const LIVE = {q: [], t: 0, tm: 0};
+  function pickupLabel(id, n, text) {
+    if (!G || !(n > 0) && !text) return;
+    const now = performance.now(), L = G.labels || (G.labels = []);
+    const same = !text && L.find(l => l.id === id && !l.text && now - l.last < R.pickupMergeMs);
+    if (same) { same.n += n; same.last = now; same.t0 = now; }
+    else { L.push({id, n, text, t0: now, last: now}); while (L.length > R.pickupLabelsMax) L.shift(); }
+    G.fx.labels = (G.fx.labels || 0) + 1;
+    say(text || `+${n} ${itemName(id)}`);
+  }
+  const labelText = l => l.text || `+${l.n} ${itemName(l.id)}`;
+  /** the aria-live region hears the pickups at most every pickupAriaMs (gathered: "+2 Maple, +1 Cork") */
+  function say(t) {
+    LIVE.q.push(t);
+    if (LIVE.tm) return;
+    const flush = () => { LIVE.tm = 0; if (!LIVE.q.length) return; const el = $('btLive'); if (el) el.textContent = LIVE.q.splice(0).join(', '); LIVE.t = performance.now(); };
+    const wait = Math.max(0, R.pickupAriaMs - (performance.now() - LIVE.t));
+    LIVE.tm = setTimeout(flush, wait);
+  }
+  function drawLabels(sx, sy, now) {
+    const L = G.labels; if (!L || !L.length) return;
+    G.labels = L.filter(l => now - l.t0 < R.pickupLabelMs);
+    const p = G.p, x = sx(p.x), base = sy(p.y - PH) - 10, fs = Math.round(Math.max(14, Math.min(19, S * .5)));
+    oc.font = `700 ${fs}px ${getComputedStyle(document.body).fontFamily}`; oc.textBaseline = 'middle'; oc.textAlign = 'left';
+    oc.lineJoin = 'round';
+    G.labels.slice().reverse().forEach((l, k) => {                       // the newest just over the head, older ones above it
+      const f = (now - l.t0) / R.pickupLabelMs, rise = RM.matches ? 0 : f * S * .7;
+      const y = base - k * (fs + 10) - rise, txt = labelText(l), tw = oc.measureText(txt).width, ic = fs + 4, w = ic + 4 + tw;
+      oc.globalAlpha = f < .6 ? 1 : Math.max(0, 1 - (f - .6) / .4);
+      const lx = Math.round(x - w / 2);
+      oc.drawImage(iconCanvas(l.id), lx, Math.round(y - ic / 2), ic, ic);
+      oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(txt, lx + ic + 4, y);
+      oc.fillStyle = col('text-hi'); oc.fillText(txt, lx + ic + 4, y);
+    });
+    oc.globalAlpha = 1;
   }
   function take(id, n = 1) {
     const inv = G.p.inv; if ((inv[id] || 0) < n) return false;
@@ -215,6 +265,96 @@
       if (Object.keys(need).every(k => have(k, need[k]))) { f[r.id] = 1; any = r; }
     });
     if (any) { saveGd(); A.UI.toast(`New recipe in your Recipe Book: ${any.name}!`); }
+  }
+
+  /* ================= WORLD DROPS: mined blocks and calmed creatures drop their item into the world =================
+     A drop pops out with a little arc, falls onto the nearest solid ground below (never inside a block) and bobs there.
+     Within rules.js magnetRadius of you it glides toward you, within pickupRadius it's yours ("+1 Pearl"). A full bag
+     leaves it on the ground ("Bag full!"). Saved with the world (world.js `drops`, v 2). Off screen a drop disappears
+     after dropDespawnS (never while you can see it; the lost-hearts bag is separate and never does); at most maxDrops. */
+  const DROP_R = .22;                                                    // a drop's size (tiles, half of it)
+  function dropItem(id, n, x, y) {
+    if (!G || !(n > 0)) return;
+    const w = G.w, D = w.drops || (w.drops = []), pieces = Math.min(n, 3);
+    for (let k = 0; k < pieces; k++) {
+      const share = Math.floor(n / pieces) + (k < n % pieces ? 1 : 0), off = pieces > 1 ? (k - (pieces - 1) / 2) * R.dropSpread : 0;
+      D.push({x: x + off, y, item: id, n: share, t: 0, vx: (off ? Math.sign(off) : Math.random() - .5) * R.dropPop[0] * (.6 + Math.random() * .4), vy: -R.dropPop[1], born: performance.now()});
+    }
+    capDrops();
+    w.dirty = true;
+  }
+  /** at most maxDrops: the oldest beyond that joins the nearest drop of the same item (none = the next oldest) */
+  function capDrops() {
+    const D = G.w.drops;
+    while (D.length > R.maxDrops) {
+      let merged = false;
+      for (let i = 0; i < D.length - R.maxDrops + 1 && !merged; i++) {
+        const a = D[i];
+        let best = null, bd = 1e9;
+        D.forEach(b => { if (b !== a && b.item === a.item) { const d = Math.hypot(b.x - a.x, b.y - a.y); if (d < bd) { bd = d; best = b; } } });
+        if (best) { best.n += a.n; D.splice(i, 1); merged = true; }
+      }
+      if (!merged) break;                                                // nothing to merge with: never throw items away
+    }
+  }
+  /** the distance from a drop to the player's body (a vertical segment from the feet to the head) */
+  const bodyDist = (d, p) => Math.hypot(d.x - p.x, d.y - Math.max(p.y - PH + .2, Math.min(p.y - .2, d.y)));
+  function stepDrops(dt, now) {
+    const D = G.w.drops; if (!D || !D.length) return;
+    const p = G.p, vx0 = camX - 1, vx1 = camX + VW / S + 1, vy0 = camY - 1, vy1 = camY + VH / S + 1;
+    for (let i = D.length - 1; i >= 0; i--) {
+      const d = D[i], dist = bodyDist(d, p), room = canHold(d.item), popped = now - (d.born || 0) > 250;   // it pops out first
+      if (room && popped && dist <= R.pickupRadius) { take1(d, i); continue; }
+      if (room && popped && dist <= R.magnetRadius && !d.vy) {
+        // THE MAGNET: a short glide toward you
+        const tx = p.x, ty = Math.max(p.y - PH + .2, Math.min(p.y - .2, d.y)), k = Math.min(1, R.magnetSpeed * dt / Math.max(.01, dist));
+        d.x += (tx - d.x) * k; d.y += (ty - d.y) * k; d.pull = true;
+      } else {
+        if (!room && dist <= R.pickupRadius) bagFull();
+        d.pull = false;
+        fallDrop(d, dt);
+      }
+      // off screen: the despawn clock runs
+      if (d.x < vx0 || d.x > vx1 || d.y < vy0 || d.y > vy1) { d.t = (d.t || 0) + dt; if (d.t >= R.dropDespawnS) { D.splice(i, 1); G.w.dirty = true; } }
+    }
+  }
+  /** gravity and the ground: never inside a block (a block placed over a drop pushes it up into the air) */
+  function fallDrop(d, dt) {
+    if (solid(d.x, d.y)) { let k = 0; while (k < 6 && solid(d.x, d.y)) { d.y = Math.floor(d.y) - DROP_R - .01; k++; } d.vy = 0; }
+    if (d.vx) { const nx = d.x + d.vx * dt; if (!solid(nx + Math.sign(d.vx) * DROP_R, d.y)) d.x = nx; else d.vx = 0; d.vx *= Math.pow(.2, dt); if (Math.abs(d.vx) < .05) d.vx = 0; }
+    const under = d.y + DROP_R + .02;
+    if (d.vy || !solid(d.x, under)) {
+      d.vy = Math.min(R.player.maxFall, (d.vy || 0) + R.player.gravity * dt);
+      const ny = d.y + d.vy * dt;
+      if (d.vy > 0 && solid(d.x, ny + DROP_R)) { d.y = Math.floor(ny + DROP_R) - DROP_R; d.vy = 0; d.vx = 0; }
+      else if (d.vy < 0 && solid(d.x, ny - DROP_R)) d.vy = 0;
+      else d.y = ny;
+      if (d.y > G.w.h) d.y = G.w.h - 3;
+    }
+  }
+  function take1(d, i) {
+    G.w.drops.splice(i, 1); G.w.dirty = true;
+    gain(d.item, d.n);
+    G.fx.picked = (G.fx.picked || 0) + d.n;
+    A.Sfx.event('bt-pickup');
+  }
+  function bagFull() {
+    const now = performance.now();
+    if (now - (G.fullAt || -1e9) < R.bagFullToastS * 1000) return;
+    G.fullAt = now;
+    A.UI.toast('Bag full! Store some things in a Band Locker.', {ms: 2000});
+  }
+  function drawDrops(sx, sy, now) {
+    const D = G.w.drops; if (!D || !D.length) return;
+    const size = S * DROP_R * 2.6;
+    ctx.imageSmoothingEnabled = false;
+    D.forEach((d, k) => {
+      const x = sx(d.x), y = sy(d.y);
+      if (x < -S || y < -S || x > VW + S || y > VH + S) return;
+      const bob = RM.matches || d.vy || d.pull ? 0 : Math.sin(now / 420 + k) * R.dropBob * S;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, y + DROP_R * S, size * .35, size * .1, 0, 0, 7); ctx.fill();
+      ctx.drawImage(iconCanvas(d.item), Math.round(x - size / 2), Math.round(y - size / 2 + bob), Math.round(size), Math.round(size));
+    });
   }
 
   /* ================= THE CANVAS ================= */
@@ -307,9 +447,11 @@
     }
   }
   /* item icons (inventory, hotbar, the Measure): a block's own tile, or a small drawing for materials and tools */
-  const ICON = {};
-  function iconURL(id) {
-    if (ICON[id]) return ICON[id];
+  const ICON = {}, ICON_CV = {};
+  const iconURL = id => ICON[id] || (ICON[id] = iconCanvas(id).toDataURL());
+  /** an item's icon as a 48 px canvas (the hotbar's mini tile; drawn on the world for drops, swings and labels) */
+  function iconCanvas(id) {
+    if (ICON_CV[id]) return ICON_CV[id];
     const c = document.createElement('canvas'), s = 48; c.width = c.height = s;
     const g = c.getContext('2d'), it = ITEMS[id] || {}, u = s / 16;
     const dot = (cl, x, y, r) => { g.fillStyle = col(cl); g.beginPath(); g.arc(x * u, y * u, r * u, 0, 7); g.fill(); };
@@ -341,7 +483,7 @@
         default: dot('text-lo', 8, 8, 4);
       }
     }
-    return (ICON[id] = c.toDataURL());
+    return (ICON_CV[id] = c);
   }
   const itemName = id => (ITEMS[id] || {}).name || id;
 
@@ -438,8 +580,9 @@
     G.spawnT += dt;
     if (G.spawnT >= R.spawn.everyS) { G.spawnT = 0; trySpawn(); }
     listenSync();
-    // particles
+    // particles, world drops
     G.parts = G.parts.filter(q => (q.t += real) < q.life);
+    stepDrops(dt, now);
     // autosave
     if (!G.endless && performance.now() - G.lastSave > R.autosaveS * 1000) saveWorld();
     if (G.hudT == null || now - G.hudT > 250) { G.hudT = now; drawHud(); Card.follow(); }
@@ -491,8 +634,11 @@
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(lightCv, 0, 0, cols, rows, ox - S / 2, oy - S / 2, cols * S, rows * S);
     // after the light, so they're always readable: the note bubbles, the reach and the target
+    drawDrops(sx, sy, now);
+    drawPoofs(sx, sy, now);
     G.creatures.forEach(c => drawBubble(c, sx(c.x), sy(c.y)));
-    drawReach(sx, sy);
+    drawReach(sx, sy, now);
+    drawLabels(sx, sy, now);
   }
   function mix(a, b, t) {
     const pa = parse(a), pb = parse(b); if (!pa || !pb) return t > .5 ? b : a;
@@ -526,22 +672,92 @@
       ctx.fillStyle = col('cyan'); ctx.fillRect(x - HW * S, y - PH * S, HW * 2 * S, PH * S);
     }
     ctx.globalAlpha = 1;
+    drawSwing(x, y, now);
+  }
+  /* ================= THE SWING (mining, a creature tapped, a block's challenge passed) =================
+     The avatar turns to the target and its tool (the item's own icon: Wooden / Brass / Silver Mallet, Golden Baton)
+     arcs from behind its head down toward it in rules.js swingMs; no tool = a quick reach. A new swing restarts it.
+     Reduced motion / MOTION off: none. */
+  const TOOL_OF = ['', 'mallet1', 'mallet2', 'mallet3', 'baton'];
+  function swing(tx, ty) {
+    if (!G) return;
+    const p = G.p, dx = tx - p.x;
+    if (Math.abs(dx) > .05) p.face = Math.sign(dx);
+    if (RM.matches) return;
+    const sh = {x: p.x + p.face * .15, y: p.y - 1.35};
+    G.swing = {t0: performance.now(), tool: TOOL_OF[tier()], face: p.face, end: Math.atan2(ty - sh.y, Math.abs(tx - sh.x))};
+    G.fx.swings = (G.fx.swings || 0) + 1;
+  }
+  function drawSwing(x, y, now) {
+    const sw = G.swing; if (!sw) return;
+    const f = (now - sw.t0) / R.swingMs;
+    if (f >= 1 || RM.matches) { G.swing = null; return; }
+    const e = 1 - Math.pow(1 - f, 3);                                    // fast, then easing into the target
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    ctx.translate(x + sw.face * S * .15, y - S * 1.35); ctx.scale(sw.face, 1);
+    if (sw.tool) {
+      const a0 = -2.2, a1 = Math.max(-.6, Math.min(1.2, sw.end)), a = a0 + (a1 - a0) * e, L = S * 1.1;
+      // the icon's handle is at its lower left, its head up to the right (about 53° up): turn it to point along `a`
+      ctx.rotate(a + .93);
+      ctx.drawImage(iconCanvas(sw.tool), -L * .25, -L * .875, L, L);
+    } else {
+      const reach = Math.sin(Math.PI * Math.min(1, f * 1.2)) * S * .55;
+      ctx.fillStyle = col('bt-sand'); ctx.beginPath(); ctx.arc(reach + S * .1, S * .35, S * .13, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  /* ================= THE POOF (a creature calmed): a soft puff of cloud in its colors and a few notes floating up;
+     the creature shrinks into it. Never a flash, never bright white. Reduced motion: none (the creature just fades). */
+  const POOF_COL = {clam: ['bt-clam', 'bt-clam-2'], wisp: ['bt-wisp', 'bt-rhythm'], rusher: ['bt-rusher', 'bt-brass']};
+  function poof(c) {
+    A.Sfx.event('bt-poof');
+    if (RM.matches) return;
+    (G.poofs || (G.poofs = [])).push({x: c.x, y: c.kind === 'wisp' ? c.y : c.y - .4, t0: performance.now(), kind: c.kind, seed: Math.random() * 6});
+    G.fx.poofs = (G.fx.poofs || 0) + 1;
+  }
+  function drawPoofs(sx, sy, now) {
+    const P = G.poofs; if (!P || !P.length) return;
+    G.poofs = P.filter(q => now - q.t0 < R.poofMs);
+    G.poofs.forEach(q => {
+      const f = (now - q.t0) / R.poofMs, x = sx(q.x), y = sy(q.y), cols = POOF_COL[q.kind] || POOF_COL.clam;
+      oc.globalAlpha = .7 * (1 - f);
+      for (let k = 0; k < 6; k++) {
+        const a = q.seed + k * 1.047, r = S * (.18 + .55 * f), d = S * (.15 + .45 * f);
+        oc.fillStyle = col(cols[k % 2]); oc.beginPath(); oc.arc(x + Math.cos(a) * d, y + Math.sin(a) * d * .7, r * (k % 2 ? .8 : 1), 0, 7); oc.fill();
+      }
+      oc.globalAlpha = 1 - f; oc.fillStyle = col('bt-moss'); oc.textAlign = 'center'; oc.textBaseline = 'middle';
+      oc.font = `${Math.round(S * .5)}px "GN Music","Noto Music",serif`;
+      [-.45, .1, .5].forEach((dx, k) => oc.fillText(k % 2 ? '♫' : '♪', x + dx * S, y - S * (.3 + f * (1 + k * .25))));
+      oc.globalAlpha = 1;
+    });
   }
   function drawBag(x, y) {
     ctx.fillStyle = col('bt-bag'); ctx.beginPath(); ctx.ellipse(x, y, S * .35, S * .3, 0, 0, 7); ctx.fill();
     ctx.strokeStyle = col('bt-brass'); ctx.lineWidth = S * .06; ctx.beginPath(); ctx.moveTo(x - S * .15, y - S * .28); ctx.lineTo(x + S * .15, y - S * .28); ctx.stroke();
   }
-  function drawReach(sx, sy) {
-    const p = G.p, cx = sx(p.x), cy = sy(p.y - .9);
-    oc.strokeStyle = col(G.build ? 'bt-build' : 'bt-mine'); oc.globalAlpha = .22; oc.lineWidth = 2; oc.setLineDash([6, 8]);
-    oc.beginPath(); oc.arc(cx, cy, R.player.reach * S, 0, 7); oc.stroke(); oc.setLineDash([]); oc.globalAlpha = 1;
-    const t = G.target; if (!t) return;
-    const ok = inReach(t.x, t.y);
-    oc.strokeStyle = col(ok ? (G.build ? 'bt-build' : 'bt-mine') : 'bt-far'); oc.lineWidth = 3;
-    oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
+  /** the target highlight (a tile in reach, under the mouse or the last tap) and, for a moment, a tap out of reach */
+  function drawReach(sx, sy, now) {
+    const t = G.target;
+    if (t && inReach(t.x, t.y)) {
+      oc.strokeStyle = col(G.build ? 'bt-build' : 'bt-mine'); oc.lineWidth = 3;
+      oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
+    }
+    const f = G.far;
+    if (f && now - f.t0 < R.farFlashMs) {
+      oc.globalAlpha = .55 * (1 - (now - f.t0) / R.farFlashMs);
+      oc.strokeStyle = col('bt-far'); oc.lineWidth = 2;
+      oc.strokeRect(sx(f.x) + 1.5, sy(f.y) + 1.5, S - 3, S - 3);
+      oc.globalAlpha = 1;
+    } else if (f) G.far = null;
   }
 
   /* ================= MINING AND BUILDING ================= */
+  /** a tap on a block OUT of reach: its faint red outline for farFlashMs, and "Too far: walk closer!" (at most every farToastS) */
+  function tooFar(x, y) {
+    const now = performance.now();
+    G.far = {x, y, t0: now};
+    if (now - (G.farAt || -1e9) >= R.farToastS * 1000) { G.farAt = now; A.UI.toast('Too far: walk closer!', {ms: 1400}); }
+  }
   const inReach = (x, y) => Math.hypot(x + .5 - G.p.x, y + .5 - (G.p.y - .9)) <= R.player.reach + .01;
   function tileAt(clientX, clientY) { return {x: Math.floor(camX + clientX / S), y: Math.floor(camY + clientY / S)}; }
   /** a tap / click on the world: a creature, else the block (MINE mode breaks, BUILD mode places or uses) */
@@ -549,13 +765,13 @@
     if (!G || G.held || pause.paused || Card.current) return;
     const wx = camX + clientX / S, wy = camY + clientY / S;
     const cr = G.creatures.find(c => c.state === 'live' && Math.abs(c.x - wx) < .9 && wy > c.y - 1.4 && wy < c.y + .4);
-    if (cr) return creatureCard(cr);
+    if (cr) { swing(cr.x, cr.y - .4); return creatureCard(cr); }
     const t = tileAt(clientX, clientY);
     G.target = t;
     act(t.x, t.y, alt ? !G.build : G.build);
   }
   function act(x, y, build) {
-    if (!inReach(x, y)) { A.UI.toast('Too far away: walk closer!', {ms: 1400}); return; }
+    if (!inReach(x, y)) { tooFar(x, y); return; }
     const b = B[BW.at(G.w, x, y)];
     if (build) {
       if (b.use) return useBlock(b, x, y);
@@ -568,6 +784,7 @@
   function mine(x, y) {
     const b = B[BW.at(G.w, x, y)];
     if (!b.mine) { if (b.key !== 'air' && b.key !== 'water') A.UI.toast(`${b.name} can't be mined.`, {ms: 1400}); return false; }
+    swing(x + .5, y + .5);
     const need = b.tier || 0, have = tier();
     if (have < need) {
       if (b.key === 'toneOre' && have < 1 && !seen('ore-mallet')) { firstCard('ore-mallet', 'Tone Ore!', 'You need a Wooden Mallet for this! Make one in the Measure: Planks, Planks, Cork.'); return false; }
@@ -581,16 +798,25 @@
     if (b.door) { [y - 1, y, y + 1].forEach(yy => { if (B[BW.at(w, x, yy)].door) BW.put(w, x, yy, ID.air); }); }
     else BW.put(w, x, y, ID.air);
     delete w.meta[x + ',' + y];
-    if (b.key === 'locker') { const m = w.lockers && w.lockers[x + ',' + y]; if (m) Object.entries(m).forEach(([k, c]) => gain(k, c, true)); }
-    if (b.drop) gain(b.drop, n);
-    burst(x + .5, y + .5, col(b.key === 'toneOre' ? 'bt-tone' : b.key === 'moss' ? 'bt-moss' : 'bt-dirt-2'));
+    if (b.key === 'locker') { const m = w.lockers && w.lockers[x + ',' + y]; if (m) { Object.entries(m).forEach(([k, c]) => gain(k, c, true)); delete w.lockers[x + ',' + y]; drawHot(); } }
+    if (b.drop) dropItem(b.drop, n, x + .5, y + .5);                    // it pops out of the broken block and falls
+    chips(x + .5, y + .5, col(CHIP[b.key] || 'bt-dirt-2'));
     A.Sfx.event('bt-break');
     stats().mined++; G.mined++; saveGd();
     if (b.light || b.key === 'metronome' || b.key === 'tuner' || b.use) scanGear();
     checkRooms(x, y);
     return true;
   }
-  function burst(x, y, c) { if (RM.matches) return; for (let k = 0; k < 8; k++) G.parts.push({x, y, vx: (Math.random() - .5) * 1.6, vy: (Math.random() - .8) * 1.4, t: 0, life: .45, c}); if (G.parts.length > 80) G.parts.splice(0, G.parts.length - 80); }
+  /** a block breaking: a few little chips in its color (rules.js chips; none with reduced motion) */
+  const CHIP = {toneOre: 'bt-tone', brassOre: 'bt-brass', scaleVein: 'bt-scale', springVein: 'bt-spring', sustain: 'bt-sustain', rhythmRock: 'bt-rhythm',
+    restCrystal: 'bt-rest', moss: 'bt-moss', sand: 'bt-sand', clay: 'bt-clay-2', slate: 'bt-slate-2', leaves: 'bt-leaf-hi', maple: 'bt-maple', cork: 'bt-cork',
+    reed: 'bt-reed', felt: 'bt-felt-2', rawhide: 'bt-rawhide', planks: 'bt-plank', brick: 'bt-brick', glass: 'bt-glass', panel: 'bt-panel-2'};
+  function chips(x, y, c) {
+    if (RM.matches) return;
+    G.fx.chips = (G.fx.chips || 0) + 1;
+    for (let k = 0; k < R.chips.n; k++) G.parts.push({x, y, vx: (Math.random() - .5) * 1.8, vy: (Math.random() - .9) * 1.6, t: 0, life: R.chips.ms / 1000, c});
+    if (G.parts.length > 60) G.parts.splice(0, G.parts.length - 60);
+  }
   function place(x, y, id) {
     const it = ITEMS[id];
     if (!id || !it || !it.block) { A.UI.toast(id ? `${itemName(id)} can't be placed.` : 'Pick something to build from your hotbar.', {ms: 1800}); return false; }
@@ -638,6 +864,7 @@
     if (!have('snack')) return;
     if (G.p.hearts >= maxHearts()) { A.UI.toast('Your hearts are full!', {ms: 1200}); return; }
     take('snack'); G.p.hearts = Math.min(maxHearts(), G.p.hearts + R.player.snackHeal);
+    pickupLabel('snack', R.player.snackHeal, `+${R.player.snackHeal} Hearts`);
     A.Sfx.event('bt-pickup'); drawHud();
   }
   const maxHearts = () => G.endless ? R.endless.hearts : R.player.hearts;
@@ -714,6 +941,7 @@
       if (r.ok) {
         G.wrong = 0;
         const n2 = (R.drops[b.mine] || 1) * (mode === 'inst' ? R.instrumentBonus : 1);
+        swing(x + .5, y + .5);
         if (BW.at(G.w, x, y) === b.id) breakBlock(x, y, b, n2);
         A.Sfx.event('bt-mined');
         if (b.mine === 'tone') { stats().ore++; saveGd(); if (stats().ore >= R.goals.toneOre) award('ore10'); drawGoals(); }
@@ -729,47 +957,115 @@
   const match = () => { const s = slots.filter(Boolean); return RECIPES.find(r => r.in.length === s.length && r.in.every((k, i) => k === slots[i])) || null; };
   const usedOf = id => slots.filter(s => s === id).length;
   const benchNear = () => G.gear.bench.some(b => Math.hypot(b.x - G.p.x, b.y - G.p.y) <= R.benchRange);
-  const PERF = {note: 'Play one note', notes3: 'Play three notes', beats: 'Play 4 steady beats', longtone: 'Play a 4-second long tone', scale: 'Play the Concert B♭ scale up'};
-  const PERF_TOUCH = {note: 'Tap one note name', notes3: 'Tap three note names', beats: 'Tap 4 steady beats', longtone: 'Answer a key-signature question', scale: 'Tap the Concert B♭ scale\'s notes in order'};
-  const PERF_SNARE = {note: 'Count your hits', notes3: 'Count your hits', beats: 'Play 4 steady beats', longtone: 'Play an even roll', scale: 'Play a rhythm'};
+  // what each performance asks (the result box and the Recipe Book)
+  const PERF = {note: 'Play 1 note', notes3: 'Play 3 notes', beats: '4 steady beats', longtone: 'A 4-second long tone', scale: 'Concert B♭ scale'};
+  const PERF_TOUCH = {note: 'Tap 1 note name', notes3: 'Tap 3 note names', beats: 'Tap 4 steady beats', longtone: 'A key-signature question', scale: 'Concert B♭ scale (tap its notes)'};
+  const PERF_SNARE = {note: 'Count your hits', notes3: 'Count your hits', beats: '4 steady beats', longtone: 'An even roll', scale: 'Play a rhythm'};
+  const ORD = ['1st', '2nd', '3rd', '4th'];
+  let missing = null;                                                    // the Recipe Book: a recipe tapped without its items
   function openCraft() {
     closePanels();
     $('craft').hidden = false; G.panel = 'craft';
     drawCraft();
     $('craftClose').focus();
   }
+  /** THE MEASURE, a crafting station: a wooden workbench with a staff carved on its edge, 4 big labeled slots IN ORDER
+      (1st … 4th), an arrow to the RESULT (? until the slots match a recipe: its icon, name, × n, the performance), MAKE IT
+      (the performance: disabled until a match, and without a Luthier's Bench nearby when the recipe needs one); your
+      materials below (tap or drag into the next empty slot); the Recipe Book fills the slots in order. BT_RECIPES and
+      match() are the rules: only the screen is the station. */
   function drawCraft() {
     const m = match(), f = gd().found || {};
-    // THE MEASURE: a one-line staff, 4 slots between bar lines
-    $('measure').innerHTML = `<div class="bt-bar"></div>` + slots.map((s, i) => `<button type="button" class="bt-slot${s ? ' full' : ''}" data-i="${i}" aria-label="${s ? 'Slot ' + (i + 1) + ': ' + esc(itemName(s)) + ' (tap to take it out)' : 'Slot ' + (i + 1) + ': empty'}">` +
-      (s ? `<img src="${iconURL(s)}" alt=""><small>${esc(itemName(s))}</small>` : `<span class="beat">${i + 1}</span>`) + `</button>`).join('') + `<div class="bt-bar end"></div>`;
-    $('measure').querySelectorAll('.bt-slot').forEach(b => b.onclick = () => { slots[+b.dataset.i] = null; const rest = slots.filter(Boolean); slots.fill(null); rest.forEach((x, k) => { slots[k] = x; }); A.Sfx.event('ui-toggle'); drawCraft(); });
+    $('measure').innerHTML = slots.map((s, i) => `<div class="bt-slotwrap"><span class="bt-slotlbl">${ORD[i]}</span>` +
+      `<button type="button" class="bt-slot${s ? ' full' : ''}" data-i="${i}"${s ? ` data-item="${s}"` : ''} aria-label="${s ? ORD[i] + ': ' + esc(itemName(s)) + ' (tap to take it out)' : ORD[i] + ' slot: empty'}">` +
+      (s ? `<img src="${iconURL(s)}" alt=""><span class="bt-slotname">${esc(itemName(s))}</span><span class="bt-slotx" aria-hidden="true">✕</span>` : `<span class="bt-plus" aria-hidden="true">+</span>`) +
+      `</button>${s ? '' : `<small class="bt-slotcap">Material ${i + 1}</small>`}</div>`).join('');
+    $('measure').querySelectorAll('.bt-slot').forEach(b => b.onclick = () => {
+      if (!slots[+b.dataset.i]) return;
+      slots[+b.dataset.i] = null; const rest = slots.filter(Boolean); slots.fill(null); rest.forEach((x, k) => { slots[k] = x; });
+      missing = null; A.Sfx.event('ui-toggle'); drawCraft();
+    });
     const perf = r => (snare ? PERF_SNARE : mode === 'inst' ? PERF : PERF_TOUCH)[r.perf];
+    const res = $('recipeLine');
     if (m) {
       const bench = !m.bench || benchNear();
-      $('recipeLine').innerHTML = `<b>${esc(m.name)}${m.n > 1 ? ' × ' + m.n : ''}</b> <span>${esc(perf(m))}</span>` + (bench ? '' : `<em>Needs a Luthier's Bench nearby.</em>`);
-      $('perform').disabled = !bench; $('perform').hidden = false;
-      $('recipeLine').classList.add('on');
+      res.className = 'bt-result on' + (bench ? '' : ' nobench');
+      res.innerHTML = `<img src="${iconURL(m.out)}" alt=""><b>${esc(m.name)}</b>${m.n > 1 ? `<span class="bt-resn">× ${m.n}</span>` : ''}<span class="bt-resperf">${esc(perf(m))}</span>` +
+        (bench ? '' : `<em>Needs a Luthier's Bench nearby</em>`);
+      res.dataset.item = m.out;
+      $('perform').disabled = !bench;
     } else {
-      $('recipeLine').innerHTML = slots.some(Boolean) ? '<span>No recipe with these, in this order. The order matters, like notes in a measure!</span>' : '<span>Tap your items to put them in the measure, in order.</span>';
-      $('perform').hidden = true; $('recipeLine').classList.remove('on');
+      res.className = 'bt-result';
+      res.innerHTML = `<span class="bt-resq" aria-hidden="true">?</span><span class="bt-resperf">${slots.some(Boolean) ? 'No recipe with these, in this order.' : 'The result shows here.'}</span>`;
+      delete res.dataset.item;
+      $('perform').disabled = true;
     }
     const ids = Object.keys(G.p.inv).filter(k => G.p.inv[k] > 0 && ITEMS[k] && ITEMS[k].kind !== 'tool');
     $('craftItems').innerHTML = ids.length ? ids.map(k => { const left = G.p.inv[k] - usedOf(k);
-      return `<button type="button" class="bt-chip" data-id="${k}" ${left > 0 ? '' : 'disabled'}><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${left}</b></button>`; }).join('')
+      return `<button type="button" class="bt-chip bt-mat" data-id="${k}" data-item="${k}" ${left > 0 ? '' : 'disabled'}><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${left}</b></button>`; }).join('')
       : '<p class="ui-msg empty">Nothing yet: mine some blocks!</p>';
-    $('craftItems').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => { const k = slots.indexOf(null); if (k < 0) return; slots[k] = b.dataset.id; A.Sfx.event('ui-toggle'); drawCraft(); });
+    $('craftItems').querySelectorAll('.bt-chip').forEach(b => { b.onclick = () => { if (dragJustEnded()) return; addToSlot(b.dataset.id); }; dragTile(b); });
     // THE RECIPE BOOK
     $('bookBtn').setAttribute('aria-pressed', String(book));
     $('book').hidden = !book;
     const shown = r => f[r.id] || (window.BT_ALWAYS_SHOWN || []).includes(r.id);
-    if (book) $('book').innerHTML = RECIPES.map(r => shown(r)
-      ? `<button type="button" class="bt-rec" data-id="${r.id}"><b>${esc(r.name)}</b><span class="ins">${r.in.map(i => `<img src="${iconURL(i)}" alt="${esc(itemName(i))}" title="${esc(itemName(i))}">`).join('<i>›</i>')}</span><small>${esc(perf(r))}${r.bench ? ' · at a Luthier\'s Bench' : ''}</small></button>`
-      : `<div class="bt-rec unknown" aria-label="A recipe you haven't found yet"><b>?</b><span class="ins">${r.in.map(() => '<span class="q">?</span>').join('<i>›</i>')}</span></div>`).join('');
-    if (book) $('book').querySelectorAll('.bt-rec[data-id]').forEach(b => b.onclick = () => { const r = RECIPES.find(x => x.id === b.dataset.id); slots.fill(null); r.in.forEach((k, i) => { slots[i] = k; }); book = false; drawCraft(); });
+    if (book) $('book').innerHTML = RECIPES.map(r => {
+      if (!shown(r)) return `<div class="bt-rec unknown" aria-label="A recipe you haven't found yet"><b>?</b><span class="ins">${r.in.map(() => '<span class="q">?</span>').join('<i>›</i>')}</span></div>`;
+      const miss = missing && missing.id === r.id ? missing.need : null;
+      return `<button type="button" class="bt-rec${miss ? ' missing' : ''}" data-id="${r.id}"><b>${esc(r.name)}${r.n > 1 ? ' × ' + r.n : ''}</b><span class="ins">${r.in.map(i => `<img src="${iconURL(i)}" alt="${esc(itemName(i))}" data-item="${i}"${miss && miss[i] ? ' class="lack"' : ''}>`).join('<i>›</i>')}</span>` +
+        `<small>${esc(perf(r))}${r.bench ? ' · at a Luthier\'s Bench' : ''}</small>` +
+        (miss ? `<em>Missing: ${Object.entries(miss).map(([k, n]) => `${n} ${esc(itemName(k))}`).join(', ')}</em>` : '') + `</button>`;
+    }).join('');
+    if (book) $('book').querySelectorAll('.bt-rec[data-id]').forEach(b => b.onclick = () => fromBook(RECIPES.find(x => x.id === b.dataset.id)));
     $('bookCount').textContent = `${Object.keys(f).filter(k => RECIPES.some(r => r.id === k)).length} / ${RECIPES.length}`;
   }
-  $('bookBtn').onclick = () => { book = !book; drawCraft(); };
+  /** the next empty slot gets this material (if you still have one not already in the measure) */
+  function addToSlot(id) {
+    const k = slots.indexOf(null); if (k < 0 || !id) return false;
+    if ((G.p.inv[id] || 0) - usedOf(id) <= 0) return false;
+    slots[k] = id; missing = null; A.Sfx.event('ui-toggle'); drawCraft();
+    return true;
+  }
+  /** the Recipe Book: a recipe fills the slots in order when you have its items, else shows what's missing in red */
+  function fromBook(r) {
+    const need = {}; r.in.forEach(i => { need[i] = (need[i] || 0) + 1; });
+    const lack = {}; Object.keys(need).forEach(k => { const d = need[k] - (G.p.inv[k] || 0); if (d > 0) lack[k] = d; });
+    if (Object.keys(lack).length) { missing = {id: r.id, need: lack}; A.Sfx.event('bt-wrong'); drawCraft(); return false; }
+    missing = null; slots.fill(null); r.in.forEach((k, i) => { slots[i] = k; }); book = false; A.Sfx.event('ui-toggle'); drawCraft();
+    return true;
+  }
+  /* DRAG a material onto the workbench: it goes into the next empty slot (a tap does the same) */
+  let drag = null, dragEnd = 0;
+  const dragJustEnded = () => performance.now() - dragEnd < 300;
+  function dragTile(el) {
+    el.addEventListener('dragstart', e => e.preventDefault());            // never the browser's own image drag (it cancels the pointer)
+    el.addEventListener('pointerdown', e => {
+      if (el.disabled || e.button > 0) return;
+      drag = {el, id: el.dataset.id, x0: e.clientX, y0: e.clientY, ghost: null, pid: e.pointerId};
+    });
+  }
+  addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!drag.ghost && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 10) return;
+    if (!drag.ghost) {
+      const g = drag.ghost = document.createElement('img');
+      g.src = iconURL(drag.id); g.className = 'bt-dragghost'; g.alt = '';
+      document.body.appendChild(g); A.UI.layer && (g.style.zIndex = String(A.UI.layer.topZ() + 1));
+      tipHide();
+    }
+    drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+    $('bench').classList.toggle('drop-on', !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench'));
+  });
+  const endDrag = e => {
+    if (!drag || (e && e.pointerId !== drag.pid)) return;
+    const d = drag; drag = null;
+    if (!d.ghost) return;
+    d.ghost.remove(); dragEnd = performance.now();
+    $('bench').classList.remove('drop-on');
+    if (e && e.type === 'pointerup' && document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench')) addToSlot(d.id);
+  };
+  addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
+  $('bookBtn').onclick = () => { book = !book; missing = null; drawCraft(); };
   $('craftClose').onclick = () => closePanels();
   $('perform').onclick = () => perform();
   function perform() {
@@ -794,11 +1090,69 @@
     });
   }
 
+  /* ================= TOOLTIPS on every item (the hotbar, the inventory, a Band Locker, the Recipe Book, the Measure) =================
+     Any element with data-item: hovering (mouse) or focusing (keyboard) it shows #btTip after rules.js tipDelayMs; on a
+     touch screen a long-press (tipLongPressMs) shows it and lifting the finger hides it (that tap then picks nothing; a
+     normal tap still selects / places as before). The tip: the name, its one line (recipes.js desc), "Found: …" for
+     materials, what a tool can mine. It flips above / below / right / left to stay on screen and never covers its item,
+     through UI.layer, so it's above every panel. */
+  const tip = $('btTip');
+  let tipFor = null, tipTm = 0, press = null, swallowClick = 0;
+  function tipText(id) {
+    const it = ITEMS[id] || {};
+    let h = `<b>${esc(it.name || id)}</b>`;
+    if (it.desc) h += `<span>${esc(it.desc)}</span>`;
+    if (it.found) h += `<small>Found: ${esc(it.found)}</small>`;
+    if (it.kind === 'tool') {
+      // the blocks that need a tool, up to this one's tier (a tool mines everything a smaller one does)
+      const can = B.filter(b => b.mine && b.tier >= 1 && b.tier <= it.tier).map(b => b.name);
+      if (can.length) h += `<small>Can mine: ${esc(can.join(', '))}</small>`;
+    }
+    return h;
+  }
+  function tipShow(el) {
+    const id = el && el.dataset.item; if (!id || !document.contains(el)) return;
+    tipFor = el;
+    tip.innerHTML = tipText(id); tip.hidden = false;
+    if (A.UI.layer) { A.UI.layer.close(tip); A.UI.layer.open(tip, {min: 96}); }
+    // place it: above, below, right, then left of its item; on screen; never over the item itself
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect(), W = innerWidth, H = innerHeight, g = 8;
+    const spots = [[r.left + r.width / 2 - t.width / 2, r.top - t.height - g], [r.left + r.width / 2 - t.width / 2, r.bottom + g],
+      [r.right + g, r.top + r.height / 2 - t.height / 2], [r.left - t.width - g, r.top + r.height / 2 - t.height / 2]];
+    const clampX = x => Math.max(6, Math.min(W - t.width - 6, x)), clampY = y => Math.max(6, Math.min(H - t.height - 6, y));
+    const over = (x, y) => x < r.right && x + t.width > r.left && y < r.bottom && y + t.height > r.top;
+    let best = spots.map(([x, y]) => [clampX(x), clampY(y)]).find(([x, y], k) => !over(x, y) && (k > 1 || (spots[k][1] >= 6 && spots[k][1] + t.height <= H - 6)));
+    if (!best) best = [clampX(spots[0][0]), clampY(spots[0][1])];
+    tip.style.left = Math.round(best[0]) + 'px'; tip.style.top = Math.round(best[1]) + 'px';
+    if (G) G.fx.tips = (G.fx.tips || 0) + 1;
+  }
+  function tipHide() { clearTimeout(tipTm); tipTm = 0; if (tip.hidden) return; tip.hidden = true; tipFor = null; if (A.UI.layer) A.UI.layer.close(tip); }
+  const itemEl = e => e.target && e.target.closest && e.target.closest('[data-item]');
+  document.addEventListener('mouseover', e => {
+    const el = itemEl(e); if (el === tipFor) return;
+    if (!el) { if (tipFor) tipHide(); return; }
+    tipHide(); tipTm = setTimeout(() => tipShow(el), R.tipDelayMs);
+  });
+  document.addEventListener('focusin', e => { const el = itemEl(e); tipHide(); if (el) tipTm = setTimeout(() => tipShow(el), R.tipDelayMs); });
+  document.addEventListener('focusout', () => tipHide());
+  document.addEventListener('pointerdown', e => {
+    tipHide();
+    const el = itemEl(e); if (!el || e.pointerType !== 'touch') return;
+    press = {el, x: e.clientX, y: e.clientY, id: e.pointerId, tm: setTimeout(() => { if (press && press.el === el) { press.long = true; tipShow(el); } }, R.tipLongPressMs)};
+  }, true);
+  document.addEventListener('pointermove', e => { if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.tm); if (!press.long) press = null; } }, true);
+  const pressEnd = e => { if (!press || e.pointerId !== press.id) return; clearTimeout(press.tm); if (press.long) { swallowClick = performance.now(); tipHide(); } press = null; };
+  document.addEventListener('pointerup', pressEnd, true); document.addEventListener('pointercancel', pressEnd, true);
+  // after a long-press the finger's click picks nothing
+  document.addEventListener('click', e => { if (performance.now() - swallowClick < 500 && itemEl(e)) { e.preventDefault(); e.stopImmediatePropagation(); swallowClick = 0; } }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !tip.hidden) tipHide(); }, true);
+  document.addEventListener('contextmenu', e => { if (itemEl(e)) e.preventDefault(); });
+
   /* ================= THE INVENTORY, THE HOTBAR, A BAND LOCKER ================= */
   function drawHot() {
     if (!G) return;
     const p = G.p;
-    $('hotbar').innerHTML = p.hot.map((id, i) => `<button type="button" class="bt-hot${i === p.sel ? ' sel' : ''}" data-i="${i}" aria-pressed="${i === p.sel}" aria-label="${id ? esc(itemName(id)) + ' × ' + (p.inv[id] || 0) : 'Empty slot'} (${i + 1})">` +
+    $('hotbar').innerHTML = p.hot.map((id, i) => `<button type="button" class="bt-hot${i === p.sel ? ' sel' : ''}" data-i="${i}"${id ? ` data-item="${id}"` : ''} aria-pressed="${i === p.sel}" aria-label="${id ? esc(itemName(id)) + ' × ' + (p.inv[id] || 0) : 'Empty slot'} (${i + 1})">` +
       (id ? `<img src="${iconURL(id)}" alt=""><b>${p.inv[id] || 0}</b>` : '') + `<small>${i + 1}</small></button>`).join('');
     $('hotbar').querySelectorAll('.bt-hot').forEach(b => b.onclick = () => selectHot(+b.dataset.i));
     const t = tier();
@@ -817,7 +1171,7 @@
     const inv = G.p.inv, ids = Object.keys(inv).filter(k => inv[k] > 0);
     $('invTitle').textContent = locker ? 'Band Locker' : 'Inventory';
     $('invTool').textContent = `Your tool: ${R.tools[tier()]}`;
-    $('invGrid').innerHTML = ids.length ? ids.map(k => `<button type="button" class="bt-chip" data-id="${k}"><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${inv[k]}</b></button>`).join('') : '<p class="ui-msg empty">Nothing yet.</p>';
+    $('invGrid').innerHTML = ids.length ? ids.map(k => `<button type="button" class="bt-chip" data-id="${k}" data-item="${k}"><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${inv[k]}</b></button>`).join('') : '<p class="ui-msg empty">Nothing yet.</p>';
     $('invHint').textContent = locker ? 'Tap your items to store them, and the locker\'s items to take them.' : `Tap an item to put it in hotbar slot ${G.p.sel + 1}.${have('snack') ? ' Tap a Snack Bag twice to eat it.' : ''}`;
     $('invGrid').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => {
       const id = b.dataset.id;
@@ -830,8 +1184,8 @@
     $('lockerBox').hidden = !locker;
     if (locker) {
       const L = lockerOf(locker), ks = Object.keys(L);
-      $('lockerGrid').innerHTML = Array.from({length: R.lockerSlots}, (_, i) => ks[i] ? `<button type="button" class="bt-chip" data-id="${ks[i]}"><img src="${iconURL(ks[i])}" alt=""><span>${esc(itemName(ks[i]))}</span><b>${L[ks[i]]}</b></button>` : '<span class="bt-empty"></span>').join('');
-      $('lockerGrid').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => { const id = b.dataset.id; gain(id, L[id]); delete L[id]; drawInv(locker); });
+      $('lockerGrid').innerHTML = Array.from({length: R.lockerSlots}, (_, i) => ks[i] ? `<button type="button" class="bt-chip" data-id="${ks[i]}" data-item="${ks[i]}"><img src="${iconURL(ks[i])}" alt=""><span>${esc(itemName(ks[i]))}</span><b>${L[ks[i]]}</b></button>` : '<span class="bt-empty"></span>').join('');
+      $('lockerGrid').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => { const id = b.dataset.id; if (!canHold(id)) { bagFull(); return; } gain(id, L[id]); delete L[id]; drawInv(locker); });
     }
   }
   const lockerOf = key => { const w = G.w; w.lockers = w.lockers || {}; return w.lockers[key] || (w.lockers[key] = {}); };
@@ -839,6 +1193,7 @@
   $('invClose').onclick = () => closePanels();
   function panelOpen() { return !!(G && G.panel); }
   function closePanels() {
+    tipHide();
     ['inv', 'craft', 'composer'].forEach(id => { $(id).hidden = true; });
     if (G) { G.panel = null; if (G.w) G.w.dirty = true; }
   }
@@ -878,8 +1233,8 @@
     closePanels(); $('composer').hidden = false; G.panel = 'composer';
     const items = xs.map(cx => itemOf(noteOf((G.w.meta[cx + ',' + y] || {}).pitch || defaultPitch())));
     $('compTitle').textContent = `Your melody (${items.length} ${items.length === 1 ? 'note' : 'notes'})`;
-    const W = Math.max(300, 110 + items.length * 46);
-    $('compStaff').innerHTML = A.staffSVG(snare ? 'treble' : inst.clef, items.map((it, k) => ({n: it.show, x: 90 + k * 46, caption: it.label})), {width: W, captions: true, label: 'Your melody'});
+    const sp = Card.spaceNotes(items.map(it => it.show), 82), W = Math.max(300, sp.end + 40);     // each note spaced by its own width
+    $('compStaff').innerHTML = A.staffSVG(snare ? 'treble' : inst.clef, items.map((it, k) => ({n: it.show, x: sp.xs[k], caption: it.label})), {width: W, captions: true, label: 'Your melody'});
     $('compSay').textContent = mode === 'inst' ? (snare ? 'Play one steady hit for each note to power the row!' : 'Play your melody on your instrument to power the row!') : 'Tap your melody\'s note names in order to power the row!';
     $('compActs').innerHTML = `<button type="button" class="btn btn-primary" id="compPerf">Perform</button>`;
     $('compPlay').hidden = false; $('compPlay').disabled = A.Pitch.listening();
@@ -1123,10 +1478,11 @@
   }
   function calm(c) {
     if (c.state !== 'live') return;
-    c.state = 'calm';
+    c.state = 'calm'; c.calmAt = performance.now();
+    // its item drops into the world where it was (INSTRUMENT mode: more of them, slightly spread)
     const drop = {clam: 'pearl', wisp: 'dust', rusher: 'spring'}[c.kind];
-    gain(drop, mode === 'inst' ? R.instrumentBonus : 1);
-    A.Sfx.event('bt-calm');
+    dropItem(drop, mode === 'inst' ? R.instrumentBonus : 1, c.x, c.kind === 'wisp' ? c.y : c.y - .4);
+    poof(c);
     G.calmed++;
     if (!G.endless) {
       if (c.kind === 'clam') { stats().clams++; saveGd(); if (stats().clams >= R.goals.clams) award('clams'); }
@@ -1146,6 +1502,16 @@
   function drawCreature(c, x, y, now) {
     ctx.globalAlpha = Math.max(0, Math.min(1, c.alpha));
     const s = S;
+    if (c.state === 'calm' && !RM.matches) {                             // shrinking into its poof
+      const k = Math.max(.05, 1 - (now - (c.calmAt || now)) / R.poofMs);
+      ctx.save(); ctx.translate(x, y - S * .4); ctx.scale(k, k); ctx.translate(-x, -(y - S * .4));
+      drawCreatureBody(c, x, y, s);
+      ctx.restore(); ctx.globalAlpha = 1; return;
+    }
+    drawCreatureBody(c, x, y, s);
+    ctx.globalAlpha = 1;
+  }
+  function drawCreatureBody(c, x, y, s) {
     if (c.kind === 'clam') {
       const open = c.state === 'calm' ? .5 : .15 + (RM.matches ? 0 : Math.abs(Math.sin(c.t * 3)) * .15);
       ctx.fillStyle = col('bt-clam'); ctx.beginPath(); ctx.ellipse(x, y - s * .25, s * .45, s * .25, 0, 0, Math.PI); ctx.fill();
@@ -1443,13 +1809,21 @@
       time: G && G.w.time, night: G && isNight(), nights: G && G.w.nights, survived: G && G.w.survived, listening: A.Pitch.listening(),
       creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul})) : [],
       card: Card.current && Card.current.state(), panel: G && G.panel, build: G && G.build, seed: G && G.w.seed, bags: G ? G.w.bags.length : 0, cot: G && G.w.cot,
-      held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0}}),
+      held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
+      drops: G ? (G.w.drops || []).map(d => ({x: d.x, y: d.y, item: d.item, n: d.n, t: d.t || 0, pull: !!d.pull, falling: !!d.vy})) : [],
+      labels: G ? (G.labels || []).map(labelText) : [], tip: tip.hidden ? null : tip.textContent, slots: slots.slice(),
+      fx: G ? Object.assign({}, G.fx, {swing: !!G.swing, poofing: (G.poofs || []).length, far: !!G.far, rm: !!RM.matches}) : {}}),
     world: () => G && G.w, worldJSON: () => G && worldJSON(), importWorld: (t, ask) => importWorld(t, ask), save: () => saveWorld(),
     begin, showHub, fps, key: WORLD_KEY,
   };
   if (A.DEMO) {
     A.Blocktave.demo = {
       give: (id, n = 1) => { gain(id, n); return G.p.inv[id]; },
+      drop: (id, n, x, y) => dropItem(id, n, x, y),
+      calm: id => { const c = G.creatures.find(k => k.id === id); if (c) calm(c); return !!c; },
+      canHold: id => canHold(id),
+      fromBook: id => fromBook(RECIPES.find(r => r.id === id)),
+      addToSlot: id => addToSlot(id),
       tp: (x, y) => { G.p.x = x + .5; G.p.y = y + 1; G.p.vx = G.p.vy = 0; },
       find: (key, from) => { const w = G.w, v = ID[key], ox = from ? from.x : G.p.x, oy = from ? from.y : G.p.y; let best = null, bd = 1e9;
         for (let i = 0; i < w.b.length; i++) if (w.b[i] === v) { const x = i % w.w, y = Math.floor(i / w.w), d = Math.hypot(x - ox, y - oy); if (d < bd) { bd = d; best = {x, y}; } } return best; },

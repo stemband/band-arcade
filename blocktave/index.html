@@ -80,17 +80,27 @@
   <p class="bt-small" id="invHint"></p>
 </div>
 
-<!-- CRAFT: THE MEASURE (4 slots in order), your items, the Recipe Book -->
+<!-- CRAFT: THE MEASURE, a crafting station: 4 ingredient slots IN ORDER on a wooden workbench → the result → MAKE IT;
+     your materials below; the Recipe Book -->
 <div class="bt-panel bt-craft" id="craft" hidden role="dialog" aria-labelledby="craftTitle">
   <div class="bt-panel-h"><h2 class="ui-title" id="craftTitle">Craft</h2>
     <button type="button" class="btn btn-secondary btn-small" id="bookBtn" aria-pressed="false">Recipe Book <small id="bookCount"></small></button>
     <button type="button" class="btn btn-secondary btn-small" id="craftClose">Close</button></div>
-  <div class="bt-measure" id="measure" role="group" aria-label="The measure: 4 slots, in order"></div>
-  <div class="bt-recipe" id="recipeLine"></div>
-  <div class="bt-perform-row"><button type="button" class="btn btn-primary" id="perform" hidden>Perform</button></div>
+  <div class="bt-bench" id="bench">
+    <div class="bt-bench-carve" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="bt-bench-say">Put your materials in order, like notes in a measure: the order matters!</p>
+    <div class="bt-bench-row">
+      <div class="bt-slots" id="measure" role="group" aria-label="The measure: 4 ingredient slots, in order"></div>
+      <div class="bt-arrow" aria-hidden="true">→</div>
+      <div class="bt-result-col">
+        <div class="bt-result" id="recipeLine" aria-live="polite"></div>
+        <button type="button" class="btn btn-primary bt-make" id="perform" disabled>Make it</button>
+      </div>
+    </div>
+  </div>
   <div class="bt-book" id="book" hidden></div>
-  <h3 class="ui-kicker">Your items</h3>
-  <div class="bt-grid" id="craftItems"></div>
+  <h3 class="ui-kicker">Your materials <small class="bt-small">tap or drag one into the next empty slot</small></h3>
+  <div class="bt-mats" id="craftItems"></div>
 </div>
 
 <!-- A COMPOSER BLOCK's note / A CONDUCTOR'S PODIUM's melody -->
@@ -100,6 +110,8 @@
   <p class="bt-small" id="compSay"></p>
   <div class="bt-compacts"><span id="compActs"></span><button type="button" class="btn btn-secondary" id="compPlay" hidden>▶ Listen</button></div>
 </div>
+<div class="sr-only" id="btLive" aria-live="polite"></div>
+<div class="bt-tip" id="btTip" role="tooltip" hidden></div>
 <input type="file" id="worldFile" accept=".json,application/json" hidden>
 
 <!-- the results screen, the intro cards and the pause menu: shared/ui-kit.js -->

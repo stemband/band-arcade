@@ -116,21 +116,51 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-chip b{color:var(--yellow-hi)}
 .bt-chip:disabled{opacity:.45;cursor:default}
 .bt-empty{width:44px;height:44px;border-radius:10px;border:2px dashed var(--floor-3)}
-/* THE MEASURE: a one-line staff with 4 slots between bar lines (like 4 notes in a bar: the order matters) */
-.bt-measure{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 8px;margin:4px 0 6px;border-radius:12px;background:var(--screen)}
-.bt-measure::before{content:"";position:absolute;left:10px;right:10px;top:50%;height:2px;background:var(--ink)}
-.bt-bar{width:3px;align-self:stretch;background:var(--ink);position:relative}
-.bt-bar.end{width:6px;box-shadow:-6px 0 0 -3px var(--ink)}
-.bt-slot{position:relative;width:76px;height:76px;border-radius:50%;border:3px dashed var(--ink-2);background:var(--screen);display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;color:var(--ink);font:700 12px/1.1 var(--text);touch-action:manipulation;padding:2px}
-.bt-slot.full{border-style:solid;border-color:var(--ink)}
-.bt-slot img{width:36px;height:36px;image-rendering:pixelated}
-.bt-slot small{text-align:center;max-width:70px;overflow-wrap:break-word}
-.bt-slot .beat{font:400 22px var(--display);color:var(--ink-2)}
-.bt-recipe{min-height:24px;margin:4px 0;color:var(--text-lo);font-size:15px}
-.bt-recipe.on b{color:var(--yellow-hi);font:400 17px var(--display);margin-right:6px}
-.bt-recipe em{display:block;color:var(--coral);font-style:normal}
-.bt-perform-row{display:flex;justify-content:center;margin:4px 0 8px}
+/* THE MEASURE = a crafting station: a wooden workbench (a short staff carved into its top edge, as decoration), 4 big
+   labeled slots in order → the result → MAKE IT; ≤ 760 px: the slots 2 × 2, the result below them */
+.bt-bench{position:relative;margin:4px 0 8px;padding:20px 12px 12px;border-radius:14px;color:var(--bt-wood-ink);
+  background:linear-gradient(180deg,var(--bt-wood-hi) 0,var(--bt-wood) 10px,var(--bt-wood) 100%);
+  border:3px solid var(--bt-wood-dark);box-shadow:inset 0 -6px 0 var(--bt-wood-dark)}
+.bt-bench.drop-on{outline:3px dashed var(--yellow);outline-offset:3px}
+.bt-bench-carve{position:absolute;left:14px;right:14px;top:4px;height:12px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.bt-bench-carve i{display:block;height:1px;background:var(--bt-wood-dark);box-shadow:0 1px 0 var(--bt-wood-hi)}
+.bt-bench-say{margin:0 0 8px;font-size:14px;line-height:1.3;color:var(--bt-wood-ink)}
+.bt-bench-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+.bt-slots{display:flex;gap:8px;flex:0 1 auto}
+.bt-slotwrap{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.bt-slotlbl{font:400 13px/1 var(--display);color:var(--bt-wood-ink);letter-spacing:.04em}
+.bt-slotcap{font-size:12px;color:var(--bt-wood-ink);opacity:.85}
+.bt-slot{position:relative;width:84px;height:84px;border-radius:12px;border:3px dashed var(--bt-wood-ink);background:var(--bt-slot-bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--text-hi);font:700 12px/1.15 var(--text);touch-action:manipulation;padding:4px}
+.bt-slot.full{border-style:solid;border-color:var(--bt-build);cursor:pointer}
+.bt-slot:not(.full){cursor:default}
+.bt-slot img{width:40px;height:40px;image-rendering:pixelated}
+.bt-slotname{text-align:center;max-width:76px;overflow-wrap:break-word}
+.bt-slotx{position:absolute;top:2px;right:4px;font-size:12px;color:var(--coral)}
+.bt-plus{font:400 30px/1 var(--display);color:var(--bt-wood-ink);opacity:.55}
+.bt-arrow{font:400 30px var(--display);color:var(--bt-wood-ink);flex:0 0 auto}
+.bt-result-col{flex:1 1 170px;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:150px}
+.bt-result{min-height:112px;border-radius:12px;border:3px solid var(--bt-wood-dark);background:var(--bt-slot-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:6px 8px;text-align:center;color:var(--text-lo);font-size:14px;line-height:1.3}
+.bt-result img{width:44px;height:44px;image-rendering:pixelated}
+.bt-result b{color:var(--yellow-hi);font:400 17px/1.2 var(--display)}
+.bt-result.on{border-color:var(--bt-build)}
+.bt-resn{font-weight:700;color:var(--text-hi)}
+.bt-resperf{color:var(--text-hi)}
+.bt-resq{font:400 40px/1 var(--display);color:var(--text-dim)}
+.bt-result em{font-style:normal;color:var(--coral);font-weight:700}
+.bt-make{width:100%}
+.bt-mats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.bt-mat{touch-action:none;-webkit-user-select:none;user-select:none}
+.bt-mat img,.bt-slot img,.bt-hot img{-webkit-user-drag:none;user-drag:none}
+.bt-dragghost{position:fixed;width:48px;height:48px;margin:-24px 0 0 -24px;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 3px 6px #000a)}
+@media (max-width:760px){
+  .bt-bench-row{flex-direction:column;align-items:stretch}
+  .bt-slots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;justify-items:center}
+  .bt-arrow{transform:rotate(90deg);align-self:center;line-height:1}
+  .bt-result-col{min-width:0;flex-basis:auto}
+  .bt-result{min-height:96px}
+}
 .bt-book{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin:6px 0}
 .bt-rec{display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:6px 8px;border-radius:10px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);
   font:14px var(--text);text-align:left;cursor:pointer}
@@ -140,6 +170,9 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-rec .ins i{color:var(--text-dim);font-style:normal}
 .bt-rec small{color:var(--text-lo)}
 .bt-rec.unknown{cursor:default;opacity:.6}
+.bt-rec.missing{border-color:var(--coral)}
+.bt-rec em{font-style:normal;color:var(--coral);font-weight:700}
+.bt-rec .ins img.lack{outline:2px solid var(--coral);border-radius:5px}
 .bt-rec .q{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;background:var(--floor-3);color:var(--text-dim);font-weight:700}
 .bt-compstaff{max-width:420px;margin:4px auto}
 .bt-compstaff svg{width:100%;height:auto;display:block}
@@ -190,3 +223,15 @@ html.no-motion .bt-card.bad{animation:none}
 
 /* the chapter results' milestone list */
 .bt-reslist{list-style:none;margin:6px auto 4px;padding:0;display:flex;flex-direction:column;gap:4px;max-width:26em;text-align:left;font-size:16px;color:var(--green-hi)}
+
+/* the card grows for a long line of notes (each note spaced by its own width: challenges.js spaceNotes) */
+.bt-card.wide{width:min(480px,calc(100vw - 16px))}
+/* TOOLTIPS on items (game.js: hover, focus, a long-press) */
+.bt-tip{position:fixed;left:0;top:0;z-index:96;max-width:min(300px,calc(100vw - 12px));padding:8px 10px;border-radius:10px;background:var(--deep);border:2px solid var(--bt-moss);
+  color:var(--text-hi);font:14px/1.35 var(--text);box-shadow:0 6px 20px #000b;pointer-events:none;display:flex;flex-direction:column;gap:2px}
+.bt-tip[hidden]{display:none}
+.bt-tip b{font:400 15px/1.2 var(--display);color:var(--bt-moss)}
+.bt-tip small{color:var(--text-lo);font-size:13px}
+/* screen readers only (the pickups' words) */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.bt-craft .ui-kicker small{text-transform:none;letter-spacing:0;font:400 13px var(--text);color:var(--text-lo);margin-left:6px}

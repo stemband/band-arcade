@@ -79,7 +79,7 @@ test.describe('Blocktave: the world', () => {
     await page.locator('#uiPauseBtn').click();
     await expect(page.locator('#uiPause')).toBeVisible();
     const before = await page.evaluate(() => JSON.parse(localStorage.getItem(Arcade.Blocktave.key)));
-    expect(before.v).toBe(1);
+    expect(before.v).toBe(2);                                             // v 2: the world's drops are saved too
     expect(before.chunks.length).toBe(16);                                // 256 columns in chunks of 16, run-length encoded
     expect(before.player.inv.reed).toBe(3);
     // SAVE WORLD TO FILE
@@ -144,7 +144,8 @@ test.describe('Blocktave: mining = playing', () => {
     await waitCardGone(page);
     await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
     expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), t)).toBe('air');
-    expect((await st(page)).inv.tone, 'INSTRUMENT mode drops 2×').toBe(2);
+    // the loot pops out of the block and lands beside you: picked up within rules.js pickupRadius
+    await expect.poll(async () => (await st(page)).inv.tone || 0, {message: 'INSTRUMENT mode drops 2×'}).toBe(2);
     await expect.poll(() => page.evaluate(() => Arcade.Pitch.listening()), {message: 'the microphone stops listening after'}).toBe(false);
     watch.check();
   });
@@ -166,7 +167,7 @@ test.describe('Blocktave: mining = playing', () => {
     await page.locator(`.bt-card .apad-letter[data-letter="${n.letter}"]`).dispatchEvent('pointerdown');
     await waitCardGone(page);
     expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), t)).toBe('air');
-    expect((await st(page)).inv.tone, 'TOUCH mode drops 1×').toBe(1);
+    await expect.poll(async () => (await st(page)).inv.tone || 0, {message: 'TOUCH mode drops 1×'}).toBe(1);
     watch.check();
   });
 
@@ -222,8 +223,8 @@ test.describe('Blocktave: crafting = performing', () => {
     const add = id => page.locator(`#craftItems .bt-chip[data-id="${id}"]`).click();
     // the wrong order: cork, planks, planks is no recipe
     await add('cork'); await add('planks'); await add('planks');
-    await expect(page.locator('#recipeLine')).not.toHaveClass(/on/);
-    await expect(page.locator('#perform')).toBeHidden();
+    await expect(page.locator('#recipeLine')).not.toHaveClass(/\bon\b/);
+    await expect(page.locator('#perform'), 'MAKE IT waits for a recipe').toBeDisabled();
     // clear the measure (tap each slot), then the right order: planks, planks, cork = the Wooden Mallet
     for (let k = 0; k < 3; k++) await page.locator('#measure .bt-slot.full').first().click();
     await add('planks'); await add('planks'); await add('cork');
@@ -341,7 +342,11 @@ test.describe('Blocktave: creatures', () => {
     await page.evaluate(() => { Arcade.Pitch.demoNote = Arcade.Blocktave.state().creatures[0].sounding; });
     await expect.poll(() => page.evaluate(() => (Arcade.Blocktave.state().creatures[0] || {state: 'gone'}).state), {timeout: 8000}).not.toBe('live');
     await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
-    expect((await st(page)).inv.pearl).toBe(2);
+    // the Pearls drop into the world where it was (2: INSTRUMENT mode) and come to you once you're close
+    const drops = (await st(page)).drops.filter(d => d.item === 'pearl');
+    expect(drops.reduce((a, d) => a + d.n, 0)).toBe(2);
+    await page.evaluate(d => Arcade.Blocktave.demo.tp(Math.floor(d.x), Math.floor(d.y)), drops[0]);
+    await expect.poll(async () => (await st(page)).inv.pearl || 0).toBe(2);
   });
 
   test('creatures freeze while a sound mutes the microphone', async ({page}) => {
@@ -520,6 +525,7 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
           const t = d.find(k, w.spawn); d.standBy(t.x, t.y); d.mine(t.x, t.y); d.answer(); return {d: Math.hypot(t.x - w.spawn.x, t.y - w.spawn.y), x: t.x, y: t.y}; }, key);
         expect(t.d, `seed ${seed}: ${key} near the spawn`).toBeLessThanOrEqual(R_NEAR);
         await waitCardGone(page);
+        await page.waitForFunction(() => !Arcade.Blocktave.state().drops.length, null, {timeout: 8000});   // the loot lands beside you: picked up
         return t;
       };
       await mineNear('maple'); await craft('maple-planks');
@@ -637,4 +643,281 @@ test.describe('Blocktave: findable first steps and bonus milestones', () => {
       });
     });
   }
+});
+
+/** a flat test floor around the player: slate at row y0, 4 rows of air above it, 12 tiles each side */
+const flat = page => page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x0 = Math.floor(s.player.x), y0 = Math.floor(s.player.y) + 1;
+  for (let x = x0 - 12; x <= x0 + 12; x++) { d.put(x, y0, 'slate'); for (let y = y0 - 5; y < y0; y++) d.put(x, y, 'air'); }
+  d.tp(x0, y0 - 1); return {x0, y0}; });
+
+test.describe('Blocktave: pickup labels and tooltips', () => {
+  test('"+1 Maple" labels: the item and its count, merged within pickupMergeMs, at most 4, and read out for screen readers', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { window.__said = []; new MutationObserver(() => window.__said.push(document.getElementById('btLive').textContent)).observe(document.getElementById('btLive'), {childList: true, characterData: true, subtree: true}); });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('maple', 1); d.give('maple', 2); d.give('planks', 4); });
+    expect((await st(page)).labels).toEqual(['+3 Maple', '+4 Maple Planks']);
+    await page.evaluate(() => ['cork', 'reed', 'sand', 'felt'].forEach(k => Arcade.Blocktave.demo.give(k, 1)));
+    expect((await st(page)).labels.length, 'at most 4 on screen').toBe(4);
+    await expect.poll(() => page.evaluate(() => window.__said.join(' | ')), {message: 'the words for screen readers', timeout: 5000}).toContain('+2 Maple');
+    expect(await page.evaluate(() => window.__said.length), 'gathered, never one per item').toBeLessThanOrEqual(3);
+    await expect.poll(async () => (await st(page)).labels.length, {message: 'they fade out after pickupLabelMs'}).toBe(0);
+  });
+
+  test('INSTRUMENT mode\'s bonus is in the label\'s number: "+2 Tone Shard"', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.evaluate(() => Arcade.Blocktave.demo.give('mallet2', 1));
+    const t = await nextTo(page, 'toneOre');
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), t);
+    await page.evaluate(() => { Arcade.Pitch.demoNote = Arcade.BlocktaveCard.current.want().sounding; });
+    await waitCardGone(page);
+    await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
+    await expect.poll(async () => (await st(page)).labels).toContain('+2 Tone Shard');
+  });
+
+  test('a tooltip on hover, on keyboard focus and on a long-press; a normal tap still picks the item', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('cork', 2); d.give('sand', 1); d.give('mallet1', 1); });
+    // the hotbar: hover
+    const slot = page.locator('.bt-hot[data-item="cork"]');
+    await slot.hover();
+    await expect(page.locator('#btTip')).toBeVisible();
+    await expect(page.locator('#btTip')).toContainText('Cork');
+    await expect(page.locator('#btTip')).toContainText('Found: Cork Trunks in the Reed Marsh');
+    const [tr, sr] = await Promise.all([page.locator('#btTip').boundingBox(), slot.boundingBox()]);
+    const vw = page.viewportSize();
+    expect(tr.x >= 0 && tr.y >= 0 && tr.x + tr.width <= vw.width && tr.y + tr.height <= vw.height, 'on screen').toBe(true);
+    expect(tr.x < sr.x + sr.width && tr.x + tr.width > sr.x && tr.y < sr.y + sr.height && tr.y + tr.height > sr.y, 'never over its item').toBe(false);
+    await page.mouse.move(5, 300);
+    await expect(page.locator('#btTip')).toBeHidden();
+    // the inventory: keyboard focus; a tool says what it mines
+    await page.locator('#invBtn').click();
+    await page.locator('#invGrid [data-item="mallet1"]').focus();
+    await expect(page.locator('#btTip')).toContainText('Can mine:');
+    await expect(page.locator('#btTip')).toContainText('Tone Ore');
+    await page.locator('#invClose').click();
+    // a long-press on a hotbar slot shows it, lifting hides it, and that tap picks nothing
+    const sel0 = await page.evaluate(() => document.querySelector('.bt-hot.sel').dataset.i);
+    const other = page.locator('.bt-hot:not(.sel)[data-item]').first();
+    const b = await other.boundingBox(), at = {pointerType: 'touch', pointerId: 7, clientX: b.x + b.width / 2, clientY: b.y + b.height / 2, isPrimary: true};
+    await other.dispatchEvent('pointerdown', at);
+    await page.waitForTimeout(550);
+    await expect(page.locator('#btTip')).toBeVisible();
+    await other.dispatchEvent('pointerup', at);
+    await other.dispatchEvent('click');
+    await expect(page.locator('#btTip')).toBeHidden();
+    expect(await page.evaluate(() => document.querySelector('.bt-hot.sel').dataset.i), 'a long-press picks nothing').toBe(sel0);
+    // a normal tap still selects
+    await other.click();
+    expect(await page.evaluate(() => document.querySelector('.bt-hot.sel').dataset.i)).not.toBe(sel0);
+  });
+});
+
+test.describe('Blocktave: reach, the swing, the poof', () => {
+  test('no dashed reach circle; a tap out of reach outlines the block and says "Too far: walk closer!" (at most every 3 s)', async ({page}) => {
+    await page.addInitScript(() => { window.__dash = []; const f = CanvasRenderingContext2D.prototype.setLineDash; CanvasRenderingContext2D.prototype.setLineDash = function (a) { window.__dash.push(a.slice()); return f.call(this, a); }; });
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { window.__dash = []; });
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__dash.filter(a => a.length).length), 'nothing dashed drawn while playing').toBe(0);
+    const far = await page.evaluate(() => { const s = Arcade.Blocktave.state(); return {x: Math.floor(s.player.x) + 9, y: Math.floor(s.player.y) - 1}; });
+    await page.evaluate(f => { Arcade.Blocktave.demo.act(f.x, f.y); Arcade.Blocktave.demo.act(f.x, f.y); }, far);
+    expect((await st(page)).fx.far).toBe(true);
+    await expect(page.locator('.ui-toast', {hasText: 'Too far: walk closer!'})).toHaveCount(1);
+    await expect.poll(async () => (await st(page)).fx.far, {message: 'the red outline is gone after farFlashMs'}).toBe(false);
+  });
+
+  test('mining swings the tool and chips fly; a calmed creature poofs and drops its item; none of it with reduced motion', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1; d.give('mallet1', 1); d.put(x, y, 'dirt'); d.mine(x, y); });
+    let fx = (await st(page)).fx;
+    expect([fx.swings, fx.chips, fx.swing]).toEqual([1, 1, true]);
+    await expect.poll(async () => (await st(page)).fx.swing, {message: 'a swing lasts swingMs'}).toBe(false);
+    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 5); });
+    await page.evaluate(i => Arcade.Blocktave.demo.calm(i), id);
+    fx = (await st(page)).fx;
+    expect([fx.poofs, fx.poofing]).toEqual([1, 1]);
+    expect(await page.evaluate(() => Arcade.Sfx.history.some(h => /bt-poof|bt-calm/.test(h.name || h))), 'the poof sound').toBe(true);
+  });
+
+  test('reduced motion: no swing, chips, poof or drifting label', async ({page}) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1; d.put(x, y, 'dirt'); d.mine(x, y);
+      d.time(window.BT_RULES.dayS + 30); d.calm(d.spawn('clam', 5)); });
+    const fx = (await st(page)).fx;
+    expect([fx.rm, fx.swings || 0, fx.chips || 0, fx.poofs || 0, fx.swing]).toEqual([true, 0, 0, 0, false]);
+  });
+});
+
+test.describe('Blocktave: THE MEASURE, a crafting station', () => {
+  test('labeled slots, the result box and its performance, MAKE IT, the Recipe Book, a bench, dragging', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('planks', 3); d.give('cork', 1); d.give('spring', 1); d.give('rhythm', 1); });
+    await page.locator('#craftBtn').click();
+    await expect(page.locator('.bt-slotlbl')).toHaveText(['1st', '2nd', '3rd', '4th']);
+    await expect(page.locator('.bt-slotcap').first()).toHaveText('Material 1');
+    await expect(page.locator('#recipeLine')).toContainText('?');
+    await expect(page.locator('#perform')).toBeDisabled();
+    await expect(page.locator('#perform')).toHaveText('Make it');
+    for (const id of ['planks', 'planks', 'cork']) await page.locator(`#craftItems [data-id="${id}"]`).click();
+    await expect(page.locator('#recipeLine')).toContainText('Wooden Mallet');
+    await expect(page.locator('#recipeLine')).toContainText('Tap 1 note name');
+    await expect(page.locator('#perform')).toBeEnabled();
+    await expect(page.locator('#measure .bt-slot.full .bt-slotx')).toHaveCount(3);
+    // a filled slot's ✕ takes it out (the rest move up: planks, cork is no recipe)
+    await page.locator('#measure .bt-slot.full').first().click();
+    expect((await st(page)).slots).toEqual(['planks', 'cork', null, null]);
+    await expect(page.locator('#perform')).toBeDisabled();
+    // a recipe that needs a Luthier's Bench nearby
+    await page.locator('#measure .bt-slot.full').first().click(); await page.locator('#measure .bt-slot.full').first().click();
+    for (const id of ['planks', 'spring', 'rhythm']) await page.locator(`#craftItems [data-id="${id}"]`).click();
+    await expect(page.locator('#recipeLine')).toContainText("Needs a Luthier's Bench nearby");
+    await expect(page.locator('#perform')).toBeDisabled();
+    for (let k = 0; k < 3; k++) await page.locator('#measure .bt-slot.full').first().click();
+    // THE RECIPE BOOK: a recipe you have the items for fills the slots in order; one you don't shows what's missing
+    await page.locator('#bookBtn').click();
+    await page.locator('#book .bt-rec[data-id="door"]').click();
+    expect((await st(page)).slots).toEqual(['planks', 'planks', 'planks', null]);
+    await page.evaluate(() => Arcade.Blocktave.demo.fromBook('maple-planks'));
+    await page.locator('#bookBtn').click();
+    await page.locator('#book .bt-rec[data-id="maple-planks"]').click();
+    await expect(page.locator('#book .bt-rec.missing em')).toContainText('Missing: 1 Maple');
+    await page.locator('#bookBtn').click();
+    // DRAG a material onto the workbench: the next empty slot
+    for (let k = 0; k < 3; k++) await page.locator('#measure .bt-slot.full').first().click();
+    const src = await page.locator('#craftItems [data-id="cork"]').boundingBox(), dst = await page.locator('#bench').boundingBox();
+    await page.mouse.move(src.x + 20, src.y + 20); await page.mouse.down();
+    await page.mouse.move(src.x + 60, src.y - 40, {steps: 5}); await page.mouse.move(dst.x + 40, dst.y + 40, {steps: 8}); await page.mouse.up();
+    expect((await st(page)).slots).toEqual(['cork', null, null, null]);
+  });
+
+  for (const [name, w, h] of [['iPad landscape', 1180, 820], ['iPad portrait', 820, 1180], ['Chromebook', 1366, 768], ['phone', 390, 844]]) {
+    test(`THE MEASURE fits (${name}): slots ≥ 64 px, nothing overflows`, async ({page}) => {
+      await page.setViewportSize({width: w, height: h});
+      await enter(page, {mode: 'touch'});
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('planks', 3); d.give('cork', 1); });
+      await page.locator('#craftBtn').click();
+      for (const id of ['planks', 'planks', 'cork']) await page.locator(`#craftItems [data-id="${id}"]`).click();
+      const r = await page.evaluate(() => {
+        const box = e => { const b = e.getBoundingClientRect(); return {l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height}; };
+        const panel = document.getElementById('craft'), bench = box(document.getElementById('bench'));
+        return {slots: [...document.querySelectorAll('.bt-slot')].map(box), bench, result: box(document.getElementById('recipeLine')), make: box(document.getElementById('perform')),
+          over: panel.scrollWidth > panel.clientWidth + 1, panel: box(panel), page: document.documentElement.scrollWidth <= innerWidth};
+      });
+      const inside = (a, c) => a.l >= c.l - .5 && a.r <= c.r + .5 && a.t >= c.t - .5 && a.b <= c.b + .5;
+      r.slots.forEach(s => { expect(Math.min(s.w, s.h), 'a slot ≥ 64 px').toBeGreaterThanOrEqual(64); expect(inside(s, r.bench), 'the slot on the bench').toBe(true); });
+      expect(inside(r.result, r.bench) && inside(r.make, r.bench), 'the result and MAKE IT on the bench').toBe(true);
+      expect(inside(r.bench, r.panel), 'the bench inside the panel').toBe(true);
+      expect(r.over, 'nothing scrolls sideways in the panel').toBe(false);
+      expect(r.page).toBe(true);
+      for (let i = 0; i < r.slots.length; i++) for (let j = i + 1; j < r.slots.length; j++) {
+        const a = r.slots[i], b = r.slots[j];
+        expect(a.l < b.r - 1 && a.r > b.l + 1 && a.t < b.b - 1 && a.b > b.t + 1, `slots ${i} × ${j}`).toBe(false);
+      }
+      if (w <= 760) expect(r.result.t, 'the result below the slots').toBeGreaterThan(Math.max(...r.slots.map(s => s.b)));
+    });
+  }
+});
+
+test.describe('Blocktave: staffs on the cards', () => {
+  test('no accidental touches a notehead (≥ 3 px apart): "Name this scale", Scale Veins and composer rows, every member × scale', async ({page}) => {
+    test.setTimeout(120_000);
+    await enter(page, {mode: 'touch'});
+    const bad = await page.evaluate(async () => {
+      await document.fonts.load('54px "GN Music"', '♭♯♮');            // measured with the real music font, not a fallback
+      const A = Arcade, C = A.BlocktaveCard, out = [];
+      const check = (svg, what) => {
+        const heads = [...svg.querySelectorAll('ellipse.head')].map(e => e.getBBox()), accs = [...svg.querySelectorAll('text.head')].map(e => e.getBBox());
+        accs.forEach(a => heads.forEach(h => {
+          const gapX = Math.max(h.x - (a.x + a.width), a.x - (h.x + h.width)), gapY = Math.max(h.y - (a.y + a.height), a.y - (h.y + h.height));
+          if (gapX < 3 - .05 && gapY < 3 - .05) out.push(`${what}: gap ${gapX.toFixed(1)}`);
+        }));
+      };
+      const members = A.PLAYERS.filter(m => m !== 'snare').map(m => A.memberById(m));
+      for (const mem of members) {
+        const group = A.INSTRUMENTS.find(g => g.members && g.members.some(x => x.id === mem.id)) || A.INSTRUMENTS[0];
+        for (const id of ['Bb', 'Eb', 'F', 'Ab']) {
+          C.open({kind: 'key', mode: 'touch', member: mem, clef: group.clef, ask: 'scale', scale: id, at: {x: 300, y: 300}});
+          check(document.querySelector('.bt-card svg'), `${mem.id} ${id} name-this-scale`);
+          const seq = A.buildSequence({member: mem, group, notes: id, order: 'order', level: 2, count: 8});
+          C.open({kind: 'notes', mode: 'touch', items: seq.items.slice(0, 8), clef: group.clef, sig: seq.sig, fit: seq.fit, at: {x: 300, y: 300}});
+          check(document.querySelector('.bt-card svg'), `${mem.id} ${id} scale vein`);
+          C.close();
+        }
+        // a composer row: chromatic notes, spaced the same way (game.js openPodium)
+        const ch = A.chromaticScale(mem).slice(0, 8), sp = C.spaceNotes(ch, 82), d = document.createElement('div');
+        d.innerHTML = A.staffSVG(group.clef, ch.map((n, k) => ({n, x: sp.xs[k]})), {width: sp.end + 40}); document.body.appendChild(d);
+        check(d.querySelector('svg'), `${mem.id} composer row`); d.remove();
+      }
+      return out;
+    });
+    expect(bad.slice(0, 12)).toEqual([]);
+  });
+});
+
+test.describe('Blocktave: world drops and the pickup radius', () => {
+  test('a calmed Clam drops a Pearl where it was; the milestone counts at once; the magnet pulls it in; a full bag leaves it', async ({page}) => {
+    const watch = await enter(page, {mode: 'touch'});
+    const {x0, y0} = await flat(page);
+    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 8); });
+    await page.evaluate(i => Arcade.Blocktave.demo.calm(i), id);
+    expect((await page.evaluate(() => Arcade.Blocktave.demo.stats())).clams, 'counted at the calming moment').toBe(1);
+    await page.waitForTimeout(800);
+    let s = await st(page);
+    expect(s.inv.pearl || 0, 'not in your bag while you\'re far').toBe(0);
+    expect(s.drops.filter(d => d.item === 'pearl').length).toBe(1);
+    const dr = s.drops.find(d => d.item === 'pearl');
+    expect(Math.abs(dr.y - (y0 - .22)), 'it rests on the ground').toBeLessThan(.05);
+    // THE MAGNET: from 2.1 tiles (inside magnetRadius, outside pickupRadius) it glides to you and is picked up
+    await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.tp(Math.floor(x + 2.1 - .5), y - 1); }, {x: dr.x, y: y0});
+    const px = (await st(page)).player.x;
+    await expect.poll(async () => (await st(page)).inv.pearl || 0).toBe(1);
+    expect(Math.abs((await st(page)).player.x - px), 'you didn\'t walk to it').toBeLessThan(.01);
+    // A FULL BAG: the item stays on the ground, "Bag full!"
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, I = window.BT_ITEMS, n = window.BT_RULES.invSlots;
+      Object.keys(I).filter(k => I[k].kind !== 'tool').slice(0, n + 2).forEach(k => { if (d.canHold(k)) d.give(k, 1); }); });
+    const left = await page.evaluate(() => Object.keys(window.BT_ITEMS).find(k => window.BT_ITEMS[k].kind !== 'tool' && !Arcade.Blocktave.state().inv[k]));
+    expect(await page.evaluate(k => Arcade.Blocktave.demo.canHold(k), left)).toBe(false);
+    await page.evaluate(k => { const s = Arcade.Blocktave.state(); Arcade.Blocktave.demo.drop(k, 1, s.player.x + .6, s.player.y - 1); }, left);
+    await page.waitForTimeout(900);
+    expect((await st(page)).drops.some(d => d.item === left), 'it stays on the ground').toBe(true);
+    await expect(page.locator('.ui-toast', {hasText: 'Bag full!'})).toBeVisible();
+    watch.check();
+  });
+
+  test('drops are saved with the world; off screen they despawn after dropDespawnS, on screen never; the bag never does; at most maxDrops', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {x0, y0} = await flat(page);
+    await page.evaluate(({x0, y0}) => { const d = Arcade.Blocktave.demo; d.drop('pearl', 1, x0 + 80, 10); d.drop('cork', 2, x0 + 6, y0 - 1); }, {x0, y0});
+    await page.waitForTimeout(600);
+    await page.evaluate(() => Arcade.Blocktave.save());
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(Arcade.Blocktave.key)));
+    expect(saved.v).toBe(2);
+    expect([...new Set(saved.drops.map(d => d.item))].sort()).toEqual(['cork', 'pearl']);
+    // reload: they come back
+    await page.reload();
+    await page.locator('.ls-card:not(.ls-endless)').first().click();
+    await page.locator('.ls-start').click();
+    await into(page);
+    expect([...new Set((await st(page)).drops.map(d => d.item))].sort()).toEqual(['cork', 'pearl']);
+    // the despawn clock: only off screen
+    await page.evaluate(() => { const R = window.BT_RULES, w = Arcade.Blocktave.world(); w.drops.forEach(d => { d.t = R.dropDespawnS - .3; });
+      w.bags.push({x: w.drops.find(d => d.item === 'pearl').x + 3, y: 10, items: {dirt: 2}}); });
+    await page.waitForTimeout(900);
+    const s = await st(page);
+    expect([...new Set(s.drops.map(d => d.item))], 'the far one is gone, the one you can see stays').toEqual(['cork']);
+    expect(s.bags, 'the lost-hearts bag never despawns').toBe(1);
+    // the cap: the oldest beyond maxDrops joins the nearest drop of its kind (nothing is lost)
+    const cap = await page.evaluate(({x0}) => { const d = Arcade.Blocktave.demo, R = window.BT_RULES;
+      for (let k = 0; k < R.maxDrops + 6; k++) d.drop('dirt', 1, x0 + 60 + (k % 10), 8);
+      const D = Arcade.Blocktave.world().drops; return {n: D.length, dirt: D.filter(q => q.item === 'dirt').reduce((a, q) => a + q.n, 0), max: R.maxDrops}; }, {x0});
+    expect(cap.n).toBeLessThanOrEqual(cap.max);
+    expect(cap.dirt).toBe(cap.max + 6);
+  });
+
+  test('an old version-1 save (no drops) still loads, with none', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const ok = await page.evaluate(() => { const BW = Arcade.BlocktaveWorld, w = BW.generate(77, window.BT_RULES), o = BW.encode(w); o.v = 1; delete o.drops; const back = BW.decode(o); return !!back && Array.isArray(back.drops) && back.drops.length === 0; });
+    expect(ok).toBe(true);
+  });
 });
