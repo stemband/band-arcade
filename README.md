@@ -613,7 +613,7 @@ anyone), the grade (6, 7 or 8), the avatar's name as three word **numbers** (nev
 the kind (`stars`, `endless` or `play`), a number and the level:
 - `stars`: how many NEW stars a level's best just gained (1–3);
 - `endless`: an Endless score, only when it beats this device's best for that game this week;
-- `play`: once a day, the first time a game is started that day (for the practice streak).
+- `play`: once a day per game, the first time each game is started that day (for the practice streak).
 
 **What is never sent:** real names, emails, PINs, the avatar's look, what instrument is played, anything typed.
 

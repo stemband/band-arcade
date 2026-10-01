@@ -73,7 +73,7 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
   return watch;
 }
 
-/** the leaderboard mock's answers (the API in CLAUDE.md "THE LEADERBOARD") */
+/** the leaderboard mock's answers (the API in docs/engine/leaderboard.md "THE LEADERBOARD") */
 function boardFor(params) {
   if (params.get('action') === 'status') return {ok: true, enabled: true};
   const e = (id, n, v) => ({id, name: n, value: v});
