@@ -1,7 +1,9 @@
 /* Arcade home page (index.html): PRESS START, then the ZONE LOBBY, the ZONES and ALL GAMES, all on this one page (so
    the audio the student unlocked stays unlocked, and the lobby sound never restarts between them).
      PRESS START   the first visit of a browser session: an attract screen; the gesture that dismisses it unlocks the
-                   audio, then CHOOSE YOUR INSTRUMENT (Select Player in pick mode, index.html?pick) opens once.
+                   audio. Then: an instrument saved → straight on, with the PLAYING AS toast ("Playing as Trumpet ·
+                   Change"); no instrument, a `pending` choice or the teacher setting ASK_INSTRUMENT_EVERY_TIME →
+                   CHOOSE YOUR INSTRUMENT (Select Player in pick mode, index.html?pick).
      LOBBY         index.html (no hash): one neon sign per zone, CONTINUE, ASSIGNED (lobby.js draws it)
      A ZONE        index.html#zone=<zone id>[&game=<game id>]: the cabinet carousel with only that zone's cabinets
      ALL GAMES     index.html#all-games: every game as a card (lobby.js)
@@ -49,7 +51,10 @@
   }, {title: 'Your progress', lobby: true});
   // the installed app's first launch asks for a Backup Code first (shared/app.js), then CHOOSE YOUR INSTRUMENT
   const welcomeThen = fn => (A.App && A.App.welcome(fn)) || fn();
-  A.Sfx.prefer('choose-instrument');                    // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)
+  /** CHOOSE YOUR INSTRUMENT after PRESS START? Only with no instrument saved, a `pending` choice (the members migration)
+      or the teacher setting ASK_INSTRUMENT_EVERY_TIME (shared/teacher-settings.js: shared devices) */
+  const pickAtStart = () => !!(A.TEACHER && A.TEACHER.ASK_INSTRUMENT_EVERY_TIME) || !A.store.player || !!A.store.pending;
+  if (pickAtStart()) A.Sfx.prefer('choose-instrument'); // the CHOOSE YOUR INSTRUMENT voice line: never late (PRESS START → pick)
   A.Sfx.use('floor');                                   // the floor's sounds (and every game's select-<id>) load after the first tap
   A.Sfx.mountControls($('spSound'));                     // the select view's own speaker button (same settings)
   $('tuneBtn').href = A.linkTo('note-checker/index.html');
@@ -57,12 +62,10 @@
   /* ---------- PRESS START (first visit only; the gesture that dismisses it also unlocks the audio) ---------- */
   const VISIT = 'bandarcade.visit', ps = $('pressStart');
   const pressStart = () => !ps.hidden;
-  let pickAfterStart = false;
   if (ss.get(VISIT) !== '1' && !(A.DEMO && A.params.has('nostart'))) {
     $('psName').innerHTML = $('arcadeName').innerHTML;
     $('psHint').textContent = matchMedia('(pointer: coarse)').matches ? 'Tap anywhere' : 'Press any key';
     ps.hidden = false; ps.focus();
-    pickAfterStart = true;
     const dismiss = e => {
       if (ps.classList.contains('go')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
       if (e.type === 'keydown' && /^(Shift|Control|Alt|Meta|Tab)$/.test(e.key)) return;
@@ -74,11 +77,41 @@
       setTimeout(() => {
         ps.hidden = true; ps.classList.remove('go');
         ['pointerdown', 'keydown', 'click'].forEach(t => removeEventListener(t, dismiss, true));
-        if (pickAfterStart && !A.SelectView.isOpen) welcomeThen(() => openPick(null));        // then: CHOOSE YOUR INSTRUMENT (CONTINUE AS is one tap)
-        else focusView();
+        if (A.SelectView.isOpen) focusView();
+        else if (pickAtStart()) welcomeThen(() => openPick(null));   // then: CHOOSE YOUR INSTRUMENT (CONTINUE AS is one tap)
+        else { focusView(); playingAs(); }                           // an instrument saved: straight on, one tap from changing it
       }, 320);
     };
     ['pointerdown', 'keydown', 'click'].forEach(t => addEventListener(t, dismiss, true));
+  }
+
+  /* ---------- PLAYING AS: after PRESS START with an instrument saved (no pick mode), a small toast (the UI kit's, 4 s,
+     at the top, just under the top bar, over the arcade's name: never over the zone signs' first row): the instrument's portrait + "Playing as Trumpet · Change"
+     ("Change" = pick mode), so a student on a shared or borrowed device is one tap from switching. Once per session
+     (it follows PRESS START only). It waits while anything is over the floor (Lobby.free: the app's Bring your
+     progress, a CHAMPION card, a panel…); one that opens over it hides it, and it shows again, whole, once that
+     closes. Pick mode opened another way (the avatar badge) ends it. ---------- */
+  let playingAsT = 0, playingAsShown = false;
+  function playingAs() {
+    const m = A.store.player && A.memberById(A.store.player);
+    if (!m || !A.UI || !A.UI.toast) return;
+    const MS = 4000;
+    let t = null, at = 0;
+    const end = () => { clearTimeout(playingAsT); if (t) t.remove(); t = null; };
+    const tick = () => {
+      if (document.body.classList.contains('in-select')) { end(); return; }       // choosing already
+      const free = A.Lobby.free({anyView: true});
+      if (t && !t.isConnected) { end(); return; }                                 // gone by itself, or "Change" tapped
+      if (t && !free) { t.remove(); t = null; }                                   // something opened over it
+      else if (!t && free) {
+        const bar = $('fbar').getBoundingClientRect();                           // just under the top bar: never over the signs
+        t = A.UI.toast(`Playing as ${m.short}`, {ms: MS, top: Math.max(12, bar.bottom + 8), icon: A.portraitHTML(m.id, {size: 'chip', label: m.short}),
+          action: {label: 'Change', aria: 'Change instrument', onClick: () => { end(); openPick(null); }}});
+        t.classList.add('playing-as'); at = performance.now(); playingAsShown = true;
+      } else if (t && performance.now() - at > MS) { end(); return; }
+      playingAsT = setTimeout(tick, 200);
+    };
+    tick();
   }
 
   /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows), or the FULL ARCADE ---------- */
@@ -626,5 +659,5 @@
     A.params = new URLSearchParams(location.search);
     if (A.LeaderboardScreen && !pressStart()) setTimeout(() => A.LeaderboardScreen.open(), 0);
   }
-  A.Arcade = {state: () => ({view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
+  A.Arcade = {state: () => ({playingAs: playingAsShown, view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
 })(window.Arcade);

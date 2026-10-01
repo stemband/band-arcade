@@ -153,11 +153,21 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- TOAST ---------- */
   /** a short message that fades by itself (≈2 s). near: an element to show it over (a locked level card); kind:
-      'good' | 'bad' | '' */
-  UI.toast = function (text, {near = null, kind = '', ms = 2200} = {}) {
-    const t = el(`<div class="ui-toast ${esc(kind)}${near ? ' near' : ''}" role="status" aria-live="polite"></div>`);
-    t.textContent = text;
+      'good' | 'bad' | ''; top: px from the top of the screen instead of the bottom; icon: a small picture before the text (trusted HTML: a portrait); action: {label, onClick,
+      aria}: a small button after the text (the only part of a toast that takes taps; tapping it removes the toast) */
+  UI.toast = function (text, {near = null, kind = '', ms = 2200, top = null, icon = '', action = null} = {}) {
+    const t = el(`<div class="ui-toast ${esc(kind)}${near ? ' near' : ''}${icon || action ? ' rich' : ''}" role="status" aria-live="polite"></div>`);
+    if (!icon && !action) t.textContent = text;
+    else {
+      t.innerHTML = (icon ? `<span class="ui-toast-icon" aria-hidden="true">${icon}</span>` : '') + `<span class="ui-toast-text">${esc(text)}</span>`;
+      if (action) {
+        const b = el(`<button type="button" class="ui-toast-act"${action.aria ? ` aria-label="${esc(action.aria)}"` : ''}>${esc(action.label)}</button>`);
+        b.addEventListener('click', e => { t.remove(); action.onClick(e); });
+        t.insertAdjacentHTML('beforeend', '<span class="ui-toast-sep" aria-hidden="true">·</span>'); t.appendChild(b);
+      }
+    }
     t.style.setProperty('--ui-toast-ms', ms + 'ms');
+    if (top != null && !near) { t.classList.add('top'); t.style.top = Math.round(top) + 'px'; }
     if (near) near.appendChild(t); else { document.body.appendChild(t); t.style.zIndex = String(Math.max(95, topZ(t) + 1)); }   // above every open panel
     setTimeout(() => t.remove(), ms + 100);
     return t;
