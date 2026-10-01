@@ -9,7 +9,7 @@
    set, the student's "Show me on the leaderboard" switch is ON (the default), a grade is chosen, and it is not ?demo.
    Turning the switch off drops anything still waiting to be sent.
 
-   EVENTS: 'play' once a day (the first game started that day); 'stars' = how many NEW stars a level's best just
+   EVENTS: 'play' once a day per game (the first time EACH game is started that day); 'stars' = how many NEW stars a level's best just
    gained (1–3); 'endless' = the score at an Endless game over, only when it beats this device's best for that game
    this week. Events wait in a queue on the device (at most 50: the oldest go first) and are sent one at a time; a
    failed or offline send stays queued and is tried again (going online, the page showing again, every 60 s). Nothing
@@ -28,7 +28,7 @@
    'not JSON' | 'network error (CORS or blocked)'), ms, tries, at}.
 
    Saved in gameData('leaderboard') (so the Arcade Backup Code carries it, streak and all): {pid, grade, on, queue,
-   day (the last 'play' date), week, weekStars, endless: {gameId: best this week}, id (the 6-character id the
+   plays: {day: 'YYYY-MM-DD', games: [ids already sent a 'play' that day]}, week, weekStars, endless: {gameId: best this week}, id (the 6-character id the
    scoreboard shows for this device, when it tells us)}.
 
      Arcade.Leaderboard.available()      an address is set (the button shows)
@@ -120,11 +120,15 @@ window.Arcade = window.Arcade || {};
     e[game] = score; save();
     enqueue({type: 'endless', game, value: score});
   }
-  /** a game started: once a day */
+  /** a game started: once a day PER GAME (plays = {day, games: [ids sent today]}, a new day starts the list over) */
   function play(game) {
+    game = String(game || '');
+    if (!game || !canSend()) return;
     const d = D(), k = dayKey(today());
-    if (d.day === k || !canSend()) return;
-    d.day = k; save();
+    let p = d.plays;
+    if (!p || p.day !== k || !Array.isArray(p.games)) p = d.plays = {day: k, games: []};
+    if (p.games.includes(game)) return;
+    p.games.push(game); save();
     enqueue({type: 'play', game, value: 1});
   }
 

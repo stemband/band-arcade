@@ -105,6 +105,17 @@ window.Arcade = window.Arcade || {};
       done['scale-trainer-rename'] = true;
       save();
     }
+    // The leaderboard's 'play' event went from once a day to once a day PER GAME: the old `day` (the date of the
+    // day's one 'play') becomes plays = {day, games: []} (that day's first game may send once more; harmless).
+    if (!done['lb-plays-per-game']) {
+      const lb = (data.gameData || {}).leaderboard;
+      if (lb && 'day' in lb) {
+        if (!lb.plays && typeof lb.day === 'string') lb.plays = {day: lb.day, games: []};
+        delete lb.day;
+      }
+      done['lb-plays-per-game'] = true;
+      save();
+    }
   }
   /** a game's id changed: move everything saved under the old id (and its '<old>:…' progress keys) to the new one.
       games: per instrument and level the more stars and the higher best stay; gameData: merge(old, new) (default: new
