@@ -2,7 +2,7 @@
    card's trophy shelf). The scoreboard (helpers.js's mock) gets a route in front that answers ?action=champions with
    this test's champions and logs every request. This device's id on the boards = its pid's first 6 characters. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, boardFor, lastWeekKey, offscreen, LB_URL, LB_HOSTS} = require('./helpers');
+const {prepare, device, boardFor, lastWeekKey, offscreen, LB_URL, LB_HOSTS, quickLeaderboard, settle} = require('./helpers');
 
 const PID = 'abc123' + 'x'.repeat(18), ME = 'abc123';
 const WEEK = lastWeekKey();
@@ -50,6 +50,8 @@ const checked = page => expect.poll(() => page.evaluate(() => !!Arcade.Leaderboa
 
 test.describe('weekly champions', () => {
   test.skip(!LB_URL, 'the leaderboard is switched off (no address in shared/leaderboard-config.js)');
+  test.describe.configure({timeout: 60_000});                          // a hang fails fast (the suite's default is 90 s)
+  test.beforeEach(async ({page}) => { await quickLeaderboard(page); });
 
   test('1st on MOST STARS: the card, CLAIM pays once, the plate unlocks; a reload shows no second card', async ({page}) => {
     const watch = await prepare(page, {store: store()});
@@ -71,7 +73,7 @@ test.describe('weekly champions', () => {
     expect((await lbData(page)).awards[WEEK].stars).toEqual({value: 14, claimed: true});
     // a reload: checked this week, already claimed: nothing more
     await page.reload();
-    await page.waitForTimeout(2500);
+    await settle(page, 2500);
     await expect(card(page)).toHaveCount(0);
     expect(await balance(page)).toBe(100);
     expect(champReqs(log)).toHaveLength(1);
@@ -84,6 +86,7 @@ test.describe('weekly champions', () => {
     await scoreboard(page, champs());
     await page.goto('index.html');
     const page2 = await context.newPage();
+    await quickLeaderboard(page2);
     await prepare(page2, {store: s});
     await scoreboard(page2, champs());
     await page2.goto('index.html');
@@ -118,7 +121,7 @@ test.describe('weekly champions', () => {
       await scoreboard(page, c);
       await page.goto('index.html');
       await checked(page);
-      await page.waitForTimeout(1200);
+      await settle(page, 1200);
       await expect(card(page)).toHaveCount(0);
       expect(await balance(page)).toBe(0);
       const d = await lbData(page);
@@ -147,11 +150,12 @@ test.describe('weekly champions', () => {
     ];
     for (const c of cases) {
       const p = await page.context().newPage();
+      await quickLeaderboard(p);
       watch = await prepare(p, {store: c.s});
       log = await scoreboard(p, champs({stars: [e(ME, 3)]}));
       if (c.noAddress) await p.route('**/shared/leaderboard-config.js*', r => r.fulfill({contentType: 'text/javascript', body: "window.Arcade = window.Arcade || {}; window.Arcade.LEADERBOARD_URL = '';"}));
       await p.goto(c.url);
-      await p.waitForTimeout(2500);
+      await settle(p, 2500);
       expect(champReqs(log), c.name).toEqual([]);
       await expect(card(p), c.name).toHaveCount(0);
       watch.check(c.name);
@@ -170,7 +174,7 @@ test.describe('weekly champions', () => {
     expect((await lbData(page)).champCheckedWeek).toBeUndefined();
     // the lobby again within 10 minutes: no new request
     await lobbyAgain(page);
-    await page.waitForTimeout(2000);
+    await settle(page, 2000);
     expect(champReqs(log)).toHaveLength(1);
     // 10+ minutes later: tried again, and it works
     await page.evaluate(() => sessionStorage.setItem('bandarcade.lb-champ', String(Date.now() - 11 * 60000)));
@@ -180,7 +184,7 @@ test.describe('weekly champions', () => {
     // checked this week: not again, even 10+ minutes later
     await page.evaluate(() => sessionStorage.setItem('bandarcade.lb-champ', String(Date.now() - 11 * 60000)));
     await lobbyAgain(page);
-    await page.waitForTimeout(2000);
+    await settle(page, 2000);
     expect(champReqs(log)).toHaveLength(2);
     watch.check();
   });
@@ -200,7 +204,7 @@ test.describe('weekly champions', () => {
       Arcade.store.importAll(r.data);
     }, code);
     await page.reload();
-    await page.waitForTimeout(2500);
+    await settle(page, 2500);
     await expect(card(page)).toHaveCount(0);
     expect(await balance(page)).toBe(100);
     expect((await lbData(page)).awards[WEEK].stars.claimed).toBe(true);
@@ -251,15 +255,15 @@ test.describe('weekly champions', () => {
     await scoreboard(page, champs());
     await page.goto('index.html');
     await expect(page.locator('#pressStart')).toBeVisible();
-    await page.waitForTimeout(1500);
+    await settle(page, 1500);
     await expect(card(page)).toHaveCount(0);
     await page.keyboard.press('Enter');                                // PRESS START → Choose Your Instrument (pick mode)
     await expect(page.locator('body.in-select')).toHaveCount(1);
-    await page.waitForTimeout(1500);
+    await settle(page, 1500);
     await expect(card(page)).toHaveCount(0);
     await expect(page.getByText('Maybe later')).toBeVisible();        // "Create your player?" over it
     await page.getByText('Maybe later').click();
-    await page.waitForTimeout(800);
+    await settle(page, 800);
     await expect(card(page)).toHaveCount(0);
     await page.locator('#selectBtn').click();                          // → the lobby: now the card
     await expect(page.locator('body.in-select')).toHaveCount(0);
@@ -290,14 +294,14 @@ test.describe('weekly champions', () => {
     const watch = await prepare(page, {store: store(lb({champCheckedWeek: WEEK}))});
     await scoreboard(page, champs());
     await page.goto('index.html');
-    await page.waitForTimeout(1000);
+    await settle(page, 1000);
     await page.evaluate(() => {
       Arcade.UI.settings.open();
       const d = Arcade.store.gameData('leaderboard'); d.awards = {[Arcade.Leaderboard.lastWeekKey()]: {stars: {value: 9, claimed: false}}};
       Arcade.store.saveGameData('leaderboard');
       dispatchEvent(new CustomEvent('arcade:champion'));
     });
-    await page.waitForTimeout(2000);
+    await settle(page, 2000);
     await expect(card(page)).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(card(page)).toBeVisible();

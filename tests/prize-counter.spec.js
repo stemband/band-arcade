@@ -113,9 +113,11 @@ test('buying at one counter shows OWNED at the other (both ways)', async ({page}
   await quest(page);
   await booth(page);
   await page.locator('.q-booth .q-btn', {hasText: 'Player items'}).click();
-  await expect(page.locator('.q-cosshop .q-btn', {hasText: name})).toContainText('OWNED');
+  // (a name plate's preview shows the avatar's last word, which can be an item's name: "Narwhal"; leave plates out)
+  const shopBtn = text => page.locator('.q-cosshop .q-btn', {hasText: text, hasNot: page.locator('.q-cos-plate')});
+  await expect(shopBtn(name)).toContainText('OWNED');
   const other = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && !it.season && it.key !== w.key && it.full === 200 && !Arcade.Tokens.owned(it.key)); });
-  await page.locator('.q-cosshop .q-btn', {hasText: other.name}).click();
+  await shopBtn(other.name).click();
   await expect(page.locator('.q-cosshop')).toContainText(`The ${other.name} is yours`);
   expect(await page.evaluate(() => Arcade.Tokens.balance())).toBe(1650);
   await floor(page);

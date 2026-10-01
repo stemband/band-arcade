@@ -1,5 +1,8 @@
 /* BLOCKTAVE: EVERY TUNING NUMBER, in one place (Mat: change a number here, never in game.js).
-   Distances are in TILES (one block), times in SECONDS unless a name ends in Ms. */
+   Distances are in TILES (one block), times in SECONDS unless a name ends in Ms.
+   THE BLOCKS, in order: world · starter · biomes · day and night · player · mining (notes, drops) · tools · light ·
+   courage (THE COURAGE METER at the bottom of the world) · backdrop · creatures (spawn, clam, wisp, rusher, fair) ·
+   losing all hearts · building · world drops · little touches · the note layout · saving · drawing · endless · goals */
 window.BT_RULES = {
   /* ---------- THE WORLD ---------- */
   world: {
@@ -97,6 +100,22 @@ window.BT_RULES = {
     lostDepth: 8,             // more than this many rows below the ground nearby …
     lostS: 20,                // … without getting closer to the surface for this long: an arrow points the way up
     surfaceAfterS: 60,        // this long underground: the pause menu offers ↑ SURFACE (back up along open tiles)
+  },
+  /* ---------- THE COURAGE METER: a player who parks at the very bottom of the world and stops building slowly loses
+     their nerve; when it runs out they're carried back up to the surface (they keep EVERYTHING: a nudge, never a
+     punishment). BUILDING = placing a block, using a door / cot / locker / composer / podium / bench, MAKE IT at the
+     Measure, eating a Snack Bag (and, with resetOnMine, passing a challenge card). Walking, jumping, tap-mining and
+     menus don't count. The clock stops while a card is open, paused, the mic is muted for a sound, or the tab is hidden. */
+  courage: {
+    name: 'Courage',          // the meter's word (Mat: change it here, e.g. 'Sanity')
+    floorRows: 6,             // "the very bottom" = within this many rows above the World Floor (bedrock)
+    graceS: 30,               // seconds at the bottom with no building before the meter starts to drain
+    drainS: 60,               // then this long from full to empty
+    refillS: 4,               // building refills it this fast (full in 4 s)
+    warnAt: .35,              // the "Feeling uneasy…" warning below this
+    resetOnMine: true,        // mining a MUSIC block (a challenge card passed) counts as building, so students
+                              // who are playing their instrument down there are never sent up
+    jitterMs: 900,            // the "got the jitters" swirl / fade before you reappear on the surface
   },
   /* ---------- THE PARALLAX BACKDROP (backdrop.js): three layers per biome behind the world, a cave backdrop below ---------- */
   backdrop: {

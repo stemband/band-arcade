@@ -32,7 +32,9 @@ const nextTo = (page, key) => page.evaluate(k => { const d = Arcade.Blocktave.de
 const putBeside = (page, key) => page.evaluate(k => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
   d.put(x, y, k); d.put(x, y + 1, 'slate'); return {x, y}; }, key);
 const cardOpen = page => page.evaluate(() => !!Arcade.BlocktaveCard.current);
-const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000});
+// (checked every 100 ms, not on the page's animation frames: a card closes on a timer, and a busy WebKit runner can
+// starve a page's frames for seconds)
+const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000, polling: 100});
 
 test.describe('Blocktave: the world', () => {
   test('the same seed makes the same world; every biome and both deep layers exist', async ({page}) => {
@@ -511,11 +513,23 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
     expect(bad, 'seeds missing chapter 1 materials near the spawn').toEqual([]);
   });
 
-  test('chapter 1 end to end on 20 random seeds: Maple → planks → mallet → 10 Tone Ore → a shelter with a door', async ({page}) => {
-    test.setTimeout(600_000);
-    const seeds = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
+  // 20 random seeds, 5 per test: each test is its own page (a quarter of the world loads per page: one 20-load page ran
+  // ~8 minutes in WebKit and its process could crash), and the four run side by side
+  const SEEDS = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
+  for (let part = 0; part < 4; part++) test(`chapter 1 end to end on random seeds ${part * 5 + 1}–${part * 5 + 5} of 20: Maple → planks → mallet → 10 Tone Ore → a shelter with a door`, async ({page}) => {
+    test.setTimeout(300_000);
+    const seeds = SEEDS.slice(part * 5, part * 5 + 5);
     const watch = await prepare(page, {store: store('trumpet', 'touch')});
-    for (const seed of seeds) {
+    // what the page saw (printed when a seed fails): the longest gap between animation frames, and any hidden / pagehide
+    await page.addInitScript(() => {
+      const L = window.__btLog = {gap: 0, vis: []}; let last = 0;
+      const f = t => { if (last) L.gap = Math.max(L.gap, Math.round(t - last)); last = t; requestAnimationFrame(f); }; requestAnimationFrame(f);
+      document.addEventListener('visibilitychange', () => L.vis.push((document.hidden ? 'hidden ' : 'visible ') + Math.round(performance.now())));
+      addEventListener('pagehide', () => L.vis.push('pagehide ' + Math.round(performance.now())));
+    });
+    const log = () => Promise.race([page.evaluate(() => JSON.stringify(window.__btLog)).catch(e => 'page gone: ' + e.message.split('\n')[0]),
+      new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
+    for (const seed of seeds) try {
       await page.goto(`blocktave/index.html?demo&nostart&seed=${seed}`);
       await page.locator('.ls-card:not(.ls-endless)').first().click();
       await page.locator('.ls-start').click();
@@ -527,7 +541,8 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
           const t = d.find(k, w.spawn); d.standBy(t.x, t.y); d.mine(t.x, t.y); d.answer(); return {d: Math.hypot(t.x - w.spawn.x, t.y - w.spawn.y), x: t.x, y: t.y}; }, key);
         expect(t.d, `seed ${seed}: ${key} near the spawn`).toBeLessThanOrEqual(R_NEAR);
         await waitCardGone(page);
-        await page.waitForFunction(() => !Arcade.Blocktave.state().drops.length, null, {timeout: 8000});   // the loot lands beside you: picked up
+        // the loot lands beside you: picked up (the world moves at most 50 ms a frame, so slow frames take longer)
+        await page.waitForFunction(() => !Arcade.Blocktave.state().drops.length, null, {timeout: 30_000, polling: 100});
         return t;
       };
       await mineNear('maple'); await craft('maple-planks');
@@ -541,7 +556,7 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
       const ms = await page.evaluate(() => ['mallet', 'ore10', 'shelter'].map(id => !!((Arcade.store.gameData('blocktave').ms || {}).trumpet || {})[id]));
       expect(ms, `seed ${seed}: chapter 1's three milestones`).toEqual([true, true, true]);
       await page.evaluate(() => { Arcade.Blocktave.showHub(); localStorage.clear(); });   // (the hub first: leaving the world saves it)
-    }
+    } catch (e) { e.message += `\n  seed ${seed}; the page: ${await log()}`; throw e; }
     watch.check();
   });
 
@@ -1091,6 +1106,173 @@ test.describe('Blocktave: the parallax backdrop', () => {
   });
 });
 
+test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
+  /** a room at the very bottom (bedrock below), the player in it; the courage clocks shortened (grace, drain) */
+  const bottom = async (page, {grace = 1.2, drain = 2, dy = 0} = {}) => {
+    // the test clock: shorter numbers, taken up by the meter (out of the zone) before stepping down
+    await page.evaluate(({grace, drain}) => { const K = window.BT_RULES.courage, W = Arcade.Blocktave.world(); K.graceS = grace; K.drainS = drain; K.refillS = .4;
+      Arcade.Blocktave.demo.tp(W.spawn.x, W.spawn.y); }, {grace, drain});
+    await page.waitForTimeout(150);
+    return page.evaluate(({dy}) => {
+    const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), s = Arcade.Blocktave.state();
+    const x = Math.floor(s.player.x), floorY = W.h - 3;                // the last row above the 2 World Floor rows
+    for (let xx = x - 6; xx <= x + 6; xx++) for (let y = floorY - 7; y <= floorY; y++) d.put(xx, y, (xx === x - 6 || xx === x + 6) ? 'slate' : 'air');
+    for (let xx = x - 6; xx <= x + 6; xx++) d.put(xx, floorY - 8, 'slate');
+    if (dy) for (let xx = x - 5; xx <= x + 5; xx++) for (let k = 0; k < dy; k++) d.put(xx, floorY - k, 'slate');
+    d.tp(x, floorY - dy);
+    return {x, y: floorY - dy};
+  }, {dy});
+  };
+  const cg = page => page.evaluate(() => Arcade.Blocktave.state().courage);
+
+  test('at the bottom with no building: the grace, then the meter drains and you are carried up, keeping everything', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(60); d.give('maple', 3); d.give('cork', 2); d.give('pearl', 1); });
+    const before = await st(page);
+    const spot = await bottom(page);
+    await page.waitForTimeout(400);
+    let c = await cg(page);
+    expect(c.inZone).toBe(true);
+    expect(c.value).toBe(1);
+    expect(c.shown, 'hidden during the grace').toBe(false);
+    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.shown && c.value < .9; }, null, {timeout: 5000});
+    await expect(page.locator('#courage')).toHaveClass(/on/);
+    await expect(page.locator('#courageName')).toHaveText('Courage');
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.warned, null, {timeout: 5000});
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter, null, {timeout: 8000});
+    const s = await st(page);
+    const top = await page.evaluate(x => Arcade.BlocktaveWorld.top(Arcade.Blocktave.world(), x), Math.floor(s.player.x));
+    expect(Math.abs(s.player.y - top), 'standing on the ground').toBeLessThan(.01);
+    expect(Math.abs(Math.floor(s.player.x) - spot.x), 'straight above (or near)').toBeLessThanOrEqual(24);
+    const open = await page.evaluate(({x, y}) => { const W = Arcade.Blocktave.world(), B = Arcade.BlocktaveWorld; for (let yy = 0; yy < y; yy++) if (B.BLOCKS[B.at(W, x, yy)].solid) return false; return true; }, {x: Math.floor(s.player.x), y: Math.floor(s.player.y) - 1});
+    expect(open, 'open sky over them').toBe(true);
+    expect(s.inv).toEqual(before.inv);
+    expect(s.player.hearts).toBe(before.player.hearts);
+    expect(s.bags).toBe(before.bags);
+    await expect(page.locator('.ui-toast', {hasText: 'You got the jitters'})).toBeVisible();
+    expect((await cg(page)).value).toBe(1);
+  });
+
+  test('building keeps you brave: placing a block, crafting, and (with resetOnMine) a passed card refill it and restart the grace', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const spot = await bottom(page, {grace: .6, drain: 6});
+    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.value < .85; }, null, {timeout: 6000});
+    // placing a block
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.place(x + 2, y, 'planks'), spot);
+    let c = await cg(page);
+    expect(c.graceLeft, "the grace started over").toBeGreaterThan(.3);
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    // crafting (MAKE IT)
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('maple', 1); d.craft('maple-planks'); d.answer(); });
+    await waitCardGone(page);
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; if (Arcade.Blocktave.state().panel) document.getElementById('craftClose').click(); });
+    // a passed challenge card (mining a music block) with resetOnMine
+    const mine = () => page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.put(x + 1, y, 'toneOre'); d.mine(x + 1, y); d.answer(); }, spot);
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    await mine(); await waitCardGone(page);
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    // resetOnMine off: the card doesn't count
+    await page.evaluate(() => { window.BT_RULES.courage.resetOnMine = false; });
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    const v0 = (await cg(page)).value;
+    await mine(); await waitCardGone(page);
+    expect((await cg(page)).value, 'kept draining').toBeLessThan(v0);
+    expect((await cg(page)).graceLeft).toBe(0);
+  });
+
+  test('a card open or the pause menu stops the clock; one row above the zone nothing happens; leaving refills and hides it', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const spot = await bottom(page, {grace: .3, drain: 1.2});
+    // a card open longer than drainS: no jitters
+    await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.put(x + 1, y, 'toneOre'); d.mine(x + 1, y); }, spot);
+    expect(await cardOpen(page)).toBe(true);
+    const g0 = (await cg(page)).graceLeft;
+    await page.waitForTimeout(2000);
+    let c = await cg(page);
+    expect(c.jitters).toBe(0);
+    expect(c.graceLeft).toBe(g0);
+    await page.evaluate(() => Arcade.BlocktaveCard.current.close());
+    // the pause menu longer than drainS
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#uiPause')).toBeVisible();
+    await page.waitForTimeout(2000);
+    expect((await cg(page)).jitters).toBe(0);
+    await page.locator('#uiPause [data-act=resume], #uiPause button').first().click();
+    await expect(page.locator('#uiPause')).toBeHidden();
+    // one row above the zone: nothing
+    await page.evaluate(() => { window.BT_RULES.courage.graceS = .2; });
+    const up = await page.evaluate(({x}) => { const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), K = window.BT_RULES.courage, y = W.h - 2 - K.floorRows - 2;
+      for (let xx = x - 3; xx <= x + 3; xx++) { d.put(xx, y + 1, 'slate'); d.put(xx, y, 'air'); d.put(xx, y - 1, 'air'); } d.tp(x, y); return y; }, spot);
+    await page.waitForTimeout(1500);
+    c = await cg(page);
+    expect(c.inZone).toBe(false);
+    expect(c.value).toBe(1);
+    expect(c.shown).toBe(false);
+    expect(c.jitters).toBe(0);
+    // into the zone, draining, then out: it refills and hides
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.tp(x, y), spot);
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .8, null, {timeout: 4000});
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.tp(x, y), {x: spot.x, y: up});
+    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.value === 1 && !c.shown; }, null, {timeout: 4000});
+    expect(up).toBeGreaterThan(0);
+  });
+
+  test('Survival Nights: a jitters trip never ends the run', async ({page}) => {
+    await prepare(page, {store: store('trumpet', 'touch')});
+    await page.goto('blocktave/index.html?demo&nostart&seed=42');
+    await page.locator('.ls-endless').click();
+    await page.locator('.ls-start').click();
+    await into(page);
+    expect((await st(page)).endless).toBe(true);
+    await bottom(page, {grace: .3, drain: .8});
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter, null, {timeout: 8000});
+    const s = await st(page);
+    expect(s.endless).toBe(true);
+    expect(s.screen).toBe('world');
+    expect(await page.locator('#results').isVisible().catch(() => false)).toBe(false);
+  });
+
+  test('reduced motion: no swirl and no pulse; the meter fits under the hearts and never covers the hotbar or a card', async ({page}) => {
+    for (const vp of [{width: 390, height: 844}, {width: 1180, height: 820}, {width: 768, height: 1024}, {width: 1366, height: 768}]) {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      const spot = await bottom(page, {grace: .2, drain: 6});
+      await page.evaluate(() => { window.BT_RULES.courage.warnAt = .99; });
+      await page.waitForFunction(() => Arcade.Blocktave.state().courage.shown, null, {timeout: 4000});
+      await page.waitForTimeout(600);
+      const r = await page.evaluate(() => {
+        const box = e => e.getBoundingClientRect(), m = box(document.getElementById('courage')), h = box(document.getElementById('hearts'));
+        const hot = document.querySelector('.bt-bottom') ? box(document.querySelector('.bt-bottom')) : null;
+        const hit = (a, b) => b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        return {under: m.top >= h.bottom - .5, onScreen: m.left >= 0 && m.right <= innerWidth + .5, hot: hit(m, hot), w: m.width};
+      });
+      expect(r.under, JSON.stringify(vp)).toBe(true);
+      expect(r.onScreen, JSON.stringify(vp)).toBe(true);
+      expect(r.hot, JSON.stringify(vp)).toBe(false);
+      // a card opened beside a block: the meter never covers it
+      await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.put(x + 1, y, 'toneOre'); d.mine(x + 1, y); }, spot);
+      const cov = await page.evaluate(() => { const a = document.getElementById('courage').getBoundingClientRect(), b = document.querySelector('.bt-card').getBoundingClientRect();
+        return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; });
+      expect(cov, 'over a card: ' + JSON.stringify(vp)).toBe(false);
+      await page.evaluate(() => Arcade.BlocktaveCard.current && Arcade.BlocktaveCard.current.close());
+    }
+    // reduced motion
+    await page.setViewportSize({width: 1180, height: 820});
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await enter(page, {mode: 'touch'});
+    await bottom(page, {grace: .2, drain: 1.5});
+    await page.evaluate(() => { window.BT_RULES.courage.warnAt = .99; });
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.warned, null, {timeout: 4000});
+    const anim = await page.evaluate(() => getComputedStyle(document.getElementById('courage')).animationName);
+    expect(anim).toBe('none');
+    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitter, null, {timeout: 6000});
+    const sw = await page.evaluate(() => { const j = document.getElementById('btJitter'); return {still: j.classList.contains('still'), before: getComputedStyle(j, '::before').display}; });
+    expect(sw).toEqual({still: true, before: 'none'});
+  });
+});
+
 test.describe('Blocktave: world drops and the pickup radius', () => {
   test('a calmed Clam drops a Pearl where it was; the milestone counts at once; the magnet pulls it in; a full bag leaves it', async ({page}) => {
     const watch = await enter(page, {mode: 'touch'});
@@ -1098,7 +1280,9 @@ test.describe('Blocktave: world drops and the pickup radius', () => {
     const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 8); });
     await page.evaluate(i => Arcade.Blocktave.demo.calm(i), id);
     expect((await page.evaluate(() => Arcade.Blocktave.demo.stats())).clams, 'counted at the calming moment').toBe(1);
-    await page.waitForTimeout(800);
+    // it falls to the ground: the game's frames decide how fast (a slow runner's are slower), so wait for it to land
+    await expect.poll(async () => { const d = (await st(page)).drops.find(x => x.item === 'pearl'); return d ? Math.abs(d.y - (y0 - .22)) : 9; },
+      {message: 'it rests on the ground', timeout: 10_000}).toBeLessThan(.05);
     let s = await st(page);
     expect(s.inv.pearl || 0, 'not in your bag while you\'re far').toBe(0);
     expect(s.drops.filter(d => d.item === 'pearl').length).toBe(1);

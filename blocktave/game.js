@@ -623,6 +623,81 @@
     oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText('↑ Surface', x, ly); oc.fillStyle = col('bt-build'); oc.fillText('↑ Surface', x, ly);
   }
 
+  /* ================= THE COURAGE METER (rules.js courage) =================
+     At the very bottom of the world (the feet within courage.floorRows rows above the World Floor's 2 rows) a player who
+     stops BUILDING (brave()) gets courage.graceS seconds, then the meter (#courage, under the hearts) drains over
+     courage.drainS; under warnAt it pulses gently and says "Feeling uneasy…" once per trip; empty = GOT THE JITTERS: a
+     soft swirl / fade (reduced motion: a plain fade), bt-respawn, and you're back on the surface straight above (else
+     the nearest open way up, else the cot, else the spawn point). Nothing is taken: no bag, no hearts, no items. The
+     clock counts only while the world runs (no card, no pause, no mic mute, no jitters; rAF stops with a hidden tab).
+     Leaving the zone refills it and hides it. In memory only: a reload starts fresh. */
+  const CG = () => G.courage || (G.courage = {inZone: false, grace: R.courage.graceS, value: 1, warned: false, refill: false, shown: false});
+  const inBottom = p => p.y - .01 >= G.w.h - 2 - R.courage.floorRows;
+  /** building: the grace starts over and the meter fills back up */
+  function brave() { if (!G) return; const c = CG(); c.grace = R.courage.graceS; if (c.value < 1) c.refill = true; }
+  function stepCourage(real, now) {
+    const c = CG(), K = R.courage;
+    c.inZone = inBottom(G.p);
+    if (G.jitter) return;
+    if (c.refill || !c.inZone) {
+      c.value = Math.min(1, c.value + real / K.refillS);
+      if (c.value >= 1) { c.refill = false; c.warned = false; }
+      if (!c.inZone) c.grace = K.graceS;
+    } else {
+      const still = Card.current || (A.Pitch.listening() && A.Pitch.isSuppressed(now));
+      if (!still) {
+        if (c.grace > 0) c.grace = Math.max(0, c.grace - real);
+        else c.value = Math.max(0, c.value - real / K.drainS);
+      }
+      if (c.value < K.warnAt && !c.warned) {
+        c.warned = true;
+        A.UI.toast('Feeling uneasy down here… build something!', {ms: 3000}); say('Feeling uneasy down here. Build something!');
+      }
+      if (c.value <= 0) jitters();
+    }
+    drawCourage();
+  }
+  function drawCourage() {
+    const c = CG(), el = $('courage'); if (!el) return;
+    if (el.dataset.name !== R.courage.name) { el.dataset.name = R.courage.name; $('courageName').textContent = R.courage.name; }
+    const show = c.value < 1 || (c.inZone && c.grace <= 0);
+    if (show !== c.shown) { c.shown = show; el.classList.toggle('on', show); el.setAttribute('aria-hidden', String(!show)); }
+    el.style.setProperty('--cg', c.value.toFixed(3));
+    el.classList.toggle('low', c.value < R.courage.warnAt && !c.refill);
+  }
+  /** the surface straight above column x (standing room under the open sky), else nearby columns, else the open way up */
+  function surfaceSpot(x) {
+    const w = G.w, ok = cx => { if (cx < 0 || cx >= w.w) return false; const t = BW.top(w, cx); return t >= 2 && !B[BW.at(w, cx, t - 1)].solid && !B[BW.at(w, cx, t - 2)].solid; };
+    for (let d = 0; d < 24; d++) for (const cx of d ? [x - d, x + d] : [x]) if (ok(cx)) return {x: cx, y: BW.top(w, cx)};
+    const path = pathUp(x, Math.floor(G.p.y - .5));
+    if (path) { const [tx] = path[path.length - 1]; return {x: tx, y: BW.top(w, tx)}; }
+    const cot = w.cot && BW.at(w, w.cot.x, w.cot.y) === ID.cot ? w.cot : null;
+    return cot ? {x: cot.x, y: cot.y + 1} : {x: w.spawn.x, y: w.spawn.y + 1};
+  }
+  /** GOT THE JITTERS: the swirl / fade, then back on the surface with everything kept (Survival Nights goes on) */
+  function jitters() {
+    if (G.jitter) return;
+    const c = CG(), g = G, ms = R.courage.jitterMs, ov = $('btJitter');
+    G.jitter = {t0: performance.now()};
+    G.fx.jitters = (G.fx.jitters || 0) + 1;
+    Card.close();
+    A.Sfx.event('bt-respawn');
+    if (ov) { ov.classList.toggle('still', !!RM.matches); ov.hidden = false; void ov.offsetWidth; ov.classList.add('go'); }
+    setTimeout(() => {
+      if (G !== g) return;
+      const p = G.p, spot = surfaceSpot(Math.floor(p.x));
+      p.x = spot.x + .5; p.y = spot.y; p.vx = p.vy = 0;
+      G.creatures.forEach(k => { if (Math.hypot(k.x - p.x, k.y - p.y) < R.spawn.safe) k.state = 'gone'; });
+      G.way = null; G.jitter = null;
+      c.value = 1; c.grace = R.courage.graceS; c.refill = false; c.warned = false;
+      const msg = 'You got the jitters at the bottom of the world! Back to the surface. (Build something down there to stay brave.)';
+      A.UI.toast(msg, {ms: 4200}); say(msg);
+      drawCourage(); drawHud();
+      if (!G.endless) saveWorld();
+      if (ov) { ov.classList.remove('go'); setTimeout(() => { ov.hidden = true; }, 320); }
+    }, ms / 2);
+  }
+
   /* ================= THE CAMERA AND DRAWING ================= */
   const lightCv = document.createElement('canvas'), lightG = lightCv.getContext('2d');
   const BD = A.BlocktaveBackdrop.create({col: k => col(k)});
@@ -674,6 +749,7 @@
     G.parts = G.parts.filter(q => (q.t += real) < q.life);
     stepDrops(dt, now);
     stepWay(real, now);
+    stepCourage(real, now);
     // autosave
     if (!G.endless && performance.now() - G.lastSave > R.autosaveS * 1000) saveWorld();
     if (G.hudT == null || now - G.hudT > 250) { G.hudT = now; drawHud(); Card.follow(); }
@@ -964,10 +1040,16 @@
     if (it.block === 'bench') award('bench');
     if (it.block === 'composer' && !seen('composer')) firstCard('composer', 'The composing corner!', 'Composer Blocks are yours to write music with. Put up to 8 in a row, tap each one in BUILD mode to pick its note, then put a Conductor\'s Podium at the end. Play your melody at the podium to power the row: it lights up and opens a door next to it!');
     checkRooms(x, y);
+    brave();
     return true;
   }
   const collidesBox = (x, y) => { const p = G.p; return x + 1 > p.x - HW && x < p.x + HW && y + 1 > p.y - PH && y < p.y; };
   function useBlock(b, x, y) {
+    const r = useBlock0(b, x, y);
+    if (r) brave();
+    return r;
+  }
+  function useBlock0(b, x, y) {
     const w = G.w;
     if (b.door) {
       const open = b.key === 'door';
@@ -988,6 +1070,7 @@
     if (G.p.hearts >= maxHearts()) { A.UI.toast('Your hearts are full!', {ms: 1200}); return; }
     take('snack'); G.p.hearts = Math.min(maxHearts(), G.p.hearts + R.player.snackHeal);
     pickupLabel('snack', R.player.snackHeal, `+${R.player.snackHeal} Hearts`);
+    brave();
     A.Sfx.event('bt-pickup'); drawHud();
   }
   const maxHearts = () => G.endless ? R.endless.hearts : R.player.hearts;
@@ -1049,7 +1132,7 @@
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
-    const c = Card.open(Object.assign({mode, snare, title, at, onDone: r => { listenSync(); if (r && r.ok) A.store.noteFinished(GAME_ID); onDone(r); }, onCancel: () => listenSync()}, sp));
+    const c = Card.open(Object.assign({mode, snare, title, at, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
     if (!seen('mining')) firstCard('mining', 'Mining = playing!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
@@ -1204,6 +1287,7 @@
       gain(r.out, r.n);
       slots.fill(null);
       A.Sfx.event('bt-craft');
+      brave();
       A.UI.toast(`You made ${r.n > 1 ? r.n + ' × ' : ''}${r.name}!`);
       if (r.out === 'mallet1') award('mallet');
       if (r.out === 'metronome') award('metro');
@@ -1941,7 +2025,8 @@
       fx: G ? Object.assign({}, G.fx, {swing: !!G.swing, poofing: (G.poofs || []).length, far: !!G.far, rm: !!RM.matches}) : {},
       way: G && G.way ? {depth: G.way.depth, underS: G.way.underS, lostT: G.way.lostT, arrow: G.way.arrow, surfaceBtn: G.way.surfaceBtn, path: G.way.path ? G.way.path.length : null, next: G.way.path ? G.way.path.slice(0, 8) : null} : null,
       targetName: G ? G.targetName || '' : '',
-      backdrop: BD.state()}),
+      backdrop: BD.state(),
+      courage: G && G.courage ? {inZone: G.courage.inZone, graceLeft: G.courage.grace, value: G.courage.value, warned: G.courage.warned, shown: G.courage.shown, jitter: !!G.jitter, jitters: G.fx.jitters || 0} : null}),
     /** the light a tile was drawn with last frame (world.js lightMap + the player's glow), or null off screen */
     lightAt: (x, y) => { const g = G && G.lightGrid; if (!g) return null; const i = x - g.x0, j = y - g.y0; return i < 0 || j < 0 || i >= g.cols || j >= g.rows ? null : g.v[j * g.cols + i]; },
     lightGrid: () => G && G.lightGrid && {x0: G.lightGrid.x0, y0: G.lightGrid.y0, cols: G.lightGrid.cols, rows: G.lightGrid.rows, v: Array.from(G.lightGrid.v)},

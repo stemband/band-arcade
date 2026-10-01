@@ -260,7 +260,9 @@ window.Arcade = window.Arcade || {};
         const ev = D().queue[0], res = await request(null, ev);
         if (res.net) { why = last && last.why; break; }            // offline, timed out, a server error: try later
         noteSent();
-        const q = D().queue; if (q[0] === ev) q.shift();             // done (a refused event is dropped, never retried)
+        // done (a refused event is dropped, never retried). Compared by value too: store.reload() (the champions check,
+        // Today's Practice) may have swapped the saved data for a fresh copy while this send was on its way
+        const q = D().queue || []; if (q[0] === ev || (q[0] && JSON.stringify(q[0]) === JSON.stringify(ev))) q.shift();
         if (res.json && /^[A-Za-z0-9]{6}$/.test(res.json.id || '')) D().id = res.json.id;   // this device's short id, if the scoreboard says
         if (res.json && res.json.ok !== false) { D().lastOk = Date.now(); sent++; } else D().lastRefused = {at: Date.now(), why: (res.json && res.json.error) || 'refused'};
         save();
