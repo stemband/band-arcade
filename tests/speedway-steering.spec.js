@@ -31,16 +31,16 @@ for (const [name, size] of SIZES) {
     expect(Math.abs(inTune.steer)).toBeLessThan(.05);
     expect(inTune.word).toBe('');
     await page.keyboard.up('Space');
+    // the word and the steer are read together (the steer hovers near the .75 line: a second read a frame later can
+    // dip under it); 20 s covers a pit stop (track 1's laps are 5 s, so lap 1 can end while D or F is held)
     await page.keyboard.down('d');
-    await page.waitForFunction(() => Arcade.Speedway.steer().word === 'r', null, {timeout: 12000});
-    const sharp = await page.evaluate(() => Arcade.Speedway.steer());
+    const sharp = await (await page.waitForFunction(() => { const s = Arcade.Speedway.steer(); return s.word === 'r' && s.steer > .75 && s.x > 20 && s; }, null, {timeout: 20000})).jsonValue();
     expect(sharp.steer).toBeGreaterThan(.75);
-    expect(sharp.x).toBeGreaterThan(20);
     await expect(page.locator('#steerWord')).toHaveText('▶ SHARP');
     await expect(page.locator('#steerWord')).toBeVisible();
     await page.keyboard.up('d');
     await page.keyboard.down('f');
-    await page.waitForFunction(() => Arcade.Speedway.steer().word === 'l', null, {timeout: 12000});
+    await page.waitForFunction(() => { const s = Arcade.Speedway.steer(); return s.word === 'l' && s.steer < -.75; }, null, {timeout: 20000});
     await expect(page.locator('#steerWord')).toHaveText('FLAT ◀');
     await page.keyboard.up('f');
     // let go: the car eases back to the center
