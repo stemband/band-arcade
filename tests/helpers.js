@@ -142,4 +142,31 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};
+/** the memory (resident MB) of each page process this test worker's browser runs, biggest first: WebKit's
+    WebKitWebProcess, Chromium's renderers. Linux only (it reads /proc); [] elsewhere. A diagnostic: it never fails. */
+function pageMemory() {
+  const fs = require('fs');
+  try {
+    const kids = {};
+    for (const d of fs.readdirSync('/proc')) {
+      if (!/^\d+$/.test(d)) continue;
+      try { const st = fs.readFileSync(`/proc/${d}/stat`, 'utf8'), ppid = +st.slice(st.lastIndexOf(')') + 2).split(' ')[1]; (kids[ppid] = kids[ppid] || []).push(+d); } catch (e) { /* gone */ }
+    }
+    const out = [], todo = [process.pid];
+    while (todo.length) {
+      const pid = todo.pop();
+      for (const k of kids[pid] || []) {
+        todo.push(k);
+        try {
+          const comm = fs.readFileSync(`/proc/${k}/comm`, 'utf8').trim(), cmd = fs.readFileSync(`/proc/${k}/cmdline`, 'utf8');
+          if (!/WebKitWebProces/.test(comm) && !/--type=renderer/.test(cmd)) continue;
+          const rss = /VmRSS:\s+(\d+)/.exec(fs.readFileSync(`/proc/${k}/status`, 'utf8'));
+          if (rss) out.push(Math.round(+rss[1] / 1024));
+        } catch (e) { /* gone */ }
+      }
+    }
+    return out.sort((a, b) => b - a);
+  } catch (e) { return []; }
+}
+
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, pageMemory};
