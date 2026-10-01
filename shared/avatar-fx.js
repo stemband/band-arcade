@@ -91,6 +91,24 @@ window.Arcade = window.Arcade || {};
     x.fillStyle = col('white-hi', .45); x.beginPath(); x.ellipse(-.3 * q, -.25 * q, .6 * q, .3 * q, 0, 0, TAU); x.fill();
     x.restore();
   }
+  /** a tiny cartoon bat (Floating bats): a round purple body with two ears and two friendly eyes, scalloped wings
+      that flap gently (w: -1..1 lifts the wing tips), a dark edge so it reads on any background */
+  function bat(x, u, cx, cy, s, w) {
+    const P = (dx, dy) => [(cx + dx * s) * u, (cy + dy * s) * u];
+    x.beginPath();
+    [-1, 1].forEach(side => {                                  // each wing: from the body out to the tip and back, scalloped
+      const tip = -1.1 * w;
+      x.moveTo(...P(side * .8, -.4)); x.lineTo(...P(side * 2.4, -.9 + tip * .6)); x.lineTo(...P(side * 3.6, -.3 + tip));
+      x.lineTo(...P(side * 3.1, .7 + tip * .5)); x.lineTo(...P(side * 2.5, .3 + tip * .4)); x.lineTo(...P(side * 1.9, .8 + tip * .3));
+      x.lineTo(...P(side * 1.4, .4)); x.lineTo(...P(side * .8, .7)); x.closePath();
+    });
+    x.moveTo(...P(-.75, -.6)); x.lineTo(...P(-.6, -1.6)); x.lineTo(...P(-.2, -.9)); x.lineTo(...P(.2, -.9)); x.lineTo(...P(.6, -1.6)); x.lineTo(...P(.75, -.6)); x.closePath();
+    x.moveTo(...P(1.05, .1)); x.ellipse(cx * u, (cy + .1 * s) * u, 1.05 * s * u, 1 * s * u, 0, 0, TAU);
+    x.strokeStyle = col('deep', .7); x.lineWidth = Math.max(1, u * .5); x.lineJoin = 'round'; x.stroke();
+    x.fillStyle = col('purple'); x.fill();
+    x.fillStyle = col('yellow-hi');                            // the eyes: two little dots
+    [-.38, .38].forEach(dx => { x.beginPath(); x.arc((cx + dx * s) * u, (cy - .05 * s) * u, Math.max(.6, .26 * s * u), 0, TAU); x.fill(); });
+  }
   const SIDE = i => (i % 2 ? 29 + hash(i + 5) * 6 : 1 + hash(i + 5) * 6);            // a spot beside the head, left or right
 
   /* ---------- THE EFFECTS: fn(ctx, u, t, layer, opts) ---------- */
@@ -324,6 +342,19 @@ window.Arcade = window.Arcade || {};
         const a = Math.sin(c * Math.PI) * (back ? .55 : .95) * (back ? 1 : faceFade(px, py));
         if (a < .02) continue;
         x.globalAlpha = a; heart(x, u, px, py, s, col(cols[k % cols.length]));
+      }
+      x.globalAlpha = 1;
+    },
+    /* FLOATING BATS (Spooky Season's bonus ladder): 3 tiny cartoon bats circling slowly around the top of the head (one
+       turn in 12 s; the far half passes behind the head), bobbing a little, wings flapping about once a second. A bat
+       near the face fades away smoothly. The still picture (reduced motion, Motion off) = one frame. */
+    floatbats(x, u, t, layer) {
+      for (let i = 0; i < 3; i++) {
+        const a = t * TAU / 12 + i * TAU / 3, front = Math.sin(a) > 0;
+        if ((layer === 'front') !== front) continue;
+        const px = 18 + Math.cos(a) * 16, py = 5 + Math.sin(a) * 3 + Math.sin(t * 1.3 + i * 2) * .7;
+        const al = (front ? 1 : .7) * (front ? faceFade(px, py) : 1); if (al < .02) continue;
+        x.globalAlpha = al; bat(x, u, px, py, front ? 1.15 : .95, Math.sin(t * TAU * 1.1 + i * 1.9));
       }
       x.globalAlpha = 1;
     },

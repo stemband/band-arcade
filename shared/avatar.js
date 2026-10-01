@@ -124,7 +124,7 @@ window.Arcade = window.Arcade || {};
     if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
     if (u.bandninja === 'all' && A.BandNinja) return `${A.BandNinja.BELT_KEYS.filter(b => A.BandNinja.has(b)).length} of ${A.BandNinja.BELT_KEYS.length} belt codes so far`;
     if (u.event && A.Seasons) {                                          // a seasonal step running now: "2 of 3 so far"
-      const o = A.Seasons.active(), s = o && o.ev.id === u.event && A.Seasons.steps(o).find(x => x.item === itemKey(field, id));
+      const o = A.Seasons.active(), s = o && o.ev.id === u.event && A.Seasons.allSteps(o).find(x => x.item === itemKey(field, id));   // a bonus step once it's open
       if (s) return `${s.have} of ${s.n} so far`;
     }
     return '';
