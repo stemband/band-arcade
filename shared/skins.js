@@ -218,7 +218,7 @@ window.Arcade = window.Arcade || {};
     if (u.perfect) { for (let lv = 1; lv <= u.perfect; lv++) if (st().bestLevelStars(u.game, lv, u.suffix) < 3) return false; return true; }
     if (u.endless) return endlessBest(u.game) >= u.endless;
     if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
-    if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
+    if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix, u.exact) >= (u.stars || 1);
     if (u.wins) return winsOn(u.game) >= u.wins;
     return false;
   }

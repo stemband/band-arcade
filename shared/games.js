@@ -357,8 +357,8 @@ window.Arcade.GAMES = [
     bg: {scene: 'audition', dim: .35, focus: .35},
     menuMusic: 'scale-trainer-menu',
     skill: 'All-State scales',
-    blurb: 'Your GMEA All-State and District Honor Band scales, the way the judges hear them: Concert F, B♭, E♭ and A♭ from memory, against the clock, then the chromatic.',
-    maxStars: 12,                                    // 4 audition levels × 3 (the Chromatic Challenge keeps its own stars in gameData)
+    blurb: 'Your GMEA All-State and District Honor Band scales, the way the judges hear them: Middle School, Concert Band or Symphonic Band, every scale in audition order against the clock, then the chromatic.',
+    maxStars: 36,                                    // 3 sections (Middle School, Concert Band, Symphonic Band) × 4 audition levels × 3 (the Chromatic Challenge keeps its own stars in gameData)
     color: 'yellow',
     byMember: true,                                  // each instrument has its own GMEA scales: stars per member
     marquee: {scene: 'audition', colors: ['sa-stand', 'yellow', 'sa-lamp']},

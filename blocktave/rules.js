@@ -83,6 +83,33 @@ window.BT_RULES = {
     caveDepth: 4,             // rows below the local surface where the sky's light is gone
     maxShade: .86,            // how dark the darkest place looks (1 = black)
     nightSky: .28,            // the sky's light at midnight (0–1)
+    caveMin: .12,             // nothing underground is ever darker than this: the cave's shape always shows faintly
+    shaftRows: 6,             // daylight goes this many rows down a dug shaft (fading), and spreads this far into open caves …
+    spread: .75,              // … keeping this much of its light for each tile it spreads
+    // THE PLAYER'S GLOW (drawn only: it never stops creatures from appearing, so lamps still matter at night)
+    playerRadius: 4.5,        // you always light the blocks around you this far (tiles) …
+    playerGlow: .55,          // … this bright where you stand, fading out
+    batonGlow: 1,             // the Golden Baton lights this many tiles farther
+    openLift: .08,            // underground, open space looks this much lighter than rock (so the cave's shape reads)
+    waterMin: .35,            // water is never drawn darker than this
+    glint: .5,                // ores and veins keep a faint glow of their color in the dark (0 = none)
+    // THE WAY UP
+    lostDepth: 8,             // more than this many rows below the ground nearby …
+    lostS: 20,                // … without getting closer to the surface for this long: an arrow points the way up
+    surfaceAfterS: 60,        // this long underground: the pause menu offers ↑ SURFACE (back up along open tiles)
+  },
+  /* ---------- THE PARALLAX BACKDROP (backdrop.js): three layers per biome behind the world, a cave backdrop below ---------- */
+  backdrop: {
+    far: .15, mid: .35, near: .6,   // each layer moves this share of the camera's sideways movement …
+    vertical: .1,             // … and this share of its up-and-down movement (so caves don't drag the sky around)
+    cave: .2,                 // the cave backdrop's own parallax (both ways)
+    blend: 8,                 // between biomes the two sets cross-fade over this many columns each side (world.js's blend)
+    nightTint: .62,           // at night the layers are this much darker and bluer (0 = no tint)
+    swayPx: 3, swayS: 7,      // the Reed Marsh's middle reeds sway this far (px), once every this many seconds (never with reduced motion)
+    fireflies: 10,            // fireflies drifting over the marsh at night …
+    motes: 14,                // … and dust motes over the canyon by day
+    clefAlpha: .07,           // the Bass Depths' / Treble Peaks' big faint clef
+    slowMs: 20, slowFrames: 180,  // frames averaging over slowMs to draw (over slowFrames frames) = the far layer only, for good
   },
   /* ---------- CREATURES (never scary: silly, and only in the dark) ---------- */
   spawn: {
@@ -140,9 +167,15 @@ window.BT_RULES = {
   swingMs: 260,               // mining / tapping a creature: the avatar's quick swing with its tool
   chips: {n: 5, ms: 300},     // a block breaking: this many little chips, gone after this long
   poofMs: 450,                // a creature calmed: a friendly puff of cloud and notes
-  /* the staffs on the cards: each note's room (staff units), plus extra in front of a note with a ♯ / ♭ / ♮ so its
-     accidental never touches the notehead before it or its own */
-  staffGap: 36, staffAccRoom: 16,
+  /* THE NOTE LAYOUT (every Blocktave staff with several notes: the cards, Scale Veins, "Name this scale", Composer rows;
+     challenges.js layoutNotes). Staff units: the staff's lines are 16 apart. */
+  staffLead: 40,              // the first note (its ♯ / ♭ included) starts this far after the clef + key signature
+  staffGap: 56,               // notes are at least this far apart (center to center) …
+  staffAccRoom: 20,           // … plus this much more in front of a note with a ♯ / ♭ / ♮
+  staffMinW: 420,             // a staff is at least this wide (when the screen has room): 1–3 notes centered, 4+ spread evenly
+  staffTail: 12,              // room after the last note of a spread row
+  noteMinPx: 14,              // a notehead is never drawn smaller than this on screen (px tall): too many notes = two rows
+                              // (three on the narrowest phones with a long key signature), never smaller notes
   /* ---------- SAVING ---------- */
   autosaveS: 30,              // the world saves itself this often (and on pause and when the page is hidden)
   /* ---------- DRAWING ---------- */

@@ -41,13 +41,15 @@ window.Arcade = window.Arcade || {};
       ],
     },
     oboe: {
-      view: [0, 16, 720, 254],
+      view: [0, 16, 720, 262],
       body: tube(30, 700, 120, 46) + '<path class="dg-reed" d="M8 114L36 117V123L8 126Z"/>' + hands(272, 540) +
-        text(100, 250, 'left thumb') + text(180, 38, 'side octave') + text(404, 256, 'left pinky') + text(668, 256, 'right pinky'),
+        text(100, 250, 'left thumb') + text(180, 38, 'side octave') + text(372, 268, 'left pinky') + text(668, 256, 'right pinky'),
       keys: [
         bar('Oct', 100, 204, 'Oct', 'thumb octave key'), bar('Oct2', 180, 62, 'Oct 2', 'side octave key'),
         hole('1', 210, 120, {half: true, name: 'finger 1 (tap again for half-hole)'}), hole('2', 272, 120), hole('3', 334, 120),
         bar('G#', 382, 176, 'G♯', 'G♯ key (left pinky)'), bar('LEb', 382, 216, 'E♭', 'left E♭ key'), bar('LF', 434, 196, 'F', 'left F key'),
+        // the low B and B♭ keys (left pinky: the high school range goes down to B♭3)
+        bar('LBb', 432, 160, 'B♭', 'low B♭ key (left pinky)', {w: 36, h: 24}), bar('LB', 434, 236, 'B', 'low B key (left pinky)', {w: 40, h: 24}),
         hole('4', 478, 120), hole('5', 540, 120), hole('6', 602, 120),
         bar('REb', 668, 176, 'E♭', 'right E♭ key'), bar('RF', 668, 216, 'F', 'right F key'),
         bar('RC#', 614, 180, 'C♯', 'low C♯ key (right pinky)', {w: 40, h: 28}), bar('RC', 614, 220, 'C', 'low C key (right pinky)', {w: 40, h: 28}),

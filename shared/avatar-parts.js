@@ -1003,7 +1003,7 @@ window.AVATAR_PARTS = {};
     {id: 'neonhighway', name: 'Neon Highway', kind: 'scene', scene: 'highway', lift: 1.8, main: 'purple-ink', unlock: clear(['music-highway', 16, 'Earn a star on The Entertainer in Music Highway'])},
     {id: 'cityskyline', name: 'City Skyline', kind: 'scene', scene: 'keys-city', lift: 1.8, main: 'purple-ink', unlock: {game: 'keys-to-the-city', achievement: 'mayor', text: "Clear The Mayor's Challenge in Keys to the City"}},
     {id: 'drumhall', name: 'Drum Hall', kind: 'scene', scene: 'taiko', lift: 1.9, main: 'red-ink', unlock: clear(['rhythm-dojo', 11, "Earn a star on Master's Scroll in Rhythm Dojo"])},
-    {id: 'auditionroom', name: 'Audition Room', kind: 'scene', scene: 'audition', lift: 1.9, main: 'blue-ink', unlock: {game: 'scale-trainer', level: 4, stars: 3, text: 'Earn ALL-STATE READY in Scale Trainer (3 ★ in the Audition Room)'}},
+    {id: 'auditionroom', name: 'Audition Room', kind: 'scene', scene: 'audition', lift: 1.9, main: 'blue-ink', unlock: {game: 'scale-trainer', level: 4, stars: 3, exact: true, text: 'Earn ALL-STATE READY in Scale Trainer (3 ★ in the Middle School Audition Room)'}},
     {id: 'dojonight', name: 'Dojo Night', kind: 'scene', scene: 'night-dojo', lift: 2, main: 'red-ink', unlock: {game: 'dojo-duel', wins: 5, text: 'Win 5 matches in Dojo Duel on this device'}},
     {id: 'pixelcastle', name: 'Pixel Castle', kind: 'scene', scene: 'pixel-night', lift: 1.7, main: 'purple-ink', unlock: {game: 'arcade-quest', achievement: 'ep1', text: 'Finish Episode 1 of Arcade Quest'}},
     // ---- star milestones (every star on this device) ----
@@ -1433,6 +1433,13 @@ window.AVATAR_PARTS = {};
   P.BACKS.push({id: 'beewings', name: 'Bee Wings', unlock: {game: 'music-highway', achievement: 'bumblebee-legend', text: 'Get 3 ★ on Flight of the Bumblebee at TURBO speed in Music Highway'},
     pal: {N: 'mh-bee-wing', O: 'mh-bee'}, bustBehind: beeWingsBust, behind: {front: beeWingsFront, side: beeWingsSide, back: beeWingsFront},
     anim: {maps: {bustBehind: flap(beeWingsBust, 0, 1), 'behind.front': flap(beeWingsFront), 'behind.back': flap(beeWingsFront)}}});
+
+  /* ---------- SCALE TRAINER's high school sections: ALL-STATE READY (3 ★ on level 4, the Audition Room) in Concert Band
+     (progress key 'scale-trainer:cb') and Symphonic Band ('scale-trainer:sb'). The Middle School one is the Audition Room
+     background (above: `exact` = the plain 'scale-trainer' key only). ---------- */
+  P.PLATES.push(
+    {id: 'cbready', name: 'Concert Band Ready name plate', unlock: {game: 'scale-trainer', level: 4, stars: 3, suffix: ':cb', text: 'Scale Trainer: ALL-STATE READY in Concert Band (3 ★ in its Audition Room)'}},
+    {id: 'sbready', name: 'Symphonic Band Ready name plate', unlock: {game: 'scale-trainer', level: 4, stars: 3, suffix: ':sb', text: 'Scale Trainer: ALL-STATE READY in Symphonic Band (3 ★ in its Audition Room)'}});
 
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with

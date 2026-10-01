@@ -12,6 +12,19 @@
 .sa-ready{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text-lo);font-size:14px;font-weight:700}
 .sa-ready-b{display:inline-block;padding:5px 12px;border-radius:999px;background:var(--yellow);color:var(--deep);font:400 15px/1.1 var(--display);letter-spacing:.06em;box-shadow:var(--glow-yellow)}
 .sa-res-ready{justify-content:center;margin:0 0 10px;color:var(--yellow-hi)}
+/* THE SECTIONS: three big cards (Middle School, Concert Band, Symphonic Band) */
+.sa-secs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:6px 0 12px}
+@media (max-width:640px){.sa-secs{grid-template-columns:1fr}}
+.sa-sec{display:flex;flex-direction:column;gap:4px;text-align:left;min-height:64px;padding:12px 14px;border-radius:16px;background:var(--night-2);border:2px solid var(--floor-3);color:var(--text-hi);cursor:pointer;font:inherit}
+.sa-sec:hover{border-color:var(--yellow)}
+.sa-sec.on{border-color:var(--yellow);box-shadow:var(--glow-yellow);background:color-mix(in srgb,var(--yellow) 8%,var(--night-2))}
+.sa-sec-t{font-family:var(--display);font-size:clamp(17px,2.2vw,22px);line-height:1.15;color:var(--yellow-hi)}
+.sa-sec-d{font-size:14px;font-weight:700;color:var(--text-hi)}
+.sa-sec-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:14px;color:var(--text-lo);font-variant-numeric:tabular-nums}
+.sa-sec-g{font-size:12px;color:var(--text-lo)}
+.sa-ready-s{font-size:12px;padding:3px 9px}
+.sa-opt-note{color:var(--text-lo);font-size:13px}
+.sa-memmark{color:var(--yellow-hi);font-weight:700;white-space:nowrap}
 
 .levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .sa-grid-practice{grid-template-columns:repeat(5,1fr)}
