@@ -174,7 +174,7 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-rec em{font-style:normal;color:var(--coral);font-weight:700}
 .bt-rec .ins img.lack{outline:2px solid var(--coral);border-radius:5px}
 .bt-rec .q{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;background:var(--floor-3);color:var(--text-dim);font-weight:700}
-.bt-compstaff{max-width:420px;margin:4px auto}
+.bt-compstaff{width:100%;max-width:680px;margin:4px auto}
 .bt-compstaff svg{width:100%;height:auto;display:block}
 .bt-compacts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .bt-compacts span{display:flex;gap:8px}
@@ -191,7 +191,11 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-card-h small{color:var(--text-lo);font-size:14px}
 .bt-x{width:44px;height:44px;border-radius:10px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);font-size:18px;cursor:pointer}
 .bt-staff,.bt-rstaff{background:var(--screen);border-radius:10px;padding:4px;margin:6px 0}
-.bt-staff svg,.bt-rstaff svg{width:100%;height:auto;display:block;max-height:34vh}
+.bt-staff svg,.bt-compstaff svg{width:100%;height:auto;display:block}
+.bt-card.sheet{padding-left:6px;padding-right:6px}
+.bt-card.sheet .bt-staff{padding:4px 2px}
+.bt-srow+.bt-srow{margin-top:2px}
+.bt-rstaff svg{width:100%;height:auto;display:block;max-height:34vh}
 .bt-rstaff{color:var(--ink)}
 .bt-ph{stroke:var(--blue-ink);stroke-width:3}
 .bt-prog{margin:0;text-align:right;color:var(--text-lo);font-size:13px}

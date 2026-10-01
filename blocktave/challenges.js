@@ -102,22 +102,83 @@ window.Arcade = window.Arcade || {};
   }
   const loop = (c, fn) => { const tick = now => { if (C !== c || c.done) return; if (!c.paused) fn(now); c.raf = requestAnimationFrame(tick); }; c.raf = requestAnimationFrame(tick); };
 
-  /* ---------- NOTES (played in order) ---------- */
-  /** where each note of a card's staff goes: every note gets rules.js staffGap, plus staffAccRoom in front of one with a
-      ♯ / ♭ / ♮, so an accidental never touches the notehead before it (nor its own: shared/ui.js draws it 31 units to
-      the left of its head). x0 = the first note's spot without an accidental. Returns {xs, end} (end = after the last). */
-  function spaceNotes(notes, x0) {
-    const xs = []; let x = x0;
-    notes.forEach(n => { if (n.acc || n.natural) x += R().staffAccRoom; xs.push(x); x += R().staffGap; });
-    return {xs, end: x - R().staffGap};
+  /* ---------- THE NOTE LAYOUT: every Blocktave staff with several notes (the cards, Scale Veins, the scale question,
+     the Composer rows and the Conductor's Podium) is laid out HERE, never with numbers of its own (rules.js: staffLead,
+     staffGap, staffAccRoom, staffMinW, noteMinPx, staffTail).
+     · the first note's box (its ledger lines, or its ♯ / ♭ / ♮) starts staffLead after the clef + key signature;
+     · notes are staffGap apart (center to center), + staffAccRoom in front of one with an accidental;
+     · a staff is at least staffMinW wide (when the screen has room): 1–3 notes are CENTERED in the space after the clef,
+       4 or more are spread EVENLY across it (the gaps only grow, never under staffGap);
+     · the drawing is never shown so small that a notehead is under noteMinPx tall: when the notes can't fit across the
+       card at that size (phones), they WRAP onto more staff rows (each with its own clef and key signature), all rows the
+       same width so every row has the same size. */
+  const HEAD_H = 13.85;                                           // a notehead's height in staff units (shared/ui.js: rx 9, ry 6.6, turned 20°)
+  const CLEF_R = {treble: 60, bass: 66}, SIG_R = {treble: 70, bass: 76};   // the clef's right edge; the first ♯/♭'s right edge (+12 each more)
+  /** the right edge of the clef + key signature (staff units, measured with the GN Music font) */
+  const headRight = (clef, sig) => sig && sig.count ? SIG_R[clef === 'bass' ? 'bass' : 'treble'] + (sig.count - 1) * 12 : CLEF_R[clef === 'bass' ? 'bass' : 'treble'];
+  const leftOf = n => n.acc ? 32 : n.natural ? 28 : 15, RIGHT = 15;   // a note's box around its x: ledger lines ±15, an accidental 31 left
+  /** how far right a note's box (accidental included) reaches past the one before: staffGap + staffAccRoom */
+  const stepTo = n => R().staffGap + (n.acc || n.natural ? R().staffAccRoom : 0);
+  /** {rows: [{from, to, xs}], W (units, every row), px (the drawing's smallest width on screen), scale (px per unit at least)}
+      notes = the written notes as shown; opts {clef, sig, availPx (the room on screen for the drawing)} */
+  function layoutNotes(notes, o = {}) {
+    const r = R(), h0 = headRight(o.clef, o.sig), lead = r.staffLead, tail = r.staffTail, minScale = r.noteMinPx / HEAD_H;
+    const maxUnits = o.availPx ? o.availPx / minScale : Infinity;
+    // a row's natural width: the first box at h0 + lead, then one step per note
+    const need = list => {
+      if (!list.length) return {xs: [], span: [h0, h0], W: h0 + lead + tail};
+      let x = h0 + lead + leftOf(list[0]); const xs = [x];
+      for (let k = 1; k < list.length; k++) { x += stepTo(list[k]); xs.push(x); }
+      const span = [xs[0] - leftOf(list[0]), x + RIGHT];
+      return {xs, span, W: list.length <= 3 ? span[1] + lead + 8 : span[1] + tail};   // 1–3 notes: as much room after them as before
+    };
+    let nRows = 1;
+    const split = n => { const per = Math.ceil(notes.length / n), out = []; for (let k = 0; k < notes.length; k += per) out.push([k, Math.min(notes.length, k + per)]); return out.length ? out : [[0, 0]]; };
+    const widest = n => Math.max(...split(n).map(([a, b]) => need(notes.slice(a, b)).W));
+    while (nRows < 4 && nRows < notes.length && widest(nRows) > maxUnits) nRows++;
+    const W = Math.max(widest(nRows), Math.min(r.staffMinW, maxUnits));
+    const rows = split(nRows).map(([from, to]) => {
+      const list = notes.slice(from, to), m = need(list);
+      if (!list.length) return {from, to, xs: []};
+      let xs = m.xs;
+      if (list.length <= 3) {                                    // short groups: centered in the space after the clef
+        const mid = (h0 + W - 8) / 2, shift = Math.max(0, mid - (m.span[0] + m.span[1]) / 2);
+        xs = xs.map(x => x + shift);
+      } else {                                                   // longer groups: spread evenly across the staff
+        const extra = Math.max(0, (W - tail) - m.span[1]), g = extra / (list.length - 1);
+        xs = xs.map((x, k) => x + g * k);
+      }
+      return {from, to, xs};
+    });
+    return {rows, W, px: W * minScale, scale: minScale, head: h0};
   }
+  /** the staff rows' SVG for a list of items {n (the note as shown), color?, caption?}; opts {clef, sig, fit, availPx,
+      captions, label, id (each note's id = id + its index)}. Returns {html, px (the drawing's smallest width), rows, W}. */
+  function staffRows(items, o = {}) {
+    const L = layoutNotes(items.map(it => it.n), o), fit = o.fit || items.map(it => it.n);
+    const html = L.rows.map((row, r) => `<div class="bt-srow">${A.staffSVG(o.clef, items.slice(row.from, row.to).map((it, k) => ({
+      n: it.n, x: row.xs[k], id: o.id ? o.id + (row.from + k) : undefined, color: it.color, caption: it.caption || ''})),
+      {fit, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
+    return {html, px: L.px, rows: L.rows, W: L.W};
+  }
+  /** the room a card's staff has on this screen (px): a sheet along the bottom on narrow screens, else up to 92vw */
+  const sheetMode = () => innerWidth <= 760;
+  const CARD_CHROME = () => sheetMode() ? 20 : 32;                 // the card's padding + border + the staff box's padding (style.css)
+  const cardRoom = () => (sheetMode() ? Math.min(560, innerWidth - 16) : innerWidth * .92) - CARD_CHROME();
+  /** size the card to its staff: as wide as the notes need at noteMinPx (never under its usual width, never over 92vw) */
+  function fitCard(c, px) {
+    if (sheetMode()) { c.el.style.width = ''; return; }
+    const base = c.el.classList.contains('wide') ? 480 : 380;
+    c.el.style.width = Math.round(Math.min(innerWidth * .92, Math.max(base, px + CARD_CHROME()))) + 'px';
+  }
+
+  /* ---------- NOTES (played in order) ---------- */
   function staffFor(c) {
-    const o = c.o, items = o.items, x0 = 78 + A.keySigWidth(o.sig);
-    const sp = spaceNotes(items.map(it => it.show), x0), W = Math.max(260, sp.end + 34);
-    const cap = o.hint;
-    return A.staffSVG(o.clef, items.map((it, k) => ({n: it.show, x: items.length > 1 ? sp.xs[k] : Math.max(sp.xs[0], (x0 + W) / 2 - 10), id: 'btn' + k,
-      color: k < c.i ? '#0f8a5f' : k === c.i ? '#1d4fd8' : undefined, caption: cap ? it.label : ''})),
-    {fit: o.fit || items.map(it => it.show), keySig: o.sig, width: W, captions: !!cap, label: 'The notes to play'});
+    const o = c.o, items = o.items, cap = o.hint;
+    const s = staffRows(items.map((it, k) => ({n: it.show, color: k < c.i ? '#0f8a5f' : k === c.i ? '#1d4fd8' : undefined, caption: cap ? it.label : ''})),
+      {clef: o.clef, sig: o.sig, fit: o.fit || items.map(it => it.show), availPx: cardRoom(), captions: !!cap, label: 'The notes to play', id: 'btn'});
+    fitCard(c, s.px);
+    return s.html;
   }
   const KINDS = {
     notes(c) {
@@ -125,6 +186,7 @@ window.Arcade = window.Arcade || {};
       const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
       c.el.classList.toggle('wide', items.length > 4);
       draw();
+      c.redraw = draw;                                                   // a turned / resized screen: laid out again
       c.want = () => items[c.i];
       const right = () => { c.i++; draw(); if (c.i >= items.length) finish(c, true); };
       const wrong = got => finish(c, false, got ? `That's ${got}. The block stays: try again!` : 'Not quite. The block stays: try again!');
@@ -177,12 +239,11 @@ window.Arcade = window.Arcade || {};
       const o = c.o, S = A.Scales, ids = S.LIST.map(s => s.id).filter(id => id !== 'chrom');
       const all = ids.map(id => S.build(o.member, id)), pick = all.find(s => s.id === o.scale) || all[Math.floor(Math.random() * all.length)];
       const asSig = o.ask ? o.ask === 'sig' : Math.random() < .5;
-      // "Name this scale": the notes with their own accidentals (no key signature), each spaced by its own width
-      const sp = spaceNotes(pick.up, 76);
-      const staff = asSig
-        ? A.staffSVG(o.clef, [], {fit: pick.up.slice(0, 1).map(n => n.show), keySig: pick.sig, width: 200, label: 'A key signature'})
-        : A.staffSVG(o.clef, pick.up.map((n, k) => ({n, x: sp.xs[k]})), {fit: pick.up, width: sp.end + 30, label: 'A scale'});
+      // "Name this scale": the notes with their own accidentals (no key signature), laid out like every other staff
       c.el.classList.toggle('wide', !asSig);
+      let staff;
+      if (asSig) staff = A.staffSVG(o.clef, [], {fit: pick.up.slice(0, 1).map(n => n.show), keySig: pick.sig, width: 200, label: 'A key signature'});
+      else { const s = staffRows(pick.up.map(n => ({n})), {clef: o.clef, fit: pick.up, availPx: cardRoom(), label: 'A scale', id: 'btn'}); staff = s.html; fitCard(c, s.px); }
       c.body.innerHTML = `<div class="bt-staff">${staff}</div>`;
       c.say.textContent = asSig ? 'Which key signature is this?' : 'Name this scale.';
       const order = all.slice().sort(() => Math.random() - .5);
@@ -328,9 +389,9 @@ window.Arcade = window.Arcade || {};
     if (C.onKey && !e.repeat && C.onKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
   addEventListener('keyup', e => { if (A.DEMO && C && A.Pitch && (e.key === ' ' || e.key.toLowerCase() === 'w')) A.Pitch.demoNote = null; });
-  addEventListener('resize', () => { if (C) place(C.el, C.o.at); });
+  addEventListener('resize', () => { if (C) { if (C.redraw) C.redraw(); place(C.el, C.o.at); } });
 
-  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, spaceNotes,
+  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, headRight,
     /** keep the open card beside its block as the camera moves (the game calls it a few times a second) */
     follow() { if (C && typeof C.o.at === 'function') place(C.el, C.o.at); }};
 })(window.Arcade);

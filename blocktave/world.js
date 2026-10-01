@@ -6,7 +6,7 @@
      BW.generate(seed, R)      a new world {seed, w, h, b (Uint8Array, row-major), meta, bags, spawn, time, nights, …}
      BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], drops, …} (versioned: v 2; v 1 = no drops)
      BW.zone(world, x, y)      {biome, layer: 'peaks'|'surface'|'middle'|'depths'} (Treble Peaks / Bass Depths)
-     BW.light(world, x, y, sky, lamps)   0–1
+     BW.light(world, x, y, sky, lamps)   0–1   ·   BW.lightMap(world, x0, y0, cols, rows, sky, lamps)   a rectangle's light
      BW.room(world, x, y)      the enclosed space around an air tile: {tiles, doors, walls} or null (open / too big)
    The world is side view: x = column (0 at the left), y = row (0 at the top of the sky). */
 window.Arcade = window.Arcade || {};
@@ -345,14 +345,61 @@ window.Arcade = window.Arcade || {};
     const layer = y < R.world.peaksY ? 'peaks' : y >= R.world.deepY ? 'depths' : y <= top(w, x) + R.world.shallow ? 'surface' : 'middle';
     return {biome: bi.id, biomeName: bi.name, layer};
   }
-  /** 0–1: the sky's light (sky = the sky's light now) fading below the ground, and every Stage Lamp's */
-  function light(w, x, y, sky, lamps, R) {
+  /** THE LIGHT of a rectangle of tiles (0–1 each; rules.js light):
+      · the SKY's light (sky = the sky's light now) on every tile open to the sky, fading caveDepth rows into the ground;
+      · a SHAFT (an open column with solid tiles on both sides) lets it down shaftRows rows, fading: a mine shaft is lit by day;
+      · light spreads from lit open tiles into the open tiles beside them (× spread a tile, shaftRows tiles at most), so a
+        cave's mouth is lit and the rock around an opening shows;
+      · nothing underground is ever darker than caveMin (the cave's shape always shows faintly);
+      · every Stage Lamp lights lampRadius tiles.
+      (The player's own glow is drawn by game.js only: it never changes where creatures may appear.)
+      Returns {x0, y0, cols, rows, v: Float32Array (row by row)}. */
+  function lightMap(w, x0, y0, cols, rows, sky, lamps, R) {
     R = R || window.BT_RULES;
-    const t = top(w, x), below = y - t;
-    let l = below <= 0 ? sky : sky * Math.max(0, 1 - below / R.light.caveDepth);
-    if (lamps) for (const L of lamps) { const d = Math.hypot(L.x - x, L.y - y); if (d < R.light.lampRadius) l = Math.max(l, 1 - (d / R.light.lampRadius) ** 2 * .6); }
-    return Math.min(1, l);
+    const L = R.light, M = L.shaftRows + 1, X0 = x0 - M, Y0 = y0 - M, C = cols + 2 * M, H = rows + 2 * M;
+    const v = new Float32Array(C * H), open = new Uint8Array(C * H);
+    const solidAt = (x, y) => x < 0 || x >= w.w || (y >= 0 && y < w.h && B[w.b[y * w.w + x]].solid);
+    for (let i = 0; i < C; i++) {
+      const x = X0 + i;
+      if (x < 0 || x >= w.w) continue;
+      const t = top(w, x);
+      let walled = 0;                                                         // rows of this open column with rock on both sides
+      for (let y = t > Y0 ? Math.min(0, Y0) : Y0; y < Y0 + H; y++) {
+        let l;
+        if (y < 0) l = sky;                                                   // above the world: the open sky
+        else if (y < t) {                                                     // open to the sky (a shaft fades after shaftRows)
+          if (y > 0 && solidAt(x - 1, y) && solidAt(x + 1, y)) walled++;
+          l = walled ? sky * Math.max(0, 1 - walled / (L.shaftRows + 1)) : sky;
+        } else l = sky * Math.max(0, 1 - (y - t) / L.caveDepth);              // into the ground
+        if (y < Y0) continue;
+        const k = (y - Y0) * C + i;
+        v[k] = l;
+        open[k] = y < 0 ? 1 : y >= w.h ? 0 : !B[w.b[y * w.w + x]].solid ? 1 : 0;
+      }
+    }
+    // the spread: shaftRows passes, each lit open tile lighting the open tiles beside it (× spread)
+    for (let pass = 0; pass < L.shaftRows; pass++) {
+      for (let j = 0; j < H; j++) for (let i = 0; i < C; i++) {
+        const k = j * C + i; if (!open[k]) continue;
+        const n = Math.max(i > 0 ? v[k - 1] : 0, i < C - 1 ? v[k + 1] : 0, j > 0 ? v[k - C] : 0, j < H - 1 ? v[k + C] : 0) * L.spread;
+        if (n > v[k]) v[k] = n;
+      }
+    }
+    // the rock beside lit open tiles shows (its face is lit), then the floor and the lamps
+    const out = new Float32Array(cols * rows);
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const k = (j + M) * C + (i + M);
+      let l = v[k];
+      if (!open[k]) l = Math.max(l, Math.max(v[k - 1] * open[k - 1], v[k + 1] * open[k + 1], v[k - C] * open[k - C], v[k + C] * open[k + C]) * L.spread);
+      l = Math.max(l, L.caveMin);
+      const x = x0 + i, y = y0 + j;
+      if (lamps) for (const Lp of lamps) { const d = Math.hypot(Lp.x - x, Lp.y - y); if (d < L.lampRadius) l = Math.max(l, 1 - (d / L.lampRadius) ** 2 * .6); }
+      out[j * cols + i] = Math.min(1, l);
+    }
+    return {x0, y0, cols, rows, v: out};
   }
+  /** 0–1: one tile's light (lightMap of that one tile) */
+  function light(w, x, y, sky, lamps, R) { return lightMap(w, x, y, 1, 1, sky, lamps, R).v[0]; }
   /** the enclosed space around (x, y): walk every open tile (a door is a wall); null if it's open or too big */
   function room(w, x, y, R) {
     R = R || window.BT_RULES;
@@ -373,5 +420,5 @@ window.Arcade = window.Arcade || {};
     const xy = k => [k % w.w, Math.floor(k / w.w)];
     return {tiles, walls: [...walls].map(xy), doors: [...doors].map(xy)};
   }
-  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, at, put, top, zone, light, room, biomeOf, CHUNK, VERSION};
+  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, at, put, top, zone, light, lightMap, room, biomeOf, CHUNK, VERSION};
 })(window.Arcade);
