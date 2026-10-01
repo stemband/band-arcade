@@ -50,6 +50,16 @@
      Arcade.Tokens.wishProgress()            -> {key, name, price, have, waiting, owned, affordable, pct, pctWaiting}
      Arcade.Tokens.resultLine()              "+3 ★ = 15 tokens at the Prize Counter" when stars were earned since the
                                              last check (every results screen: shared/ui-kit.js), else ''
+     Arcade.Tokens.skin()                    the token's picture today: the running event's `token` (shared/seasons.js
+                                             SEASONS: 'candycorn', 'snowflake'…; ?season=<event> previews it), else 'coin'
+     Arcade.Tokens.iconHTML({size, pixel})   THE ONLY WAY TO SHOW A TOKEN: <i class="tk-ic tk-<skin>" aria-hidden="true">
+                                             (the pictures: shared/tokens.css). size: px or any CSS length (default: the
+                                             place's own CSS, else 1.15em); pixel: Arcade Quest's pixel variant (tk-px).
+                                             Decoration only: the words beside it always say "N tokens".
+   SEASONAL TOKENS: only the PICTURE changes during an event; the same tokens, balance and prices. The skin is decided
+   when the HTML is written (never swapped after it shows). It reads Arcade.Seasons (shared/seasons.js, loaded by every
+   page that can show tokens: the floor, every game, Arcade Quest; tests/tokens.spec.js checks that), so every page
+   shows the same picture on the same day; a page without it shows the normal coin.
    Every change fires window 'arcade:tokens' (the lobby's sign, the badges and the counters redraw on it).
    Loaded on EVERY page (shared/version.js writes its tag with the UI kit's), before storage.js: it reads nothing until
    it's called. */
@@ -278,6 +288,27 @@ window.Arcade = window.Arcade || {};
       pct: Math.min(100, have / p * 100), pctWaiting: Math.min(100 - Math.min(100, have / p * 100), wait / p * 100)};
   }
 
+  /* ---------- THE TOKEN ICON (shared/tokens.css) ---------- */
+  /** the running event's `token` (an event without one: the coin); a background-only season (?season=frost too) never
+      has one */
+  function skin() {
+    const S = A.Seasons;
+    if (!S) return 'coin';
+    try {
+      const L = S.look();
+      if (L && L.kind === 'backdrop' && L.preview) return 'coin';         // ?season=<a background-only season>
+      const o = S.active();
+      const id = o && o.ev && typeof o.ev.token === 'string' ? o.ev.token.replace(/[^a-z0-9-]/gi, '') : '';
+      return id || 'coin';
+    } catch (e) { return 'coin'; }                                          // a page without storage.js yet
+  }
+  /** <i class="tk-ic tk-<skin>" aria-hidden="true"></i>; {size: 20 | '1em', pixel: true, cls: 'pz-spill', style: '--k:3'};
+      skin: a given picture instead of today's (the UI gallery's sheet of every skin) */
+  function iconHTML({size, pixel, cls, style, skin: id} = {}) {
+    const css = (size != null && size !== '' ? `--tk-size:${typeof size === 'number' ? size + 'px' : size};` : '') + (style || '');
+    return `<i class="tk-ic tk-${id ? String(id).replace(/[^a-z0-9-]/gi, '') : skin()}${pixel ? ' tk-px' : ''}${cls ? ' ' + cls : ''}"${css ? ` style="${css}"` : ''} aria-hidden="true"></i>`;
+  }
+
   /* ---------- the results screens' line ---------- */
   let seen = null;
   function resultLine() {
@@ -292,5 +323,5 @@ window.Arcade = window.Arcade || {};
 
   A.Tokens = {SETTINGS, get RATE() { return SETTINGS.RATE; }, QUEST_ONLY_TEXT, balance, add, spend, restore, starSources, freshStars, waiting, turnIn,
     catalog, item, owned, price, canBuy, buy, weekly, weekNo, round5, wish, setWish, wishProgress, wishGone,
-    seasonal, nextSeason, seasonOn, goneText, resultLine, wallet};
+    seasonal, nextSeason, seasonOn, goneText, resultLine, wallet, skin, iconHTML};
 })(window.Arcade);

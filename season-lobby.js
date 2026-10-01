@@ -4,13 +4,17 @@
        the gift waits) that opens THE EVENT PANEL: the free gift (with its CLAIM button), the challenge ladder with
        progress bars, and a preview of every item on the student's own avatar. A claimed or earned item gets the
        arcade's usual UNLOCKED! card (Skins.catchUp: WEAR IT) and the event's jingle.
+     THE BONUS LADDER (an event's optional `bonus`, seasons.js): under the challenges, "BONUS CHALLENGES 👻". Locked =
+       one line ("Finish all 5 challenges to unlock 6 bonus challenges!") + the bonus items as dark silhouettes; open =
+       the same step rows as the main ladder. Once it's open the banner counts its steps too ("7 of 11").
      THE LOOK: the whole menu backdrop is season-look.js (Arcade.SeasonLook); here only the small touch on each sign
        (`.lobby[data-deco]`: snow on top, a flower…), shown with the look. The panel's SEASONAL LOOK switch is the same
        setting as the Settings panel's (Arcade.Seasons.lookOn / setLookOn; it replaced the old DECORATIONS switch).
    ?season=<id> previews any event today (nothing saved), see seasons.js.
      Arcade.SeasonLobby.render(lobbyEl)   draw or remove the banner (+ the signs' touch)
      Arcade.SeasonLobby.open()            the event panel
-     Arcade.SeasonLobby.state()           tests: {event, preview, daysLeft, gift, claimed, steps, deco, banner, open, left} */
+     Arcade.SeasonLobby.state()           tests: {event, preview, daysLeft, gift, claimed, steps, bonus, bonusOpen, count, deco, banner,
+                                          open, left} */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -31,13 +35,13 @@ window.Arcade = window.Arcade || {};
     lobby.classList.toggle('ev-still', still());
     if (!o) return;
     if (!o.preview) S().check();                               // a step finished on a game page without a card: earned now
-    const ev = o.ev, wait = ev.gift && !S().claimed(o), ready = S().steps(o).filter(s => s.done).length;
+    const ev = o.ev, wait = ev.gift && !S().claimed(o), all = S().allSteps(o), ready = all.filter(s => s.done).length;
     const row = document.createElement('div');
     row.className = 'ev-banner-row';
     row.innerHTML = `<button type="button" class="ev-banner" style="${evStyle(ev)}" aria-haspopup="dialog">` +
       `<span class="ev-emoji" aria-hidden="true">${ev.emoji || '★'}</span>` +
       (ev.countdown ? '' : `<span class="ev-name">${esc(ev.name)}:</span> `) + `<span class="ev-left">${esc(leftText(o))}</span>` +
-      (wait ? `<span class="ev-gift">Free gift!</span>` : ready ? `<span class="ev-count">${ready} of ${ev.ladder.length}</span>` : '') +
+      (wait ? `<span class="ev-gift">Free gift!</span>` : ready ? `<span class="ev-count">${ready} of ${all.length}</span>` : '') +
       (o.preview ? `<span class="ev-pv">Preview</span>` : '') + `</button>`;
     const cards = document.getElementById('lobbyCards');
     lobby.insertBefore(row, cards || lobby.firstChild);
@@ -85,15 +89,16 @@ window.Arcade = window.Arcade || {};
       ov.addEventListener('click', e => { if (e.target === ov) close(); });
     }
     const pct = s => Math.round(100 * s.have / s.n), keep = ov.scrollTop;
+    const row = s => `<li class="ev-step${s.owned ? ' done' : ''}"><div class="ev-item">${s.item ? itemPreview(s.item, !s.owned) : ''}</div>` +
+      `<div class="ev-goal"><b>${esc(s.label)}</b><span class="ev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${s.n}" aria-valuenow="${s.have}" aria-label="${esc(s.label)}">` +
+      `<i style="width:${pct(s)}%"></i></span><small>${s.owned ? '✓ Earned: yours to keep!' : `${s.have} of ${s.n}`}</small></div></li>`;
     ov.innerHTML = `<div class="panel ev-pan" role="dialog" aria-modal="true" aria-labelledby="evTitle" style="${evStyle(ev)}">` +
       `<header class="ev-head"><span class="ev-emoji big" aria-hidden="true">${ev.emoji || '★'}</span><div><h2 id="evTitle">${esc(ev.name)}</h2>` +
       `<p class="ev-when">${esc(S().when(ev))} · ${esc(leftText(o))}${o.preview ? ' · <b>Preview: nothing is saved</b>' : ''}</p></div></header>` +
       (ev.gift ? `<section class="ev-giftbox"><h3>Free gift</h3><div class="ev-item">${itemPreview(ev.gift, !giftOwned)}</div>` +
         (claimed || giftOwned ? `<p class="ev-done">✓ Yours to keep!</p>` : `<button type="button" class="btn btn-primary ev-claim">Claim</button>`) + `</section>` : '') +
-      `<section class="ev-ladder"><h3>Challenges</h3><ol>` + steps.map(s =>
-        `<li class="ev-step${s.owned ? ' done' : ''}"><div class="ev-item">${s.item ? itemPreview(s.item, !s.owned) : ''}</div>` +
-        `<div class="ev-goal"><b>${esc(s.label)}</b><span class="ev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${s.n}" aria-valuenow="${s.have}" aria-label="${esc(s.label)}">` +
-        `<i style="width:${pct(s)}%"></i></span><small>${s.owned ? '✓ Earned: yours to keep!' : `${s.have} of ${s.n}`}</small></div></li>`).join('') + `</ol></section>` +
+      `<section class="ev-ladder"><h3>Challenges</h3><ol>` + steps.map(row).join('') + `</ol></section>` +
+      bonusHTML(o, ev, steps, row) +
       shopLine(ev) +
       `<p class="muted ev-foot">Only what you do during ${esc(ev.name)} counts. Items you earn are yours forever. ${esc(ev.name)} comes back every year!</p>` +
       `<div class="acts"><label class="ev-decot"><input type="checkbox" class="ev-deco-cb"${S().lookOn() ? ' checked' : ''}> Seasonal look</label>` +
@@ -113,6 +118,23 @@ window.Arcade = window.Arcade || {};
     ov.scrollTop = keep;
     if (fresh.length) celebrate(fresh);
   }
+  /* THE BONUS LADDER: locked = one line + the items as silhouettes (a surprise); open = the same rows as the ladder */
+  function bonusHTML(o, ev, steps, row) {
+    const list = S().bonusSteps(o);
+    if (!list.length) return '';
+    const head = `<h3>Bonus challenges${ev.bonusEmoji ? ' ' + ev.bonusEmoji : ''}</h3>`;
+    if (S().bonusOpen(o)) return `<section class="ev-ladder ev-bonus">${head}<ol>${list.map(row).join('')}</ol></section>`;
+    const sils = list.filter(s => s.item).map(s => `<span class="ev-sil">${silPic(s.item)}</span>`).join('');
+    return `<section class="ev-bonus ev-bonus-locked">${head}<p class="ev-bonus-line">🔒 Finish all ${steps.length} challenges to unlock ${list.length} bonus challenges!</p>` +
+      (sils ? `<div class="ev-sils" aria-hidden="true">${sils}</div>` : '') + `</section>`;
+  }
+  // a locked bonus item: the student's avatar wearing it, as a dark silhouette (CSS), like the Prize Counter's "Coming soon"
+  function silPic(key) {
+    const [field, id] = key.split(':'), av = Object.assign(A.Avatar.get(), {[field]: id, bg: 'none'});   // no background: the shape shows
+    if (field === 'plate') return `<span class="ev-plate"><b class="av-plate av-plate-${esc(id)}">${esc(A.Avatar.nameOf(av).split(' ').slice(-1)[0])}</b></span>`;
+    if (field === 'shoes') { av.chair = false; return spritePic(av); }
+    return A.avatarHTML({size: 'tile', avatar: av, cls: 'ev-av', label: ''});
+  }
   /** "New on the Prize Counter: 3 Spooky Season prizes" (shared/tokens.js seasonal(): bought with tokens, not earned) */
   function shopLine(ev) {
     const sea = A.Tokens && A.Prizes && A.Tokens.seasonal();
@@ -127,7 +149,9 @@ window.Arcade = window.Arcade || {};
   }
   function state() {
     const o = S() && S().active();
-    return o ? {event: o.ev.id, preview: !!o.preview, daysLeft: o.daysLeft, gift: o.ev.gift, claimed: S().claimed(o), steps: S().steps(o), left: leftText(o), deco: (document.getElementById('lobby') || {}).dataset ? document.getElementById('lobby').dataset.deco : null,
+    const cnt = document.querySelector('.ev-banner .ev-count');
+    return o ? {event: o.ev.id, preview: !!o.preview, daysLeft: o.daysLeft, gift: o.ev.gift, claimed: S().claimed(o), steps: S().steps(o), bonus: S().bonusSteps(o),
+      bonusOpen: S().bonusOpen(o), count: cnt ? cnt.textContent : null, left: leftText(o), deco: (document.getElementById('lobby') || {}).dataset ? document.getElementById('lobby').dataset.deco : null,
       banner: !!document.querySelector('.ev-banner'), open: !!ov} : {event: null, banner: !!document.querySelector('.ev-banner')};
   }
   A.SeasonLobby = {render, open, close, state};

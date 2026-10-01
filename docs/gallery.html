@@ -27,6 +27,9 @@
   .gal .shots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
   @media (max-width:900px){.gal .shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .gal figure{margin:0}
+  .gal .tk-sheet{border-collapse:collapse;color:var(--text-hi)}
+  .gal .tk-sheet th,.gal .tk-sheet td{padding:8px 14px;text-align:left;border-bottom:1px solid var(--floor-3)}
+  .gal .tk-sheet td.tk-q{background:var(--q-black)}
   .gal figure img{display:block;width:100%;aspect-ratio:1180/820;object-fit:cover;border-radius:10px;border:1px solid var(--floor-3);background:var(--deep)}
   .gal figure img.miss{object-fit:contain;opacity:.25}
   .gal figcaption{font-size:13px;color:var(--text-lo);margin-top:4px;text-align:center}
@@ -72,6 +75,11 @@
     <button class="btn btn-secondary" id="gToast">Toast</button>
   </div>
 
+  <h2 class="ui-section">Token pictures</h2>
+  <p class="ui-howto">The arcade token (Arcade.Tokens.iconHTML) in every skin: the normal coin, then each seasonal event's
+    (shared/seasons.js <code>token</code>, the pictures in shared/tokens.css). 16, 20 and 32 px, then Arcade Quest's pixel style.</p>
+  <div class="card" id="tokens"></div>
+
   <h2 class="ui-section">Before and after</h2>
   <div id="ba"></div>
 
@@ -85,6 +93,7 @@
 <script src="../shared/games.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../shared/seasons.js"></script>
 <script>
 (function (A) {
   "use strict";
@@ -98,6 +107,12 @@
     const g = (A.ALL_GAMES || A.GAMES).find(x => x.id === id) || {name: id};
     return `<div class="card"><h3>${g.name}</h3><div class="ba">${img(`gallery/before-${id}-results.jpg`, 'Before: results')}${img(`gallery/${id}-results.jpg`, 'After: results')}</div></div>`;
   }).join('');
+  // THE TOKEN PICTURES: every skin at 16, 20, 32 px (+ the pixel style), on the page and on a light card
+  const T = A.Tokens, skins = ['coin'].concat((A.SEASONS || []).map(e => e.token).filter((t, i, l) => t && l.indexOf(t) === i));
+  $('tokens').innerHTML = `<table class="tk-sheet"><tr><th>Skin</th><th>Event</th><th>16 px</th><th>20 px</th><th>32 px</th><th>Pixel (Arcade Quest)</th><th>In a line</th></tr>` +
+    skins.map(id => { const ev = (A.SEASONS || []).find(e => e.token === id), ic = o => T.iconHTML(Object.assign({skin: id}, o));
+      return `<tr data-skin="${id}"><th>${id}</th><td>${ev ? ev.name : 'All year'}</td><td>${ic({size: 16})}</td><td>${ic({size: 20})}</td><td>${ic({size: 32})}</td>` +
+        `<td class="tk-q">${ic({size: 15, pixel: true})} ${ic({size: 24, pixel: true})}</td><td>${ic({size: 20})} <b>142</b> tokens</td></tr>`; }).join('') + `</table>`;
   // the live pieces
   const pause = A.UI.pause.mount({info: () => [['Score', 1135], ['Accuracy', '92%']], onRestart() {}, onLevels() {},
     extras: [{label: 'Song menu (an extra)', onClick() {}}], note: 'A sample pause menu.'});
