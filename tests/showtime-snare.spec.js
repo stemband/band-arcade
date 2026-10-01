@@ -33,10 +33,23 @@ async function waitFor(page, check, timeout = 30_000) {
   try { await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true); } catch (e) {
     const t = s && s.target, J = t && t.job;              // stuck: what the snare had, and what the page went through
     e.message += `\n  the snare: ${JSON.stringify({phase: t && t.phase, job: J && {type: J.type, start: J.start, fill: J.fill, phaseDone: J.phaseDone}, log: s && s.log && s.log.slice(-12)})}\n  the page: ${await pageEvents(page)}`;
+    e.message += `\n  the audio clock: ${await audioClock(page)}`;
     throw e;
   }
   return s;
 }
+/** how the page's AudioContext time moves against real time over ~1.2 s (20 samples): its state, latency, output
+    timestamp and each step, so a stuck test shows whether the audio clock stalls, jumps or runs at the wrong rate */
+const audioClock = page => Promise.race([page.evaluate(() => new Promise(res => {
+  const o = Arcade.Sfx.output && Arcade.Sfx.output(), c = o && o.ctx;
+  if (!c) return res('no AudioContext');
+  const out = [], p0 = performance.now(), c0 = c.currentTime;
+  const iv = setInterval(() => {
+    const ts = c.getOutputTimestamp ? c.getOutputTimestamp() : {};
+    out.push([Math.round(performance.now() - p0), Math.round((c.currentTime - c0) * 1000), ts.contextTime != null ? Math.round(ts.contextTime * 1000) : null, ts.performanceTime != null ? Math.round(ts.performanceTime) : null]);
+    if (out.length >= 20) { clearInterval(iv); res(JSON.stringify({state: c.state, rate: c.sampleRate, base: c.baseLatency, out: c.outputLatency, steps: '[perf ms, ctx ms, outTs ctx ms, outTs perf]', samples: out})); }
+  }, 60);
+})).catch(e => 'page gone: ' + e.message.split('\n')[0]), new Promise(r => setTimeout(() => r('no answer'), 5000))]);
 /** not muted (a sound playing mutes the microphone: nothing counts then) */
 const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
   !Arcade.Sfx.pending('showtime') && !(Arcade.Sfx.busy() > 0)); }, {timeout: 15_000}).toBe(true);   // (a card closed; no sound still queued: a card's second sound)

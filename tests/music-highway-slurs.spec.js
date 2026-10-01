@@ -25,7 +25,12 @@ async function stuck(page) {
     return JSON.stringify({phase: s.phase, t: s.t, judged: s.judged, total: s.total, paused: s.paused, clock: s.clock, ctx: o && o.ctx ? o.ctx.state : null,
       pauseMenu: !document.getElementById('uiPause').hidden, hidden: document.hidden, focus: document.hasFocus()}); }).catch(e => 'page gone: ' + e.message.split('\n')[0]),
     new Promise(r => setTimeout(() => r('no answer'), 3000))]);
-  return `  the song: ${g}\n  the page: ${await pageEvents(page)}`;
+  const clk = await Promise.race([page.evaluate(() => new Promise(res => {              // how the audio clock moves against real time
+    const o = Arcade.Sfx.output && Arcade.Sfx.output(), c = o && o.ctx; if (!c) return res('no AudioContext');
+    const out = [], p0 = performance.now(), c0 = c.currentTime;
+    const iv = setInterval(() => { out.push([Math.round(performance.now() - p0), Math.round((c.currentTime - c0) * 1000)]); if (out.length >= 20) { clearInterval(iv); res(JSON.stringify({state: c.state, out: c.outputLatency, base: c.baseLatency, perfMs_ctxMs: out})); } }, 60);
+  })).catch(e => 'page gone'), new Promise(r => setTimeout(() => r('no answer'), 5000))]);
+  return `  the song: ${g}\n  the page: ${await pageEvents(page)}\n  the audio clock: ${clk}`;
 }
 async function game(page, browserName, member = 'trumpet', extra = {}) {
   const store = device(member, CAL(browserName));
