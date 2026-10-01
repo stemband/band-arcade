@@ -21,8 +21,8 @@
 .pz-wallet b{font:400 22px var(--display);color:var(--yellow);font-variant-numeric:tabular-nums}
 .pz-x{width:48px;height:48px;border-radius:50%;border:2px solid var(--text-lo);background:var(--deep);color:var(--text-hi);font-size:22px;cursor:pointer}
 .pz-x:hover{border-color:var(--text-hi)}
-.pz-coin{display:inline-block;width:20px;height:20px;flex:0 0 auto;border-radius:50%;vertical-align:-4px;
-  background:radial-gradient(circle at 35% 35%,var(--yellow-hi),var(--yellow) 45%,var(--amber-ink));box-shadow:inset 0 0 0 2px var(--amber-ink)}
+/* the token icon (Arcade.Tokens.iconHTML; its pictures: shared/tokens.css) */
+.pz-ov .tk-ic{--tk-size:20px;vertical-align:-4px}
 
 /* TICKET, the counter bot, + its line and the counter bell */
 .pz-clerk{grid-area:clerk;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:start;gap:6px 10px;padding:10px;border-radius:16px;
@@ -63,10 +63,13 @@
 @media (prefers-reduced-motion:no-preference){
   .pz-ov:not(.pz-still) .pz-machine.go .pz-mstars i{animation:pz-drop .7s ease-in both;animation-delay:calc(var(--n,0) * 60ms)}
   .pz-ov:not(.pz-still) .pz-spill{position:absolute;left:calc(8% + var(--k) * 7%);bottom:2px;animation:pz-spill .8s ease-out both;animation-delay:calc(.25s + var(--k) * 50ms)}
+  /* a seasonal token (candy corns, snowflake coins…) tumbles as it falls: the same timing, a turn on the way down */
+  .pz-ov:not(.pz-still) .pz-spill:not(.tk-coin){animation-name:pz-tumble}
 }
 .pz-spill{position:absolute;left:calc(8% + var(--k) * 7%);bottom:2px}
 @keyframes pz-drop{0%{transform:translateY(0);opacity:1}100%{transform:translateY(46px) scale(.4);opacity:0}}
 @keyframes pz-spill{0%{transform:translateY(-30px);opacity:0}60%{opacity:1}100%{transform:translateY(0);opacity:1}}
+@keyframes pz-tumble{0%{transform:translateY(-30px) rotate(-200deg);opacity:0}60%{opacity:1}100%{transform:translateY(0) rotate(calc((var(--k) - 5) * 9deg));opacity:1}}
 
 .pz-spot{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:16px;border:2px solid var(--amber);
   background:radial-gradient(60% 90% at 50% 0%,color-mix(in srgb,var(--yellow-hi) 28%,transparent),transparent 72%),var(--floor-2)}
@@ -132,7 +135,7 @@
 .pz-card-pic .pt-box{width:100%}
 .pz-card-duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
 .pz-card .pz-card-price{margin:6px 0;font-size:18px;color:var(--text-hi)}.pz-card-price b{color:var(--yellow)}.pz-card-price s{color:var(--text-dim)}
-.pz-card-price .pz-coin{margin-right:6px}
+.pz-card-price .tk-ic{margin-right:6px}
 .pz-card .pz-card-msg{margin:4px 0;color:var(--text-lo)}
 .pz-card .pz-card-note{margin:4px 0;color:var(--cyan-hi);font-size:14px}
 .pz-card-acts .btn{min-height:48px}

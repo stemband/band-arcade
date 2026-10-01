@@ -247,8 +247,8 @@ body.q-touch .q-gear{display:block}
 .q-whud{left:calc(var(--px) * 4);top:calc(var(--px) * 3);margin:0;padding:calc(var(--px) * 1) calc(var(--px) * 4);background:var(--q-black);
   border:calc(var(--px) * 1) solid var(--q-grey-d);font-size:calc(var(--px) * 6.5);color:var(--q-white);display:flex;gap:calc(var(--px) * 5);align-items:center;z-index:2}
 .q-whud b{color:var(--q-gold)}
-.q-coin{display:inline-block;width:calc(var(--px) * 5);height:calc(var(--px) * 5);margin-right:calc(var(--px) * 1.5);vertical-align:-8%;background:var(--q-gold);
-  box-shadow:inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--q-brass-d);border-radius:30%}
+/* the token icon: Arcade.Tokens.iconHTML({pixel: true}) (its pixel pictures, one per seasonal skin: shared/tokens.css .tk-px) */
+#stage .tk-ic{--tk-size:calc(var(--px) * 5);margin-right:calc(var(--px) * 1.5);vertical-align:-8%}
 .q-area{left:50%;top:calc(var(--px) * 16);transform:translateX(-50%);margin:0;padding:calc(var(--px) * 2) calc(var(--px) * 8);background:var(--q-black);
   border:calc(var(--px) * 1.5) solid var(--q-white);color:var(--q-gold);font-weight:700;font-size:calc(var(--px) * 9);white-space:nowrap;opacity:0;transition:opacity .4s;z-index:2}
 .q-area.on{opacity:1}

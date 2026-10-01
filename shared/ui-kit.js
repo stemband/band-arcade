@@ -409,7 +409,7 @@ window.Arcade = window.Arcade || {};
       const first = fillResults(panel, o);
       // "+3 ★ = 15 tokens at the Prize Counter" (shared/tokens.js): text only, when this result earned new stars
       const tl = A.Tokens && A.Tokens.resultLine ? A.Tokens.resultLine() : '';
-      if (tl) { const b = panel.querySelector('.ui-res-best'); b.insertAdjacentHTML('afterend', `<p class="ui-res-tokens" id="resTokens">${esc(tl)}</p>`); }
+      if (tl) { const b = panel.querySelector('.ui-res-best'); b.insertAdjacentHTML('afterend', `<p class="ui-res-tokens" id="resTokens">${A.Tokens.iconHTML()}${esc(tl)}</p>`); }
       if (P && P.api) P.api.setActive(false);
       RES.hidden = false; open.add(RES); syncBody();
       RES.scrollTop = 0;
