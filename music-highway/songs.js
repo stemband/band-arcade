@@ -286,9 +286,9 @@
     // FINAL BOSS (tier 4). Written A minor (trumpet) = concert G minor. Main theme after the intro, 8 bars of sixteenths.
     // Transcribed from memory: Mr. Graham, check it on the Song Board (▶ PLAY) and fix any note here.
     {id: 'flight-of-the-bumblebee', title: 'Flight of the Bumblebee', source: 'Nikolai Rimsky-Korsakov, 1900 (main theme)', tier: 4, tempo: 72, timeSig: [2, 4], key: 'Bb', mode: 'minor', style: 'rock',
-     notes: N("5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
+     notes: N("(5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
               "5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
               "5:.25 6:.25 5:.25 #4:.25 5:.25 6:.25 5:.25 #4:.25 | 5:.25 #6:.25 7:.25 #7:.25 1':.25 b2':.25 1':.25 #7:.25",
-              "1':.25 #7:.25 7:.25 #6:.25 6:.25 #6:.25 7:.25 #7:.25 | 1' r")},
+              "1':.25 #7:.25 7:.25 #6:.25 6:.25 #6:.25 7:.25 #7:.25 | 1') r")},
   ];
 })();
