@@ -36,7 +36,7 @@ window.Arcade = window.Arcade || {};
     {id: 'manor', title: 'Manor Collection', note: 'Only at the Token Booth in Arcade Quest!'},
     {id: 'case', title: 'Glass case', note: '50–150 tokens'},
   ];
-  const tierOf = it => it.questOnly ? 'manor' : it.full >= 400 ? 'hang' : it.full >= 300 ? 'upper' : it.full >= 200 ? 'lower' : 'case';
+  const tierOf = it => it.season ? 'season' : it.questOnly ? 'manor' : it.full >= 400 ? 'hang' : it.full >= 300 ? 'upper' : it.full >= 200 ? 'lower' : 'case';
   const COIN = '<i class="pz-coin" aria-hidden="true"></i>';
 
   /* ---------- TICKET, the counter bot (an original drawing: a boxy robot, a token-slot mouth, one antenna bulb) ---------- */
@@ -141,9 +141,33 @@ window.Arcade = window.Arcade || {};
       `<span class="pz-pic">${pic(it)}</span><span class="pz-name">${esc(it.name)}</span>${own ? '<span class="pz-owned">Owned</span>' : tag}` +
       (wish ? '<span class="pz-wishmark" aria-hidden="true">★</span>' : '') + `</button>`;
   }
+  /* THE SEASONAL SHELF (shared/tokens.js seasonal()): during an event, a decorated shelf at the top with its sign
+     ("🎃 SPOOKY SEASON SHELF · gone in 12 days!" … "Last day!") and the event's 3 shop items; between events, a small
+     "Coming soon: Winter Fest shelf, Dec 1" card with the next event's items as silhouettes. The decorations follow the
+     Seasonal look switch (shared/seasons.js lookOn); nothing moves or flashes. */
+  const DECO = {spooky: ['🎃', '🕸️', '🦇', '🕸️', '🎃'], winter: ['❄️', '✨', '⛄', '✨', '❄️'], hearts: ['💖', '💗', '💌', '💗', '💖'],
+    music: ['🎵', '🎺', '🎶', '🥁', '🎵'], flowers: ['🌸', '🌼', '🌷', '🌼', '🌸'], summer: ['☀️', '🌴', '🍉', '🌴', '☀️']};
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const evStyle = ev => (ev.colors || []).length ? `--ev1:var(--${ev.colors[0]});--ev2:var(--${ev.colors[1] || ev.colors[0]})` : '';
+  const lookOn = () => !A.Seasons || A.Seasons.lookOn();
+  function seasonHTML() {
+    const sea = T().seasonal();
+    if (sea) {
+      const ev = sea.ev, deco = lookOn() && DECO[ev.deco] ? `<p class="pz-deco" aria-hidden="true">${DECO[ev.deco].map(d => `<span>${d}</span>`).join('')}</p>` : '';
+      return `<section class="pz-shelf pz-s-season pz-ev-${esc(ev.id)}" style="${evStyle(ev)}" aria-labelledby="pzS-season">${deco}` +
+        `<h3 class="pz-shead pz-season-sign" id="pzS-season"><span aria-hidden="true">${ev.emoji || '★'}</span> ${esc(ev.name)} shelf · <b>${esc(sea.left)}</b></h3>` +
+        `<div class="pz-row">${sea.items.slice().sort((a, b) => a.full - b.full).map(tile).join('')}</div></section>`;
+    }
+    const nx = T().nextSeason();
+    if (!nx) return '';
+    const sil = it => `<span class="pz-sil" aria-hidden="true">${pic(it)}</span>`;
+    return `<section class="pz-soon" style="${evStyle(nx.ev)}" aria-label="Coming soon">` +
+      `<p class="pz-soon-t"><span aria-hidden="true">${nx.ev.emoji || '★'}</span> Coming soon: <b>${esc(nx.ev.name)} shelf</b>, ${MON[nx.from.getMonth()]} ${nx.from.getDate()}</p>` +
+      `<div class="pz-soon-row">${nx.items.map(sil).join('')}</div></section>`;
+  }
   function wallHTML() {
     const items = T().catalog().slice().sort((a, b) => a.full - b.full || a.name.localeCompare(b.name));
-    return SHELVES.map(sh => {
+    return seasonHTML() + SHELVES.map(sh => {
       const list = items.filter(it => tierOf(it) === sh.id);
       if (!list.length) return '';
       return `<section class="pz-shelf pz-s-${sh.id}" aria-labelledby="pzS-${sh.id}"><h3 class="pz-shead" id="pzS-${sh.id}">${esc(sh.title)} <small>${esc(sh.note)}</small></h3>` +
@@ -158,6 +182,10 @@ window.Arcade = window.Arcade || {};
     ov.querySelector('#pzMachine').innerHTML = machineHTML();
     ov.querySelector('#pzSpot').innerHTML = spotHTML();
     ov.querySelector('#pzWall').innerHTML = wallHTML();
+    // a light seasonal touch on the rest of the counter (a garland on the glass case), with the Seasonal look on
+    const sea = T().seasonal(), panel = ov.querySelector('.pz-panel');
+    panel.classList.toggle('pz-touch', !!(sea && lookOn()));
+    panel.setAttribute('style', sea ? evStyle(sea.ev) : '');
     fix(ov);
     if (f) { const again = ov.querySelector(`.pz-top [data-key="${f}"], .pz-wall [data-key="${f}"], [data-act="${f}"]`); if (again) again.focus({preventScroll: true}); }
   }
@@ -231,7 +259,8 @@ window.Arcade = window.Arcade || {};
   function drawCard(it, msg) {
     const p = T().price(it.key), c = T().canBuy(it.key), own = T().owned(it.key), wish = T().wish() === it.key;
     const worn = A.Avatar.get()[it.field] === it.id, panel = S.card.querySelector('.pz-card');
-    const priceLine = it.questOnly ? `<p class="pz-card-price">${COIN}${p.full} tokens · <b>Only at the Token Booth in Arcade Quest!</b></p>`
+    const ev = it.season && (A.SEASONS || []).find(e => e.id === it.season);
+    const priceLine = ev && !own ? `<p class="pz-card-price">${COIN}<b>${p.price}</b> tokens · ${esc(ev.name)} only${T().seasonal() ? ` · ${esc(T().seasonal().left)}` : ''}</p>` : it.questOnly ? `<p class="pz-card-price">${COIN}${p.full} tokens · <b>Only at the Token Booth in Arcade Quest!</b></p>`
       : `<p class="pz-card-price">${COIN}${p.weekly ? `<s>${p.full}</s> ` : ''}<b>${p.price}</b> tokens${p.weekly ? ' · Prize of the week!' : ''}</p>`;
     let acts;
     if (msg && msg.bought) acts = `${worn ? '' : '<button type="button" class="btn btn-primary" data-c="wear">Wear it now</button>'}<button type="button" class="btn btn-secondary" data-c="close">Keep shopping</button>`;
@@ -351,8 +380,12 @@ window.Arcade = window.Arcade || {};
     const open = !!(S.el && !S.el.hidden), ov = S.el;
     const shelves = {};
     if (ov) ov.querySelectorAll('.pz-shelf').forEach(s => { shelves[s.className.match(/pz-s-(\w+)/)[1]] = [...s.querySelectorAll('.pz-prize')].map(b => b.dataset.key); });
-    const w = T() && T().weekly();
-    return {open, balance: T() ? T().balance() : 0, fresh: T() ? T().freshStars() : 0, weekly: w && w.key, card: S.card ? S.card.dataset.key : null,
+    const w = T() && T().weekly(), sea = T() && T().seasonal(), nx = !sea && T() && T().nextSeason();
+    const sign = ov && ov.querySelector('.pz-season-sign'), soon = ov && ov.querySelector('.pz-soon-t');
+    return {season: sea ? {event: sea.ev.id, left: sea.left, items: sea.items.map(it => it.key), sign: sign ? sign.textContent.trim() : ''} : null,
+      soon: nx ? {event: nx.ev.id, text: soon ? soon.textContent.trim() : '', items: nx.items.map(it => it.key)} : null,
+      touch: !!(ov && ov.querySelector('.pz-panel.pz-touch')),
+      open, balance: T() ? T().balance() : 0, fresh: T() ? T().freshStars() : 0, weekly: w && w.key, card: S.card ? S.card.dataset.key : null,
       shelves, still: still(), line: ov ? (ov.querySelector('#pzSay') || {}).textContent : '', focus: document.activeElement && (document.activeElement.dataset.key || document.activeElement.dataset.act || document.activeElement.dataset.c || null)};
   }
   A.Prizes = {open, close, state, openCard, closeCard, get isOpen() { return !!(S.el && !S.el.hidden); }};

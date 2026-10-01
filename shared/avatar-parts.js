@@ -1267,6 +1267,147 @@ window.AVATAR_PARTS = {};
      back: kit(32).spans(1, [[12, 19], [11, 20], [10, 21], [9, 22]], 'u').spans(0, [[14, 17], [14, 17]], 'A').spans(0, [[14, 17]], 'B').spans(5, [[8, 23]], 'U').map()});
   P.BGS.push({id: 'bandhall', name: 'Band Hall', kind: 'scene', scene: 'bandhall', lift: 1.6, main: 'red-ink', unlock: BT_RULE});
 
+  /* =====================================================================================================================
+     THE SEASONAL SHOP (the Prize Counter's SEASONAL SHELF + Arcade Quest's Token Booth, through shared/tokens.js).
+     NEW items BOUGHT with tokens, only while their seasonal event runs (Arcade.Seasons.active()), at both counters, then
+     owned forever. unlock {shop: <price>, season: '<event id>'}. They are NOT the event's own items: an event's free gift
+     and ladder items (unlock {event}) are EARNED and never sold. Never the Prize of the Week (never discounted), never
+     in the Manor Collection, never identity items. Outside the event a locked one reads "Returns to the Prize Counter
+     next Spooky Season" (shared/avatar.js requirement).
+     ======== THE SEASONAL SHOP TABLE (Mat: edit the prices here; 3 items per event) ========
+       '<field>:<id>': [event id, price]                                    Friendship Week is only 8 days: cheaper */
+  const SEASON_SHOP = {
+    'hand:treatbucket':  ['spooky', 150],     // Jack-o'-Lantern Treat Bucket
+    'back:webcape':      ['spooky', 250],     // Spiderweb Cape
+    'pet:blackcat':      ['spooky', 350],     // Black Cat
+    'hand:cocoa':        ['winter', 150],     // Hot Cocoa Mug
+    'top:knitsweater':   ['winter', 250],     // Cozy Knit Sweater
+    'pet:snowyowl':      ['winter', 350],     // Snowy Owl
+    'hand:heartballoon': ['friendship', 150], // Heart Balloon
+    'plate:candyheart':  ['friendship', 150], // Candy Heart name plate
+    'pet:teddy':         ['friendship', 300], // Teddy Bear
+    'head:marchshako':   ['miosm', 250],      // Marching Shako
+    'top:tailcoat':      ['miosm', 300],      // Conductor's Tailcoat
+    'effect:notesparkles': ['miosm', 350],    // Music Note Sparkles (shared/avatar-fx.js; still with reduced motion)
+    'shoes:rainboots':   ['spring', 150],     // Rain Boots
+    'hand:umbrella':     ['spring', 200],     // Polka-Dot Umbrella
+    'pet:ladybug':       ['spring', 250],     // Ladybug
+    'hand:icepop':       ['summer', 100],     // Ice Pop
+    'top:hawaiian':      ['summer', 250],     // Hawaiian Shirt
+    'pet:hermitcrab':    ['summer', 300],     // Hermit Crab
+  };
+  /* ========================================================================================================== */
+  const ss = key => { const r = SEASON_SHOP[key]; return r ? {shop: r[1], season: r[0]} : {shop: 999, season: 'none'}; };
+  P.SEASON_SHOP = SEASON_SHOP;
+  const pxs = (a, pts, ch) => pts.forEach(([x, y]) => a.px(x, y, ch));
+  const rowsAt = (a, y0, spans, ch) => spans.forEach(([x0, x1], i) => { for (let x = x0; x <= x1; x++) a.px(x, y0 + i, ch); });
+
+  // ---- HAND items (letters I J L M; held up from the hand at the bust's right, x 29–30, rows 21–22) ----
+  P.HANDS.push(
+    // SPOOKY SEASON: a round jack-o'-lantern treat bucket with a black handle and a friendly face
+    {id: 'treatbucket', name: "Jack-o'-Lantern Treat Bucket", unlock: ss('hand:treatbucket'), pal: {I: 'amber', J: 'amber-ink', L: 'av-black', M: 'green'},
+     bust(a) {
+       pxs(a, [[27, 14], [27, 13], [28, 12], [29, 11], [30, 11], [31, 11], [32, 12], [33, 13], [33, 14]], 'L');          // the handle
+       rowsAt(a, 14, [[28, 32], [27, 33], [27, 33], [27, 33], [27, 33], [27, 33], [28, 32]], 'I');
+       pxs(a, [[30, 14], [30, 20]], 'J'); a.px(30, 13, 'M');                                                            // a rib, the stem
+       pxs(a, [[29, 16], [31, 16], [28, 18], [29, 19], [30, 19], [31, 19], [32, 18]], 'L');                              // eyes + a smile
+     }},
+    // WINTER FEST: a red mug of cocoa with a marshmallow and a slow curl of steam
+    {id: 'cocoa', name: 'Hot Cocoa Mug', unlock: ss('hand:cocoa'), pal: {I: 'red', J: 'white-hi', L: 'q-wood', M: 'av-white-d'}, anim: {steam: true},
+     bust(a, f = 0) {
+       rowsAt(a, 15, [[27, 31], [27, 31], [27, 31], [27, 31], [27, 31], [28, 30]], 'I');
+       rowsAt(a, 14, [[27, 31]], 'L'); pxs(a, [[28, 14], [29, 13]], 'J');
+       pxs(a, [[32, 16], [33, 16], [33, 17], [32, 18], [33, 18]], 'I'); a.px(28, 16, 'J');
+       [[[29, 11], [30, 10], [29, 9]], [[30, 11], [29, 10], [30, 9]], [[29, 11], [30, 10], [30, 8]], [[30, 11], [29, 10], [29, 8]]][f % 4].forEach(([x, y]) => a.px(x, y, 'M'));
+     }},
+    // FRIENDSHIP WEEK: a shiny red heart balloon on a string
+    {id: 'heartballoon', name: 'Heart Balloon', unlock: ss('hand:heartballoon'), pal: {I: 'red', J: 'red-hi', L: 'white-hi'},
+     bust(a) {
+       a.line(29, 21, 31, 11, 'L');
+       pxs(a, [[29, 5], [30, 5], [32, 5], [33, 5]], 'I');
+       rowsAt(a, 6, [[28, 34], [28, 34], [29, 33], [30, 32], [31, 31]], 'I');
+       pxs(a, [[29, 6], [29, 7]], 'J');
+     }},
+    // SPRING BLOOM: a pink umbrella with white polka dots
+    {id: 'umbrella', name: 'Polka-Dot Umbrella', unlock: ss('hand:umbrella'), pal: {I: 'pink', J: 'pink-ink', L: 'av-black', M: 'white-hi'},
+     bust(a) {
+       a.line(30, 21, 30, 8, 'L'); a.px(30, 4, 'L');
+       rowsAt(a, 5, [[28, 32], [26, 34], [25, 35], [25, 35]], 'I');
+       pxs(a, [[25, 8], [27, 8], [29, 8], [31, 8], [33, 8], [35, 8]], 'J');                                              // the scalloped edge
+       pxs(a, [[28, 6], [32, 6], [26, 7], [30, 7], [34, 7]], 'M');
+     }},
+    // SUMMER SEND-OFF: a two-color ice pop on a stick (one corner bitten off)
+    {id: 'icepop', name: 'Ice Pop', unlock: ss('hand:icepop'), pal: {I: 'cyan', J: 'pink', M: 'white-hi', L: 'q-wood-l'},
+     bust(a) {
+       a.line(30, 21, 30, 17, 'L');
+       rowsAt(a, 9, [[29, 31], [28, 32], [28, 32], [28, 32]], 'I');
+       rowsAt(a, 13, [[28, 32], [28, 32], [28, 32], [28, 32]], 'J');
+       pxs(a, [[29, 10], [29, 11]], 'M');
+     }});
+
+  // ---- a cape with a spiderweb over it (N the cape, O the web's silver threads); it flaps like the other capes ----
+  const webby = m => {
+    if (!m) return m;
+    const put = (row, off) => [...row].map((ch, x) => (ch === '1' || ch === '7') && ((x + off) % 4 === 0 || (x - off + 400) % 4 === 0) ? 'O' : ch === '1' || ch === '7' ? 'N' : ch).join('');
+    return m.half ? Object.assign({}, m, {half: m.half.map(put)}) : Object.assign({}, m, {rows: m.rows.map(put)});
+  };
+  const wc = {bustBehind: webby(cape.bustBehind), front: webby(cape.behind.front), side: webby(cape.behind.side), back: webby(cape.behind.back)};
+  P.BACKS.push({id: 'webcape', name: 'Spiderweb Cape', unlock: ss('back:webcape'), pal: {N: 'purple-ink', O: 'av-white-d'},
+    bustBehind: wc.bustBehind, behind: {front: wc.front, side: wc.side, back: wc.back},
+    anim: {maps: {bustBehind: flap(wc.bustBehind, 3, 2), 'behind.front': flap(wc.front, 3), 'behind.back': flap(wc.back, 3)}}});
+
+  // ---- tops (letters D E G; 'c' = the student's top color) ----
+  const knit = (x, y) => { const r = ((y % 6) + 6) % 6; return r === 2 ? (x % 2 ? 'E' : 'D') : r === 3 && x % 4 === 1 ? 'E' : 'D'; };      // a knit band + dots
+  const aloha = (x, y) => ((x * 7 + y * 3) % 11 === 0 ? 'E' : (x * 5 + y * 7) % 13 === 0 ? 'G' : 'c');                                  // flowers on your color
+  const coat = (x, y, mid) => (Math.abs(x - mid) <= 1 ? 'E' : 'D');
+  P.TOPS.push(
+    // WINTER FEST: a cozy red knit sweater with a white band
+    {id: 'knitsweater', name: 'Cozy Knit Sweater', unlock: ss('top:knitsweater'), sleeve: 1, sleeveCh: 'D', pal: {D: 'red', E: 'white-hi', G: 'green'},
+     bust: bustBody(knit).spans(27, [[15, 20], [16, 19]], 'E').map(),
+     front: torso(knit).map(), side: sideT(knit).map(), back: torso(knit).map()},
+    // MUSIC IN OUR SCHOOLS MONTH: a black conductor's tailcoat over a white shirt, gold buttons, tails at the back
+    {id: 'tailcoat', name: "Conductor's Tailcoat", unlock: ss('top:tailcoat'), sleeve: 1, sleeveCh: 'D', pal: {D: 'av-black', E: 'white-hi', G: 'yellow'},
+     bust: kit(W2).spans(27, [[10, 25], [7, 28], [5, 30], [4, 31], [3, 32], [3, 32], [3, 32], [3, 32], [3, 32]], (x, y) => coat(x, y, 17.5 + 0))
+       .spans(27, [[15, 20], [15, 20], [16, 19], [16, 19], [17, 18]], 'E').spans(27, [[16, 19]], 'D').px(17, 31, 'G').px(18, 33, 'G').px(17, 35, 'G').map(),
+     front: torso((x, y) => coat(x, y, 15.5)).px(15, 16, 'G').px(16, 18, 'G').map(),
+     side: sideT('D').map(),
+     back: kit(32).spans(14, Array(7).fill([11, 20]), 'D').spans(21, [[11, 14], [17, 20]], 'D').map()},
+    // SUMMER SEND-OFF: a short-sleeved Hawaiian shirt: little flowers on the student's own color
+    {id: 'hawaiian', name: 'Hawaiian Shirt', unlock: ss('top:hawaiian'), sleeve: .35, pal: {E: 'pink-hi', G: 'yellow'},
+     bust: bustBody(aloha).spans(27, [[15, 20], [16, 19]], 's').map(),
+     front: torso(aloha).map(), side: sideT(aloha).map(), back: torso(aloha).map()});
+
+  // ---- MUSIC IN OUR SCHOOLS MONTH: a marching shako in royal blue with a white plume ----
+  P.HEADS.push({id: 'marchshako', name: 'Marching Shako', unlock: ss('head:marchshako'), hides: 'top', clip: shakoH.clip, pal: {A: 'blue', B: 'blue-ink', R: 'white-hi'},
+    front: band5(shakoH.front), side: band5(shakoH.side), back: band5(shakoH.back), bust: band5(shakoH.bust)});
+
+  // ---- SPRING BLOOM: tall yellow rain boots ----
+  P.SHOES.push({id: 'rainboots', name: 'Rain Boots', unlock: ss('shoes:rainboots'), rows: 3, sole: true, pal: {q: 'yellow', Q: 'amber-ink'}});
+
+  // ---- FRIENDSHIP WEEK: a candy-heart name plate (CSS: .av-plate-candyheart in theme.css) ----
+  P.PLATES.push({id: 'candyheart', name: 'Candy Heart name plate', unlock: ss('plate:candyheart')});
+
+  // ---- MUSIC IN OUR SCHOOLS MONTH: music note sparkles (shared/avatar-fx.js FX.notesparkles: slow, gentle, still with reduced motion) ----
+  P.EFFECTS.push({id: 'notesparkles', name: 'Music Note Sparkles', unlock: ss('effect:notesparkles')});
+
+  // ---- PETS (their own colors) ----
+  P.PETS.push(
+    {id: 'blackcat', name: 'Black Cat', unlock: ss('pet:blackcat'), pal: {K: 'av-black', k: 'purple-ink', y: 'yellow', P: 'pink'}, seq: [0, 0, 1, 1],
+     rows: ['.k...k..', '.Kk.kK..', '.KKKKK..', '.KyKyK..', '.KKPKK.k', '..KKK..k', '.KKKKKKk', '.KK.KK..'],
+     frames: [null, ['.k...k..', '.Kk.kK..', '.KKKKK.k', '.KyKyK.k', '.KKPKK.k', '..KKK.k.', '.KKKKKK.', '.KK.KK..']]},
+    {id: 'snowyowl', name: 'Snowy Owl', unlock: ss('pet:snowyowl'), pal: {W: 'white-hi', w: 'av-white-d', y: 'yellow', K: 'av-black', a: 'amber'}, seq: [0, 0, 0, 1],
+     rows: ['.w....w.', '.wWWWWw.', '.WyWWyW.', '.WKWWKW.', '.WWaaWW.', '.WwWWwW.', '.WWwwWW.', '..a..a..'],
+     frames: [null, ['.w....w.', '.wWWWWw.', '.WwWWwW.', '.WWWWWW.', '.WWaaWW.', '.WwWWwW.', '.WWwwWW.', '..a..a..']]},
+    {id: 'teddy', name: 'Teddy Bear', unlock: ss('pet:teddy'), pal: {b: 'q-wood-l', B: 'q-wood', K: 'av-black', P: 'pink'}, seq: [0, 0, 1, 0],
+     rows: ['.BB..BB.', '.BbbbbB.', '.bKbbKb.', '.bbBBbb.', '..bKKb..', '.bbPPbb.', 'bbbbbbbb', '.bb..bb.'],
+     frames: [null, ['.BB..BB.', '.BbbbbB.', '.bKbbKb.', '.bbBBbbb', '..bKKb.b', '.bbPPbb.', 'bbbbbbb.', '.bb..bb.']]},
+    {id: 'ladybug', name: 'Ladybug', unlock: ss('pet:ladybug'), pal: {R: 'red', K: 'av-black', W: 'white-hi'}, seq: [0, 0, 1, 0],
+     rows: ['..K..K..', '...KK...', '..KWWK..', '.RRKKRR.', 'RKRKKRKR', 'RRRKKRRR', 'RKRKKRKR', '.RRKKRR.'],
+     frames: [null, ['..K..K..', '...KK...', '..KWWK..', 'RR.KK.RR', 'RKRKKRKR', 'RRRKKRRR', 'RKRKKRKR', '.RRKKRR.']]},
+    {id: 'hermitcrab', name: 'Hermit Crab', unlock: ss('pet:hermitcrab'), pal: {S: 'amber', s: 'amber-ink', R: 'red', K: 'av-black', W: 'white-hi'}, seq: [0, 1, 0, 1],
+     rows: ['....SSS.', '...SsSSS', '..SSsSsS', 'K..SSSSS', 'RWRRRRR.', 'RRRRRRRR', '.R.R.R.R', '........'],
+     frames: [null, ['....SSS.', '...SsSSS', '..SSsSsS', 'K..SSSSS', 'RWRRRRR.', 'RRRRRRRR', 'R.R.R.R.', '........']]});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:

@@ -94,10 +94,13 @@ window.Arcade = window.Arcade || {};
         `<li class="ev-step${s.owned ? ' done' : ''}"><div class="ev-item">${s.item ? itemPreview(s.item, !s.owned) : ''}</div>` +
         `<div class="ev-goal"><b>${esc(s.label)}</b><span class="ev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${s.n}" aria-valuenow="${s.have}" aria-label="${esc(s.label)}">` +
         `<i style="width:${pct(s)}%"></i></span><small>${s.owned ? '✓ Earned: yours to keep!' : `${s.have} of ${s.n}`}</small></div></li>`).join('') + `</ol></section>` +
+      shopLine(ev) +
       `<p class="muted ev-foot">Only what you do during ${esc(ev.name)} counts. Items you earn are yours forever. ${esc(ev.name)} comes back every year!</p>` +
       `<div class="acts"><label class="ev-decot"><input type="checkbox" class="ev-deco-cb"${S().lookOn() ? ' checked' : ''}> Seasonal look</label>` +
       `<button type="button" class="btn btn-secondary ev-close">Close</button></div></div>`;
     ov.querySelector('.ev-close').addEventListener('click', close);
+    const shop = ov.querySelector('.ev-shop');              // THE SEASONAL SHELF: close this panel, open the Prize Counter
+    if (shop) shop.addEventListener('click', () => { close(); A.Prizes.open({onClose: () => { const b = document.querySelector('.ev-banner'); if (b) b.focus({preventScroll: true}); }}); });
     ov.querySelector('.ev-deco-cb').addEventListener('change', e => { S().setLookOn(e.target.checked); if (A.Sfx) A.Sfx.event('ui-toggle'); render(); });
     const cl = ov.querySelector('.ev-claim');
     if (cl) cl.addEventListener('click', () => {
@@ -109,6 +112,12 @@ window.Arcade = window.Arcade || {};
     (ov.querySelector('.ev-claim') || ov.querySelector('.ev-close')).focus({preventScroll: true});
     ov.scrollTop = keep;
     if (fresh.length) celebrate(fresh);
+  }
+  /** "New on the Prize Counter: 3 Spooky Season prizes" (shared/tokens.js seasonal(): bought with tokens, not earned) */
+  function shopLine(ev) {
+    const sea = A.Tokens && A.Prizes && A.Tokens.seasonal();
+    if (!sea || sea.ev.id !== ev.id) return '';
+    return `<p class="ev-shopline"><button type="button" class="btn btn-secondary btn-small ev-shop">New on the Prize Counter: ${sea.items.length} ${esc(ev.name)} prizes</button></p>`;
   }
   /* the arcade's usual UNLOCKED! card (Skins.catchUp: WEAR IT), over the panel */
   function celebrate(keys) {

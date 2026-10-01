@@ -95,7 +95,7 @@ test('buying at one counter shows OWNED at the other (both ways)', async ({page}
   const watch = await prepare(page, {store: store()});
   await floor(page);
   await page.evaluate(() => Arcade.Tokens.add(2000));
-  const key = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && it.key !== w.key && it.full === 150).key; });
+  const key = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && !it.season && it.key !== w.key && it.full === 150).key; });
   const name = await page.evaluate(k => Arcade.Tokens.item(k).name, key);
   await openCounter(page);
   await page.locator(`.pz-wall [data-key="${key}"]`).click();
@@ -114,7 +114,7 @@ test('buying at one counter shows OWNED at the other (both ways)', async ({page}
   await booth(page);
   await page.locator('.q-booth .q-btn', {hasText: 'Player items'}).click();
   await expect(page.locator('.q-cosshop .q-btn', {hasText: name})).toContainText('OWNED');
-  const other = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && it.key !== w.key && it.full === 200 && !Arcade.Tokens.owned(it.key)); });
+  const other = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && !it.season && it.key !== w.key && it.full === 200 && !Arcade.Tokens.owned(it.key)); });
   await page.locator('.q-cosshop .q-btn', {hasText: other.name}).click();
   await expect(page.locator('.q-cosshop')).toContainText(`The ${other.name} is yours`);
   expect(await page.evaluate(() => Arcade.Tokens.balance())).toBe(1650);
@@ -183,7 +183,7 @@ test('the Prize of the Week: the same on every device, a new one next week, neve
   await page.goto(`index.html?demo&nostart&today=${TODAY}`);
   await page.waitForFunction(() => window.Arcade && Arcade.Tokens && Arcade.Avatar);
   const r = await page.evaluate(() => {
-    const T = Arcade.Tokens, pool = T.catalog().filter(it => !it.questOnly).map(it => it.key), out = [];
+    const T = Arcade.Tokens, pool = T.catalog().filter(it => !it.questOnly && !it.season).map(it => it.key), out = [];
     const d0 = new Date(2024, 0, 1);
     for (let i = 0; i < pool.length * 3; i++) out.push(T.weekly(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 7 * i)).key);
     const rounds = [0, 1, 2].map(k => out.slice(k * pool.length, (k + 1) * pool.length));
@@ -231,7 +231,7 @@ test('the weekly discount at the Prize Counter and at the Token Booth (⭐ WEEKL
 test('the wish bar: tokens + stars waiting at the counter, then "You can get your wish!"', async ({page}) => {
   const watch = await prepare(page, {store: store()});
   await floor(page); await earn(page); await floor(page);           // 6 new stars = 30 tokens waiting
-  const key = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && it.full === 300 && it.key !== w.key).key; });
+  const key = await page.evaluate(() => { const w = Arcade.Tokens.weekly(); return Arcade.Tokens.catalog().find(it => !it.questOnly && !it.season && it.full === 300 && it.key !== w.key).key; });
   const name = await page.evaluate(k => Arcade.Tokens.item(k).name, key);
   await page.evaluate(() => Arcade.Tokens.add(180));
   await openCounter(page);

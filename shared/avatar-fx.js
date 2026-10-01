@@ -295,6 +295,26 @@ window.Arcade = window.Arcade || {};
       }
       x.globalAlpha = 1;
     },
+    /* MUSIC NOTE SPARKLES (the seasonal shop, Music In Our Schools Month): a few gold notes drifting slowly up beside
+       the head, each with a soft four-point twinkle that fades in and out (a 5–7 s cycle: never a blink), fading as
+       they near the face; behind: two dim sparkles. The still picture (reduced motion, Motion off) = one frame. */
+    notesparkles(x, u, t, layer) {
+      const back = layer === 'back', n = back ? 2 : 4;
+      for (let i = 0; i < n; i++) {
+        const k = i + (back ? 400 : 420), c = fract(t / (6 + hash(k) * 2) + hash(k + 1));
+        const px = SIDE(k) + Math.sin(t * .5 + k) * .8, py = 34 - c * 32;
+        const a = Math.sin(c * Math.PI) * (back ? .45 : .9) * (back ? 1 : faceFade(px, py));
+        if (a < .02) continue;
+        x.globalAlpha = a;
+        if (back) star4(x, u, px, py, 1.8, col('yellow-hi', .8));
+        else {
+          note(x, u, px, py, col(i % 2 ? 'yellow' : 'amber-hi'));
+          const tw = Math.pow(Math.max(0, Math.sin(t * TAU / (5 + i) + k)), 2);
+          if (tw > .05) { x.globalAlpha = a * tw; star4(x, u, px + 3, py - 3.5, 1.4, col('white-hi')); }
+        }
+      }
+      x.globalAlpha = 1;
+    },
     /* Floating hearts: little pixel hearts in pinks and reds rising slowly beside the head, fading in and out */
     hearts(x, u, t, layer) {
       const back = layer === 'back', n = back ? 3 : 5, cols = ['pink', 'pink-hi', 'red', 'red-hi'];

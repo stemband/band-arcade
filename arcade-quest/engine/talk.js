@@ -10,7 +10,7 @@
    PRIZE COUNTER (shared/prizes.js), so a star turned in at either counter is never counted again and an item bought at
    either shows OWNED at the other. The booth SELLS: avatar items (shared/avatar-parts.js items with unlock {shop:
    price}: owned forever and worn everywhere), including the MANOR COLLECTION (unlock.booth 'quest': only here, tagged
-   "MANOR COLLECTION: only here!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
+   "MANOR COLLECTION: only here!"), the SEASONAL SHOP's items during their event (first, "SEASONAL: gone in 12 days!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
    QUEST_CHARMS with a price; ARCADE QUEST ONLY). Q.talk.charms() = the CHARMS panel (pause menu): 2 slots, owned
    charms to wear, and how to find the rest. */
 (function (A) {
@@ -257,7 +257,9 @@
   function cosmeticShop() {
     return new Promise(done => {
       // every item for tokens (shared/tokens.js catalog): the Manor Collection first (only here!), then by price
-      const AV = A.Avatar, stock = AV ? T().catalog().slice().sort((a, b) => (b.questOnly - a.questOnly) || (a.full - b.full)) : [];
+      // SEASONAL items (the seasonal shop) only while their event runs, first, tagged "SEASONAL"
+      const AV = A.Avatar, stock = AV ? T().catalog().filter(it => it.onSale).sort((a, b) => (!!b.season - !!a.season) || (b.questOnly - a.questOnly) || (a.full - b.full)) : [];
+      const sea = T().seasonal();
       const bgOf = it => it.field === 'bg' && A.AvatarBg ? ` style="background-image:url(${A.AvatarBg.stillURL(it.id, 128)})"` : '';   // a background: behind you
       const bust = it => AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null});
       const pic = it => {
@@ -267,7 +269,7 @@
         return `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${bust(it)}">`;
       };
       const own = it => T().owned(it.key);
-      const tags = it => (it.questOnly ? '<span class="q-tag q-manor">MANOR COLLECTION: only here!</span>' : '') + (T().price(it.key).weekly ? '<span class="q-tag q-weekly">⭐ WEEKLY</span>' : '');
+      const tags = it => (it.season && sea ? `<span class="q-tag q-season">SEASONAL: ${sea.left}</span>` : '') + (it.questOnly ? '<span class="q-tag q-manor">MANOR COLLECTION: only here!</span>' : '') + (T().price(it.key).weekly ? '<span class="q-tag q-weekly">⭐ WEEKLY</span>' : '');
       const cost = it => { const p = T().price(it.key); return p.weekly ? `<s>${p.full}</s> ${p.price} tokens` : `${p.price} tokens`; };
       const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}${tags(it)}`, sub: own(it) ? 'OWNED' : cost(it), cls: (own(it) ? 'q-owned' : '') + (it.questOnly ? ' q-manoritem' : '')}))
         .concat([{id: null, label: 'Back'}]);

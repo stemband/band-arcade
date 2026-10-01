@@ -276,6 +276,7 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .zs-bar{display:flex;width:100%;height:10px;border-radius:6px;background:var(--floor-3);overflow:hidden;box-shadow:inset 0 0 0 1px var(--amber-ink)}
 .zs-have{background:var(--yellow)}.zs-wait{background:color-mix(in srgb,var(--yellow) 38%,transparent)}
 .zs-wish-go{color:var(--yellow);font-weight:700}
+.zs-wish-left{color:var(--amber-hi);font-weight:700}
 @media (prefers-reduced-motion:no-preference){ .zs-wish.ready .zs-wish-go{animation:zs-ready 2.4s ease-in-out infinite} }
 @keyframes zs-ready{0%,100%{opacity:1}50%{opacity:.6}}
 
@@ -564,3 +565,4 @@ html.slook-still .slook *{animation:none!important}
 .p2-wall{background-image:radial-gradient(circle,var(--pz-peg-hole) 22%,transparent 24%);background-size:10px 10px;border-bottom:4px solid var(--pz-wood-2)}
 .p2-counter{height:14px;border-radius:0 0 6px 6px;background:linear-gradient(color-mix(in srgb,var(--pz-glass) 30%,transparent),var(--pz-wood) 60%)}
 @media (max-width:700px){ .prize2d{display:none} }
+.ev-shopline{margin:10px 0 4px;text-align:center}.ev-shop{min-height:44px}

@@ -112,7 +112,11 @@ window.Arcade = window.Arcade || {};
   const QUEST_V5 = {
     version: 5,
     // QUEST_V4's list (frozen), then new {shop} items (only ever add to the END: 90 places in all)
-    cosmetics: QUEST_V4.cosmetics.concat([]),
+    cosmetics: QUEST_V4.cosmetics.concat([
+      // THE SEASONAL SHOP (avatar-parts.js SEASON_SHOP: bought with tokens during their event)
+      'hand:treatbucket', 'back:webcape', 'pet:blackcat', 'hand:cocoa', 'top:knitsweater', 'pet:snowyowl', 'hand:heartballoon',
+      'plate:candyheart', 'pet:teddy', 'head:marchshako', 'top:tailcoat', 'effect:notesparkles', 'shoes:rainboots', 'hand:umbrella',
+      'pet:ladybug', 'hand:icepop', 'top:hawaiian', 'pet:hermitcrab']),
   };
   const QUEST_DATA_BITS = 110, QUEST_CHECK_BITS = 15, QUEST_CHARS = 25;
   const QUEST_DATA_BITS_2 = 185, QUEST_CHARS_2 = 40, CHARM_SLOTS = 8;

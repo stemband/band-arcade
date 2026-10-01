@@ -101,6 +101,10 @@ window.Arcade = window.Arcade || {};
   function requirement(field, id) {
     const u = (partFor(field, id) || {}).unlock;
     if (!u || identity(field, id)) return '';
+    if (u.shop && u.season) {                  // THE SEASONAL SHOP (shared/tokens.js): bought only during its event
+      const ev = (A.SEASONS || []).find(e => e.id === u.season), name = ev ? ev.name : 'its season';
+      return A.Tokens && A.Tokens.seasonOn(u.season) ? `Prize Counter: ${u.shop} tokens (${name} only)` : `Returns to the Prize Counter next ${name}`;
+    }
     if (u.shop) return u.booth === 'quest' ? `${u.shop} tokens at the Token Booth in Arcade Quest` : `${u.shop} tokens at the Prize Counter`;   // (shared/tokens.js)
     if (u.event) return A.Seasons ? A.Seasons.requirement(itemKey(field, id)) : u.text || 'A seasonal event item';
     if (u.stars && !u.game) return `Earn ${u.stars} ★`;

@@ -29,6 +29,9 @@
    THE ITEMS themselves live in shared/avatar-parts.js (the SEASONAL ITEMS section at its end) with
    unlock: {event: '<event id>'}. A new item also goes at the END of its list in shared/avatar-code.js TABLE.
    Identity items (head coverings, glasses, hearing aids, the wheelchair) are never event items.
+   EVENT ITEMS ARE EARNED, SEASONAL SHOP ITEMS ARE BOUGHT: NEVER MIX THEM. The items here (gift + ladder, unlock
+   {event}) are never sold. The Prize Counter's SEASONAL SHELF sells OTHER, new items during each event (avatar-parts.js
+   SEASON_SHOP, unlock {shop, season}; shared/tokens.js); never put one of those in a gift or a ladder.
    An event's look always wins over a BACKGROUND-ONLY SEASON (below) on the same days.
    ========================================================================================== */
 window.Arcade = window.Arcade || {};

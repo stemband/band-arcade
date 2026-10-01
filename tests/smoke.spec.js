@@ -10,14 +10,14 @@ const SIZES = Object.entries(VIEWPORTS);
 for (const P of PAGES) {
   test(`smoke: ${P.name}`, async ({page}, info) => {
     const watch = await prepare(page);
-    await page.setViewportSize(SIZES[0][1]);
+    await page.setViewportSize((P.sizes || SIZES)[0][1]);
     await page.goto(P.url, {waitUntil: 'load'});
     await page.waitForTimeout(900);
     // a game's PRESS START screen: tap it, so the level screen underneath is checked too
     const ps = page.locator('.ps-screen');
     if (await ps.isVisible().catch(() => false)) { await ps.click({position: {x: 20, y: 200}}); await page.waitForTimeout(700); }
     if (P.open) await P.open(page);
-    for (const [label, size] of SIZES) {
+    for (const [label, size] of P.sizes || SIZES) {
       await page.setViewportSize(size);
       await page.waitForTimeout(450);
       const bad = await offscreen(page);
