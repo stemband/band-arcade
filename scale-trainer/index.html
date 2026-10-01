@@ -8,7 +8,7 @@
 <script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
 <script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
 <title>Scale Trainer</title>
-<meta name="description" content="Practice your GMEA All-State and District Honor Band scales: Concert F, B♭, E♭ and A♭ from memory, against the clock, and the chromatic.">
+<meta name="description" content="Practice your GMEA All-State and District Honor Band scales, Middle School, Concert Band or Symphonic Band: every scale in audition order, against the clock, and the chromatic.">
 <meta name="theme-color" content="#0b0716">
 <link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../shared/fonts.css">
@@ -25,8 +25,10 @@
     <div class="hub-head">
       <h1 class="game-title">Scale <span>Trainer</span></h1>
       <p class="sa-rule" id="saRule">GMEA All-State (First Round) &amp; District Honor Band: same scales, same rules.</p>
-      <p class="ui-howto" id="howto">Play your four scales in audition order (Concert F, B♭, E♭, A♭), each up and down with its arpeggio, then the chromatic. The microphone follows every note.</p>
+      <p class="ui-howto" id="howto">Play your scales in audition order, each up and down with its arpeggio, then the chromatic. The microphone follows every note.</p>
     </div>
+    <!-- THE SECTIONS: Middle School, Concert Band, Symphonic Band (shared/scales.js SECTIONS; remembered) -->
+    <div class="sa-secs" id="secPick" role="group" aria-label="Section"></div>
     <div class="sa-modes">
       <div class="ui-seg sa-seg" id="modeSeg" role="group" aria-label="Mode">
         <button type="button" data-mode="practice" aria-pressed="false">Practice</button>
@@ -42,6 +44,9 @@
           <button type="button" data-g="0" aria-pressed="true">Off</button><button type="button" data-g="60" aria-pressed="false">♩ = 60</button><button type="button" data-g="80" aria-pressed="false">♩ = 80</button><button type="button" data-g="100" aria-pressed="false">♩ = 100</button>
         </div></div>
       <div class="sa-opt"><span class="ui-label" id="nbnL">Note by note</span><button type="button" class="ui-switch" role="switch" id="nbnSw" aria-checked="false" aria-labelledby="nbnL"></button></div>
+    </div>
+    <div class="sa-opts" id="auditionOpts" hidden>
+      <div class="sa-opt"><span class="ui-label" id="memL">From memory</span><button type="button" class="ui-switch" role="switch" id="memSw" aria-checked="false" aria-labelledby="memL"></button><small class="sa-opt-note">Levels 3–4: hide the music (same stars, a ★ From memory mark)</small></div>
     </div>
     <p class="sa-note" id="modeNote"></p>
     <div class="levels" id="levelGrid"></div>

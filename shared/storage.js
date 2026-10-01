@@ -307,11 +307,12 @@ window.Arcade = window.Arcade || {};
     starsForPlayer(memberId) { return this.allStars(memberId); },
     /** the most stars any instrument has earned on one level of a game, in ANY mode (every progress key of that
         game: '<gameId>' and '<gameId>:…'). Used by skin achievements ("clear The Golden Vault"). suffix: only keys
-        ending in it (Showtime Malfunction's NIGHTMARE keys end in ':extra'). */
-    bestLevelStars(gameId, lvl, suffix) {
+        ending in it (Showtime Malfunction's NIGHTMARE keys end in ':extra'). exact: only the plain '<gameId>' key
+        (Scale Trainer's Middle School levels; its high school sections save under 'scale-trainer:cb' / ':sb'). */
+    bestLevelStars(gameId, lvl, suffix, exact) {
       let best = 0;
       Object.keys(data.games || {}).forEach(k => {
-        if (k !== gameId && k.indexOf(gameId + ':') !== 0) return;
+        if (k !== gameId && (exact || k.indexOf(gameId + ':') !== 0)) return;
         if (suffix && k.slice(-suffix.length) !== suffix) return;
         Object.values(data.games[k] || {}).forEach(lv => { const p = lv && lv[lvl]; if (p && p.stars > best) best = p.stars; });
       });

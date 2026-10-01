@@ -58,7 +58,7 @@ window.Arcade = window.Arcade || {};
     ["hand", 5, ["none", "baton", "drumsticks", "glowstick", "mic", "wand", "trophy", "citykey", "rose", "goldbaton", "beachball", "tumbler-pink", "tumbler-blue", "tumbler-lime", "tumbler-sunset", "tumbler-galaxy", "tumbler-diamond", "treatbucket", "cocoa", "heartballoon", "umbrella", "icepop", "tuningfork"]],
     ["effect", 6, ["none", "notes", "orbit", "aura", "sparkles", "sparks", "bubbles", "snow", "confetti", "bndiamond", "spookyglow", "snowfall", "hearts", "blossoms", "grandmaster", "notesparkles"]],
     ["effectColor", 5, ["cyan", "pink", "yellow", "purple", "green", "amber"]],
-    ["plate", 7, ["none", "simple", "notes", "gold", "neon", "flames", "belt-white", "belt-yellow", "belt-orange", "belt-green", "belt-blue", "belt-purple", "belt-red", "belt-brown", "belt-black", "belt-diamond", "bn-white", "bn-yellow", "bn-orange", "bn-green", "bn-blue", "bn-purple", "bn-red", "bn-brown", "bn-black", "bn-diamond", "hearts", "blossom", "sunset", "candyheart", "ladder"]],
+    ["plate", 7, ["none", "simple", "notes", "gold", "neon", "flames", "belt-white", "belt-yellow", "belt-orange", "belt-green", "belt-blue", "belt-purple", "belt-red", "belt-brown", "belt-black", "belt-diamond", "bn-white", "bn-yellow", "bn-orange", "bn-green", "bn-blue", "bn-purple", "bn-red", "bn-brown", "bn-black", "bn-diamond", "hearts", "blossom", "sunset", "candyheart", "ladder", "cbready", "sbready"]],
     ["belt", 6, ["none", "white", "yellow", "orange", "green", "blue", "purple", "red", "brown", "black", "diamond"]],
     ["name.title", 8, NAMED('titles')],
     ["name.adj", 8, NAMED('adjectives')],

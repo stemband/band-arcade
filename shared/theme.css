@@ -352,6 +352,8 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-gold{border-color:var(--yellow);background:linear-gradient(180deg,color-mix(in srgb,var(--yellow) 30%,transparent),color-mix(in srgb,var(--amber) 16%,transparent));box-shadow:0 0 0 1px var(--amber-ink) inset}
 .av-plate-neon{border-color:var(--cyan);box-shadow:var(--glow-cyan);background:color-mix(in srgb,var(--cyan) 12%,transparent)}
 .av-plate-ladder{border-color:var(--yellow);background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--tu-wicker) 40%,transparent) 0 3px,transparent 3px 14px),color-mix(in srgb,var(--yellow) 10%,transparent);box-shadow:0 0 0 1px var(--tu-wicker-2) inset}
+.av-plate-cbready{border-color:var(--yellow);background:repeating-linear-gradient(180deg,transparent 0 4px,color-mix(in srgb,var(--cyan) 22%,transparent) 4px 5px),color-mix(in srgb,var(--cyan) 8%,transparent);box-shadow:0 0 0 1px var(--cyan) inset}
+.av-plate-sbready{border-color:var(--yellow);background:repeating-linear-gradient(180deg,transparent 0 4px,color-mix(in srgb,var(--purple) 26%,transparent) 4px 5px),color-mix(in srgb,var(--yellow) 12%,transparent);box-shadow:0 0 0 1px var(--purple) inset,var(--glow-yellow)}
 .av-plate-flames{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--red) 45%,transparent),color-mix(in srgb,var(--amber) 22%,transparent) 55%,transparent)}
 .av-plate-notes{border-color:var(--pink)}
 .av-plate-notes::before,.av-plate-notes::after{content:"♪";color:var(--pink-hi);margin:0 4px}
