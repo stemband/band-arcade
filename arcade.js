@@ -617,5 +617,14 @@
     A.params = new URLSearchParams(location.search);
     if (A.Prizes && !pressStart()) setTimeout(() => A.Prizes.open({onClose: focusView}), 0);
   }
+  /* index.html?leaderboard: the LEADERBOARD screen (leaderboard-screen.js), from a game page's avatar badge ("Leaderboard:
+     Grade 7 · change"). Opened once; the flag leaves the address. */
+  if (A.params.has('leaderboard')) {
+    const p = new URLSearchParams(location.search); p.delete('leaderboard');
+    const q = p.toString().replace(/=(?=&|$)/g, '');
+    try { history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (e) { /* file:// */ }
+    A.params = new URLSearchParams(location.search);
+    if (A.LeaderboardScreen && !pressStart()) setTimeout(() => A.LeaderboardScreen.open(), 0);
+  }
   A.Arcade = {state: () => ({view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
 })(window.Arcade);

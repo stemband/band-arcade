@@ -188,3 +188,10 @@
 .btn-edit:focus-visible{outline:3px solid var(--cyan-hi);outline-offset:2px}
 .phase2 .btn-edit{border-color:var(--pink);color:var(--pink-hi)}
 .c-pic .av-box{width:100%}
+
+/* THE TROPHY SHELF (WEEKLY CHAMPIONS): under the stars */
+.card-trophies{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:4px 0 0;padding:4px 12px;border-radius:999px;border:1px solid var(--yellow);
+  background:color-mix(in srgb,var(--yellow) 10%,transparent);color:var(--text-hi);font:700 15px var(--text);cursor:pointer}
+.card-trophies b{font:400 18px var(--display);color:var(--yellow)}
+.card-trophies[hidden],.card-trophy-list[hidden]{display:none}
+.card-trophy-list{list-style:none;margin:6px 0 0;padding:8px 10px;border-radius:10px;background:var(--floor-2);color:var(--text-lo);font-size:14px;display:grid;gap:4px}

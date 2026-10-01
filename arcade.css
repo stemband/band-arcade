@@ -655,3 +655,59 @@ html.slook-still .slook *{animation:none!important}
 .p2-counter{height:14px;border-radius:0 0 6px 6px;background:linear-gradient(color-mix(in srgb,var(--pz-glass) 30%,transparent),var(--pz-wood) 60%)}
 @media (max-width:700px){ .prize2d{display:none} }
 .ev-shopline{margin:10px 0 4px;text-align:center}.ev-shop{min-height:44px}
+
+/* ---------- WEEKLY CHAMPIONS (champion-lobby.js): the lobby's CHAMPION card ---------- */
+.ch-pan{position:relative;max-width:520px;width:100%;text-align:center;overflow:hidden;border-color:var(--yellow);box-shadow:0 0 0 1px var(--amber-ink) inset,var(--glow-yellow)}
+.ch-stage{position:relative;display:grid;place-items:center;height:clamp(150px,30vh,210px);margin:-4px auto 6px}
+.ch-spot{position:absolute;inset:0 12%;background:radial-gradient(ellipse 50% 60% at 50% 70%,color-mix(in srgb,var(--yellow) 30%,transparent),transparent 70%);
+  clip-path:polygon(38% 0,62% 0,100% 100%,0 100%)}
+.ch-stage .avf-still,.ch-stage .ch-bust{position:relative;height:100%;max-height:200px}
+.ch-stage .avf-img{height:100%;width:auto;image-rendering:pixelated}
+.ch-cup{position:absolute;right:calc(50% - 92px);top:12%;font-size:40px;filter:drop-shadow(0 0 6px var(--amber))}
+.ch-title{margin:2px 0 8px;font-size:clamp(28px,7vw,38px)}
+.ch-lines{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px;color:var(--text-hi);font-size:17px;line-height:1.35}
+.ch-lines li{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--yellow) 10%,transparent);border:1px solid color-mix(in srgb,var(--yellow) 35%,transparent)}
+.ch-name{margin:0 0 8px;font:400 16px var(--display);color:var(--cyan-hi);letter-spacing:.06em}
+.ch-tokens{margin:0 0 10px;font:400 24px var(--display);color:var(--amber-hi);display:flex;align-items:center;justify-content:center;gap:8px}
+.ch-small{margin:0 0 14px;color:var(--text-lo);font-size:14px}
+.ch-small code{font:700 15px ui-monospace,Menlo,Consolas,monospace;color:var(--text-hi);letter-spacing:.08em}
+.ch-pan .acts{display:flex;justify-content:center}
+.ch-pan .ch-claim{min-width:180px}
+.ch-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.ch-confetti i{position:absolute;top:-14px;width:8px;height:12px;border-radius:2px;opacity:0;
+  background:var(--pink);animation:ch-fall 2.4s ease-in 0s 1 forwards}
+.ch-confetti i:nth-child(4n+1){background:var(--yellow)}.ch-confetti i:nth-child(4n+2){background:var(--cyan)}.ch-confetti i:nth-child(4n+3){background:var(--green)}
+@keyframes ch-fall{0%{opacity:1;transform:translateY(0) rotate(0)}85%{opacity:1}100%{opacity:0;transform:translateY(560px) rotate(540deg)}}
+.ch-ov .ch-pan{animation:ch-in .35s ease-out}
+.ch-ov.ch-still .ch-pan{animation:ch-fade .4s ease-out}
+@keyframes ch-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes ch-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.ch-confetti{display:none}.ch-ov .ch-pan{animation:ch-fade .4s ease-out}}
+html.no-motion .ch-confetti{display:none}
+
+/* LAST WEEK'S CHAMPIONS (leaderboard-screen.js) */
+.lb-champs{margin:10px 0 4px;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--yellow) 45%,transparent);background:color-mix(in srgb,var(--yellow) 7%,transparent)}
+.lb-champs-t{margin:0 0 8px;font:400 15px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--yellow)}
+.lb-plaques{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+@media (max-width:560px){.lb-plaques{grid-template-columns:1fr 1fr;gap:6px}.lb-plaque{padding:6px 8px}.lb-pl-name{font-size:14px}.lb-champs{padding:8px}}
+.lb-plaque{display:grid;gap:2px;padding:8px 10px;border-radius:10px;background:var(--floor-2);border:1px solid var(--floor-3);min-width:0}
+.lb-plaque.me{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.lb-pl-board{font-size:13px;color:var(--text-lo)}
+.lb-pl-name{font-weight:700;color:var(--text-hi);overflow-wrap:anywhere}
+.lb-pl-val{font:400 15px var(--display);color:var(--amber-hi)}
+.lb-cup{font-size:.9em}
+.lb-champ-teach{margin-top:12px;padding-top:10px;border-top:1px dashed var(--floor-3)}
+.lb-champ-teach h3{margin:0 0 6px;font-size:15px}
+.lb-awards{margin:4px 0 8px;padding-left:18px}
+
+/* THE GRADE QUESTION (leaderboard-screen.js askGrade): a lobby card like SAVE YOUR PROGRESS */
+.grade-ask{max-width:1100px;margin:0 auto}
+.grade-ask:empty{display:none}
+.gq-icon{font-size:26px;line-height:1}
+.gq-card .gq-g{min-width:56px;font:400 20px var(--display)}
+
+/* ?teacher: this device's leaderboard state (leaderboard-screen.js deviceDiag) */
+.lb-dev{margin-top:12px;padding-top:10px;border-top:1px dashed var(--floor-3)}
+.lb-dev h3{margin:0 0 6px;font-size:15px}
+.lb-dev-list{margin:4px 0 8px;padding-left:18px}
+.lb-send-res{margin-top:6px}

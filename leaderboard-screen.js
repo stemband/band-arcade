@@ -13,9 +13,13 @@
      - the read failed but this device has that grade's last good board: that board + "Couldn't refresh — showing the
        board from 2 hours ago"; nothing saved (or switched off): "Leaderboard is taking a break. Your progress is still
        saved!"
+   LAST WEEK'S CHAMPIONS (the board read's `champions`; shared/leaderboard.js WEEKLY CHAMPIONS): a strip of plaques above
+   the tabs (board, avatar name, value; this device's one highlighted YOU; none = no strip) and a 🏆 next to anyone on
+   this week's boards who was a champion last week (this grade).
    ?teacher: every entry shows its 6-character id (Mat hides a player by pasting it in the Blocked tab of his Sheet),
    and under the board how the last request went (Leaderboard.lastRequest(): "timeout after 25 s", "offline",
-   "HTTP 500", "not JSON", "network error (CORS or blocked)", how long it took, tried twice).
+   "HTTP 500", "not JSON", "network error (CORS or blocked)", how long it took, tried twice), and under MY SETTINGS this
+   device's champion awards, the last weekly check and CHECK CHAMPIONS NOW.
      Arcade.LeaderboardScreen.open() / close() / state() */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -30,7 +34,7 @@ window.Arcade = window.Arcade || {};
     {id: 'endless', icon: '♾️', name: 'Endless', unit: v => `${Number(v).toLocaleString()}`},
   ];
   const gameName = id => ((A.ALL_GAMES || A.GAMES || []).find(g => g.id === id) || {name: id}).name;
-  const S = {el: null, grade: null, tab: 'stars', game: null, res: null, loading: false, asking: false};
+  const S = {el: null, grade: null, tab: 'stars', game: null, res: null, loading: false, asking: false, checking: false, sending: false, sendRes: ''};
   const sfx = n => { if (A.Sfx) A.Sfx.event(n); };
 
   function ago(t) {
@@ -81,6 +85,7 @@ window.Arcade = window.Arcade || {};
   function close() {
     if (!S.el || S.el.hidden) return;
     S.el.hidden = true; document.body.classList.remove('lb-open');
+    if (A.ChampionLobby) A.ChampionLobby.show();              // a CHAMPION card that waited for this screen
     if (A.lockScroll) A.lockScroll(false);
     document.removeEventListener('keydown', onKey);
     sfx('ui-back');
@@ -116,6 +121,21 @@ window.Arcade = window.Arcade || {};
       if (act === 'tab') { S.tab = t.dataset.tab; if (S.tab === 'endless' && !S.game) S.game = endlessGames(S.res)[0]; sfx('ui-toggle'); draw(); return; }
       if (act === 'game') { S.game = t.dataset.game; sfx('ui-toggle'); draw(); return; }
       if (act === 'refresh') { sfx('ui-toggle'); load(true); return; }
+      if (act === 'send-now') {                               // ?teacher: flush() now, and say how it went
+        S.sending = true; S.sendRes = ''; draw();
+        L().flush().then(r => {
+          S.sending = false;
+          const why = r && r.why ? ` (${r.why})` : '';
+          S.sendRes = !r ? 'Done.' : r.sent ? `Sent ${r.sent}. ${r.left} still waiting${why}.` : r.left ? `Nothing sent: ${r.left} still waiting${why}.` : `Nothing was waiting${why}.`;
+          draw();
+        }, () => { S.sending = false; S.sendRes = 'Something went wrong.'; draw(); });
+        return;
+      }
+      if (act === 'champ-now') {                              // ?teacher: the weekly check now (the card shows when this screen closes)
+        S.checking = true; draw();
+        L().checkChampion({force: true}).then(() => { S.checking = false; draw(); }, () => { S.checking = false; draw(); });
+        return;
+      }
       if (act === 'my-grade') { L().setGrade(+t.dataset.g); S.grade = +t.dataset.g; sfx('ui-toggle'); load(); return; }
     });
     S.el.addEventListener('change', e => {
@@ -138,6 +158,76 @@ window.Arcade = window.Arcade || {};
     const best = me.endless[S.game];
     return best ? `You: best ${tab.unit(best)} this week in ${gameName(S.game)}. Keep going!` : `Play ${gameName(S.game)}'s Endless mode to get on this board!`;
   }
+  /* LAST WEEK'S CHAMPIONS (the board read carries `champions`, shared/leaderboard.js WEEKLY CHAMPIONS): one plaque per
+     board with a champion (everyone tied for 1st), endless ones under their game's name; this device's plaque gets the
+     YOU highlight; no champions at all = no strip */
+  const champsOf = res => (res && res.ok && res.data && res.data.champions) || null;
+  function champStrip(res) {
+    const ch = champsOf(res);
+    if (!ch) return '';
+    const plaques = [];
+    TABS.filter(t => t.id !== 'endless').forEach(t => (ch[t.id] || []).forEach(e => plaques.push({t, e, label: L().boardName(t.id)})));
+    Object.keys(ch.endless || {}).forEach(g => (ch.endless[g] || []).forEach(e => plaques.push({t: TABS[3], e, label: L().boardName('endless:' + g)})));
+    if (!plaques.length) return '';
+    return `<section class="lb-champs" aria-labelledby="lbChampsT"><h3 class="lb-champs-t" id="lbChampsT"><span aria-hidden="true">🏆</span> Last week's champions</h3><ul class="lb-plaques">` +
+      plaques.map(({t, e, label}) => {
+        const me = L().isMe(e), name = A.Avatar && A.Avatar.nameFromNumbers ? A.Avatar.nameFromNumbers(e.name) : 'Mystery Player';
+        return `<li class="lb-plaque${me ? ' me' : ''}"><span class="lb-pl-board"><span aria-hidden="true">${t.icon}</span> ${esc(label)}</span>` +
+          `<span class="lb-pl-name">${esc(name)}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
+          `<span class="lb-pl-val">${esc(t.unit(e.value))}</span></li>`;
+      }).join('') + `</ul></section>`;
+  }
+  /** the ids that were a champion last week (this grade): a 🏆 on this week's boards, so the class sees who's defending */
+  function defending(res) {
+    const ch = champsOf(res), ids = new Set();
+    if (!ch) return ids;
+    ['stars', 'improved', 'streak'].forEach(b => (ch[b] || []).forEach(e => e && e.id && ids.add(e.id)));
+    Object.values(ch.endless || {}).forEach(l => (l || []).forEach(e => e && e.id && ids.add(e.id)));
+    return ids;
+  }
+  /** ?teacher: this device's awards and how the last weekly check went, + CHECK CHAMPIONS NOW */
+  function champTeacher() {
+    const c = L().champState ? L().champState() : null;
+    if (!c) return '';
+    const list = Object.keys(c.awards).sort().reverse().flatMap(w => Object.keys(c.awards[w]).map(b =>
+      `<li>Week of ${esc(L().weekName(w))}: ${esc(L().boardName(b))} (${esc(L().boardValue(b, c.awards[w][b].value))})${c.awards[w][b].claimed ? ' · claimed' : ' · waiting'}</li>`));
+    const lastLine = !c.last ? 'none yet' : c.last.ok ? `OK${c.last.found ? `, ${c.last.found} found` : ', nothing found'}` : `failed: ${c.last.why}`;
+    return `<section class="lb-champ-teach" aria-label="Weekly champions (teacher)"><h3>Weekly champions (teacher)</h3>` +
+      `<p class="lb-note">This device: ID <code>${esc(c.id || 'none yet')}</code> · checked week: ${esc(c.checkedWeek || 'not yet')} (last week = ${esc(c.lastWeek)}) · last check: ${esc(lastLine)}</p>` +
+      (list.length ? `<ul class="lb-note lb-awards">${list.join('')}</ul>` : `<p class="lb-note">No awards on this device.</p>`) +
+      `<button type="button" class="btn btn-secondary btn-small lb-champ-now" data-act="champ-now"${S.checking ? ' disabled' : ''}>${S.checking ? 'Checking…' : 'Check champions now'}</button></section>`;
+  }
+  /** this device has stars this week but isn't on its grade's stars board (where those stars would put it), and the
+      board isn't stale: a calm line, never an error ("Still sending…" while events wait, else ask Mr. Graham) */
+  function missingLine(shown) {
+    const st = L().settings();
+    if (!shown || !shown.ok || shown.stale || !st.on || !st.grade || S.grade !== st.grade) return '';
+    const n = L().mine().stars, rows = ((shown.data && shown.data.boards) || {}).stars || [];
+    if (!(n > 0) || rows.some(e => L().isMe(e))) return '';
+    const lastVal = rows.length ? +rows[rows.length - 1].value || 0 : 0;
+    if (rows.length >= 10 && n < lastVal) return '';            // below a full top 10: that's the "Keep going!" line's job
+    const waiting = L().queue().length + (L().heldCount ? L().heldCount() : 0);
+    return waiting ? `Your stars this week: ${n}. Still sending…` : 'Not showing up? Ask Mr. Graham to check.';
+  }
+  /** ?teacher: this device's leaderboard state + SEND NOW */
+  function deviceDiag() {
+    const d = L().diag ? L().diag() : null;
+    if (!d) return '';
+    const when = t => t ? `${agoPlain(t)} (${new Date(t).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})})` : 'never';
+    const lr = d.last ? (d.last.ok ? `OK in ${(d.last.ms / 1000).toFixed(1)} s, ${agoPlain(d.last.at)}` : `failed: ${d.last.why}, ${agoPlain(d.last.at)}`) : 'none yet';
+    return `<section class="lb-dev" aria-label="This device (teacher)"><h3>This device (teacher)</h3><ul class="lb-note lb-dev-list">` +
+      `<li>Grade: <b>${d.grade ? esc(d.grade) : 'not chosen'}</b></li>` +
+      `<li>Show me on the leaderboard: <b>${d.on ? 'on' : 'off'}</b>${!d.available ? ' (no scoreboard address)' : ''}${d.demo ? ' (?demo: nothing is sent)' : ''}</li>` +
+      `<li>ID: <code>${esc(d.id || 'none yet')}</code></li>` +
+      `<li>Waiting: <b>${d.queue}</b> in the queue, <b>${d.held}</b> held (no grade yet)</li>` +
+      `<li>Stars this week on this device: <b>${d.weekStars}</b></li>` +
+      `<li>Last request: ${esc(lr)}</li>` +
+      `<li>Last event accepted: ${esc(when(d.lastOk))}${d.lastRefused ? ` · last refused: ${esc(d.lastRefused.why)}, ${esc(agoPlain(d.lastRefused.at))}` : ''}</li>` +
+      (d.regrade ? `<li>Grade changed ${esc(d.regrade.from)} → ${esc(d.regrade.to)} on ${esc(d.regrade.day)}</li>` : '') +
+      `<li>Sent in the last hour: ${d.sentLastHour} (at most ${L().PER_HOUR})</li></ul>` +
+      `<button type="button" class="btn btn-secondary btn-small lb-send-now" data-act="send-now"${S.sending ? ' disabled' : ''}>${S.sending ? 'Sending…' : 'Send now'}</button>` +
+      (S.sendRes ? `<p class="lb-note lb-send-res" role="status">${esc(S.sendRes)}</p>` : '') + `</section>`;
+  }
   function draw() {
     if (!S.el) return;
     const st = L().settings();
@@ -152,43 +242,112 @@ window.Arcade = window.Arcade || {};
     }
     const rows = rowsFor(), tab = TABS.find(t => t.id === S.tab);
     const gradeSw = `<div class="lb-gradesw" role="group" aria-label="Grade">` + L().GRADES.map(g =>
-      `<button type="button" class="lb-gs${g === S.grade ? ' on' : ''}" data-act="grade" data-g="${g}" aria-pressed="${g === S.grade}">Grade ${g}${g === st.grade ? '<small>you</small>' : ''}</button>`).join('') + `</div>`;
+      `<button type="button" class="lb-gs${g === S.grade ? ' on' : ''}" data-act="grade" data-g="${g}" aria-pressed="${g === S.grade}">Grade ${g}${g === st.grade ? '<small> · you</small>' : ''}</button>`).join('') + `</div>`;
     const tabs = `<div class="lb-tabs" role="tablist">` + TABS.map(t =>
       `<button type="button" role="tab" class="lb-tab" data-act="tab" data-tab="${t.id}" aria-selected="${t.id === S.tab}"><span aria-hidden="true">${t.icon}</span> ${esc(t.name)}</button>`).join('') + `</div>`;
     const games = S.tab === 'endless' ? `<div class="lb-games" role="group" aria-label="Game">` + endlessGames(S.res).map(g =>
       `<button type="button" class="lb-gm${g === S.game ? ' on' : ''}" data-act="game" data-game="${esc(g)}" aria-pressed="${g === S.game}">${esc(gameName(g))}</button>`).join('') + `</div>` : '';
     let body;
     const shown = S.res && S.res.grade === S.grade ? S.res : null;       // (another grade's board never shows under this one)
+    const champIds = defending(shown);
     if (S.loading && !(shown && shown.ok)) body = `<p class="ui-msg loading lb-msg lb-loading" role="status">Loading the leaderboard…</p>`;
     else if (!S.res || !S.res.ok) body = `<p class="ui-msg lb-msg lb-break">Leaderboard is taking a break. Your progress is still saved!</p>`;
     else if (!rows.length) body = `<p class="ui-msg lb-msg">Nobody is on this board yet this week. Be the first!</p>`;
     else body = `<ol class="lb-list">` + rows.slice(0, 10).map((e, i) => {
-      const me = L().isMe(e), medal = ['gold', 'silver', 'bronze'][i] || '';
+      const me = L().isMe(e), medal = ['gold', 'silver', 'bronze'][i] || '', cup = champIds.has(e.id);
       const name = A.Avatar && A.Avatar.nameFromNumbers ? A.Avatar.nameFromNumbers(e.name) : 'Mystery Player';
       return `<li class="lb-row${medal ? ' m-' + medal : ''}${me ? ' me' : ''}"><span class="lb-rank">${i + 1}</span>` +
-        `<span class="lb-name">${esc(name)}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
+        `<span class="lb-name">${esc(name)}${cup ? ' <span class="lb-cup" title="Last week\'s champion" aria-label="last week\'s champion">🏆</span>' : ''}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
         `<span class="lb-val">${esc(tab.unit(e.value))}</span></li>`;
     }).join('') + `</ol>`;
     if (shown && shown.ok && shown.stale) body = `<p class="lb-stale" role="status">Couldn't refresh — showing the board from ${esc(agoPlain(S.res.at))}</p>` + body;
     if (TEACHER) body += `<p class="lb-note lb-diag">${esc(diagLine())}</p>`;
-    const own = S.res && S.res.ok ? ownLine(rows) : '';
+    const miss = missingLine(shown);
+    const own = miss ? '' : S.res && S.res.ok ? ownLine(rows) : '';
     const foot = `<p class="lb-foot">Resets every Monday${S.res && S.res.ok ? ` · ${esc(ago(updatedAt(S.res)))}` : ''}` +
       ` <button type="button" class="lb-ref" data-act="refresh"${S.loading ? ' disabled' : ''}>${S.loading ? 'Loading…' : 'Refresh'}</button></p>`;
     const mine = `<section class="lb-mine" aria-label="My settings"><h3>My settings</h3>` +
       `<div class="lb-mrow"><span>My grade:</span>` + L().GRADES.map(g => `<button type="button" class="lb-mg${g === st.grade ? ' on' : ''}" data-act="my-grade" data-g="${g}" aria-pressed="${g === st.grade}">${g}</button>`).join('') + `</div>` +
       `<label class="lb-mrow lb-tog"><input type="checkbox" class="lb-on"${st.on ? ' checked' : ''}> <span>Show me on the leaderboard</span></label>` +
       `<p class="lb-note">Only your avatar name and scores are shared. Never your real name.</p>` +
-      (TEACHER ? `<p class="lb-note lb-teach">Teacher view: the codes are each player's id. Paste one into the Blocked tab of the scoreboard Sheet to hide that player.</p>` : '') + `</section>`;
-    S.el.innerHTML = `<div class="lb-in">${head}${gradeSw}${tabs}${games}<div class="lb-board" aria-live="polite">${body}</div>` +
-      (own ? `<p class="lb-own">${esc(own)}</p>` : '') + foot + mine + `</div>`;
+      (TEACHER ? `<p class="lb-note lb-teach">Teacher view: the codes are each player's id. Paste one into the Blocked tab of the scoreboard Sheet to hide that player.</p>` + deviceDiag() + champTeacher() : '') + `</section>`;
+    S.el.innerHTML = `<div class="lb-in">${head}${gradeSw}${champStrip(shown)}${tabs}${games}<div class="lb-board" aria-live="polite">${body}</div>` +
+      (miss ? `<p class="lb-own lb-missing">${esc(miss)}</p>` : '') + (own ? `<p class="lb-own">${esc(own)}</p>` : '') + foot + mine + `</div>`;
   }
   function state() {
     return {open: !!S.el && !S.el.hidden, asking: S.asking, grade: S.grade, tab: S.tab, game: S.game, ok: !!(S.res && S.res.ok), why: S.res && S.res.why,
-      loading: S.loading, stale: !!(S.res && S.res.stale),
-      rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
+      loading: S.loading, stale: !!(S.res && S.res.stale), missing: S.el && S.el.querySelector('.lb-missing') ? S.el.querySelector('.lb-missing').textContent : '',
+      teacher: S.el && S.el.querySelector('.lb-dev') ? S.el.querySelector('.lb-dev').textContent : '',
+      rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [],
+      plaques: S.el ? [...S.el.querySelectorAll('.lb-plaque')].map(r => ({text: r.textContent.trim(), me: r.classList.contains('me')})) : [],
+      cups: S.el ? [...S.el.querySelectorAll('.lb-row')].filter(r => r.querySelector('.lb-cup')).map(r => r.querySelector('.lb-name').textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
   }
+  /* ---------- THE GRADE QUESTION in the lobby (#gradeAsk, under the lobby cards; styles .gq-* in arcade.css) ----------
+     Nothing reaches a board until a grade is chosen (what's earned before waits HELD: shared/leaderboard.js), and the
+     LEADERBOARD screen was the only place that asked, so a class that never opened the trophy never showed up. Once
+     this device has a star this week, no grade, the switch on and an address set: "Show up on the leaderboard? What
+     grade are you in?" 6 / 7 / 8 + Not now (waits ASK_SNOOZE days: gameData('leaderboard').askAfter). Like the other
+     lobby cards it waits while anything is over the lobby (Lobby.free()). A tap shows "7th grade ✓. You can change it
+     on the Leaderboard." with UNDO for UNDO_MS: the grade is set only when that time is up (or the page goes away), so
+     UNDO really sends nothing. */
+  const ASK_SNOOZE = 3, UNDO_MS = 5000, ORD = {6: '6th', 7: '7th', 8: '8th'};
+  let askWait = 0, pending = null;
+  function askDue() {
+    if (!L() || !L().canHold || !L().canHold() || !A.store.player) return false;
+    const d = A.store.gameData('leaderboard');
+    return L().mine().stars > 0 && !(d.askAfter && Date.now() < d.askAfter);
+  }
+  function askGrade() {
+    const box = document.getElementById('gradeAsk');
+    if (!box) return;
+    clearTimeout(askWait);
+    if (pending) return;                                       // the UNDO line is showing
+    if (!askDue()) { box.innerHTML = ''; return; }
+    if (!A.Lobby.free()) { box.innerHTML = ''; askWait = setTimeout(askGrade, 1000); return; }
+    if (box.querySelector('.gq-card')) return;
+    box.innerHTML = `<div class="gq-card bn-card bn-in"><span class="gq-icon" aria-hidden="true">🏆</span>` +
+      `<p class="gq-msg bn-msg"><b>Show up on the leaderboard?</b> What grade are you in?</p>` +
+      `<div class="gq-acts bn-acts">` + L().GRADES.map(g => `<button type="button" class="btn btn-secondary gq-g" data-g="${g}">${g}</button>`).join('') +
+      `<button type="button" class="btn btn-secondary gq-later">Not now</button></div></div>`;
+    box.querySelectorAll('.gq-g').forEach(b => b.addEventListener('click', () => pickGrade(+b.dataset.g)));
+    box.querySelector('.gq-later').addEventListener('click', () => {
+      sfx('ui-toggle');
+      const d = A.store.gameData('leaderboard'); d.askAfter = Date.now() + ASK_SNOOZE * 86400000; A.store.saveGameData('leaderboard');
+      box.innerHTML = '';
+      const z = document.querySelector('#zones .zsign'); if (z) z.focus({preventScroll: true});
+    });
+  }
+  function pickGrade(g) {
+    const box = document.getElementById('gradeAsk');
+    sfx('player-ready');
+    pending = {g, t: setTimeout(commit, UNDO_MS)};
+    box.innerHTML = `<div class="gq-card gq-done bn-card"><span class="gq-icon" aria-hidden="true">🏆</span>` +
+      `<p class="gq-msg bn-msg" role="status"><b>${ORD[g]} grade ✓.</b> You can change it on the Leaderboard.</p>` +
+      `<div class="gq-acts bn-acts"><button type="button" class="btn btn-secondary gq-undo">Undo</button></div></div>`;
+    const u = box.querySelector('.gq-undo');
+    u.addEventListener('click', undo); u.focus({preventScroll: true});
+  }
+  /** the 5 seconds are up (or the page is going away): now the grade is set, and what was held goes out */
+  function commit() {
+    if (!pending) return;
+    const g = pending.g; clearTimeout(pending.t); pending = null;
+    L().setGrade(g);
+    const box = document.getElementById('gradeAsk'); if (box) box.innerHTML = '';
+    if (S.el && !S.el.hidden) draw();
+  }
+  function undo() {
+    if (!pending) return;
+    clearTimeout(pending.t); pending = null;
+    sfx('ui-back');
+    const box = document.getElementById('gradeAsk'); if (box) box.innerHTML = '';
+    askGrade();                                                // the question again: nothing was set or sent
+    const f = box && box.querySelector('.gq-g'); if (f) f.focus({preventScroll: true});
+  }
+  addEventListener('pagehide', commit);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) commit(); });
+
   // the top bar's trophy button (index.html #lbBtn): only when a scoreboard address is set
   const btn = document.getElementById('lbBtn');
   if (btn && L() && L().available()) { btn.hidden = false; btn.addEventListener('click', open); }
-  A.LeaderboardScreen = {open, close, state};
+  A.LeaderboardScreen = {open, close, state, askGrade, askState: () => ({shown: !!document.querySelector('#gradeAsk .gq-card'), pending: pending && pending.g})};
 })(window.Arcade);

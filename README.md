@@ -619,14 +619,27 @@ the kind (`stars`, `endless` or `play`), a number and the level:
 
 **What is never sent:** real names, emails, PINs, the avatar's look, what instrument is played, anything typed.
 
+**Weekly champions:** when a week ends, the scoreboard lists who finished 1st on each board of each grade (its
+**Champions** tab). The champions check is a GET with only action + grade; the device matches its own id locally. No
+new data is sent. A student who finished 1st gets a CHAMPION card in the lobby (tokens: `CHAMPION_REWARDS` at the top
+of the WEEKLY CHAMPIONS block in `shared/leaderboard.js`), the CHAMPION name plate, and after 5 championships the GOLD
+TROPHY. The card shows the device's 6-character id ("Show Mr. Graham this screen: ID ab12cd"), so you can match it to
+the Champions tab if you want to give a real prize. The leaderboard screen shows LAST WEEK'S CHAMPIONS above the boards,
+and a 🏆 next to anyone defending.
+
 **Turning it off:** every student has a "Show me on the leaderboard" switch (on by default) on the leaderboard
 screen, under MY SETTINGS. Off = nothing is sent at all (anything still waiting is thrown away). Nothing is sent
-until the student picks a grade, and never in `?demo`. The device id, grade and switch are in the Arcade Backup
+until the student picks a grade, and never in `?demo`; what a student earns before picking one this week is kept on
+the device and sent once they do. The lobby asks "What grade are you in?" after a student's first star (Not now waits
+3 days), and the grade shows on the leaderboard ("Grade 7 · you") and in the avatar menu ("Leaderboard: Grade 7 ·
+change"). Changing it moves the student's whole week to the new grade's board. The device id, grade and switch are in the Arcade Backup
 Code, so a student's streak follows them to a new device.
 
 **Hiding a player (teacher):** open the leaderboard with `?teacher` in the address
 (`bandarcade.org/index.html?teacher`). Every entry then shows its 6-character id; paste it into the **Blocked**
-tab of the scoreboard Sheet. Under the board it also says how the last request went: "OK in 3.2 s", or why it
+tab of the scoreboard Sheet. Under MY SETTINGS it shows THIS DEVICE (its grade or "not chosen", the switch, its id, events waiting, stars this
+week, the last send and the last accepted event) with a SEND NOW button, and this device's champion awards and the last weekly check, with a
+CHECK CHAMPIONS NOW button. Under the board it also says how the last request went: "OK in 3.2 s", or why it
 failed ("timeout after 25 s", "offline", "HTTP 500", "not JSON", "network error (CORS or blocked)") and how long it
 took. That's the line to look at when a school device says the leaderboard is taking a break.
 

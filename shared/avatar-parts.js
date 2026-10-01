@@ -1446,6 +1446,17 @@ window.AVATAR_PARTS = {};
      ruleMet reads gameData('practice').pro, which practice.js sets the day the goal is reached). ---------- */
   P.PLATES.push({id: 'practice', name: 'PRACTICE PRO name plate', unlock: {tool: 'practice-pro', n: 1, text: "Today's Practice: practice 4 days in one week (all 3 steps each day)"}});
 
+  /* ---------- WEEKLY CHAMPIONS (shared/leaderboard.js, CHAMPION_REWARDS): finishing 1st on a leaderboard board (your
+     grade) for a week. Earned, never sold. {champion: 'plate' | 'trophyGold'} names the CHAMPION_REWARDS setting that
+     says how many championships it takes; the claim writes the item into ownedItems (like a seasonal item), so it
+     shows on every page and travels in the Backup Code. ---------- */
+  P.PLATES.push({id: 'champion', name: 'CHAMPION name plate', unlock: {champion: 'plate', text: 'Finish 1st on a leaderboard'}});
+  // the gold trophy rides on the back: its cup beside the head (front, side), strapped on the back (back view)
+  const TROPHY = ['.NNNNNNN.', 'ONNWNNNNO', 'O.NWNNN.O', '.ONNNNNO.', '..ONNNO..', '...ONO...', '...ONO...', '..NNNNN..', '..OOOOO..'];
+  P.BACKS.push({id: 'goldtrophy', name: 'GOLD TROPHY', unlock: {champion: 'trophyGold', text: 'Finish 1st on a leaderboard'}, pal: {N: 'yellow', O: 'amber'},
+    behind: {front: {y: 4, x: 1, rows: TROPHY}, side: {y: 4, x: 3, rows: TROPHY}, back: {y: 12, x: 11, rows: TROPHY}},
+    bustBehind: {y: 14, x: 0, rows: TROPHY}});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:
