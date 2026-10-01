@@ -129,4 +129,17 @@ const VIEWPORTS = {
   'Chromebook': {width: 1366, height: 768},
 };
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS};
+/** THE LEADERBOARD TESTS' SPEED RULES: the page's clock is the test's (page.clock: time flows, and settle() jumps it
+    forward instead of waiting out UNDO's 5 s, the start-up flush, the lobby's idle check…), and the leaderboard gives
+    up on a request after 4 s instead of 25 (Leaderboard.TIMEOUTS), so a hang fails fast. Call before page.goto. */
+async function quickLeaderboard(page) {
+  await page.clock.install();
+  await page.addInitScript(() => addEventListener('DOMContentLoaded', () => {
+    const L = window.Arcade && window.Arcade.Leaderboard;
+    if (L && L.TIMEOUTS) Object.assign(L.TIMEOUTS, {read: 4000, send: 4000});
+  }));
+}
+/** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
+async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
+
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};

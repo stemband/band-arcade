@@ -43,14 +43,27 @@ const bot = (page, id) => page.evaluate(i => { const G = Arcade.Showtime.debug()
 /* a rhythm / accent / tempo job: wait for a fresh count-in, then fire the measure's hits at exact moments.
    offsets {i: ms}, skip [i], extra [beats after the downbeat], levels (per note, or one level), countIn (hit the count-in's beats too) */
 async function freshCountIn(page) {
+  // checked every 100 ms: the window (measure 0 still ≥ 0.9 s away) is short, and a busy machine's checks are slow.
+  // When it has gone by (the job got past measure 0: failed measures and the Maestro's tempo go on with the pulse, never
+  // back to a count-in), the band stands still for a moment (the pause), which by the game's own rule starts the job
+  // again from its count-in
   await expect.poll(async () => {
     await card(page);
-    return page.evaluate(() => { const P = Arcade.Showtime.snarePlan(); return !!P && P.k === 0 && P.measureStartPerf - performance.now() > 900 && !Arcade.Pitch.isSuppressed(performance.now()); });
-  }, {timeout: 30_000}).toBe(true);
+    return page.evaluate(() => {
+      const P = Arcade.Showtime.snarePlan(), G = Arcade.Showtime.debug();
+      if (!P || !G || window.__restarting) return false;
+      const ahead = P.measureStartPerf - performance.now();
+      if (P.k === 0 && ahead > 900 && !Arcade.Pitch.isSuppressed(performance.now())) return true;
+      if ((P.k > 0 || ahead <= 900) && !G.paused) { window.__restarting = true; G.paused = true; setTimeout(() => { G.paused = false; setTimeout(() => { window.__restarting = false; }, 200); }, 120); }
+      return false;
+    });
+  }, {timeout: 30_000, intervals: [100]}).toBe(true);
 }
 function playMeasure(page, o = {}) {
   return page.evaluate(o => {
-    const P = Arcade.Showtime.snarePlan(), now = performance.now(), fire = (at, lv) => setTimeout(() => Arcade.Onsets.fake(at, lv), Math.max(0, at - performance.now()));
+    // each hit is handed over up to 0.3 s BEFORE its moment, stamped with that exact moment (the game judges a measure
+    // only at its end, by the hits' times): a busy machine's late timer can't make a hit miss its measure
+    const P = Arcade.Showtime.snarePlan(), now = performance.now(), fire = (at, lv) => setTimeout(() => Arcade.Onsets.fake(at, lv), Math.max(0, at - 300 - performance.now()));
     const lvOf = i => Array.isArray(o.levels) ? o.levels[i] : o.levels != null ? o.levels : .3, ahead = (o.m || 0) * P.measureS * 1000;
     P.perfOf.forEach((at, i) => { if ((o.skip || []).includes(i)) return; fire(at + ahead + ((o.offsets || {})[i] || 0), lvOf(i)); });
     (o.extra || []).forEach(b => fire(P.measureStartPerf + b * P.beatS * 1000, .3));
@@ -134,12 +147,15 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     for (let k = 0; k < 8 && !(await sn(page)).freeze; k++) await hits(page, 1, 250);
     await card(page);                                                                    // (the first freeze: NEW DRUM CHALLENGE)
     await quiet(page);
-    s = await sn(page);
+    // the freeze lasts a few beats of game time: its state and what's on screen are read in ONE call (the same moment;
+    // a busy machine's next call can already be after GO!)
+    s = await page.evaluate(() => { const shown = id => { const e = document.getElementById(id); return !!e && !e.hidden && e.getClientRects().length > 0; };
+      return Object.assign(Arcade.Showtime.snare(), {hand: shown('stHand'), panel: shown('tpFreeze')}); });
     expect(s.freeze && s.freeze.id).toBe(id);
     expect(s.freeze.beats).toBe(await page.evaluate(() => window.SNARE_RULES.freeze.beats[1]));
     expect(s.walkMul).toBe(.5);
-    await expect(page.locator('#stHand')).toBeVisible();
-    await expect(page.locator('#tpFreeze')).toBeVisible();
+    expect(s.hand, 'the raised hand').toBe(true);
+    expect(s.panel, 'the FREEZE panel').toBe(true);
     // half speed: z moves dt / walk × 0.5 on the game clock
     const a = await page.evaluate(i => { const G = Arcade.Showtime.debug(), b = G.bots.find(x => x.id === i); return {t: G.t, z: b.z, walk: b.walk}; }, id);
     await page.waitForTimeout(400);
@@ -288,7 +304,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     const s = await waitFor(page, s => s.target.job.type === 'accent' && s.target.job.start != null);
     await expect(page.locator('#tpStaff .sn-acc').first()).toBeAttached();                // the accents on the staff
     const acc = s.target.job.accents;
-    await page.evaluate(() => Arcade.Showtime.debug().bots.forEach(b => { b.walk *= 4; }));   // three measures in a row: room to walk
+    await page.evaluate(() => Arcade.Showtime.debug().bots.forEach(b => { b.walk *= 20; }));  // three measures in a row: it must not reach the front meanwhile (a busy machine's test steps are slow)
     const levels = f => acc.map((a, i) => f(a, i));
     // three measures in a row (a failed measure is played again right away, the pulse going on): every hit soft, then
     // every hit loud, then right
@@ -296,12 +312,15 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     await playMeasure(page, {levels: levels(() => DYN.soft)});
     await playMeasure(page, {m: 1, levels: levels(() => DYN.loud)});
     await playMeasure(page, {m: 2, levels: levels(a => a ? DYN.loud : DYN.soft)});
+    // each measure's judgment and its prompt, read together the moment it is judged (the next measure follows ~2.7 s
+    // later and replaces the prompt: a busy machine's separate check could see that one)
     for (const [k, why] of [[0, 'Accents louder!'], [1, 'Keep the others soft!']]) {
-      await judged(page, k);
-      const r = await sn(page);
-      expect(r.last.pass, `measure ${k}`).toBe(false);
-      expect(r.last.loudness).toBe(why);
-      await expect(page.locator('#prompt')).toContainText(why);
+      let r = null;
+      await expect.poll(async () => { r = await page.evaluate(k => { const s = Arcade.Showtime.snare(); return s && s.last && s.last.k === k ? {pass: s.last.pass, loudness: s.last.loudness, prompt: document.getElementById('prompt').textContent} : null; }, k); return !!r; },
+        {timeout: 15_000, intervals: [100]}).toBe(true);
+      expect(r.pass, `measure ${k}`).toBe(false);
+      expect(r.loudness).toBe(why);
+      expect(r.prompt).toContain(why);
     }
     await judged(page, 2);
     expect((await sn(page)).last.pass).toBe(true);
