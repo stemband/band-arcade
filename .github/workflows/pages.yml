@@ -5,6 +5,9 @@
 # The stamp is made on the deploy's own copy of the files: nothing is committed back to main, so there is no loop
 # and nothing for anyone to remember. In the repository the version stays 'dev'.
 #
+# SOUNDS: a push that adds or changes a sound in shared/sounds/ is published by compress-sounds.yml instead, after it
+# has made the sound small (the "sounds" job below skips the deploy here; compress-sounds.yml then starts this workflow).
+#
 # ONE-TIME SETUP (Mat): repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
 # (While it still says "Deploy from a branch", Pages keeps publishing main as-is, with version 'dev': the site works
 #  exactly as before, just without the cache fix, and this workflow's deploy step shows a red X.)
@@ -18,7 +21,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  workflow_dispatch:          # "Run workflow" on the Actions tab re-publishes by hand
+  workflow_dispatch:          # "Run workflow" on the Actions tab re-publishes by hand (compress-sounds.yml starts it this way)
 
 permissions:
   contents: read
@@ -30,7 +33,28 @@ concurrency:                  # one deploy at a time; a newer merge waits for th
   cancel-in-progress: false
 
 jobs:
+  # A push that added or changed a sound is deployed by compress-sounds.yml instead, AFTER it has shrunk the sound and
+  # committed the small file, so the live site never gets the big upload. (The same file patterns as its paths filter.)
+  sounds:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+      - id: diff
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          git fetch -q --depth=1 origin "$BEFORE" || exit 0          # unknown (a new branch): deploy as usual
+          if git diff --name-only "$BEFORE" HEAD -- 'shared/sounds/*.mp3' 'shared/sounds/*.m4a' | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "This push changed a sound: compress-sounds.yml compresses it, then deploys."
+          fi
   deploy:
+    needs: sounds
+    if: needs.sounds.outputs.changed != 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

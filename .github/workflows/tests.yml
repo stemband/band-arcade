@@ -62,3 +62,25 @@ jobs:
             tests/playwright-report/
             tests/test-results/
           retention-days: 14
+
+  sounds:
+    # THE SOUND FILES (tools/compress-sounds.py): nothing above its target (--check), and every file decodes at its
+    # upload's length with its loop seams intact (--verify, against tests/fixtures/sound-durations.json). This change's
+    # own new sounds are compressed first, as compress-sounds.yml will do once it is on main.
+    name: sounds (sizes and lengths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+      - name: Compress this change's new sounds (what main does after the merge)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE" ]; then git fetch -q --depth=1 origin "$BASE" || true; fi
+          python3 tools/compress-sounds.py --changed-since "$BASE"
+      - name: Nothing above its target
+        run: python3 tools/compress-sounds.py --check
+      - name: Every sound decodes, at its upload's length, loops without a gap
+        run: python3 tools/compress-sounds.py --verify

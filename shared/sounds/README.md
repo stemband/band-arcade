@@ -4,12 +4,25 @@ Put your own recorded sounds in this folder. Every sound the arcade makes has an
 the file with the name listed below. If there's no file (or it won't play), the arcade uses its own built-in
 sound for that moment, so nothing ever goes silent and students never see an error.
 
+## Upload anything: it's compressed automatically
+
+Upload any `.mp3` or `.m4a`, at any quality. About a minute after the upload, GitHub shrinks it to a size that
+loads fast on school Wi-Fi and still sounds the same on an iPad or a Chromebook (`.github/workflows/compress-sounds.yml`
+runs `tools/compress-sounds.py`), commits the smaller file back as **"Compress uploaded sounds"**, and only then
+publishes the site, so students only ever download the small file. The name and the type stay the same (`.mp3` stays
+`.mp3`), so nothing else needs to change. The targets (music 112 kbps stereo, voices 64 kbps mono, effects 80 kbps
+mono, or 96 kbps when they're really stereo) are the numbers at the top of `tools/compress-sounds.py`. A file that is
+already small enough is never touched, and one that would come out shorter, quieter or with a gap in its loop stays
+exactly as uploaded (the Actions tab's run lists it). If you keep a copy of this project on your own computer, pull
+after an upload, because the bot's commit changes the file.
+
 ## Adding or replacing a sound
 
 1. Record it and save it as **`.m4a`** (best: small, and every school iPad and Chromebook plays it) or **`.mp3`**.
 2. Name it **exactly** as in the table below, for example `select-ghost-notes.m4a` or `note-hit.mp3`
    (lowercase, dashes, no spaces). If both exist, the `.m4a` is used.
 3. Upload it into this folder (`shared/sounds/`) on GitHub. To replace a sound, upload a new file with the same name.
+   Any quality is fine: it is compressed automatically (above).
 4. Open the **Sound Board** (`sound-board/index.html` on the site, e.g.
    `https://bandarcade.org/sound-board/index.html`). It checks every file when it opens; after an
    upload, press **RELOAD ALL SOUNDS** (no need to reload the page). Your file shows **YOUR FILE (m4a, 0.42 s,
@@ -34,8 +47,8 @@ One catch: `shared/sounds.js` is itself a saved file, so a device that loaded a 
 still have the old number until its copy of `sounds.js` refreshes (at most about 10 minutes on GitHub Pages).
 
 Tips:
-- Keep files short and small (under about 100 KB each; the ambience and music loops under about 1 MB). Students load them on
-  school Wi-Fi, and each page only loads its own sounds, after the first tap.
+- Keep sound effects short (the compression takes care of the size). Students load them on school Wi-Fi, and each page
+  only loads its own sounds, after the first tap.
 - Trim silence at the start, so the sound plays the moment it happens.
 - A browser remembers a missing sound EFFECT for the rest of that tab. If you just uploaded one, open a new tab, or bump
   `SOUNDS_VERSION` (the Sound Board always checks again). Music (the loops) is never remembered as missing: a
@@ -43,8 +56,8 @@ Tips:
 - **Music not playing?** Add `?debug` to the page's address (for example `arcade-quest/index.html?debug`): a small
   MUSIC box on the page lists the track the page wants, every file it tried (404 = not there), when it loaded and
   when it started or stopped.
-- Keep music files around 128 kbps. A 320 kbps file is about 2.5× bigger, so it takes longer to download on school
-  Wi-Fi and to get ready on an iPad.
+- Music can be uploaded at any quality: it is brought down to 112 kbps automatically (a 320 kbps file is about 3×
+  bigger, so it would take longer to download on school Wi-Fi and to get ready on an iPad).
 - Each sound's loudness can be adjusted without re-recording: change its `vol` (0–1) in `shared/sounds.js`.
 - Students set their own SOUND ON/OFF, EFFECTS, MUSIC and AMBIENCE volumes with the speaker button in every top bar.
 - Opening a page by double-clicking it (a local file) still plays your files, through the browser's plain audio

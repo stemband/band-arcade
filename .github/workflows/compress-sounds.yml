@@ -1,0 +1,64 @@
+# SHRINKS EVERY SOUND MAT UPLOADS. On every push to main that adds or changes a sound in shared/sounds/ (GitHub's
+# "Add file -> Upload files" too), this runs tools/compress-sounds.py on ONLY those files and commits the smaller ones
+# back to main as "Compress uploaded sounds [skip ci]" (the github-actions bot), then starts the Pages deploy, so the
+# live site gets the small files. Upload any .mp3 / .m4a at any quality: a minute later it's small. The targets (kbps
+# for music, voices, effects) are the constants at the top of tools/compress-sounds.py.
+#
+# ORDER: pages.yml does NOT deploy a push that changed a sound (its "sounds" check); this workflow deploys it instead,
+# after compressing (pages.yml started with "Run workflow", which a workflow's own token is allowed to do).
+# NO LOOP: the bot's commit carries [skip ci], so it starts no workflow (not this one, not the deploy, not the tests),
+# and the job also skips any commit made by the bot.
+# If main is ever protected, allow GitHub Actions to push to it, or this can't commit (the deploy still runs).
+name: Compress uploaded sounds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'shared/sounds/**.mp3'
+      - 'shared/sounds/**.m4a'
+  workflow_dispatch:          # "Run workflow" on the Actions tab: every sound above its target, then a deploy
+
+permissions:
+  contents: write             # commit the compressed files
+  actions: write              # start the Pages deploy afterwards
+
+concurrency:                  # one at a time, in push order
+  group: compress-sounds
+  cancel-in-progress: false
+
+jobs:
+  compress:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+      - name: Compress the sounds this push added or changed
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # the commit before this push, to see which sounds changed (unknown -> every sound; at-target ones are skipped)
+          if [ -n "$BEFORE" ]; then git fetch -q --depth=1 origin "$BEFORE" || true; fi
+          python3 tools/compress-sounds.py --changed-since "$BEFORE"
+      - name: Commit the smaller files to main
+        run: |
+          git add shared/sounds tests/fixtures/sound-durations.json
+          if git diff --cached --quiet; then echo "Nothing to commit."; exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -q -m 'Compress uploaded sounds [skip ci]'
+          for i in 1 2 3 4; do
+            git push -q origin HEAD:main && exit 0
+            # someone pushed meanwhile: put this commit on top of theirs (their newer upload gets its own run)
+            git pull -q --rebase origin main || { git rebase --abort; echo "Could not combine with a newer push."; exit 1; }
+            sleep $((i * 2))
+          done
+          exit 1
+      - name: Deploy the site (pages.yml), with or without the compressed files
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
