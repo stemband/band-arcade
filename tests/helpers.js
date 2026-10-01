@@ -73,6 +73,17 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
   return watch;
 }
 
+/* CPU_DRAWING (`test.use(CPU_DRAWING)` at the top of Music Highway's and Sustain Speedway's spec files): Playwright's
+   Linux WebKit (WPE) draws with Skia on the GPU, which on a CI machine (no GPU: software OpenGL) crashes the page now and
+   then in these canvas games: an internal WebKit check (the runner's kernel log: "trap invalid opcode in libWPEWebKit",
+   a SkiaGPUWorker segfault), seen as "Target crashed". WEBKIT_SKIA_ENABLE_CPU_RENDERING draws on the CPU instead: 2 crashes
+   in ~200 runs of those specs instead of 14 (the rest: WebKit's compositor thread; CI's one retry covers them). Not for
+   every spec: on the CPU, WebKit's WebGL (the 3D floor) logs "glTexStorage2D: Texture is immutable", and it doesn't stop
+   Blocktave's crashes. Real Safari never takes either path (it draws with Apple's own graphics). Chromium: unchanged. */
+const CPU_DRAWING = {launchOptions: [async ({browserName}, use) => use(browserName === 'webkit'
+  ? {env: Object.assign({}, process.env, {WEBKIT_SKIA_ENABLE_CPU_RENDERING: '1'})}
+  : process.env.PW_CHROMIUM_PATH ? {executablePath: process.env.PW_CHROMIUM_PATH} : {}), {scope: 'worker'}]};
+
 /**
  * WHAT THE PAGE SAW, for a failure message on a busy runner (WebKit can starve a page's frames for seconds, and its page
  * process can crash): the longest gap between animation frames, every gap over 1 s, timer gaps over 1 s (the main thread
@@ -168,4 +179,4 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};

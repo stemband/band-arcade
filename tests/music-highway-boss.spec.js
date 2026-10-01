@@ -4,7 +4,8 @@
    a happy loop, a miss = a buzz past the gate; still under reduced motion), ?demo autoPlay at NORMAL and TURBO (100 %
    PERFECT), the pads' spacing at boss speed, the TAMER / LEGEND badges and the two avatar unlocks, maxStars. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const ID = 'flight-of-the-bumblebee';
 const CAL = (browser, extra = {}) => Object.assign({gameData: {'music-highway': Object.assign({calib: {speaker: {ms: 0}, headphones: {ms: 0}}}, extra)}}, browser === 'webkit' ? {sfx: false} : {});

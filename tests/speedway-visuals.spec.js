@@ -3,7 +3,8 @@
    the finish shows THE PODIUM with the right place, skippable with Enter or a tap; reduced motion = no shake or blur;
    the seasonal touches follow ?season= (and the "Seasonal look" switch); every time of day draws. Phone, iPad, laptop. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 
 const store = (gd = {}) => device('trumpet', {gameData: {'sustain-speedway': Object.assign({steerHint: true}, gd)}});

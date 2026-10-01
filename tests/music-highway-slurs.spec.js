@@ -3,7 +3,8 @@
    slurred pads, judging UNCHANGED (the same results whether slurred notes arrive tongued or smooth), and the feedback:
    SMOOTH vs "tongued" and the after-song tip (feedback only), with the Slur tips setting. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const FROG = 20, SYDNEY = 18;                       // song indexes (0-based)
 const CAL = browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {});

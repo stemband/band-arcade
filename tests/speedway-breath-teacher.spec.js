@@ -5,7 +5,8 @@
    races as a gold ghost with the name tag, and the results say who won (beating it = Teacher's Gold in the garage);
    a bad code is ignored. Nothing is sent anywhere. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 
 const store = (gd = {}) => device('trumpet', {gameData: {'sustain-speedway': Object.assign({steerHint: true, gfx: 'lite'}, gd)}});

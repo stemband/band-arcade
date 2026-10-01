@@ -5,7 +5,8 @@
    than one measure past a bar line are reported: the old text is caught), every song with a bar line after every
    measure, and every other song's events exactly as before (tests/fixtures/mh-song-events.json, taken before the fix). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const BEFORE = require('./fixtures/mh-song-events.json');
 
 const CAL = browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {});

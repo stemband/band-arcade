@@ -4,7 +4,8 @@
    gap keeps its speed, with a gap (?demo B) slows + "Slur it!"; the second note comes from the note set (brass: a lip
    slur); the report adds "Pitch in soft / loud zones" and the slur count. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack} = require('./speedway-helpers');
 
 const store = (m = 'trumpet') => device(m, {gameData: {'sustain-speedway': {steerHint: true, gfx: 'lite'}}});

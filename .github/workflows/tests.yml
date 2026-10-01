@@ -33,8 +33,8 @@ jobs:
         # too), so it runs as 4 SHARDS (Playwright's --shard: each job runs a quarter of the tests) on 4 machines,
         # with 2 browsers at a time each (--workers=2): with 4, a loaded runner's WebKit crashed Blocktave's pages
         # ("Target crashed") and missed timing checks, though the page itself uses only a few MB. Those crashes were WebKit's
-        # own Skia GPU drawing on a machine with no GPU: playwright.config.js makes WebKit draw on the CPU
-        # (docs/engine/testing.md, WEBKIT DRAWS ON THE CPU). Chromium runs as 2
+        # own Skia GPU drawing on a machine with no GPU: Music Highway's and Sustain Speedway's specs make WebKit draw on
+        # the CPU (tests/helpers.js CPU_DRAWING; docs/engine/testing.md). Blocktave's still can (open). Chromium runs as 2
         # shards of 4 browsers: alone its tests took 33 minutes + 6 to install on a slow day and hit the limit too.
         include:
           - {browser: chromium, shard: 1/2, workers: 4}

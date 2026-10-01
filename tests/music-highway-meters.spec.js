@@ -6,7 +6,8 @@
    (at least 4 clicks on the PRIMARY beat: 2/2 two bars of halves, 6/8 two bars of dotted quarters, 3/8 four bars of
    one), the snare's DOWNBEATS RIGHT, and one ?demo autoPlay run per meter: 100 % PERFECT, every drum hit on the grid. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const NEW = ['largo-symphony-9', 'the-wabash-cannonball', 'still-still-still', 'minka-minka', 'el-capitan', 'theme-from-the-barber-of-seville',
   'the-old-brass-wagon', 'the-galway-piper', 'sourwood-mountain', 'o-tannenbaum', 'procession-of-the-nobles', 'yankee-doodle-march', 'cindy',
