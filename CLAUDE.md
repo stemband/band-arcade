@@ -50,7 +50,7 @@ Engine and shared systems (`docs/engine/`):
 | [seasons.md](docs/engine/seasons.md) | seasonal events, event items, the lobby's event banner and panel, seasonal looks |
 | [leaderboard.md](docs/engine/leaderboard.md) | the leaderboard endpoint, its events, its screen, privacy |
 | [prize-counter.md](docs/engine/prize-counter.md) | tokens (`shared/tokens.js`), the Prize Counter, the Token Booth's prices, the prize of the week, the seasonal shelf |
-| [progress-and-saving.md](docs/engine/progress-and-saving.md) | `Arcade.store`, saved progress, migrations, the Arcade Backup Code, Quest save codes |
+| [progress-and-saving.md](docs/engine/progress-and-saving.md) | `Arcade.store`, saved progress, migrations, the Arcade Backup Code, Quest save codes, the lobby's SAVE YOUR PROGRESS nudge (`shared/backup-nudge.js`) |
 | [endless.md](docs/engine/endless.md) | an Endless mode (`shared/endless.js`) |
 | [patterns-and-echo.md](docs/engine/patterns-and-echo.md) | pattern generation or echo games (`patterns.js`, `echo.js`) |
 | [band-ninja.md](docs/engine/band-ninja.md) | the Band Ninja connection, belt codes, belts, the Sensei, the answer pad |

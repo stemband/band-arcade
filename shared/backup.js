@@ -42,7 +42,12 @@
       bytes of JSON {v: 1, at: <time>, data: <Arcade.store.exportAll()>} in base-32 + 7 characters of CRC-32.
       Shown in groups of 5. Restoring asks first ("This will replace this device's progress. Continue?"), then
       replaces everything (Arcade.store.importAll) and reloads the page.
-   Arcade.Backup.open()            the BACKUP / RESTORE panel (arcade floor sound panel, Select Player's player card)
+   Arcade.Backup.open({make})      the BACKUP / RESTORE panel (arcade floor sound panel, Select Player's player card;
+                                   make: true = the code is made at once, ready to copy: the lobby's SAVE NOW)
+   SAVING (shared/backup-nudge.js): COPY that worked, SAVE TO FILE (band-arcade-backup-YYYY-MM-DD.txt: the code, the date,
+   the instrument, the 3 restore steps; made in the browser, no network; iPad: the share sheet where it can share files)
+   and a restored code each call Arcade.BackupNudge.saved(). "Last saved: Oct 3" / "Never saved on this device" on top.
+   RESTORE also takes that file: "Open a backup file" finds the code in it and runs the same check as a typed code.
    Arcade.Backup.button(el, cls)   adds a BACKUP / RESTORE button to el
    Arcade.Backup.questEncode(save) -> 65 characters in groups of 5 (version 5)
    Arcade.Backup.questDecode(code) -> {ok: true, fields} | {ok: false, error}   (arcade-quest/engine/save.js builds the save)
@@ -222,6 +227,51 @@ window.Arcade = window.Arcade || {};
   /* ---------- the BACKUP / RESTORE panel ---------- */
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const sfx = n => { if (A.Sfx) A.Sfx.event(n); };
+  /** the student saved the code somewhere (shared/backup-nudge.js keeps the date) */
+  const markSaved = o => { if (A.BackupNudge) A.BackupNudge.saved(o); };
+  function lastSaved() {
+    const at = ((A.store.gameData('backup-nudge') || {}).savedAt) || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(at)) return 'Never saved on this device';
+    const [y, m, d] = at.split('-').map(Number), dt = new Date(y, m - 1, d, 12);
+    const opts = {month: 'short', day: 'numeric'};
+    if (y !== A.store.today().getFullYear()) opts.year = 'numeric';
+    return 'Last saved: ' + dt.toLocaleDateString('en-US', opts);
+  }
+  /* SAVE TO FILE: a plain .txt the student keeps (Google Drive, an email). Made here with a Blob: nothing is sent. */
+  function fileText(code) {
+    const m = A.store.player && A.memberById ? A.memberById(A.store.player) : null;
+    const lines = code.split(' ').reduce((out, g, i) => { if (i % 10 === 0) out.push([]); out[out.length - 1].push(g); return out; }, []).map(l => l.join(' '));
+    return ['Band Arcade backup code',
+      'Made: ' + A.store.today().toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'}),
+      'Instrument: ' + (m ? m.name : 'not chosen yet'),
+      '', ...lines, '',
+      'How to bring your progress back:',
+      '1. Open Band Arcade on any device.',
+      '2. Tap the speaker button, then Backup / Restore.',
+      '3. Tap "Open a backup file" and pick this file (or paste the code), then tap Restore.',
+      '', 'Keep this file somewhere safe, like your school Google Drive or an email to yourself.', ''].join('\r\n');
+  }
+  /** -> 'shared' | 'download' | null (the student closed the share sheet) */
+  async function saveFile(code) {
+    const name = `band-arcade-backup-${A.store.dayKey()}.txt`, text = fileText(code);
+    const ios = A.App ? A.App.ios : /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (ios && window.File && navigator.share && navigator.canShare) {          // iPad: the share sheet (Save to Files, Drive…)
+      try {
+        const file = new File([text], name, {type: 'text/plain'});
+        if (navigator.canShare({files: [file]})) { await navigator.share({files: [file]}); return 'shared'; }
+      } catch (e) { if (e && e.name === 'AbortError') return null; /* else: a download */ }
+    }
+    const url = URL.createObjectURL(new Blob([text], {type: 'text/plain'})), a = document.createElement('a');
+    a.href = url; a.download = name; a.hidden = true;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return 'download';
+  }
+  /** the Arcade Backup Code inside a saved file's text: from 'BKP' to the next empty line (or the whole text) */
+  function codeInFile(text) {
+    const t = String(text || ''), i = t.toUpperCase().indexOf(HEAD);
+    return (i < 0 ? t : t.slice(i).split(/\r?\n[ \t]*\r?\n/)[0]).trim();
+  }
   async function copyText(text, ta) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* older browsers, file:// */ }
     try { ta.focus(); ta.select(); return document.execCommand('copy'); } catch (e) { return false; }
@@ -232,44 +282,67 @@ window.Arcade = window.Arcade || {};
      in (MAKE MY BACKUP CODE), Tab stays inside, Esc closes (not while its question is open), the focus goes back to
      the button that opened it. iPad: the overlay scrolls, and a focused code box is kept above the on-screen
      keyboard (visualViewport). */
-  function open() {
+  function open({make = false} = {}) {
     const ov = document.createElement('div');
     ov.className = 'overlay bk-overlay';
     const quest = ((A.store.gameData('arcade-quest') || {}).save) || null;
     ov.innerHTML = `<div class="panel bk-panel" role="dialog" aria-modal="true" aria-labelledby="bkT">
       <h2 id="bkT">Backup / Restore</h2>
+      <p class="bk-last">${esc(lastSaved())}</p>
       <p class="bk-lead">Your stars, skins, settings and Arcade Quest save live on this device only. A backup code carries them to another device, or keeps them safe.</p>
       <section class="bk-sec"><h3>Back up this device</h3>
         <button type="button" class="btn btn-primary bk-make">Make my backup code</button>
         <div class="bk-out" hidden>
           <label class="bk-lbl" for="bkCode">Your backup code (everything on this device)</label>
           <textarea id="bkCode" class="bk-code" rows="5" readonly spellcheck="false"></textarea>
-          <div class="bk-row"><button type="button" class="btn btn-small bk-copy">Copy</button><span class="bk-len" aria-live="polite"></span></div>
-          <p class="bk-tip">Paste it somewhere safe: an email to yourself, Google Classroom, a note. Any change to it and it won't load.</p>
+          <div class="bk-row"><button type="button" class="btn btn-small bk-copy">Copy</button><button type="button" class="btn btn-secondary btn-small bk-file">Save to file</button><span class="bk-len" aria-live="polite"></span></div>
+          <p class="bk-tip"><b>Where to keep it:</b> Paste it into a Google Doc or an email to yourself on your school account. Any change to it and it won't load.</p>
         </div>
         ${quest && quest.v ? `<p class="bk-quest">Arcade Quest only (short enough to write down):<br><b class="bk-qcode">${esc(questEncode(quest))}</b></p>` : ''}
       </section>
       <section class="bk-sec"><h3>Restore from a code</h3>
         <label class="bk-lbl" for="bkIn">Paste your backup code</label>
         <textarea id="bkIn" class="bk-in" rows="3" spellcheck="false" autocapitalize="characters" autocomplete="off"></textarea>
-        <button type="button" class="btn bk-restore">Restore</button>
+        <div class="bk-row"><button type="button" class="btn bk-restore">Restore</button><button type="button" class="btn btn-secondary bk-open">Open a backup file</button>
+          <input type="file" class="bk-pick" accept=".txt,text/plain" hidden aria-hidden="true" tabindex="-1"></div>
         <p class="bk-msg" role="alert"></p>
       </section>
       <div class="acts"><button type="button" class="btn btn-secondary bk-close">Done</button></div></div>`;
     document.body.appendChild(ov);
     const $ = s => ov.querySelector(s);
     const msg = (t, cls = '') => { const m = $('.bk-msg'); m.textContent = t; m.className = 'bk-msg ' + cls; };
-    $('.bk-make').addEventListener('click', async () => {
-      sfx('ui-toggle');
+    const made = async () => {
       const code = await fullEncode();
       $('.bk-out').hidden = false; $('.bk-code').value = code;
       $('.bk-len').textContent = `${code.replace(/\s/g, '').length} characters`;
-    });
+      return code;
+    };
+    const savedNow = () => { markSaved(); $('.bk-last').textContent = lastSaved(); };
+    $('.bk-make').addEventListener('click', async () => { sfx('ui-toggle'); await made(); });
     $('.bk-copy').addEventListener('click', async () => {
       const ok = await copyText($('.bk-code').value, $('.bk-code'));
       $('.bk-len').textContent = ok ? 'Copied! Paste it somewhere safe.' : 'Select the code and copy it.';
+      if (ok) savedNow();                                      // only a copy that worked counts as saved
     });
-    $('.bk-restore').addEventListener('click', async () => {
+    $('.bk-file').addEventListener('click', async () => {
+      sfx('ui-toggle');
+      const how = await saveFile($('.bk-code').value || await made());
+      if (!how) return;
+      $('.bk-len').textContent = how === 'shared' ? 'Saved! Keep that file somewhere safe.' : 'Downloaded! Keep that file somewhere safe.';
+      savedNow();
+    });
+    // RESTORE from a SAVE TO FILE file: find the code in it, then exactly the same check as a typed code
+    $('.bk-open').addEventListener('click', () => $('.bk-pick').click());
+    $('.bk-pick').addEventListener('change', async () => {
+      const f = $('.bk-pick').files && $('.bk-pick').files[0];
+      $('.bk-pick').value = '';
+      if (!f) return;
+      let text = '';
+      try { text = await f.text(); } catch (e) { msg("That file couldn't be opened. Try pasting the code instead.", 'bad'); return; }
+      $('.bk-in').value = codeInFile(text);
+      restore();
+    });
+    const restore = async () => {
       const res = await fullDecode($('.bk-in').value);
       if (!res.ok) { msg(res.error, 'bad'); sfx('note-wrong'); return; }
       msg(res.at ? `A backup from ${new Date(res.at).toLocaleDateString()}.` : '');
@@ -278,9 +351,11 @@ window.Arcade = window.Arcade || {};
         yes: 'Yes, replace it', no: 'No', danger: true});
       if (!yes) { msg('Nothing changed.'); return; }
       if (!A.store.importAll(res.data)) { msg(BAD, 'bad'); return; }
+      markSaved({restored: true});                              // this device now matches a backup
       msg('Restored! Reloading…', 'good');
       setTimeout(() => location.reload(), 700);
-    });
+    };
+    $('.bk-restore').addEventListener('click', restore);
     // iPad's on-screen keyboard: room under the panel for it, and the focused code box scrolled into the visible part
     const vv = window.visualViewport;
     const keepVisible = () => {
@@ -306,6 +381,8 @@ window.Arcade = window.Arcade || {};
     ['keydown', 'keyup'].forEach(t => ov.addEventListener(t, e => e.stopPropagation()));   // keys typed here never reach the page underneath
     if (A.UI && A.UI.layer) A.UI.layer.open(ov, {min: 80, trap: true, onEsc: close, focus: '.bk-make'});
     else { ov.style.zIndex = '80'; $('.bk-make').focus(); }
+    // SAVE NOW (the lobby's nudge): the code is made at once, the focus on COPY
+    if (make) made().then(() => { if (ov.isConnected) $('.bk-copy').focus({preventScroll: true}); });
     ov.close = close;
     return ov;
   }
@@ -318,5 +395,5 @@ window.Arcade = window.Arcade || {};
     return b;
   }
 
-  A.Backup = {ALPHA, QUEST_V1, QUEST_V2, QUEST_V3, QUEST_V4, QUEST_V5, QUEST_CHARS: QUEST_CHARS_5, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button};
+  A.Backup = {ALPHA, QUEST_V1, QUEST_V2, QUEST_V3, QUEST_V4, QUEST_V5, QUEST_CHARS: QUEST_CHARS_5, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button, codeInFile, fileText};
 })(window.Arcade);

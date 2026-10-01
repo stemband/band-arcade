@@ -179,6 +179,7 @@ window.Arcade = window.Arcade || {};
       const res = await A.Backup.fullDecode(p.$('#appCode').value);
       if (!res.ok) { msg(res.error, 'bad'); sfx('note-wrong'); return; }
       if (!A.store.importAll(res.data)) { msg(A.Backup.BAD, 'bad'); return; }
+      if (A.BackupNudge) A.BackupNudge.saved({restored: true});   // a restored code counts as just saved (backup-nudge.js)
       ls.set(WELCOME, 'done');
       msg('Welcome back! Loading your progress…', 'good'); sfx('ui-toggle');
       setTimeout(() => location.reload(), 700);
