@@ -39,14 +39,13 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
       navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('No microphone in the tests', 'NotFoundError'));
     }
     // what the page went through (pageEvents(page) prints it when a test is stuck): hidden / visible, pagehide, blur /
-    // focus, and the longest gap between animation frames
-    const E = window.__pageEvents = {gap: 0, log: []}; let last = 0;
+    // focus. (Listeners only, no animation-frame loop of its own: a test's fake clock would run it thousands of times.)
+    const E = window.__pageEvents = {log: []};
     const at = what => { if (E.log.length < 50) E.log.push(what + ' ' + Math.round(performance.now())); };
     document.addEventListener('visibilitychange', () => at(document.hidden ? 'hidden' : 'visible'));
     addEventListener('pagehide', () => at('pagehide'));
     addEventListener('blur', () => at('blur'));
     addEventListener('focus', () => at('focus'));
-    const f = t => { if (last) E.gap = Math.max(E.gap, Math.round(t - last)); last = t; requestAnimationFrame(f); }; requestAnimationFrame(f);
   }, [store, visit, mic]);
   page.on('pageerror', e => {
     // WebKit reports a download cancelled by a page change (the backup panel's reload) as an error "…/file due to access
@@ -151,7 +150,7 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-/** what the page went through (prepare() records it), for a stuck test's error: '{gap, log}' or why it can't say */
+/** what the page went through (prepare() records it), for a stuck test's error: '{log}' or why it can't say */
 function pageEvents(page) {
   return Promise.race([page.evaluate(() => JSON.stringify(window.__pageEvents || null)).catch(e => 'page gone: ' + e.message.split('\n')[0]),
     new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
