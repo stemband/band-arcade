@@ -31,6 +31,8 @@ window.Arcade = window.Arcade || {};
     reading: null,
     level: 0,
     gate: 0.01,        // minimum loudness (RMS) before we try to detect a pitch
+    a4: 440,           // the reference A (Hz) readings are measured against: 440 everywhere; only Tune Up's TUNER changes
+                       // it (Settings: "Reference A", 438–445) while its tab is open, and puts 440 back when it closes
   };
 
   let mic = null, inst = null, range = null;
@@ -400,7 +402,7 @@ window.Arcade = window.Arcade || {};
     }
     let reading = null;
     if (r.rms >= P.gate && r.freq > 0 && r.clarity >= 0.8) {
-      const m = 69 + 12 * Math.log2(r.freq / 440);
+      const m = 69 + 12 * Math.log2(r.freq / (P.a4 || 440));
       reading = {freq: r.freq, midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
     }
     if (debugOn) dbg.r = r;

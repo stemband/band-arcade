@@ -26,6 +26,11 @@ const PAGES = [
       await page.locator('#prizes .pz-s-season .pz-prize').first().waitFor();
     }},
   ...games.map(g => ({name: g.tool ? `${g.name} (tool)` : g.name, url: `${g.id}/index.html`, game: g})),
+  // TUNE UP's other two tools (the Note Checker tab is the tool's own entry above)
+  {name: 'Tune Up: Tuner', url: 'note-checker/index.html?tool=tuner'},
+  {name: 'Tune Up: Metronome', url: 'note-checker/index.html?tool=metronome', open: async page => {
+    await page.locator('#mtLad summary').click();                  // the Tempo Ladder's settings open too
+  }},
   {name: 'Sound Board', url: 'sound-board/index.html'},
   {name: 'Art Board', url: 'art-board/index.html'},
   {name: 'Song Board', url: 'music-highway/songs.html'},

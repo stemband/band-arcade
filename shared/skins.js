@@ -211,6 +211,7 @@ window.Arcade = window.Arcade || {};
   function ruleMet(u, member) {
     if (!u) return false;
     if (u.stars && !u.game) return !!member && st().allStars(member) >= u.stars;
+    if (u.tool) return toolCount(u.tool) >= (u.n || 1);
     if (!u.game || !hasGame(u.game)) return false;
     if (u.badge) return Object.keys((st().gameData(u.game) || {}).badges || {}).length > 0;
     if (u.badges) return Object.keys((st().gameData(u.game) || {}).badges || {}).length >= u.badges;
@@ -220,6 +221,14 @@ window.Arcade = window.Arcade || {};
     if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix) >= (u.stars || 1);
     if (u.wins) return winsOn(u.game) >= u.wins;
     return false;
+  }
+  /** TUNE UP's practice goals (note-checker/, gameData('tuneup')): 'tuner-hold' = the most HOLD IT rings filled on
+      one day; 'ladder' = Tempo Ladders of 8+ steps climbed to the goal */
+  function toolCount(tool) {
+    const d = st().gameData('tuneup') || {};
+    if (tool === 'tuner-hold') return Math.max(0, ...Object.values(d.holds || {}).map(n => +n || 0));
+    if (tool === 'ladder') return +d.ladders || 0;
+    return 0;
   }
   /** matches won on this device ({game, wins} rules), counted from what each game already saves, so old wins count:
       Dojo Duel = every player's dojo record (Solo wins over the Sensei included); Neon Face-Off = two-player wins
@@ -256,7 +265,7 @@ window.Arcade = window.Arcade || {};
   const seenKey = (skin, member) => milestone(skin) ? member : '*';
 
   const Skins = A.Skins = {
-    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, winsOn, endlessBest, requirement, progress, milestone,
+    LIST: SKINS, ANCHORS, ACC_ART, UNLOCK_ALL, get, isUnlocked, ruleMet, toolCount, winsOn, endlessBest, requirement, progress, milestone,
     colors: () => SKINS.filter(s => s.kind === 'color'),
     accessories: () => SKINS.filter(s => s.kind === 'acc'),
     /** the equipped {color, acc} for a member (a locked choice falls back to Classic Neon / none) */

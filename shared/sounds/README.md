@@ -208,6 +208,7 @@ file so the voice starts at the very beginning.
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|
 | `all-notes-found` | `all-notes-found.m4a` or `all-notes-found.mp3` | Note Checker: every note on the staff has been found. | 0.8–1.5 s |
+| `tuneup-ladder-top` | `tuneup-ladder-top.m4a` or `tuneup-ladder-top.mp3` | Tune Up, Metronome: the Tempo Ladder reached its goal (a small fanfare once the click has stopped, never on a beat; falls back to `level-complete`). | 0.5–1.5 s |
 
 ### Note Ninja
 

@@ -120,7 +120,7 @@ window.Arcade.GAMES = [
     name: 'Note Checker',
     bg: {scene: 'aurora', dim: .4, focus: .35},
     skill: 'Start here',
-    blurb: 'Play a note and watch it light up. Tuning needle included.',
+    blurb: 'Tune Up: the Note Checker, a hot-air-balloon Tuner and a Metronome with a Tempo Ladder.',
     maxStars: 0,
     color: 'cyan',
     unpitched: true,                     // the Snare Drum can use it (its ARTICULATION test)

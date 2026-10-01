@@ -1,6 +1,7 @@
 /* Arcade.tones: pitched tones at exact pitches (A440 equal temperament), through the arcade's own audio
    (shared/sfx.js: the first tap unlocks it; mute and the EFFECTS slider apply).
-   THE ONE EXCEPTION TO "games never play pitched audio": ONLY Lost Signal uses this (see CLAUDE.md). It takes turns:
+   THE ONE EXCEPTION TO "games never play pitched audio": ONLY Lost Signal and Tune Up's TUNER (HEAR THE NOTE: one 2 s
+   tone, note-checker/tuner.js) use this (see CLAUDE.md). It takes turns:
    the game pauses the microphone (Arcade.Pitch.pauseListening(true)) before a pattern plays, and listens again only
    when it has fully faded (done + 400 ms), with Arcade.Pitch.ignoreCurrent(). Never play tones while listening.
 
