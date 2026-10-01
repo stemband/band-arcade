@@ -2,7 +2,7 @@
    THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (+ the PRIZE COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small
    silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
    (shared/practice.js: 3 steps, the whole row), a CONTINUE card (the last game opened on this device) and the ASSIGNED
-   card (shared/featured.js).
+   card (shared/featured.js); under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js).
    ALL GAMES: every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
    and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
    (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
@@ -71,6 +71,7 @@ window.Arcade = window.Arcade || {};
     $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
+    if (A.BackupNudge) A.BackupNudge.refresh();                // now and then: "Save your progress!" (shared/backup-nudge.js)
   }
 
   /* ---------- TODAY'S PRACTICE (shared/practice.js): the first card, the whole row. A neon header + "About 15

@@ -288,6 +288,27 @@ html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(
 @keyframes pr-fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){ .pr-card.stamp-go .pr-seal{animation:pr-fade .5s ease-out both} }
 @media (max-width:860px){ .pr-card{grid-template-columns:minmax(0,1fr)} .pr-week{flex-direction:row;flex-wrap:wrap;gap:6px 14px} }
+/* ---------- SAVE YOUR PROGRESS (shared/backup-nudge.js): now and then, a slim banner under the lobby cards (never a popup).
+   A drawn floppy disk, one friendly line, SAVE NOW + Not now (48 px). It fades in once; no motion under reduced motion. ---------- */
+.save-nudge{max-width:1100px;margin:0 auto}
+.save-nudge:empty{display:none}
+.bn-card{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 14px;padding:10px 14px;border-radius:16px;
+  border:2px solid var(--cyan);background:linear-gradient(90deg,var(--deep),var(--floor-2));color:var(--text-hi)}
+.bn-break{border-color:var(--yellow)}
+.bn-icon{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;color:var(--cyan-hi);border:2px solid var(--cyan-ink);background:var(--deep)}
+.bn-break .bn-icon{color:var(--yellow-hi);border-color:var(--yellow-ink)}
+.bn-icon svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.bn-text{flex:1 1 260px;min-width:0}
+.bn-msg{margin:0;font-size:16px;line-height:1.35}
+.bn-msg b{color:var(--cyan-hi)}
+.bn-break .bn-msg b{color:var(--yellow-hi)}
+.bn-tip{margin:4px 0 0;font-size:14px;line-height:1.35;color:var(--text-lo)}
+.bn-acts{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
+.bn-acts .btn{min-height:48px}
+.bn-card.bn-in{animation:bn-fade .45s ease-out both}
+@keyframes bn-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){ .bn-card.bn-in{animation:none} }
+@media (max-width:600px){ .bn-acts{margin-left:0;width:100%} .bn-acts .btn{flex:1 1 auto} }
 @media (max-width:600px){
   .pr-steps{grid-template-columns:minmax(0,1fr)}
   .pr-step{grid-template-columns:minmax(0,96px) minmax(0,1fr) auto;grid-template-rows:auto;align-items:center}
@@ -438,7 +459,7 @@ html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(
 .ev-decot input{width:22px;height:22px;accent-color:var(--ev)}
 @media (max-width:520px){ .ev-step{grid-template-columns:1fr} .ev-giftbox{grid-template-columns:1fr} }
 
-.lobby>.sign,.lobby>.lobby-cards,.lobby>.zones{position:relative;z-index:1}
+.lobby>.sign,.lobby>.lobby-cards,.lobby>.save-nudge,.lobby>.zones{position:relative;z-index:1}
 /* the signs themselves: snow on top (Winter Fest), a small flower (Spring Bloom) */
 .lobby[data-deco="winter"] .zsign::before{content:"";position:absolute;left:10px;right:10px;top:-7px;height:12px;border-radius:12px 12px 6px 6px;background:var(--av-white);opacity:.8;
   box-shadow:0 2px 0 var(--cyan-hi)}
