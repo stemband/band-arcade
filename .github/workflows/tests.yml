@@ -59,8 +59,6 @@ jobs:
         run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --workers=${{ matrix.workers }}
         env:
           CI: 'true'
-          # TEMPORARY (October 2026): WebKit's own messages in the log, to see why its page process crashes in Blocktave
-          DEBUG: ${{ matrix.browser == 'webkit' && 'pw:browser' || '' }}
       - name: Blocktave's frame rate (alone on the machine, 4× CPU throttle)
         if: matrix.browser == 'chromium' && matrix.shard == '1/2'
         run: npx playwright test blocktave -g performance --project=chromium --workers=1

@@ -11,7 +11,11 @@ const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign(
 
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
 async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false} = {}) {
-  const watch = await prepare(page, {store: store(gd, other)});
+  // WebKit: game sounds off, like every timing test here (rhythm-dojo, tuneup, music-highway). The snare's clock stands
+  // still while a sound plays (the microphone is muted then), and the CI runner's WebKit has no sound card, so its
+  // sounds don't take their real length: the band's pauses shifted every planned hit early or late ("rushing")
+  const quietRun = test.info().project.name === 'webkit' || !!process.env.SNARE_NO_SFX;
+  const watch = await prepare(page, {store: store(gd, Object.assign(quietRun ? {sfx: false} : {}, other))});
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
   await page.locator('.ls-start').click();

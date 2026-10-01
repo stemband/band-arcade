@@ -30,7 +30,10 @@ for (const [name, size] of SIZES) {
     test.setTimeout(180000);
     await page.setViewportSize(size);
     // a first win: something new in the garage (the card with its filled GARAGE; no plain one in the row)
-    const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true})});
+    // WebKit: game sounds off (as in every timing test): the race clock stops while a sound mutes the detector, and the
+    // CI runner's WebKit has no sound card, so its sounds don't take their real length and the race may never end
+    const quietRun = test.info().project.name === 'webkit' || !!process.env.SPEEDWAY_NO_SFX;
+    const watch = await prepare(page, {store: device('trumpet', Object.assign({avatarOffered: true}, quietRun ? {sfx: false} : {}))});
     await page.goto(URL);
     await page.waitForFunction(() => window.Arcade && Arcade.Speedway && document.querySelector('.trk[data-l="1"]'));
     await startTrack(page, 1);
