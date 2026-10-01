@@ -463,3 +463,128 @@ test.describe("Today's Practice: the card", () => {
     watch.check();
   });
 });
+
+test.describe("Today's Practice: collapsible", () => {
+  const card = page => page.locator('#practiceCard');
+  const toggle = page => page.locator('#prToggle');
+  const oneDone = (extra = {}) => device('trumpet', Object.assign({activity: {[MON]: {f: {'scale-trainer': 1}}}}, extra));
+
+  test('▲ hides it to a slim bar with the right count; the same day stays hidden after a reload; the next day opens it again', async ({page}) => {
+    const watch = await prepare(page, {store: oneDone()});
+    await lobby(page); await ready(page);
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+    await expect(toggle(page)).toHaveAttribute('aria-controls', 'prBody');
+    const tb = await toggle(page).boundingBox();
+    expect(Math.min(tb.width, tb.height)).toBeGreaterThanOrEqual(48);
+    await toggle(page).click();
+    await expect(card(page)).toHaveClass(/collapsed/);
+    await expect(page.locator('#prBody')).toBeHidden();
+    await expect(page.locator('.pr-week')).toBeHidden();                 // the THIS WEEK stamps hide too
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle(page)).toBeFocused();
+    await expect(page.locator('#prTitle')).toHaveText("Today's Practice");
+    await expect(page.locator('.pr-count')).toHaveText('1 of 3 steps done');      // "1 of 3" + its screen-reader words
+    await expect(page.locator('.pr-mdot')).toHaveCount(3);
+    await expect(page.locator('.pr-mdot.on')).toHaveCount(1);
+    await expect(page.locator('.pr-step.next')).toHaveCount(0);         // nothing glows while collapsed
+    expect((await saved(page)).gameData.practice.collapsed).toBe(MON);
+    // the same day: still collapsed; Enter on the toggle opens it (a real button)
+    await page.reload(); await ready(page);
+    await expect(card(page)).toHaveClass(/collapsed/);
+    await toggle(page).focus();
+    await page.keyboard.press('Enter');
+    await expect(card(page)).not.toHaveClass(/collapsed/);
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.pr-step')).toHaveCount(3);
+    // a tap on the title row does the same as ▲; Space on the toggle too
+    await page.locator('#prTitle').click();
+    await expect(card(page)).toHaveClass(/collapsed/);
+    await toggle(page).focus();
+    await page.keyboard.press('Space');
+    await expect(card(page)).not.toHaveClass(/collapsed/);
+    await page.locator('#prTitle').click();
+    await expect(card(page)).toHaveClass(/collapsed/);
+    // a new day opens it again (reopenDaily: true)…
+    await lobby(page, TUE); await ready(page);
+    await expect(card(page)).not.toHaveClass(/collapsed/);
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+    // …and with reopenDaily: false it stays collapsed until opened
+    await page.evaluate(() => { Arcade.Practice.PRACTICE.reopenDaily = false; Arcade.Lobby.redrawPractice(); });
+    await expect(card(page)).toHaveClass(/collapsed/);
+    watch.check();
+  });
+
+  test('all 3 done while collapsed: the gold bar, the bonus paid once; the stamp waits until the card is opened', async ({page}) => {
+    const watch = await prepare(page, {store: doneToday('trumpet', MON, {gameData: {tuneup: {holds: {[MON]: 1}}, practice: {collapsed: MON}}})});
+    await lobby(page); await ready(page);
+    await expect(card(page)).toHaveClass(/collapsed/);
+    await expect(card(page)).toHaveClass(/gold/);
+    await expect(page.locator('#prTitle')).toHaveText('Practice done! ✓');
+    await expect(card(page)).not.toHaveClass(/stamp-go/);
+    expect(await balance(page)).toBe(10);
+    await page.reload(); await ready(page);
+    expect(await balance(page)).toBe(10);
+    expect((await saved(page)).gameData.practice.stamped).toBeUndefined();
+    await toggle(page).click();
+    await expect(card(page)).toHaveClass(/stamp-go/);                   // opened: the stamp plays now, once
+    await expect(page.locator('#prTitle')).toContainText('+10 tokens');
+    expect((await saved(page)).gameData.practice.stamped).toEqual({[MON]: true});
+    expect(await balance(page)).toBe(10);
+    watch.check();
+  });
+
+  test('the body slides (≈ 200 ms); under reduced motion it just switches', async ({page}) => {
+    const watch = await prepare(page, {store: oneDone()});
+    await lobby(page); await ready(page);
+    const after = () => page.evaluate(() => {
+      document.getElementById('prToggle').click();
+      const c = document.getElementById('practiceCard'), b = document.getElementById('prBody');
+      return {anim: c.dataset.anim || null, collapsed: c.classList.contains('collapsed'), transition: b ? b.style.transition : ''};
+    });
+    let s = await after();                                               // closing: it slides first
+    expect(s).toMatchObject({anim: '1', collapsed: false});
+    expect(s.transition).toContain('height');
+    await expect(card(page)).toHaveClass(/collapsed/);
+    await expect(card(page)).not.toHaveAttribute('data-anim', '1');
+    s = await after();                                                   // opening: the full card, sliding open
+    expect(s).toMatchObject({anim: '1', collapsed: false});
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await page.reload(); await ready(page);
+    s = await after();
+    expect(s).toEqual({anim: null, collapsed: true, transition: ''});    // switched at once
+    s = await after();
+    expect(s).toEqual({anim: null, collapsed: false, transition: ''});
+    watch.check();
+  });
+
+  test('the slim bar is one line at phone, iPad and Chromebook sizes and the lobby moves up (screenshots: collapsed and open)', async ({page}, info) => {
+    const watch = await prepare(page, {store: oneDone()});
+    for (const [name, size] of Object.entries(Object.assign({phone: {width: 390, height: 844}}, VIEWPORTS))) {
+      await page.setViewportSize(size);
+      await page.evaluate(() => { try { const d = JSON.parse(localStorage.getItem('bandarcade.v1')); if (d && d.gameData && d.gameData.practice) delete d.gameData.practice.collapsed; localStorage.setItem('bandarcade.v1', JSON.stringify(d)); } catch (e) { /* first page */ } }).catch(() => {});
+      await lobby(page); await ready(page);
+      const open = await card(page).boundingBox();
+      await page.screenshot({path: info.outputPath(`practice-open-${name}.png`)});
+      await toggle(page).click();
+      await expect(card(page)).toHaveClass(/collapsed/);
+      const m = await page.evaluate(() => {
+        const c = document.getElementById('practiceCard'), r = c.getBoundingClientRect(), t = document.getElementById('prTitle');
+        const parts = ['#prTitle', '.pr-dots', '.pr-count', '#prToggle'].map(q => c.querySelector(q).getBoundingClientRect());
+        const next = c.nextElementSibling ? c.nextElementSibling.getBoundingClientRect() : document.getElementById('zones').getBoundingClientRect();
+        const mid = x => x.top + x.height / 2;
+        return {h: r.height, bottom: r.bottom, nextTop: next.top, titleFits: t.scrollWidth <= t.clientWidth + 1,
+          oneLine: parts.every(p => Math.abs(mid(p) - mid(parts[0])) < 12), inside: parts.every(p => p.left >= r.left - 1 && p.right <= r.right + 1), W: innerWidth, right: r.right};
+      });
+      await page.screenshot({path: info.outputPath(`practice-collapsed-${name}.png`)});
+      expect(m.h, name).toBeLessThanOrEqual(64);
+      expect(m.h, name).toBeLessThan(open.height);
+      expect(m.oneLine, name).toBe(true);
+      expect(m.titleFits, name).toBe(true);
+      expect(m.inside, name).toBe(true);
+      expect(m.right, name).toBeLessThanOrEqual(m.W + 1);
+      expect(m.nextTop - m.bottom, name).toBeLessThanOrEqual(20);          // no empty gap: what's below moved up
+      expect(await offscreen(page), name).toEqual([]);
+    }
+    watch.check();
+  });
+});
