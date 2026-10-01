@@ -269,8 +269,12 @@ test.describe('app (deployed copy: the service worker)', () => {
     serve('testv3');                                                    // a new deploy that changed one script
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
     await page.waitForFunction(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!(r && r.waiting); }, null, {timeout: 60_000});
-    const scripts = [...new Set(served.filter(f => /\.(js|css)$/.test(f)))].sort();
-    expect(scripts, 'the install downloaded only the changed script (+ version.js and the worker itself)').toEqual(['shared/pitch.js', 'shared/version.js', 'sw.js']);
+    // (the server's request log reaches us a moment later)
+    const scripts = () => [...new Set(served.filter(f => /\.(js|css)$/.test(f)))].sort();
+    await expect.poll(scripts, {message: 'the install downloaded only the changed script (+ version.js and the worker itself)', timeout: 15_000})
+      .toEqual(['shared/pitch.js', 'shared/version.js', 'sw.js']);
+    await page.waitForTimeout(1000);
+    expect(scripts(), 'and nothing else afterwards').toEqual(['shared/pitch.js', 'shared/version.js', 'sw.js']);
     expect(served.some(f => f.endsWith('.map')), 'no source map is ever downloaded').toBe(false);
     expect(errors).toEqual([]);
     await ctx.close();
