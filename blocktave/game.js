@@ -544,8 +544,97 @@
     if ((z.layer === 'depths' || z.layer === 'peaks') && !G.endless) award('deep');
   }
 
+  /* ================= THE WAY UP (lighting's helpers for a player deep underground) =================
+     More than light.lostDepth rows below the ground nearby (the median of the nearby columns' ground, so a shaft you dug
+     doesn't count as "the ground") and not closer to the surface for light.lostS seconds: an arrow at the screen's edge
+     points along the shortest OPEN path to a tile under the open sky ("↑ Surface"; straight up when no open path exists).
+     After light.surfaceAfterS underground the pause menu offers ↑ SURFACE: back up along the open tiles, or, with no open
+     way, "Dig upward with your mallet!" (it never digs). Checked twice a second; the path search is capped. */
+  const WAY_MAX = 6000;                                                     // the most tiles one path search looks at
+  function groundNear(x) {
+    const t = []; for (let k = -8; k <= 8; k++) t.push(BW.top(G.w, Math.max(0, Math.min(G.w.w - 1, x + k))));
+    return t.sort((a, b) => a - b)[8];
+  }
+  /** the shortest open path (4 ways, through tiles you can stand in) from (x, y) to a tile under the open sky at the
+      ground's level: [[x, y], …] from the player, or null */
+  function pathUp(x, y) {
+    const w = G.w, ref = groundNear(x), seen = new Map(), q = [[x, y]];
+    const passable = (cx, cy) => cx >= 0 && cx < w.w && cy >= 0 && cy < w.h && !B[w.b[cy * w.w + cx]].solid;
+    if (!passable(x, y)) return null;
+    seen.set(y * w.w + x, -1);
+    for (let h = 0; h < q.length && q.length < WAY_MAX; h++) {
+      const [cx, cy] = q[h];
+      if (cy < BW.top(w, cx) && cy <= groundNear(cx) + 1 && cy <= ref + 1) {       // under the open sky, at the ground's level
+        const out = []; let k = cy * w.w + cx;
+        while (k !== -1) { out.unshift([k % w.w, Math.floor(k / w.w)]); k = seen.get(k); }
+        return out;
+      }
+      for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+        const nx = cx + dx, ny = cy + dy, nk = ny * w.w + nx;
+        if (!seen.has(nk) && passable(nx, ny)) { seen.set(nk, cy * w.w + cx); q.push([nx, ny]); }
+      }
+    }
+    return null;
+  }
+  function stepWay(real, now) {
+    const W = G.way || (G.way = {underS: 0, lostT: 0, best: Infinity, arrow: null, t: 0, depth: 0, surfaceBtn: false});
+    const p = G.p, x = Math.floor(p.x), y = Math.floor(p.y - .5), L = R.light;
+    if (now - W.t < 500) { if (W.depth > L.caveDepth) W.underS += real; if (W.depth > L.lostDepth) W.lostT += real; return; }
+    W.t = now;
+    W.depth = y - groundNear(x);
+    if (W.depth > L.caveDepth && y >= BW.top(G.w, x)) W.underS += real; else W.underS = 0;
+    const btn = W.underS >= L.surfaceAfterS;
+    if (btn !== W.surfaceBtn) { W.surfaceBtn = btn; pause.set({extras: pauseExtras()}); }
+    if (W.depth <= L.lostDepth) { W.lostT = 0; W.best = Infinity; W.arrow = null; W.path = null; return; }
+    const path = pathUp(x, y), dist = path ? path.length : Infinity;
+    W.path = path;
+    if (dist < W.best - .5) { W.best = dist; W.lostT = 0; } else W.lostT += real;
+    if (W.lostT >= L.lostS) {
+      const way = path && path[Math.min(6, path.length - 1)];
+      const dx = way ? way[0] + .5 - p.x : 0, dy = way ? way[1] + .5 - (p.y - .9) : -1, n = Math.hypot(dx, dy) || 1;
+      W.arrow = {dx: dx / n, dy: dy / n, open: !!path};
+    } else W.arrow = null;
+  }
+  /** the pause menu's ↑ SURFACE: up to the nearest tile under the open sky along open tiles, or a hint (never digs) */
+  function goSurface() {
+    if (!G) return;
+    const p = G.p, path = pathUp(Math.floor(p.x), Math.floor(p.y - .5));
+    if (pause.paused) pause.resume();
+    if (!path) { A.UI.toast('Dig upward with your mallet!', {ms: 2600}); return; }
+    const [tx] = path[path.length - 1];
+    p.x = tx + .5; p.y = BW.top(G.w, tx); p.vx = p.vy = 0;
+    G.way = null;
+    A.UI.toast('Back to the surface!', {ms: 1800});
+  }
+  /** the arrow at the screen's edge (the sharp overlay, readable in the dark: a dark outline) */
+  function drawWay(sx, sy) {
+    const a = G.way && G.way.arrow; if (!a) return;
+    const cx = sx(G.p.x), cy = sy(G.p.y - .9), pad = 58;
+    // where the ray from the player meets the screen's inset edge
+    const tx = a.dx > 0 ? (VW - pad - cx) / a.dx : a.dx < 0 ? (pad - cx) / a.dx : Infinity;
+    const ty = a.dy > 0 ? (VH - pad - cy) / a.dy : a.dy < 0 ? (pad + 40 - cy) / a.dy : Infinity;
+    const t = Math.max(0, Math.min(tx, ty)), x = cx + a.dx * t, y = cy + a.dy * t, ang = Math.atan2(a.dy, a.dx);
+    oc.save(); oc.translate(x, y); oc.rotate(ang);
+    oc.beginPath(); oc.moveTo(18, 0); oc.lineTo(-10, -13); oc.lineTo(-4, 0); oc.lineTo(-10, 13); oc.closePath();
+    oc.lineWidth = 5; oc.strokeStyle = col('bt-ink'); oc.stroke(); oc.fillStyle = col('bt-build'); oc.fill();
+    oc.restore();
+    oc.font = '700 15px "GN Text", system-ui, sans-serif'; oc.textAlign = 'center'; oc.textBaseline = 'middle';
+    const ly = y + (a.dy < -.5 ? 28 : -28);
+    oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText('↑ Surface', x, ly); oc.fillStyle = col('bt-build'); oc.fillText('↑ Surface', x, ly);
+  }
+
   /* ================= THE CAMERA AND DRAWING ================= */
   const lightCv = document.createElement('canvas'), lightG = lightCv.getContext('2d');
+  const BD = A.BlocktaveBackdrop.create({col: k => col(k)});
+  /* A SLOW DEVICE: frames averaging over backdrop.slowMs to draw (over backdrop.slowFrames frames) = the backdrop's far
+     layer only, for good on this device (gameData bgLow) */
+  const bgLow = () => !!gd().bgLow;
+  function perfWatch() {
+    if (bgLow()) return;
+    const f = G.frames; if (f.length < R.backdrop.slowFrames || (G.nFrames || 0) % 30) return;
+    const ms = f.slice(-R.backdrop.slowFrames).reduce((a, x) => a + x[1], 0) / R.backdrop.slowFrames;
+    if (ms > R.backdrop.slowMs) saveGd({bgLow: true});
+  }
   let camX = 0, camY = 0;
   function frame(now) {
     if (!G || !G.running) return;
@@ -562,6 +651,7 @@
     const ms = performance.now() - t0;
     G.frames.push([now, ms]); if (G.frames.length > 240) G.frames.shift();
     G.nFrames = (G.nFrames || 0) + 1; if (!G.since) G.since = now;
+    perfWatch();
   }
   function update(dt, real, now) {
     const w = G.w;
@@ -583,6 +673,7 @@
     // particles, world drops
     G.parts = G.parts.filter(q => (q.t += real) < q.life);
     stepDrops(dt, now);
+    stepWay(real, now);
     // autosave
     if (!G.endless && performance.now() - G.lastSave > R.autosaveS * 1000) saveWorld();
     if (G.hudT == null || now - G.hudT > 250) { G.hudT = now; drawHud(); Card.follow(); }
@@ -595,13 +686,10 @@
     camY = Math.max(-4, Math.min(w.h - VH / S + (sheet ? VH / S * .4 : 0), p.y - 1 - VH / S * (sheet ? .28 : .55)));
     ctx.setTransform(WPX, 0, 0, WPX, 0, 0);
     oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ov.width, ov.height); oc.setTransform(DPR, 0, 0, DPR, 0, 0);
-    // THE SKY: a stage wash, day to night (colors from the theme)
-    const gr = ctx.createLinearGradient(0, 0, 0, VH);
+    // THE SKY AND THE PARALLAX BACKDROP (backdrop.js): the biome's three layers, day to night, the cave backdrop below
     const dayMix = Math.max(0, Math.min(1, (sky - R.light.nightSky) / (1 - R.light.nightSky)));
-    gr.addColorStop(0, mix(col('bt-sky-night'), col('bt-sky-day'), dayMix));
-    gr.addColorStop(1, mix(col('bt-sky-night-2'), col('bt-sky-day-2'), dayMix));
-    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
-    drawSkyBits(dayMix, now);
+    BD.draw(ctx, {VW, VH, WPX, S, camX, camY, day: dayMix, dusk: 1 - Math.abs(2 * dayMix - 1), now, still: !!RM.matches,
+      low: bgLow(), world: w, top: x => BW.top(w, x), open: (x, y) => !B[w.b[y * w.w + x]].solid, seed: w.seed, layer: G.layer});
     // THE TILES: only the visible ones
     const x0 = Math.floor(camX), y0 = Math.floor(camY), ox = (x0 - camX) * S, oy = (y0 - camY) * S;
     ctx.imageSmoothingEnabled = false;
@@ -625,38 +713,65 @@
     G.parts.forEach(q => { ctx.globalAlpha = 1 - q.t / q.life; ctx.fillStyle = q.c; const k = q.t / q.life; ctx.fillRect(sx(q.x + q.vx * k), sy(q.y + q.vy * k + k * k), S * .18, S * .18); });
     ctx.globalAlpha = 1;
     // THE LIGHT: one pixel per tile, scaled up smoothly (soft light around lamps, dark caves, the night)
-    const img = lightG.createImageData(cols, rows), d = img.data, lamps = G.lamps.filter(L => L.x > x0 - 9 && L.x < x0 + cols + 9 && L.y > y0 - 9 && L.y < y0 + rows + 9);
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const l = BW.light(w, x0 + i, y0 + j, sky, lamps, R), a = Math.round(255 * R.light.maxShade * (1 - l));
-      d[(j * cols + i) * 4 + 3] = a;
-    }
+    const lv = drawnLight(x0, y0, sky);
+    const img = lightG.createImageData(cols, rows), d = img.data;
+    for (let k = 0; k < cols * rows; k++) d[k * 4 + 3] = Math.round(255 * R.light.maxShade * (1 - lv[k]));
     lightG.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(lightCv, 0, 0, cols, rows, ox - S / 2, oy - S / 2, cols * S, rows * S);
+    drawGlints(x0, y0, ox, oy, lv);
     // after the light, so they're always readable: the note bubbles, the reach and the target
     drawDrops(sx, sy, now);
     drawPoofs(sx, sy, now);
     G.creatures.forEach(c => drawBubble(c, sx(c.x), sy(c.y)));
     drawReach(sx, sy, now);
     drawLabels(sx, sy, now);
+    drawWay(sx, sy);
   }
-  function mix(a, b, t) {
-    const pa = parse(a), pb = parse(b); if (!pa || !pb) return t > .5 ? b : a;
-    return `rgb(${pa.map((v, k) => Math.round(v + (pb[k] - v) * t)).join(',')})`;
+  /* THE LIGHT AS DRAWN (world.js lightMap + what only the eye needs): the PLAYER'S GLOW (playerRadius, playerGlow at the
+     center, fading; the Golden Baton batonGlow farther), open space underground a little lighter than rock (openLift),
+     water never darker than waterMin. G.lightGrid keeps the last frame's (tests: demo.lightAt). */
+  function drawnLight(x0, y0, sky) {
+    const w = G.w, p = G.p, L = R.light, lamps = G.lamps.filter(q => q.x > x0 - 9 && q.x < x0 + cols + 9 && q.y > y0 - 9 && q.y < y0 + rows + 9);
+    const m = BW.lightMap(w, x0, y0, cols, rows, sky, lamps, R), v = m.v;
+    const r = L.playerRadius + (tier() >= 4 ? L.batonGlow : 0), px = p.x, py = p.y - .9;
+    for (let j = 0; j < rows; j++) {
+      const y = y0 + j; if (y < 0 || y >= w.h) continue;
+      for (let i = 0; i < cols; i++) {
+        const x = x0 + i; if (x < 0 || x >= w.w) continue;
+        const k = j * cols + i, b = B[w.b[y * w.w + x]];
+        let l = v[k];
+        if (!b.solid && y > BW.top(w, x) && l < .3) l += L.openLift;
+        if (b.fluid) l = Math.max(l, L.waterMin);
+        const dd = Math.hypot(x + .5 - px, y + .5 - py);
+        if (dd < r + 1) l = Math.max(l, L.playerGlow * (dd < r ? 1 - .4 * (dd / r) ** 2 : .6 * (r + 1 - dd)));
+        v[k] = Math.min(1, l);
+      }
+    }
+    G.lightGrid = {x0, y0, cols, rows, v};
+    return v;
   }
-  function parse(c) { const m = /^#([0-9a-f]{6})$/i.exec(c); if (m) return [0, 2, 4].map(k => parseInt(m[1].slice(k, k + 2), 16)); const r = /rgba?\(([^)]+)\)/.exec(c); return r ? r[1].split(',').slice(0, 3).map(Number) : null; }
-  function drawSkyBits(day, now) {
-    // stars at night (still), and far-off stage spotlights by day: slow, soft, never flashing
-    if (day < .8) {
-      ctx.globalAlpha = (1 - day) * .8; ctx.fillStyle = col('bt-star');
-      for (let k = 0; k < 40; k++) { const x = ((k * 97.3 + G.w.seed % 97) % 100) / 100 * VW, y = ((k * 41.7) % 60) / 100 * VH * .7; ctx.fillRect(x - camX * .2 % VW, y, 2, 2); }
-      ctx.globalAlpha = 1;
+  /** ORE GLINTS: music blocks keep a faint glow of their color in the dark (still: no twinkle), so they read as "mine me" */
+  const GLINT = {toneOre: 'bt-tone', brassOre: 'bt-brass', scaleVein: 'bt-scale', springVein: 'bt-spring', sustain: 'bt-sustain', rhythmRock: 'bt-rhythm', restCrystal: 'bt-rest'};
+  const GLINT_ID = {}; Object.keys(GLINT).forEach(k => { GLINT_ID[ID[k]] = GLINT[k]; });
+  function drawGlints(x0, y0, ox, oy, lv) {
+    const w = G.w, a0 = R.light.glint; if (!a0) return;
+    for (let j = 0; j < rows; j++) {
+      const y = y0 + j; if (y < 0 || y >= w.h) continue;
+      for (let i = 0; i < cols; i++) {
+        const x = x0 + i; if (x < 0 || x >= w.w) continue;
+        const c = GLINT_ID[w.b[y * w.w + x]]; if (!c) continue;
+        const dark = 1 - lv[j * cols + i]; if (dark < .25) continue;
+        const X = ox + i * S, Y = oy + j * S, u = S / 8, h = (x * 7 + y * 13) % 5;
+        ctx.fillStyle = col(c);
+        ctx.globalAlpha = a0 * dark * .35; ctx.fillRect(X + u, Y + u, S - 2 * u, S - 2 * u);
+        ctx.globalAlpha = a0 * dark;                                          // three glint pixels, the same every frame
+        ctx.fillRect(X + (1 + h % 3) * u * 1.6, Y + (1 + h % 2) * u * 1.5, u, u);
+        ctx.fillRect(X + (4 + h % 2) * u, Y + (5 - h % 2) * u, u * .8, u * .8);
+        ctx.fillRect(X + (2 + h % 4) * u, Y + (3 + h % 3) * u, u * .6, u * .6);
+      }
     }
-    if (day > .2) {
-      ctx.globalAlpha = day * .1; ctx.fillStyle = col('bt-beam');
-      for (let k = 0; k < 3; k++) { const a = RM.matches ? 0 : Math.sin(now / 6000 + k * 2) * .25, x = VW * (.2 + k * .3); ctx.beginPath(); ctx.moveTo(x, VH * .95); ctx.lineTo(x + Math.sin(a - .3) * VH, 0); ctx.lineTo(x + Math.sin(a + .3) * VH, 0); ctx.fill(); }
-      ctx.globalAlpha = 1;
-    }
+    ctx.globalAlpha = 1;
   }
   function drawPlayer(x, y, now) {
     const p = G.p, spr = sprites(), h = S * 2;
@@ -738,10 +853,18 @@
   /** the target highlight (a tile in reach, under the mouse or the last tap) and, for a moment, a tap out of reach */
   function drawReach(sx, sy, now) {
     const t = G.target;
-    if (t && inReach(t.x, t.y)) {
+    if (t && inReach(t.x, t.y)) {                                         // bright, whatever the light: a dark edge, then the color
+      oc.strokeStyle = col('bt-ink'); oc.lineWidth = 5; oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
       oc.strokeStyle = col(G.build ? 'bt-build' : 'bt-mine'); oc.lineWidth = 3;
       oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
-    }
+      const v = BW.at(G.w, t.x, t.y), name = v ? B[v].name : '';             // the target's name over it
+      if (name && !G.build) {
+        oc.font = '700 13px "GN Text", system-ui, sans-serif'; oc.textAlign = 'center'; oc.textBaseline = 'bottom';
+        oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(name, sx(t.x) + S / 2, sy(t.y) - 3);
+        oc.fillStyle = col('bt-mine'); oc.fillText(name, sx(t.x) + S / 2, sy(t.y) - 3);
+      }
+      G.targetName = name;
+    } else G.targetName = '';
     const f = G.far;
     if (f && now - f.t0 < R.farFlashMs) {
       oc.globalAlpha = .55 * (1 - (now - f.t0) / R.farFlashMs);
@@ -1233,8 +1356,9 @@
     closePanels(); $('composer').hidden = false; G.panel = 'composer';
     const items = xs.map(cx => itemOf(noteOf((G.w.meta[cx + ',' + y] || {}).pitch || defaultPitch())));
     $('compTitle').textContent = `Your melody (${items.length} ${items.length === 1 ? 'note' : 'notes'})`;
-    const sp = Card.spaceNotes(items.map(it => it.show), 82), W = Math.max(300, sp.end + 40);     // each note spaced by its own width
-    $('compStaff').innerHTML = A.staffSVG(snare ? 'treble' : inst.clef, items.map((it, k) => ({n: it.show, x: sp.xs[k], caption: it.label})), {width: W, captions: true, label: 'Your melody'});
+    // laid out like every card's staff (challenges.js layoutNotes): centered or spread, wrapped on a narrow panel
+    const room = Math.max(200, ($('compStaff').clientWidth || $('composer').clientWidth || innerWidth) - 12);
+    $('compStaff').innerHTML = Card.staffRows(items.map(it => ({n: it.show, caption: it.label})), {clef: snare ? 'treble' : inst.clef, availPx: room, captions: true, label: 'Your melody'}).html;
     $('compSay').textContent = mode === 'inst' ? (snare ? 'Play one steady hit for each note to power the row!' : 'Play your melody on your instrument to power the row!') : 'Tap your melody\'s note names in order to power the row!';
     $('compActs').innerHTML = `<button type="button" class="btn btn-primary" id="compPerf">Perform</button>`;
     $('compPlay').hidden = false; $('compPlay').disabled = A.Pitch.listening();
@@ -1758,6 +1882,7 @@
   });
   function pauseExtras() {
     const x = [{label: 'Switch to ' + (mode === 'inst' ? 'Touch mode' : 'Instrument mode'), id: 'btModeX', onClick: () => switchMode(mode === 'inst' ? 'touch' : 'inst')}];
+    if (G && G.way && G.way.surfaceBtn) x.push({label: '↑ Surface', id: 'btSurface', onClick: () => goSurface()});
     if (G && G.endless) return x;
     return x.concat([
       {label: 'Save world to file', id: 'btSaveFile', onClick: () => { downloadWorld(); }},
@@ -1812,7 +1937,14 @@
       held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
       drops: G ? (G.w.drops || []).map(d => ({x: d.x, y: d.y, item: d.item, n: d.n, t: d.t || 0, pull: !!d.pull, falling: !!d.vy})) : [],
       labels: G ? (G.labels || []).map(labelText) : [], tip: tip.hidden ? null : tip.textContent, slots: slots.slice(),
-      fx: G ? Object.assign({}, G.fx, {swing: !!G.swing, poofing: (G.poofs || []).length, far: !!G.far, rm: !!RM.matches}) : {}}),
+      fx: G ? Object.assign({}, G.fx, {swing: !!G.swing, poofing: (G.poofs || []).length, far: !!G.far, rm: !!RM.matches}) : {},
+      way: G && G.way ? {depth: G.way.depth, underS: G.way.underS, lostT: G.way.lostT, arrow: G.way.arrow, surfaceBtn: G.way.surfaceBtn, path: G.way.path ? G.way.path.length : null, next: G.way.path ? G.way.path.slice(0, 8) : null} : null,
+      targetName: G ? G.targetName || '' : '',
+      backdrop: BD.state()}),
+    /** the light a tile was drawn with last frame (world.js lightMap + the player's glow), or null off screen */
+    lightAt: (x, y) => { const g = G && G.lightGrid; if (!g) return null; const i = x - g.x0, j = y - g.y0; return i < 0 || j < 0 || i >= g.cols || j >= g.rows ? null : g.v[j * g.cols + i]; },
+    lightGrid: () => G && G.lightGrid && {x0: G.lightGrid.x0, y0: G.lightGrid.y0, cols: G.lightGrid.cols, rows: G.lightGrid.rows, v: Array.from(G.lightGrid.v)},
+    surface: () => goSurface(),
     world: () => G && G.w, worldJSON: () => G && worldJSON(), importWorld: (t, ask) => importWorld(t, ask), save: () => saveWorld(),
     begin, showHub, fps, key: WORLD_KEY,
   };
@@ -1830,6 +1962,8 @@
       /** stand next to (x, y) with room to breathe: dig out the two tiles above the spot next to it */
       standBy: (x, y) => { const w = G.w; for (const dx of [-1, 1]) { const sx = x + dx; BW.put(w, sx, y, ID.air); BW.put(w, sx, y - 1, ID.air); if (!B[BW.at(w, sx, y + 1)].solid) BW.put(w, sx, y + 1, ID.slate); G.p.x = sx + .5; G.p.y = y + 1; G.p.vx = G.p.vy = 0; return {x: sx, y}; } },
       put: (x, y, key) => BW.put(G.w, x, y, ID[key]),
+      target: (x, y) => { G.target = {x, y}; },
+      bgLow: on => saveGd({bgLow: !!on}),
       at: (x, y) => B[BW.at(G.w, x, y)].key,
       mine: (x, y) => mine(x, y),
       act: (x, y, build) => act(x, y, build),

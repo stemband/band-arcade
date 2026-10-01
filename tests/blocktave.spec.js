@@ -490,8 +490,10 @@ test.describe('Blocktave: performance', () => {
     const f1 = (await st(page)).run;
     await cdp.send('Emulation.setCPUThrottlingRate', {rate: 1});
     const fps = (f1.frames - f0.frames) / ((f1.ms - f0.ms) / 1000);
-    console.log(`Blocktave at 4× CPU throttle: ${fps.toFixed(1)} fps`);
+    const bd = (await st(page)).backdrop;
+    console.log(`Blocktave at 4× CPU throttle: ${fps.toFixed(1)} fps (backdrop layers: ${bd.layers.join(', ')})`);
     expect(fps).toBeGreaterThanOrEqual(30);
+    expect(bd.low, 'the full parallax backdrop stayed within the frame budget (never dropped to the far layer)').toBe(false);
   });
 });
 
@@ -820,38 +822,272 @@ test.describe('Blocktave: THE MEASURE, a crafting station', () => {
 });
 
 test.describe('Blocktave: staffs on the cards', () => {
-  test('no accidental touches a notehead (≥ 3 px apart): "Name this scale", Scale Veins and composer rows, every member × scale', async ({page}) => {
-    test.setTimeout(120_000);
-    await enter(page, {mode: 'touch'});
-    const bad = await page.evaluate(async () => {
-      await document.fonts.load('54px "GN Music"', '♭♯♮');            // measured with the real music font, not a fallback
-      const A = Arcade, C = A.BlocktaveCard, out = [];
-      const check = (svg, what) => {
-        const heads = [...svg.querySelectorAll('ellipse.head')].map(e => e.getBBox()), accs = [...svg.querySelectorAll('text.head')].map(e => e.getBBox());
-        accs.forEach(a => heads.forEach(h => {
-          const gapX = Math.max(h.x - (a.x + a.width), a.x - (h.x + h.width)), gapY = Math.max(h.y - (a.y + a.height), a.y - (h.y + h.height));
-          if (gapX < 3 - .05 && gapY < 3 - .05) out.push(`${what}: gap ${gapX.toFixed(1)}`);
-        }));
-      };
-      const members = A.PLAYERS.filter(m => m !== 'snare').map(m => A.memberById(m));
-      for (const mem of members) {
-        const group = A.INSTRUMENTS.find(g => g.members && g.members.some(x => x.id === mem.id)) || A.INSTRUMENTS[0];
-        for (const id of ['Bb', 'Eb', 'F', 'Ab']) {
-          C.open({kind: 'key', mode: 'touch', member: mem, clef: group.clef, ask: 'scale', scale: id, at: {x: 300, y: 300}});
-          check(document.querySelector('.bt-card svg'), `${mem.id} ${id} name-this-scale`);
-          const seq = A.buildSequence({member: mem, group, notes: id, order: 'order', level: 2, count: 8});
-          C.open({kind: 'notes', mode: 'touch', items: seq.items.slice(0, 8), clef: group.clef, sig: seq.sig, fit: seq.fit, at: {x: 300, y: 300}});
-          check(document.querySelector('.bt-card svg'), `${mem.id} ${id} scale vein`);
+  /* THE NOTE LAYOUT (challenges.js layoutNotes): every member, 2–8 notes (the four scales with their key signatures and the
+     chromatic notes with their own accidentals), at iPad portrait / landscape and a phone: the first note's box starts
+     staffLead after the clef + key signature, neighbors are ≥ 8 px apart on screen (accidentals included), every
+     notehead ≥ noteMinPx tall, 2–3 notes centered; a phone wraps 8 notes onto two rows instead of shrinking them. */
+  for (const [name, size] of [['iPad portrait', {width: 768, height: 1024}], ['iPad landscape', {width: 1180, height: 820}], ['phone', {width: 390, height: 844}]]) {
+    test(`notes on the cards are spaced, centered and never too small: every member, 2–8 notes (${name})`, async ({page}) => {
+      test.setTimeout(180_000);
+      await page.setViewportSize(size);
+      await enter(page, {mode: 'touch'});
+      const r = await page.evaluate(async () => {
+        await document.fonts.load('54px "GN Music"', '♭♯♮𝄞𝄢');        // measured with the real music font, not a fallback
+        const A = Arcade, C = A.BlocktaveCard, R = window.BT_RULES, out = {bad: [], cards: 0, wrapped: 0, rowsAt8: new Set()};
+        const check = what => {
+          const card = document.querySelector('.bt-card'), svgs = [...card.querySelectorAll('.bt-staff svg')];
+          svgs.forEach((svg, ri) => {
+            const vb = svg.viewBox.baseVal, gs = [...svg.querySelectorAll('g[id^=btn]')];
+            const head = Math.max(...[...svg.querySelectorAll('text:not(.head):not(.ncap)')].map(t => { const b = t.getBBox(); return b.x + b.width; }));
+            const first = gs[0].getBBox();
+            if (first.x - head < R.staffLead - 1) out.bad.push(`${what} row ${ri}: first note ${(first.x - head).toFixed(1)} after the key signature`);
+            const rs = gs.map(g => g.getBoundingClientRect());
+            for (let k = 1; k < rs.length; k++) if (rs[k].left - rs[k - 1].right < 8) out.bad.push(`${what} row ${ri}: notes ${k - 1}/${k} only ${(rs[k].left - rs[k - 1].right).toFixed(1)} px apart`);
+            svg.querySelectorAll('ellipse.head').forEach(e => { const h = e.getBoundingClientRect().height; if (h < R.noteMinPx - .3) out.bad.push(`${what}: notehead ${h.toFixed(1)} px`); });
+            if (svgs.length === 1 && gs.length <= 3) {
+              const last = gs[gs.length - 1].getBBox(), mid = (first.x + last.x + last.width) / 2, want = (head + vb.width - 8) / 2;
+              if (Math.abs(mid - want) > 9) out.bad.push(`${what}: ${gs.length} notes not centered (${mid.toFixed(0)} vs ${want.toFixed(0)})`);
+            }
+            const sr = svg.getBoundingClientRect();
+            if (sr.right > innerWidth + .5 || sr.left < -.5) out.bad.push(`${what}: the staff leaves the screen`);
+          });
+          out.cards++; if (svgs.length > 1) out.wrapped++;
+          return svgs.length;
+        };
+        for (const id of A.PLAYERS.filter(m => m !== 'snare')) {
+          const mem = A.memberById(id), group = A.INSTRUMENTS.find(g => g.members && g.members.some(x => x.id === id));
+          for (const notes of ['Bb', 'Eb', 'F', 'Ab', 'chrom']) {
+            const seq = A.buildSequence({member: mem, group, notes, order: 'order', level: 2, count: 8});
+            for (let n = 2; n <= 8; n++) {
+              C.open({kind: 'notes', mode: 'touch', items: seq.items.slice(0, n), clef: group.clef, sig: seq.sig, fit: seq.fit, at: {x: 300, y: 300}});
+              const rows = check(`${id} ${notes} ×${n}`);
+              if (n === 8) out.rowsAt8.add(rows);
+            }
+          }
+          C.open({kind: 'key', mode: 'touch', member: mem, clef: group.clef, ask: 'scale', scale: 'Eb', at: {x: 300, y: 300}});
+          check(`${id} name this scale`);
           C.close();
         }
-        // a composer row: chromatic notes, spaced the same way (game.js openPodium)
-        const ch = A.chromaticScale(mem).slice(0, 8), sp = C.spaceNotes(ch, 82), d = document.createElement('div');
-        d.innerHTML = A.staffSVG(group.clef, ch.map((n, k) => ({n, x: sp.xs[k]})), {width: sp.end + 40}); document.body.appendChild(d);
-        check(d.querySelector('svg'), `${mem.id} composer row`); d.remove();
-      }
-      return out;
+        out.rowsAt8 = [...out.rowsAt8];
+        return out;
+      });
+      expect(r.bad.slice(0, 12)).toEqual([]);
+      expect(r.cards).toBeGreaterThan(500);
+      if (name === 'phone') expect(r.rowsAt8, 'a phone wraps 8 notes onto two rows').toContain(2);
+      else expect(r.rowsAt8, 'an iPad keeps 8 notes on one row').toEqual([1]);
     });
-    expect(bad.slice(0, 12)).toEqual([]);
+  }
+  test('a Composer row uses the same layout (the Conductor\'s Podium)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => {
+      const C = Arcade.BlocktaveCard, ch = Arcade.chromaticScale(Arcade.memberById('trumpet')).slice(0, 8);
+      const s = C.staffRows(ch.map(n => ({n, caption: C.label(n)})), {clef: 'treble', availPx: 700, captions: true});
+      return {rows: s.rows.length, W: s.W, ok: s.rows[0].xs.every((x, k, xs) => !k || x - xs[k - 1] >= window.BT_RULES.staffGap - .01)};
+    });
+    expect(r).toEqual({rows: 1, W: expect.any(Number), ok: true});
+  });
+});
+
+test.describe('Blocktave: light underground and the way up', () => {
+  /** a cave room (w × h open tiles, rock all around) `depth` rows under the ground near the player; the player stands in
+      its left part. Returns {x, y (the room's floor row - 1), ground}. */
+  const cave = (page, {depth = 20, w = 14, h = 4, dx = 0} = {}) => page.evaluate(({depth, w, h, dx}) => {
+    const d = Arcade.Blocktave.demo, BW = Arcade.BlocktaveWorld, W = Arcade.Blocktave.world(), s = Arcade.Blocktave.state();
+    const x0 = Math.floor(s.player.x) + dx, ground = BW.top(W, x0), y1 = ground + depth;
+    for (let x = x0 - 7; x < x0 + w + 7; x++) for (let y = y1 - h - 7; y <= y1 + 7; y++) d.put(x, y, 'slate');
+    for (let x = x0; x < x0 + w; x++) for (let y = y1 - h + 1; y <= y1; y++) d.put(x, y, 'air');
+    d.tp(x0 + 2, y1 - 1);
+    return {x: x0, y: y1, ground, w, h};
+  }, {depth, w, h, dx});
+  const frames = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 60)))));
+
+  test('at noon, 20 rows down with no lamp: the player\'s glow lights every tile within 4 tiles (≥ .35); nothing underground under caveMin', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));                 // noon
+    await cave(page);
+    await frames(page);
+    const r = await page.evaluate(() => {
+      const B = Arcade.Blocktave, s = B.state(), g = B.lightGrid(), BW = Arcade.BlocktaveWorld, W = B.world(), R = window.BT_RULES;
+      const px = s.player.x, py = s.player.y - .9, near = [], under = [];
+      for (let j = 0; j < g.rows; j++) for (let i = 0; i < g.cols; i++) {
+        const x = g.x0 + i, y = g.y0 + j, v = g.v[j * g.cols + i];
+        if (x < 0 || y < 0 || x >= W.w || y >= W.h) continue;
+        if (Math.hypot(x + .5 - px, y + .5 - py) <= 4) near.push(v);
+        if (y > BW.top(W, x)) under.push(v);
+      }
+      return {near: Math.min(...near), nNear: near.length, under: Math.min(...under), caveMin: R.light.caveMin,
+        spawnLight: BW.light(W, Math.floor(px) + 4, Math.floor(py), 1, [], R)};
+    });
+    expect(r.nNear).toBeGreaterThan(40);
+    expect(r.near).toBeGreaterThanOrEqual(.35);
+    expect(r.under).toBeGreaterThanOrEqual(r.caveMin - 1e-6);
+    expect(r.spawnLight, 'the glow is drawn only: the world\'s own light there stays dark').toBeLessThan(.5);
+  });
+
+  test('at night creatures can still appear at the edge of the player\'s glow (light.dark unchanged); ores glint in the dark', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const R = window.BT_RULES; Arcade.Blocktave.demo.time(R.dayS + 60); });
+    const c = await cave(page, {w: 12, h: 3});
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.put(x + 1, y + 1, 'toneOre'), c);
+    await frames(page);
+    const r = await page.evaluate(({x, y}) => {
+      const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), R = window.BT_RULES;
+      const ex = Math.floor(s.player.x + R.light.playerRadius);          // a floor tile at the glow's edge
+      return {edge: d.canSpawnAt(ex, y, 'clam'), dark: R.light.dark, drawn: Arcade.Blocktave.lightAt(ex, y)};
+    }, c);
+    expect(r.dark).toBe(.5);
+    expect(r.edge).toBe(true);
+    expect(r.drawn).toBeGreaterThan(.12);
+  });
+
+  test('a shaft dug straight up to the sky is lit by day, fading over light.shaftRows', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    const r = await page.evaluate(() => {
+      const d = Arcade.Blocktave.demo, BW = Arcade.BlocktaveWorld, W = Arcade.Blocktave.world(), R = window.BT_RULES, s = Arcade.Blocktave.state();
+      const x = Math.floor(s.player.x) + 5, g = BW.top(W, x);
+      for (let y = g - 3; y < g + 16; y++) { d.put(x - 1, y, 'slate'); d.put(x + 1, y, 'slate'); d.put(x, y, 'slate'); }
+      for (let y = 0; y < g - 3; y++) { d.put(x - 1, y, 'air'); d.put(x + 1, y, 'air'); d.put(x, y, 'air'); }
+      const dark = BW.light(W, x, g + 4, 1, [], R);
+      for (let y = g - 3; y < g + 12; y++) d.put(x, y, 'air');              // the shaft
+      const rows = []; for (let k = 0; k <= 8; k++) rows.push(BW.light(W, x, g - 3 + k, 1, [], R));
+      return {dark, rows, caveMin: R.light.caveMin, n: R.light.shaftRows};
+    });
+    expect(r.dark, 'before digging: rock is dark').toBeLessThan(.2);
+    expect(r.rows[0]).toBeGreaterThan(.8);
+    expect(r.rows[3], 'lit a few rows down').toBeGreaterThan(.4);
+    for (let k = 1; k <= r.n; k++) expect(r.rows[k]).toBeLessThanOrEqual(r.rows[k - 1] + 1e-6);
+    expect(r.rows[r.n + 2]).toBeLessThan(.5);
+  });
+
+  test('lost underground: the Surface arrow points along the shortest open path; ↑ SURFACE in the pause menu takes you up', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    // a cave room 20 rows down with ONE open tunnel up at its right end (a winding way: up 6, right 3, up to the sky)
+    const c = await cave(page, {w: 10, h: 3});
+    const tunnel = await page.evaluate(({x, y, ground, w, h}) => {
+      const d = Arcade.Blocktave.demo, BW = Arcade.BlocktaveWorld, W = Arcade.Blocktave.world(), tx = x + w - 1;
+      let cy = y - h; for (; cy > y - h - 6; cy--) d.put(tx, cy, 'air');
+      for (let k = 1; k <= 3; k++) d.put(tx + k, cy + 1, 'air');
+      const ux = tx + 3; for (let yy = cy; yy >= 0; yy--) { d.put(ux, yy, 'air'); if (yy < BW.top(W, ux)) break; }
+      return {tx, ux};
+    }, c);
+    // speed the clocks: the arrow after lostS without getting closer; the button after surfaceAfterS
+    await page.evaluate(() => { const R = window.BT_RULES.light; R.lostS = 1; R.surfaceAfterS = 2; });
+    await page.waitForFunction(() => { const w = Arcade.Blocktave.state().way; return w && w.arrow; }, null, {timeout: 8000});
+    let s = await st(page);
+    expect(s.way.depth).toBeGreaterThan(8);
+    expect(s.way.arrow.open).toBe(true);
+    expect(s.way.arrow.dx, 'toward the tunnel (to the right)').toBeGreaterThan(.3);
+    expect(s.way.path, 'the shortest open path: along the room, up the tunnel').toBeLessThan(40);
+    // ↑ SURFACE
+    await page.waitForFunction(() => Arcade.Blocktave.state().way.surfaceBtn, null, {timeout: 8000});
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#btSurface')).toBeVisible();
+    await page.locator('#btSurface').click();
+    s = await st(page);
+    const top = await page.evaluate(x => Arcade.BlocktaveWorld.top(Arcade.Blocktave.world(), x), Math.floor(s.player.x));
+    expect(Math.abs(s.player.y - top), 'standing on the ground under the open sky').toBeLessThan(.01);
+    expect(Math.floor(s.player.x)).toBe(tunnel.ux);
+  });
+
+  test('↑ SURFACE with no open way digs nothing: "Dig upward with your mallet!"; the target always shows its name', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    await cave(page);
+    const before = await page.evaluate(() => Array.from(Arcade.Blocktave.world().b).join(''));
+    const p0 = (await st(page)).player;
+    await page.evaluate(() => Arcade.Blocktave.surface());
+    await expect(page.locator('.ui-toast', {hasText: 'Dig upward with your mallet!'})).toBeVisible();
+    const after = await page.evaluate(() => Array.from(Arcade.Blocktave.world().b).join(''));
+    expect(after === before, 'no block changed').toBe(true);
+    expect((await st(page)).player.x).toBe(p0.x);
+    // the target block's name, readable in the dark
+    await page.evaluate(() => { const s = Arcade.Blocktave.state(); Arcade.Blocktave.demo.target(Math.floor(s.player.x) - 3, Math.floor(s.player.y) - 1); });
+    await frames(page);
+    expect((await st(page)).targetName).toBe('Slate');
+  });
+});
+
+test.describe('Blocktave: the parallax backdrop', () => {
+  /** stand on the ground at column x (the camera follows), then let a few frames draw */
+  const at = async (page, x) => { await page.evaluate(x => { const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(); d.tp(x, Arcade.BlocktaveWorld.top(W, x) - 1); }, x);
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))))); return (await st(page)).backdrop; };
+
+  test('each biome draws its own three layers; between biomes the two sets cross-fade over the blend columns', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    const R = await page.evaluate(() => window.BT_RULES);
+    for (const [x, id] of [[40, 'marsh'], [128, 'brass'], [214, 'canyon']]) {
+      const bd = await at(page, x);
+      expect(bd.biomes, `column ${x}`).toEqual([{id, a: 1}]);
+      expect(bd.layers).toEqual(['far', 'mid', 'near']);
+      expect(bd.strips).toContain(id);
+    }
+    // the camera's middle right on the marsh / brass border: half and half; blend columns away: one set
+    const camAt = async cx => { await at(page, Math.round(cx)); return (await st(page)).backdrop; };
+    let bd = await camAt(R.biomes[1].from);
+    expect(bd.biomes.map(b => b.id)).toEqual(['marsh', 'brass']);
+    expect(Math.abs(bd.biomes[0].a - .5)).toBeLessThan(.2);
+    bd = await camAt(R.biomes[1].from - R.backdrop.blend - 2);
+    expect(bd.biomes).toEqual([{id: 'marsh', a: 1}]);
+    bd = await camAt(R.biomes[1].from + R.backdrop.blend + 2);
+    expect(bd.biomes).toEqual([{id: 'brass', a: 1}]);
+  });
+
+  test('moving the camera 100 px moves the layers 15 / 35 / 60 px (vertically 10 px); the cave backdrop 20', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const a = await at(page, 120), b = await at(page, 130);
+    const tile = (await st(page)).tile, dx = 10 * tile;
+    for (const [L, k] of [['far', 15], ['mid', 35], ['near', 60]]) expect((b.offsets[L].x - a.offsets[L].x) / dx * 100, L).toBeCloseTo(k, 5);
+    // up and down: dig a shaft and stand 10 rows lower
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, BW = Arcade.BlocktaveWorld, W = Arcade.Blocktave.world(), x = 130, t = BW.top(W, x);
+      for (let y = t; y < t + 12; y++) d.put(x, y, 'air'); d.put(x, t + 12, 'slate'); d.tp(x, t + 11); });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80)))));
+    const d2 = (await st(page)).backdrop;
+    expect(d2.cam.y - b.cam.y, 'the camera went down').toBeGreaterThan(100);
+    for (const L of ['far', 'mid', 'near']) {
+      expect(d2.offsets[L].x, L).toBeCloseTo(b.offsets[L].x, 5);
+      expect((d2.offsets[L].y - b.offsets[L].y) / (d2.cam.y - b.cam.y) * 100, `${L}: up and down`).toBeCloseTo(10, 5);
+    }
+    expect(d2.cave.offset.x / d2.cam.x * 100, 'the cave backdrop: 20 % both ways').toBeCloseTo(20, 5);
+    expect(d2.cave.offset.y / d2.cam.y * 100).toBeCloseTo(20, 5);
+  });
+
+  test('night tints the layers; under the ground the cave backdrop shows, with the bass clef in the Bass Depths', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    let bd = await at(page, 40);
+    expect(bd.night).toBe(0);
+    await page.evaluate(() => Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 60));
+    bd = await at(page, 40);
+    expect(bd.night).toBeGreaterThan(.5);
+    // the deep caves: the cave backdrop is drawn, with the faint bass clef
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = 40, y = R.world.deepY + 12;
+      for (let k = -5; k <= 5; k++) for (let j = 0; j < 4; j++) d.put(x + k, y - j, 'air'); d.put(x, y + 1, 'slate'); d.tp(x, y); });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 120)))));
+    bd = (await st(page)).backdrop;
+    expect(bd.cave.drawn).toBe(true);
+    expect(bd.clef).toBe('bass');
+  });
+
+  test('reduced motion: the layers still follow the camera, but nothing sways; a slow device keeps only the far layer', async ({page}) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    const a = await at(page, 30), b = await at(page, 40);
+    expect(a.still).toBe(true);
+    expect(a.sway).toBe(0); expect(b.sway).toBe(0);
+    expect(b.offsets.far.x).toBeGreaterThan(a.offsets.far.x);
+    await page.emulateMedia({reducedMotion: 'no-preference'});
+    let moved = 0;
+    for (let k = 0; k < 6; k++) { const s = await at(page, 40); moved = Math.max(moved, Math.abs(s.sway)); await page.waitForTimeout(300); }
+    expect(moved, 'with motion the marsh reeds sway a little').toBeGreaterThan(0);
+    expect(moved).toBeLessThanOrEqual(await page.evaluate(() => window.BT_RULES.backdrop.swayPx));
+    await page.evaluate(() => Arcade.Blocktave.demo.bgLow(true));
+    const c = await at(page, 40);
+    expect(c.layers).toEqual(['far']);
+    expect(c.sway).toBe(0);
   });
 });
 
