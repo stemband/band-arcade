@@ -42,7 +42,7 @@ Engine and shared systems (`docs/engine/`):
 | [ui-kit.md](docs/engine/ui-kit.md) | any UI: buttons, results, pause, settings, intro, confirm, toasts, layers, hold guard, overlays |
 | [look-and-theme.md](docs/engine/look-and-theme.md) | colors, tokens, fonts, the neon arcade look, the floor's look |
 | [press-start-and-level-select.md](docs/engine/press-start-and-level-select.md) | a game's PRESS START screen or its first screen (SELECT YOUR NOTES / LEVEL / START) |
-| [sound.md](docs/engine/sound.md) | any sound, music or ambience; sound in a listening game (the full "sound while listening" rule); countdowns; the loudness cap; `tones.js` |
+| [sound.md](docs/engine/sound.md) | any sound, music or ambience; sound in a listening game (the full "sound while listening" rule); countdowns; the loudness cap; `tones.js`; the automatic compression of sound files (`tools/compress-sounds.py`, `compress-sounds.yml`) |
 | [pitch.md](docs/engine/pitch.md) | pitch detection or any listening game: `pitch.js`, attacks, suppress, `setRange`, `requireMic`, detector tuning |
 | [notes-and-scales.md](docs/engine/notes-and-scales.md) | instruments and members, transpositions, scales, note sequences, the mode picker, progress keys, staff drawing |
 | [rhythm.md](docs/engine/rhythm.md) | rhythms, counting, the rhythm staff, onsets (claps/hits), calibration and the audio clock, the rhythm judge, the timing check |
