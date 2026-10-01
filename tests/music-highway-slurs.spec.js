@@ -38,7 +38,7 @@ test.describe('music highway slurs', () => {
       const song = (id, notes, time = [4, 4]) => ({id, tier: 2, tempo: 100, timeSig: time, key: 'Bb', style: 'rock', notes});
       const a = N('(3 4 5) 4 3 r'), ev = x => SM.events(x).filter(e => !e.rest).map(e => [e.deg, e.slur, !!e.slurFirst, !!e.slurLast]);
       const across = song('across', N('3 3 (5 | 4 3) 2 | 1:3'), [3, 4]);
-      const tied = song('tied', N('(3:2~ | 3 2) 1:2 | r:4'), [2, 4]);
+      const tied = song('tied', N('(3:2~ | 3 2) | 1:2 | r:2 | r:2'), [2, 4]);
       return {plain: a.filter(n => !n.bar).map(n => n.slur || 0), ev: ev(song('a', a)), across: ev(across), acrossCheck: SM.check(across),
         tied: ev(tied), tiedCheck: SM.check(tied),
         unclosed: SM.check(song('u', N('(3 4 5 | 1:4'))), stray: SM.check(song('s', N('3 4) 5 1'))),
