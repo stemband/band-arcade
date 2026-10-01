@@ -1,0 +1,94 @@
+/* THE TOKEN ICON (shared/tokens.js: Arcade.Tokens.iconHTML() is the ONLY way to show a token). Loaded on every page
+   with tokens.js (shared/version.js writes both tags).
+     <i class="tk-ic tk-<skin>" aria-hidden="true"></i>   the picture is decoration only: the words always say "N tokens"
+     .tk-px                                               Arcade Quest's pixel variant of the same skin
+   THE SKINS: 'coin' all year; during a seasonal event, the event's `token` (shared/seasons.js SEASONS):
+     candycorn (Spooky Season) · snowflake (Winter Fest) · candyheart (Friendship Week) · goldnote (Music In Our Schools
+     Month) · blossom (Spring Bloom) · seashell (Summer Send-Off). An id with no picture here draws the normal coin.
+   HOW A PICTURE IS MADE: the plain .tk-ic is the coin (theme colors). A skin either keeps the round coin and adds a
+   picture on top (::after, its shape a mask, its color a theme token), or cuts the whole icon to its own shape
+   (mask-image: a small SVG; the SVG only gives the SHAPE, every color comes from the theme tokens in shared/theme.css).
+   A NEW EVENT'S TOKEN: add `.tk-<id>` (and `.tk-px.tk-<id>` for Arcade Quest) below, then `token: '<id>'` on the event
+   in seasons.js. Keep it one simple shape that reads at 16 px. */
+.tk-ic{--tk-size:1.15em;position:relative;display:inline-block;flex:0 0 auto;width:var(--tk-size);height:var(--tk-size);vertical-align:-.2em;font-style:normal;
+  border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--yellow-hi),var(--yellow) 45%,var(--amber-ink));
+  box-shadow:inset 0 0 0 max(1.5px,calc(var(--tk-size) / 10)) var(--amber-ink)}
+.tk-ic::before,.tk-ic::after{position:absolute;inset:0;pointer-events:none}
+/* a skin cut to its own shape: no round edge, no ring (its own outline is ::before) */
+.tk-candycorn,.tk-candyheart,.tk-blossom,.tk-seashell{border-radius:0;box-shadow:none;
+  -webkit-mask:var(--tk-shape) center/contain no-repeat;mask:var(--tk-shape) center/contain no-repeat}
+.tk-candycorn::before,.tk-candyheart::before,.tk-seashell::before{content:"";
+  -webkit-mask:var(--tk-edge) center/contain no-repeat;mask:var(--tk-edge) center/contain no-repeat}
+
+/* CANDY CORN (Spooky Season): a white tip, an orange middle, an amber-yellow base, a tiny highlight */
+.tk-candycorn{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5C9.6 1.5 4.2 14 3.6 19c-.3 2.4.9 3.5 3.2 3.5h10.4c2.3 0 3.5-1.1 3.2-3.5C19.8 14 14.4 1.5 12 1.5z'/%3E%3C/svg%3E");
+  --tk-edge:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5C9.6 1.5 4.2 14 3.6 19c-.3 2.4.9 3.5 3.2 3.5h10.4c2.3 0 3.5-1.1 3.2-3.5C19.8 14 14.4 1.5 12 1.5z' fill='none' stroke='%23000' stroke-width='2.4'/%3E%3C/svg%3E");
+  background:linear-gradient(var(--white-hi) 0 33%,var(--belt-orange) 33% 66%,var(--yellow) 66%)}
+.tk-candycorn::before{background:var(--amber-ink)}
+.tk-candycorn::after{content:"";background:radial-gradient(ellipse 9% 15% at 40% 52%,color-mix(in srgb,var(--white-hi) 80%,transparent) 0 70%,transparent 100%)}
+
+/* SNOWFLAKE (Winter Fest): a pale-blue coin with a white six-point snowflake */
+.tk-snowflake{background:radial-gradient(circle at 35% 35%,var(--cyan-hi),color-mix(in srgb,var(--cyan) 45%,var(--blue)) 55%,var(--blue-ink));
+  box-shadow:inset 0 0 0 max(1.5px,calc(var(--tk-size) / 10)) var(--blue-ink)}
+.tk-snowflake::after{content:"";inset:14%;background:var(--white-hi);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath id='a' d='M12 12V2.8M9.4 4.6 12 7l2.6-2.4'/%3E%3Cuse href='%23a' transform='rotate(60 12 12)'/%3E%3Cuse href='%23a' transform='rotate(120 12 12)'/%3E%3Cuse href='%23a' transform='rotate(180 12 12)'/%3E%3Cuse href='%23a' transform='rotate(240 12 12)'/%3E%3Cuse href='%23a' transform='rotate(300 12 12)'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath id='a' d='M12 12V2.8M9.4 4.6 12 7l2.6-2.4'/%3E%3Cuse href='%23a' transform='rotate(60 12 12)'/%3E%3Cuse href='%23a' transform='rotate(120 12 12)'/%3E%3Cuse href='%23a' transform='rotate(180 12 12)'/%3E%3Cuse href='%23a' transform='rotate(240 12 12)'/%3E%3Cuse href='%23a' transform='rotate(300 12 12)'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+
+/* CANDY HEART (Friendship Week): a pink candy heart */
+.tk-candyheart{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22C5.4 17 1.5 13.4 1.5 8.8 1.5 5.3 4.1 2.6 7.4 2.6c2 0 3.6 1 4.6 2.6 1-1.6 2.6-2.6 4.6-2.6 3.3 0 5.9 2.7 5.9 6.2 0 4.6-3.9 8.2-10.5 13.2z'/%3E%3C/svg%3E");
+  --tk-edge:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22C5.4 17 1.5 13.4 1.5 8.8 1.5 5.3 4.1 2.6 7.4 2.6c2 0 3.6 1 4.6 2.6 1-1.6 2.6-2.6 4.6-2.6 3.3 0 5.9 2.7 5.9 6.2 0 4.6-3.9 8.2-10.5 13.2z' fill='none' stroke='%23000' stroke-width='2.4'/%3E%3C/svg%3E");
+  background:radial-gradient(circle at 38% 36%,var(--pink-hi),color-mix(in srgb,var(--pink-hi) 45%,var(--pink)) 55%,var(--pink))}
+.tk-candyheart::before{background:var(--pink-ink)}
+.tk-candyheart::after{content:"";background:radial-gradient(ellipse 10% 8% at 30% 30%,color-mix(in srgb,var(--white-hi) 85%,transparent) 0 70%,transparent 100%)}
+
+/* GOLD NOTE (Music In Our Schools Month): a gold coin with an eighth note */
+.tk-goldnote::after{content:"";inset:17%;background:var(--amber-ink);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='8.6' cy='17.6' rx='4' ry='3' transform='rotate(-22 8.6 17.6)'/%3E%3Cpath d='M11.4 2.5h2.3c.3 3 2.3 4.4 3.8 6.2 1.3 1.6 1.2 4-.2 5.8.4-2-.4-3.6-2-4.6-.5-.3-1-.5-1.6-.6v8.4h-2.3z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='8.6' cy='17.6' rx='4' ry='3' transform='rotate(-22 8.6 17.6)'/%3E%3Cpath d='M11.4 2.5h2.3c.3 3 2.3 4.4 3.8 6.2 1.3 1.6 1.2 4-.2 5.8.4-2-.4-3.6-2-4.6-.5-.3-1-.5-1.6-.6v8.4h-2.3z'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* BLOSSOM (Spring Bloom): a five-petal pink flower with a yellow middle */
+.tk-blossom{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='6.3' r='4.9'/%3E%3Ccircle cx='17.4' cy='10.2' r='4.9'/%3E%3Ccircle cx='15.4' cy='16.6' r='4.9'/%3E%3Ccircle cx='8.6' cy='16.6' r='4.9'/%3E%3Ccircle cx='6.6' cy='10.2' r='4.9'/%3E%3C/svg%3E");
+  background:radial-gradient(circle at 50% 52%,var(--yellow) 0 12%,var(--amber) 14%,var(--pink-hi) 17%,color-mix(in srgb,var(--pink-hi) 40%,var(--pink)) 40%,var(--pink-ink) 64%)}
+
+/* SEASHELL (Summer Send-Off): a peach scallop shell */
+.tk-seashell{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6 2.4 11.2 5.6 5 12 2.4 18.4 5l3.2 6.2z'/%3E%3Ccircle cx='4.9' cy='10.6' r='3.1'/%3E%3Ccircle cx='7.6' cy='5.8' r='3.1'/%3E%3Ccircle cx='12' cy='4.2' r='3.1'/%3E%3Ccircle cx='16.4' cy='5.8' r='3.1'/%3E%3Ccircle cx='19.1' cy='10.6' r='3.1'/%3E%3Cpath d='M8.6 18.6h6.8l1.8 4H6.8z'/%3E%3C/svg%3E");
+  --tk-edge:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 19.6 5 10.4M12 19.6 7.8 5.4M12 19.6V3.6M12 19.6l4.2-14.2M12 19.6l7-9.2' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background:linear-gradient(color-mix(in srgb,var(--amber-hi) 55%,var(--pink-hi)),color-mix(in srgb,var(--amber) 60%,var(--pink)))}
+.tk-seashell::before{background:color-mix(in srgb,var(--amber-ink) 70%,transparent)}
+
+/* ---------- ARCADE QUEST'S PIXEL VARIANTS (.tk-px): the same skins on an 8 × 8 pixel grid, in Arcade Quest's colors.
+   Arcade Quest sizes them (arcade-quest/style.css); one "pixel" here = a fifth of the icon's size. ---------- */
+.tk-px{border-radius:30%;background:var(--q-gold);box-shadow:inset calc(var(--tk-size) / -5) calc(var(--tk-size) / -5) 0 var(--q-brass-d)}
+.tk-px.tk-candycorn,.tk-px.tk-candyheart,.tk-px.tk-blossom,.tk-px.tk-seashell{border-radius:0;box-shadow:none}
+.tk-px::before{content:none}
+.tk-px::after{content:none;inset:0;
+  -webkit-mask:var(--tk-dots) center/contain no-repeat;mask:var(--tk-dots) center/contain no-repeat}
+.tk-px.tk-candycorn{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v1h-2zM3 1h2v1h-2zM2 2h4v1h-4zM2 3h4v1h-4zM1 4h6v1h-6zM1 5h6v1h-6zM0 6h8v1h-8zM1 7h6v1h-6z'/%3E%3C/svg%3E");
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 3h1v1h-1zM2 4h1v1h-1z'/%3E%3C/svg%3E");
+  background:linear-gradient(var(--q-white) 0 25%,var(--q-orange) 25% 62.5%,var(--q-gold) 62.5%)}
+.tk-px.tk-candycorn::after{content:"";background:var(--q-white)}
+.tk-px.tk-snowflake{background:var(--q-blue);box-shadow:inset calc(var(--tk-size) / -5) calc(var(--tk-size) / -5) 0 var(--q-blue-d)}
+.tk-px.tk-snowflake::after{content:"";inset:12%;background:var(--q-white);
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h1v1h-1zM1 1h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM2 2h3v1h-3zM0 3h7v1h-7zM2 4h3v1h-3zM1 5h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1zM3 6h1v1h-1z'/%3E%3C/svg%3E")}
+.tk-px.tk-candyheart{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h2v1h-2zM5 1h2v1h-2zM0 2h8v1h-8zM0 3h8v1h-8zM0 4h8v1h-8zM1 5h6v1h-6zM2 6h4v1h-4zM3 7h2v1h-2z'/%3E%3C/svg%3E");
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h1v1h-1zM1 3h1v1h-1z'/%3E%3C/svg%3E");
+  background:var(--q-pink)}
+.tk-px.tk-candyheart::after{content:"";background:var(--q-white)}
+.tk-px.tk-goldnote::after{content:"";inset:12%;background:var(--q-brass-d);
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M4 0h2v1h-2zM4 1h1v1h-1zM6 1h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM4 3h1v1h-1zM4 4h1v1h-1zM1 5h4v1h-4zM0 6h5v1h-5zM1 7h3v1h-3z'/%3E%3C/svg%3E")}
+.tk-px.tk-blossom{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v1h-2zM2 1h4v1h-4zM0 2h8v1h-8zM0 3h8v1h-8zM1 4h6v1h-6zM1 5h6v1h-6zM0 6h3v1h-3zM5 6h3v1h-3zM0 7h2v1h-2zM6 7h2v1h-2z'/%3E%3C/svg%3E");
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 3h2v1h-2zM3 4h2v1h-2z'/%3E%3C/svg%3E");
+  background:var(--q-pink)}
+.tk-px.tk-blossom::after{content:"";background:var(--q-gold)}
+.tk-px.tk-seashell{
+  --tk-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h4v1h-4zM1 1h6v1h-6zM0 2h8v1h-8zM0 3h8v1h-8zM0 4h8v1h-8zM1 5h6v1h-6zM2 6h4v1h-4zM1 7h6v1h-6z'/%3E%3C/svg%3E");
+  --tk-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 1h1v1h-1zM5 1h1v1h-1zM1 2h1v1h-1zM3 2h2v1h-2zM6 2h1v1h-1zM1 3h1v1h-1zM3 3h2v1h-2zM6 3h1v1h-1zM1 4h1v1h-1zM3 4h2v1h-2zM6 4h1v1h-1zM2 5h1v1h-1zM5 5h1v1h-1z'/%3E%3C/svg%3E");
+  background:color-mix(in srgb,var(--q-orange) 45%,var(--q-white))}
+.tk-px.tk-seashell::after{content:"";background:var(--q-orange-d)}

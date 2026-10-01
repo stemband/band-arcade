@@ -109,7 +109,7 @@ html.ui-in-level #topbar .brand{visibility:hidden}
 .ui-res-msg{margin:0 0 6px}
 .ui-res-msg:empty,.ui-res-best:empty,.ui-res-extra:empty{display:none}
 .ui-res-best{margin:8px 0 0;font-weight:700;color:var(--text-hi)!important}
-.ui-res-tokens{margin:6px 0 0;font-size:15px;color:var(--text-lo)!important}.ui-res-tokens::before{content:"🎟 "}
+.ui-res-tokens{margin:6px 0 0;font-size:15px;color:var(--text-lo)!important}.ui-res-tokens .tk-ic{margin-right:.35em}
 .ui-res-extra{margin-top:12px;text-align:left}
 /* the stars: they pop in one after another (the same everywhere); unearned ones stay dim */
 .ui-stars{display:flex;justify-content:center;gap:10px;margin:2px 0 4px;font-size:52px;line-height:1}
