@@ -1418,6 +1418,22 @@ window.AVATAR_PARTS = {};
        a.px(28, 10, 'L').px(31, 10, 'L'); a.line(29.5, 18, 29.5, 22, 'J').px(29, 22, 'I').px(30, 22, 'I'); }});
   P.PLATES.push({id: 'ladder', name: 'Ladder Climber name plate', unlock: {tool: 'ladder', n: 3, text: 'Tune Up: climb 3 Tempo Ladders of 8 steps or more'}});
 
+  /* ---------- MUSIC HIGHWAY'S FINAL BOSS (Flight of the Bumblebee, song 47: songs are never reordered): earned, never
+     sold. The Bumblebee pet = a star on the boss (any instrument); Bee Wings = 3 ★ on the boss at TURBO speed
+     (music-highway/game.js sets gameData('music-highway').achievements['bumblebee-legend']). ---------- */
+  P.PETS.push(
+    {id: 'bumblebee', name: 'Bumblebee', unlock: {game: 'music-highway', level: 47, stars: 1, text: 'Earn a star on Flight of the Bumblebee, the FINAL BOSS of Music Highway'},
+     pal: {Y: 'mh-bee', K: 'mh-bee-stripe', W: 'mh-bee-wing'}, seq: [0, 0, 1, 1],
+     rows: ['..WW.WW.', '..WWWWW.', '.KYYKYK.', 'KWKYKYKY', 'KKKYKYKY', '.KYYKYK.', '..K..K..', '........'],
+     frames: [null, ['........', '...WWW..', '.KYWWWK.', 'KWKYKYKY', 'KKKYKYKY', '.KYYKYK.', '..K..K..', '........']]});
+  const beeWingsBust = {y: 13, half: ['....NNN...........', '...NNNNN..........', '..NNONNNN.........', '..NNNONNNN........', '...NNNONNNN.......', '....NNNNNNN.......', '......NNNNN.......',
+    '....NNNNNN........', '...NNONNNNN.......', '....NNNONNN.......', '.....NNNNN........']};
+  const beeWingsFront = {y: 12, half: ['...NN...........', '..NNNN..........', '.NNONNN.........', '..NNONNN........', '...NNNNN........', '....NNN.........', '..NNNNN.........', '...NNONN........', '....NNN.........']};
+  const beeWingsSide = {y: 11, rows: ['....NN', '...NNNN', '..NNONN', '...NNONN', '....NNN', '...NNN', '....NN']};
+  P.BACKS.push({id: 'beewings', name: 'Bee Wings', unlock: {game: 'music-highway', achievement: 'bumblebee-legend', text: 'Get 3 ★ on Flight of the Bumblebee at TURBO speed in Music Highway'},
+    pal: {N: 'mh-bee-wing', O: 'mh-bee'}, bustBehind: beeWingsBust, behind: {front: beeWingsFront, side: beeWingsSide, back: beeWingsFront},
+    anim: {maps: {bustBehind: flap(beeWingsBust, 0, 1), 'behind.front': flap(beeWingsFront), 'behind.back': flap(beeWingsFront)}}});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:

@@ -25,7 +25,7 @@ reorder or remove songs. Add new ones at the end.**
   id: 'ode-to-joy',              // never change (the drums file is shared/sounds/mh-drums-<id>.m4a)
   title: 'Ode to Joy',
   source: 'Ludwig van Beethoven (Symphony No. 9, main theme)',
-  tier: 1,                       // 1 = degrees 1–5 only (first-five octave) · 2 = whole scale · 3 = wider range, minor, accidentals, syncopation
+  tier: 1,                       // 1 = degrees 1–5 only (first-five octave) · 2 = whole scale · 3 = wider range, minor, accidentals, syncopation · 4 = THE FINAL BOSS (its own section; opens after stars on 3 tier-3 songs; lanes and octave like tier 3)
   tempo: 100,                    // quarter notes per minute
   timeSig: [4, 4],               // [4, 4] | [3, 4] | [2, 4] | [2, 2] (cut time, drawn ¢) | [6, 8] | [3, 8]
   key: 'Bb',                     // the CONCERT major key (its key signature): 'Bb' (trumpet in C), 'Eb' (F), 'F' (G), 'Ab' (B♭)

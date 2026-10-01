@@ -6,6 +6,8 @@
      title     as students see it
      source    composer or source ("Traditional (American folk song)", "Scott Joplin, 1902")
      tier      1 = only degrees 1–5 in the first-five octave · 2 = the whole scale · 3 = wider range, minor, accidentals, syncopation
+               · 4 = THE FINAL BOSS (its own section at the bottom of the song list; opens after stars on 3 tier-3 songs; lanes and
+               octave like tier 3)
      tempo     quarter notes per minute (Slow mode plays 75 % of it)
      timeSig   as printed: [4, 4], [3, 4], [2, 4], [2, 2] (cut time, drawn ¢), [6, 8] or [3, 8]. Beats are always QUARTER
                notes (a 6/8 measure = 3 beats, 3/8 = 1.5) and `tempo` is quarter notes a minute; the drums, the count-in,
@@ -282,5 +284,12 @@
      // repeat
      '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 5 5 3 1 | r:.5 (5:.5 6:.5 5:.5) #4 5',
      '5 4 2 #7, | r:.5 (5:.5 6:.5 5:.5) #4 5 | 1 r:.5 (6:.5 5:.5) 4:.5 3:.5 2:.5 | 1 r:.5 5:.5 1\' r')},
+    // FINAL BOSS (tier 4). Written A minor (trumpet) = concert G minor. Main theme after the intro, 8 bars of sixteenths.
+    // Transcribed from memory: Mr. Graham, check it on the Song Board (▶ PLAY) and fix any note here.
+    {id: 'flight-of-the-bumblebee', title: 'Flight of the Bumblebee', source: 'Nikolai Rimsky-Korsakov, 1900 (main theme)', tier: 4, tempo: 72, timeSig: [2, 4], key: 'Bb', mode: 'minor', style: 'rock',
+     notes: N("5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
+              "5:.25 #4:.25 4:.25 #3:.25 3:.25 6:.25 5:.25 #4:.25 | 5:.25 #4:.25 4:.25 #3:.25 3:.25 #3:.25 4:.25 #4:.25",
+              "5:.25 6:.25 5:.25 #4:.25 5:.25 6:.25 5:.25 #4:.25 | 5:.25 #6:.25 7:.25 #7:.25 1':.25 b2':.25 1':.25 #7:.25",
+              "1':.25 #7:.25 7:.25 #6:.25 6:.25 #6:.25 7:.25 #7:.25 | 1' r")},
   ];
 })();

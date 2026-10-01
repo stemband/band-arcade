@@ -29,7 +29,8 @@
 
   /* ---------- saved things: gameData('music-highway') = {calib: {speaker, headphones}, hp, speed ('slow' | 'normal' |
      'turbo'; old saves: slow), mode ('play' | 'practice'), melody, melVol, wide, names, sticking, fx, turbo ({member:
-     {song id: true}}: the ⚡ TURBO badges), tip, slurTips (false = no SMOOTH / tongued pops and no slur tip)} ---------- */
+     {song id: true}}: the ⚡ TURBO badges), legend ({member: {song id: true}}: a boss's LEGEND badge, 3 ★ on TURBO),
+     achievements ({'bumblebee-legend': true}: the avatar's Bee Wings), tip, slurTips (false = no SMOOTH / tongued pops and no slur tip)} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
   let speed = ['slow', 'normal', 'turbo'].includes(gd().speed) ? gd().speed : gd().slow ? 'slow' : 'normal';
@@ -40,6 +41,21 @@
   const slurs = !unpitched && member.family !== 'percussion';
   const RATE = {slow: R.slowRate, normal: 1, turbo: R.turboRate};
   const turboBadge = s => !!((gd().turbo || {})[member.id] || {})[s.id];
+  /* THE FINAL BOSS (tier 4; visual only, judging never changes): its intro card, the swarm over the road and its two
+     badges. A tier-4 song with no entry here gets the generic words. LEGEND = 3 ★ on TURBO (gameData.legend[member]
+     [song id]); TAMER = any star (the saved stars). The avatar's Bumblebee pet (a star on the boss) and Bee Wings (the
+     device's first LEGEND: gameData.achievements['bumblebee-legend']) are rules in shared/avatar-parts.js. */
+  const BOSS = {'flight-of-the-bumblebee': {title: 'FINAL BOSS: FLIGHT OF THE BUMBLEBEE',
+    text: 'Sixteenth notes all the way. Keep your fingers light and your air steady!', tamer: 'BUMBLEBEE TAMER', legend: 'BUMBLEBEE LEGEND',
+    locked: 'Earn stars on 3 tier-3 songs to face the Bumblebee.', achievement: 'bumblebee-legend'}};
+  const bossOf = s => s && s.tier === 4 ? Object.assign({title: 'FINAL BOSS: ' + s.title.toUpperCase(), text: 'The last song of the highway. Stay steady!',
+    tamer: 'BOSS TAMER', legend: 'BOSS LEGEND', locked: 'Earn stars on 3 tier-3 songs to face the final boss.'}, BOSS[s.id] || {}) : null;
+  const legendBadge = s => !!((gd().legend || {})[member.id] || {})[s.id];
+  /** a cartoon bumblebee (the intro card, the locked boss card's silhouette): colors are theme tokens, set in style.css */
+  const beeSVG = cls => `<svg class="mh-bee ${cls || ''}" viewBox="0 0 64 48" aria-hidden="true">` +
+    `<ellipse class="bw" cx="27" cy="13" rx="10" ry="12" transform="rotate(-25 27 13)"/><ellipse class="bw" cx="39" cy="12" rx="9" ry="11" transform="rotate(20 39 12)"/>` +
+    `<ellipse class="bb" cx="32" cy="29" rx="20" ry="13"/><path class="bs" d="M24 17.5q-4 11.5 0 23h6q-4-11.5 0-23z"/><path class="bs" d="M36 16.5q-4 12.5 0 25h6q-4-12.5 0-25z"/>` +
+    `<circle class="bs" cx="11" cy="27" r="7"/><circle class="be" cx="9" cy="25" r="2"/><path class="bs" d="M52 29l9-2-9 5z"/><path class="bl" d="M8 20q-3-8 2-12M13 19q1-8 7-10"/></svg>`;
   let sticking = gd().sticking === 'downbeats' ? 'downbeats' : 'alternate';   // the snare's default hand pattern
   const hornSide = 'F';                                            // (the fingering choice of the old cards: not used any more)
   let hpChecked = false;                                         // the speaker check passed on this page load
@@ -53,7 +69,8 @@
   const sessionCal = () => 'mh-calibrated-' + mode();
   const needCal = () => !calibrated() || !(A.session && A.session.has(sessionCal()));
 
-  /* ---------- unlocks: tier 2 after stars on 3 tier-1 songs, tier 3 after stars on 3 tier-2 songs ---------- */
+  /* ---------- unlocks: tier 2 after stars on 3 tier-1 songs, tier 3 after stars on 3 tier-2 songs, tier 4 (the FINAL
+     BOSS) after stars on 3 tier-3 songs: per instrument, ?demo opens everything ---------- */
   const starsOf = i => A.store.level(GAME_ID, member.id, i + 1).stars || 0;
   const tierStarred = tier => SONGS.filter((s, i) => s.tier === tier && starsOf(i) > 0).length;
   const tierOpen = tier => A.DEMO || tier <= 1 || tierStarred(tier - 1) >= 3;
@@ -116,7 +133,7 @@
   };
   $('calBtn').onclick = () => A.requireMic(() => calibrate(() => drawOpts()));
 
-  const TIER_NAME = {1: 'Tier 1 · First five', 2: 'Tier 2 · Whole scale', 3: 'Tier 3 · Challenge'};
+  const TIER_NAME = {1: 'Tier 1 · First five', 2: 'Tier 2 · Whole scale', 3: 'Tier 3 · Challenge', 4: 'Final Boss'};
   function showHub() {
     stopSong();
     A.Sfx.gameMenuMusic(GAME_ID);
@@ -124,27 +141,36 @@
     pause.setActive(false);
     document.documentElement.classList.remove('mh-playing');
     drawOpts();
-    $('songGrid').innerHTML = SONGS.map((s, i) => {
-      const p = A.store.level(GAME_ID, member.id, i + 1), open = unlocked(i);
+    const card = (s, i) => {
+      const p = A.store.level(GAME_ID, member.id, i + 1), open = unlocked(i), boss = bossOf(s);
       const map = SM.forMember(s, member, inst, {hornSide, sticking});
       const secs = Math.round((map.total + map.beatsPerMeasure) * 60 / s.tempo);
-      return `<button class="lvl mh-song t${s.tier}" data-i="${i}" ${open ? '' : 'disabled'}>
+      const badges = (turboBadge(s) ? ' <span class="mh-turbo" title="Cleared on Turbo">⚡ TURBO</span>' : '') +
+        (boss && p.stars ? ` <span class="mh-turbo mh-tamer">🐝 ${esc(boss.tamer)}</span>` : '') + (boss && legendBadge(s) ? ` <span class="mh-turbo mh-legend">👑 ${esc(boss.legend)}</span>` : '');
+      return `<button class="lvl mh-song t${s.tier}${boss ? ' mh-boss' : ''}" data-i="${i}" ${open ? '' : 'disabled'}>
         <span class="n">${TIER_NAME[s.tier]}</span>
-        <span class="t">${esc(s.title)}${turboBadge(s) ? ' <span class="mh-turbo" title="Cleared on Turbo">⚡ TURBO</span>' : ''}</span>
-        <span class="d">${esc(s.source)}<br>${s.tempo} beats a minute · ${SM.meter(s).label} · ${map.notes.length} notes · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span>
+        <span class="t">${esc(s.title)}${badges}</span>
+        ${boss && !open ? `<span class="d mh-bosslock">${beeSVG('mh-bee-sil')}</span>` :
+        `<span class="d">${esc(s.source)}<br>${s.tempo} beats a minute · ${SM.meter(s).label} · ${map.notes.length} notes · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span>`}
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${p.best ? 'Best ' + p.best : ''}</span></span>
       </button>`;
-    }).join('');
-    $('songGrid').querySelectorAll('.mh-song').forEach(b => b.addEventListener('click', () => begin(+b.dataset.i)));
-    A.LevelSelect.show({screen: $('hub'), grid: $('songGrid'), cards: $('songGrid').querySelectorAll('.mh-song'), unlocked,
+    };
+    // THE FINAL BOSS: its own section at the bottom of the song list
+    const all = SONGS.map((s, i) => ({s, i})), bosses = all.filter(x => x.s.tier === 4);
+    $('songGrid').innerHTML = all.filter(x => x.s.tier !== 4).map(x => card(x.s, x.i)).join('') +
+      (bosses.length ? `<h3 class="ui-section mh-boss-head" id="bossHead">Final Boss</h3>` + bosses.map(x => card(x.s, x.i)).join('') : '');
+    const cards = [...$('songGrid').querySelectorAll('.mh-song')].sort((a, b) => a.dataset.i - b.dataset.i);   // level order
+    cards.forEach(b => b.addEventListener('click', () => begin(+b.dataset.i)));
+    A.LevelSelect.show({screen: $('hub'), grid: $('songGrid'), cards, unlocked,
       label: i => SONGS[i].title + (speed === 'slow' ? ' · SLOW' : speed === 'turbo' ? ' · TURBO' : '') + (playMode === 'practice' ? ' · PRACTICE' : ''),
-      lockText: i => `Get stars on 3 Tier ${SONGS[i].tier - 1} songs to unlock`});
+      lockText: i => SONGS[i].tier === 4 ? bossOf(SONGS[i]).locked : `Get stars on 3 Tier ${SONGS[i].tier - 1} songs to unlock`});
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
   /** START on a song: the microphone, then (once) the headphones check and the timing check, then the song */
   function begin(i, opts = {}) {
     A.UI.results.hide();
+    if (bossOf(SONGS[i]) && !(A.session && A.session.has('mh-boss-intro'))) return bossIntro(i, () => begin(i, opts));
     const guide = opts.guide != null ? opts.guide : playMode === 'practice';
     if (guide) return startSong(i, Object.assign({}, opts, {guide: true}));   // PRACTICE: never asks for the microphone
     A.requireMic(() => {
@@ -158,6 +184,20 @@
       else cal();
     });
   }
+
+  /* THE BOSS INTRO CARD (the first time each play session, before anything else: before the microphone, the timing check
+     and the count-in): its buzz sting (mh-boss-intro, mic: false: it never plays while the microphone listens) plays as
+     the card opens, and READY waits for it to finish, so it is always over before the count-in's first click */
+  function bossIntro(i, then) {
+    const b = bossOf(SONGS[i]);
+    if (A.session) A.session.mark('mh-boss-intro');
+    bossShown++;
+    A.UI.intro.show({theme: 'mh-boss-intro', hero: beeSVG('mh-bee-hero'), kicker: 'Music Highway', title: b.title, text: esc(b.text),
+      go: {label: 'Ready', onClick: () => setTimeout(then, Math.min(2500, Math.max(0, A.Sfx.busy ? A.Sfx.busy() : 0)))},
+      back: {label: 'Songs', onClick: () => showHub()}});
+    if (!A.Pitch.listening()) A.Sfx.event('mh-boss-intro');
+  }
+  let bossShown = 0;
 
   /* the backing kit, with the uploaded mh-click if it's there (shared/sounds.js; else backing.js's generated click) */
   let clickBuf = null;                                            // (Sfx.buffer resolves to the decoded file, or null: no upload)
@@ -227,6 +267,7 @@
     if (unpitched && A.DEMO) stickingSelfCheck();
     $('hudAccL').textContent = practice ? 'This loop' : 'Accuracy';
     layout(); buildPads(); buildStaff();
+    G.swarm = bossOf(song) ? makeSwarm() : null;
     showTip(guide ? (unpitched ? 'Practice: the band plays the song. Follow the sticking: left lane = L, right lane = R.' : 'Practice: listen and watch. Each gate lights up as its note plays. Play along if you like!') : practice ? `Practice: measures ${practice.from}–${practice.to}, looping at ${Math.round(R.practiceRate * 100)}% speed. Tap pause to stop.` :
       unpitched ? 'Play each hit as its light reaches the gate. Stick with the R and L!' : 'Play each note as its light reaches its gate. Low notes on the left, high notes on the right!');
     A.Pitch.ignoreCurrent();
@@ -407,6 +448,7 @@
     cardDone(n, res);
     if (res === 'perfect' || res === 'good' || res === 'ok') glowHit(n);
     else if (res === 'miss') badPad(n.lane);
+    if (G.swarm) swarmReact(n, res);
     showJudge(res, d, n.lane);
     hud();
   }
@@ -568,11 +610,70 @@
     HD.drawTrails(g, V, T.notes, {from: G.ci, t, q: FX.q});
     HD.drawPads(g, V, T.notes, {from: G.ci, t, q: FX.q, names, onPad: G.trace ? (n, y) => { G.trace.pads[n.k] = y; } : null});
     drawGates();
+    if (G.swarm && FX.q !== 'lo') drawSwarm(performance.now() / 1000);
   }
   /* the gates' glow (GL, below) and the red miss outline */
   function drawGates() {
     const now = performance.now();
     HD.drawGates(V.g, V, GL.lanes.map(ln => ({v: ln.v, col: ln.col, bad: Math.max(0, 1 - (now - ln.badAt) / R.badMs)})), {q: FX.q});
+  }
+
+  /* THE SWARM (the FINAL BOSS only; drawing only, judging never changes): BEE.n cartoon bees (original, drawn once into a
+     small sprite) zig-zag slowly over the road's horizon. A hit = the bee nearest its lane does a happy loop; a miss =
+     one buzzes past that gate, just above it. Gentle: slow paths, no flashing; reduced motion = they stay still (and
+     don't react); 'lo' effects = no swarm at all. */
+  const BEE = {n: 6, size: 17, loopS: .7, buzzS: .9};
+  function makeSwarm() {
+    const css = getComputedStyle(document.documentElement), c = k => css.getPropertyValue('--' + k).trim();
+    const dpr = Math.min(2, devicePixelRatio || 1), S = BEE.size, sp = document.createElement('canvas');
+    sp.width = sp.height = Math.round(S * 2 * dpr);
+    const x = sp.getContext('2d'); x.scale(dpr, dpr); x.translate(S, S);
+    x.globalAlpha = .75; x.fillStyle = c('mh-bee-wing');
+    x.beginPath(); x.ellipse(-2, -S * .45, S * .28, S * .38, -.4, 0, 7); x.ellipse(S * .25, -S * .45, S * .25, S * .34, .35, 0, 7); x.fill();
+    x.globalAlpha = 1; x.fillStyle = c('mh-bee'); x.beginPath(); x.ellipse(0, 0, S * .62, S * .42, 0, 0, 7); x.fill();
+    x.fillStyle = c('mh-bee-stripe');
+    [-.15, .2].forEach(k => { x.beginPath(); x.ellipse(S * k, 0, S * .09, S * .4, 0, 0, 7); x.fill(); });
+    x.beginPath(); x.arc(-S * .55, -S * .05, S * .24, 0, 7); x.fill();
+    x.fillStyle = c('mh-bee-wing'); x.beginPath(); x.arc(-S * .62, -S * .1, S * .07, 0, 7); x.fill();
+    const bees = Array.from({length: BEE.n}, (_, k) => ({k, ph: k * 1.37, f: .11 + k * .017, fy: .23 + k * .023, bx: (k + .5) / BEE.n, by: .35 + (k % 3) * .2, loopAt: -9, buzz: null}));
+    return {sprite: sp, bees, loops: 0, buzzes: 0, next: 0, still: false};
+  }
+  const tri = u => 2 * Math.abs(2 * (u - Math.floor(u + .5))) - 1;          // a zig-zag from -1 to 1
+  function beeHome(b, t) {
+    const still = reduced(), top = Math.max(40, V.hy * .5), band = Math.max(16, V.hy * .92 - top);   // just above the horizon, under the HUD
+    const ax = V.W * .07, x = V.W * (.08 + .84 * b.bx) + (still ? 0 : ax * tri(t * b.f + b.ph));
+    const y = top + band * b.by + (still ? 0 : band * .18 * Math.sin(6.283 * t * b.fy + b.ph));
+    return {x, y};
+  }
+  function beePos(b, t) {
+    const h = beeHome(b, t);
+    if (reduced()) return h;
+    const lp = (t - b.loopAt) / BEE.loopS;
+    if (lp >= 0 && lp < 1) { const a = lp * 6.283, r = 16; return {x: h.x + r * Math.sin(a), y: h.y - r * (1 - Math.cos(a)), loop: true}; }
+    if (b.buzz) {
+      const p = (t - b.buzz.at) / BEE.buzzS;
+      if (p >= 1) b.buzz = null;
+      else if (p >= 0) {                                             // home -> just above the gate, across it -> home
+        const gy = V.sy - V.gateH * 1.1, w = Math.sin(Math.PI * p), gx = b.buzz.x - 50 + 100 * p;
+        return {x: h.x + (gx - h.x) * w, y: h.y + (gy - h.y) * w, buzz: true};
+      }
+    }
+    return h;
+  }
+  function drawSwarm(t) {
+    const g = V.g, sw = G.swarm, S = BEE.size;
+    sw.still = reduced();
+    sw.bees.forEach(b => { const p = beePos(b, t); b.at = p; g.drawImage(sw.sprite, p.x - S, p.y - S, S * 2, S * 2); });
+  }
+  function swarmReact(n, res) {
+    const sw = G.swarm, t = performance.now() / 1000;
+    if (!sw || reduced() || FX.q === 'lo' || !V.W) return;
+    const lx = laneX(n.lane);
+    if (res === 'miss') { const b = sw.bees[sw.next++ % sw.bees.length]; if (!b.buzz) { b.buzz = {at: t, x: lx}; sw.buzzes++; } return; }
+    if (res !== 'perfect' && res !== 'good' && res !== 'ok') return;
+    let best = null, bd = Infinity;
+    sw.bees.forEach(b => { if (t - b.loopAt < BEE.loopS || b.buzz) return; const d = Math.abs(beeHome(b, t).x - lx); if (d < bd) { bd = d; best = b; } });
+    if (best) { best.loopAt = t; sw.loops++; }
   }
 
   /* CARD SPACING (settings.js), for the pads: the time a pad is on the road (G.lead) and the pad size for this song.
@@ -730,12 +831,23 @@
     const lvKey = g.i + 1, prev = A.store.level(GAME_ID, member.id, lvKey);
     let newBest = false;
     let turboNew = false;
+    const bossNew = [];
     if (!g.practice && !g.slow) {                                  // NORMAL and TURBO count; the best stars and score are kept
       newBest = g.score > (prev.best || 0);
       A.store.setLevel(GAME_ID, member.id, lvKey, {stars: Math.max(stars, prev.stars || 0), best: Math.max(g.score, prev.best || 0)}, stars);
       if (g.speed === 'turbo' && stars >= 1) {                     // the ⚡ TURBO badge on this song (per instrument)
         const tb = gd().turbo || {}, mine = tb[member.id] || (tb[member.id] = {});
         turboNew = !mine[g.song.id]; mine[g.song.id] = true; save({turbo: tb});
+      }
+      const boss = bossOf(g.song);
+      if (boss && stars >= 1 && !(prev.stars > 0)) bossNew.push(boss.tamer);
+      if (boss && g.speed === 'turbo' && stars === 3) {              // 3 ★ on TURBO: the LEGEND badge (+ Bee Wings for the avatar)
+        const lg = gd().legend || {}, mine = lg[member.id] || (lg[member.id] = {});
+        if (!mine[g.song.id]) bossNew.push(boss.legend);
+        mine[g.song.id] = true;
+        const ach = gd().achievements || {};
+        if (boss.achievement) ach[boss.achievement] = true;
+        save({legend: lg, achievements: ach});
       }
     }
     $('play').hidden = true; document.documentElement.classList.remove('mh-playing');
@@ -758,7 +870,7 @@
       // FULL VALUE HELD: quarter notes and longer (not the snare)
       tiles: [['Score', g.score], ['Accuracy', Math.round(acc) + '%'], ['Max combo', g.maxCombo], g.fv.n ? ['Full value held', Math.round(g.fv.held / g.fv.n * 100) + '%'] : null],
       newBest: newBest && !!prev.best,
-      best: (turboNew ? '⚡ TURBO badge earned! ' : '') + (g.practice || g.slow ? '' : newBest && prev.best ? `Best: ${g.score} (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : ''),
+      best: bossNew.map(b => `🐝 ${b} badge earned! `).join('') + (turboNew ? '⚡ TURBO badge earned! ' : '') + (g.practice || g.slow ? '' : newBest && prev.best ? `Best: ${g.score} (was ${prev.best})` : prev.best ? `Best: ${Math.max(prev.best, g.score)}` : ''),
       extra, onShow: () => trouble(g),
       next: {label: 'Next song', hidden: !next || !!g.practice, onClick: () => begin(g.i + 1, {guide: false})},
       retry: {label: 'Try again', onClick: () => begin(g.i, {guide: false})},
@@ -1038,6 +1150,11 @@
     /** tests: the resumes so far ([{at, from}]) and the drum hits scheduled (context s) with the song's clock start */
     pauses: () => G ? {n: G.pauses || 0, resumes: G.resumes || [], T0: G.T0, from: G.from, spb: G.T.spb, dur: G.T.total} : null,
     paused: () => !!(G && G.paused),
+    /** tests: START on a song the way the song select does (the boss intro, the microphone, the timing check) */
+    begin: (i, o) => begin(i, o || {}),
+    /** tests: the FINAL BOSS: how many intro cards this page showed, and the swarm (bee positions, loops, buzzes, still) */
+    boss: () => ({intros: bossShown, swarm: G && G.swarm ? {n: G.swarm.bees.length, drawn: FX.q !== 'lo', still: G.swarm.still, loops: G.swarm.loops, buzzes: G.swarm.buzzes,
+      bees: G.swarm.bees.map(b => b.at ? {x: +b.at.x.toFixed(1), y: +b.at.y.toFixed(1)} : null)} : null}),
     /** tests: the meter of the song playing: its count-in clicks and scheduled drum hits, in BEATS from the song's start */
     meter: () => G ? {pulse: G.T.pulse, per: G.T.per, countBeats: G.T.countBeats, countClicks: G.T.countClicks, from: G.from / G.T.spb,
       clicks: G.clicks.map(t => +((t - G.T0) / G.T.spb).toFixed(4)), hits: G.hits.map(t => +((t - G.T0) / G.T.spb).toFixed(4))} : null,

@@ -261,10 +261,10 @@ window.Arcade = window.Arcade || {};
 
   /* LANES: one highway lane per written pitch, lowest on the left, so the melody's shape shows on the road.
      Tier 1 = exactly the group's first five notes (even when a song leaves one out: beginners always see their five);
-     tiers 2 / 3 = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
+     tiers 2 / 3 / 4 (the boss) = every pitch the song uses, at most MAX_LANES[tier]: past that, the least-used pitch joins its
      nearest neighbor's lane (order kept). The snare: two STICKING lanes, L (left hand) and R (right hand). A lane's label = its pitch's written name (a lane of
      two merged pitches: both, "E/F"; more: the most-used one's). */
-  const MAX_LANES = {1: 5, 2: 8, 3: 12};
+  const MAX_LANES = {1: 5, 2: 8, 3: 12, 4: 12};          // 4 = the FINAL BOSS: like tier 3
   function lanes(song, map, group) {
     if (map.unpitched) return {lanes: [{midis: [], label: 'L', count: map.notes.filter(n => n.stick === 'L').length}, {midis: [], label: 'R', count: map.notes.filter(n => n.stick === 'R').length}],
       of: n => n.stick === 'R' ? 1 : 0};                          // the snare: two sticking lanes, L on the left, R on the right

@@ -145,6 +145,8 @@
   --mh-sky:#1a0838; --mh-road:#12061f; --mh-lane:#8a5cff; --mh-sun1:#ffd166; --mh-sun2:#ff3fa4;
   --mh-c:#ff5a6e; --mh-d:#ff9a3c; --mh-e:#ffe14d; --mh-f:#4dff88; --mh-g:#3ae8ff; --mh-a:#5b8cff; --mh-b:#c77dff;
   --mh-gold:#c98a12; --mh-miss:#c0392b;
+  /* Music Highway's FINAL BOSS: the bumblebees (the swarm over the road, the intro card, the locked card's silhouette) */
+  --mh-bee:#ffd23f; --mh-bee-stripe:#1a1206; --mh-bee-wing:#e9f7ff; --mh-bee-sil:#5b4a7a;
   /* Music Highway's synthwave sunset (the game's backdrop and its menu scene share it: bg-scenes.js S.sunset) */
   --mh-sky-top:#10052a; --mh-sky-mid:#4a1370; --mh-sky-low:#ff4f9a; --mh-ground:#0b0318; --mh-mtn:#170629; --mh-mtn-line:#ff3fa4;
   --mh-grid:#3ae8ff; --mh-grid-2:#ff3fa4; --mh-gate:#e9f7ff; --mh-panel:#07020f;
