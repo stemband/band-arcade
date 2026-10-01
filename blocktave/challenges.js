@@ -343,24 +343,33 @@ window.Arcade = window.Arcade || {};
     roll(c) {
       const o = c.o, secs = o.secs || R().rollS, rate = o.rate || R().rollRate, maxCv = R().rollMaxCv;
       c.body.innerHTML = `<div class="bt-hold"><i></i></div><p class="bt-cents">Start rolling!</p>`;
-      c.say.textContent = o.mode === 'inst' ? `An even roll for ${secs} seconds: steady hits, at least ${rate} a second.` : `Tap an even roll for ${secs} seconds: steady taps, at least ${rate} a second.`;
+      const shown = +(+secs).toFixed(1);                                        // (the Baton's 3 × 0.7 = 2.1, never 2.0999999999999996)
+      c.say.textContent = o.mode === 'inst' ? `An even roll for ${shown} seconds: steady hits, at least ${rate} a second.` : `Tap an even roll for ${shown} seconds: steady taps, at least ${rate} a second.`;
       const bar = c.body.querySelector('.bt-hold i'), ce = c.body.querySelector('.bt-cents');
       let hits = [];
       const hit = t => { if (c.done || c.paused) return; hits.push(t); };
       c.onHit = hit; tapPad(c, hit);
-      c.onPause = () => { hits = []; };
+      let prev = 0;                                                            // the last frame's time: the bar counts REAL time
+      c.onPause = () => { hits = []; prev = 0; };
       loop(c, now => {
+        const dt = prev ? Math.min(250, now - prev) : 16; prev = now;          // (a slow device's frames: the same seconds as at 60 fps)
         hits = hits.filter(t => now - t < 1000);                                // the last second
         const gaps = hits.slice(1).map((t, k) => t - hits[k]), avg = gaps.reduce((a, b) => a + b, 0) / Math.max(1, gaps.length);
         const cv = gaps.length > 2 ? Math.sqrt(gaps.reduce((a, g) => a + (g - avg) ** 2, 0) / gaps.length) / avg : 1;
         const fast = hits.length >= rate, even = cv <= maxCv;
-        c.got = (c.got || 0) + (fast && even ? 16 : -24);
+        c.got = (c.got || 0) + (fast && even ? dt : -1.5 * dt);             // ms of even roll (losing it drains 1.5× as fast)
         c.got = Math.max(0, c.got);
         bar.style.transform = `scaleX(${Math.min(1, c.got / (secs * 1000))})`;
         ce.textContent = !hits.length ? 'Start rolling!' : !fast ? 'Faster!' : !even ? 'Smooth it out: even hits!' : 'Even and steady!';
         if (c.got >= secs * 1000) finish(c, true);
       });
-      c.answer = () => { const n = Math.ceil(secs * (rate + 3)) + 12; for (let k = 0; k < n; k++) setTimeout(() => { if (C !== c) return; if (o.mode === 'inst' && A.Onsets) A.Onsets.fake(); else hit(performance.now()); }, k * 1000 / (rate + 3)); };
+      // tests: an even roll, kept up until the card is done (at most 30 s), so a busy machine's late timers or slow
+      // frames only make it take longer, never fail
+      c.answer = () => {
+        const gap = 1000 / (rate + 3), end = performance.now() + 30000;
+        const tap = () => { if (C !== c || c.done || performance.now() > end) return; if (o.mode === 'inst' && A.Onsets) A.Onsets.fake(); else hit(performance.now()); setTimeout(tap, gap); };
+        tap();
+      };
     },
   };
   KINDS.rest = KINDS.rhythm;
