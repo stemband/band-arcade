@@ -247,6 +247,11 @@ test.describe('weekly champions', () => {
   test('the card waits: PRESS START, then Choose Your Instrument and its Create Your Player offer', async ({page}) => {
     const s = store(lb({champCheckedWeek: WEEK, awards: {[WEEK]: {stars: {value: 9, claimed: false}}}}), {avatarOffered: false});
     const watch = await prepare(page, {store: s, visit: false});
+    // pick mode after PRESS START with an instrument saved = the teacher setting "ask every time" (shared/teacher-settings.js)
+    await page.route(/shared\/teacher-settings\.js/, async route => {
+      const r = await route.fetch();
+      await route.fulfill({response: r, body: (await r.text()).replace('ASK_INSTRUMENT_EVERY_TIME: false', 'ASK_INSTRUMENT_EVERY_TIME: true')});
+    });
     await scoreboard(page, champs());
     await page.goto('index.html');
     await expect(page.locator('#pressStart')).toBeVisible();
@@ -263,6 +268,25 @@ test.describe('weekly champions', () => {
     await page.locator('#selectBtn').click();                          // → the lobby: now the card
     await expect(page.locator('body.in-select')).toHaveCount(0);
     await expect(card(page)).toBeVisible();
+    watch.check();
+  });
+
+  test('PRESS START with an instrument saved: the lobby, the card; the PLAYING AS toast waits for CLAIM', async ({page}) => {
+    const s = store(lb({champCheckedWeek: WEEK, awards: {[WEEK]: {stars: {value: 9, claimed: false}}}}), {avatarOffered: true});
+    const watch = await prepare(page, {store: s, visit: false});
+    await scoreboard(page, champs());
+    await page.goto('index.html');
+    await page.keyboard.press('Enter');                                // PRESS START → straight to the lobby
+    await expect(card(page)).toBeVisible();
+    await expect(page.locator('body.in-select')).toHaveCount(0);
+    await expect(page.locator('.ui-toast.playing-as')).toHaveCount(0);  // never over the card
+    await page.waitForTimeout(800);
+    await expect(page.locator('.ui-toast.playing-as')).toHaveCount(0);
+    await claim(page);
+    await expect(card(page)).toHaveCount(0);
+    const catchup = page.locator('.sk-catchup');                       // the plate's UNLOCKED! card, if any, comes first
+    if (await catchup.isVisible()) await catchup.locator('[data-close]').click();
+    await expect(page.locator('.ui-toast.playing-as')).toBeVisible();
     watch.check();
   });
 

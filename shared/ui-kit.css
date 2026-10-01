@@ -169,6 +169,13 @@ html.ui-in-level #topbar .brand{visibility:hidden}
   box-shadow:var(--glow-yellow);pointer-events:none;animation:ui-toast var(--ui-toast-ms,2.2s) ease both}
 .ui-toast.good{border-color:var(--green);box-shadow:var(--glow-green)}
 .ui-toast.bad{border-color:var(--red);box-shadow:var(--glow-red)}
+.ui-toast.top{bottom:auto}
+.ui-toast.rich{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 10px}
+.ui-toast-icon{display:flex;flex:none;width:40px;height:40px}
+.ui-toast-icon>*{width:100%;height:100%}
+.ui-toast-sep{color:var(--text-dim);font-weight:400}
+.ui-toast-act{pointer-events:auto;min-height:44px;padding:0 14px;border-radius:10px;border:2px solid var(--yellow);background:transparent;color:var(--yellow);font:inherit;cursor:pointer}
+.ui-toast-act:hover,.ui-toast-act:focus-visible{background:var(--yellow);color:var(--deep)}
 .ui-toast.near{position:absolute;bottom:auto;top:50%;transform:translate(-50%,-50%)}
 @keyframes ui-toast{0%{opacity:0}10%,82%{opacity:1}100%{opacity:0}}
 
