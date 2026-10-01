@@ -10,23 +10,35 @@
        ('lost-signal'); `until` is the LAST day it counts (that whole day), then the normal days come back by themselves.
        Without `until` it stays until you put `today: null` again.
      - Change the bonus: `bonus` (tokens for finishing all 3 steps, once a day; 5 tokens = 1 star).
-     - The games for a skill: `skills`, in order. The first one that suits the student's instrument is the step
-       (a snare drummer skips the games that need pitches). Unknown ids are skipped.
+     - The games for a skill: `skills.<skill>.games` = the games that really practice it. They TAKE TURNS WEEK BY WEEK
+       (only the ones that suit the student's instrument: a snare drummer skips the games that need pitches).
+       `fallback` is ONLY for an instrument that can't play ANY of `games` (the first one that suits). Unknown ids are
+       skipped. (An old-style plain list, reading: ['note-storm', …], still works: it counts as `games`.)
+     - The PLAY step: `play` = the games that take turns DAY BY DAY when nothing is ASSIGNED (shared/featured.js);
+       an assigned game always replaces it.
+     - Restart the cycle (a new semester): `rotationStart`, a Monday ('2026-08-03'). Weeks and days are counted from
+       it, so every device shows the same games on the same day.
 
    THE 3 STEPS (plan(date, member)):
      1. WARM UP  winds & brass: TUNE UP → TUNER, fill one HOLD IT ring today (gameData('tuneup').holds[day] ≥ 1);
                  bells: the day's scale in Scale Trainer (a finished round); snare: TUNE UP → METRONOME, 2 minutes today
                  (gameData('tuneup').metroS[day] ≥ metroS) or a Tempo Ladder climbed to its goal (ladderTop[day]).
-     2. SKILL    the day's skill (`days`, or the `today` override): the first suitable game of `skills[skill]`;
-                 'choice' = the WEAKEST suitable game (the fewest stars as a share of its maxStars; ties: games.js order;
-                 no tools, no games.js players: 2 games, no games without stars).
-     3. PLAY     the ASSIGNED game (shared/featured.js, on that date), else Music Highway, else the CONTINUE game.
-     A step never repeats an earlier step's game: it moves on to the next choice in its list.
+     2. SKILL    the day's skill (`days`, or the `today` override). THE WEEKLY ROTATION: w = whole weeks from
+                 `rotationStart` to the date's Monday (0 before it); the step = suitable[w % suitable.length], where
+                 suitable = the skill's `games` that suit the member (gameFit); none suits = the first suitable
+                 `fallback`. 'choice' (weekends) = the WEAKEST suitable game (the fewest stars as a share of its
+                 maxStars; ties: games.js order; no tools, no games.js players: 2 games, no games without stars).
+     3. PLAY     the ASSIGNED game (shared/featured.js, on that date); else THE DAILY ROTATION: d = days from
+                 `rotationStart` (0 before it), the suitable `play` games [d % length]; else the CONTINUE game.
+     A step never repeats an earlier step's game: it moves on to the next one in its list (the bells' scales day: Scale
+     Trainer is already the warm-up, so step 2 takes the fallback).
    A GAME STEP IS DONE when today's activity log has `f[game]` (store.noteFinished: a results screen shown, a battle won
    or lost, a night survived…; just opening a game never counts). The plan is worked out from the date and the
-   instrument (never at random) and KEPT for the day (gameData('practice').plan), so stars earned in the afternoon never
-   change the morning's plan.
-   SAVED (gameData('practice'), in the Arcade Backup Code): plan {date, member, steps}, paid {day: true} (the bonus:
+   instrument (never at random, no saved rotation state: every device agrees) and KEPT for the day the first time the
+   card draws it (gameData('practice').plans[day] = {member, steps}, 14 days kept), so stars earned in the afternoon,
+   or a new version of this file mid-day, never change the morning's plan or un-check a finished step. (A day saved by
+   the first version, `plan` {date, …}, is read once and moved into `plans`.)
+   SAVED (gameData('practice'), in the Arcade Backup Code): plans {day: {member, steps}}, paid {day: true} (the bonus:
    recorded BEFORE the tokens are added, so a reload or a second tab can never pay twice), days {day: true} (all 3
    done: the week's stamps), stamped {day: true} (the gold stamp's one animation), pro (the day PRACTICE PRO was earned).
      Arcade.Practice.plan(date, memberId)    → [{step, word, game, tool?, title, task, why, done}]
@@ -47,15 +59,20 @@ window.Arcade = window.Arcade || {};
     days: {1: 'scales', 2: 'rhythm', 3: 'reading', 4: 'ear', 5: 'technique', 6: 'choice', 0: 'choice'},
     // Mr. Graham's override: a skill name, a game id, or null. Example: today: {skill: 'rhythm', until: '2026-10-09'}
     today: null,
-    // Each skill = the games to try, in order. The FIRST one that suits the student's instrument
-    // (Arcade.gameFit) is the step. Edit freely; unknown ids are skipped.
+    // Each skill: `games` = the games that really practice it. They TAKE TURNS week by week (only the ones that suit
+    // the student's instrument, Arcade.gameFit). `fallback` = used only when NONE of `games` suits the instrument
+    // (the first that suits). Edit freely; unknown ids are skipped.
     skills: {
-      scales:    ['scale-trainer', 'chime-heist', 'rhythm-dojo'],
-      rhythm:    ['rhythm-dojo', 'showtime-malfunction'],
-      reading:   ['note-storm', 'ghost-notes', 'note-ninja', 'ancient-ninja-scrolls'],
-      ear:       ['lost-signal', 'vanishing-ink', 'showtime-malfunction'],
-      technique: ['button-masher', 'sustain-speedway', 'chime-heist', 'showtime-malfunction'],
+      scales:    {games: ['scale-trainer'],                           fallback: ['chime-heist', 'rhythm-dojo']},
+      rhythm:    {games: ['rhythm-dojo', 'showtime-malfunction']},
+      reading:   {games: ['note-storm', 'ghost-notes', 'note-ninja'], fallback: ['ancient-ninja-scrolls']},
+      ear:       {games: ['lost-signal', 'vanishing-ink'],            fallback: ['showtime-malfunction']},
+      technique: {games: ['button-masher', 'sustain-speedway'],       fallback: ['chime-heist', 'showtime-malfunction']},
     },
+    // Step 3 (PLAY) when nothing is ASSIGNED: these take turns DAY by day (school days and weekends alike).
+    play: ['music-highway', 'blocktave', 'arcade-quest', 'keys-to-the-city', 'chime-heist'],
+    // The rotation counts weeks (and days) from this Monday, so every device agrees. Change it to restart the cycle.
+    rotationStart: '2026-08-03',
   };
   /* ========================================================================= */
 
@@ -64,6 +81,7 @@ window.Arcade = window.Arcade || {};
   const METRO_S = 120;                  // the snare's warm-up: 2 minutes of metronome
   const HOLD_S = 4;                     // the Tuner's HOLD IT ring (note-checker/tuner.js TUNER.holdS)
   const KEEP = 60;                      // days kept in paid / days / stamped
+  const KEEP_PLANS = 14;                // days kept in plans
   const PICK = 'bandarcade.practice-pick';
   const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -102,11 +120,53 @@ window.Arcade = window.Arcade || {};
     if (o && o.skill && (!o.until || k <= o.until) && (!o.from || k >= o.from)) return o.skill;
     return PRACTICE.days[date.getDay()] || 'choice';
   }
-  /** the first game of a skill that suits and isn't used yet (a game id works as a skill too) */
-  function skillGame(skill, memberId, used) {
+  /* ---------- THE ROTATION: counted from rotationStart, from the calendar date only (every device agrees) ---------- */
+  const dayNo = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+  const mondayNo = d => dayNo(d) - (d.getDay() + 6) % 7;
+  const startDate = () => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(String(PRACTICE.rotationStart || '')); return m ? new Date(+m[1], m[2] - 1, +m[3], 12) : new Date(2026, 7, 3, 12); };
+  /** whole weeks from rotationStart's Monday to the date's Monday (0 before it) */
+  const weekNo = date => Math.max(0, Math.floor((mondayNo(date) - mondayNo(startDate())) / 7));
+  /** days from rotationStart (0 before it) */
+  const dayIndex = date => Math.max(0, dayNo(date) - dayNo(startDate()));
+  /** a skill's settings as {games, fallback}; an old-style plain list = {games: list} (one console warning) */
+  let warnedOld = false;
+  function skillDef(skill) {
+    const v = PRACTICE.skills[skill];
+    if (Array.isArray(v)) {
+      if (!warnedOld && window.console) { warnedOld = true; console.warn(`practice.js: skills.${skill} is an old-style list; write it as {games: [...], fallback: [...]}. It still works (as games).`); }
+      return {games: v, fallback: []};
+    }
+    if (v && typeof v === 'object') return {games: Array.isArray(v.games) ? v.games : [], fallback: Array.isArray(v.fallback) ? v.fallback : []};
+    return null;
+  }
+  /** the skill's game for a date and member, before any no-repeat rule: its suitable `games` taking turns by week, else
+      the first suitable `fallback` (null: none suits, or not a skill name) */
+  function rotationPick(skill, memberId, date) {
+    const def = skillDef(skill);
+    if (!def) return null;
+    const ok = def.games.map(floorGame).filter(g => suits(g, memberId));
+    if (ok.length) return ok[weekNo(date) % ok.length];
+    return def.fallback.map(floorGame).find(g => suits(g, memberId)) || null;
+  }
+  /** the skill's game, never one already in the plan: the week's turn, else the next in turn, else the fallback
+      (a game id works as a skill too; 'choice' = the weakest) */
+  function skillGame(skill, memberId, used, date) {
     if (skill === 'choice') return weakest(memberId, used);
-    const list = PRACTICE.skills[skill] || (floorGame(skill) ? [skill] : []);
-    return list.map(floorGame).find(g => suits(g, memberId) && !used.includes(g.id)) || null;
+    const def = skillDef(skill);
+    if (!def) { const g = floorGame(skill); return g && suits(g, memberId) && !used.includes(g.id) ? g : null; }
+    const ok = def.games.map(floorGame).filter(g => suits(g, memberId));
+    if (ok.length) {
+      const w = weekNo(date) % ok.length;
+      for (let i = 0; i < ok.length; i++) { const g = ok[(w + i) % ok.length]; if (!used.includes(g.id)) return g; }
+    }
+    return def.fallback.map(floorGame).find(g => suits(g, memberId) && !used.includes(g.id)) || null;
+  }
+  /** the PLAY rotation's game for a date: the suitable `play` games taking turns by day, never one already used */
+  function playGame(memberId, used, date) {
+    const ok = (PRACTICE.play || []).map(floorGame).filter(g => suits(g, memberId));
+    const d = dayIndex(date);
+    for (let i = 0; i < ok.length; i++) { const g = ok[(d + i) % ok.length]; if (!used.includes(g.id)) return g; }
+    return null;
   }
   /** the ASSIGNED game on a date (shared/featured.js; its `until` is the last day) */
   function assignedOn(key) {
@@ -139,23 +199,23 @@ window.Arcade = window.Arcade || {};
     }
     if (!steps[0].tool) used.push(steps[0].game);
     // 2. SKILL
-    let skill = skillOn(date), g2 = skillGame(skill, memberId, used);
-    if (!g2 && skill !== PRACTICE.days[date.getDay()]) { skill = PRACTICE.days[date.getDay()] || 'choice'; g2 = skillGame(skill, memberId, used); }
+    let skill = skillOn(date), g2 = skillGame(skill, memberId, used, date);
+    if (!g2 && skill !== PRACTICE.days[date.getDay()]) { skill = PRACTICE.days[date.getDay()] || 'choice'; g2 = skillGame(skill, memberId, used, date); }
     if (!g2) { skill = 'choice'; g2 = weakest(memberId, used); }
     if (!g2) g2 = A.floorGames().find(g => suits(g, memberId) && !used.includes(g.id));
     const sName = SKILL_NAMES[skill] || (floorGame(skill) ? 'Mr. Graham\'s pick' : skill);
     steps.push({game: g2.id, skill, task: skill === 'choice' ? `Level up your ${g2.name} stars` : `${sName}: ${g2.name}`,
       title: `Skill of the day: ${sName} — ${g2.name}`, why: skill === 'choice' ? 'Your game with the most stars still to win' : `Today's skill: ${sName}`});
     used.push(g2.id);
-    // 3. PLAY: the assigned game, else Music Highway, else the CONTINUE game (never one already in the plan)
+    // 3. PLAY: the assigned game, else the day's turn in `play`, else the CONTINUE game (never one already in the plan)
     const lastId = (st().gameData('floor') || {}).last;
-    const choices = [[assignedOn(key), 'assigned'], [floorGame('music-highway'), 'highway'], [floorGame(lastId), 'continue']];
+    const choices = [[assignedOn(key), 'assigned'], [playGame(memberId, used, date), 'play'], [floorGame(lastId), 'continue']];
     let pick = choices.find(([g]) => suits(g, memberId) && !used.includes(g.id));
     if (!pick) { const w = weakest(memberId, used) || A.floorGames().find(g => suits(g, memberId) && !used.includes(g.id)); pick = [w, 'choice']; }
     const [g3, why3] = pick;
     steps.push({game: g3.id, task: why3 === 'assigned' ? `${g3.name} (assigned!)` : `Play ${g3.name}`,
       title: `Play: ${g3.name}${why3 === 'assigned' ? ' (assigned!)' : ''}`,
-      why: why3 === 'assigned' ? 'Assigned by Mr. Graham' : why3 === 'continue' ? 'Keep going where you left off' : 'Play a song or a round'});
+      why: why3 === 'assigned' ? 'Assigned by Mr. Graham' : why3 === 'play' ? 'Game of the day' : why3 === 'continue' ? 'Keep going where you left off' : 'Play a song or a round'});
     return steps.map((s, i) => Object.assign({step: i + 1, word: WORDS[i]}, s, {done: doneOn(s, key)}));
   }
 
@@ -174,14 +234,21 @@ window.Arcade = window.Arcade || {};
   function today() {
     const m = st().player;
     if (!m) return null;
-    const date = st().today(), key = keyOf(date), d = gd(), kept = d.plan;
+    const date = st().today(), key = keyOf(date), d = gd(), plans = d.plans || (d.plans = {});
+    // a day saved by the first version of Today's Practice (one `plan`): moved into `plans`, checks and all
+    if (d.plan && typeof d.plan === 'object') {
+      if (d.plan.date && !plans[d.plan.date]) plans[d.plan.date] = {member: d.plan.member, steps: d.plan.steps};
+      delete d.plan; save();
+    }
+    const kept = plans[key];
     let steps;
-    if (kept && kept.date === key && kept.member === m && Array.isArray(kept.steps) && kept.steps.length === 3 &&
-      kept.steps.every(s => anyGame(s.game))) steps = kept.steps.map(s => Object.assign({}, s, {done: doneOn(s, key)}));
+    if (kept && kept.member === m && Array.isArray(kept.steps) && kept.steps.length === 3 &&
+      kept.steps.every(s => s && anyGame(s.game))) steps = kept.steps.map(s => Object.assign({}, s, {done: doneOn(s, key)}));
     else {
       steps = plan(date, m);
       if (steps.length !== 3) return null;
-      d.plan = {date: key, member: m, steps: steps.map(s => { const c = Object.assign({}, s); delete c.done; return c; })};
+      plans[key] = {member: m, steps: steps.map(s => { const c = Object.assign({}, s); delete c.done; return c; })};
+      Object.keys(plans).sort().slice(0, -KEEP_PLANS).forEach(k => delete plans[k]);
       save();
     }
     const next = steps.findIndex(s => !s.done);
@@ -254,6 +321,7 @@ window.Arcade = window.Arcade || {};
   document.addEventListener('visibilitychange', () => { if (!document.hidden) st().reload(); });
 
   A.Practice = {PRACTICE, SKILL_NAMES, METRO_S, PICK, plan, today, week, settle, stamped, open, proProgress, kindOf, weakest, dayScale,
+    rotationPick, weekNo, dayIndex,
     get bonus() { return PRACTICE.bonus; },
     state: () => ({plan: today(), week: week(), paid: !!(gd().paid || {})[keyOf(st().today())], pro: gd().pro || null})};
 })(window.Arcade);

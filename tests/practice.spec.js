@@ -12,7 +12,7 @@ const plan = (page, day, member) => page.evaluate(([d, m]) => Arcade.Practice.pl
 const balance = page => page.evaluate(() => Arcade.Tokens.balance());
 /** a device where today's three steps for a trumpet on a Monday are already done (the tuner's ring, Scale Trainer, Lost Signal) */
 const doneToday = (member = 'trumpet', day = MON, extra = {}) => device(member, Object.assign({
-  activity: {[day]: {f: {'scale-trainer': 1, 'lost-signal': 1, 'chime-heist': 1, 'music-highway': 1}}},
+  activity: {[day]: {f: {'scale-trainer': 1, 'lost-signal': 1, 'vanishing-ink': 1, 'chime-heist': 1, 'music-highway': 1}}},
   gameData: {tuneup: {holds: {[day]: 1}}},
 }, extra));
 
@@ -39,7 +39,8 @@ test.describe("Today's Practice: the plan", () => {
       P.PRACTICE.today = null;
       return r.map(s => [s.skill, s.game]);
     }, [MON, TUE, WED]);
-    expect(o).toEqual([['rhythm', 'rhythm-dojo'], ['rhythm', 'rhythm-dojo'], ['reading', 'note-storm'], ['lost-signal', 'lost-signal']]);
+    // (the week of Oct 5 is week 9 of the rotation: rhythm's 2nd game, reading's 1st)
+    expect(o).toEqual([['rhythm', 'showtime-malfunction'], ['rhythm', 'showtime-malfunction'], ['reading', 'note-storm'], ['lost-signal', 'lost-signal']]);
     // with lost-signal as the skill, step 3 (assigned: lost-signal) moved on to Music Highway
     watch.check();
   });
@@ -95,7 +96,8 @@ test.describe("Today's Practice: the plan", () => {
     expect(b[1].game).toBe('chime-heist');                 // scales day: Scale Trainer is already the warm-up
     expect(s[0].tool).toBe('metronome');
     expect(s.every(x => x.game !== 'scale-trainer')).toBe(true);
-    expect(s[2].title).toBe('Play: Music Highway');        // the assigned Lost Signal doesn't suit the snare
+    // the assigned Lost Signal doesn't suit the snare: the day's turn in `play` (day 63 of the rotation: 63 % 5 = 3)
+    expect(s[2].title).toBe('Play: Keys to the City');
     watch.check();
   });
 });
@@ -230,6 +232,168 @@ test.describe("Today's Practice: the bonus and the week", () => {
     const st = await page.evaluate(() => ({pro: Arcade.Practice.state().pro, open: Arcade.Avatar.isUnlocked('plate', 'practice'),
       shop: Arcade.Tokens.catalog().some(i => i.key === 'plate:practice')}));
     expect(st).toMatchObject({pro: THU, open: true, shop: false});
+    watch.check();
+  });
+});
+
+test.describe("Today's Practice: the rotation", () => {
+  const PLAY = ['music-highway', 'blocktave', 'arcade-quest', 'keys-to-the-city', 'chime-heist'];
+  /** step 2 / step 3 game ids for these dates (an override and an assignment can be passed in) */
+  const games = (page, days, member, {skill, featured, start} = {}) => page.evaluate(([days, m, skill, featured, start]) => {
+    const P = Arcade.Practice, keep = [P.PRACTICE.today, Arcade.FEATURED, P.PRACTICE.rotationStart];
+    if (skill !== undefined) P.PRACTICE.today = skill ? {skill} : null;
+    if (featured !== undefined) Arcade.FEATURED = featured;
+    if (start) P.PRACTICE.rotationStart = start;
+    try { return days.map(d => P.plan(new Date(d + 'T12:00:00'), m).map(s => s.game)); }
+    finally { [P.PRACTICE.today, Arcade.FEATURED, P.PRACTICE.rotationStart] = keep; }
+  }, [days, member, skill, featured, start]);
+  const weeksFrom = (day, n) => Array.from({length: n}, (_, i) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() + 7 * i); return d.toISOString().slice(0, 10); });
+  const daysFrom = (day, n) => Array.from({length: n}, (_, i) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); });
+
+  test('the skill games take turns week by week; scales stays Scale Trainer for pitched instruments', async ({page}) => {
+    const watch = await prepare(page);
+    await lobby(page); await ready(page);
+    const wed = await games(page, weeksFrom(WED, 4), 'trumpet');
+    expect(wed.map(p => p[1])).toEqual(['note-storm', 'ghost-notes', 'note-ninja', 'note-storm']);
+    const tue = await games(page, weeksFrom(TUE, 4), 'trumpet');
+    expect(tue.map(p => p[1])).toEqual(['showtime-malfunction', 'rhythm-dojo', 'showtime-malfunction', 'rhythm-dojo']);
+    for (const m of ['trumpet', 'flute', 'tuba', 'altosax']) {
+      expect((await games(page, weeksFrom(MON, 6), m)).map(p => p[1]), m).toEqual(Array(6).fill('scale-trainer'));
+    }
+    // every week of a skill's turn is the same all week (Monday to Sunday share a week number)
+    expect(await page.evaluate(() => [5, 6, 7, 8, 9, 10, 11].map(d => Arcade.Practice.weekNo(new Date(2026, 9, d, 12))))).toEqual(Array(7).fill(9));
+    expect(await page.evaluate(() => Arcade.Practice.weekNo(new Date(2026, 6, 1, 12)))).toBe(0);   // before rotationStart = 0
+    watch.check();
+  });
+
+  test('fallbacks only when NONE of a skill\'s games suits: the snare\'s reading, scales and ear training', async ({page}) => {
+    const watch = await prepare(page);
+    await lobby(page); await ready(page);
+    const pick = (skill, member, day) => page.evaluate(([k, m, d]) => { const g = Arcade.Practice.rotationPick(k, m, new Date(d + 'T12:00:00')); return g && g.id; }, [skill, member, day]);
+    for (const d of weeksFrom(MON, 6)) {
+      expect(await pick('reading', 'snare', d)).toBe('ancient-ninja-scrolls');
+      expect(await pick('scales', 'snare', d)).toBe('chime-heist');     // the first fallback that suits (Chime Heist suits everyone)
+      expect(await pick('ear', 'snare', d)).toBe('showtime-malfunction');
+    }
+    // THE KEY RULE: every member × every skill × 6 weeks: a fallback game only when none of the skill's games suits
+    const bad = await page.evaluate(() => {
+      const A = Arcade, P = A.Practice, out = [];
+      A.PLAYERS.forEach(m => Object.keys(P.PRACTICE.skills).forEach(k => {
+        const def = P.PRACTICE.skills[k], suit = def.games.filter(id => A.gameFit(A.GAMES.find(g => g.id === id), m).ok);
+        for (let w = 0; w < 6; w++) {
+          const date = new Date(2026, 9, 5 + 7 * w, 12), g = P.rotationPick(k, m, date);
+          if (!g) { out.push(`${m} ${k} w${w}: nothing`); continue; }
+          if (suit.length && !suit.includes(g.id)) out.push(`${m} ${k} w${w}: ${g.id} (a fallback, but ${suit} suits)`);
+          if (!suit.length && !(def.fallback || []).includes(g.id)) out.push(`${m} ${k} w${w}: ${g.id} not in the fallback`);
+          // the whole plan too (the skill as the day's override): step 2 is a fallback only when nothing in games
+          // suits, or when step 1 already took the only one (the bells' Scale Trainer warm-up)
+          P.PRACTICE.today = {skill: k};
+          const s = P.plan(date, m), step1 = s[0].tool ? null : s[0].game, left = suit.filter(id => id !== step1);
+          P.PRACTICE.today = null;
+          if (left.length && !left.includes(s[1].game)) out.push(`${m} ${k} w${w}: plan step 2 ${s[1].game}`);
+        }
+      }));
+      return out;
+    });
+    expect(bad).toEqual([]);
+    // a trumpet never gets Chime Heist for scales or technique
+    for (const k of ['scales', 'technique']) {
+      const g = await games(page, weeksFrom(MON, 6), 'trumpet', {skill: k});
+      expect(g.map(p => p[1]).filter(id => id === 'chime-heist'), k).toEqual([]);
+    }
+    watch.check();
+  });
+
+  test('PLAY: the play games take turns day by day, an assignment replaces them, and never step 2\'s game', async ({page}) => {
+    const watch = await prepare(page);
+    await lobby(page); await ready(page);
+    // nothing assigned: day 63 of the rotation is Monday Oct 5, so the turn is (63 + i) % 5
+    const days = daysFrom(MON, 10), free = await games(page, days, 'trumpet', {featured: null});
+    expect(free.map(p => p[2])).toEqual(days.map((_, i) => PLAY[(63 + i) % 5]));
+    // an assignment replaces it every day
+    const as = await games(page, days, 'trumpet', {featured: {game: 'lost-signal', until: '2026-12-31'}});
+    expect(as.map(p => p[2]).every(id => id === 'lost-signal')).toBe(true);
+    // the day's turn is already step 2 (Chime Heist on Oct 6 as the override): step 3 takes the next one
+    const clash = await games(page, [TUE], 'trumpet', {featured: null, skill: 'chime-heist'});
+    expect(clash[0][1]).toBe('chime-heist');
+    expect(clash[0][2]).toBe('music-highway');
+    // and never a repeat, for any member, any day of three weeks, assigned or not
+    const bad = await page.evaluate(() => {
+      const A = Arcade, P = A.Practice, out = [], keep = A.FEATURED;
+      [null, keep].forEach(F => {
+        A.FEATURED = F;
+        A.PLAYERS.forEach(m => { for (let i = 0; i < 21; i++) {
+          const s = P.plan(new Date(2026, 9, 5 + i, 12), m), ids = s.filter(x => !x.tool).map(x => x.game);
+          if (new Set(ids).size !== ids.length) out.push(`${m} day ${i}: ${ids}`);
+        } });
+      });
+      A.FEATURED = keep;
+      return out;
+    });
+    expect(bad).toEqual([]);
+    watch.check();
+  });
+
+  test('the same plan on every device; changing rotationStart shifts the cycle', async ({browser}) => {
+    const plans = [];
+    for (let i = 0; i < 2; i++) {
+      const ctx = await browser.newContext(), page = await ctx.newPage();
+      await prepare(page);
+      await lobby(page, WED); await ready(page);
+      plans.push(await page.evaluate(() => Arcade.Practice.today().map(s => s.game)));
+      if (i === 1) {
+        // one week later in the cycle: Oct 7 becomes week 8 (Note Ninja) instead of week 9 (Note Storm)
+        expect((await games(page, [WED], 'trumpet', {start: '2026-08-10'}))[0][1]).toBe('note-ninja');
+        expect((await games(page, [WED], 'trumpet'))[0][1]).toBe('note-storm');
+      }
+      await ctx.close();
+    }
+    expect(plans[0]).toEqual(plans[1]);
+    expect(plans[0][1]).toBe('note-storm');
+  });
+
+  test('a day\'s saved plan is kept (a mid-day update never un-checks a finished step); the first version\'s plan moves in', async ({page}) => {
+    // the plan the card drew this morning (before an update): step 2 was Rhythm Dojo, and it was finished
+    const morning = [
+      {step: 1, word: 'Warm up', tool: 'tuner', game: 'note-checker', task: 'Hold a note in tune for 4 seconds', title: 'Warm up: hold a note in tune for 4 seconds', why: ''},
+      {step: 2, word: 'Skill', game: 'rhythm-dojo', skill: 'rhythm', task: 'Rhythm: Rhythm Dojo', title: 'Skill of the day: Rhythm — Rhythm Dojo', why: ''},
+      {step: 3, word: 'Play', game: 'blocktave', task: 'Play Blocktave', title: 'Play: Blocktave', why: ''}];
+    const watch = await prepare(page, {store: device('trumpet', {
+      activity: {[MON]: {f: {'rhythm-dojo': 1}}, [TUE]: {f: {'rhythm-dojo': 1}}},
+      gameData: {practice: {plans: {[MON]: {member: 'trumpet', steps: morning}}, plan: {date: TUE, member: 'trumpet', steps: morning}}}})});
+    await lobby(page, MON); await ready(page);
+    let p = await page.evaluate(() => Arcade.Practice.today());
+    expect(p.map(s => s.game)).toEqual(['note-checker', 'rhythm-dojo', 'blocktave']);
+    expect(p[1].done).toBe(true);
+    await expect(page.locator('#practiceCard .pr-step').nth(1)).toHaveClass(/done/);
+    // Tuesday's plan came from the first version (one `plan`): it is moved into `plans` and kept, checks and all
+    await lobby(page, TUE); await ready(page);
+    p = await page.evaluate(() => Arcade.Practice.today());
+    expect(p.map(s => s.game)).toEqual(['note-checker', 'rhythm-dojo', 'blocktave']);
+    expect(p[1].done).toBe(true);
+    const gd = (await saved(page)).gameData.practice;
+    expect(gd.plan).toBeUndefined();
+    expect(Object.keys(gd.plans).sort()).toEqual([MON, TUE]);
+    // a new day: the rotation's plan (Wednesday = reading, week 9 = Note Storm), saved under its date
+    await lobby(page, WED); await ready(page);
+    expect(await page.evaluate(() => Arcade.Practice.today()[1].game)).toBe('note-storm');
+    expect(Object.keys((await saved(page)).gameData.practice.plans)).toContain(WED);
+    watch.check();
+  });
+
+  test('an old-style skill (a plain list) still works, with one console warning', async ({page}) => {
+    const warns = [];
+    page.on('console', m => { if (m.type() === 'warning' && /practice\.js/.test(m.text())) warns.push(m.text()); });
+    const watch = await prepare(page);
+    await lobby(page); await ready(page);
+    const g = await page.evaluate(() => {
+      const P = Arcade.Practice, keep = P.PRACTICE.skills.reading;
+      P.PRACTICE.skills.reading = ['ghost-notes', 'note-ninja'];
+      try { return [7, 14, 21].map(d => P.plan(new Date(2026, 9, d, 12), 'trumpet')[1].game); }   // weeks 9, 10, 11
+      finally { P.PRACTICE.skills.reading = keep; }
+    });
+    expect(g).toEqual(['note-ninja', 'ghost-notes', 'note-ninja']);
+    expect(warns.length).toBe(1);
     watch.check();
   });
 });
