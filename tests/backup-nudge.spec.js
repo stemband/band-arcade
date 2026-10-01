@@ -122,6 +122,11 @@ test.describe('Save your progress: never in the way', () => {
   test('not in a game, not on PRESS START, not in pick mode; then it shows in the lobby', async ({page}) => {
     const store = Object.assign(player({total: 40, days: [MON]}), {avatarOffered: true});     // no "Create your player?" in the way
     const watch = await prepare(page, {store, visit: false});
+    // pick mode after PRESS START with an instrument saved = the teacher setting "ask every time" (shared/teacher-settings.js)
+    await page.route(/shared\/teacher-settings\.js/, async route => {
+      const r = await route.fetch();
+      await route.fulfill({response: r, body: (await r.text()).replace('ASK_INSTRUMENT_EVERY_TIME: false', 'ASK_INSTRUMENT_EVERY_TIME: true')});
+    });
     await page.goto(`ghost-notes/index.html?demo&today=${MON}`);
     await page.waitForFunction(() => window.Arcade && Arcade.store);
     await page.waitForTimeout(300);
