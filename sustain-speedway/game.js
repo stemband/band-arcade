@@ -649,8 +649,10 @@
     if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && now - G.sl.at < 300) { A.Pitch.demoNote = null; return; }
     if (['space', 's', 'l', 'b'].includes(demoKey)) { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
     else if (demoKey === 'd' || demoKey === 'f') {                // drifting: +25 cents at first, +45 after 4 s (F: flat)
-      const off = .25 + .2 * Math.min(1, (now - demoSince) / 4000) + .04 * Math.sin(now / 260);
-      A.Pitch.demoJitter = 0.1; A.Pitch.demoNote = it.sounding + (demoKey === 'd' ? off : -off);
+      // the wobble (±2) + jitter (±2) keep it under 50 cents: past that it reads as the next note (and the detector's
+      // hysteresis can hold it there), a wrong note instead of a sharp one
+      const off = .25 + .2 * Math.min(1, (now - demoSince) / 4000) + .02 * Math.sin(now / 260);
+      A.Pitch.demoJitter = 0.04; A.Pitch.demoNote = it.sounding + (demoKey === 'd' ? off : -off);
     }
     else if (demoKey === 'e') { A.Pitch.demoJitter = 0.2; A.Pitch.demoNote = it.sounding; }         // centered, but wobbling ±10 cents
     else { A.Pitch.demoJitter = 0.02; A.Pitch.demoNote = it.sounding + 2; }
