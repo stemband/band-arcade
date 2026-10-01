@@ -21,7 +21,12 @@
    WHAT'S SOLD: every avatar item with unlock {shop: price} (shared/avatar-parts.js), at BOTH counters for the same
    price, EXCEPT the MANOR COLLECTION (unlock.booth === 'quest', the list MANOR_COLLECTION in avatar-parts.js): sold
    ONLY at Arcade Quest's Token Booth; the Prize Counter shows them behind glass ("Only at the Token Booth in Arcade
-   Quest!"), try-on only. Never sold anywhere: seasonal event items and Band Ninja gear (they have no {shop}).
+   Quest!"), try-on only. Never sold anywhere: seasonal EVENT items (earned: the free gift and ladder) and Band Ninja
+   gear (they have no {shop}).
+   THE SEASONAL SHOP: items with unlock {shop, season: '<event id>'} (avatar-parts.js SEASON_SHOP) are sold at BOTH
+   counters ONLY while that event runs (seasonal(): the shelf, its "gone in 12 days!" / "Last day!"; nextSeason(): the
+   next event's shelf, for the "Coming soon" card); outside it canBuy says why ('offSeason'). Never the Prize of the
+   Week, never discounted. A seasonal WISH clears itself when the event ends unbought (wishGone()).
 
    THE PRIZE OF THE WEEK: one prize a week (weeks start on Monday, like the leaderboard), the SAME on every device:
    picked by the week's number from the items sold at BOTH counters, going through all of them (a shuffled order, one
@@ -134,7 +139,35 @@ window.Arcade = window.Arcade || {};
     const AV = A.Avatar;
     if (!AV || !AV.items) return [];
     return AV.items().filter(it => it.shop && !it.event && !it.official)
-      .map(it => ({key: it.key, field: it.field, id: it.id, name: it.name, full: it.shop, questOnly: it.unlock.booth === 'quest'}));
+      .map(it => ({key: it.key, field: it.field, id: it.id, name: it.name, full: it.shop, questOnly: it.unlock.booth === 'quest',
+        season: it.unlock.season || null, onSale: !it.unlock.season || seasonOn(it.unlock.season)}));
+  }
+
+  /* ---------- THE SEASONAL SHOP: items with unlock {shop, season} (avatar-parts.js SEASON_SHOP), sold at both counters
+     ONLY while their event runs (Arcade.Seasons.active(), so ?season=<id> previews it too) ---------- */
+  const events = () => A.SEASONS || [];
+  const eventById = id => events().find(e => e.id === id) || null;
+  function seasonOn(id) { const o = A.Seasons && A.Seasons.active(); return !!(o && o.ev.id === id); }
+  /** "gone in 12 days!" … "gone tomorrow!" … "Last day!" */
+  const goneText = n => (n <= 0 ? 'Last day!' : n === 1 ? 'gone tomorrow!' : `gone in ${n} days!`);
+  /** the shelf now: {ev, daysLeft, left, preview, items} or null (no event, or an event with nothing to sell) */
+  function seasonal() {
+    const o = A.Seasons && A.Seasons.active();
+    if (!o) return null;
+    const items = catalog().filter(it => it.season === o.ev.id);
+    return items.length ? {ev: o.ev, daysLeft: o.daysLeft, left: goneText(o.daysLeft), preview: !!o.preview, items} : null;
+  }
+  /** between events: the next event with a seasonal shelf: {ev, from (Date), items} */
+  function nextSeason(date) {
+    if (!A.Seasons) return null;
+    date = date || today();
+    let best = null;
+    events().forEach(ev => {
+      const items = catalog().filter(it => it.season === ev.id);
+      const from = items.length && A.Seasons.nextStart(ev, date);
+      if (from && (!best || from < best.from)) best = {ev, from, items};
+    });
+    return best;
   }
   const item = key => catalog().find(it => it.key === key) || null;
   function owned(key) {
@@ -164,7 +197,7 @@ window.Arcade = window.Arcade || {};
     return o;
   }
   function weekly(date = today()) {
-    const pool = catalog().filter(it => !it.questOnly).map(it => it.key);
+    const pool = catalog().filter(it => !it.questOnly && !it.season).map(it => it.key);   // never the Manor Collection or a seasonal item
     if (!pool.length) return null;
     const w = weekNo(date), N = pool.length, round = Math.floor(w / N), pos = ((w % N) + N) % N;
     const key = orderFor(pool, round)[pos], it = item(key), mon = mondayOf(date);
@@ -188,6 +221,10 @@ window.Arcade = window.Arcade || {};
     const p = price(key).price;
     if (it.questOnly && counter !== 'quest') return {ok: false, why: 'questOnly', text: QUEST_ONLY_TEXT, price: p};
     if (owned(key)) return {ok: false, why: 'owned', text: `You already own the ${it.name}.`, price: p};
+    if (it.season && !seasonOn(it.season)) {
+      const ev = eventById(it.season);
+      return {ok: false, why: 'offSeason', text: `The ${it.name} is only sold during ${ev ? ev.name : 'its season'}.`, price: p};
+    }
     const have = balance();
     if (have < p) return {ok: false, why: 'short', need: p - have, text: `Need ${p - have} more tokens`, price: p};
     return {ok: true, why: '', text: '', price: p};
@@ -204,13 +241,29 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- the wish list ---------- */
   const PRIZES = 'prizes';
+  /** the wished prize; a SEASONAL wish whose event ended before it was bought clears itself, and the lobby says
+      "The Black Cat will be back next Spooky Season." for 14 days (wishGone) */
   function wish() {
     if (!A.store) return null;
-    const k = st().gameData(PRIZES).wish || null;
-    return k && item(k) ? k : null;
+    const d = st().gameData(PRIZES), k = d.wish || null, it = k && item(k);
+    if (!it) return null;
+    if (it.season && !it.onSale && !owned(k)) {
+      const ev = eventById(it.season);
+      delete d.wish; d.wishGone = {key: k, name: it.name, event: ev ? ev.name : '', at: Date.now()};
+      st().saveGameData(PRIZES);
+      return null;
+    }
+    return k;
+  }
+  function wishGone() {
+    if (!A.store) return null;
+    wish();
+    const g = st().gameData(PRIZES).wishGone;
+    return g && Date.now() - g.at < 14 * 864e5 ? Object.assign({text: `The ${g.name} will be back next ${g.event}.`}, g) : null;
   }
   function setWish(key) {
     const d = st().gameData(PRIZES);
+    delete d.wishGone;
     if (key && item(key)) d.wish = key; else delete d.wish;
     st().saveGameData(PRIZES); changed();
     return wish();
@@ -219,7 +272,9 @@ window.Arcade = window.Arcade || {};
     const key = wish();
     if (!key) return null;
     const it = item(key), p = price(key).price, have = balance(), wait = waiting();
+    const sea = it.season ? seasonal() : null;
     return {key, name: it.name, price: p, have, waiting: wait, owned: owned(key), questOnly: it.questOnly, affordable: have >= p,
+      season: it.season, left: sea ? sea.left : '',
       pct: Math.min(100, have / p * 100), pctWaiting: Math.min(100 - Math.min(100, have / p * 100), wait / p * 100)};
   }
 
@@ -236,5 +291,6 @@ window.Arcade = window.Arcade || {};
   document.addEventListener('DOMContentLoaded', () => { try { if (A.store && A.Avatar) seen = freshStars(); } catch (e) { /* a page without games.js */ } });
 
   A.Tokens = {SETTINGS, get RATE() { return SETTINGS.RATE; }, QUEST_ONLY_TEXT, balance, add, spend, restore, starSources, freshStars, waiting, turnIn,
-    catalog, item, owned, price, canBuy, buy, weekly, weekNo, round5, wish, setWish, wishProgress, resultLine, wallet};
+    catalog, item, owned, price, canBuy, buy, weekly, weekNo, round5, wish, setWish, wishProgress, wishGone,
+    seasonal, nextSeason, seasonOn, goneText, resultLine, wallet};
 })(window.Arcade);

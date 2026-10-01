@@ -347,6 +347,7 @@ body.q-review .q-wrap{display:none}
 .q-tag{display:block;margin:calc(var(--px) * 1) auto 0;padding:0 calc(var(--px) * 1.5);width:max-content;max-width:100%;border-radius:calc(var(--px) * 1.5);font-size:.6em;line-height:1.35;white-space:normal}
 .q-manor{background:var(--deep);color:var(--purple-hi);border:1px solid var(--purple)}
 .q-weekly{background:var(--deep);color:var(--yellow);border:1px solid var(--yellow)}
+.q-season{background:var(--deep);color:var(--amber-hi);border:1px solid var(--amber)}
 .q-btn small s{opacity:.7}
 .q-only{display:inline-block;margin:0 0 calc(var(--px) * 3);padding:calc(var(--px) * 1) calc(var(--px) * 3);border:calc(var(--px) * 1) solid var(--yellow);color:var(--yellow);font-size:calc(var(--px) * 5.5);letter-spacing:.08em}
 .q-slots{display:flex;gap:calc(var(--px) * 4);flex-wrap:wrap}

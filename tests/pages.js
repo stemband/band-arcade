@@ -1,6 +1,7 @@
 /* Every page of the arcade, for the smoke test. Games and zones come from shared/games.js (tests/arcade.js), so a new
    game or zone is covered without touching this file. `open(page)` = extra steps after loading. */
 const {games, zones} = require('./arcade');
+const {VIEWPORTS} = require('./helpers');
 
 const PAGES = [
   {name: 'lobby', url: 'index.html'},
@@ -18,6 +19,12 @@ const PAGES = [
     await page.locator('#prizeSign').click();
     await page.locator('#prizes .pz-prize').first().waitFor();
   }},
+  // the SEASONAL SHELF (a Spooky Season preview), at iPad sizes and on a phone
+  {name: 'Prize Counter: seasonal shelf', url: 'index.html?season=spooky',
+    sizes: [...Object.entries(VIEWPORTS).slice(0, 2), ['phone', {width: 390, height: 844}]], open: async page => {
+      await page.locator('#prizeSign').click();
+      await page.locator('#prizes .pz-s-season .pz-prize').first().waitFor();
+    }},
   ...games.map(g => ({name: g.tool ? `${g.name} (tool)` : g.name, url: `${g.id}/index.html`, game: g})),
   {name: 'Sound Board', url: 'sound-board/index.html'},
   {name: 'Art Board', url: 'art-board/index.html'},

@@ -163,3 +163,18 @@
   .pz-prize{width:calc(50% - 8px);max-width:150px}
   .pz-s-case{margin:0 -10px;padding:10px 10px 16px}
 }
+
+/* THE SEASONAL SHELF (during an event: its colors --ev1/--ev2 from shared/seasons.js, its decorations; still) and the
+   "Coming soon" card between events (the next event's items as silhouettes) */
+.pz-s-season{padding-top:6px;border-radius:12px 12px 0 0;border:2px solid var(--ev1,var(--amber));border-bottom:12px solid var(--pz-wood-2);
+  background:linear-gradient(color-mix(in srgb,var(--ev1,var(--amber)) 24%,transparent),color-mix(in srgb,var(--ev2,var(--amber)) 10%,var(--deep)))}
+.pz-s-season .pz-shead{color:var(--text-hi);border:2px solid var(--ev1,var(--amber))}
+.pz-season-sign b{color:var(--yellow);font-weight:400}
+.pz-deco{display:flex;justify-content:space-between;margin:0 0 4px;font-size:20px;line-height:1}
+.pz-soon{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;padding:8px 12px;border-radius:12px;border:2px dashed var(--ev1,var(--text-dim));background:var(--deep)}
+.pz-panel .pz-soon-t{margin:0;color:var(--text-lo);font-size:15px}.pz-soon-t b{color:var(--text-hi)}
+.pz-soon-row{display:flex;gap:8px}
+.pz-sil{display:block;width:56px}
+.pz-sil .pt-box,.pz-sil .lk-plate,.pz-sil .lk-shoe{width:100%;filter:brightness(0) drop-shadow(0 0 1px var(--text-dim))}
+/* a light seasonal touch on the glass case: a garland of dots in the event's two colors along its top */
+.pz-touch .pz-s-case{border-top:6px solid transparent;border-image:repeating-linear-gradient(90deg,var(--ev1) 0 10px,var(--ev2) 10px 20px) 6}
