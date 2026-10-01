@@ -45,7 +45,10 @@
   <canvas id="btCanvas" aria-label="Your Blocktave world" role="img"></canvas>
   <canvas id="btOver" aria-hidden="true"></canvas>
   <div class="bt-hud">
-    <div class="bt-hearts" id="hearts" role="img"></div>
+    <div class="bt-vit">
+      <div class="bt-hearts" id="hearts" role="img"></div>
+      <div class="bt-courage" id="courage" aria-hidden="true"><svg class="bt-flame" viewBox="0 0 16 20" aria-hidden="true"><path class="f1" d="M8 1C9 5 14 7 14 12.5A6 6 0 0 1 2 12.5C2 9.5 4 8 5 6C5.5 8 6.5 9 7.5 9C7.5 6 6.5 4 8 1Z"/><path class="f2" d="M8 9.5C8.6 11.5 10.5 12.2 10.5 14.4A2.5 2.5 0 0 1 5.5 14.4C5.5 12.6 7 12 8 9.5Z"/></svg><span class="bt-cgname" id="courageName"></span><span class="bt-cgbar"><i></i></span></div>
+    </div>
     <div class="bt-clock" id="clock"></div>
     <div class="bt-zone" id="zone"></div>
     <div class="bt-badge" id="modeBadge"></div>
@@ -111,6 +114,7 @@
   <div class="bt-compacts"><span id="compActs"></span><button type="button" class="btn btn-secondary" id="compPlay" hidden>▶ Listen</button></div>
 </div>
 <div class="sr-only" id="btLive" aria-live="polite"></div>
+<div class="bt-jitter" id="btJitter" hidden aria-hidden="true"></div>
 <div class="bt-tip" id="btTip" role="tooltip" hidden></div>
 <input type="file" id="worldFile" accept=".json,application/json" hidden>
 
