@@ -32,7 +32,10 @@
    instrument. The Snare Drum plays the same rhythm (no pitch).
 
    NOTE TEXT: one string per phrase, notes separated by spaces, '|' = a bar line (checked: every measure must add up,
-   or the Song Board and the browser console say which one doesn't).
+   or the Song Board and the browser console say which one doesn't). PUT A | AFTER EVERY MEASURE (each string ends
+   one; the strings are joined with bar lines): only a bar line lets the check see a measure, and a stretch longer than
+   one measure with none is reported ("measure 2 has no bar line after it"), because a wrong rhythm there can hide
+   (The Entertainer's missing sixteenth rest once did).
        3        degree 3, one beat            3:2     degree 3, two beats          3:.5   an eighth note
        5,       degree 5 an octave LOWER      1'      degree 1 an octave HIGHER    #4     degree 4 raised   b7  lowered
        r:2      a rest, two beats
@@ -136,13 +139,9 @@
      notes: N('1:2 1 | 5:2 5 | 2:1.5 3:.5 2 | 1:3', 'r 5 7 | 1\':2 7 | 5 #6 4 | 5:3',
               'r 1\' 1\' | 1\':2 7 | 5 5 4 | 3 2 7,', '1:2 5 | 4:2 3 | 2 1 7, | 1:3')},
     {id: 'the-entertainer', title: 'The Entertainer', source: 'Scott Joplin, 1902 (opening strain)', tier: 3, tempo: 76, timeSig: [2, 4], key: 'Bb', style: 'march',
-     notes: N('r:1.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 1\':.25 2\':.25 #2\':.25 3\':.25',
-              '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':1.25 r:.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 6:.25 5:.25 #4:.25 6:.25',
-              '1\':.25 3\':.5 2\':.25 1\':.25 6:.25 2\':.5 2\':1.5 2:.25 #2:.25',
-              '3:.25 1\':.5 3:.25 1\':.5 3:.25 1\':1.25 1\':.25 2\':.25 #2\':.25 3\':.25',
-              '1\':.25 2\':.25 3\':.5 7:.25 2\':.5 1\':2.25')},
+     notes: N("r:1.5 2:.25 #2:.25 | 3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 1':.25 2':.25 #2':.25 | 3':.25 1':.25 2':.25 3':.5 7:.25 2':.5 | 1' r:.5 2:.25 #2:.25",
+              "3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 6:.25 5:.25 #4:.25 | 6:.25 1':.25 3':.5 2':.25 1':.25 6:.25 2':.25~ | 2' r:.5 2:.25 #2:.25",
+              "3:.25 1':.5 3:.25 1':.5 3:.25 1':.25~ | 1' r:.25 1':.25 2':.25 #2':.25 | 3':.25 1':.25 2':.25 3':.5 7:.25 2':.5 | 1':2")},
 
     /* ---------- ADDED LATER (always at the end: stars are saved by song number). Transcribed by Mr. Graham from trumpet
        (B♭) parts, one step up from concert:

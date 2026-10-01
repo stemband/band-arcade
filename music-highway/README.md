@@ -57,7 +57,9 @@ In songs.js the notes are typed as short NOTE TEXT (`N('3 3 4 5 | 5 4 3 2')`: `5
 three-beat note across the bar line; the next note must be the same note, or the check reports it), `(3 4 5)` = a SLUR (parentheses around at least two
 notes; it may cross bar lines and hold a tie: `(5:2~ | 5 4) 3`; an unclosed `(`, a `)` with no `(`, a slur inside a slur,
 a rest inside one or a one-note slur are reported; the staff draws the arc, the highway a ribbon; the snare ignores it), `|` = a bar line that is CHECKED: a
-measure that doesn't add up is reported in the browser console and on the Song Board). `N()` turns the text into the
+measure that doesn't add up is reported in the browser console and on the Song Board). PUT A `|` AFTER EVERY MEASURE
+(each string also ends one): a stretch longer than one measure with no bar line is reported ("the-entertainer: measure 2
+has no bar line after it (add | so each measure is checked)"), because a rhythm mistake inside it can't be checked. `N()` turns the text into the
 objects above, which are the real format.
 
 ### Transcribing from a trumpet (B♭) part
