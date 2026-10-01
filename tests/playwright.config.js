@@ -28,6 +28,10 @@ module.exports = defineConfig({
   },
   projects: [
     {name: 'chromium', use: {browserName: 'chromium', launchOptions: process.env.PW_CHROMIUM_PATH ? {executablePath: process.env.PW_CHROMIUM_PATH} : {}}},
-    {name: 'webkit', use: {browserName: 'webkit'}},       // ≈ iPad Safari
+    // ≈ iPad Safari. Playwright's Linux WebKit (WPE) draws with Skia on the GPU, which on a CI machine (no GPU: software
+    // OpenGL) crashes the page now and then in canvas-heavy games: an internal WebKit check ("trap invalid opcode in
+    // libWPEWebKit", a SkiaGPUWorker segfault), seen as "Target crashed" in Music Highway, Sustain Speedway's Full graphics
+    // and Blocktave. Drawing on the CPU avoids that path; real Safari never takes it (it draws with Apple's own graphics).
+    {name: 'webkit', use: {browserName: 'webkit', launchOptions: {env: Object.assign({}, process.env, {WEBKIT_SKIA_ENABLE_CPU_RENDERING: '1'})}}},
   ],
 });

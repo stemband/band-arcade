@@ -36,8 +36,8 @@ jobs:
       - run: npx playwright install --with-deps webkit
       - name: gdb (to name the crash address)
         run: sudo apt-get install -y -q gdb binutils elfutils > /dev/null
-      - name: The two crashing specs, 4 times each, 2 browsers at a time (as the real WebKit shards)
-        run: npx playwright test music-highway-slurs speedway-visuals --project=webkit --workers=2 --repeat-each=4 --retries=0 --reporter=list
+      - name: The four specs, 3 times each, 2 browsers at a time (as the real WebKit shards), WebKit drawing on the CPU
+        run: npx playwright test music-highway-meters music-highway-slurs speedway-dynamics speedway-visuals --project=webkit --workers=2 --repeat-each=3 --retries=0 --reporter=list
         env:
           CI: 'true'
       - name: Where WebKit crashed
