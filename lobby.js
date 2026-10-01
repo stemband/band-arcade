@@ -71,6 +71,7 @@ window.Arcade = window.Arcade || {};
     $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
+    if (A.ChampionLobby) A.ChampionLobby.render();             // WEEKLY CHAMPIONS: the weekly check, the CHAMPION card (champion-lobby.js)
     if (A.BackupNudge) A.BackupNudge.refresh();                // now and then: "Save your progress!" (shared/backup-nudge.js)
   }
 

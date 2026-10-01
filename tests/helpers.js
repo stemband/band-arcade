@@ -76,11 +76,22 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
 /** the leaderboard mock's answers (the API in docs/engine/leaderboard.md "THE LEADERBOARD") */
 function boardFor(params) {
   if (params.get('action') === 'status') return {ok: true, enabled: true};
+  // WEEKLY CHAMPIONS: last week's, with nobody from the tests' devices (tests/champions.spec.js puts its own in front)
+  if (params.get('action') === 'champions') return {ok: true, enabled: true, grade: +params.get('grade') || 6,
+    champions: {week: lastWeekKey(), stars: [{id: 'AAAAAA', name: [1, 1, 1], value: 40}], improved: [], streak: [], endless: {}}};
   const e = (id, n, v) => ({id, name: n, value: v});
   return {ok: true, enabled: true, grade: +params.get('grade') || 6, week: '2026-09-28', updated: Date.now(),
     boards: {stars: [e('AAAAAA', [1, 1, 1], 42), e('BBBBBB', [2, 3, 4], 30), e('TESTMK', [3, 5, 7], 12)],
       improved: [e('BBBBBB', [2, 3, 4], 9)], streak: [e('AAAAAA', [1, 1, 1], 5)],
       endless: {'note-storm': [e('CCCCCC', [4, 4, 4], 1234)]}}};
+}
+
+/** last week's Monday on this machine, 'YYYY-MM-DD' (shared/leaderboard.js lastWeekKey: the week the champions are for) */
+function lastWeekKey(now = new Date()) {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 /** visible buttons (and links styled as buttons) that stick out of the viewport sideways, and a page that scrolls sideways */
@@ -118,4 +129,4 @@ const VIEWPORTS = {
   'Chromebook': {width: 1366, height: 768},
 };
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, offscreen, saved, starsIn, VIEWPORTS};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS};

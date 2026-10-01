@@ -41,6 +41,9 @@
      .TIMEOUTS                            {read, send} in ms (tests shorten them)
      .mine()                              this device's week: {week, stars, endless: {…}, streak, grade}
      .queue() / .flush()                  tests
+   WEEKLY CHAMPIONS (the block of that name below): .champions(grade) / .checkChampion({force}) / .unclaimed() /
+     .claim() / .trophies() / .championships() / .CHAMPION_REWARDS / .boardName(b) / .boardValue(b, v) / .weekName(w) /
+     .champState() (?teacher, tests). Saved too: awards, champCheckedWeek, champLast.
 */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -192,30 +195,147 @@ window.Arcade = window.Arcade || {};
   const cachePut = (g, data) => { try { const c = JSON.parse(sessionStorage.getItem(CKEY)) || {}; c[g] = {at: Date.now(), data}; sessionStorage.setItem(CKEY, JSON.stringify(c)); } catch (e) { /* fine */ } };
   const lastGet = g => { try { const c = JSON.parse(localStorage.getItem(LKEY)) || {}; return c[g] && c[g].data ? c[g] : null; } catch (e) { return null; } };
   const lastPut = (g, data) => { try { const c = JSON.parse(localStorage.getItem(LKEY)) || {}; c[g] = {at: Date.now(), data}; localStorage.setItem(LKEY, JSON.stringify(c)); } catch (e) { /* fine */ } };
-  async function board(grade, {fresh} = {}) {
+  /** one read: GET ?action=<action>&grade=<g> (a board, or the champions), cached CACHE_MS, the last good answer kept */
+  async function read(action, grade, {fresh, quiet = false} = {}) {
     if (!available()) return {ok: false, why: 'off'};
     grade = +grade;
     if (!GRADES.includes(grade)) return {ok: false, why: 'grade'};
-    const c = !fresh && cacheGet(grade);
+    const key = action === 'board' ? grade : action + grade;           // (a board keeps its old key: saved boards still show)
+    const c = !fresh && cacheGet(key);
     if (c) return {ok: true, data: c.data, at: c.at, cached: true};
     const t0 = Date.now();
-    let res = await request({action: 'board', grade}), tries = 1;
-    if (res.net && res.status === 'timeout') { res = await request({action: 'board', grade}); tries = 2; }   // a cold script: once more
-    if (last) Object.assign(last, {tries, ms: Date.now() - t0});                                         // (both tries)
+    let res = await request({action, grade}, undefined, TIMEOUTS.read, quiet), tries = 1;
+    if (res.net && res.status === 'timeout') { res = await request({action, grade}, undefined, TIMEOUTS.read, quiet); tries = 2; }   // a cold script: once more
+    if (last && !quiet) Object.assign(last, {tries, ms: Date.now() - t0});                                         // (both tries)
     const why = res.net ? res.status : !res.json || res.json.ok === false ? 'error' : res.json.enabled === false ? 'disabled' : null;
     if (why === 'disabled') return {ok: false, why};
     if (why) {
-      const old = lastGet(grade);                             // the network failed: the last good board, marked stale
+      const old = lastGet(key);                               // the network failed: the last good answer, marked stale
       return old ? {ok: true, data: old.data, at: old.at, stale: true, why} : {ok: false, why};
     }
-    cachePut(grade, res.json); lastPut(grade, res.json);
+    cachePut(key, res.json); lastPut(key, res.json);
     return {ok: true, data: res.json, at: Date.now()};
   }
+  const board = (grade, opts) => read('board', grade, opts);
+  /* =====================================================================================================================
+     WEEKLY CHAMPIONS. When a week ends, the scoreboard (Leaderboard.gs v4) lists who finished 1st on each board of each
+     grade: GET ?action=champions&grade=7 → {ok, enabled, grade, champions: {week (last week's Monday), stars: [entry…],
+     improved: [...], streak: [...], endless: {gameId: [...]}}}, entry = {id, name: [t, a, n], value} like a board row
+     (everyone tied for 1st is listed; an empty list = nobody reached the minimum). The board read carries the same
+     `champions`. NOTHING NEW IS SENT: one more GET with only action + grade, under the same conditions as any send
+     (canSend: an address, the switch on, a grade, not ?demo); this device finds its OWN id in the lists, here.
+     THE CHECK (checkChampion, called by the lobby when it is on screen): once a week (champCheckedWeek = last week's
+     Monday, after a good answer); a failed or offline check tries again at a later lobby showing, at most every
+     CHAMP_RETRY; it counts as the warm-up (warm() then waits its 10 minutes). Only LAST week is ever offered: a student
+     who comes back two weeks later quietly misses that one.
+     SAVED in gameData('leaderboard') (so the Backup Code carries it and a restored device never pays twice):
+       awards: {'YYYY-MM-DD': {stars | improved | streak | 'endless:<gameId>': {value, claimed}}} (52 weeks kept),
+       champCheckedWeek, champLast {ok, why, at, found} (?teacher).
+     CLAIMING (the lobby's CHAMPION card, CLAIM): the record is read fresh and written `claimed` FIRST, then the tokens,
+     so a reload or a second tab can never pay twice; then the avatar items it has earned go into ownedItems.
+     ===================================================================================================================== */
+  // THE REWARDS (Mat edits these numbers)
+  const CHAMPION_REWARDS = {
+    stars: 100, improved: 75, streak: 75, endless: 50,   // tokens for each 1st place
+    plate: 1,          // championships needed for the CHAMPION name plate
+    trophyGold: 5,     // championships for the GOLD TROPHY back item
+  };
+  const CHAMP_ITEMS = [['plate:champion', 'plate'], ['back:goldtrophy', 'trophyGold']];   // [item key, CHAMPION_REWARDS setting]
+  const CHAMP_RETRY = 10 * 60000, CHAMP_KEY = 'bandarcade.lb-champ', KEEP_WEEKS = 52;
+  const champions = (grade, opts) => (canSend() ? read('champions', grade, opts) : Promise.resolve({ok: false, why: 'off'}));
+  /** last week's Monday (the week the champions are for) */
+  const lastWeekKey = () => { const d = today(); return weekKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7)); };
+  /** this device's 6-character id on the boards (null: it never sent anything) */
+  const myId = () => D().id || (D().pid ? D().pid.slice(0, 6) : null);
+  /** every 1st place of this device in a champions answer: [{board, value}] */
+  function matches(ch, id) {
+    const out = [];
+    if (!ch || !id) return out;
+    const has = list => (Array.isArray(list) ? list : []).find(e => e && e.id === id);
+    ['stars', 'improved', 'streak'].forEach(b => { const e = has(ch[b]); if (e) out.push({board: b, value: +e.value || 0}); });
+    Object.keys(ch.endless || {}).forEach(g => { const e = has(ch.endless[g]); if (e) out.push({board: 'endless:' + g, value: +e.value || 0}); });
+    return out;
+  }
+  const keepWeeks = aw => Object.keys(aw).sort().reverse().slice(KEEP_WEEKS).forEach(k => { delete aw[k]; });
+  let checking = false;
+  /** the weekly check: → {ran, ok, why, found} (never throws, never blocks anything) */
+  async function checkChampion({force = false} = {}) {
+    if (checking || !canSend()) return {ran: false, why: checking ? 'busy' : 'off'};
+    const wk = lastWeekKey();
+    if (!force && D().champCheckedWeek === wk) return {ran: false, why: 'done'};
+    let at = 0; try { at = +sessionStorage.getItem(CHAMP_KEY) || 0; } catch (e) { /* fine */ }
+    if (!force && Date.now() - at < CHAMP_RETRY) return {ran: false, why: 'wait'};
+    try { sessionStorage.setItem(CHAMP_KEY, String(Date.now())); sessionStorage.setItem(WKEY, String(Date.now())); } catch (e) { /* fine */ }   // (it wakes the script too)
+    checking = true;
+    try {
+      const grade = settings().grade, res = await champions(grade, {fresh: true, quiet: true});   // (quiet: lastRequest() stays the boards')
+      const ch = res.ok && !res.stale && res.data && res.data.champions;
+      if (!ch) { D().champLast = {ok: false, why: res.stale ? res.why : res.why || 'no champions', at: Date.now()}; save(); return {ran: true, ok: false, why: D().champLast.why}; }
+      if (ch.week !== wk) { D().champLast = {ok: false, why: `the scoreboard has the week of ${ch.week || '?'}`, at: Date.now()}; save(); return {ran: true, ok: false, why: D().champLast.why}; }
+      A.store.reload && A.store.reload();                       // fresh from the device: another tab may have checked already
+      const d = D(), aw = d.awards || (d.awards = {}), found = matches(ch, myId());
+      found.forEach(m => { const w = aw[wk] || (aw[wk] = {}); if (!w[m.board]) w[m.board] = {value: m.value, claimed: false}; });
+      keepWeeks(aw);
+      d.champCheckedWeek = wk; d.champLast = {ok: true, why: null, at: Date.now(), found: found.length};
+      save();
+      grantItems();                                              // (Mat lowered a CHAMPION_REWARDS number: earned now)
+      if (found.length) try { dispatchEvent(new CustomEvent('arcade:champion')); } catch (e) { /* old browsers */ }
+      return {ran: true, ok: true, found: found.length};
+    } finally { checking = false; }
+  }
+  /** the awards not claimed yet: [{week, board, value}] */
+  function unclaimed() {
+    const aw = D().awards || {}, out = [];
+    Object.keys(aw).sort().forEach(w => Object.keys(aw[w] || {}).forEach(b => { if (aw[w][b] && !aw[w][b].claimed) out.push({week: w, board: b, value: aw[w][b].value}); }));
+    return out;
+  }
+  /** every claimed championship, newest first: [{week, board, value}] (the player card's trophy shelf) */
+  function trophies() {
+    const aw = D().awards || {}, out = [];
+    Object.keys(aw).sort().reverse().forEach(w => Object.keys(aw[w] || {}).forEach(b => { if (aw[w][b] && aw[w][b].claimed) out.push({week: w, board: b, value: aw[w][b].value}); }));
+    return out;
+  }
+  const championships = () => trophies().length;
+  const championNeed = k => Math.max(1, +CHAMPION_REWARDS[k] || 1);
+  const rewardFor = b => +CHAMPION_REWARDS[String(b).split(':')[0]] || 0;
+  /** the avatar items the claimed championships have earned and this device doesn't own yet: written, → their keys */
+  function grantItems() {
+    const own = A.store.ownedItems || {}, n = championships(), got = [];
+    CHAMP_ITEMS.forEach(([key, k]) => { if (n >= championNeed(k) && !own[key]) { A.store.ownItem(key); got.push(key); } });
+    return got;
+  }
+  /** CLAIM: → {awards: [...], tokens, items: [new item keys]} (nothing waiting → tokens 0) */
+  function claim() {
+    A.store.reload && A.store.reload();                         // fresh from the device: another tab may have paid already
+    const list = unclaimed(), aw = D().awards || {};
+    list.forEach(a => { aw[a.week][a.board].claimed = true; });
+    if (list.length) save();                                    // the record FIRST…
+    const tokens = list.reduce((n, a) => n + rewardFor(a.board), 0);
+    if (tokens && A.Tokens) A.Tokens.add(tokens);               // …then the tokens (arcade:tokens: the Prize Counter's sign)
+    return {awards: list, tokens, items: grantItems()};
+  }
+  /** words for the screens: the board's name, its value, the week */
+  const gameNameOf = id => ((A.ALL_GAMES || A.GAMES || []).find(g => g.id === id) || {name: id}).name;
+  function boardName(b) {
+    const [k, g] = String(b).split(':');
+    return k === 'stars' ? 'Most stars' : k === 'improved' ? 'Most improved' : k === 'streak' ? 'Practice streak' : k === 'endless' ? `${gameNameOf(g)} Endless` : k;
+  }
+  function boardValue(b, v) {
+    const k = String(b).split(':')[0];
+    v = +v || 0;
+    return k === 'stars' ? `${v} ★` : k === 'improved' ? `+${v} ★` : k === 'streak' ? `${v} ${v === 1 ? 'day' : 'days'}` : v.toLocaleString('en-US');
+  }
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const weekName = w => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(w || ''); return m ? `${MONTHS[+m[2] - 1]} ${+m[3]}` : String(w || ''); };
+  const champState = () => ({checkedWeek: D().champCheckedWeek || null, last: D().champLast || null, lastWeek: lastWeekKey(), id: myId(),
+    awards: JSON.parse(JSON.stringify(D().awards || {}))});
   /** is this board entry this device? (the scoreboard's 6-character id, else the pid's start) */
   const isMe = entry => !!entry && !!entry.id && (entry.id === D().id || (!D().id && D().pid && entry.id === D().pid.slice(0, 6)));
 
   A.Leaderboard = {available, settings, setGrade, setOn, canSend, stars, endless, play, board, mine, isMe, weekKey, GRADES,
     ENDLESS_GAMES: ['note-storm', 'note-ninja', 'lost-signal', 'vanishing-ink', 'keys-to-the-city', 'rhythm-dojo', 'blocktave'],
     warm, TIMEOUTS, lastRequest: () => last && Object.assign({}, last),
-    queue: () => (D().queue || []).slice(), flush, _request: request};
+    queue: () => (D().queue || []).slice(), flush, _request: request,
+    CHAMPION_REWARDS, champions, checkChampion, unclaimed, trophies, championships, championNeed, rewardFor, claim, grantItems,
+    boardName, boardValue, weekName, myId, lastWeekKey, champState};
 })(window.Arcade);

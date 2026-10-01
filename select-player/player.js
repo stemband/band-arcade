@@ -153,6 +153,7 @@
     $('cFive').textContent = m.pitched === false ? 'Plays: Showtime Malfunction, the Note Checker\'s Articulation test' : 'First five: ' + g.notes.map(noteLabel).join(' ');
     const n = A.store.starsForPlayer(id);
     $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on this device' : 'stars on this device';
+    trophyShelf(!guest);
     $('hornToggle').hidden = id !== 'horn';
     $('hornToggle').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.horn === hornOf()));
     $('selectBtn').textContent = `Select ${m.short}`;
@@ -171,10 +172,26 @@
     $('cKey').textContent = 'Play against the computer: 8 rivals on a ladder.';
     $('cFive').textContent = 'The CPU plays silently, so only your notes count.';
     $('cStars').textContent = n; $('cStarsWord').textContent = n === 1 ? 'star on the ladder' : 'stars on the ladder';
+    trophyShelf(false);
     $('hornToggle').hidden = true;
     $('selectBtn').textContent = 'Select CPU';
     $('skinsBtn').hidden = true;
   }
+  /* THE TROPHY SHELF (WEEKLY CHAMPIONS, shared/leaderboard.js): "🏆 3× weekly champion" under the stars (this device's
+     player, never the guest or the CPU; hidden with none); a tap lists them: "Week of Oct 5: Most stars (14 ★)" */
+  function trophyShelf(show) {
+    const L = A.Leaderboard, list = show && L && L.trophies ? L.trophies() : [];
+    const b = $('cTrophies'), ul = $('cTrophyList');
+    b.hidden = !list.length;
+    if (!list.length) { ul.hidden = true; b.setAttribute('aria-expanded', 'false'); return; }
+    $('cTrophyN').textContent = list.length;
+    ul.replaceChildren(...list.map(t => { const li = document.createElement('li'); li.textContent = `Week of ${L.weekName(t.week)}: ${L.boardName(t.board)} (${L.boardValue(t.board, t.value)})`; return li; }));
+  }
+  on($('cTrophies'), 'click', () => {
+    const ul = $('cTrophyList'), open = ul.hidden;
+    ul.hidden = !open; $('cTrophies').setAttribute('aria-expanded', String(open));
+    A.Sfx.event('ui-toggle');
+  });
   /* the name line and the avatar buttons: EDIT PLAYER (Player 1), or SURPRISE ME / EDIT for Player 2's guest */
   function playerLine() {
     const guest = phase === 2;

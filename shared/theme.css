@@ -366,6 +366,10 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-sbready{border-color:var(--yellow);background:repeating-linear-gradient(180deg,transparent 0 4px,color-mix(in srgb,var(--purple) 26%,transparent) 4px 5px),color-mix(in srgb,var(--yellow) 12%,transparent);box-shadow:0 0 0 1px var(--purple) inset,var(--glow-yellow)}
 .av-plate-flames{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--red) 45%,transparent),color-mix(in srgb,var(--amber) 22%,transparent) 55%,transparent)}
 .av-plate-notes{border-color:var(--pink)}
+/* WEEKLY CHAMPIONS (shared/leaderboard.js): gold, a small laurel each side */
+.av-plate-champion{white-space:nowrap;border-color:var(--yellow);background:linear-gradient(180deg,color-mix(in srgb,var(--yellow) 34%,transparent),color-mix(in srgb,var(--amber) 18%,transparent));box-shadow:0 0 0 1px var(--amber-ink) inset,var(--glow-yellow)}
+.av-plate-champion::before,.av-plate-champion::after{content:"\2766";color:var(--green-hi);margin:0 4px;font-size:.85em}
+.av-plate-champion::after{display:inline-block;transform:scaleX(-1)}
 .av-plate-notes::before,.av-plate-notes::after{content:"♪";color:var(--pink-hi);margin:0 4px}
 /* seasonal event plates (shared/seasons.js) */
 .av-plate-hearts{border-color:var(--pink);background:color-mix(in srgb,var(--pink) 14%,transparent)}

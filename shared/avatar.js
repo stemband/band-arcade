@@ -91,6 +91,8 @@ window.Arcade = window.Arcade || {};
     if (u.bandninja === 'all') return !!(A.BandNinja && A.BandNinja.hasAll && A.BandNinja.hasAll());   // LEGENDARY: every belt code
     if (u.bandninja) return !!(A.BandNinja && A.BandNinja.has(u.bandninja));   // official Band Ninja gear: only a belt code opens it
     if (u.shop) return !!(st().ownedItems || {})[itemKey(field, id)];
+    // WEEKLY CHAMPIONS (shared/leaderboard.js): claiming a championship writes the item into ownedItems
+    if (u.champion) return !!(st().ownedItems || {})[itemKey(field, id)];
     // SEASONAL EVENT items (shared/seasons.js): earned during the event, owned forever (a ?season= preview's claims
     // count in that tab only)
     if (u.event) return A.Seasons ? A.Seasons.owned(itemKey(field, id)) : !!(st().ownedItems || {})[itemKey(field, id)];
@@ -107,6 +109,7 @@ window.Arcade = window.Arcade || {};
     }
     if (u.shop) return u.booth === 'quest' ? `${u.shop} tokens at the Token Booth in Arcade Quest` : `${u.shop} tokens at the Prize Counter`;   // (shared/tokens.js)
     if (u.event) return A.Seasons ? A.Seasons.requirement(itemKey(field, id)) : u.text || 'A seasonal event item';
+    if (u.champion) { const n = A.Leaderboard && A.Leaderboard.championNeed ? A.Leaderboard.championNeed(u.champion) : 1; return n > 1 ? `${u.text} ${n} times` : u.text; }
     if (u.stars && !u.game) return `Earn ${u.stars} ★`;
     return u.text || 'Keep playing to unlock';
   }
@@ -117,6 +120,7 @@ window.Arcade = window.Arcade || {};
     if (u.stars && !u.game) return `${st().allStars("*")} of ${u.stars} ★ so far`;
     if (u.tool === 'practice-pro') return A.Practice ? A.Practice.proProgress() : '';
     if (u.tool && A.Skins && A.Skins.toolCount) return u.tool === 'tuner-hold' ? `Best day so far: ${Math.min(u.n, A.Skins.toolCount(u.tool))} of ${u.n}` : `${Math.min(u.n, A.Skins.toolCount(u.tool))} of ${u.n} ladders so far`;
+    if (u.champion && A.Leaderboard && A.Leaderboard.championships) { const n = A.Leaderboard.championNeed(u.champion); return n > 1 ? `${Math.min(n, A.Leaderboard.championships())} of ${n} championships so far` : ''; }
     if (u.wins && A.Skins && A.Skins.winsOn) return `${Math.min(u.wins, A.Skins.winsOn(u.game))} of ${u.wins} wins so far`;
     if (u.bandninja === 'all' && A.BandNinja) return `${A.BandNinja.BELT_KEYS.filter(b => A.BandNinja.has(b)).length} of ${A.BandNinja.BELT_KEYS.length} belt codes so far`;
     if (u.event && A.Seasons) {                                          // a seasonal step running now: "2 of 3 so far"

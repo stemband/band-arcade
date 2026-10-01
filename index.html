@@ -139,6 +139,8 @@
         <p class="card-key" id="cKey"></p>
         <p class="card-five" id="cFive"></p>
         <p class="card-stars"><span class="star" aria-hidden="true">★</span> <b id="cStars">0</b> <span id="cStarsWord">stars on this device</span></p>
+        <button type="button" class="card-trophies" id="cTrophies" aria-expanded="false" aria-controls="cTrophyList" hidden><span aria-hidden="true">🏆</span> <b id="cTrophyN">0</b>× weekly champion</button>
+        <ul class="card-trophy-list" id="cTrophyList" hidden></ul>
         <div class="horn-toggle" id="hornToggle" role="group" aria-labelledby="hornLbl" hidden>
           <span id="hornLbl">Starting notes:</span>
           <button type="button" data-horn="F">F–C</button><button type="button" data-horn="C">C–G</button>
@@ -198,9 +200,11 @@
 <script src="shared/backup-nudge.js"></script>
 <script src="shared/teacher-settings.js"></script>
 <script src="shared/instrument-sprites.js"></script>
+<script src="shared/avatar-fight.js"></script>
 <script src="select-player/player.js"></script>
 <script src="lobby.js"></script>
 <script src="season-lobby.js"></script>
+<script src="champion-lobby.js"></script>
 <script src="season-look.js"></script>
 <script src="leaderboard-screen.js"></script>
 <script src="arcade3d.js"></script>

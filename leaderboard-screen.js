@@ -13,9 +13,13 @@
      - the read failed but this device has that grade's last good board: that board + "Couldn't refresh — showing the
        board from 2 hours ago"; nothing saved (or switched off): "Leaderboard is taking a break. Your progress is still
        saved!"
+   LAST WEEK'S CHAMPIONS (the board read's `champions`; shared/leaderboard.js WEEKLY CHAMPIONS): a strip of plaques above
+   the tabs (board, avatar name, value; this device's one highlighted YOU; none = no strip) and a 🏆 next to anyone on
+   this week's boards who was a champion last week (this grade).
    ?teacher: every entry shows its 6-character id (Mat hides a player by pasting it in the Blocked tab of his Sheet),
    and under the board how the last request went (Leaderboard.lastRequest(): "timeout after 25 s", "offline",
-   "HTTP 500", "not JSON", "network error (CORS or blocked)", how long it took, tried twice).
+   "HTTP 500", "not JSON", "network error (CORS or blocked)", how long it took, tried twice), and under MY SETTINGS this
+   device's champion awards, the last weekly check and CHECK CHAMPIONS NOW.
      Arcade.LeaderboardScreen.open() / close() / state() */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -30,7 +34,7 @@ window.Arcade = window.Arcade || {};
     {id: 'endless', icon: '♾️', name: 'Endless', unit: v => `${Number(v).toLocaleString()}`},
   ];
   const gameName = id => ((A.ALL_GAMES || A.GAMES || []).find(g => g.id === id) || {name: id}).name;
-  const S = {el: null, grade: null, tab: 'stars', game: null, res: null, loading: false, asking: false};
+  const S = {el: null, grade: null, tab: 'stars', game: null, res: null, loading: false, asking: false, checking: false};
   const sfx = n => { if (A.Sfx) A.Sfx.event(n); };
 
   function ago(t) {
@@ -81,6 +85,7 @@ window.Arcade = window.Arcade || {};
   function close() {
     if (!S.el || S.el.hidden) return;
     S.el.hidden = true; document.body.classList.remove('lb-open');
+    if (A.ChampionLobby) A.ChampionLobby.show();              // a CHAMPION card that waited for this screen
     if (A.lockScroll) A.lockScroll(false);
     document.removeEventListener('keydown', onKey);
     sfx('ui-back');
@@ -116,6 +121,11 @@ window.Arcade = window.Arcade || {};
       if (act === 'tab') { S.tab = t.dataset.tab; if (S.tab === 'endless' && !S.game) S.game = endlessGames(S.res)[0]; sfx('ui-toggle'); draw(); return; }
       if (act === 'game') { S.game = t.dataset.game; sfx('ui-toggle'); draw(); return; }
       if (act === 'refresh') { sfx('ui-toggle'); load(true); return; }
+      if (act === 'champ-now') {                              // ?teacher: the weekly check now (the card shows when this screen closes)
+        S.checking = true; draw();
+        L().checkChampion({force: true}).then(() => { S.checking = false; draw(); }, () => { S.checking = false; draw(); });
+        return;
+      }
       if (act === 'my-grade') { L().setGrade(+t.dataset.g); S.grade = +t.dataset.g; sfx('ui-toggle'); load(); return; }
     });
     S.el.addEventListener('change', e => {
@@ -138,6 +148,45 @@ window.Arcade = window.Arcade || {};
     const best = me.endless[S.game];
     return best ? `You: best ${tab.unit(best)} this week in ${gameName(S.game)}. Keep going!` : `Play ${gameName(S.game)}'s Endless mode to get on this board!`;
   }
+  /* LAST WEEK'S CHAMPIONS (the board read carries `champions`, shared/leaderboard.js WEEKLY CHAMPIONS): one plaque per
+     board with a champion (everyone tied for 1st), endless ones under their game's name; this device's plaque gets the
+     YOU highlight; no champions at all = no strip */
+  const champsOf = res => (res && res.ok && res.data && res.data.champions) || null;
+  function champStrip(res) {
+    const ch = champsOf(res);
+    if (!ch) return '';
+    const plaques = [];
+    TABS.filter(t => t.id !== 'endless').forEach(t => (ch[t.id] || []).forEach(e => plaques.push({t, e, label: L().boardName(t.id)})));
+    Object.keys(ch.endless || {}).forEach(g => (ch.endless[g] || []).forEach(e => plaques.push({t: TABS[3], e, label: L().boardName('endless:' + g)})));
+    if (!plaques.length) return '';
+    return `<section class="lb-champs" aria-labelledby="lbChampsT"><h3 class="lb-champs-t" id="lbChampsT"><span aria-hidden="true">🏆</span> Last week's champions</h3><ul class="lb-plaques">` +
+      plaques.map(({t, e, label}) => {
+        const me = L().isMe(e), name = A.Avatar && A.Avatar.nameFromNumbers ? A.Avatar.nameFromNumbers(e.name) : 'Mystery Player';
+        return `<li class="lb-plaque${me ? ' me' : ''}"><span class="lb-pl-board"><span aria-hidden="true">${t.icon}</span> ${esc(label)}</span>` +
+          `<span class="lb-pl-name">${esc(name)}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
+          `<span class="lb-pl-val">${esc(t.unit(e.value))}</span></li>`;
+      }).join('') + `</ul></section>`;
+  }
+  /** the ids that were a champion last week (this grade): a 🏆 on this week's boards, so the class sees who's defending */
+  function defending(res) {
+    const ch = champsOf(res), ids = new Set();
+    if (!ch) return ids;
+    ['stars', 'improved', 'streak'].forEach(b => (ch[b] || []).forEach(e => e && e.id && ids.add(e.id)));
+    Object.values(ch.endless || {}).forEach(l => (l || []).forEach(e => e && e.id && ids.add(e.id)));
+    return ids;
+  }
+  /** ?teacher: this device's awards and how the last weekly check went, + CHECK CHAMPIONS NOW */
+  function champTeacher() {
+    const c = L().champState ? L().champState() : null;
+    if (!c) return '';
+    const list = Object.keys(c.awards).sort().reverse().flatMap(w => Object.keys(c.awards[w]).map(b =>
+      `<li>Week of ${esc(L().weekName(w))}: ${esc(L().boardName(b))} (${esc(L().boardValue(b, c.awards[w][b].value))})${c.awards[w][b].claimed ? ' · claimed' : ' · waiting'}</li>`));
+    const lastLine = !c.last ? 'none yet' : c.last.ok ? `OK${c.last.found ? `, ${c.last.found} found` : ', nothing found'}` : `failed: ${c.last.why}`;
+    return `<section class="lb-champ-teach" aria-label="Weekly champions (teacher)"><h3>Weekly champions (teacher)</h3>` +
+      `<p class="lb-note">This device: ID <code>${esc(c.id || 'none yet')}</code> · checked week: ${esc(c.checkedWeek || 'not yet')} (last week = ${esc(c.lastWeek)}) · last check: ${esc(lastLine)}</p>` +
+      (list.length ? `<ul class="lb-note lb-awards">${list.join('')}</ul>` : `<p class="lb-note">No awards on this device.</p>`) +
+      `<button type="button" class="btn btn-secondary btn-small lb-champ-now" data-act="champ-now"${S.checking ? ' disabled' : ''}>${S.checking ? 'Checking…' : 'Check champions now'}</button></section>`;
+  }
   function draw() {
     if (!S.el) return;
     const st = L().settings();
@@ -159,14 +208,15 @@ window.Arcade = window.Arcade || {};
       `<button type="button" class="lb-gm${g === S.game ? ' on' : ''}" data-act="game" data-game="${esc(g)}" aria-pressed="${g === S.game}">${esc(gameName(g))}</button>`).join('') + `</div>` : '';
     let body;
     const shown = S.res && S.res.grade === S.grade ? S.res : null;       // (another grade's board never shows under this one)
+    const champIds = defending(shown);
     if (S.loading && !(shown && shown.ok)) body = `<p class="ui-msg loading lb-msg lb-loading" role="status">Loading the leaderboard…</p>`;
     else if (!S.res || !S.res.ok) body = `<p class="ui-msg lb-msg lb-break">Leaderboard is taking a break. Your progress is still saved!</p>`;
     else if (!rows.length) body = `<p class="ui-msg lb-msg">Nobody is on this board yet this week. Be the first!</p>`;
     else body = `<ol class="lb-list">` + rows.slice(0, 10).map((e, i) => {
-      const me = L().isMe(e), medal = ['gold', 'silver', 'bronze'][i] || '';
+      const me = L().isMe(e), medal = ['gold', 'silver', 'bronze'][i] || '', cup = champIds.has(e.id);
       const name = A.Avatar && A.Avatar.nameFromNumbers ? A.Avatar.nameFromNumbers(e.name) : 'Mystery Player';
       return `<li class="lb-row${medal ? ' m-' + medal : ''}${me ? ' me' : ''}"><span class="lb-rank">${i + 1}</span>` +
-        `<span class="lb-name">${esc(name)}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
+        `<span class="lb-name">${esc(name)}${cup ? ' <span class="lb-cup" title="Last week\'s champion" aria-label="last week\'s champion">🏆</span>' : ''}${me ? ' <b class="lb-you">YOU</b>' : ''}${TEACHER ? ` <code class="lb-id">${esc(e.id || '')}</code>` : ''}</span>` +
         `<span class="lb-val">${esc(tab.unit(e.value))}</span></li>`;
     }).join('') + `</ol>`;
     if (shown && shown.ok && shown.stale) body = `<p class="lb-stale" role="status">Couldn't refresh — showing the board from ${esc(agoPlain(S.res.at))}</p>` + body;
@@ -178,14 +228,16 @@ window.Arcade = window.Arcade || {};
       `<div class="lb-mrow"><span>My grade:</span>` + L().GRADES.map(g => `<button type="button" class="lb-mg${g === st.grade ? ' on' : ''}" data-act="my-grade" data-g="${g}" aria-pressed="${g === st.grade}">${g}</button>`).join('') + `</div>` +
       `<label class="lb-mrow lb-tog"><input type="checkbox" class="lb-on"${st.on ? ' checked' : ''}> <span>Show me on the leaderboard</span></label>` +
       `<p class="lb-note">Only your avatar name and scores are shared. Never your real name.</p>` +
-      (TEACHER ? `<p class="lb-note lb-teach">Teacher view: the codes are each player's id. Paste one into the Blocked tab of the scoreboard Sheet to hide that player.</p>` : '') + `</section>`;
-    S.el.innerHTML = `<div class="lb-in">${head}${gradeSw}${tabs}${games}<div class="lb-board" aria-live="polite">${body}</div>` +
+      (TEACHER ? `<p class="lb-note lb-teach">Teacher view: the codes are each player's id. Paste one into the Blocked tab of the scoreboard Sheet to hide that player.</p>` + champTeacher() : '') + `</section>`;
+    S.el.innerHTML = `<div class="lb-in">${head}${gradeSw}${champStrip(shown)}${tabs}${games}<div class="lb-board" aria-live="polite">${body}</div>` +
       (own ? `<p class="lb-own">${esc(own)}</p>` : '') + foot + mine + `</div>`;
   }
   function state() {
     return {open: !!S.el && !S.el.hidden, asking: S.asking, grade: S.grade, tab: S.tab, game: S.game, ok: !!(S.res && S.res.ok), why: S.res && S.res.why,
       loading: S.loading, stale: !!(S.res && S.res.stale),
-      rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
+      rows: S.el ? [...S.el.querySelectorAll('.lb-row')].map(r => r.textContent.trim()) : [],
+      plaques: S.el ? [...S.el.querySelectorAll('.lb-plaque')].map(r => ({text: r.textContent.trim(), me: r.classList.contains('me')})) : [],
+      cups: S.el ? [...S.el.querySelectorAll('.lb-row')].filter(r => r.querySelector('.lb-cup')).map(r => r.querySelector('.lb-name').textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
   }
   // the top bar's trophy button (index.html #lbBtn): only when a scoreboard address is set
   const btn = document.getElementById('lbBtn');
