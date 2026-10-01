@@ -282,7 +282,7 @@ window.Arcade = window.Arcade || {};
       plaques: S.el ? [...S.el.querySelectorAll('.lb-plaque')].map(r => ({text: r.textContent.trim(), me: r.classList.contains('me')})) : [],
       cups: S.el ? [...S.el.querySelectorAll('.lb-row')].filter(r => r.querySelector('.lb-cup')).map(r => r.querySelector('.lb-name').textContent.trim()) : [], own: S.el && S.el.querySelector('.lb-own') ? S.el.querySelector('.lb-own').textContent : ''};
   }
-  /* ---------- THE GRADE QUESTION in the lobby (#gradeAsk, under the lobby cards; styles .gq-* in arcade.css) ----------
+  /* ---------- THE GRADE QUESTION in the lobby (#gradeAsk, under the lobby cards and SAVE YOUR PROGRESS; styles .gq-* in arcade.css) ----------
      Nothing reaches a board until a grade is chosen (what's earned before waits HELD: shared/leaderboard.js), and the
      LEADERBOARD screen was the only place that asked, so a class that never opened the trophy never showed up. Once
      this device has a star this week, no grade, the switch on and an address set: "Show up on the leaderboard? What

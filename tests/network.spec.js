@@ -3,7 +3,7 @@
    draws the mocked scoreboard, a real (not ?demo) star sends exactly the allowed fields, 'play' goes once a day per
    game, and ?demo sends nothing. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, LB_URL} = require('./helpers');
+const {prepare, device, LB_URL, quickLeaderboard, settle} = require('./helpers');
 
 const ALLOWED_FIELDS = ['game', 'grade', 'level', 'name', 'pid', 'type', 'value'];
 const withGrade = () => device('trumpet', {gameData: {leaderboard: {grade: 6, on: true}}});
@@ -86,12 +86,14 @@ const earn = page => page.evaluate(() => {
 
 test.describe('the grade', () => {
   test.skip(!LB_URL, 'the leaderboard is switched off (no address in shared/leaderboard-config.js)');
+  test.describe.configure({timeout: 60_000});                          // a hang fails fast (the suite's default is 90 s)
+  test.beforeEach(async ({page}) => { await quickLeaderboard(page); });
 
   test('with no grade, stars are HELD (nothing sent); choosing 7 sends them all, summed per level (≤ 3), only the allowed fields', async ({page}) => {
     const watch = await prepare(page, {store: noGrade()});
     await page.goto('index.html');
     await earn(page);
-    await page.waitForTimeout(800);
+    await settle(page, 800);
     expect(watch.posts).toEqual([]);
     const held = await page.evaluate(() => Arcade.Leaderboard.held());
     expect(Object.values(held.stars).map(e => [e.level, e.value]).sort()).toEqual([[1, 3], [2, 3]]);
@@ -125,7 +127,7 @@ test.describe('the grade', () => {
     expect(await page.evaluate(() => Arcade.Leaderboard.heldCount())).toBe(0);
     await page.evaluate(() => { Arcade.Leaderboard.setGrade(7); return Arcade.Leaderboard.flush(); });
     await page.evaluate(() => { Arcade.Leaderboard.setOn(true); return Arcade.Leaderboard.flush(); });
-    await page.waitForTimeout(1000);
+    await settle(page, 1000);
     expect(watch.posts).toEqual([]);
     watch.check();
   });
@@ -134,7 +136,7 @@ test.describe('the grade', () => {
     const watch = await prepare(page, {store: noGrade()});
     await page.goto('index.html');
     const card = page.locator('#gradeAsk .gq-card');
-    await page.waitForTimeout(600);
+    await settle(page, 600);
     await expect(card).toHaveCount(0);                                  // no star yet: no question
     await earn(page);
     await page.evaluate(() => Arcade.LeaderboardScreen.askGrade());
@@ -154,15 +156,16 @@ test.describe('the grade', () => {
     await page.locator('.gq-g[data-g="7"]').click();
     await expect(page.locator('#gradeAsk')).toContainText('7th grade ✓. You can change it on the Leaderboard.');
     await page.locator('.gq-undo').click();
-    await page.waitForTimeout(5500);
+    await settle(page, 5500);
     expect(await page.evaluate(() => Arcade.Leaderboard.settings().grade)).toBe(null);
     expect(watch.posts).toEqual([]);
     await expect(page.locator('.gq-g[data-g="7"]')).toBeVisible();
     // 7 for real: after 5 s the grade is set and the held stars go, with grade 7
     await page.locator('.gq-g[data-g="7"]').click();
-    await page.waitForTimeout(1000);
+    await settle(page, 1000);
     expect(await page.evaluate(() => Arcade.Leaderboard.settings().grade)).toBe(null);   // (still undoable)
-    await expect.poll(() => page.evaluate(() => Arcade.Leaderboard.settings().grade), {timeout: 8000}).toBe(7);
+    await settle(page, 4500);
+    await expect.poll(() => page.evaluate(() => Arcade.Leaderboard.settings().grade)).toBe(7);
     await expect.poll(() => watch.posts.length).toBeGreaterThan(0);
     expect(bodies(watch).every(x => x.grade === 7)).toBe(true);
     await expect(card).toHaveCount(0);
@@ -178,7 +181,7 @@ test.describe('the grade', () => {
   test('changing the grade 6 → 7 sends one play at once, with grade 7 (not the daily record)', async ({page}) => {
     const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true, gameData: {leaderboard: {grade: 6, on: true}}})});
     await page.goto('index.html');
-    await page.waitForTimeout(500);
+    await settle(page, 500);
     expect(watch.posts).toEqual([]);
     await page.evaluate(() => { Arcade.Leaderboard.setGrade(7); return Arcade.Leaderboard.flush(); });
     await expect.poll(() => watch.posts.length).toBe(1);
@@ -186,7 +189,7 @@ test.describe('the grade', () => {
     expect(await page.evaluate(() => Arcade.store.gameData('leaderboard').plays || null)).toBe(null);   // the daily record untouched
     // the same grade again: nothing
     await page.evaluate(() => { Arcade.Leaderboard.setGrade(7); return Arcade.Leaderboard.flush(); });
-    await page.waitForTimeout(600);
+    await settle(page, 600);
     expect(watch.posts).toHaveLength(1);
     watch.check();
   });
@@ -216,7 +219,7 @@ test.describe('the grade', () => {
     await page.evaluate(() => localStorage.setItem('bandarcade.lb-sent', JSON.stringify(Array.from({length: 98}, () => Date.now() - 60000))));
     await page.evaluate(() => { for (let lv = 1; lv <= 5; lv++) Arcade.store.setLevel('ghost-notes', 'bb', lv, {stars: 1, best: 50}, 1); });
     const r = await page.evaluate(() => Arcade.Leaderboard.flush());
-    await page.waitForTimeout(800);
+    await settle(page, 800);
     expect(watch.posts).toHaveLength(2);
     expect(await page.evaluate(() => Arcade.Leaderboard.queue().length)).toBe(3);
     expect(r && r.why || (await page.evaluate(() => Arcade.Leaderboard.flush())).why).toMatch(/pacing/);
@@ -227,7 +230,7 @@ test.describe('the grade', () => {
     const lb = {grade: 6, on: true, pid: 'zzzzzz' + 'q'.repeat(18)};
     const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true, gameData: {leaderboard: lb}})});
     await page.goto('index.html?teacher');
-    await page.waitForTimeout(3500);                                   // (the page's own start-up flush has run)
+    await settle(page, 3500);                                          // (the page's own start-up flush has run)
     await page.evaluate(() => { const d = Arcade.store.gameData('leaderboard'); d.week = Arcade.Leaderboard.weekKey(); d.weekStars = 12; Arcade.store.saveGameData('leaderboard'); });
     await page.locator('#lbBtn').click();
     await expect(page.locator('.lb-row').first()).toBeVisible();
