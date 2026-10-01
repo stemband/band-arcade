@@ -32,7 +32,9 @@ jobs:
         # took 35+ minutes (plus 5-11 to install it) and was cancelled at the 40-minute limit (October 2026, on main
         # too), so it runs as 4 SHARDS (Playwright's --shard: each job runs a quarter of the tests) on 4 machines,
         # with 2 browsers at a time each (--workers=2): with 4, a loaded runner's WebKit crashed Blocktave's pages
-        # ("Target crashed") and missed timing checks, though the page itself uses only a few MB. Chromium runs as 2
+        # ("Target crashed") and missed timing checks, though the page itself uses only a few MB. Those crashes were WebKit's
+        # own Skia GPU drawing on a machine with no GPU: playwright.config.js makes WebKit draw on the CPU
+        # (docs/engine/testing.md, WEBKIT DRAWS ON THE CPU). Chromium runs as 2
         # shards of 4 browsers: alone its tests took 33 minutes + 6 to install on a slow day and hit the limit too.
         include:
           - {browser: chromium, shard: 1/2, workers: 4}
