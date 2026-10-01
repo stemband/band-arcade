@@ -1441,6 +1441,11 @@ window.AVATAR_PARTS = {};
     {id: 'cbready', name: 'Concert Band Ready name plate', unlock: {game: 'scale-trainer', level: 4, stars: 3, suffix: ':cb', text: 'Scale Trainer: ALL-STATE READY in Concert Band (3 ★ in its Audition Room)'}},
     {id: 'sbready', name: 'Symphonic Band Ready name plate', unlock: {game: 'scale-trainer', level: 4, stars: 3, suffix: ':sb', text: 'Scale Trainer: ALL-STATE READY in Symphonic Band (3 ★ in its Audition Room)'}});
 
+  /* ---------- TODAY'S PRACTICE (the lobby's practice card, shared/practice.js): PRACTICE PRO = PRACTICE.weekGoal practice
+     days (all 3 steps done) in one week, Monday to Sunday. Earned, never sold. {tool: 'practice-pro'} (shared/skins.js
+     ruleMet reads gameData('practice').pro, which practice.js sets the day the goal is reached). ---------- */
+  P.PLATES.push({id: 'practice', name: 'PRACTICE PRO name plate', unlock: {tool: 'practice-pro', n: 1, text: "Today's Practice: practice 4 days in one week (all 3 steps each day)"}});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:

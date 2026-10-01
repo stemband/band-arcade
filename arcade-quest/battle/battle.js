@@ -438,6 +438,7 @@
       }
     }
     if (B !== b) return;
+    A.store.noteFinished('arcade-quest');                       // a battle won or lost: finished (Today's Practice)
     const result = {kind: b.state === 'friend' ? 'befriend' : b.state === 'fading' ? 'fade' : 'rest', enemy: b.e.id};
     if (b.back && typeof b.back === 'object') Q.go(b.back.scene, Object.assign({}, b.back.args, {result}));
     else Q.go(b.back || 'arena', {from: b.e.id, result});

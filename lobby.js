@@ -1,7 +1,8 @@
 /* The arcade LOBBY and ALL GAMES: flat HTML and CSS only (no three.js), drawn here; arcade.js decides when they show.
    THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (+ the PRIZE COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small
-   silhouettes of its cabinets and the student's stars there for the current instrument), and on top a CONTINUE card
-   (the last game opened on this device) and the ASSIGNED card (shared/featured.js).
+   silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
+   (shared/practice.js: 3 steps, the whole row), a CONTINUE card (the last game opened on this device) and the ASSIGNED
+   card (shared/featured.js).
    ALL GAMES: every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
    and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
    (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
@@ -44,10 +45,14 @@ window.Arcade = window.Arcade || {};
   }
   function render({onZone, onGame}) {
     const cards = [], F = A.featuredGame(), last = lastGame();
+    lastOnGame = onGame;
+    const pr = practiceCard();
+    if (pr) cards.push(pr.html);
     if (last) cards.push(lobbyCard('continue', last, 'Continue', ''));
     if (F) cards.push(lobbyCard('assigned', F, 'Assigned', (A.FEATURED && A.FEATURED.note) || ''));
     $('lobbyCards').innerHTML = cards.join('');
     $('lobbyCards').hidden = !cards.length;
+    if (pr) wirePractice(pr);
     const zones = A.zoneList(), flicker = !lit && !reduced.matches;
     $('zones').innerHTML = zones.map((z, i) => {
       const games = A.zoneGames(z.id), stars = games.reduce((n, g) => n + A.gameStars(g), 0);
@@ -67,6 +72,79 @@ window.Arcade = window.Arcade || {};
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
   }
+
+  /* ---------- TODAY'S PRACTICE (shared/practice.js): the first card, the whole row. A neon header + "About 15
+     minutes", three step buttons (WARM UP · SKILL · PLAY: the game's marquee, the step, its one-line task, a big check
+     circle; done = a green ✓ + "Done", slightly dimmed but still tappable; the next one to do glows gently), and THIS
+     WEEK (7 stamps, Monday to Sunday). All 3 done: the card turns gold, "PRACTICE DONE! +10 tokens", a stamp (once),
+     the practice-done sound (only here, never while a page listens). Hidden with no instrument saved. ---------- */
+  let lastOnGame = null, rendering = false;
+  const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function practiceCard() {
+    if (!A.Practice || !A.store.player) return null;
+    rendering = true;
+    let s;
+    try { s = A.Practice.settle(); } finally { rendering = false; }
+    if (!s) return null;
+    const W = A.Practice.week(), bonus = A.Practice.bonus, gold = s.all;
+    const steps = s.steps.map((p, i) => {
+      const g = (A.GAMES || []).find(x => x.id === p.game);
+      const where = p.tool ? `Tune Up ${p.tool === 'tuner' ? 'Tuner' : 'Metronome'}` : g ? g.name : '';
+      const label = `Step ${p.step}, ${p.word}: ${where}. ${p.task}. ${p.done ? 'Done.' : 'Not done yet.'}`;
+      return `<li><button type="button" class="pr-step${p.done ? ' done' : ''}${p.next ? ' next' : ''}" data-i="${i}" aria-label="${esc(label)}">` +
+        `<span class="pr-pic">${g ? thumb(g) : ''}</span>` +
+        `<span class="pr-txt"><span class="pr-word"><b class="pr-n">${p.step}</b> ${esc(p.word)}</span>` +
+        `<span class="pr-task">${esc(p.task)}</span><span class="pr-why">${esc(p.why || '')}</span></span>` +
+        `<span class="pr-mark" aria-hidden="true"><span class="pr-check">${p.done ? CHECK : ''}</span>` +
+        (p.done ? `<span class="pr-done">Done</span>` : '') + `</span></button></li>`;
+    }).join('');
+    const weekSay = `This week: ${W.count} practice ${W.count === 1 ? 'day' : 'days'}. ` +
+      W.days.map(d => `${d.name}${d.today ? ' (today)' : ''}: ${d.on ? 'practiced' : 'not yet'}`).join(', ') + '.';
+    const weekHTML = `<div class="pr-week" role="img" aria-label="${esc(weekSay)}"><p class="pr-week-h" aria-hidden="true">This week</p>` +
+      `<ol class="pr-stamps" aria-hidden="true">${W.days.map(d => `<li class="pr-stamp${d.on ? ' on' : ''}${d.today ? ' today' : ''}" title="${d.name}">` +
+        `<span class="pr-day">${d.letter}</span><span class="pr-dot">${d.on ? CHECK : ''}</span></li>`).join('')}</ol>` +
+      `<p class="pr-week-n" aria-hidden="true">${W.count} practice ${W.count === 1 ? 'day' : 'days'} this week</p></div>`;
+    const html = `<section class="pr-card${gold ? ' gold' : ''}" id="practiceCard" aria-labelledby="prTitle">` +
+      `<div class="pr-main"><header class="pr-head"><h2 class="pr-title" id="prTitle">${gold ? `Practice done! <span class="pr-plus">+${bonus} tokens</span>` : 'Today\'s Practice'}</h2>` +
+      `<p class="pr-sub">${gold ? 'Come back tomorrow for a new skill!' : 'About 15 minutes'}</p>` +
+      (gold ? `<span class="pr-seal" aria-hidden="true">${CHECK}<b>Done</b></span>` : '') + `</header>` +
+      `<ol class="pr-steps">${steps}</ol></div>${weekHTML}</section>`;
+    return {html, s};
+  }
+  /** where the stamp may animate and the sound may play: the lobby on screen, no PRESS START, no Choose Your Instrument */
+  const lobbyShown = () => { const l = $('lobby'), ps = $('pressStart'); return !!l && !l.hidden && !(ps && !ps.hidden) && !document.body.classList.contains('in-select'); };
+  function wirePractice(pr) {
+    const card = $('practiceCard');
+    if (!card) return;
+    card.querySelectorAll('.pr-step').forEach(b => b.addEventListener('click', () => A.Practice.open(pr.s.steps[+b.dataset.i], lastOnGame || (() => {}))));
+    if (!pr.s.stampNow || !lobbyShown()) return;              // the celebration waits until the lobby is really shown
+    A.Practice.stamped();
+    if (!reduced.matches) card.classList.add('stamp-go'); else card.classList.add('stamp-fade');
+    if (A.Sfx && !(A.Pitch && A.Pitch.listening && A.Pitch.listening())) A.Sfx.event('practice-done');
+    if (pr.s.proNow && A.Skins && A.Skins.catchUp) setTimeout(() => A.Skins.catchUp(A.store.player, {foot: `${A.Practice.PRACTICE.weekGoal} practice days this week. Find it in the <b>LOCKER</b> on the player card.`}), 1600);
+  }
+  /** redraw just the practice card (coming back from a game, the tokens changed, a new day) */
+  function redrawPractice() {
+    if (rendering || !lobbyShown()) return;
+    const box = $('lobbyCards'), old = $('practiceCard');
+    if (!box) return;
+    const f = old && old.contains(document.activeElement) ? +(document.activeElement.dataset.i || -1) : null;
+    const pr = practiceCard();
+    if (!pr) { if (old) old.remove(); box.hidden = !box.children.length; return; }
+    const w = document.createElement('div'); w.innerHTML = pr.html;
+    if (old) old.replaceWith(w.firstChild); else { box.insertBefore(w.firstChild, box.firstChild); box.hidden = false; }
+    wirePractice(pr);
+    if (f !== null) { const b = $('practiceCard').querySelector(`.pr-step[data-i="${f}"]`); if (b) b.focus({preventScroll: true}); }
+  }
+  addEventListener('pageshow', e => { if (e.persisted) redrawPractice(); });        // (arcade.js redraws the whole view too)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) redrawPractice(); });
+  addEventListener('storage', e => { if (!e.key || e.key === 'bandarcade.v1') redrawPractice(); });
+  addEventListener('arcade:tokens', () => redrawPractice());
+  // a new day while the lobby stays open: a new plan at midnight
+  (function midnight() {
+    const n = new Date(), next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 2);
+    setTimeout(() => { redrawPractice(); midnight(); }, Math.min(next - n, 2147483000));
+  })();
 
   /* ---------- THE PRIZE COUNTER's sign (shared/prizes.js; the wallet: shared/tokens.js): the last sign, the same size
      and style as the zones' (it flickers on with them), with the token balance and the WISH bar: "Wish: Jetpack ·
@@ -142,5 +220,5 @@ window.Arcade = window.Arcade || {};
     if (f) { f.scrollIntoView({block: 'center'}); f.focus({preventScroll: true}); }
   }
 
-  A.Lobby = {render, renderAll, lastGame, remember, thumb, zoneStyle};
+  A.Lobby = {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice};
 })(window.Arcade);

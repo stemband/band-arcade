@@ -223,11 +223,13 @@ window.Arcade = window.Arcade || {};
     return false;
   }
   /** TUNE UP's practice goals (note-checker/, gameData('tuneup')): 'tuner-hold' = the most HOLD IT rings filled on
-      one day; 'ladder' = Tempo Ladders of 8+ steps climbed to the goal */
+      one day; 'ladder' = Tempo Ladders of 8+ steps climbed to the goal; 'practice-pro' = Today's Practice's weekly goal
+      reached once (gameData('practice').pro, shared/practice.js) */
   function toolCount(tool) {
     const d = st().gameData('tuneup') || {};
     if (tool === 'tuner-hold') return Math.max(0, ...Object.values(d.holds || {}).map(n => +n || 0));
     if (tool === 'ladder') return +d.ladders || 0;
+    if (tool === 'practice-pro') return (st().gameData('practice') || {}).pro ? 1 : 0;   // Today's Practice (shared/practice.js)
     return 0;
   }
   /** matches won on this device ({game, wins} rules), counted from what each game already saves, so old wins count:

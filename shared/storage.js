@@ -15,8 +15,9 @@
    results, spar bests), kept apart from the shared progress shape above.
    endless: {gameId: {instKey: {setKey: [{score, name, date, notes, speed, combo}, … best first, at most 5]}}}:
    ENDLESS MODE's Top 5 (shared/endless.js). Kept apart from `games`, so it never counts as stars.
-   activity: {'YYYY-MM-DD': {s, c, g, e, p}}: the DAILY ACTIVITY LOG (stars, levels cleared, games, best Endless score,
-   plays) that seasonal events count (shared/seasons.js); the last 400 days.
+   activity: {'YYYY-MM-DD': {s, c, g, e, p, f}}: the DAILY ACTIVITY LOG (stars, levels cleared, games, best Endless score,
+   plays, games FINISHED: a round played to its end) that seasonal events (shared/seasons.js) and Today's Practice
+   (shared/practice.js: `f`) count; the last 400 days.
    migrated: {name: true} records one-time progress moves (see migrate()), e.g. Note Ninja's 8 → 10 belts.
    THE PLAYER: `player` is the saved INSTRUMENT MEMBER ('trumpet', 'oboe', 'horn'…, Arcade.PLAYERS), chosen on
    Select Player. `inst` is kept as its player GROUP (Arcade.groupFor), which is what every game saves progress
@@ -149,9 +150,10 @@ window.Arcade = window.Arcade || {};
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   /* the daily activity log (see store.activity); the caller saves */
-  function logActivity({game, stars = 0, cleared = 0, endless = 0, play = 0} = {}) {
-    const d = A.store.today(), p = n => String(n).padStart(2, '0'), k = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  function logActivity({game, stars = 0, cleared = 0, endless = 0, play = 0, finished = 0} = {}) {
+    const k = A.store.dayKey();
     const log = data.activity || (data.activity = {}), a = log[k] || (log[k] = {});
+    if (finished) { if (game) (a.f || (a.f = {}))[game] = 1; return; }     // a finished round: only `f` (g, p stay as they are)
     if (stars) a.s = (a.s || 0) + stars;
     if (cleared) a.c = (a.c || 0) + cleared;
     if (endless) a.e = Math.max(a.e || 0, endless);
@@ -252,9 +254,31 @@ window.Arcade = window.Arcade || {};
     },
     /** THE DAILY ACTIVITY LOG (seasonal events count only what happens inside their dates):
         {'YYYY-MM-DD': {s: stars earned, c: levels cleared, g: {gameId: 1} (games played), e: best Endless score,
-        p: plays}}, the last 400 days, in the Arcade Backup Code. note({game, play, endless}) adds to today. */
+        p: plays, f: {gameId: 1} (a round FINISHED today: Today's Practice, shared/practice.js)}}, the last 400 days, in
+        the Arcade Backup Code. note({game, play, endless}) adds to today. */
     get activity() { return JSON.parse(JSON.stringify(data.activity || {})); },
     noteActivity(o) { logActivity(o); save(); if (o && o.play && o.game && A.Leaderboard) A.Leaderboard.play(o.game); },
+    /** one day's entry of the log (a copy; {} when nothing happened). key: 'YYYY-MM-DD', default today */
+    activityOn(key) { return JSON.parse(JSON.stringify((data.activity || {})[key || this.dayKey()] || {})); },
+    /** a round of this game was played to its END today (a results screen, a battle won or lost, a night survived…):
+        the log's `f` (Today's Practice checks a step off with it). Saved only the first time each day. */
+    noteFinished(gameId) {
+      const game = String(gameId || '').split(':')[0];
+      if (!game) return;
+      const a = (data.activity || {})[this.dayKey()];
+      if (a && a.f && a.f[game]) return;
+      logActivity({game, finished: 1}); save();
+    },
+    /** 'YYYY-MM-DD' of a date (default today(), so ?demo&today= counts), in the device's own time */
+    dayKey(d) { d = d || this.today(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
+    /** read the saved data again (another tab, or this page kept in memory by the Back button, may have saved since).
+        Only pages that keep no saved objects of their own between calls may use it (the floor page: shared/practice.js). */
+    reload() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) data = Object.assign({inst: null, player: null, hornStart: 'F', sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}}, JSON.parse(raw));
+      } catch (e) { /* blocked storage: keep what's in memory */ }
+    },
     /** today's date (the device's; ?demo&today=YYYY-MM-DD pretends another day, for testing) */
     today() {
       const t = A.DEMO && A.params && /^\d{4}-\d{2}-\d{2}$/.test(A.params.get('today') || '') ? A.params.get('today').split('-').map(Number) : null;

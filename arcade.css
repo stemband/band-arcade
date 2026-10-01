@@ -227,6 +227,74 @@ body.in-select>.fbar,body.in-select>.lobby,body.in-select>main,body.in-select>.a
 .lc-note{color:var(--yellow-hi);font-weight:700;font-size:15px}
 .lcard:hover{background:var(--floor-3)}
 
+/* ---------- TODAY'S PRACTICE (lobby.js practiceCard, shared/practice.js): the first card, the whole row. The steps in a row
+   (stacked on narrow phones), THIS WEEK at the right (below on phones). Done = a green ✓ + "Done" (never color alone),
+   dimmed a little; the next step glows gently (none under reduced motion); all 3 = gold + the stamp (once). ---------- */
+.pr-card{--pr:var(--cyan);--pr-hi:var(--cyan-hi);--pr-ink:var(--cyan-ink);flex:1 1 100%;max-width:1100px;min-width:0;box-sizing:border-box;display:grid;
+  grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;align-items:stretch;padding:12px 14px 14px;border-radius:18px;border:3px solid var(--pr);color:var(--text-hi);
+  background:radial-gradient(70% 90% at 0% 0%,color-mix(in srgb,var(--pr) 14%,transparent),transparent 70%),linear-gradient(90deg,var(--deep),var(--floor-2));
+  box-shadow:0 0 0 3px var(--deep),0 0 16px color-mix(in srgb,var(--pr) 40%,transparent),inset 0 0 20px color-mix(in srgb,var(--pr) 12%,transparent)}
+.pr-card.gold{--pr:var(--yellow);--pr-hi:var(--yellow-hi);--pr-ink:var(--amber-ink)}
+html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(in srgb,var(--pr) 14%,transparent),transparent 70%),color-mix(in srgb,var(--deep) 88%,transparent)}
+.pr-main{min-width:0;display:flex;flex-direction:column;gap:10px}
+.pr-head{display:flex;flex-wrap:wrap;align-items:center;gap:2px 14px}
+.pr-title{margin:0;font:400 clamp(20px,3vw,30px) var(--display);letter-spacing:.04em;text-transform:uppercase;line-height:1.1;color:var(--pr-hi);
+  text-shadow:0 0 3px var(--pr-hi),0 0 12px var(--pr),0 0 24px var(--pr-ink)}
+.pr-plus{white-space:nowrap}
+.pr-sub{margin:0;color:var(--text-lo);font-size:16px}
+.gold .pr-sub{color:var(--text-hi);font-weight:700}
+.pr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pr-steps>li{display:flex;min-width:0}
+.pr-step{position:relative;flex:1;min-width:0;min-height:48px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;gap:8px 10px;
+  padding:8px 10px 10px;border-radius:14px;border:2px solid var(--floor-3);background:var(--deep);color:var(--text-hi);text-align:left;cursor:pointer}
+.pr-step:hover{background:var(--floor-3)}
+.pr-step:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
+.pr-pic{grid-column:1/-1;display:block;min-width:0}
+.pr-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:8px}
+.pr-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pr-word{font:400 14px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--pr-hi)}
+.pr-n{display:inline-grid;place-items:center;width:1.6em;height:1.6em;margin-right:4px;border-radius:50%;background:var(--pr);color:var(--deep);font-weight:400;letter-spacing:0}
+.pr-task{font-weight:700;font-size:16px;line-height:1.25;overflow-wrap:break-word}
+.pr-why{color:var(--text-lo);font-size:14px;line-height:1.25}
+.pr-mark{align-self:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pr-check{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:3px solid var(--text-lo);flex:none}
+.pr-check svg,.pr-dot svg,.pr-seal svg{width:70%;height:70%;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+.pr-step.done{border-color:var(--green)}
+.pr-step.done .pr-pic,.pr-step.done .pr-txt{opacity:.72}
+.pr-step.done .pr-check{border-color:var(--green);background:var(--green);color:var(--deep)}
+.pr-done{font:700 13px var(--text);letter-spacing:.06em;text-transform:uppercase;color:var(--green-hi)}
+.pr-step.next{border-color:var(--pr)}
+@media (prefers-reduced-motion:no-preference){ .pr-step.next{animation:pr-glow 2.6s ease-in-out infinite} }
+@keyframes pr-glow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 14px color-mix(in srgb,var(--pr) 55%,transparent)}}
+/* THIS WEEK: 7 stamps, Monday to Sunday (filled = a ✓, today outlined) */
+.pr-week{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;padding:8px 12px;border-radius:14px;
+  border:1px solid var(--floor-3);background:color-mix(in srgb,var(--deep) 70%,transparent)}
+.pr-week-h{margin:0;font:400 13px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--pr-hi)}
+.pr-stamps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.pr-stamp{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:26px}
+.pr-day{font-size:13px;font-weight:700;color:var(--text-lo)}
+.pr-dot{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px dashed var(--floor-3);box-sizing:border-box}
+.pr-stamp.on .pr-dot{border:2px solid var(--yellow);background:var(--yellow);color:var(--deep)}
+.pr-stamp.today .pr-dot{outline:2px solid var(--text-hi);outline-offset:2px}
+.pr-stamp.today .pr-day{color:var(--text-hi)}
+.pr-week-n{margin:0;font-size:14px;color:var(--text-hi);text-align:center}
+/* the gold card's stamp: one press, once a day (stamp-go); a plain fade under reduced motion (stamp-fade) */
+.pr-seal{margin-left:auto;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:3px solid var(--yellow);
+  color:var(--yellow-hi);font:400 14px var(--display);letter-spacing:.1em;text-transform:uppercase;transform:rotate(-6deg);background:var(--deep)}
+.pr-seal svg{width:18px;height:18px}
+.pr-card.stamp-go .pr-seal{animation:pr-stamp .6s cubic-bezier(.2,1.4,.4,1) both}
+.pr-card.stamp-fade .pr-seal{animation:pr-fade .5s ease-out both}
+@keyframes pr-stamp{0%{opacity:0;transform:rotate(-6deg) scale(2.2)}70%{opacity:1;transform:rotate(-6deg) scale(.92)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+@keyframes pr-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){ .pr-card.stamp-go .pr-seal{animation:pr-fade .5s ease-out both} }
+@media (max-width:860px){ .pr-card{grid-template-columns:minmax(0,1fr)} .pr-week{flex-direction:row;flex-wrap:wrap;gap:6px 14px} }
+@media (max-width:600px){
+  .pr-steps{grid-template-columns:minmax(0,1fr)}
+  .pr-step{grid-template-columns:minmax(0,96px) minmax(0,1fr) auto;grid-template-rows:auto;align-items:center}
+  .pr-pic{grid-column:auto}
+  .pr-why{display:none}
+}
+
 .zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,22px);max-width:1100px;margin:0 auto}
 @media (orientation:portrait),(max-width:700px){ .zones{grid-template-columns:repeat(2,minmax(0,1fr))} }
 /* a lone sign on the last row (7 zones: 3 + 3 + 1, or 2 + 2 + 2 + 1) stands in the middle, the same size as the others */

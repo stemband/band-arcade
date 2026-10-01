@@ -1049,7 +1049,7 @@
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
-    const c = Card.open(Object.assign({mode, snare, title, at, onDone: r => { listenSync(); onDone(r); }, onCancel: () => listenSync()}, sp));
+    const c = Card.open(Object.assign({mode, snare, title, at, onDone: r => { listenSync(); if (r && r.ok) A.store.noteFinished(GAME_ID); onDone(r); }, onCancel: () => listenSync()}, sp));
     if (!seen('mining')) firstCard('mining', 'Mining = playing!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
@@ -1408,6 +1408,7 @@
   function dawn() {
     if (!G.died) {
       G.w.survived = (G.w.survived || 0) + 1;
+      A.store.noteFinished(GAME_ID);                                  // a night survived (Today's Practice)
       if (!G.endless) award('night');
       else A.Endless.flash($('edFlash'), `NIGHT ${G.w.survived} SURVIVED!`);
     }

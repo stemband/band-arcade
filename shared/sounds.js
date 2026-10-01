@@ -55,6 +55,8 @@ window.Arcade = window.Arcade || {};
     'prize-hello':     {file: 'prize-hello', voice: true, vol: .9, mic: false, optional: true, screen: 'floor', gen: [], when: 'The Prize Counter opens: Ticket the counter bot says its line (optional voice). Silent until recorded.', len: '0.8–2 s'},
     'prize-tokens':    {file: 'prize-tokens', vol: .7, mic: false, screen: 'floor', fallback: 'quest-tokens', when: 'The Prize Counter: TURN IN: the stars drop into the Token Counter machine and tokens spill into the tray (a coin counter).', len: '0.6–1.5 s'},
     'prize-win':       {file: 'prize-win', vol: .8, mic: false, screen: 'floor', fallback: 'skin-unlocked', when: 'The Prize Counter: a prize is bought (a short fanfare).', len: '0.5–1.2 s'},
+    // TODAY'S PRACTICE (shared/practice.js): the lobby only, never while anything listens
+    'practice-done':   {file: 'practice-done', vol: .8, mic: false, screen: 'floor', fallback: 'level-complete', when: 'The lobby\'s TODAY\'S PRACTICE card: all 3 steps done today (the card turns gold and gets its stamp, once a day).', len: '0.6–1.5 s'},
     'press-start':     {file: 'press-start', vol: .8, mic: false, screen: 'general', gen: [[392, 0, .07, .25, 'square'], [523, .07, .07, .25, 'square'], [784, .14, .18, .25, 'square'], [1047, .14, .18, .12, 'triangle']], when: 'A game\'s PRESS START title screen is tapped (any key or tap). A game can have its own: press-start-<game id>.', len: '0.3–0.8 s'},
     'select-default':  {file: 'select-default', vol: .8, mic: false, screen: 'floor', when: 'START on the arcade floor, for any game without its own select-<game> sound.', len: '0.4–1.2 s'},
     // select-<game id>: added below for every game in shared/games.js

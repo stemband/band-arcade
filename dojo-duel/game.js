@@ -585,6 +585,7 @@
     }
     if (!W.cpu) { const rec = d.record || (d.record = {}); rec[W.name] = (rec[W.name] || 0) + 1; }
     A.store.saveGameData(GAME_ID);
+    A.store.noteFinished(GAME_ID);                  // a match played to its end (Today's Practice; UI.results.render doesn't log it)
     A.Sfx.setMusic(null);
     A.Sfx.cancelAll('dojo');                        // whatever the last point still had to say: dropped
     A.Sfx.sequence(['dojo-victory', 'sensei-victory'], 80, VOICE);

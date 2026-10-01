@@ -360,6 +360,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-simple{border-color:var(--text-lo)}
 .av-plate-gold{border-color:var(--yellow);background:linear-gradient(180deg,color-mix(in srgb,var(--yellow) 30%,transparent),color-mix(in srgb,var(--amber) 16%,transparent));box-shadow:0 0 0 1px var(--amber-ink) inset}
 .av-plate-neon{border-color:var(--cyan);box-shadow:var(--glow-cyan);background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+.av-plate-practice{border-color:var(--green);background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--green) 22%,transparent) 0 6px,transparent 6px 12px),color-mix(in srgb,var(--yellow) 8%,transparent);box-shadow:0 0 0 1px var(--yellow) inset,var(--glow-green,0 0 6px var(--green))}
 .av-plate-ladder{border-color:var(--yellow);background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--tu-wicker) 40%,transparent) 0 3px,transparent 3px 14px),color-mix(in srgb,var(--yellow) 10%,transparent);box-shadow:0 0 0 1px var(--tu-wicker-2) inset}
 .av-plate-cbready{border-color:var(--yellow);background:repeating-linear-gradient(180deg,transparent 0 4px,color-mix(in srgb,var(--cyan) 22%,transparent) 4px 5px),color-mix(in srgb,var(--cyan) 8%,transparent);box-shadow:0 0 0 1px var(--cyan) inset}
 .av-plate-sbready{border-color:var(--yellow);background:repeating-linear-gradient(180deg,transparent 0 4px,color-mix(in srgb,var(--purple) 26%,transparent) 4px 5px),color-mix(in srgb,var(--yellow) 12%,transparent);box-shadow:0 0 0 1px var(--purple) inset,var(--glow-yellow)}
