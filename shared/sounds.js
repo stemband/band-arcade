@@ -101,6 +101,7 @@ window.Arcade = window.Arcade || {};
     'life-lost':       {file: 'life-lost',  vol: .8, mic: true, play: true, screen: 'note-storm', when: 'Note Storm: a note reaches Tempo and a heart is lost.', len: 'under 0.5 s'},
     'game-over':       {file: 'game-over',  vol: .9, mic: true, screen: 'note-storm', when: 'Note Storm: the last heart is gone.', len: '0.8–1.5 s'},
     'all-notes-found': {file: 'all-notes-found', vol: .9, mic: true, screen: 'note-checker', when: 'Note Checker: every note on the staff has been found.', len: '0.8–1.5 s'},
+    'tuneup-ladder-top': {file: 'tuneup-ladder-top', vol: .8, mic: false, screen: 'note-checker', fallback: 'level-complete', gen: 'level-complete', when: 'Tune Up, Metronome: the Tempo Ladder reached its goal (a small fanfare, after the click has stopped, never on a beat).', len: '0.5–1.5 s'},
     // ---- ENDLESS MODE (Note Storm and Note Ninja) --------------------------------------------------------------
     'endless-start':      {file: 'endless-start',      vol: .8, mic: true, screen: 'endless', fallback: 'level-start', gen: 'level-start', when: 'Endless mode: a run begins (the storm waits for it; keep it under 1.5 s).', len: '0.5–1.5 s'},
     'speed-up':           {file: 'speed-up',           vol: .6, mic: true, play: true, screen: 'endless', gen: [[660, 0, .06, .18, 'square'], [880, .06, .06, .18, 'square'], [1175, .12, .1, .18, 'square']], when: 'Endless mode: SPEED UP! (the speed passes the next step). During play: under 0.5 s.', len: 'under 0.5 s (0.2–0.4 s)'},

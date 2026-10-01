@@ -1,4 +1,5 @@
-/* Note Checker: shows what the mic hears (in the student's written pitch), a tuning needle,
+/* TUNE UP's NOTE CHECKER tab (the toolbox: toolbox.js; the Tuner and the Metronome are tuner.js and metronome.js).
+   Note Checker: shows what the mic hears (in the student's written pitch), a tuning needle,
    and lights up notes once they have been held. Shared by every game. Modes:
      FIRST 5        the five notes the games use (letter names; any octave counts)
      B♭ E♭ F A♭     the GMEA major scales for the student's instrument (scales.js), up and down, with key signature
@@ -11,16 +12,11 @@
   "use strict";
   const {$} = A;
   const {noteLabel, spell, mod12} = A.music;
-  const inst = A.requireInstrument('note-checker');
+  const T = A.TuneUp, inst = T && T.inst;                                // toolbox.js: the instrument + the top bar
   if (!inst) return;
   const GOLD = '#c98a12';   // the found-note color (same as first-five mode)
+  const on = () => T.tab === 'checker';                                 // every listener below only acts on this tab
 
-  // "Back to <game>" when opened from a game (the game links here with #<game-id>)
-  const fromGame = A.GAMES.find(g => g.id === location.hash.slice(1) && g.id !== 'note-checker');
-  A.mountTopbar(inst, fromGame
-    ? `<a class="btn btn-secondary btn-small" href="${A.linkTo('../' + fromGame.id + '/index.html')}">Back to ${fromGame.name}</a>` : '', 'note-checker');
-
-  A.Pitch.setInstrument(inst);
   const unpitched = inst.pitched === false;                             // the snare drum
   let mode = A.store.checkerMode, found = new Set(), smooth = 0;
 
@@ -169,9 +165,9 @@
   function artReset() { artN = 0; artTimes = []; $('artCount').textContent = '0'; $('artNote').innerHTML = '&nbsp;'; $('artRate').innerHTML = '&nbsp;'; $('artHint').innerHTML = '&nbsp;'; }
   if (unpitched) { $('artLede').textContent = 'Play single strokes on the snare. Every hit the mic catches counts.'; $('artTip').textContent = 'Strike each hit cleanly, and let the drum ring between hits.'; }
   $('artReset').addEventListener('click', artReset);
-  A.Pitch.demoTarget = () => unpitched ? null : {pc: inst.targetPc[0], midi: 60 + inst.targetPc[0]};   // ?demo: Space plays the first of the five
+  const demoT = () => unpitched ? null : {pc: inst.targetPc[0], midi: 60 + inst.targetPc[0]};   // ?demo: Space plays the first of the five
   A.Pitch.onAttack(a => {
-    if (mode !== 'art') return;
+    if (!on() || mode !== 'art') return;
     artN++; lastAttackAt = a.time;
     const c = $('artCount'); c.textContent = artN; c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
     $('artNote').textContent = unpitched ? 'Hit!' : a.pc === null ? 'no clear pitch' : inst.writtenName(a.pc);
@@ -181,28 +177,30 @@
   });
   $('dirSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const d = b.dataset.down === 'true'; if (d !== down) { down = d; drawFull(); } }));
   let lastW = 0;
-  addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
-  setMode(mode);
+  addEventListener('resize', () => { const w = $('fullStaff').clientWidth; if (on() && mode !== 'five' && w !== lastW) { lastW = w; drawFull(); } });
 
-  const start = () => { $('startRow').hidden = true; };
-  $('startBtn').addEventListener('click', () => A.requireMic(start));
-  A.requireMic(start);   // shows the mic prompt right away (the tap on it counts as the gesture iPads need)
+  /* THE TOOLBOX (toolbox.js): this tab listens; entering it sets its range again (the Tuner sets its own), and the
+     microphone prompt shows from toolbox.js (the tap on it counts as the gesture iPads need) */
+  T.register('checker', {
+    listens: true,
+    enter() { A.Pitch.demoTarget = demoT; setMode(mode); if (mode !== 'five') { lastW = 0; drawFull(); } },
+    leave() { A.Pitch.demoAttacks = false; A.Pitch.demoNote = null; A.Pitch.setRange(null); },
+  });
 
   $('ckReset').addEventListener('click', () => {
     if (mode === 'five') { found = new Set(); draw(); }
     else { fullFound = new Set(); hint(''); drawFull(); }
   });
 
-  $('sens').value = A.store.sens;
-  $('sens').addEventListener('input', e => { A.store.setSens(+e.target.value); A.Pitch.setSensitivity(+e.target.value); });
-
   A.Pitch.onHeld((pc, now, note) => {
+    if (!on()) return;
     if (mode !== 'five') { if (member) fullHeld(note); return; }
     const i = inst.targetPc.indexOf(pc);
     if (i >= 0 && !found.has(i)) { found.add(i); draw(); if (found.size === 5) A.Sfx.event('all-notes-found'); }
   });
 
   A.Pitch.onFrame((r, level, now) => {
+    if (!on()) return;
     if (mode === 'art') {
       const held = r || A.Pitch.demoHeld();
       if (held) { if (!artHeldSince) artHeldSince = now; } else artHeldSince = 0;
@@ -228,18 +226,12 @@
       verdict.innerHTML = '&nbsp;';
       if (full) markHeard(null);
     }
-    // the shared Settings panel (the top bar) has the same slider: keep this one in step with it
-    const sl = $('sens'); if (document.activeElement !== sl && +sl.value !== A.store.sens) sl.value = A.store.sens;
-    const fill = $('lvlFill');
-    fill.style.width = A.Pitch.levelPct(level) + '%';
-    fill.classList.toggle('over', level >= A.Pitch.gate);
-    $('lvlGate').style.left = A.Pitch.levelPct(A.Pitch.gate) + '%';
   });
 
   /* ---------- ?demo in full range: ↑/↓ pick a note, hold Space to "play" it (Shift+Space: an octave low) ---------- */
   if (A.DEMO) {
     addEventListener('keydown', e => {
-      if (mode === 'five' || mode === 'art' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (!on() || mode === 'five' || mode === 'art' || !member || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         // ↑/↓ step through the list in order (it runs downward when "Going down", and a scale comes back down)
@@ -251,6 +243,6 @@
         if (list[cursor]) A.Pitch.demoNote = list[cursor].sounding - (e.shiftKey ? 12 : 0);
       }
     });
-    addEventListener('keyup', e => { if (e.key === ' ' && A.Pitch.demoNote !== null) { e.preventDefault(); A.Pitch.demoNote = null; } });
+    addEventListener('keyup', e => { if (on() && e.key === ' ' && A.Pitch.demoNote !== null) { e.preventDefault(); A.Pitch.demoNote = null; } });
   }
 })(window.Arcade);

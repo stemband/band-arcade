@@ -7,18 +7,27 @@
 <!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
 <script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
 <script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
-<title>Note Checker</title>
+<title>Tune Up · Band Arcade</title>
 <meta name="theme-color" content="#0b0716">
 <link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../shared/fonts.css">
 <link rel="stylesheet" href="../shared/theme.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="tools.css">
 </head>
 <body>
 <div class="wrap">
   <div id="topbar"></div>
 
-  <h1 class="game-title">Note Checker</h1>
+  <h1 class="game-title">Tune Up</h1>
+  <!-- THE TOOLBOX: three tools (toolbox.js). ←/→ move between the tabs. -->
+  <div class="tu-tabs" role="tablist" aria-label="Tune Up tools" id="tuTabs">
+    <button type="button" role="tab" class="tu-tab" id="tabChecker" data-tool="checker" aria-controls="toolChecker" aria-selected="true"><span aria-hidden="true">🎯</span> Note Checker</button>
+    <button type="button" role="tab" class="tu-tab" id="tabTuner" data-tool="tuner" aria-controls="toolTuner" aria-selected="false" tabindex="-1"><span aria-hidden="true">🎈</span> Tuner</button>
+    <button type="button" role="tab" class="tu-tab" id="tabMetro" data-tool="metronome" aria-controls="toolMetro" aria-selected="false" tabindex="-1"><span aria-hidden="true">🥁</span> Metronome</button>
+  </div>
+
+  <section id="toolChecker" class="tu-panel" role="tabpanel" aria-labelledby="tabChecker">
   <div class="ui-seg modes" role="group" aria-label="What to check">
     <button class="mode-btn" type="button" data-mode="five" aria-pressed="true">First 5</button>
     <button class="mode-btn" type="button" data-mode="Bb" aria-pressed="false" aria-label="Concert B flat scale">B♭</button>
@@ -63,10 +72,6 @@
     <p class="demo-help" id="artDemo" hidden>Demo: tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note (no new attacks).</p>
   </div>
 
-  <div class="startrow" id="startRow">
-    <button type="button" class="btn btn-primary btn-big" id="startBtn">Start listening</button>
-  </div>
-
   <div class="readout">
     <div class="bignote"><b id="ckNote">–</b><span id="ckConcert">Play a note</span></div>
     <div class="meter">
@@ -98,7 +103,143 @@
     <button type="button" class="btn btn-secondary btn-small" id="ckReset">Reset</button>
   </div>
 
-  <section class="sens" aria-labelledby="sensT">
+  </section>
+
+
+  <!-- THE TUNER: the hot-air balloon (tuner.js) -->
+  <section id="toolTuner" class="tu-panel" role="tabpanel" aria-labelledby="tabTuner" hidden>
+    <div class="tn-drums" id="tnDrums" hidden>
+      <p class="tn-drums-t">Drums don't need tuning! Try the Metronome.</p>
+      <button type="button" class="btn btn-primary btn-big" id="tnToMetro">Open the Metronome</button>
+    </div>
+    <div id="tnMain">
+      <div class="tn-top">
+        <div class="tn-note" aria-live="polite">
+          <b id="tnBig">–</b>
+          <span id="tnSmall">&nbsp;</span>
+        </div>
+        <div class="tn-staff" id="tnStaff" aria-hidden="true"></div>
+        <div class="tn-modes">
+          <div class="ui-seg ui-seg-sm" role="group" aria-label="What to tune to" id="tnModeSeg">
+            <button type="button" data-mode="free" aria-pressed="true">Any note</button>
+            <button type="button" data-mode="target" aria-pressed="false">Target note</button>
+          </div>
+          <div class="tn-target" id="tnTargetRow">
+            <label class="ui-label" for="tnTarget">Target</label>
+            <select id="tnTarget"></select>
+            <button type="button" class="btn btn-primary btn-small" id="tnHear">🔊 Hear the note</button>
+          </div>
+        </div>
+      </div>
+      <div class="tn-scene" id="tnScene">
+        <svg class="tn-sky" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="tnSkyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="tn-sky-a"/><stop offset=".6" class="tn-sky-b"/><stop offset="1" class="tn-sky-c"/></linearGradient></defs>
+          <rect width="400" height="300" fill="url(#tnSkyG)"/>
+          <g class="tn-cloud"><ellipse cx="60" cy="60" rx="34" ry="11"/><ellipse cx="78" cy="52" rx="20" ry="11"/></g>
+          <g class="tn-cloud"><ellipse cx="330" cy="90" rx="38" ry="12"/><ellipse cx="312" cy="82" rx="20" ry="11"/></g>
+          <g class="tn-cloud"><ellipse cx="300" cy="240" rx="40" ry="11"/><ellipse cx="80" cy="250" rx="30" ry="9"/></g>
+        </svg>
+        <div class="tn-zone tn-zone-up" aria-hidden="true">SHARP ▲ too high</div>
+        <div class="tn-zone tn-zone-down" aria-hidden="true">FLAT ▼ too low</div>
+        <div class="tn-platform" id="tnPlatform" aria-hidden="true">
+          <svg class="tn-ring" viewBox="0 0 200 60"><ellipse class="tn-ring-bg" cx="100" cy="30" rx="92" ry="24"/><ellipse class="tn-ring-fill" id="tnRing" cx="100" cy="30" rx="92" ry="24" pathLength="100" stroke-dasharray="0 100"/></svg>
+          <svg class="tn-island" viewBox="0 0 160 70">
+            <path class="tn-isl-top" d="M8 18 Q80 6 152 18 L146 26 Q80 34 14 26 Z"/>
+            <path class="tn-isl-rock" d="M14 26 Q80 34 146 26 L118 50 Q96 70 80 66 Q58 70 40 50 Z"/>
+            <line class="tn-pole" x1="128" y1="17" x2="128" y2="-14"/>
+            <path class="tn-flag" d="M128 -14 L156 -7 L128 0 Z"/>
+          </svg>
+          <span class="tn-flagtxt" id="tnFlag"></span>
+        </div>
+        <div class="tn-balloon" id="tnBalloon">
+          <svg class="tn-env" viewBox="0 0 120 150" aria-hidden="true">
+            <defs><clipPath id="tnEnvClip"><path d="M60 4 C 18 4 4 36 6 62 C 8 92 40 112 48 128 L72 128 C 80 112 112 92 114 62 C 116 36 102 4 60 4 Z"/></clipPath></defs>
+            <g clip-path="url(#tnEnvClip)">
+              <rect class="tn-st1" x="0" y="0" width="120" height="140"/>
+              <rect class="tn-st2" x="14" y="0" width="16" height="140"/><rect class="tn-st2" x="52" y="0" width="16" height="140"/><rect class="tn-st2" x="90" y="0" width="16" height="140"/>
+            </g>
+            <path class="tn-env-line" d="M60 4 C 18 4 4 36 6 62 C 8 92 40 112 48 128 L72 128 C 80 112 112 92 114 62 C 116 36 102 4 60 4 Z"/>
+            <line class="tn-rope" x1="48" y1="128" x2="40" y2="150"/><line class="tn-rope" x1="72" y1="128" x2="80" y2="150"/>
+          </svg>
+          <div class="tn-basket"><span class="tn-av" id="tnAv"></span><span class="tn-wicker" aria-hidden="true"></span></div>
+          <div class="tn-confetti" id="tnConfetti" aria-hidden="true"></div>
+        </div>
+        <div class="tn-arrow tn-arrow-l" id="tnArrowL" aria-hidden="true"></div>
+        <div class="tn-arrow tn-arrow-r" id="tnArrowR" aria-hidden="true"></div>
+        <span class="tn-cents" id="tnCents" aria-hidden="true"></span>
+      </div>
+      <p class="tn-words" id="tnWords" role="status">Play a long note!</p>
+      <p class="tn-hold" id="tnHold" aria-live="polite">&nbsp;</p>
+      <p class="tn-tip" id="tnTip" aria-live="polite">&nbsp;</p>
+      <div class="tn-opts">
+        <div class="ui-srow-inline"><span id="tnConcL">Show concert pitch first</span><button type="button" class="ui-switch" role="switch" id="tnConcert" aria-labelledby="tnConcL"></button></div>
+        <div class="ui-srow-inline"><span id="tnCentsL">Show cents</span><button type="button" class="ui-switch" role="switch" id="tnShowCents" aria-labelledby="tnCentsL"></button></div>
+      </div>
+      <p class="demo-help" id="tnDemo" hidden>Demo: hold <b>Space</b> = in tune, <b>U</b> = sharp, <b>J</b> = flat, <b>W</b> = a wrong note.</p>
+    </div>
+  </section>
+
+  <!-- THE METRONOME: your avatar bops on the beat, and the TEMPO LADDER (metronome.js). Never uses the microphone. -->
+  <section id="toolMetro" class="tu-panel" role="tabpanel" aria-labelledby="tabMetro" hidden>
+    <div class="mt-wrap">
+      <div class="mt-stage" id="mtStage">
+        <div class="mt-count" id="mtCount" aria-hidden="true"></div>
+        <div class="mt-dots" id="mtDots" aria-hidden="true"></div>
+        <div class="mt-ladder" id="mtLadder" aria-hidden="true" hidden></div>
+        <div class="mt-dancer" id="mtDancer" aria-hidden="true"></div>
+        <div class="mt-floor" aria-hidden="true"></div>
+        <p class="mt-paused" id="mtPaused" role="status" hidden>Paused — tap START</p>
+      </div>
+      <div class="mt-side">
+        <div class="mt-tempo">
+          <button type="button" class="btn btn-secondary mt-pm" id="mtMinus" aria-label="Slower (hold for 5)">−</button>
+          <div class="mt-bpm"><b id="mtBpm" aria-live="polite">100</b><span>BPM</span><em id="mtWord">Andante</em></div>
+          <button type="button" class="btn btn-secondary mt-pm" id="mtPlus" aria-label="Faster (hold for 5)">+</button>
+        </div>
+        <input type="range" id="mtSlider" min="40" max="208" step="1" value="100" aria-label="Tempo in beats per minute">
+        <div class="mt-row">
+          <button type="button" class="btn btn-primary btn-big mt-go" id="mtGo">Start</button>
+          <button type="button" class="btn btn-secondary mt-tap" id="mtTap">Tap tempo</button>
+        </div>
+        <div class="mt-set">
+          <span class="ui-label" id="mtMeterL">Time signature</span>
+          <div class="ui-seg ui-seg-sm" role="group" aria-labelledby="mtMeterL" id="mtMeter">
+            <button type="button" data-v="2/4" aria-pressed="false">2/4</button><button type="button" data-v="3/4" aria-pressed="false">3/4</button><button type="button" data-v="4/4" aria-pressed="true">4/4</button><button type="button" data-v="6/8" aria-pressed="false">6/8</button><button type="button" data-v="2/2" aria-pressed="false" aria-label="2/2, cut time">¢ 2/2</button>
+          </div>
+          <div class="ui-srow-inline" id="mtFeelRow" hidden><span id="mtFeelL">Feel in 2</span><button type="button" class="ui-switch" role="switch" id="mtFeel" aria-labelledby="mtFeelL"></button></div>
+          <span class="ui-label" id="mtSubL">Subdivision</span>
+          <div class="ui-seg ui-seg-sm" role="group" aria-labelledby="mtSubL" id="mtSub">
+            <button type="button" data-v="1" aria-pressed="true">None</button><button type="button" data-v="2" aria-pressed="false">Eighths</button><button type="button" data-v="3" aria-pressed="false">Triplets</button><button type="button" data-v="4" aria-pressed="false">Sixteenths</button>
+          </div>
+          <div class="ui-srow-inline"><span id="mtSilentL">Silent mode<small> (no sound, just the beat)</small></span><button type="button" class="ui-switch" role="switch" id="mtSilent" aria-labelledby="mtSilentL"></button></div>
+        </div>
+        <details class="mt-lad" id="mtLad">
+          <summary>🪜 Tempo Ladder</summary>
+          <div class="mt-lgrid">
+            <label>Start <input type="number" id="ldStart" min="40" max="208" inputmode="numeric"></label>
+            <label>Goal <input type="number" id="ldGoal" min="40" max="208" inputmode="numeric"></label>
+            <label>Step <input type="number" id="ldStep" min="1" max="40" inputmode="numeric"></label>
+            <label>Measures <input type="number" id="ldMeas" min="1" max="32" inputmode="numeric"></label>
+          </div>
+          <div class="ui-srow-inline"><span id="ldStopL">Stop at goal</span><button type="button" class="ui-switch" role="switch" id="ldStop" aria-labelledby="ldStopL"></button></div>
+          <p class="mt-lstat" id="ldStat" aria-live="polite">&nbsp;</p>
+          <div class="mt-row">
+            <button type="button" class="btn btn-primary" id="ldGo">Start ladder</button>
+            <button type="button" class="btn btn-secondary" id="ldHold" aria-pressed="false" disabled>Hold</button>
+            <button type="button" class="btn btn-secondary" id="ldBack" disabled>Step back</button>
+          </div>
+          <p class="mt-lmsg" id="ldMsg" role="status"></p>
+        </details>
+        <p class="ui-howto mt-keys">Keys: <b>Space</b> start/stop · <b>↑</b>/<b>↓</b> tempo · <b>T</b> tap</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="startrow" id="startRow" hidden>
+    <button type="button" class="btn btn-primary btn-big" id="startBtn">Start listening</button>
+  </div>
+
+  <section class="sens" id="sensBox" aria-labelledby="sensT">
     <h2 class="ui-section" id="sensT">Mic sensitivity</h2>
     <div class="sens-row"><span class="muted">Less</span><input type="range" id="sens" min="0" max="100" value="50" aria-labelledby="sensT"><span class="muted">More</span></div>
     <span class="ui-label">Mic level</span>
@@ -124,13 +265,21 @@
 <script src="../shared/avatar-code.js"></script>
 <script src="../shared/avatar-bg.js"></script>
 <script src="../shared/avatar-fx.js"></script>
+<script src="../shared/instrument-sprites.js"></script>
+<script src="../shared/avatar-fight.js"></script>
 <script src="../shared/avatar-badge.js"></script>
 <script src="../shared/games.js"></script>
 <script src="../shared/scales.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../shared/tones.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
 <script src="../shared/bg-scenes.js"></script>
 <script src="../shared/backgrounds.js"></script>
+<script src="toolbox.js"></script>
 <script src="checker.js"></script>
+<script src="tuner.js"></script>
+<script src="metronome.js"></script>
 </body>
 </html>

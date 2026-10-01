@@ -82,6 +82,10 @@
   --sa-ok:#0a7d3b; --sa-fix:#a35f00; --sa-bad:#c0392b; --sa-cur:#1257c4; --sa-guide:#00a3a3;
   --sa-ok-lt:#4dff88; --sa-fix-lt:#ffab2e; --sa-bad-lt:#ff6b6b; --sa-none:#3a3350;
   --sa-tap:#8f1fb0; --sa-bar:#c9c3b3; --sa-bar-acc:#7d7690; --sa-bar-lit:#ffd23f;   /* the fingering card: the tapped note's ring (on the light staff), the mallet bars */
+  /* Tune Up (note-checker/): the Tuner's evening sky, the balloon and the landing island; the Metronome's stage */
+  --tu-sky-a:#1b1446; --tu-sky-b:#3a2466; --tu-sky-c:#6b3a6e; --tu-cloud:#cdbfe8;
+  --tu-env-1:#ff5aa8; --tu-env-2:#ffe14d; --tu-env-line:#2a1036; --tu-rope:#e8d9b8; --tu-wicker:#a8743c; --tu-wicker-2:#6f4a22;
+  --tu-moss:#5fd88a; --tu-rock:#5a4a6e; --tu-rock-2:#3b2f4d; --tu-flag:#ffe14d; --tu-stage:#2a1a3e; --tu-stage-edge:#ffb43d;
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;
@@ -347,6 +351,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-simple{border-color:var(--text-lo)}
 .av-plate-gold{border-color:var(--yellow);background:linear-gradient(180deg,color-mix(in srgb,var(--yellow) 30%,transparent),color-mix(in srgb,var(--amber) 16%,transparent));box-shadow:0 0 0 1px var(--amber-ink) inset}
 .av-plate-neon{border-color:var(--cyan);box-shadow:var(--glow-cyan);background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+.av-plate-ladder{border-color:var(--yellow);background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--tu-wicker) 40%,transparent) 0 3px,transparent 3px 14px),color-mix(in srgb,var(--yellow) 10%,transparent);box-shadow:0 0 0 1px var(--tu-wicker-2) inset}
 .av-plate-flames{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--red) 45%,transparent),color-mix(in srgb,var(--amber) 22%,transparent) 55%,transparent)}
 .av-plate-notes{border-color:var(--pink)}
 .av-plate-notes::before,.av-plate-notes::after{content:"♪";color:var(--pink-hi);margin:0 4px}

@@ -1408,6 +1408,16 @@ window.AVATAR_PARTS = {};
      rows: ['....SSS.', '...SsSSS', '..SSsSsS', 'K..SSSSS', 'RWRRRRR.', 'RRRRRRRR', '.R.R.R.R', '........'],
      frames: [null, ['....SSS.', '...SsSSS', '..SSsSsS', 'K..SSSSS', 'RWRRRRR.', 'RRRRRRRR', 'R.R.R.R.', '........']]});
 
+  /* ---------- TUNE UP (note-checker/: the toolbox's Tuner and Metronome): earned by practising, never sold, no stars.
+     {tool: 'tuner-hold', n} = the Tuner's HOLD IT ring filled n times in ONE day; {tool: 'ladder', n} = n Tempo Ladders
+     of 8+ steps climbed to the goal (shared/skins.js ruleMet reads gameData('tuneup')). ---------- */
+  P.HANDS.push(
+    {id: 'tuningfork', name: 'Golden Tuning Fork', unlock: {tool: 'tuner-hold', n: 5, text: 'Tune Up: hold a note in tune 5 times in one day'},
+     pal: {I: 'kt-gold', J: 'kt-gold-d', L: 'white-hi'},
+     bust(a) { a.line(28, 10, 28, 16, 'I').line(31, 10, 31, 16, 'I').line(28, 17, 31, 17, 'I').px(29, 17, 'J').px(30, 17, 'J');
+       a.px(28, 10, 'L').px(31, 10, 'L'); a.line(29.5, 18, 29.5, 22, 'J').px(29, 22, 'I').px(30, 22, 'I'); }});
+  P.PLATES.push({id: 'ladder', name: 'Ladder Climber name plate', unlock: {tool: 'ladder', n: 3, text: 'Tune Up: climb 3 Tempo Ladders of 8 steps or more'}});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:
