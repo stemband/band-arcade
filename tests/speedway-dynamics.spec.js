@@ -115,12 +115,14 @@ test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); 
   setup.pairs.forEach(([a, b, fa, fb]) => { expect(['C4', 'D4', 'E4', 'F4', 'G4']).toContain(b); if (['C4', 'G4'].includes(a)) expect(fb).toBe(fa); });
   await page.keyboard.down('Space');                                        // Space = a clean slur
   await page.waitForFunction(() => { const s = Arcade.Speedway.slur(); return s.slurs.length >= 1; }, null, {timeout: 40000});
-  await page.keyboard.up('Space');
   let s = await page.evaluate(() => Arcade.Speedway.slur());
   expect(s.slurs[0].how).toBe('slur');
   expect(s.mul).toBe(1);
-  await page.waitForFunction(() => Arcade.Speedway.debug().lap === 1 && Arcade.Speedway.debug().phase === 'race', null, {timeout: 30000});
-  await page.keyboard.down('b');                                            // B = a break at the switch
+  // keep playing to the end of the lap (the slur is judged at the switch, halfway: let go there and the car coasts, and
+  // on a slow frame it can stop short of the line for good), through the pit stop, into lap 2
+  await explain(seen, SW_STATE, () => page.waitForFunction(() => Arcade.Speedway.debug().lap === 1 && Arcade.Speedway.debug().phase === 'race', null, {timeout: 30000}));
+  await page.keyboard.down('b');                                            // B = a break at the switch (it takes over from Space)
+  await page.keyboard.up('Space');
   await page.waitForFunction(() => Arcade.Speedway.slur().slurs.length >= 2, null, {timeout: 40000});
   s = await page.evaluate(() => Arcade.Speedway.slur());
   await explain(seen, SW_STATE, async () => { expect(s.slurs[1].how).toBe('break'); expect(s.mul).toBeCloseTo(.55, 5); });
