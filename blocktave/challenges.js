@@ -159,11 +159,26 @@ window.Arcade = window.Arcade || {};
   /** the staff rows' SVG for a list of items {n (the note as shown), color?, caption?}; opts {clef, sig, fit, availPx,
       captions, label, id (each note's id = id + its index)}. Returns {html, px (the drawing's smallest width), rows, W}. */
   function staffRows(items, o = {}) {
-    const L = layoutNotes(items.map(it => it.n), o), fit = o.fit || items.map(it => it.n);
+    const L = layoutNotes(items.map(it => it.n), o), box = staffBox(o.clef, items.map(it => it.n).concat(o.fit || []), !!o.captions);
     const html = L.rows.map((row, r) => `<div class="bt-srow">${A.staffSVG(o.clef, items.slice(row.from, row.to).map((it, k) => ({
       n: it.n, x: row.xs[k], id: o.id ? o.id + (row.from + k) : undefined, color: it.color, caption: it.caption || ''})),
-      {fit, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
-    return {html, px: L.px, rows: L.rows, W: L.W};
+      {box, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
+    return {html, px: L.px, rows: L.rows, W: L.W, box};
+  }
+  /** THE STAFF BOX GROWS TO FIT ITS NOTES (never a fixed height, so nothing is ever cut off): from every note's head, its
+      stem (up below the middle line, down on or above it: shared/ui.js), its ledger lines and its accidental, + a margin;
+      at least the staff itself (shared/ui.js's usual 30 … 146). Every row of a card uses the same box. Returns [top, height]. */
+  const MID = 88, STEM = 60, HEAD = 14, ACC_UP = 46, ACC_DOWN = 30, MARGIN = 6, CAPS = 34;
+  function staffBox(clef, notes, captions) {
+    let top = 30, bot = 146;
+    notes.forEach(n => {
+      if (!n) return;
+      const y = A.noteY(clef, n), acc = n.acc || n.natural;
+      top = Math.min(top, y - (y > MID ? STEM : HEAD) - MARGIN, acc ? y - ACC_UP - MARGIN : Infinity, y - 8 - MARGIN);   // the ledger lines reach the head
+      bot = Math.max(bot, y + (y > MID ? HEAD : STEM) + MARGIN, acc ? y + ACC_DOWN + MARGIN : -Infinity, y + 8 + MARGIN);
+    });
+    bot += captions ? CAPS : MARGIN;
+    return [Math.floor(top), Math.ceil(bot - top)];
   }
   /** the room a card's staff has on this screen (px): a sheet along the bottom on narrow screens, else up to 92vw */
   const sheetMode = () => innerWidth <= 760;
@@ -227,7 +242,7 @@ window.Arcade = window.Arcade || {};
   const KINDS = {
     notes(c) {
       const o = c.o, items = o.items;
-      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
+      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (o.note ? `<p class="bt-cnote">${esc(o.note)}</p>` : '') + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
       c.el.classList.toggle('wide', items.length > 4);
       draw();
       c.redraw = draw;                                                   // a turned / resized screen: laid out again
@@ -445,7 +460,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('keyup', e => { if (A.DEMO && C && A.Pitch && (e.key === ' ' || e.key.toLowerCase() === 'w')) A.Pitch.demoNote = null; });
   addEventListener('resize', () => { if (C) { if (C.redraw) C.redraw(); place(C.el, C.o.at); } });
 
-  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, headRight,
+  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, staffBox, headRight,
     /** keep the open card beside its block as the camera moves (the game calls it a few times a second) */
     follow() { if (C && typeof C.o.at === 'function') place(C.el, C.o.at); }};
 })(window.Arcade);

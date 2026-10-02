@@ -244,6 +244,9 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-rstaff svg{width:100%;height:auto;display:block;max-height:34vh}
 .bt-rstaff{color:var(--ink)}
 .bt-ph{stroke:var(--blue-ink);stroke-width:3}
+.bt-cnote{margin:0 0 2px;color:var(--bt-moss);font-size:14px;font-weight:700}
+/* a sheet along the bottom (phones) never leaves the screen: it scrolls inside itself rather than clip a tall staff */
+.bt-card.sheet{max-height:calc(100vh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain}
 .bt-prog{margin:0;text-align:right;color:var(--text-lo);font-size:13px}
 .bt-card-say{margin:4px 0;color:var(--text-hi);font-size:15px;min-height:1.3em}
 .bt-hold{height:14px;border-radius:8px;background:var(--floor-3);overflow:hidden;margin:6px 0}

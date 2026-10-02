@@ -1113,24 +1113,59 @@
       chromatic), the clef by depth (Treble Peaks = treble, Bass Depths = bass, else the student's own) */
   const POOLS = {surface: 'first5', middle: null, peaks: 'chrom', depths: 'chrom'};
   const SCALES = ['Bb', 'Eb', 'F', 'Ab'];
-  const OTHER_FIT = {treble: m => m >= 55 && m <= 84, bass: m => m >= 36 && m <= 64};
+  /* THE OTHER CLEF'S COMFORTABLE RANGE (written MIDI) and its middle line (treble B4, bass D3). Other-clef cards keep to
+     it: single notes are picked inside it; a SCALE (which must stay in order) is MOVED BY WHOLE OCTAVES into it (display
+     only: the shift that puts the most of its notes inside, ties to the one nearest the middle line); spelling, key
+     signature and order never change, and playing is by pitch class (Pitch.onHeld pc; the sustain card's cents are
+     measured mod 12), so a moved scale never asks for an octave the student can't play. */
+  const OTHER_RANGE = R.otherRange;
+  const OTHER_FIT = {treble: m => m >= OTHER_RANGE.treble[0] && m <= OTHER_RANGE.treble[1], bass: m => m >= OTHER_RANGE.bass[0] && m <= OTHER_RANGE.bass[1]};
+  /** the octave shift (in octaves) that puts the most of these written MIDIs inside the clef's comfortable range */
+  function octaveShift(midis, clef) {
+    const [lo, hi, mid] = OTHER_RANGE[clef], avg = midis.reduce((a, b) => a + b, 0) / Math.max(1, midis.length);
+    let best = 0, bestIn = -1, bestD = Infinity;
+    for (let k = -4; k <= 4; k++) {
+      const inR = midis.filter(m => m + 12 * k >= lo && m + 12 * k <= hi).length, d = Math.abs(avg + 12 * k - mid);
+      if (inR > bestIn || (inR === bestIn && d < bestD)) { best = k; bestIn = inR; bestD = d; }
+    }
+    return best;
+  }
+  /** a written note moved by k octaves (its spelling kept) */
+  const moveNote = (nt, k) => !k || !nt ? nt : Object.assign({}, nt, {oct: nt.oct + k}, nt.midi != null ? {midi: nt.midi + 12 * k} : {});
+  const moveItem = (it, k) => !k ? it : Object.assign({}, it, {n: moveNote(it.n, k), show: moveNote(it.show, k), midi: it.midi + 12 * k});
   function notesAt(x, y, n, {order = 'random', pool} = {}) {
     const z = BW.zone(G.w, x, y, R);
     const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : inst.clef;
     const notes = pool || POOLS[z.layer] || SCALES[Math.floor(Math.random() * SCALES.length)];
     const other = clef !== inst.clef;
     const seq = A.buildSequence({member: readM, group: inst, notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
-    let items = order === 'order' ? seq.items.slice(0, n) : seq.items;
-    if (other && order !== 'order') { const f = items.filter(it => OTHER_FIT[clef](it.midi)); if (f.length >= n) items = f; }
+    let items = order === 'order' ? seq.items.slice(0, n) : seq.items, shift = 0;
+    if (other && order === 'order') {                                     // a scale: the whole scale moves by octaves
+      shift = octaveShift(items.map(it => it.midi), clef);
+      items = items.map(it => moveItem(it, shift));
+    } else if (other) {                                                   // single notes: the ones inside the range …
+      const f = items.filter(it => OTHER_FIT[clef](it.midi));
+      if (f.length >= n) items = f;
+      else {                                                              // … else the same octave shift as a fallback
+        shift = octaveShift(items.map(it => it.midi), clef);
+        items = items.map(it => moveItem(it, shift));
+        const f2 = items.filter(it => OTHER_FIT[clef](it.midi)); if (f2.length >= n) items = f2;
+      }
+    }
     items = items.slice(0, n);
-    const fit = (other ? seq.fit.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : seq.fit);
-    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, nameOf: seq.name};
+    const fitAll = other ? seq.fit.map(s => moveNote(s, shift)) : seq.fit;
+    const fit = other ? fitAll.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : fitAll;
+    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, shifted: shift !== 0, nameOf: seq.name};
   }
+  /** the note names under the staff: after hintAfterWrong wrong answers, and the first otherClefNames other-clef cards
+      (counted in gameData otherClef); returns 'other' when it's the other-clef reason */
   function hintNow(set) {
     if (G.wrong >= R.hintAfterWrong) return true;
-    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return true; } }
+    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return 'other'; } }
     return false;
   }
+  /** a moved other-clef scale says so (with the names, the first otherClefNames times) */
+  const shiftNote = (set, h) => set.shifted && h === 'other' ? `${set.clef === 'bass' ? 'Bass' : 'Treble'} clef! Play it where it sits on your instrument.` : null;
   const RD_CELLS = () => [...new Set((window.RD_LEVELS || []).slice(0, R.rhythmLevels || 5).flatMap(L => [].concat(L.time).includes('4/4') ? (Array.isArray(L.cells) ? L.cells : (L.cells && L.cells['4/4']) || []) : []))];
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const RESTS = ['wr | q qr hr', 'hr hr | q qr hr', 'hr qr qr | q qr hr', 'qr qr hr | q qr hr', 'qr hr qr | q qr hr'];
@@ -1144,16 +1179,17 @@
     }
     if (kind === 'tone' || kind === 'note' || kind === 'notes3') {
       const set = notesAt(x, y, n || (kind === 'notes3' ? 3 : 1));
-      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: hintNow(set)}, set);
+      const h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'scale') {
-      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]});
-      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: hintNow(set)}, set);
+      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]}), h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'sustain' || kind === 'longtone') {
       if (mode === 'touch') return {kind: 'key', member: readM, clef: inst.clef, sub: 'A music question'};
       const set = notesAt(x, y, 1);
-      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: hintNow(set)}, set);
+      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: !!hintNow(set)}, set);
     }
     if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
     if (kind === 'rest') return {kind: 'rest', text: pick(RESTS), sub: 'Rests, then the downbeat'};
@@ -2129,6 +2165,11 @@
       put: (x, y, key) => BW.put(G.w, x, y, ID[key]),
       target: (x, y) => { G.target = {x, y}; },
       bgLow: on => saveGd({bgLow: !!on}),
+      /** the card a performance kind would open at (x, y), and the notes a card there would use (tests) */
+      spec: (kind, x, y, n) => spec(kind, x, y, n),
+      notesAt: (x, y, n, o) => notesAt(x, y, n, o),
+      /** open a card for a spec beside (x, y) (tests: a scale vein's card in the Bass Depths, an extreme staff) */
+      openSpec: (sp, x, y) => { openCard(sp, screenAt(x, y), sp.title || 'Test', () => {}); return !!Card.current; },
       /** put an item in the hotbar (the selected slot's neighbor: the first empty one) or take it out */
       hotbar: (id, on) => { const h = G.p.hot, k = h.indexOf(id); if (!on) { if (k >= 0) h[k] = null; } else if (k < 0) { const e = h.indexOf(null); h[e >= 0 ? e : h.length - 1] = id; } drawHot(); return h.slice(); },
       at: (x, y) => B[BW.at(G.w, x, y)].key,

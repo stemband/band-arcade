@@ -1415,6 +1415,121 @@ test.describe('Blocktave: the Neon Torch', () => {
   });
 });
 
+test.describe('Blocktave: other-clef scales sit on the staff (moved by octaves), and no staff is ever cut off', () => {
+  test('every treble reader in the Bass Depths and every bass reader in the Treble Peaks: 4 scales × 5 and 8 notes stay near the staff, only octaves moved', async ({page}) => {
+    test.setTimeout(240_000);
+    await enter(page, {mode: 'touch'});
+    const members = await page.evaluate(() => Arcade.PLAYERS.filter(m => m !== 'snare').map(m => ({m, clef: Arcade.groupFor(m).clef})));
+    expect(members.length).toBeGreaterThan(10);
+    const bad = [];
+    for (const {m, clef} of members) {
+      await enter(page, {member: m, mode: 'touch'});
+      const r = await page.evaluate(clef => {
+        const A = Arcade, d = A.Blocktave.demo, R = window.BT_RULES, x = Math.floor(A.Blocktave.state().player.x);
+        const y = clef === 'treble' ? R.world.deepY + 10 : R.world.peaksY - 8, other = clef === 'treble' ? 'bass' : 'treble';
+        const FIT = {treble: [55, 84], bass: [36, 64]}[other], out = [];
+        const member = A.memberById(A.store.player), group = A.groupFor(A.store.player, {hornStart: A.store.hornStart});
+        for (const pool of ['Bb', 'Eb', 'F', 'Ab']) for (const n of [5, 8]) {
+          const set = d.notesAt(x, y, n, {order: 'order', pool});
+          const ref = A.buildSequence({member, group, notes: pool, order: 'order', level: 2, count: Math.max(n, 8)}).items.slice(0, n);
+          const tag = `${pool} ×${n}`;
+          if (set.clef !== other) out.push(`${tag}: clef ${set.clef}`);
+          const inside = set.items.filter(it => it.midi >= FIT[0] && it.midi <= FIT[1]).length;
+          if (inside / n < .8) out.push(`${tag}: only ${inside}/${n} in range`);
+          set.items.forEach((it, k) => {
+            const yy = A.noteY(other, it.show);
+            if (yy < 0 || yy > 176) out.push(`${tag}: note ${k} more than 3 ledger lines out (y ${yy})`);
+            const r0 = ref[k];
+            if (it.n.letter !== r0.n.letter || (it.n.acc || 0) !== (r0.n.acc || 0)) out.push(`${tag}: note ${k} spelled differently`);
+            if ((it.midi - r0.midi) % 12 || it.midi - r0.midi !== set.items[0].midi - ref[0].midi) out.push(`${tag}: note ${k} moved by a non-octave or unevenly`);
+            if (it.pc !== r0.pc || it.sounding !== r0.sounding) out.push(`${tag}: note ${k}'s pitch to play changed`);
+          });
+          const sig = JSON.stringify(set.sig), sig0 = JSON.stringify(A.buildSequence({member, group, notes: pool, order: 'order', level: 2, count: 8}).sig);
+          if (sig !== sig0) out.push(`${tag}: key signature changed`);
+        }
+        return out;
+      }, clef);
+      r.forEach(t => bad.push(`${m}: ${t}`));
+    }
+    expect(bad.slice(0, 20)).toEqual([]);
+  });
+
+  test('own-clef scales are untouched (a trumpet in the middle layer): exactly buildSequence\'s notes, no shift, no hint line', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => {
+      const A = Arcade, d = A.Blocktave.demo, W = A.Blocktave.world(), x = Math.floor(A.Blocktave.state().player.x), y = A.BlocktaveWorld.top(W, x) + 12;
+      const member = A.memberById('trumpet'), group = A.groupFor('trumpet');
+      return ['Bb', 'Eb', 'F', 'Ab'].map(pool => {
+        const set = d.notesAt(x, y, 8, {order: 'order', pool}), ref = A.buildSequence({member, group, notes: pool, order: 'order', level: 2, count: 8}).items.slice(0, 8);
+        return {same: JSON.stringify(set.items) === JSON.stringify(ref), shifted: set.shifted, other: set.other};
+      });
+    });
+    r.forEach(x => expect(x).toEqual({same: true, shifted: false, other: false}));
+  });
+
+  test('the hint line shows on a moved scale for the first otherClefNames cards, then stops', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const notes = await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = Math.floor(Arcade.Blocktave.state().player.x);
+      return Array.from({length: R.otherClefNames + 3}, () => d.spec('scale', x, R.world.deepY + 10, 5).note); });
+    const n = await page.evaluate(() => window.BT_RULES.otherClefNames);
+    expect(notes.slice(0, n).every(t => t === 'Bass clef! Play it where it sits on your instrument.')).toBe(true);
+    expect(notes.slice(n).every(t => t === null)).toBe(true);
+    // the card shows it under the staff
+    await page.evaluate(() => { const g = Arcade.store.gameData('blocktave'); g.otherClef = 0; Arcade.store.saveGameData('blocktave'); });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = Math.floor(Arcade.Blocktave.state().player.x); d.openSpec(d.spec('scale', x, R.world.deepY + 10, 5), x + 1, 40); });
+    await expect(page.locator('.bt-card .bt-cnote')).toHaveText('Bass clef! Play it where it sits on your instrument.');
+  });
+
+  test('playing: INSTRUMENT holds the right notes (pitch class) through a moved bass-clef scale for trumpet; TOUCH answers by name', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = Math.floor(Arcade.Blocktave.state().player.x), y = R.world.deepY + 10;
+      const sp = d.spec('scale', x, y, 5); window.__sp = sp; d.openSpec(sp, x + 1, 40); });
+    expect(await page.evaluate(() => window.__sp.shifted && window.__sp.clef)).toBe('bass');
+    for (let k = 0; k < 5; k++) {
+      await page.keyboard.down(' '); await page.waitForTimeout(550); await page.keyboard.up(' '); await page.waitForTimeout(250);
+    }
+    await waitCardGone(page);
+    expect(await page.evaluate(() => Arcade.Blocktave.state().card)).toBeFalsy();
+    // TOUCH
+    await enter(page, {mode: 'touch'});
+    const ok = await page.evaluate(() => new Promise(res => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = Math.floor(Arcade.Blocktave.state().player.x);
+      const sp = d.spec('scale', x, R.world.deepY + 10, 8); Arcade.BlocktaveCard.open(Object.assign({}, sp, {mode: 'touch', at: {x: 300, y: 300}, onDone: r => res(r.ok)})); Arcade.BlocktaveCard.current.answer(); }));
+    expect(ok).toBe(true);
+  });
+
+  for (const [name, vp] of [['phone portrait', {width: 390, height: 844}], ['iPad', {width: 820, height: 1180}], ['Chromebook', {width: 1366, height: 768}]]) {
+    test(`nothing is cut off: every note head and ledger line inside the card, even 6 ledger lines out (${name})`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      const check = () => page.evaluate(() => {
+        const card = document.querySelector('.bt-card'), cr = card.getBoundingClientRect(), out = [];
+        card.querySelectorAll('.bt-staff svg').forEach(svg => svg.querySelectorAll('ellipse.head, g[id^=btn] line, g[id^=btn] text.head').forEach(e => {
+          const r = e.getBoundingClientRect();
+          if (r.top < cr.top - .5 || r.bottom > cr.bottom + .5 || r.left < cr.left - .5 || r.right > cr.right + .5) out.push(`${e.tagName} outside the card`);
+          // heads and ledger lines inside the staff box itself (an accidental's text box is its font's whole em box, so it's checked against the card only)
+          const sr = svg.getBoundingClientRect();
+          if (e.tagName !== 'text' && (r.top < sr.top - .5 || r.bottom > sr.bottom + .5)) out.push(`${e.tagName} outside its staff box`);
+        }));
+        if (cr.top < -.5 || cr.bottom > innerHeight + .5) out.push('the card leaves the screen');
+        return out;
+      });
+      // the real bug: a trumpet's scale vein in the Bass Depths
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES, x = Math.floor(Arcade.Blocktave.state().player.x); d.openSpec(d.spec('scale', x, R.world.deepY + 10, 8), x + 1, 40); });
+      expect(await check()).toEqual([]);
+      await page.evaluate(() => Arcade.BlocktaveCard.close());
+      // a deliberately extreme card: notes 6 ledger lines above and below a treble staff (the box must grow, not clip)
+      const hb = await page.evaluate(() => {
+        const mk = (letter, oct, acc = 0) => { const n = {letter, oct, acc}; return {n, show: n, label: letter, midi: 0, sounding: 0, pc: 0}; };
+        const items = [mk('C', 7, 1), mk('A', 6), mk('D', 3, -1), mk('C', 3)];
+        Arcade.BlocktaveCard.open({kind: 'notes', mode: 'touch', items, clef: 'treble', sig: null, at: {x: 300, y: 400}});
+        const svg = document.querySelector('.bt-card .bt-staff svg'); return svg.viewBox.baseVal.height;
+      });
+      expect(hb, 'the box grew beyond the usual staff').toBeGreaterThan(200);
+      expect(await check()).toEqual([]);
+    });
+  }
+});
+
 test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
   /** a room at the very bottom (bedrock below), the player in it; the courage clocks shortened (grace, drain) */
   const bottom = async (page, {grace = 1.2, drain = 2, dy = 0} = {}) => {
