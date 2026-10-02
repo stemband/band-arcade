@@ -566,10 +566,17 @@ body.lb-open{overflow:hidden}
 .slook,.slook-front{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
 /* THE FRONT LAYER (.slook-front, right after .room / after the copy's .slook): the props marked {front: true}, standing ON
    the floor, so its lines and the fog never cross them. Same z-index as .room but later in the page, so it paints above
-   the floor and below every sign, card, bar, panel and toast (all in the normal flow or above 0). In a zone / the FULL
-   ARCADE (2D and 3D) it hides and the backdrop's copies (.sl-fb) show, so nothing ever covers a cabinet or QUICK JUMP. */
-body:not(.v-zone)>.slook .sl-fb,.slook.sl-in .sl-fb{display:none}
-body.v-zone>.slook-front{display:none}
+   the floor and below every sign, card, bar, panel and toast (all in the normal flow or above 0).
+   In a zone / the FULL ARCADE (2D and 3D) the floor is part of the 3D canvas (or the 2D aisle), so the layer rises to
+   z-index 1: over the canvas and the floor, under the arrows (10), the top bar (20) and every panel. There each prop
+   with its own size (.sl-pl) is moved to a free spot by season-look.js placeFront() (clear of the cabinets, START,
+   QUICK JUMP, the arrows, the lights, the info panel), or hidden (.sl-hide) when none is free; the strips across the
+   whole screen (.sl-p without .sl-pl) show the backdrop's copy (.sl-fb) instead, behind the floor and the cabinets. */
+body:not(.v-zone)>.slook .sl-fb,.slook.sl-in .sl-fb,body.v-zone>.slook .sl-fb.sl-pl{display:none}
+body.v-zone>.slook-front{z-index:1}
+body.v-zone>.slook-front .sl-p:not(.sl-pl){display:none}
+.slook-front .sl-pl{transform-origin:50% 100%}
+.slook-front .sl-hide{visibility:hidden}
 html[data-slook] .room{background:none}
 html[data-slook] body{background:transparent}           /* the root keeps the color: the backdrop (z-index -1) paints above it */
 html[data-slook] .press-start,html[data-slook] .sp-view{background:var(--deep)}
@@ -629,8 +636,7 @@ html.slook-still .sl-mbat{display:none}
 .sl-hall .hr{fill:none;stroke:color-mix(in srgb,var(--amber-ink) 45%,var(--deep));stroke-width:1.6}
 .sl-hall .hw{fill:color-mix(in srgb,var(--amber) 75%,transparent);opacity:.7;animation:sl-win 6s ease-in-out infinite}
 .sl-hall .w0{fill:color-mix(in srgb,var(--amber) 45%,transparent)}
-.sl-hall .w1{animation-delay:-1.5s}.sl-hall .w2{animation-delay:-3s}.sl-hall .w3{animation-delay:-4.5s}
-.sl-hall .hc{fill:none;stroke:color-mix(in srgb,var(--amber) 80%,transparent);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7;animation:sl-win 6s ease-in-out -2.2s infinite}
+.sl-hall .w1{animation-delay:-1.5s}.sl-hall .w2{animation-delay:-3s}.sl-hall .w3{animation-delay:-4.5s}.sl-hall .w4{animation-delay:-2.2s}
 .sl-hall .hp{fill:none;stroke:color-mix(in srgb,var(--purple-ink) 55%,var(--deep));stroke-width:3.5;stroke-linecap:round}
 .sl-hall{--sl-hall:color-mix(in srgb,var(--purple-ink) 30%,var(--deep))}
 .sl-hall::after{content:"";position:absolute;left:-8%;right:-8%;top:calc(100% - 1px);height:30vh;clip-path:polygon(6.9% 0,93.1% 0,100% 100%,0 100%);

@@ -248,25 +248,51 @@ test('spooky: the jack-o\'-lanterns stand in the FRONT layer, over the floor\'s 
   watch.check();
 });
 
-test('spooky: in a zone and the FULL ARCADE (2D and 3D) the front layer hides; its props go back behind the cabinets', async ({page}) => {
-  test.setTimeout(300000);                                         // every size × every view
+test('spooky: in a zone and the FULL ARCADE (3D and 2D) the jack-o\'-lanterns stay in front, in free spots: never under or over a cabinet or control', async ({page}) => {
+  test.setTimeout(400000);                                         // every size × every view
   const watch = await prepare(page, {store: device('trumpet')});
-  await page.setViewportSize({width: 1180, height: 820});
-  for (const hash of ['#zone=note-reading', '#full-arcade']) {
-    for (const kind of ['2d', '3d']) {
-      await page.goto(floor(`${SPOOKY}${kind === "2d" ? "&flat" : ""}${hash}`));
-      await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
-      const r = await page.evaluate(() => {
-        const front = document.querySelector('body > .slook-front');
-        const shown = [...document.querySelectorAll('.slook-front .sl-p, body > .slook .sl-p')].filter(e => e.getClientRects().length && e.closest('body > .slook-front, body > .slook'));
-        const cabs = [...document.querySelectorAll('.aisle, #jumpStrip:not([hidden])')].map(e => e.getBoundingClientRect());
-        const overlap = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-        return {frontShown: getComputedStyle(front).display !== 'none', backPumpkins: [...document.querySelectorAll('body > .slook .sl-pk')].filter(e => getComputedStyle(e).display !== 'none').length,
-          frontOverCabinet: shown.filter(e => e.closest('.slook-front')).some(e => cabs.some(c => overlap(e.getBoundingClientRect(), c)))};
-      });
-      expect([hash, kind, r]).toEqual([hash, kind, {frontShown: false, backPumpkins: 3, frontOverCabinet: false}]);
+  const seen = new Set();
+  for (const [name, w, h] of SIZES) {
+    await page.setViewportSize({width: w, height: h});
+    for (const hash of ['#zone=note-reading', '#full-arcade']) {
+      for (const flat of [false, true]) {
+        await page.goto(floor(`${SPOOKY}${flat ? '&flat' : ''}${hash}`));
+        await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+        await page.waitForTimeout(1200);                           // the 3D cabinets in place, then placeFront()
+        await page.evaluate(() => Arcade.SeasonLook.placeFront());
+        const at = `${name} ${hash} ${flat ? '2D' : 'default'}`;
+        const r = await page.evaluate(() => {
+          const s = document.createElement('style');
+          s.textContent = '.slook-front,.slook-front *{pointer-events:auto!important}';
+          document.head.append(s);
+          const box = e => e.getBoundingClientRect();
+          const shown = e => e.getClientRects().length && e.checkVisibility({visibilityProperty: true, opacityProperty: true});
+          const controls = [...document.querySelectorAll('#jumpStrip, .nav, .start3d, #zoneView .slot[data-d="0"] .cab-start, .prize3d, .prize2d')]
+            .filter(e => !e.hidden && shown(e)).map(e => [e.className || e.id, box(e)]).concat(Arcade.Arcade.cabinets().map(b => ['cabinet', b]));
+          const over = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          const out = {kind: Arcade.Arcade.state().kind, frontShown: getComputedStyle(document.querySelector('body > .slook-front')).display !== 'none', pumpkins: []};
+          document.querySelectorAll('body > .slook-front .sl-pk').forEach(pk => {
+            const b = box(pk), x = b.left + b.width / 2, y = b.top + b.height * .62;
+            const visible = shown(pk) && b.width > 10 && b.top >= 0 && b.bottom <= innerHeight + 1;
+            const top = document.elementFromPoint(x, y);
+            out.pumpkins.push({visible, onTop: !!(top && top.closest('.sl-pk') === pk), overlaps: visible ? controls.filter(([, c]) => over(b, c)).map(([n]) => n) : []});
+          });
+          s.remove();
+          return out;
+        });
+        seen.add(r.kind);
+        expect(r.frontShown, at).toBe(true);
+        const vis = r.pumpkins.filter(p => p.visible);
+        expect(vis.length, `${at}: pumpkins shown`).toBeGreaterThanOrEqual(2);
+        for (const p of vis) expect([at, p.onTop, p.overlaps]).toEqual([at, true, []]);
+      }
     }
   }
+  expect([...seen].sort()).toEqual(['2d', '3d']);                   // both views were checked
+  // the lobby is unchanged: the pumpkins at home
+  await page.goto(floor(SPOOKY));
+  await settle(page);
+  expect(await page.evaluate(() => [...document.querySelectorAll('body > .slook-front .sl-pk')].map(e => e.style.transform + (e.classList.contains('sl-hide') ? 'hidden' : '')))).toEqual(['', '', '']);
   watch.check();
 });
 
@@ -375,11 +401,12 @@ test('spooky: the candle glow and the hall\'s windows breathe slowly (no flicker
   await page.waitForFunction(() => document.querySelector('body > .slook-front .pkg'));
   const r = await page.evaluate(() => {
     const anims = sel => [...document.querySelectorAll(sel)].flatMap(e => e.getAnimations()).map(a => ({name: a.animationName, d: a.effect.getTiming().duration, delay: a.effect.getTiming().delay}));
-    return {glow: anims('body > .slook-front .pkg'), face: anims('body > .slook-front .pf'), win: anims('body > .slook .sl-hall .hw, body > .slook .sl-hall .hc')};
+    return {glow: anims('body > .slook-front .pkg'), face: anims('body > .slook-front .pf'), win: anims('body > .slook .sl-hall .hw'), clef: document.querySelectorAll('.sl-hall .hc').length};
   });
   expect(r.glow.map(a => a.name)).toEqual(['sl-candle', 'sl-candle', 'sl-candle']);
   expect(new Set(r.glow.map(a => a.delay)).size).toBe(3);                        // each pumpkin its own phase
   for (const a of r.glow.concat(r.face)) { expect(a.d).toBeGreaterThanOrEqual(4000); expect(a.d).toBeLessThanOrEqual(5000); }
+  expect(r.clef).toBe(0);                                          // no treble-clef window: five plain arched ones
   expect(r.win.length).toBe(5);
   for (const a of r.win) expect([a.name, a.d]).toEqual(['sl-win', 6000]);
   expect(new Set(r.win.map(a => a.delay)).size).toBeGreaterThan(3);             // staggered
@@ -420,9 +447,10 @@ test('spooky: PRESS START and Choose Your Instrument have their own copy (with t
   if (GALLERY) {
     for (const [name, w, h] of SIZES) {
       await page.setViewportSize({width: w, height: h});
-      for (const [hash, kind] of [['', 'lobby'], ['#zone=note-reading', 'zone']]) {
+      for (const [hash, kind] of [['', 'lobby'], ['#zone=note-reading', 'zone'], ['#full-arcade', 'full-3d'], ['&flat#full-arcade', 'full-2d']]) {
         await page.goto(floor(SPOOKY + hash));
         if (hash) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+        if (hash) { await page.waitForTimeout(1200); await page.evaluate(() => Arcade.SeasonLook.placeFront()); }
         await settle(page);
         await page.waitForTimeout(800);
         await shot(`${name}-${kind}`);

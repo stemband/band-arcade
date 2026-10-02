@@ -6,7 +6,8 @@
      behind the 3D cabinets too), and a copy of it inside PRESS START and Choose Your Instrument (both cover the page).
      Each one has a FRONT layer beside it (`.slook-front`, after `.room`): the props that stand ON the floor (a prop's
      {front: true}: jack-o'-lanterns, gourds, drums…) so the floor's lines never cross them; still under every sign,
-     card and bar. In a zone / the FULL ARCADE the front layer hides and those props show in the backdrop instead.
+     card and bar. In a zone / the FULL ARCADE it rises over the 3D canvas / 2D floor and its props are placed in free
+     spots, clear of every cabinet and control (placeFront()).
      Everything is CSS gradients + small inline SVGs (no pictures to download), colors are theme tokens (arcade.css
      "SEASONAL LOOKS"), the middle of the screen stays dark (.sl-dim) so every text on top keeps its contrast, and the
      props sit at the edges. A few things drift slowly (bats, snow, hearts, notes, petals, leaves; the spotlights sway):
@@ -15,7 +16,7 @@
    ADD A LOOK: an entry in LOOKS below ({props: [[svg, css position/size, class, {front: true}?]], fx: particle kind, n, palette}) +
    its colors in arcade.css (html[data-slook="<id>"] …), then use its id as an event's or a season's `look`.
      Arcade.SeasonLook.apply()   draw what today wants (seasons.js' switch fires 'arcade:seasonlook', which calls it)
-     Arcade.SeasonLook.state()   tests: {look, id, kind, on, still, hosts, fronts}; .place() / .batPass() run those now */
+     Arcade.SeasonLook.state()   tests: {look, id, kind, on, still, hosts, fronts}; .place() / .placeFront() / .batPass() run those now */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -27,8 +28,8 @@ window.Arcade = window.Arcade || {};
     pumpkin: '<b class="pks"></b><svg viewBox="0 0 52 46"><path class="st" d="M26 11V3l6-2"/><ellipse class="pk" cx="26" cy="28" rx="24" ry="17"/><path class="pr" d="M18 12Q12 28 18 45M34 12Q40 28 34 45M26 11V45"/></svg>' +
       '<b class="pkg"></b><svg viewBox="0 0 52 46"><path class="pf" d="M13 24l5-5 5 5ZM29 24l5-5 5 5ZM15 32q11 8 22 0l-3 3-3-2-3 3-3-2-3 3-3-2Z"/></svg>',
     /* THE HAUNTED BAND HALL (spooky): a cute little concert hall on a hilltop, a silhouette backlit by the moon. A crooked
-       bell tower with an eighth-note weathervane, a bandshell arch over the front, arched windows glowing amber, one window
-       shaped like a treble clef, a crooked path down the hill. (The hill's foot fades into the fog: .sl-hall::after.) */
+       bell tower with an eighth-note weathervane, a bandshell arch over the front, arched windows glowing amber (one high in
+       the gable), a crooked path down the hill. (The hill's foot fades into the fog: .sl-hall::after.) */
     bandhall: '<svg viewBox="0 0 200 176"><g class="hs">' +
       '<path d="M0 176Q18 156 66 148Q100 141 134 148Q182 156 200 176Z"/>' +                 // the hilltop
       '<g transform="rotate(-6 100 66)"><path d="M99.2 32V15H100.8V32Z"/><path d="M90 66V46H110V66Z"/><path d="M86 47L100 30L114 47Z"/>' +   // the crooked bell tower
@@ -39,7 +40,7 @@ window.Arcade = window.Arcade || {};
       '<path class="hw w0" d="M90 150V132A10 10 0 0 1 110 132V150Z"/>' +                              // the stage inside, softly lit
       '<path class="hw w1" d="M46 124V110A6 6 0 0 1 58 110V124Z"/><path class="hw w2" d="M142 124V110A6 6 0 0 1 154 110V124Z"/>' +
       '<path class="hw w3" d="M96.5 60V53.5A3.5 3.5 0 0 1 103.5 53.5V60Z" transform="rotate(-6 100 66)"/>' + // the bell's window
-      '<path class="hc" transform="translate(100 92) scale(.85) translate(-100 -92)" d="M101 89C97 90 95 87 97.5 85.5C100 84.5 101.5 87 100 88M100 88L102 66C102.5 62 98 62 98.5 66C99 71 106 74 105 80C104 84 98 85 96.5 81C95.5 78 99 75 102 77"/>' +  // the treble-clef window
+      '<path class="hw w4" d="M95 89V78A5 5 0 0 1 105 78V89Z"/>' +                                    // the gable's window
       '<path class="hp" d="M100 151Q94 156 99 160T93 168Q90 172 96 176"/></svg>',
     bat: '<svg viewBox="0 0 40 20"><path class="bt" d="M20 6c2 0 3 2 3 4 3-4 9-7 17-6-4 2-5 6-4 9-3-2-6-1-8 2-2-2-5-3-8-2-3-1-6 0-8 2-2-3-5-4-8-2 1-3 0-7-4-9 8-1 14 2 17 6 0-2 1-4 3-4Z"/></svg>',
     fog: '<svg viewBox="0 0 400 60" preserveAspectRatio="none"><path class="fg" d="M0 40Q50 18 100 36T200 34T300 38T400 32V60H0Z"/></svg>',
@@ -158,13 +159,17 @@ window.Arcade = window.Arcade || {};
   const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
   /* one layer of a look's scene. 'back' = the sky, the props, the drifting bits and the middle's dimming (behind the
      room's floor); 'front' = only the props marked {front: true} (things standing ON the floor: in front of its lines).
-     The back layer keeps a copy of each front prop (.sl-fb), shown only in a zone / the FULL ARCADE, where the front
-     layer is hidden so nothing can ever cover a cabinet or the QUICK JUMP strip. */
+     In a zone / the FULL ARCADE the front layer rises above the 3D canvas and the 2D floor, and each front prop with its
+     own size (.sl-pl: pumpkins, gourds, drums…) is PLACED in a free spot by placeFront() below; the strips across the
+     whole screen (snow hills, grass, boardwalk, footlights) can't dodge anything, so there they show the backdrop's
+     copy instead (.sl-fb), behind the floor and the cabinets. */
   function sceneHTML(id, layer) {
     const L = LOOKS[id];
     if (!L) return '';
     const front = layer === 'front';
     const props = L.props.filter(p => front ? p[3] && p[3].front : true).map(([pic, pos, cls, opt]) => {
+      // a front prop with its own size (not a strip across the screen) can be PLACED in a carousel view: .sl-pl
+      if (opt && opt.front && !/left:0;right:0/.test(pos)) cls += ' sl-pl';
       if (!front && opt && opt.front) cls += ' sl-fb';
       if (STRIP[pic]) { const [svg, n, c] = STRIP[pic]; return `<div class="sl-p ${cls}" style="${pos}">${Array.from({length: n}, () => `<span class="${c}">${svg}</span>`).join('')}</div>`; }
       if (pic === 'moonbat') return `<i class="sl-p ${cls}" style="${pos}"><i class="mb"><i class="mby">${SVG.bat}</i></i></i>`;
@@ -217,7 +222,7 @@ window.Arcade = window.Arcade || {};
         HOSTS().forEach(([p, cls, after]) => host(p, cls, after).forEach((h, i) => { h.dataset.look = id; h.innerHTML = sceneHTML(id, i ? 'front' : 'back'); }));
       } else { delete root.dataset.slook; document.querySelectorAll('.slook,.slook-front').forEach(h => h.remove()); }
       if (A.Floor3D && A.Floor3D.look) A.Floor3D.look();
-      watch(); place(); batLater();
+      watch(); place(); placeSoon(); batLater();
     }
     // the lobby's signs get their small touch (snow on top…) only with the look on
     if (A.SeasonLobby && A.SeasonLobby.render && document.getElementById('lobby') && !document.getElementById('lobby').hidden) A.SeasonLobby.render();
@@ -268,14 +273,75 @@ window.Arcade = window.Arcade || {};
       if (f) f.style.setProperty('--sl-top', Math.round(Math.min(top, H * .55)) + 'px');
     });
   }
-  let placeT = 0, mo = null;
-  const placeSoon = () => { clearTimeout(placeT); placeT = setTimeout(place, 120); };
+  /* ---------- THE FRONT PROPS IN A CAROUSEL VIEW (a zone, the FULL ARCADE; 2D and 3D) ----------
+     There the front layer sits above the floor (the 3D canvas, the 2D floor) but must never cover a control or a
+     cabinet. Each placeable prop (.sl-pl) goes to the nearest free spot to its home corner, along the bottom (it may
+     step in from the corner and up over the floor), at full size if it fits, else as small as 60 %; with no free spot
+     at that screen size, just that one hides (.sl-hide). Obstacles: the cabinets (Arcade.Arcade.cabinets(): 3D
+     projected, 2D the visible slots), START, the Prize Counter, the arrows, the lights, the zone tags, QUICK JUMP, the
+     info panel's words and hi-score, the top bar, and the props already placed. Measured on a view change, a resize
+     or rotation and a scroll (debounced), never every frame. */
+  const MARGIN = 6, SCALES = [1, .9, .8, .7, .6];
+  function obstacles() {
+    const out = [], add = b => { if (b && b.right - b.left > 1 && b.bottom - b.top > 1) out.push(b); };
+    const shown = e => e.getClientRects().length && (!e.checkVisibility || e.checkVisibility({visibilityProperty: true, opacityProperty: true}));
+    if (A.Arcade && A.Arcade.cabinets) A.Arcade.cabinets().forEach(add);
+    const fbar = document.getElementById('fbar');
+    if (fbar) add(fbar.getBoundingClientRect());
+    const zv = document.getElementById('zoneView');
+    if (!zv) return out;
+    zv.querySelectorAll('.nav, .start3d, .prize3d, .prize2d, .cab-start, #lights > *, #aisleFlags > *, #jumpStrip, #hiscore')
+      .forEach(e => { if (!e.hidden && shown(e)) add(e.getBoundingClientRect()); });
+    const r = document.createRange(), w = document.createTreeWalker(zv.querySelector('.info') || zv, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (!n.nodeValue.trim() || !n.parentElement || !shown(n.parentElement)) continue;
+      r.selectNodeContents(n); [...r.getClientRects()].forEach(add);
+    }
+    return out;
+  }
+  const hits = (b, list) => list.some(o => b.left < o.right + MARGIN && o.left - MARGIN < b.right && b.top < o.bottom + MARGIN && o.top - MARGIN < b.bottom);
+  function placeFront() {
+    const f = document.querySelector('body > .slook-front');
+    if (!f) return;
+    const items = [...f.querySelectorAll('.sl-pl')];
+    items.forEach(e => { e.style.transform = ''; e.classList.remove('sl-hide'); });
+    if (!document.body.classList.contains('v-zone') || document.body.classList.contains('in-select')) return;
+    const W = innerWidth, H = innerHeight, obs = obstacles(), placed = [], step = 6;
+    items.forEach(e => {
+      const h0 = e.getBoundingClientRect(), cx0 = h0.left + h0.width / 2, b0 = h0.bottom, dir = cx0 < W / 2 ? 1 : -1;
+      let best = null;
+      for (const s of SCALES) {
+        const w = h0.width * s, h = h0.height * s;
+        let bd = Infinity;
+        for (let dy = 0; dy <= H * .45 && dy < bd; dy += step) {
+          for (let dx = 0; dx <= W * .42; dx += step) {
+            const d = Math.hypot(dx, dy);
+            if (d >= bd) break;
+            const cx = cx0 + dir * dx, b = Math.min(H, b0 - dy), box = {left: cx - w / 2, right: cx + w / 2, top: b - h, bottom: b};
+            if (box.left < 0 || box.right > W || box.top < 0 || hits(box, obs) || hits(box, placed)) continue;
+            bd = d; best = {cx, b, s, box};
+            break;
+          }
+        }
+        if (best) break;
+      }
+      if (!best) { e.classList.add('sl-hide'); return; }
+      placed.push(best.box);
+      e.style.transform = `translate(${(best.cx - cx0).toFixed(1)}px,${(best.b - b0).toFixed(1)}px) scale(${best.s})`;
+    });
+  }
+
+  let placeT = 0, placeT2 = 0, mo = null;
+  const placeAll = () => { place(); placeFront(); };
+  // once soon, and once more after the 3D cabinets have had a moment to take their places
+  const placeSoon = () => { clearTimeout(placeT); clearTimeout(placeT2); placeT = setTimeout(placeAll, 120); placeT2 = setTimeout(placeFront, 700); };
   function watch() {
     if (mo || !cur || typeof MutationObserver === 'undefined') return;
     // a view change (the body's v-* / in-select classes, a [hidden] view) or new content (the lobby's cards, the banner)
     mo = new MutationObserver(list => { if (list.some(m => !(m.target.closest && m.target.closest('.slook,.slook-front')))) placeSoon(); });
     mo.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden']});
     addEventListener('resize', placeSoon);
+    addEventListener('scroll', placeSoon, {passive: true});
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeSoon);
   }
 
@@ -306,7 +372,7 @@ window.Arcade = window.Arcade || {};
       hosts: [...document.querySelectorAll('.slook')].map(h => h.parentElement.id || h.parentElement.tagName.toLowerCase()),
       fronts: [...document.querySelectorAll('.slook-front')].map(h => h.parentElement.id || h.parentElement.tagName.toLowerCase())};
   }
-  A.SeasonLook = {apply, palette, state, LOOKS: Object.keys(LOOKS), sceneHTML, place, batPass, front: id => (LOOKS[id] ? LOOKS[id].props : []).filter(p => p[3] && p[3].front).map(p => p[2])};
+  A.SeasonLook = {apply, palette, state, LOOKS: Object.keys(LOOKS), sceneHTML, place, placeFront, batPass, front: id => (LOOKS[id] ? LOOKS[id].props : []).filter(p => p[3] && p[3].front).map(p => p[2])};
 
   addEventListener('arcade:seasonlook', apply);
   if (A.reducedMotion && A.reducedMotion.addEventListener) A.reducedMotion.addEventListener('change', () => document.documentElement.classList.toggle('slook-still', still()));

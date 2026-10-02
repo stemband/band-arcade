@@ -659,5 +659,12 @@
     A.params = new URLSearchParams(location.search);
     if (A.LeaderboardScreen && !pressStart()) setTimeout(() => A.LeaderboardScreen.open(), 0);
   }
-  A.Arcade = {state: () => ({playingAs: playingAsShown, view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind})};
+  A.Arcade = {state: () => ({playingAs: playingAsShown, view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind}),
+    /** the cabinets' screen boxes in a zone / the FULL ARCADE (3D: projected by arcade3d.js; 2D: the visible slots),
+        [] elsewhere: season-look.js keeps the seasonal floor props off them */
+    cabinets() {
+      if (current !== 'zone' || !view) return [];
+      if (view.boxes) return view.boxes();
+      return [...aisle.querySelectorAll('.slot')].filter(el => +getComputedStyle(el).opacity > .02).map(el => el.getBoundingClientRect());
+    }};
 })(window.Arcade);
