@@ -1,7 +1,7 @@
 # Band Arcade's AUTOMATIC TESTS: on every pull request (and every push to main), the whole arcade is opened in
 # Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how; docs/engine/testing.md the rules).
 #
-#   1. QUICK CHECK (Chromium, ~3 min): the smoke test (every page, every game's level starts), the docs checks and the
+#   1. QUICK CHECK (Chromium, 2 shards side by side, ~3 min): the smoke test (every page, every game's level starts), the docs checks and the
 #      core tests tagged @quick. A red ✗ here = something basic broke; the full run doesn't even start.
 #   2. FULL (after QUICK CHECK passes): everything else in Chromium (2 shards) and the whole suite in WebKit (3 shards),
 #      side by side on 5 machines (Playwright's --shard), plus Blocktave's and Showtime Malfunction's frame-rate
@@ -36,9 +36,13 @@ env:
 
 jobs:
   quick:
-    name: quick check
+    name: quick check (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]        # two machines side by side: the answer in ~3 minutes
     defaults:
       run:
         working-directory: tests
@@ -62,7 +66,7 @@ jobs:
           if [ "${{ steps.browser-cache.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium
           else npx playwright install --with-deps chromium; fi
       - name: Run the @quick tests (smoke, every game starts, docs, the core tests)
-        run: npx playwright test --project=chromium --grep @quick
+        run: npx playwright test --project=chromium --grep @quick --shard=${{ matrix.shard }}
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: quick-results.json
       - name: Summary and time budget
@@ -72,9 +76,24 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: blob-report-quick
+          name: blob-report-quick-${{ strategy.job-index }}
           path: tests/blob-report
           retention-days: 1
+
+  quick-check:
+    # the one QUICK CHECK result (a stable name for branch protection, however QUICK is split)
+    name: quick check
+    if: ${{ always() }}
+    needs: quick
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Both quick shards passed
+        env:
+          QUICK: ${{ needs.quick.result }}
+        run: |
+          echo "quick: $QUICK"
+          [ "$QUICK" = success ]
 
   full:
     name: tests (${{ matrix.browser }} ${{ matrix.shard }})

@@ -390,15 +390,14 @@ test.describe('Blocktave: creatures', () => {
       for (let dx = 1; dx <= 7; dx++) for (let dy = -3; dy <= -1; dy++) d.put(x + dx, y + dy, 'air');   // open air between it and you
       d.time(window.BT_RULES.dayS + 30); d.spawn('wisp', 6); });
     await expect.poll(() => page.evaluate(() => Arcade.Pitch.listening())).toBe(true);
-    const pos = () => page.evaluate(() => { const c = Arcade.Blocktave.state().creatures[0]; return [c.x, c.y]; });
-    await page.evaluate(() => Arcade.Pitch.suppress(1800));
-    await page.waitForTimeout(100);
-    const a = await pos();
-    await page.waitForTimeout(1000);
-    const b = await pos();
+    // all at once on the game's test clock (demo.step): a 1.8 s mute, 1 s in it, then 1.5 s more (past its end), so a
+    // busy runner's real time between the steps never matters
+    const {a, b, c} = await page.evaluate(() => {
+      const d = Arcade.Blocktave.demo, pos = () => { const c = Arcade.Blocktave.state().creatures[0]; return [c.x, c.y]; };
+      Arcade.Pitch.suppress(1800);
+      d.step(.1); const a = pos(); d.step(1); const b = pos(); d.step(1.5); return {a, b, c: pos()};
+    });
     expect(b, 'frozen during the mute').toEqual(a);
-    await page.waitForTimeout(1500);
-    const c = await pos();
     expect(Math.hypot(c[0] - a[0], c[1] - a[1]), 'moving again after it').toBeGreaterThan(.1);
   });
 
@@ -711,7 +710,8 @@ test.describe('Blocktave: pickup labels and tooltips', () => {
     expect((await st(page)).labels.length, 'at most 4 on screen').toBe(4);
     await expect.poll(() => page.evaluate(() => window.__said.join(' | ')), {message: 'the words for screen readers', timeout: 5000}).toContain('+2 Maple');
     expect(await page.evaluate(() => window.__said.length), 'gathered, never one per item').toBeLessThanOrEqual(3);
-    await expect.poll(async () => (await st(page)).labels.length, {message: 'they fade out after pickupLabelMs'}).toBe(0);
+    // (they are dropped when a frame is drawn: a busy WebKit runner can go seconds without one)
+    await expect.poll(async () => (await st(page)).labels.length, {message: 'they fade out after pickupLabelMs', timeout: 15_000}).toBe(0);
   });
 
   test('INSTRUMENT mode\'s bonus is in the label\'s number: "+2 Tone Shard"', async ({page}) => {
@@ -1717,10 +1717,11 @@ test.describe('Blocktave: other-clef scales sit on the staff (moved by octaves),
 test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
   /** a room at the very bottom (bedrock below), the player in it; the courage clocks shortened (grace, drain) */
   const bottom = async (page, {grace = 1.2, drain = 2, dy = 0} = {}) => {
-    // the test clock: shorter numbers, taken up by the meter (out of the zone) before stepping down
+    // shorter numbers, taken up by the meter (out of the zone) before stepping down. Every wait in these tests runs the
+    // game's own test clock (demo.step: settleFor / gameUntil), so a slow runner's frames never stretch the courage clock
     await page.evaluate(({grace, drain}) => { const K = window.BT_RULES.courage, W = Arcade.Blocktave.world(); K.graceS = grace; K.drainS = drain; K.refillS = .4;
       Arcade.Blocktave.demo.tp(W.spawn.x, W.spawn.y); }, {grace, drain});
-    await page.waitForTimeout(150);
+    await settleFor(page, 150);
     return page.evaluate(({dy}) => {
     const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), s = Arcade.Blocktave.state();
     const x = Math.floor(s.player.x), floorY = W.h - 3;                // the last row above the 2 World Floor rows
@@ -1738,16 +1739,16 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(60); d.give('maple', 3); d.give('cork', 2); d.give('pearl', 1); });
     const before = await st(page);
     const spot = await bottom(page);
-    await page.waitForTimeout(400);
+    await settleFor(page, 400);
     let c = await cg(page);
     expect(c.inZone).toBe(true);
     expect(c.value).toBe(1);
     expect(c.shown, 'hidden during the grace').toBe(false);
-    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.shown && c.value < .9; }, null, {timeout: 5000});
+    await gameUntil(page, () => { const c = Arcade.Blocktave.state().courage; return c.shown && c.value < .9; });
     await expect(page.locator('#courage')).toHaveClass(/on/);
     await expect(page.locator('#courageName')).toHaveText('Courage');
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.warned, null, {timeout: 5000});
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter, null, {timeout: 8000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.warned);
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter);
     const s = await st(page);
     const top = await page.evaluate(x => Arcade.BlocktaveWorld.top(Arcade.Blocktave.world(), x), Math.floor(s.player.x));
     expect(Math.abs(s.player.y - top), 'standing on the ground').toBeLessThan(.01);
@@ -1764,26 +1765,26 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
   test('building keeps you brave: placing a block, crafting, and (with resetOnMine) a passed card refill it and restart the grace', async ({page}) => {
     await enter(page, {mode: 'touch'});
     const spot = await bottom(page, {grace: .6, drain: 6});
-    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.value < .85; }, null, {timeout: 6000});
+    await gameUntil(page, () => { const c = Arcade.Blocktave.state().courage; return c.value < .85; });
     // placing a block
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.place(x + 2, y, 'planks'), spot);
     let c = await cg(page);
     expect(c.graceLeft, "the grace started over").toBeGreaterThan(.3);
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value === 1);
     // crafting (MAKE IT)
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value < .85);
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('maple', 1); d.craft('maple-planks'); d.answer(); });
     await waitCardGone(page);
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value === 1);
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; if (Arcade.Blocktave.state().panel) document.getElementById('craftClose').click(); });
     // a passed challenge card (mining a music block) with resetOnMine
     const mine = () => page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.put(x + 1, y, 'toneOre'); d.mine(x + 1, y); d.answer(); }, spot);
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value < .85);
     await mine(); await waitCardGone(page);
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value === 1, null, {timeout: 3000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value === 1);
     // resetOnMine off: the card doesn't count
     await page.evaluate(() => { window.BT_RULES.courage.resetOnMine = false; });
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .85, null, {timeout: 6000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value < .85);
     const v0 = (await cg(page)).value;
     await mine(); await waitCardGone(page);
     expect((await cg(page)).value, 'kept draining').toBeLessThan(v0);
@@ -1797,7 +1798,7 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.put(x + 1, y, 'toneOre'); d.mine(x + 1, y); }, spot);
     expect(await cardOpen(page)).toBe(true);
     const g0 = (await cg(page)).graceLeft;
-    await page.waitForTimeout(2000);
+    await settleFor(page, 2000);
     let c = await cg(page);
     expect(c.jitters).toBe(0);
     expect(c.graceLeft).toBe(g0);
@@ -1805,7 +1806,7 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     // the pause menu longer than drainS
     await page.keyboard.press('Escape');
     await expect(page.locator('#uiPause')).toBeVisible();
-    await page.waitForTimeout(2000);
+    await settleFor(page, 2000);
     expect((await cg(page)).jitters).toBe(0);
     await page.locator('#uiPause [data-act=resume], #uiPause button').first().click();
     await expect(page.locator('#uiPause')).toBeHidden();
@@ -1813,7 +1814,7 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await page.evaluate(() => { window.BT_RULES.courage.graceS = .2; });
     const up = await page.evaluate(({x}) => { const d = Arcade.Blocktave.demo, W = Arcade.Blocktave.world(), K = window.BT_RULES.courage, y = W.h - 2 - K.floorRows - 2;
       for (let xx = x - 3; xx <= x + 3; xx++) { d.put(xx, y + 1, 'slate'); d.put(xx, y, 'air'); d.put(xx, y - 1, 'air'); } d.tp(x, y); return y; }, spot);
-    await page.waitForTimeout(1500);
+    await settleFor(page, 1500);
     c = await cg(page);
     expect(c.inZone).toBe(false);
     expect(c.value).toBe(1);
@@ -1821,9 +1822,9 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     expect(c.jitters).toBe(0);
     // into the zone, draining, then out: it refills and hides
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.tp(x, y), spot);
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.value < .8, null, {timeout: 4000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.value < .8);
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.tp(x, y), {x: spot.x, y: up});
-    await page.waitForFunction(() => { const c = Arcade.Blocktave.state().courage; return c.value === 1 && !c.shown; }, null, {timeout: 4000});
+    await gameUntil(page, () => { const c = Arcade.Blocktave.state().courage; return c.value === 1 && !c.shown; });
     expect(up).toBeGreaterThan(0);
   });
 
@@ -1835,7 +1836,7 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await into(page);
     expect((await st(page)).endless).toBe(true);
     await bottom(page, {grace: .3, drain: .8});
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter, null, {timeout: 8000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.jitters === 1 && !Arcade.Blocktave.state().courage.jitter);
     const s = await st(page);
     expect(s.endless).toBe(true);
     expect(s.screen).toBe('world');
@@ -1848,8 +1849,8 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
       await enter(page, {mode: 'touch'});
       const spot = await bottom(page, {grace: .2, drain: 6});
       await page.evaluate(() => { window.BT_RULES.courage.warnAt = .99; });
-      await page.waitForFunction(() => Arcade.Blocktave.state().courage.shown, null, {timeout: 4000});
-      await page.waitForTimeout(600);
+      await gameUntil(page, () => Arcade.Blocktave.state().courage.shown);
+      await settleFor(page, 600);
       const r = await page.evaluate(() => {
         const box = e => e.getBoundingClientRect(), m = box(document.getElementById('courage')), h = box(document.getElementById('hearts'));
         const hot = document.querySelector('.bt-bottom') ? box(document.querySelector('.bt-bottom')) : null;
@@ -1872,10 +1873,10 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await enter(page, {mode: 'touch'});
     await bottom(page, {grace: .2, drain: 1.5});
     await page.evaluate(() => { window.BT_RULES.courage.warnAt = .99; });
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.warned, null, {timeout: 4000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.warned);
     const anim = await page.evaluate(() => getComputedStyle(document.getElementById('courage')).animationName);
     expect(anim).toBe('none');
-    await page.waitForFunction(() => Arcade.Blocktave.state().courage.jitter, null, {timeout: 6000});
+    await gameUntil(page, () => Arcade.Blocktave.state().courage.jitter);
     const sw = await page.evaluate(() => { const j = document.getElementById('btJitter'); return {still: j.classList.contains('still'), before: getComputedStyle(j, '::before').display}; });
     expect(sw).toEqual({still: true, before: 'none'});
   });
@@ -1973,6 +1974,10 @@ const track = (page, ms, setup) => page.evaluate(({ms, setup}) => {
 }, {ms, setup});
 /** let the game run `ms` of game time at once (the test clock): a jump lands, a fall ends */
 const settleFor = (page, ms) => page.evaluate(ms => Arcade.Blocktave.demo.step(ms / 1000), ms);
+/** run the game's test clock a tenth of a second at a time until cond() (run in the page) is true (at most 20 s of
+    real time: things that end on a real timer, a card closing, still get there) */
+const gameUntil = (page, cond) => page.waitForFunction(src => { Arcade.Blocktave.demo.step(.1); return (0, eval)('(' + src + ')')(); },
+  cond.toString(), {timeout: 20_000, polling: 100});
 
 test.describe('Blocktave: Chapter 6: the six new ores in the world', () => {
   test('over 20 seeds each ore forms only by its rules; Rumble Ore and Piccolo Quartz reachable (≥ 6); the averages', async ({page}) => {
