@@ -124,6 +124,13 @@
   </div>
 </div>
 
+<!-- THE SONAR TUNING FORK's ore picker (tap its hotbar slot twice) -->
+<div class="bt-panel bt-sonar" id="sonar" hidden role="dialog" aria-labelledby="sonarTitle">
+  <div class="bt-panel-h"><h2 class="ui-title" id="sonarTitle">Sonar Tuning Fork</h2><button type="button" class="btn btn-secondary btn-small" id="sonarClose">Close</button></div>
+  <p class="bt-small">Pick an ore you've seen: an arrow points to the nearest one.</p>
+  <div class="bt-grid" id="sonarGrid"></div>
+</div>
+
 <!-- A COMPOSER BLOCK's note / A CONDUCTOR'S PODIUM's melody -->
 <div class="bt-panel" id="composer" hidden role="dialog" aria-labelledby="compTitle">
   <div class="bt-panel-h"><h2 class="ui-title" id="compTitle">Composer Block</h2><button type="button" class="btn btn-secondary btn-small" id="compDone">Done</button></div>
@@ -175,6 +182,8 @@
 <script src="../shared/onsets.js"></script>
 <script src="../shared/calibration.js"></script>
 <script src="../music-highway/backing.js"></script>
+<script src="../shared/tones.js"></script>
+<script src="../note-checker/metronome.js"></script>
 <script src="../shared/rhythm-judge.js"></script>
 <script src="../shared/pad-arrange.js"></script>
 <script src="../rhythm-dojo/levels.js"></script>

@@ -552,6 +552,9 @@ the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched
 | `bt-night` | `bt-night.m4a` or `bt-night.mp3` | Night falls (a soft, low whoosh; never scary). | 0.5–2 s |
 | `bt-dawn` | `bt-dawn.m4a` or `bt-dawn.mp3` | Morning comes: you survived the night! | 0.5–2 s |
 | `bt-respawn` | `bt-respawn.m4a` or `bt-respawn.mp3` | Out of breath: you wake up at your cot (your bag waits where you fell). | 0.5–1.5 s |
+| `bt-boing` | `bt-boing.m4a` or `bt-boing.mp3` | A Timpani Trampoline bounces you up: a soft drum-head boing. **during play: under 0.5 s, unpitched; never while a challenge card listens** | under 0.4 s |
+| `bt-warp` | `bt-warp.m4a` or `bt-warp.mp3` | D.S. al Coda signs: you travel from one sign to its partner (a soft whoosh in and out). **during play: under 0.5 s, unpitched** | under 0.5 s |
+| `bt-gear` | `bt-gear.m4a` or `bt-gear.mp3` | A gear item (Tuba Boots, Piccolo Glider, Sonar Tuning Fork, Accelerando Boots) goes into your hotbar: two quick bright clicks. **during play: under 0.5 s, unpitched** | under 0.3 s |
 
 ### Arcade Quest
 
