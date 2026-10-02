@@ -1520,6 +1520,30 @@ window.AVATAR_PARTS = {};
     behind: {front: {y: 4, x: 1, rows: TROPHY}, side: {y: 4, x: 3, rows: TROPHY}, back: {y: 12, x: 11, rows: TROPHY}},
     bustBehind: {y: 14, x: 0, rows: TROPHY}});
 
+  /* ---------- ARCADE QUEST'S GHOST WHISPERER: every ghost in Ghost Notes Manor helped, befriended or faded (the 20
+     placed ghosts; arcade-quest/engine/save.js achievement 'manor-all'). Earned, never sold. ---------- */
+  const QUEST_ALL = {game: 'arcade-quest', achievement: 'manor-all', text: 'Help every ghost in Ghost Notes Manor (Arcade Quest)'};
+  // the ghost inside the lantern: 5 wide (28–32), 5 tall, eyes J; its top row in each of the 4 frames (a 1 px bob)
+  const LANTERN_GHOST = ['.LLL.', 'LLLLL', 'LJLJL', 'LLLLL', 'L.L.L'], LANTERN_BOB = [13, 12, 13, 14];
+  P.HANDS.push(
+    // a small lantern held up (a silver ring and cap, a dark frame around glowing glass, a foot on the hand), a tiny
+    // friendly ghost glowing inside; the ghost bobs 1 px and the glass's glow breathes between two close purples
+    // (never a flash). I glass, J frame + the ghost's eyes, L the ghost, M the silver ring and cap.
+    {id: 'spiritlantern', name: 'Spirit Lantern', unlock: QUEST_ALL, pal: {I: 'q-purple', J: 'q-purple-d', L: 'white-hi', M: 'q-silver'},
+     anim: {pal: {I: ['q-purple', 'purple', 'purple', 'q-purple']}},
+     bust(a, f = 0) {
+       a.px(30, 7, 'M').px(29, 8, 'M').px(31, 8, 'M');                                                               // the ring
+       rowsAt(a, 9, [[29, 31], [28, 32]], 'M');                                                                       // the cap
+       rowsAt(a, 11, [[26, 34]], 'J');                                                                                // the top rim
+       rowsAt(a, 12, [[27, 33], [27, 33], [27, 33], [27, 33], [27, 33], [27, 33], [27, 33]], 'I');                     // the glowing glass
+       for (let y = 12; y <= 18; y++) a.px(26, y, 'J').px(34, y, 'J');                                                // the frame
+       rowsAt(a, 19, [[26, 34], [28, 32]], 'J');                                                                      // the bottom rim, the foot
+       const y0 = LANTERN_BOB[f % 4];
+       LANTERN_GHOST.forEach((row, dy) => [...row].forEach((ch, dx) => { if (ch !== '.') a.px(28 + dx, y0 + dy, ch); }));
+     }});
+  // pale purple-white with a faint wisp curling up from its corner (CSS: .av-plate-ghostwhisperer in theme.css)
+  P.PLATES.push({id: 'ghostwhisperer', name: 'Ghost Whisperer name plate', unlock: QUEST_ALL});
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:

@@ -182,6 +182,8 @@ window.Arcade = window.Arcade || {};
        extras: [{label, onClick, id}],       more buttons before BACK TO LEVELS (Music Highway's SONG MENU…)
        info: () => [[label, value]…],        numbers to show (score so far…)
        note: 'text',                         a line under the title
+       detail: () => 'html',                 a small block under the numbers (Arcade Quest's GHOST LOG); the game
+                                             escapes its own text
        confirmLeave: () => true,             leaving would lose progress (the default while a level runs)
        leaveTitle, leaveText, leaveYes,      that question's words ('Leave this level?', '…won't be saved.', 'Leave')
        confirmRestart: () => false,          ask before RESTART too (restartText)
@@ -208,7 +210,7 @@ window.Arcade = window.Arcade || {};
     const btn = el(`<button type="button" class="ui-pause-btn${opt.place ? ' ui-inline' : ''} ${esc(opt.theme || '')}" id="uiPauseBtn" aria-label="Pause" hidden>${PAUSE_SVG}<span class="ui-pb-t">Pause</span></button>`);
     (opt.place || document.body).appendChild(btn);
     const ov = el(`<div class="overlay ui-ov ui-pause ${esc(opt.theme || '')}" id="uiPause" hidden><div class="panel ui-panel" role="dialog" aria-modal="true" aria-labelledby="uiPauseT">
-      <h2 class="ui-title" id="uiPauseT">Paused</h2><p class="ui-pnote"></p><div class="ui-tiles ui-pinfo"></div><div class="ui-menu"></div></div></div>`);
+      <h2 class="ui-title" id="uiPauseT">Paused</h2><p class="ui-pnote"></p><div class="ui-tiles ui-pinfo"></div><div class="ui-pdetail"></div><div class="ui-menu"></div></div></div>`);
     document.body.appendChild(ov);
     const S = {o: opt, active: false, paused: false, micWas: null, blurT: 0};
     function micOff() {
@@ -238,6 +240,8 @@ window.Arcade = window.Arcade || {};
       const pi = ov.querySelector('.ui-pinfo');
       pi.innerHTML = info.map(([k, v]) => `<div class="ui-tile"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('');
       pi.hidden = !info.length;
+      const det = o.detail ? o.detail() || '' : '', pd = ov.querySelector('.ui-pdetail');
+      pd.innerHTML = det; pd.hidden = !det;
       const items = [['resume', 'Resume', 'btn-primary']];
       if (o.onRestart) items.push(['restart', o.restartLabel, 'btn-secondary']);
       items.push(['settings', 'Settings', 'btn-secondary']);

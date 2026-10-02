@@ -39,9 +39,22 @@
   /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10 (its
      door or the Hidden Passage),
      the Ghost Conductor 20 */
+  /** EVERY MANOR GHOST: '<room>:<ghost key>' for every ghost placed on a map, outside the Practice Hall (the Test Arena
+      has no map). Read from the maps each time, so a ghost added to a map later counts by itself. -> [{key, room}] */
+  function ghosts() {
+    const maps = window.QUEST_MAPS || {}, out = [];
+    Object.keys(maps).forEach(id => { if (!maps[id].practice) (maps[id].enemies || []).forEach(e => out.push({key: id + ':' + e.key, room: id})); });
+    return out;
+  }
+  /** THE GHOST LOG (the pause menu): {helped, total, rooms: the rooms that still have someone (map names, in map
+      order), all: every ghost helped}. The same list as progress() and the 'manor-all' achievement. */
+  function ghostLog(s = Q.save.get()) {
+    const list = ghosts(), done = s.done || {}, left = list.filter(g => !done[g.key]), maps = window.QUEST_MAPS || {};
+    const rooms = [...new Set(left.map(g => g.room))].map(id => maps[id].name || id);
+    return {helped: list.length - left.length, total: list.length, rooms, all: list.length > 0 && !left.length};
+  }
   function progress(s) {
-    const maps = window.QUEST_MAPS || {}, keys = [];
-    Object.keys(maps).forEach(id => { if (!maps[id].practice) (maps[id].enemies || []).forEach(e => keys.push(id + ':' + e.key)); });
+    const keys = ghosts().map(g => g.key);
     const helped = keys.filter(k => (s.done || {})[k]).length, f = s.flags || {};
     const pct = Math.round((keys.length ? helped / keys.length * 50 : 0) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen || f.atticPassage ? 10 : 0) + (f.ep1Done ? 20 : 0));
     return {pct: Math.min(100, pct), friends: (s.roster || []).length};
@@ -123,19 +136,33 @@
       const done = Object.values(f.done);
       s.battles = {won: done.length, befriended: done.filter(k => k === 'befriend').length || friends.length, faded: done.filter(k => k === 'fade').length};
       data().save = s; write();
+      Q.save.achievements();                       // the ghosts helped came back: so do the achievements ('manor-all')
       return {ok: true};
     },
     progress,
-    /** skins (shared/skins.js rules {game: 'arcade-quest', achievement}): 'ep1' = Episode 1 finished (Pixel Hero);
-        'manor-friends' = every kind of manor ghost befriended (the Baton). Saved in gameData('arcade-quest').achievements. */
+    ghosts,
+    ghostLog,
+    /** ACHIEVEMENTS (shared/skins.js and avatar-parts.js rules {game: 'arcade-quest', achievement}), saved in
+        gameData('arcade-quest').achievements, never taken back:
+          'ep1'           Episode 1 finished (the Pixel Hero skin, the Pixel-hero cape, the Microphone, Pixel Castle)
+          'manor-friends' every KIND of manor ghost befriended (the Baton skin accessory)
+          'manor-all'     EVERY manor ghost helped, befriended or faded (ghostLog().all: the 20 placed ghosts, the
+                          Practice Hall and the Test Arena never count): the Spirit Lantern + the Ghost Whisperer plate
+        Checked after every battle (world.js afterBattle), on load (main.js: Q.save.recheck) and after a save code
+        (fromCode); a Backup Code reloads the page, so the load check covers it. */
     achievements() {
       const s = Q.save.get(), d = data(), a = d.achievements || (d.achievements = {});
       if ((s.flags || {}).ep1Done) a.ep1 = true;
       const manor = (window.QUEST_ENEMIES || []).filter(e => e.area === 'manor').map(e => e.id);
       if (manor.length && manor.every(id => (s.roster || []).includes(id))) a['manor-friends'] = true;
+      if (ghostLog(s).all) a['manor-all'] = true;
       write();
       return a;
     },
+    /** is an achievement already earned (before checking again)? */
+    has: id => !!(data().achievements || {})[id],
+    /** on load: re-check the achievements when there is a save (never makes one: a device that never played stays so) */
+    recheck() { const d = data(); if (d.save && d.save.v) Q.save.achievements(); },
     xpToNext: level => 20 + (level - 1) * 15,
     /** YOUR POWER at a level: about 14 % more every level (LV 1 10 · 2 11 · 3 13 · 5 17 · 8 25 · 10 33 · 15 63).
         A PLAY does power × accuracy × (0.55 + 0.45 × speed) (battle.js); your band's companions scale with it too. */

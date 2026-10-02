@@ -387,6 +387,11 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-blossom::before{content:"✿";color:var(--pink-hi);margin-right:4px}
 /* Spooky Season's bonus: candy corn (white tip, amber middle, orange base), soft enough for the name to read on it */
 .av-plate-candycorn{border-color:var(--amber);border-radius:10px 10px 6px 6px;background:linear-gradient(180deg,color-mix(in srgb,var(--white-hi) 30%,transparent) 0 30%,color-mix(in srgb,var(--amber) 36%,transparent) 30% 66%,color-mix(in srgb,var(--av-orange) 50%,transparent) 66%);box-shadow:0 0 0 1px var(--av-orange-d) inset}
+.av-plate-ghostwhisperer{position:relative;border-color:var(--purple-hi);color:var(--white-hi);background:linear-gradient(180deg,color-mix(in srgb,var(--white-hi) 30%,transparent),color-mix(in srgb,var(--purple-hi) 28%,transparent));box-shadow:0 0 6px color-mix(in srgb,var(--purple-hi) 50%,transparent)}
+/* its wisp: a faint curl rising from the top-right corner, drifting slowly (still under reduced motion / Motion off) */
+.av-plate-ghostwhisperer::after{content:"";position:absolute;right:-7px;top:-11px;width:13px;height:13px;border:2px solid transparent;border-top-color:color-mix(in srgb,var(--white-hi) 80%,transparent);border-left-color:color-mix(in srgb,var(--purple-hi) 70%,transparent);border-radius:50%;transform:rotate(20deg);opacity:.7;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){.av-plate-ghostwhisperer::after{animation:av-wisp 7s ease-in-out infinite}}
+@keyframes av-wisp{0%,100%{transform:translateY(0) rotate(20deg);opacity:.55}50%{transform:translateY(-2px) rotate(-10deg);opacity:.85}}
 .av-plate-sunset{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--cyan) 26%,transparent),color-mix(in srgb,var(--amber) 30%,transparent) 55%,color-mix(in srgb,var(--pink) 24%,transparent))}
 [class*="av-plate-belt-"]{border-width:2px 2px 2px 8px;border-color:var(--pb)}
 .av-plate-belt-white{--pb:var(--belt-white)}.av-plate-belt-yellow{--pb:var(--belt-yellow)}.av-plate-belt-orange{--pb:var(--belt-orange)}.av-plate-belt-green{--pb:var(--belt-green)}
@@ -434,6 +439,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .sk-u-badge,.lk-legend-tag,.avc-legend-tag{display:inline-block;padding:1px 8px;border-radius:999px;background:linear-gradient(90deg,var(--bn-gold),var(--bn-diamond));
   color:var(--deep);font:700 11px var(--text);letter-spacing:.08em;text-transform:uppercase}
 .sk-u-foot{margin:8px 0 0!important;font-size:14px}
+.sk-u-lead{margin:0 0 10px!important;font-size:15px;text-align:center;text-wrap:balance;color:var(--purple-hi)}
 .sk-swatch{display:block;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,var(--sk1),transparent 70%)}
 .sk-catchup,.overlay.sk-tall{align-items:start;overflow-y:auto}
 .overlay.sk-tall>.panel{margin:auto}

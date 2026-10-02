@@ -46,6 +46,9 @@ window.QUEST_TEXT = {
   calmChoice:      'Its CALM is full: HARMONIZE to befriend it, or keep playing to defeat it.',
   finaleChoice:    'HARMONIZE to give the orchestra back its sound, or keep playing and {name} fades away. Your choice!',
   shiftHint:       'Something shifted somewhere in the manor…',
+  ghostWhisperer:  'Every ghost in the manor is at peace. You\'re a true Ghost Whisperer!',   // every manor ghost helped (the UNLOCKED! card)
+  ghostLog:        'GHOST LOG',                  // the pause menu: "GHOST LOG: 14 / 20 helped"
+  ghostLogLeft:    'Still wandering: {rooms}',
   listenCalm:      '{name} likes that you listened. CALM goes up!',
 
   itemUsed:        'You used the {item}.',

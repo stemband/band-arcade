@@ -392,6 +392,19 @@ body.q-paused #ui *{animation-play-state:paused!important}          /* the pause
 .ui-ov .ui-newbest{border-radius:0}
 .ui-ov .q-code{margin:6px 0;padding:8px;word-break:normal;overflow-wrap:anywhere;font:700 clamp(16px,3.4vw,24px)/1.2 ui-monospace,Menlo,Consolas,monospace}
 .ui-ov .sk-unlock{margin:10px auto}
+/* the GHOST WHISPERER card over the manor (shared/skins.js catchUp with theme 'q-theme'): the same pixel panel */
+.sk-catchup.q-theme>.panel{background:var(--q-black);border:4px solid var(--q-white);border-radius:0;box-shadow:0 0 0 4px var(--q-black),0 0 0 6px var(--q-grey-d),0 30px 80px rgba(0,0,0,.6);font-family:"GN Quest",var(--text);font-variant-ligatures:none}
+.sk-catchup.q-theme .sk-u-lead{color:var(--q-gold);font-family:"GN Quest",var(--text);font-size:17px}
+.sk-catchup.q-theme>.panel:focus{outline:none}
+.sk-catchup.q-theme .btn{border-radius:0;font-family:"GN Quest",var(--text);font-weight:700}
+/* THE GHOST LOG in the pause menu (engine/talk.js Q.talk.ghostLog) */
+.q-glog{margin:0 auto 12px;max-width:30em;text-align:center;font-family:"GN Quest",var(--text)}
+.ui-ov .panel .q-glog p{margin:2px 0}
+.ui-ov .panel .q-glog-n{font-size:16px;color:var(--q-white)}
+.q-glog-n b{color:var(--q-cursor);font-weight:700}
+.q-glog-ico{width:16px;height:16px;vertical-align:-2px;margin-right:6px;fill:var(--purple-hi)}
+.ui-ov .panel .q-glog-done{color:var(--q-gold);font-weight:700}
+.ui-ov .panel .q-glog-left{font-size:14px;color:var(--purple-hi);text-wrap:balance}
 /* the pause button: the same place and size as everywhere, in pixel dress */
 .ui-pause-btn.q-theme{border-radius:0;border:3px solid var(--q-white);background:var(--q-black);color:var(--q-white);font-family:"GN Quest",var(--display);font-weight:700;
   box-shadow:inset 0 -4px 0 var(--floor-3)}
