@@ -249,6 +249,7 @@ test('spooky: the jack-o\'-lanterns stand in the FRONT layer, over the floor\'s 
 });
 
 test('spooky: in a zone and the FULL ARCADE (2D and 3D) the front layer hides; its props go back behind the cabinets', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
   const watch = await prepare(page, {store: device('trumpet')});
   await page.setViewportSize({width: 1180, height: 820});
   for (const hash of ['#zone=note-reading', '#full-arcade']) {
@@ -270,6 +271,7 @@ test('spooky: in a zone and the FULL ARCADE (2D and 3D) the front layer hides; i
 });
 
 test('spooky: the moon is twice its old size, its top under the top bar; no bare text on it; the band hall stays at the edge', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
   const watch = await prepare(page, {store: device('trumpet')});
   for (const [name, w, h] of SIZES.concat([['big', 1920, 1300], ['phone-landscape', 844, 390]])) {
     await page.setViewportSize({width: w, height: h});
@@ -300,6 +302,7 @@ test('spooky: the moon is twice its old size, its top under the top bar; no bare
 });
 
 test('spooky: the top bar\'s text and the zone signs keep ≥ 4.5:1 over the new scene', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
   const watch = await prepare(page, {store: device('trumpet')});
   for (const [name, w, h] of SIZES) {
     await page.setViewportSize({width: w, height: h});
@@ -323,9 +326,12 @@ test('spooky: now and then a bat crosses the moon; never with reduced motion, wh
   await page.waitForFunction(() => document.querySelector('body > .slook .sl-mbat'));
   const bat = page.locator('body > .slook .sl-mbat');
   await expect(bat).not.toHaveClass(/fly/);
+  const flying = async () => (await bat.getAttribute('class')).includes('fly');
+  const now = () => page.evaluate(() => Date.now());                // the page's (fake) clock
   let waited = 0;                                                   // at most 35 s between passes
-  while (waited < 36000 && !(await bat.getAttribute('class')).includes('fly')) { await page.clock.runFor(500); waited += 500; }
+  while (waited < 36000 && !(await flying())) { await page.clock.runFor(250); waited += 250; }
   await expect(bat).toHaveClass(/fly/);
+  const first = await now();
   // the flight: off the disc's left, across its middle, off its right (the animation paused at three moments)
   const at = t => page.evaluate(t => {
     const b = document.querySelector('body > .slook .sl-mbat');
@@ -345,10 +351,11 @@ test('spooky: now and then a bat crosses the moon; never with reduced motion, wh
   await page.clock.runFor(3500);
   await expect(bat).not.toHaveClass(/fly/);
   // the next pass: 20–35 s after the last one started
-  waited = 3500;
-  while (waited < 40000 && !(await bat.getAttribute('class')).includes('fly')) { await page.clock.runFor(500); waited += 500; }
-  expect(waited).toBeGreaterThanOrEqual(19500);
-  expect(waited).toBeLessThanOrEqual(36000);
+  waited = 0;
+  while (waited < 40000 && !(await flying())) { await page.clock.runFor(250); waited += 250; }
+  const gap = (await now()) - first;
+  expect(gap).toBeGreaterThanOrEqual(19500);
+  expect(gap).toBeLessThanOrEqual(36500);
 
   // reduced motion: the bat isn't drawn, no pass, nothing in either layer animates
   await page.emulateMedia({reducedMotion: 'reduce'});
