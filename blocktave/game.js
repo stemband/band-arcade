@@ -28,8 +28,13 @@
   A.mountTopbar(inst, '', GAME_ID);
   A.Sfx.use('endless');
   $('demoHelp').hidden = !A.DEMO;
-  // the reading instrument: the snare reads nothing (its challenges are rhythms); everyone else reads their own notes
-  const readM = member;
+  /* TOUCH MODE IS THE SAME FOR EVERY MEMBER. drum() = INSTRUMENT mode on the snare: only then are the cards drum
+     performances (counts, rolls, rhythms on the drum). In TOUCH the snare reads the BELLS' notes (treble clef, the bells'
+     range: readM / readG) and taps rhythms like everyone else; everyone else always reads their own notes. */
+  const BELLS = snare ? A.memberById('bells') : null, BELLS_G = snare ? A.groupFor('bells') : null;
+  const drum = () => snare && mode === 'inst';
+  const readM = () => snare ? BELLS : member;              // (the snare's INSTRUMENT cards read nothing: they're counts and rhythms)
+  const readG = () => snare ? BELLS_G : inst;
 
   /* ---------- saved choices: gameData('blocktave') = {mode, ms: {member: {id: date}}, stats: {member: {…}}, found: {recipe: 1}, seen: {…}, controls, otherClef} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
@@ -52,6 +57,9 @@
     if (!all[who]) { all[who] = {}; CHAPTERS.forEach((c, k) => { if (chDone(k)) all[who][k] = 1; }); saveGd(); }
     return all[who];
   }
+  /** CHAPTER 6 (and any later one) shows once Chapter rules.js newChapter has a star (the list, the goals box) */
+  const newChOpen = () => (A.store.level(GAME_ID, who, R.newChapter).stars || 0) >= 1;
+  const shownChapters = () => newChOpen() ? CHAPTERS.length : R.newChapter;
   /** later chapters' milestones already done */
   const bonusDone = () => CHAPTERS.slice(curCh() + 1).reduce((n, c) => n + c.goals.filter(g => msDone(g.id)).length, 0);
   function drawMode() {
@@ -75,10 +83,10 @@
     document.body.classList.remove('bt-playing');
     pause.setActive(false);
     drawMode(); worldLine();
-    $('levelGrid').innerHTML = CHAPTERS.map((ch, i) => {
+    $('levelGrid').innerHTML = CHAPTERS.slice(0, shownChapters()).map((ch, i) => {
       const p = A.store.level(GAME_ID, who, i + 1);
       return `<button class="lvl bt-ch${p.stars >= 3 ? ' cleared' : ''}" data-l="${i + 1}">
-        <span class="n">Chapter ${i + 1}</span>
+        <span class="n">Chapter ${i + 1}${i >= R.newChapter && !seen('ch' + (i + 1)) ? ' <em class="bt-new">NEW!</em>' : ''}</span>
         <span class="t">${esc(ch.name)}</span>
         <span class="foot"><span class="stars">${A.starStr(p.stars || 0)}</span><span>${chDone(i) ? (reached(i) ? 'Complete' : 'Complete · finished early') : `${ch.goals.filter(g => msDone(g.id)).length} of 3`}</span></span>
         <ul class="bt-card-goals">${ch.goals.map(g => `<li class="${msDone(g.id) ? 'ok' : ''}">${msDone(g.id) ? '✓' : '○'} ${esc(g.text)}</li>`).join('')}</ul>
@@ -130,6 +138,7 @@
     A.LevelSelect.played(endless ? 'endless' : ch - 1);
     let w = endless ? null : loadWorld(), grew = null;
     if (w) grew = BW.repair(w, R);                              // an older world: the starter check, once
+    const ores2 = !!(w && w.fromV < 3);                        // an older world: Chapter 6's ores, once (below, out of view)
     if (!w) w = BW.generate(newSeed(), R);
     if (endless) { w.time = R.endless.startS; }
     const P = w.player || {};
@@ -148,7 +157,14 @@
     pause.set({levelsLabel: endless ? 'End this run' : 'Back to chapters', extras: pauseExtras(), note: ''});
     A.Sfx.gameMenuMusic(GAME_ID, false);
     worldMusic(true);
-    sizeCanvas(); drawHot(); drawHud(); drawGoals();
+    sizeCanvas();
+    G.oreSeen = new Uint8Array(B.length); Object.keys(gd().oreSeen || {}).forEach(k => { if (ID[k] != null) G.oreSeen[ID[k]] = 1; });
+    if (ores2) {                                                 // THE ONE-TIME ORE PASS (world.js ores2Pass): never where you can see
+      const p = G.p, vx = VW / S / 2 + 3, vy = VH / S + 3;
+      G.ores2 = BW.ores2Pass(w, R, {x0: Math.floor(p.x - vx), x1: Math.ceil(p.x + vx), y0: Math.floor(p.y - vy), y1: Math.ceil(p.y + vy)});
+      w.dirty = true;
+    }
+    drawHot(); drawHud(); drawGoals();
     listenSync();
     G.running = true; G.last = performance.now();
     G.raf = requestAnimationFrame(frame);
@@ -156,8 +172,10 @@
     if (!endless) { if (!w.player || w.dirty) saveWorld(); }
     if (grew) setTimeout(() => A.UI.toast('New trees have grown near your camp!', {ms: 3200}), 600);
     if (!endless) setTimeout(checkReached, 900);
+    if (!endless) setTimeout(checkNewChapter, 1200);
     if (!seen('welcome')) firstCard('welcome', 'Welcome to Blocktave!', endless ? 'Survive as many nights as you can with one life! Build a shelter, light Stage Lamps and calm the creatures with your music.'
-      : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
+      : mode === 'inst' ? 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.'
+        : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: tap the note names or the rhythm to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
   }
   function stopWorld() {
     if (!G) return;
@@ -205,12 +223,16 @@
     const inv = G.p.inv;
     inv[id] = Math.min(MAX_ONE(), (inv[id] || 0) + n);
     const it = ITEMS[id];
-    if (it && (it.kind !== 'tool' || it.hotbar) && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) G.p.hot[k] = id; }
+    if (it && (it.kind !== 'tool' || it.hotbar) && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) { G.p.hot[k] = id; gearIn(id); } }
     if (id === 'torch' && !seen('torch') && G.running) setTimeout(() => { if (G) firstCard('torch', 'A Neon Torch!', 'Keep it in your hotbar and it lights the dark around you, at night and underground.'); }, 500);
     findRecipes();
     if (label) pickupLabel(id, n);
     if (!quiet) drawHot();
   }
+  /** GEAR (recipes.js kind 'gear': boots, the glider, the sonar fork) works while it's ANYWHERE in the hotbar */
+  const gearOn = id => !!(G && G.p.hot.includes(id) && (G.p.inv[id] || 0) > 0);
+  /** a gear item just went into the hotbar: its little sound */
+  function gearIn(id) { if (ITEMS[id] && ITEMS[id].kind === 'gear' && G && G.running) A.Sfx.event('bt-gear'); }
   /** room in your bag for this item? (rules.js invSlots different items, tools aside; one item up to its stack limit) */
   function canHold(id) {
     const inv = G.p.inv;
@@ -452,6 +474,24 @@
       case 'tuner': rr('bt-slate-2', 2, 6, 12, 10, 1.5); fill('bt-screen', 3.5, 7.5, 9, 4); line('bt-rhythm', .8, [[8, 11], [9.5, 8]]); break;
       case 'composer': rr('bt-composer', 0, 0, 16, 16, 2); oval('bt-tone', 7, 10, 2.8, 2); line('bt-tone', .8, [[9.4, 9.5], [9.4, 3]]); break;
       case 'podium': fill('bt-plank', 3, 7, 10, 9); fill('bt-plank-2', 2, 6, 12, 1.5); line('bt-brass', .8, [[9, 6], [13, 1.5]]); break;
+      // --- Chapter 6 (original art) ---
+      case 'rumbleOre': stone('bt-rumble-2', 'bt-slate-2'); line('bt-rumble', 1.2, [[0, 5], [2, 3], [4, 7], [6, 3], [8, 7], [10, 3], [12, 7], [14, 3], [16, 5]]); line('bt-rumble', .8, [[1, 12], [4, 10], [7, 13], [10, 10], [13, 13], [15, 11]]); break;
+      case 'piccoloQuartz': fill('bt-treble-2', 0, 0, 16, 16); g.fillStyle = col('bt-treble');
+        [[3, 14, 3, 8], [8, 14, 2.6, 11], [12.5, 14, 2.4, 7]].forEach(([x, y, w2, h]) => { g.beginPath(); g.moveTo((x - w2) * u, y * u); g.lineTo(x * u, (y - h) * u); g.lineTo((x + w2) * u, y * u); g.fill(); });
+        line('text-hi', .5, [[8, 3.5], [8, 9]]); bevel(); break;
+      case 'intervalGeode': stone(); dot('bt-geode', 8, 8, 6); dot('bt-rumble-2', 8, 8, 4.4); oval('bt-geode-2', 6.2, 9.5, 1.5, 1.1); oval('bt-geode-2', 9.8, 6.5, 1.5, 1.1); line('bt-geode', .8, [[8, 2], [8, 14]]); break;
+      case 'keyQuartz': stone(); g.fillStyle = col('bt-key'); g.beginPath(); g.moveTo(8 * u, 1.5 * u); g.lineTo(13.5 * u, 8 * u); g.lineTo(8 * u, 14.5 * u); g.lineTo(2.5 * u, 8 * u); g.fill();
+        line('bt-key-2', .7, [[6.5, 4.5], [6.5, 11]]); g.strokeStyle = col('bt-key-2'); g.lineWidth = .7 * u; g.beginPath(); g.ellipse(7.9 * u, 9.6 * u, 1.5 * u, 1.3 * u, 0, -1.6, 1.6); g.stroke(); break;
+      case 'dynamicCoral': fill('bt-sand', 0, 12, 16, 4); line('bt-coral-2', 1, [[3, 13], [3, 8], [1.5, 5]]); line('bt-coral', 1.4, [[8, 13], [8, 6], [5.5, 3]]); line('bt-coral', 1.4, [[8, 8], [11, 4]]); line('bt-coral', 1.8, [[13, 13], [13, 7], [14.5, 2.5]]); break;
+      case 'tempoAmber': rr('bt-amber', 0, 0, 16, 16, 2.5); rr('bt-amber-2', 3, 2.5, 10, 11, 1.5); g.globalAlpha = .45; fill('bt-amber', 4, 3.5, 8, 9); g.globalAlpha = 1;
+        g.fillStyle = col('bt-plank'); g.beginPath(); g.moveTo(5 * u, 12 * u); g.lineTo(7 * u, 4 * u); g.lineTo(9 * u, 4 * u); g.lineTo(11 * u, 12 * u); g.fill(); line('bt-brass', .7, [[8, 11], [10, 5]]); bevel(); break;
+      case 'trampoline': fill('bt-tramp-rim', 0, 5, 16, 3); fill('bt-tramp', 1, 3.5, 14, 2); line('bt-plank-2', 1.2, [[2.5, 8], [1.5, 16]]); line('bt-plank-2', 1.2, [[13.5, 8], [14.5, 16]]); line('bt-tramp-rim', .8, [[4, 8], [8, 14], [12, 8]]); break;
+      case 'segno': line('bt-slate-2', 1, [[8, 16], [8, 10]]); rr('bt-sign', 2, 1, 12, 10, 1.5); line('bt-ink', 1, [[5.2, 9], [10.8, 3]]); g.fillStyle = col('bt-ink');
+        g.font = `${8 * u}px "GN Music","Noto Music",serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('S', 8 * u, 6.3 * u); dot('bt-ink', 5.2, 4.5, .8); dot('bt-ink', 10.8, 7.5, .8); break;
+      case 'coda': line('bt-slate-2', 1, [[8, 16], [8, 10]]); rr('bt-sign', 2, 1, 12, 10, 1.5); g.strokeStyle = col('bt-ink'); g.lineWidth = u; g.beginPath(); g.ellipse(8 * u, 6 * u, 2.6 * u, 3.4 * u, 0, 0, 7); g.stroke();
+        line('bt-ink', .9, [[8, 1.6], [8, 10.4]]); line('bt-ink', .9, [[3.6, 6], [12.4, 6]]); break;
+      case 'organ': fill('bt-organ', 1, 8, 14, 8); [3, 6, 9, 12].forEach((x, k) => rr('bt-organ-pipe', x, 1 + (k % 2) * 2, 2, 8 - (k % 2) * 2, .8)); fill('bt-stage-edge', 1, 10, 14, .8); break;
+      case 'corallamp': line('bt-coral', 1, [[8, 16], [8, 10]]); line('bt-coral', .9, [[8, 12], [5, 9]]); line('bt-coral', .9, [[8, 12], [11, 9]]); dot('bt-coral-glow', 8, 6.5, 3.6); dot('bt-coral-2', 7, 5.5, 1); break;
       case 'bench': fill('bt-plank', 0, 6, 16, 2.5); line('bt-plank-2', 1, [[2, 8.5], [2, 16]]); line('bt-plank-2', 1, [[14, 8.5], [14, 16]]); oval('bt-cork', 7, 3.6, 3.2, 2.2, 0); oval('bt-cork', 10.2, 4, 2, 1.6, 0); line('bt-slate-2', .6, [[7, 3.6], [10.5, 4]]); break;
       default: fill('bt-dirt', 0, 0, 16, 16);
     }
@@ -493,6 +533,19 @@
           g.globalAlpha = .28; dot('bt-torch', 10.2, 5.8, 4.6); g.globalAlpha = 1;
           line('bt-torch-handle', 2.4, [[4, 14], [8, 10]]); line('bt-plank', .8, [[4.4, 13.6], [7.6, 10.4]]);
           line('bt-torch', 2.6, [[8.4, 9.6], [12, 3.6]]); line('bt-torch-core', 1, [[8.6, 9.3], [11.8, 4]]); break;
+        // --- Chapter 6 (original icons) ---
+        case 'basscrystal': gem('bt-rumble', 6); line('bt-rumble-2', .7, [[4.5, 9], [6.5, 7], [8.5, 10], [11, 7]]); break;
+        case 'treblecrystal': gem('bt-treble', 4); line('bt-treble-2', .6, [[8, 3.5], [8, 12.5]]); break;
+        case 'harmony': dot('bt-geode', 8, 8, 5.5); dot('bt-rumble-2', 8, 8, 4); dot('bt-geode-2', 6.3, 9.4, 1.3); dot('bt-geode-2', 9.7, 6.6, 1.3); break;
+        case 'keyshard': g.fillStyle = col('bt-key'); g.beginPath(); g.moveTo(8 * u, 2 * u); g.lineTo(13 * u, 8 * u); g.lineTo(8 * u, 14 * u); g.lineTo(3 * u, 8 * u); g.fill(); line('bt-key-2', .7, [[6.6, 5], [6.6, 11]]); dot('bt-key-2', 7.9, 9.7, 1.2); break;
+        case 'coralpearl': dot('bt-coral', 8, 8, 4.8); dot('bt-coral-2', 6.6, 6.6, 1.4); break;
+        case 'amberbeat': gem('bt-amber', 6); line('bt-amber-2', .7, [[8, 11], [10, 5]]); break;
+        case 'grandgem': gem('bt-treble', 8); g.globalAlpha = .85; dot('bt-rumble', 8, 9.5, 3); g.globalAlpha = 1; dot('bt-geode-2', 8, 6, 1.2); break;
+        case 'tubaboots': g.fillStyle = col('bt-rumble'); g.fillRect(4 * u, 4 * u, 4 * u, 7 * u); g.fillRect(4 * u, 10 * u, 8 * u, 3 * u); line('bt-brass', 1, [[4, 13.5], [12, 13.5]]); dot('bt-brass', 6, 6, .9); break;
+        case 'glider': g.fillStyle = col('bt-treble'); g.beginPath(); g.moveTo(1.5 * u, 10 * u); g.quadraticCurveTo(8 * u, 2 * u, 14.5 * u, 10 * u); g.lineTo(8 * u, 7.5 * u); g.closePath(); g.fill(); line('bt-treble-2', .6, [[8, 7.5], [8, 12.5]]); break;
+        case 'sonarfork': line('bt-silver', 1.2, [[8, 15], [8, 9]]); line('bt-silver', 1.1, [[5.5, 9], [5.5, 2.5]]); line('bt-silver', 1.1, [[10.5, 9], [10.5, 2.5]]); line('bt-silver', 1.1, [[5.5, 9], [10.5, 9]]);
+          g.globalAlpha = .7; g.strokeStyle = col('bt-mine'); g.lineWidth = .6 * u; [3, 4.6].forEach(r2 => { g.beginPath(); g.arc(8 * u, 4 * u, r2 * u, -2.4, -.7); g.stroke(); }); g.globalAlpha = 1; break;
+        case 'accelboots': g.fillStyle = col('bt-amber'); g.fillRect(6 * u, 4 * u, 4 * u, 7 * u); g.fillRect(6 * u, 10 * u, 7 * u, 3 * u); [[1.5, 6], [2.5, 9], [1.5, 12]].forEach(([x, y]) => line('bt-mine', .7, [[x, y], [x + 3, y]])); break;
         case 'snack': g.fillStyle = col('bt-snack'); g.beginPath(); g.roundRect ? g.roundRect(4 * u, 4 * u, 8 * u, 10 * u, 2 * u) : g.rect(4 * u, 4 * u, 8 * u, 10 * u); g.fill(); line('bt-brass', .8, [[5, 6], [11, 6]]); break;
         default: dot('text-lo', 8, 8, 4);
       }
@@ -518,6 +571,8 @@
     for (let ty = Math.floor(y - h + .001); ty <= Math.floor(y - .001); ty++) for (let tx = Math.floor(x - hw); tx <= Math.floor(x + hw - .001); tx++) if (solid(tx, ty)) return true;
     return false;
   }
+  /** the block(s) right under the feet have this flag (a trampoline's `bounce`) */
+  function standingOn(key) { const y = Math.floor(G.p.y + .01); for (let tx = Math.floor(G.p.x - HW); tx <= Math.floor(G.p.x + HW - .001); tx++) if (blockAt(tx, y)[key]) return true; return false; }
   function inBlock(p, key, h = PH) { for (let ty = Math.floor(p.y - h + .001); ty <= Math.floor(p.y - .001); ty++) for (let tx = Math.floor(p.x - HW); tx <= Math.floor(p.x + HW - .001); tx++) if (blockAt(tx, ty)[key]) return true; return false; }
   /** move a body (x = center, y = feet) with tile collisions; step: climb a 1-block ledge while walking */
   function moveBody(b, dt, hw, h, step) {
@@ -535,16 +590,31 @@
     b.x = Math.max(hw + .01, Math.min(G.w.w - hw - .01, b.x));
     b.groundWas = b.ground;
   }
+  /** the upward speed that reaches h tiles (gravity: rules.js player.gravity) */
+  const launchV = h => Math.sqrt(2 * R.player.gravity * Math.max(0, h));
   function stepPlayer(dt) {
     const p = G.p, P = R.player, k = G.keys;
     const water = inBlock(p, 'fluid'), climb = inBlock(p, 'climb');
-    const sp = P.speed * (water ? P.swim + .25 : 1);
+    // GEAR in the hotbar: Accelerando Boots walk faster, Tuba Boots jump higher (they stack), the Piccolo Glider floats
+    const sp = P.speed * (water ? P.swim + .25 : 1) * (gearOn('accelboots') ? 1 + R.gear.speedPlus : 1);
     const dir = (k.right ? 1 : 0) - (k.left ? 1 : 0);
     p.vx = dir * sp; if (dir) p.face = dir;
+    p.gliding = false;
     if (climb && k.jump) p.vy = -P.speed * .9;
     else if (water) { p.vy = Math.min(p.vy + P.gravity * .3 * dt, 3); if (k.jump) p.vy = -P.speed * .8; }
-    else { p.vy = Math.min(P.maxFall, p.vy + P.gravity * dt); if (k.jump && p.ground) p.vy = -P.jump; }
+    else {
+      p.vy = Math.min(P.maxFall, p.vy + P.gravity * dt);
+      if (k.jump && p.ground) p.vy = gearOn('tubaboots') ? -launchV(P.jump * P.jump / (2 * P.gravity) + R.gear.jumpPlus) : -P.jump;
+      if (k.jump && !p.ground && p.vy > R.gear.glideSpeed && gearOn('glider')) { p.vy = R.gear.glideSpeed; p.gliding = true; }
+    }
+    const fall = p.vy;
     moveBody(p, dt, HW, PH, true);
+    // A TIMPANI TRAMPOLINE: landing on it (from a fall or a jump) launches you trampoline.boost tiles up (+1 holding JUMP)
+    if (p.ground && fall > R.trampoline.minFall && standingOn('bounce')) {
+      p.vy = -launchV(R.trampoline.boost + (k.jump ? R.trampoline.holdBoost : 0)); p.ground = false;
+      p.bounceFrom = p.y; G.fx.bounces = (G.fx.bounces || 0) + 1;
+      if (!(Card.current && A.Pitch.listening())) A.Sfx.event('bt-boing');      // never while a card listens
+    }
     // stay out of the world floor: a body stuck inside a block (a block placed over it) is pushed up
     if (collides(p.x, p.y)) { for (let u = 1; u < 4; u++) if (!collides(p.x, p.y - u)) { p.y -= u; break; } }
     p.walkT = dir ? p.walkT + dt : 0;
@@ -764,6 +834,7 @@
     stepDrops(dt, now);
     stepWay(real, now);
     stepCourage(real, now);
+    stepSonar(now);
     // autosave
     if (!G.endless && performance.now() - G.lastSave > R.autosaveS * 1000) saveWorld();
     if (G.hudT == null || now - G.hudT > 250) { G.hudT = now; drawHud(); Card.follow(); }
@@ -788,7 +859,8 @@
       for (let i = 0; i < cols; i++) {
         const x = x0 + i; if (x < 0 || x >= w.w) continue;
         const v = w.b[y * w.w + x]; if (!v) continue;
-        TILES.draw(ctx, v, ox + i * S, oy + j * S, S);
+        if (v === ID.organ) drawOrganPart(x, y, ox + i * S, oy + j * S); else TILES.draw(ctx, v, ox + i * S, oy + j * S, S);
+        if (ORE_FLAG[v] && !G.oreSeen[v]) seeOre(v);
         if (v === ID.composer) { const m = w.meta[x + ',' + y]; if (m && m.powered) { ctx.fillStyle = col('bt-powered'); ctx.globalAlpha = .35; ctx.fillRect(ox + i * S, oy + j * S, S, S); ctx.globalAlpha = 1; } }
       }
     }
@@ -811,6 +883,7 @@
     ctx.drawImage(lightCv, 0, 0, cols, rows, ox - S / 2, oy - S / 2, cols * S, rows * S);
     drawGlints(x0, y0, ox, oy, lv);
     drawTorchTint(x => (x - camX) * S, y => (y - camY) * S);
+    drawCoralGlow(x => (x - camX) * S, y => (y - camY) * S);
     // after the light, so they're always readable: the note bubbles, the reach and the target
     drawDrops(sx, sy, now);
     drawPoofs(sx, sy, now);
@@ -818,6 +891,7 @@
     drawReach(sx, sy, now);
     drawLabels(sx, sy, now);
     drawWay(sx, sy);
+    drawSonar(sx, sy);
   }
   /** THE NEON TORCH lights while it's in any hotbar slot (rules.js light.torchRadius / torchGlow): drawn only */
   const torchOn = () => !!(G && G.p.hot.includes('torch') && (G.p.inv.torch || 0) > 0);
@@ -854,7 +928,8 @@
     return v;
   }
   /** ORE GLINTS: music blocks keep a faint glow of their color in the dark (still: no twinkle), so they read as "mine me" */
-  const GLINT = {toneOre: 'bt-tone', brassOre: 'bt-brass', scaleVein: 'bt-scale', springVein: 'bt-spring', sustain: 'bt-sustain', rhythmRock: 'bt-rhythm', restCrystal: 'bt-rest'};
+  const GLINT = {toneOre: 'bt-tone', brassOre: 'bt-brass', scaleVein: 'bt-scale', springVein: 'bt-spring', sustain: 'bt-sustain', rhythmRock: 'bt-rhythm', restCrystal: 'bt-rest',
+    rumbleOre: 'bt-rumble', piccoloQuartz: 'bt-treble', intervalGeode: 'bt-geode-2', keyQuartz: 'bt-key', dynamicCoral: 'bt-coral', tempoAmber: 'bt-amber'};
   const GLINT_ID = {}; Object.keys(GLINT).forEach(k => { GLINT_ID[ID[k]] = GLINT[k]; });
   function drawGlints(x0, y0, ox, oy, lv) {
     const w = G.w, a0 = R.light.glint; if (!a0) return;
@@ -893,6 +968,11 @@
       const ic = iconCanvas('torch'), w = S * .7;
       ctx.save(); ctx.translate(x + p.face * S * .32, y - S * 1.05); if (p.face < 0) ctx.scale(-1, 1);
       ctx.drawImage(ic, -w * .25, -w * .75, w, w); ctx.restore();
+    }
+    if (p.gliding) {                                                     // the Piccolo Glider: a small swept wing over the head
+      const u = S / 16, gy = y - S * 2.05;
+      ctx.fillStyle = col('bt-treble'); ctx.beginPath(); ctx.moveTo(x - 9 * u, gy + 2 * u); ctx.quadraticCurveTo(x, gy - 3 * u, x + 9 * u, gy + 2 * u); ctx.lineTo(x, gy); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = col('bt-slate-2'); ctx.lineWidth = Math.max(1, u * .7); ctx.beginPath(); ctx.moveTo(x - 3 * u, gy + 1 * u); ctx.lineTo(x - 2 * u, gy + 6 * u); ctx.moveTo(x + 3 * u, gy + 1 * u); ctx.lineTo(x + 2 * u, gy + 6 * u); ctx.stroke();
     }
     drawSwing(x, y, now);
   }
@@ -964,7 +1044,8 @@
       oc.strokeStyle = col('bt-ink'); oc.lineWidth = 5; oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
       oc.strokeStyle = col(G.build ? 'bt-build' : 'bt-mine'); oc.lineWidth = 3;
       oc.strokeRect(sx(t.x) + 1.5, sy(t.y) + 1.5, S - 3, S - 3);
-      const v = BW.at(G.w, t.x, t.y), name = v ? B[v].name : '';             // the target's name over it
+      const v = BW.at(G.w, t.x, t.y), sm = v && B[v].sign ? G.w.meta[t.x + ',' + t.y] : null;
+      const name = v ? B[v].name + (B[v].sign && !(sm && sm.mate) ? ' (no partner)' : '') : '';   // the target's name over it
       if (name && !G.build) {
         oc.font = '700 13px "GN Text", system-ui, sans-serif'; oc.textAlign = 'center'; oc.textBaseline = 'bottom';
         oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(name, sx(t.x) + S / 2, sy(t.y) - 3);
@@ -1024,23 +1105,27 @@
     return challengeFor(b, x, y);
   }
   function breakBlock(x, y, b, n) {
-    const w = G.w;
+    const w = G.w, m0 = w.meta[x + ',' + y];
     if (b.door) { [y - 1, y, y + 1].forEach(yy => { if (B[BW.at(w, x, yy)].door) BW.put(w, x, yy, ID.air); }); }
-    else BW.put(w, x, y, ID.air);
+    else if (b.key === 'organ') organTiles(x, y).forEach(([ox, oy]) => { BW.put(w, ox, oy, ID.air); delete w.meta[ox + ',' + oy]; });
+    else BW.put(w, x, y, m0 && m0.water ? ID.water : ID.air);
+    if (b.sign && m0 && m0.mate) { const mm = w.meta[m0.mate]; if (mm) mm.mate = null; }   // its partner: "No partner" until a new one
     delete w.meta[x + ',' + y];
     if (b.key === 'locker') { const m = w.lockers && w.lockers[x + ',' + y]; if (m) { Object.entries(m).forEach(([k, c]) => gain(k, c, true)); delete w.lockers[x + ',' + y]; drawHot(); } }
     if (b.drop) dropItem(b.drop, n, x + .5, y + .5);                    // it pops out of the broken block and falls
     chips(x + .5, y + .5, col(CHIP[b.key] || 'bt-dirt-2'));
     A.Sfx.event('bt-break');
     stats().mined++; G.mined++; saveGd();
-    if (b.light || b.key === 'metronome' || b.key === 'tuner' || b.use) scanGear();
+    if (b.light || b.key === 'metronome' || b.key === 'tuner' || b.use || b.key === 'organ') scanGear();
     checkRooms(x, y);
     return true;
   }
   /** a block breaking: a few little chips in its color (rules.js chips; none with reduced motion) */
   const CHIP = {toneOre: 'bt-tone', brassOre: 'bt-brass', scaleVein: 'bt-scale', springVein: 'bt-spring', sustain: 'bt-sustain', rhythmRock: 'bt-rhythm',
     restCrystal: 'bt-rest', moss: 'bt-moss', sand: 'bt-sand', clay: 'bt-clay-2', slate: 'bt-slate-2', leaves: 'bt-leaf-hi', maple: 'bt-maple', cork: 'bt-cork',
-    reed: 'bt-reed', felt: 'bt-felt-2', rawhide: 'bt-rawhide', planks: 'bt-plank', brick: 'bt-brick', glass: 'bt-glass', panel: 'bt-panel-2'};
+    reed: 'bt-reed', felt: 'bt-felt-2', rawhide: 'bt-rawhide', planks: 'bt-plank', brick: 'bt-brick', glass: 'bt-glass', panel: 'bt-panel-2',
+    rumbleOre: 'bt-rumble', piccoloQuartz: 'bt-treble', intervalGeode: 'bt-geode-2', keyQuartz: 'bt-key', dynamicCoral: 'bt-coral', tempoAmber: 'bt-amber',
+    trampoline: 'bt-tramp', organ: 'bt-organ-pipe', corallamp: 'bt-coral'};
   function chips(x, y, c) {
     if (RM.matches) return;
     G.fx.chips = (G.fx.chips || 0) + 1;
@@ -1050,6 +1135,7 @@
   function place(x, y, id) {
     const it = ITEMS[id];
     if (it && it.hotbar && !it.block) { A.UI.toast('Carry it in your hotbar to light the way.', {ms: 2000}); return false; }   // the Neon Torch is carried, never placed
+    if (it && it.kind === 'gear') { A.UI.toast('Keep it in your hotbar: it works from there.', {ms: 2000}); return false; }
     if (!id || !it || !it.block) { A.UI.toast(id ? `${itemName(id)} can't be placed.` : 'Pick something to build from your hotbar.', {ms: 1800}); return false; }
     if (!have(id)) return false;
     const w = G.w, here = B[BW.at(w, x, y)], nb = B[ID[it.block]];
@@ -1057,20 +1143,26 @@
     if (nb.solid && collidesBox(x, y)) { A.UI.toast('You are standing there!', {ms: 1200}); return false; }
     const next = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const v = BW.at(w, x + dx, y + dy); return v !== ID.air && v !== ID.water; });
     if (!next) { A.UI.toast('Build next to another block.', {ms: 1400}); return false; }
+    if (B[ID[it.block]].sign && signCount(it.block) >= R.signs.maxPairs) { A.UI.toast(`Your world has ${R.signs.maxPairs} sign pairs. Break one to build another.`, {ms: 2600}); return false; }
+    if (it.block === 'organ') return placeOrgan(x, y);
     if (it.block === 'door') {                                            // a door is 2 blocks tall
       const up = B[BW.at(w, x, y - 1)];
       if (up.key !== 'air' && up.key !== 'water') { A.UI.toast('A door needs 2 blocks of room.', {ms: 1400}); return false; }
       if (collidesBox(x, y - 1)) return false;
       BW.put(w, x, y - 1, ID.door);
     }
+    const wasWater = here.key === 'water';
     BW.put(w, x, y, ID[it.block]);
     if (it.block === 'composer') w.meta[x + ',' + y] = {pitch: defaultPitch()};
+    if (it.block === 'corallamp' && wasWater) w.meta[x + ',' + y] = {water: 1};   // breaking it lets the water back
+    if (nb.sign) pairSign(x, y, it.block);
     take(id);
     A.Sfx.event('bt-place');
-    if (nb.light) { scanGear(); award('lamp'); }
+    if (nb.light) { scanGear(); if (it.block === 'lamp') award('lamp'); }
+    if (nb.sign && !seen('signs')) firstCard('signs', 'D.S. al Coda!', 'D.S. al Coda = go back to the sign, then jump to the coda. Place a Segno Sign and a Coda Sign anywhere in your world, then tap one in BUILD mode to travel to the other!');
     if (['metronome', 'tuner', 'bench'].includes(it.block)) scanGear();
     if (it.block === 'bench') award('bench');
-    if (it.block === 'composer' && !seen('composer')) firstCard('composer', 'The composing corner!', 'Composer Blocks are yours to write music with. Put up to 8 in a row, tap each one in BUILD mode to pick its note, then put a Conductor\'s Podium at the end. Play your melody at the podium to power the row: it lights up and opens a door next to it!');
+    if (it.block === 'composer' && !seen('composer')) firstCard('composer', 'The composing corner!', `Composer Blocks are yours to write music with. Put up to 8 in a row, tap each one in BUILD mode to pick its note, then put a Conductor's Podium at the end. ${mode === 'inst' ? 'Play' : 'Tap'} your melody at the podium to power the row: it lights up and opens a door next to it!`);
     checkRooms(x, y);
     brave();
     return true;
@@ -1095,6 +1187,8 @@
     if (b.key === 'composer') return openComposer(x, y);
     if (b.key === 'podium') return openPodium(x, y);
     if (b.key === 'bench') return openCraft();
+    if (b.sign) return travel(x, y);
+    if (b.key === 'organ') return playOrgan(x, y);
     return false;
   }
   function eat() {
@@ -1113,59 +1207,139 @@
       chromatic), the clef by depth (Treble Peaks = treble, Bass Depths = bass, else the student's own) */
   const POOLS = {surface: 'first5', middle: null, peaks: 'chrom', depths: 'chrom'};
   const SCALES = ['Bb', 'Eb', 'F', 'Ab'];
-  const OTHER_FIT = {treble: m => m >= 55 && m <= 84, bass: m => m >= 36 && m <= 64};
+  /* THE OTHER CLEF'S COMFORTABLE RANGE (written MIDI) and its middle line (treble B4, bass D3). Other-clef cards keep to
+     it: single notes are picked inside it; a SCALE (which must stay in order) is MOVED BY WHOLE OCTAVES into it (display
+     only: the shift that puts the most of its notes inside, ties to the one nearest the middle line); spelling, key
+     signature and order never change, and playing is by pitch class (Pitch.onHeld pc; the sustain card's cents are
+     measured mod 12), so a moved scale never asks for an octave the student can't play. */
+  const OTHER_RANGE = R.otherRange;
+  const OTHER_FIT = {treble: m => m >= OTHER_RANGE.treble[0] && m <= OTHER_RANGE.treble[1], bass: m => m >= OTHER_RANGE.bass[0] && m <= OTHER_RANGE.bass[1]};
+  /** the octave shift (in octaves) that puts the most of these written MIDIs inside the clef's comfortable range */
+  function octaveShift(midis, clef) {
+    const [lo, hi, mid] = OTHER_RANGE[clef], avg = midis.reduce((a, b) => a + b, 0) / Math.max(1, midis.length);
+    let best = 0, bestIn = -1, bestD = Infinity;
+    for (let k = -4; k <= 4; k++) {
+      const inR = midis.filter(m => m + 12 * k >= lo && m + 12 * k <= hi).length, d = Math.abs(avg + 12 * k - mid);
+      if (inR > bestIn || (inR === bestIn && d < bestD)) { best = k; bestIn = inR; bestD = d; }
+    }
+    return best;
+  }
+  /** a written note moved by k octaves (its spelling kept) */
+  const moveNote = (nt, k) => !k || !nt ? nt : Object.assign({}, nt, {oct: nt.oct + k}, nt.midi != null ? {midi: nt.midi + 12 * k} : {});
+  const moveItem = (it, k) => !k ? it : Object.assign({}, it, {n: moveNote(it.n, k), show: moveNote(it.show, k), midi: it.midi + 12 * k});
   function notesAt(x, y, n, {order = 'random', pool} = {}) {
     const z = BW.zone(G.w, x, y, R);
-    const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : inst.clef;
+    const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : readG().clef;
     const notes = pool || POOLS[z.layer] || SCALES[Math.floor(Math.random() * SCALES.length)];
-    const other = clef !== inst.clef;
-    const seq = A.buildSequence({member: readM, group: inst, notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
-    let items = order === 'order' ? seq.items.slice(0, n) : seq.items;
-    if (other && order !== 'order') { const f = items.filter(it => OTHER_FIT[clef](it.midi)); if (f.length >= n) items = f; }
+    const other = clef !== readG().clef;
+    const seq = A.buildSequence({member: readM(), group: readG(), notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
+    let items = order === 'order' ? seq.items.slice(0, n) : seq.items, shift = 0;
+    if (other && order === 'order') {                                     // a scale: the whole scale moves by octaves
+      shift = octaveShift(items.map(it => it.midi), clef);
+      items = items.map(it => moveItem(it, shift));
+    } else if (other) {                                                   // single notes: the ones inside the range …
+      const f = items.filter(it => OTHER_FIT[clef](it.midi));
+      if (f.length >= n) items = f;
+      else {                                                              // … else the same octave shift as a fallback
+        shift = octaveShift(items.map(it => it.midi), clef);
+        items = items.map(it => moveItem(it, shift));
+        const f2 = items.filter(it => OTHER_FIT[clef](it.midi)); if (f2.length >= n) items = f2;
+      }
+    }
     items = items.slice(0, n);
-    const fit = (other ? seq.fit.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : seq.fit);
-    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, nameOf: seq.name};
+    const fitAll = other ? seq.fit.map(s => moveNote(s, shift)) : seq.fit;
+    const fit = other ? fitAll.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : fitAll;
+    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, shifted: shift !== 0, nameOf: seq.name};
   }
+  /** the note names under the staff: after hintAfterWrong wrong answers, and the first otherClefNames other-clef cards
+      (counted in gameData otherClef); returns 'other' when it's the other-clef reason */
   function hintNow(set) {
     if (G.wrong >= R.hintAfterWrong) return true;
-    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return true; } }
+    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return 'other'; } }
     return false;
   }
+  /** a moved other-clef scale says so (with the names, the first otherClefNames times) */
+  const shiftNote = (set, h) => set.shifted && h === 'other' ? `${set.clef === 'bass' ? 'Bass' : 'Treble'} clef! Play it where it sits on your instrument.` : null;
   const RD_CELLS = () => [...new Set((window.RD_LEVELS || []).slice(0, R.rhythmLevels || 5).flatMap(L => [].concat(L.time).includes('4/4') ? (Array.isArray(L.cells) ? L.cells : (L.cells && L.cells['4/4']) || []) : []))];
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const RESTS = ['wr | q qr hr', 'hr hr | q qr hr', 'hr qr qr | q qr hr', 'qr qr hr | q qr hr', 'qr hr qr | q qr hr'];
   /** the card for a performance kind at this spot (blocks, recipes, creatures): {kind, …} for challenges.js */
   function spec(kind, x, y, n) {
     const t = tier(), baton = t >= 4;
-    if (snare) {
+    if (drum()) {
       if (kind === 'tone' || kind === 'note' || kind === 'notes3') return {kind: 'count', n: kind === 'notes3' ? 4 : R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1)), sub: 'Count your hits'};
       if (kind === 'scale' || kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
       if (kind === 'sustain' || kind === 'longtone') return {kind: 'roll', secs: baton ? R.rollS * .7 : R.rollS, sub: 'An even roll'};
     }
     if (kind === 'tone' || kind === 'note' || kind === 'notes3') {
       const set = notesAt(x, y, n || (kind === 'notes3' ? 3 : 1));
-      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: hintNow(set)}, set);
+      const h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: mode === 'inst' ? (set.items.length > 1 ? 'Play the notes' : 'Play the note') : (set.items.length > 1 ? 'Tap the note names' : 'Tap the note name'), hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'scale') {
-      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]});
-      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: hintNow(set)}, set);
+      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]}), h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'sustain' || kind === 'longtone') {
-      if (mode === 'touch') return {kind: 'key', member: readM, clef: inst.clef, sub: 'A music question'};
+      if (mode === 'touch') return {kind: 'key', member: readM(), clef: readG().clef, sub: 'A music question'};
       const set = notesAt(x, y, 1);
-      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: hintNow(set)}, set);
+      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: !!hintNow(set)}, set);
     }
-    if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+    // --- CHAPTER 6'S ORES ---
+    if (kind === 'lowread' || kind === 'highread') {
+      if (drum()) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+      const set = ledgerSet(kind === 'lowread' ? 'below' : 'above', n || 3), h = G.wrong >= R.hintAfterWrong;
+      return Object.assign({kind: 'notes', sub: kind === 'lowread' ? 'Low notes, going down' : 'High notes, going up', hint: h}, set);
+    }
+    if (kind === 'interval') {
+      if (drum()) return {kind: 'count', n: R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1)), sub: 'Count your hits'};
+      return Object.assign({kind: 'interval', sub: 'An interval', hint: G.wrong >= R.hintAfterWrong}, intervalSet());
+    }
+    if (kind === 'keysig') {
+      if (drum()) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+      return {kind: 'keysig', member: readM(), clef: readG().clef, sub: 'A key signature'};
+    }
+    if (kind === 'dynamics') return {kind: 'dynamics', item: drum() ? null : firstNote(), sub: 'Soft, then loud'};
+    if (kind === 'tempo') {
+      const bpm = pick(R.tempo.choices), TW = A.TempoWords;
+      return {kind: 'tempo', bpm, word: TW ? TW.tempoWord(bpm) : 'Tempo', beats: n || R.notes.tempo[2], sub: 'Keep the tempo'};
+    }
+    if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: mode === 'inst' ? 'Play the rhythm' : 'Tap the rhythm'};
     if (kind === 'rest') return {kind: 'rest', text: pick(RESTS), sub: 'Rests, then the downbeat'};
     if (kind === 'beats') return {kind: 'rhythm', text: 'q q q q', sub: '4 steady beats'};
     return {kind: 'notes', items: []};
   }
+  /* RUMBLE ORE / PICCOLO QUARTZ: n notes with 1–3 LEDGER LINES below the bass staff (E2 … A1, going DOWN) or above the
+     treble staff (A5 … E6, going UP), spelled naturally (no key signature); judged by pitch class, so each is played where
+     it sits on the student's instrument. The staff box grows to fit them (challenges.js staffBox). */
+  const LEDGER = {below: {clef: 'bass', notes: ['E2', 'D2', 'C2', 'B1', 'A1']}, above: {clef: 'treble', notes: ['A5', 'B5', 'C6', 'D6', 'E6']}};
+  /** a written note as a card item; `sounding` = where it sits on the student's instrument (moved by octaves into its
+      sounding range: these cards are judged by pitch class, and ?demo plays this one) */
+  const dressNote = n => {
+    const m = readM(), midi = A.music.writtenMidi(n); let sounding = midi - (m.sounds || 0);
+    if (m.soundLow != null) { while (sounding < m.soundLow) sounding += 12; while (sounding > m.soundHigh) sounding -= 12; }
+    return {n, show: n, label: Card.label(n), midi, sounding, pc: mod(sounding, 12)};
+  };
+  function ledgerSet(dir, n) {
+    const L = LEDGER[dir], pool = L.notes.map(A.music.parseNote), picked = [];
+    while (picked.length < Math.min(n, pool.length)) { const k = Math.floor(Math.random() * pool.length); if (!picked.includes(k)) picked.push(k); }
+    const items = picked.sort((a, b) => a - b).map(k => dressNote(pool[k]));    // the pool runs away from the staff: going down / up
+    return {items, clef: L.clef, sig: null, fit: items.map(i => i.show), other: L.clef !== readG().clef};
+  }
+  /** INTERVAL GEODE: two notes of one of the member's scales (both in range), a 2nd up to an octave */
+  function intervalSet() {
+    const seq = A.buildSequence({member: readM(), group: readG(), notes: pick(SCALES), order: 'order', level: 2, count: 8}), sc = seq.items.slice(0, 8);
+    const size = 1 + Math.floor(Math.random() * 7), lo = Math.floor(Math.random() * (8 - size));
+    return {items: [sc[lo], sc[lo + size]], size: size + 1, clef: readG().clef, sig: seq.sig, fit: seq.fit, nameOf: seq.name};
+  }
+  /** DYNAMIC CORAL: a comfortable note to play soft, then loud (the first of the member's first five) */
+  const firstNote = () => { const g = readG(), n = g.notes && g.notes[0]; return n ? dressNote(Object.assign({}, n)) : null; };
   /** a block's place on screen, as a function: the card beside it follows the camera (challenges.js follow) */
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
     const c = Card.open(Object.assign({mode, snare, title, at, countoff: gd().countoff !== false, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
-    if (!seen('mining')) firstCard('mining', 'Mining = playing!', mode === 'inst'
+    if (!seen('mining')) firstCard('mining', mode === 'inst' ? 'Mining = playing!' : 'Mining = music!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
     return c;
@@ -1173,7 +1347,7 @@
   function challengeFor(b, x, y) {
     const t = Math.min(4, tier()), n = (R.notes[b.mine] || [])[t];
     if (!n) { A.UI.toast(`${b.name} needs a better mallet.`, {ms: 1800}); return false; }
-    const sp = spec(b.mine, x, y, b.mine === 'tone' || b.mine === 'scale' ? n : 0);
+    const sp = spec(b.mine, x, y, ['tone', 'scale', 'lowread', 'highread', 'tempo'].includes(b.mine) ? n : 0);
     openCard(sp, screenAt(x, y), b.name, r => {
       if (!G) return;
       if (r.ok) {
@@ -1184,6 +1358,7 @@
         A.Sfx.event('bt-mined');
         if (b.mine === 'tone') { stats().ore++; saveGd(); if (stats().ore >= R.goals.toneOre) award('ore10'); drawGoals(); }
         if (b.key === 'sustain') award('sustain');
+        if (b.key === 'rumbleOre' || b.key === 'piccoloQuartz') { const st = stats(); st[b.key] = 1; saveGd(); if (st.rumbleOre && st.piccoloQuartz) award('extremes'); }
       } else { G.wrong++; A.Sfx.event('bt-wrong'); }
     });
     return true;
@@ -1204,6 +1379,8 @@
   function openCraft() {
     closePanels();
     $('craft').hidden = false; G.panel = 'craft';
+    // the first time: one line on the shortcuts (taps fill the slots too)
+    $('craftTip').hidden = seen('craftTip'); markSeen('craftTip');
     drawCraft();
     $('craftClose').focus();
   }
@@ -1223,7 +1400,7 @@
       slots[+b.dataset.i] = null; const rest = slots.filter(Boolean); slots.fill(null); rest.forEach((x, k) => { slots[k] = x; });
       missing = null; A.Sfx.event('ui-toggle'); drawCraft();
     });
-    const perf = r => (snare ? PERF_SNARE : mode === 'inst' ? PERF : PERF_TOUCH)[r.perf];
+    const perf = r => (mode === 'inst' ? (snare ? PERF_SNARE : PERF) : PERF_TOUCH)[r.perf];   // the MODE first, then the snare
     const res = $('recipeLine');
     if (m) {
       const bench = !m.bench || benchNear();
@@ -1245,11 +1422,33 @@
     $('craftItems').querySelectorAll('.bt-chip').forEach(b => { b.onclick = () => { if (dragJustEnded()) return; addToSlot(b.dataset.id); }; dragTile(b); });
     // THE RECIPE BOOK (+ its search: searchBook)
     $('bookBtn').setAttribute('aria-pressed', String(book));
-    $('bookWrap').hidden = !book;
+    craftLayout();
     if (!book && bookQ) { bookQ = ''; $('bookSearch').value = ''; }
     if (book) drawBook(perf);
     $('bookCount').textContent = `${Object.keys(f).filter(k => RECIPES.some(r => r.id === k)).length} / ${RECIPES.length}`;
   }
+  /* THE LAYOUT: the bench, then YOUR MATERIALS right under it, then the Recipe Book (never between them). A WIDE panel
+     (≥ R.craftWide px: iPad landscape, Chromebooks) = two columns: the bench + materials left, the book right with its own
+     scroll (the book closed = the left column takes the full width). NARROW (phones, iPad portrait): the bench is sticky at
+     the top while the rest scrolls, and TABS under it, Materials | Recipe Book, one at a time (the Recipe Book button and a
+     tab both pick it; a recipe tap fills the slots and goes back to Materials). */
+  const craftWide = () => innerWidth - R.craftGutter >= R.craftWide;
+  function craftLayout() {
+    const wide = craftWide(), c = $('craft');
+    c.classList.toggle('wide', wide); c.classList.toggle('book', book);
+    $('bookWrap').hidden = !book;
+    $('matsPane').hidden = !wide && book;
+    $('craftTabs').hidden = wide;
+    [['tabMats', !book], ['tabBook', book]].forEach(([id, on]) => { const t = $(id); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+  }
+  const pickTab = b => { if (b === book) return; book = b; missing = null; A.Sfx.event('ui-toggle'); drawCraft(); };
+  $('tabMats').onclick = () => pickTab(false);
+  $('tabBook').onclick = () => pickTab(true);
+  $('craftTabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); e.stopPropagation(); pickTab(!book); $(book ? 'tabBook' : 'tabMats').focus();
+  });
+  addEventListener('resize', () => { if (G && G.panel === 'craft') craftLayout(); });
   /* THE RECIPE BOOK'S SEARCH (the field above the recipes): as you type, case-insensitive, any part of a word, it keeps the
      recipes whose NAME, OUTPUT item, any INGREDIENT or PERFORMANCE words match ("plank" = Maple Planks and everything made
      with planks); the matched letters are <mark>ed (an ingredient / output / performance match shows on a "Uses: …" line);
@@ -1331,17 +1530,31 @@
       g.src = iconURL(drag.id); g.className = 'bt-dragghost'; g.alt = '';
       document.body.appendChild(g); A.UI.layer && (g.style.zIndex = String(A.UI.layer.topZ() + 1));
       tipHide();
+      $('bench').classList.add('dragging');                                // the empty slots light up as drop targets
+      dragScroll();
     }
+    drag.y = e.clientY;
     drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
-    $('bench').classList.toggle('drop-on', !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench'));
+    $('bench').classList.toggle('drop-on', onBench(e));
   });
+  const onBench = e => !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench');
+  /** while dragging near the top of whatever scrolls (the panel, or the wide left column), scroll it toward the slots */
+  function dragScroll() {
+    if (!drag || !drag.ghost) return;
+    const sc = [$('craftMain'), $('craft')].find(el => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible');
+    if (sc && drag.y != null) {
+      const top = sc.getBoundingClientRect().top, d = drag.y - top;
+      if (d < R.dragEdge && sc.scrollTop > 0) sc.scrollTop -= Math.ceil(R.dragScroll * (1 - Math.max(0, d) / R.dragEdge));
+    }
+    requestAnimationFrame(dragScroll);
+  }
   const endDrag = e => {
     if (!drag || (e && e.pointerId !== drag.pid)) return;
     const d = drag; drag = null;
     if (!d.ghost) return;
     d.ghost.remove(); dragEnd = performance.now();
-    $('bench').classList.remove('drop-on');
-    if (e && e.type === 'pointerup' && document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench')) addToSlot(d.id);
+    $('bench').classList.remove('drop-on', 'dragging');
+    if (e && e.type === 'pointerup' && onBench(e)) addToSlot(d.id);           // anywhere on the bench = the next empty slot
   };
   addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
   $('bookBtn').onclick = () => { book = !book; missing = null; drawCraft(); };
@@ -1358,6 +1571,7 @@
       if (!res.ok) { A.Sfx.event('bt-wrong'); A.UI.toast('Not quite: your ingredients are safe. Try again!'); return; }
       Object.keys(need).forEach(k => take(k, need[k]));
       gain(r.out, r.n);
+      if (r.also) Object.entries(r.also).forEach(([k, n]) => gain(k, n));   // D.S. al Coda: a Segno AND a Coda
       slots.fill(null);
       A.Sfx.event('bt-craft');
       brave();
@@ -1366,6 +1580,7 @@
       if (r.out === 'metronome') award('metro');
       if (r.out === 'tuner') award('tuner');
       if (r.out === 'baton') award('baton');
+      if (r.out === 'grandgem') award('grandgem');
       if (G.panel === 'craft') drawCraft();
     });
   }
@@ -1383,6 +1598,7 @@
     let h = `<b>${esc(it.name || id)}</b>`;
     if (it.desc) h += `<span>${esc(it.desc)}</span>`;
     if (it.found) h += `<small>Found: ${esc(it.found)}</small>`;
+    if (it.kind === 'gear') h += `<small>Works while it's in your hotbar.</small>`;
     if (it.kind === 'tool') {
       // the blocks that need a tool, up to this one's tier (a tool mines everything a smaller one does)
       const can = B.filter(b => b.mine && b.tier >= 1 && b.tier <= it.tier).map(b => b.name);
@@ -1433,7 +1649,7 @@
     if (!G) return;
     const p = G.p;
     $('hotbar').innerHTML = p.hot.map((id, i) => `<button type="button" class="bt-hot${i === p.sel ? ' sel' : ''}" data-i="${i}"${id ? ` data-item="${id}"` : ''} aria-pressed="${i === p.sel}" aria-label="${id ? esc(itemName(id)) + ' × ' + (p.inv[id] || 0) : 'Empty slot'} (${i + 1})">` +
-      (id ? `<img src="${iconURL(id)}" alt=""><b>${p.inv[id] || 0}</b>` : '') + `<small>${i + 1}</small></button>`).join('');
+      (id ? `<img src="${iconURL(id)}" alt=""><b>${p.inv[id] || 0}</b>` : '') + (id && ITEMS[id] && ITEMS[id].kind === 'gear' ? '<i class="bt-gearbadge" aria-hidden="true"></i>' : '') + `<small>${i + 1}</small></button>`).join('');
     $('hotbar').querySelectorAll('.bt-hot').forEach(b => b.onclick = () => selectHot(+b.dataset.i));
     const t = tier();
     $('toolName').textContent = R.tools[t];
@@ -1443,6 +1659,7 @@
   function selectHot(i) {
     const p = G.p;
     if (p.sel === i && p.hot[i] === 'snack') { eat(); return; }
+    if (p.sel === i && p.hot[i] === 'sonarfork') { openSonar(); return; }
     p.sel = i; drawHot();
     if (p.hot[i] && ITEMS[p.hot[i]] && ITEMS[p.hot[i]].block && !G.build) setBuild(true);
   }
@@ -1459,7 +1676,7 @@
       if (id === 'snack' && G.p.hot[G.p.sel] === 'snack') { eat(); drawInv(); return; }
       if (ITEMS[id] && ITEMS[id].kind === 'tool' && !ITEMS[id].hotbar) return;
       const k = G.p.hot.indexOf(id); if (k >= 0) G.p.hot[k] = null;
-      G.p.hot[G.p.sel] = id; drawHot(); drawInv();
+      G.p.hot[G.p.sel] = id; if (k < 0) gearIn(id); drawHot(); drawInv();
     });
     $('lockerBox').hidden = !locker;
     if (locker) {
@@ -1474,13 +1691,13 @@
   function panelOpen() { return !!(G && G.panel); }
   function closePanels() {
     tipHide();
-    ['inv', 'craft', 'composer'].forEach(id => { $(id).hidden = true; });
+    ['inv', 'craft', 'composer', 'sonar'].forEach(id => { $(id).hidden = true; });
     bookQ = ''; $('bookSearch').value = '';                               // the Recipe Book's search never outlives the panel
     if (G) { G.panel = null; if (G.w) G.w.dirty = true; }
   }
 
   /* ================= COMPOSER BLOCKS AND THE CONDUCTOR'S PODIUM ================= */
-  const chrom = () => A.chromaticScale(snare ? A.memberById('bells') : readM);
+  const chrom = () => A.chromaticScale(readM());
   const noteOf = midi => { const c = chrom(); return c.find(n => n.midi === midi) || c[0]; };
   const itemOf = n => ({n, show: n, label: Card.label(n), midi: n.midi, sounding: n.sounding, pc: mod(n.sounding, 12)});
   function openComposer(x, y) {
@@ -1526,8 +1743,8 @@
     };
     $('compPerf').onclick = () => {
       const rect = $('compPerf').getBoundingClientRect();
-      const sp = snare ? {kind: 'rhythm', text: Array.from({length: Math.ceil(items.length / 4) * 4}, (_, k) => k < items.length ? 'q' : 'qr').join(' ').replace(/((?:\S+ ){3}\S+) /g, '$1 | '), sub: 'One hit per note'}
-        : {kind: 'notes', items, clef: inst.clef, fit: items.map(i => i.show), sig: null, sub: 'Your melody'};
+      const sp = drum() ? {kind: 'rhythm', text: Array.from({length: Math.ceil(items.length / 4) * 4}, (_, k) => k < items.length ? 'q' : 'qr').join(' ').replace(/((?:\S+ ){3}\S+) /g, '$1 | '), sub: 'One hit per note'}
+        : {kind: 'notes', items, clef: readG().clef, fit: items.map(i => i.show), sig: null, sub: 'Your melody'};
       closePanels();
       openCard(sp, {x: rect.left + rect.width / 2, y: rect.top - 60}, 'Conductor\'s Podium', r => {
         if (!G || !r.ok) { if (G) A.Sfx.event('bt-wrong'); return; }
@@ -1545,6 +1762,155 @@
     return true;
   }
   $('compDone').onclick = () => closePanels();
+
+  /* ================= CHAPTER 6: D.S. AL CODA SIGNS, THE PIPE ORGAN, THE SONAR TUNING FORK, CORAL LAMPS ================= */
+  /* D.S. AL CODA SIGNS: world meta 'x,y' = {sign: 'segno'|'coda', mate: 'x,y'|null}. A placed sign pairs with the nearest
+     unpaired sign of the other kind (crafted together, they pair as you place them); at most signs.maxPairs of each kind.
+     BUILD-tapping one takes you to its partner. FAIRNESS: never with a card open, at night with a creature within
+     signs.safe, or hurt in the last signs.hurtS seconds ("Too dangerous to travel right now!"). A soft swirl fade (a
+     plain fade with reduced motion). Breaking one leaves its partner with "No partner". */
+  const OTHER_SIGN = {segno: 'coda', coda: 'segno'};
+  const xyOf = k => k.split(',').map(Number);
+  const signsOf = kind => Object.keys(G.w.meta).filter(k => { const m = G.w.meta[k]; if (!m || m.sign !== kind) return false; const [x, y] = xyOf(k); return BW.at(G.w, x, y) === ID[kind]; });
+  const signCount = kind => signsOf(kind).length;
+  function pairSign(x, y, kind) {
+    const w = G.w, me = w.meta[x + ',' + y] = {sign: kind, mate: null};
+    let best = null, bd = Infinity;
+    signsOf(OTHER_SIGN[kind]).forEach(k => { if (w.meta[k].mate) return; const [sx, sy] = xyOf(k), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = k; } });
+    if (best) { me.mate = best; w.meta[best].mate = x + ',' + y; }
+  }
+  function travel(x, y) {
+    const w = G.w, m = w.meta[x + ',' + y], p = G.p, now = performance.now();
+    const mate = m && m.mate && w.meta[m.mate] ? xyOf(m.mate) : null;
+    if (!mate || BW.at(w, mate[0], mate[1]) !== ID[OTHER_SIGN[m.sign]]) { A.UI.toast(`No partner: place a ${m && m.sign === 'coda' ? 'Segno' : 'Coda'} Sign to travel.`, {ms: 2200}); return true; }
+    const near = isNight() && G.creatures.some(c => c.state === 'live' && Math.hypot(c.x - p.x, c.y - p.y) < R.signs.safe);
+    if (Card.current || G.jitter || G.warp || near || now - (G.hurtAt || -1e9) < R.signs.hurtS * 1000) { A.UI.toast('Too dangerous to travel right now!', {ms: 2000}); return true; }
+    const g = G, ov = $('btJitter');
+    G.warp = {t0: now}; G.fx.warps = (G.fx.warps || 0) + 1;
+    A.Sfx.event('bt-warp');
+    if (ov) { ov.classList.toggle('still', !!RM.matches); ov.classList.add('warp'); ov.hidden = false; void ov.offsetWidth; ov.classList.add('go'); }
+    setTimeout(() => {
+      if (G !== g) return;
+      p.x = mate[0] + .5; p.y = mate[1] + 1; p.vx = p.vy = 0;
+      G.warp = null; G.way = null;
+      award('coda');
+      if (ov) { ov.classList.remove('go'); setTimeout(() => { ov.hidden = true; ov.classList.remove('warp'); }, 320); }
+      if (!G.endless) saveWorld();
+    }, R.signs.fadeMs / 2);
+    return true;
+  }
+  /* THE PIPE ORGAN: 2 wide × 3 tall (every tile is 'organ'; meta {organ: 'x,y' of its bottom-left}); breaking any tile
+     breaks all of it. BUILD-tap = a short major chord in the student's key (shared/tones.js: refused while a card is open
+     or the microphone listens; the mic is muted for the chord + 400 ms in case it starts listening). */
+  function organTiles(x, y) {
+    const m = G.w.meta[x + ',' + y]; if (!m || !m.organ) return [[x, y]];
+    const [ax, ay] = xyOf(m.organ), out = [];
+    for (let dx = 0; dx < 2; dx++) for (let dy = 0; dy < 3; dy++) if (BW.at(G.w, ax + dx, ay - dy) === ID.organ) out.push([ax + dx, ay - dy]);
+    return out;
+  }
+  function placeOrgan(x, y) {
+    const w = G.w, tiles = [];
+    for (let dx = 0; dx < 2; dx++) for (let dy = 0; dy < 3; dy++) tiles.push([x + dx, y - dy]);
+    if (tiles.some(([tx, ty]) => { const k = B[BW.at(w, tx, ty)].key; return k !== 'air' && k !== 'water'; })) { A.UI.toast('A Pipe Organ needs room: 2 blocks wide and 3 tall.', {ms: 2000}); return false; }
+    if (tiles.some(([tx, ty]) => collidesBox(tx, ty))) { A.UI.toast('You are standing there!', {ms: 1200}); return false; }
+    tiles.forEach(([tx, ty]) => { BW.put(w, tx, ty, ID.organ); w.meta[tx + ',' + ty] = {organ: x + ',' + y}; });
+    take('organ'); A.Sfx.event('bt-place');
+    scanGear(); checkRooms(x, y); checkRooms(x, y - 1); brave();
+    return true;
+  }
+  /** its part of the 2 × 3 picture (drawn once per size) */
+  let ORGAN = null;
+  function drawOrganPart(x, y, X, Y) {
+    const m = G.w.meta[x + ',' + y], [ax, ay] = m && m.organ ? xyOf(m.organ) : [x, y];
+    const px = Math.round(S * WPX);
+    if (!ORGAN || ORGAN.width !== px * 2) {
+      ORGAN = document.createElement('canvas'); ORGAN.width = px * 2; ORGAN.height = px * 3;
+      const g = ORGAN.getContext('2d'), u = px / 16, f = (c, a, b, w2, h) => { g.fillStyle = col(c); g.fillRect(a * u, b * u, w2 * u, h * u); };
+      f('bt-organ', 1, 22, 30, 26); f('bt-stage-edge', 1, 26, 30, 1.2); f('bt-organ', 4, 18, 24, 5);
+      [[4, 6, 12], [8, 3, 15], [12, 1, 17], [16, 0, 18], [20, 1, 17], [24, 3, 15], [28, 6, 12]].forEach(([a, b, h]) => { f('bt-organ-pipe', a - 1.2, b, 2.4, h); f('bt-ink', a - .6, b + h - 4, 1.2, 1.4); });
+      [[6, 32], [12, 32], [18, 32], [24, 32]].forEach(([a, b]) => f('bt-screen', a, b, 4, 1.6));
+      f('bt-plank-2', 3, 40, 26, 2);
+    }
+    const dx = Math.max(0, Math.min(1, x - ax)), dy = Math.max(0, Math.min(2, ay - y));
+    ctx.drawImage(ORGAN, dx * px, (2 - dy) * px, px, px, X, Y, S, S);
+  }
+  /** the chord's root: the student's first note (concert), in a comfortable octave */
+  function organRoot() {
+    const n = inst.notes && inst.notes[0];
+    let m = n && !snare ? A.music.writtenMidi(n) - (member.sounds || 0) : 58;
+    while (m < 55) m += 12; while (m > 66) m -= 12;
+    return m;
+  }
+  function playOrgan() {
+    if (Card.current || A.Pitch.listening() || !A.tones) { A.UI.toast('The organ waits while your microphone is listening.', {ms: 2000}); return true; }
+    const r = organRoot(), midis = [r, r + 4, r + 7];
+    let dur = 0;
+    midis.forEach(m => { const t = A.tones.play([m], {noteMs: R.organ.chordMs, gapMs: 0, vol: .22}); dur = Math.max(dur, t.dur || 0); });
+    A.Pitch.suppress(dur * 1000 + 400);
+    G.fx.chords = (G.fx.chords || 0) + 1; G.lastChord = midis;
+    return true;
+  }
+  /* THE SONAR TUNING FORK (gear): tap its hotbar slot twice → pick one of the ores you've ever SEEN (gameData.oreSeen,
+     noted as they're drawn on screen); while it's in the hotbar an arrow at the screen's edge points to the nearest one
+     within sonar.range ("~23 blocks"), else "None nearby". Searched twice a second. */
+  const SONAR_ORES = ['toneOre', 'brassOre', 'scaleVein', 'springVein', 'sustain', 'rhythmRock', 'restCrystal'].concat(BW.ORES2);
+  const ORE_FLAG = new Uint8Array(B.length); SONAR_ORES.forEach(k => { ORE_FLAG[ID[k]] = 1; });
+  function seeOre(v) {
+    G.oreSeen[v] = 1;
+    const os = gd().oreSeen || (gd().oreSeen = {});
+    if (!os[B[v].key]) { os[B[v].key] = 1; saveGd(); }
+  }
+  const TILE_ICON = {};
+  const tileIcon = key => TILE_ICON[key] || (TILE_ICON[key] = (() => { const c = document.createElement('canvas'); c.width = c.height = 48; drawTile(c.getContext('2d'), key, 48); return c.toDataURL(); })());
+  function openSonar() {
+    closePanels(); $('sonar').hidden = false; G.panel = 'sonar';
+    const os = gd().oreSeen || {}, list = SONAR_ORES.filter(k => os[k]), cur = gd().sonar || null;
+    $('sonarGrid').innerHTML = list.length ? list.map(k => `<button type="button" class="bt-chip${k === cur ? ' sel' : ''}" data-ore="${k}" aria-pressed="${k === cur}"><img src="${tileIcon(k)}" alt=""><span>${esc(B[ID[k]].name)}</span></button>`).join('') +
+      `<button type="button" class="bt-chip" data-ore="" aria-pressed="${!cur}"><span>Off</span></button>` : '<p class="ui-msg empty">Find some ores first: the fork only knows the ones you\'ve seen.</p>';
+    $('sonarGrid').querySelectorAll('[data-ore]').forEach(b => b.onclick = () => { saveGd({sonar: b.dataset.ore || null}); G.sonarT = 0; closePanels(); });
+    $('sonarClose').focus();
+  }
+  $('sonarClose').onclick = () => closePanels();
+  function stepSonar(now) {
+    const want = gearOn('sonarfork') && gd().sonar;
+    if (!want) { G.sonarHit = null; G.sonarFor = null; return; }
+    if (now - (G.sonarT || 0) < 500 && G.sonarFor === want) return;
+    G.sonarT = now; G.sonarFor = want;
+    const w = G.w, v = ID[want], rg = R.sonar.range, px = G.p.x, py = G.p.y - .9;
+    let best = null, bd = Infinity;
+    for (let y = Math.max(0, Math.floor(py - rg)); y <= Math.min(w.h - 1, Math.ceil(py + rg)); y++)
+      for (let x = Math.max(0, Math.floor(px - rg)); x <= Math.min(w.w - 1, Math.ceil(px + rg)); x++) {
+        if (w.b[y * w.w + x] !== v) continue;
+        const d = Math.hypot(x + .5 - px, y + .5 - py); if (d < bd && d <= rg) { bd = d; best = {x, y, d}; }
+      }
+    G.sonarHit = best;
+  }
+  function drawSonar(sx, sy) {
+    const want = G.sonarFor; if (!want) return;
+    const name = B[ID[want]].name, cx = sx(G.p.x), cy = sy(G.p.y - .9);
+    oc.font = '700 15px "GN Text", system-ui, sans-serif'; oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.fillStyle = col('bt-mine');
+    const h = G.sonarHit;
+    if (!h) { const t = `No ${name} nearby`; oc.strokeText(t, cx, cy - S * 1.9); oc.fillText(t, cx, cy - S * 1.9); return; }
+    const dx = sx(h.x + .5) - cx, dy = sy(h.y + .5) - cy, n = Math.hypot(dx, dy) || 1, ux = dx / n, uy = dy / n, pad = 58;
+    const tx = ux > 0 ? (VW - pad - cx) / ux : ux < 0 ? (pad - cx) / ux : Infinity, ty = uy > 0 ? (VH - pad - cy) / uy : uy < 0 ? (pad + 40 - cy) / uy : Infinity;
+    const t = Math.max(S * 1.2, Math.min(tx, ty, n - S * .8)), x = cx + ux * t, y = cy + uy * t;
+    oc.save(); oc.translate(x, y); oc.rotate(Math.atan2(uy, ux));
+    oc.beginPath(); oc.moveTo(18, 0); oc.lineTo(-10, -13); oc.lineTo(-4, 0); oc.lineTo(-10, 13); oc.closePath();
+    oc.lineWidth = 5; oc.strokeStyle = col('bt-ink'); oc.stroke(); oc.fillStyle = col('bt-mine'); oc.fill(); oc.restore();
+    const lbl = `${name} ~${Math.round(h.d)} blocks`, ly = y + (uy < -.5 ? 28 : -28), lw = oc.measureText(lbl).width;
+    const lx = Math.max(lw / 2 + 8, Math.min(VW - lw / 2 - 8, x));                // the words stay on screen
+    oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(lbl, lx, ly); oc.fillStyle = col('bt-mine'); oc.fillText(lbl, lx, ly);
+  }
+  /** a Coral Lamp's soft teal glow (after the light; still) */
+  function drawCoralGlow(sx, sy) {
+    const r = R.light.lampRadius * S * .55;
+    G.lamps.forEach(l => {
+      if (!l.coral) return;
+      const x = sx(l.x), y = sy(l.y); if (x < -r || y < -r || x > VW + r || y > VH + r) return;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col('bt-coral-glow')); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.globalAlpha = .14; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
+    });
+  }
 
   /* ================= THE PRACTICE COT: sleep through the night ================= */
   function sleep(x, y) {
@@ -1581,6 +1947,7 @@
       const v = w.b[i]; if (v < ID.lamp) continue;
       const x = i % w.w, y = Math.floor(i / w.w);
       if (v === ID.lamp) L.push({x: x + .5, y: y + .5});
+      else if (v === ID.corallamp) L.push({x: x + .5, y: y + .5, coral: true});   // a Coral Lamp lights (and keeps creatures away) like a Stage Lamp
       else if (v === ID.metronome) gear.metronome.push({x: x + .5, y: y + .5});
       else if (v === ID.tuner) gear.tuner.push({x: x + .5, y: y + .5});
       else if (v === ID.bench) gear.bench.push({x: x + .5, y: y + 1});
@@ -1605,7 +1972,7 @@
     const H = R.bandHall, w = G.w;
     if (!rm.doors.length || rm.tiles.length < H.minTiles) return false;
     const inside = rm.tiles.map(([x, y]) => BW.at(w, x, y));
-    if (!inside.includes(ID.lamp) || !inside.includes(ID.stand)) return false;
+    if (!inside.includes(ID.lamp) || !(inside.includes(ID.stand) || inside.includes(ID.organ))) return false;   // a Pipe Organ counts as the stand
     const walls = rm.walls.map(([x, y]) => BW.at(w, x, y));
     const stage = rm.walls.filter(([x, y]) => BW.at(w, x, y) === ID.stage && rm.tiles.some(([tx, ty]) => tx === x && ty === y - 1)).length;
     if (stage < H.stageMin) return false;
@@ -1650,7 +2017,7 @@
   function spawn(kind, x, y) {
     const c = {id: ++cid, kind, x, y, vx: 0, vy: 0, t: 0, state: 'live', hopT: Math.random(), drainT: 0, alpha: 1, ground: false};
     if (snare) c.n = R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1));
-    else if (kind === 'clam') { const set = notesAt(Math.floor(x), Math.floor(y), 1); c.item = set.items[0]; c.set = set; }
+    if (kind === 'clam') { const set = notesAt(Math.floor(x), Math.floor(y), 1); c.item = set.items[0]; c.set = set; }
     // THE FAIRNESS CHECK: slowed until its challenge fits the time it needs to reach you
     const need = kind === 'rusher' ? rusherNeed() : R.fair.cardS[kind];
     const dist = Math.max(1, Math.hypot(x - G.p.x, y - G.p.y)), base = kind === 'clam' ? R.clam.hopX / R.clam.hopS : kind === 'wisp' ? R.wisp.speed : R.rusher.speed;
@@ -1713,6 +2080,7 @@
     if (!drain && p.hurtT > 0) return;
     if (!drain) { p.hurtT = R.player.hurtCooldownS; p.vx = 0; p.vy = -6; p.x += Math.sign(p.x - (c ? c.x : p.x)) * .6; }
     p.hearts = Math.max(0, p.hearts - n);
+    G.hurtAt = performance.now();
     A.Sfx.event('bt-hurt');
     drawHud();
     if (p.hearts <= 0) outOfBreath();
@@ -1723,7 +2091,7 @@
     if (G.endless) return survivalOver();
     G.died = true;
     const bag = {x: p.x, y: p.y - .6, items: {}};
-    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use') return; const n = Math.floor(p.inv[k] * R.dropShare); if (n > 0) { bag.items[k] = n; take(k, n); } });
+    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use' || it.kind === 'gear') return; const n = Math.floor(p.inv[k] * R.dropShare); if (n > 0) { bag.items[k] = n; take(k, n); } });
     if (Object.keys(bag.items).length) G.w.bags.push(bag);
     const cot = G.w.cot && BW.at(G.w, G.w.cot.x, G.w.cot.y) === ID.cot ? G.w.cot : null;
     p.x = cot ? cot.x + .5 : G.w.spawn.x + .5; p.y = cot ? cot.y + 1 : G.w.spawn.y + 1; p.vx = p.vy = 0;
@@ -1754,7 +2122,7 @@
     if (Card.current || G.held) return;
     const at = () => ({x: (c.x - camX) * S, y: (c.y - .5 - camY) * S});
     let sp;
-    if (c.kind === 'clam') sp = snare ? {kind: 'count', n: c.n, sub: 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: 'Play its note to calm it', hint: G.wrong >= R.hintAfterWrong});
+    if (c.kind === 'clam') sp = drum() ? {kind: 'count', n: c.n, sub: 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
     else if (c.kind === 'wisp') sp = spec('sustain', Math.floor(c.x), Math.floor(c.y));
     else sp = {kind: 'rhythm', time: '2/4', text: pick(R.rusher.cells || ['q q', 'e e q', 'q e e', 'h']), sub: 'Match the rhythm before it arrives!'};
     openCard(sp, at, KINDS[c.kind], r => { if (!G) return; if (r.ok && c.state === 'live') { G.wrong = 0; calm(c); } else if (!r.ok) G.wrong++; });
@@ -1775,9 +2143,9 @@
     A.UI.toast({clam: 'The Night Clam is calm! It left a Pearl.', wisp: 'The Sour Wisp is in tune now! It left Pitch Dust.', rusher: 'The Rusher found the beat! It left a Valve Spring.'}[c.kind], {ms: 1800});
   }
   function creatureIntro(kind) {
-    const T = {clam: ['A Night Clam!', snare ? 'Night Clams hop toward you. Tap one and play the number of hits in its bubble to calm it.' : mode === 'inst' ? 'Night Clams hop toward you with a note in their bubble. Play that note to calm them (or tap one for its card)!' : 'Night Clams hop toward you with a note in their bubble. Tap one and tap its note name to calm it!'],
-      wisp: ['A Sour Wisp!', snare ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
-      rusher: ['A Rusher!', 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!']}[kind];
+    const T = {clam: ['A Night Clam!', drum() ? 'Night Clams hop toward you. Tap one and play the number of hits in its bubble to calm it.' : mode === 'inst' ? 'Night Clams hop toward you with a note in their bubble. Play that note to calm them (or tap one for its card)!' : 'Night Clams hop toward you with a note in their bubble. Tap one and tap its note name to calm it!'],
+      wisp: ['A Sour Wisp!', drum() ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
+      rusher: ['A Rusher!', mode === 'inst' ? 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!' : 'Rushers are fast little metronome gremlins. When one charges, tap its 2-beat rhythm before it arrives!']}[kind];
     firstCard('c-' + kind, T[0], T[1]);
   }
 
@@ -1819,18 +2187,18 @@
   /** the note bubble over a clam (a tiny staff), a count for the snare, "tap me" / "hold a note" for wisps */
   function drawBubble(c, x, y) {
     if (c.state !== 'live' || c.kind === 'rusher') return;
-    const s = S, big = c.kind === 'clam' && !snare, bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
+    const s = S, big = c.kind === 'clam' && !drum(), bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
     oc.fillStyle = col('bt-bubble'); oc.strokeStyle = col('bt-ink'); oc.lineWidth = 1.5;
     oc.beginPath(); oc.roundRect ? oc.roundRect(bx, by, bw, bh, s * .3) : oc.rect(bx, by, bw, bh); oc.fill(); oc.stroke();
     oc.beginPath(); oc.moveTo(x - s * .15, by + bh); oc.lineTo(x, by + bh + s * .25); oc.lineTo(x + s * .15, by + bh); oc.fill();
     oc.fillStyle = col('bt-ink'); oc.textAlign = 'center'; oc.textBaseline = 'middle';
-    if (c.kind === 'wisp' || snare) {
+    if (c.kind === 'wisp' || drum()) {
       oc.font = `700 ${Math.round(s * .38)}px ${getComputedStyle(document.body).fontFamily}`;
-      oc.fillText(snare && c.kind === 'clam' ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
+      oc.fillText(drum() && c.kind === 'clam' ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
       return;
     }
     // a one-note staff: lines 16 units apart in the ui.js staff (y 56–120), scaled into the bubble
-    const k = bh / 150, top = by + bh / 2 - 88 * k, lx0 = bx + s * .2, lx1 = bx + bw - s * .2, cl = c.set ? c.set.clef : inst.clef;
+    const k = bh / 150, top = by + bh / 2 - 88 * k, lx0 = bx + s * .2, lx1 = bx + bw - s * .2, cl = c.set ? c.set.clef : readG().clef;
     oc.save(); oc.beginPath(); oc.rect(bx, by, bw, bh); oc.clip();
     oc.lineWidth = 1;
     for (let i = 0; i < 5; i++) { const ly = top + (56 + i * 16) * k; oc.beginPath(); oc.moveTo(lx0, ly); oc.lineTo(lx1, ly); oc.stroke(); }
@@ -1876,6 +2244,19 @@
     A.UI.toast(later ? `★ Bonus milestone (Chapter ${ci + 1}): ${g.text}!` : `★ Milestone: ${g.text}!`, {ms: 2600});
     drawGoals();
     if (stars >= 3) setTimeout(checkReached, 700);
+    if (ci + 1 === R.newChapter) setTimeout(checkNewChapter, 900);
+  }
+  /** a chapter that just showed (Chapter 6 once Chapter 5 has a star): its "NEW CHAPTER!" card, once */
+  function checkNewChapter() {
+    if (!G || G.endless || G.resultsUp) return;
+    if (G.held || Card.current) { setTimeout(checkNewChapter, 1500); return; }      // after the card that's up now
+    for (let i = R.newChapter; i < shownChapters(); i++) {
+      if (seen('ch' + (i + 1))) continue;
+      const ch = CHAPTERS[i];
+      firstCard('ch' + (i + 1), 'NEW CHAPTER!', `Chapter ${i + 1}, ${ch.name}, is open! ${ch.goals.map(g => g.text).join('. ')}.`);
+      drawGoals();
+      return;
+    }
   }
   /** shows the "complete!" results of the first finished chapter the player has REACHED and not seen yet */
   function checkReached() {
@@ -1896,7 +2277,7 @@
       msg: next ? (chDone(ci + 1) ? `Every milestone done! Chapter ${ci + 2}, ${CHAPTERS[ci + 1].name}, is already finished too!` : `Every milestone done! Next up: Chapter ${ci + 2}, ${CHAPTERS[ci + 1].name}.`) : 'You finished every chapter of Blocktave. Your Band Hall is ready for the concert!',
       extra: `<ul class="bt-reslist">${CHAPTERS[ci].goals.map(g => `<li>★ ${esc(g.text)}</li>`).join('')}</ul>`,
       next: {hidden: true},
-      retry: {label: 'Keep building', onClick: () => { A.UI.results.hide(); if (G) { G.resultsUp = false; G.ch = curCh() + 1; drawGoals(); G.held = Math.max(0, G.held - 1); pause.setActive(true); A.Sfx.gameMenuMusic(GAME_ID, false); worldMusic(true); setTimeout(checkReached, 600); } }},
+      retry: {label: 'Keep building', onClick: () => { A.UI.results.hide(); if (G) { G.resultsUp = false; G.ch = curCh() + 1; drawGoals(); G.held = Math.max(0, G.held - 1); pause.setActive(true); A.Sfx.gameMenuMusic(GAME_ID, false); worldMusic(true); setTimeout(checkReached, 600); setTimeout(checkNewChapter, 900); } }},
       levels: {label: 'Chapters', onClick: () => showHub()}});
     A.Sfx.sequence(['level-complete', 'star-earned'], 120, {channel: GAME_ID});
     A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});
@@ -2005,8 +2386,9 @@
     touch: isTouch,
   }) : null;
   A.UI.settings.register(box => {
-    box.innerHTML = `<div class="ui-srow"><span class="ui-sname">Play by<small>${snare ? 'rhythms and rolls' : 'notes on your instrument'}, or taps</small></span>` +
-      `<span></span><div class="ui-seg" role="group" aria-label="Play by"><button type="button" data-m="inst" aria-pressed="${mode === 'inst'}">My instrument</button><button type="button" data-m="touch" aria-pressed="${mode === 'touch'}">Touch</button></div></div>` +
+    box.innerHTML = (mode === 'inst' ? `<div class="ui-srow"><span class="ui-sname">Play by<small>${snare ? 'rhythms and rolls' : 'notes on your instrument'}, or taps</small></span>`
+      : `<div class="ui-srow"><span class="ui-sname">Answer by<small>taps on the screen, or ${snare ? 'your drum' : 'your instrument'}</small></span>`) +
+      `<span></span><div class="ui-seg" role="group" aria-label="${mode === 'inst' ? 'Play by' : 'Answer by'}"><button type="button" data-m="inst" aria-pressed="${mode === 'inst'}">My instrument</button><button type="button" data-m="touch" aria-pressed="${mode === 'touch'}">Touch</button></div></div>` +
       `<div class="ui-srow"><span class="ui-sname">Count-off clicks<small>a one-measure count you can hear before a rhythm card</small></span><span></span>` +
       `<div class="ui-seg" role="group" aria-label="Count-off clicks"><button type="button" data-co="1" aria-pressed="${gd().countoff !== false}">On</button><button type="button" data-co="0" aria-pressed="${gd().countoff === false}">Off</button></div></div>` +
       (isTouch() && padArr ? `<div class="ui-srow"><span class="ui-sname">On-screen controls</span><span></span><button type="button" class="btn btn-secondary btn-small bt-arrange-btn">Arrange controls</button></div>` : '');
@@ -2105,6 +2487,10 @@
       way: G && G.way ? {depth: G.way.depth, underS: G.way.underS, lostT: G.way.lostT, arrow: G.way.arrow, surfaceBtn: G.way.surfaceBtn, path: G.way.path ? G.way.path.length : null, next: G.way.path ? G.way.path.slice(0, 8) : null} : null,
       targetName: G ? G.targetName || '' : '',
       backdrop: BD.state(), torch: torchOn(), music: G && G.musicTrack, inCave: !!(G && G.inCave),
+      gear: G ? {tubaboots: gearOn('tubaboots'), glider: gearOn('glider'), accelboots: gearOn('accelboots'), sonarfork: gearOn('sonarfork'), gliding: !!G.p.gliding} : null,
+      vy: G && G.p.vy, warp: !!(G && G.warp), sonar: G ? {target: gd().sonar || null, hit: G.sonarHit || null} : null, lastChord: G && G.lastChord || null,
+      signs: G ? Object.keys(G.w.meta).filter(k => G.w.meta[k] && G.w.meta[k].sign).map(k => ({at: k, sign: G.w.meta[k].sign, mate: G.w.meta[k].mate})) : [],
+      ores2: G && G.ores2 || null, chapters: shownChapters(), oreSeen: Object.keys(gd().oreSeen || {}),
       courage: G && G.courage ? {inZone: G.courage.inZone, graceLeft: G.courage.grace, value: G.courage.value, warned: G.courage.warned, shown: G.courage.shown, jitter: !!G.jitter, jitters: G.fx.jitters || 0} : null}),
     /** the light a tile was drawn with last frame (world.js lightMap + the player's glow), or null off screen */
     lightAt: (x, y) => { const g = G && G.lightGrid; if (!g) return null; const i = x - g.x0, j = y - g.y0; return i < 0 || j < 0 || i >= g.cols || j >= g.rows ? null : g.v[j * g.cols + i]; },
@@ -2129,6 +2515,13 @@
       put: (x, y, key) => BW.put(G.w, x, y, ID[key]),
       target: (x, y) => { G.target = {x, y}; },
       bgLow: on => saveGd({bgLow: !!on}),
+      /** the card a performance kind would open at (x, y), and the notes a card there would use (tests) */
+      spec: (kind, x, y, n) => spec(kind, x, y, n),
+      notesAt: (x, y, n, o) => notesAt(x, y, n, o),
+      /** open a card for a spec beside (x, y) (tests: a scale vein's card in the Bass Depths, an extreme staff) */
+      /** a creature's own card (as if it were tapped) */
+      creatureCard: id => { const c = G.creatures.find(k => k.id === id); if (c) creatureCard(c); return !!Card.current; },
+      openSpec: (sp, x, y) => { G.fx.lastCard = null; openCard(sp, screenAt(x, y), sp.title || 'Test', r => { if (G) G.fx.lastCard = {ok: r.ok, why: r.why || null}; }); return !!Card.current; },
       /** put an item in the hotbar (the selected slot's neighbor: the first empty one) or take it out */
       hotbar: (id, on) => { const h = G.p.hot, k = h.indexOf(id); if (!on) { if (k >= 0) h[k] = null; } else if (k < 0) { const e = h.indexOf(null); h[e >= 0 ? e : h.length - 1] = id; } drawHot(); return h.slice(); },
       at: (x, y) => B[BW.at(G.w, x, y)].key,
@@ -2146,6 +2539,12 @@
       spawnCheck: () => trySpawn(),
       award, stats: () => Object.assign({}, stats()), mode: m => switchMode(m),
       hold: on => { G.held = Math.max(0, G.held + (on ? 1 : -1)); },
+      /** Chapter 6's helpers: press / release a key, the jump speed now, the organ, the sonar's pick */
+      key: (k, on) => { G.keys[k] = !!on; },
+      organ: () => playOrgan(),
+      sonar: key => { saveGd({sonar: key || null}); G.sonarT = 0; },
+      seeOre: key => seeOre(ID[key]),
+      travel: (x, y) => travel(x, y),
       room: (x, y) => BW.room(G.w, x, y, R),
       /** a 3 × 2 room with dirt walls around the spawn, then its door placed the real way (chapter 1's shelter) */
       shelter: () => {

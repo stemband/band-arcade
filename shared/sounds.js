@@ -369,6 +369,9 @@ window.Arcade = window.Arcade || {};
     'bt-night':    {file: 'bt-night', vol: .5, mic: false, screen: 'blocktave', gen: [[[800, 200], 0, .8, .14, 'noise', .8]], when: 'Blocktave: night falls (a soft, low whoosh; never scary).', len: '0.5–2 s'},
     'bt-dawn':     {file: 'bt-dawn', vol: .5, mic: false, screen: 'blocktave', gen: [[[300, 2400], 0, .9, .14, 'noise', 1]], when: 'Blocktave: morning comes (you survived the night!).', len: '0.5–2 s'},
     'bt-respawn':  {file: 'bt-respawn', vol: .5, mic: false, screen: 'blocktave', gen: [[[2400, 600], 0, .5, .15, 'noise', 1]], when: 'Blocktave: out of breath: you wake up at your cot (your bag waits where you fell).', len: '0.5–1.5 s'},
+    'bt-boing':    {file: 'bt-boing', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[180, 520], 0, .22, .2, 'noise', .9]], when: 'Blocktave: a Timpani Trampoline bounces you up: a soft drum-head BOING (unpitched; never while a challenge card listens).', len: 'under 0.4 s'},
+    'bt-warp':     {file: 'bt-warp', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[600, 3000], 0, .3, .16, 'noise', 1.1], [[3000, 900], .2, .2, .12, 'noise', 1.2]], when: 'Blocktave: D.S. al Coda signs: you travel from one sign to its partner (a soft whoosh in and out).', len: 'under 0.5 s'},
+    'bt-gear':     {file: 'bt-gear', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[2600, 5200], 0, .08, .16, 'noise', 1.6], [[3400, 6000], .1, .08, .14, 'noise', 1.6]], when: 'Blocktave: a gear item (Tuba Boots, the Piccolo Glider, the Sonar Tuning Fork, Accelerando Boots) goes into your hotbar: two quick bright clicks.', len: 'under 0.3 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */

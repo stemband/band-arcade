@@ -25,6 +25,11 @@
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
+  /* ===== THE TEMPO WORDS (Mat edits): [from BPM, word]. Shared before the tab's own code: Blocktave's Tempo Amber card
+     loads this file only for them (Arcade.TempoWords), never copying them. ===== */
+  const TEMPO_WORDS = [[0, 'Largo'], [60, 'Larghetto'], [66, 'Adagio'], [76, 'Andante'], [108, 'Moderato'], [120, 'Allegro'], [168, 'Presto']];
+  const tempoWord = bpm => TEMPO_WORDS.filter(([f]) => bpm >= f).pop()[1];
+  A.TempoWords = {TEMPO_WORDS, tempoWord};
   const T = A.TuneUp, inst = T && T.inst;
   if (!inst) return;
   const {$} = A;
@@ -42,9 +47,7 @@ window.Arcade = window.Arcade || {};
     hop: .07, hopOne: .16,  // the bop's height (share of the dancer's height): every beat, beat 1
     ladderPlate: 8,         // ladders of at least this many steps count toward the Ladder Climber plate
   };
-  /* ===== THE TEMPO WORDS (Mat edits): [from BPM, word] ===== */
-  const TEMPO_WORDS = [[0, 'Largo'], [60, 'Larghetto'], [66, 'Adagio'], [76, 'Andante'], [108, 'Moderato'], [120, 'Allegro'], [168, 'Presto']];
-  const tempoWord = bpm => TEMPO_WORDS.filter(([f]) => bpm >= f).pop()[1];
+  /* (THE TEMPO WORDS: at the top of this file) */
   /* the meters: beats counted, which beats are accented, the default subdivision ticks */
   const METERS = {
     '2/4': {beats: 2, acc: [0]}, '3/4': {beats: 3, acc: [0]}, '4/4': {beats: 4, acc: [0]}, '2/2': {beats: 2, acc: [0]},

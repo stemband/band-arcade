@@ -410,7 +410,7 @@ window.Arcade.GAMES = [
     menuMusic: 'blocktave-menu',
     skill: 'Build & survive',
     blurb: 'Your own world of neon blocks! Mine by playing your instrument, craft by performing, build a shelter before night falls and calm the silly creatures with your music. Or play by touch: no instrument needed.',
-    maxStars: 15,                                    // 5 chapters × 3 MILESTONES (blocktave/recipes.js BT_CHAPTERS): stars never come from mining more
+    maxStars: 18,                                    // 6 chapters × 3 MILESTONES (blocktave/recipes.js BT_CHAPTERS): stars never come from mining more
     color: 'green',
     byMember: true,                                  // the milestone stars are per instrument member (the world is shared by the device)
     unpitched: true,                                 // the Snare Drum mines with counts, rhythms and even rolls

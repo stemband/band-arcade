@@ -13,6 +13,14 @@
               Rhythm Rock, Rest Crystals (the rests must stay silent), the Metronome's 4 beats, Rushers, the snare.
      count    SNARE: exactly n hits, then stop (Tone Ore)
      roll     SNARE: an EVEN ROLL for `secs` (Sustain Stone, Sour Wisps)
+   CHAPTER 6'S ORES (Rumble Ore and Piccolo Quartz use `notes`, with ledger-line pools built by game.js):
+     interval two notes on the student's staff: INSTRUMENT play both, lower then higher (pitch class); TOUCH "What
+              interval?" (2nd … 7th, Octave: numbers only)
+     keysig   a key signature alone: INSTRUMENT play its tonic (pitch class); TOUCH name the key (4 choices, written)
+     dynamics "Play SOFT, then LOUD": INSTRUMENT the detector's level (onFrame's RMS), the loud one ≥ dyn.ratio × the soft
+              one, each held dyn.holdS; SNARE two hits' peaks (onsets), the same ratio; TOUCH order 4 marks softest → loudest
+     tempo    a tempo word + its mark, a count-in (the count-off rule), then keep the beat ALONE: `beats` taps / onsets,
+              the average within tempo.tol of the target and every gap within tempo.even of the average
    A wrong answer shakes the card (the caller keeps the block). hint: true = the note names show under the staff.
    card.close() · card.pause() / resume() · card.answer() (?demo / tests: the right answer through the real judging) ·
    card.want() (the note it waits for) · card.state() */
@@ -78,7 +86,9 @@ window.Arcade = window.Arcade || {};
       resume: () => { if (C === card && card.paused) { card.paused = false; if (card.onResume) card.onResume(); } },
       answer: () => { if (C === card && card.answer) card.answer(); },
       want: () => card.want ? card.want() : null,
-      state: () => ({kind: card.o.kind, i: card.i, done: card.done, paused: card.paused, phase: card.phase || null, hint: !!card.o.hint,
+      /** tests (?demo): an attack / tap at this time (performance.now() ms), at this level */
+      hit: (t, level) => { if (C === card && card.onHit) card.onHit(t, level); },
+      state: () => ({kind: card.o.kind, i: card.i, done: card.done, paused: card.paused, phase: card.phase || null, hint: !!card.o.hint, info: card.info || null,
         countOff: card.countOff ? {on: card.countOff.on, silentWhy: card.countOff.silentWhy, muteUntil: card.countOff.muteUntil,
           clicks: card.countOff.clicks.map(k => ({t: k.t, perf: k.perf, accent: k.accent, beat: k.beat}))} : null, t0: card.t0 || null}),
       get open() { return C === card; },
@@ -89,7 +99,7 @@ window.Arcade = window.Arcade || {};
     if (!C) return;
     const c = C; C = null;
     cancelAnimationFrame(c.raf); clearTimeout(c.tm); stopCountOff(c);
-    if (A.Pitch && A.DEMO) A.Pitch.demoNote = null;
+    if (A.Pitch && A.DEMO) { A.Pitch.demoNote = null; A.Pitch.demoLevel = null; }
     c.el.remove();
     document.body.classList.remove('bt-card-sheet');
     if (!silent && c.o.onClose) c.o.onClose();
@@ -99,7 +109,7 @@ window.Arcade = window.Arcade || {};
     if (c.done) return;
     c.done = true;
     cancelAnimationFrame(c.raf);
-    if (A.Pitch && A.DEMO) A.Pitch.demoNote = null;
+    if (A.Pitch && A.DEMO) { A.Pitch.demoNote = null; A.Pitch.demoLevel = null; }
     c.el.classList.add(ok ? 'good' : 'bad');
     if (why) c.say.textContent = why;
     c.tm = setTimeout(() => { if (C === c) { C = null; c.el.remove(); document.body.classList.remove('bt-card-sheet'); } c.o.onDone && c.o.onDone({ok, why}); }, ok ? 380 : R().wrongShowMs);
@@ -159,11 +169,26 @@ window.Arcade = window.Arcade || {};
   /** the staff rows' SVG for a list of items {n (the note as shown), color?, caption?}; opts {clef, sig, fit, availPx,
       captions, label, id (each note's id = id + its index)}. Returns {html, px (the drawing's smallest width), rows, W}. */
   function staffRows(items, o = {}) {
-    const L = layoutNotes(items.map(it => it.n), o), fit = o.fit || items.map(it => it.n);
+    const L = layoutNotes(items.map(it => it.n), o), box = staffBox(o.clef, items.map(it => it.n).concat(o.fit || []), !!o.captions);
     const html = L.rows.map((row, r) => `<div class="bt-srow">${A.staffSVG(o.clef, items.slice(row.from, row.to).map((it, k) => ({
       n: it.n, x: row.xs[k], id: o.id ? o.id + (row.from + k) : undefined, color: it.color, caption: it.caption || ''})),
-      {fit, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
-    return {html, px: L.px, rows: L.rows, W: L.W};
+      {box, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
+    return {html, px: L.px, rows: L.rows, W: L.W, box};
+  }
+  /** THE STAFF BOX GROWS TO FIT ITS NOTES (never a fixed height, so nothing is ever cut off): from every note's head, its
+      stem (up below the middle line, down on or above it: shared/ui.js), its ledger lines and its accidental, + a margin;
+      at least the staff itself (shared/ui.js's usual 30 … 146). Every row of a card uses the same box. Returns [top, height]. */
+  const MID = 88, STEM = 60, HEAD = 14, ACC_UP = 46, ACC_DOWN = 30, MARGIN = 6, CAPS = 34;
+  function staffBox(clef, notes, captions) {
+    let top = 30, bot = 146;
+    notes.forEach(n => {
+      if (!n) return;
+      const y = A.noteY(clef, n), acc = n.acc || n.natural;
+      top = Math.min(top, y - (y > MID ? STEM : HEAD) - MARGIN, acc ? y - ACC_UP - MARGIN : Infinity, y - 8 - MARGIN);   // the ledger lines reach the head
+      bot = Math.max(bot, y + (y > MID ? HEAD : STEM) + MARGIN, acc ? y + ACC_DOWN + MARGIN : -Infinity, y + 8 + MARGIN);
+    });
+    bot += captions ? CAPS : MARGIN;
+    return [Math.floor(top), Math.ceil(bot - top)];
   }
   /** the room a card's staff has on this screen (px): a sheet along the bottom on narrow screens, else up to 92vw */
   const sheetMode = () => innerWidth <= 760;
@@ -227,7 +252,7 @@ window.Arcade = window.Arcade || {};
   const KINDS = {
     notes(c) {
       const o = c.o, items = o.items;
-      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
+      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (o.note ? `<p class="bt-cnote">${esc(o.note)}</p>` : '') + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
       c.el.classList.toggle('wide', items.length > 4);
       draw();
       c.redraw = draw;                                                   // a turned / resized screen: laid out again
@@ -359,7 +384,7 @@ window.Arcade = window.Arcade || {};
         const pass = ok / Math.max(1, res.tg.length) >= RR.pass - 1e-9 && !res.extras.length;
         c.res = res;
         const early = res.tg.filter(t => t.res === 'early').length, late = res.tg.filter(t => t.res === 'late').length, miss = res.tg.filter(t => t.res === 'miss').length;
-        finish(c, pass, pass ? null : res.extras.length ? (rests ? 'A sound in a rest! Rests stay silent. Try again!' : 'An extra hit! Try again!')
+        finish(c, pass, pass ? null : res.extras.length ? (rests ? (o.mode === 'inst' ? 'A sound in a rest! Rests stay silent. Try again!' : 'A tap in a rest! Rests stay silent. Try again!') : o.mode === 'inst' ? 'An extra hit! Try again!' : 'An extra tap! Try again!')
           : miss ? 'A note was missed. Try again!' : early > late ? 'A little early! Stay with the pulse.' : 'A little late! Stay with the pulse.');
       }
       c.answer = () => {                                                      // tests: every note right on time
@@ -416,6 +441,157 @@ window.Arcade = window.Arcade || {};
       };
     },
   };
+  /* ---------- CHAPTER 6: INTERVAL (two notes, lower then higher) ---------- */
+  const IVL = ['', 'Unison', '2nd', '3rd', '4th', '5th', '6th', '7th', 'Octave'];
+  KINDS.interval = c => {
+    const o = c.o, size = o.size;
+    c.info = {size, name: IVL[size]};
+    if (o.mode === 'inst') {
+      KINDS.notes(c);
+      c.say.textContent = 'Play both notes: the lower one, then the higher one.';
+      return;
+    }
+    c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>`;
+    c.say.textContent = 'What interval?';
+    c.foot.innerHTML = `<div class="bt-choices bt-ivl">${IVL.slice(2).map((t, k) => `<button type="button" class="btn btn-secondary btn-small" data-n="${k + 2}">${t}</button>`).join('')}</div>`;
+    c.foot.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if (c.done || c.paused) return;
+      if (+b.dataset.n === size) { b.classList.add('good'); finish(c, true); }
+      else { b.classList.add('bad'); finish(c, false, `It was a ${IVL[size]}. Count the lines and spaces! The block stays: try again!`); }
+    }));
+    c.redraw = () => { const st = c.body.querySelector('.bt-staff'); if (st) st.innerHTML = staffFor(c); };
+    c.onKey = e => { const k = +e.key; if (k >= 2 && k <= 8) { const b = c.foot.querySelector(`[data-n="${k}"]`); if (b) { b.click(); return true; } } return false; };
+    c.answer = () => c.foot.querySelector(`[data-n="${size}"]`).click();
+  };
+
+  /* ---------- CHAPTER 6: KEY SIGNATURE (alone on the staff) ---------- */
+  KINDS.keysig = c => {
+    const o = c.o, S = A.Scales, all = S.LIST.filter(s => s.id !== 'chrom').map(s => S.build(o.member, s.id));
+    const pick = all.find(s => s.id === o.scale) || all[Math.floor(Math.random() * all.length)], tonic = pick.up[0];
+    const name = s => A.music.noteLabel(s.up[0]) + ' major';
+    c.info = {scale: pick.id, key: name(pick), tonicPc: tonic.pc};
+    c.body.innerHTML = `<div class="bt-staff">${A.staffSVG(o.clef, [], {fit: [tonic.show], keySig: pick.sig, width: 220, label: 'A key signature'})}</div>`;
+    c.want = () => tonic;
+    if (o.mode === 'inst') {
+      c.say.textContent = 'Which key is this? Play its first note (the tonic) on your instrument.';
+      c.onHeld = pc => { if (c.done || c.paused) return; if (pc === tonic.pc) finish(c, true); else finish(c, false, `That's not it: this key starts on ${A.music.noteLabel(tonic)}. Try again!`); };
+      c.answer = () => c.onHeld(tonic.pc);
+      if (A.Pitch) A.Pitch.ignoreCurrent();
+      return;
+    }
+    c.say.textContent = 'Which key is this?';
+    const order = all.slice().sort(() => Math.random() - .5);
+    c.foot.innerHTML = `<div class="bt-choices">${order.map(s => `<button type="button" class="btn btn-secondary btn-small" data-id="${s.id}">${esc(name(s))}</button>`).join('')}</div>`;
+    c.foot.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if (c.done || c.paused) return;
+      if (b.dataset.id === pick.id) { b.classList.add('good'); finish(c, true); }
+      else { b.classList.add('bad'); finish(c, false, `That was ${name(pick)}. The block stays: try again!`); }
+    }));
+    c.answer = () => c.foot.querySelector(`[data-id="${pick.id}"]`).click();
+  };
+
+  /* ---------- CHAPTER 6: DYNAMICS ("Play SOFT, then LOUD"; forgiving by design) ---------- */
+  KINDS.dynamics = c => {
+    const o = c.o, D = R().dyn, louder = 'Make the second one MUCH louder!';
+    if (o.mode !== 'inst') {                                                 // TOUCH: put 4 marks in order, softest to loudest
+      const marks = D.marks.slice(), keep = [];
+      while (keep.length < 4) { const k = Math.floor(Math.random() * marks.length); if (!keep.includes(k)) keep.push(k); }
+      const want = keep.slice().sort((a, b) => a - b), shown = keep.slice();
+      c.info = {order: want.map(k => marks[k])};
+      c.body.innerHTML = `<p class="bt-dynq">Softest → loudest</p><div class="bt-dynrow">${want.map(() => '<i></i>').join('')}</div>`;
+      c.say.textContent = 'Put these in order, softest to loudest.';
+      c.foot.innerHTML = `<div class="bt-choices bt-dyn">${shown.map(k => `<button type="button" class="btn btn-secondary bt-mark" data-k="${k}"><b>${marks[k]}</b></button>`).join('')}</div>`;
+      let next = 0;
+      const slots = [...c.body.querySelectorAll('.bt-dynrow i')];
+      c.foot.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        if (c.done || c.paused || b.disabled) return;
+        if (+b.dataset.k === want[next]) { b.disabled = true; b.classList.add('good'); slots[next].textContent = marks[want[next]]; next++; if (next >= want.length) finish(c, true); }
+        else { b.classList.add('bad'); finish(c, false, `Softest first: ${want.map(k => marks[k]).join(', ')}. Try again!`); }
+      }));
+      c.answer = () => want.forEach(k => { const b = c.foot.querySelector(`[data-k="${k}"]`); if (b) b.click(); });
+      return;
+    }
+    c.body.innerHTML = `<div class="bt-dynmarks"><b class="on">p</b><span>→</span><b>f</b></div><div class="bt-hold"><i></i></div><p class="bt-cents">Soft…</p>`;
+    const bar = c.body.querySelector('.bt-hold i'), ce = c.body.querySelector('.bt-cents'), mk = c.body.querySelectorAll('.bt-dynmarks b');
+    const toLoud = () => { c.phase = 'loud'; mk[0].classList.remove('on'); mk[1].classList.add('on'); ce.textContent = 'Now LOUD!'; c.say.textContent = 'Now play LOUD!'; };
+    c.phase = 'soft'; c.info = {soft: null, loud: null};
+    if (o.snare) {                                                           // the snare: a soft hit, then a loud hit (their peaks)
+      c.say.textContent = 'Play one SOFT hit, then one LOUD hit.';
+      let lastT = -1e9;
+      c.onHit = (t, level) => {
+        if (c.done || c.paused || t - lastT < 150) return; lastT = t;
+        const lv = level == null ? .3 : level;
+        if (c.phase === 'soft') { c.info.soft = lv; bar.style.transform = 'scaleX(.5)'; toLoud(); return; }
+        c.info.loud = lv; bar.style.transform = 'scaleX(1)';
+        if (lv >= D.ratio * c.info.soft) finish(c, true); else finish(c, false, louder);
+      };
+      c.answer = () => { if (!A.Onsets) return; const t = performance.now(); A.Onsets.fake(t, .08); setTimeout(() => A.Onsets.fake(performance.now(), .3), 400); };
+      return;
+    }
+    c.say.textContent = 'Play a note SOFT and hold it, then play it LOUD.';
+    c.want = () => o.item;
+    const need = D.holdS * 1000;
+    let last = 0, softT = 0, softSum = 0, loudT = 0, win = [];
+    c.onFrame = (r, level, now) => {
+      if (c.done || c.paused) { last = now; return; }
+      const dt = last ? Math.min(100, now - last) : 0; last = now;
+      if (A.Pitch.isSuppressed(now)) return;
+      if (c.demoAuto && A.DEMO) A.Pitch.demoLevel = c.phase === 'soft' ? .05 : .12;   // ?demo: Space plays it right
+      if (!r) return;
+      if (c.phase === 'soft') {
+        softT += dt; softSum += level * dt;
+        bar.style.transform = `scaleX(${Math.min(1, softT / need) * .5})`;
+        if (softT >= need) { c.info.soft = softSum / softT; toLoud(); }
+        return;
+      }
+      loudT += dt; win.push([now, level, dt]); win = win.filter(([t]) => now - t <= need);
+      const span = win.reduce((a, w) => a + w[2], 0), avg = win.reduce((a, w) => a + w[1] * w[2], 0) / Math.max(1, span);
+      c.info.loud = avg;
+      bar.style.transform = `scaleX(${.5 + Math.min(1, avg / (D.ratio * c.info.soft)) * .5})`;
+      if (span >= need * .95 && avg >= D.ratio * c.info.soft) finish(c, true);
+      else if (loudT >= D.failS * 1000) finish(c, false, louder);
+    };
+    c.answer = () => { c.demoAuto = true; if (A.Pitch) A.Pitch.demoNote = o.item.sounding; };
+  };
+
+  /* ---------- CHAPTER 6: TEMPO (a count-in, then keep the beat ALONE) ---------- */
+  KINDS.tempo = c => {
+    const o = c.o, T = R().tempo, RR = R().rhythm, beats = o.beats || 8, bpm = o.bpm, countS = 60 / bpm;
+    c.info = {bpm, word: o.word, beats};
+    c.body.innerHTML = `<div class="bt-tempo"><b>${esc(o.word)}</b><span>♩ = ${bpm}</span></div>` +
+      `<div class="bt-count" aria-live="polite"><b class="bt-beat"></b><span class="bt-dots">${Array.from({length: beats}, () => '<i></i>').join('')}</span></div>`;
+    c.say.textContent = o.mode === 'inst' ? `Count in with the light, then play ${beats} steady beats on your own.` : `Count in with the clicks, then TAP ${beats} steady beats on your own.`;
+    const beatEl = c.body.querySelector('.bt-beat'), dots = [...c.body.querySelectorAll('.bt-dots i')];
+    let start = 0, hits = [];
+    const t0 = () => start + T.countIn * countS;
+    const begin = () => { start = performance.now() / 1000 + RR.leadS; hits = []; c.phase = 'count'; c.t0 = t0() * 1000; countOff(c, {start, countS, num: T.countIn, t0: t0(), lateMs: RR.lateMs}); };
+    const judge = () => {
+      const gaps = hits.slice(1).map((t, k) => t - hits[k]), avg = gaps.reduce((a, g) => a + g, 0) / gaps.length, want = countS * 1000;
+      const off = (avg - want) / want, uneven = gaps.some(g => Math.abs(g - avg) / avg > T.even);
+      c.info.avg = avg; c.info.off = off;
+      if (uneven) return finish(c, false, 'Keep it steady: every beat the same! Try again!');
+      if (Math.abs(off) > T.tol) return finish(c, false, off < 0 ? 'Rushing! Stay with the tempo. Try again!' : 'Dragging! Stay with the tempo. Try again!');
+      finish(c, true);
+    };
+    const hit = t => {
+      if (c.done || c.paused || !start || t < (t0() - countS / 2) * 1000) return;
+      hits.push(t); dots.forEach((d, j) => d.classList.toggle('on', j < hits.length));
+      if (hits.length >= beats) judge();
+    };
+    c.onHit = t => hit(t);
+    tapPad(c, t => hit(t));
+    c.onPause = () => { start = 0; c.phase = 'wait'; stopCountOff(c); };
+    c.onResume = () => begin();
+    begin();
+    loop(c, now => {
+      const s = now / 1000;
+      if (!start) return;
+      if (s >= start && s < t0()) { c.phase = 'count'; beatEl.textContent = String(Math.floor((s - start) / countS) + 1); c.el.style.setProperty('--pulse', String(Math.max(0, 1 - ((s - start) % countS) / countS))); }
+      else if (s >= t0()) { c.phase = 'play'; beatEl.textContent = hits.length ? String(hits.length) : 'Go!'; c.el.style.setProperty('--pulse', '0'); }
+      if (s > t0() + beats * countS * 1.6 + 1) finish(c, false, `Keep going: ${beats} steady beats! Try again!`);
+    });
+    c.answer = () => { for (let k = 0; k < beats; k++) { const at = (t0() + k * countS) * 1000; setTimeout(() => { if (o.mode === 'inst' && A.Onsets) A.Onsets.fake(at); else hit(at); }, Math.max(0, at - performance.now())); } };
+  };
   KINDS.rest = KINDS.rhythm;
   function tapPad(c, hit) {
     if (c.o.mode === 'inst') return;
@@ -434,18 +610,19 @@ window.Arcade = window.Arcade || {};
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;      // typing in a field (the Recipe Book's search) is never an answer
     const k = e.key.toLowerCase();
     if (e.key === 'Escape') return;
-    if (A.DEMO && C.o.mode === 'inst' && (k === ' ' || k === 'w') && C.want && !e.repeat) {
-      const w = C.want(); if (w && A.Pitch) { A.Pitch.demoNote = k === ' ' ? w.sounding : w.sounding + 2; e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (A.DEMO && C.o.mode === 'inst' && (k === ' ' || k === 'w') && C.want && !e.repeat && !(C.o.kind === 'dynamics' && C.o.snare)) {
+      const w = C.want(); if (w && A.Pitch) { A.Pitch.demoNote = k === ' ' ? w.sounding : w.sounding + 2; if (C.o.kind === 'dynamics') C.demoAuto = k === ' '; e.preventDefault(); e.stopImmediatePropagation(); return; }
     }
-    if (A.DEMO && k === ' ' && !e.repeat && (C.o.kind === 'rhythm' || C.o.kind === 'rest' || C.o.kind === 'count' || C.o.kind === 'roll') && C.o.mode === 'inst' && A.Onsets) {
-      A.Onsets.fake(); e.preventDefault(); e.stopImmediatePropagation(); return;
+    // ?demo: Space = a hit (rhythms, counts, rolls, the tempo card; the snare's dynamics: tap Space soft, then Shift+Space loud)
+    if (A.DEMO && k === ' ' && !e.repeat && (['rhythm', 'rest', 'count', 'roll', 'tempo'].includes(C.o.kind) || C.o.kind === 'dynamics') && C.o.mode === 'inst' && A.Onsets) {
+      A.Onsets.fake(performance.now(), C.o.kind === 'dynamics' ? (e.shiftKey ? .3 : .08) : .3); e.preventDefault(); e.stopImmediatePropagation(); return;
     }
     if (C.onKey && !e.repeat && C.onKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
   addEventListener('keyup', e => { if (A.DEMO && C && A.Pitch && (e.key === ' ' || e.key.toLowerCase() === 'w')) A.Pitch.demoNote = null; });
   addEventListener('resize', () => { if (C) { if (C.redraw) C.redraw(); place(C.el, C.o.at); } });
 
-  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, headRight,
+  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, staffBox, headRight,
     /** keep the open card beside its block as the camera moves (the game calls it a few times a second) */
     follow() { if (C && typeof C.o.at === 'function') place(C.el, C.o.at); }};
 })(window.Arcade);

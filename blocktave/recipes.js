@@ -2,7 +2,9 @@
 
    THE ITEMS: id (never rename: saved worlds use it) → {name, kind, block?, tier?, desc, found?}
      kind  'material' (dropped when you lose all hearts: dropShare in rules.js) | 'block' (placeable, also dropped) |
-           'tool' (a mallet: never dropped) | 'use' (eaten or used from the hotbar)
+           'tool' (a mallet: never dropped) | 'use' (eaten or used from the hotbar) |
+           'gear' (works while it's ANYWHERE in the hotbar: boots, the glider, the sonar fork; never placed, never dropped;
+           a small badge on its hotbar slot)
      hotbar true = a tool that lives in the HOTBAR (the Neon Torch: it lights the dark while it's in any hotbar slot)
      block the block it places (world.js BLOCKS); tier: a tool's tier (rules.js tools)
      desc  the tooltip's one line (hover, focus or a long-press on any item: written for 6th graders)
@@ -48,6 +50,23 @@ window.BT_ITEMS = {
   baton:     {name: 'Golden Baton', kind: 'tool', tier: 4, desc: 'The Golden Baton: the best tool. It mines everything, and long tones and rolls get shorter.'},
   torch:     {name: 'Neon Torch', kind: 'tool', tier: 0, hotbar: true, desc: 'A glowing neon tube on a handle. Keep it in your hotbar and it lights the dark around you, at night and underground.'},
   snack:     {name: 'Snack Bag', kind: 'use', desc: 'A bag of snacks. Tap its hotbar slot twice to eat it and get hearts back.'},
+  // --- added with Chapter 6 (APPEND ONLY: never rename an id) ---
+  basscrystal:   {name: 'Bass Crystal', kind: 'material', desc: 'A deep violet crystal that rumbles low, like a tuba\'s lowest note.', found: 'Rumble Ore at the very bottom of the Bass Depths (read the low notes)'},
+  treblecrystal: {name: 'Treble Crystal', kind: 'material', desc: 'An icy crystal that rings high, like a piccolo.', found: 'Piccolo Quartz at the very top of the Treble Peaks (read the high notes)'},
+  harmony:       {name: 'Harmony Stone', kind: 'material', desc: 'A stone with two notes glowing inside it: an interval you can hold.', found: 'Interval Geodes in the walls of caves (name the interval)'},
+  keyshard:      {name: 'Key Shard', kind: 'material', desc: 'A golden shard with flats inside. It always knows what key it\'s in.', found: 'Key Quartz deep in the Brass Mountains\' rock (read the key signature)'},
+  coralpearl:    {name: 'Coral Pearl', kind: 'material', desc: 'A pearl that glows softer or brighter, like a crescendo.', found: 'Dynamic Coral on the bottom of the marsh pools (play soft, then loud)'},
+  amberbeat:     {name: 'Amber Beat', kind: 'material', desc: 'Warm amber with a tiny pendulum frozen inside. It still keeps time.', found: 'Tempo Amber deep under Percussion Canyon (keep a steady beat)'},
+  trampoline:    {name: 'Timpani Trampoline', kind: 'block', block: 'trampoline', desc: 'A bouncy drum head. Land on it and BOING: you fly 6 blocks up (hold JUMP for one more).'},
+  tubaboots:     {name: 'Tuba Boots', kind: 'gear', desc: 'Heavy, springy boots. Keep them in your hotbar and you jump one block higher.'},
+  glider:        {name: 'Piccolo Glider', kind: 'gear', desc: 'A tiny glider. Keep it in your hotbar, then hold JUMP while falling to float down slowly.'},
+  segno:         {name: 'Segno Sign', kind: 'block', block: 'segno', desc: 'The "go back to the sign" sign. Tap it in BUILD mode to travel to its Coda Sign.'},
+  coda:          {name: 'Coda Sign', kind: 'block', block: 'coda', desc: 'The coda sign. Tap it in BUILD mode to travel back to its Segno Sign.'},
+  grandgem:      {name: 'Grand Staff Gem', kind: 'material', desc: 'Treble and bass joined together: the rarest gem. The Sonar Tuning Fork and the Pipe Organ need it.'},
+  sonarfork:     {name: 'Sonar Tuning Fork', kind: 'gear', desc: 'Tap its hotbar slot twice and pick an ore: an arrow points to the nearest one.'},
+  organ:         {name: 'Pipe Organ', kind: 'block', block: 'organ', desc: 'A grand pipe organ, 2 blocks wide and 3 tall. Tap it in BUILD mode for a chord. It counts as the Band Hall\'s Music Stand.'},
+  accelboots:    {name: 'Accelerando Boots', kind: 'gear', desc: 'Speedy boots. Keep them in your hotbar and you walk faster.'},
+  corallamp:     {name: 'Coral Lamp', kind: 'block', block: 'corallamp', desc: 'A soft teal lamp that works even under water. Nothing spooky appears in its light.'},
 };
 
 /* THE RECIPES: a recipe is a MEASURE of up to 4 ingredients IN ORDER (like notes in a bar: the same ingredients in
@@ -58,7 +77,7 @@ window.BT_ITEMS = {
      perf    the performance: 'note' (one note; TOUCH: tap its name) | 'notes3' (three notes) | 'beats' (4 steady quarter
              notes) | 'longtone' (a 4-second in-tune long tone; TOUCH: a key-signature question; Snare: an even roll) |
              'scale' (the Concert B♭ scale up; TOUCH: tap its notes in order; Snare: a rhythm)
-     out     the item made, n how many
+     out     the item made, n how many; also {item: n} more items made with it (D.S. al Coda: a Segno AND a Coda)
      bench   true = needs a Luthier's Bench nearby (rules.js benchRange)
    A recipe is FOUND (it shows in the Recipe Book) the first time you hold all its ingredients. */
 window.BT_RECIPES = [
@@ -92,13 +111,24 @@ window.BT_RECIPES = [
   {id: 'luthiers-bench', name: "Luthier's Bench",     in: ['planks', 'planks', 'planks', 'cork'], perf: 'note',     out: 'bench',   n: 1},
   // --- added later (append only: never reorder) ---
   {id: 'neon-torch',     name: 'Neon Torch',          in: ['planks', 'tone'],                     perf: 'note',     out: 'torch',   n: 1},
+  // --- Chapter 6: Grand Staff ---
+  {id: 'timpani-trampoline', name: 'Timpani Trampoline', in: ['rawhide', 'planks', 'basscrystal'],     perf: 'note',     out: 'trampoline', n: 2},
+  {id: 'tuba-boots',     name: 'Tuba Boots',          in: ['basscrystal', 'rawhide', 'brass'],     perf: 'notes3',   out: 'tubaboots', n: 1, bench: true},
+  {id: 'piccolo-glider', name: 'Piccolo Glider',      in: ['treblecrystal', 'felt', 'reed'],       perf: 'notes3',   out: 'glider',  n: 1, bench: true},
+  {id: 'ds-al-coda',     name: 'D.S. al Coda Signs',  in: ['keyshard', 'planks', 'planks'],        perf: 'scale',    out: 'segno',   n: 1, also: {coda: 1}, bench: true},
+  {id: 'grand-staff-gem', name: 'Grand Staff Gem',    in: ['basscrystal', 'treblecrystal', 'harmony'], perf: 'longtone', out: 'grandgem', n: 1, bench: true},
+  {id: 'sonar-fork',     name: 'Sonar Tuning Fork',   in: ['grandgem', 'brass'],                   perf: 'note',     out: 'sonarfork', n: 1, bench: true},
+  {id: 'pipe-organ',     name: 'Pipe Organ',          in: ['grandgem', 'planks', 'planks', 'brass'], perf: 'scale',  out: 'organ',   n: 1, bench: true},
+  {id: 'accelerando-boots', name: 'Accelerando Boots', in: ['amberbeat', 'rawhide', 'spring'],     perf: 'beats',    out: 'accelboots', n: 1, bench: true},
+  {id: 'coral-lamp',     name: 'Coral Lamp',          in: ['coralpearl', 'glass'],                 perf: 'note',     out: 'corallamp', n: 2},
 ];
 
-/* THE CHAPTERS: 5 chapters × 3 MILESTONES = the game's 15 stars (games.js maxStars). Stars come ONLY from these,
+/* THE CHAPTERS: 6 chapters × 3 MILESTONES = the game's 18 stars (games.js maxStars). Stars come ONLY from these,
    never from mining or building more. Saved as setLevel('blocktave', member, chapter, {stars}) (per instrument).
    Chapter numbers are levels: never reorder. Each milestone's `id` is saved: never rename.
      test  what completes it (game.js MILESTONE checks): see each line
-     hint  the "How?" line the in-game goals panel shows under the current unfinished goal (optional) */
+     hint  the "How?" line the in-game goals panel shows under the current unfinished goal (optional)
+   Chapter 6 shows (the chapter list, the goals box) once Chapter rules.js newChapter (5) has a star. */
 /* recipes the Recipe Book always shows (with their ingredients), found or not: the way to the first mallet and shelter */
 window.BT_ALWAYS_SHOWN = ['maple-planks', 'wooden-mallet', 'door'];
 window.BT_CHAPTERS = [
@@ -125,4 +155,12 @@ window.BT_CHAPTERS = [
     {id: 'hall',    text: 'Build the Band Hall'},                         // rules.js bandHall
     {id: 'row8',    text: 'Power a Composer row of 8 notes'},             // rules.js goals.row
     {id: 'baton',   text: 'Make the Golden Baton'}]},
+  // --- added later (APPEND ONLY) ---
+  {name: 'Grand Staff', goals: [
+    {id: 'extremes', text: 'Mine Rumble Ore AND Piccolo Quartz',          // both mined at least once (this instrument)
+     hint: 'Rumble Ore hides at the very bottom of the Bass Depths; Piccolo Quartz at the very top of the Treble Peaks. Both need a Brass Mallet.'},
+    {id: 'coda',     text: 'Build D.S. al Coda signs and travel through them',   // a pair placed, and used once
+     hint: 'Key Shard, Planks, Planks at a Luthier\'s Bench. Place both signs, then tap one in BUILD mode.'},
+    {id: 'grandgem', text: 'Make the Grand Staff Gem',                    // crafted once
+     hint: 'Bass Crystal, Treble Crystal, Harmony Stone at a Luthier\'s Bench.'}]},
 ];

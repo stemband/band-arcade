@@ -197,6 +197,43 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
   .bt-result-col{min-width:0;flex-basis:auto}
   .bt-result{min-height:96px}
 }
+/* THE CRAFT PANEL'S LAYOUT: the bench, YOUR MATERIALS right under it, then the Recipe Book. WIDE (.wide, the panel can be
+   ≥ 820 px: rules.js craftWide) with the book open = two columns, each with its own scroll; NARROW = the bench sticky at
+   the top of the panel (its wood background) and the tabs Materials | Recipe Book under it */
+.bt-craft-tip{margin:0 0 6px;color:var(--bt-moss);font-weight:700;font-size:14px;line-height:1.3}
+.bt-craft.wide.book{width:min(1180px,calc(100% - 20px));display:flex;flex-direction:column;overflow:hidden}
+.bt-craft.wide.book .bt-craft-cols{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,620px) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:14px}
+.bt-craft.wide.book .bt-craft-main,.bt-craft.wide.book .bt-bookwrap{min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.bt-craft.wide.book .bt-bookwrap{padding-right:4px;border-left:2px solid var(--floor-3);padding-left:12px}
+.bt-craft.wide.book .bt-search{margin-top:0;max-width:none}
+.bt-craft.wide.book .bt-craft-main{padding:4px 4px 0 0}
+.bt-craft .bt-bench{position:sticky;top:-12px;z-index:2;margin-top:0}
+.bt-craft.wide.book .bt-bench{top:-4px}   /* (the left column scrolls by itself: its own padding) */
+.bt-tabs{display:flex;gap:6px;margin:4px 0 8px}
+.bt-tabs[hidden]{display:none}
+.bt-tabs [role=tab]{flex:1;min-height:48px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:400 16px/1 var(--display);letter-spacing:.03em;cursor:pointer;touch-action:manipulation}
+.bt-tabs [role=tab][aria-selected=true]{border-color:var(--bt-moss);background:color-mix(in srgb,var(--bt-moss) 22%,var(--floor-2));color:var(--text-hi)}
+.bt-tabs [role=tab]:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+/* dragging a material: the empty slots light up as drop targets (a drop anywhere on the bench = the next empty slot) */
+.bt-bench.dragging .bt-slot:not(.full){border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 18%,var(--bt-slot-bg))}
+.bt-bench.dragging .bt-slot:not(.full) .bt-plus{color:var(--yellow-hi);opacity:1}
+@media (prefers-reduced-motion:no-preference){.bt-bench.dragging .bt-slot:not(.full){transition:background .15s,border-color .15s}}
+/* a phone: the sticky bench stays short (the 4 slots in one row, the result beside MAKE IT) so the materials have room */
+@media (max-width:520px){
+  .bt-bench{padding:16px 8px 8px}
+  .bt-bench-say{font-size:13px;margin-bottom:4px}
+  .bt-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .bt-slot{width:min(70px,100%);height:auto;aspect-ratio:1;min-width:64px}
+  .bt-slot img{width:30px;height:30px}
+  .bt-slotname{font-size:11px;max-width:62px}
+  .bt-slotcap{display:none}
+  .bt-arrow{display:none}
+  .bt-result-col{flex-direction:row;align-items:stretch}
+  .bt-result{flex:1 1 auto;min-height:72px;flex-direction:row;flex-wrap:wrap;gap:2px 6px;font-size:13px}
+  .bt-result img{width:32px;height:32px}
+  .bt-make{width:auto;flex:0 0 auto;min-width:96px}
+  .bt-craft .ui-kicker small{display:block;margin:2px 0 0}
+}
 /* THE RECIPE BOOK'S SEARCH: ≥ 44 px, a ✕ to clear; matches highlighted with <mark> */
 .bt-search{position:relative;display:flex;align-items:center;margin:6px 0 2px;max-width:420px}
 .bt-search-ico{position:absolute;left:12px;pointer-events:none;font-size:16px}
@@ -244,6 +281,9 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-rstaff svg{width:100%;height:auto;display:block;max-height:34vh}
 .bt-rstaff{color:var(--ink)}
 .bt-ph{stroke:var(--blue-ink);stroke-width:3}
+.bt-cnote{margin:0 0 2px;color:var(--bt-moss);font-size:14px;font-weight:700}
+/* a sheet along the bottom (phones) never leaves the screen: it scrolls inside itself rather than clip a tall staff */
+.bt-card.sheet{max-height:calc(100vh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain}
 .bt-prog{margin:0;text-align:right;color:var(--text-lo);font-size:13px}
 .bt-card-say{margin:4px 0;color:var(--text-hi);font-size:15px;min-height:1.3em}
 .bt-hold{height:14px;border-radius:8px;background:var(--floor-3);overflow:hidden;margin:6px 0}
@@ -285,3 +325,22 @@ html.no-motion .bt-card.bad{animation:none}
 /* screen readers only (the pickups' words) */
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .bt-craft .ui-kicker small{text-transform:none;letter-spacing:0;font:400 13px var(--text);color:var(--text-lo);margin-left:6px}
+/* ---------- CHAPTER 6 ---------- */
+/* gear: a small badge on its hotbar slot (it works while it's anywhere in the hotbar) */
+.bt-gearbadge{position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:var(--bt-mine);box-shadow:0 0 0 2px var(--bt-ink)}
+.bt-sonar .bt-chip.sel{border-color:var(--bt-mine)}
+.bt-new{font-style:normal;color:var(--bt-build);font-size:.8em;margin-left:4px}
+/* D.S. al Coda travel: the same soft overlay as the jitters, in teal */
+.bt-jitter.warp{background:radial-gradient(circle,color-mix(in srgb,var(--bt-mine) 22%,transparent),rgba(5,8,20,.82) 70%)}
+/* the INTERVAL card's answers; DYNAMICS; TEMPO */
+.bt-ivl{grid-template-columns:repeat(4,1fr)}
+.bt-dynmarks{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0;font:italic 700 40px/1 Georgia,"Times New Roman",serif;color:var(--text-lo)}
+.bt-dynmarks b.on{color:var(--bt-build)}
+.bt-dynq{margin:2px 0;text-align:center;color:var(--text-lo);font-size:14px}
+.bt-dynrow{display:flex;justify-content:center;gap:8px;margin:6px 0}
+.bt-dynrow i{width:52px;height:44px;border-radius:10px;border:2px dashed var(--floor-3);display:flex;align-items:center;justify-content:center;font:italic 700 22px Georgia,serif;color:var(--bt-mine)}
+.bt-mark b{font:italic 700 22px Georgia,"Times New Roman",serif}
+.bt-dyn{grid-template-columns:repeat(4,1fr)}
+.bt-tempo{display:flex;align-items:baseline;justify-content:center;gap:12px;margin:8px 0}
+.bt-tempo b{font:400 28px/1 var(--display);color:var(--bt-build)}
+.bt-tempo span{font:700 22px var(--text);color:var(--text-hi)}

@@ -57,6 +57,11 @@ window.BT_RULES = {
   instrumentBonus: 2,         // INSTRUMENT mode drops this many times what TOUCH mode drops (playing is always worth more)
   hintAfterWrong: 3,          // this many wrong answers in a row show the note name as a hint
   otherClefNames: 5,          // the first this-many cards in the OTHER clef show the note name small under the staff
+  otherRange: {treble: [55, 84, 71], bass: [36, 64, 50]},   // an OTHER clef's comfortable written range [low, high, the staff's middle line] (MIDI): single notes are filtered to it, scales moved by octaves into it
+  craftWide: 820,             // the CRAFT panel at least this wide (px): two columns (the bench + materials | the Recipe Book); narrower = sticky bench + tabs
+  craftGutter: 20,            // the panel's margin from the window edges (px), as in style.css .bt-panel
+  dragEdge: 70,               // dragging a material within this many px of the top of the scrolling area scrolls it toward the slots
+  dragScroll: 14,             // … by up to this many px a frame
   wrongShowMs: 900,           // a wrong answer: the card shakes this long, then closes (the block stays)
   // notes a challenge asks for, by block kind and tool: [hands, Wooden Mallet, Brass Mallet, Silver Mallet, Golden Baton]
   // (0 = that tool can't mine it)
@@ -66,6 +71,13 @@ window.BT_RULES = {
     sustain: [0, 0, 0, 1, 1],       // Sustain Stone: Silver Mallet or better
     rhythm:  [0, 1, 1, 1, 1],       // Rhythm Rock: measures of rhythm
     rest:    [0, 0, 0, 1, 1],       // Rest Crystal: Silver Mallet or better
+    // (added with Chapter 6: the six new ores)
+    lowread:  [0, 0, 3, 3, 2],      // Rumble Ore: low notes (ledger lines BELOW the bass staff), going down
+    highread: [0, 0, 3, 3, 2],      // Piccolo Quartz: high notes (ledger lines ABOVE the treble staff), going up
+    interval: [0, 1, 1, 1, 1],      // Interval Geode: one interval (two notes, lower then higher)
+    keysig:   [0, 0, 1, 1, 1],      // Key Quartz: one key signature
+    dynamics: [0, 1, 1, 1, 1],      // Dynamic Coral: soft, then loud
+    tempo:    [0, 0, 8, 8, 6],      // Tempo Amber: this many steady beats alone after the count-in
   },
   sustainS: 3,                // Sustain Stone (INSTRUMENT): hold one steady note this long …
   sustainBatonS: 2,           // … this long with the Golden Baton (shorter challenges)
@@ -87,7 +99,50 @@ window.BT_RULES = {
   /* ---------- TOOLS: what each tier can mine (a block's `tier` in world.js) ---------- */
   tools: ['Hands', 'Wooden Mallet', 'Brass Mallet', 'Silver Mallet', 'Golden Baton'],
   /* ---------- DROPS (TOUCH mode; INSTRUMENT mode × instrumentBonus) ---------- */
-  drops: {tone: 1, scale: 1, sustain: 1, rhythm: 1, rest: 1, tap: 1},
+  drops: {tone: 1, scale: 1, sustain: 1, rhythm: 1, rest: 1, tap: 1, lowread: 1, highread: 1, interval: 1, keysig: 1, dynamics: 1, tempo: 1},
+  /* ---------- THE SIX ORES OF CHAPTER 6 (world.js placeOres2: new worlds, and once into every older saved world) ----------
+     Each rate = the chance that one tile where that ore may form becomes it (tuned for about: Rumble 25, Piccolo 20,
+     Geode 40, Key 30, Coral 20, Amber 25 a world). */
+  ores: {
+    rumbleBelow: 12,          // Rumble Ore: Bass Depths only, at least this many rows below deepY, on a cave's wall …
+    rumbleRate: .065,
+    piccoloAbove: 4,          // Piccolo Quartz: Treble Peaks only, at least this many rows above peaksY, on the mountain's face
+    piccoloRate: .47,
+    geodeRate: .082,          // Interval Geode: the walls of middle-layer caves, anywhere
+    keyBelow: 3,              // Key Quartz: Brass Mountains rock, at least this many rows under the ground (never the surface)
+    keyRate: .011,
+    coralRate: .6,            // Dynamic Coral: the beds of Reed Marsh pools (under water)
+    amberBelow: 10,           // Tempo Amber: Percussion Canyon, at least this many rows under the ground
+    amberRate: .0076,
+    minReach: 6,              // every world has at least this many Rumble Ore and Piccolo Quartz on an open face (reachable)
+    keepAway: 6,              // the one-time pass into an OLDER world: never this close to anything the player built
+  },
+  /* DYNAMIC CORAL's card: "Play SOFT, then LOUD" (forgiving by design) */
+  dyn: {
+    holdS: .8,                // hold the soft note this long, then the loud one this long …
+    ratio: 1.8,               // … the loud one at least this many times the soft one's level (the snare: its hits' peaks)
+    failS: 4,                 // the loud part sounding this long without getting loud enough = "Make the second one MUCH louder!"
+    marks: ['pp', 'p', 'mp', 'mf', 'f', 'ff'],   // TOUCH: 4 of these, shuffled, tapped softest to loudest
+  },
+  /* TEMPO AMBER's card: a tempo word + its mark, a 4-beat count-in, then keep the beat ALONE */
+  tempo: {
+    choices: [66, 92, 112, 132],   // the BPMs (the word comes from Tune Up's metronome, TEMPO_WORDS)
+    countIn: 4,               // beats of count-in (TOUCH: clicks you can hear; INSTRUMENT: the count-off rule)
+    tol: .08,                 // the average beat within this share of the target …
+    even: .2,                 // … and every gap within this share of the average
+  },
+  /* ---------- CHAPTER 6'S GEAR AND BLOCKS (recipes.js: kind 'gear' works while it's anywhere in the hotbar) ---------- */
+  trampoline: {boost: 6, holdBoost: 1, minFall: 3},   // a Timpani Trampoline launches you boost tiles up (+holdBoost holding JUMP),
+                                                       // landing on it faster than minFall tiles a second
+  gear: {
+    jumpPlus: 1,              // Tuba Boots: jump this many tiles higher
+    glideSpeed: 2.2,          // Piccolo Glider: hold JUMP while falling = fall no faster than this (tiles a second)
+    speedPlus: .3,            // Accelerando Boots: walk this much faster (they stack with Tuba Boots)
+  },
+  signs: {maxPairs: 3, safe: 8, hurtS: 3, fadeMs: 700},   // D.S. al Coda Signs: pairs a world; no travel at night with a creature
+                                                         // this close, or hurt in the last hurtS seconds; the fade
+  sonar: {range: 80},         // the Sonar Tuning Fork points to the nearest chosen ore this close (tiles)
+  organ: {chordMs: 1100},     // the Pipe Organ's major chord (tones.js; never while a card is open or the mic listens)
   /* ---------- LIGHT ---------- */
   light: {
     lampRadius: 7,            // a Stage Lamp lights this far
@@ -220,4 +275,5 @@ window.BT_RULES = {
   endless: {dayS: 45, nightS: 120, startS: 30, hearts: 5, kit: {mallet1: 1, lamp: 2, snack: 3}},
   /* ---------- THE MILESTONES' NUMBERS ---------- */
   goals: {toneOre: 10, clams: 5, wisps: 3, row: 8},
+  newChapter: 5,              // Chapter 6 shows once this chapter has at least one star
 };
