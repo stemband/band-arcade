@@ -185,7 +185,7 @@
       p.idx = 0; p.score = 0; p.target = null; p.lastPc = null; p.returns = 0; p.smashes = 0; p.best = null;
     });
     M = {points: saved.settings.points, server: 0, active: null, state: 'idle', noteAt: 0, rally: 0, base: RULES.serveTime,
-         puck: {u: .12, v: 0, path: null, t0: 0, T: 1, seg: 0}, trail: [], fx: [], shake: 0, over: false};
+         puck: {u: .12, v: 0, path: null, t0: 0, T: 1, seg: 0}, trail: [], fx: [], shake: 0, over: false, shots: [], look: {}};
     A.UI.results.hide(); $('setup').hidden = true; $('match').hidden = false;
     document.body.classList.add('in-match');
     pause.setActive(true);
@@ -215,6 +215,7 @@
     const u = server === 0 ? .12 : .88;
     M.puck = {u, v: 0, path: null, t0: now(), T: 1, seg: 0}; M.trail = [];
     P.forEach((q, k) => { $('side' + (k + 1)).classList.remove('active', 'dim', 'waiting', 'live'); $('side' + (k + 1)).querySelector('.s-note').innerHTML = ''; setStatus(k, '', ''); });
+    document.querySelectorAll('.s-incoming').forEach(el => { el.hidden = true; });
     setStatus(server, `${P[server].cpu ? P[server].name : 'Player ' + (server + 1)} serves`, '');
     const m = M;
     A.countdown({style, voicePrefix: 'faceoff', go: true, delay, steps: RULES.countdown,
@@ -242,7 +243,7 @@
      countdown's "GO!" (nothing mutes the mic then), so it is live at once. */
   function beginTurn(i, serve) {
     const p = P[i], other = P[1 - i];
-    M.active = i; M.noteAt = 0; M.serveTurn = serve; M.live = false;
+    M.active = i; M.noteAt = 0; M.serveTurn = serve; M.live = false; M.turn = (M.turn || 0) + 1;
     if (!serve) sound('your-turn', rally());
     if (!p.cpu) {
       A.Pitch.setInstrument(p.group);
@@ -275,12 +276,15 @@
     if (A.Pitch.isSuppressed(t)) return;
     const i = M.active, p = P[i];
     M.live = true; M.noteAt = t; M.liveWait = Math.round(t - M.pendingAt);
-    if (M.state === 'travel') { M.puck.t0 = t; M.puck.hold = false; }
+    if (M.state === 'travel') { M.puck.t0 = t; M.puck.hold = false; M.shots[M.shots.length - 1].start = t; }
     const side = $('side' + (i + 1));
     side.classList.remove('waiting'); side.classList.add('live');
     setStatus(i, p.cpu ? (M.serveTurn ? 'Serving…' : 'Coming back…') : M.serveTurn ? 'YOUR SERVE' : 'YOUR TURN', p.cpu ? '' : 'turn');
     if (p.cpu) cpuTurn(i);
-    else if (M.serveTurn) later(() => { if (M.active === i && M.state === 'serve' && M.noteAt) strike(i, RULES.serveMax, true); }, RULES.serveMax * 1000);
+    else if (M.serveTurn) {                          // only THIS serve (an earlier serve's timer never fires on a later one)
+      const turn = M.turn;
+      later(() => { if (M.turn === turn && M.active === i && M.state === 'serve' && M.noteAt) strike(i, RULES.serveMax, true); }, RULES.serveMax * 1000);
+    }
   }
   function drawNote(i, it) {
     const p = P[i], sigW = A.keySigWidth(p.seq.sig), W = 250 + sigW;
@@ -303,24 +307,35 @@
     else setStatus(M.active, `That's ${p.seq.name(pc)}. Look again!`, 'bad');   // nothing happens to the puck; time keeps running
   });
 
-  /* a strike: power from the reaction time; the shot never gives the receiver less than their minimum window */
+  /** THE CROSSING TIME (seconds) of a shot with power `pw` at this rally `base` toward a receiver with this `window`:
+      each power has its own minimum (a share of the receiver's window), never under RULES.hardMin (levels.js) */
+  const crossTime = (pw, base, window) => Math.max(base * pw.factor, window * pw.minShare, RULES.hardMin);
+  /* a strike: power from the reaction time; a SMASH gives the receiver only a share of their window (never under hardMin) */
   function strike(i, reaction, auto) {
     const p = P[i], q = P[1 - i], pw = auto ? RULES.power[RULES.power.length - 1] : RULES.power.find(x => reaction < x.under);
     const wasServe = M.state === 'serve';
     if (!wasServe) M.base *= RULES.rallySpeedUp;                          // each return speeds the rally up
-    const T = Math.max(M.base * pw.factor, q.window);                     // the puck starts when the receiver's mic listens
+    const T = crossTime(pw, M.base, q.window);                            // the puck starts when the receiver's mic listens
+    M.shots.push({power: pw.label, from: i, base: M.base, window: q.window, T, reaction, at: now(), start: 0, crossed: null});
     p.lastPc = p.target.pc; p.returns += wasServe ? 0 : 1; if (pw.label === 'SMASH!') p.smashes++;
     if (!auto && (p.best === null || reaction < p.best)) p.best = reaction;
     M.rally++;
     sound(pw.sound, rally());                                               // mutes the mic at most maxHitSuppressMs
     const from = {u: M.puck.u, v: M.puck.v}, goalU = i === 0 ? 1 : 0;
-    M.puck = {u: from.u, v: from.v, path: makePath(from, goalU), t0: now(), T: T * 1000, seg: 0, power: pw.label, hold: true};
+    M.puck = {u: from.u, v: from.v, path: makePath(from, goalU), t0: now(), T: T * 1000, seg: 0, power: pw.label, color: p.color, hold: true};
     M.state = 'travel'; M.noteAt = 0; M.live = false;
     $('side' + (i + 1)).classList.remove('waiting', 'live');
     M.fx.push({u: from.u, v: from.v, t0: now(), label: pw.label, color: p.color, big: pw.label === 'SMASH!' || pw.label === 'POWER'});
     if (pw.label === 'SMASH!' && !reduced.matches) M.shake = now() + 260;
     setStatus(i, `${pw.label}${auto ? '' : ' ' + reaction.toFixed(2) + ' s'}`, 'power ' + pw.label.replace('!', '').toLowerCase());
     beginTurn(1 - i, false);
+    if (pw.label === 'SMASH!') incoming(1 - i);
+  }
+  /** a quick "INCOMING!" on the receiver's panel when a smash comes at them (no animation with reduced motion) */
+  function incoming(k) {
+    const el = $('side' + (k + 1)).querySelector('.s-incoming'); if (!el) return;
+    el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+    const m = M; later(() => { if (M === m) el.hidden = true; }, RULES.incomingMs);
   }
   /* the puck's path to the goal: straight or off one or two side rails (travel time is what matters, not the path) */
   function makePath(from, goalU) {
@@ -413,6 +428,8 @@
       else if (e.key === 'w' || e.key === 'W') A.Pitch.demoNote = t.sounding + 2;
     });
     addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'w' || e.key === 'W') A.Pitch.demoNote = null; });
+    /* for tests: the active (human, live) player strikes with exactly this reaction time (the detector's own timing aside) */
+    A.FaceOffDemoHit = reaction => { if (M && !M.over && M.live && M.active !== null && !P[M.active].cpu && (M.state === 'serve' || M.state === 'travel')) strike(M.active, reaction); };
   }
 
   /* ---------- the table: canvas, requestAnimationFrame, cheap glow ---------- */
@@ -457,7 +474,9 @@
       const pos = puckAt(t);
       if (pos.seg !== M.puck.seg) { if (M.puck.seg && M.puck.path.pts[M.puck.seg].bounce && (t < A.Pitch.suppressedUntil || P[M.active].cpu)) sound('rail-bounce'); M.puck.seg = pos.seg; }
       M.puck.u = pos.u; M.puck.v = pos.v;
-      if (pos.done && !M.over) goal(M.active);
+      // for tests: the crossing time, bracketed by the last frame before the goal and the goal's frame
+      if (pos.done && !M.over) { const sh = M.shots[M.shots.length - 1]; if (sh) { sh.crossed = t - M.puck.t0; sh.before = (M.puck.seen || t) - M.puck.t0; } goal(M.active); }
+      else if (!M.puck.hold) M.puck.seen = t;
     }
     draw(t);
   }
@@ -495,16 +514,42 @@
       c.beginPath(); c.arc(mx, my, pr * .55, 0, 7); c.fillStyle = col; c.fill();
     });
     c.shadowBlur = 0;
-    // the trail and the puck (a gentle pulse; power shots glow bigger)
-    const [px, py] = xy(M.puck.u, M.puck.v), hot = M.state === 'travel' && (M.puck.power === 'SMASH!' || M.puck.power === 'POWER');
+    // the trail and the puck. MAKE IT LOOK AS FAST AS IT IS: a SMASH gets a long bright trail in the hitter's color, speed
+    // lines and a glow in that color; POWER a medium trail; anything else the short yellow one. Reduced motion: no trail,
+    // no lines, only the color.
+    const [px, py] = xy(M.puck.u, M.puck.v), going = M.state === 'travel' && !M.puck.hold;
+    const kind = M.state === 'travel' ? M.puck.power : null, smash = kind === 'SMASH!', hot = smash || kind === 'POWER';
+    const tint = hot && COL[M.puck.color] ? COL[M.puck.color] : COL['--yellow'], tintHi = hot && COL[M.puck.color + '-hi'] || tint;
+    let lines = 0;
     if (!reduced.matches) {
-      M.trail.push([px, py]); if (M.trail.length > (hot ? 18 : 10)) M.trail.shift();
-      M.trail.forEach(([x, y], k) => { c.globalAlpha = (k + 1) / M.trail.length * (hot ? .45 : .25); c.fillStyle = COL['--yellow']; c.beginPath(); c.arc(x, y, pr * (.4 + .6 * k / M.trail.length), 0, 7); c.fill(); });
+      if (going) { M.trail.push([px, py]); if (M.trail.length > (smash ? 30 : hot ? 18 : 10)) M.trail.shift(); } else M.trail.shift();   // a waiting puck's old trail fades away
+      const n = M.trail.length;
+      if (smash && n > 1) {                                             // a bright streak along the trail
+        c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = tintHi; c.shadowColor = tint; c.shadowBlur = 12;
+        for (let k = 1; k < n; k++) {
+          c.globalAlpha = k / n * .8; c.lineWidth = pr * (.3 + 1.1 * k / n);
+          c.beginPath(); c.moveTo(M.trail[k - 1][0], M.trail[k - 1][1]); c.lineTo(M.trail[k][0], M.trail[k][1]); c.stroke();
+        }
+        c.restore();
+      }
+      M.trail.forEach(([x, y], k) => { c.globalAlpha = (k + 1) / n * (smash ? .6 : hot ? .45 : .25); c.fillStyle = tint; c.beginPath(); c.arc(x, y, pr * (.4 + .6 * k / n), 0, 7); c.fill(); });
       c.globalAlpha = 1;
-    }
-    const pulse = reduced.matches ? 1 : 1 + Math.sin(t / 180) * .06, pg = c.createRadialGradient(px, py, 0, px, py, pr * (hot ? 3.2 : 2.2) * pulse);
-    pg.addColorStop(0, COL['--white-hi']); pg.addColorStop(.35, COL['--yellow']); pg.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = pg; c.beginPath(); c.arc(px, py, pr * (hot ? 3.2 : 2.2) * pulse, 0, 7); c.fill();
+      if (smash && going && n > 3) {                                    // small speed lines streaming behind the puck
+        const [bx, by] = M.trail[n - 4], dx = px - bx, dy = py - by, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+        c.save(); c.strokeStyle = tintHi; c.lineWidth = 2; c.lineCap = 'round';
+        [-1.6, -.8, .8, 1.6].forEach((o, k) => {
+          const off = pr * o, sx = px - uy * off - ux * pr * (1.6 + (k % 2) * .8), sy = py + ux * off - uy * pr * (1.6 + (k % 2) * .8);
+          const len = pr * (2.6 + ((t / 60 + k * 1.7) % 1.5));
+          c.globalAlpha = .55; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx - ux * len, sy - uy * len); c.stroke(); lines++;
+        });
+        c.restore();
+      }
+    } else M.trail = [];
+    M.look = {power: kind, color: hot ? M.puck.color : null, trail: M.trail.length, lines};    // for tests
+    const pulse = reduced.matches ? 1 : 1 + Math.sin(t / 180) * .06, glowR = pr * (smash ? 3.8 : hot ? 3.2 : 2.2) * pulse;
+    const pg = c.createRadialGradient(px, py, 0, px, py, glowR);
+    pg.addColorStop(0, COL['--white-hi']); pg.addColorStop(.35, tint); pg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = pg; c.beginPath(); c.arc(px, py, glowR, 0, 7); c.fill();
     c.fillStyle = COL['--white-hi']; c.beginPath(); c.arc(px, py, pr * .8, 0, 7); c.fill();
     // hit bursts with the power label
     M.fx = M.fx.filter(f => t - f.t0 < 800);
@@ -519,8 +564,8 @@
   }
   function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
-  A.FaceOff = {P, get M() { return M; },                                  // for tests
+  A.FaceOff = {P, get M() { return M; }, crossTime,                       // for tests
     state: () => M && {state: M.state, active: M.active, live: M.live, noteAt: M.noteAt, liveWait: M.liveWait, countStyle: M.countStyle, countLog: M.countLog,
-      hold: !!M.puck.hold, T: M.puck.T, score: P.map(p => p.score), paused: !!A.Pitch.paused, frozen: !!M.frozen, puckT0: M.puck.t0, timers: timers.length, suppressedFor: Math.max(0, Math.round(A.Pitch.suppressedUntil - now()))}};
+      hold: !!M.puck.hold, T: M.puck.T, power: M.puck.power || null, shots: M.shots.slice(), look: M.look, score: P.map(p => p.score), paused: !!A.Pitch.paused, frozen: !!M.frozen, puckT0: M.puck.t0, timers: timers.length, suppressedFor: Math.max(0, Math.round(A.Pitch.suppressedUntil - now()))}};
   showSetup();
 })(window.Arcade);

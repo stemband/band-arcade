@@ -21,7 +21,8 @@ window.FACEOFF_RIVALS = [
   {name: 'The Champ',    color: 'white',  plays: 'tuba',     reaction: [0.8, 1.5], accuracy: 0.97, line: 'Undefeated. Until today?'},
 ];
 
-/* DIFFICULTY per player: the shortest time they ever get to play their note (from the note appearing to the goal) */
+/* DIFFICULTY per player: the time they get for an ordinary shot (GOOD / WEAK) from their microphone listening to the
+   goal; SMASH and POWER shots give them a share of it (FACEOFF_RULES.power minShare, never under hardMin) */
 window.FACEOFF_DIFFICULTY = [
   {id: 'rookie',  label: 'Rookie',   window: 4.0, level: 1},   // level 1 = the smaller starting note pool (sequences.js)
   {id: 'pro',     label: 'Pro',      window: 2.5, level: 2},
@@ -43,15 +44,26 @@ window.FACEOFF_RULES = {
                          // microphone, its echo included. The rest of a longer file keeps playing over the turn; the
                          // detector's normal hold time (0.28 s of one steady pitch) ignores a short tail. Trim those files
                          // to under 0.3 s anyway (the Sound Board warns).
-  /* STRIKE POWER from reaction time (seconds from the microphone listening to the note registering). The shot's
-     crossing time = base × factor, but never shorter than the receiver's minimum window (the puck only starts moving
-     once the receiver's microphone listens, so the window is all theirs). */
+  /* STRIKE POWER from reaction time (seconds from the microphone listening to the note registering). THE CROSSING TIME
+     of a shot (seconds, counted from the moment the receiver's microphone listens: the puck waits until then):
+        T = max(base × factor,  receiver's window × minShare,  hardMin)
+     base = serveTime, × rallySpeedUp after every return. window = the receiver's difficulty (Rookie 4, Pro 2.5,
+     All-Star 1.5; the CPU cpuWindow 1.5). Each power has its OWN minimum, so a smash stays a smash late in a rally:
+                      factor  minShare   a long rally ends at:  Rookie   Pro    All-Star / CPU
+        SMASH!         .35      .40                             1.6 s   1.0 s   0.9 s (hardMin)
+        POWER          .55      .65                             2.6 s   1.63 s  0.98 s
+        GOOD           .85     1.0                              4.0 s   2.5 s   1.5 s
+        WEAK          1.0      1.0                              4.0 s   2.5 s   1.5 s
+     (A serve and the first returns are slower: base × factor, e.g. a smashed serve 6 × .35 = 2.1 s.) A smash is always
+     faster than a POWER shot, which is always faster than GOOD, at every rally length and difficulty. */
   power: [
-    {label: 'SMASH!', under: 1.0, factor: 0.55, sound: 'puck-smash'},
-    {label: 'POWER',  under: 1.8, factor: 0.70, sound: 'puck-hit-hard'},
-    {label: 'GOOD',   under: 3.0, factor: 0.85, sound: 'puck-hit-hard'},
-    {label: 'WEAK',   under: Infinity, factor: 1.0, sound: 'puck-hit-soft'},
+    {label: 'SMASH!', under: 1.0, factor: 0.35, minShare: 0.40, sound: 'puck-smash'},
+    {label: 'POWER',  under: 1.8, factor: 0.55, minShare: 0.65, sound: 'puck-hit-hard'},
+    {label: 'GOOD',   under: 3.0, factor: 0.85, minShare: 1.0,  sound: 'puck-hit-hard'},
+    {label: 'WEAK',   under: Infinity, factor: 1.0, minShare: 1.0, sound: 'puck-hit-soft'},
   ],
+  hardMin: 0.9,         // seconds: the least time anyone ever gets for a shot (reading + the detector's ~0.28 s hold + a
+                        // quick attack)
   serve: 'loser',       // who serves after a goal: 'loser' (the player who was scored on, like real air hockey) or 'alternate'
   celebrateMs: 1300,    // the goal celebration before the next serve's countdown. With READY-GO (2 × countdown.ready
                         // + the "Go!" voice, about 0.9 s) a point's break takes about 2.2 s in all
@@ -64,6 +76,7 @@ window.FACEOFF_RULES = {
     ready: 450,         // READY-GO: "READY…" this long, then "GO!" at least this long (longer if the Go! voice is longer)
     goMax: 1000,        // the serve never waits longer than this for the "Go!" voice to finish
   },
+  incomingMs: 900,      // a smash: "INCOMING!" shows this long on the receiver's panel
   tipMs: 2600,          // the first match on a device: the smash tip shows this long on the rink before the countdown
   sounds: true,         // hit, goal and turn sounds (each one mutes the detector while it plays); false = a silent game
 };
