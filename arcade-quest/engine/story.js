@@ -1,7 +1,7 @@
 /* ARCADE QUEST ENGINE: CUTSCENES, THE CREDITS AND "EPISODE 1 COMPLETE".
    The words live in data/dialogue.js (QUEST_CUTSCENES, QUEST_CREDITS); this file draws the pictures behind them.
    Q.go('cutscene', {id, next})   play QUEST_CUTSCENES[id]; then `next`: {id, next} (another cutscene),
-                                  {credits: true, first} (the credits, then Episode 1 Complete) or {scene, args}
+                                  {credits: true, first, whisperer} (the credits, then Episode 1 Complete) or {scene, args}
    Every cutscene is SKIPPABLE (the SKIP button or Esc skips the rest of that scene) and short. A (or a tap) = next line.
    THE PICTURES (a shot's `show`), drawn on the 320 × 180 canvas above the text box:
      arcade   the Band Arcade after hours: a row of glowing cabinets, you practicing in the middle
@@ -188,7 +188,7 @@
     C = null;
     if (!next) Q.go('title');
     else if (next.id) Q.go('cutscene', next);
-    else if (next.credits) Q.go('credits', {first: next.first});
+    else if (next.credits) Q.go('credits', {first: next.first, whisperer: next.whisperer});
     else Q.go(next.scene, next.args);
   }
   Q.scenes.cutscene = {
@@ -212,13 +212,13 @@
   /* ---------- THE CREDITS (a short roll; SKIP, A or Esc skips) ---------- */
   let K = null;
   Q.scenes.credits = {
-    enter({first}) {
+    enter({first, whisperer}) {
       Q.listen(false);
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-credits');
       const list = (window.QUEST_CREDITS || []).map(c => `<div class="q-cr"><h3>${fillYou(c.h)}</h3>${c.lines.map(l => `<p>${fillYou(l)}</p>`).join('')}</div>`).join('');
       Q.ui.innerHTML = `<div class="q-credits" role="region" aria-label="Credits"><div class="q-roll" id="qRoll">${list}</div></div>`;
       K = {first, done: false};
-      const end = () => { if (!K || K.done) return; K.done = true; off(); removeEventListener('keydown', esc, true); Q.go('complete', {first}); };
+      const end = () => { if (!K || K.done) return; K.done = true; off(); removeEventListener('keydown', esc, true); Q.go('complete', {first, whisperer}); };
       const esc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); end(); } };
       addEventListener('keydown', esc, true);
       const off = Q.input.on(btn => { if (btn === 'a' || btn === 'b') { end(); return true; } return true; });
@@ -234,7 +234,8 @@
   /* ---------- EPISODE 1 COMPLETE: the arcade's shared results screen (shared/ui-kit.js, pixel-themed in style.css):
      stats, your save code, the UNLOCKED! card (Pixel Hero, the Baton), KEEP EXPLORING (the attic) / TITLE SCREEN ---------- */
   Q.scenes.complete = {
-    enter({first}) {
+    // whisperer: the Ghost Conductor was the last manor ghost helped (the Ghost Whisperer's line; its items are on the card)
+    enter({first, whisperer}) {
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-victory');
       const s = Q.save.get(), code = Q.save.code();
       Q.save.achievements();
@@ -242,7 +243,7 @@
       A.UI.results.show({gameId: 'arcade-quest', theme: 'q-theme', stars: null, title: 'Episode 1 complete!',
         msg: 'Ghost Notes Manor has its music back. ' + ((s.route || {}).conductor === 'fade'
           ? 'The Ghost Conductor faded into the rafters, humming along. (Befriend him next time for the best ending!)'
-          : 'The Ghost Conductor joined your band.'),
+          : 'The Ghost Conductor joined your band.') + (whisperer ? ' ' + Q.text('ghostWhisperer') : ''),
         tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', A.Tokens.balance()], ['Ghosts helped', Q.save.helped()]],
         extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
           `<p class="ui-howto">The manor is still yours to explore. Episode 2 is coming...</p>`,

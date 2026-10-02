@@ -390,8 +390,10 @@ window.Arcade = window.Arcade || {};
       setTimeout(() => sfx(items.length ? 'item-unlocked' : 'skin-unlocked'), 650);
       return items.map(item => ({item})).concat(found);
     },
-    /** Select Player: a card for everything unlocked since the student last looked (existing progress included) */
-    catchUp(member, {onEquip, only, foot} = {}) {
+    /** Select Player: a card for everything unlocked since the student last looked (existing progress included).
+        lead: a line above the card (Arcade Quest's Ghost Whisperer); theme: a class on the overlay ('q-theme');
+        onClose(): called once when it closes (OK or Esc) */
+    catchUp(member, {onEquip, only, foot, lead, theme, onClose} = {}) {
       // only: item keys (a Band Ninja belt code's gear): just those, no skins
       if (A.Seasons && !UNLOCK_ALL && !only) A.Seasons.check();
       const skins = only ? [] : Skins.fresh(member), items = AV() ? AV().freshItems().filter(it => !only || only.includes(it.key)) : [];
@@ -400,13 +402,14 @@ window.Arcade = window.Arcade || {};
       if (items.length) AV().markSeen(items);
       const found = items.map(item => ({item})).concat(skins);
       const ov = document.createElement('div');
-      ov.className = 'overlay sk-catchup';
-      ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${Skins.cardHTML(found, member)}` +
+      ov.className = 'overlay sk-catchup' + (theme ? ' ' + theme : '');
+      ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="New items unlocked">${lead ? `<p class="sk-u-lead">${lead}</p>` : ''}${Skins.cardHTML(found, member)}` +
         `<p class="muted sk-u-foot">${foot ? foot : only ? 'Find it in <b>Create Your Player</b>, on the <b>BAND NINJA</b> tab.' : 'Find everything in the <b>LOCKER</b> on the player card.'}</p>` +
         `<div class="acts"><button type="button" class="btn btn-secondary" data-close>OK</button></div></div>`;
       document.body.appendChild(ov);
       wire(ov, member, onEquip);
-      const close = () => { ov.remove(); document.removeEventListener('keydown', esc); };
+      let open = true;
+      const close = () => { if (!open) return; open = false; ov.remove(); document.removeEventListener('keydown', esc); if (onClose) onClose(); };
       const esc = e => { if (e.key === 'Escape') close(); };
       document.addEventListener('keydown', esc);
       ov.querySelector('[data-close]').addEventListener('click', close);

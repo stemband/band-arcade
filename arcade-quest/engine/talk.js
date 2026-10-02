@@ -4,6 +4,9 @@
                           ('jukebox' saves, 'booth' = Token Booth Terry, 'shop' = Rusty)
    Q.talk.sign(id)        one sign's lines
    Q.talk.hud()           the little status line (LV, HP, tokens)
+   Q.talk.ghostLog()      THE GHOST LOG (the overworld's pause menu): "GHOST LOG: 14 / 20 helped" with a pixel ghost,
+                          ✓ Ghost Whisperer once every one is helped; from 80 % (16 / 20) the ROOMS that still have
+                          someone ("Still wandering: the Library, the Attic"), never where. Q.save.ghostLog() counts.
    (THE PAUSE MENU is the arcade's shared one: engine/world.js mounts Arcade.UI.pause; its CHARMS opens Q.talk.charms.)
    THE TOKEN BOOTH turns stars from the other arcade games into Arcade Tokens. ONE WALLET, TWO COUNTERS: the wallet,
    the star sources, the rate, the prices and buying are shared/tokens.js (Arcade.Tokens), shared with the arcade's own
@@ -32,6 +35,20 @@
     const el = Q.$('qWHud'); if (!el) return;
     const s = Q.save.get();
     el.innerHTML = `<b>LV ${s.level}</b> <span>HP ${s.hp}/${s.maxHp}</span> <span class="q-tok">${coin()}${T().balance()}<span class="sr"> tokens</span></span>`;
+  };
+  /* THE GHOST LOG: a little pixel ghost (7 × 7, currentColor) and the count */
+  const GHOST_PX = ['.XXXXX.', 'XXXXXXX', 'X.XX.XX', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', 'X.X.X.X'];
+  const GHOST_ICON = `<svg class="q-glog-ico" viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges">` +
+    GHOST_PX.map((r, y) => [...r].map((c, x) => (c === 'X' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : '')).join('')).join('') + `</svg>`;
+  const HINT_AT = 0.8;                                         // the rooms show from 16 of 20 (a share, for more ghosts later)
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  Q.talk.ghostLog = function () {
+    const g = Q.save.ghostLog();
+    if (!g.total) return '';
+    const the = n => n.replace(/^The /, 'the ');
+    return `<div class="q-glog" id="qGhostLog"><p class="q-glog-n">${GHOST_ICON}<b>${esc(Q.text('ghostLog'))}:</b> ${g.helped} / ${g.total} helped</p>` +
+      (g.all ? `<p class="q-glog-done">✓ Ghost Whisperer</p>`
+        : g.helped >= Math.ceil(g.total * HINT_AT) ? `<p class="q-glog-left">${esc(Q.text('ghostLogLeft', {rooms: g.rooms.map(the).join(', ')}))}</p>` : '') + `</div>`;
   };
   let bannerT = 0;
   Q.talk.banner = function (name) {

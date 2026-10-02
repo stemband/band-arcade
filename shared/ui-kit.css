@@ -93,6 +93,8 @@ html.ui-in-level #topbar .brand{visibility:hidden}
 .ui-menu{display:grid;gap:10px;margin-top:6px}
 .ui-menu .btn{width:100%;min-height:56px;font-size:19px}
 .ui-pnote{font-size:14px}
+.ui-pdetail{margin:0 0 12px}
+.ui-pdetail[hidden]{display:none}
 
 /* ---------- STAT TILES (results, pause, game over) ---------- */
 .ui-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:14px 0 6px}

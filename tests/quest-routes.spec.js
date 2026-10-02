@@ -4,7 +4,10 @@
    ending, defeated = the shorter defeat ending; Episode 1 is finished either way.
    Each run plays every manor ghost through the real overworld and battle scene (Q.world.fight = walking into it) and
    walks the real doors: Sir Reginald, the stairs, the attic door or the cracked wall and the passage. Only the
-   student's playing is stood in for (Q.challenge.run / Q.dodge.start). */
+   student's playing is stood in for (Q.challenge.run / Q.dodge.start).
+   REACHABILITY (GHOST WHISPERER, achievement 'manor-all'): every route reaches all 20 manor ghosts in one playthrough;
+   nothing a student chooses can make one unreachable, and the Conductor, the last one here, ends on EPISODE 1 COMPLETE
+   with the Ghost Whisperer line (its items on that screen's UNLOCKED! card). */
 const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
@@ -112,7 +115,16 @@ async function run(page, {ghost, fermata, conductor}) {
   expect(await page.evaluate(() => Arcade.Quest.world.fight('boss'))).toBe(true);
   await drive(page, s => s.gos.includes('complete'), b => (conductor === 'befriend' && b && b.calm >= 100 && b.hp <= 1 ? 'HARMONIZE' : 'PLAY'), 1500);
   return page.evaluate(() => ({s: Arcade.Quest.save.get(), gos: window.__gos, lines: window.__lines,
-    msg: window.__res || ''}));
+    msg: window.__res || '', ach: Arcade.store.gameData('arcade-quest').achievements || {}, log: Arcade.Quest.save.ghostLog()}));
+}
+
+const WHISPERER = "Every ghost in the manor is at peace. You're a true Ghost Whisperer!";
+/** every one of the 20 manor ghosts helped on this route: Ghost Whisperer, said on EPISODE 1 COMPLETE */
+function allReached(r) {
+  expect(r.log).toMatchObject({helped: 20, total: 20, rooms: [], all: true});
+  expect(Object.keys(r.s.done)).toHaveLength(20);
+  expect(r.ach['manor-all']).toBe(true);
+  expect(r.msg).toContain(WHISPERER);
 }
 
 test('BEFRIEND-ALL: the attic door, the full ending, Episode 1 finished', async ({page}) => {
@@ -127,6 +139,7 @@ test('BEFRIEND-ALL: the attic door, the full ending, Episode 1 finished', async 
   expect(r.gos).toEqual(expect.arrayContaining(['cutscene:ending', 'cutscene:cliffhanger', 'credits', 'complete']));
   expect(r.gos).not.toContain('cutscene:ending-fade');
   expect(r.msg).toContain('The Ghost Conductor joined your band.');
+  allReached(r);
   expect(r.s.progress.pct).toBe(90);                             // everything but the Butler's B♭ Blast lesson (not part of these runs): the same on both routes
   watch.check();
 });
@@ -144,6 +157,7 @@ test('DEFEAT-ALL: the Hidden Passage, its treasure, the defeat ending, Episode 1
   expect(r.gos).toEqual(expect.arrayContaining(['cutscene:ending-fade', 'cutscene:cliffhanger', 'credits', 'complete']));
   expect(r.gos).not.toContain('cutscene:ending');
   expect(r.msg).toContain('faded into the rafters');
+  allReached(r);
   expect(r.s.progress.pct).toBe(90);                             // everything but the Butler's B♭ Blast lesson (not part of these runs): the same on both routes
   watch.check();
 });
@@ -156,6 +170,7 @@ test('MIXED: some friends, the Fermata defeated (the passage), the Conductor bef
   expect(r.s.route).toEqual({fermata: 'fade', conductor: 'befriend'});
   expect(r.gos).toContain('cutscene:ending');
   expect(r.msg).toContain('joined your band');
+  allReached(r);
   watch.check();
 });
 

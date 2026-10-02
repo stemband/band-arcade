@@ -60,6 +60,7 @@
       // never mid-battle-flash or while the microphone listens (the Butler's lesson); Esc/P only when you're free to walk
       canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
       note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
+      detail: () => Q.talk.ghostLog(),                                 // THE GHOST LOG (engine/talk.js)
       info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', A.Tokens.balance()]]; },
       extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
         inCharms = true;
@@ -239,25 +240,52 @@
     }
     W.ghosts = W.ghosts.filter(x => x !== g);
     const E = (window.QUEST_ENEMIES || []).find(e => e.id === result.enemy) || {}, s = Q.save.get();
+    let whisperer = false;
     if (!W.def.practice) {
       s.done[W.map + ':' + g.key] = result.kind;
       if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
       Q.save.write();
+      // GHOST WHISPERER: the last manor ghost helped (befriended or faded) -> 'manor-all' (save.js achievements)
+      const had = Q.save.has('manor-all');
+      whisperer = !had && !!Q.save.achievements()['manor-all'];
     }
     if (E.opens || E.opensIfFaded) prerender();                                   // a door or a cracked wall opened
+    const after = [];                                                             // what to show, in order, once back
     // THE ALTERNATE ROUTE: the first gate ghost a student defeats (not befriends) says something moved
     if (!W.def.practice && result.kind === 'fade' && E.opensIfFaded && !Q.save.flag('shiftHint')) {
-      Q.save.setFlag('shiftHint'); W.busy = true;
-      Q.sfx('quest-door'); Q.shake(2, 500);
-      Q.say([Q.text('shiftHint')]).then(() => { if (W) W.busy = false; });
+      Q.save.setFlag('shiftHint');
+      after.push(() => { Q.sfx('quest-door'); Q.shake(2, 500); return Q.say([Q.text('shiftHint')]); });
+    }
+    // the UNLOCKED! card (the Spirit Lantern, the Ghost Whisperer plate) after the battle's results; when the Ghost
+    // Conductor was the last one, EPISODE 1 COMPLETE shows it instead (engine/story.js)
+    if (whisperer && !E.final) after.push(ghostWhisperer);
+    if (after.length) {
+      W.busy = true;
+      after.reduce((p, f) => p.then(() => (W ? f() : null)), Promise.resolve()).then(() => { if (W) W.busy = false; });
     }
     if (E.final && !W.def.practice) {                                            // THE END of Episode 1 (engine/story.js)
       const first = !Q.save.flag('ep1Done');
       Q.save.setFlag('ep1Done'); Q.save.achievements();
       W.busy = true;
       // befriended: the full ending (the best one); defeated: the shorter, still happy one. Both finish Episode 1
-      Q.go('cutscene', {id: result.kind === 'befriend' ? 'ending' : 'ending-fade', next: {id: 'cliffhanger', next: {credits: true, first}}});
+      Q.go('cutscene', {id: result.kind === 'befriend' ? 'ending' : 'ending-fade', next: {id: 'cliffhanger', next: {credits: true, first, whisperer}}});
     }
+  }
+
+  /** GHOST WHISPERER: the arcade's UNLOCKED! card (shared/skins.js catchUp) over the manor, with its line on top;
+      resolves when it closes (a tick later, so the key that closed it doesn't also reach the overworld) */
+  function ghostWhisperer() {
+    return new Promise(done => {
+      const fin = () => setTimeout(done, 0);
+      if (!A.Skins || !A.Skins.catchUp) return fin();
+      Q.input.clear();
+      const shown = A.Skins.catchUp(A.store.player, {lead: Q.text('ghostWhisperer'), theme: 'q-theme', onClose: fin,
+        foot: 'Find them in the <b>LOCKER</b>, or wear one now.'});
+      if (!shown.length) return fin();
+      // the focus on the card itself, not WEAR IT: an A still pressed from the battle's last line must not choose for you
+      const pan = document.querySelector('.sk-catchup.q-theme>.panel');
+      if (pan) { pan.tabIndex = -1; pan.focus({preventScroll: true}); }
+    });
   }
 
   /* ---------- the microphone's whispers (Episode 1's hints): now and then, while exploring (not in the Foyer or the
