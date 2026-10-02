@@ -76,6 +76,13 @@
 .s-status.wait{font-family:var(--display);font-size:28px;letter-spacing:.2em;color:var(--text-lo)}
 .side.live .s-note{animation:live-glow .5s ease-out}
 @keyframes live-glow{from{box-shadow:0 0 0 0 var(--pc)}40%{box-shadow:0 0 18px 2px var(--pc)}to{box-shadow:0 0 0 0 transparent}}
+/* a SMASH coming at this player: a quick "INCOMING!" over their panel (game.js incoming(); still, with reduced motion) */
+.side{position:relative}
+.s-incoming{position:absolute;left:50%;top:38%;z-index:2;transform:translate(-50%,-50%) skewX(-8deg);pointer-events:none;white-space:nowrap;
+  font-family:var(--display);font-weight:400;font-size:clamp(20px,2.6vw,30px);color:var(--yellow);-webkit-text-stroke:1px var(--deep);text-shadow:0 3px 0 var(--deep),var(--glow-yellow)}
+.s-incoming[hidden]{display:none}
+.s-incoming.in{animation:incoming .9s ease-out forwards}
+@keyframes incoming{from{transform:translate(-50%,-50%) skewX(-8deg) scale(.6);opacity:0}15%{transform:translate(-50%,-50%) skewX(-8deg) scale(1.08);opacity:1}70%{opacity:1}to{transform:translate(-50%,-50%) skewX(-8deg) scale(1);opacity:0}}
 /* the COUNTDOWN on the rink (shared/countdown.js): big neon beats, scaled in (no flash); portrait: one each way */
 .count{position:absolute;inset:0;display:grid;pointer-events:none;z-index:3}
 .count[hidden]{display:none}
@@ -105,12 +112,14 @@
   .count .c-top{display:grid;transform:rotate(180deg)}
   .cn{font-size:clamp(48px,11vmin,120px)}
   .side.p1{order:1}
+  .s-incoming{left:21%;top:28%}          /* over the name, never over the note */
   .s-score{font-size:36px}
 }
 @media (orientation:portrait) and (max-width:560px){
   .side{grid-template-columns:1fr}
   .side .s-note{grid-column:1;grid-row:3;min-height:80px}
   .s-status.turn{font-size:20px}
+  .s-incoming{left:50%;top:20%}
 }
 
 /* ---------- results (shared/ui-kit.js): the neon cyan panel, the winner's color on the title, both players above ---------- */
@@ -127,7 +136,7 @@
 
 @media (prefers-reduced-motion:reduce){
   .s-status.turn{animation:none}
-  .cn.in,.side.live .s-note{animation:none}
+  .cn.in,.side.live .s-note,.s-incoming.in{animation:none}
   .side{transition:none}
 }
 /* the players' avatars (shared/avatar.js): Player 1 the device's own, Player 2 a GUEST with the magenta 2P marker */
