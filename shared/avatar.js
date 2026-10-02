@@ -96,6 +96,9 @@ window.Arcade = window.Arcade || {};
     // SEASONAL EVENT items (shared/seasons.js): earned during the event, owned forever (a ?season= preview's claims
     // count in that tab only)
     if (u.event) return A.Seasons ? A.Seasons.owned(itemKey(field, id)) : !!(st().ownedItems || {})[itemKey(field, id)];
+    // an OWNED key always opens an earned item: Quest save codes carry earned items this way, and storage.js migrate()
+    // ('ninja-diamond-chromatic') kept Note Ninja's Diamond gear for devices that earned it before its rule changed
+    if ((st().ownedItems || {})[itemKey(field, id)]) return true;
     if (u.stars && !u.game) return st().allStars('*') >= u.stars;      // device-wide: every instrument, every game
     return !!(A.Skins && A.Skins.ruleMet(u));
   }

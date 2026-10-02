@@ -63,7 +63,7 @@
         <span class="n">${L.name} belt</span>
         <span class="mini" aria-hidden="true"><i class="belt-knot"></i></span>
         <span class="t">${L.onStaff > 1 ? `Read ahead ×${L.onStaff}` : count + ' notes'}</span>
-        <span class="d">${blurb}</span>
+        <span class="d">${blurb}</span>${lv === RARE_LV ? rareGear() : ''}
         <span class="foot"><span class="stars">${A.starStr(p.stars)}</span><span>${unlocked ? (p.best ? 'Best ' + p.best : count + ' notes') : ''}</span></span>
       </button>`;
     }).join('');
@@ -76,6 +76,24 @@
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, inst.id, i + 1).stars > 0 || A.store.level(key, inst.id, i).stars > 0,
       lockText: i => `Clear the ${BELTS[i - 1].name} Belt to unlock`});
+  }
+
+  /* RARE GEAR on the Diamond belt card: the avatar items and the skin that ONLY the Diamond belt on Chromatic notes in
+     Random order earns (their unlock rules have key 'note-ninja:random-chromatic': avatar-parts.js NINJA_DIAMOND,
+     skins.js 'diamond'). Any note set still clears the belt; this line just tells students the challenge exists. */
+  const RARE_LV = 10, RARE_KEY = 'note-ninja:random-chromatic';
+  function rareGear() {
+    const AV = A.Avatar;
+    if (!AV || !AV.items || !A.avatarHTML) return '';
+    // no avatar yet: draw a default one (AV.get() would save a random avatar and skip "Create your player")
+    const av = A.store.avatar ? AV.get() : AV.normalize({}), who = A.store.player, pic = (h, name) => `<span class="rare-pic" title="${name}">${h}</span>`;
+    const icons = AV.items().filter(it => it.unlock.key === RARE_KEY).map(it => pic(it.field === 'plate'
+      ? `<span class="av-plate av-plate-${it.id}">◆</span>`
+      : A.avatarHTML({size: 'tile', member: who, avatar: Object.assign({}, av, {[it.field]: it.id}), label: '', bg: it.field === 'bg'}), it.name))
+      .concat((A.Skins ? A.Skins.LIST : []).filter(sk => sk.unlock && sk.unlock.key === RARE_KEY)
+        .map(sk => pic(A.avatarHTML({size: 'tile', member: who, avatar: av, skin: {color: sk.id, acc: null}, label: '', bg: false}), sk.name + ' skin')));
+    if (!icons.length) return '';
+    return `<span class="rare"><span class="rare-t">Rare gear: earn it on Chromatic + Random!</span><span class="rare-icons" aria-hidden="true">${icons.join('')}</span></span>`;
   }
 
   /* ---------- play ---------- */

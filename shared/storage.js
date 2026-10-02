@@ -106,6 +106,21 @@ window.Arcade = window.Arcade || {};
       done['scale-trainer-rename'] = true;
       save();
     }
+    // Note Ninja's RARE DIAMOND GEAR now needs the Diamond belt on Chromatic notes in Random order (the key
+    // 'note-ninja:random-chromatic': avatar-parts.js NINJA_DIAMOND, skins.js 'diamond'). Before, any note set earned it.
+    // A device that met the OLD rule (a star on belt 10 under any Note Ninja key) keeps every piece: each becomes
+    // OWNED (data.items.owned, like a bought item), and an owned item stays unlocked and worn. It runs on a restored
+    // backup too (importAll calls migrate()), so an old Backup Code keeps its gear. Never edit this list.
+    if (!done['ninja-diamond-chromatic']) {
+      const had = Object.keys(data.games || {}).some(k => (k === 'note-ninja' || k.startsWith('note-ninja:')) &&
+        Object.values(data.games[k] || {}).some(lv => lv && typeof lv === 'object' && lv[10] && lv[10].stars >= 1));
+      if (had) {
+        const it = data.items || (data.items = {}), own = it.owned || (it.owned = {});
+        ['head:diamondband', 'head:belt-diamond', 'plate:belt-diamond', 'bg:bamboomoon', 'skin:diamond'].forEach(k => { own[k] = true; });
+      }
+      done['ninja-diamond-chromatic'] = true;
+      save();
+    }
     // The leaderboard's 'play' event went from once a day to once a day PER GAME: the old `day` (the date of the
     // day's one 'play') becomes plays = {day, games: []} (that day's first game may send once more; harmless).
     if (!done['lb-plays-per-game']) {
@@ -343,7 +358,8 @@ window.Arcade = window.Arcade || {};
     /** the most stars any instrument has earned on one level of a game, in ANY mode (every progress key of that
         game: '<gameId>' and '<gameId>:…'). Used by skin achievements ("clear The Golden Vault"). suffix: only keys
         ending in it (Showtime Malfunction's NIGHTMARE keys end in ':extra'). exact: only the plain '<gameId>' key
-        (Scale Trainer's Middle School levels; its high school sections save under 'scale-trainer:cb' / ':sb'). */
+        (Scale Trainer's Middle School levels; its high school sections save under 'scale-trainer:cb' / ':sb'), or with
+        a full key as gameId only that key (a rule's `key`: 'note-ninja:random-chromatic' = Note Ninja's rare gear). */
     bestLevelStars(gameId, lvl, suffix, exact) {
       let best = 0;
       Object.keys(data.games || {}).forEach(k => {
@@ -372,7 +388,8 @@ window.Arcade = window.Arcade || {};
     get guestAvatar() { return data.guestAvatar && typeof data.guestAvatar === 'object' ? JSON.parse(JSON.stringify(data.guestAvatar)) : null; },
     setGuestAvatar(av) { data.guestAvatar = av; save(); },
     /** AVATAR ITEMS (shared/avatar.js): items bought at the Token Booth ({'<field>:<id>': true}, owned forever,
-        everywhere) and earned items whose UNLOCKED! card was already shown */
+        everywhere; also earned items kept by a migration, and 'skin:<id>' for a kept color skin) and earned items
+        whose UNLOCKED! card was already shown */
     get ownedItems() { return Object.assign({}, (data.items || {}).owned); },
     ownItem(key) { const it = data.items || (data.items = {}); (it.owned || (it.owned = {}))[key] = true; save(); },
     get itemsSeen() { return Object.assign({}, (data.items || {}).seen); },

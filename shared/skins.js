@@ -29,6 +29,10 @@
                                           any NOTES × ORDER mode. Unlocks for EVERY instrument on the device.
                                           + suffix: only progress keys ending in it (':extra' = Showtime
                                           Malfunction's NIGHTMARE difficulty)
+                                          + key: only that ONE progress key ('note-ninja:random-chromatic' = the
+                                          Diamond skin: Chromatic notes, Random order)
+     OWNED: a skin whose 'skin:<id>' is in store.ownedItems is unlocked whatever its rule says (storage.js migrate()
+     'ninja-diamond-chromatic' keeps the Diamond skin for devices that earned it under the old any-note-set rule).
      {game, badge: true, text}            achievement: any Ancient Ninja Scrolls TEST READY badge
      {game, achievement: 'id', text}      achievement: store.gameData(game).achievements[id] is true (the game sets it;
                                           Sustain Speedway: 'virtuoso-win' = won any track on Virtuoso)
@@ -50,7 +54,8 @@ window.Arcade = window.Arcade || {};
     {id: 'pixel',   kind: 'color', name: 'Pixel',        unlock: {stars: 300},    look: {colors: ['green', 'cyan'], pixel: true}},
     {id: 'gold',    kind: 'color', name: 'Chrome Gold',  unlock: {game: 'chime-heist', level: 8, stars: 1, text: 'Clear The Golden Vault in Chime Heist'},
                                                                                   look: {colors: ['yellow', 'amber'], fx: 'sweep'}},
-    {id: 'diamond', kind: 'color', name: 'Diamond',      unlock: {game: 'note-ninja', level: 10, stars: 1, text: 'Earn the Diamond belt in Note Ninja'},
+    // Note Ninja's RARE DIAMOND GEAR: Chromatic + Random only (the same rule as avatar-parts.js NINJA_DIAMOND)
+    {id: 'diamond', kind: 'color', name: 'Diamond',      unlock: {game: 'note-ninja', level: 10, stars: 1, key: 'note-ninja:random-chromatic', text: 'Earn the Diamond belt in Note Ninja on Chromatic notes, Random order'},
                                                                                   look: {colors: ['cyan', 'pink'], fx: 'shimmer'}},
     {id: 'animatronic', kind: 'color', name: 'Animatronic', unlock: {game: 'showtime-malfunction', level: 8, stars: 1, text: 'Defeat Maestro Moose in Showtime Malfunction'},
                                                                                   look: {colors: ['anim-metal', 'anim-eye-good'], fx: 'animatronic', eyes: true}},
@@ -204,6 +209,7 @@ window.Arcade = window.Arcade || {};
     const s = typeof skin === 'string' ? get(skin) : skin, u = s && s.unlock;
     if (!u) return false;
     if (u.always || UNLOCK_ALL) return true;
+    if ((st().ownedItems || {})['skin:' + s.id]) return true;            // owned (kept from an older rule)
     return ruleMet(u, member);
   }
   /** an unlock rule from saved progress (skins here; avatar items in avatar.js use it for their game rules):
@@ -218,7 +224,7 @@ window.Arcade = window.Arcade || {};
     if (u.perfect) { for (let lv = 1; lv <= u.perfect; lv++) if (st().bestLevelStars(u.game, lv, u.suffix) < 3) return false; return true; }
     if (u.endless) return endlessBest(u.game) >= u.endless;
     if (u.achievement) return !!((st().gameData(u.game) || {}).achievements || {})[u.achievement];
-    if (u.level) return st().bestLevelStars(u.game, u.level, u.suffix, u.exact) >= (u.stars || 1);
+    if (u.level) return st().bestLevelStars(u.key || u.game, u.level, u.suffix, u.exact || !!u.key) >= (u.stars || 1);   // key: that one progress key
     if (u.wins) return winsOn(u.game) >= u.wins;
     return false;
   }
