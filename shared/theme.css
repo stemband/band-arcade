@@ -633,8 +633,10 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .ss-grip{fill:none;stroke:var(--sensei-bokken-2);stroke-width:5.5;stroke-linecap:round}
 .ss-swoosh{fill:none;stroke:var(--white-hi);stroke-width:3;stroke-linecap:round;opacity:.55}
 
-/* ---------- THE ANSWER PAD (shared/answer-pad.js: Note Ninja's layout, used by Dojo Duel) ----------
-   --pad = the pad's neon color (a token); big thumb-sized buttons in one row */
+/* ---------- THE ANSWER PAD (shared/answer-pad.js: Note Ninja's layout, used by Dojo Duel, Keys to the City, Blocktave) ----------
+   --pad = the pad's neon color (a token); big thumb-sized buttons in one row. `.sp` = THE SPELLED PAD (one button per
+   note of the set, "B♭ C D E♭ F"): --cols buttons a row (answer-pad.js: one row while each gets 48 px, else two),
+   the last row centered */
 .apad{--pad:var(--red);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .apad button{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .apad-accs{display:flex;justify-content:center;gap:10px;margin-bottom:8px}
@@ -648,6 +650,9 @@ a.chip:hover{border-color:var(--cyan);color:var(--text-hi)}
 .apad-letter.good{background:var(--yellow);color:var(--deep);border-color:var(--yellow-hi)}
 .apad-letter.bad{background:var(--red-ink);border-color:var(--red)}
 .apad.locked .apad-letter,.apad.locked .apad-acc{opacity:.4}
+.apad-accs.apad-ghost{visibility:hidden}
+.apad.sp .apad-letters{display:flex;flex-wrap:wrap;justify-content:center}
+.apad.sp .apad-letter{flex:0 0 calc((100% - (var(--cols,7) - 1) * 6px) / var(--cols,7));min-width:48px;white-space:nowrap}
 
 /* ---------- MENU BACKGROUNDS (shared/backgrounds.js + bg-scenes.js): a picture or a coded scene behind a game's
    menu screens, a dark readability overlay on top (games.js bg.dim / bg.focus), gone during play (0.4 s fade) ---------- */

@@ -2,7 +2,7 @@
    any future game of this kind). Built on scales.js. Every such game gets its notes ONLY from here:
 
      Arcade.buildSequence({member, group, notes, order, level, count, pool}) ->
-       {items, pool, fit, sig, scale, name(pc), small}
+       {items, pool, fit, sig, scale, name(pc), small, spelled}
          items  the level's notes, each {n (the written note: letter, acc, oct, midi), show (how to draw it),
                 label ('E♭'), midi (written), sounding (exact concert midi), pc (concert pitch class)}
          pool   the notes this level draws from (the whole pool, or level 1's smaller one)
@@ -10,6 +10,9 @@
          sig    the key signature ({type, count}) for scale pools, else null
          scale  the built scale (Scales.build) for scale and chromatic pools, else null
          name   pc -> a note name spelled for this pool's key (wrong-note messages)
+         spelled  the WHOLE note set's names for the answer pads (Arcade.AnswerPad `notes`), one per letter, as written:
+                first5 = its five notes low to high, a scale = its 7 letters from the tonic in the key's spelling;
+                [{letter, acc}]. null for chrom (the pads keep the ♭ ♮ ♯ Shift there). Never level 1's smaller pool.
      member  the instrument member (Arcade.currentMember()); group: its player group (first five, clef)
      notes   'first5' | 'Bb' | 'Eb' | 'F' | 'Ab' | 'chrom'
      order   'random' | 'order'
@@ -122,7 +125,9 @@ window.Arcade = window.Arcade || {};
     }
     const names = {};
     if (P.sig) P.pool.forEach(it => { if (!(it.pc in names)) names[it.pc] = it.label; });
-    return {items, pool: from, fit: P.ordered.map(it => it.show), sig: P.sig, scale: P.scale, small,
+    const spelled = notes === 'chrom' ? null
+      : (notes === 'first5' ? P.pool : P.pool.slice(0, 7)).map(it => ({letter: it.n.letter, acc: it.n.acc || 0}));
+    return {items, pool: from, fit: P.ordered.map(it => it.show), sig: P.sig, scale: P.scale, small, spelled,
             name: pc => names[pc] || group.writtenName(pc)};
   }
 

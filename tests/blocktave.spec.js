@@ -35,6 +35,9 @@ const cardOpen = page => page.evaluate(() => !!Arcade.BlocktaveCard.current);
 // (checked every 100 ms, not on the page's animation frames: a card closes on a timer, and a busy WebKit runner can
 // starve a page's frames for seconds)
 const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000, polling: 100});
+/** a WRONG letter that is on the open card's answer pad (a spelled pad shows only its set's letters: shared/answer-pad.js) */
+const wrongLetter = page => page.evaluate(() => { const w = Arcade.BlocktaveCard.current.want().n.letter;
+  return [...document.querySelectorAll('.bt-card .apad-letter')].map(b => b.dataset.letter).find(l => l !== w); });
 
 test.describe('Blocktave: the world', () => {
   test('the same seed makes the same world; every biome and both deep layers exist', async ({page}) => {
@@ -157,9 +160,7 @@ test.describe('Blocktave: mining = playing', () => {
     await page.evaluate(() => Arcade.Blocktave.demo.give('mallet2', 1));
     const t = await nextTo(page, 'toneOre');
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), t);
-    const want = await page.evaluate(() => Arcade.BlocktaveCard.current.want().n);
-    const wrong = want.letter === 'A' ? 'B' : 'A';
-    await page.locator(`.bt-card .apad-letter[data-letter="${wrong}"]`).dispatchEvent('pointerdown');
+    await page.locator(`.bt-card .apad-letter[data-letter="${await wrongLetter(page)}"]`).dispatchEvent('pointerdown');
     await expect(page.locator('.bt-card.bad')).toBeVisible();
     await waitCardGone(page);
     expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), t)).toBe('toneOre');
@@ -173,6 +174,26 @@ test.describe('Blocktave: mining = playing', () => {
     watch.check();
   });
 
+  for (const [member, want] of [['flute', ['B♭', 'C', 'D', 'E♭', 'F']], ['snare', null]]) {
+    test(`TOUCH: a note card spells its pad for its set, one tap (${member}${want ? ': ' + want.join(' ') : ', reading the bells\' notes'})`, async ({page}) => {
+      const watch = await enter(page, {member, mode: 'touch'});
+      await page.evaluate(() => Arcade.Blocktave.demo.give('mallet2', 1));
+      const t = await nextTo(page, 'toneOre');
+      await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), t);
+      const p = await page.evaluate(() => ({sp: !!document.querySelector('.bt-card .apad.sp'),
+        labels: [...document.querySelectorAll('.bt-card .apad-letter')].map(b => b.textContent),
+        accRow: !!document.querySelector('.bt-card .apad-accs:not([hidden])'), want: Arcade.BlocktaveCard.current.want()}));
+      if (!p.sp) { expect(p.labels, `${member}: Chromatic (the Shift pad)`).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']); watch.check(); return; }
+      if (want) expect(p.labels, member).toEqual(want);
+      expect(p.labels, member).toContain(p.want.label);                       // the right answer is a button …
+      expect(p.accRow, member).toBe(false);                                    // … with no ♭ ♮ ♯ row
+      await page.locator(`.bt-card .apad-letter[data-letter="${p.want.n.letter}"]`).dispatchEvent('pointerdown');   // one tap
+      await waitCardGone(page);
+      expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), t), member).toBe('air');
+      watch.check();
+    });
+  }
+
   test('three wrong answers in a row show the note name as a hint', async ({page}) => {
     await enter(page, {mode: 'touch'});
     await page.evaluate(() => Arcade.Blocktave.demo.give('mallet2', 1));
@@ -180,8 +201,7 @@ test.describe('Blocktave: mining = playing', () => {
     for (let k = 0; k < 3; k++) {
       await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), t);
       expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().hint), `wrong answers so far: ${k}`).toBe(false);
-      const w = await page.evaluate(() => Arcade.BlocktaveCard.current.want().n.letter);
-      await page.locator(`.bt-card .apad-letter[data-letter="${w === 'A' ? 'B' : 'A'}"]`).dispatchEvent('pointerdown');
+      await page.locator(`.bt-card .apad-letter[data-letter="${await wrongLetter(page)}"]`).dispatchEvent('pointerdown');
       await waitCardGone(page);
     }
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), t);
@@ -241,8 +261,7 @@ test.describe('Blocktave: crafting = performing', () => {
     await expect(page.locator('#recipeLine')).toContainText('Wooden Mallet');
     // a FAILED performance: the ingredients stay
     await page.locator('#perform').click();
-    const n = await page.evaluate(() => Arcade.BlocktaveCard.current.want().n);
-    await page.locator(`.bt-card .apad-letter[data-letter="${n.letter === 'A' ? 'B' : 'A'}"]`).dispatchEvent('pointerdown');
+    await page.locator(`.bt-card .apad-letter[data-letter="${await wrongLetter(page)}"]`).dispatchEvent('pointerdown');
     await waitCardGone(page);
     let inv = (await st(page)).inv;
     expect([inv.planks, inv.cork, inv.mallet1 || 0]).toEqual([2, 1, 0]);

@@ -158,7 +158,9 @@
     };
     $('keymap').innerHTML = `<p class="ui-label">Keyboard (Chromebooks)</p>` +
       (cpuOn() ? row(0, 'You') : row(0, 'Player 1 (left)') + row(1, 'Player 2 (right)')) +
-      `<p class="km-note">Tap ♭ or ♯ first, then the letter (like Note Ninja's buttons). Touch screens: just tap your own buttons; both players can tap at the same time.</p>`;
+      `<p class="km-note">${A.AnswerPad.spellOn()
+        ? 'A letter key answers that note as your buttons spell it (B is B♭ when your notes have B♭). ♭ / ♯ keys are only for Chromatic notes: tap the sign first, then the letter.'
+        : 'Tap ♭ or ♯ first, then the letter (like Note Ninja\'s buttons).'} Touch screens: just tap your own buttons; both players can tap at the same time.</p>`;
   }
   $('segMode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.mode = b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
   $('segCpu').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.cpu = b.dataset.v; A.Sfx.event('ui-toggle'); saveSetup(); renderSetup(); });
@@ -255,7 +257,7 @@
       $('h' + (P.pi + 1)).innerHTML = halfHTML(P);
       $('h' + (P.pi + 1)).classList.remove('done', 'stunned');
       $('h' + (P.pi + 1)).setAttribute('aria-label', `${P.name}'s side`);
-      P.pad = A.AnswerPad.mount($('pad' + P.pi), {accs: P.accs, relabel: P.L.relabel, cls: 'dd-pad',
+      P.pad = A.AnswerPad.mount($('pad' + P.pi), {accs: P.accs, relabel: P.L.relabel, notes: P.full.spelled, cls: 'dd-pad',   // the player's whole set, spelled
         onAnswer: (letter, acc, ev) => { if (!P.cpu) answer(P.pi, letter, acc, ev); }});
       $('pad' + P.pi).style.setProperty('--pad', `var(--${P.pi ? 'pink' : 'cyan'})`);
     });
@@ -391,10 +393,10 @@
     if (!c || pt.done || M.clock < c.at || M.clock < P.stunUntil) return;
     const it = P.it;
     if (c.wrong) {
-      const others = A.AnswerPad.LETTERS.filter(l => l !== it.n.letter);
-      const l = pick(others);
+      const others = P.pad.letters().filter(l => l !== it.n.letter);      // a button on its own pad
+      const l = pick(others), sp = P.pad.spelled && P.pad.spelled.find(n => n.letter === l);
       pt.cpu = {at: M.clock + PACE.stunMs + c.react * .5, wrong: false};
-      answer(1, l, it.n.acc || 0, {timeStamp: performance.now()}, true);
+      answer(1, l, P.pad.spelled ? (sp ? sp.acc : 0) : it.n.acc || 0, {timeStamp: performance.now()}, true);
     } else {
       pt.cpu = null;
       if (it.n.acc) P.pad.setAcc(it.n.acc);

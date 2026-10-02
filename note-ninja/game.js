@@ -2,7 +2,9 @@
    NOTES × ORDER (shared/mode-picker.js, notes from shared/sequences.js): First 5, a concert scale or Chromatic,
    in Random or Scale Order; scale pools show their key signature. The answer is always the note's real name,
    key signature included (a B in F major is B♭), spelled as shown (C♯ is not D♭).
-   Answering: ♭ ♮ ♯ work like a Shift key for the next letter tap, then go back to ♮.
+   Answering: THE SPELLED PAD (First 5 and the scales; shared/answer-pad.js's rule): one button per note of the set,
+   already spelled ("B♭ C D E♭ F"), one tap answers. CHROMATIC (or the teacher setting SPELL_ANSWER_BUTTONS off):
+   ♭ ♮ ♯ work like a Shift key for the next letter tap, then go back to ♮.
    Belts (levels) live in levels.js. Sounds are named events in shared/sfx.js.
    ENDLESS MODE (the ∞ card, shared/endless.js; its numbers are NINJA_ENDLESS in levels.js): G.endless, 3 hearts
    (a wrong answer or a timeout costs one), the time per note shrinks with the SPEED curve, read-ahead and the
@@ -106,6 +108,7 @@
     // each item: the note as drawn (show) and its real name (letter + acc of n: key signature included)
     const items = seq.items.map(it => ({show: it.show, letter: it.n.letter, acc: it.n.acc, label: it.label}));
     G = {lv, L, items, count: items.length, key: st.progressKey, sig: seq.sig, fit: seq.fit,
+         spelled: A.AnswerPad.spelled(seq.spelled),               // the whole set's spelled buttons (null: the Shift pad)
          accs: seq.items.concat(seq.pool).some(it => it.n.acc),   // show ♭ ♮ ♯ only if these notes have any sharps or flats
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, combo: 0, bestCombo: 0,
          acc: 0, locked: true, noteStart: 0};
@@ -124,6 +127,7 @@
     const st = picker.state, seq = chunk(0), full = A.ModePicker.sequence(st, {count: 8, pool: 5}, 2);
     G = {endless: true, L: {name: 'Endless', color: 'belt-white'}, items: seq.items.map(itemOf), count: Infinity,
          key: st.progressKey, sig: seq.sig, fit: seq.fit,
+         spelled: A.AnswerPad.spelled(full.spelled),
          accs: seq.items.concat(full.pool).some(it => it.n.acc),   // the whole set: its ♭/♯ may come in later
          i: 0, gStart: 0, score: 0, hits: 0, wrong: 0, missed: 0, combo: 0, bestCombo: 0,
          acc: 0, locked: true, noteStart: 0,
@@ -201,7 +205,8 @@
     $('hudCountLabel').textContent = G.endless ? 'Lives' : 'Note';
     G.beltColor = '';
     beltLook(L);
-    $('accRow').hidden = !G.accs;
+    $('accRow').hidden = !G.accs || !!G.spelled;
+    buildLetters();
     setAcc(0);
     hud();
     window.scrollTo(0, 0);
@@ -294,22 +299,43 @@
   function stopTimer() { clearInterval(timerId); timerId = 0; }
 
   /* ---------- answers ---------- */
+  /* THE SPELLED PAD (G.spelled): one button per note of the set, labeled with its full name, one tap answers letter AND
+     accidental; no ♭ ♮ ♯ row. Else THE SHIFT PAD: ♭ ♮ ♯ + A–G. */
+  const accOf = letter => { const n = G && G.spelled && G.spelled.find(x => x.letter === letter); return n ? n.acc : 0; };
+  let shownSet = null;
+  function buildLetters() {
+    const sp = G && G.spelled, key = sp ? sp.map(n => n.letter + n.acc).join() : '';
+    $('pad').classList.toggle('sp', !!sp);
+    if (shownSet === key) return fitLetters();
+    shownSet = key;
+    $('letters').innerHTML = (sp ? sp.map(n => n.letter) : LETTERS)
+      .map(l => `<button type="button" class="letter" data-letter="${l}"><span>${l}</span></button>`).join('');
+    fitLetters();
+  }
+  function fitLetters() {
+    const n = $('letters').children.length;
+    $('letters').style.setProperty('--cols', G && G.spelled ? A.AnswerPad.cols($('letters').clientWidth, n) : n);
+  }
+  if (window.ResizeObserver) new ResizeObserver(fitLetters).observe($('letters'));
   function setAcc(a) {
-    if (G) G.acc = a;
+    if (G) G.acc = G.spelled ? 0 : a;
+    a = G ? G.acc : a;
     document.querySelectorAll('.acc').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.acc === a)));
     document.querySelectorAll('.letter').forEach(b => {
-      b.firstChild.textContent = b.dataset.letter + (G && G.L.relabel === false ? '' : ACC_SIGN[a]);   // Diamond: no hint on the buttons
-      b.setAttribute('aria-label', b.dataset.letter + (a < 0 ? ' flat' : a > 0 ? ' sharp' : ''));
+      const l = b.dataset.letter;
+      if (G && G.spelled) { b.firstChild.textContent = A.AnswerPad.name(l, accOf(l)); b.setAttribute('aria-label', A.AnswerPad.say(l, accOf(l))); return; }
+      b.firstChild.textContent = l + (G && G.L.relabel === false ? '' : ACC_SIGN[a]);   // Diamond: no hint on the buttons
+      b.setAttribute('aria-label', A.AnswerPad.say(l, a));
     });
   }
-  $('letters').innerHTML = LETTERS.map(l => `<button type="button" class="letter" data-letter="${l}"><span>${l}</span></button>`).join('');
-  $('letters').querySelectorAll('.letter').forEach(b => b.addEventListener('click', () => answer(b.dataset.letter)));
+  buildLetters();
+  $('letters').addEventListener('click', e => { const b = e.target.closest('.letter'); if (b) answer(b.dataset.letter); });
   document.querySelectorAll('.acc').forEach(b => b.addEventListener('click', () => { if (G) setAcc(+b.dataset.acc === G.acc ? 0 : +b.dataset.acc); }));
   A.holdGuard($('pad'));                             // a long press on an answer never selects or calls out (ui.js)
 
   function answer(letter) {
     if (!G || G.locked || G.paused) return;
-    const it = current(), acc = G.accs ? G.acc : 0;
+    const it = current(), acc = G.spelled ? accOf(letter) : G.accs ? G.acc : 0;   // spelled: B → B♭ in that set
     setAcc(0);                                          // the Shift key lets go after every letter
     if (letter === it.letter && acc === it.acc) hit(); else wrongAnswer(letter + ACC_SIGN[acc]);
   }
@@ -463,13 +489,13 @@
   }
   function setPrompt(text, cls) { const p = $('prompt'); p.textContent = text; p.className = 'prompt ' + (cls || ''); }
 
-  /* ---------- keyboard (Chromebooks): A–G answer, 1 / 2 / 3 = ♭ / ♮ / ♯ ---------- */
+  /* ---------- keyboard (Chromebooks): A–G answer (spelled pad: that letter's spelled note), 1 / 2 / 3 = ♭ / ♮ / ♯ (Shift pad only) ---------- */
   addEventListener('keydown', e => {
     // never while a panel is open (results, pause, settings, a confirm: shared/ui-kit.js) or paused
     if (!G || G.paused || $('play').hidden || A.UI.isOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toUpperCase();
     if (LETTERS.includes(k)) { e.preventDefault(); answer(k); }
-    else if (G.accs && (k === '1' || k === '2' || k === '3')) { e.preventDefault(); setAcc(+k - 2); }
+    else if (G.accs && !G.spelled && (k === '1' || k === '2' || k === '3')) { e.preventDefault(); setAcc(+k - 2); }
   });
 
   /* ---------- results ---------- */

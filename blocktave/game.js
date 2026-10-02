@@ -1249,7 +1249,8 @@
     items = items.slice(0, n);
     const fitAll = other ? seq.fit.map(s => moveNote(s, shift)) : seq.fit;
     const fit = other ? fitAll.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : fitAll;
-    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, shifted: shift !== 0, nameOf: seq.name};
+    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, shifted: shift !== 0, nameOf: seq.name,
+            spelled: seq.spelled};                                        // TOUCH: the answer pad's spelled buttons (null: Chromatic)
   }
   /** the note names under the staff: after hintAfterWrong wrong answers, and the first otherClefNames other-clef cards
       (counted in gameData otherClef); returns 'other' when it's the other-clef reason */
