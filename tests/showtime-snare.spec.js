@@ -4,7 +4,7 @@
    fairness check at every showtime, and a wind player never seeing any of it. Hits are fired with the ?demo hook
    Arcade.Onsets.fake(time, level) (a hit at that exact moment and loudness). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageWatch, explain} = require('./helpers');
 
 const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
@@ -12,6 +12,7 @@ const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign(
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
 async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false} = {}) {
   const watch = await prepare(page, {store: store(gd, other)});
+  watch.seen = await pageWatch(page);                  // what the page saw, for a failure message (SN_STATE)
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
   await page.locator('.ls-start').click();
@@ -25,6 +26,11 @@ async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, s
   return watch;
 }
 const sn = page => page.evaluate(() => Arcade.Showtime.snare());
+/** the snare's state for a failure message: the plan, the hits it recorded (game time), when the band stood still */
+const SN_STATE = () => { const s = Arcade.Showtime.snare(), P = Arcade.Showtime.snarePlan(), G = Arcade.Showtime.debug();
+  return {plan: P && {k: P.k, start: P.start, measureStartPerf: Math.round(P.measureStartPerf), perfOf: P.perfOf.map(Math.round), beatS: P.beatS, W: P.W, lag: P.lag},
+    hits: s && s.hits, trail: s && s.trail, stillNow: s && s.stillNow, now: s && s.now, gt: s && s.gt, last: s && s.last, log: s && s.log && s.log.slice(-10),
+    left: s && s.target && s.target.left, split: s && s.split, paused: G && G.paused, held: G && G.held, suppressed: Arcade.Pitch.isSuppressed(performance.now())}; };
 /** close a NEW DRUM CHALLENGE card if one shows */
 async function card(page) { if (await page.locator('#spGo').isVisible()) await page.locator('#spGo').click(); }
 /** wait until the target exists (and the check passes), closing any challenge card */
@@ -220,9 +226,13 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       // a fixed rhythm (a note on every beat, nothing on the last & ), so the extra hit lands in no note's window
       await page.evaluate(i => { const b = Arcade.Showtime.debug().bots.find(x => x.id === i); b.job.list[b.job.idx].text = 'q q q q'; }, s.target.id);
       await freshCountIn(page);
-      await playMeasure(page, o);
+      const fired = await playMeasure(page, o);
       await judged(page);
       const r = await sn(page);
+      await explain(watch.seen, SN_STATE, async () => {
+        try { expect(r.last.pass).toBe(false); if (kind !== 'miss') expect(r.target.job.marks.hits.map(h => h.kind)).toContain(kind); }
+        catch (e) { e.message += `\n  planned at ${Math.round(fired.now)}: ${JSON.stringify(fired.P.perfOf.map(Math.round))}`; throw e; }
+      });
       expect(r.last.pass).toBe(false);
       expect(r.target.id).toBe(s.target.id);
       expect(r.target.job.text).toBe('q q q q');                                          // the same rhythm again
@@ -289,7 +299,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       await quiet(page);
       const left = s.target.left;
       await hit(page, job === 'p' ? DYN.loud : DYN.soft);                                 // the wrong loudness
-      expect((await sn(page)).target.left).toBe(job === 'p' ? left + 1 : left);
+      await explain(watch.seen, SN_STATE, async () => expect((await sn(page)).target.left).toBe(job === 'p' ? left + 1 : left));
       await expect(page.locator('#prompt')).toContainText(job === 'p' ? 'Softer!' : 'Louder!');
       await page.waitForTimeout(150);
       await hit(page, job === 'p' ? DYN.soft : DYN.loud);                                 // the right one

@@ -1,0 +1,39 @@
+# TEMPORARY (removed before the pull request): Showtime Malfunction's snare tests in WebKit, repeated, with diagnostics.
+name: WebKit diagnostics (temporary)
+
+on:
+  push:
+    branches: [claude/epic-thompson-d5v5rg]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webkit-diag-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diag:
+    name: webkit diag ${{ matrix.copy }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Showtime's snare tests, 6 times each, 2 browsers at a time
+        run: npx playwright test showtime-snare --project=webkit --workers=2 --repeat-each=6 --retries=0 --reporter=list
+        env:
+          CI: 'true'
