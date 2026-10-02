@@ -35,6 +35,13 @@
 .lvl .mini{grid-column:2;grid-row:1/3;width:40px;display:grid;place-items:center}
 .lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-lo);font-variant-numeric:tabular-nums;margin-top:6px}
 .lvl[disabled]{cursor:not-allowed;opacity:.45}
+/* RARE GEAR (the Diamond card): what only Chromatic + Random's Diamond belt earns, as small pictures */
+.lvl .rare{grid-column:1/-1;display:flex;flex-direction:column;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.lvl .rare-t{font-size:12px;font-weight:700;line-height:1.3;color:var(--belt-diamond-2)}
+.lvl .rare-icons{display:flex;flex-wrap:wrap;gap:3px}
+.lvl .rare-pic{width:26px;height:26px;display:grid;place-items:center;border-radius:6px;background:var(--floor-3);overflow:hidden}
+.lvl .rare-pic .pt-box{width:26px}
+.lvl .rare-pic .av-plate{font-size:10px;padding:0 4px;color:var(--white-hi)}
 @media (min-width:701px){               /* narrow cards: the belt beside the name, the title and the footer full width */
   .lvl{padding:10px 10px 10px 12px;min-height:170px}
   .lvl .mini{grid-row:1;width:34px}.lvl .mini .belt-knot{width:32px}

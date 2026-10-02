@@ -640,6 +640,8 @@ window.AVATAR_PARTS = {};
      UNLOCK RULES (the `unlock` field):
        {stars: 150}                         150 ★ on THIS DEVICE: every instrument, every game, every mode added up
        {game, level, stars, text}           an achievement: any instrument has `stars` on that level of that game
+                                            (+ suffix: only keys ending in it; exact: only the plain '<game>' key;
+                                            key: only that ONE progress key, e.g. 'note-ninja:random-chromatic')
        {game, achievement: 'id', text}      an achievement a game saves (Arcade Quest's 'ep1', Speedway's 'virtuoso-win')
        {game, badge: true, text}            any TEST READY badge in Ancient Ninja Scrolls ({game, badges: 4, text}: 4 of them)
        {game, perfect: 8, text}             3 ★ on every level 1–8 of that game (any instrument, any mode's key)
@@ -667,7 +669,13 @@ window.AVATAR_PARTS = {};
      save codes carry it (QUEST CODE v5: room for 90 in all; QUEST_V1–V4 are frozen), and check it with ?demo&unlockall in the LOCKER and in Create Your Player from every side.
      A {shop} item appears on the Prize Counter's shelves and the Token Booth's PLAYER ITEMS shelf by itself (keep
      prices 50–500; the Prize Counter shelves it by price). Arcade Quest only: add it to MANOR_COLLECTION at the end.
+     NOTE NINJA'S RARE DIAMOND GEAR (NINJA_DIAMOND below): the Diamond headband, the Diamond belt headband, the Diamond
+     belt name plate, Bamboo Moon (and skins.js's Diamond color skin) need the Diamond belt on CHROMATIC notes in RANDOM
+     order (key 'note-ninja:random-chromatic'); belts White–Black stay any note set. Devices that had them under the
+     old rule (any note set) keep them: storage.js migrate() 'ninja-diamond-chromatic' made them OWNED, and an owned
+     key always opens an earned item (avatar.js isUnlocked). Note Ninja's Diamond belt card shows them (RARE GEAR).
      ===================================================================================================================== */
+  const NINJA_DIAMOND = () => ({game: 'note-ninja', level: 10, stars: 1, key: 'note-ninja:random-chromatic', text: 'Earn the Diamond belt in Note Ninja on Chromatic notes, Random order'});
   const recolor = (map, from, to) => map && Object.assign({}, map, map.half ? {half: map.half.map(r => r.replace(from, to))} : {rows: map.rows.map(r => r.replace(from, to))});
   const deep = o => JSON.parse(JSON.stringify(o));
 
@@ -712,7 +720,7 @@ window.AVATAR_PARTS = {};
      front: {y: 0, half: ['..........3..3.3', '..........333333', '..........345363']}, side: {y: 0, rows: ['..........3..3..3', '..........33333333', '..........35363543']},
      back:  {y: 0, half: ['..........3..3.3', '..........333333', '..........343434']},
      bust:  {y: 0, half: ['.........3...3...3', '.........33..333.3', '.........333333333', '.........334335336', '.........333333333', '.........444444444']}},
-    {id: 'diamondband', name: 'Diamond headband', unlock: {game: 'note-ninja', level: 10, stars: 1, text: 'Earn the Diamond belt in Note Ninja'}, hides: 'none',
+    {id: 'diamondband', name: 'Diamond headband', unlock: NINJA_DIAMOND(), hides: 'none',
      front: {y: 4, half: ['...............0', '.........6666669']}, side: {y: 4, rows: ['..................0', '........66666666669']}, back: {y: 5, half: ['.........6666666']},
      bust:  {y: 8, half: ['.................0', '................09', '........6666666609', '.........66666669.', '.................9']}});
 
@@ -805,7 +813,8 @@ window.AVATAR_PARTS = {};
   const shiftHalf = (m, dx) => m && (m.half ? Object.assign({}, m, {half: m.half.map(r => (dx > 0 ? rep('.', dx) + r : r.slice(-dx)))}) : shiftRows(m, 0, 99, dx));
   const flap = (m, lower = 0, d = 1) => m && [m, shiftHalf(m, -d), m, shiftHalf(m, d)].map((x, i) => lower && i % 2 ? Object.assign({}, x, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) => (y < lower ? (m.half || m.rows)[y] : (x.half || x.rows)[y]))}) : x);
   const BELT_NAMES = ['White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Red', 'Brown', 'Black', 'Diamond'];
-  const beltRule = i => ({game: 'note-ninja', level: i + 1, stars: 1, text: `Earn the ${BELT_NAMES[i]} belt in Note Ninja`});
+  // White–Black: any note set; Diamond: the rare gear rule (Chromatic notes, Random order: NINJA_DIAMOND)
+  const beltRule = i => i === 9 ? NINJA_DIAMOND() : ({game: 'note-ninja', level: i + 1, stars: 1, text: `Earn the ${BELT_NAMES[i]} belt in Note Ninja`});
 
   // ---- hats ----
   const band = P.ACCESSORIES.headband, toA = m => m && recolor(recolor(m, /1/g, 'A'), /2/g, 'A');
@@ -1000,7 +1009,7 @@ window.AVATAR_PARTS = {};
     // ---- a game's background: clear its final level (or the goal given) ----
     {id: 'thunderstorm', name: 'Thunderstorm', kind: 'scene', scene: 'storm', lift: 1.6, main: 'purple-ink', unlock: clear(['note-storm', 8, 'Clear Note Storm Level 8'])},
     {id: 'hauntedhall', name: 'Haunted Hall', kind: 'scene', scene: 'manor', lift: 1.7, main: 'purple-ink', unlock: clear(['ghost-notes', 8, 'Clear Ghost Notes Level 8'])},
-    {id: 'bamboomoon', name: 'Bamboo Moon', kind: 'scene', scene: 'bamboo', lift: 1.9, main: 'green-ink', unlock: clear(['note-ninja', 10, 'Earn the Diamond belt in Note Ninja'])},
+    {id: 'bamboomoon', name: 'Bamboo Moon', kind: 'scene', scene: 'bamboo', lift: 1.9, main: 'green-ink', unlock: NINJA_DIAMOND()},
     {id: 'inkbloom', name: 'Ink Bloom', kind: 'scene', scene: 'ink', lift: 1.5, main: 'floor-3', unlock: clear(['vanishing-ink', 8, 'Clear Vanishing Ink Level 8'])},
     {id: 'laservault', name: 'Laser Vault', kind: 'scene', scene: 'vault', lift: 1.9, main: 'blue-ink', unlock: clear(['chime-heist', 8, 'Clear The Golden Vault in Chime Heist'])},
     {id: 'lanterntemple', name: 'Lantern Temple', kind: 'scene', scene: 'temple', lift: 1.9, main: 'amber-ink', unlock: clear(['ancient-ninja-scrolls', 8, 'Earn a star on the Diamond scroll in Ancient Ninja Scrolls'])},
