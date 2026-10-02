@@ -207,10 +207,17 @@ test.describe('Blocktave: mining = playing', () => {
         }
         expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), at), `${k} was mined`).toMatch(/^(air)$/);
       }
-      // the snare's cards: counts, rhythms and even rolls (never notes)
-      expect(Object.values(got).every(kind => ['count', 'rhythm', 'rest', 'roll', 'dynamics', 'tempo'].includes(kind)), JSON.stringify(got)).toBe(true);
-      expect(got.toneOre).toBe('count');
-      expect(got.sustain).toBe('roll');
+      if (mode === 'inst') {
+        // INSTRUMENT on the drum: counts, rhythms and even rolls (never notes)
+        expect(Object.values(got).every(kind => ['count', 'rhythm', 'rest', 'roll', 'dynamics', 'tempo'].includes(kind)), JSON.stringify(got)).toBe(true);
+        expect(got.toneOre).toBe('count');
+        expect(got.sustain).toBe('roll');
+      } else {
+        // TOUCH is the same for everyone: the bells' notes, the key question, tapped rhythms; never a count or a roll
+        expect(Object.values(got).some(kind => kind === 'count' || kind === 'roll'), JSON.stringify(got)).toBe(false);
+        expect(got.toneOre).toBe('notes');
+        expect(got.sustain).toBe('key');
+      }
       watch.check();
     });
   }
@@ -2438,4 +2445,158 @@ test.describe('Blocktave: Chapter 6 saving (save v 3 and the one-time ore pass)'
     expect(after.hot).toEqual(before.hot);
     expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x + 4, y - 1), g)).toBe('trampoline');
   });
+});
+
+/* ================= TOUCH MODE IS THE SAME FOR EVERY MEMBER (the snare included) ================= */
+test.describe('Blocktave: TOUCH mode is the same for every member (the snare reads the bells and taps rhythms)', () => {
+  const NO_WORDS = /\bplay|\bhits?\b/i;
+  /** a snare in TOUCH mode, with the microphone watched from the first script on */
+  async function snareTouch(page, {endless = false} = {}) {
+    await prepare(page, {store: store('snare', 'touch')});
+    await page.addInitScript(() => {
+      window.__mic = [];
+      const md = navigator.mediaDevices;
+      if (md) { const g = md.getUserMedia && md.getUserMedia.bind(md); md.getUserMedia = c => { window.__mic.push('getUserMedia'); return g ? g(c) : Promise.reject(new Error('no')); }; }
+    });
+    await page.goto('blocktave/index.html?demo&nostart&seed=42');
+    await page.evaluate(() => {
+      const P = Arcade.Pitch, s = P.start; P.start = function () { window.__mic.push('Pitch.start'); return s.apply(this, arguments); };
+      const rm = Arcade.requireMic; Arcade.requireMic = fn => { window.__mic.push('requireMic'); return rm(fn); };
+      const e = Arcade.Onsets.ensure; Arcade.Onsets.ensure = () => { if (Arcade.Pitch.source()) window.__mic.push('Onsets'); return e(); };
+      window.__texts = [];
+      const t = Arcade.UI.toast; Arcade.UI.toast = (m, o) => { window.__texts.push(String(typeof m === 'string' ? m : (m && m.text) || '')); return t(m, o); };
+      const i = Arcade.UI.intro.show; Arcade.UI.intro.show = o => { window.__texts.push(o.title + ' ' + o.text); return i(o); };
+    });
+    if (endless) await page.locator('.ls-endless').first().click(); else await page.locator('.ls-card:not(.ls-endless)').first().click();
+    await page.locator('.ls-start').click();
+    await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
+    await page.waitForTimeout(300);
+  }
+  /** what the student sees on the card now (its title line, the question, the buttons) */
+  const cardText = page => page.evaluate(() => { const c = document.querySelector('.bt-card'); return c ? c.innerText : ''; });
+  const answer = async page => { await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page); };
+
+  test('snare + TOUCH: every block, creature, recipe, the Podium: a touch card that ?demo passes; no microphone; never "play" or "hits"', async ({page}) => {
+    test.setTimeout(300_000);
+    await snareTouch(page);
+    const seenCards = [];
+    await page.evaluate(() => Arcade.Blocktave.demo.give('mallet3', 1));
+    // every block type
+    const kinds = await page.evaluate(() => Arcade.BlocktaveWorld.BLOCKS.filter(b => b.mine && b.mine !== 'tap').map(b => b.key));
+    for (const k of kinds) {
+      const at = await putBeside(page, k);
+      await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), at);
+      if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
+      expect(await cardOpen(page), `${k} opens a card`).toBe(true);
+      const kind = await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind);
+      seenCards.push([k, kind, await cardText(page)]);
+      await answer(page);
+      expect(await page.evaluate(({x, y}) => Arcade.Blocktave.demo.at(x, y), at), `${k} was mined`).toBe('air');
+    }
+    // the creatures (their own cards, as if tapped)
+    for (const kind of ['clam', 'wisp', 'rusher']) {
+      const id = await page.evaluate(k => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn(k, 7); }, kind);
+      await page.waitForTimeout(150);
+      if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
+      if (!(await cardOpen(page))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+      seenCards.push([kind, await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind), await cardText(page)]);
+      await answer(page);
+      expect(await page.evaluate(i => Arcade.Blocktave.state().creatures.find(c => c.id === i).state, id), `${kind} calmed`).not.toBe('live');
+    }
+    await page.evaluate(() => Arcade.Blocktave.demo.time(30));
+    // every recipe performance (note, notes3, beats, longtone, scale), at a bench
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) - 1, y = Math.floor(s.player.y) - 1; d.put(x, y, 'air'); d.place(x, y, 'bench'); });
+    for (const id of ['maple-planks', 'brass-mallet', 'metronome', 'tuner', 'music-stand']) {
+      await page.evaluate(id => { const d = Arcade.Blocktave.demo; window.BT_RECIPES.find(r => r.id === id).in.forEach(k => d.give(k, 1)); }, id);
+      expect(await page.evaluate(id => Arcade.Blocktave.demo.craft(id), id), id).toBe(true);
+      seenCards.push([id, await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind), await cardText(page) + ' ' + await page.locator('#recipeLine').innerText()]);
+      await answer(page);
+    }
+    // the recipe book's performance lines
+    await page.locator('#bookBtn').click();
+    seenCards.push(['book', '-', await page.locator('#book').innerText()]);
+    await page.evaluate(() => Arcade.Blocktave.demo.hold(false));
+    await page.keyboard.press('c');
+    // the Composer row + the Conductor's Podium
+    const pod = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+      for (let k = 0; k < 3; k++) { d.put(x + k, y, 'composer'); } d.put(x + 3, y, 'podium'); d.put(x + 3, y + 1, 'slate'); return {x: x + 3, y}; });
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.act(x, y, true), pod);
+    seenCards.push(['podium say', '-', await page.locator('#compSay').innerText()]);
+    await page.locator('#compPerf').click();
+    seenCards.push(['podium', await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind), await cardText(page)]);
+    await answer(page);
+    // the Settings row
+    await page.evaluate(() => Arcade.UI.settings.open());
+    seenCards.push(['settings', '-', await page.locator('#uiSettings .ui-srow').first().innerText()]);
+    await page.evaluate(() => { const d = document.querySelector('#uiSettings [data-act=done]'); if (d) d.click(); });
+    // the cards: touch cards, never a drum performance
+    for (const [what, kind] of seenCards) expect(['count', 'roll'], `${what}: ${kind}`).not.toContain(kind);
+    const byKey = Object.fromEntries(seenCards.map(([w, k]) => [w, k]));
+    expect(byKey.toneOre).toBe('notes'); expect(byKey.scaleVein).toBe('notes'); expect(byKey.sustain).toBe('key');
+    expect(byKey.rhythmRock).toBe('rhythm'); expect(byKey.clam).toBe('notes'); expect(byKey.wisp).toBe('key'); expect(byKey.podium).toBe('notes');
+    // the words: never "play" or "hits" (cards, first cards, toasts, the recipe line and book, the podium, Settings)
+    const words = seenCards.map(([w, , t]) => [w, t]).concat((await page.evaluate(() => window.__texts)).map(t => ['toast/first card', t]));
+    expect(words.filter(([, t]) => NO_WORDS.test(t)).map(([w, t]) => `${w}: ${t.replace(/\s+/g, ' ').slice(0, 90)}`)).toEqual([]);
+    // no microphone at any point
+    expect(await page.evaluate(() => window.__mic)).toEqual([]);
+    expect(await page.evaluate(() => Arcade.Pitch.listening())).toBe(false);
+  });
+
+  test('snare + TOUCH: Survival Nights is all touch cards too, with no microphone', async ({page}) => {
+    await snareTouch(page, {endless: true});
+    expect((await st(page)).endless).toBe(true);
+    for (const k of ['toneOre', 'sustain']) {
+      const at = await putBeside(page, k);
+      await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('baton', 1); d.mine(x, y); }, at);
+      if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
+      expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe(k === 'toneOre' ? 'notes' : 'key');
+      expect(NO_WORDS.test(await cardText(page))).toBe(false);
+      await answer(page);
+    }
+    const id = await page.evaluate(() => Arcade.Blocktave.demo.spawn('clam', 7));
+    await page.waitForTimeout(150);
+    if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('notes');
+    await answer(page);
+    expect(await page.evaluate(() => window.__mic)).toEqual([]);
+  });
+
+  test('snare + INSTRUMENT: exactly the drum cards (count, roll, rhythm); trumpet unchanged in both modes', async ({page}) => {
+    const kinds = () => page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y), o = {};
+      for (const k of ['tone', 'note', 'notes3', 'scale', 'sustain', 'longtone', 'rhythm', 'rest', 'beats']) o[k] = d.spec(k, x, y, 3).kind; return o; });
+    await enter(page, {member: 'snare', mode: 'inst'});
+    expect(await kinds()).toEqual({tone: 'count', note: 'count', notes3: 'count', scale: 'rhythm', sustain: 'roll', longtone: 'roll', rhythm: 'rhythm', rest: 'rest', beats: 'rhythm'});
+    const id = await page.evaluate(() => Arcade.Blocktave.demo.spawn('clam', 7));
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('count');
+    await page.evaluate(() => Arcade.BlocktaveCard.close());
+    await page.evaluate(() => { Arcade.Blocktave.demo.give('maple', 1); Arcade.Blocktave.demo.addToSlot('maple'); });
+    await page.keyboard.press('c');
+    await expect(page.locator('#recipeLine')).toContainText('Count your hits');
+  });
+  for (const mode of ['inst', 'touch']) {
+    test(`trumpet (${mode}): the cards are unchanged`, async ({page}) => {
+      await enter(page, {mode});
+      const k = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y), o = {};
+        for (const k of ['tone', 'scale', 'sustain', 'rhythm', 'rest', 'beats']) o[k] = d.spec(k, x, y, 3).kind; o.clef = d.spec('tone', x, y, 1).clef; return o; });
+      expect(k).toEqual({tone: 'notes', scale: 'notes', sustain: mode === 'inst' ? 'sustain' : 'key', rhythm: 'rhythm', rest: 'rest', beats: 'rhythm', clef: 'treble'});
+    });
+  }
+
+  for (const [name, vp] of [['phone', {width: 390, height: 844}], ['iPad', {width: 820, height: 1180}], ['Chromebook', {width: 1366, height: 768}]]) {
+    test(`snare + TOUCH: note cards in treble clef, the bells' range, fitting the card (${name})`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {member: 'snare', mode: 'touch'});
+      const r = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y), b = Arcade.memberById('bells'), out = [];
+        for (let k = 0; k < 10; k++) { const sp = d.spec(k % 2 ? 'scale' : 'notes3', x, y, k % 2 ? 8 : 3); out.push({clef: sp.clef, inRange: sp.items.every(i => i.midi >= b.lowMidi && i.midi <= b.highMidi)}); }
+        return out; });
+      r.forEach(c => expect(c).toEqual({clef: 'treble', inRange: true}));
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y); d.openSpec(d.spec('scale', x, y, 8), x + 1, y - 2); });
+      const fit = await page.evaluate(() => { const card = document.querySelector('.bt-card'), cr = card.getBoundingClientRect(), bad = [];
+        card.querySelectorAll('.bt-staff ellipse.head').forEach(e => { const q = e.getBoundingClientRect(); if (q.left < cr.left - .5 || q.right > cr.right + .5 || q.top < cr.top - .5 || q.bottom > cr.bottom + .5) bad.push(1); });
+        return {bad: bad.length, n: card.querySelectorAll('.bt-staff ellipse.head').length, onScreen: cr.left >= -.5 && cr.right <= innerWidth + .5 && cr.bottom <= innerHeight + .5, clef: card.querySelector('.bt-staff svg').textContent.includes('𝄞')}; });
+      expect(fit).toEqual({bad: 0, n: 8, onScreen: true, clef: true});
+    });
+  }
 });
