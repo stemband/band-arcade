@@ -456,9 +456,11 @@
     const sl = G.sl;
     if (!sl.switched && G.dist >= G.lens[G.lap] / 2) {        // THE SWITCH (halfway)
       endHold();
-      sl.switched = true; sl.watch = true; sl.at = now; sl.broke = false;
-      sl.gapFrom = S.state === 'on' ? null : (S.lastSound || now);
-      if (sl.gapFrom != null && now - sl.gapFrom >= R.slur.gapMs) sl.broke = true;
+      // (performance.now(), the time the detector's frames use: a busy page's frame timestamp runs behind it)
+      const pn = performance.now();
+      sl.switched = true; sl.watch = true; sl.at = pn; sl.broke = false;
+      sl.gapFrom = S.state === 'on' ? null : (S.lastSound || pn);
+      if (sl.gapFrom != null && pn - sl.gapFrom >= R.slur.gapMs) sl.broke = true;
       drawNote();
       banner(`SLUR TO ${b.label}!`, 'slur', 900);
     }
