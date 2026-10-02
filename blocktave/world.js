@@ -4,7 +4,8 @@
      BW.starter(world, orig)   the STARTER CHECK (chapter 1's trees and Tone Ore near the spawn): {maple, cork, toneOre, ok}
      BW.repair(world)          the one-time repair of an older saved world (plants what the starter check misses)
      BW.generate(seed, R)      a new world {seed, w, h, b (Uint8Array, row-major), meta, bags, spawn, time, nights, …}
-     BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], drops, …} (versioned: v 2; v 1 = no drops)
+     BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], drops, …} (versioned: v 3; v 1 = no drops; v < 3 = no Chapter 6 ores yet)
+     BW.placeOres2 / BW.ores2Pass(world, R, view)   Chapter 6's six ores (new worlds; once into an older saved world)
      BW.zone(world, x, y)      {biome, layer: 'peaks'|'surface'|'middle'|'depths'} (Treble Peaks / Bass Depths)
      BW.light(world, x, y, sky, lamps)   0–1   ·   BW.lightMap(world, x0, y0, cols, rows, sky, lamps)   a rectangle's light
      BW.room(world, x, y)      the enclosed space around an air tile: {tiles, doors, walls} or null (open / too big)
@@ -57,6 +58,18 @@ window.Arcade = window.Arcade || {};
     {key: 'podium', name: "Conductor's Podium", solid: 0, mine: 'tap', tier: 0, drop: 'podium', use: 'podium'},
     {key: 'bench', name: "Luthier's Bench", solid: 0, mine: 'tap', tier: 0, drop: 'bench', use: 'bench'},
     {key: 'clay', name: 'Canyon Clay', solid: 1, mine: 'tap', tier: 0, drop: 'dirt'},
+    // --- added with Chapter 6 (APPEND ONLY: saved worlds store these numbers; never reorder or renumber) ---
+    {key: 'rumbleOre', name: 'Rumble Ore', solid: 1, mine: 'lowread', tier: 2, drop: 'basscrystal'},
+    {key: 'piccoloQuartz', name: 'Piccolo Quartz', solid: 1, mine: 'highread', tier: 2, drop: 'treblecrystal'},
+    {key: 'intervalGeode', name: 'Interval Geode', solid: 1, mine: 'interval', tier: 1, drop: 'harmony'},
+    {key: 'keyQuartz', name: 'Key Quartz', solid: 1, mine: 'keysig', tier: 2, drop: 'keyshard'},
+    {key: 'dynamicCoral', name: 'Dynamic Coral', solid: 1, mine: 'dynamics', tier: 1, drop: 'coralpearl'},
+    {key: 'tempoAmber', name: 'Tempo Amber', solid: 1, mine: 'tempo', tier: 2, drop: 'amberbeat'},
+    {key: 'trampoline', name: 'Timpani Trampoline', solid: 1, mine: 'tap', tier: 0, drop: 'trampoline', bounce: 1},
+    {key: 'segno', name: 'Segno Sign', solid: 0, mine: 'tap', tier: 0, drop: 'segno', use: 'sign', sign: 1},
+    {key: 'coda', name: 'Coda Sign', solid: 0, mine: 'tap', tier: 0, drop: 'coda', use: 'sign', sign: 1},
+    {key: 'organ', name: 'Pipe Organ', solid: 0, mine: 'tap', tier: 0, drop: 'organ', use: 'organ'},   // 2 wide × 3 tall (meta: its anchor)
+    {key: 'corallamp', name: 'Coral Lamp', solid: 0, mine: 'tap', tier: 0, drop: 'corallamp', light: 1},  // placeable in water
   ];
   B.forEach((b, i) => { b.id = i; b.solid = !!b.solid; b.name = b.name || b.key; });
   const ID = {}; B.forEach(b => { ID[b.key] = b.id; });
@@ -84,7 +97,8 @@ window.Arcade = window.Arcade || {};
   const biomeOf = (R, x) => R.biomes.find(b => x >= b.from && x < b.to) || R.biomes[R.biomes.length - 1];
   // GEN = the generator's version, saved in each world (old saves = 1): the repair rebuilds a world's ORIGINAL with the
   // same version, so it can tell natural tiles from ones the player placed or dug
-  const GEN = 2;
+  // (3 = the six ores of Chapter 6, placed by placeOres2 after everything else, so the shape of the world is the same as 2)
+  const GEN = 3;
   function generate(seed, R, gen) {
     R = R || window.BT_RULES; gen = gen || GEN;
     const W = R.world.w, H = R.world.h, S = R.world.surface, r = rng(seed);
@@ -213,6 +227,7 @@ window.Arcade = window.Arcade || {};
     const world = {v: 1, gen, seed: seed >>> 0, w: W, h: H, b, meta: {}, bags: [], spawn: {x: sx, y: sy}, time: 20, nights: 0, survived: 0,
       player: null, cot: null, lockers: {}, drops: [], repaired: REPAIR, dirty: true};
     if (gen >= 2) ensureStarter(world, world, R);             // THE STARTER GUARANTEE (below)
+    if (gen >= 3) placeOres2(world, world, R);                // CHAPTER 6'S ORES (below)
     delete world.tops;
     return world;
   }
@@ -291,10 +306,83 @@ window.Arcade = window.Arcade || {};
     return added.trees || added.ore ? added : null;
   }
 
+  /* ---------- CHAPTER 6'S SIX ORES (rules.js ores) ----------
+     Placed after the rest of the world (its own seeded random numbers), so a world's shape never changes. Where each forms
+     (`orig` = the world as generated: its ground and caves):
+       Rumble Ore      the Bass Depths' deepest rows (deepY + rumbleBelow down), slate on a cave's wall
+       Piccolo Quartz  the Treble Peaks' top rows (above peaksY − piccoloAbove), the mountain's rock facing the open air
+       Interval Geode  the walls of the middle layer's caves (under the surface rows, above the Bass Depths), anywhere
+       Key Quartz      Brass Mountains rock at least keyBelow rows under the ground, above the Bass Depths
+       Dynamic Coral   the beds of Reed Marsh pools: the ground right under the water
+       Tempo Amber     Percussion Canyon rock at least amberBelow rows under the ground
+     `ok(x, y)` = this tile may change (the one-time pass into an older world: untouched, far from builds, out of view).
+     At least minReach Rumble Ore and Piccolo Quartz face the open air (reachable). Returns {key: count}. */
+  const ORES2 = ['rumbleOre', 'piccoloQuartz', 'intervalGeode', 'keyQuartz', 'dynamicCoral', 'tempoAmber'];
+  function oreSpots(w, orig, R) {
+    const O = R.ores, W = w.w, H = w.h, out = {}; ORES2.forEach(k => { out[k] = []; });
+    const v0 = (x, y) => (x < 0 || x >= W || y < 0 || y >= H) ? ID.bedrock : orig.b[y * W + x];
+    const open = (x, y) => { const v = v0(x, y); return v === ID.air || v === ID.water; };
+    const face = (x, y) => open(x - 1, y) || open(x + 1, y) || open(x, y - 1) || open(x, y + 1);
+    const rock = v => v === ID.slate || v === ID.dirt || v === ID.moss || v === ID.clay;
+    for (let x = 1; x < W - 1; x++) {
+      const g = top(orig, x), bi = biomeOf(R, x).id;
+      for (let y = 1; y < H - 2; y++) {
+        const v = v0(x, y);
+        if (v === ID.slate && y >= R.world.deepY + O.rumbleBelow && face(x, y)) out.rumbleOre.push([x, y]);
+        if (rock(v) && y < R.world.peaksY - O.piccoloAbove && face(x, y)) out.piccoloQuartz.push([x, y]);
+        if (v === ID.slate && y > g + R.world.shallow && y < R.world.deepY && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => v0(x + dx, y + dy) === ID.air && y + dy > top(orig, x + dx))) out.intervalGeode.push([x, y]);
+        if (bi === 'brass' && v === ID.slate && y >= g + O.keyBelow && y < R.world.deepY && !face(x, y)) out.keyQuartz.push([x, y]);
+        if (bi === 'marsh' && v !== ID.water && B[v].solid && v !== ID.bedrock && v0(x, y - 1) === ID.water) out.dynamicCoral.push([x, y]);
+        if (bi === 'canyon' && (v === ID.slate || v === ID.clay) && y >= g + O.amberBelow) out.tempoAmber.push([x, y]);
+      }
+    }
+    return out;
+  }
+  function placeOres2(w, orig, R, ok) {
+    R = R || window.BT_RULES; ok = ok || (() => true);
+    const O = R.ores, r = rng((w.seed ^ 0x0e2e5) >>> 0), spots = oreSpots(w, orig, R), count = {};
+    const rate = {rumbleOre: O.rumbleRate, piccoloQuartz: O.piccoloRate, intervalGeode: O.geodeRate, keyQuartz: O.keyRate, dynamicCoral: O.coralRate, tempoAmber: O.amberRate};
+    ORES2.forEach(k => {
+      count[k] = 0;
+      const list = spots[k], v = ID[k], left = [];
+      list.forEach(([x, y]) => { if (r() < rate[k] && ok(x, y)) { w.b[y * w.w + x] = v; count[k]++; } else left.push([x, y]); });
+      // the reachable minimum (Rumble Ore, Piccolo Quartz: every candidate already faces the open air)
+      if (k === 'rumbleOre' || k === 'piccoloQuartz') {
+        for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
+        for (const [x, y] of left) { if (count[k] >= O.minReach) break; if (ok(x, y)) { w.b[y * w.w + x] = v; count[k]++; } }
+      }
+    });
+    if (w.tops) w.tops.fill(-1);
+    w.dirty = true;
+    return count;
+  }
+  /* THE ONE-TIME ORE PASS into a world saved before Chapter 6 (save v < 3): the six ores by the same rules, ONLY into
+     tiles still exactly as the seed made them, never within ores.keepAway of anything the player built (any tile that
+     differs from the original and isn't air or water: blocks, doors, lamps, cots, lockers, benches…), never inside
+     `view` {x0, y0, x1, y1} (what the player can see now), never in water. Seeded by the world's seed: the same every
+     time. Returns the counts. */
+  function ores2Pass(w, R, view) {
+    R = R || window.BT_RULES;
+    if (w.w !== R.world.w || w.h !== R.world.h) return null;
+    const orig = generate(w.seed, R, Math.min(w.gen || 1, 2)), K = R.ores.keepAway, W = w.w, H = w.h;
+    const near = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      const v = w.b[i];
+      if (v === orig.b[i] || v === ID.air || v === ID.water) continue;
+      const bx = i % W, by = Math.floor(i / W);
+      for (let y = Math.max(0, by - K); y <= Math.min(H - 1, by + K); y++) for (let x = Math.max(0, bx - K); x <= Math.min(W - 1, bx + K); x++)
+        if (Math.hypot(x - bx, y - by) <= K) near[y * W + x] = 1;
+    }
+    const inView = (x, y) => view && x >= view.x0 && x <= view.x1 && y >= view.y0 && y <= view.y1;
+    const ok = (x, y) => { const i = y * W + x; return w.b[i] === orig.b[i] && !near[i] && !inView(x, y); };
+    return placeOres2(w, orig, R, ok);
+  }
+
   /* ---------- SAVING: run-length encoded chunks of 16 columns (column by column), versioned ---------- */
   // VERSION 2 added `drops` (items lying in the world: [{x, y, item, n, t (seconds spent off screen)}]); a version-1 save
-  // loads with none
-  const CHUNK = 16, VERSION = 2;
+  // loads with none. VERSION 3 = Chapter 6's ores are in the world: an older save (v 1 or 2) gets the one-time ore pass
+  // (ores2Pass) on load, then saves as v 3 (decode's `fromV` says which it was).
+  const CHUNK = 16, VERSION = 3;
   function encode(w) {
     const chunks = [];
     for (let c = 0; c < Math.ceil(w.w / CHUNK); c++) {
@@ -311,7 +399,7 @@ window.Arcade = window.Arcade || {};
       drops: (w.drops || []).map(d => ({x: +d.x.toFixed(2), y: +d.y.toFixed(2), item: d.item, n: d.n, t: Math.round(d.t || 0)})), stats: w.stats || {}};
   }
   function decode(o) {
-    if (!o || typeof o !== 'object' || !(o.v === 1 || o.v === VERSION) || !Array.isArray(o.chunks) || !(o.w > 0) || !(o.h > 0)) return null;
+    if (!o || typeof o !== 'object' || !(o.v === 1 || o.v === 2 || o.v === VERSION) || !Array.isArray(o.chunks) || !(o.w > 0) || !(o.h > 0)) return null;
     const b = new Uint8Array(o.w * o.h);
     for (let c = 0; c < o.chunks.length; c++) {
       let x = c * CHUNK, y = 0;
@@ -323,7 +411,7 @@ window.Arcade = window.Arcade || {};
       }
       if (x !== x1) return null;
     }
-    return {v: VERSION, gen: +o.gen || 1, repaired: +o.repaired || 0, seed: o.seed >>> 0, w: o.w, h: o.h, b, meta: o.meta || {}, bags: o.bags || [],
+    return {v: VERSION, fromV: o.v, gen: +o.gen || 1, repaired: +o.repaired || 0, seed: o.seed >>> 0, w: o.w, h: o.h, b, meta: o.meta || {}, bags: o.bags || [],
       spawn: o.spawn || {x: 20, y: 30}, time: +o.time || 0, nights: +o.nights || 0, survived: +o.survived || 0, player: o.player || null,
       cot: o.cot || null, lockers: o.lockers || {}, stats: o.stats || {},
       drops: Array.isArray(o.drops) ? o.drops.filter(d => d && isFinite(d.x) && isFinite(d.y) && typeof d.item === 'string' && d.n > 0).map(d => ({x: +d.x, y: +d.y, item: d.item, n: +d.n, t: +d.t || 0})) : []};
@@ -420,5 +508,5 @@ window.Arcade = window.Arcade || {};
     const xy = k => [k % w.w, Math.floor(k / w.w)];
     return {tiles, walls: [...walls].map(xy), doors: [...doors].map(xy)};
   }
-  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, at, put, top, zone, light, lightMap, room, biomeOf, CHUNK, VERSION};
+  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, ORES2, oreSpots, placeOres2, ores2Pass, at, put, top, zone, light, lightMap, room, biomeOf, CHUNK, VERSION};
 })(window.Arcade);
