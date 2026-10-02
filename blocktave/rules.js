@@ -58,6 +58,10 @@ window.BT_RULES = {
   hintAfterWrong: 3,          // this many wrong answers in a row show the note name as a hint
   otherClefNames: 5,          // the first this-many cards in the OTHER clef show the note name small under the staff
   otherRange: {treble: [55, 84, 71], bass: [36, 64, 50]},   // an OTHER clef's comfortable written range [low, high, the staff's middle line] (MIDI): single notes are filtered to it, scales moved by octaves into it
+  craftWide: 820,             // the CRAFT panel at least this wide (px): two columns (the bench + materials | the Recipe Book); narrower = sticky bench + tabs
+  craftGutter: 20,            // the panel's margin from the window edges (px), as in style.css .bt-panel
+  dragEdge: 70,               // dragging a material within this many px of the top of the scrolling area scrolls it toward the slots
+  dragScroll: 14,             // … by up to this many px a frame
   wrongShowMs: 900,           // a wrong answer: the card shakes this long, then closes (the block stays)
   // notes a challenge asks for, by block kind and tool: [hands, Wooden Mallet, Brass Mallet, Silver Mallet, Golden Baton]
   // (0 = that tool can't mine it)

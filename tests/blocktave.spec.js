@@ -1157,6 +1157,152 @@ test.describe('Blocktave: cave music deep underground', () => {
   });
 });
 
+test.describe('Blocktave: the CRAFT panel layout (materials right under the slots)', () => {
+  /** lots of materials (so the panel scrolls), the craft panel open */
+  const openCraft = async page => {
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, I = window.BT_ITEMS;
+      Object.keys(I).filter(k => I[k].kind !== 'tool').forEach(k => d.give(k, 3)); });
+    await page.keyboard.press('c');
+    await expect(page.locator('#craft')).toBeVisible();
+  };
+  const box = (page, sel) => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return {l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height}; });
+  const noOverflow = page => page.evaluate(() => ['craft', 'craftMain', 'bookWrap'].every(id => { const e = document.getElementById(id); return e.hidden || e.scrollWidth <= e.clientWidth + 1; })
+    && document.documentElement.scrollWidth <= innerWidth);
+
+  for (const [name, vp] of [['Chromebook', {width: 1366, height: 768}], ['iPad landscape', {width: 1180, height: 820}]]) {
+    test(`wide (${name}): two columns with the book open, the materials within 300 px of the slots; the book closed = full width`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      await openCraft(page);
+      await page.locator('#bookBtn').click();
+      await expect(page.locator('#craft')).toHaveClass(/wide/);
+      await expect(page.locator('#craftTabs')).toBeHidden();
+      await expect(page.locator('#bookWrap')).toBeVisible();
+      await expect(page.locator('#craftItems')).toBeVisible();
+      const slots = await box(page, '#measure'), mat = await box(page, '#craftItems .bt-mat'), main = await box(page, '#craftMain'), bk = await box(page, '#bookWrap');
+      expect(mat.t - slots.b, 'the first materials row right under the slots').toBeLessThanOrEqual(300);
+      expect(mat.t).toBeGreaterThan(slots.b);
+      expect(bk.l, 'the book is the right column').toBeGreaterThanOrEqual(main.r - 1);
+      expect(Math.abs(bk.t - main.t)).toBeLessThan(8);
+      // the search box sits at the top of the right column
+      const se = await box(page, '#bookWrap .bt-search');
+      expect(se.t).toBeGreaterThanOrEqual(bk.t - 1);
+      expect(se.t).toBeLessThan(bk.t + 20);
+      // the book has its own scroll: scrolling it never moves the slots
+      const sc = await page.locator('#bookWrap').evaluate(e => { e.scrollTop = e.scrollHeight; return e.scrollTop; });
+      expect(sc, 'the book scrolls by itself').toBeGreaterThan(0);
+      expect((await box(page, '#measure')).t).toBeCloseTo(slots.t, 0);
+      expect(await noOverflow(page)).toBe(true);
+      // the book closed: the left column takes the full width
+      await page.locator('#bookBtn').click();
+      await expect(page.locator('#bookWrap')).toBeHidden();
+      const panel = await page.locator('#craft').evaluate(e => e.clientWidth), m2 = await box(page, '#craftMain');
+      expect(m2.w).toBeGreaterThan(panel - 40);
+      expect(await noOverflow(page)).toBe(true);
+    });
+  }
+
+  for (const [name, vp] of [['phone', {width: 390, height: 844}], ['iPad portrait', {width: 820, height: 1180}]]) {
+    test(`narrow (${name}): the bench stays visible while the materials scroll; the tabs switch; a recipe fills the slots and goes back to Materials`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      await openCraft(page);
+      await expect(page.locator('#craft')).not.toHaveClass(/wide/);
+      await expect(page.locator('#craftTabs')).toBeVisible();
+      await expect(page.locator('#tabMats')).toHaveAttribute('aria-selected', 'true');
+      await expect(page.locator('#matsPane')).toBeVisible();
+      await expect(page.locator('#bookWrap')).toBeHidden();
+      for (const t of ['#tabMats', '#tabBook']) expect((await box(page, t)).h, 'a tab ≥ 48 px').toBeGreaterThanOrEqual(48);
+      // scroll the panel to the end: the bench is still on screen, inside the panel
+      const scrolled = await page.locator('#craft').evaluate(e => { e.scrollTop = e.scrollHeight; return e.scrollTop; });
+      if (name === 'phone') expect(scrolled, 'the panel scrolls on a phone').toBeGreaterThan(50);
+      await page.waitForTimeout(50);
+      const panel = await box(page, '#craft'), bench = await box(page, '#bench'), last = await box(page, '#craftItems .bt-mat:last-child');
+      expect(bench.t, 'the bench stays at the top').toBeGreaterThanOrEqual(panel.t - 1);
+      expect(bench.b).toBeLessThanOrEqual(panel.b);
+      expect(last.b, 'the last material can be reached').toBeLessThanOrEqual(panel.b + 1);
+      expect(last.t, 'and is not under the bench').toBeGreaterThanOrEqual(bench.b - 1);
+      expect(await noOverflow(page)).toBe(true);
+      // the tabs switch (and the Recipe Book button picks the book tab)
+      await page.locator('#tabBook').click();
+      await expect(page.locator('#tabBook')).toHaveAttribute('aria-selected', 'true');
+      await expect(page.locator('#bookWrap')).toBeVisible();
+      await expect(page.locator('#matsPane')).toBeHidden();
+      await expect(page.locator('#bookBtn')).toHaveAttribute('aria-pressed', 'true');
+      await page.locator('#tabMats').click();
+      await expect(page.locator('#matsPane')).toBeVisible();
+      await expect(page.locator('#bookWrap')).toBeHidden();
+      await page.locator('#bookBtn').click();
+      await expect(page.locator('#tabBook')).toHaveAttribute('aria-selected', 'true');
+      expect(await noOverflow(page)).toBe(true);
+      // a recipe tap fills the slots and goes back to Materials
+      await page.locator('#book .bt-rec[data-id="door"]').click();
+      expect((await st(page)).slots).toEqual(['planks', 'planks', 'planks', null]);
+      await expect(page.locator('#tabMats')).toHaveAttribute('aria-selected', 'true');
+      await expect(page.locator('#matsPane')).toBeVisible();
+      await expect(page.locator('#measure .bt-slot.full')).toHaveCount(3);
+      await expect(page.locator('#measure .bt-slot.full').first()).toBeInViewport();
+    });
+  }
+
+  for (const [name, vp] of [['phone', {width: 390, height: 844}], ['Chromebook', {width: 1366, height: 768}]]) {
+    test(`dragging (${name}): from the last materials row onto the bench = the next slot; a drop on the bench off a slot works; the slots light up; tap-to-add unchanged`, async ({page}) => {
+      await page.setViewportSize(vp);
+      await enter(page, {mode: 'touch'});
+      await openCraft(page);
+      // tap-to-add
+      await page.locator('#craftItems [data-id="planks"]').click();
+      expect((await st(page)).slots).toEqual(['planks', null, null, null]);
+      // the last row: scroll it into view, drag it onto the first empty slot's area of the bench
+      await page.locator('#craft').evaluate(e => { e.scrollTop = e.scrollHeight; });
+      const lastId = await page.locator('#craftItems .bt-mat:last-child').getAttribute('data-id');
+      const src = await box(page, '#craftItems .bt-mat:last-child'), slot = await box(page, '#measure .bt-slot:not(.full)');
+      await page.mouse.move(src.l + 20, src.t + 20); await page.mouse.down();
+      await page.mouse.move(src.l + 40, src.t - 10, {steps: 4});
+      await expect(page.locator('#bench')).toHaveClass(/dragging/);
+      await page.mouse.move(slot.l + slot.w / 2, slot.t + slot.h / 2, {steps: 8});
+      await expect(page.locator('#bench')).toHaveClass(/drop-on/);
+      await page.mouse.up();
+      expect((await st(page)).slots).toEqual(['planks', lastId, null, null]);
+      await expect(page.locator('#bench')).not.toHaveClass(/dragging/);
+      // a drop on the bench but OFF any slot (on its words) = the next empty slot
+      await page.locator('#craft').evaluate(e => { e.scrollTop = 0; });
+      const say = await box(page, '.bt-bench-say'), cork = await box(page, '#craftItems [data-id="cork"]');
+      await page.mouse.move(cork.l + 20, cork.t + 20); await page.mouse.down();
+      await page.mouse.move(cork.l + 50, cork.t - 20, {steps: 4}); await page.mouse.move(say.l + 10, say.t + say.h / 2, {steps: 8}); await page.mouse.up();
+      expect((await st(page)).slots).toEqual(['planks', lastId, 'cork', null]);
+    });
+  }
+
+  test('dragging near the top of a scrolled panel scrolls it toward the slots (narrow)', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await enter(page, {mode: 'touch'});
+    await openCraft(page);
+    const before = await page.locator('#craft').evaluate(e => { e.scrollTop = e.scrollHeight; return e.scrollTop; });
+    expect(before).toBeGreaterThan(50);
+    const src = await box(page, '#craftItems .bt-mat:last-child'), panel = await box(page, '#craft');
+    await page.mouse.move(src.l + 20, src.t + 20); await page.mouse.down();
+    await page.mouse.move(src.l + 30, panel.t + 10, {steps: 10});
+    await page.waitForTimeout(400);
+    const after = await page.locator('#craft').evaluate(e => e.scrollTop);
+    await page.mouse.move(src.l + 30, panel.t + 10); await page.mouse.up();
+    expect(after, 'the panel scrolled up').toBeLessThan(before);
+  });
+
+  test('the materials heading says how; the first open shows a one-line tip, later opens do not', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.keyboard.press('c');
+    await expect(page.locator('#matsPane .ui-kicker')).toContainText('Tap a material to add it (or drag it)');
+    await expect(page.locator('#craftTip')).toHaveText('Tip: tap a material, or tap a recipe in the Recipe Book to fill the slots for you.');
+    await expect(page.locator('#craftTip')).toBeVisible();
+    await page.keyboard.press('c');
+    await expect(page.locator('#craft')).toBeHidden();
+    await page.keyboard.press('c');
+    await expect(page.locator('#craft')).toBeVisible();
+    await expect(page.locator('#craftTip')).toBeHidden();
+  });
+});
+
 test.describe('Blocktave: the Recipe Book search', () => {
   /** every recipe found, the craft panel + its book open */
   const openBook = async page => {
