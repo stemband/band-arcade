@@ -51,6 +51,7 @@ test('the podium: the right place when you finish 3rd, and a tap skips it', asyn
   await page.evaluate(() => {
     const G = Arcade.Speedway.debug(); G.lens = G.lens.map(() => 2); G.total = 2 * G.lens.length;
     G.rivals.forEach((r, i) => { r.pace = [5, 4, .01][i]; });                          // two rivals far ahead
+    window.SPEEDWAY_RULES.pitSec = .5;                                                // short pit stops (the rivals' too)
   });
   await page.keyboard.down('Space');
   await page.waitForFunction(() => Arcade.Speedway.podium(), null, {timeout: 90000});

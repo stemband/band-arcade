@@ -7,6 +7,7 @@
      - THE TIME BUDGET: a test over BUDGET_S seconds that isn't tagged @slow FAILS the check, with a message saying
        how to fix it (speed it up: the test clock, a demo jump, a state wait; or tag it @slow, which runs it only in
        the FULL job, never in QUICK CHECK).
+   It also writes test-times.new.json (every test's time, for shard-by-time.js: copy it over test-times.json now and then).
    docs/engine/testing.md "Keeping the tests fast" has the rules. Test tooling only (tests/). */
 const fs = require('fs');
 
@@ -17,25 +18,25 @@ const report = JSON.parse(fs.readFileSync(file, 'utf8'));
 
 /* every test × project with its final result */
 const rows = [];
-(function walk(suites, fileName) {
+(function walk(suites, fileName, titles) {
   for (const s of suites || []) {
-    const f = s.file || fileName;
+    const f = fileName || s.file, t = fileName ? [...titles, s.title] : [];
     for (const spec of s.specs || []) {
-      for (const t of spec.tests || []) {
-        const res = t.results || [];
+      for (const test of spec.tests || []) {
+        const res = test.results || [];
         if (!res.length) continue;
         const last = res[res.length - 1];
         rows.push({
-          file: f, line: spec.line, title: spec.title, tags: spec.tags || [], project: t.projectName,
-          status: t.status,                                 // expected | unexpected | flaky | skipped
+          file: f, line: spec.line, title: spec.title, path: [f, ...t, spec.title].join(' › '), tags: spec.tags || [], project: test.projectName,
+          status: test.status,                              // expected | unexpected | flaky | skipped
           seconds: (last.duration || 0) / 1000, tries: res.length,
           total: res.reduce((a, r) => a + (r.duration || 0), 0) / 1000,
         });
       }
     }
-    walk(s.suites, f);
+    walk(s.suites, f, t);
   }
-})(report.suites);
+})(report.suites, null, []);
 
 const ran = rows.filter(r => r.status !== 'skipped');
 const name = r => `${r.file}:${r.line} › ${r.title}`;
@@ -70,6 +71,12 @@ else {
   out.push(`❌ These took over ${BUDGET_S} s. Make them faster (the test clock \`page.clock\`, a demo jump flag, wait for a state instead of a sleep: docs/engine/testing.md "Keeping the tests fast"), or, if the test really is about a long run, tag it \`{tag: '@slow'}\` (it then runs only in the FULL job, never in QUICK CHECK).`, '');
   for (const r of over) out.push(`- ${fmt(r.seconds)} **${r.project}** ${name(r)}`);
 }
+
+// TEST TIMES for shard-by-time.js: every test's last time, per browser (copy it over tests/test-times.json now and
+// then, so the FULL shards stay even as tests are added)
+const times = {};
+for (const r of [...ran].sort((a, b) => a.path.localeCompare(b.path))) (times[r.project] = times[r.project] || {})[r.path] = +r.seconds.toFixed(1);
+fs.writeFileSync('test-times.new.json', JSON.stringify(times, null, 1) + '\n');
 
 const text = out.join('\n') + '\n';
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, text);

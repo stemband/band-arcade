@@ -2278,26 +2278,26 @@ test.describe('Blocktave: Chapter 6: the nine recipes and what they do', () => {
     expect(s.signs.find(q => q.sign === 'segno').mate).toBe(`${S.B.x},${S.B.y}`);
     // travel from the coda to the segno
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.travel(x, y), S.B);
-    await page.waitForTimeout(600);
+    await expect.poll(async () => (await st(page)).warp, {message: 'the warp is over'}).toBe(false);   // (it ends on a timer)
     s = await st(page);
     expect(Math.floor(s.player.x), 'traveled to the segno').toBe(S.A.x);
     expect(await page.evaluate(() => Arcade.store.gameData('blocktave').ms.trumpet.coda), 'the coda milestone').toBeTruthy();
     // a card open: no travel
     await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.openSpec(d.spec('note', x, y), x, y); }, S.A);
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.travel(x, y), S.A);
-    await page.waitForTimeout(500);
+    expect(await st(page), 'refused at once: no warp started').toMatchObject({warp: false});
     expect(Math.floor((await st(page)).player.x)).toBe(S.A.x);
     await page.evaluate(() => Arcade.BlocktaveCard.close());
     // at night with a creature within 8: no travel
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); d.spawn('clam', 5); });
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.travel(x, y), S.A);
-    await page.waitForTimeout(500);
+    expect(await st(page), 'refused at once: no warp started').toMatchObject({warp: false});
     expect(Math.floor((await st(page)).player.x)).toBe(S.A.x);
     await expect(page.locator('.ui-toast', {hasText: 'Too dangerous to travel right now!'}).first()).toBeVisible();
     // just hurt (daytime, no creature): no travel either
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(30); Arcade.Blocktave.state(); d.hurt(.5); });
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.travel(x, y), S.A);
-    await page.waitForTimeout(500);
+    expect(await st(page), 'refused at once: no warp started').toMatchObject({warp: false});
     expect(Math.floor((await st(page)).player.x)).toBe(S.A.x);
     // up to 3 pairs: the 4th is refused
     const placed = await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo, out = []; d.tp(x, y - 1);
@@ -2309,8 +2309,7 @@ test.describe('Blocktave: Chapter 6: the nine recipes and what they do', () => {
     s = await st(page);
     expect(s.signs.find(q => q.at === `${S.B.x},${S.B.y}`).mate).toBeNull();
     await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.tp(x - 2, y); d.target(x, y); }, S.B);
-    await page.waitForTimeout(200);
-    expect((await st(page)).targetName).toBe('Coda Sign (no partner)');
+    await expect.poll(async () => (await st(page)).targetName).toBe('Coda Sign (no partner)');   // (named on the next frame)
   });
 
   test('the Sonar Tuning Fork points to the nearest chosen ore you\'ve seen; "None nearby" otherwise; its picker opens from a double tap', async ({page}) => {

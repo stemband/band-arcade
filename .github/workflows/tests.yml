@@ -4,7 +4,7 @@
 #   1. QUICK CHECK (Chromium, 2 shards side by side, ~3 min): the smoke test (every page, every game's level starts), the docs checks and the
 #      core tests tagged @quick. A red ✗ here = something basic broke; the full run doesn't even start.
 #   2. FULL (after QUICK CHECK passes): everything else in Chromium (3 shards) and the whole suite in WebKit (5 shards),
-#      side by side on 8 machines (Playwright's --shard), plus Blocktave's and Showtime Malfunction's frame-rate
+#      side by side on 8 machines, each shard about the same TIME (shard-by-time.js + tests/test-times.json), plus Blocktave's and Showtime Malfunction's frame-rate
 #      tests alone on their own machine (perf).
 #   3. ALL TESTS: merges every shard's report into ONE "test-report" download (the HTML report with screenshots and
 #      traces of anything that failed), writes the run summary (time per browser, the 10 slowest tests, every test
@@ -63,10 +63,15 @@ jobs:
           key: playwright-${{ runner.os }}-chromium-${{ hashFiles('tests/package-lock.json') }}
       - name: Install chromium
         run: ./install-browser.sh chromium
+      - name: This shard's tests (equal time, not equal count; shard-by-time.js)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node shard-by-time.js chromium ${SHARD%/*} ${SHARD#*/} --grep @quick > shard.txt
       - name: Run the @quick tests (smoke, every game starts, docs, the core tests)
-        run: npx playwright test --project=chromium --grep @quick --shard=${{ matrix.shard }}
+        run: npx playwright test --project=chromium --grep @quick --test-list shard.txt
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: quick-results.json
+          BLOB_NAME: report-quick-${{ strategy.job-index }}.zip
       - name: Summary and time budget
         if: ${{ !cancelled() }}
         run: node ci-summary.js quick-results.json
@@ -134,8 +139,14 @@ jobs:
           key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('tests/package-lock.json') }}
       - name: Install ${{ matrix.browser }}
         run: ./install-browser.sh ${{ matrix.browser }}
+      - name: This shard's tests (equal time, not equal count; shard-by-time.js)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node shard-by-time.js ${{ matrix.browser }} ${SHARD%/*} ${SHARD#*/} ${{ matrix.grep }} > shard.txt
       - name: Run the tests (the site is served as-is with python3 -m http.server)
-        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --workers=${{ matrix.workers }} ${{ matrix.grep }}
+        run: npx playwright test --project=${{ matrix.browser }} --test-list shard.txt --workers=${{ matrix.workers }} ${{ matrix.grep }}
+        env:
+          BLOB_NAME: report-${{ matrix.browser }}-${{ strategy.job-index }}.zip
       - name: Keep the report for ALL TESTS
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -213,8 +224,16 @@ jobs:
           path: tests/playwright-report/
           retention-days: 14
       - name: Summary (time per browser, the 10 slowest, retried tests) and THE TIME BUDGET (60 s a test)
+        id: summary
         if: ${{ steps.merge.outcome == 'success' }}
         run: node ci-summary.js results.json
+      - name: Every test's time (test-times.new.json; copy it over tests/test-times.json now and then)
+        if: ${{ steps.merge.outcome == 'success' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-times
+          path: tests/test-times.new.json
+          retention-days: 30
       - name: Every job passed (quick check, every full shard, perf)
         env:
           QUICK: ${{ needs.quick.result }}

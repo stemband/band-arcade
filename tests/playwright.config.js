@@ -14,9 +14,10 @@ module.exports = defineConfig({
   // run summary (ci-summary.js) every time: fix its cause, never add retries to hide it.
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? '100%' : 3,     // every core of the CI machine (ubuntu-latest: 4); each test has its own fresh browser context
-  // CI: each shard keeps a "blob" report; tests.yml's ALL TESTS job merges them into one HTML report + the run summary
+  // CI: each shard keeps a "blob" report (BLOB_NAME: its own file name); tests.yml's ALL TESTS job merges them into one
+  // HTML report + the run summary
   reporter: process.env.CI
-    ? [['list'], ['github'], ['blob'], ...(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ? [['json']] : [])]
+    ? [['list'], ['github'], ['blob', process.env.BLOB_NAME ? {fileName: process.env.BLOB_NAME} : {}], ...(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ? [['json']] : [])]
     : [['list'], ['html', {open: 'never'}], ...(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ? [['json']] : [])],
   use: {
     baseURL: `http://127.0.0.1:${PORT}/`,
