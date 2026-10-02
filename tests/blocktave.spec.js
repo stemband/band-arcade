@@ -29,7 +29,7 @@ async function into(page) {
   await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world' || !!document.querySelector('.overlay:not([hidden]) [data-act=go]'));
   if (await gate.isVisible().catch(() => false)) await gate.click();
   await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
-  await page.waitForTimeout(300);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));   // two frames drawn
 }
 const st = page => page.evaluate(() => Arcade.Blocktave.state());
 /** stand next to the nearest block of this kind (a pocket dug beside it) and return where it is */
@@ -416,7 +416,7 @@ test.describe('Blocktave: creatures', () => {
       d.put(x, y, 'air'); d.put(x, y + 1, 'dirt'); d.place(x, y, 'cot'); d.act(x, y, true); return {x, y}; });
     expect((await st(page)).cot).toEqual(cot);
     await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('dirt', 8); d.give('reed', 4); d.give('mallet1', 1); d.tp(Math.floor(Arcade.Blocktave.state().player.x) + 20, 20); });
-    await page.waitForTimeout(400);
+    await settleFor(page, 400);
     await page.evaluate(() => { for (let k = 0; k < 5; k++) Arcade.Blocktave.demo.hurt(1); });
     const s = await st(page);
     expect([Math.floor(s.player.x), Math.round(s.player.y)]).toEqual([cot.x, cot.y + 1]);
@@ -586,7 +586,7 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
       await mineNear('maple'); await craft('maple-planks'); await craft('door');
       expect((await st(page)).inv.door, `seed ${seed}: a door`).toBe(1);
       await page.evaluate(() => Arcade.Blocktave.demo.shelter());
-      await page.waitForTimeout(400);
+      await settleFor(page, 400);
       const ms = await page.evaluate(() => ['mallet', 'ore10', 'shelter'].map(id => !!((Arcade.store.gameData('blocktave').ms || {}).trumpet || {})[id]));
       expect(ms, `seed ${seed}: chapter 1's three milestones`).toEqual([true, true, true]);
       await page.evaluate(() => { Arcade.Blocktave.showHub(); localStorage.clear(); });   // (the hub first: leaving the world saves it)
@@ -1162,18 +1162,18 @@ test.describe('Blocktave: cave music deep underground', () => {
     await page.waitForFunction(() => { const m = Arcade.Sfx.musicState().music; return m.want === 'blocktave-cave' && m.playing === 'built-in'; }, null, {timeout: 6000});
     // night + underground = cave
     await page.evaluate(() => Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 30));
-    await page.waitForTimeout(400);
+    await settleFor(page, 400);
     expect((await st(page)).music).toBe('blocktave-cave');
     // hovering between leaveRows and caveRows: no switch either way
     await down(page, Math.round((M.caveRows + M.leaveRows) / 2));
-    await page.waitForTimeout(700);
+    await settleFor(page, 700);
     expect((await st(page)).music, 'still the cave on the way up').toBe('blocktave-cave');
     await surface(page);
     await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-night', null, {timeout: 4000});
     await page.evaluate(() => Arcade.Blocktave.demo.time(60));
     await page.waitForFunction(() => Arcade.Blocktave.state().music === 'blocktave-day', null, {timeout: 4000});
     await down(page, Math.round((M.caveRows + M.leaveRows) / 2));
-    await page.waitForTimeout(700);
+    await settleFor(page, 700);
     expect((await st(page)).music, 'not the cave yet on the way down').toBe('blocktave-day');
     expect(await page.evaluate(() => Arcade.Sfx.musicState().music.want)).toBe('blocktave-day');
   });
@@ -1919,7 +1919,7 @@ test.describe('Blocktave: world drops and the pickup radius', () => {
     await enter(page, {mode: 'touch'});
     const {x0, y0} = await flat(page);
     await page.evaluate(({x0, y0}) => { const d = Arcade.Blocktave.demo; d.drop('pearl', 1, x0 + 80, 10); d.drop('cork', 2, x0 + 6, y0 - 1); }, {x0, y0});
-    await page.waitForTimeout(600);
+    await settleFor(page, 600);                                          // they land (game time: the test clock)
     await page.evaluate(() => Arcade.Blocktave.save());
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(Arcade.Blocktave.key)));
     expect(saved.v).toBe(3);
@@ -1933,7 +1933,7 @@ test.describe('Blocktave: world drops and the pickup radius', () => {
     // the despawn clock: only off screen
     await page.evaluate(() => { const R = window.BT_RULES, w = Arcade.Blocktave.world(); w.drops.forEach(d => { d.t = R.dropDespawnS - .3; });
       w.bags.push({x: w.drops.find(d => d.item === 'pearl').x + 3, y: 10, items: {dirt: 2}}); });
-    await page.waitForTimeout(900);
+    await settleFor(page, 900);                                          // past dropDespawnS (game time)
     const s = await st(page);
     expect([...new Set(s.drops.map(d => d.item))], 'the far one is gone, the one you can see stays').toEqual(['cork']);
     expect(s.bags, 'the lost-hearts bag never despawns').toBe(1);
@@ -2324,14 +2324,14 @@ test.describe('Blocktave: Chapter 6: the nine recipes and what they do', () => {
     await expect(page.locator('#sonar')).toBeVisible();
     await page.locator('#sonarGrid [data-ore="tempoAmber"]').click();
     await expect(page.locator('#sonar')).toBeHidden();
-    await page.waitForTimeout(700);
+    await settleFor(page, 700);
     let s = await st(page);
     expect(s.sonar.target).toBe('tempoAmber');
     // the nearest Tempo Amber (natural ones are deep under the canyon, far from the marsh)
     expect([s.sonar.hit.x, s.sonar.hit.y]).toEqual([at.x, at.y]);
     // gone: "None nearby"
     await page.evaluate(({x, y}) => Arcade.Blocktave.demo.put(x, y, 'air'), at);
-    await page.waitForTimeout(700);
+    await settleFor(page, 700);
     s = await st(page);
     expect(s.sonar.hit).toBeNull();
   });
