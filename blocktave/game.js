@@ -1240,6 +1240,8 @@
   function openCraft() {
     closePanels();
     $('craft').hidden = false; G.panel = 'craft';
+    // the first time: one line on the shortcuts (taps fill the slots too)
+    $('craftTip').hidden = seen('craftTip'); markSeen('craftTip');
     drawCraft();
     $('craftClose').focus();
   }
@@ -1281,11 +1283,33 @@
     $('craftItems').querySelectorAll('.bt-chip').forEach(b => { b.onclick = () => { if (dragJustEnded()) return; addToSlot(b.dataset.id); }; dragTile(b); });
     // THE RECIPE BOOK (+ its search: searchBook)
     $('bookBtn').setAttribute('aria-pressed', String(book));
-    $('bookWrap').hidden = !book;
+    craftLayout();
     if (!book && bookQ) { bookQ = ''; $('bookSearch').value = ''; }
     if (book) drawBook(perf);
     $('bookCount').textContent = `${Object.keys(f).filter(k => RECIPES.some(r => r.id === k)).length} / ${RECIPES.length}`;
   }
+  /* THE LAYOUT: the bench, then YOUR MATERIALS right under it, then the Recipe Book (never between them). A WIDE panel
+     (≥ R.craftWide px: iPad landscape, Chromebooks) = two columns: the bench + materials left, the book right with its own
+     scroll (the book closed = the left column takes the full width). NARROW (phones, iPad portrait): the bench is sticky at
+     the top while the rest scrolls, and TABS under it, Materials | Recipe Book, one at a time (the Recipe Book button and a
+     tab both pick it; a recipe tap fills the slots and goes back to Materials). */
+  const craftWide = () => innerWidth - R.craftGutter >= R.craftWide;
+  function craftLayout() {
+    const wide = craftWide(), c = $('craft');
+    c.classList.toggle('wide', wide); c.classList.toggle('book', book);
+    $('bookWrap').hidden = !book;
+    $('matsPane').hidden = !wide && book;
+    $('craftTabs').hidden = wide;
+    [['tabMats', !book], ['tabBook', book]].forEach(([id, on]) => { const t = $(id); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+  }
+  const pickTab = b => { if (b === book) return; book = b; missing = null; A.Sfx.event('ui-toggle'); drawCraft(); };
+  $('tabMats').onclick = () => pickTab(false);
+  $('tabBook').onclick = () => pickTab(true);
+  $('craftTabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); e.stopPropagation(); pickTab(!book); $(book ? 'tabBook' : 'tabMats').focus();
+  });
+  addEventListener('resize', () => { if (G && G.panel === 'craft') craftLayout(); });
   /* THE RECIPE BOOK'S SEARCH (the field above the recipes): as you type, case-insensitive, any part of a word, it keeps the
      recipes whose NAME, OUTPUT item, any INGREDIENT or PERFORMANCE words match ("plank" = Maple Planks and everything made
      with planks); the matched letters are <mark>ed (an ingredient / output / performance match shows on a "Uses: …" line);
@@ -1367,17 +1391,31 @@
       g.src = iconURL(drag.id); g.className = 'bt-dragghost'; g.alt = '';
       document.body.appendChild(g); A.UI.layer && (g.style.zIndex = String(A.UI.layer.topZ() + 1));
       tipHide();
+      $('bench').classList.add('dragging');                                // the empty slots light up as drop targets
+      dragScroll();
     }
+    drag.y = e.clientY;
     drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
-    $('bench').classList.toggle('drop-on', !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench'));
+    $('bench').classList.toggle('drop-on', onBench(e));
   });
+  const onBench = e => !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench');
+  /** while dragging near the top of whatever scrolls (the panel, or the wide left column), scroll it toward the slots */
+  function dragScroll() {
+    if (!drag || !drag.ghost) return;
+    const sc = [$('craftMain'), $('craft')].find(el => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible');
+    if (sc && drag.y != null) {
+      const top = sc.getBoundingClientRect().top, d = drag.y - top;
+      if (d < R.dragEdge && sc.scrollTop > 0) sc.scrollTop -= Math.ceil(R.dragScroll * (1 - Math.max(0, d) / R.dragEdge));
+    }
+    requestAnimationFrame(dragScroll);
+  }
   const endDrag = e => {
     if (!drag || (e && e.pointerId !== drag.pid)) return;
     const d = drag; drag = null;
     if (!d.ghost) return;
     d.ghost.remove(); dragEnd = performance.now();
-    $('bench').classList.remove('drop-on');
-    if (e && e.type === 'pointerup' && document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench')) addToSlot(d.id);
+    $('bench').classList.remove('drop-on', 'dragging');
+    if (e && e.type === 'pointerup' && onBench(e)) addToSlot(d.id);           // anywhere on the bench = the next empty slot
   };
   addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
   $('bookBtn').onclick = () => { book = !book; missing = null; drawCraft(); };
