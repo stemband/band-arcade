@@ -384,7 +384,7 @@ window.Arcade = window.Arcade || {};
         const pass = ok / Math.max(1, res.tg.length) >= RR.pass - 1e-9 && !res.extras.length;
         c.res = res;
         const early = res.tg.filter(t => t.res === 'early').length, late = res.tg.filter(t => t.res === 'late').length, miss = res.tg.filter(t => t.res === 'miss').length;
-        finish(c, pass, pass ? null : res.extras.length ? (rests ? 'A sound in a rest! Rests stay silent. Try again!' : 'An extra hit! Try again!')
+        finish(c, pass, pass ? null : res.extras.length ? (rests ? (o.mode === 'inst' ? 'A sound in a rest! Rests stay silent. Try again!' : 'A tap in a rest! Rests stay silent. Try again!') : o.mode === 'inst' ? 'An extra hit! Try again!' : 'An extra tap! Try again!')
           : miss ? 'A note was missed. Try again!' : early > late ? 'A little early! Stay with the pulse.' : 'A little late! Stay with the pulse.');
       }
       c.answer = () => {                                                      // tests: every note right on time

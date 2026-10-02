@@ -28,8 +28,13 @@
   A.mountTopbar(inst, '', GAME_ID);
   A.Sfx.use('endless');
   $('demoHelp').hidden = !A.DEMO;
-  // the reading instrument: the snare reads nothing (its challenges are rhythms); everyone else reads their own notes
-  const readM = member;
+  /* TOUCH MODE IS THE SAME FOR EVERY MEMBER. drum() = INSTRUMENT mode on the snare: only then are the cards drum
+     performances (counts, rolls, rhythms on the drum). In TOUCH the snare reads the BELLS' notes (treble clef, the bells'
+     range: readM / readG) and taps rhythms like everyone else; everyone else always reads their own notes. */
+  const BELLS = snare ? A.memberById('bells') : null, BELLS_G = snare ? A.groupFor('bells') : null;
+  const drum = () => snare && mode === 'inst';
+  const readM = () => snare ? BELLS : member;              // (the snare's INSTRUMENT cards read nothing: they're counts and rhythms)
+  const readG = () => snare ? BELLS_G : inst;
 
   /* ---------- saved choices: gameData('blocktave') = {mode, ms: {member: {id: date}}, stats: {member: {…}}, found: {recipe: 1}, seen: {…}, controls, otherClef} ---------- */
   const gd = () => A.store.gameData(GAME_ID);
@@ -169,7 +174,8 @@
     if (!endless) setTimeout(checkReached, 900);
     if (!endless) setTimeout(checkNewChapter, 1200);
     if (!seen('welcome')) firstCard('welcome', 'Welcome to Blocktave!', endless ? 'Survive as many nights as you can with one life! Build a shelter, light Stage Lamps and calm the creatures with your music.'
-      : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
+      : mode === 'inst' ? 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.'
+        : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: tap the note names or the rhythm to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
   }
   function stopWorld() {
     if (!G) return;
@@ -1156,7 +1162,7 @@
     if (nb.sign && !seen('signs')) firstCard('signs', 'D.S. al Coda!', 'D.S. al Coda = go back to the sign, then jump to the coda. Place a Segno Sign and a Coda Sign anywhere in your world, then tap one in BUILD mode to travel to the other!');
     if (['metronome', 'tuner', 'bench'].includes(it.block)) scanGear();
     if (it.block === 'bench') award('bench');
-    if (it.block === 'composer' && !seen('composer')) firstCard('composer', 'The composing corner!', 'Composer Blocks are yours to write music with. Put up to 8 in a row, tap each one in BUILD mode to pick its note, then put a Conductor\'s Podium at the end. Play your melody at the podium to power the row: it lights up and opens a door next to it!');
+    if (it.block === 'composer' && !seen('composer')) firstCard('composer', 'The composing corner!', `Composer Blocks are yours to write music with. Put up to 8 in a row, tap each one in BUILD mode to pick its note, then put a Conductor's Podium at the end. ${mode === 'inst' ? 'Play' : 'Tap'} your melody at the podium to power the row: it lights up and opens a door next to it!`);
     checkRooms(x, y);
     brave();
     return true;
@@ -1223,10 +1229,10 @@
   const moveItem = (it, k) => !k ? it : Object.assign({}, it, {n: moveNote(it.n, k), show: moveNote(it.show, k), midi: it.midi + 12 * k});
   function notesAt(x, y, n, {order = 'random', pool} = {}) {
     const z = BW.zone(G.w, x, y, R);
-    const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : inst.clef;
+    const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : readG().clef;
     const notes = pool || POOLS[z.layer] || SCALES[Math.floor(Math.random() * SCALES.length)];
-    const other = clef !== inst.clef;
-    const seq = A.buildSequence({member: readM, group: inst, notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
+    const other = clef !== readG().clef;
+    const seq = A.buildSequence({member: readM(), group: readG(), notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
     let items = order === 'order' ? seq.items.slice(0, n) : seq.items, shift = 0;
     if (other && order === 'order') {                                     // a scale: the whole scale moves by octaves
       shift = octaveShift(items.map(it => it.midi), clef);
@@ -1260,7 +1266,7 @@
   /** the card for a performance kind at this spot (blocks, recipes, creatures): {kind, …} for challenges.js */
   function spec(kind, x, y, n) {
     const t = tier(), baton = t >= 4;
-    if (snare) {
+    if (drum()) {
       if (kind === 'tone' || kind === 'note' || kind === 'notes3') return {kind: 'count', n: kind === 'notes3' ? 4 : R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1)), sub: 'Count your hits'};
       if (kind === 'scale' || kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
       if (kind === 'sustain' || kind === 'longtone') return {kind: 'roll', secs: baton ? R.rollS * .7 : R.rollS, sub: 'An even roll'};
@@ -1268,37 +1274,37 @@
     if (kind === 'tone' || kind === 'note' || kind === 'notes3') {
       const set = notesAt(x, y, n || (kind === 'notes3' ? 3 : 1));
       const h = hintNow(set);
-      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: !!h, note: shiftNote(set, h)}, set);
+      return Object.assign({kind: 'notes', sub: mode === 'inst' ? (set.items.length > 1 ? 'Play the notes' : 'Play the note') : (set.items.length > 1 ? 'Tap the note names' : 'Tap the note name'), hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'scale') {
       const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]}), h = hintNow(set);
       return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'sustain' || kind === 'longtone') {
-      if (mode === 'touch') return {kind: 'key', member: readM, clef: inst.clef, sub: 'A music question'};
+      if (mode === 'touch') return {kind: 'key', member: readM(), clef: readG().clef, sub: 'A music question'};
       const set = notesAt(x, y, 1);
       return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: !!hintNow(set)}, set);
     }
     // --- CHAPTER 6'S ORES ---
     if (kind === 'lowread' || kind === 'highread') {
-      if (snare) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+      if (drum()) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
       const set = ledgerSet(kind === 'lowread' ? 'below' : 'above', n || 3), h = G.wrong >= R.hintAfterWrong;
       return Object.assign({kind: 'notes', sub: kind === 'lowread' ? 'Low notes, going down' : 'High notes, going up', hint: h}, set);
     }
     if (kind === 'interval') {
-      if (snare) return {kind: 'count', n: R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1)), sub: 'Count your hits'};
+      if (drum()) return {kind: 'count', n: R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1)), sub: 'Count your hits'};
       return Object.assign({kind: 'interval', sub: 'An interval', hint: G.wrong >= R.hintAfterWrong}, intervalSet());
     }
     if (kind === 'keysig') {
-      if (snare) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
-      return {kind: 'keysig', member: readM, clef: inst.clef, sub: 'A key signature'};
+      if (drum()) return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+      return {kind: 'keysig', member: readM(), clef: readG().clef, sub: 'A key signature'};
     }
-    if (kind === 'dynamics') return {kind: 'dynamics', item: snare ? null : firstNote(), sub: 'Soft, then loud'};
+    if (kind === 'dynamics') return {kind: 'dynamics', item: drum() ? null : firstNote(), sub: 'Soft, then loud'};
     if (kind === 'tempo') {
       const bpm = pick(R.tempo.choices), TW = A.TempoWords;
       return {kind: 'tempo', bpm, word: TW ? TW.tempoWord(bpm) : 'Tempo', beats: n || R.notes.tempo[2], sub: 'Keep the tempo'};
     }
-    if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
+    if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: mode === 'inst' ? 'Play the rhythm' : 'Tap the rhythm'};
     if (kind === 'rest') return {kind: 'rest', text: pick(RESTS), sub: 'Rests, then the downbeat'};
     if (kind === 'beats') return {kind: 'rhythm', text: 'q q q q', sub: '4 steady beats'};
     return {kind: 'notes', items: []};
@@ -1310,30 +1316,30 @@
   /** a written note as a card item; `sounding` = where it sits on the student's instrument (moved by octaves into its
       sounding range: these cards are judged by pitch class, and ?demo plays this one) */
   const dressNote = n => {
-    const midi = A.music.writtenMidi(n); let sounding = midi - (member.sounds || 0);
-    if (member.soundLow != null) { while (sounding < member.soundLow) sounding += 12; while (sounding > member.soundHigh) sounding -= 12; }
+    const m = readM(), midi = A.music.writtenMidi(n); let sounding = midi - (m.sounds || 0);
+    if (m.soundLow != null) { while (sounding < m.soundLow) sounding += 12; while (sounding > m.soundHigh) sounding -= 12; }
     return {n, show: n, label: Card.label(n), midi, sounding, pc: mod(sounding, 12)};
   };
   function ledgerSet(dir, n) {
     const L = LEDGER[dir], pool = L.notes.map(A.music.parseNote), picked = [];
     while (picked.length < Math.min(n, pool.length)) { const k = Math.floor(Math.random() * pool.length); if (!picked.includes(k)) picked.push(k); }
     const items = picked.sort((a, b) => a - b).map(k => dressNote(pool[k]));    // the pool runs away from the staff: going down / up
-    return {items, clef: L.clef, sig: null, fit: items.map(i => i.show), other: L.clef !== inst.clef};
+    return {items, clef: L.clef, sig: null, fit: items.map(i => i.show), other: L.clef !== readG().clef};
   }
   /** INTERVAL GEODE: two notes of one of the member's scales (both in range), a 2nd up to an octave */
   function intervalSet() {
-    const seq = A.buildSequence({member: readM, group: inst, notes: pick(SCALES), order: 'order', level: 2, count: 8}), sc = seq.items.slice(0, 8);
+    const seq = A.buildSequence({member: readM(), group: readG(), notes: pick(SCALES), order: 'order', level: 2, count: 8}), sc = seq.items.slice(0, 8);
     const size = 1 + Math.floor(Math.random() * 7), lo = Math.floor(Math.random() * (8 - size));
-    return {items: [sc[lo], sc[lo + size]], size: size + 1, clef: inst.clef, sig: seq.sig, fit: seq.fit, nameOf: seq.name};
+    return {items: [sc[lo], sc[lo + size]], size: size + 1, clef: readG().clef, sig: seq.sig, fit: seq.fit, nameOf: seq.name};
   }
   /** DYNAMIC CORAL: a comfortable note to play soft, then loud (the first of the member's first five) */
-  const firstNote = () => { const n = inst.notes && inst.notes[0]; return n ? dressNote(Object.assign({}, n)) : null; };
+  const firstNote = () => { const g = readG(), n = g.notes && g.notes[0]; return n ? dressNote(Object.assign({}, n)) : null; };
   /** a block's place on screen, as a function: the card beside it follows the camera (challenges.js follow) */
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
     const c = Card.open(Object.assign({mode, snare, title, at, countoff: gd().countoff !== false, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
-    if (!seen('mining')) firstCard('mining', 'Mining = playing!', mode === 'inst'
+    if (!seen('mining')) firstCard('mining', mode === 'inst' ? 'Mining = playing!' : 'Mining = music!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
     return c;
@@ -1394,7 +1400,7 @@
       slots[+b.dataset.i] = null; const rest = slots.filter(Boolean); slots.fill(null); rest.forEach((x, k) => { slots[k] = x; });
       missing = null; A.Sfx.event('ui-toggle'); drawCraft();
     });
-    const perf = r => (snare ? PERF_SNARE : mode === 'inst' ? PERF : PERF_TOUCH)[r.perf];
+    const perf = r => (mode === 'inst' ? (snare ? PERF_SNARE : PERF) : PERF_TOUCH)[r.perf];   // the MODE first, then the snare
     const res = $('recipeLine');
     if (m) {
       const bench = !m.bench || benchNear();
@@ -1691,7 +1697,7 @@
   }
 
   /* ================= COMPOSER BLOCKS AND THE CONDUCTOR'S PODIUM ================= */
-  const chrom = () => A.chromaticScale(snare ? A.memberById('bells') : readM);
+  const chrom = () => A.chromaticScale(readM());
   const noteOf = midi => { const c = chrom(); return c.find(n => n.midi === midi) || c[0]; };
   const itemOf = n => ({n, show: n, label: Card.label(n), midi: n.midi, sounding: n.sounding, pc: mod(n.sounding, 12)});
   function openComposer(x, y) {
@@ -1737,8 +1743,8 @@
     };
     $('compPerf').onclick = () => {
       const rect = $('compPerf').getBoundingClientRect();
-      const sp = snare ? {kind: 'rhythm', text: Array.from({length: Math.ceil(items.length / 4) * 4}, (_, k) => k < items.length ? 'q' : 'qr').join(' ').replace(/((?:\S+ ){3}\S+) /g, '$1 | '), sub: 'One hit per note'}
-        : {kind: 'notes', items, clef: inst.clef, fit: items.map(i => i.show), sig: null, sub: 'Your melody'};
+      const sp = drum() ? {kind: 'rhythm', text: Array.from({length: Math.ceil(items.length / 4) * 4}, (_, k) => k < items.length ? 'q' : 'qr').join(' ').replace(/((?:\S+ ){3}\S+) /g, '$1 | '), sub: 'One hit per note'}
+        : {kind: 'notes', items, clef: readG().clef, fit: items.map(i => i.show), sig: null, sub: 'Your melody'};
       closePanels();
       openCard(sp, {x: rect.left + rect.width / 2, y: rect.top - 60}, 'Conductor\'s Podium', r => {
         if (!G || !r.ok) { if (G) A.Sfx.event('bt-wrong'); return; }
@@ -2011,7 +2017,7 @@
   function spawn(kind, x, y) {
     const c = {id: ++cid, kind, x, y, vx: 0, vy: 0, t: 0, state: 'live', hopT: Math.random(), drainT: 0, alpha: 1, ground: false};
     if (snare) c.n = R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1));
-    else if (kind === 'clam') { const set = notesAt(Math.floor(x), Math.floor(y), 1); c.item = set.items[0]; c.set = set; }
+    if (kind === 'clam') { const set = notesAt(Math.floor(x), Math.floor(y), 1); c.item = set.items[0]; c.set = set; }
     // THE FAIRNESS CHECK: slowed until its challenge fits the time it needs to reach you
     const need = kind === 'rusher' ? rusherNeed() : R.fair.cardS[kind];
     const dist = Math.max(1, Math.hypot(x - G.p.x, y - G.p.y)), base = kind === 'clam' ? R.clam.hopX / R.clam.hopS : kind === 'wisp' ? R.wisp.speed : R.rusher.speed;
@@ -2116,7 +2122,7 @@
     if (Card.current || G.held) return;
     const at = () => ({x: (c.x - camX) * S, y: (c.y - .5 - camY) * S});
     let sp;
-    if (c.kind === 'clam') sp = snare ? {kind: 'count', n: c.n, sub: 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: 'Play its note to calm it', hint: G.wrong >= R.hintAfterWrong});
+    if (c.kind === 'clam') sp = drum() ? {kind: 'count', n: c.n, sub: 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
     else if (c.kind === 'wisp') sp = spec('sustain', Math.floor(c.x), Math.floor(c.y));
     else sp = {kind: 'rhythm', time: '2/4', text: pick(R.rusher.cells || ['q q', 'e e q', 'q e e', 'h']), sub: 'Match the rhythm before it arrives!'};
     openCard(sp, at, KINDS[c.kind], r => { if (!G) return; if (r.ok && c.state === 'live') { G.wrong = 0; calm(c); } else if (!r.ok) G.wrong++; });
@@ -2137,9 +2143,9 @@
     A.UI.toast({clam: 'The Night Clam is calm! It left a Pearl.', wisp: 'The Sour Wisp is in tune now! It left Pitch Dust.', rusher: 'The Rusher found the beat! It left a Valve Spring.'}[c.kind], {ms: 1800});
   }
   function creatureIntro(kind) {
-    const T = {clam: ['A Night Clam!', snare ? 'Night Clams hop toward you. Tap one and play the number of hits in its bubble to calm it.' : mode === 'inst' ? 'Night Clams hop toward you with a note in their bubble. Play that note to calm them (or tap one for its card)!' : 'Night Clams hop toward you with a note in their bubble. Tap one and tap its note name to calm it!'],
-      wisp: ['A Sour Wisp!', snare ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
-      rusher: ['A Rusher!', 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!']}[kind];
+    const T = {clam: ['A Night Clam!', drum() ? 'Night Clams hop toward you. Tap one and play the number of hits in its bubble to calm it.' : mode === 'inst' ? 'Night Clams hop toward you with a note in their bubble. Play that note to calm them (or tap one for its card)!' : 'Night Clams hop toward you with a note in their bubble. Tap one and tap its note name to calm it!'],
+      wisp: ['A Sour Wisp!', drum() ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
+      rusher: ['A Rusher!', mode === 'inst' ? 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!' : 'Rushers are fast little metronome gremlins. When one charges, tap its 2-beat rhythm before it arrives!']}[kind];
     firstCard('c-' + kind, T[0], T[1]);
   }
 
@@ -2181,18 +2187,18 @@
   /** the note bubble over a clam (a tiny staff), a count for the snare, "tap me" / "hold a note" for wisps */
   function drawBubble(c, x, y) {
     if (c.state !== 'live' || c.kind === 'rusher') return;
-    const s = S, big = c.kind === 'clam' && !snare, bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
+    const s = S, big = c.kind === 'clam' && !drum(), bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
     oc.fillStyle = col('bt-bubble'); oc.strokeStyle = col('bt-ink'); oc.lineWidth = 1.5;
     oc.beginPath(); oc.roundRect ? oc.roundRect(bx, by, bw, bh, s * .3) : oc.rect(bx, by, bw, bh); oc.fill(); oc.stroke();
     oc.beginPath(); oc.moveTo(x - s * .15, by + bh); oc.lineTo(x, by + bh + s * .25); oc.lineTo(x + s * .15, by + bh); oc.fill();
     oc.fillStyle = col('bt-ink'); oc.textAlign = 'center'; oc.textBaseline = 'middle';
-    if (c.kind === 'wisp' || snare) {
+    if (c.kind === 'wisp' || drum()) {
       oc.font = `700 ${Math.round(s * .38)}px ${getComputedStyle(document.body).fontFamily}`;
-      oc.fillText(snare && c.kind === 'clam' ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
+      oc.fillText(drum() && c.kind === 'clam' ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
       return;
     }
     // a one-note staff: lines 16 units apart in the ui.js staff (y 56–120), scaled into the bubble
-    const k = bh / 150, top = by + bh / 2 - 88 * k, lx0 = bx + s * .2, lx1 = bx + bw - s * .2, cl = c.set ? c.set.clef : inst.clef;
+    const k = bh / 150, top = by + bh / 2 - 88 * k, lx0 = bx + s * .2, lx1 = bx + bw - s * .2, cl = c.set ? c.set.clef : readG().clef;
     oc.save(); oc.beginPath(); oc.rect(bx, by, bw, bh); oc.clip();
     oc.lineWidth = 1;
     for (let i = 0; i < 5; i++) { const ly = top + (56 + i * 16) * k; oc.beginPath(); oc.moveTo(lx0, ly); oc.lineTo(lx1, ly); oc.stroke(); }
@@ -2380,8 +2386,9 @@
     touch: isTouch,
   }) : null;
   A.UI.settings.register(box => {
-    box.innerHTML = `<div class="ui-srow"><span class="ui-sname">Play by<small>${snare ? 'rhythms and rolls' : 'notes on your instrument'}, or taps</small></span>` +
-      `<span></span><div class="ui-seg" role="group" aria-label="Play by"><button type="button" data-m="inst" aria-pressed="${mode === 'inst'}">My instrument</button><button type="button" data-m="touch" aria-pressed="${mode === 'touch'}">Touch</button></div></div>` +
+    box.innerHTML = (mode === 'inst' ? `<div class="ui-srow"><span class="ui-sname">Play by<small>${snare ? 'rhythms and rolls' : 'notes on your instrument'}, or taps</small></span>`
+      : `<div class="ui-srow"><span class="ui-sname">Answer by<small>taps on the screen, or ${snare ? 'your drum' : 'your instrument'}</small></span>`) +
+      `<span></span><div class="ui-seg" role="group" aria-label="${mode === 'inst' ? 'Play by' : 'Answer by'}"><button type="button" data-m="inst" aria-pressed="${mode === 'inst'}">My instrument</button><button type="button" data-m="touch" aria-pressed="${mode === 'touch'}">Touch</button></div></div>` +
       `<div class="ui-srow"><span class="ui-sname">Count-off clicks<small>a one-measure count you can hear before a rhythm card</small></span><span></span>` +
       `<div class="ui-seg" role="group" aria-label="Count-off clicks"><button type="button" data-co="1" aria-pressed="${gd().countoff !== false}">On</button><button type="button" data-co="0" aria-pressed="${gd().countoff === false}">Off</button></div></div>` +
       (isTouch() && padArr ? `<div class="ui-srow"><span class="ui-sname">On-screen controls</span><span></span><button type="button" class="btn btn-secondary btn-small bt-arrange-btn">Arrange controls</button></div>` : '');
@@ -2512,6 +2519,8 @@
       spec: (kind, x, y, n) => spec(kind, x, y, n),
       notesAt: (x, y, n, o) => notesAt(x, y, n, o),
       /** open a card for a spec beside (x, y) (tests: a scale vein's card in the Bass Depths, an extreme staff) */
+      /** a creature's own card (as if it were tapped) */
+      creatureCard: id => { const c = G.creatures.find(k => k.id === id); if (c) creatureCard(c); return !!Card.current; },
       openSpec: (sp, x, y) => { G.fx.lastCard = null; openCard(sp, screenAt(x, y), sp.title || 'Test', r => { if (G) G.fx.lastCard = {ok: r.ok, why: r.why || null}; }); return !!Card.current; },
       /** put an item in the hotbar (the selected slot's neighbor: the first empty one) or take it out */
       hotbar: (id, on) => { const h = G.p.hot, k = h.indexOf(id); if (!on) { if (k >= 0) h[k] = null; } else if (k < 0) { const e = h.indexOf(null); h[e >= 0 ? e : h.length - 1] = id; } drawHot(); return h.slice(); },
