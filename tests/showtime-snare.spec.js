@@ -4,7 +4,7 @@
    fairness check at every showtime, and a wind player never seeing any of it. Hits are fired with the ?demo hook
    Arcade.Onsets.fake(time, level) (a hit at that exact moment and loudness). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageWatch, explain} = require('./helpers');
 
 const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
@@ -12,6 +12,7 @@ const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign(
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
 async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false} = {}) {
   const watch = await prepare(page, {store: store(gd, other)});
+  watch.seen = await pageWatch(page);                  // what the page saw, for a failure message (SN_STATE)
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
   await page.locator('.ls-start').click();
@@ -25,6 +26,11 @@ async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, s
   return watch;
 }
 const sn = page => page.evaluate(() => Arcade.Showtime.snare());
+/** the snare's state for a failure message: the plan, the hits it recorded (game time), when the band stood still */
+const SN_STATE = () => { const s = Arcade.Showtime.snare(), P = Arcade.Showtime.snarePlan(), G = Arcade.Showtime.debug();
+  return {plan: P && {k: P.k, start: P.start, measureStartPerf: Math.round(P.measureStartPerf), perfOf: P.perfOf.map(Math.round), beatS: P.beatS, W: P.W, lag: P.lag},
+    hits: s && s.hits, trail: s && s.trail, stillNow: s && s.stillNow, now: s && s.now, gt: s && s.gt, last: s && s.last, log: s && s.log && s.log.slice(-10),
+    left: s && s.target && s.target.left, split: s && s.split, paused: G && G.paused, held: G && G.held, suppressed: Arcade.Pitch.isSuppressed(performance.now())}; };
 /** close a NEW DRUM CHALLENGE card if one shows */
 async function card(page) { if (await page.locator('#spGo').isVisible()) await page.locator('#spGo').click(); }
 /** wait until the target exists (and the check passes), closing any challenge card */
@@ -33,8 +39,10 @@ async function waitFor(page, check, timeout = 30_000) {
   await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true);
   return s;
 }
-/** not muted (a sound playing mutes the microphone: nothing counts then) */
-const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
+/** not muted (a sound playing mutes the microphone: nothing counts then), and THE BAND MOVES AGAIN: the snare's `stillNow`
+   (the last frame stood still) clears only on the next frame, and until then a hit counts for nothing and a timed job
+   restarts from its count-in. A loaded WebKit can leave 400+ ms between frames, so "the sound is over" isn't enough */
+const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Showtime.snare().stillNow && !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
   !Arcade.Sfx.pending('showtime') && !(Arcade.Sfx.busy() > 0)); }, {timeout: 15_000}).toBe(true);   // (a card closed; no sound still queued: a card's second sound)
 const hit = (page, level = .3) => page.evaluate(l => Arcade.Onsets.fake(performance.now(), l), level);
 async function hits(page, n, gap = 160, level = .3) { for (let k = 0; k < n; k++) { await hit(page, level); await page.waitForTimeout(gap); } }
@@ -53,7 +61,8 @@ async function freshCountIn(page) {
       const P = Arcade.Showtime.snarePlan(), G = Arcade.Showtime.debug();
       if (!P || !G || window.__restarting) return false;
       const ahead = P.measureStartPerf - performance.now();
-      if (P.k === 0 && ahead > 900 && !Arcade.Pitch.isSuppressed(performance.now())) return true;
+      // (and the band moving: planned while it stands still, the next frame restarts the job and the measure moves)
+      if (P.k === 0 && ahead > 900 && !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.snare().stillNow) return true;
       if ((P.k > 0 || ahead <= 900) && !G.paused) { window.__restarting = true; G.paused = true; setTimeout(() => { G.paused = false; setTimeout(() => { window.__restarting = false; }, 200); }, 120); }
       return false;
     });
@@ -118,7 +127,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       for (let k = 0; k < n; k++) setTimeout(() => Arcade.Onsets.fake(t0 + k * 150, .3), k * 150);
       const go = () => {
         const b = G().bots.find(x => x.id === f);
-        if (b.state === 'walk' || Arcade.Pitch.isSuppressed(performance.now()) || G().paused) return setTimeout(go, 5);
+        if (b.state === 'walk' || Arcade.Pitch.isSuppressed(performance.now()) || G().paused || Arcade.Showtime.snare().stillNow) return setTimeout(go, 5);
         const t1 = performance.now();
         for (let k = 0; k < 5; k++) setTimeout(() => Arcade.Onsets.fake(t1 + k * 150, .3), k * 150);
         setTimeout(res, 5 * 150);
@@ -220,9 +229,13 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       // a fixed rhythm (a note on every beat, nothing on the last & ), so the extra hit lands in no note's window
       await page.evaluate(i => { const b = Arcade.Showtime.debug().bots.find(x => x.id === i); b.job.list[b.job.idx].text = 'q q q q'; }, s.target.id);
       await freshCountIn(page);
-      await playMeasure(page, o);
+      const fired = await playMeasure(page, o);
       await judged(page);
       const r = await sn(page);
+      await explain(watch.seen, SN_STATE, async () => {
+        try { expect(r.last.pass).toBe(false); if (kind !== 'miss') expect(r.target.job.marks.hits.map(h => h.kind)).toContain(kind); }
+        catch (e) { e.message += `\n  planned at ${Math.round(fired.now)}: ${JSON.stringify(fired.P.perfOf.map(Math.round))}`; throw e; }
+      });
       expect(r.last.pass).toBe(false);
       expect(r.target.id).toBe(s.target.id);
       expect(r.target.job.text).toBe('q q q q');                                          // the same rhythm again
@@ -289,7 +302,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       await quiet(page);
       const left = s.target.left;
       await hit(page, job === 'p' ? DYN.loud : DYN.soft);                                 // the wrong loudness
-      expect((await sn(page)).target.left).toBe(job === 'p' ? left + 1 : left);
+      await explain(watch.seen, SN_STATE, async () => expect((await sn(page)).target.left).toBe(job === 'p' ? left + 1 : left));
       await expect(page.locator('#prompt')).toContainText(job === 'p' ? 'Softer!' : 'Louder!');
       await page.waitForTimeout(150);
       await hit(page, job === 'p' ? DYN.soft : DYN.loud);                                 // the right one
@@ -352,9 +365,10 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     const uneven = await judge([40, 210]);                                               // 8 a second, but clumpy (gaps 40 / 210 ms)
     expect(uneven.holding).toBe(true); expect(uneven.mul).toBe(.3); expect(uneven.msg).toContain('Smooth it out');
     await page.waitForTimeout(1100);                                                       // (those hits leave the 1 s window)
+    await quiet(page);
     const even = await judge([125]);
     expect(even.holding).toBe(true); expect(even.mul).toBe(1);
-    const slow = await (async () => { await page.waitForTimeout(1100); return judge([300]); })();   // too slow: not a roll
+    const slow = await (async () => { await page.waitForTimeout(1100); await quiet(page); return judge([300]); })();   // too slow: not a roll
     expect(slow.holding).toBe(false);
     // and the ring really fills while an even roll goes on
     const a = await holdP(page); await roll(page, 1500, [125]); const b = await holdP(page, a.id);

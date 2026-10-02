@@ -234,6 +234,8 @@ window.Arcade = window.Arcade || {};
       } else confirm(t);
       api.hud();
     }
+    /** tests: when the band stood still and moved again (perf ms, the last 20), for a failure message */
+    function trail(what, now) { (H.trail || (H.trail = [])).push(what + ' ' + Math.round(now)); if (H.trail.length > 20) H.trail.shift(); }
     function log(what) { if (H) { H.log.push(what); if (H.log.length > 40) H.log.shift(); } }
     function flash() { const p = $('tpanel'); p.classList.remove('sn-hit'); void p.offsetWidth; p.classList.add('sn-hit'); }
 
@@ -275,6 +277,7 @@ window.Arcade = window.Arcade || {};
     /* ---------- every frame the band moves (the game clock ran) ---------- */
     function tick(dt, now) {
       if (!H) return;
+      if (H.stillNow) trail('go', now);
       H.clk += Math.max(0, now - H.tPerf) / 1000; H.tPerf = now; H.stillNow = false;
       if (H.dirty) redo();
       // confirm → reboot; freeze → GO!
@@ -298,7 +301,7 @@ window.Arcade = window.Arcade || {};
       pulse();
     }
     /** the band stood still (a sound, the pause, a card, a scare): a timed job starts again from its count-in */
-    function still(now) { if (!H) return; H.stillNow = true; if (now) H.tPerf = now; const t = api.target(), J = t && t.job; if (J && J.start != null && (J.type === 'rhythm' || J.type === 'accent' || J.type === 'tempo')) H.dirty = true; }
+    function still(now) { if (!H) return; if (!H.stillNow) trail('still', now); H.stillNow = true; if (now) H.tPerf = now; const t = api.target(), J = t && t.job; if (J && J.start != null && (J.type === 'rhythm' || J.type === 'accent' || J.type === 'tempo')) H.dirty = true; }
     function redo() {
       H.dirty = false;
       const t = api.target(); if (!t || !t.job || t.job.start == null) return;
@@ -609,7 +612,8 @@ window.Arcade = window.Arcade || {};
       const t = api.target(), J = t && t.job;
       return {gt: H.clk, lag: H.lag, gapUntil: H.gapUntil, confirm: H.confirm ? {id: H.confirm.b.id, until: H.confirm.until} : null,
         freeze: H.freeze ? {id: H.freeze.b.id, from: H.freeze.from, until: H.freeze.until, beats: H.freeze.beats} : null, walkMul: walkMul(),
-        pulse: Object.assign({}, H.pulse), log: H.log.slice(), last: H.last, split: split(),
+        pulse: Object.assign({}, H.pulse), log: H.log.slice(), last: H.last, split: split(), trail: (H.trail || []).slice(), stillNow: !!H.stillNow,
+        hits: H.hits.slice(-12).map(h => ({gt: +h.gt.toFixed(3), p: Math.round(h.p), level: h.level})), now: Math.round(performance.now()),
         target: t ? {id: t.id, left: t.left, total: t.total, z: t.z, walk: t.walk, freezeAt: t.freezeAt, froze: !!t.froze, cresc: !!t.cresc, holdP: t.holdP, rollCv: t.rollCv, phase: t.phase,
           job: J ? {type: J.type, bpm: J.bpmNow || J.bpm, measures: J.measures, passed: J.passed, k: J.k, idx: J.idx, W: J.W, fill: J.fill, start: J.start,
             text: J.list ? J.list[J.idx].text : null, accents: J.list && J.list[J.idx].accents || null, marks: J.marks || null} : null} : null};
