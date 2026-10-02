@@ -84,13 +84,19 @@ async function freshCountIn(page) {
 }
 function playMeasure(page, o = {}) {
   return page.evaluate(o => {
-    // each hit is handed over up to 0.3 s BEFORE its moment, stamped with that exact moment (the game judges a measure
-    // only at its end, by the hits' times): a busy machine's late timer can't make a hit miss its measure
-    const P = Arcade.Showtime.snarePlan(), now = performance.now(), fire = (at, lv) => setTimeout(() => Arcade.Onsets.fake(at, lv), Math.max(0, at - 300 - performance.now()));
-    const lvOf = i => Array.isArray(o.levels) ? o.levels[i] : o.levels != null ? o.levels : .3, ahead = (o.m || 0) * P.measureS * 1000;
+    // a measure's hits are handed over TOGETHER, 0.3 s before that measure starts (right away for the measure being played),
+    // each stamped with its exact moment (the game judges a measure only at its end, by the hits' times). One timer per
+    // measure, not one per hit: on a busy machine (WebKit on CI) per-hit timers fired late, past the measure's judging,
+    // and those hits were judged early / extra in the next measure
+    const P = Arcade.Showtime.snarePlan(), now = performance.now(), ahead = (o.m || 0) * P.measureS * 1000;
+    const batch = [], fire = (at, lv) => batch.push([at, lv]);
+    const lvOf = i => Array.isArray(o.levels) ? o.levels[i] : o.levels != null ? o.levels : .3;
     P.perfOf.forEach((at, i) => { if ((o.skip || []).includes(i)) return; fire(at + ahead + ((o.offsets || {})[i] || 0), lvOf(i)); });
     (o.extra || []).forEach(b => fire(P.measureStartPerf + b * P.beatS * 1000, .3));
     if (o.countIn) for (let k = 0; k < 4; k++) fire(P.countInPerf + k * P.beatS * 1000, .3);
+    const send = () => batch.sort((x, y) => x[0] - y[0]).forEach(([at, lv]) => Arcade.Onsets.fake(at, lv));
+    const from = Math.min(...batch.map(b => b[0]), P.measureStartPerf + ahead);
+    setTimeout(send, Math.max(0, from - 300 - performance.now()));
     return {P, now};
   }, o);
 }
