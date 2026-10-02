@@ -209,7 +209,8 @@
     const sl = G.sl && G.sl.watch ? G.sl : null;
     if (sl) {
       if (r && r.pc === sl.a.pc && r.pc !== it.pc && now - sl.at < R.slur.graceMs) it = sl.a;
-      if (!r) { if (sl.gapFrom == null) sl.gapFrom = now; if (now - sl.gapFrom >= R.slur.gapMs) sl.broke = true; }
+      // (the gap counts from the last sound heard, so a slow frame between two readings never hides a real break)
+      if (!r) { if (sl.gapFrom == null) sl.gapFrom = Math.min(now, Math.max(sl.at, S.lastSound || sl.at)); if (now - sl.gapFrom >= R.slur.gapMs) sl.broke = true; }
       else sl.gapFrom = null;
       if (r && r.pc === G.slurB[sl.lap].pc) slurDone(now, sl.broke ? 'break' : 'slur');
       else if (now - sl.at >= R.slur.graceMs) slurDone(now, 'missed');
@@ -469,7 +470,7 @@
     const sl = G.sl; if (!sl || !sl.watch) return;
     sl.watch = false; sl.result = how;
     G.slurs.push({lap: sl.lap, a: sl.a.label, b: G.slurB[sl.lap].label, ok: how === 'slur', how});
-    if (how === 'break') { S.slurSlowUntil = now + R.slur.slowMs; banner('Slur it!', 'bad', 1100); }
+    if (how === 'break') { S.slurSlowUntil = now + R.slur.slowMs; S.slurMul = R.slur.slow; banner('Slur it!', 'bad', 1100); }
     else if (how === 'slur') { banner('Smooth!', 'zone', 800); gd.slurSmooth = (gd.slurSmooth || 0) + 1; }
   }
 
@@ -647,8 +648,9 @@
     else if (z) { const [lo, hi] = dynWant(z); A.Pitch.demoLevel = lvl(clamp((Math.max(0, lo) + Math.min(1, hi)) / 2, 0, 1)); }
     else A.Pitch.demoLevel = null;
     if (G.phase === 'vcheck') { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; return; }
-    // B = a BREAK at a slur's switch: 300 ms of silence, then the new note
-    if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && now - G.sl.at < 300) { A.Pitch.demoNote = null; return; }
+    // B = a BREAK at a slur's switch: silence (at least 300 ms) until the game has heard the gap, then the new note. Held
+    // by the game's own state, not by frames: a slow frame (WebKit) right after the switch must not skip the silence
+    if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && G.sl.watch && (now - G.sl.at < 300 || (!G.sl.broke && now - G.sl.at < 1500))) { A.Pitch.demoNote = null; return; }
     if (['space', 's', 'l', 'b'].includes(demoKey)) { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
     else if (demoKey === 'd' || demoKey === 'f') {                // drifting: +25 cents at first, +45 after 4 s (F: flat)
       // the wobble (±2) + jitter (±2) keep it under 50 cents: past that it reads as the next note (and the detector's

@@ -4,7 +4,8 @@
    cars (or a car and yours) ever overlap, before GO every car sits in its grid slot, and the drawing never touches the
    race (the standings the HUD shows are the real ones). Phone, iPad and laptop. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const GHOST = {t: 200, p: Array.from({length: 400}, (_, i) => +(i * .012).toFixed(3))};   // a slow best run: the ghost starts in the pack
 const store = () => device('trumpet', {gameData: {'sustain-speedway': {ghosts: {'sustain-speedway|trumpet|8': GHOST}}}});

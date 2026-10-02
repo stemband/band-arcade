@@ -28,6 +28,6 @@ module.exports = defineConfig({
   },
   projects: [
     {name: 'chromium', use: {browserName: 'chromium', launchOptions: process.env.PW_CHROMIUM_PATH ? {executablePath: process.env.PW_CHROMIUM_PATH} : {}}},
-    {name: 'webkit', use: {browserName: 'webkit'}},       // ≈ iPad Safari
+    {name: 'webkit', use: {browserName: 'webkit'}},       // ≈ iPad Safari (Music Highway's and Sustain Speedway's specs: helpers.js CPU_DRAWING)
   ],
 });

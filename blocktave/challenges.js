@@ -44,6 +44,7 @@ window.Arcade = window.Arcade || {};
     if (typeof at === 'function') at = at();                   // a point that moves with the world (the camera follows the player)
     const W = innerWidth, H = innerHeight;
     el.classList.toggle('sheet', W <= 760 || !at);
+    document.body.classList.toggle('bt-card-sheet', W <= 760 || !at);   // the game's left column moves out of the sheet's way
     if (W <= 760 || !at) { el.style.left = el.style.top = ''; return; }
     const r = el.getBoundingClientRect(), gap = 28;
     let x = at.x + gap, y = at.y - r.height / 2;
@@ -77,7 +78,9 @@ window.Arcade = window.Arcade || {};
       resume: () => { if (C === card && card.paused) { card.paused = false; if (card.onResume) card.onResume(); } },
       answer: () => { if (C === card && card.answer) card.answer(); },
       want: () => card.want ? card.want() : null,
-      state: () => ({kind: card.o.kind, i: card.i, done: card.done, paused: card.paused, phase: card.phase || null, hint: !!card.o.hint}),
+      state: () => ({kind: card.o.kind, i: card.i, done: card.done, paused: card.paused, phase: card.phase || null, hint: !!card.o.hint,
+        countOff: card.countOff ? {on: card.countOff.on, silentWhy: card.countOff.silentWhy, muteUntil: card.countOff.muteUntil,
+          clicks: card.countOff.clicks.map(k => ({t: k.t, perf: k.perf, accent: k.accent, beat: k.beat}))} : null, t0: card.t0 || null}),
       get open() { return C === card; },
       el: card.el,
     };
@@ -85,9 +88,10 @@ window.Arcade = window.Arcade || {};
   function close(silent) {
     if (!C) return;
     const c = C; C = null;
-    cancelAnimationFrame(c.raf); clearTimeout(c.tm);
+    cancelAnimationFrame(c.raf); clearTimeout(c.tm); stopCountOff(c);
     if (A.Pitch && A.DEMO) A.Pitch.demoNote = null;
     c.el.remove();
+    document.body.classList.remove('bt-card-sheet');
     if (!silent && c.o.onClose) c.o.onClose();
   }
   /** the end of a card: right = a quick glow, wrong = a shake (rules.js wrongShowMs), then onDone */
@@ -98,7 +102,7 @@ window.Arcade = window.Arcade || {};
     if (A.Pitch && A.DEMO) A.Pitch.demoNote = null;
     c.el.classList.add(ok ? 'good' : 'bad');
     if (why) c.say.textContent = why;
-    c.tm = setTimeout(() => { if (C === c) { C = null; c.el.remove(); } c.o.onDone && c.o.onDone({ok, why}); }, ok ? 380 : R().wrongShowMs);
+    c.tm = setTimeout(() => { if (C === c) { C = null; c.el.remove(); document.body.classList.remove('bt-card-sheet'); } c.o.onDone && c.o.onDone({ok, why}); }, ok ? 380 : R().wrongShowMs);
   }
   const loop = (c, fn) => { const tick = now => { if (C !== c || c.done) return; if (!c.paused) fn(now); c.raf = requestAnimationFrame(tick); }; c.raf = requestAnimationFrame(tick); };
 
@@ -155,11 +159,26 @@ window.Arcade = window.Arcade || {};
   /** the staff rows' SVG for a list of items {n (the note as shown), color?, caption?}; opts {clef, sig, fit, availPx,
       captions, label, id (each note's id = id + its index)}. Returns {html, px (the drawing's smallest width), rows, W}. */
   function staffRows(items, o = {}) {
-    const L = layoutNotes(items.map(it => it.n), o), fit = o.fit || items.map(it => it.n);
+    const L = layoutNotes(items.map(it => it.n), o), box = staffBox(o.clef, items.map(it => it.n).concat(o.fit || []), !!o.captions);
     const html = L.rows.map((row, r) => `<div class="bt-srow">${A.staffSVG(o.clef, items.slice(row.from, row.to).map((it, k) => ({
       n: it.n, x: row.xs[k], id: o.id ? o.id + (row.from + k) : undefined, color: it.color, caption: it.caption || ''})),
-      {fit, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
-    return {html, px: L.px, rows: L.rows, W: L.W};
+      {box, keySig: o.sig, width: L.W, captions: !!o.captions, label: (o.label || 'The notes') + (L.rows.length > 1 ? ` (line ${r + 1} of ${L.rows.length})` : '')})}</div>`).join('');
+    return {html, px: L.px, rows: L.rows, W: L.W, box};
+  }
+  /** THE STAFF BOX GROWS TO FIT ITS NOTES (never a fixed height, so nothing is ever cut off): from every note's head, its
+      stem (up below the middle line, down on or above it: shared/ui.js), its ledger lines and its accidental, + a margin;
+      at least the staff itself (shared/ui.js's usual 30 … 146). Every row of a card uses the same box. Returns [top, height]. */
+  const MID = 88, STEM = 60, HEAD = 14, ACC_UP = 46, ACC_DOWN = 30, MARGIN = 6, CAPS = 34;
+  function staffBox(clef, notes, captions) {
+    let top = 30, bot = 146;
+    notes.forEach(n => {
+      if (!n) return;
+      const y = A.noteY(clef, n), acc = n.acc || n.natural;
+      top = Math.min(top, y - (y > MID ? STEM : HEAD) - MARGIN, acc ? y - ACC_UP - MARGIN : Infinity, y - 8 - MARGIN);   // the ledger lines reach the head
+      bot = Math.max(bot, y + (y > MID ? HEAD : STEM) + MARGIN, acc ? y + ACC_DOWN + MARGIN : -Infinity, y + 8 + MARGIN);
+    });
+    bot += captions ? CAPS : MARGIN;
+    return [Math.floor(top), Math.ceil(bot - top)];
   }
   /** the room a card's staff has on this screen (px): a sheet along the bottom on narrow screens, else up to 92vw */
   const sheetMode = () => innerWidth <= 760;
@@ -180,10 +199,50 @@ window.Arcade = window.Arcade || {};
     fitCard(c, s.px);
     return s.html;
   }
+  /* THE COUNT-OFF YOU CAN HEAR (rhythm cards): one measure of woodblock clicks (Music Highway's kit: the uploaded mh-click,
+     else its generated woodblock; beat 1 accented) in time with the count-in light, scheduled ahead on the arcade's
+     AudioContext (Arcade.AudioClock: each click at the audible time of its beat, never setTimeout clicks). The clicks stop
+     before the downbeat: the measure itself stays silent. Off with the game's "Count-off clicks" setting (o.countoff false),
+     sound off, or no audio yet = the silent light as before.
+     WHILE THE MICROPHONE LISTENS (INSTRUMENT mode, the snare): the hard rule (a sound while listening mutes the detector):
+     the clicks go straight into Sfx.output(), so the card mutes the mic itself: Pitch.suppress until the last click has
+     ended + rules.js countOffEchoMs (onsets and pitch both obey it), then Pitch.ignoreCurrent(). If that mute would reach
+     into the first note's window (lateMs before the downbeat: a fast tempo, a long uploaded click), this card's count-in
+     stays SILENT instead (c.countOff.silentWhy). Judging is unchanged. */
+  function countOff(c, {start, countS, num, t0, lateMs}) {
+    stopCountOff(c);
+    const o = c.o, log = c.countOff = {clicks: [], on: false, silentWhy: null, muteUntil: null};
+    if (o.countoff === false) { log.silentWhy = 'setting off'; return; }
+    const out = A.Sfx && A.Sfx.output && A.Sfx.output();
+    if (!out || !A.MHBacking || !A.AudioClock) { log.silentWhy = 'no sound'; return; }
+    const buf = clickBuf && clickBuf.duration ? clickBuf : null, len = buf ? buf.duration : CLICK_LEN;
+    const listening = o.mode === 'inst' && A.Pitch && A.Pitch.listening();
+    const lastEnd = start + (num - 1) * countS + len, muteEnd = lastEnd + R().countOffEchoMs / 1000;
+    if (listening && muteEnd > t0 - lateMs / 1000) { log.silentWhy = 'the mute would reach the first note'; return; }
+    const clk = A.AudioClock.create().start(), kit = A.MHBacking.create(out.ctx, out.out, {click: buf});
+    log.on = true; log.kit = kit;
+    for (let k = 0; k < num; k++) {
+      const perf = (start + k * countS) * 1000, t = clk.audAt(perf);
+      if (t < clk.now()) continue;                                         // too late to sound on time: skip it, never late
+      kit.click(t, R().countOffVol, k === 0);
+      log.clicks.push({t, perf, accent: k === 0, beat: k + 1});
+    }
+    if (listening) {                                                         // the mic hears nothing new until the clicks have died away
+      const ms = muteEnd * 1000 - performance.now();
+      A.Pitch.suppress(ms); log.muteUntil = muteEnd * 1000;
+      log.tm = setTimeout(() => { if (C === c && A.Pitch) A.Pitch.ignoreCurrent(); }, ms + 5);
+    }
+  }
+  function stopCountOff(c) { const l = c && c.countOff; if (!l) return; clearTimeout(l.tm); if (l.kit) l.kit.stopAll(); l.kit = null; }
+  const CLICK_LEN = .06;                                                     // the generated woodblock's length (backing.js: 55 ms)
+  let clickBuf = null;                                                       // the uploaded mh-click, once loaded
+  const loadClick = () => { if (!clickBuf && A.Sfx && A.Sfx.buffer) Promise.resolve(A.Sfx.buffer('mh-click')).then(b => { if (b) clickBuf = b; }).catch(() => {}); };
+  addEventListener('pointerdown', loadClick, true); addEventListener('keydown', loadClick, true);
+
   const KINDS = {
     notes(c) {
       const o = c.o, items = o.items;
-      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
+      const draw = () => { c.body.innerHTML = `<div class="bt-staff">${staffFor(c)}</div>` + (o.note ? `<p class="bt-cnote">${esc(o.note)}</p>` : '') + (items.length > 1 ? `<p class="bt-prog">${c.i} / ${items.length}</p>` : ''); };
       c.el.classList.toggle('wide', items.length > 4);
       draw();
       c.redraw = draw;                                                   // a turned / resized screen: laid out again
@@ -261,7 +320,7 @@ window.Arcade = window.Arcade || {};
     rhythm(c) {
       const o = c.o, Cn = A.Counting, RR = R().rhythm, time = o.time || '4/4';
       const p = Cn.parse(o.text, time), groups = Cn.groups(p), M = p.meter;
-      const beatS = 60 / (o.bpm || RR.bpm), tickS = beatS / 12;
+      const beatS = 60 / (o.bpm || RR.bpm), tickS = beatS / 12, countS = M.beat * tickS;   // a count = the meter's beat (6/8: the eighth)
       const eng = A.RhythmStaff.engrave(p, {counting: true, id: 'btr'});
       c.body.innerHTML = `<div class="bt-rstaff">${eng.svg}</div><div class="bt-count" aria-live="polite"><b class="bt-beat"></b><span class="bt-dots">${Array.from({length: M.num}, () => '<i></i>').join('')}</span></div>`;
       const svg = c.body.querySelector('svg');
@@ -281,28 +340,28 @@ window.Arcade = window.Arcade || {};
         c.onKey = e => { if (e.key === ' ' || e.key === 'Enter') { hit(performance.now()); return true; } return false; };
       }
       let start = 0, hits = [];
-      const begin = () => { start = performance.now() / 1000 + RR.leadS; hits = []; c.phase = 'count'; };
-      const t0 = () => start + M.num * beatS;                                 // the rhythm starts after one measure
+      const t0 = () => start + M.num * countS;                                // the rhythm starts after one measure of counts
+      const begin = () => { start = performance.now() / 1000 + RR.leadS; hits = []; c.phase = 'count'; c.t0 = t0() * 1000; countOff(c, {start, countS, num: M.num, t0: t0(), lateMs: RR.lateMs}); };
       const endS = () => t0() + p.total * tickS + RR.lateMs / 1000;
       function hit(perf) { if (c.done || c.paused || !start) return; hits.push((perf - lag()) / 1000); c.el.classList.remove('hitfx'); void c.el.offsetWidth; c.el.classList.add('hitfx'); }
       c.onHit = t => hit(t);
-      c.onPause = () => { start = 0; c.phase = 'wait'; };
+      c.onPause = () => { start = 0; c.phase = 'wait'; stopCountOff(c); };
       c.onResume = () => begin();
       const beatEl = c.body.querySelector('.bt-beat'), dots = [...c.body.querySelectorAll('.bt-dots i')];
       begin();
       loop(c, now => {
         const s = now / 1000;
         if (!start) return;
-        const inCount = s < t0(), k = Math.floor((s - start) / beatS);
+        const inCount = s < t0(), k = Math.floor((s - start) / countS);
         if (s >= start && inCount) {
           c.phase = 'count';
           beatEl.textContent = String(k + 1); dots.forEach((d, j) => d.classList.toggle('on', j === k));
-          c.el.style.setProperty('--pulse', String(Math.max(0, 1 - ((s - start) % beatS) / beatS)));
+          c.el.style.setProperty('--pulse', String(Math.max(0, 1 - ((s - start) % countS) / countS)));
         } else if (!inCount) {
           c.phase = 'play';
-          const bt = Math.floor((s - t0()) / beatS) % M.num;
-          beatEl.textContent = s < t0() + p.total * tickS ? '' : ''; dots.forEach((d, j) => d.classList.toggle('on', j === bt));
-          c.el.style.setProperty('--pulse', String(Math.max(0, 1 - ((s - t0()) % beatS) / beatS)));
+          const bt = Math.floor((s - t0()) / countS) % M.num;
+          beatEl.textContent = ''; dots.forEach((d, j) => d.classList.toggle('on', j === bt));
+          c.el.style.setProperty('--pulse', String(Math.max(0, 1 - ((s - t0()) % countS) / countS)));
           const tick = Math.min(p.total, (s - t0()) / tickS);
           const x = eng.xAt ? eng.xAt(tick) : 0; ph.setAttribute('x1', x); ph.setAttribute('x2', x);
         }
@@ -387,6 +446,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('keydown', e => {
     if (!C || C.done || C.paused || e.ctrlKey || e.metaKey || e.altKey) return;
     if (document.body.classList.contains('ui-modal')) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;      // typing in a field (the Recipe Book's search) is never an answer
     const k = e.key.toLowerCase();
     if (e.key === 'Escape') return;
     if (A.DEMO && C.o.mode === 'inst' && (k === ' ' || k === 'w') && C.want && !e.repeat) {
@@ -400,7 +460,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('keyup', e => { if (A.DEMO && C && A.Pitch && (e.key === ' ' || e.key.toLowerCase() === 'w')) A.Pitch.demoNote = null; });
   addEventListener('resize', () => { if (C) { if (C.redraw) C.redraw(); place(C.el, C.o.at); } });
 
-  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, headRight,
+  A.BlocktaveCard = {open, close: () => close(), get current() { return C && api(C); }, label, layoutNotes, staffRows, staffBox, headRight,
     /** keep the open card beside its block as the camera moves (the game calls it a few times a second) */
     follow() { if (C && typeof C.o.at === 'function') place(C.el, C.o.at); }};
 })(window.Arcade);

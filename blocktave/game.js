@@ -182,11 +182,20 @@
     if (c < d + n - f) return lo;                                         // night
     return lo + (1 - lo) * ((c - (d + n - f)) / f);                       // dawn: the last seconds of the night
   }
+  /** THE WORLD'S MUSIC: one choice from depth + night (rules.js music): deeper than caveRows below the ground nearby (the
+      same depth stepWay measures) = the cave track, which wins over night; back above leaveRows = day or night again.
+      setMusic runs only when the choice changes. */
+  function musicChoice() {
+    const d = G.way ? G.way.depth : 0, M = R.music;
+    if (!G.inCave && d > M.caveRows) G.inCave = true;
+    else if (G.inCave && d < M.leaveRows) G.inCave = false;
+    return G.inCave ? 'blocktave-cave' : isNight() ? 'blocktave-night' : 'blocktave-day';
+  }
   function worldMusic(force) {
-    const n = isNight();
-    if (!force && G.musicNight === n) return;
-    G.musicNight = n;
-    A.Sfx.setMusic(n ? 'blocktave-night' : 'blocktave-day', {fade: 2});
+    const t = musicChoice();
+    if (!force && G.musicTrack === t) return;
+    G.musicTrack = t;
+    A.Sfx.setMusic(t, {fade: R.music.fadeS, builtIn: t === 'blocktave-cave'});
   }
 
   /* ================= INVENTORY ================= */
@@ -196,7 +205,8 @@
     const inv = G.p.inv;
     inv[id] = Math.min(MAX_ONE(), (inv[id] || 0) + n);
     const it = ITEMS[id];
-    if (it && it.kind !== 'tool' && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) G.p.hot[k] = id; }
+    if (it && (it.kind !== 'tool' || it.hotbar) && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) G.p.hot[k] = id; }
+    if (id === 'torch' && !seen('torch') && G.running) setTimeout(() => { if (G) firstCard('torch', 'A Neon Torch!', 'Keep it in your hotbar and it lights the dark around you, at night and underground.'); }, 500);
     findRecipes();
     if (label) pickupLabel(id, n);
     if (!quiet) drawHot();
@@ -479,6 +489,10 @@
         case 'mallet2': mallet('bt-brass'); break;
         case 'mallet3': mallet('bt-silver'); break;
         case 'baton': line('bt-brass', 1.3, [[3, 13], [13, 3]]); dot('bt-plank', 3.5, 12.5, 1.8); break;
+        case 'torch':                                                     // a short dark handle, a glowing neon tube on top
+          g.globalAlpha = .28; dot('bt-torch', 10.2, 5.8, 4.6); g.globalAlpha = 1;
+          line('bt-torch-handle', 2.4, [[4, 14], [8, 10]]); line('bt-plank', .8, [[4.4, 13.6], [7.6, 10.4]]);
+          line('bt-torch', 2.6, [[8.4, 9.6], [12, 3.6]]); line('bt-torch-core', 1, [[8.6, 9.3], [11.8, 4]]); break;
         case 'snack': g.fillStyle = col('bt-snack'); g.beginPath(); g.roundRect ? g.roundRect(4 * u, 4 * u, 8 * u, 10 * u, 2 * u) : g.rect(4 * u, 4 * u, 8 * u, 10 * u); g.fill(); line('bt-brass', .8, [[5, 6], [11, 6]]); break;
         default: dot('text-lo', 8, 8, 4);
       }
@@ -796,6 +810,7 @@
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(lightCv, 0, 0, cols, rows, ox - S / 2, oy - S / 2, cols * S, rows * S);
     drawGlints(x0, y0, ox, oy, lv);
+    drawTorchTint(x => (x - camX) * S, y => (y - camY) * S);
     // after the light, so they're always readable: the note bubbles, the reach and the target
     drawDrops(sx, sy, now);
     drawPoofs(sx, sy, now);
@@ -804,13 +819,24 @@
     drawLabels(sx, sy, now);
     drawWay(sx, sy);
   }
+  /** THE NEON TORCH lights while it's in any hotbar slot (rules.js light.torchRadius / torchGlow): drawn only */
+  const torchOn = () => !!(G && G.p.hot.includes('torch') && (G.p.inv.torch || 0) > 0);
+  /** its soft warm-cyan wash around you (after the light; still: it never flickers) */
+  function drawTorchTint(sx, sy) {
+    if (!torchOn() || !R.light.torchTint) return;
+    const x = sx(G.p.x), y = sy(G.p.y - .9), r = (R.light.torchRadius + (tier() >= 4 ? R.light.batonGlow : 0)) * S;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, col('bt-torch-tint')); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save(); ctx.globalAlpha = R.light.torchTint; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
+  }
   /* THE LIGHT AS DRAWN (world.js lightMap + what only the eye needs): the PLAYER'S GLOW (playerRadius, playerGlow at the
      center, fading; the Golden Baton batonGlow farther), open space underground a little lighter than rock (openLift),
      water never darker than waterMin. G.lightGrid keeps the last frame's (tests: demo.lightAt). */
   function drawnLight(x0, y0, sky) {
     const w = G.w, p = G.p, L = R.light, lamps = G.lamps.filter(q => q.x > x0 - 9 && q.x < x0 + cols + 9 && q.y > y0 - 9 && q.y < y0 + rows + 9);
     const m = BW.lightMap(w, x0, y0, cols, rows, sky, lamps, R), v = m.v;
-    const r = L.playerRadius + (tier() >= 4 ? L.batonGlow : 0), px = p.x, py = p.y - .9;
+    const torch = torchOn(), r = (torch ? L.torchRadius : L.playerRadius) + (tier() >= 4 ? L.batonGlow : 0), glow = torch ? L.torchGlow : L.playerGlow, px = p.x, py = p.y - .9;
     for (let j = 0; j < rows; j++) {
       const y = y0 + j; if (y < 0 || y >= w.h) continue;
       for (let i = 0; i < cols; i++) {
@@ -820,7 +846,7 @@
         if (!b.solid && y > BW.top(w, x) && l < .3) l += L.openLift;
         if (b.fluid) l = Math.max(l, L.waterMin);
         const dd = Math.hypot(x + .5 - px, y + .5 - py);
-        if (dd < r + 1) l = Math.max(l, L.playerGlow * (dd < r ? 1 - .4 * (dd / r) ** 2 : .6 * (r + 1 - dd)));
+        if (dd < r + 1) l = Math.max(l, glow * (dd < r ? 1 - .4 * (dd / r) ** 2 : .6 * (r + 1 - dd)));
         v[k] = Math.min(1, l);
       }
     }
@@ -863,6 +889,11 @@
       ctx.fillStyle = col('cyan'); ctx.fillRect(x - HW * S, y - PH * S, HW * 2 * S, PH * S);
     }
     ctx.globalAlpha = 1;
+    if (G.p.hot[G.p.sel] === 'torch' && torchOn() && !G.swing) {            // the torch in the avatar's hand while it's the selected slot
+      const ic = iconCanvas('torch'), w = S * .7;
+      ctx.save(); ctx.translate(x + p.face * S * .32, y - S * 1.05); if (p.face < 0) ctx.scale(-1, 1);
+      ctx.drawImage(ic, -w * .25, -w * .75, w, w); ctx.restore();
+    }
     drawSwing(x, y, now);
   }
   /* ================= THE SWING (mining, a creature tapped, a block's challenge passed) =================
@@ -1018,6 +1049,7 @@
   }
   function place(x, y, id) {
     const it = ITEMS[id];
+    if (it && it.hotbar && !it.block) { A.UI.toast('Carry it in your hotbar to light the way.', {ms: 2000}); return false; }   // the Neon Torch is carried, never placed
     if (!id || !it || !it.block) { A.UI.toast(id ? `${itemName(id)} can't be placed.` : 'Pick something to build from your hotbar.', {ms: 1800}); return false; }
     if (!have(id)) return false;
     const w = G.w, here = B[BW.at(w, x, y)], nb = B[ID[it.block]];
@@ -1081,24 +1113,59 @@
       chromatic), the clef by depth (Treble Peaks = treble, Bass Depths = bass, else the student's own) */
   const POOLS = {surface: 'first5', middle: null, peaks: 'chrom', depths: 'chrom'};
   const SCALES = ['Bb', 'Eb', 'F', 'Ab'];
-  const OTHER_FIT = {treble: m => m >= 55 && m <= 84, bass: m => m >= 36 && m <= 64};
+  /* THE OTHER CLEF'S COMFORTABLE RANGE (written MIDI) and its middle line (treble B4, bass D3). Other-clef cards keep to
+     it: single notes are picked inside it; a SCALE (which must stay in order) is MOVED BY WHOLE OCTAVES into it (display
+     only: the shift that puts the most of its notes inside, ties to the one nearest the middle line); spelling, key
+     signature and order never change, and playing is by pitch class (Pitch.onHeld pc; the sustain card's cents are
+     measured mod 12), so a moved scale never asks for an octave the student can't play. */
+  const OTHER_RANGE = R.otherRange;
+  const OTHER_FIT = {treble: m => m >= OTHER_RANGE.treble[0] && m <= OTHER_RANGE.treble[1], bass: m => m >= OTHER_RANGE.bass[0] && m <= OTHER_RANGE.bass[1]};
+  /** the octave shift (in octaves) that puts the most of these written MIDIs inside the clef's comfortable range */
+  function octaveShift(midis, clef) {
+    const [lo, hi, mid] = OTHER_RANGE[clef], avg = midis.reduce((a, b) => a + b, 0) / Math.max(1, midis.length);
+    let best = 0, bestIn = -1, bestD = Infinity;
+    for (let k = -4; k <= 4; k++) {
+      const inR = midis.filter(m => m + 12 * k >= lo && m + 12 * k <= hi).length, d = Math.abs(avg + 12 * k - mid);
+      if (inR > bestIn || (inR === bestIn && d < bestD)) { best = k; bestIn = inR; bestD = d; }
+    }
+    return best;
+  }
+  /** a written note moved by k octaves (its spelling kept) */
+  const moveNote = (nt, k) => !k || !nt ? nt : Object.assign({}, nt, {oct: nt.oct + k}, nt.midi != null ? {midi: nt.midi + 12 * k} : {});
+  const moveItem = (it, k) => !k ? it : Object.assign({}, it, {n: moveNote(it.n, k), show: moveNote(it.show, k), midi: it.midi + 12 * k});
   function notesAt(x, y, n, {order = 'random', pool} = {}) {
     const z = BW.zone(G.w, x, y, R);
     const clef = z.layer === 'peaks' ? 'treble' : z.layer === 'depths' ? 'bass' : inst.clef;
     const notes = pool || POOLS[z.layer] || SCALES[Math.floor(Math.random() * SCALES.length)];
     const other = clef !== inst.clef;
     const seq = A.buildSequence({member: readM, group: inst, notes, order, level: 2, count: order === 'order' ? Math.max(n, 8) : Math.max(24, n * 3)});
-    let items = order === 'order' ? seq.items.slice(0, n) : seq.items;
-    if (other && order !== 'order') { const f = items.filter(it => OTHER_FIT[clef](it.midi)); if (f.length >= n) items = f; }
+    let items = order === 'order' ? seq.items.slice(0, n) : seq.items, shift = 0;
+    if (other && order === 'order') {                                     // a scale: the whole scale moves by octaves
+      shift = octaveShift(items.map(it => it.midi), clef);
+      items = items.map(it => moveItem(it, shift));
+    } else if (other) {                                                   // single notes: the ones inside the range …
+      const f = items.filter(it => OTHER_FIT[clef](it.midi));
+      if (f.length >= n) items = f;
+      else {                                                              // … else the same octave shift as a fallback
+        shift = octaveShift(items.map(it => it.midi), clef);
+        items = items.map(it => moveItem(it, shift));
+        const f2 = items.filter(it => OTHER_FIT[clef](it.midi)); if (f2.length >= n) items = f2;
+      }
+    }
     items = items.slice(0, n);
-    const fit = (other ? seq.fit.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : seq.fit);
-    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, nameOf: seq.name};
+    const fitAll = other ? seq.fit.map(s => moveNote(s, shift)) : seq.fit;
+    const fit = other ? fitAll.filter(s => OTHER_FIT[clef](A.music.writtenMidi(s))) : fitAll;
+    return {items, clef, sig: seq.sig, fit: fit.length ? fit : items.map(i => i.show), other, shifted: shift !== 0, nameOf: seq.name};
   }
+  /** the note names under the staff: after hintAfterWrong wrong answers, and the first otherClefNames other-clef cards
+      (counted in gameData otherClef); returns 'other' when it's the other-clef reason */
   function hintNow(set) {
     if (G.wrong >= R.hintAfterWrong) return true;
-    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return true; } }
+    if (set.other) { const k = gd().otherClef || 0; if (k < R.otherClefNames) { gd().otherClef = k + 1; saveGd(); return 'other'; } }
     return false;
   }
+  /** a moved other-clef scale says so (with the names, the first otherClefNames times) */
+  const shiftNote = (set, h) => set.shifted && h === 'other' ? `${set.clef === 'bass' ? 'Bass' : 'Treble'} clef! Play it where it sits on your instrument.` : null;
   const RD_CELLS = () => [...new Set((window.RD_LEVELS || []).slice(0, R.rhythmLevels || 5).flatMap(L => [].concat(L.time).includes('4/4') ? (Array.isArray(L.cells) ? L.cells : (L.cells && L.cells['4/4']) || []) : []))];
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const RESTS = ['wr | q qr hr', 'hr hr | q qr hr', 'hr qr qr | q qr hr', 'qr qr hr | q qr hr', 'qr hr qr | q qr hr'];
@@ -1112,16 +1179,17 @@
     }
     if (kind === 'tone' || kind === 'note' || kind === 'notes3') {
       const set = notesAt(x, y, n || (kind === 'notes3' ? 3 : 1));
-      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: hintNow(set)}, set);
+      const h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: set.items.length > 1 ? 'Play the notes' : 'Play the note', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'scale') {
-      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]});
-      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: hintNow(set)}, set);
+      const set = notesAt(x, y, n || 5, {order: 'order', pool: n === 8 ? 'Bb' : SCALES[Math.floor(Math.random() * SCALES.length)]}), h = hintNow(set);
+      return Object.assign({kind: 'notes', sub: 'A scale, in order', hint: !!h, note: shiftNote(set, h)}, set);
     }
     if (kind === 'sustain' || kind === 'longtone') {
       if (mode === 'touch') return {kind: 'key', member: readM, clef: inst.clef, sub: 'A music question'};
       const set = notesAt(x, y, 1);
-      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: hintNow(set)}, set);
+      return Object.assign({kind: 'sustain', secs: kind === 'longtone' ? 4 : baton ? R.sustainBatonS : R.sustainS, sub: 'A long tone', hint: !!hintNow(set)}, set);
     }
     if (kind === 'rhythm') return {kind: 'rhythm', text: pick(RD_CELLS()), sub: 'Play the rhythm'};
     if (kind === 'rest') return {kind: 'rest', text: pick(RESTS), sub: 'Rests, then the downbeat'};
@@ -1132,7 +1200,7 @@
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
-    const c = Card.open(Object.assign({mode, snare, title, at, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
+    const c = Card.open(Object.assign({mode, snare, title, at, countoff: gd().countoff !== false, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
     if (!seen('mining')) firstCard('mining', 'Mining = playing!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
@@ -1172,6 +1240,8 @@
   function openCraft() {
     closePanels();
     $('craft').hidden = false; G.panel = 'craft';
+    // the first time: one line on the shortcuts (taps fill the slots too)
+    $('craftTip').hidden = seen('craftTip'); markSeen('craftTip');
     drawCraft();
     $('craftClose').focus();
   }
@@ -1211,20 +1281,83 @@
       return `<button type="button" class="bt-chip bt-mat" data-id="${k}" data-item="${k}" ${left > 0 ? '' : 'disabled'}><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${left}</b></button>`; }).join('')
       : '<p class="ui-msg empty">Nothing yet: mine some blocks!</p>';
     $('craftItems').querySelectorAll('.bt-chip').forEach(b => { b.onclick = () => { if (dragJustEnded()) return; addToSlot(b.dataset.id); }; dragTile(b); });
-    // THE RECIPE BOOK
+    // THE RECIPE BOOK (+ its search: searchBook)
     $('bookBtn').setAttribute('aria-pressed', String(book));
-    $('book').hidden = !book;
-    const shown = r => f[r.id] || (window.BT_ALWAYS_SHOWN || []).includes(r.id);
-    if (book) $('book').innerHTML = RECIPES.map(r => {
-      if (!shown(r)) return `<div class="bt-rec unknown" aria-label="A recipe you haven't found yet"><b>?</b><span class="ins">${r.in.map(() => '<span class="q">?</span>').join('<i>›</i>')}</span></div>`;
-      const miss = missing && missing.id === r.id ? missing.need : null;
-      return `<button type="button" class="bt-rec${miss ? ' missing' : ''}" data-id="${r.id}"><b>${esc(r.name)}${r.n > 1 ? ' × ' + r.n : ''}</b><span class="ins">${r.in.map(i => `<img src="${iconURL(i)}" alt="${esc(itemName(i))}" data-item="${i}"${miss && miss[i] ? ' class="lack"' : ''}>`).join('<i>›</i>')}</span>` +
-        `<small>${esc(perf(r))}${r.bench ? ' · at a Luthier\'s Bench' : ''}</small>` +
-        (miss ? `<em>Missing: ${Object.entries(miss).map(([k, n]) => `${n} ${esc(itemName(k))}`).join(', ')}</em>` : '') + `</button>`;
-    }).join('');
-    if (book) $('book').querySelectorAll('.bt-rec[data-id]').forEach(b => b.onclick = () => fromBook(RECIPES.find(x => x.id === b.dataset.id)));
+    craftLayout();
+    if (!book && bookQ) { bookQ = ''; $('bookSearch').value = ''; }
+    if (book) drawBook(perf);
     $('bookCount').textContent = `${Object.keys(f).filter(k => RECIPES.some(r => r.id === k)).length} / ${RECIPES.length}`;
   }
+  /* THE LAYOUT: the bench, then YOUR MATERIALS right under it, then the Recipe Book (never between them). A WIDE panel
+     (≥ R.craftWide px: iPad landscape, Chromebooks) = two columns: the bench + materials left, the book right with its own
+     scroll (the book closed = the left column takes the full width). NARROW (phones, iPad portrait): the bench is sticky at
+     the top while the rest scrolls, and TABS under it, Materials | Recipe Book, one at a time (the Recipe Book button and a
+     tab both pick it; a recipe tap fills the slots and goes back to Materials). */
+  const craftWide = () => innerWidth - R.craftGutter >= R.craftWide;
+  function craftLayout() {
+    const wide = craftWide(), c = $('craft');
+    c.classList.toggle('wide', wide); c.classList.toggle('book', book);
+    $('bookWrap').hidden = !book;
+    $('matsPane').hidden = !wide && book;
+    $('craftTabs').hidden = wide;
+    [['tabMats', !book], ['tabBook', book]].forEach(([id, on]) => { const t = $(id); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+  }
+  const pickTab = b => { if (b === book) return; book = b; missing = null; A.Sfx.event('ui-toggle'); drawCraft(); };
+  $('tabMats').onclick = () => pickTab(false);
+  $('tabBook').onclick = () => pickTab(true);
+  $('craftTabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); e.stopPropagation(); pickTab(!book); $(book ? 'tabBook' : 'tabMats').focus();
+  });
+  addEventListener('resize', () => { if (G && G.panel === 'craft') craftLayout(); });
+  /* THE RECIPE BOOK'S SEARCH (the field above the recipes): as you type, case-insensitive, any part of a word, it keeps the
+     recipes whose NAME, OUTPUT item, any INGREDIENT or PERFORMANCE words match ("plank" = Maple Planks and everything made
+     with planks); the matched letters are <mark>ed (an ingredient / output / performance match shows on a "Uses: …" line);
+     none = "No recipes match 'xyz'." Recipes you haven't found stay hidden while searching: a search never reveals one.
+     Typing never reaches the game (the game's keys skip a text field); Esc clears it, a second Esc closes the book; "/"
+     focuses it on a keyboard (never focused by itself: a touch keyboard would cover the book); closing the book clears it. */
+  let bookQ = '';
+  const PERF_WORDS = {note: 'note', notes3: 'notes', beats: 'beats rhythm', longtone: 'long tone key signature roll', scale: 'scale'};
+  const hl = (text, q) => { const i = q ? text.toLowerCase().indexOf(q) : -1; return i < 0 ? esc(text) : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length)); };
+  /** what a found recipe matches: {name (hit in the recipe's name), why: [texts that matched]} or null */
+  function bookMatch(r, q, perf) {
+    if (!q) return {name: false, why: []};
+    const has = t => t.toLowerCase().includes(q), why = [];
+    const name = has(r.name);
+    const out = itemName(r.out);
+    if (out !== r.name && has(out)) why.push(out);
+    [...new Set(r.in)].forEach(i => { const n = itemName(i); if (has(n) && !why.includes(n)) why.push(n); });
+    const pw = perf(r) + ' ' + (PERF_WORDS[r.perf] || '');
+    const perfHit = has(pw);
+    return name || why.length || perfHit ? {name, why, perf: perfHit} : null;
+  }
+  function drawBook(perf) {
+    const f = gd().found || {}, q = bookQ.trim().toLowerCase();
+    const shown = r => f[r.id] || (window.BT_ALWAYS_SHOWN || []).includes(r.id);
+    const html = RECIPES.map(r => {
+      if (!shown(r)) return q ? '' : `<div class="bt-rec unknown" aria-label="A recipe you haven't found yet"><b>?</b><span class="ins">${r.in.map(() => '<span class="q">?</span>').join('<i>›</i>')}</span></div>`;
+      const m = bookMatch(r, q, perf); if (!m) return '';
+      const miss = missing && missing.id === r.id ? missing.need : null;
+      return `<button type="button" class="bt-rec${miss ? ' missing' : ''}" data-id="${r.id}"><b>${hl(r.name, q)}${r.n > 1 ? ' × ' + r.n : ''}</b><span class="ins">${r.in.map(i => `<img src="${iconURL(i)}" alt="${esc(itemName(i))}" data-item="${i}"${miss && miss[i] ? ' class="lack"' : ''}>`).join('<i>›</i>')}</span>` +
+        (m.why.length ? `<span class="bt-why">Uses: ${m.why.map(t => hl(t, q)).join(', ')}</span>` : '') +
+        `<small>${m.perf ? hl(perf(r), q) : esc(perf(r))}${r.bench ? ' · at a Luthier\'s Bench' : ''}</small>` +
+        (miss ? `<em>Missing: ${Object.entries(miss).map(([k, n]) => `${n} ${esc(itemName(k))}`).join(', ')}</em>` : '') + `</button>`;
+    }).join('');
+    $('book').innerHTML = html;
+    $('book').hidden = !html;
+    $('bookEmpty').hidden = !!html;
+    $('bookEmpty').textContent = html ? '' : `No recipes match '${bookQ.trim()}'.`;
+    $('bookSearchX').hidden = !bookQ;
+    $('book').querySelectorAll('.bt-rec[data-id]').forEach(b => b.onclick = () => fromBook(RECIPES.find(x => x.id === b.dataset.id)));
+  }
+  function searchBook(q) { bookQ = q; $('bookSearch').value = q; if (G && G.panel === 'craft' && book) drawCraft(); }
+  $('bookSearch').addEventListener('input', e => searchBook(e.target.value));
+  $('bookSearchX').onclick = () => { searchBook(''); $('bookSearch').focus(); };
+  $('bookSearch').addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault(); e.stopPropagation();
+    if (bookQ) searchBook(''); else { book = false; drawCraft(); $('bookBtn').focus(); }
+  });
   /** the next empty slot gets this material (if you still have one not already in the measure) */
   function addToSlot(id) {
     const k = slots.indexOf(null); if (k < 0 || !id) return false;
@@ -1258,17 +1391,31 @@
       g.src = iconURL(drag.id); g.className = 'bt-dragghost'; g.alt = '';
       document.body.appendChild(g); A.UI.layer && (g.style.zIndex = String(A.UI.layer.topZ() + 1));
       tipHide();
+      $('bench').classList.add('dragging');                                // the empty slots light up as drop targets
+      dragScroll();
     }
+    drag.y = e.clientY;
     drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
-    $('bench').classList.toggle('drop-on', !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench'));
+    $('bench').classList.toggle('drop-on', onBench(e));
   });
+  const onBench = e => !!document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench');
+  /** while dragging near the top of whatever scrolls (the panel, or the wide left column), scroll it toward the slots */
+  function dragScroll() {
+    if (!drag || !drag.ghost) return;
+    const sc = [$('craftMain'), $('craft')].find(el => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible');
+    if (sc && drag.y != null) {
+      const top = sc.getBoundingClientRect().top, d = drag.y - top;
+      if (d < R.dragEdge && sc.scrollTop > 0) sc.scrollTop -= Math.ceil(R.dragScroll * (1 - Math.max(0, d) / R.dragEdge));
+    }
+    requestAnimationFrame(dragScroll);
+  }
   const endDrag = e => {
     if (!drag || (e && e.pointerId !== drag.pid)) return;
     const d = drag; drag = null;
     if (!d.ghost) return;
     d.ghost.remove(); dragEnd = performance.now();
-    $('bench').classList.remove('drop-on');
-    if (e && e.type === 'pointerup' && document.elementsFromPoint(e.clientX, e.clientY).find(n => n.id === 'bench')) addToSlot(d.id);
+    $('bench').classList.remove('drop-on', 'dragging');
+    if (e && e.type === 'pointerup' && onBench(e)) addToSlot(d.id);           // anywhere on the bench = the next empty slot
   };
   addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
   $('bookBtn').onclick = () => { book = !book; missing = null; drawCraft(); };
@@ -1384,7 +1531,7 @@
       const id = b.dataset.id;
       if (locker) { const L = lockerOf(locker), n = inv[id]; if (Object.keys(L).length >= R.lockerSlots && !L[id]) { A.UI.toast('The locker is full.'); return; } take(id, n); L[id] = (L[id] || 0) + n; drawInv(locker); return; }
       if (id === 'snack' && G.p.hot[G.p.sel] === 'snack') { eat(); drawInv(); return; }
-      if (ITEMS[id] && ITEMS[id].kind === 'tool') return;
+      if (ITEMS[id] && ITEMS[id].kind === 'tool' && !ITEMS[id].hotbar) return;
       const k = G.p.hot.indexOf(id); if (k >= 0) G.p.hot[k] = null;
       G.p.hot[G.p.sel] = id; drawHot(); drawInv();
     });
@@ -1402,6 +1549,7 @@
   function closePanels() {
     tipHide();
     ['inv', 'craft', 'composer'].forEach(id => { $(id).hidden = true; });
+    bookQ = ''; $('bookSearch').value = '';                               // the Recipe Book's search never outlives the panel
     if (G) { G.panel = null; if (G.w) G.w.dirty = true; }
   }
 
@@ -1902,6 +2050,7 @@
     if (k === 'e') { if (G.panel === 'inv') closePanels(); else openInv(); return; }
     if (k === 'c') { if (G.panel === 'craft') closePanels(); else openCraft(); return; }
     if (k === 'b') { setBuild(!G.build); return; }
+    if (k === '/' && G.panel === 'craft') { e.preventDefault(); if (!book) { book = true; drawCraft(); } $('bookSearch').focus(); return; }
   });
   addEventListener('keyup', e => { if (!G) return; const k = KEYS[e.key.toLowerCase()]; if (k) G.keys[k] = false; });
   addEventListener('blur', () => { if (G) G.keys = {left: false, right: false, jump: false}; });
@@ -1932,7 +2081,10 @@
   A.UI.settings.register(box => {
     box.innerHTML = `<div class="ui-srow"><span class="ui-sname">Play by<small>${snare ? 'rhythms and rolls' : 'notes on your instrument'}, or taps</small></span>` +
       `<span></span><div class="ui-seg" role="group" aria-label="Play by"><button type="button" data-m="inst" aria-pressed="${mode === 'inst'}">My instrument</button><button type="button" data-m="touch" aria-pressed="${mode === 'touch'}">Touch</button></div></div>` +
+      `<div class="ui-srow"><span class="ui-sname">Count-off clicks<small>a one-measure count you can hear before a rhythm card</small></span><span></span>` +
+      `<div class="ui-seg" role="group" aria-label="Count-off clicks"><button type="button" data-co="1" aria-pressed="${gd().countoff !== false}">On</button><button type="button" data-co="0" aria-pressed="${gd().countoff === false}">Off</button></div></div>` +
       (isTouch() && padArr ? `<div class="ui-srow"><span class="ui-sname">On-screen controls</span><span></span><button type="button" class="btn btn-secondary btn-small bt-arrange-btn">Arrange controls</button></div>` : '');
+    box.querySelectorAll('[data-co]').forEach(b => b.onclick = () => { saveGd({countoff: b.dataset.co === '1'}); box.querySelectorAll('[data-co]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.co === b.dataset.co))); });
     box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { switchMode(b.dataset.m); box.querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.m === mode))); });
     const ar = box.querySelector('.bt-arrange-btn');
     if (ar) ar.onclick = () => { const ov = document.getElementById('uiSettings'); const done = ov && ov.querySelector('[data-act=done]'); if (done) done.click(); setTimeout(() => padArr.open(), 60); };
@@ -1947,6 +2099,7 @@
 
   /* ================= THE PAUSE MENU (shared/ui-kit.js) ================= */
   const pause = A.UI.pause.mount({
+    place: $('hudLeft'),                                                  // right above the milestones box (style.css .bt-hudl)
     onPause() {
       if (!G) return;
       G.keys = {left: false, right: false, jump: false};
@@ -2025,7 +2178,7 @@
       fx: G ? Object.assign({}, G.fx, {swing: !!G.swing, poofing: (G.poofs || []).length, far: !!G.far, rm: !!RM.matches}) : {},
       way: G && G.way ? {depth: G.way.depth, underS: G.way.underS, lostT: G.way.lostT, arrow: G.way.arrow, surfaceBtn: G.way.surfaceBtn, path: G.way.path ? G.way.path.length : null, next: G.way.path ? G.way.path.slice(0, 8) : null} : null,
       targetName: G ? G.targetName || '' : '',
-      backdrop: BD.state(),
+      backdrop: BD.state(), torch: torchOn(), music: G && G.musicTrack, inCave: !!(G && G.inCave),
       courage: G && G.courage ? {inZone: G.courage.inZone, graceLeft: G.courage.grace, value: G.courage.value, warned: G.courage.warned, shown: G.courage.shown, jitter: !!G.jitter, jitters: G.fx.jitters || 0} : null}),
     /** the light a tile was drawn with last frame (world.js lightMap + the player's glow), or null off screen */
     lightAt: (x, y) => { const g = G && G.lightGrid; if (!g) return null; const i = x - g.x0, j = y - g.y0; return i < 0 || j < 0 || i >= g.cols || j >= g.rows ? null : g.v[j * g.cols + i]; },
@@ -2050,6 +2203,13 @@
       put: (x, y, key) => BW.put(G.w, x, y, ID[key]),
       target: (x, y) => { G.target = {x, y}; },
       bgLow: on => saveGd({bgLow: !!on}),
+      /** the card a performance kind would open at (x, y), and the notes a card there would use (tests) */
+      spec: (kind, x, y, n) => spec(kind, x, y, n),
+      notesAt: (x, y, n, o) => notesAt(x, y, n, o),
+      /** open a card for a spec beside (x, y) (tests: a scale vein's card in the Bass Depths, an extreme staff) */
+      openSpec: (sp, x, y) => { openCard(sp, screenAt(x, y), sp.title || 'Test', () => {}); return !!Card.current; },
+      /** put an item in the hotbar (the selected slot's neighbor: the first empty one) or take it out */
+      hotbar: (id, on) => { const h = G.p.hot, k = h.indexOf(id); if (!on) { if (k >= 0) h[k] = null; } else if (k < 0) { const e = h.indexOf(null); h[e >= 0 ? e : h.length - 1] = id; } drawHot(); return h.slice(); },
       at: (x, y) => B[BW.at(G.w, x, y)].key,
       mine: (x, y) => mine(x, y),
       act: (x, y, build) => act(x, y, build),

@@ -54,7 +54,10 @@
     <div class="bt-badge" id="modeBadge"></div>
     <div class="bt-survived" id="survived" hidden></div>
   </div>
-  <div class="bt-goals" id="goals"></div>
+  <!-- THE LEFT COLUMN: PAUSE (the UI kit's button, placed here) right above the milestones box, in every layout -->
+  <div class="bt-hudl" id="hudLeft">
+    <div class="bt-goals" id="goals"></div>
+  </div>
   <div class="ed-flash" id="edFlash" aria-live="polite"></div>
   <div class="bt-bottom">
     <div class="bt-tool"><span id="toolIcon"></span><small id="toolName">Hands</small></div>
@@ -89,21 +92,36 @@
   <div class="bt-panel-h"><h2 class="ui-title" id="craftTitle">Craft</h2>
     <button type="button" class="btn btn-secondary btn-small" id="bookBtn" aria-pressed="false">Recipe Book <small id="bookCount"></small></button>
     <button type="button" class="btn btn-secondary btn-small" id="craftClose">Close</button></div>
-  <div class="bt-bench" id="bench">
-    <div class="bt-bench-carve" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-    <p class="bt-bench-say">Put your materials in order, like notes in a measure: the order matters!</p>
-    <div class="bt-bench-row">
-      <div class="bt-slots" id="measure" role="group" aria-label="The measure: 4 ingredient slots, in order"></div>
-      <div class="bt-arrow" aria-hidden="true">→</div>
-      <div class="bt-result-col">
-        <div class="bt-result" id="recipeLine" aria-live="polite"></div>
-        <button type="button" class="btn btn-primary bt-make" id="perform" disabled>Make it</button>
+  <p class="bt-craft-tip" id="craftTip" hidden>Tip: tap a material, or tap a recipe in the Recipe Book to fill the slots for you.</p>
+  <div class="bt-craft-cols">
+  <div class="bt-craft-main" id="craftMain">
+    <div class="bt-bench" id="bench">
+      <div class="bt-bench-carve" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="bt-bench-say">Put your materials in order, like notes in a measure: the order matters!</p>
+      <div class="bt-bench-row">
+        <div class="bt-slots" id="measure" role="group" aria-label="The measure: 4 ingredient slots, in order"></div>
+        <div class="bt-arrow" aria-hidden="true">→</div>
+        <div class="bt-result-col">
+          <div class="bt-result" id="recipeLine" aria-live="polite"></div>
+          <button type="button" class="btn btn-primary bt-make" id="perform" disabled>Make it</button>
+        </div>
       </div>
     </div>
+    <div class="bt-tabs" id="craftTabs" role="tablist" aria-label="Materials or the Recipe Book">
+      <button type="button" role="tab" id="tabMats" aria-controls="matsPane" aria-selected="true">Materials</button>
+      <button type="button" role="tab" id="tabBook" aria-controls="bookWrap" aria-selected="false" tabindex="-1">Recipe Book</button>
+    </div>
+    <div class="bt-matspane" id="matsPane" role="tabpanel" aria-labelledby="tabMats">
+      <h3 class="ui-kicker">Your materials <small class="bt-small">Tap a material to add it (or drag it)</small></h3>
+      <div class="bt-mats" id="craftItems"></div>
+    </div>
   </div>
-  <div class="bt-book" id="book" hidden></div>
-  <h3 class="ui-kicker">Your materials <small class="bt-small">tap or drag one into the next empty slot</small></h3>
-  <div class="bt-mats" id="craftItems"></div>
+  <div class="bt-bookwrap" id="bookWrap" role="tabpanel" aria-labelledby="tabBook" hidden>
+    <div class="bt-search"><span class="bt-search-ico" aria-hidden="true">🔍</span><input type="search" id="bookSearch" placeholder="Search recipes" aria-label="Search recipes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="bt-search-x" id="bookSearchX" aria-label="Clear the search" hidden>✕</button></div>
+    <div class="bt-book" id="book"></div>
+    <p class="ui-msg empty" id="bookEmpty" hidden></p>
+  </div>
+  </div>
 </div>
 
 <!-- A COMPOSER BLOCK's note / A CONDUCTOR'S PODIUM's melody -->
@@ -156,6 +174,7 @@
 <script src="../shared/rhythm-staff.js"></script>
 <script src="../shared/onsets.js"></script>
 <script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
 <script src="../shared/rhythm-judge.js"></script>
 <script src="../shared/pad-arrange.js"></script>
 <script src="../rhythm-dojo/levels.js"></script>

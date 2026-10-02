@@ -69,7 +69,17 @@ html.no-motion .bt-courage.low{animation:none}html.no-motion .bt-jitter::before{
 .bt-zone{color:var(--bt-moss)}
 .bt-badge.on{color:var(--green-hi);box-shadow:0 0 0 2px var(--green)}
 .bt-survived{color:var(--yellow-hi)}
-.bt-goals{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(72px + env(safe-area-inset-top,0px));max-width:min(300px,46vw);
+/* THE LEFT COLUMN (.bt-hudl): the pause button, then the milestones box, 8 px apart, one left edge (safe areas included).
+   Normal: top-left; phones (≤ 760 px): near the bottom, above the pad; short landscape: the goals hide and PAUSE takes
+   their spot. The pause button keeps the kit's look, size and focus outline (only its place changes). */
+.bt-hudl{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));
+  display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(300px,46vw);pointer-events:none;z-index:5}
+.bt-hudl>.ui-pause-btn{pointer-events:auto;flex:none;order:-1}
+.bt-hudl>.ui-pause-btn[hidden]{display:none}
+/* a card along the bottom (phones): PAUSE goes to the top-left and the goals step aside (the sheet would cover them) */
+body.bt-card-sheet .bt-hudl{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto}
+body.bt-card-sheet .bt-goals{display:none}
+.bt-goals{position:relative;max-width:100%;box-sizing:border-box;
   display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--deep) 78%,transparent);
   font:14px/1.3 var(--text);color:var(--text-lo);pointer-events:none}
 .bt-goals b{color:var(--yellow-hi);font:400 14px/1.2 var(--display)}
@@ -109,13 +119,14 @@ html.no-motion .bt-courage.low{animation:none}html.no-motion .bt-jitter::before{
   .bt-hud{left:120px}
   .bt-hot{width:44px;height:44px}.bt-hot img{width:28px;height:28px;margin-top:6px}
   .bt-pbtn{width:56px;height:56px}.bt-jump{width:64px;height:64px}
-  .bt-goals{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-width:min(260px,60vw);font-size:13px}
+  .bt-hudl{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-width:min(260px,60vw)}
+  .bt-goals{font-size:13px}
   .bt-pad{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
   .bt-bottom{gap:4px;padding:4px}
   .bt-tool{min-width:40px}
 }
 @media (max-width:420px){.bt-tool{display:none}.bt-hot{width:40px;height:40px}.bt-hot img{width:24px;height:24px}.bt-hotbar{gap:2px}}
-@media (max-height:520px) and (orientation:landscape){.bt-goals{display:none}.bt-pad{bottom:calc(8px + env(safe-area-inset-bottom,0px))}.bt-bottom{left:auto;right:auto;transform:translateX(-50%)}}
+@media (max-height:520px) and (orientation:landscape){.bt-goals{display:none}.bt-hudl{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto}.bt-pad{bottom:calc(8px + env(safe-area-inset-bottom,0px))}.bt-bottom{left:auto;right:auto;transform:translateX(-50%)}}
 
 /* ARRANGE CONTROLS' panel (shared/pad-arrange.js, prefix bt-) */
 .bt-arrange{position:fixed;inset:0;z-index:95;background:color-mix(in srgb,#000 45%,transparent);display:flex;justify-content:center;align-items:flex-start;padding-top:calc(16px + env(safe-area-inset-top,0px))}
@@ -186,6 +197,52 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
   .bt-result-col{min-width:0;flex-basis:auto}
   .bt-result{min-height:96px}
 }
+/* THE CRAFT PANEL'S LAYOUT: the bench, YOUR MATERIALS right under it, then the Recipe Book. WIDE (.wide, the panel can be
+   ≥ 820 px: rules.js craftWide) with the book open = two columns, each with its own scroll; NARROW = the bench sticky at
+   the top of the panel (its wood background) and the tabs Materials | Recipe Book under it */
+.bt-craft-tip{margin:0 0 6px;color:var(--bt-moss);font-weight:700;font-size:14px;line-height:1.3}
+.bt-craft.wide.book{width:min(1180px,calc(100% - 20px));display:flex;flex-direction:column;overflow:hidden}
+.bt-craft.wide.book .bt-craft-cols{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,620px) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:14px}
+.bt-craft.wide.book .bt-craft-main,.bt-craft.wide.book .bt-bookwrap{min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.bt-craft.wide.book .bt-bookwrap{padding-right:4px;border-left:2px solid var(--floor-3);padding-left:12px}
+.bt-craft.wide.book .bt-search{margin-top:0;max-width:none}
+.bt-craft.wide.book .bt-craft-main{padding:4px 4px 0 0}
+.bt-craft:not(.wide) .bt-bench{position:sticky;top:-12px;z-index:2;margin-top:0}
+.bt-tabs{display:flex;gap:6px;margin:4px 0 8px}
+.bt-tabs[hidden]{display:none}
+.bt-tabs [role=tab]{flex:1;min-height:48px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-lo);font:400 16px/1 var(--display);letter-spacing:.03em;cursor:pointer;touch-action:manipulation}
+.bt-tabs [role=tab][aria-selected=true]{border-color:var(--bt-moss);background:color-mix(in srgb,var(--bt-moss) 22%,var(--floor-2));color:var(--text-hi)}
+.bt-tabs [role=tab]:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+/* dragging a material: the empty slots light up as drop targets (a drop anywhere on the bench = the next empty slot) */
+.bt-bench.dragging .bt-slot:not(.full){border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 18%,var(--bt-slot-bg))}
+.bt-bench.dragging .bt-slot:not(.full) .bt-plus{color:var(--yellow-hi);opacity:1}
+@media (prefers-reduced-motion:no-preference){.bt-bench.dragging .bt-slot:not(.full){transition:background .15s,border-color .15s}}
+/* a phone: the sticky bench stays short (the 4 slots in one row, the result beside MAKE IT) so the materials have room */
+@media (max-width:520px){
+  .bt-bench{padding:16px 8px 8px}
+  .bt-bench-say{font-size:13px;margin-bottom:4px}
+  .bt-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .bt-slot{width:min(70px,100%);height:auto;aspect-ratio:1;min-width:64px}
+  .bt-slot img{width:30px;height:30px}
+  .bt-slotname{font-size:11px;max-width:62px}
+  .bt-slotcap{display:none}
+  .bt-arrow{display:none}
+  .bt-result-col{flex-direction:row;align-items:stretch}
+  .bt-result{flex:1 1 auto;min-height:72px;flex-direction:row;flex-wrap:wrap;gap:2px 6px;font-size:13px}
+  .bt-result img{width:32px;height:32px}
+  .bt-make{width:auto;flex:0 0 auto;min-width:96px}
+  .bt-craft .ui-kicker small{display:block;margin:2px 0 0}
+}
+/* THE RECIPE BOOK'S SEARCH: ≥ 44 px, a ✕ to clear; matches highlighted with <mark> */
+.bt-search{position:relative;display:flex;align-items:center;margin:6px 0 2px;max-width:420px}
+.bt-search-ico{position:absolute;left:12px;pointer-events:none;font-size:16px}
+.bt-search input{flex:1;min-height:44px;box-sizing:border-box;padding:8px 46px 8px 38px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);font:600 16px var(--text);-webkit-appearance:none;appearance:none}
+.bt-search input:focus{outline:none;border-color:var(--bt-build);box-shadow:0 0 0 3px color-mix(in srgb,var(--bt-build) 35%,transparent)}
+.bt-search input::-webkit-search-cancel-button{display:none}
+.bt-search-x{position:absolute;right:2px;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--text-lo);font:700 18px var(--text);cursor:pointer}
+.bt-search-x:hover,.bt-search-x:focus-visible{color:var(--text-hi)}
+.bt-rec mark,.bt-why mark{background:color-mix(in srgb,var(--bt-build) 40%,transparent);color:var(--text-hi);border-radius:3px;padding:0 1px}
+.bt-why{color:var(--text-lo);font-size:13px}
 .bt-book{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin:6px 0}
 .bt-rec{display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:6px 8px;border-radius:10px;border:2px solid var(--floor-3);background:var(--floor-2);color:var(--text-hi);
   font:14px var(--text);text-align:left;cursor:pointer}
@@ -223,6 +280,9 @@ body.bt-arranging .bt-move,body.bt-arranging .bt-act{position:relative;z-index:9
 .bt-rstaff svg{width:100%;height:auto;display:block;max-height:34vh}
 .bt-rstaff{color:var(--ink)}
 .bt-ph{stroke:var(--blue-ink);stroke-width:3}
+.bt-cnote{margin:0 0 2px;color:var(--bt-moss);font-size:14px;font-weight:700}
+/* a sheet along the bottom (phones) never leaves the screen: it scrolls inside itself rather than clip a tall staff */
+.bt-card.sheet{max-height:calc(100vh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain}
 .bt-prog{margin:0;text-align:right;color:var(--text-lo);font-size:13px}
 .bt-card-say{margin:4px 0;color:var(--text-hi);font-size:15px;min-height:1.3em}
 .bt-hold{height:14px;border-radius:8px;background:var(--floor-3);overflow:hidden;margin:6px 0}

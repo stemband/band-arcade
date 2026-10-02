@@ -5,7 +5,8 @@
    (the ghost too) and a win shows NEW IN THE GARAGE!; drawing four cars stays cheap; the panel fits a phone, an iPad
    and a laptop. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const URL = 'sustain-speedway/index.html?demo&nostart';
 const ready = page => page.waitForFunction(() => window.Arcade && Arcade.SpeedwayGarage && Arcade.SpeedwayCars && document.getElementById('garageBtn'));

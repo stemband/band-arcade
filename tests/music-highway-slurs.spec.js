@@ -3,7 +3,8 @@
    slurred pads, judging UNCHANGED (the same results whether slurred notes arrive tongued or smooth), and the feedback:
    SMOOTH vs "tongued" and the after-song tip (feedback only), with the Slur tips setting. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageEvents} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const FROG = 20, SYDNEY = 18;                       // song indexes (0-based)
 const CAL = browser => Object.assign({gameData: {'music-highway': {calib: {speaker: {ms: 0}, headphones: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {});
@@ -13,29 +14,19 @@ async function board(page) {
   await page.waitForFunction(() => window.Arcade && Arcade.SongMap && window.MH_SONGS && Arcade.MHSongText && Arcade.MHNotation);
 }
 /** play one song start to finish through the game's own autoPlay hook; returns what the tests look at */
+/** the song's state when a wait fails (with pageWatch's frame gaps and visibility) */
+const MH_STATE = () => { const s = Arcade.Highway.state(); delete s.log; s.pauseMenu = !!document.querySelector('#uiPause:not([hidden])'); s.end = Arcade.Highway.pauses() && Arcade.Highway.pauses().dur; return s; };
 async function play(page, i, o) {
   await page.evaluate(([i, o]) => { Arcade.Highway.start(i); Arcade.Highway.autoPlay(0, o); }, [i, o]);
-  try { await expect(page.locator('#results')).toBeVisible({timeout: 60_000}); } catch (e) { e.message += '\n' + await stuck(page); throw e; }
+  await explain(page.__seen, MH_STATE, () => expect(page.locator('#results')).toBeVisible({timeout: 60_000}));
   return page.evaluate(() => ({log: Arcade.Highway.slurLog(), tip: Arcade.Highway.slurTip(), tipShown: document.getElementById('slurTip') ? document.getElementById('slurTip').textContent : null,
     counts: [...document.querySelectorAll('#resCounts span')].map(s => s.textContent), results: Arcade.Highway.results()}));
-}
-/** why a song didn't reach its results: the song's clock and phase, the audio context, the pause menu, the page's events */
-async function stuck(page) {
-  const g = await Promise.race([page.evaluate(() => { const s = Arcade.Highway.state(), o = Arcade.Sfx.output && Arcade.Sfx.output();
-    return JSON.stringify({phase: s.phase, t: s.t, judged: s.judged, total: s.total, paused: s.paused, clock: s.clock, ctx: o && o.ctx ? o.ctx.state : null,
-      pauseMenu: !document.getElementById('uiPause').hidden, hidden: document.hidden, focus: document.hasFocus()}); }).catch(e => 'page gone: ' + e.message.split('\n')[0]),
-    new Promise(r => setTimeout(() => r('no answer'), 3000))]);
-  const clk = await Promise.race([page.evaluate(() => new Promise(res => {              // how the audio clock moves against real time
-    const o = Arcade.Sfx.output && Arcade.Sfx.output(), c = o && o.ctx; if (!c) return res('no AudioContext');
-    const out = [], p0 = performance.now(), c0 = c.currentTime;
-    const iv = setInterval(() => { out.push([Math.round(performance.now() - p0), Math.round((c.currentTime - c0) * 1000)]); if (out.length >= 20) { clearInterval(iv); res(JSON.stringify({state: c.state, out: c.outputLatency, base: c.baseLatency, perfMs_ctxMs: out})); } }, 60);
-  })).catch(e => 'page gone'), new Promise(r => setTimeout(() => r('no answer'), 5000))]);
-  return `  the song: ${g}\n  the page: ${await pageEvents(page)}\n  the audio clock: ${clk}`;
 }
 async function game(page, browserName, member = 'trumpet', extra = {}) {
   const store = device(member, CAL(browserName));
   Object.assign(store.gameData['music-highway'], extra);
   const watch = await prepare(page, {store});
+  page.__seen = await pageWatch(page);
   await page.goto('music-highway/index.html?demo&nostart');
   await page.waitForFunction(() => window.Arcade && Arcade.Highway && Arcade.session);
   await page.evaluate(() => { Arcade.session.mark('mh-calibrated-speaker'); Arcade.session.mark('mh-calibrated-headphones'); });

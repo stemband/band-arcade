@@ -4,7 +4,8 @@
    has one row per note with the right sign, the matching tip from tips.js (or "Right on pitch! Great ears."), and the
    history is saved. Phone, iPad and laptop. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 
 const SIZES = [['phone', {width: 390, height: 844}], ['iPad', {width: 1024, height: 768}], ['laptop', {width: 1366, height: 768}]];
