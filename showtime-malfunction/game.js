@@ -455,8 +455,9 @@
     if (t.rollRate2 && !t.cresc && half && !t.fast) { t.fast = true; setPrompt(`Faster! Roll ${t.rollRate2} hits a second!`, 'bad'); drawPanel(t); }
     const rate = t.fast ? t.rollRate2 : t.rollRate;
     let holding, mul = 1, msg = null;
-    if (snare) ({holding, mul, msg} = SN.roll(t, now, rate));   // fast enough AND even (snare.js); NIGHTMARE's Glitch Lurker: a crescendo
-    else holding = A.Pitch.demoHeld() === t.item.pc || !!(lastRead && now - lastRead.at < 250 && lastRead.r && lastRead.r.pc === t.item.pc);
+    const pn = performance.now();                                 // (the hits' and readings' time, not the frame timestamp)
+    if (snare) ({holding, mul, msg} = SN.roll(t, pn, rate));   // fast enough AND even (snare.js); NIGHTMARE's Glitch Lurker: a crescendo
+    else holding = A.Pitch.demoHeld() === t.item.pc || !!(lastRead && pn - lastRead.at < 250 && lastRead.r && lastRead.r.pc === t.item.pc);
     // the ring keeps what it had while the student moves to the glitched note
     t.holdP = holding ? Math.min(t.need, t.holdP + dt * mul) : t.graceUntil && G.t < t.graceUntil ? t.holdP : Math.max(0, t.holdP - dt * M.drain);
     setHold(t);

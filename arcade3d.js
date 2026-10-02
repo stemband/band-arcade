@@ -1270,7 +1270,7 @@ window.Arcade = window.Arcade || {};
     }
     function frame(now) {
       raf = 0; lastTick = performance.now();
-      if (document.hidden || A.floorPaused) return;            // hidden tab, or Select Player covers the floor
+      if (dead || document.hidden || A.floorPaused) return;   // (dead: given up on a slow device; nothing may draw again)            // hidden tab, or Select Player covers the floor
       // frame timing: the gap between animation frames, averaged over a few seconds
       if (lastFrame) {
         sample.push(now - lastFrame);
@@ -1300,6 +1300,9 @@ window.Arcade = window.Arcade || {};
         if (fr && !reduced.matches && now - lastMarquee > 1000 / (A.Marquee.FPS / (level ? 2 : 1)) - 2) { fr.marquee.draw(t); lastMarquee = now; }
         layout(now); placeStart(); placePrize(); render(); lastRender = now; stats.frames++;
       }
+      // ONE loop: a kick() during this frame (the downgrade's resize, a new marquee picture) has already asked for the
+      // next one; asking again would run two loops side by side, and destroy() could cancel only one of them
+      if (raf) return;
       if (turning || !reduced.matches) raf = requestAnimationFrame(frame);
       else lastFrame = 0;
     }
@@ -1382,7 +1385,7 @@ window.Arcade = window.Arcade || {};
         if (instant) { pos = from = to = target; turning = false; sync(pos, pos); }
         else { from = pos; to = target; t0 = performance.now(); turning = true; turnMs = Math.abs(target - pos) > SPIN_FROM ? SPIN_MS : TURN_MS; }
         kick();
-        if (instant && reduced.matches) { layout(performance.now()); placeStart(); placePrize(); render(); }
+        if (instant && reduced.matches && !dead) { layout(performance.now()); placeStart(); placePrize(); render(); }
       },
       pick(e) {
         if (e.target !== cvs) return null;

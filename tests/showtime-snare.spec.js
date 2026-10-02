@@ -4,14 +4,20 @@
    fairness check at every showtime, and a wind player never seeing any of it. Hits are fired with the ?demo hook
    Arcade.Onsets.fake(time, level) (a hit at that exact moment and loudness). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageEvents} = require('./helpers');
 
 const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
 
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
-async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false} = {}) {
-  const watch = await prepare(page, {store: store(gd, other)});
+async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false, staleRaf = 0} = {}) {
+  // WebKit: game sounds off, like every timing test here (rhythm-dojo, tuneup, music-highway). The snare's clock stands
+  // still while a sound plays (the microphone is muted then), and the CI runner's WebKit has no sound card, so its
+  // sounds don't take their real length: the band's pauses shifted every planned hit early or late ("rushing")
+  const quietRun = test.info().project.name === 'webkit' || !!process.env.SNARE_NO_SFX;
+  const watch = await prepare(page, {store: store(gd, Object.assign(quietRun ? {sfx: false} : {}, other))});
+  // a busy page: every animation frame's timestamp up to `staleRaf` ms older than the moment it runs
+  if (staleRaf) await page.addInitScript(ms => { const r = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = cb => r(t => cb(t - Math.random() * ms)); }, staleRaf);
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
   await page.locator('.ls-start').click();
@@ -30,9 +36,26 @@ async function card(page) { if (await page.locator('#spGo').isVisible()) await p
 /** wait until the target exists (and the check passes), closing any challenge card */
 async function waitFor(page, check, timeout = 30_000) {
   let s = null;
-  await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true);
+  try { await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true); } catch (e) {
+    const t = s && s.target, J = t && t.job;              // stuck: what the snare had, and what the page went through
+    e.message += `\n  the snare: ${JSON.stringify({phase: t && t.phase, job: J && {type: J.type, start: J.start, fill: J.fill, phaseDone: J.phaseDone}, log: s && s.log && s.log.slice(-12)})}\n  the page: ${await pageEvents(page)}`;
+    e.message += `\n  the audio clock: ${await audioClock(page)}`;
+    throw e;
+  }
   return s;
 }
+/** how the page's AudioContext time moves against real time over ~1.2 s (20 samples): its state, latency, output
+    timestamp and each step, so a stuck test shows whether the audio clock stalls, jumps or runs at the wrong rate */
+const audioClock = page => Promise.race([page.evaluate(() => new Promise(res => {
+  const o = Arcade.Sfx.output && Arcade.Sfx.output(), c = o && o.ctx;
+  if (!c) return res('no AudioContext');
+  const out = [], p0 = performance.now(), c0 = c.currentTime;
+  const iv = setInterval(() => {
+    const ts = c.getOutputTimestamp ? c.getOutputTimestamp() : {};
+    out.push([Math.round(performance.now() - p0), Math.round((c.currentTime - c0) * 1000), ts.contextTime != null ? Math.round(ts.contextTime * 1000) : null, ts.performanceTime != null ? Math.round(ts.performanceTime) : null]);
+    if (out.length >= 20) { clearInterval(iv); res(JSON.stringify({state: c.state, rate: c.sampleRate, base: c.baseLatency, out: c.outputLatency, steps: '[perf ms, ctx ms, outTs ctx ms, outTs perf]', samples: out})); }
+  }, 60);
+})).catch(e => 'page gone: ' + e.message.split('\n')[0]), new Promise(r => setTimeout(() => r('no answer'), 5000))]);
 /** not muted (a sound playing mutes the microphone: nothing counts then) */
 const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
   !Arcade.Sfx.pending('showtime') && !(Arcade.Sfx.busy() > 0)); }, {timeout: 15_000}).toBe(true);   // (a card closed; no sound still queued: a card's second sound)
@@ -61,13 +84,19 @@ async function freshCountIn(page) {
 }
 function playMeasure(page, o = {}) {
   return page.evaluate(o => {
-    // each hit is handed over up to 0.3 s BEFORE its moment, stamped with that exact moment (the game judges a measure
-    // only at its end, by the hits' times): a busy machine's late timer can't make a hit miss its measure
-    const P = Arcade.Showtime.snarePlan(), now = performance.now(), fire = (at, lv) => setTimeout(() => Arcade.Onsets.fake(at, lv), Math.max(0, at - 300 - performance.now()));
-    const lvOf = i => Array.isArray(o.levels) ? o.levels[i] : o.levels != null ? o.levels : .3, ahead = (o.m || 0) * P.measureS * 1000;
+    // a measure's hits are handed over TOGETHER, 0.3 s before that measure starts (right away for the measure being played),
+    // each stamped with its exact moment (the game judges a measure only at its end, by the hits' times). One timer per
+    // measure, not one per hit: on a busy machine (WebKit on CI) per-hit timers fired late, past the measure's judging,
+    // and those hits were judged early / extra in the next measure
+    const P = Arcade.Showtime.snarePlan(), now = performance.now(), ahead = (o.m || 0) * P.measureS * 1000;
+    const batch = [], fire = (at, lv) => batch.push([at, lv]);
+    const lvOf = i => Array.isArray(o.levels) ? o.levels[i] : o.levels != null ? o.levels : .3;
     P.perfOf.forEach((at, i) => { if ((o.skip || []).includes(i)) return; fire(at + ahead + ((o.offsets || {})[i] || 0), lvOf(i)); });
     (o.extra || []).forEach(b => fire(P.measureStartPerf + b * P.beatS * 1000, .3));
     if (o.countIn) for (let k = 0; k < 4; k++) fire(P.countInPerf + k * P.beatS * 1000, .3);
+    const send = () => batch.sort((x, y) => x[0] - y[0]).forEach(([at, lv]) => Arcade.Onsets.fake(at, lv));
+    const from = Math.min(...batch.map(b => b[0]), P.measureStartPerf + ahead);
+    setTimeout(send, Math.max(0, from - 300 - performance.now()));
     return {P, now};
   }, o);
 }
@@ -205,6 +234,23 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     await expect.poll(async () => (await bot(page, id)).state, {timeout: 5000}).not.toBe('walk');
     watch.check();
   });
+
+  // the snare's clock runs on performance.now() (the time hits are stamped with), never the frame's timestamp: on a busy
+  // page (a slow iPad, a loaded CI runner) that can be 150 ms behind, and a hit 250 ms early was judged an EXTRA hit
+  for (const [name, off, kind] of [['early', -250, 'early'], ['late', 250, 'late'], ['on time', 0, null]]) {
+    test(`a busy page's late animation frames don't move the judging: a hit ${name} is judged ${kind || 'on time'}`, async ({page}) => {
+      const watch = await open(page, {lv: 3, job: 'rhythm', solo: true, staleRaf: 150});
+      const s = await waitFor(page, s => s.target.job.type === 'rhythm' && s.target.job.start != null);
+      await page.evaluate(i => { const b = Arcade.Showtime.debug().bots.find(x => x.id === i); b.job.list[b.job.idx].text = 'q q q q'; }, s.target.id);
+      await freshCountIn(page);
+      await playMeasure(page, {offsets: {1: off}});
+      await judged(page);
+      const r = await sn(page);
+      if (kind) { expect(r.last.pass).toBe(false); expect(r.target.job.marks.hits.map(h => h.kind)).toEqual([kind]); }
+      else expect(r.last.pass).toBe(true);
+      watch.check();
+    });
+  }
 
   test('rhythm on NIGHTMARE: the tempo × nightmareBpm', async ({page}) => {
     const watch = await open(page, {lv: 3, job: 'rhythm', gd: {diff: 'extra'}});
@@ -395,12 +441,16 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     let s = await waitFor(page, s => s.target.job.type === 'tempo' && s.target.job.start != null);
     expect(s.target.job.bpm).toBe(await page.evaluate(() => window.SNARE_RULES.maestro.bpm[0]));
     await freshCountIn(page);
+    // each eighth handed over up to 0.3 s before its moment, stamped with that moment (the Maestro judges every hit by its
+    // own time), so a busy machine's late timer can't push one out of the window
     const eighths = (spacing, n) => page.evaluate(([spacing, n]) => {
       const P = Arcade.Showtime.snarePlan(), e8 = P.beatS * 500;
-      for (let i = 0; i < n; i++) { const at = P.measureStartPerf + i * e8 * spacing; setTimeout(() => Arcade.Onsets.fake(at, .3), Math.max(0, at - performance.now())); }
+      for (let i = 0; i < n; i++) { const at = P.measureStartPerf + i * e8 * spacing; setTimeout(() => Arcade.Onsets.fake(at, .3), Math.max(0, at - 300 - performance.now())); }
       return P.beatS;
     }, [spacing, n]);
-    const beatS = await eighths(1, 16);
+    // 16 good eighths fill the meter (2 × maestro.beats); 4 spares, so one lost hit can't leave it a step short (the
+    // spares land in the next phase's count-in, which never counts)
+    const beatS = await eighths(1, 20);
     await page.waitForTimeout((4 + 8.5) * beatS * 1000);
     s = await waitFor(page, s => s.target.phase === 2 && s.target.job.start != null);
     expect(s.target.job.bpm).toBe(await page.evaluate(() => window.SNARE_RULES.maestro.bpm[1]));   // a new tempo each phase

@@ -38,6 +38,14 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
     if (!mic && navigator.mediaDevices) {
       navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('No microphone in the tests', 'NotFoundError'));
     }
+    // what the page went through (pageEvents(page) prints it when a test is stuck): hidden / visible, pagehide, blur /
+    // focus. (Listeners only, no animation-frame loop of its own: a test's fake clock would run it thousands of times.)
+    const E = window.__pageEvents = {log: []};
+    const at = what => { if (E.log.length < 50) E.log.push(what + ' ' + Math.round(performance.now())); };
+    document.addEventListener('visibilitychange', () => at(document.hidden ? 'hidden' : 'visible'));
+    addEventListener('pagehide', () => at('pagehide'));
+    addEventListener('blur', () => at('blur'));
+    addEventListener('focus', () => at('focus'));
   }, [store, visit, mic]);
   page.on('pageerror', e => {
     // WebKit reports a download cancelled by a page change (the backup panel's reload) as an error "…/file due to access
@@ -179,4 +187,36 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};
+/** what the page went through (prepare() records it), for a stuck test's error: '{log}' or why it can't say */
+function pageEvents(page) {
+  return Promise.race([page.evaluate(() => JSON.stringify(window.__pageEvents || null)).catch(e => 'page gone: ' + e.message.split('\n')[0]),
+    new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
+}
+/** the memory (resident MB) of each page process this test worker's browser runs, biggest first: WebKit's
+    WebKitWebProcess, Chromium's renderers. Linux only (it reads /proc); [] elsewhere. A diagnostic: it never fails. */
+function pageMemory() {
+  const fs = require('fs');
+  try {
+    const kids = {};
+    for (const d of fs.readdirSync('/proc')) {
+      if (!/^\d+$/.test(d)) continue;
+      try { const st = fs.readFileSync(`/proc/${d}/stat`, 'utf8'), ppid = +st.slice(st.lastIndexOf(')') + 2).split(' ')[1]; (kids[ppid] = kids[ppid] || []).push(+d); } catch (e) { /* gone */ }
+    }
+    const out = [], todo = [process.pid];
+    while (todo.length) {
+      const pid = todo.pop();
+      for (const k of kids[pid] || []) {
+        todo.push(k);
+        try {
+          const comm = fs.readFileSync(`/proc/${k}/comm`, 'utf8').trim(), cmd = fs.readFileSync(`/proc/${k}/cmdline`, 'utf8');
+          if (!/WebKitWebProces/.test(comm) && !/--type=renderer/.test(cmd)) continue;
+          const rss = /VmRSS:\s+(\d+)/.exec(fs.readFileSync(`/proc/${k}/status`, 'utf8'));
+          if (rss) out.push(Math.round(+rss[1] / 1024));
+        } catch (e) { /* gone */ }
+      }
+    }
+    return out.sort((a, b) => b - a);
+  } catch (e) { return []; }
+}
+
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, pageMemory, pageEvents};
