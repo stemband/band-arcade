@@ -96,7 +96,7 @@ test('a wrong answer: the Sensei says "hmm", nothing is sliced', async ({page}) 
   const watch = await prepare(page, {store: device('trumpet')});
   await play(page, 1);
   const r = await page.evaluate(() => {
-    const G = Arcade.Ninja.state(), it = G.items[G.i], wrong = 'ABCDEFG'.split('').find(l => l !== it.letter);
+    const G = Arcade.Ninja.state(), it = G.items[G.i], wrong = [...document.querySelectorAll('#letters .letter')].map(b => b.dataset.letter).find(l => l !== it.letter);   // a button on the (spelled) pad
     document.querySelector(`.letter[data-letter="${wrong}"]`).click();
     return {pose: Arcade.Ninja.sensei(), slices: document.querySelectorAll('.nn-slice').length, wrong: G.wrong,
       mood: document.querySelector('#nnSensei svg').getAttribute('class')};
