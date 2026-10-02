@@ -3,7 +3,8 @@
      const card = Arcade.BlocktaveCard.open({kind, mode, title, sub, at: {x, y} (screen px), onDone({ok, why}), …})
    KINDS (INSTRUMENT mode = the microphone; TOUCH mode = the screen, no instrument):
      notes    items (buildSequence items) played IN ORDER: INSTRUMENT Pitch.onHeld (the concert pitch class), TOUCH the
-              answer pad (shared/answer-pad.js: the written name as shown, key signature included). Tone Ore, Scale Veins,
+              answer pad (shared/answer-pad.js: the written name as shown, key signature included; `spelled` = the set's
+              spelled buttons, one tap each, else ♭ ♮ ♯ + A–G). Tone Ore, Scale Veins,
               the Night Clams, the recipes' 'note' / 'notes3' / 'scale', a Composer row's melody.
      sustain  one steady, in-tune note for `secs` (INSTRUMENT: cents from reading.midi, like Arcade Quest's long tone)
      key      TOUCH's long tone: "Which key signature is this?" / "Name this scale" (shared/scales.js), 4 choices
@@ -267,7 +268,8 @@ window.Arcade = window.Arcade || {};
       } else {
         c.say.textContent = items.length > 1 ? 'Tap the note names in order.' : 'Tap the note name.';
         const accs = items.some(it => it.n.acc);
-        const pad = A.AnswerPad.mount(c.foot, {accs, relabel: true, cls: 'bt-apad', onAnswer: (l, a) => {
+        // THE SPELLED PAD when the card has a note set (o.spelled: First 5 / a scale, the whole set); else ♭ ♮ ♯ + A–G
+        const pad = A.AnswerPad.mount(c.foot, {accs, relabel: true, notes: o.spelled, cls: 'bt-apad', onAnswer: (l, a) => {
           if (c.done || c.paused) return;
           const n = items[c.i].n;
           if (l === n.letter && a === (n.acc || 0)) right(); else wrong(l + SIGN[a]);

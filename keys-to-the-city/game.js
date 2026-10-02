@@ -382,7 +382,10 @@
     const names = !!(L.types.name || L.types.circuit) || !!G.endless;
     // reserved in the shape the district uses (the ♭ ♮ ♯ row only where black keys or key signatures can come), so its
     // height never changes and neither does the staff's box above it
-    $('pad').hidden = !names; if (names) { padFor(); pad.set({accs: !!G.endless || L.keys !== 'white' || !!L.keySigs}); $('pad').classList.add('off'); }
+    // (with spelled pads, a district whose NAME rounds all have a key signature needs no ♭ ♮ ♯ row: Key Signature Square)
+    const shiftRounds = !A.AnswerPad.spellOn() || !L.keySigs || (L.noSig || 0) > 0 || !!L.types.circuit;
+    G.padRow = !!G.endless || (L.keys !== 'white' && shiftRounds) || (!!L.keySigs && !A.AnswerPad.spellOn());
+    $('pad').hidden = !names; if (names) { padFor(); pad.set({accs: G.padRow, notes: null}); $('pad').classList.add('off'); }
     const [lo, hi] = kbRange(L);
     KB.view = L.view;
     buildKeyboard(lo, hi);
@@ -435,12 +438,20 @@
     return n.letter + K.SIGN[n.acc];
   }
   let pad = null;
+  /* THE SPELLED PAD (shared/answer-pad.js): a round with a key signature shows that key's 7 notes, spelled ("B♭ C D E♭
+     F G A" in B♭ major), one tap each; a round without one keeps ♭ ♮ ♯ + A–G (black keys can be either name there).
+     `holdRow` keeps the ♭ ♮ ♯ row's space where the district reserved it, so the keyboard never moves. */
+  const keyNotes = r => {                                              // the key's 7 letters from the tonic, its signature's spelling
+    if (!r.key) return null;
+    const t = K.LETTERS.indexOf(K.KEYS[r.key].tonic.letter);
+    return [0, 1, 2, 3, 4, 5, 6].map(d => { const letter = K.LETTERS[(t + d) % 7]; return {letter, acc: K.sigAcc(r.sig, letter)}; });
+  };
   function showPad(r) {
     $('pad').classList.remove('off');
     padFor();
-    pad.set({accs: r.accs, relabel: true}); pad.lock(false);
+    pad.set({accs: r.key ? G.padRow : r.accs, relabel: true, notes: keyNotes(r)}); pad.lock(false);
   }
-  const padFor = () => pad || (pad = A.AnswerPad.mount($('pad'), {accs: true, onAnswer: (l, a) => answerName(l, a)}));
+  const padFor = () => pad || (pad = A.AnswerPad.mount($('pad'), {accs: true, holdRow: true, onAnswer: (l, a) => answerName(l, a)}));
 
   /* ---------- answers ---------- */
   $('kbStrip').addEventListener('pointerdown', e => {
@@ -526,7 +537,7 @@
       if (r.type !== 'scale') drawStaff(r, [{n: r.target.show, caption: name, color: MISS}]);
       const hint = G.L.hints ? signHint(r.target.n) : '';
       if (hint) { setSigns(1); say(hint, 'point'); if (!A.Pitch.listening()) hintVoice(mod(r.target.midi, 12) < 5 ? 'chop' : 'fork'); }
-      else say(r.type === 'scale' ? `That scale goes ${r.scale.map(x => K.label(x.n)).join(' ')}.` : named ? `That key is ${name}.` : `It was ${name}. You'll get the next one!`, 'oops');
+      else say(r.type === 'scale' ? `That scale goes ${r.scale.map(x => K.label(x.n)).join(' ')}.` : named ? `Not ${named.letter + K.SIGN[named.acc]}. That key is ${name}.` : `It was ${name}. You'll get the next one!`, 'oops');
       A.Sfx.event('kttc-wrong');
       if (G.endless) { G.lives--; $('hudLives').innerHTML = A.Endless.hearts(G.lives, NIGHT.lives); if (G.lives > 0) A.Sfx.event('endless-life-lost'); }
       later(RULES.afterWrongMs + (hint ? 500 : 0));

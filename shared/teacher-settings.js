@@ -12,10 +12,17 @@
 
    ASK_INSTRUMENT_EVERY_TIME   true: CHOOSE YOUR INSTRUMENT opens after PRESS START every time the arcade opens (for a
                         class on shared devices). false (the default): a student with a saved instrument goes straight
-                        to the lobby, with a small "Playing as Trumpet · Change" message. */
+                        to the lobby, with a small "Playing as Trumpet · Change" message.
+
+   SPELL_ANSWER_BUTTONS Spell answer buttons for the key (no ♭/♯ tap). true (the default): the note-name answer pads
+                        (shared/answer-pad.js: Note Ninja, Dojo Duel, Keys to the City, Blocktave) show one button per
+                        note of the set, already spelled (flute First 5 = B♭ C D E♭ F: one tap answers B♭); only
+                        Chromatic keeps the ♭ ♮ ♯ Shift. false: the old Shift pad (♭ ♮ ♯ + A–G) everywhere, for a class
+                        practicing key signatures on purpose. */
 window.Arcade = window.Arcade || {};
 window.Arcade.TEACHER = Object.assign(window.Arcade.TEACHER || {}, {
   JUMP_SCARE_ALLOWED: true,
   SHOW_INSTALL_PROMPT: false,
   ASK_INSTRUMENT_EVERY_TIME: false,
+  SPELL_ANSWER_BUTTONS: true,
 });
