@@ -27,5 +27,5 @@ Every change adds tests, so the suite stays fast by rule (October 2026: a pull r
 - **SPLIT, DON'T LOOP.** A test that repeats the same check at every screen size, seed or block type is one test per size/part (`for (…) test(\`… (${name})\`, …)`): they run side by side and a crash costs one short retry.
 - **SHARED STATE:** none. Every test gets a fresh browser context (its own storage); seed storage with `prepare(page, {store})`.
 - **GALLERY:** screenshots for Mat's review only with `GALLERY=1`.
-- **WEBKIT ON CI** has no sound card (its audio clock doesn't keep time: Music Highway and Rhythm Dojo play with SOUND OFF there; Blocktave's 4 audio-clock tests run in Chromium only) and no GPU (its WebGL logs `glTexStorage2D: Texture is immutable`, ignored by helpers.js; `ResizeObserver loop` notices are ignored too).
+- **WEBKIT ON CI** has no sound card (its audio clock doesn't keep time: Music Highway and Rhythm Dojo play with SOUND OFF there; Blocktave's 5 audio-clock tests run in Chromium only) and no GPU (its WebGL logs `glTexStorage2D: Texture is immutable`, ignored by helpers.js; `ResizeObserver loop` notices are ignored too).
 

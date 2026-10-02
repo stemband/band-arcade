@@ -7,6 +7,7 @@
 const {test, expect} = require('@playwright/test');
 const {prepare, device, CPU_DRAWING} = require('./helpers');
 test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
+const {shortRace} = require('./speedway-helpers');
 
 const URL = 'sustain-speedway/index.html?demo&nostart';
 const ready = page => page.waitForFunction(() => window.Arcade && Arcade.SpeedwayGarage && Arcade.SpeedwayCars && document.getElementById('garageBtn'));
@@ -233,6 +234,7 @@ async function raceTo(page, store) {
     await page.evaluate(() => { const b = document.querySelector('.overlay:not(#results) .btn-primary'); if (b && b.getClientRects().length) b.click(); });
     await page.waitForTimeout(300);
   }
+  await shortRace(page, 3, {pitSec: .5});                                   // short laps and pit stops: the results are what's tested
   await page.keyboard.down('Space');
   await expect(page.locator('#results')).toBeVisible({timeout: 120000});
   await page.keyboard.up('Space');

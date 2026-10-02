@@ -19,8 +19,9 @@
                default 'wrong' (tap W = a wrong note, which costs a heart); 'idle' = do nothing (notes run out)
      skip      'chromium' | 'webkit': a reason not to run in that browser
      pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise)
-     slow      true = its level takes over a minute of real time (a whole rhythm set, a match): tagged @slow, so it
-               runs only in the FULL job (docs/engine/testing.md "Keeping the tests fast") */
+     slow      true = its level takes about a minute of real time or more (a whole rhythm set, a match, a race):
+               tagged @slow, so it runs only in the FULL job (docs/engine/testing.md "Keeping the tests fast");
+               endlessSlow the same for its Endless run */
 const fs = require('fs');
 const path = require('path');
 const {games} = require('./arcade');
@@ -112,7 +113,7 @@ const STEPS = {
   'ancient-ninja-scrolls': {play: async page => { await click('#goTrain')(page); await click('.choice.hint')(page); await page.waitForTimeout(150); await click('#nextBtn')(page); await page.waitForTimeout(200); }},
   'button-masher': {play: masherCombo, slow: true},
   'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000, slow: true},
-  'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000,
+  'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000, slow: true,
     done: page => page.evaluate(() => { const s = Arcade.Duel.state(); return !!s && !s.running && s.players.some(p => p.score > 0); })},
   // Music Highway judges timing to the millisecond, so the test uses the game's own autoPlay hook (every note on time,
   // through the real judging) instead of key presses; calibrated already, so the first song doesn't ask for it
@@ -133,11 +134,11 @@ const STEPS = {
     }},
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
-  'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
+  'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000, slow: true},
   // 5 animatronics walk in one at a time: about a minute. THE ENCORE: nobody plays, so 3 machines reach the front (~45 s)
-  'showtime-malfunction': {limit: 120_000, endlessPlay: 'idle'},
-  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute
-  'vanishing-ink': {next: '#rrNext', limit: 100_000},
+  'showtime-malfunction': {limit: 120_000, endlessPlay: 'idle', endlessSlow: true},
+  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000, slow: true},   // level 1 takes about a minute
+  'vanishing-ink': {next: '#rrNext', limit: 100_000, slow: true},
   // Blocktave: chapter 1 (above); its Survival Nights run: every step a creature's bump costs a heart (the demo hook)
   'blocktave': {play: blocktaveStep, every: 600, limit: 100_000, key: 'blocktave',
     endlessPlay: async page => { await page.evaluate(() => { const B = Arcade.Blocktave; if (B.state().screen === 'world' && !B.state().held) B.demo.hurt(1); }); await page.waitForTimeout(400); }},

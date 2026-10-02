@@ -96,30 +96,40 @@ test('never the Prize of the Week, never discounted; the events\' own earned ite
   watch.check();
 });
 
-test('the countdown ("gone in 12 days!" … "Last day!") and the Coming soon card, across New Year too', async ({page}) => {
-  const watch = await prepare(page, {store: store()});
-  const at = async date => {
-    await floorAt(page, date);
-    await openCounter(page);
-    const s = await page.evaluate(() => Arcade.Prizes.state());
-    await page.keyboard.press('Escape');
-    return s;
-  };
-  let s = await at(SPOOKY);
+// three tests side by side (each date is a whole arcade floor loading)
+const countdownAt = page => async date => {
+  await floorAt(page, date);
+  await openCounter(page);
+  const s = await page.evaluate(() => Arcade.Prizes.state());
+  await page.keyboard.press('Escape');
+  return s;
+};
+const COUNTDOWN = 'the countdown ("gone in 12 days!" … "Last day!") and the Coming soon card, across New Year too';
+test(`${COUNTDOWN}: Spooky Season`, async ({page}) => {
+  const watch = await prepare(page, {store: store()}), at = countdownAt(page);
+  const s = await at(SPOOKY);
   expect(s.season.sign).toBe('🎃 Spooky Season shelf · gone in 12 days!');
   expect(s.touch).toBe(true);
   expect((await at('2026-10-31')).season.left).toBe('gone tomorrow!');
   expect((await at('2026-11-01')).season.sign).toBe('🎃 Spooky Season shelf · Last day!');
-  s = await at(OFF);
+  watch.check();
+});
+test(`${COUNTDOWN}: between events, Coming soon`, async ({page}) => {
+  const watch = await prepare(page, {store: store()}), at = countdownAt(page);
+  const s = await at(OFF);
   expect(s.season).toBeNull();
   expect(s.soon).toMatchObject({event: 'winter', text: '❄️ Coming soon: Winter Fest shelf, Dec 1'});
   expect(s.soon.items.sort()).toEqual(['hand:cocoa', 'pet:snowyowl', 'top:knitsweater']);
   expect(s.touch).toBe(false);
   await expect(page.locator('.pz-soon .pz-sil')).toHaveCount(3);
+  expect((await at('2026-06-15')).soon.text).toBe('🎃 Coming soon: Spooky Season shelf, Oct 1');
+  watch.check();
+});
+test(`${COUNTDOWN}: Winter Fest across New Year`, async ({page}) => {
+  const watch = await prepare(page, {store: store()}), at = countdownAt(page);
   expect((await at('2026-12-30')).season.sign).toBe('❄️ Winter Fest shelf · gone in 8 days!');      // Winter Fest runs into January
   expect((await at('2027-01-07')).season.left).toBe('Last day!');
   expect((await at('2027-01-10')).soon.text).toBe('💖 Coming soon: Friendship Week shelf, Feb 7');
-  expect((await at('2026-06-15')).soon.text).toBe('🎃 Coming soon: Spooky Season shelf, Oct 1');
   watch.check();
 });
 

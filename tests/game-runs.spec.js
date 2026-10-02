@@ -147,7 +147,7 @@ for (const R of RUNS) {
 
 /* ENDLESS: every game with an Endless card, from its card to GAME OVER (wrong notes / missed notes cost the hearts) */
 for (const R of RUNS.filter(r => r.endless)) {
-  test(`endless: ${R.name}`, async ({page, browserName}) => {
+  test(`endless: ${R.name}`, R.endlessSlow ? {tag: '@slow'} : {}, async ({page, browserName}) => {
     test.setTimeout(150_000);
     const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);

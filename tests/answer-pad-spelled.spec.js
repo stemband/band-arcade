@@ -303,16 +303,21 @@ test.describe('Dojo Duel', () => {
 
 /** Keys to the City: district lv, its rounds answered (Arcade.KeysCity.answer) until `n` NAME rounds were checked by fn */
 async function kttcNameRounds(page, lv, n, fn) {
-  await page.evaluate(lv => Arcade.KeysCity.begin(lv), lv);
-  await page.waitForSelector('#introGo', {state: 'visible'});
-  await page.click('#introGo');
+  const begin = async () => {
+    await page.evaluate(lv => Arcade.KeysCity.begin(lv), lv);
+    const go = page.locator('#introGo');
+    await go.waitFor({state: 'visible', timeout: 5000}).then(() => go.click(), () => {});   // (the intro shows the first time)
+  };
+  await begin();
   let checked = 0;
   for (let k = 0; k < 40 && checked < n; k++) {
-    await page.waitForFunction(() => { const s = Arcade.KeysCity.state(); return s.round && !s.done && document.querySelector('#pad:not(.off)') || (s.round && !s.done && s.round.type !== 'name'); }, null, {timeout: 15000, polling: 100});
+    // the next round, or the district is over (its rounds are random: it can end before n NAME rounds came up)
+    await page.waitForFunction(() => { const s = Arcade.KeysCity.state(); return s.menu || s.done || s.round && document.querySelector('#pad:not(.off)') || (s.round && s.round.type !== 'name'); }, null, {timeout: 15000, polling: 100});
     const s = await page.evaluate(() => Arcade.KeysCity.state());
+    if (s.menu || s.done) { await begin(); continue; }
     if (s.round.type === 'name') { await fn(s); checked++; }
     else await page.evaluate(() => Arcade.KeysCity.answer());
-    await page.waitForFunction(i => { const s = Arcade.KeysCity.state(); return s.i !== i || s.menu; }, s.i, {timeout: 15000, polling: 100});
+    await page.waitForFunction(i => { const s = Arcade.KeysCity.state(); return s.i !== i || s.menu || s.done; }, s.i, {timeout: 15000, polling: 100});
   }
   expect(checked, `district ${lv}: NAME rounds checked`).toBe(n);
 }

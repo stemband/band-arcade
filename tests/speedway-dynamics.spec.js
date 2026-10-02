@@ -134,9 +134,9 @@ test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); 
   watch.check();
 });
 
-test('slur partners stay in the note set and never cross the break (clarinet, alto sax) or leave the range', async ({page}) => {
-  test.setTimeout(90000);
-  for (const m of ['clarinet', 'altosax', 'flute', 'trombone', 'tuba', 'horn']) {
+// one test per instrument, side by side
+for (const m of ['clarinet', 'altosax', 'flute', 'trombone', 'tuba', 'horn']) {
+  test(`slur partners stay in the note set and never cross the break (clarinet, alto sax) or leave the range (${m})`, async ({page}) => {
     await prepare(page, {store: store(m)});
     await page.evaluate(m => { try { const d = JSON.parse(localStorage.getItem('bandarcade.v1')); d.player = m; localStorage.setItem('bandarcade.v1', JSON.stringify(d)); } catch (e) { /* first page */ } }, m).catch(() => {});
     await openSpeedway(page);
@@ -154,5 +154,5 @@ test('slur partners stay in the note set and never cross the break (clarinet, al
       if (m === 'clarinet') expect(x.a < 70.5).toBe(x.b < 70.5);
       if (m === 'altosax') expect(x.a < 73.5).toBe(x.b < 73.5);
     });
-  }
-});
+  });
+}

@@ -12,7 +12,7 @@ const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 const store = (gd = {}) => device('trumpet', {gameData: {'sustain-speedway': Object.assign({steerHint: true, gfx: 'lite'}, gd)}});
 async function raceToResults(page, lv = 1, sec = 3) {
   await startTrack(page, lv);
-  await shortRace(page, sec);
+  await shortRace(page, sec, {pitSec: .5});                                 // short pit stops (the same for a ghost's race and its replay)
   await page.keyboard.down('Space');
   await page.waitForFunction(() => Arcade.Speedway.podium() || document.querySelector('#resTuning'), null, {timeout: 90000});
   await page.keyboard.press('Enter');

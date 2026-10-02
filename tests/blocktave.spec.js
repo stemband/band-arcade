@@ -8,7 +8,8 @@ const {prepare, device} = require('./helpers');
 /* the music and the count-off clicks play on the AudioContext's clock. WebKit on a CI machine has no sound card: its
    AudioContext says it is running but its clock doesn't keep time (tests/games.js: Music Highway and Rhythm Dojo play
    with SOUND OFF there), so the cave track never reports playing and clicks land "too late" (skipped, never late: 1–3
-   of 4). Those 4 tests failed in all of the last 10 WebKit runs (October 2026); they run in Chromium. */
+   of 4). The 2 cave-music and 2 count-off tests failed in all of the last 10 WebKit runs (October 2026), and the
+   INSTRUMENT count-off's clicks come out empty there; these 5 run in Chromium. */
 const NO_AUDIO_CLOCK = 'WebKit on a CI machine: the audio clock doesn\'t keep time (no sound card); Chromium checks this';
 const SEEN = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1};
 /** the device: an instrument, Blocktave's mode, every first-time card already seen */
@@ -1511,7 +1512,8 @@ test.describe('Blocktave: the count-off you can hear on rhythm cards', () => {
     }
   });
 
-  test('INSTRUMENT: the clicks mute the microphone until they have died away, never into the first note; ?demo autoPlay still passes', async ({page}) => {
+  test('INSTRUMENT: the clicks mute the microphone until they have died away, never into the first note; ?demo autoPlay still passes', async ({page, browserName}) => {
+    test.skip(browserName === 'webkit', NO_AUDIO_CLOCK);
     await enter(page, {mode: 'inst'});
     await page.mouse.click(5, 300);
     await page.waitForFunction(() => !!(Arcade.Sfx.output && Arcade.Sfx.output()));
