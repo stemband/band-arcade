@@ -3,10 +3,13 @@
    the finish shows THE PODIUM with the right place, skippable with Enter or a tap; reduced motion = no shake or blur;
    the seasonal touches follow ?season= (and the "Seasonal look" switch); every time of day draws. Phone, iPad, laptop. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 
 const store = (gd = {}) => device('trumpet', {gameData: {'sustain-speedway': Object.assign({steerHint: true}, gd)}});
+/** the race's state when a wait fails (with pageWatch's frame gaps and visibility) */
+const SW_STATE = () => { const G = Arcade.Speedway.debug(); return G && {phase: G.phase, lap: G.lap, laps: G.lens.length, dist: +G.dist.toFixed(2), len: G.lens[G.lap], clock: +G.clock.toFixed(2), held: !!G.held, slur: Arcade.Speedway.slur(), podium: !!Arcade.Speedway.podium()}; };
 const SIZES = [['phone', {width: 390, height: 844}], ['iPad', {width: 1024, height: 768}], ['laptop', {width: 1366, height: 768}]];
 
 for (const [name, size] of SIZES) for (const gfx of ['full', 'lite']) {
@@ -14,6 +17,7 @@ for (const [name, size] of SIZES) for (const gfx of ['full', 'lite']) {
     test.setTimeout(120000);
     await page.setViewportSize(size);
     const watch = await prepare(page, {store: store({gfx})});
+    const seen = await pageWatch(page);
     await openSpeedway(page, '&season=winter');
     await startTrack(page, 2);
     await shortRace(page, 3);
@@ -23,7 +27,7 @@ for (const [name, size] of SIZES) for (const gfx of ['full', 'lite']) {
     expect(fx.lite).toBe(gfx === 'lite');
     if (gfx === 'lite') { expect(fx.particles).toBe(0); expect(fx.shook).toBe(0); }
     else { expect(fx.particles).toBeGreaterThan(10); expect(fx.kinds).toContain('snow'); }
-    await page.waitForFunction(() => Arcade.Speedway.podium(), null, {timeout: 90000});
+    await explain(seen, SW_STATE, () => page.waitForFunction(() => Arcade.Speedway.podium(), null, {timeout: 90000}));
     await page.keyboard.up('Space');
     const pd = await page.evaluate(() => Arcade.Speedway.podium());
     expect(pd.place).toBe(1);

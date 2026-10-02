@@ -4,7 +4,8 @@
    gap keeps its speed, with a gap (?demo B) slows + "Slur it!"; the second note comes from the note set (brass: a lip
    slur); the report adds "Pitch in soft / loud zones" and the slur count. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack} = require('./speedway-helpers');
 
 const store = (m = 'trumpet') => device(m, {gameData: {'sustain-speedway': {steerHint: true, gfx: 'lite'}}});
@@ -89,9 +90,13 @@ test('a p zone: soft = full speed, loud = slower with "softer!"; the report has 
   watch.check();
 });
 
+/** the race's state when a check fails (with pageWatch's frame gaps and visibility) */
+const SW_STATE = () => { const G = Arcade.Speedway.debug(); return G && {phase: G.phase, lap: G.lap, laps: G.lens.length, dist: +G.dist.toFixed(2), len: G.lens[G.lap], clock: +G.clock.toFixed(2), held: !!G.held, slur: Arcade.Speedway.slur(), podium: !!Arcade.Speedway.podium()}; };
+
 test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); brass gets a lip slur', async ({page}) => {
   test.setTimeout(150000);
   const watch = await prepare(page, {store: store()});
+  const seen = await pageWatch(page);
   await openSpeedway(page);
   await startTrack(page, 5);
   const setup = await page.evaluate(() => {
@@ -118,8 +123,7 @@ test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); 
   await page.keyboard.down('b');                                            // B = a break at the switch
   await page.waitForFunction(() => Arcade.Speedway.slur().slurs.length >= 2, null, {timeout: 40000});
   s = await page.evaluate(() => Arcade.Speedway.slur());
-  expect(s.slurs[1].how).toBe('break');
-  expect(s.mul).toBeCloseTo(.55, 5);
+  await explain(seen, SW_STATE, async () => { expect(s.slurs[1].how).toBe('break'); expect(s.mul).toBeCloseTo(.55, 5); });
   await expect(page.locator('#banner')).toHaveText('Slur it!');
   await page.keyboard.up('b'); await page.keyboard.down('Space');
   await page.waitForFunction(() => document.querySelector('#resTuning'), null, {timeout: 90000});

@@ -6,7 +6,8 @@
    (at least 4 clicks on the PRIMARY beat: 2/2 two bars of halves, 6/8 two bars of dotted quarters, 3/8 four bars of
    one), the snare's DOWNBEATS RIGHT, and one ?demo autoPlay run per meter: 100 % PERFECT, every drum hit on the grid. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const NEW = ['largo-symphony-9', 'the-wabash-cannonball', 'still-still-still', 'minka-minka', 'el-capitan', 'theme-from-the-barber-of-seville',
   'the-old-brass-wagon', 'the-galway-piper', 'sourwood-mountain', 'o-tannenbaum', 'procession-of-the-nobles', 'yankee-doodle-march', 'cindy',
@@ -17,8 +18,11 @@ async function board(page) {
   await page.goto('music-highway/songs.html?demo');
   await page.waitForFunction(() => window.Arcade && Arcade.SongMap && window.MH_SONGS && Arcade.MHNotation && Arcade.SongBoard);
 }
+/** the song's state when a wait fails (with pageWatch's frame gaps and visibility) */
+const MH_STATE = () => { const s = Arcade.Highway.state(); delete s.log; s.pauseMenu = !!document.querySelector('#uiPause:not([hidden])'); s.end = Arcade.Highway.pauses() && Arcade.Highway.pauses().dur; return s; };
 async function game(page, browserName) {
   const watch = await prepare(page, {store: device('trumpet', CAL(browserName))});
+  watch.seen = await pageWatch(page);
   await page.goto('music-highway/index.html?demo&nostart');
   await page.waitForFunction(() => window.Arcade && Arcade.Highway && Arcade.session);
   await page.evaluate(() => { Arcade.session.mark('mh-calibrated-speaker'); Arcade.session.mark('mh-calibrated-headphones'); });
@@ -189,7 +193,7 @@ test.describe('music highway: the book songs and the new meters', () => {
       expect(m1.from % m1.pulse).toBeCloseTo(0, 6);                     // resumed on a primary beat
       // then the whole song from the top, every note on time (autoPlay: through the real judging)
       await page.evaluate(i => { Arcade.Highway.start(i); Arcade.Highway.autoPlay(0); }, i);
-      await expect(page.locator('#results')).toBeVisible({timeout: 90_000});
+      await explain(watch.seen, MH_STATE, () => expect(page.locator('#results')).toBeVisible({timeout: 90_000}));
       const r = await page.evaluate(() => ({res: Arcade.Highway.results()}));
       expect(r.res.every(x => x === 'perfect'), r.res.join(' ')).toBe(true);
       await expect(page.locator('#results')).toContainText('100');

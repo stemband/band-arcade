@@ -73,6 +73,43 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
   return watch;
 }
 
+/* CPU_DRAWING (`test.use(CPU_DRAWING)` at the top of Music Highway's and Sustain Speedway's spec files): Playwright's
+   Linux WebKit (WPE) draws with Skia on the GPU, which on a CI machine (no GPU: software OpenGL) crashes the page now and
+   then in these canvas games: an internal WebKit check (the runner's kernel log: "trap invalid opcode in libWPEWebKit",
+   a SkiaGPUWorker segfault), seen as "Target crashed". WEBKIT_SKIA_ENABLE_CPU_RENDERING draws on the CPU instead: 2 crashes
+   in ~200 runs of those specs instead of 14 (the rest: WebKit's compositor thread; CI's one retry covers them). Not for
+   every spec: on the CPU, WebKit's WebGL (the 3D floor) logs "glTexStorage2D: Texture is immutable", and it doesn't stop
+   Blocktave's crashes. Real Safari never takes either path (it draws with Apple's own graphics). Chromium: unchanged. */
+const CPU_DRAWING = {launchOptions: [async ({browserName}, use) => use(browserName === 'webkit'
+  ? {env: Object.assign({}, process.env, {WEBKIT_SKIA_ENABLE_CPU_RENDERING: '1'})}
+  : process.env.PW_CHROMIUM_PATH ? {executablePath: process.env.PW_CHROMIUM_PATH} : {}), {scope: 'worker'}]};
+
+/**
+ * WHAT THE PAGE SAW, for a failure message on a busy runner (WebKit can starve a page's frames for seconds, and its page
+ * process can crash): the longest gap between animation frames, every gap over 1 s, timer gaps over 1 s (the main thread
+ * itself stalled), and any hidden / visible / pagehide. Call before page.goto; `await seen(() => state)` gives one line
+ * (with the game's own state from `state`, run in the page), and never hangs on a stuck or crashed page.
+ */
+async function pageWatch(page) {
+  await page.addInitScript(() => {
+    const L = window.__pw = {gap: 0, gaps: [], timer: [], vis: []}; let last = 0, tl = 0;
+    const f = t => { if (last) { const g = Math.round(t - last); L.gap = Math.max(L.gap, g); if (g > 1000 && L.gaps.length < 20) L.gaps.push(`${g} ms at ${Math.round(t)}`); } last = t; requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+    setInterval(() => { const t = performance.now(); if (tl && t - tl > 1100 && L.timer.length < 20) L.timer.push(`${Math.round(t - tl)} ms at ${Math.round(t)}`); tl = t; }, 100);
+    document.addEventListener('visibilitychange', () => L.vis.push((document.hidden ? 'hidden ' : 'visible ') + Math.round(performance.now())));
+    addEventListener('pagehide', () => L.vis.push('pagehide ' + Math.round(performance.now())));
+  });
+  return (state = null) => Promise.race([
+    page.evaluate(fn => { let s = null; try { s = fn ? (0, eval)('(' + fn + ')')() : null; } catch (e) { s = 'state failed: ' + e.message; }
+      return JSON.stringify({now: Math.round(performance.now()), hidden: document.hidden, frames: window.__pw, state: s}); }, state && state.toString())
+      .catch(e => 'page gone: ' + e.message.split('\n')[0]),
+    new Promise(r => setTimeout(() => r('no answer in 3 s (the page is stuck)'), 3000))]);
+}
+/** run `fn`; if it throws, add what the page saw (pageWatch's `seen`) to the error */
+async function explain(seen, state, fn) {
+  try { return await fn(); } catch (e) { e.message += `\n  the page: ${await seen(state)}`; throw e; }
+}
+
 /** the leaderboard mock's answers (the API in docs/engine/leaderboard.md "THE LEADERBOARD") */
 function boardFor(params) {
   if (params.get('action') === 'status') return {ok: true, enabled: true};
@@ -142,4 +179,4 @@ async function quickLeaderboard(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};

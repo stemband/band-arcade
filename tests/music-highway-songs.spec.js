@@ -3,7 +3,8 @@
    they parse, pass the bar check, come out for trumpet exactly as the book, fit every tested instrument's range and
    lanes, and each has its (optional) backing-drums event on the Sound Board. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 
 const NEW = ['good-king-wenceslas', 'orpheus-can-can', 'come-from-sydney', 'donkey-riding', 'frogs-song', 'san-sereni', 'nutcracker-theme'];
 

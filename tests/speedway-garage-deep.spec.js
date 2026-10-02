@@ -4,7 +4,8 @@
    track select shows the NEXT UNLOCK; there is no typed text anywhere; every tab fits a phone, an iPad and a laptop;
    ←/→ move between tabs; a race carries the parts (trail particles in Full, none in Lite) and counts clean laps. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 
 const URL = 'sustain-speedway/index.html?demo&nostart';
