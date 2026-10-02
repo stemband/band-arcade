@@ -780,8 +780,9 @@ test.describe('Blocktave: reach, the swing, the poof', () => {
 
   test('mining swings the tool and chips fly; a calmed creature poofs and drops its item; none of it with reduced motion', async ({page}) => {
     await enter(page, {mode: 'touch'});
-    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1; d.give('mallet1', 1); d.put(x, y, 'dirt'); d.mine(x, y); });
-    let fx = (await st(page)).fx;
+    // read in the same call as the mining: on a busy machine a frame could end the swing before a second call
+    let fx = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1; d.give('mallet1', 1); d.put(x, y, 'dirt'); d.mine(x, y);
+      return Arcade.Blocktave.state().fx; });
     expect([fx.swings, fx.chips, fx.swing]).toEqual([1, 1, true]);
     await expect.poll(async () => (await st(page)).fx.swing, {message: 'a swing lasts swingMs'}).toBe(false);
     const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 5); });
