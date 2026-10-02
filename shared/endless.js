@@ -1,4 +1,4 @@
-/* ENDLESS MODE, shared by Note Storm and Note Ninja: play until the last heart is gone while the speed keeps rising.
+/* ENDLESS MODE, shared by Note Storm, Note Ninja, Showtime Malfunction (THE ENCORE) and others: play until the last heart is gone while the speed keeps rising.
    Each game keeps its own SETTINGS block (the speed curve and what the speed changes) in its levels.js; this file
    has what both share:
      Arcade.Endless.speed(C, t)      the speed after t seconds of a run:
@@ -8,11 +8,13 @@
      Arcade.Endless.instKey(inst, member), setKey(pickerState)   where a run's Top 5 lives: game + instrument + note set
      Arcade.Endless.top(gameId, instKey, setKey)                 the Top 5 (Arcade.store.endlessTop)
      Arcade.Endless.tile(el, {gameId, instKey, setKey, label, blurb, onPlay})   the ENDLESS card on the level screen
-     Arcade.Endless.gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds})
+     Arcade.Endless.gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds, againLabel, onShow})
                                      the GAME OVER panel: saves the run (never in ?demo: "Demo run — score not
                                      saved"), shows the Top 5. run = {score, notes, speed, combo, stats?}: stats =
                                      [[label, value], …] replaces the four standard boxes (Lost Signal: longest signal,
-                                     score, rounds); sounds = {over, top} replaces endless-game-over/-high-score.
+                                     score, rounds); sounds = {over, top} replaces endless-game-over/-high-score;
+                                     againLabel = the Play again button's words; onShow(panel) = the results kit's hook
+                                     (Showtime Malfunction: the rebooted band below the title).
      Arcade.Endless.hearts(lives, max)   the HUD's hearts
      Arcade.Endless.flash(el, text)      the short "SPEED UP!" banner (one gentle fade in and out, never a strobe)
    Endless gives no stars: runs are saved in Arcade.store `endless` (storage.js), never in `games`, so they never
@@ -78,7 +80,7 @@ window.Arcade = window.Arcade || {};
       el.classList.remove('go'); void el.getBoundingClientRect(); el.classList.add('go');
     },
     /** GAME OVER: save the run (not in ?demo), show the stats and the Top 5, play the sounds. Returns its place (0 = #1, -1 = none). */
-    gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds}) {
+    gameOver({gameId, instKey, setKey, run, onAgain, onBack, backLabel, title, kicker, sounds, againLabel, onShow}) {
       const demo = A.DEMO && !E.saveInDemo;
       const before = E.top(gameId, instKey, setKey);
       const av = A.Avatar && A.store.avatar ? A.Avatar.get() : null;
@@ -104,7 +106,8 @@ window.Arcade = window.Arcade || {};
         tiles: stats,
         extra: (demo ? '<p class="ed-demo">Demo run — score not saved</p>' : '') + '<p class="ed-top-h">Top 5 on this device</p>' +
           `<div class="ed-list">${E.listHTML(demo ? before : list, demo ? null : (rank >= 0 ? rank : null))}</div>`,
-        retry: {label: 'Play again', onClick: () => { A.UI.results.hide(); onAgain(); }},
+        onShow,
+        retry: {label: againLabel || 'Play again', onClick: () => { A.UI.results.hide(); onAgain(); }},
         levels: {label: backLabel || 'Levels', onClick: () => { A.UI.results.hide(); onBack(); }}});
       const snd = Object.assign({over: 'endless-game-over', top: 'endless-high-score'}, sounds);
       A.Sfx.sequence([snd.over, newTop && !demo && snd.top]);

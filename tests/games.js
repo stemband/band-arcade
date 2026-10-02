@@ -132,7 +132,8 @@ const STEPS = {
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
-  'showtime-malfunction': {limit: 120_000},      // 5 animatronics walk in one at a time: about a minute
+  // 5 animatronics walk in one at a time: about a minute. THE ENCORE: nobody plays, so 3 machines reach the front (~45 s)
+  'showtime-malfunction': {limit: 120_000, endlessPlay: 'idle'},
   'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute
   'vanishing-ink': {next: '#rrNext', limit: 100_000},
   // Blocktave: chapter 1 (above); its Survival Nights run: every step a creature's bump costs a heart (the demo hook)

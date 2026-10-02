@@ -31,6 +31,8 @@
       <div><b>Count mode</b><p>Snare drummers face the whole Showtime Band. No notes: every clean hit counts. Play single strokes and let each one ring.</p></div>
     </div>
     <div class="levels" id="levelGrid"></div>
+    <!-- THE ENCORE: the ∞ card (shared/endless.js) -->
+    <div id="endlessTile"></div>
     <div class="hub-tools hub-more">
       <div class="diff-set"><span class="ui-label" id="diffLbl">Difficulty</span>
         <div class="ui-seg st-seg" role="group" aria-labelledby="diffLbl"><button type="button" data-diff="normal" aria-pressed="true">Normal</button><button type="button" class="x-seg" data-diff="extra" aria-pressed="false" aria-describedby="diffLock"><span class="lock" aria-hidden="true"></span>Nightmare</button></div>
@@ -40,7 +42,7 @@
       <div class="spooky-set"><span class="ui-label" id="spookyLbl">Spooky level</span>
         <div class="ui-seg st-seg" role="group" aria-labelledby="spookyLbl"><button type="button" data-spooky="mild" aria-pressed="true">Mild</button><button type="button" data-spooky="spooky" aria-pressed="false">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" aria-pressed="false" hidden>Jump Scare</button></div></div>
     </div>
-    <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks. Add <b>&amp;special=turbo-tin</b> (or tuba-tank, long-tone-lurker, duet-dolls, glitch-jester, split-sprocket, blackout-bot, oil-can-ollie, or a hybrid: glitch-lurker, blackout-jester, sprocket-dolls, oil-tank, turbo-blackout, duet-tank) to the address to send out that special machine; <b>&amp;scare=lunge</b> (eyes, popup, band) with Jump Scare on = a scare of that kind 3 s in.</p>
+    <p class="demo-help" id="demoHelp" hidden>Demo: every showtime is unlocked. In a showtime, tap <b>Space</b> = one attack on the right note, tap <b>W</b> = one attack on a wrong note, hold <b>S</b> = a long note with no new attacks. Add <b>&amp;special=turbo-tin</b> (or tuba-tank, long-tone-lurker, duet-dolls, glitch-jester, split-sprocket, blackout-bot, oil-can-ollie, or a hybrid: glitch-lurker, blackout-jester, sprocket-dolls, oil-tank, turbo-blackout, duet-tank) to the address to send out that special machine; <b>&amp;scare=lunge</b> (eyes, popup, band) with Jump Scare on = a scare of that kind 3 s in; <b>&amp;endlessT=120</b> starts The Encore's ramp at 120 s.</p>
   </section>
 
   <!-- A SHOWTIME -->
@@ -68,6 +70,7 @@
       <div class="scare" id="scare" aria-hidden="true"><div class="sc-dark"></div><div class="sc-bot" id="scareBot"></div><div class="sc-eyes" id="scareEyes"><i></i><i></i></div></div>
       <div class="spots" id="spots" aria-hidden="true"></div>
       <p class="banner" id="banner" hidden aria-live="assertive"></p>
+      <div class="ed-flash" id="edFlash" aria-live="polite"></div>
     </div>
     <!-- THE TARGET PANEL: the closest animatronic's note and count, always big (game.js drawPanel) -->
     <aside class="tpanel idle" id="tpanel" aria-label="Your target">
@@ -164,6 +167,7 @@
 <script src="../shared/mode-picker.js"></script>
 <script src="../shared/sounds.js"></script>
 <script src="../shared/sfx.js"></script>
+<script src="../shared/endless.js"></script>
 <script src="../shared/bg-scenes.js"></script>
 <script src="../shared/backgrounds.js"></script>
 <script src="../shared/cabinets.js"></script>

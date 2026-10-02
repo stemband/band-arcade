@@ -206,3 +206,49 @@ window.SHOWTIME_SPECIALS = {
      bossGuard   never in the last seconds of a boss phase (the Maestro this close to the front, or 2 plays or fewer left)
      ms          how long a scare lasts, and `beat` = the pause after it before the band moves again */
 window.SHOWTIME_SCARES = {at: {short: [.4], long: [.25, .55]}, longFrom: 7, delay: 1, notBefore: 6, apart: 6, bossGuard: 5, ms: 1300, beat: 700};
+
+/* THE ENCORE (ENDLESS MODE, shared/endless.js: the ∞ card under the showtimes, the Top 5, GAME OVER). The animatronics
+   keep coming, faster and faster, until all 3 spotlights are out. Every time here is RUN TIME: the pausable show clock
+   (it stops with the band: PAUSE, a special's card, a scare, a sound muting the microphone, a hidden tab), never wall
+   time. No stars, no unlocks, nothing in `games` progress: the runs live in Arcade.store `endless`. NIGHTMARE doesn't
+   apply here (the Encore has its own ramp) and neither does its red look.
+     lives          the spotlights (a machine reaching the front knocks one out; 0 = GAME OVER)
+     walk, speed    seconds to cross the floor = walk ÷ SPEED, SPEED = Endless.speed(speed, t): from 1 (13 s: Showtime 2's
+                    walk) toward `max` (≈ 9.2 s: NIGHTMARE Showtime 8's, 11 s ÷ 1.2), about 63% of the way after `k` s,
+                    plus `creep` a second forever, so every run ends; never faster than `minWalk` s
+     count          [fewest, most] plays per machine: `from` at the start, growing to `to` over `countRampS` s
+     snareCount     the same for the Snare Drum (hits)
+     atOnceAt       machines on the floor at once: 1, then +1 at each of these times (s) → 3
+     lanesAt        2 lanes, 3 from this time (s)
+     tierEveryS     a "SPEED UP!" banner + the speed-up sound at each new tier (every this many s)
+     smallPoolUntil the first machines read only the smaller note pool (Showtime 1's), then the whole set
+     specialsFrom   no special machines for the first seconds; then specialChance [from, to], rising over specialRampS s
+                    (still never more than one special on the floor; Split Sprocket's minis excepted). Every special and
+                    hybrid can come; one never met on this device still gets its "NEW MALFUNCTION DETECTED!" card
+     hybridsFromS   hybrids from this time, as `hybridShare` of the specials
+     bossEvery      MAESTRO MOOSE ENCORE: he walks on every this many reboots with `bossPhases` phases (+1 every second
+                    encore, at most `bossMaxPhases`), `boss` = his plays (snare: hits) a phase and his walk (÷ SPEED)
+     points         each reboot = `reboot` × the combo multiplier (Endless.mult: ×2 at 10 in a row, ×3 at 25, ×4 at 50);
+                    a special adds SHOWTIME_RULES.points.special + its own points; beating the Maestro adds `boss`.
+                    The combo = reboots in a row without a spotlight lost or a sour note (a wrong pitch, an over-hit)
+     bandMax        the stage band's most members: then the oldest walks off the stage for each new one
+     scareEvery     JUMP SCARE (only where it is allowed and on today): at most one scare per this many reboots, after
+                    `scareAt` [fewest, most] reboots into each block; the showtimes' guards (SHOWTIME_SCARES notBefore,
+                    apart, bossGuard) + never while a machine is within `scareNearFrontS` s of the front
+     snare          THE SNARE DRUM'S RAMP (SNARE_RULES by run time instead of showtime number): exact counts from the start,
+                    FREEZE from `freezeFromS`, RHYTHM machines from `rhythmFromS`; the showtime the jobs' tables are read
+                    at (rhythm pool, bpm, shares, soft/loud and accents, the Long Tone Lurker's hold/roll for everyone)
+                    = 1 + t ÷ `showtimeEveryS`, at most 8 */
+window.SHOWTIME_ENDLESS = {
+  lives: 3,
+  walk: 13, speed: {start: 1, max: 1.42, k: 150, creep: .0008}, minWalk: 6,
+  count: {from: [2, 3], to: [5, 7]}, snareCount: {from: [4, 6], to: [10, 14]}, countRampS: 300,
+  atOnceAt: [45, 135], lanesAt: 135, tierEveryS: 45,
+  smallPoolUntil: 6,
+  specialsFrom: 45, specialChance: [.10, .35], specialRampS: 240, hybridsFromS: 180, hybridShare: .3,
+  bossEvery: 20, bossPhases: 2, bossMaxPhases: 4, boss: {count: 8, snare: 12, walk: 34},
+  points: {reboot: 100, boss: 500},
+  bandMax: 14,
+  scareEvery: 25, scareAt: [8, 20], scareNearFrontS: 3,
+  snare: {freezeFromS: 40, rhythmFromS: 90, showtimeEveryS: 45},
+};

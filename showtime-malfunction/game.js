@@ -12,13 +12,16 @@
    a special one with an ability (one at a time; its first appearance on a device pauses for its card); the
    MALFUNCTION FILES (gameData.files) collect them. JUMP SCARE (the third spooky level; shared/teacher-settings.js can
    hide it; asked every time; back to Spooky on a new day): 1–2 scares a showtime (levels.js SHOWTIME_SCARES) that
-   pause everything and never cost a spotlight. */
+   pause everything and never cost a spotlight.
+   THE ENCORE (ENDLESS MODE, shared/endless.js; every number in levels.js SHOWTIME_ENDLESS): the ∞ card under the
+   showtimes. Machines keep walking on, faster and faster, until the 3 spotlights are out; G.endless holds the run, and
+   G.L / G.lv are worked out again every frame from the run time (endlessRow, lvAt). No stars, nothing in `games`. */
 (function (A) {
   "use strict";
   const {$} = A;
   const GAME_ID = 'showtime-malfunction', SNARE_KEY = GAME_ID + ':count', EXTRA = ':extra';
   const LEVELS = window.SHOWTIMES, RULES = window.SHOWTIME_RULES, SHOW = A.Showtime;
-  const SPEC = window.SHOWTIME_SPECIALS, MACH = SPEC.machines, SCARES = window.SHOWTIME_SCARES;
+  const SPEC = window.SHOWTIME_SPECIALS, MACH = SPEC.machines, SCARES = window.SHOWTIME_SCARES, END = window.SHOWTIME_ENDLESS;
   const SCARE_TYPES = ['lunge', 'eyes', 'popup', 'band'];
   // ?demo&special=<id> (or a part of it: lurker, dolls…): every animatronic that may be a special is that one, from
   // Showtime 1 on (tests). ?demo&scare=<type> (Jump Scare on): that kind of scare, 3 s into the showtime
@@ -35,6 +38,7 @@
   const member = A.currentMember(), snare = inst.pitched === false, who = member.id;
   A.Pitch.setInstrument(inst);
   A.mountTopbar(inst, '', GAME_ID);
+  if (A.Sfx.use) A.Sfx.use('endless');                  // the shared Endless sounds (THE ENCORE)
   $('demoHelp').hidden = !A.DEMO;
   const reduced = (window.Arcade.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)'));
   const gd = A.store.gameData(GAME_ID);
@@ -168,13 +172,15 @@
   const SN = snare && A.ShowtimeSnare ? A.ShowtimeSnare.create({
     G: () => G, target: () => target(), setPrompt: (t, c) => setPrompt(t, c), drawPanel: t => drawPanel(t), drawSign: b => drawSign(b),
     counted: t => counted(t), countedMore: t => countedMore(t), complete: t => complete(t), hud: () => hud(), banner: (t, c) => banner(t, c),
-    sour: b => { b.sign.classList.remove('sour'); void b.sign.offsetWidth; b.sign.classList.add('sour'); },
+    sour: b => { b.sign.classList.remove('sour'); void b.sign.offsetWidth; b.sign.classList.add('sour'); breakCombo(); },   // (an over-hit, a freeze hit, a loud p…)
     attacked: p => { lastAttack = p; heldSince = 0; }, rowFor: (lv, x) => rowFor(lv, x), isExtra: () => isExtra(),
     meet: (id, def) => meetDrum(id, def), fileOf: id => fileOf(id), save: () => save(), gd,
     lurkerNeed: lv => MACH['long-tone-lurker'].roll[lv - 1], fairBase: () => SPEC.hybrids.fair,
     hubRefresh: () => showHub()}) : null;
   if (SN) SN.card($('snareCard'));
   const progressKey = () => (snare ? SNARE_KEY : picker.state.progressKey) + (isExtra() ? EXTRA : '');
+  /** where THE ENCORE's Top 5 lives: the member (+ Horn's group) and the note set (the snare: 'count') */
+  const endKey = () => ({gameId: GAME_ID, instKey: A.Endless.instKey(inst, member), setKey: snare ? 'count' : A.Endless.setKey(picker.state)});
   drawDiff();
 
   /* ---------- the showtime select ---------- */
@@ -207,7 +213,15 @@
       const go = () => A.requireMic(() => SN ? SN.before(lv, () => startShow(lv)) : startShow(lv));
       if (!gd.storySeen && RULES.storyOnce) showStory(go); else go();
     }));
-    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: picker ? $('modePick') : null,
+    // THE ENCORE: the ∞ card under the showtimes (always open; its Top 5 per member + note set; the same on Normal and NIGHTMARE)
+    A.Endless.tile($('endlessTile'), Object.assign(endKey(), {title: 'The Encore',
+      label: `${member.short || inst.shortName} · ${snare ? 'Count mode' : picker.state.label}${x ? ' · the Encore is the same on Normal and Nightmare' : ''}`,
+      blurb: 'The show never ends! Reboot as many malfunctioning machines as you can before all 3 spotlights go out.',
+      onPlay: () => {
+        const go = () => A.requireMic(() => SN ? SN.before(window.SNARE_RULES.dyn.from, startEndless) : startEndless());   // (the snare: its soundcheck first, once)
+        if (!gd.storySeen && RULES.storyOnce) showStory(go); else go();
+      }}));
+    A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: picker ? $('modePick') : null, endless: $('endlessTile'),
       unlocked: i => A.DEMO || i === 0 || A.store.level(key, who, i + 1).stars > 0 || A.store.level(key, who, i).stars > 0,
       lockText: i => `Clear Showtime ${i} to unlock`});
   }
@@ -239,11 +253,12 @@
       G.held = false; lastT = performance.now();
       if (G.scare) A.Pitch.suppress(Math.max(0, G.scareEnd - showClock()));   // a scare still going: nothing counts until it's over
     },
-    onRestart: () => { const lv = G ? G.lv : 1; unfreeze(); startShow(lv); },
+    onRestart: () => { const lv = G ? G.lv : 1, end = !!(G && G.endless); unfreeze(); if (end) startEndless(); else startShow(lv); },
     onLevels: () => { unfreeze(); showHub(); },
     levelsLabel: 'Back to showtimes',
     canPause: () => !!G && !G.over,
-    info: () => G ? [['Rebooted', `${G.rebooted} / ${G.total}`], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Score', G.score]] : [],
+    info: () => !G ? [] : G.endless ? [['Rebooted', G.rebooted], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Time', mss(G.t - G.endless.t0)], ['Score', G.score]]
+      : [['Rebooted', `${G.rebooted} / ${G.total}`], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Score', G.score]],
   });
   function unfreeze() { document.body.classList.remove('st-frozen'); if (heldAt) { heldMs += performance.now() - heldAt; heldAt = 0; } }
   const arena = $('arena');
@@ -275,10 +290,17 @@
       // the intro card's pause, recent attacks (the Lurker's roll), the jump scares planned (game-clock seconds)
       t: 0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
       scare: null, scarePlan: planScares(L), entered: 0, lastScare: null, scares: [], held: false, timers: []};
+    $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Nightmare' : ''}`; $('hudLevelName').textContent = L.name;
+    enterShow("It's showtime!", 'showtime-start');
+  }
+  /** the show screen for a showtime or THE ENCORE (G is ready): the arena, the HUD, the start banner and sound, the loop */
+  function enterShow(text, sound) {
     G.ext = extentOf(G.fit);
     A.UI.results.hide(); $('hub').hidden = true; $('play').hidden = false;
     document.body.classList.add('in-show');
-    $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Nightmare' : ''}`; $('hudLevelName').textContent = L.name;
+    document.body.classList.toggle('extra-mode', !!G.extra);          // THE ENCORE: never NIGHTMARE's red look
+    pause.set({leaveTitle: G.endless ? 'End this run?' : undefined, leaveText: G.endless ? 'This run won’t go on the Top 5.' : undefined,
+      leaveYes: G.endless ? 'End run' : undefined});
     $('bots').innerHTML = ''; $('band').innerHTML = ''; banner('');
     lastTarget = null; tpShown = tpLook = null; drawPanel(null);
     drawLights(); hud();
@@ -287,11 +309,113 @@
     A.Pitch.ignoreCurrent();
     A.Pitch.demoAttacks = true;
     pause.setActive(true);
-    banner("It's showtime!", 'go'); later(() => { if (G && !G.over) banner(''); }, 1300);
-    sfx('showtime-start');
+    banner(text, 'go'); later(() => { if (G && !G.over) banner(''); }, 1300);
+    sfx(sound);
     G.spawnAt = performance.now() + 1200;
     if (SN) SN.start();
     lastT = performance.now(); raf = requestAnimationFrame(loop);
+  }
+
+  /* ---------- THE ENCORE (ENDLESS MODE; levels.js SHOWTIME_ENDLESS): the band keeps coming until the spotlights are out.
+     G.endless = the run: {t0, speed, topSpeed, tier, combo, bestCombo, encores, beatenBoss, nextBossAt, items, boss…};
+     G.t (the pausable show clock) drives everything; G.L and G.lv are worked out again every frame ---------- */
+  const mss = s => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
+  /** the showtime the tables are read at (the snare's jobs, the Long Tone Lurker): 1 + t ÷ showtimeEveryS, at most 8 */
+  const lvAt = t => Math.min(LEVELS.length, 1 + Math.floor(t / END.snare.showtimeEveryS));
+  /** what run time t means: a row like levels.js SHOWTIMES (walk, lanes, atOnce, counts; the Maestro while he's due) */
+  function endlessRow(t, boss) {
+    const S = A.Endless.speed(END.speed, t), f = Math.min(1, t / END.countRampS);
+    const ramp = R => [0, 1].map(i => Math.round(R.from[i] + (R.to[i] - R.from[i]) * f));
+    return {name: 'The Encore', bots: Infinity, walk: Math.max(END.minWalk, END.walk / S), speed: S, lanes: t >= END.lanesAt ? 3 : 2,
+      atOnce: 1 + END.atOnceAt.filter(s => t >= s).length, count: ramp(END.count), snare: ramp(END.snareCount), boss: boss || null, pool: 5};
+  }
+  /** more notes from the same note set (ModePicker.sequence in chunks: the smaller pool first, like Showtime 1) */
+  function moreItems(small) {
+    if (snare) return [];
+    return A.ModePicker.sequence(picker.state, {count: 24, pool: small ? 3 : 5}, small ? 1 : 2).items;
+  }
+  function takeItem() {
+    const E = G.endless;
+    if (snare) return null;
+    const small = G.entered < END.smallPoolUntil;
+    if (E.small && !small) { E.items = []; E.small = false; }               // past smallPoolUntil: the rest of a small chunk goes
+    if (E.items.length < 4) {
+      const add = moreItems(small).slice(), last = E.items[E.items.length - 1] || E.lastItem;
+      if (last && add.length > 1 && add[0].pc === last.pc) add.shift();       // never the same pitch twice across chunks
+      E.items = E.items.concat(add); E.small = small;
+    }
+    return E.lastItem = E.items.shift();
+  }
+  /** the next machine to walk on (the band in a shuffled order, like a showtime) */
+  function nextSpec() {
+    const E = G.endless;
+    if (!E.kinds.length) E.kinds = ['walrus', 'owl', 'gator', 'raccoon'].sort(() => Math.random() - .5);
+    return {kind: E.kinds.shift(), count: randInt(snare ? G.L.snare : G.L.count), item: takeItem()};
+  }
+  function startEndless() {
+    A.LevelSelect.played('endless');                // the level select comes back with the ∞ card selected
+    A.Sfx.gameMenuMusic(GAME_ID, false);            // the music fades out before anything is heard
+    stopShow();
+    let seq = null;
+    if (!snare) { A.ModePicker.useRange(picker.state); seq = A.ModePicker.sequence(picker.state, {count: 24, pool: 5}, 2); }   // the whole set: the staff's fit and the pool
+    drawSpooky();
+    const t0 = A.DEMO ? Math.max(0, +A.params.get('endlessT') || 0) : 0;   // ?demo&endlessT=<s>: the ramp starts there (tests)
+    const E = {t0, speed: 1, topSpeed: 1, tier: Math.floor(t0 / END.tierEveryS), combo: 0, bestCombo: 0, encores: 0, beatenBoss: 0,
+      nextBossAt: END.bossEvery, items: [], kinds: [], lastItem: null, boss: null, scareBlock: -1, scareAfter: null};
+    G = {lv: lvAt(t0), L: endlessRow(t0), extra: false, endless: E, key: null, wasOpen: true, queue: [], bots: [], sig: seq && seq.sig, fit: seq && seq.fit,
+      name: seq ? seq.name : null, total: 0, rebooted: 0, lights: END.lives, score: 0, spawnAt: 0, over: false, band: [], nextId: 0,
+      bossItems: [], bossPending: false, t: t0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
+      scare: null, scarePlan: FORCE_SCARE && jumpOn() ? [{at: t0 + 3}] : [], entered: 0, lastScare: null, scares: [], held: false, timers: []};
+    E.speed = E.topSpeed = G.L.speed;
+    $('hudLevelLabel').textContent = '∞ The Encore'; $('hudLevelName').textContent = 'Combo 0';
+    enterShow('The Encore!', 'endless-start');
+  }
+  /** every frame the band moves: the ramp, SPEED UP!, the Maestro's encore, the jump scares */
+  function endlessTick() {
+    const E = G.endless, t = G.t, before = G.L;
+    G.L = endlessRow(t, E.boss); G.lv = lvAt(t);
+    E.speed = G.L.speed; E.topSpeed = Math.max(E.topSpeed, E.speed);
+    if (G.L.lanes > before.lanes) G.bots.forEach(b => { if (b.lane === 1) { b.lane = 2; if (b.state === 'walk') place(b); } });   // 2 lanes → 3: the right lane moves out
+    const tier = Math.floor(t / END.tierEveryS);
+    if (tier > E.tier) {
+      E.tier = tier;
+      const more = G.L.atOnce > before.atOnce ? ` Up to ${G.L.atOnce} at once!` : G.L.lanes > before.lanes ? ' Three lanes!' : '';
+      A.Endless.flash($('edFlash'), 'SPEED UP!' + more);
+      sfx('speed-up');
+    }
+    // MAESTRO MOOSE ENCORE: every bossEvery reboots (never two at once)
+    if (G.rebooted >= E.nextBossAt && !G.bossPending && !G.bots.some(b => b.boss && b.state === 'walk')) {
+      E.encores++; E.nextBossAt += END.bossEvery;
+      const phases = Math.min(END.bossMaxPhases, END.bossPhases + Math.floor((E.encores - 1) / 2));
+      E.boss = {count: END.boss.count, snare: END.boss.snare, walk: END.boss.walk / E.speed, phases};
+      G.L = endlessRow(t, E.boss);
+      G.bossItems = [...Array(phases)].map(() => takeItem());
+      G.bossPending = true; G.total++;
+      setPrompt('Encore! Maestro Moose is coming back on!', 'bad');
+    }
+    // JUMP SCARE: at most one per scareEvery reboots, scareAt reboots into each block
+    if (jumpOn() && !FORCE_SCARE) {
+      const block = Math.floor(G.rebooted / END.scareEvery);
+      if (block > E.scareBlock) { E.scareBlock = block; E.scareAfter = block * END.scareEvery + randInt(END.scareAt); }
+      if (E.scareAfter != null && G.rebooted >= E.scareAfter && !G.scarePlan.length) { G.scarePlan.push({at: t + SCARES.delay}); E.scareAfter = null; }
+    }
+    const label = `∞ The Encore · ${mss(t - E.t0)}`;
+    if ($('hudLevelLabel').textContent !== label) $('hudLevelLabel').textContent = label;
+  }
+  /** a sour note (a wrong pitch, an over-hit, a hit in a freeze…) or a spotlight lost: the combo starts again */
+  function breakCombo() {
+    if (!G || !G.endless || !G.endless.combo) return;
+    G.endless.combo = 0; hud();
+  }
+  /** a number rising from a rebooted machine (+300, ×2!) */
+  function pop(b, text, cls) {
+    if (!b || !b.el) return;
+    const r = b.el.querySelector('.body').getBoundingClientRect(), ar = arena.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'st-pop' + (cls ? ' ' + cls : ''); el.textContent = text; el.setAttribute('aria-hidden', 'true');
+    el.style.left = (r.left + r.width / 2 - ar.left).toFixed(1) + 'px'; el.style.top = Math.max(24, r.top - ar.top + (cls ? 0 : 24)).toFixed(1) + 'px';
+    arena.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
   }
   function stopShow() {
     cancelAnimationFrame(raf); raf = 0;
@@ -332,6 +456,12 @@
     if (G.special && G.special.state === 'walk') return null;
     if (FORCE) return FORCE;
     if (SN && SN.forced()) return null;                          // ?demo&snarejob=…: the regular band only (tests)
+    if (G.endless) {                                             // THE ENCORE: none at first, then a rising chance (run time)
+      if (G.t < END.specialsFrom) return null;
+      const [c0, c1] = END.specialChance, ch = c0 + (c1 - c0) * Math.min(1, (G.t - END.specialsFrom) / END.specialRampS);
+      if (!(Math.random() < ch)) return null;
+      return G.t >= END.hybridsFromS && Math.random() < END.hybridShare ? pick(SHOW.HYBRID_IDS) : pick(SHOW.SPECIAL_IDS);
+    }
     const base = SPEC.chance[G.lv - 1] || 0, ch = base + (G.extra && base > 0 ? SPEC.nightmare : 0);
     if (!(ch > 0 && Math.random() < ch)) return null;
     // a share of the specials are HYBRIDS, only from Showtime hybrids.from on (one special on the floor at a time, so
@@ -463,7 +593,7 @@
     if (msg) setPrompt(msg, 'hint');
     else if (holding && !t.wasHolding) setPrompt(snare ? 'Keep rolling! Steady…' : 'Hold it! One long, steady note.', 'good');
     t.wasHolding = holding;
-    if (t.holdP >= t.need) { t.left = 0; G.score += RULES.points.tick * Math.round(t.need * 2); reboot(t); hud(); }
+    if (t.holdP >= t.need) { t.left = 0; if (!G.endless) G.score += RULES.points.tick * Math.round(t.need * 2); reboot(t); hud(); }
   }
   function setHold(t) {
     const p = (t.holdP / t.need).toFixed(3);
@@ -519,9 +649,11 @@
     const walking = G.bots.filter(b => b.state === 'walk');
     const boss = walking.find(b => b.boss);
     const guard = G.t < SCARES.notBefore || (G.lastScare != null && G.t - G.lastScare < SCARES.apart) ||
-      (boss && (boss.left <= 2 || (1 - boss.z) * boss.walk < SCARES.bossGuard));
-    // the very end of the show (nothing left to come and the last one about to be rebooted): too late
-    const ending = !G.queue.length && !G.bossPending && !walking.some(b => b.boss || b.z < .75);
+      (boss && (boss.left <= 2 || (1 - boss.z) * boss.walk < SCARES.bossGuard)) ||
+      (G.endless && G.t - G.endless.t0 < SCARES.notBefore) ||
+      (G.endless && walking.some(b => (1 - b.z) * b.walk < END.scareNearFrontS));     // THE ENCORE: never with a machine near the front
+    // the very end of the show (nothing left to come and the last one about to be rebooted): too late (THE ENCORE never ends)
+    const ending = !G.endless && !G.queue.length && !G.bossPending && !walking.some(b => b.boss || b.z < .75);
     if (guard) { next.at = G.t + .5; return; }
     G.scarePlan.shift();
     if (ending && !FORCE_SCARE) { G.scareSkipped = (G.scareSkipped || 0) + 1; return; }
@@ -694,11 +826,12 @@
     const still = G.over || G.paused || G.held || !!G.scare || document.hidden || A.Pitch.isSuppressed(now);
     if (!still) {
       G.t += dt;
+      if (G.endless) endlessTick();
       if (SN) SN.tick(dt, now);
       if (G.bossPending && now >= G.spawnAt) { G.bossPending = false; spawn(job({kind: 'moose', count: snare ? G.L.boss.snare : G.L.boss.count, item: G.bossItems[0] || null}, true), true); G.spawnAt = now + 2500; }
       const walking = G.bots.filter(b => b.state === 'walk' && !b.boss).length;
-      if (G.queue.length && walking < G.L.atOnce && now >= G.spawnAt) {
-        spawn(job(specialize(G.queue.shift())));
+      if ((G.queue.length || G.endless) && walking < G.L.atOnce && now >= G.spawnAt) {
+        spawn(job(specialize(G.endless ? nextSpec() : G.queue.shift())));
         G.entered++; armScares();
         G.spawnAt = now + G.L.walk * 1000 / (G.L.atOnce + .6);
       }
@@ -723,7 +856,8 @@
   }
   function reachFront(b) {
     if (G.over) return;
-    G.lights--; drawLights(true); sfx('spotlight-out');
+    G.lights--; drawLights(true); sfx('spotlight-out');      // (THE ENCORE too: its life lost)
+    breakCombo();
     if (b.boss) { b.z = Math.max(.05, b.z - .35); b.zShown = b.z; place(b); }   // the Maestro staggers back and keeps coming
     else {
       b.state = 'gone'; b.el.classList.add('fizzle'); b.el.classList.remove('target');
@@ -756,7 +890,7 @@
     const ok = snare || (a.pc !== null && t.item && a.pc === t.item.pc);
     if (!ok) {
       t.sign.classList.remove('sour'); void t.sign.offsetWidth; t.sign.classList.add('sour');
-      if (a.pc !== null) setPrompt(`That's ${G.name(a.pc)}. Play ${t.item.label}.`, 'bad');
+      if (a.pc !== null) { setPrompt(`That's ${G.name(a.pc)}. Play ${t.item.label}.`, 'bad'); breakCombo(); }   // a sour note
       return;
     }
     counted(t);
@@ -765,7 +899,7 @@
   });
   /** one counted play on t (its spark, its armor plate, the Duet Dolls' turn) */
   function counted(t) {
-    t.left--; G.score += RULES.points.tick;
+    t.left--; if (!G.endless) G.score += RULES.points.tick;        // (THE ENCORE scores reboots only)
     t.el.classList.remove('spark'); void t.el.offsetWidth; t.el.classList.add('spark');
     if (t.plates) popPlates(t);
     if (t.duet) { t.turn = 1 - t.turn; t.item = t.duet[t.turn]; t.el.classList.toggle('duet-b', t.turn === 1); }
@@ -786,7 +920,7 @@
     if (t.boss && t.phase < t.phases) {                         // the Maestro: next phase, next note, a stagger back
       t.phase++; t.left = snare ? G.L.boss.snare : G.L.boss.count; t.item = G.bossItems[t.phase - 1] || t.item;
       t.z = Math.max(.05, t.z - RULES.bossStagger); t.zShown = t.z; place(t); drawSign(t);
-      G.score += RULES.points.reboot;
+      if (!G.endless) G.score += RULES.points.reboot;
       sfx('reboot');
       setPrompt(`Phase ${t.phase} of ${t.phases}! ${snare ? '' : 'New note: ' + t.item.label + '.'}`, 'good');
       lastTarget = null;
@@ -795,7 +929,15 @@
   function reboot(b) {
     b.state = 'reboot';
     b.el.classList.remove('glitch', 'target'); b.el.classList.add('fixed');
-    G.score += RULES.points.reboot + Math.round(RULES.points.early * (1 - b.z));
+    if (G.endless) {                                        // THE ENCORE: reboot × the combo multiplier (+ the Maestro's bonus)
+      const E = G.endless, m0 = A.Endless.mult(E.combo);
+      E.combo++; E.bestCombo = Math.max(E.bestCombo, E.combo);
+      const m = A.Endless.mult(E.combo), pts = END.points.reboot * m + (b.boss ? END.points.boss : 0);
+      G.score += pts;
+      if (b.boss) { E.beatenBoss++; E.boss = null; }
+      pop(b, '+' + pts);
+      if (m > m0) pop(b, `×${m}!`, 'mult');
+    } else G.score += RULES.points.reboot + Math.round(RULES.points.early * (1 - b.z));
     G.rebooted++;
     if (b.special) {                                        // a special machine: bonus points and its Malfunction File
       const bonus = RULES.points.special + (MACH[b.special].points || 0);
@@ -818,7 +960,15 @@
     const s = document.createElement('span');
     s.className = 'bot fixed band-bot' + (b.boss ? ' boss' : '') + (b.mini ? ' mini' : '');
     s.innerHTML = SHOW.botSVG(b.kind);
+    b.bandEl = s;
     $('band').appendChild(s);
+    // THE ENCORE: the stage never overflows: past bandMax, the oldest (never the Maestro while others are left) walks off
+    while (G.endless && G.band.length > END.bandMax) {
+      const i = Math.max(0, G.band.findIndex(x => !x.boss)), [old] = G.band.splice(i, 1), el = old.bandEl;
+      if (!el) continue;
+      el.classList.add('leaving');
+      setTimeout(() => el.remove(), reduced.matches ? 0 : 650);
+    }
     lineup($('band'));
     hud();
   }
@@ -830,7 +980,7 @@
      .mini 0.72×), placed absolutely. */
   const LINEUP = {aspect: .7, overlap: .38, rowStep: .55, maxRows: 4};
   function lineup(box, {maxH} = {}) {
-    const kids = [...box.children], n = kids.length;
+    const kids = [...box.children].filter(el => !el.classList.contains('leaving')), n = kids.length;   // (THE ENCORE: one walking off the stage)
     if (!n) { if (maxH) box.style.height = '0px'; return; }
     const Wb = box.clientWidth, Hb = maxH || box.clientHeight;
     if (!Wb || !Hb) return;
@@ -860,7 +1010,7 @@
     box.dataset.rows = r;
   }
   function checkEnd() {
-    if (!G || G.over) return;
+    if (!G || G.over || G.endless) return;                   // THE ENCORE ends only when the spotlights are out
     const busy = G.bots.some(b => b.state === 'walk' || b.state === 'reboot');
     if (!G.queue.length && !G.bossPending && !busy) finish(true);
   }
@@ -883,8 +1033,9 @@
   /* ---------- HUD, spotlights, banner ---------- */
   function hud() {
     if (!G) return;
-    $('hudCount').textContent = `${G.rebooted} / ${G.total}`;
+    $('hudCount').textContent = G.endless ? String(G.rebooted) : `${G.rebooted} / ${G.total}`;
     $('hudScore').textContent = G.score;
+    if (G.endless) { const c = G.endless.combo, m = A.Endless.mult(c); $('hudLevelName').textContent = `Combo ${c}${m > 1 ? ' ×' + m : ''}`; }
   }
   function drawLights(justLost) {
     const n = RULES.spotlights;
@@ -900,8 +1051,8 @@
     G.over = true; A.Pitch.demoAttacks = false;
     pause.setActive(false);                         // the show is over: nothing left to pause
     drawPanel(null);
-    sfx('showtime-over');
-    banner("SHOWTIME'S OVER", 'over');
+    if (!G.endless) sfx('showtime-over');                     // (THE ENCORE: endless-game-over, on the GAME OVER panel)
+    banner(G.endless ? 'THE ENCORE IS OVER' : "SHOWTIME'S OVER", 'over');
     document.body.classList.add('lights-out');
     if (spookyOn() && !reduced.matches) {           // Spooky: a sudden (silent) lean-in from the nearest one
       const b = [...G.bots].filter(x => x.state === 'walk' || x === culprit).sort((x, y) => y.z - x.z)[0] || culprit;
@@ -917,6 +1068,7 @@
     if (!G) return;
     const g = G; g.over = true; cancelAnimationFrame(raf); raf = 0; A.Pitch.demoAttacks = false;
     document.body.classList.remove('lights-out');
+    if (g.endless) return finishEndless(g);
     const stars = !survived ? 0 : g.lights >= 3 ? 3 : g.lights === 2 ? 2 : 1;
     const old = A.store.level(g.key, who, g.lv), newBest = g.score > old.best && old.best > 0;
     A.store.setLevel(g.key, who, g.lv, {stars: Math.max(stars, old.stars), best: Math.max(g.score, old.best)}, stars);
@@ -927,14 +1079,7 @@
       (g.beaten ? `<p class="res-special" id="resSpecial">Special machines rebooted: ${g.beaten} (+${g.specialPts} bonus points). See them in the Malfunction Files!</p>` : '');
     A.UI.results.show({gameId: GAME_ID, theme: 'st-results', stars,
       // the rebooted band: BELOW the stars (never over them), every one of them fitting (lineup: smaller, more rows)
-      onShow: panel => {
-        const band = document.createElement('div');
-        band.className = 'res-band'; band.id = 'resBand'; band.setAttribute('aria-hidden', 'true');
-        band.innerHTML = g.band.map(b => `<span class="bot fixed${b.boss ? ' boss' : ''}${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind)}</span>`).join('');
-        const stars = panel.querySelector('.ui-stars');
-        if (stars) stars.after(band); else panel.prepend(band);
-        lineup(band, {maxH: resBandMax()});
-      },
+      onShow: panel => resultsBand(panel, g),
       title: !survived ? "Showtime's over" : stars === 3 ? 'Perfect show!' : 'Show saved!',
       msg: !survived ? `The band got through all ${RULES.spotlights} spotlights. Start each note fresh and fast, and reboot the closest one first. You've got this!`
         : stars === 3 ? `Every animatronic rebooted, every spotlight still shining.${g.L.boss ? ' Maestro Moose is back on the podium!' : ''}`
@@ -951,10 +1096,40 @@
     finished = g;
   }
   let finished = null;
+  /** the rebooted band on the results: BELOW the stars (never over them), every one of them fitting (lineup: smaller, more rows) */
+  function resultsBand(panel, g) {
+    const band = document.createElement('div');
+    band.className = 'res-band'; band.id = 'resBand'; band.setAttribute('aria-hidden', 'true');
+    band.innerHTML = g.band.map(b => `<span class="bot fixed${b.boss ? ' boss' : ''}${b.mini ? ' mini' : ''}">${SHOW.botSVG(b.kind)}</span>`).join('');
+    const stars = panel.querySelector('.ui-stars'), hero = panel.querySelector('.ui-res-hero');   // (THE ENCORE has no stars: where they would be)
+    if (stars) stars.after(band); else if (hero) hero.after(band); else panel.prepend(band);
+    lineup(band, {maxH: resBandMax()});
+  }
+  /** THE ENCORE is over: the shared GAME OVER panel (saves the run, never in ?demo; the Top 5; the leaderboard's Endless
+      board through store.addEndless). No stars, nothing in `games` progress */
+  function finishEndless(g) {
+    const E = g.endless;
+    A.Endless.gameOver(Object.assign(endKey(), {title: 'The Encore is over', kicker: 'The Encore',
+      run: {score: g.score, notes: g.rebooted, speed: E.topSpeed, combo: E.bestCombo,
+        stats: [['Score', g.score.toLocaleString()], ['Machines rebooted', g.rebooted], ['Best combo', E.bestCombo], ['Time', mss(g.t - E.t0)],
+          ['Specials beaten', g.beaten || 0], ['Maestro encores', E.beatenBoss]]},
+      onShow: panel => resultsBand(panel, g), againLabel: 'Encore again',
+      onAgain: () => A.requireMic(startEndless), onBack: showHub, backLabel: 'Showtimes'}));
+    A.Sfx.gameMenuMusic(GAME_ID, true, {afterEffects: true});   // GAME OVER is a menu too
+    G = null;
+    finished = g;
+  }
   /** the results' band: at most this tall (the stars, the words and the buttons still fit on a short screen) */
   const resBandMax = () => Math.max(70, Math.min(150, innerHeight * .2));
 
   A.Showtime.debug = () => G;                              // tests
+  /** tests: the show's state; THE ENCORE adds `endless` */
+  A.Showtime.state = () => !G ? null : {lv: G.lv, t: G.t, lights: G.lights, score: G.score, rebooted: G.rebooted, band: G.band.length, over: G.over,
+    endless: G.endless ? {t: G.t, speed: G.endless.speed, atOnce: G.L.atOnce, lanes: G.L.lanes, walk: G.L.walk, count: G.L.count.slice(), combo: G.endless.combo,
+      bestCombo: G.endless.bestCombo, score: G.score, lives: G.lights, reboots: G.rebooted, nextBossAt: G.endless.nextBossAt, encores: G.endless.encores,
+      tier: G.endless.tier, boss: G.bossPending || G.bots.some(b => b.boss && b.state === 'walk')} : null};
+  /** tests: the target's job done at once (a reboot, or the Maestro's next phase) */
+  A.Showtime.clearTarget = () => { const t = G && !G.over && target(); if (!t) return false; t.left = 0; complete(t); hud(); return true; };
   // tests: the snare's state, the timing of the rhythm being played, a machine's job + fairness, the soundcheck
   A.Showtime.snare = () => SN && SN.state();
   A.Showtime.snarePlan = () => SN && SN.plan();
