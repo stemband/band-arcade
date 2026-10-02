@@ -89,7 +89,7 @@ async function blocktaveStep(page) {
     if (s.screen !== 'world') return;
     if (Arcade.BlocktaveCard.current) { d.answer(); return; }
     if (s.held) return;                                   // a first-time card: the run's dismiss() closes it
-    if (s.drops.length) return;                           // mined loot lands beside the player: wait for the pickup
+    if (s.drops.length) { d.step(.25); return; }          // mined loot lands beside the player: the game's test clock picks it up
     const inv = s.inv || {}, go = k => { const t = d.find(k); if (t) { d.standBy(t.x, t.y); d.mine(t.x, t.y); } };
     if (!inv.mallet1 && !inv.mallet2) {
       if (!inv.cork) return go('cork');

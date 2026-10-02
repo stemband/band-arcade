@@ -3,7 +3,8 @@
    a fixed ?seed= (the world is the same every run) and uses the game's own hooks (Arcade.Blocktave.demo), which call
    the real mining, crafting and building code. Chapter 1 end to end is in the game runs (tests/games.js). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device} = require('./helpers');
+const {prepare, device, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: fewer page crashes on CI)
 
 /* the music and the count-off clicks play on the AudioContext's clock. WebKit on a CI machine has no sound card: its
    AudioContext says it is running but its clock doesn't keep time (tests/games.js: Music Highway and Rhythm Dojo play

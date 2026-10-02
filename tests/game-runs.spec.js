@@ -5,7 +5,8 @@
    docs/gallery/ (docs/gallery.html shows them): `GALLERY=1 npx playwright test game-runs --project=chromium`. */
 const path = require('path');
 const {test, expect} = require('@playwright/test');
-const {prepare, device, saved, starsIn, ROOT} = require('./helpers');
+const {prepare, device, saved, starsIn, ROOT, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here: every game is a canvas game (helpers.js CPU_DRAWING: fewer page crashes on CI)
 const {RUNS, click} = require('./games');
 const GALLERY = !!process.env.GALLERY;
 const shot = (page, id, kind) => GALLERY ? page.screenshot({path: path.join(ROOT, 'docs/gallery', `${id}-${kind}.jpg`), type: 'jpeg', quality: 72}) : null;
