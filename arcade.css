@@ -563,7 +563,13 @@ body.lb-open{overflow:hidden}
    .slook = the backdrop (behind the floor; a copy inside PRESS START and Choose Your Instrument). Everything dark, the
    props at the edges, the middle darkened again (.sl-dim) so every sign and text on top keeps its contrast. Drifting
    bits: transforms/opacity only, slow; html.slook-still (reduced motion or MOTION off) = all still, where they rest. */
-.slook{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+.slook,.slook-front{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+/* THE FRONT LAYER (.slook-front, right after .room / after the copy's .slook): the props marked {front: true}, standing ON
+   the floor, so its lines and the fog never cross them. Same z-index as .room but later in the page, so it paints above
+   the floor and below every sign, card, bar, panel and toast (all in the normal flow or above 0). In a zone / the FULL
+   ARCADE (2D and 3D) it hides and the backdrop's copies (.sl-fb) show, so nothing ever covers a cabinet or QUICK JUMP. */
+body:not(.v-zone)>.slook .sl-fb,.slook.sl-in .sl-fb{display:none}
+body.v-zone>.slook-front{display:none}
 html[data-slook] .room{background:none}
 html[data-slook] body{background:transparent}           /* the root keeps the color: the backdrop (z-index -1) paints above it */
 html[data-slook] .press-start,html[data-slook] .sp-view{background:var(--deep)}
@@ -586,19 +592,62 @@ html[data-slook] .press-start,html[data-slook] .sp-view{background:var(--deep)}
 @keyframes sl-drift{0%{transform:translateX(0)}100%{transform:translateX(-12%)}}
 @keyframes sl-glow{0%,100%{opacity:.55}50%{opacity:1}}
 @keyframes sl-sway{0%{transform:rotate(-6deg)}100%{transform:rotate(6deg)}}
-html.slook-still .slook *{animation:none!important}
-@media (prefers-reduced-motion:reduce){ .slook *{animation:none!important} }
+html.slook-still .slook *,html.slook-still .slook-front *{animation:none!important}
+@media (prefers-reduced-motion:reduce){ .slook *,.slook-front *{animation:none!important} }
 
-/* SPOOKY: purple fog, a moon, bats, jack-o'-lanterns */
-.slook[data-look=spooky] .sl-sky{background:radial-gradient(40% 38% at 88% 14%,color-mix(in srgb,var(--purple) 26%,transparent),transparent 70%),
+/* SPOOKY: the moon (the hero: Mr. Graham's favorite, keep its drawing), the haunted band hall in front of it, a bat that
+   crosses it now and then, purple fog, bats, jack-o'-lanterns with a candle glow on the floor (front layer).
+   --mw the moon's size (2× the old clamp(64px,11vmin,140px)), --mt its top (--sl-top from season-look.js place(): under
+   the top bar and any bare text), --hw the hall's width (never into the middle 40 %: ≤ 25vw, its left edge ≥ 70vw). */
+.slook[data-look=spooky],.slook-front[data-look=spooky]{--mw:clamp(128px,22vmin,280px);--mt:var(--sl-top,max(12vh,74px));
+  --hw:min(clamp(150px,26vmin,330px),25vw);--hr:min(max(1.5vw,calc(4vw + var(--mw) / 2 - var(--hw) / 2)),calc(28vw - var(--hw)));
+  --ht:calc(var(--mt) + var(--mw) * .67 - var(--hw) * .31)}
+.slook[data-look=spooky] .sl-sky{background:radial-gradient(calc(var(--mw) * 1.9) calc(var(--mw) * 1.7) at calc(100% - 4vw - var(--mw) / 2) calc(var(--mt) + var(--mw) / 2),color-mix(in srgb,var(--purple) 26%,transparent),transparent 70%),
   radial-gradient(70% 30% at 50% 100%,color-mix(in srgb,var(--purple-ink) 45%,transparent),transparent 80%),
   linear-gradient(180deg,color-mix(in srgb,var(--purple-ink) 22%,var(--deep)),var(--deep) 70%)}
 .sl-moon .mn{fill:var(--yellow-hi);opacity:.8}.sl-moon .mc{fill:var(--yellow-ink);opacity:.35}
 .sl-moon{background:radial-gradient(circle,color-mix(in srgb,var(--yellow) 26%,transparent) 36%,transparent 70%)}
+/* the bat across the moon: a box the moon's size; .fly (season-look.js, every 20–35 s) = one 3 s pass, left to right on a
+   gentle arc (.mb across, .mby up and down), a slow flap (≥ 300 ms each way). Not drawn at all when still. */
+.sl-mbat .mb{position:absolute;left:0;top:30%;width:34%;aspect-ratio:2;opacity:0}
+.sl-mbat .mby{position:absolute;inset:0}
+.sl-mbat svg{display:block;width:100%;height:100%;overflow:visible;transform-origin:50% 45%}
+.sl-mbat .bt{fill:color-mix(in srgb,var(--purple-ink) 35%,var(--deep))}
+.sl-mbat.fly .mb{animation:sl-mbx 3s linear both}
+.sl-mbat.fly .mby{animation:sl-mby 1.5s ease-in-out 2 alternate both}
+.sl-mbat.fly svg{animation:sl-flap .4s ease-in-out infinite alternate}
+@keyframes sl-mbx{0%{transform:translateX(-120%);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translateX(314%);opacity:0}}
+@keyframes sl-mby{0%{transform:translateY(80%)}100%{transform:translateY(-70%)}}
+@keyframes sl-flap{0%{transform:scaleY(1)}100%{transform:scaleY(.45)}}
+html.slook-still .sl-mbat{display:none}
+@media (prefers-reduced-motion:reduce){ .sl-mbat{display:none} }
+/* the haunted band hall: a silhouette (--purple-ink into --deep), windows glowing amber and breathing slowly (6 s,
+   staggered); the hill's foot fades into the fog (::after) */
+.sl-hall .hs>*,.sl-hall .hs path,.sl-hall .hs ellipse{fill:var(--sl-hall)}
+.sl-hall .hs .vs{fill:none;stroke:var(--sl-hall);stroke-width:2;stroke-linecap:round}
+.sl-hall .hb{fill:color-mix(in srgb,var(--purple-ink) 42%,var(--deep))}
+.sl-hall .hr{fill:none;stroke:color-mix(in srgb,var(--amber-ink) 45%,var(--deep));stroke-width:1.6}
+.sl-hall .hw{fill:color-mix(in srgb,var(--amber) 75%,transparent);opacity:.7;animation:sl-win 6s ease-in-out infinite}
+.sl-hall .w0{fill:color-mix(in srgb,var(--amber) 45%,transparent)}
+.sl-hall .w1{animation-delay:-1.5s}.sl-hall .w2{animation-delay:-3s}.sl-hall .w3{animation-delay:-4.5s}
+.sl-hall .hc{fill:none;stroke:color-mix(in srgb,var(--amber) 80%,transparent);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7;animation:sl-win 6s ease-in-out -2.2s infinite}
+.sl-hall .hp{fill:none;stroke:color-mix(in srgb,var(--purple-ink) 55%,var(--deep));stroke-width:3.5;stroke-linecap:round}
+.sl-hall{--sl-hall:color-mix(in srgb,var(--purple-ink) 30%,var(--deep))}
+.sl-hall::after{content:"";position:absolute;left:-8%;right:-8%;top:calc(100% - 1px);height:30vh;clip-path:polygon(6.9% 0,93.1% 0,100% 100%,0 100%);
+  background:linear-gradient(180deg,var(--sl-hall),color-mix(in srgb,var(--sl-hall) 40%,transparent) 30%,transparent)}
+@keyframes sl-win{0%,100%{opacity:.55}50%{opacity:.85}}
 .sl-fog .fg{fill:var(--purple-ink);opacity:.28}.sl-fog.f2 .fg{opacity:.2}
 .sl-fog{animation:sl-drift 60s ease-in-out infinite alternate}.sl-fog.f2{animation-duration:80s}
+/* the jack-o'-lanterns (front layer): a soft ground shadow, the body, the candle glow, then the carved face on top */
+.sl-pk>svg,.sl-pk>b{position:absolute;inset:0}
+.sl-pk .pks{inset:auto -4% -9% -4%;height:26%;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--deep) 85%,transparent),transparent)}
 .sl-pk .pk{fill:var(--amber);opacity:.85}.sl-pk .pr{fill:none;stroke:var(--amber-ink);stroke-width:2}.sl-pk .st{fill:none;stroke:var(--green);stroke-width:3;stroke-linecap:round}
-.sl-pk .pf{fill:var(--yellow-hi)}
+.sl-pk .pkg{inset:-22% -26% -12%;border-radius:50%;opacity:.75;
+  background:radial-gradient(closest-side at 50% 62%,color-mix(in srgb,var(--yellow) 55%,transparent),color-mix(in srgb,var(--amber) 28%,transparent) 50%,transparent);
+  animation:sl-candle 4.6s ease-in-out var(--ph,0s) infinite}
+.sl-pk .pf{fill:var(--yellow-hi);opacity:.9;animation:sl-face 4.6s ease-in-out var(--ph,0s) infinite}
+@keyframes sl-candle{0%,100%{opacity:.6}50%{opacity:.9}}
+@keyframes sl-face{0%,100%{opacity:.8}50%{opacity:1}}
 .sl-bat .bt{fill:color-mix(in srgb,var(--purple-ink) 60%,var(--deep))}.sl-bat{opacity:.75}
 
 /* WINTER FEST: a snowy night, string lights */
