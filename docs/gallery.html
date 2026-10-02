@@ -81,8 +81,8 @@
   <div class="card" id="tokens"></div>
 
   <h2 class="ui-section">Seasonal looks</h2>
-  <p class="ui-howto">Spooky Season's menu backdrop (season-look.js): the lobby and a zone at phone, iPad portrait, iPad landscape and
-    Chromebook sizes, then PRESS START and Choose Your Instrument. Pictures from the automatic tests
+  <p class="ui-howto">Spooky Season's menu backdrop (season-look.js): the lobby, a zone and the FULL ARCADE (3D and 2D) at phone, iPad portrait,
+    iPad landscape and Chromebook sizes, then PRESS START and Choose Your Instrument. Pictures from the automatic tests
     (<code>GALLERY=1 npx playwright test seasonal-looks --project=chromium</code>).</p>
   <div id="seasons"></div>
 
@@ -111,7 +111,8 @@
     `<div class="card"><h3>${g.name}</h3><div class="shots">${KINDS.map(([k, c]) => img(`gallery/${g.id}-${k}.jpg`, c)).join('')}</div></div>`).join('');
   $('seasons').innerHTML = '<div class="card"><h3>Spooky Season</h3><div class="shots">' +
     [['phone', 'Phone'], ['ipad-portrait', 'iPad portrait'], ['ipad-landscape', 'iPad landscape'], ['chromebook', 'Chromebook']]
-      .flatMap(([k, c]) => [img(`gallery/season-spooky-${k}-lobby.jpg`, `${c}: lobby`), img(`gallery/season-spooky-${k}-zone.jpg`, `${c}: zone`)])
+      .flatMap(([k, c]) => [img(`gallery/season-spooky-${k}-lobby.jpg`, `${c}: lobby`), img(`gallery/season-spooky-${k}-zone.jpg`, `${c}: zone`),
+        img(`gallery/season-spooky-${k}-full-3d.jpg`, `${c}: FULL ARCADE (3D)`), img(`gallery/season-spooky-${k}-full-2d.jpg`, `${c}: FULL ARCADE (2D)`)])
       .concat([img('gallery/season-spooky-press-start.jpg', 'PRESS START'), img('gallery/season-spooky-choose-instrument.jpg', 'Choose Your Instrument')]).join('') + '</div></div>';
   $('ba').innerHTML = ['ghost-notes', 'note-storm', 'button-masher'].map(id => {
     const g = (A.ALL_GAMES || A.GAMES).find(x => x.id === id) || {name: id};

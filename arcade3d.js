@@ -1384,6 +1384,26 @@ window.Arcade = window.Arcade || {};
         kick();
         if (instant && reduced.matches) { layout(performance.now()); placeStart(); placePrize(); render(); }
       },
+      /** the cabinets on screen (their bodies + zone tags, projected; page coordinates): where nothing else may sit
+          (season-look.js keeps the seasonal floor props clear of them) */
+      boxes() {
+        const out = [], B = new THREE.Box3(), V = new THREE.Vector3(), r = cvs.getBoundingClientRect();
+        slots.forEach(it => {
+          if (!it.holder.visible || !(it.full || it.flat)) return;
+          B.makeEmpty(); it.holder.updateWorldMatrix(true, true);
+          (it.full ? it.full.group.children : [it.flat.mesh]).forEach(o => { if (o.userData.pick) B.expandByObject(o); });
+          if (it.tag) B.expandByObject(it.tag.mesh);
+          if (B.isEmpty()) return;
+          let l = Infinity, t = Infinity, rt = -Infinity, b = -Infinity;
+          for (let i = 0; i < 8; i++) {
+            V.set(i & 1 ? B.max.x : B.min.x, i & 2 ? B.max.y : B.min.y, i & 4 ? B.max.z : B.min.z).project(camera);
+            const x = (V.x + 1) / 2 * Wpx, y = (1 - V.y) / 2 * Hpx;
+            l = Math.min(l, x); rt = Math.max(rt, x); t = Math.min(t, y); b = Math.max(b, y);
+          }
+          out.push({left: r.left + l, top: r.top + t, right: r.left + rt, bottom: r.top + b});
+        });
+        return out;
+      },
       pick(e) {
         if (e.target !== cvs) return null;
         const r = cvs.getBoundingClientRect();
