@@ -80,6 +80,12 @@
     (shared/seasons.js <code>token</code>, the pictures in shared/tokens.css). 16, 20 and 32 px, then Arcade Quest's pixel style.</p>
   <div class="card" id="tokens"></div>
 
+  <h2 class="ui-section">Seasonal looks</h2>
+  <p class="ui-howto">Spooky Season's menu backdrop (season-look.js): the lobby and a zone at phone, iPad portrait, iPad landscape and
+    Chromebook sizes, then PRESS START and Choose Your Instrument. Pictures from the automatic tests
+    (<code>GALLERY=1 npx playwright test seasonal-looks --project=chromium</code>).</p>
+  <div id="seasons"></div>
+
   <h2 class="ui-section">Before and after</h2>
   <div id="ba"></div>
 
@@ -103,6 +109,10 @@
   const KINDS = [['levels', 'Level select'], ['pause', 'Pause menu'], ['settings', 'Settings'], ['results', 'Results']];
   $('games').innerHTML = (A.ALL_GAMES || A.GAMES).filter(g => !g.tool).map(g =>
     `<div class="card"><h3>${g.name}</h3><div class="shots">${KINDS.map(([k, c]) => img(`gallery/${g.id}-${k}.jpg`, c)).join('')}</div></div>`).join('');
+  $('seasons').innerHTML = '<div class="card"><h3>Spooky Season</h3><div class="shots">' +
+    [['phone', 'Phone'], ['ipad-portrait', 'iPad portrait'], ['ipad-landscape', 'iPad landscape'], ['chromebook', 'Chromebook']]
+      .flatMap(([k, c]) => [img(`gallery/season-spooky-${k}-lobby.jpg`, `${c}: lobby`), img(`gallery/season-spooky-${k}-zone.jpg`, `${c}: zone`)])
+      .concat([img('gallery/season-spooky-press-start.jpg', 'PRESS START'), img('gallery/season-spooky-choose-instrument.jpg', 'Choose Your Instrument')]).join('') + '</div></div>';
   $('ba').innerHTML = ['ghost-notes', 'note-storm', 'button-masher'].map(id => {
     const g = (A.ALL_GAMES || A.GAMES).find(x => x.id === id) || {name: id};
     return `<div class="card"><h3>${g.name}</h3><div class="ba">${img(`gallery/before-${id}-results.jpg`, 'Before: results')}${img(`gallery/${id}-results.jpg`, 'After: results')}</div></div>`;

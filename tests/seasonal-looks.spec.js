@@ -137,3 +137,297 @@ test('games keep their own look; MOTION off stills the backdrop', async ({page})
   expect(await page.evaluate(() => [document.querySelectorAll('.slook').length, document.documentElement.dataset.slook || null])).toEqual([0, null]);
   watch.check();
 });
+
+/* ---------- THE SPOOKY SCENE: the front layer, the moon, the haunted band hall, the bat across the moon ---------- */
+const path = require('path');
+const GALLERY = !!process.env.GALLERY;
+const SIZES = [['phone', 390, 844], ['ipad-portrait', 820, 1180], ['ipad-landscape', 1180, 820], ['chromebook', 1366, 768]];
+const SPOOKY = '&today=2026-10-15';
+const settle = page => page.waitForFunction(() => {             // the moon placed (season-look.js place(), after fonts)
+  const h = document.querySelector('body > .slook');
+  return h && h.style.getPropertyValue('--sl-top') && document.fonts.status === 'loaded';
+}, null, {timeout: 10000}).then(() => page.waitForTimeout(400));
+const rectOf = (page, sel) => page.evaluate(sel => { const e = document.querySelector(sel); return e && e.getBoundingClientRect().toJSON(); }, sel);
+/** the WCAG contrast of every text in `sel` against what's really behind it: its own solid background, else the
+ *  brightest pixel of the backdrop under it (a screenshot with only the backdrop showing) */
+async function contrasts(page, sel) {
+  const texts = await page.evaluate(sel => {
+    const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; return .2126 * f(m[0]) + .7152 * f(m[1]) + .0722 * f(m[2]); };
+    const out = [], r = document.createRange();
+    document.querySelectorAll(sel).forEach(root => {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const el = n.parentElement;
+        if (!n.nodeValue.trim() || el.closest('.sr,[hidden]') || !el.checkVisibility({visibilityProperty: true, opacityProperty: true})) continue;
+        r.selectNodeContents(n);
+        const b = r.getBoundingClientRect();
+        if (b.width < 2 || b.height < 2) continue;
+        let bg = null;
+        for (let e = el; e && e !== document.body; e = e.parentElement) { const c = getComputedStyle(e); if (/^rgb\(/.test(c.backgroundColor) || /,\s*1\)$/.test(c.backgroundColor)) { bg = lum(c.backgroundColor); break; } if (e === document.body) break; }
+        out.push({text: n.nodeValue.trim().slice(0, 30), fg: lum(getComputedStyle(el).color), bg, box: [b.left, b.top, b.width, b.height]});
+      }
+    });
+    return out;
+  }, sel);
+  const bare = texts.filter(t => t.bg === null);
+  if (bare.length) {
+    const tag = await page.addStyleTag({content: 'body > :not(.slook):not(.slook-front):not(.room){visibility:hidden!important}'});
+    const png = (await page.screenshot()).toString('base64');
+    await tag.evaluate(t => t.remove());
+    const lums = await page.evaluate(async ([png, boxes]) => {
+      const img = new Image(); img.src = 'data:image/png;base64,' + png; await img.decode();
+      const c = document.createElement('canvas'); c.width = innerWidth; c.height = innerHeight;
+      const x = c.getContext('2d'); x.drawImage(img, 0, 0, innerWidth, innerHeight);
+      const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+      return boxes.map(([l, t, w, h]) => {
+        l = Math.max(0, Math.floor(l)); t = Math.max(0, Math.floor(t)); w = Math.min(innerWidth - l, Math.ceil(w)); h = Math.min(innerHeight - t, Math.ceil(h));
+        if (w <= 0 || h <= 0) return 0;
+        const d = x.getImageData(l, t, w, h).data; let m = 0;
+        for (let i = 0; i < d.length; i += 4) m = Math.max(m, .2126 * f(d[i]) + .7152 * f(d[i + 1]) + .0722 * f(d[i + 2]));
+        return m;
+      });
+    }, [png, bare.map(t => t.box)]);
+    bare.forEach((t, i) => { t.bg = lums[i]; });
+  }
+  return texts.map(t => ({text: t.text, ratio: +((Math.max(t.fg, t.bg) + .05) / (Math.min(t.fg, t.bg) + .05)).toFixed(2)}));
+}
+
+/** the texts without their own solid background (the view's own background is under the backdrop) that touch the moon */
+const bareOnMoon = (page, view) => page.evaluate(view => {
+  const root = document.querySelector(view), host = view === 'body' ? 'body > .slook' : `${view} > .slook`;
+  const m = document.querySelector(`${host} .sl-moon`).getBoundingClientRect();
+  const out = [], rg = document.createRange(), w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const el = n.parentElement;
+    if (!n.nodeValue.trim() || el.closest('.sr,[hidden]' + (view === 'body' ? ',#pressStart,#selectView' : '')) || !el.checkVisibility({visibilityProperty: true, opacityProperty: true})) continue;
+    let solid = false;
+    for (let e = el; e && e !== root; e = e.parentElement) { const c = getComputedStyle(e); if (c.backgroundImage !== 'none' || /^rgb\(|,\s*1\)$/.test(c.backgroundColor)) { solid = true; break; } }
+    if (solid) continue;
+    rg.selectNodeContents(n); const b = rg.getBoundingClientRect();
+    if (b.width > 2 && b.left < m.right && m.left < b.right && b.top < m.bottom && m.top < b.bottom) out.push(n.nodeValue.trim());
+  }
+  return out;
+}, view);
+
+test('spooky: the jack-o\'-lanterns stand in the FRONT layer, over the floor\'s lines and the fog', async ({page}) => {
+  const watch = await prepare(page, {store: device('trumpet')});
+  for (const [name, w, h] of [SIZES[0], SIZES[3]]) {
+    await page.setViewportSize({width: w, height: h});
+    await page.goto(floor(SPOOKY));
+    await settle(page);
+    const r = await page.evaluate(() => {
+      // the backdrop takes no taps: let the hit test see it for a moment
+      const s = document.createElement('style');
+      s.textContent = '.room,.slook,.slook-front,.slook *,.slook-front *{pointer-events:auto!important}';
+      document.head.append(s);
+      const order = [...document.querySelectorAll('body > *')];
+      const out = {fronts: Arcade.SeasonLook.state().fronts, front: Arcade.SeasonLook.front('spooky'), pumpkins: []};
+      out.frontAfterRoom = order.indexOf(document.querySelector('body > .slook-front')) === order.indexOf(document.querySelector('body > .room')) + 1;
+      out.backBeforeRoom = order.indexOf(document.querySelector('body > .slook')) < order.indexOf(document.querySelector('body > .room'));
+      out.backHasNone = [...document.querySelectorAll('body > .slook .sl-pk')].every(e => getComputedStyle(e).display === 'none');
+      document.querySelectorAll('body > .slook-front .sl-pk').forEach(pk => {
+        const b = pk.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height * .62;
+        const stack = document.elementsFromPoint(x, y).filter(e => e.matches('.room') || e.closest('.slook,.slook-front'));
+        const top = stack[0], room = stack.findIndex(e => e.matches('.room')), fog = stack.findIndex(e => e.closest('.sl-fog'));
+        const mine = stack.findIndex(e => e.closest('.sl-pk') === pk);
+        out.pumpkins.push({visible: b.width > 20 && b.bottom <= innerHeight + 1, topIsPumpkin: !!(top && top.closest('.sl-pk') === pk), underRoom: room !== -1 && room < mine, underFog: fog !== -1 && fog < mine});
+      });
+      s.remove();
+      return out;
+    });
+    expect(r.fronts.sort()).toEqual(['body', 'pressStart', 'selectView']);
+    expect(r.front).toEqual(['sl-pk', 'sl-pk', 'sl-pk']);
+    expect([name, r.frontAfterRoom, r.backBeforeRoom, r.backHasNone]).toEqual([name, true, true, true]);
+    expect(r.pumpkins).toHaveLength(3);
+    for (const p of r.pumpkins) expect([name, p]).toEqual([name, {visible: true, topIsPumpkin: true, underRoom: false, underFog: false}]);
+  }
+  // every other look's floor-standing props are front props too
+  const fronts = await page.evaluate(() => Object.fromEntries(Arcade.SeasonLook.LOOKS.map(id => [id, Arcade.SeasonLook.front(id)])));
+  expect(fronts).toEqual({spooky: ['sl-pk', 'sl-pk', 'sl-pk'], winter: ['sl-hills'], friendship: [], miosm: ['sl-drum', 'sl-drum d2'], spring: ['sl-grass'],
+    summer: ['sl-wheel', 'sl-palm', 'sl-boards', 'sl-wave'], concert: ['sl-foot'], school: [], harvest: ['sl-wheat', 'sl-wheat w2', 'sl-gourd', 'sl-gourd g2', 'sl-wheat'], frost: []});
+  watch.check();
+});
+
+test('spooky: in a zone and the FULL ARCADE (2D and 3D) the front layer hides; its props go back behind the cabinets', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
+  const watch = await prepare(page, {store: device('trumpet')});
+  await page.setViewportSize({width: 1180, height: 820});
+  for (const hash of ['#zone=note-reading', '#full-arcade']) {
+    for (const kind of ['2d', '3d']) {
+      await page.goto(floor(`${SPOOKY}${kind === "2d" ? "&flat" : ""}${hash}`));
+      await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+      const r = await page.evaluate(() => {
+        const front = document.querySelector('body > .slook-front');
+        const shown = [...document.querySelectorAll('.slook-front .sl-p, body > .slook .sl-p')].filter(e => e.getClientRects().length && e.closest('body > .slook-front, body > .slook'));
+        const cabs = [...document.querySelectorAll('.aisle, #jumpStrip:not([hidden])')].map(e => e.getBoundingClientRect());
+        const overlap = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        return {frontShown: getComputedStyle(front).display !== 'none', backPumpkins: [...document.querySelectorAll('body > .slook .sl-pk')].filter(e => getComputedStyle(e).display !== 'none').length,
+          frontOverCabinet: shown.filter(e => e.closest('.slook-front')).some(e => cabs.some(c => overlap(e.getBoundingClientRect(), c)))};
+      });
+      expect([hash, kind, r]).toEqual([hash, kind, {frontShown: false, backPumpkins: 3, frontOverCabinet: false}]);
+    }
+  }
+  watch.check();
+});
+
+test('spooky: the moon is twice its old size, its top under the top bar; no bare text on it; the band hall stays at the edge', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
+  const watch = await prepare(page, {store: device('trumpet')});
+  for (const [name, w, h] of SIZES.concat([['big', 1920, 1300], ['phone-landscape', 844, 390]])) {
+    await page.setViewportSize({width: w, height: h});
+    for (const hash of ['', '#all-games', '#zone=note-reading']) {
+      await page.goto(floor(SPOOKY + hash));
+      if (hash.includes('zone')) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+      await settle(page);
+      const r = await page.evaluate(() => {
+        const q = s => document.querySelector(s).getBoundingClientRect();
+        const vmin = Math.min(innerWidth, innerHeight) / 100, old = Math.min(140, Math.max(64, 11 * vmin));
+        return {moon: q('body > .slook .sl-moon').toJSON(), hall: q('body > .slook .sl-hall').toJSON(), bar: q('#fbar').toJSON(), old, W: innerWidth};
+      });
+      const at = `${name} ${hash || 'lobby'}`;
+      expect(Math.abs(r.moon.width - 2 * r.old), `${at}: moon width`).toBeLessThanOrEqual(2);
+      expect(r.moon.top, `${at}: moon under the top bar`).toBeGreaterThanOrEqual(r.bar.bottom);
+      // the hall: in front of the moon's lower part (its body covers the moon's bottom edge), never in the middle 40 %
+      expect(r.hall.top, `${at}: hall top`).toBeGreaterThan(r.moon.top);
+      expect(r.hall.top, `${at}: hall top`).toBeLessThan(r.moon.bottom - r.moon.height / 3);
+      expect(r.hall.bottom, `${at}: hall bottom`).toBeGreaterThan(r.moon.bottom);
+      expect(Math.min(r.hall.right, r.moon.right) - Math.max(r.hall.left, r.moon.left), `${at}: hall across the moon`).toBeGreaterThan(r.moon.width * .6);
+      expect(r.hall.left, `${at}: hall out of the middle`).toBeGreaterThanOrEqual(r.W * .7);
+      // no text without its own background lands on the (light) moon
+      const onMoon = await bareOnMoon(page, 'body');
+      expect(onMoon, `${at}: bare text on the moon`).toEqual([]);
+    }
+  }
+  watch.check();
+});
+
+test('spooky: the top bar\'s text and the zone signs keep ≥ 4.5:1 over the new scene', async ({page}) => {
+  test.setTimeout(300000);                                         // every size × every view
+  const watch = await prepare(page, {store: device('trumpet')});
+  for (const [name, w, h] of SIZES) {
+    await page.setViewportSize({width: w, height: h});
+    for (const hash of ['', '#zone=note-reading']) {
+      await page.goto(floor(SPOOKY + hash));
+      if (hash) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+      await settle(page);
+      const got = await contrasts(page, hash ? '#fbar' : '#fbar, #zones .zsign, #lobby > .sign');
+      expect(got.length).toBeGreaterThan(3);
+      for (const t of got) expect(`${name} ${hash || 'lobby'} "${t.text}" ${t.ratio}`).toMatch(t.ratio >= 4.5 ? /./ : /^$/);
+    }
+  }
+  watch.check();
+});
+
+test('spooky: now and then a bat crosses the moon; never with reduced motion, where nothing in the look moves', async ({page}) => {
+  const watch = await prepare(page, {store: device('trumpet')});
+  await page.clock.install();
+  await page.setViewportSize({width: 1180, height: 820});
+  await page.goto(floor(SPOOKY + '#all-games'));
+  await page.waitForFunction(() => document.querySelector('body > .slook .sl-mbat'));
+  const bat = page.locator('body > .slook .sl-mbat');
+  await expect(bat).not.toHaveClass(/fly/);
+  const flying = async () => (await bat.getAttribute('class')).includes('fly');
+  const now = () => page.evaluate(() => Date.now());                // the page's (fake) clock
+  let waited = 0;                                                   // at most 35 s between passes
+  while (waited < 36000 && !(await flying())) { await page.clock.runFor(250); waited += 250; }
+  await expect(bat).toHaveClass(/fly/);
+  const first = await now();
+  // the flight: off the disc's left, across its middle, off its right (the animation paused at three moments)
+  const at = t => page.evaluate(t => {
+    const b = document.querySelector('body > .slook .sl-mbat');
+    b.getAnimations({subtree: true}).forEach(a => { a.pause(); a.currentTime = a.animationName === 'sl-flap' ? 0 : t; });
+    const m = b.getBoundingClientRect(), r = b.querySelector('svg').getBoundingClientRect();
+    return {x: (r.left + r.width / 2 - m.left) / m.width, y: (r.top + r.height / 2 - m.top) / m.height, o: +getComputedStyle(b.querySelector('.mb')).opacity};
+  }, t);
+  const [a, mid, z] = [await at(150), await at(1500), await at(2850)];
+  expect(a.x).toBeLessThan(0.05);
+  expect(mid.x).toBeGreaterThan(0.35); expect(mid.x).toBeLessThan(0.65);
+  expect(mid.y).toBeGreaterThan(0.1); expect(mid.y).toBeLessThan(0.5);          // across the upper disc (above the hall)
+  expect(mid.o).toBe(1);
+  expect(z.x).toBeGreaterThan(0.95);
+  const flap = await page.evaluate(() => document.querySelector('body > .slook .sl-mbat svg').getAnimations().map(a => a.effect.getTiming().duration));
+  expect(flap[0]).toBeGreaterThanOrEqual(300);                    // a slow flap, never a flash
+  await page.evaluate(() => document.querySelector('body > .slook .sl-mbat').getAnimations({subtree: true}).forEach(a => a.play()));
+  await page.clock.runFor(3500);
+  await expect(bat).not.toHaveClass(/fly/);
+  // the next pass: 20–35 s after the last one started
+  waited = 0;
+  while (waited < 40000 && !(await flying())) { await page.clock.runFor(250); waited += 250; }
+  const gap = (await now()) - first;
+  expect(gap).toBeGreaterThanOrEqual(19500);
+  expect(gap).toBeLessThanOrEqual(36500);
+
+  // reduced motion: the bat isn't drawn, no pass, nothing in either layer animates
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto(floor(SPOOKY));
+  await page.waitForFunction(() => document.querySelector('body > .slook .sl-mbat'));
+  await page.clock.runFor(70000);
+  const still = await page.evaluate(() => ({fly: document.querySelectorAll('.sl-mbat.fly').length, shown: [...document.querySelectorAll('.sl-mbat')].filter(e => getComputedStyle(e).display !== 'none').length,
+    moving: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.slook,.slook-front')).length,
+    glow: [...document.querySelectorAll('body > .slook-front .pkg')].map(e => +getComputedStyle(e).opacity)}));
+  expect(still).toEqual({fly: 0, shown: 0, moving: 0, glow: [0.75, 0.75, 0.75]});   // the candles: a steady glow
+  watch.check();
+});
+
+test('spooky: the candle glow and the hall\'s windows breathe slowly (no flicker)', async ({page}) => {
+  const watch = await prepare(page, {store: device('trumpet')});
+  await page.goto(floor(SPOOKY));
+  await page.waitForFunction(() => document.querySelector('body > .slook-front .pkg'));
+  const r = await page.evaluate(() => {
+    const anims = sel => [...document.querySelectorAll(sel)].flatMap(e => e.getAnimations()).map(a => ({name: a.animationName, d: a.effect.getTiming().duration, delay: a.effect.getTiming().delay}));
+    return {glow: anims('body > .slook-front .pkg'), face: anims('body > .slook-front .pf'), win: anims('body > .slook .sl-hall .hw, body > .slook .sl-hall .hc')};
+  });
+  expect(r.glow.map(a => a.name)).toEqual(['sl-candle', 'sl-candle', 'sl-candle']);
+  expect(new Set(r.glow.map(a => a.delay)).size).toBe(3);                        // each pumpkin its own phase
+  for (const a of r.glow.concat(r.face)) { expect(a.d).toBeGreaterThanOrEqual(4000); expect(a.d).toBeLessThanOrEqual(5000); }
+  expect(r.win.length).toBe(5);
+  for (const a of r.win) expect([a.name, a.d]).toEqual(['sl-win', 6000]);
+  expect(new Set(r.win.map(a => a.delay)).size).toBeGreaterThan(3);             // staggered
+  watch.check();
+});
+
+test('spooky: PRESS START and Choose Your Instrument have their own copy (with the front layer)' + (GALLERY ? ' + GALLERY screenshots' : ''), async ({page}) => {
+  test.setTimeout(GALLERY ? 360000 : 120000);
+  const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true}), visit: false});
+  const shot = name => GALLERY ? page.screenshot({path: path.join(__dirname, '..', 'docs/gallery', `season-spooky-${name}.jpg`), type: 'jpeg', quality: 80}) : null;
+  for (const [name, w, h] of SIZES) {                              // no bare text on the moon, at every size
+    await page.setViewportSize({width: w, height: h});
+    await page.goto('index.html?demo' + SPOOKY);
+    await expect(page.locator('#pressStart')).toBeVisible();
+    await page.waitForTimeout(500);
+    expect([name, await bareOnMoon(page, '#pressStart')]).toEqual([name, []]);
+    await page.goto(floor(SPOOKY + '&game=ghost-notes'));
+    await expect(page.locator('#selectView')).toBeVisible();
+    await page.waitForTimeout(500);
+    expect([name, await bareOnMoon(page, '#selectView')]).toEqual([name, []]);
+  }
+  await page.setViewportSize({width: 1180, height: 820});
+  await page.goto('index.html?demo' + SPOOKY);
+  await expect(page.locator('#pressStart')).toBeVisible();
+  await expect(page.locator('#pressStart > .slook-front .sl-pk')).toHaveCount(3);
+  await expect(page.locator('#pressStart > .slook .sl-moon')).toBeVisible();
+  await page.waitForTimeout(600);
+  expect(await bareOnMoon(page, '#pressStart')).toEqual([]);
+  await shot('press-start');
+  await page.goto(floor(SPOOKY + '&game=ghost-notes'));
+  await expect(page.locator('#selectView')).toBeVisible();
+  await expect(page.locator('#selectView > .slook-front .sl-pk').first()).toBeVisible();
+  await page.waitForTimeout(800);
+  const m = await rectOf(page, '#selectView > .slook .sl-moon'), bar = await rectOf(page, '#selectView .topbar');
+  expect(m.top).toBeGreaterThanOrEqual(bar.bottom);
+  expect(await bareOnMoon(page, '#selectView')).toEqual([]);
+  await shot('choose-instrument');
+  if (GALLERY) {
+    for (const [name, w, h] of SIZES) {
+      await page.setViewportSize({width: w, height: h});
+      for (const [hash, kind] of [['', 'lobby'], ['#zone=note-reading', 'zone']]) {
+        await page.goto(floor(SPOOKY + hash));
+        if (hash) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
+        await settle(page);
+        await page.waitForTimeout(800);
+        await shot(`${name}-${kind}`);
+      }
+    }
+  }
+  watch.check();
+});
