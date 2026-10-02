@@ -376,7 +376,7 @@ window.Arcade = window.Arcade || {};
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
-    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
+    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja, Showtime Malfunction…)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
     ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['rhythm-dojo', 'Rhythm Dojo'], ['scale-trainer', 'Scale Trainer'], ['blocktave', 'Blocktave'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {

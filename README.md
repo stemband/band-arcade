@@ -206,7 +206,7 @@ A game that doesn't work for the student's instrument stays visible but dimmed, 
 | Button Masher, Sustain Speedway | woodwinds and brass (not Bells or Snare Drum) | Winds & brass only |
 | Ancient Ninja Scrolls, Showtime Malfunction, Dojo Duel, Arcade Quest | every instrument | — |
 
-## Endless mode (Note Storm and Note Ninja)
+## Endless mode (Note Storm, Note Ninja and more)
 
 Under the levels (or belts) of both games there is an **∞ ENDLESS** card. It's always open, uses whatever notes and
 order are picked above it, and plays until your 3 hearts are gone while the speed keeps rising. It gives no stars.
@@ -221,6 +221,10 @@ order are picked above it, and plays until your 3 hearts are gone while the spee
   card and on the GAME OVER panel. They're part of the Arcade Backup Code. `?demo` runs are never saved.
 - **Tuning:** every number is in one commented block at the bottom of `note-storm/levels.js` (`STORM_ENDLESS`) and
   `note-ninja/levels.js` (`NINJA_ENDLESS`). The shared parts live in `shared/endless.js`.
+- **Showtime Malfunction: THE ENCORE.** The ∞ card under the showtimes: the animatronics keep coming, faster and faster,
+  more at once and in three lanes, with special machines after 45 s and Maestro Moose's encore every 20 reboots, until
+  all 3 spotlights are out. Snare drummers get their own Top 5 and their drum jobs arrive over the run. Its numbers:
+  `SHOWTIME_ENDLESS` at the bottom of `showtime-malfunction/levels.js`.
 
 ## Lost Signal
 

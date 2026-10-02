@@ -20,7 +20,10 @@
      roll    THE LONG TONE LURKER: fast enough AND even (roll.maxCv); NIGHTMARE's Glitch Lurker: a CRESCENDO.
      tempo   THE TEMPO-LOCK MAESTRO (NIGHTMARE, showtime 8): steady eighths at each phase's own tempo.
    THE BEAT is silent: the stage lights and the target panel's border swell on each beat, and a row of beat dots.
-   NEW DRUM CHALLENGE cards (the first time a device meets each job; ids in gameData.files, never rename). */
+   NEW DRUM CHALLENGE cards (the first time a device meets each job; ids in gameData.files, never rename).
+   THE ENCORE (game.js G.endless; levels.js SHOWTIME_ENDLESS.snare): the same jobs by RUN TIME instead of showtime number:
+   exact counts from the start, FREEZE from freezeFromS, RHYTHM machines from rhythmFromS; every table is read at the
+   showtime G.lv = 1 + t ÷ showtimeEveryS (at most 8: the rhythm pool, bpm, shares, soft/loud and accents). */
 window.Arcade = window.Arcade || {};
 (function (A) {
   'use strict';
@@ -76,6 +79,12 @@ window.Arcade = window.Arcade || {};
     const lv = () => G().lv;
     const at = (arr, k = lv()) => arr[k - 1] || 0;
     const nightmare = () => !!(G() && G().extra);
+    /* FREEZE and RHYTHM machines: from their showtime, or (THE ENCORE) from their run time; their tables are then read at
+       least at their first showtime (so a freeze at 40 s, before "showtime 2", still has its beats) */
+    const ENC = () => (window.SHOWTIME_ENDLESS || {}).snare || {};
+    const freezeOn = () => G().endless ? G().t >= ENC().freezeFromS : lv() >= R.freeze.from;
+    const rhythmOn = () => G().endless ? G().t >= ENC().rhythmFromS : lv() >= R.rhythm.from;
+    const fz = () => Math.max(lv(), R.freeze.from);
     const split = () => gd.snareDyn && gd.snareDyn.split;
     const beatS = bpm => 60 / bpm;
     const has = (b, id) => !!(b && b.traits && b.traits.includes(id));
@@ -128,7 +137,7 @@ window.Arcade = window.Arcade || {};
       } else if (s.special || s.mini) s.job = {type: 'count'};
       else {
         const dyn = !!split(), r = Math.random();
-        const acc = dyn && n >= R.accent.from ? at(R.accent.share) : 0, pf = dyn && n >= R.dyn.from ? at(R.dyn.share) : 0, rh = n >= R.rhythm.from ? at(R.rhythm.share) : 0;
+        const acc = dyn && n >= R.accent.from ? at(R.accent.share) : 0, pf = dyn && n >= R.dyn.from ? at(R.dyn.share) : 0, rh = rhythmOn() ? at(R.rhythm.share, Math.max(n, R.rhythm.from)) : 0;
         let type = r < acc ? 'accent' : r < acc + pf ? (Math.random() < .5 ? 'p' : 'f') : r < acc + pf + rh ? 'rhythm' : 'count';
         if (FORCED && ['rhythm', 'accent', 'p', 'f', 'count'].includes(FORCED)) type = FORCED;
         if (A.DEMO && s.forceJob) type = s.forceJob;                        // tests (the fairness check)
@@ -162,7 +171,7 @@ window.Arcade = window.Arcade || {};
     /** THE FAIRNESS CHECK: the time the job needs must fit in `margin` of the time the machine walks; if not, it walks slower */
     function fair(s, boss) {
       const F = R.fair, g = G(), L = g.L, n = lv(), J = s.job, X = R.exact;
-      const countNeed = c => c / F.rate + (X.confirmMs + X.gapMs) / 1000 + (n >= R.freeze.from ? at(R.freeze.beats) * beatS(at(R.beat.bpm)) : 0);
+      const countNeed = c => c / F.rate + (X.confirmMs + X.gapMs) / 1000 + (freezeOn() ? at(R.freeze.beats, fz()) * beatS(at(R.beat.bpm)) : 0);
       let need;
       if (J.type === 'rhythm' || J.type === 'accent') need = R.rhythm.leadS + (1 + J.measures) * 4 * beatS(J.bpm);
       else if (J.type === 'roll') need = (s.need || 0) + (s.rollRate2 || s.lurkGlitch ? (api.fairBase().glitch || 0) : 0);
@@ -184,8 +193,8 @@ window.Arcade = window.Arcade || {};
       if (!H) return;
       if (!t) { countIn(null); return; }
       const J = t.job || {type: 'count'};
-      if ((J.type === 'count' || J.type === 'p' || J.type === 'f') && !t.boss && !t.special && !t.mini && lv() >= R.freeze.from && t.freezeAt == null) {   // regular machines (specials have their own tricks)
-        const ch = FORCED === 'freeze' ? 1 : FORCED ? 0 : at(R.freeze.chance);   // (tests: ?demo&snarejob=freeze always, any other forced job never)
+      if ((J.type === 'count' || J.type === 'p' || J.type === 'f') && !t.boss && !t.special && !t.mini && freezeOn() && t.freezeAt == null) {   // regular machines (specials have their own tricks)
+        const ch = FORCED === 'freeze' ? 1 : FORCED ? 0 : at(R.freeze.chance, fz());   // (tests: ?demo&snarejob=freeze always, any other forced job never)
         t.freezeAt = t.left > 1 && Math.random() < ch ? Math.max(1, t.left - Math.ceil(t.left * R.freeze.at)) : -1;
       }
       if (J.type === 'p' || J.type === 'f') meet('drum-dynamics');
@@ -255,7 +264,7 @@ window.Arcade = window.Arcade || {};
 
     /* FREEZE: the Maestro's hand */
     function tryFreeze(t) {
-      const g = G(), b = H.pulse.beatS, beats = at(R.freeze.beats), dur = beats * b;
+      const g = G(), b = H.pulse.beatS, beats = at(R.freeze.beats, fz()), dur = beats * b;
       if (!beats) return;
       const soon = g.bots.filter(x => x.state === 'walk').some(x => (1 - x.z) * x.walk - dur * R.freeze.walkMul < R.freeze.guard);
       t.froze = true;

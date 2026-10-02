@@ -61,9 +61,9 @@ jobs:
         run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --workers=${{ matrix.workers }}
         env:
           CI: 'true'
-      - name: Blocktave's frame rate (alone on the machine, 4× CPU throttle)
+      - name: Blocktave's and Showtime Malfunction's frame rates (alone on the machine, 4× CPU throttle)
         if: matrix.browser == 'chromium' && matrix.shard == '1/2'
-        run: npx playwright test blocktave -g performance --project=chromium --workers=1
+        run: npx playwright test blocktave showtime-endless -g performance --project=chromium --workers=1
         env:
           CI: 'true'
           PERF: '1'

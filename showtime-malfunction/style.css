@@ -540,3 +540,17 @@ body.st-frozen #arena *,body.st-frozen #arena *::before,body.st-frozen #arena *:
 @media (prefers-reduced-motion:reduce){.tpanel.sn-hit .tp-staff{animation:none}}
 .special-panel .sp-drum{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--cyan) 12%,var(--deep));border:1px solid var(--cyan);color:var(--text-hi);font-size:14.5px}
 .special-panel .sp-drum b{color:var(--cyan-hi)}
+
+/* ---------- THE ENCORE (ENDLESS MODE): the SPEED UP! banner over the arena (shared theme.css .ed-flash: one gentle fade,
+   opacity only with reduced motion), the points rising from a rebooted machine, the oldest band member walking off ---------- */
+.arena .ed-flash{top:12%;z-index:620;font-family:var(--display);font-size:clamp(20px,3.4vw,34px)}
+.st-pop{position:absolute;transform:translate(-50%,-100%);z-index:610;pointer-events:none;white-space:nowrap;font-family:var(--display);
+  font-size:clamp(16px,2.4vw,24px);color:var(--yellow);text-shadow:0 2px 0 rgba(0,0,0,.6);opacity:0;animation:st-pop 1s ease-out forwards}
+.st-pop.mult{font-size:clamp(22px,3.4vw,34px);color:var(--pink)}
+@keyframes st-pop{0%{opacity:0;transform:translate(-50%,-80%)}15%{opacity:1}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-180%)}}
+.band-bot.leaving{transition:transform .6s ease-in,opacity .6s ease-in;transform:translateX(-60%);opacity:0}
+@media (prefers-reduced-motion:reduce){
+  @keyframes st-pop{0%,100%{opacity:0}12%,75%{opacity:1}}
+  .band-bot.leaving{transition:opacity .3s;transform:none}
+}
+html.no-motion .band-bot.leaving{transition:opacity .3s;transform:none}
