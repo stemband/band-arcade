@@ -306,20 +306,20 @@ for (const reduced of [false, true]) {
     await page.waitForTimeout(800);
     // 3 s of the live picture, sampled every 50 ms: how often it changes
     const r = await page.evaluate(async () => {
-      const box = document.querySelector('#fxTest .av-box'), seen = [];
+      const box = document.querySelector('#fxTest .av-box'), seen = [], t0 = performance.now();
       for (let i = 0; i < 60; i++) {
         const c = box.querySelector('canvas.av-live');
         seen.push(c && !c.hidden ? c.toDataURL() : 'still');
         await new Promise(r => setTimeout(r, 50));
       }
       let changes = 0; for (let i = 1; i < seen.length; i++) if (seen[i] !== seen[i - 1]) changes++;
-      return {changes, distinct: new Set(seen).size, body: Arcade.AvatarFx.state(box).body};
+      return {changes, secs: (performance.now() - t0) / 1000, distinct: new Set(seen).size, body: Arcade.AvatarFx.state(box).body};
     });
-    if (reduced) expect(r).toEqual({changes: 0, distinct: 1, body: false});
+    if (reduced) expect(r).toMatchObject({changes: 0, distinct: 1, body: false});
     else {
       expect(r.body).toBe(true);
       expect(r.distinct).toBeGreaterThan(1);
-      expect(r.changes).toBeLessThanOrEqual(13);                 // ≤ 4 a second over 3 s (+1 for where the count starts)
+      expect(r.changes).toBeLessThanOrEqual(Math.ceil(r.secs * 4) + 1);   // ≤ 4 a second (+1 for where the count starts)
     }
     watch.check();
   });

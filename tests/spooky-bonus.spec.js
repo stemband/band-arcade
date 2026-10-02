@@ -206,7 +206,7 @@ test('every new item: drawn at every size and view, theme tokens only, 8 × 8 pe
         [0, 1, 2, 3].forEach(fr => part.bust(api, fr));
       }
       const row = A.avatarCode.TABLE.find(t => t[0] === f);
-      out.table[k] = row[2].slice(f === 'pet' ? -2 : -1);
+      out.table[k] = row[2].filter(v => KEYS.includes(f + ':' + v));      // in the TABLE (items added later go after them)
       const back = A.avatarCode.decode(A.avatarCode.encode(av));
       out.code[k] = back && (back.avatar || back)[f];
     });
