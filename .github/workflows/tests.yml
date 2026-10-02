@@ -137,8 +137,10 @@ jobs:
         id: browser-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('tests/package-lock.json') }}
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/apt-webkit
+          key: playwright-v2-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('tests/package-lock.json') }}
       - name: Install ${{ matrix.browser }}
         run: ./install-browser.sh ${{ matrix.browser }}
       - name: This shard's tests (equal time, not equal count; shard-by-time.js)

@@ -1791,6 +1791,7 @@ test.describe('Blocktave: the Courage meter at the bottom of the world', () => {
     await gameUntil(page, () => Arcade.Blocktave.state().courage.value < .85);
     const v0 = (await cg(page)).value;
     await mine(); await waitCardGone(page);
+    await settleFor(page, 200);                                           // a little game time after the card (it stops the clock)
     expect((await cg(page)).value, 'kept draining').toBeLessThan(v0);
     expect((await cg(page)).graceLeft).toBe(0);
   });
