@@ -588,6 +588,8 @@ test('no file mentions the old name, except the migration, the redirect, the old
     'shared/sounds.js': l => l.includes(OLD + '-menu') || /old name/.test(l),
     'shared/sounds/README.md': l => l.includes(OLD + '-menu'),
     'tests/scale-trainer.spec.js': null,                     // these tests
+    'tests/test-times.json': null,                           // their titles (shard-by-time.js's measured times)
+    'tests/test-times.new.json': null,
   };
   const bad = [];
   (function walk(dir) {
