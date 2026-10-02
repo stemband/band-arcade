@@ -275,7 +275,10 @@ window.Arcade = window.Arcade || {};
     /* ---------- every frame the band moves (the game clock ran) ---------- */
     function tick(dt, now) {
       if (!H) return;
-      H.clk += Math.max(0, now - H.tPerf) / 1000; H.tPerf = now; H.stillNow = false;
+      // the clock runs on performance.now(), the time every hit is stamped with: never on the frame's own timestamp,
+      // which on a busy page can be well behind the moment the frame actually runs (hits then judged early / late)
+      const p = performance.now();
+      H.clk += Math.max(0, p - H.tPerf) / 1000; H.tPerf = p; H.stillNow = false;
       if (H.dirty) redo();
       // confirm → reboot; freeze → GO!
       if (H.confirm && (H.confirm.b.state !== 'walk' || H.clk >= H.confirm.until)) {
@@ -298,7 +301,7 @@ window.Arcade = window.Arcade || {};
       pulse();
     }
     /** the band stood still (a sound, the pause, a card, a scare): a timed job starts again from its count-in */
-    function still(now) { if (!H) return; H.stillNow = true; if (now) H.tPerf = now; const t = api.target(), J = t && t.job; if (J && J.start != null && (J.type === 'rhythm' || J.type === 'accent' || J.type === 'tempo')) H.dirty = true; }
+    function still(now) { if (!H) return; H.stillNow = true; if (now) H.tPerf = performance.now(); const t = api.target(), J = t && t.job; if (J && J.start != null && (J.type === 'rhythm' || J.type === 'accent' || J.type === 'tempo')) H.dirty = true; }
     function redo() {
       H.dirty = false;
       const t = api.target(); if (!t || !t.job || t.job.start == null) return;

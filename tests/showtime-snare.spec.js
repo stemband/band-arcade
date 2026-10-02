@@ -10,12 +10,14 @@ const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
 
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
-async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false} = {}) {
+async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false, staleRaf = 0} = {}) {
   // WebKit: game sounds off, like every timing test here (rhythm-dojo, tuneup, music-highway). The snare's clock stands
   // still while a sound plays (the microphone is muted then), and the CI runner's WebKit has no sound card, so its
   // sounds don't take their real length: the band's pauses shifted every planned hit early or late ("rushing")
   const quietRun = test.info().project.name === 'webkit' || !!process.env.SNARE_NO_SFX;
   const watch = await prepare(page, {store: store(gd, Object.assign(quietRun ? {sfx: false} : {}, other))});
+  // a busy page: every animation frame's timestamp up to `staleRaf` ms older than the moment it runs
+  if (staleRaf) await page.addInitScript(ms => { const r = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = cb => r(t => cb(t - Math.random() * ms)); }, staleRaf);
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
   await page.locator('.ls-start').click();
@@ -226,6 +228,23 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     await expect.poll(async () => (await bot(page, id)).state, {timeout: 5000}).not.toBe('walk');
     watch.check();
   });
+
+  // the snare's clock runs on performance.now() (the time hits are stamped with), never the frame's timestamp: on a busy
+  // page (a slow iPad, a loaded CI runner) that can be 150 ms behind, and a hit 250 ms early was judged an EXTRA hit
+  for (const [name, off, kind] of [['early', -250, 'early'], ['late', 250, 'late'], ['on time', 0, null]]) {
+    test(`a busy page's late animation frames don't move the judging: a hit ${name} is judged ${kind || 'on time'}`, async ({page}) => {
+      const watch = await open(page, {lv: 3, job: 'rhythm', solo: true, staleRaf: 150});
+      const s = await waitFor(page, s => s.target.job.type === 'rhythm' && s.target.job.start != null);
+      await page.evaluate(i => { const b = Arcade.Showtime.debug().bots.find(x => x.id === i); b.job.list[b.job.idx].text = 'q q q q'; }, s.target.id);
+      await freshCountIn(page);
+      await playMeasure(page, {offsets: {1: off}});
+      await judged(page);
+      const r = await sn(page);
+      if (kind) { expect(r.last.pass).toBe(false); expect(r.target.job.marks.hits.map(h => h.kind)).toEqual([kind]); }
+      else expect(r.last.pass).toBe(true);
+      watch.check();
+    });
+  }
 
   test('rhythm on NIGHTMARE: the tempo × nightmareBpm', async ({page}) => {
     const watch = await open(page, {lv: 3, job: 'rhythm', gd: {diff: 'extra'}});
