@@ -3,8 +3,7 @@
    a fixed ?seed= (the world is the same every run) and uses the game's own hooks (Arcade.Blocktave.demo), which call
    the real mining, crafting and building code. Chapter 1 end to end is in the game runs (tests/games.js). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, CPU_DRAWING} = require('./helpers');
-test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: fewer page crashes on CI)
+const {prepare, device} = require('./helpers');
 
 /* the music and the count-off clicks play on the AudioContext's clock. WebKit on a CI machine has no sound card: its
    AudioContext says it is running but its clock doesn't keep time (tests/games.js: Music Highway and Rhythm Dojo play
@@ -547,11 +546,11 @@ test.describe('Blocktave: every world can finish chapter 1', () => {
     expect(bad, 'seeds missing chapter 1 materials near the spawn').toEqual([]);
   });
 
-  // 20 random seeds, 2 per test: each test is its own page (one 20-load page ran ~8 minutes in WebKit and its process
-  // could crash; a short test also loses less to a crash), and the ten run side by side
+  // 20 random seeds, one per test: each its own page (one 20-load page ran ~8 minutes in WebKit, whose page process can
+  // crash on a CI machine; a short test loses only itself to a crash, and its one retry is short), side by side
   const SEEDS = Array.from({length: 20}, (_, k) => (k * 40503 + 1234567) >>> 0);
-  for (let part = 0; part < 10; part++) test(`chapter 1 end to end on random seeds ${part * 2 + 1}–${part * 2 + 2} of 20: Maple → planks → mallet → 10 Tone Ore → a shelter with a door`, async ({page}) => {
-    const seeds = SEEDS.slice(part * 2, part * 2 + 2);
+  for (let part = 0; part < 20; part++) test(`chapter 1 end to end on random seed ${part + 1} of 20: Maple → planks → mallet → 10 Tone Ore → a shelter with a door`, async ({page}) => {
+    const seeds = SEEDS.slice(part, part + 1);
     const watch = await prepare(page, {store: store('trumpet', 'touch')});
     // what the page saw (printed when a seed fails): the longest gap between animation frames, and any hidden / pagehide
     await page.addInitScript(() => {
