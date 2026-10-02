@@ -536,6 +536,7 @@ the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched
 |---|---|---|---|
 | `blocktave-menu` | `blocktave-menu.m4a` or `blocktave-menu.mp3` | Blocktave: menu music (the title screen with the chapters and Survival Nights, the results). | 30–90 s loop |
 | `blocktave-day` | `blocktave-day.m4a` or `blocktave-day.mp3` | DAY music in the world. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
+| `blocktave-cave` | `blocktave-cave.m4a` or `blocktave-cave.mp3` | CAVE music deep underground (more than `music.caveRows` rows down). Slow and quiet: a low drone, water drips. Until uploaded: a built-in generated cave ambience; stops while the microphone listens. | 60–180 s loop |
 | `blocktave-night` | `blocktave-night.m4a` or `blocktave-night.mp3` | NIGHT music in the world: a little mysterious, never scary. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
 | `bt-break` | `bt-break.m4a` or `bt-break.mp3` | A block breaks. **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-mined` | `bt-mined.m4a` or `bt-mined.mp3` | A challenge passed: a music block breaks and drops its loot. **during play: under 0.5 s, unpitched** | under 0.3 s |
