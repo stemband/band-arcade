@@ -20,7 +20,7 @@ const tuner = page => page.evaluate(() => Arcade.TuneUp.tuner.state());
 const play = (page, semis) => page.evaluate(d => { const T = Arcade.TuneUp.tuner; Arcade.Pitch.demoNote = d === null ? null : T.state().target + d; }, semis);
 
 test.describe('Tune Up: the toolbox', () => {
-  test('?tool= opens a tab, the tabs move with ←/→, and the last tab is remembered', async ({page, browserName}) => {
+  test('?tool= opens a tab, the tabs move with ←/→, and the last tab is remembered', {tag: '@quick'}, async ({page, browserName}) => {
     const watch = await prepare(page, {store: store(browserName)});
     await open(page, 'tuner');
     expect(await page.evaluate(() => Arcade.TuneUp.tab)).toBe('tuner');

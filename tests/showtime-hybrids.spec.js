@@ -201,7 +201,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     watch.check();
   });
 
-  test('THE FAIRNESS CHECK: every hybrid can be beaten while its note shows, at every showtime from 5, Normal and NIGHTMARE', async ({page}) => {
+  test('THE FAIRNESS CHECK: every hybrid can be beaten while its note shows, at every showtime from 5, Normal and NIGHTMARE', {tag: '@slow'}, async ({page}) => {
     for (const member of ['trumpet', 'snare']) {
       const watch = await prepare(page, {store: store(member)});
       for (const id of HYBRIDS) {

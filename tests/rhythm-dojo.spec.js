@@ -10,7 +10,7 @@ const CALIB = {gameData: {'rhythm-dojo': {calib: {clap: {ms: 0}, tap: {ms: 0}}}}
 const store = browser => device('trumpet', Object.assign({}, CALIB, browser === 'webkit' ? {sfx: false} : {}));
 
 test.describe('rhythm dojo', () => {
-  test('a fresh device opens in TAP mode (first and pressed in the markup) and never asks for the microphone', async ({page, browserName}) => {
+  test('a fresh device opens in TAP mode (first and pressed in the markup) and never asks for the microphone', {tag: '@quick'}, async ({page, browserName}) => {
     // no Rhythm Dojo choices saved yet (and no timing check): count every microphone request
     const watch = await prepare(page, {store: device('trumpet', browserName === 'webkit' ? {sfx: false} : {})});
     await page.addInitScript(() => {

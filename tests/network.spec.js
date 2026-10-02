@@ -21,7 +21,7 @@ test.describe('network', () => {
     watch.check();
   });
 
-  test('a new star sends only the allowed fields (not in ?demo)', async ({page}) => {
+  test('a new star sends only the allowed fields (not in ?demo)', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: withGrade()});
     await page.goto('index.html');
     await page.evaluate(() => { Arcade.store.setLevel('ghost-notes', 'bb', 1, {stars: 2, best: 100}, 2); return Arcade.Leaderboard.flush(); });
@@ -30,7 +30,7 @@ test.describe('network', () => {
     watch.check();
   });
 
-  test("'play' goes once a day PER GAME, with only the allowed fields", async ({page}) => {
+  test("'play' goes once a day PER GAME, with only the allowed fields", {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: withGrade()});
     await page.goto('index.html');
     const plays = () => watch.posts.map(b => JSON.parse(b)).filter(b => b.type === 'play');
@@ -59,7 +59,7 @@ test.describe('network', () => {
     watch.check();
   });
 
-  test('?demo sends nothing to the leaderboard', async ({page}) => {
+  test('?demo sends nothing to the leaderboard', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: withGrade()});
     await page.goto('ghost-notes/index.html?demo&nostart');
     await page.evaluate(() => { Arcade.store.setLevel('ghost-notes', 'bb', 1, {stars: 3, best: 100}, 3); Arcade.store.addEndless && Arcade.store.addEndless('note-storm', 'trumpet', 'first5-random', {score: 999, notes: 9, speed: 1, combo: 3}); return Arcade.Leaderboard.flush(); });
@@ -89,7 +89,7 @@ test.describe('the grade', () => {
   test.describe.configure({timeout: 60_000});                          // a hang fails fast (the suite's default is 90 s)
   test.beforeEach(async ({page}) => { await quickLeaderboard(page); });
 
-  test('with no grade, stars are HELD (nothing sent); choosing 7 sends them all, summed per level (≤ 3), only the allowed fields', async ({page}) => {
+  test('with no grade, stars are HELD (nothing sent); choosing 7 sends them all, summed per level (≤ 3), only the allowed fields', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: noGrade()});
     await page.goto('index.html');
     await earn(page);

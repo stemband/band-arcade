@@ -25,7 +25,7 @@ const btn = page => page.locator('#qMenuSlot .q-menubtn');
 const rect = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); return e && !e.hidden && e.getClientRects().length ? e.getBoundingClientRect().toJSON() : null; }, sel);
 const overlap = (a, b) => !!a && !!b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
-test('Settings: the chosen Text speed, Dodging and Assist mode are highlighted (a different background + ▶)', async ({page}) => {
+test('Settings: the chosen Text speed, Dodging and Assist mode are highlighted (a different background + ▶)', {tag: '@quick'}, async ({page}) => {
   const watch = await world(page, LAPTOP);
   await settle(page);
   await page.evaluate(() => { Arcade.Quest.settings.open(); });

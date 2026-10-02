@@ -102,7 +102,7 @@ test('a Racing Stripes skin still gives stripes (until a decal is chosen)', asyn
   watch.check();
 });
 
-test('a race uses the chosen car (the ghost too); a win shows NEW IN THE GARAGE!; four cars stay cheap', async ({page}) => {
+test('a race uses the chosen car (the ghost too); a win shows NEW IN THE GARAGE!; four cars stay cheap', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(150000);
   const watch = await prepare(page, {store: device('trumpet', {gameData: {'sustain-speedway': {garage: {body: 'mini', paint: 'cyan', decal: 'number', number: 3},
     ghosts: {'sustain-speedway|trumpet|1': {t: 60, p: [0, .02, .05, .08, .1, .13, .16, .2, .25, .3]}}}}})});
@@ -247,7 +247,7 @@ const garageButtons = page => page.evaluate(() => [...document.querySelectorAll(
 }));
 const SIZES3 = [['phone', {width: 390, height: 844}], ['iPad portrait', {width: 768, height: 1024}], ['laptop', {width: 1366, height: 768}]];
 
-test('results with nothing new: ONE GARAGE button (outline, car icon) with the results\' buttons, NEXT still yellow; back from the garage to the same results', async ({page}) => {
+test('results with nothing new: ONE GARAGE button (outline, car icon) with the results\' buttons, NEXT still yellow; back from the garage to the same results', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(150000);
   // (the counters a race can raise are already past their first unlocks here, so nothing is new)
   const watch = await raceTo(page, device('trumpet', {games: progress([1]),

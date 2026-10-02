@@ -14,7 +14,7 @@ async function askEveryTime(page) {
 }
 
 test.describe('a saved instrument goes straight to the lobby', () => {
-  test('PRESS START → the lobby, the PLAYING AS toast, no pick mode, no voice line', async ({page}) => {
+  test('PRESS START → the lobby, the PLAYING AS toast, no pick mode, no voice line', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true}), visit: false});
     await page.goto('index.html?demo');
     await expect(page.locator('#pressStart')).toBeVisible();
@@ -61,7 +61,7 @@ test.describe('a saved instrument goes straight to the lobby', () => {
     watch.check();
   });
 
-  test('?nostart: no PRESS START and no toast', async ({page}) => {
+  test('?nostart: no PRESS START and no toast', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true}), visit: false});
     await page.goto('index.html?demo&nostart');
     await expect(page.locator('#lobby')).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('a saved instrument goes straight to the lobby', () => {
 });
 
 test.describe('pick mode after PRESS START where it is still needed', () => {
-  test('no instrument saved → pick mode, with the voice line', async ({page}) => {
+  test('no instrument saved → pick mode, with the voice line', {tag: '@quick'}, async ({page}) => {
     // (no "Create your player?" offer: it would hold the voice line)
     const watch = await prepare(page, {store: {members: {}, games: {}, modes: {}, avatarOffered: true}, visit: false});
     await page.goto('index.html?demo');

@@ -10,7 +10,7 @@ const store = (extra = {}) => device('trumpet', Object.assign({avatarOffered: tr
 const dot = page => page.locator('#avBadge .avb-dot');
 
 test.describe('the locker', () => {
-  test('the badge menu opens the Locker over the lobby ("Locker · n of N"), and Done goes back', async ({page}) => {
+  test('the badge menu opens the Locker over the lobby ("Locker · n of N"), and Done goes back', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: store()});
     await page.goto('index.html?demo&nostart');
     await page.locator('#avBadge .avb-btn').click();

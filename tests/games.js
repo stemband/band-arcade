@@ -18,7 +18,9 @@
      endlessPlay  the step in its ENDLESS run (a game whose page has an Endless card is also run to GAME OVER):
                default 'wrong' (tap W = a wrong note, which costs a heart); 'idle' = do nothing (notes run out)
      skip      'chromium' | 'webkit': a reason not to run in that browser
-     pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise) */
+     pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise)
+     slow      true = its level takes over a minute of real time (a whole rhythm set, a match): tagged @slow, so it
+               runs only in the FULL job (docs/engine/testing.md "Keeping the tests fast") */
 const fs = require('fs');
 const path = require('path');
 const {games} = require('./arcade');
@@ -108,8 +110,8 @@ const STEPS = {
     const m = /Answer:\s*([A-G])/.exec(t || ''); await page.keyboard.press(m && m[1] === 'A' ? 'b' : 'a'); await page.waitForTimeout(400); }},
   'chime-heist': {member: 'bells', play: tapHint('.bar.hint'), every: 300},
   'ancient-ninja-scrolls': {play: async page => { await click('#goTrain')(page); await click('.choice.hint')(page); await page.waitForTimeout(150); await click('#nextBtn')(page); await page.waitForTimeout(200); }},
-  'button-masher': {play: masherCombo},
-  'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000},
+  'button-masher': {play: masherCombo, slow: true},
+  'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000, slow: true},
   'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000,
     done: page => page.evaluate(() => { const s = Arcade.Duel.state(); return !!s && !s.running && s.players.some(p => p.score > 0); })},
   // Music Highway judges timing to the millisecond, so the test uses the game's own autoPlay hook (every note on time,
@@ -124,7 +126,7 @@ const STEPS = {
   // game's own autoPlay hook (through the real judging); NEXT between rhythms. WebKit: SOUND OFF (see Music Highway).
   // Its Dojo Marathon: nothing played, so every rhythm misses and costs a life.
   'rhythm-dojo': {store: browser => Object.assign({gameData: {'rhythm-dojo': {mode: 'tap', calib: {clap: {ms: 0}, tap: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}),
-    next: '#rdNext', limit: 150_000, endlessPlay: 'idle',
+    next: '#rdNext', limit: 150_000, endlessPlay: 'idle', slow: true,
     play: async page => {
       await page.evaluate(() => { const D = Arcade.RhythmDojo; if (!window.__auto) { window.__auto = true; D.autoPlay(0, {persist: true}); } if (D.state().phase === 'study') document.getElementById('rdGo').click(); });
       await page.waitForTimeout(400);
@@ -140,7 +142,7 @@ const STEPS = {
   'blocktave': {play: blocktaveStep, every: 600, limit: 100_000, key: 'blocktave',
     endlessPlay: async page => { await page.evaluate(() => { const B = Arcade.Blocktave; if (B.state().screen === 'world' && !B.state().held) B.demo.hurt(1); }); await page.waitForTimeout(400); }},
   'arcade-quest': {url: 'arcade-quest/index.html?demo&test', store: {gameData: {'arcade-quest': {settings: {textSpeed: 'instant', dodge: 'easy', assist: true}}}}, start: async page => { await page.waitForTimeout(1200); await page.keyboard.press('Enter'); },
-    play: questTurn, stars: false, limit: 150_000, pause: false,   // a battle waits for you: no pause there
+    play: questTurn, stars: false, limit: 150_000, pause: false, slow: true,   // a battle waits for you: no pause there
     done: page => page.evaluate(() => { const Q = Arcade.Quest, b = Q.battleState && Q.battleState(), s = Q.save.get();
       return (!!b && (b.state === 'friend' || b.state === 'fading')) || (s.battles || 0) > 0 || (s.roster || []).length > 0; })},
 };

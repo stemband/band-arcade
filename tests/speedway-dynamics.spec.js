@@ -93,7 +93,7 @@ test('a p zone: soft = full speed, loud = slower with "softer!"; the report has 
 /** the race's state when a check fails (with pageWatch's frame gaps and visibility) */
 const SW_STATE = () => { const G = Arcade.Speedway.debug(); return G && {phase: G.phase, lap: G.lap, laps: G.lens.length, dist: +G.dist.toFixed(2), len: G.lens[G.lap], clock: +G.clock.toFixed(2), held: !!G.held, slur: Arcade.Speedway.slur(), podium: !!Arcade.Speedway.podium()}; };
 
-test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); brass gets a lip slur', async ({page}) => {
+test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); brass gets a lip slur', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(150000);
   const watch = await prepare(page, {store: store()});
   const seen = await pageWatch(page);

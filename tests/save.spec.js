@@ -3,7 +3,7 @@
 const {test, expect} = require('@playwright/test');
 const {prepare, saved, starsIn} = require('./helpers');
 
-test('Arcade Backup Code: export → clear → import', async ({page}) => {
+test('Arcade Backup Code: export → clear → import', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: null});
   await page.goto('index.html?demo&nostart');
   const before = await page.evaluate(() => {

@@ -38,7 +38,7 @@ async function playAll(page, n = 1e9) {
   await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
 }
 
-test('the AUDITION table, every section: every member, every scale: 21 / 41 / 61 notes, the right written key, start and end on the given written note, inside the section\'s range (bells exempt), in the order printed, sameAs = its source', async ({page}) => {
+test('the AUDITION table, every section: every member, every scale: 21 / 41 / 61 notes, the right written key, start and end on the given written note, inside the section\'s range (bells exempt), in the order printed, sameAs = its source', {tag: '@quick'}, async ({page}) => {
   const watch = await open(page);
   const out = await page.evaluate(members => {
     const S = Arcade.Scales, errs = [], P = Arcade.music.parseNote, W = Arcade.music.writtenMidi;

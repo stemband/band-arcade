@@ -111,7 +111,7 @@ test('seasonal touches follow ?season= and the date; the Seasonal look switch tu
   watch.check();
 });
 
-test('every time of day and weather draws (all 8 tracks) without errors', async ({page}) => {
+test('every time of day and weather draws (all 8 tracks) without errors', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(180000);
   const watch = await prepare(page, {store: store({gfx: 'full'})});
   await openSpeedway(page);

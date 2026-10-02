@@ -44,12 +44,19 @@ async function prepare(page, {store = device(), visit = true, mic = false} = {})
     // control checks"; for an optional file (a sound the site preloads) that is not a site error
     const m = /(\/\S+) due to access control checks/.exec(e.message || '');
     if (m && optional('http://127.0.0.1' + m[1].replace(/^\/127\.0\.0\.1:\d+/, ''))) return;
+    // "ResizeObserver loop completed with undelivered notifications": the browser's own notice that a resize callback
+    // changed the layout again in the same frame (the rest is delivered next frame). Not an error by the spec, and
+    // nothing is lost; WebKit reports it as one on a busy CI runner (Dojo Duel's phone layout). Every other error counts.
+    if (/^ResizeObserver loop (completed with undelivered notifications|limit exceeded)/.test(e.message || '')) return;
     watch.errors.push(`uncaught: ${e.message}`);
   });
   page.on('console', m => {
     if (m.type() !== 'error') return;
     const t = m.text(), url = (m.location() || {}).url || '';
     if (/Failed to load resource/i.test(t)) { if (url && !optional(url) && /^https?:\/\/127\.0\.0\.1/.test(url)) watch.errors.push(`console: ${t} ${url}`); return; }
+    // Linux WebKit's WebGL on a CI machine with no GPU (software OpenGL) logs this for three.js's textures (the 3D floor);
+    // the floor still draws. Real Safari (Apple's own graphics) never says it. See docs/engine/testing.md.
+    if (/^WebGL: INVALID_OPERATION: glTexStorage2D: Texture is immutable/.test(t)) return;
     watch.errors.push(`console: ${t}`);
   });
   page.on('response', r => {

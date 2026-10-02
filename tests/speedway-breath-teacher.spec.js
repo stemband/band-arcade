@@ -40,7 +40,7 @@ test('breath records: saved, shown on the results and the track select, a new re
   watch.check();
 });
 
-test('the teacher ghost: ?teacher saves a code; pasted into teacher-ghosts.js it races, with the badge and the results line', async ({page}) => {
+test('the teacher ghost: ?teacher saves a code; pasted into teacher-ghosts.js it races, with the badge and the results line', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(200000);
   const watch = await prepare(page, {store: store()});
   await openSpeedway(page, '&teacher');

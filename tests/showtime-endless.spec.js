@@ -283,7 +283,7 @@ test.describe('Showtime Malfunction: THE ENCORE', () => {
     watch.check();
   });
 
-  test('the stage band never overflows after 60 reboots', async ({page}) => {
+  test('the stage band never overflows after 60 reboots', {tag: '@slow'}, async ({page}) => {
     test.setTimeout(180_000);
     const watch = await encore(page);
     await page.evaluate(() => { Arcade.Showtime.debug().endless.nextBossAt = 1e9; });   // (the Maestro: not this test)

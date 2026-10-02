@@ -183,7 +183,7 @@ test.describe('Save your progress: never in the way', () => {
 });
 
 test.describe('Save your progress: what counts as saved', () => {
-  test('SAVE NOW opens the panel with the code ready; Done without copying is not saved; Copy is', async ({page}) => {
+  test('SAVE NOW opens the panel with the code ready; Done without copying is not saved; Copy is', {tag: '@quick'}, async ({page}) => {
     await fakeClipboard(page);
     const watch = await prepare(page, {store: player({total: 40, days: [MON]})});
     await lobby(page); await ready(page);

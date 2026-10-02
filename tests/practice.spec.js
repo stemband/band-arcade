@@ -17,7 +17,7 @@ const doneToday = (member = 'trumpet', day = MON, extra = {}) => device(member, 
 }, extra));
 
 test.describe("Today's Practice: the plan", () => {
-  test('the same date and member always give the same plan; Monday = scales; the override wins until its last day', async ({page}) => {
+  test('the same date and member always give the same plan; Monday = scales; the override wins until its last day', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await lobby(page); await ready(page);
     const a = await plan(page, MON, 'trumpet'), b = await plan(page, MON, 'trumpet');
@@ -399,7 +399,7 @@ test.describe("Today's Practice: the rotation", () => {
 });
 
 test.describe("Today's Practice: the card", () => {
-  test('hidden with no instrument; first in the lobby cards, full width, no overflow at phone, iPad and Chromebook sizes', async ({page}) => {
+  test('hidden with no instrument; first in the lobby cards, full width, no overflow at phone, iPad and Chromebook sizes', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: {members: {}, games: {}, modes: {}}});
     await lobby(page);
     await page.waitForFunction(() => window.Arcade && Arcade.Practice);

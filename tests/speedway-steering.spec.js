@@ -75,7 +75,7 @@ test('the steering never changes the speed: the same drift, steering on or pinne
   watch.check();
 });
 
-test('the intonation report: rows with the right signs, the matching tip, history saved; all in tune = "Right on pitch!"', async ({page}) => {
+test('the intonation report: rows with the right signs, the matching tip, history saved; all in tune = "Right on pitch!"', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(300000);                                              // (a sharp car is slow: generous under a busy test machine)
   const watch = await prepare(page, {store: device('trumpet')});
   await openSpeedway(page);

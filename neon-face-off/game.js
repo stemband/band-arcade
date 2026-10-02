@@ -521,8 +521,9 @@
     const kind = M.state === 'travel' ? M.puck.power : null, smash = kind === 'SMASH!', hot = smash || kind === 'POWER';
     const tint = hot && COL[M.puck.color] ? COL[M.puck.color] : COL['--yellow'], tintHi = hot && COL[M.puck.color + '-hi'] || tint;
     let lines = 0;
+    const trailMax = reduced.matches ? 0 : smash ? 30 : hot ? 18 : 10;   // one point a frame, at most this many
     if (!reduced.matches) {
-      if (going) { M.trail.push([px, py]); if (M.trail.length > (smash ? 30 : hot ? 18 : 10)) M.trail.shift(); } else M.trail.shift();   // a waiting puck's old trail fades away
+      if (going) { M.trail.push([px, py]); if (M.trail.length > trailMax) M.trail.shift(); } else M.trail.shift();   // a waiting puck's old trail fades away
       const n = M.trail.length;
       if (smash && n > 1) {                                             // a bright streak along the trail
         c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = tintHi; c.shadowColor = tint; c.shadowBlur = 12;
@@ -545,7 +546,7 @@
         c.restore();
       }
     } else M.trail = [];
-    M.look = {power: kind, color: hot ? M.puck.color : null, trail: M.trail.length, lines};    // for tests
+    M.look = {power: kind, color: hot ? M.puck.color : null, trail: M.trail.length, trailMax, lines};    // for tests
     const pulse = reduced.matches ? 1 : 1 + Math.sin(t / 180) * .06, glowR = pr * (smash ? 3.8 : hot ? 3.2 : 2.2) * pulse;
     const pg = c.createRadialGradient(px, py, 0, px, py, glowR);
     pg.addColorStop(0, COL['--white-hi']); pg.addColorStop(.35, tint); pg.addColorStop(1, 'rgba(0,0,0,0)');

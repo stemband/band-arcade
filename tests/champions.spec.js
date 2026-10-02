@@ -133,7 +133,7 @@ test.describe('weekly champions', () => {
     }
   });
 
-  test('the request: a GET with only action + grade; none with the switch off, no grade, no address or ?demo', async ({page}) => {
+  test('the request: a GET with only action + grade; none with the switch off, no grade, no address or ?demo', {tag: '@quick'}, async ({page}) => {
     // sends: only action and grade, no body
     let watch = await prepare(page, {store: store()});
     let log = await scoreboard(page, champs());

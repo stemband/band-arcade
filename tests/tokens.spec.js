@@ -81,7 +81,7 @@ async function everyPlace(page, q) {
 }
 const all = skin => ({sign: skin, wish: skin, counter: skin, card: skin, results: skin, badge: skin, booth: skin});
 
-test('normal days: the coin everywhere a token shows', async ({page}) => {
+test('normal days: the coin everywhere a token shows', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: store()});
   const r = await everyPlace(page, '&today=2026-09-15');
   expect(r).toMatchObject(all('coin'));
