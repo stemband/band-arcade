@@ -20,7 +20,7 @@ for (const [name, size] of SIZES) for (const gfx of ['full', 'lite']) {
     const seen = await pageWatch(page);
     await openSpeedway(page, '&season=winter');
     await startTrack(page, 2);
-    await shortRace(page, 3);
+    await shortRace(page, 3, {pitSec: .5});
     await page.keyboard.down('Space');
     await page.waitForTimeout(1500);
     const fx = await page.evaluate(() => Arcade.Speedway.fx());

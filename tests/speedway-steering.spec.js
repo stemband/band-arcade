@@ -80,7 +80,7 @@ test('the intonation report: rows with the right signs, the matching tip, histor
   const watch = await prepare(page, {store: device('trumpet')});
   await openSpeedway(page);
   await startTrack(page, 1);
-  await shortRace(page);
+  await shortRace(page, 3, {pitSec: .5});
   // hold D (sharp) through every lap; the pit stops end by themselves
   await page.keyboard.down('d');
   await page.waitForFunction(() => document.querySelector('#resTuning'), null, {timeout: 200000});
@@ -109,7 +109,7 @@ test('all in tune: "Right on pitch! Great ears." and a trend arrow from the hist
   const watch = await prepare(page, {store: device('trumpet', {gameData: {'sustain-speedway': {tuning: {trumpet: [past]}}}})});
   await openSpeedway(page);
   await startTrack(page, 1);
-  await shortRace(page);
+  await shortRace(page, 3, {pitSec: .5});
   await page.keyboard.down('Space');
   await page.waitForFunction(() => document.querySelector('#resTuning'), null, {timeout: 200000});
   await page.keyboard.up('Space');

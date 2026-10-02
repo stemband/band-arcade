@@ -34,7 +34,7 @@ for (const [name, size] of SIZES) {
     await page.goto(URL);
     await page.waitForFunction(() => window.Arcade && Arcade.Speedway && document.querySelector('.trk[data-l="1"]'));
     await startTrack(page, 1);
-    await shortRace(page, 2);
+    await shortRace(page, 2, {pitSec: .5});
     await driveToFinish(page);
     await expect(page.locator('#results')).toBeVisible({timeout: 120000});
     await page.keyboard.up('Space');
@@ -67,7 +67,7 @@ test('Sustain Speedway: nothing new = the plain GARAGE in the buttons row, on sc
   await page.waitForFunction(() => window.Arcade && Arcade.Speedway && document.querySelector('.trk[data-l="1"]'));
   await page.evaluate(() => { const G = Arcade.SpeedwayGarage; G.markSeen(G.fresh()); });
   await startTrack(page, 1);
-  await shortRace(page, 2);
+  await shortRace(page, 2, {pitSec: .5});
   await driveToFinish(page);
   await expect(page.locator('#results')).toBeVisible({timeout: 120000});
   await page.keyboard.up('Space');

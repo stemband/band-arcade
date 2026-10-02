@@ -26,8 +26,10 @@ async function driveToFinish(page, key = 'Space', ms = 180_000) {
   await page.keyboard.down(key);
   await page.waitForFunction(() => { const G = Arcade.Speedway.debug(); return !G || G.phase === 'done' || G.phase === 'pit'; }, null, {timeout: ms});
 }
-/** a short race (tests): every lap `sec` seconds at full speed, the rivals crawling */
-async function shortRace(page, sec = 3) {
-  await page.evaluate(sec => { const G = Arcade.Speedway.debug(); G.lens = G.lens.map(() => sec); G.total = sec * G.lens.length; G.rivals.forEach(r => { r.pace = .01; }); }, sec);
+/** a short race (tests): every lap `sec` seconds at full speed, the rivals crawling; `pitSec` = shorter pit stops
+    (levels.js pitSec, 3.5 s) for a test about the results, not the pit stop (2–4 real-time stops per race) */
+async function shortRace(page, sec = 3, {pitSec = null} = {}) {
+  await page.evaluate(([sec, pitSec]) => { const G = Arcade.Speedway.debug(); G.lens = G.lens.map(() => sec); G.total = sec * G.lens.length; G.rivals.forEach(r => { r.pace = .01; });
+    if (pitSec !== null) window.SPEEDWAY_RULES.pitSec = pitSec; }, [sec, pitSec]);
 }
 module.exports = {URL, openSpeedway, startTrack, driveToFinish, shortRace};
