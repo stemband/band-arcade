@@ -39,8 +39,10 @@ async function waitFor(page, check, timeout = 30_000) {
   await expect.poll(async () => { await card(page); s = await sn(page); return !!(s && s.target && check(s)); }, {timeout}).toBe(true);
   return s;
 }
-/** not muted (a sound playing mutes the microphone: nothing counts then) */
-const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
+/** not muted (a sound playing mutes the microphone: nothing counts then), and THE BAND MOVES AGAIN: the snare's `stillNow`
+   (the last frame stood still) clears only on the next frame, and until then a hit counts for nothing and a timed job
+   restarts from its count-in. A loaded WebKit can leave 400+ ms between frames, so "the sound is over" isn't enough */
+const quiet = page => expect.poll(async () => { await card(page); return page.evaluate(() => !Arcade.Showtime.snare().stillNow && !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.debug().paused &&
   !Arcade.Sfx.pending('showtime') && !(Arcade.Sfx.busy() > 0)); }, {timeout: 15_000}).toBe(true);   // (a card closed; no sound still queued: a card's second sound)
 const hit = (page, level = .3) => page.evaluate(l => Arcade.Onsets.fake(performance.now(), l), level);
 async function hits(page, n, gap = 160, level = .3) { for (let k = 0; k < n; k++) { await hit(page, level); await page.waitForTimeout(gap); } }
@@ -59,7 +61,8 @@ async function freshCountIn(page) {
       const P = Arcade.Showtime.snarePlan(), G = Arcade.Showtime.debug();
       if (!P || !G || window.__restarting) return false;
       const ahead = P.measureStartPerf - performance.now();
-      if (P.k === 0 && ahead > 900 && !Arcade.Pitch.isSuppressed(performance.now())) return true;
+      // (and the band moving: planned while it stands still, the next frame restarts the job and the measure moves)
+      if (P.k === 0 && ahead > 900 && !Arcade.Pitch.isSuppressed(performance.now()) && !Arcade.Showtime.snare().stillNow) return true;
       if ((P.k > 0 || ahead <= 900) && !G.paused) { window.__restarting = true; G.paused = true; setTimeout(() => { G.paused = false; setTimeout(() => { window.__restarting = false; }, 200); }, 120); }
       return false;
     });
@@ -124,7 +127,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
       for (let k = 0; k < n; k++) setTimeout(() => Arcade.Onsets.fake(t0 + k * 150, .3), k * 150);
       const go = () => {
         const b = G().bots.find(x => x.id === f);
-        if (b.state === 'walk' || Arcade.Pitch.isSuppressed(performance.now()) || G().paused) return setTimeout(go, 5);
+        if (b.state === 'walk' || Arcade.Pitch.isSuppressed(performance.now()) || G().paused || Arcade.Showtime.snare().stillNow) return setTimeout(go, 5);
         const t1 = performance.now();
         for (let k = 0; k < 5; k++) setTimeout(() => Arcade.Onsets.fake(t1 + k * 150, .3), k * 150);
         setTimeout(res, 5 * 150);
@@ -362,9 +365,10 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     const uneven = await judge([40, 210]);                                               // 8 a second, but clumpy (gaps 40 / 210 ms)
     expect(uneven.holding).toBe(true); expect(uneven.mul).toBe(.3); expect(uneven.msg).toContain('Smooth it out');
     await page.waitForTimeout(1100);                                                       // (those hits leave the 1 s window)
+    await quiet(page);
     const even = await judge([125]);
     expect(even.holding).toBe(true); expect(even.mul).toBe(1);
-    const slow = await (async () => { await page.waitForTimeout(1100); return judge([300]); })();   // too slow: not a roll
+    const slow = await (async () => { await page.waitForTimeout(1100); await quiet(page); return judge([300]); })();   // too slow: not a roll
     expect(slow.holding).toBe(false);
     // and the ring really fills while an even roll goes on
     const a = await holdP(page); await roll(page, 1500, [125]); const b = await holdP(page, a.id);
