@@ -40,7 +40,13 @@ const putBeside = (page, key) => page.evaluate(k => { const d = Arcade.Blocktave
 const cardOpen = page => page.evaluate(() => !!Arcade.BlocktaveCard.current);
 // (checked every 100 ms, not on the page's animation frames: a card closes on a timer, and a busy WebKit runner can
 // starve a page's frames for seconds)
-const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000, polling: 100});
+const waitCardGone = page => page.waitForFunction(() => !Arcade.BlocktaveCard.current, null, {timeout: 20_000, polling: 100}).catch(async e => {
+  // what the card was doing (a failure message is all there is on CI)
+  const why = await page.evaluate(() => { const c = Arcade.BlocktaveCard.current; if (!c) return 'closed just now';
+    try { const s = c.state(); return JSON.stringify({kind: s.kind, phase: s.phase, mode: Arcade.Blocktave.state().mode, done: s.done, t0: s.t0, now: Math.round(performance.now()), info: s.info}).slice(0, 600); } catch (x) { return 'state failed: ' + x.message; } })
+    .catch(x => 'page gone: ' + x.message.split('\n')[0]);
+  e.message += `\n  the open card: ${why}`; throw e;
+});
 /** a WRONG letter that is on the open card's answer pad (a spelled pad shows only its set's letters: shared/answer-pad.js) */
 const wrongLetter = page => page.evaluate(() => { const w = Arcade.BlocktaveCard.current.want().n.letter;
   return [...document.querySelectorAll('.bt-card .apad-letter')].map(b => b.dataset.letter).find(l => l !== w); });
