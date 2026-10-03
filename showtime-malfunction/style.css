@@ -355,44 +355,111 @@
 .st-jump p{color:var(--text-hi);font-size:18px;line-height:1.4}
 .jw-check{display:flex;align-items:center;justify-content:center;gap:10px;min-height:44px;margin:4px 0 8px;color:var(--text-hi);font-weight:700;cursor:pointer}
 .jw-check input{width:24px;height:24px;accent-color:var(--yellow)}
-/* a scare: darkness, a machine, glowing eyes. Only darkness, sudden motion and scale: no bright or white flash, no strobe.
-   It lasts SHOWTIME_SCARES.ms, then .out fades it away; game.js pauses the band, the clocks and the mic meanwhile */
-.scare{position:absolute;inset:0;z-index:550;pointer-events:none;visibility:hidden;overflow:hidden}
+/* ---------- THE SCARES (Jump Scare and Terror). THE SAFETY RULES: only darkness, motion and scale; no bright or white
+   flash, no strobe, no shake; a luminance change is slow or single (never more than 2 opposite changes a second anywhere
+   on the screen: tests/showtime-terror.spec.js measures every kind); the stings stay under THE LOUDNESS CAP; reduced
+   motion = the FADE (darkness + eyes, nothing moves). EVERY SCARE FILLS THE ENTIRE SCREEN: #scare is a fixed overlay
+   above everything on the page (the arena, the target panel, the top bar, the HUD, the pause button); its art sits in
+   the safe area (.sc-safe), so the eyes are always on screen. It lasts SHOWTIME_SCARES.ms (+ peekMs for PANEL), then
+   .out fades it away; game.js freezes the band, the clocks and the mic meanwhile (G.scare) ---------- */
+.scare{position:fixed;inset:0;z-index:1000;pointer-events:none;visibility:hidden;overflow:hidden;--fill:2;--pop:1;--peek:0s}
 .scare.on{visibility:visible}
 .scare.out{animation:sc-out .35s ease-in forwards}
+.scare.sct-fade.out{animation-duration:.6s;animation-timing-function:linear}
 @keyframes sc-out{to{opacity:0}}
 .sc-dark{position:absolute;inset:0;background:var(--scare-dark);opacity:0}
-.sc-bot{position:absolute;left:50%;top:4%;height:96%;aspect-ratio:.7;translate:-50% 0;transform-origin:50% 35%;opacity:0}
-.sc-bot .bot{display:block;width:100%;height:100%}
+.sc-safe{position:absolute;inset:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);overflow:visible}
+/* a lunging machine grows around its own EYES (--ex, --ey: game.js reads them from the drawing), placed a little above
+   the middle of the screen: however big it gets, the eyes stay on screen */
+.sc-bot{position:absolute;left:50%;top:calc(42% - var(--ey,.2) * 100%);height:100%;aspect-ratio:.7;translate:calc(var(--ex,.5) * -100%) 0;
+  transform-origin:calc(var(--ex,.5) * 100%) calc(var(--ey,.2) * 100%);opacity:0}
+.sc-bot .bot,.sc-face .bot,.sc-band .bot{display:block;width:100%;height:100%}
 .sc-bot .a-eyeglow{opacity:.55}
-.sc-eyes{position:absolute;left:50%;top:34%;translate:-50% 0;display:flex;gap:clamp(30px,8vw,90px);opacity:0}
-.sc-eyes i{display:block;width:clamp(18px,3.5vw,38px);aspect-ratio:1;border-radius:50%;background:var(--st-red);box-shadow:0 0 14px var(--st-red),0 0 34px color-mix(in srgb,var(--st-red) 55%,transparent)}
-/* LUNGE: the lights drop, a machine rushes out of the dark at you (no shake: a shaking edge flickers) */
-.sct-lunge .sc-dark{animation:sc-dark .12s ease-out forwards;--d:.82}
-.sct-lunge .sc-bot{animation:sc-lunge .28s cubic-bezier(.2,.9,.3,1.15) .06s forwards}
-/* EYES: lights cut to black, only two glowing eyes… then it lunges */
-.sct-eyes .sc-dark{animation:sc-dark .1s ease-out forwards;--d:.96}
-.sct-eyes .sc-eyes{animation:sc-eyes-on .15s ease-out .08s forwards,sc-eyes-off .1s linear .66s forwards}
-.sct-eyes .sc-bot{animation:sc-lunge .26s cubic-bezier(.2,.9,.3,1.15) .68s forwards}
-/* POPUP: a head pops up from the bottom edge */
-.sct-popup .sc-dark{animation:sc-dark .12s ease-out forwards;--d:.6}
-.sct-popup .sc-bot{top:28%;height:130%;animation:sc-pop .18s cubic-bezier(.2,.9,.3,1) .05s forwards}
-/* BAND: the stage band's heads snap toward you (the stage leans in); everything else goes dark */
-.sct-band .sc-dark{background:radial-gradient(ellipse 34% 30% at 50% 24%,transparent 40%,var(--scare-dark) 100%);animation:sc-dark .12s ease-out forwards;--d:.9}
-.stage-back{transition:transform .14s cubic-bezier(.2,.9,.3,1.2)}
-.band-snap .stage-back{transform:scale(1.55) translateY(12%);z-index:1}
-.band-snap .band-bot{--eye:var(--st-red)}
-.band-snap .band-bot .bot-head{transform:rotate(-12deg) scale(1.28);transform-origin:70px 70px;transition:transform .08s steps(1)}
-.band-snap .band-bot:nth-child(2n) .bot-head{transform:rotate(12deg) scale(1.28)}
-.band-snap .band-bot .a-eyeglow{opacity:.7}
-/* reduced motion: a quick fade to darkness with eyes, nothing moves */
-.sct-fade .sc-dark{animation:sc-dark .3s linear forwards;--d:.92}
-.scare.sct-fade .sc-eyes{animation:sc-eyes-on .3s linear .1s forwards}
+.sc-face{position:absolute;inset:0;opacity:0;transform-origin:50% 45%}
+.sc-band{position:absolute;left:50%;bottom:0;height:100%;translate:-50% 0;display:flex;justify-content:center;opacity:0;transform-origin:50% 30%}
+.sc-band .bot{flex:none;width:auto;aspect-ratio:.7;height:100%;margin:0 -9%;--eye:var(--st-red)}
+.sc-band .bot .a-eyeglow{opacity:.7}
+.sc-eyes{position:absolute;left:50%;top:40%;translate:-50% -50%;display:flex;gap:18vmin;opacity:0}
+.sc-eyes i{display:block;width:7vmin;aspect-ratio:1;border-radius:50%;background:var(--st-red);box-shadow:0 0 2vmin var(--st-red),0 0 5vmin color-mix(in srgb,var(--st-red) 55%,transparent)}
+/* LUNGE: the lights drop, a machine rushes out of the dark until it fills the screen (no shake: a shaking edge flickers) */
+.sct-lunge .sc-dark,.sct-maestro .sc-dark{animation:sc-dark .12s ease-out forwards;--d:.9}
+.sct-lunge .sc-bot,.sct-maestro .sc-bot{animation:sc-lunge .3s cubic-bezier(.2,.9,.3,1.1) .06s forwards}
+/* EYES: the screen goes black, only two glowing eyes… and they rush closer */
+.sct-eyes .sc-dark{animation:sc-dark .1s ease-out forwards;--d:.97}
+.sct-eyes .sc-eyes{animation:sc-eyes-on .15s ease-out .08s forwards,sc-eyes-close .45s cubic-bezier(.5,0,.8,.4) .6s forwards}
+/* POPUP: a head rises from the screen's bottom edge */
+.sct-popup .sc-dark{animation:sc-dark .12s ease-out forwards;--d:.8}
+.sct-popup .sc-bot{top:20%;height:220%;translate:-50% 0;transform-origin:50% 17%;animation:sc-pop .3s cubic-bezier(.2,.9,.3,1) .05s forwards}
+/* BAND: the stage band's heads snap toward you, the view zoomed in on them to fill the screen */
+.sct-band .sc-dark{animation:sc-dark .12s ease-out forwards;--d:.95}
+.sct-band .sc-band{animation:sc-band .16s ease-out .06s forwards}
+.sct-band .sc-band .bot-head{transform:rotate(-12deg) scale(1.15);transform-origin:70px 70px}
+.sct-band .sc-band .bot:nth-child(2n) .bot-head{transform:rotate(12deg) scale(1.15)}
+/* FACE (Terror): a broken face slams in out of the black to fill the screen, holds, and snaps away (the black and the face
+   come together: one change, not two, then the snap: ≤ 2 changes in the first second) */
+.sct-face .sc-dark{animation:sc-dark .14s ease-out .05s forwards;--d:.97}
+.sct-face .sc-face{animation:sc-slam .1s cubic-bezier(.2,.9,.3,1) forwards,sc-snap .08s linear calc(.1s + var(--hold,.6s)) forwards}
+/* PANEL (Terror): first the face eases in at the target panel's edge (.tp-peek, --peek), then it lunges full screen */
+.sct-panel .sc-dark{animation:sc-dark .14s ease-out calc(var(--peek) + .05s) forwards;--d:.97}
+.sct-panel .sc-face{animation:sc-face-lunge .14s cubic-bezier(.2,.9,.3,1) var(--peek) forwards,sc-snap .08s linear calc(var(--peek) + .74s) forwards}
+/* reduced motion: one slow fade to darkness with eyes, nothing moves */
+.sct-fade .sc-dark{animation:sc-dark .8s linear forwards;--d:.92}
+.scare.sct-fade .sc-eyes{animation:sc-eyes-on .8s linear .2s forwards}
 @keyframes sc-dark{from{opacity:0}to{opacity:var(--d,.85)}}
 @keyframes sc-eyes-on{from{opacity:0}to{opacity:1}}
-@keyframes sc-eyes-off{from{opacity:1}to{opacity:0}}
-@keyframes sc-lunge{0%{transform:scale(.22) translateY(12%);opacity:.3}100%{transform:scale(1.35) translateY(6%);opacity:1}}
-@keyframes sc-pop{0%{transform:translateY(80%) scale(1.1);opacity:1}100%{transform:translateY(0) scale(1.1);opacity:1}}
+@keyframes sc-eyes-close{from{opacity:1;transform:scale(1)}to{opacity:1;transform:scale(2.6)}}
+/* (it comes out of the dark: faint while small and fast, solid once it fills the screen, so its dark and light parts
+   never sweep through a spot at full contrast) */
+@keyframes sc-lunge{0%{transform:scale(.18);opacity:0}60%{opacity:.25}100%{transform:scale(var(--fill));opacity:1}}
+/* (it fades in as it rises: its dark and light parts never sweep through a spot at full contrast) */
+@keyframes sc-pop{0%{transform:translateY(60%) scale(var(--pop));opacity:0}60%{opacity:.25}100%{transform:translateY(0) scale(var(--pop));opacity:1}}
+@keyframes sc-band{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes sc-slam{0%{transform:scale(.82);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes sc-face-lunge{0%{transform:scale(.7);opacity:0}100%{transform:scale(1.04);opacity:1}}
+@keyframes sc-snap{to{opacity:0}}
+/* TERROR's broken faces (characters.js faceSVG): cracks, a chipped corner, a bare gear, one eye slowly dimming */
+.face-svg .f-crack{fill:none;stroke:var(--scare-dark);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.face-svg .f-chip{fill:var(--anim-metal);stroke:var(--anim-metal-dark);stroke-width:.8}
+.face-svg .f-gear{fill:var(--anim-metal);stroke:var(--anim-metal-dark);stroke-width:1;stroke-dasharray:2 1.2}
+.face-svg .f-dim{fill:var(--scare-dark);opacity:0;animation:f-dim 2.4s ease-in-out infinite alternate}
+@keyframes f-dim{from{opacity:0}to{opacity:.75}}
+.tpanel.tp-peek{position:relative;overflow:hidden;animation:tp-glitch var(--peek,1.2s) ease-in-out}
+.tp-face{position:absolute;right:0;top:8%;height:84%;aspect-ratio:1;z-index:3;pointer-events:none;opacity:0;transform:translateX(100%);animation:tp-peek var(--peek,1.2s) ease-out forwards}
+.tp-face .bot{display:block;width:100%;height:100%}
+@keyframes tp-peek{0%{opacity:0;transform:translateX(100%)}80%,100%{opacity:1;transform:translateX(28%)}}
+@keyframes tp-glitch{0%,100%{transform:none}35%{transform:skewX(3deg)}65%{transform:skewX(-2deg)}}
+
+/* ---------- TERROR's looks: terror-mode (a darker arena, dimmer stage lights, eyes that glow longer); THE BUILD-UP (body
+   .st-dread: the #stDread layer fades in over dimMs, the static and the emergency light fade out, every animation in the
+   arena holds still; the target panel is outside the arena and stays readable); LIGHTS OUT (#loLayer: the arena dark,
+   only the machines' eyes glowing in #loEyes, game.js places them every frame); the MAESTRO's sightings (#stSight: a
+   dark shape that fades in and out, never a flash) ---------- */
+.terror-mode .vignette{background:radial-gradient(ellipse at 50% 60%,transparent 18%,rgba(4,2,10,.97))}
+.terror-mode .fluoro{opacity:.16}
+.terror-mode .stage-back{opacity:.55}
+.terror-mode .cabs{opacity:.2}
+.terror-mode .bots .bot.glitch .a-eyeglow{opacity:.62}
+.terror-mode .bots .bot.glitch .a-eye,.terror-mode .bots .bot.glitch .a-eyeglow{animation-duration:5.2s}
+.st-dread-layer{position:absolute;inset:0;z-index:540;pointer-events:none;background:var(--scare-dark);opacity:0;transition:opacity var(--dim,1.6s) ease-in-out}
+body.st-dread .st-dread-layer{opacity:.72}
+.static,.emergency{transition:opacity var(--dim,1.6s) ease-in-out}
+body.st-dread .static,body.st-dread .emergency{opacity:0!important;animation:none!important}
+body.st-dread #arena *,body.st-dread #arena *::before,body.st-dread #arena *::after{animation-play-state:paused!important}
+.lo-layer{position:absolute;inset:0;z-index:530;pointer-events:none;background:var(--scare-dark);opacity:0;transition:opacity .7s ease-in-out}
+.arena.lo-dark .lo-layer{opacity:.95}
+.arena.lo-dark .tether{opacity:0}
+.lo-eyes{position:absolute;inset:0;z-index:535;pointer-events:none}
+.lo-eyes i{position:absolute;border-radius:50%;translate:-50% -50%;background:var(--st-red);box-shadow:0 0 8px var(--st-red),0 0 18px color-mix(in srgb,var(--st-red) 55%,transparent)}
+.st-sight{position:absolute;left:50%;translate:-50% 0;aspect-ratio:.7;pointer-events:none;opacity:0;visibility:hidden}
+.st-sight.on{visibility:visible;animation:st-sight var(--sight,1.4s) ease-in-out forwards}
+.st-sight.s1{top:13%;height:26%;z-index:5}
+.st-sight.s2{top:22%;height:50%;z-index:60}
+.st-sight .bot{display:block;width:100%;height:100%}
+.st-sight .bot-svg *{fill:var(--scare-dark)!important;stroke:var(--scare-dark)!important}
+@keyframes st-sight{0%{opacity:0}30%,70%{opacity:.92}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .face-svg .f-dim,.tpanel.tp-peek,.tp-face{animation:none!important}
+}
 
 /* portrait and phones: the panel goes below the arena (staff left, count right) and the arena gives it room */
 @media (orientation:portrait),(max-width:760px){
@@ -554,3 +621,5 @@ body.st-frozen #arena *,body.st-frozen #arena *::before,body.st-frozen #arena *:
   .band-bot.leaving{transition:opacity .3s;transform:none}
 }
 html.no-motion .band-bot.leaving{transition:opacity .3s;transform:none}
+.tether line{transition:opacity var(--dim,1.6s) ease-in-out}
+body.st-dread .tether line{opacity:.18}

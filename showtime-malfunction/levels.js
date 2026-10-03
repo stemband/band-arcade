@@ -204,8 +204,33 @@ window.SHOWTIME_SPECIALS = {
      notBefore   never in the first seconds of a showtime (it waits)
      apart       at least this many seconds between two scares (the second waits)
      bossGuard   never in the last seconds of a boss phase (the Maestro this close to the front, or 2 plays or fewer left)
-     ms          how long a scare lasts, and `beat` = the pause after it before the band moves again */
-window.SHOWTIME_SCARES = {at: {short: [.4], long: [.25, .55]}, longFrom: 7, delay: 1, notBefore: 6, apart: 6, bossGuard: 5, ms: 1300, beat: 700};
+     ms          how long a scare lasts, and `beat` = the pause after it before the band moves again
+   Every scare fills the ENTIRE screen (game.js scare(): #scare is a full-viewport overlay above everything).
+
+   TERROR (the fourth SPOOKY LEVEL, after its own warning; only if shared/teacher-settings.js TERROR_ALLOWED): `terror`
+     count       scares per showtime (1–8); NIGHTMARE = `nightmare`. Planned by PROGRESS like Jump Scare: `at[n]` = the
+                 shares of the showtime's animatronics that have walked on, for n scares; the same guards (notBefore,
+                 apart, bossGuard, never at the very end)
+     buildUpS    [fewest, most] seconds of THE BUILD-UP before each scare (and each fake-out): the lights slowly dim
+                 (dimMs, one smooth fade), the static and the emergency light fade out, every machine freezes mid-step,
+                 the show waits (like a scare, so it never costs anything), dead silence; the target panel stays readable
+     fakeChance  the share of build-ups that end in NOTHING (a fake-out): the lights come back slowly (`recoverMs`), the
+                 band moves again, and the real scare comes `fakeDelayS` [fewest, most] seconds later (inside the same
+                 guards; never dropped at the end of a show). At most `fakeMax` a show, never two in a row
+     kinds       the 8 kinds Terror picks from (never the same twice in a row); Jump Scare keeps its first 4
+     faceHoldMs  FACE: how long the broken face fills the screen before it snaps away
+     peekMs      PANEL: how long the face eases in from the target panel's edge before its full-screen lunge (≥ 1 s)
+     lightsOutS  LIGHTS OUT: [fewest, most] seconds the arena is dark (the eyes glow, the band keeps walking, the
+                 student keeps playing: no freeze, no sound). `lightsOutEyes` = the share that end in a full-screen EYES
+                 scare. Never with a machine within `bossGuard` s of the front, never with 2 or fewer machines left
+     sightS      MAESTRO: [fewest, most] seconds between his two silent sightings (the back of the stage, then closer)
+                 and between the second and his full-screen lunge (after a build-up). Never in Showtime 8 or the Encore
+     sightMs     how long each sighting shows (a dark shape that fades in and out: never a flash) */
+window.SHOWTIME_SCARES = {at: {short: [.4], long: [.25, .55]}, longFrom: 7, delay: 1, notBefore: 6, apart: 6, bossGuard: 5, ms: 1300, beat: 700,
+  terror: {count: [2, 2, 2, 3, 3, 3, 4, 4], nightmare: 4, at: {2: [.3, .65], 3: [.2, .45, .7], 4: [.15, .35, .55, .75]},
+    buildUpS: [2, 3.5], dimMs: 2000, recoverMs: 1600, fakeChance: .35, fakeDelayS: [8, 20], fakeMax: 2,
+    kinds: ['lunge', 'eyes', 'popup', 'band', 'face', 'panel', 'lightsout', 'maestro'],
+    faceHoldMs: 600, peekMs: 1200, lightsOutS: [2, 3], lightsOutEyes: .5, sightS: [10, 20], sightMs: 1400}};
 
 /* THE ENCORE (ENDLESS MODE, shared/endless.js: the ∞ card under the showtimes, the Top 5, GAME OVER). The animatronics
    keep coming, faster and faster, until all 3 spotlights are out. Every time here is RUN TIME: the pausable show clock
