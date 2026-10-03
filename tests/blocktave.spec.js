@@ -1327,10 +1327,10 @@ test.describe('Blocktave: the CRAFT panel layout (materials right under the slot
     const src = await box(page, '#craftItems .bt-mat:last-child'), panel = await box(page, '#craft');
     await page.mouse.move(src.l + 20, src.t + 20); await page.mouse.down();
     await page.mouse.move(src.l + 30, panel.t + 10, {steps: 10});
-    await page.waitForTimeout(400);
-    const after = await page.locator('#craft').evaluate(e => e.scrollTop);
+    // the panel scrolls on the page's animation frames, which a busy WebKit runner starves: wait for the scroll itself
+    // (on a timer), never a fixed time
+    await expect.poll(() => page.locator('#craft').evaluate(e => e.scrollTop), {message: 'the panel scrolled up', intervals: [100], timeout: 10000}).toBeLessThan(before);
     await page.mouse.move(src.l + 30, panel.t + 10); await page.mouse.up();
-    expect(after, 'the panel scrolled up').toBeLessThan(before);
   });
 
   test('the materials heading says how; the first open shows a one-line tip, later opens do not', async ({page}) => {

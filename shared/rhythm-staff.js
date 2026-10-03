@@ -11,13 +11,24 @@
          showTime    the time signature (default: on the first measure only)
          final       a final double bar at the end (default: when the row ends the rhythm)
          id          a prefix for element ids (several staffs on one page)
+         sticking    false (default): true = R / L under each head (small under grace heads), as large as the counting's
+                     big syllables; with the counting on it goes under the counting and the staff is 40 px taller
+         rolls       'slash' (default): each / a bold diagonal centered on the stem, halfway between head and beam (// /// stacked);
+                     'written': a / note drawn as its two strokes (half the value, same hand, beamed by the beat: 32nds
+                     get a third beam), each its own g.rn with data-s 0 / 1. A z is a small "z" on the stem either way.
+       Accents (>) are drawn above the stems and beams (above a triplet's 3: then the drawing moves down `lift` px) and
+       grace notes left of their note (one: a small slashed eighth; two or more: small beamed sixteenths; a small slur from the first grace to the note, drawing only), with
+       room made before them. These come from the text, so a rhythm without them draws exactly as before.
+       Also returns `strokes`: [{n, s, x}] one per drawn head (graces s < 0), for lighting each stroke as it plays; in
+       'written' mode `notes` and `xs` are the drawn strokes (each keeps its parsed note's i, plus s).
      Arcade.RhythmStaff.refine(root)   re-measures the counting with the real font (after the SVG is in the page), so the
                                        small syllables sit right after the big one and the underline spans them exactly
      Arcade.RhythmStaff.rows(parsed, maxPerRow)  -> [[from, to], …] measures split evenly into rows
 
    THE PARTS (classes, for a game's CSS): notes `g.rn` (data-n = note index, data-g = counting group), counting groups
    `g.rc` (data-g) holding `text.rc-big` (data-t = its tick), `text.rc-small` (data-t), `text.rc-par` (rest parentheses)
-   and `line.rc-u` (the underline under the small syllables only). Colors are currentColor: style them with tokens.
+   and `line.rc-u` (the underline under the small syllables only); rudiments: `text.rs-hand` (data-n, data-s),
+   `text.rs-hand.grace`, `path.rs-acc`, `g.rs-grace` (data-n = the main note), `path.rs-slash`, `text.rs-buzz`, `path.rs-gslur` (a grace group's slur, drawing only). Colors are currentColor: style them with tokens.
    SPACING like printed music: space grows with the note's length (log), then widened wherever a note's counting
    needs more room than its value gives; a fixed pad after every bar line. */
 window.Arcade = window.Arcade || {};
@@ -39,6 +50,15 @@ window.Arcade = window.Arcade || {};
     return w;
   }
   const durW = d => S.base + S.grow * Math.log2(Math.max(1, d / 3));
+  /* RUDIMENT NOTATION: grace notes (GR: the last one `lead` px left of its note, `step` apart, `pad` more room before them),
+     the sticking row (HAND: the letters as large as the counting's big syllables; `below` = its drop under the counting) */
+  const GR = {lead: 24, step: 13, pad: 8, sc: .62, stem: 26}, HAND = {fs: 30, grace: 18, below: 40}, ACC_Y = TOP - 9, ACC_TRIP_Y = TOP - 27, TRIP_LIFT = 16;
+  const graceRoom = n => n.graces && n.graces.length ? GR.lead + (n.graces.length - 1) * GR.step + GR.pad : 0;
+  const graceX = (n, x, j) => x - GR.lead - (n.graces.length - 1 - j) * GR.step;
+  const HALF = {w: 'h', h: 'q', q: 'e', e: 's', s: 't'}, LEVELS = {e: 1, s: 2, t: 3};
+  /* rolls: 'written': a slashed note becomes its two strokes (half the value each, same hand; s = 0, 1) */
+  const writeOut = list => list.flatMap(n => n.rest || !n.roll || n.buzz ? [n] : [0, 1].map(s => Object.assign({}, n,
+    {t: n.t + s * n.d / 2, d: n.d / 2, val: HALF[n.val], s, roll: 0, accent: s ? false : n.accent, graces: s ? [] : n.graces, tie: s ? n.tie : false})));
 
   function rows(p, maxPerRow) {
     const n = Math.max(1, p.measures), k = Math.ceil(n / Math.max(1, maxPerRow)), per = Math.ceil(n / k), out = [];
@@ -48,9 +68,9 @@ window.Arcade = window.Arcade || {};
 
   function engrave(p, o = {}) {
     const C = A.Counting, M = p.meter, from = o.from || 0, to = o.to == null ? p.measures : o.to;
-    const counting = o.counting !== false, pre = o.id || 'rs';
+    const counting = o.counting !== false, pre = o.id || 'rs', sticking = !!o.sticking, written = o.rolls === 'written';
     const t0 = from * M.per, t1 = to * M.per;
-    const notes = p.notes.filter(n => n.t >= t0 && n.t < t1);
+    const parsedHere = p.notes.filter(n => n.t >= t0 && n.t < t1), notes = written ? writeOut(parsedHere) : parsedHere;
     const groups = o.groups || C.groups(p);
     const groupOf = {}; groups.forEach(g => g.notes.forEach(i => { groupOf[i] = g; }));
     const showTime = o.showTime == null ? from === 0 : o.showTime;
@@ -58,18 +78,18 @@ window.Arcade = window.Arcade || {};
 
     /* ---------- horizontal layout ---------- */
     const x0 = showTime ? S.head : S.head - 40;
-    const w = notes.map(n => durW(n.d) + (n.dots ? 8 : 0));
+    const w = notes.map(n => durW(n.d) + (n.dots ? 8 : 0)), gr = notes.map(graceRoom);
     const xs = [];
     const place = () => {
       let x = x0, m = notes.length ? notes[0].measure : from; const bars = [];
       notes.forEach((n, k) => {
         if (n.measure !== m) { const bx = x - S.gap; bars.push({x: bx, m}); x = bx + S.barPad; m = n.measure; }
-        xs[k] = x; x += w[k];
+        x += gr[k]; xs[k] = x; x += w[k];
       });
       return {bars, end: x - S.gap};
     };
     // the counting groups this row shows, with the note (index into `notes`) they are drawn at
-    const idx = {}; notes.forEach((n, k) => { idx[n.i] = k; });
+    const idx = {}, lastIdx = {}; notes.forEach((n, k) => { if (!n.s) idx[n.i] = k; lastIdx[n.i] = k; });
     const shown = [];
     if (counting) groups.forEach(g => {
       if (g.end <= t0 || g.t >= t1) return;
@@ -106,7 +126,7 @@ window.Arcade = window.Arcade || {};
     else out.push(`<line class="rs-bar" x1="${round(endX)}" y1="${LINE - 22}" x2="${round(endX)}" y2="${LINE + 22}" stroke="currentColor" stroke-width="2"/>`);
 
     // beams: runs of eighths/sixteenths in one beat (6/8: a dotted quarter); rests break them; a triplet is its own group
-    const unit = M.compound ? 18 : 12, beamable = n => !n.rest && (n.val === 'e' || n.val === 's');
+    const unit = M.compound ? 18 : 12, beamable = n => !n.rest && !!LEVELS[n.val];
     const beamOf = {}, beams = [];
     for (let k = 0; k < notes.length; k++) {
       const n = notes[k];
@@ -117,6 +137,7 @@ window.Arcade = window.Arcade || {};
     }
     beams.filter(b => b.ks.length > 1).forEach(b => b.ks.forEach(k => { beamOf[k] = b; }));
 
+    const strokes = [];
     notes.forEach((n, k) => {
       const x = xs[k], g = groupOf[n.i], gi = g ? g.g : -1;
       const parts = [];
@@ -127,23 +148,37 @@ window.Arcade = window.Arcade || {};
         if (n.val !== 'w') {
           const sx = x + STEM_DX;
           parts.push(`<line x1="${round(sx)}" y1="${LINE - 2}" x2="${round(sx)}" y2="${TOP}" stroke="currentColor" stroke-width="2.4"/>`);
-          if (!beamOf[k] && (n.val === 'e' || n.val === 's')) parts.push(flagSVG(sx, n.val === 's' ? 2 : 1));
+          if (!beamOf[k] && LEVELS[n.val]) parts.push(flagSVG(sx, LEVELS[n.val]));
+        }
+        if (n.roll || n.buzz) {
+          // halfway between the head and the beam (the stem's end when there is no beam; a whole note: above its head)
+          const stem = n.val !== 'w', cx = stem ? x + STEM_DX : x;
+          const top = beamOf[k] ? TOP + (LEVELS[n.val] - 1) * 10 + 6.5 : TOP, mid = stem ? (top + LINE - HEAD_RY - 2) / 2 : LINE - 22;
+          if (n.roll) parts.push(slashSVG(cx, mid, n.roll));
+          else parts.push(`<text class="rs-buzz" x="${round(cx)}" y="${round(mid + HAND.grace * .3)}" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="${HAND.grace}" text-anchor="middle" fill="currentColor">z</text>`);
         }
       }
       if (n.dots) for (let d = 0; d < n.dots; d++) parts.push(`<circle cx="${round(x + 15 + d * 8)}" cy="${LINE - 5}" r="2.8" fill="currentColor"/>`);
-      out.push(`<g class="rn${n.rest ? ' rest' : ''}" data-n="${n.i}" data-g="${gi}" id="${pre}-n${n.i}">${parts.join('')}</g>`);
+      out.push(`<g class="rn${n.rest ? ' rest' : ''}" data-n="${n.i}"${written ? ` data-s="${n.s || 0}"` : ''} data-g="${gi}" id="${pre}-n${n.i}${n.s ? 's' + n.s : ''}">${parts.join('')}</g>`);
+      if (!n.rest && n.graces && n.graces.length) out.push(graceSVG(n, x), graceSlurSVG(n, x));
+      if (!n.rest) {
+        strokes.push({n: n.i, s: n.s || 0, x: round(x)});
+        if (n.graces) n.graces.forEach((h, j) => strokes.push({n: n.i, s: j - n.graces.length, x: round(graceX(n, x, j))}));
+      }
     });
+    strokes.sort((a, b) => a.n - b.n || a.s - b.s);
     // beams (primary + the sixteenths' secondary beams, a stub for a lone sixteenth)
     beams.filter(b => b.ks.length > 1).forEach(b => {
       const sx = k => xs[k] + STEM_DX, first = b.ks[0], last = b.ks[b.ks.length - 1];
       out.push(`<rect class="rs-beam" x="${round(sx(first) - 1.2)}" y="${TOP}" width="${round(sx(last) - sx(first) + 2.4)}" height="6.5" fill="currentColor"/>`);
-      b.ks.forEach((k, j) => {
-        if (notes[k].val !== 's') return;
+      for (let lv = 2; lv <= 3; lv++) b.ks.forEach((k, j) => {         // 2: the sixteenths' beam, 3: the 32nds'
+        const has = q => q != null && LEVELS[notes[q].val] >= lv, y = TOP + (lv - 1) * 10;
+        if (!has(k)) return;
         const nx = b.ks[j + 1], pv = b.ks[j - 1];
-        if (nx != null && notes[nx].val === 's') out.push(`<rect x="${round(sx(k) - 1.2)}" y="${TOP + 10}" width="${round(sx(nx) - sx(k) + 2.4)}" height="6.5" fill="currentColor"/>`);
-        else if (!(pv != null && notes[pv].val === 's')) {
+        if (has(nx)) out.push(`<rect x="${round(sx(k) - 1.2)}" y="${y}" width="${round(sx(nx) - sx(k) + 2.4)}" height="6.5" fill="currentColor"/>`);
+        else if (!has(pv)) {
           const toL = pv != null && (nx == null || notes[pv].dots), x1 = toL ? sx(k) - 11 : sx(k) - 1.2;
-          out.push(`<rect x="${round(x1)}" y="${TOP + 10}" width="12.2" height="6.5" fill="currentColor"/>`);
+          out.push(`<rect x="${round(x1)}" y="${y}" width="12.2" height="6.5" fill="currentColor"/>`);
         }
       });
     });
@@ -158,13 +193,26 @@ window.Arcade = window.Arcade || {};
     // ties (under the heads, stems are up); half ties at the edges of a row
     p.notes.forEach(n => {
       if (!n.tie) return;
-      const a = idx[n.i], b = idx[n.i + 1];
+      const a = lastIdx[n.i], b = idx[n.i + 1];
       if (a == null && b == null) return;
       const xa = a != null ? xs[a] + 4 : x0 - 30, xb = b != null ? xs[b] - 4 : endX + 4;
       out.push(tieSVG(xa, xb));
     });
+    // accents: a > above the note, above the beam (every stem reaches TOP), above a triplet's 3
+    notes.forEach((n, k) => { if (n.accent && !n.rest) out.push(accentSVG(xs[k], n.trip ? ACC_TRIP_Y : ACC_Y)); });
     // the counting
     if (counting) shown.forEach(s => out.push(countingSVG(s, xs[s.at], pre)));
+    // the sticking: R / L under each head (small under the grace notes); under the counting when both are shown
+    const handY = counting ? BIG.y + HAND.below : BIG.y;
+    if (sticking) {
+      const letters = [];
+      notes.forEach((n, k) => {
+        if (n.rest) return;
+        if (n.graces) n.graces.forEach((h, j) => letters.push(handSVG(h, graceX(n, xs[k], j), handY, HAND.grace, n.i, j - n.graces.length, true)));
+        if (n.hand) letters.push(handSVG(n.hand, xs[k], handY, HAND.fs, n.i, n.s || 0, false));
+      });
+      out.push(`<g class="rs-sticking" font-family="'GN Text','Atkinson Hyperlegible',sans-serif" font-weight="700" fill="currentColor" text-anchor="middle">${letters.join('')}</g>`);
+    }
 
     const xAt = tick => {
       if (!notes.length) return x0;
@@ -175,8 +223,11 @@ window.Arcade = window.Arcade || {};
       }
       return endX - (final ? 10 : 2);
     };
-    const svg = `<svg class="rs" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${o.label || 'Rhythm'}" data-from="${from}" data-to="${to}">${out.join('')}</svg>`;
-    return {svg, w: W, h: H, xAt, xs, notes, bars: L.bars, from, to, t0, t1};
+    // an accented triplet's > goes above its 3: the drawing moves down to make room
+    const lift = notes.some(n => n.accent && n.trip) ? TRIP_LIFT : 0, Ht = H + (sticking && counting ? HAND.below : 0) + lift;
+    const body = lift ? `<g transform="translate(0 ${lift})">${out.join('')}</g>` : out.join('');
+    const svg = `<svg class="rs" viewBox="0 0 ${W} ${Ht}" width="${W}" height="${Ht}" role="img" aria-label="${o.label || 'Rhythm'}" data-from="${from}" data-to="${to}">${body}</svg>`;
+    return {svg, w: W, h: Ht, xAt, xs, notes, strokes, bars: L.bars, from, to, t0, t1, lift};
   }
 
   function flagSVG(sx, n) {
@@ -186,6 +237,48 @@ window.Arcade = window.Arcade || {};
       s += `<path d="M${round(sx)} ${y}c1 7 12 10 11 20c-.4 4-2 7-3.4 9c1-3 1.6-6 .6-9c-1.4-5-6-7-8.2-8.4z" fill="currentColor"/>`;
     }
     return s;
+  }
+  /* a roll's slashes: bold diagonals (about a beam's thickness) centered on the stem at `mid`, rising left to right;
+     // and /// stack parallel, evenly spaced around mid */
+  const SL = {half: 7, rise: 2.5, thick: 4.6, gap: 8};
+  function slashSVG(cx, mid, n) {
+    let s = '';
+    for (let j = 0; j < n; j++) {
+      const cy = mid + (j - (n - 1) / 2) * SL.gap, t = SL.thick / 2, l = cx - SL.half, r = cx + SL.half;
+      s += `<path class="rs-slash" d="M${round(l)} ${round(cy + SL.rise + t)}L${round(r)} ${round(cy - SL.rise + t)}L${round(r)} ${round(cy - SL.rise - t)}L${round(l)} ${round(cy + SL.rise - t)}z" fill="currentColor"/>`;
+    }
+    return s;
+  }
+  function accentSVG(x, y) {
+    return `<path class="rs-acc" d="M${round(x - 7)} ${round(y - 4.5)}L${round(x + 7)} ${round(y)}L${round(x - 7)} ${round(y + 4.5)}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="miter"/>`;
+  }
+  /* grace notes before the note at x: one = a small eighth with a slash (a flam); two or more = small beamed sixteenths */
+  function graceSVG(n, x) {
+    const g = n.graces, rx = HEAD_RX * GR.sc, ry = HEAD_RY * GR.sc, top = LINE - GR.stem, parts = [];
+    const sxs = g.map((h, j) => graceX(n, x, j) + STEM_DX * GR.sc);
+    g.forEach((h, j) => {
+      const gx = graceX(n, x, j);
+      parts.push(`<ellipse cx="${round(gx)}" cy="${LINE}" rx="${round(rx)}" ry="${round(ry)}" transform="rotate(-20 ${round(gx)} ${LINE})" fill="currentColor"/>`);
+      parts.push(`<line x1="${round(sxs[j])}" y1="${LINE - 1}" x2="${round(sxs[j])}" y2="${top}" stroke="currentColor" stroke-width="1.6"/>`);
+    });
+    if (g.length === 1) {
+      const sx = sxs[0];
+      parts.push(`<path d="M${round(sx)} ${top}c.6 4.3 7.4 6.2 6.8 12.4c-.25 2.5-1.2 4.3-2.1 5.6c.6-1.9 1-3.7.4-5.6c-.9-3.1-3.7-4.3-5.1-5.2z" fill="currentColor"/>`);
+      parts.push(`<line x1="${round(sx - 5)}" y1="${LINE - 8}" x2="${round(sx + 7)}" y2="${top + 5}" stroke="currentColor" stroke-width="1.6"/>`);
+    } else {
+      const a = sxs[0] - .8, wd = sxs[sxs.length - 1] - sxs[0] + 1.6;
+      parts.push(`<rect x="${round(a)}" y="${top}" width="${round(wd)}" height="3.6" fill="currentColor"/><rect x="${round(a)}" y="${top + 6}" width="${round(wd)}" height="3.6" fill="currentColor"/>`);
+    }
+    return `<g class="rs-grace" data-n="${n.i}">${parts.join('')}</g>`;
+  }
+  /* the grace-note slur: DRAWING ONLY (never a tie: the counting, strokes and ticks don't know it), under the heads from
+     the first grace head to its own main note's head, thin like a tie */
+  function graceSlurSVG(n, x) {
+    const x1 = graceX(n, x, 0), x2 = x - 2, y1 = LINE + 4, y2 = LINE + 6, m = (x1 + x2) / 2, d = 6;
+    return `<path class="rs-gslur" data-n="${n.i}" d="M${round(x1)} ${y1}Q${round(m)} ${y2 + d + 2} ${round(x2)} ${y2}Q${round(m)} ${y2 + d} ${round(x1)} ${y1}z" fill="currentColor" stroke="currentColor" stroke-width=".6"/>`;
+  }
+  function handSVG(h, x, y, fs, n, s, grace) {
+    return `<text class="rs-hand${grace ? ' grace' : ''}" data-n="${n}" data-s="${s}" x="${round(x)}" y="${y}" font-size="${fs}">${h}</text>`;
   }
   function tieSVG(x1, x2) {
     const y = LINE + 9, m = (x1 + x2) / 2, d = Math.min(12, 5 + (x2 - x1) * .06);
