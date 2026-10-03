@@ -564,14 +564,21 @@
     const nb = G.slurB[G.lap + 1];
     $('pitStaff').innerHTML = nb ? slurStaff(nx, nb, 260) : staff(nx, 260);
     $('pitName').textContent = nb ? `${nx.label} ⌒ ${nb.label} (slur!)` : nx.label;
-    $('pit').hidden = false; $('coach').textContent = 'Breathe in…';
+    $('pit').hidden = false; G.pitBeat = -1; pitCoach();
     banner(`LAP ${G.lap + 1} · ${t.toFixed(1)} s`, 'lap', 1200);
     sfx('pit-in');                                              // a rest: the mic is ignored here anyway
   }
+  /** THE PIT COUNTDOWN: pitSec (on the race clock: it pauses with it) in 4 equal beats: "Breathe in…", then a big 3, 2, 1;
+      leavePit()'s "GO!" banner is the 4th count. Only redrawn when the beat changes, so each number pops in once. */
   function pitCoach() {
-    const into = G.clock - G.pitStart, beat = R.pitSec / 4.4;      // "Breathe in… 2… 3… 4", then GO
-    const n = Math.floor(into / beat);
-    $('coach').textContent = n <= 0 ? 'Breathe in…' : n < 4 ? `${n + 1}…` : 'Ready…';
+    const beat = R.pitSec / 4, n = Math.max(0, Math.min(3, Math.floor((G.clock - G.pitStart) / beat)));   // 0 = "Breathe in…", 1–3 = 3, 2, 1
+    if (n === G.pitBeat) return;
+    G.pitBeat = n;
+    const c = $('coach'), num = n > 0;
+    $('coachSub').hidden = !num;
+    c.textContent = num ? String(4 - n) : 'Breathe in…';
+    c.classList.toggle('coach-num', num);
+    c.classList.remove('pop'); if (num) { void c.offsetWidth; c.classList.add('pop'); }   // restart the gentle pop (none under reduced motion: style.css)
   }
   function leavePit() {
     G.lap++; G.dist = 0; G.lapStart = G.clock; G.phase = 'race';
@@ -1472,6 +1479,7 @@
 
   A.Speedway = {debug: () => G, hearing: () => S, rules: R, countSounds: COUNT_SOUNDS, car: () => G && G.car,    // tests
     steer: () => G && {steer: G.steer, x: G.carX, word: steerShown},
+    pitCoach: () => { if (G && G.phase === 'pit') pitCoach(); },
     skipChecks: () => { if (!dynLevels()) setDynLevels(-30, -14); if (G && G.phase === 'vcheck') endCheck(-30, -14); },
     dyn: () => G && {levels: dynLevels(), zone: zoneNow(), mul: S.dynMul, norm: S.norm, zones: G.zones, check: G.vc && {step: G.vc.step, result: G.vc.result}},
     slur: () => G && {laps: G.slurB.map(b => b && b.label), sl: G.sl && {lap: G.sl.lap, switched: G.sl.switched, result: G.sl.result, broke: G.sl.broke}, slurs: G.slurs, mul: S.slurMul, target: item() && item().label},
