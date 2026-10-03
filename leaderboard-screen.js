@@ -231,7 +231,10 @@ window.Arcade = window.Arcade || {};
   function draw() {
     if (!S.el) return;
     const st = L().settings();
-    const head = `<header class="lb-head"><h2 id="lbTitle" class="lb-title"><span aria-hidden="true">🏆</span> Leaderboard</h2>` +
+    // 🏆 LEADERBOARD 🏆, centered on the whole panel (a 3-column header: an empty column as wide as ✕ on the left);
+    // the trophies are aria-hidden, so the heading still reads "Leaderboard"
+    const head = `<header class="lb-head"><span class="lb-head-pad" aria-hidden="true"></span><h2 id="lbTitle" class="lb-title">` +
+      `<span class="lb-trophy" aria-hidden="true">🏆</span><span class="lb-t-word">Leaderboard</span><span class="lb-trophy lb-trophy-r" aria-hidden="true">🏆</span></h2>` +
       `<button type="button" class="lb-x" data-act="close" aria-label="Close the leaderboard">✕</button></header>`;
     if (S.asking) {
       S.el.innerHTML = `<div class="lb-in">${head}<div class="lb-ask"><h3>What grade are you in?</h3><div class="lb-grades">` +
