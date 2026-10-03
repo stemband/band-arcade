@@ -22,7 +22,11 @@ Mat Graham (middle school band director) owns this project. It's a set of mic-dr
 - Games must work on iPad Safari. The mic and AudioContext start only from a tap, via `Arcade.requireMic(fn)`.
 - Keep the student-facing copy plain and encouraging. Students are 11–14.
 - Band Ninja features are optional. Never add a login or make any game depend on a Band Ninja link, code or PIN.
-- **THE LEADERBOARD ENDPOINT IS THE ONLY PLACE THE ARCADE MAY SEND DATA** (`Arcade.LEADERBOARD_URL` in `shared/leaderboard-config.js`, only through `shared/leaderboard.js`), and ONLY these fields: `{pid (random device id), grade, name: [title, adjective, noun] word NUMBERS, game, type ('stars'|'endless'|'play'), value, level}`. Never add names, emails, PINs, typed text or any other personal data, never another endpoint, analytics or third-party script. Nothing is sent in `?demo`, with the student's "Show me on the leaderboard" switch off, without a grade, or when the URL is empty. Every other request the arcade makes is to its own files.
+- **THE PRIVACY RULE. Only two things ever send data off a device:**
+  1. **shared/leaderboard.js, with ONLY {pid, grade, name numbers, game, type, value, level};**
+  2. **shared/bug-report.js, with ONLY {type: 'error', game, message, where, browser, version, count} and nothing about the student.**
+
+  **Never add a field to either without Mr. Graham's OK.** Both go only to `Arcade.LEADERBOARD_URL` (`shared/leaderboard-config.js`). Never names, emails, PINs, typed text or any other personal data, never another endpoint, analytics or third-party script. The leaderboard sends nothing in `?demo`, with the student's "Show me on the leaderboard" switch off, without a grade, or when the URL is empty; bug reports send nothing in `?demo`, in the test runner, in a 'dev' version, with teacher-settings.js `BUG_REPORTS: false` or when the URL is empty (details: [docs/engine/leaderboard.md](docs/engine/leaderboard.md)). Every other request the arcade makes is to its own files.
 - **Saved ids never change.** Never reorder, rename or remove anything a save or a link points to: songs, levels, belts, districts, chapters, vaults, rivals, tracks, game and zone ids, item/part/skin ids, block and recipe ids, progress keys, `avatar-code.js` TABLE entries, the name word lists, Quest code lists. Add at the end, or write a one-time migration in `storage.js` `migrate()`. Each topic doc says which of its ids are saved.
 - **The GMEA sheets are the source for ranges and scales.** Instrument ranges = `MEMBERS` in `shared/instruments.js`; starting notes and audition scales = `START`, `AUDITION`, `CHROMATIC_HS` in `shared/scales.js`. If GMEA changes a sheet, edit those tables, never a game.
 - **When you change a game or system, update ITS doc file in the same change. Never put game details back into CLAUDE.md.** CLAUDE.md holds only the summary, these hard rules, the checklist and the index.
@@ -49,7 +53,7 @@ Engine and shared systems (`docs/engine/`):
 | [rhythm.md](docs/engine/rhythm.md) | rhythms, counting, the rhythm staff, onsets (claps/hits), calibration and the audio clock, the rhythm judge, the timing check |
 | [avatars.md](docs/engine/avatars.md) | avatars, the creator, parts and names, avatar backgrounds and animation, item unlocks, portraits, skins, the Locker, the avatar badge |
 | [seasons.md](docs/engine/seasons.md) | seasonal events, event items, the lobby's event banner and panel, seasonal looks |
-| [leaderboard.md](docs/engine/leaderboard.md) | the leaderboard endpoint, its events, its screen, privacy |
+| [leaderboard.md](docs/engine/leaderboard.md) | the leaderboard endpoint, its events, its screen, privacy, the anonymous BUG REPORTS (`shared/bug-report.js`) |
 | [prize-counter.md](docs/engine/prize-counter.md) | tokens (`shared/tokens.js`), the Prize Counter, the Token Booth's prices, the prize of the week, the seasonal shelf |
 | [progress-and-saving.md](docs/engine/progress-and-saving.md) | `Arcade.store`, saved progress, migrations, the Arcade Backup Code, Quest save codes, the lobby's SAVE YOUR PROGRESS nudge (`shared/backup-nudge.js`) |
 | [endless.md](docs/engine/endless.md) | an Endless mode (`shared/endless.js`) |

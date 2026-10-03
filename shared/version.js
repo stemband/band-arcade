@@ -12,6 +12,8 @@
    home-screen icon, the iPad "web app" tags) and loads shared/app.js (the service worker sw.js, the update banner,
    install help, the first-launch "Bring your progress" panel), so no page has to list them. A page that must not
    (the avatar card, shown inside other sites) has <meta name="arcade-app" content="off"> above its version lines.
+   BUG REPORTS: checkVersion first loads shared/leaderboard-config.js, shared/teacher-settings.js and
+   shared/bug-report.js on every page (not one shown inside other sites), so an error anywhere after them is heard.
    THE UI KIT: checkVersion also loads shared/ui-kit.css (before the page's own stylesheets, so a game can re-theme a
    piece) and shared/ui-kit.js (Arcade.UI: pause, results, settings, intro, confirm, toast) on every page, and
    shared/tokens.js (Arcade.Tokens: the shared wallet, whose line "+3 ★ = 15 tokens at the Prize Counter" every results
@@ -96,6 +98,9 @@ window.Arcade.VERSION = 'dev';
       '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">' +
       '<meta name="apple-mobile-web-app-title" content="Band Arcade">' +
       '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">';
+    // ANONYMOUS BUG REPORTS (shared/bug-report.js) first, before anything else that can throw, with what it reads: the
+    // scoreboard address and the teacher's switch. Not on a page shown inside other sites (arcade-app off).
+    if (!off) h += ['shared/leaderboard-config.js', 'shared/teacher-settings.js', 'shared/bug-report.js'].map(f => `<script src="${A.v(R + f)}"><\/script>`).join('');
     h += `<link rel="stylesheet" href="${A.v(R + 'shared/ui-kit.css')}"><script src="${A.v(R + 'shared/ui-kit.js')}"><\/script>`;
     h += `<link rel="stylesheet" href="${A.v(R + 'shared/tokens.css')}">` +          // THE TOKEN ICON's pictures
       `<script src="${A.v(R + 'shared/tokens.js')}"><\/script>`;                  // THE SHARED WALLET (Arcade.Tokens): every page

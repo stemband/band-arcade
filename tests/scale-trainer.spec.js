@@ -590,6 +590,7 @@ test('no file mentions the old name, except the migration, the redirect, the old
     'tests/scale-trainer.spec.js': null,                     // these tests
     'tests/test-times.json': null,                           // their titles (shard-by-time.js's measured times)
     'tests/test-times.new.json': null,
+    'tests/shard.txt': null,                                 // CI's test list for this shard (tests.yml), with their titles too
   };
   const bad = [];
   (function walk(dir) {
