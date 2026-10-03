@@ -24,6 +24,20 @@ const barLayout = page => page.evaluate(() => {
   return {items, center: box(document.getElementById('fbCenter')), W: innerWidth, fit: document.getElementById('fbar').dataset.fit};
 });
 
+/** the bar's fit once it has stopped changing: the fonts loaded (WebKit's arrive late and widen the labels) and the
+    same step on three looks 200 ms apart */
+async function settledFit(page) {
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  let last = null, same = 0;
+  for (let k = 0; k < 40 && same < 3; k++) {
+    const f = await page.evaluate(() => document.getElementById('fbar').dataset.fit || null);
+    same = f && f === last ? same + 1 : 0; last = f;
+    await page.waitForTimeout(200);
+  }
+  expect(last, 'the top bar never settled on a fit').toBeTruthy();
+  return last;
+}
+
 test.describe('THE TOP BAR: three groups, centered, one row', () => {
   for (const [name, size] of SIZES) {
     test(`${name}: centered, no overlaps, one row, 44 px buttons`, {tag: '@quick'}, async ({page}) => {
@@ -31,8 +45,7 @@ test.describe('THE TOP BAR: three groups, centered, one row', () => {
       const watch = await prepare(page, {store: store('cabinets')});
       for (const hash of ['', '#zone=technique-lab', '#all-games', '#full-arcade']) {
         await page.goto('index.html?demo&nostart&flat' + hash);
-        await expect.poll(async () => (await barLayout(page)).fit).toBeTruthy();
-        await page.waitForTimeout(150);                         // (fonts: arcade.js fits the bar again once they arrive)
+        await settledFit(page);                                 // (fonts: arcade.js fits the bar again once they arrive)
         const L = await barLayout(page);
         const where = `${name} ${hash || 'lobby'} (${L.fit})`;
         // the center group's middle = the screen's middle
@@ -61,6 +74,8 @@ test.describe('THE TOP BAR: three groups, centered, one row', () => {
           if (L.fit === 'fit-tight') {                            // moved: into the avatar badge's menu
             expect(center.map(i => i.k)).toEqual(['view']);
             await page.locator('#avBadge .avb-btn').click();
+            await expect(page.locator('#avBadge .avb-menu')).toBeVisible();
+            expect(await page.evaluate(() => document.getElementById('fbar').dataset.fit), `${where}: the fit changed`).toBe('fit-tight');
             await expect(page.locator('#avBadge .avb-tune')).toBeVisible();
             if (await page.locator('#lbBtn').count() && await page.evaluate(() => Arcade.Leaderboard.available())) await expect(page.locator('#avBadge .avb-lb')).toBeVisible();
             await page.keyboard.press('Escape');
@@ -79,7 +94,7 @@ test.describe('THE TOP BAR: three groups, centered, one row', () => {
     await page.setViewportSize({width: 390, height: 844});
     const watch = await prepare(page);
     await page.goto('index.html?demo&nostart&flat#zone=technique-lab');
-    await expect.poll(async () => (await barLayout(page)).fit).toBe('fit-tight');
+    expect(await settledFit(page)).toBe('fit-tight');
     await page.locator('#avBadge .avb-btn').click();
     await page.locator('#avBadge .avb-tune').click();
     await page.waitForURL(/note-checker\/index\.html/, {timeout: 10_000});

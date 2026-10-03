@@ -680,10 +680,10 @@
   }
   let fitT = 0;
   const fitSoon = () => { cancelAnimationFrame(fitT); fitT = requestAnimationFrame(fitBar); };
-  addEventListener('resize', fitSoon);
+  addEventListener('resize', fitBar);                          // at once: a rotated iPad never shows a frame that doesn't fit
   if (typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(fitSoon);
-    ['fbCenter', 'avBadge', 'soundCtl', 'backBtn'].forEach(id => ro.observe($(id)));
+    ['fbar', 'fbCenter', 'avBadge', 'soundCtl', 'backBtn'].forEach(id => ro.observe($(id)));   // (the bar itself: any width change)
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
