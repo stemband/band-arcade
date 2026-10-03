@@ -29,4 +29,4 @@ Every change adds tests, so the suite stays fast by rule (October 2026: a pull r
 - **SHARED STATE:** none. Every test gets a fresh browser context (its own storage); seed storage with `prepare(page, {store})`.
 - **GALLERY:** screenshots for Mat's review only with `GALLERY=1`.
 - **WEBKIT ON CI** has no sound card (its audio clock doesn't keep time: Music Highway and Rhythm Dojo play with SOUND OFF there; Blocktave's 5 audio-clock tests run in Chromium only) and no GPU (its WebGL logs `glTexStorage2D: Texture is immutable`, ignored by helpers.js; `ResizeObserver loop` notices are ignored too).
-
+- BUG REPORTS IN THE TESTS: shared/bug-report.js is off in the test runner (`navigator.webdriver`) and in the repository's 'dev' version, so no test sends one by accident; tests/bug-report.spec.js turns both off on purpose (a pretend VERSION 'test1', `webdriver` false) to test it ([leaderboard.md](leaderboard.md)).

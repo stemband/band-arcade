@@ -18,11 +18,17 @@
                         (shared/answer-pad.js: Note Ninja, Dojo Duel, Keys to the City, Blocktave) show one button per
                         note of the set, already spelled (flute First 5 = B♭ C D E♭ F: one tap answers B♭); only
                         Chromatic keeps the ♭ ♮ ♯ Shift. false: the old Shift pad (♭ ♮ ♯ + A–G) everywhere, for a class
-                        practicing key signatures on purpose. */
+                        practicing key signatures on purpose.
+
+   BUG_REPORTS          true (the default): when something breaks on a student's device, a small ANONYMOUS note (the
+                        game, the error's message, the file name + line, the browser, the version, how many times)
+                        goes to your scoreboard's "Errors" tab (shared/bug-report.js; nothing about the student).
+                        false: nothing is ever sent. (This file is loaded on every page, so it counts everywhere.) */
 window.Arcade = window.Arcade || {};
 window.Arcade.TEACHER = Object.assign(window.Arcade.TEACHER || {}, {
   JUMP_SCARE_ALLOWED: true,
   SHOW_INSTALL_PROMPT: false,
   ASK_INSTRUMENT_EVERY_TIME: false,
   SPELL_ANSWER_BUTTONS: true,
+  BUG_REPORTS: true,                 // false: no anonymous bug reports to the scoreboard's "Errors" tab
 });

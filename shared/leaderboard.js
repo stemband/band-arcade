@@ -2,7 +2,8 @@
    Arcade.LEADERBOARD_URL, shared/leaderboard-config.js). Load after storage.js and leaderboard-config.js, on every
    page that saves progress (storage.js calls it when stars, Endless scores and plays happen).
 
-   PRIVACY: this is the ONLY code in the arcade that sends anything off the device, and ONLY these fields:
+   PRIVACY: this is one of the only TWO pieces of code that send anything off the device (the other is
+   shared/bug-report.js: anonymous bug reports, nothing about the student), and it sends ONLY these fields:
      {pid, grade, name: [titleNum, adjNum, nounNum], game, type: 'stars'|'endless'|'play', value, level}
    pid = a random 24-character id made once on this device (no name, no account); name = the avatar's words as their
    permanent NUMBERS (shared/avatar-names.js), never text. Nothing is sent unless ALL of these hold: an address is
