@@ -209,6 +209,13 @@ window.Arcade = window.Arcade || {};
     const waiting = L().queue().length + (L().heldCount ? L().heldCount() : 0);
     return waiting ? `Your stars this week: ${n}. Still sending…` : 'Not showing up? Ask Mr. Graham to check.';
   }
+  /** ?teacher: this device's ROOM CHECK and Classroom mode setting (shared/room-check.js, shared/pitch.js ROOM; the
+      floor page has no microphone, so "on right now" shows in a game's Settings with ?teacher) */
+  function micLine() {
+    const m = (A.store.peekGameData && A.store.peekGameData('mic')) || {}, c = m.room, t = A.TEACHER && A.TEACHER.CLASSROOM_MODE;
+    const mode = t === 'on' || t === 'off' ? `${t} (teacher setting)` : `${m.classroom || 'auto'} (this device)`;
+    return `<li>Room check: <b>${c ? `${esc(c.ratio)}× louder than the room` : 'none'}</b>${c ? ` · ${esc(c.at)} · ${esc(c.member || '')}` : ''} · Classroom mode: ${esc(mode)}</li>`;
+  }
   /** ?teacher: this device's leaderboard state + SEND NOW */
   function deviceDiag() {
     const d = L().diag ? L().diag() : null;
@@ -224,7 +231,7 @@ window.Arcade = window.Arcade || {};
       `<li>Last request: ${esc(lr)}</li>` +
       `<li>Last event accepted: ${esc(when(d.lastOk))}${d.lastRefused ? ` · last refused: ${esc(d.lastRefused.why)}, ${esc(agoPlain(d.lastRefused.at))}` : ''}</li>` +
       (d.regrade ? `<li>Grade changed ${esc(d.regrade.from)} → ${esc(d.regrade.to)} on ${esc(d.regrade.day)}</li>` : '') +
-      `<li>Sent in the last hour: ${d.sentLastHour} (at most ${L().PER_HOUR})</li></ul>` +
+      `<li>Sent in the last hour: ${d.sentLastHour} (at most ${L().PER_HOUR})</li>` + micLine() + `</ul>` +
       `<button type="button" class="btn btn-secondary btn-small lb-send-now" data-act="send-now"${S.sending ? ' disabled' : ''}>${S.sending ? 'Sending…' : 'Send now'}</button>` +
       (S.sendRes ? `<p class="lb-note lb-send-res" role="status">${esc(S.sendRes)}</p>` : '') + `</section>`;
   }

@@ -324,7 +324,7 @@ window.Arcade = window.Arcade || {};
   }
   /* (re)size the envelope window for the instrument / range being listened for */
   function sizeEnvelope() {
-    if (!env) return;
+    if (!env || !env.an) return;
     const w = env.minF ? (() => { let x = ENV.minWin; while (x < ENV.periods * env.sr / env.minF && x < ENV.maxWin) x *= 2; return x; })() : envWin(env.sr);
     if (env.an.fftSize !== w || !env.buf) { env.an.fftSize = w; env.buf = new Float32Array(w); env.hist = []; }
     const every = w <= 256 ? 5 : ENV.every;
@@ -335,9 +335,13 @@ window.Arcade = window.Arcade || {};
     if (P.paused) return;
     env.an.getFloatTimeDomainData(env.buf);
     let s = 0; const b = env.buf; for (let i = 0; i < b.length; i++) s += b[i] * b[i];
-    const e = Math.sqrt(s / b.length), h = env.hist;
+    envStep(now, Math.sqrt(s / b.length));
+  }
+  function envStep(now, e) {
+    const h = env.hist;
     h.push([now, e]); while (h.length && now - h[0][0] > Math.max(ENV.dipMs, 120) + 20) h.shift();
     if (h.length < 3 || e < P.gate * ENV.gateK || now - lastAttack < ENV.refractoryMs || now < P.suppressedUntil) return;
+    if (classroomNow() && e < attackRoomGate()) { roomWhy('attack below room gate'); return; }   // CLASSROOM MODE: other students' attacks
     const prev = h[h.length - 2][1];
     if (e <= prev) return;                                          // only on the way up
     let dip = Infinity, ago = null, before = 0;
@@ -354,7 +358,7 @@ window.Arcade = window.Arcade || {};
   function attackAt(time, pitch, level, rise) {
     lastAttack = time;
     if (pitch !== undefined) return fireAttack({time, pc: pitch ? pitch.pc : null, midi: pitch ? pitch.midi : null, level: level == null ? null : level, rise: rise == null ? null : rise});
-    pend.push({time, seen: [], level, rise});
+    pend.push({time, seen: [], level, rise, room: classroomNow()});
   }
   function fireAttack(a) { attackFns.forEach(fn => fn(a)); }
   /* called by the main loop with each reading: settle the pitch of pending attacks */
@@ -368,12 +372,21 @@ window.Arcade = window.Arcade || {};
         pend.splice(i, 1);
         let pick = two ? a.seen[n - 1] : null;
         if (!pick && n) { const c = {}; a.seen.forEach(x => { c[x.pc] = (c[x.pc] || 0) + 1; }); const best = +Object.keys(c).sort((x, y) => c[y] - c[x])[0]; pick = a.seen.filter(x => x.pc === best).pop(); }
+        // CLASSROOM MODE: a pitched instrument's attack counts only with a pitch the room rules let through (another
+        // student's attack across the room has none: its readings are below the room gate)
+        if (!pick && a.room && inst && inst.pitched !== false) { roomWhy('attack with no pitch above the room'); continue; }
         fireAttack({time: a.time, pc: pick ? pick.pc : null, midi: pick ? pick.midi : null, level: a.level == null ? null : a.level, rise: a.rise == null ? null : a.rise});
       }
     }
   }
   /** tests only: run attack detection on any audio node (a synthetic signal) instead of the mic */
   P._attackSource = (node, minF) => { if (env) { clearInterval(env.timer); env = null; } startEnvelope(node, minF); };
+  /** tests only: attack detection on an envelope value e (the RMS of the attack window) at time `now` (ms), no audio
+      node and no timer: P._envFeed(null) sets it up (every = the step in ms the test will use) */
+  P._envFeed = (e, now, every = 8) => {
+    if (e == null) { if (env) clearInterval(env.timer); env = {an: null, sr: 44100, hist: [], timer: 0, every}; lastAttack = -1e9; pend.length = 0; return; }
+    envStep(now, e);
+  };
   if (A.DEMO) {
     let heldS = false;
     const wrongOf = t => t ? {pc: mod12(t.pc + 2), midi: t.midi + 2} : null;
@@ -405,6 +418,12 @@ window.Arcade = window.Arcade || {};
       const m = 69 + 12 * Math.log2(r.freq / (P.a4 || 440));
       reading = {freq: r.freq, midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
     }
+    // CLASSROOM MODE (below): the closest instrument only. Off = nothing here runs.
+    if (reading && classroomNow()) {
+      const g = roomGate();
+      if (r.rms < g) { reading = null; roomWhy('below room gate (' + r.rms.toFixed(4) + ' < ' + g.toFixed(4) + ')'); }
+      else if (r.clarity < ROOM.clarity) { reading = null; roomWhy('clarity ' + r.clarity.toFixed(2).replace(/^0/, '') + ' < ' + String(ROOM.clarity).replace(/^0/, '')); }
+    }
     if (debugOn) dbg.r = r;
     return {rms: r.rms, reading, r};
   }
@@ -425,14 +444,161 @@ window.Arcade = window.Arcade || {};
   function confirmed(key) {
     if (H.cand && H.cand.key === key) H.cand.n++;
     else H.cand = {key, n: 1};
-    return H.cand.n >= P.confirmFrames;
+    return H.cand.n >= (classroomNow() ? Math.max(P.confirmFrames, ROOM.confirmFrames) : P.confirmFrames);
   }
 
+
+  /* ---------- CLASSROOM NOISE MODE + THE ROOM FLOOR (docs/engine/pitch.md: CLASSROOM MODE) ----------
+     In a band room up to 30 instruments play at once and every device's mic hears all of them: another student's note
+     could count for this one, and the crowd can bury a quiet player. The instrument CLOSEST to the device (this
+     student) is much louder at its mic than the rest of the room, so Classroom mode listens only for sound well above
+     the room's own level.
+     THE ROOM FLOOR (always measured while the mic listens; it changes nothing by itself): the floorPct percentile of
+       the frame RMS over the last floorWindowS seconds, leaving out frames where this device's own note is held (and
+       stands above the room), followed slowly (floorRise up, floorFall down) so one loud chord doesn't spike it.
+       It freezes while listening is paused or a sound mutes the mic (Pitch.suppress), so a game's own sounds never
+       raise it.
+     CLASSROOM MODE (P.classroom()): a reading counts only if its RMS ≥ the largest of the sensitivity gate,
+       overFloor × the floor and ownShare × this device's ROOM CHECK level (shared/room-check.js, when one exists for
+       this instrument), with clarity ≥ ROOM.clarity; a held note needs ROOM.holdMs and a change of note
+       ROOM.confirmFrames readings; an attack must also reach attackOverFloor × the floor (and ownShare × the check).
+     TURNING IT ON: teacher-settings.js CLASSROOM_MODE 'on' / 'off' decides for every device; 'auto' (the default)
+       lets each device choose in Settings (Auto / On / Off, gameData('mic').classroom). Auto = on once the floor has
+       stayed above autoOn for autoOnS seconds, off once it has stayed below autoOff for autoOffS seconds.
+     With Classroom mode off, every rule of the detector is exactly as before. Every number is here: */
+  const ROOM = {
+    floorWindowS: 6,    // s: the room floor looks at the frames of the last 6 s…
+    floorPct: 0.2,      //   …and takes their 20th percentile (the quieter moments of the room)
+    floorRise: 3000,    // ms: time constant while the floor rises (slow: one loud chord doesn't spike it)
+    floorFall: 1000,    // ms: time constant while it falls
+    floorMine: 1.5,     // frames of this student's own playing (a note held or just attacked, and 1.5 × the floor) are left out
+    overFloor: 2.5,     // Classroom mode: a reading must be ≥ 2.5 × the floor…
+    ownShare: 0.35,     //   …and ≥ 0.35 × this player's level at this mic (the room check), when there is one
+    clarity: 0.8,       // Classroom mode: clarity needed (the same 0.8 as otherwise). Raising it (.86 was the plan: a crowd
+                        //   mixes pitches) lost about half the student's own notes in the crowd test: the crowd lowers the
+                        //   clarity of THIS student's note as much as its own, and the loudness gate alone already rejects it
+    holdMs: 340,        // Classroom mode: a note must be held this long (P.holdMs, 280, otherwise)
+    confirmFrames: 3,   // Classroom mode: readings in a row to change a held note (P.confirmFrames, 2, otherwise)
+    attackOverFloor: 3, // Classroom mode: an attack (tonguing, a mallet, the snare) must reach 3 × the floor
+                        //   (and ownShare × the room check; a pitched attack also needs a pitch above the room)
+    hitShare: 0.7,      // Classroom mode, the SNARE (no pitch to check): a hit must reach 0.6 × the room check's hits;
+                        //   other drums are sparse, so the floor stays low and only this tells them from this student's
+    autoOn: 0.008,      // Auto: on when the floor stays above this RMS…
+    autoOnS: 3,         //   …for 3 s
+    autoOff: 0.004,     // Auto: off when the floor stays below this RMS (lower than autoOn: no flipping at the edge)…
+    autoOffS: 10,       //   …for 10 s
+    quietS: 3,          // THE ROOM CHECK: "Stay quiet" lasts 3 s
+    playS: 3,           //   "Play your first note and hold it": 3 s of the note heard
+    hits: 4,            //   the snare: 4 hits
+    minRatio: 2,        //   your instrument ÷ the room below this = "move the device closer"
+    staleDays: 7,       //   a check older than this still works, but the once-a-day offer comes back
+    loudMin: 10,        //   the offer: the room was loud (Auto's rule) within the last 10 minutes
+  };
+  P.ROOM = ROOM;
+  const room = {samples: [], floor: null, measured: false, lastT: 0, over: 0, under: 0, auto: false, loudAt: 0, why: '', whyAt: 0, checking: false};
+  function roomWhy(w) { room.why = w; room.whyAt = performance.now(); if (P._whyLog) P._whyLog.push(w); }   // (_whyLog: tests)
+  /* what this device saved (never created by reading: an untouched device saves nothing new) */
+  const micData = () => (A.store && A.store.peekGameData ? A.store.peekGameData('mic') : null) || {};
+  const teacherMode = () => { const t = A.TEACHER && A.TEACHER.CLASSROOM_MODE; return t === 'on' || t === 'off' ? t : null; };
+  /** the Classroom mode setting: {mode: 'auto' | 'on' | 'off', by: 'teacher' | 'device'} */
+  P.classroomSetting = () => {
+    const t = teacherMode();
+    if (t) return {mode: t, by: 'teacher'};
+    const d = micData().classroom;
+    return {mode: d === 'on' || d === 'off' ? d : 'auto', by: 'device'};
+  };
+  /** the device's own choice (Settings: Auto / On / Off); a teacher's 'on' / 'off' still wins */
+  P.setClassroom = mode => {
+    if (!A.store || !A.store.gameData || !['auto', 'on', 'off'].includes(mode)) return;
+    A.store.gameData('mic').classroom = mode; A.store.saveGameData('mic');
+  };
+  function classroomNow() {
+    if (room.checking) return false;                     // the room check measures with the normal rules
+    const s = P.classroomSetting();
+    return s.mode === 'on' || (s.mode === 'auto' && room.auto);
+  }
+  /** is Classroom mode on right now? */
+  P.classroom = () => classroomNow();
+  /** this device's room check for the instrument being played (null = none, or another instrument's) */
+  P.roomCheck = () => {
+    const c = micData().room, me = A.store && A.store.player;
+    return c && c.own > 0 && (!c.member || !me || c.member === me) ? c : null;
+  };
+  const floorNow = () => room.floor || 0;
+  function roomGate() {
+    const c = P.roomCheck();
+    return Math.max(P.gate, ROOM.overFloor * floorNow(), c ? ROOM.ownShare * c.own : 0);
+  }
+  function attackRoomGate() {
+    const c = P.roomCheck();
+    return Math.max(ROOM.attackOverFloor * floorNow(), c ? (inst && inst.pitched === false ? ROOM.hitShare : ROOM.ownShare) * c.own : 0);
+  }
+  /* one frame for the room floor and Auto: rms = the frame's level, mine = a note is held or just attacked (left out
+     when it also stands above the room: floorMine × the floor, so in a crowd with Classroom mode off the room's own
+     notes still count as room) */
+  function roomFrame(now, rms, mine) {
+    const dt = Math.min(Math.max(now - room.lastT, 0), 200); room.lastT = now;
+    if (P.paused || now < P.suppressedUntil || !(P.active || P.demoReady || loop === 0)) return;   // frozen
+    const s = room.samples;
+    if (!(mine && rms >= ROOM.floorMine * floorNow())) s.push([now, rms]);
+    while (s.length && now - s[0][0] > ROOM.floorWindowS * 1000) s.shift();
+    if (room.floor == null && s.length < 25) { const c = P.roomCheck(); if (c && c.floor > 0) room.floor = c.floor; }   // until then: the room check's room
+    if (s.length >= 25) {                                  // ~1 s of frames: the first floor is taken as it is
+      const v = s.map(x => x[1]).sort((a, b) => a - b), target = v[Math.floor(ROOM.floorPct * (v.length - 1))];
+      if (room.floor == null || !room.measured) { room.floor = target; room.measured = true; }
+      else room.floor += (target - room.floor) * (1 - Math.exp(-dt / (target > room.floor ? ROOM.floorRise : ROOM.floorFall)));
+    }
+    if (room.floor == null) return;
+    room.over = room.floor > ROOM.autoOn ? room.over + dt : 0;
+    room.under = room.floor < ROOM.autoOff ? room.under + dt : 0;
+    if (!room.auto && room.over >= ROOM.autoOnS * 1000) room.auto = true;
+    if (room.auto && room.under >= ROOM.autoOffS * 1000) room.auto = false;
+    if (room.over >= ROOM.autoOnS * 1000) room.loudAt = Date.now();
+  }
+  /** the room's state: Settings, Tune Up, ?pitchdebug, tests */
+  P.state = () => {
+    const s = P.classroomSetting(), c = P.roomCheck(), on = classroomNow();
+    const why = s.by === 'teacher' ? 'teacher setting: ' + s.mode
+      : s.mode !== 'auto' ? 'set to ' + (s.mode === 'on' ? 'On' : 'Off')
+      : room.auto ? 'Auto: loud room' : room.floor == null ? 'Auto: measuring the room' : 'Auto: quiet room';
+    return {floor: floorNow(), measured: room.floor != null, classroom: on, why, setting: s.mode, by: s.by, auto: room.auto,
+      loud: !!room.loudAt && Date.now() - room.loudAt < ROOM.loudMin * 60000, gate: on ? roomGate() : P.gate,
+      own: c ? c.own : null, ratio: c ? c.ratio : null, checkAt: c ? c.at : null,
+      reject: performance.now() - room.whyAt < 600 ? room.why : ''};
+  };
+  /** THE ROOM CHECK (shared/room-check.js): what the microphone hears right now, {level, reading}, with the normal
+      rules (never Classroom mode's), without touching the hold tracker or the room floor: it works while a game is
+      paused, and nothing it hears can ever count in the game. ?demo: Pitch.demoNote / demoLevel, else Pitch.demoRoom. */
+  P.probe = () => {
+    let level = 0, reading = null;
+    if (mic && inst) {
+      mic.an.getFloatTimeDomainData(mic.buf);
+      const was = room.checking; room.checking = true;
+      const a = analyse(mic.buf, mic.sr); room.checking = was;
+      level = a.rms; reading = a.reading;
+    }
+    if (A.DEMO && P.demoNote != null) { level = P.demoLevel != null ? P.demoLevel : 0.1; reading = {note: P.demoNote, pc: mod12(P.demoNote), midi: P.demoNote}; }
+    else if (A.DEMO && P.demoRoom != null) level = Math.max(level, P.demoRoom);
+    return {level, reading};
+  };
+  P.demoRoom = null;   // ?demo: the room's loudness (RMS) heard when no demo note plays (the room check's tests)
+  /** tests only: set the room floor / Auto by hand ({floor, auto}), or forget it all (null) */
+  P._room = o => {
+    if (o === null) { Object.assign(room, {samples: [], floor: null, measured: false, lastT: 0, over: 0, under: 0, auto: false, loudAt: 0}); return; }
+    if (o.floor !== undefined) room.floor = o.floor;
+    if (o.auto !== undefined) room.auto = !!o.auto;
+    if (o.loudAt !== undefined) room.loudAt = o.loudAt;
+  };
+
   /* ---------- main loop ---------- */
-  function tick() {
-    const now = performance.now();
+  function tick() { step(performance.now(), null); }
+  /* one frame of the main loop; fed = {buf, sr} instead of the microphone (tests: P._feed) */
+  function step(now, fed) {
     let reading = null, level = 0;
-    if (mic && inst && !P.paused) {
+    if (fed && inst && !P.paused) {
+      const r = analyse(fed.buf, fed.sr);
+      level = r.rms; reading = r.reading;
+    } else if (mic && inst && !P.paused) {
       mic.an.getFloatTimeDomainData(mic.buf);
       const r = analyse(mic.buf, mic.sr);
       level = r.rms; reading = r.reading;
@@ -447,6 +613,7 @@ window.Arcade = window.Arcade || {};
       reading = {freq: mtof(m), midi: m, note: Math.round(m), pc: mod12(Math.round(m)), cents: (m - Math.round(m)) * 100};
       level = P.demoLevel != null ? P.demoLevel : 0.1;
     }
+    if (A.DEMO && P.demoRoom != null && !reading && !P.paused) level = Math.max(level, P.demoRoom);   // ?demo: the room's noise
     if (P.paused) { reading = null; level = 0; }            // not listening right now (demo notes included)
     if (reading) fold(reading);
     if (range) {
@@ -483,16 +650,22 @@ window.Arcade = window.Arcade || {};
     // window ends stays counted too, so only a NEW note (a new attack or a different pitch) can fire afterwards.
     const quiet = now < P.suppressedUntil;
     if (quiet) { if (!P.softSuppress) H.fired = true; reading = null; }   // …and nothing heard during the window is reported at all
+    roomFrame(now, level, H.pc !== null || now - lastAttack < 300);        // the room floor + Auto (frozen while quiet / paused)
     P.reading = reading; P.level = level;
     if (pend.length) settleAttacks(reading, now);
-    if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs) {
+    const hold = classroomNow() ? Math.max(P.holdMs, ROOM.holdMs) : P.holdMs;
+    if (reading && !H.fired && reading.pc === H.pc && now - H.since >= P.holdMs && now - H.since < hold) roomWhy('hold ' + Math.round(now - H.since) + ' < ' + hold);
+    if (reading && !H.fired && reading.pc === H.pc && now - H.since >= hold) {
       H.fired = true;
       heldFns.forEach(fn => fn(H.pc, now, H.note));
     }
     frameFns.forEach(fn => fn(reading, level, now));
     if (debugOn) debugDraw(reading, level);
   }
-  setInterval(tick, 40);
+  let loop = setInterval(tick, 40);
+  /** tests only: one frame of the main loop on a buffer (the analysis, the hold, the room floor) at time `now` (ms).
+      The first call stops the real 40 ms loop on this page (so the two clocks never mix). */
+  P._feed = (buf, sr, now) => { if (loop) { clearInterval(loop); loop = 0; } step(now, {buf, sr}); return P.reading; };
 
   /* ---------- ?pitchdebug: the PITCH DEBUG overlay (any page that loads pitch.js; hidden otherwise) ----------
      What the detector hears, ~6 times a second: the frequency, the nearest note (concert, and written for the
@@ -527,6 +700,10 @@ window.Arcade = window.Arcade || {};
     } else L.push('no clear pitch' + (H.cand ? '   (waiting to confirm a change)' : ''));
     L.push('clarity ' + (r ? r.clarity.toFixed(3) : '—') + '   level ' + level.toFixed(4) + ' / gate ' + P.gate.toFixed(4) +
       '   held ' + (H.note != null ? name(H.note) : H.pc != null ? A.music.NAMES[H.pc] : '—') + (r && r.moved ? '   MOVED DOWN ×' + r.moved : ''));
+    { const st = P.state();                                 // CLASSROOM MODE: the room, this device's check, on/off and why
+      L.push('room ' + st.floor.toFixed(3) + (st.own != null ? '   own ' + st.own.toFixed(3) + '   ratio ' + st.ratio + '×' : '   no room check') +
+        '   Classroom mode ' + (st.classroom ? 'ON' : 'off') + ' (' + st.why + ')' + (st.classroom ? '   room gate ' + st.gate.toFixed(4) : ''));
+      if (st.reject) L.push('rejected: ' + st.reject); }
     if (r && r.cands) r.cands.forEach(c => {
       const lab = c.k === 1 ? 'f  ' : 'f/' + c.k;
       L.push(lab + ' ' + hz(c.f).padStart(10) + '  d ' + (c.d != null ? c.d.toFixed(3) : '  —  ') +

@@ -10,15 +10,23 @@
      (a clap's own crackle and a snare's ring never count twice). Its TIME = the first sample of that frame reaching
      half its peak, so it's sample-accurate however late the browser delivers the audio.
      Its LEVEL = the frame's RMS (games compare it to what the speakers' own clicks sounded like: "bleed").
+     CLASSROOM MODE (Arcade.Pitch.classroom(), shared/pitch.js ROOM): the detector keeps its own ROOM FLOOR (the
+     ROOM.floorPct percentile of the emphasized level in ~40 ms blocks over the last ROOM.floorWindowS, followed slowly
+     like pitch.js's; frozen while listening is paused or a sound mutes the mic) and, while Classroom mode is on, an
+     onset must also reach ROOM.attackOverFloor × that floor, and ROOM.hitShare × the ROOM CHECK's own hits (ownOnset, the
+     snare's check, shared/room-check.js): other students' claps and drums across the room don't count.
    LIVE, the microphone is read in blocks by a ScriptProcessor; each sample's time is counted from the stream itself
    (performance.now() at a block's end − its length, the smallest such estimate: delivery delays never shift it).
 
-     Arcade.Onsets.analyse(samples, sampleRate, opts?) -> [{time (s from the start), level}]   (recordings, tests)
+     Arcade.Onsets.analyse(samples, sampleRate, opts?) -> [{time (s from the start), level}]   (recordings, tests;
+                                           opts {gate, classroom: true = Classroom mode's room gate, own: the check's hits})
      Arcade.Onsets.listen(fn) -> {stop()}   fn({time: performance.now() ms, level}) for every onset while the
                                            microphone listens (starts the reader the first time; one reader per page)
      Arcade.Onsets.watchNode(node)          tests: read any audio node instead of the microphone (the game's own output
                                            looped back: a count-in's clicks must never become claps)
      Arcade.Onsets.fake(time?, level?)      ?demo: an onset now (the games' demo keys)
+     Arcade.Onsets.tap(fn)                  THE ROOM CHECK only: fn({time, level}) for every onset heard, even while a
+                                           game isn't listening (it never reaches the game)
      Arcade.Onsets.log                      the last 60 onsets (tests), Arcade.Onsets.RULES */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -35,8 +43,26 @@ window.Arcade = window.Arcade || {};
   };
 
   /* the streaming core: feed(block) as samples arrive; calls out(sampleIndex, level) per onset */
-  function detector(sr, out, gate) {
-    const N = RULES.frame, hist = [], maxHist = Math.ceil(RULES.bgTo / 1000 * sr / N) + 2;
+  const ROOM = () => (A.Pitch && A.Pitch.ROOM) || {floorWindowS: 6, floorPct: .2, floorRise: 3000, floorFall: 1000, attackOverFloor: 3};
+  /* the room floor of the emphasized signal (CLASSROOM MODE above): fed every frame, updated every ~40 ms block */
+  function roomFloor(sr) {
+    const R = {floor: null, ring: [], e: 0, n: 0};
+    const per = Math.max(1, Math.round(.04 * sr / RULES.frame)), blockMs = per * RULES.frame / sr * 1000;
+    R.add = (e, frozen) => {
+      if (frozen) { R.e = R.n = 0; return; }
+      R.e += e; R.n++;
+      if (R.n < per) return;
+      const r = ROOM(), v = Math.sqrt(R.e / R.n); R.e = R.n = 0;
+      R.ring.push(v); if (R.ring.length > r.floorWindowS * 1000 / blockMs) R.ring.shift();
+      if (R.ring.length < 25) return;
+      const s = R.ring.slice().sort((a, b) => a - b), t = s[Math.floor(r.floorPct * (s.length - 1))];
+      R.floor = R.floor == null ? t : R.floor + (t - R.floor) * (1 - Math.exp(-blockMs / (t > R.floor ? r.floorRise : r.floorFall)));
+    };
+    return R;
+  }
+
+  function detector(sr, out, gate, room = {}) {
+    const N = RULES.frame, hist = [], maxHist = Math.ceil(RULES.bgTo / 1000 * sr / N) + 2, floor = roomFloor(sr);
     const lo = Math.floor(RULES.bgFrom / 1000 * sr / N), hi = Math.ceil(RULES.bgTo / 1000 * sr / N);
     let prevX = 0, pos = 0, fbuf = new Float32Array(N), fn = 0, lastOn = -1e12, prevE = 0;
     return {
@@ -56,7 +82,13 @@ window.Arcade = window.Arcade || {};
       let bg = 0, n = 0;
       for (let k = lo; k <= hi && k <= hist.length; k++) { bg += hist[hist.length - k]; n++; }
       bg = n ? bg / n : 0;
-      const g = Math.max(RULES.minGate, typeof gate === 'function' ? gate() : gate);
+      let g = Math.max(RULES.minGate, typeof gate === 'function' ? gate() : gate);
+      floor.add(e, room.frozen && room.frozen());
+      if (room.classroom && room.classroom()) {
+        if (floor.floor != null) g = Math.max(g, ROOM().attackOverFloor * floor.floor);
+        const own = room.own && room.own();                       // the room check's hits (ownOnset), when there is one
+        if (own > 0) g = Math.max(g, (ROOM().hitShare || .6) * own);
+      }
       const on = e > g * g && e >= RULES.rise * bg && e > prevE && (start - lastOn) / sr * 1000 >= RULES.refractoryMs;
       hist.push(e); if (hist.length > maxHist) hist.shift();
       prevE = e;
@@ -70,7 +102,8 @@ window.Arcade = window.Arcade || {};
 
   function analyse(samples, sr, opts = {}) {
     const res = [];
-    const d = detector(sr, (i, level) => res.push({time: i / sr, level}), opts.gate != null ? opts.gate : RULES.minGate);
+    const d = detector(sr, (i, level) => res.push({time: i / sr, level}), opts.gate != null ? opts.gate : RULES.minGate,
+      {classroom: () => !!opts.classroom, own: () => opts.own});   // opts.classroom / own: CLASSROOM MODE's room gate (tests)
     const B = 512;
     for (let i = 0; i < samples.length; i += B) d.feed(samples.subarray ? samples.subarray(i, i + B) : samples.slice(i, i + B));
     return res;
@@ -81,8 +114,10 @@ window.Arcade = window.Arcade || {};
   const log = [];
   let live = null;
   const gateNow = () => RULES.gateK * (A.Pitch && A.Pitch.gate || .01);
+  const taps = [];
   function emit(time, level, fake) {
     const P = A.Pitch;
+    if (!fake) taps.forEach(fn => fn({time, level}));            // the room check (shared/room-check.js): nothing counts in a game
     if (!fake && P && (!P.listening() || P.isSuppressed(time))) return;
     const o = {time, level, fake: !!fake};
     log.push(o); if (log.length > 60) log.shift();
@@ -94,7 +129,10 @@ window.Arcade = window.Arcade || {};
     const ctx = node.context, sr = ctx.sampleRate;
     const sp = ctx.createScriptProcessor(512, 1, 1), mute = ctx.createGain(); mute.gain.value = 0;
     let base = Infinity, count = 0;
-    const d = detector(sr, (i, level) => emit(base + i / sr * 1000, level), gateNow);
+    const P = A.Pitch;
+    const d = detector(sr, (i, level) => emit(base + i / sr * 1000, level), gateNow,
+      {classroom: () => !!(P && P.classroom && P.classroom()), frozen: () => !!P && (!P.listening() || P.isSuppressed()),
+        own: () => { const c = P && P.roomCheck && P.roomCheck(); return c && c.ownOnset; }});
     sp.onaudioprocess = e => {
       const x = e.inputBuffer.getChannelData(0), now = performance.now();
       count += x.length;
@@ -117,6 +155,7 @@ window.Arcade = window.Arcade || {};
 
   A.Onsets = {RULES, analyse, listen, log,
     ensure,
+    tap: fn => { if (!taps.includes(fn)) taps.push(fn); ensure(); },
     watchNode: node => attach(node),
     fake: (time = performance.now(), level = .3) => emit(time, level, true),
     reading: () => !!live,

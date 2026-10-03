@@ -180,11 +180,18 @@ window.Arcade = window.Arcade || {};
 
   A.store = {
     /** THE BACKUP (shared/backup.js): everything this device remembers, as a plain object (a deep copy) */
-    exportAll() { return JSON.parse(JSON.stringify(data)); },
+    exportAll() {
+      const d = JSON.parse(JSON.stringify(data));
+      if (d.gameData) delete d.gameData.mic;           // the microphone's room check + Classroom mode are about THIS device and room (pitch.js ROOM)
+      return d;
+    },
     /** replace everything with a backup (the caller asks first and reloads the page afterwards) */
     importAll(obj) {
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+      const mic = data.gameData && data.gameData.mic;   // this device's own room check stays (never in a backup)
       data = Object.assign({inst: null, player: null, hornStart: 'F', sens: 50, sfx: true, ambience: false, checkerMode: 'five', members: {}, modes: {}, games: {}}, obj);
+      if (data.gameData) delete data.gameData.mic;
+      if (mic) (data.gameData || (data.gameData = {})).mic = mic;
       migrate(); save(); return true;
     },
     /** the saved player GROUP id (what games save progress under), from the saved member */
@@ -307,6 +314,8 @@ window.Arcade = window.Arcade || {};
     },
     /** a game's own extra saved object (created on demand); change it, then call saveGameData(gameId) */
     gameData(gameId) { const g = data.gameData || (data.gameData = {}); return g[gameId] || (g[gameId] = {}); },
+    /** read a game's saved object without creating it (null = nothing saved): pitch.js reads the room check every frame */
+    peekGameData(gameId) { return (data.gameData && data.gameData[gameId]) || null; },
     saveGameData() { save(); },
     /** ENDLESS MODE: the Top 5 for a game + instrument + note set (a copy, best first) */
     endlessTop(gameId, instKey, setKey) {

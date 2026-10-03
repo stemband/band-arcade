@@ -20,12 +20,15 @@ window.Arcade = window.Arcade || {};
         </div>
       </div>`;
     document.body.appendChild(el);
-    el.querySelector('[data-act="cancel"]').addEventListener('click', () => { el.hidden = true; pending = null; });
+    el.querySelector('[data-act="cancel"]').addEventListener('click', () => { hide(); pending = null; });
     el.querySelector('[data-act="go"]').addEventListener('click', go);
   }
 
+  /* shown on top of whatever is open (the Settings panel's ROOM CHECK asks for the microphone too) */
+  function showGate() { el.hidden = false; if (A.UI && A.UI.layer) { A.UI.layer.close(el, {restore: false}); A.UI.layer.open(el); } }
+  function hide() { el.hidden = true; if (A.UI && A.UI.layer) A.UI.layer.close(el, {restore: false}); }
   function finish() {
-    el.hidden = true;
+    hide();
     const fn = pending; pending = null;
     if (fn) fn();
   }
@@ -38,7 +41,7 @@ window.Arcade = window.Arcade || {};
     } catch (e) {
       if (A.DEMO) { A.Pitch.demoReady = true; finish(); return; }
       box.hidden = false;
-      el.hidden = false;                          // (shown even when the reminder was skipped: the error always shows)
+      showGate();                                 // (shown even when the reminder was skipped: the error always shows)
       const name = e && e.name;
       if (name === 'Insecure') {
         box.innerHTML = 'This page has to be opened from its <b>https://</b> link to use the microphone. Ask your director for the game link.';
@@ -62,14 +65,17 @@ window.Arcade = window.Arcade || {};
      asks for permission when it's missing, and if the microphone doesn't start (denied, none, blocked) this screen
      shows with its fix-it steps as always. */
   const SEEN = 'mic-reminder';
-  A.requireMic = function (fn) {
+  A.requireMic = function (fn, {offer = true} = {}) {
+    // THE ROOM CHECK's once-a-day offer in a loud room (shared/room-check.js): CHECK NOW / Not now, then this again.
+    // {offer: false}: a call in the middle of play (Arcade Quest's battles, Blocktave's mode switch) never shows it
+    if (offer && A.RoomCheck && A.RoomCheck.offer(() => A.requireMic(fn))) return;
     if (A.Pitch.active || A.Pitch.demoReady) return fn();
     if (!el) build();
     pending = fn;
     el.querySelector('.err').hidden = true;
     if (A.session && A.session.has(SEEN)) { go(); return; }   // no reminder: start the mic in this same tap
     if (A.session) A.session.mark(SEEN);
-    el.hidden = false;
+    showGate();
     el.querySelector('[data-act="go"]').focus();
   };
   /** tests: is the reminder screen showing? */

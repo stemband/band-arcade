@@ -476,7 +476,8 @@ window.Arcade = window.Arcade || {};
   /* ---------- THE SETTINGS PANEL ----------
      Opened by the top bar's settings button (Arcade.Sfx.mountControls), the pause menu's SETTINGS and the lobby.
      Every row is a setting saved on the device and shared by every game: Sound on/off, Music, Effects (and on the
-     lobby the arcade's ambience), Motion (animations on/off), Mic sensitivity with the live level meter. A game adds its
+     lobby the arcade's ambience), Motion (animations on/off), Mic sensitivity with the live level meter (and, on pages
+     that listen, CLASSROOM MODE Auto / On / Off with its chip, and the ROOM CHECK: shared/room-check.js). A game adds its
      own options with Arcade.UI.settings.register(fn): fn(box) fills a box at the bottom ("This game"). */
   const extrasFns = [];
   let SET = null;
@@ -489,6 +490,8 @@ window.Arcade = window.Arcade || {};
       const lobby = o.lobby || extrasFns.some(x => x.lobby);
       // the microphone rows: on pages that can listen (pitch.js) and on the lobby (the setting is shared by every game)
       const mic = !!A.Pitch || lobby;
+      // CLASSROOM MODE + THE ROOM CHECK (shared/pitch.js ROOM, shared/room-check.js): on pages that listen
+      const room = !!(A.Pitch && A.Pitch.classroomSetting);
       const ov = el(`<div class="overlay ui-ov ui-settings-ov ui-settings ${esc(o.theme || '')}" id="uiSettings" hidden><div class="panel ui-panel" role="dialog" aria-modal="true" aria-labelledby="uiSetT">
         <h2 class="ui-title" id="uiSetT">Settings</h2>
         <div class="ui-srow"><span class="ui-sname" id="uiSndL">Sound</span><span></span><button type="button" class="ui-switch" role="switch" data-k="sfx" aria-labelledby="uiSndL"></button></div>
@@ -500,6 +503,10 @@ window.Arcade = window.Arcade || {};
         ${A.Seasons && A.Seasons.setLookOn ? '<div class="ui-srow"><span class="ui-sname" id="uiSeaL">Seasonal look<small>the arcade\'s menus dress up for the seasons</small></span><span></span><button type="button" class="ui-switch" role="switch" data-k="season" aria-labelledby="uiSeaL"></button></div>' : ''}
         ${mic ? `<label class="ui-srow"><span class="ui-sname">Mic sensitivity<small>more = hears quieter notes</small></span><input type="range" min="0" max="100" step="1" data-k="sens"><output></output></label>
         <div class="ui-srow ui-mrow"><span class="ui-sname">Mic level</span><div class="ui-meter" aria-hidden="true"><i></i><em></em></div><span></span><p class="ui-snote" data-note="mic"></p></div>` : ''}
+        ${room ? `<div class="ui-srow ui-crow"><span class="ui-sname" id="uiCmL">Classroom mode<small>hears the instrument closest to this device</small></span>
+          <div class="ui-seg ui-seg-sm" role="group" aria-labelledby="uiCmL"><button type="button" data-cm="auto">Auto</button><button type="button" data-cm="on">On</button><button type="button" data-cm="off">Off</button></div>
+          <span class="ui-room-chip" data-room-chip hidden>Classroom mode</span><p class="ui-snote" data-note="room"></p></div>
+        <div class="ui-srow ui-rrow"><span class="ui-sname">Room check<small data-room-last></small></span><span></span>${A.RoomCheck ? '<button type="button" class="btn btn-secondary btn-small" data-act="room-check">Room check</button>' : '<span></span>'}<p class="ui-snote" data-note="teacher"></p></div>` : ''}
         <div class="ui-sextras"></div>
         <div class="acts"><button type="button" class="btn btn-primary" data-act="done">Done</button></div></div></div>`);
       document.body.appendChild(ov);
@@ -519,6 +526,18 @@ window.Arcade = window.Arcade || {};
           : d.slow ? 'The moving backgrounds were switched off because this device was slow. Switch Motion off and on to try again.' : '';
         const se = ov.querySelector('[data-k=season]'); if (se) se.setAttribute('aria-checked', A.Seasons.lookOn());
         const s = ov.querySelector('input[data-k=sens]'); if (s) { s.value = st.sens != null ? st.sens : 50; s.nextElementSibling.textContent = s.value; }
+        if (room) drawRoom();
+      }
+      function drawRoom() {
+        const cs = Pi.classroomSetting(), rs = Pi.state();
+        ov.querySelectorAll('[data-cm]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.cm === cs.mode); b.disabled = cs.by === 'teacher'; });
+        ov.querySelector('[data-room-chip]').hidden = !rs.classroom;
+        ov.querySelector('[data-note=room]').textContent = (cs.by === 'teacher' ? `Your teacher set this to ${cs.mode === 'on' ? 'On' : 'Off'}. ` : '') +
+          'Tip: in a loud room, keep the device close to your instrument.';
+        ov.querySelector('[data-room-last]').textContent = A.RoomCheck ? A.RoomCheck.summary() : 'about 8 seconds, in a game or Tune Up';
+        const t = ov.querySelector('[data-note=teacher]');
+        t.textContent = A.params && A.params.has('teacher') ? `Teacher: room check ${rs.ratio != null ? rs.ratio + '× (' + (rs.checkAt || '') + ', ' + (st.player || '') + ')' : 'none'}` +
+          ` · Classroom mode ${rs.classroom ? 'ON' : 'off'} (${rs.why}) · room ${rs.floor.toFixed(3)}` : '';
       }
       ov.querySelector('[data-k=sfx]').addEventListener('click', () => {
         if (st.setSfx) st.setSfx(!(st.sfx !== false));
@@ -537,6 +556,9 @@ window.Arcade = window.Arcade || {};
       });
       const sea = ov.querySelector('[data-k=season]');
       if (sea) sea.addEventListener('click', () => { A.Seasons.setLookOn(!A.Seasons.lookOn()); if (Sfx && Sfx.event) Sfx.event('ui-toggle'); draw(); });
+      ov.querySelectorAll('[data-cm]').forEach(b => b.addEventListener('click', () => { Pi.setClassroom(b.dataset.cm); drawRoom(); }));
+      const rc = ov.querySelector('[data-act=room-check]');
+      if (rc) rc.addEventListener('click', () => A.RoomCheck.open({onClose: () => { if (SET === ov) drawRoom(); }}));
       const sens = ov.querySelector('input[data-k=sens]');
       if (sens) sens.addEventListener('input', () => {
         const v = +sens.value; sens.nextElementSibling.textContent = v;
@@ -558,6 +580,7 @@ window.Arcade = window.Arcade || {};
           bar.style.width = Pi.levelPct(lv) + '%';
           bar.classList.toggle('over', lv > Pi.gate);
           gate.style.left = Pi.levelPct(Pi.gate) + '%';
+          if (room) ov.querySelector('[data-room-chip]').hidden = !Pi.classroom();
           raf = requestAnimationFrame(tick);
         };
         tick();

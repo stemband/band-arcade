@@ -25,6 +25,8 @@
 .sens .ui-label{margin:4px 0 0}
 .sens .ui-howto{margin:0;font-size:15px}
 .sens-row{display:flex;align-items:center;gap:14px;font-size:14px}
+.tu-room{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;font-size:14px;margin-top:4px}
+.tu-room .btn{margin-left:auto}
 .sens input{flex:1;accent-color:var(--cyan);min-height:44px}
 
 /* the seven modes: the kit's option toggle (.ui-seg) */
