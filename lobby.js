@@ -71,6 +71,7 @@ window.Arcade = window.Arcade || {};
     $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
+    unlocked();                                                // anything unlocked whose UNLOCKED! card hasn't shown yet
     if (A.ChampionLobby) A.ChampionLobby.render();             // WEEKLY CHAMPIONS: the weekly check, the CHAMPION card (champion-lobby.js)
     if (A.LeaderboardScreen) A.LeaderboardScreen.askGrade();   // "What grade are you in?" once there's a star and no grade (leaderboard-screen.js)
     if (A.BackupNudge) A.BackupNudge.refresh();                // now and then: "Save your progress!" (shared/backup-nudge.js)
@@ -138,7 +139,7 @@ window.Arcade = window.Arcade || {};
     $('prToggle').addEventListener('click', e => { e.stopPropagation(); togglePractice(); });
     card.querySelector('.pr-head').addEventListener('click', () => togglePractice());   // the title row does the same
     if (!lobbyShown()) return;                                // the celebration waits until the lobby is really shown
-    if (pr.s.proNow && A.Skins && A.Skins.catchUp) setTimeout(() => A.Skins.catchUp(A.store.player, {foot: `${A.Practice.PRACTICE.weekGoal} practice days this week. Find it in the <b>LOCKER</b> on the player card.`}), 1600);
+    if (pr.s.proNow) unlocked({foot: `${A.Practice.PRACTICE.weekGoal} practice days this week. Find it in the <b>LOCKER</b> on the player card.`});
     celebrate(card, pr.s);
   }
   /** the gold stamp + the practice-done sound, once a day, and only while the card is OPEN (collapsed: they wait) */
@@ -275,16 +276,31 @@ window.Arcade = window.Arcade || {};
     if (f) { f.scrollIntoView({block: 'center'}); f.focus({preventScroll: true}); }
   }
 
-  /** the lobby is on screen with NOTHING over it: no PRESS START, pick mode, panel, overlay, UNLOCKED! card or the
-      leaderboard (a lobby card that asks something, or a celebration, waits for this: champion-lobby.js, the grade card).
-      {anyView: true}: the same, on whichever floor view is showing (the lobby, a zone, ALL GAMES: arcade.js's PLAYING AS) */
-  function free({anyView = false} = {}) {
-    const l = $('lobby'), ps = $('pressStart');
-    if ((!anyView && (!l || l.hidden)) || document.hidden || (ps && !ps.hidden)) return false;
-    if (document.body.classList.contains('in-select') || document.body.classList.contains('lb-open')) return false;
-    if (A.UI && ((A.UI.isOpen && A.UI.isOpen()) || (A.UI.layer && A.UI.layer.top()))) return false;
-    return ![...document.querySelectorAll('body > .overlay, .sk-catchup')].some(e => !e.hidden && e.getClientRects().length);
+  /** the lobby is on screen with NOTHING over it (THE LOBBY QUEUE's rule, shared/lobby-queue.js: no PRESS START, pick
+      mode, game opening, panel, overlay or leaderboard). {anyView: true}: on whichever floor view is showing. Lobby
+      features don't check this themselves: they ask the queue (Arcade.Lobby.queue.request). */
+  const free = ({anyView = false} = {}) => !A.Lobby.queue.busy({views: anyView ? 'any' : 'lobby'});
+
+  /* ---------- UNLOCKED! in the lobby: anything earned without a results screen (a practice week, a weekly championship,
+     a seasonal step, old progress) gets the arcade's usual UNLOCKED! card (Skins.catchUp: WEAR IT), asked through the
+     lobby queue (a reward: it may be the visit's 3rd panel). foot: its small print (the latest one asked wins). ---------- */
+  let unlockedFoot = '';
+  const hasFresh = () => !!(A.store && A.store.player && A.Skins && ((A.Skins.fresh(A.store.player) || []).length ||
+    (A.Avatar && A.Avatar.freshItems && A.Avatar.freshItems().length)));
+  // on every draw: only GIVEN items (store.ownedItems: a seasonal step, a championship, Band Ninja gear…); stars and
+  // achievements are celebrated on the results screen where they were earned
+  const freshGiven = () => !!(A.store && A.store.player && A.Avatar && A.Avatar.freshItems && A.Avatar.freshItems().some(it => A.store.ownedItems[it.key]));
+  /** foot: the card's small print; a caller that just earned something (a practice week, a championship) passes it */
+  function unlocked({foot} = {}) {
+    if (foot) unlockedFoot = foot;
+    if (!(foot ? hasFresh() : freshGiven())) return;
+    A.Lobby.queue.request({id: 'unlocked', kind: 'panel', reward: true, when: hasFresh, show: done => {
+      const f = A.Skins.catchUp(A.store.player, {foot: unlockedFoot || undefined, onClose: done,
+        onEquip: () => { if (A.Avatar) A.Avatar.redrawAll(); }});
+      unlockedFoot = '';
+      if (!f.length) done();
+    }});
   }
 
-  A.Lobby = {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice, free};
+  A.Lobby = Object.assign(A.Lobby || {}, {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice, free, unlocked});
 })(window.Arcade);

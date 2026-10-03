@@ -286,25 +286,31 @@ window.Arcade = window.Arcade || {};
      Nothing reaches a board until a grade is chosen (what's earned before waits HELD: shared/leaderboard.js), and the
      LEADERBOARD screen was the only place that asked, so a class that never opened the trophy never showed up. Once
      this device has a star this week, no grade, the switch on and an address set: "Show up on the leaderboard? What
-     grade are you in?" 6 / 7 / 8 + Not now (waits ASK_SNOOZE days: gameData('leaderboard').askAfter). Like the other
-     lobby cards it waits while anything is over the lobby (Lobby.free()). A tap shows "7th grade ✓. You can change it
+     grade are you in?" 6 / 7 / 8 + Not now (waits ASK_SNOOZE days: gameData('leaderboard').askAfter). It's a banner of
+     THE LOBBY QUEUE (shared/lobby-queue.js, id 'grade'): asked here, shown when the queue says so. A tap shows "7th grade ✓. You can change it
      on the Leaderboard." with UNDO for UNDO_MS: the grade is set only when that time is up (or the page goes away), so
      UNDO really sends nothing. */
   const ASK_SNOOZE = 3, UNDO_MS = 5000, ORD = {6: '6th', 7: '7th', 8: '8th'};
-  let askWait = 0, pending = null;
+  let pending = null, askDone = null;
+  const Q = () => A.Lobby && A.Lobby.queue;
   function askDue() {
     if (!L() || !L().canHold || !L().canHold() || !A.store.player) return false;
     const d = A.store.gameData('leaderboard');
     return L().mine().stars > 0 && !(d.askAfter && Date.now() < d.askAfter);
   }
+  /** the question is due: ask the lobby queue for the banner (lobby.js calls this on every draw); not due: take it back */
   function askGrade() {
     const box = document.getElementById('gradeAsk');
-    if (!box) return;
-    clearTimeout(askWait);
+    if (!box || !Q()) return;
     if (pending) return;                                       // the UNDO line is showing
-    if (!askDue()) { box.innerHTML = ''; return; }
-    if (!A.Lobby.free()) { box.innerHTML = ''; askWait = setTimeout(askGrade, 1000); return; }
-    if (box.querySelector('.gq-card')) return;
+    if (!askDue()) { Q().cancel('grade'); box.innerHTML = ''; return; }
+    if (Q().isShowing('grade')) return;
+    Q().request({id: 'grade', kind: 'banner', when: askDue, show: d => { askDone = d; drawAsk(); return () => { if (pending) commit(); else box.innerHTML = ''; }; }});
+  }
+  const askFinished = () => { const d = askDone; askDone = null; if (d) d(); };
+  function drawAsk() {
+    const box = document.getElementById('gradeAsk');
+    if (!box || box.querySelector('.gq-card:not(.gq-done)')) return;
     box.innerHTML = `<div class="gq-card bn-card bn-in"><span class="gq-icon" aria-hidden="true">🏆</span>` +
       `<p class="gq-msg bn-msg"><b>Show up on the leaderboard?</b> What grade are you in?</p>` +
       `<div class="gq-acts bn-acts">` + L().GRADES.map(g => `<button type="button" class="btn btn-secondary gq-g" data-g="${g}">${g}</button>`).join('') +
@@ -315,6 +321,7 @@ window.Arcade = window.Arcade || {};
       const d = A.store.gameData('leaderboard'); d.askAfter = Date.now() + ASK_SNOOZE * 86400000; A.store.saveGameData('leaderboard');
       box.innerHTML = '';
       const z = document.querySelector('#zones .zsign'); if (z) z.focus({preventScroll: true});
+      askFinished();
     });
   }
   function pickGrade(g) {
@@ -334,13 +341,14 @@ window.Arcade = window.Arcade || {};
     L().setGrade(g);
     const box = document.getElementById('gradeAsk'); if (box) box.innerHTML = '';
     if (S.el && !S.el.hidden) draw();
+    askFinished();
   }
   function undo() {
     if (!pending) return;
     clearTimeout(pending.t); pending = null;
     sfx('ui-back');
     const box = document.getElementById('gradeAsk'); if (box) box.innerHTML = '';
-    askGrade();                                                // the question again: nothing was set or sent
+    if (askDone) drawAsk(); else askGrade();                   // the question again (still the queue's banner): nothing was set or sent
     const f = box && box.querySelector('.gq-g'); if (f) f.focus({preventScroll: true});
   }
   addEventListener('pagehide', commit);

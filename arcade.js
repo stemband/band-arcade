@@ -49,8 +49,13 @@
     if (A.Backup) A.Backup.button(row, 'btn btn-secondary btn-small');   // shared/backup.js: BACKUP / RESTORE
     if (A.App) A.App.installButton(row);                                 // shared/app.js: INSTALL THE APP (teacher setting)
   }, {title: 'Your progress', lobby: true});
-  // the installed app's first launch asks for a Backup Code first (shared/app.js), then CHOOSE YOUR INSTRUMENT
-  const welcomeThen = fn => (A.App && A.App.welcome(fn)) || fn();
+  // the installed app's first launch asks for a Backup Code first (shared/app.js: Bring your progress, a panel of THE
+  // LOBBY QUEUE, shared/lobby-queue.js), then CHOOSE YOUR INSTRUMENT
+  const Q = A.Lobby.queue;
+  const welcomeThen = fn => {
+    if (!(A.App && A.App.needsWelcome && A.App.needsWelcome())) return (A.App && A.App.welcome(fn)) || fn();
+    Q.request({id: 'bring-progress', kind: 'panel', views: 'any', show: done => { if (!A.App.welcome(() => { done(); fn(); })) { done(); fn(); } }});
+  };
   /** CHOOSE YOUR INSTRUMENT after PRESS START? Only with no instrument saved, a `pending` choice (the members migration)
       or the teacher setting ASK_INSTRUMENT_EVERY_TIME (shared/teacher-settings.js: shared devices) */
   const pickAtStart = () => !!(A.TEACHER && A.TEACHER.ASK_INSTRUMENT_EVERY_TIME) || !A.store.player || !!A.store.pending;
@@ -88,30 +93,21 @@
   /* ---------- PLAYING AS: after PRESS START with an instrument saved (no pick mode), a small toast (the UI kit's, 4 s,
      at the top, just under the top bar, over the arcade's name: never over the zone signs' first row): the instrument's portrait + "Playing as Trumpet · Change"
      ("Change" = pick mode), so a student on a shared or borrowed device is one tap from switching. Once per session
-     (it follows PRESS START only). It waits while anything is over the floor (Lobby.free: the app's Bring your
-     progress, a CHAMPION card, a panel…); one that opens over it hides it, and it shows again, whole, once that
-     closes. Pick mode opened another way (the avatar badge) ends it. ---------- */
-  let playingAsT = 0, playingAsShown = false;
+     (it follows PRESS START only). A toast of THE LOBBY QUEUE (shared/lobby-queue.js, id 'playing-as', any floor
+     view): it waits for the panels (Bring your progress, a CHAMPION card…); one that opens over it hides it, and it
+     shows again, whole, once that closes. Pick mode opened another way (the avatar badge) ends it. ---------- */
+  let playingAsShown = false;
   function playingAs() {
     const m = A.store.player && A.memberById(A.store.player);
     if (!m || !A.UI || !A.UI.toast) return;
     const MS = 4000;
-    let t = null, at = 0;
-    const end = () => { clearTimeout(playingAsT); if (t) t.remove(); t = null; };
-    const tick = () => {
-      if (document.body.classList.contains('in-select')) { end(); return; }       // choosing already
-      const free = A.Lobby.free({anyView: true});
-      if (t && !t.isConnected) { end(); return; }                                 // gone by itself, or "Change" tapped
-      if (t && !free) { t.remove(); t = null; }                                   // something opened over it
-      else if (!t && free) {
-        const bar = $('fbar').getBoundingClientRect();                           // just under the top bar: never over the signs
-        t = A.UI.toast(`Playing as ${m.short}`, {ms: MS, top: Math.max(12, bar.bottom + 8), icon: A.portraitHTML(m.id, {size: 'chip', label: m.short}),
-          action: {label: 'Change', aria: 'Change instrument', onClick: () => { end(); openPick(null); }}});
-        t.classList.add('playing-as'); at = performance.now(); playingAsShown = true;
-      } else if (t && performance.now() - at > MS) { end(); return; }
-      playingAsT = setTimeout(tick, 200);
-    };
-    tick();
+    Q.request({id: 'playing-as', kind: 'toast', views: 'any', ms: MS, show: () => {
+      const bar = $('fbar').getBoundingClientRect();                             // just under the top bar: never over the signs
+      const t = A.UI.toast(`Playing as ${m.short}`, {ms: MS, top: Math.max(12, bar.bottom + 8), icon: A.portraitHTML(m.id, {size: 'chip', label: m.short}),
+        action: {label: 'Change', aria: 'Change instrument', onClick: () => openPick(null)}});
+      t.classList.add('playing-as'); playingAsShown = true;
+      return t;                                                                   // gone ("Change", time up) = done
+    }});
   }
 
   /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows), or the FULL ARCADE ---------- */
@@ -384,6 +380,7 @@
 
   /* ---------- opening a game ---------- */
   const FROM = 'bandarcade.from';
+  let openingT = 0;
   const gameHref = g => A.linkTo(g.id + '/index.html');
   function openGame(g, from) {
     if (!g) return;
@@ -393,6 +390,8 @@
     ss.set(FROM, JSON.stringify(from === 'zone' && isFull() ? {view: 'full'} : {view: from, zone: from === 'zone' && zone ? zone.id : null}));
     // a two-player game with its own Select Player (Player 2 picks there too), or no instrument chosen yet: Select Player
     if (!g.player && (g.players === 2 || !A.store.player || A.store.pending)) { A.Sfx.eventSoon('select-' + g.id); openSelect(g); return; }
+    Q.hold('opening-game', true);                                 // nothing pops up while its START sound plays (the lobby queue)
+    clearTimeout(openingT); openingT = setTimeout(() => Q.hold('opening-game', false), 6000);   // (a game that never left: a blocked link)
     A.Sfx.playThenGo('select-' + g.id, gameHref(g));              // its START sound, then the game (the saved instrument)
   }
 
@@ -475,6 +474,7 @@
     if (g && A.BandNinja && A.BandNinja.skipSelect()) return;                   // a Band Ninja link gave the instrument
     if (g || A.params.has('pick')) {
       closeFit();
+      Q.cancel('playing-as');                                                   // choosing now: no "Playing as" after
       document.body.classList.add('in-select'); A.floorPaused = true;          // the 3D floor stops drawing meanwhile
       if (g) { if (A.SelectView.game !== g) { lastSelectGame = g; A.SelectView.open(g, {players: A.params.get('players'), need: A.params.get('need')}); } }
       else if (!A.SelectView.isOpen || A.SelectView.game) {
@@ -556,6 +556,7 @@
   }
   function focusView() {
     if (pressStart() || A.SelectView.isOpen) return;
+    if (/^(panel|overlay|leaderboard|avatar creator)$/.test(Q.busy({views: 'any'}))) return;   // a panel is up: it keeps the focus
     const el = current === 'zone' ? view && view.startLink : current === 'all' ? $('allGrid').querySelector('.gcard') : $('zones').querySelector('.zsign');
     if (el) el.focus({preventScroll: true});
   }
@@ -659,6 +660,7 @@
     A.params = new URLSearchParams(location.search);
     if (A.LeaderboardScreen && !pressStart()) setTimeout(() => A.LeaderboardScreen.open(), 0);
   }
+  A.Lobby.refocus = focusView;             // the lobby queue: a panel closed and the focus was lost
   A.Arcade = {state: () => ({playingAs: playingAsShown, view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind}),
     /** the cabinets' screen boxes in a zone / the FULL ARCADE (3D: projected by arcade3d.js; 2D: the visible slots),
         [] elsewhere: season-look.js keeps the seasonal floor props off them */

@@ -13,7 +13,10 @@
      Chromebook: the browser's own install prompt; iPad / iPhone: the steps with pictures; else Chrome's menu steps.
    - BRING YOUR PROGRESS: on an iPad the Home Screen app keeps its OWN storage (nothing from Safari). The app's first
      launch on the floor (standalone, nothing saved yet) asks for a Backup Code first ("Start fresh" skips it).
-     Arcade.App.welcome(then) (arcade.js, before CHOOSE YOUR INSTRUMENT) shows it and returns true, else false.
+     Arcade.App.welcome(then) (arcade.js, before CHOOSE YOUR INSTRUMENT, through the lobby queue: needsWelcome()) shows
+     it and returns true, else false.
+   - THE LOBBY QUEUE (shared/lobby-queue.js) on the floor page: the update banner and Bring your progress are asked
+     through it ('app-update' banner, 'bring-progress' panel), so they never land on top of another pop-up.
    - Arcade.App.standalone: running as the installed app (display-mode standalone, or iOS navigator.standalone).
    ?standalone (tests, previews) pretends to be the installed app. Arcade.App.state() for tests. */
 window.Arcade = window.Arcade || {};
@@ -56,16 +59,24 @@ window.Arcade = window.Arcade || {};
   function showBanner(w) {
     onReady(() => {
       if (document.querySelector('.app-update')) return;
-      const b = el('<button type="button" class="app-update" aria-live="polite">New version ready — tap to update</button>');
-      b.addEventListener('click', () => {
-        b.disabled = true; b.textContent = 'Updating…';
-        reloadOnChange = true;
-        w.postMessage({type: 'skip-waiting'});
-        setTimeout(() => location.reload(), 4000);          // in case the takeover is never reported
-      });
-      document.body.appendChild(b);
-      S.banner = true;
+      // the floor page: a banner of THE LOBBY QUEUE (shared/lobby-queue.js, id 'app-update', the highest priority; any
+      // floor view): never over PRESS START, Choose Your Instrument or a panel. Other pages: at once.
+      const Q = A.Lobby && A.Lobby.queue;
+      if (Q) { S.banner = true; Q.request({id: 'app-update', kind: 'banner', views: 'any', show: () => makeBanner(w)}); return; }
+      makeBanner(w);
     });
+  }
+  function makeBanner(w) {
+    const b = el('<button type="button" class="app-update" aria-live="polite">New version ready — tap to update</button>');
+    b.addEventListener('click', () => {
+      b.disabled = true; b.textContent = 'Updating…';
+      reloadOnChange = true;
+      w.postMessage({type: 'skip-waiting'});
+      setTimeout(() => location.reload(), 4000);          // in case the takeover is never reported
+    });
+    document.body.appendChild(b);
+    S.banner = true;
+    return b;                                             // (the lobby queue removes it while something is over the floor)
   }
   function watch(reg) {
     S.reg = reg;
@@ -151,6 +162,8 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- BRING YOUR PROGRESS (the app's first launch) ---------- */
+  /** will welcome() ask? (the floor asks the lobby queue for it first: arcade.js) */
+  const needsWelcome = () => ls.get(WELCOME) === 'ask' && !!A.Backup && !!A.store && !A.store.player;
   function welcome(then) {
     const ask = ls.get(WELCOME) === 'ask';
     if (!ask || !A.Backup || !A.store || A.store.player) { if (ask) ls.set(WELCOME, 'done'); return false; }
@@ -197,7 +210,7 @@ window.Arcade = window.Arcade || {};
   }
 
   A.App = {
-    standalone, ios, install, installButton, canOffer, welcome, micHelp,
+    standalone, ios, install, installButton, canOffer, welcome, needsWelcome, micHelp,
     state: () => ({standalone, ios, live, registered: !!S.reg, controlled: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
       waiting: !!S.waiting, banner: S.banner, installEvent: !!S.installEvent, welcome: S.welcome, ask: ls.get(WELCOME), swError: S.swError}),
   };

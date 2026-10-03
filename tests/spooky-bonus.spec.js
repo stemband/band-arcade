@@ -7,7 +7,7 @@
    docs/gallery/avatar-new-items.png for Mat to look over. */
 const path = require('path');
 const {test, expect} = require('@playwright/test');
-const {ROOT, prepare, device, offscreen, VIEWPORTS} = require('./helpers');
+const {ROOT, prepare, device, offscreen, VIEWPORTS, closeUnlocked} = require('./helpers');
 
 const BONUS = ['hand:jacklantern', 'top:mummywraps', 'back:vampcape', 'effect:floatbats', 'plate:candycorn', 'pet:reaper'];
 const NEW = BONUS.concat('pet:smiley');
@@ -23,9 +23,10 @@ const BUSY = log([['2026-09-28', {s: 60, c: 20, g: GAMES, e: 3000}],
   ...GAMES.map((g, i) => [oct(i + 1), {s: 4, c: 2, g: [g], e: i === 4 ? 1600 : 100}])]);
 // the free gift already claimed (the banner shows "Free gift!" instead of the count until it is)
 const store = (activity, extra) => device('trumpet', Object.assign({avatarOffered: true, activity, gameData: {seasons: {claimed: {'spooky@2026-10-01': 1}}}}, extra || {}));
-const floor = async (page, q) => {
+const floor = async (page, q, {unlocked = 'close'} = {}) => {
   await page.goto(`index.html?demo&nostart&${q}`);
   await page.waitForFunction(() => window.Arcade && Arcade.Seasons && Arcade.SeasonLobby && Arcade.Avatar && Arcade.Tokens);
+  if (unlocked === 'close') await closeUnlocked(page);         // the steps earned since the last visit: the lobby's UNLOCKED! card first
 };
 const openPanel = async page => { await page.locator('.ev-banner').click(); await expect(page.locator('.ev-pan')).toBeVisible(); };
 
@@ -99,11 +100,10 @@ test('the Reaper: 50 ★ gives it, its UNLOCKED! card says Spooky Season, and th
   const more = Object.assign({}, BUSY, log([[oct(14), {s: 14, g: ['ghost-notes']}]]));
   const watch = await prepare(page, {store: store(more)});
   await page.addInitScript(() => { window.__sfx = []; });
-  await floor(page, `today=${MID}`);
+  await floor(page, `today=${MID}`, {unlocked: 'keep'});
   expect(await page.evaluate(() => Arcade.Seasons.owned('pet:reaper'))).toBe(true);
   await page.evaluate(() => { const ev = Arcade.Sfx.event; Arcade.Sfx.event = (n, ...r) => { window.__sfx.push(n); return ev.call(Arcade.Sfx, n, ...r); }; });
-  await page.evaluate(() => Arcade.Skins.catchUp('trumpet', {only: ['pet:reaper']}));
-  const card = page.locator('.sk-catchup');
+  const card = page.locator('.sk-catchup');                                        // the lobby's own UNLOCKED! card (the lobby queue)
   await expect(card).toContainText("Lil' Reaper");
   await expect(card).toContainText('Spooky Season: yours forever');
   await page.locator('.sk-catchup [data-close]').click();

@@ -11,7 +11,8 @@
    Saved in gameData('backup-nudge') (so it travels in the Backup Code like every gameData):
      {savedAt: 'YYYY-MM-DD', starsAtSave, snoozeUntil: 'YYYY-MM-DD' | null, shown: ['YYYY-MM-DD'…] (the last 10)}
    Arcade.BackupNudge.status(day?)  -> {kind: null | 'stars' | 'new' | 'break', show, why, newStars, days, total, …}
-   Arcade.BackupNudge.refresh()     draws or hides the banner (lobby.js calls it every time the lobby is drawn)
+   Arcade.BackupNudge.refresh()     asks THE LOBBY QUEUE for the banner, or takes it back (lobby.js calls it every time
+                                    the lobby is drawn): shared/lobby-queue.js shows it (id 'backup-nudge', a banner)
    Arcade.BackupNudge.saved({restored})  the student saved: savedAt = today, starsAtSave = the star total now
    Arcade.BackupNudge.NUDGE         the SETTINGS below (tests change them) */
 window.Arcade = window.Arcade || {};
@@ -68,16 +69,9 @@ window.Arcade = window.Arcade || {};
   const DISK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 3.5h11.8l3.2 3.2v12.8a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/>' +
     '<path d="M7.5 3.5v5h7.5v-5M12.2 5.2v1.8"/><rect x="7" y="13" width="10" height="7.5" rx=".8"/><path d="M9.5 15.6h5M9.5 18h5"/></svg>';
   const slot = () => document.getElementById('saveNudge');
-  let faded = false, wait = null;
+  let faded = false, done = null;
   const ios = () => A.App ? A.App.ios : /iPad|iPhone|iPod/.test(navigator.userAgent);
   const installed = () => A.App ? A.App.standalone : navigator.standalone === true;
-  /** a panel, PRESS START or pick mode on top: the banner waits (never on top of play or a question) */
-  function busy() {
-    const ps = document.getElementById('pressStart'), lobby = document.getElementById('lobby');
-    if (!lobby || lobby.hidden || (ps && !ps.hidden) || document.body.classList.contains('in-select')) return true;
-    if (A.UI && ((A.UI.isOpen && A.UI.isOpen()) || (A.UI.layer && A.UI.layer.top && A.UI.layer.top()))) return true;
-    return [...document.querySelectorAll('body > .overlay')].some(o => !o.hidden && getComputedStyle(o).display !== 'none');
-  }
   function message(s) {
     if (s.kind === 'break') return '<b>Break is coming!</b> Save your progress so nothing gets lost.';
     if (s.kind === 'new') return '<b>Keep your stars safe:</b> make a Backup Code.';
@@ -85,14 +79,21 @@ window.Arcade = window.Arcade || {};
       ? `<b>Save your progress!</b> You've earned ${s.newStars} <span aria-hidden="true">★</span><span class="sr">stars</span> since your last backup.`
       : `<b>Save your progress!</b> You've played on ${s.days} days since your last backup.`;
   }
+  const Q = () => A.Lobby && A.Lobby.queue;
+  const wanted = () => !!A.store.player && status().show;
+  /** the banner is wanted: ask the lobby queue (it draws it when it's the banner's turn: never over a panel, PRESS START
+      or pick mode), or redraw it if it's showing; not wanted: take it back */
   function refresh() {
     const box = slot();
-    if (!box || !A.store) return;
-    clearTimeout(wait); wait = null;
-    if (!A.store.player) { box.innerHTML = ''; return; }
-    const s = status();
-    if (!s.show) { box.innerHTML = ''; return; }
-    if (busy()) { box.innerHTML = ''; wait = setTimeout(refresh, 1000); return; }      // try again once the panel closes
+    if (!box || !A.store || !Q()) return;
+    if (!wanted()) { Q().cancel(KEY); box.innerHTML = ''; return; }
+    if (Q().isShowing(KEY)) { draw(); return; }
+    Q().request({id: KEY, kind: 'banner', when: wanted, show: d => { done = d; draw(); return () => { box.innerHTML = ''; }; }});
+  }
+  const finished = () => { const d = done; done = null; if (d) d(); };
+  function draw() {
+    const box = slot(), s = status();
+    if (!box || !s.show) return;
     const r = rec(), today = dayKey();
     if (!(r.shown || []).includes(today)) { r.shown = (r.shown || []).concat(today).slice(-10); put(); }
     const tip = (s.kind === 'new' || s.kind === 'break') && ios() && !installed();
@@ -113,6 +114,7 @@ window.Arcade = window.Arcade || {};
       const r = rec(); r.snoozeUntil = addDays(dayKey(), NUDGE.snoozeDays); put();
       box.innerHTML = '';
       const z = document.querySelector('#zones .zsign'); if (z) z.focus({preventScroll: true});   // the focus stays in the lobby
+      finished();
     });
     if (tip) $('.bn-how').addEventListener('click', () => { if (A.App && A.App.install) A.App.install(); });
   }
@@ -130,6 +132,8 @@ window.Arcade = window.Arcade || {};
     if (restored) return;                                     // the page reloads onto the restored progress
     const box = slot();
     if (box) box.innerHTML = '';
+    if (Q()) Q().cancel(KEY);
+    // (the answer to the student's own tap, over the Backup panel: not one of the lobby queue's toasts)
     if (A.UI && A.UI.toast) A.UI.toast('Saved! Keep that code somewhere safe 💾', {kind: 'good', ms: 3000});
   }
   if (document.getElementById('lobby')) {

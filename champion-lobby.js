@@ -1,9 +1,9 @@
 /* WEEKLY CHAMPIONS in the arcade LOBBY (shared/leaderboard.js has the check, the awards and the rewards; lobby.js
    calls render()). Finishing 1st on a leaderboard board for a week (your grade) earns a CHAMPION card here:
      WHEN: the lobby is on screen, idle: after first paint the weekly check runs (Leaderboard.checkChampion: once a week,
-       a failed one again at a later showing, at most every 10 minutes); an unclaimed award shows THE CARD, but never
-       over PRESS START, Choose Your Instrument (pick mode), another panel or overlay (a tour, the Prize Counter, the
-       leaderboard…): it waits for them to close.
+       a failed one again at a later showing, at most every 10 minutes); an unclaimed award ASKS THE LOBBY QUEUE for THE
+       CARD (shared/lobby-queue.js, id 'champion'): it shows when the queue says so (never over PRESS START, Choose Your
+       Instrument, another panel or overlay, the leaderboard; after a higher-priority panel; at most 2 panels a visit).
      THE CARD (a UI kit panel): your avatar in its VICTORY pose (AvatarFight.stillHTML, else the bust) holding a trophy
        in a spotlight; "🏆 CHAMPION!"; one line per award ("You finished 1st in 7th grade for MOST STARS: week of Oct 5");
        the avatar's name in words; "+100 tokens" counting up; small print "Show Mr. Graham this screen: ID ab12cd" (the
@@ -22,9 +22,7 @@ window.Arcade = window.Arcade || {};
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const still = () => !!(A.reducedMotion && A.reducedMotion.matches);         // the device or the Motion switch asks for less
   const ORD = {6: '6th', 7: '7th', 8: '8th'};
-  let ov = null, waitT = 0, idleT = 0;
-
-  const lobbyFree = () => A.Lobby.free();                   // the lobby on screen with nothing over it (lobby.js)
+  let ov = null, idleT = 0, done = null;
   /* ---------- after the lobby is drawn: the check when the page is idle, then the card ---------- */
   function render() {
     if (!L() || !L().checkChampion) return;
@@ -33,14 +31,12 @@ window.Arcade = window.Arcade || {};
     idleT = setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(go, {timeout: 2000}) : go()), 600);   // first paint first
     waitToShow();
   }
-  /** an unclaimed award waits until the lobby is free, then shows (checked every second while it waits) */
+  /** an unclaimed award: ask the lobby queue for the card (it shows when the lobby is free and it's this card's turn) */
   function waitToShow() {
-    clearTimeout(waitT);
-    if (ov || !L() || !L().unclaimed().length) return;
-    const l = $('lobby');
-    if (!l || l.hidden) return;                                   // left the lobby: render() starts again on the way back
-    if (lobbyFree()) show(); else waitT = setTimeout(waitToShow, 1000);
+    if (ov || !L() || !L().unclaimed().length || !A.Lobby || !A.Lobby.queue) return;
+    A.Lobby.queue.request({id: 'champion', kind: 'panel', when: () => !ov && !!L().unclaimed().length, show: d => { done = d; show(); if (!ov) finished(); }});
   }
+  const finished = () => { const d = done; done = null; if (d) d(); };
 
   /* ---------- the card ---------- */
   function lineOf(a, grade) {
@@ -91,10 +87,10 @@ window.Arcade = window.Arcade || {};
     el.remove();
     if (A.lockScroll) A.lockScroll(false);
     const s = document.querySelector('#zones .zsign'); if (s) s.focus({preventScroll: true});
-    if (res.items.length && A.Skins && A.Skins.catchUp) {            // the arcade's usual UNLOCKED! card (WEAR IT)
-      setTimeout(() => A.Skins.catchUp(A.store.player, {only: res.items,
-        foot: 'You earned it as a weekly champion! Find it in the <b>LOCKER</b> on the player card.', onEquip: () => { if (A.Avatar) A.Avatar.redrawAll(); }}), 350);
-    }
+    // the arcade's usual UNLOCKED! card (WEAR IT) for a new item: asked before the queue hears this card closed, so
+    // it's next (a reward: it may be the visit's 3rd panel)
+    if (res.items.length && A.Lobby && A.Lobby.unlocked) A.Lobby.unlocked({foot: 'You earned it as a weekly champion! Find it in the <b>LOCKER</b> on the player card.'});
+    finished();
   }
   function state() {
     return {open: !!ov, lines: ov ? [...ov.querySelectorAll('.ch-lines li')].map(li => li.textContent) : [],

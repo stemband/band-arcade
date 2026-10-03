@@ -392,7 +392,8 @@ html[data-slook] .pr-card{background:radial-gradient(70% 90% at 0% 0%,color-mix(
 .zs-have{background:var(--yellow)}.zs-wait{background:color-mix(in srgb,var(--yellow) 38%,transparent)}
 .zs-wish-go{color:var(--yellow);font-weight:700}
 .zs-wish-left{color:var(--amber-hi);font-weight:700}
-@media (prefers-reduced-motion:no-preference){ .zs-wish.ready .zs-wish-go{animation:zs-ready 2.4s ease-in-out infinite} }
+/* the wish pulse waits while the lobby queue has a panel or toast up or next (shared/lobby-queue.js sets body.lq-quiet) */
+@media (prefers-reduced-motion:no-preference){ .lq-quiet .zs-wish.ready .zs-wish-go{animation:zs-ready 2.4s ease-in-out infinite} }
 @keyframes zs-ready{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* ---------- ALL GAMES (lobby.js): every game once, as a card; the page scrolls ---------- */

@@ -3,7 +3,11 @@
      THE BANNER: a small themed button above the lobby cards ("🎃 SPOOKY SEASON: 6 days left!", "FREE GIFT!" while
        the gift waits) that opens THE EVENT PANEL: the free gift (with its CLAIM button), the challenge ladder with
        progress bars, and a preview of every item on the student's own avatar. A claimed or earned item gets the
-       arcade's usual UNLOCKED! card (Skins.catchUp: WEAR IT) and the event's jingle.
+       arcade's usual UNLOCKED! card (Skins.catchUp: WEAR IT) and the event's jingle. (The button is a lobby fixture
+       like the cards: always there during the event, so it isn't one of the lobby queue's banners.)
+     THE FREE GIFT ON ITS OWN: while the gift waits, the event panel opens by itself ONCE A DAY (the lobby queue's
+       'event-gift' panel, shared/lobby-queue.js; gameData('season-lobby').giftAfter = 'YYYY-MM-DD', the next day it
+       may: tomorrow, once it has opened); a ?season= preview never opens it by itself.
      THE BONUS LADDER (an event's optional `bonus`, seasons.js): under the challenges, "BONUS CHALLENGES 👻". Locked =
        one line ("Finish all 5 challenges to unlock 6 bonus challenges!") + the bonus items as dark silhouettes; open =
        the same step rows as the main ladder. Once it's open the banner counts its steps too ("7 of 11").
@@ -46,6 +50,19 @@ window.Arcade = window.Arcade || {};
     const cards = document.getElementById('lobbyCards');
     lobby.insertBefore(row, cards || lobby.firstChild);
     row.firstChild.addEventListener('click', () => { jingle(ev); open(); });
+    if (giftDue() && A.Lobby && A.Lobby.queue) A.Lobby.queue.request({id: 'event-gift', kind: 'panel', when: giftDue, show: done => {
+      const o2 = S().active(), d = A.store.gameData('season-lobby'), t = new Date(A.store.today());
+      t.setDate(t.getDate() + 1); d.giftAfter = A.store.dayKey(t); A.store.saveGameData('season-lobby');   // once a day
+      jingle(o2.ev); open({onClose: done});
+      if (!ov) done();
+    }});
+  }
+  /** the free gift waits (a real event, not a preview), and the panel hasn't opened by itself today */
+  function giftDue() {
+    const o = S() && S().active();
+    if (!o || o.preview || !o.ev.gift || S().claimed(o) || S().owned(o.ev.gift) || ov) return false;
+    const after = A.store.gameData('season-lobby').giftAfter;
+    return !(after && A.store.dayKey() < after);
   }
   function jingle(ev) { if (A.Sfx && ev.jingle) A.Sfx.event(ev.jingle); }
 
@@ -71,12 +88,20 @@ window.Arcade = window.Arcade || {};
     let url = ''; try { url = c ? c.toDataURL('image/png') : ''; } catch (e) { url = ''; }
     return url ? `<span class="pt-box pt-box-tile ev-sprite"><img src="${url}" alt="" draggable="false"></span>` : '';
   }
-  let ov = null;
-  function close() { if (!ov) return; ov.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(ov); ov = null; document.removeEventListener('keydown', onKey); if (A.lockScroll) A.lockScroll(false); render(); }
+  let ov = null, onClosed = null;
+  function close() {
+    if (!ov) return;
+    ov.remove(); if (A.UI && A.UI.layer) A.UI.layer.close(ov); ov = null; document.removeEventListener('keydown', onKey); if (A.lockScroll) A.lockScroll(false);
+    const f = onClosed; onClosed = null;
+    render();
+    if (f) f();
+  }
   const onKey = e => { if (e.key === 'Escape' && !document.querySelector('.sk-catchup')) close(); };
-  function open() {
+  /** onClose(): called once when it closes (the lobby queue's 'event-gift' panel) */
+  function open({onClose} = {}) {
     const o = S() && S().active();
     if (!o) return;
+    if (onClose) onClosed = onClose;
     const fresh = o.preview ? [] : S().check();
     const ev = o.ev, steps = S().steps(o), claimed = S().claimed(o), giftOwned = ev.gift && S().owned(ev.gift);
     if (!ov) {

@@ -18,9 +18,12 @@ const OPTIONAL = [
 ];
 const optional = url => OPTIONAL.some(r => r.test(new URL(url).pathname));
 
-/** a saved device: an instrument chosen (trumpet by default), nothing else */
+/** a saved device: an instrument chosen (trumpet by default), nothing else. A seasonal event's free gift never opens
+    its panel by itself here (the lobby queue's 'event-gift': the real calendar would put it in every lobby test;
+    tests/lobby-queue.spec.js turns it on): gameData 'season-lobby' giftAfter, unless the test gives its own. */
 function device(member = 'trumpet', extra = {}) {
-  return Object.assign({player: member, members: {}, games: {}, modes: {}}, extra);
+  const gameData = Object.assign({'season-lobby': {giftAfter: '9999-12-31'}}, extra.gameData || {});
+  return Object.assign({player: member, members: {}, games: {}, modes: {}}, extra, {gameData});
 }
 
 /**
@@ -185,7 +188,14 @@ async function quickLeaderboard(page) {
     if (L && L.TIMEOUTS) Object.assign(L.TIMEOUTS, {read: 4000, send: 4000});
   }));
 }
+/** the floor's lobby queue has shown (and this closes) its UNLOCKED! card, if it has one to show: items a seasonal
+    event gave since the last visit are celebrated in the lobby first (shared/lobby-queue.js, lobby.js Lobby.unlocked) */
+async function closeUnlocked(page) {
+  await expect.poll(() => page.evaluate(() => { const s = Arcade.Lobby.queue.state(); return s.current === 'unlocked' || !s.waiting.includes('unlocked'); })).toBe(true);
+  const ok = page.locator('.sk-catchup [data-close]');
+  if (await ok.count()) { await ok.click(); await expect(page.locator('.sk-catchup')).toHaveCount(0); }
+}
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked};
