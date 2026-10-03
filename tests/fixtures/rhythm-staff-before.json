@@ -1,0 +1,1348 @@
+{
+"made": "shared/counting.js + shared/rhythm-staff.js as they were before rudiment notation (Oct 2026); parse = sha1(JSON.stringify(parsed.notes)), svgs/rows = sha1 of each engraved SVG, first 16 hex digits",
+"opts": [
+{},
+{
+"counting": false
+},
+{
+"counting": true,
+"showTime": true,
+"final": true,
+"id": "sn",
+"label": "Rhythm to play"
+}
+],
+"cases": [
+{
+"text": "q q q q",
+"time": "4/4",
+"counting": "1 2 3 4",
+"parse": "a1e9fbe3150b187d",
+"svgs": [
+"ffbe4a2925348aa5",
+"9ed3d2e7da0b024a",
+"9b4cb21d8b531efc"
+]
+},
+{
+"text": "h h",
+"time": "4/4",
+"counting": "1^(2) 3^(4)",
+"parse": "e3a38cf890fd1e4d",
+"svgs": [
+"558759b115cce805",
+"1c8187a504fd72cf",
+"12a3cf30b153ada3"
+]
+},
+{
+"text": "q q h",
+"time": "4/4",
+"counting": "1 2 3^(4)",
+"parse": "df0d18b519ba5629",
+"svgs": [
+"b0011dd3116aa716",
+"1fef058c13a50b24",
+"c9e22f5fe642855b"
+]
+},
+{
+"text": "h. q",
+"time": "4/4",
+"counting": "1^(2 3) 4",
+"parse": "6e2eb33ada7416e3",
+"svgs": [
+"5cd1fbcc4a0d9069",
+"e8f96079ea1531a2",
+"6dd7d3c65cdc1173"
+]
+},
+{
+"text": "w",
+"time": "4/4",
+"counting": "1^(2 3 4)",
+"parse": "f7bb5e7aecdeafb8",
+"svgs": [
+"df97b6abfbfad3fd",
+"64e4174226658f92",
+"84e1a9e0d96cfff8"
+]
+},
+{
+"text": "q qr q q",
+"time": "4/4",
+"counting": "1 (2) 3 4",
+"parse": "4e30c8e7361ed039",
+"svgs": [
+"f8c7b4fd9f0192b5",
+"e1ee0a3bd2530e38",
+"38fa8ec9b9f4c8a3"
+]
+},
+{
+"text": "q q hr",
+"time": "4/4",
+"counting": "1 2 (3^(4))",
+"parse": "c4246dc9f6de1ba7",
+"svgs": [
+"313b3ceec0c7e9c7",
+"334320de65c5c2c1",
+"7bfcc7eed0e79e62"
+]
+},
+{
+"text": "hr h",
+"time": "4/4",
+"counting": "(1^(2)) 3^(4)",
+"parse": "83b031e7d71b2d9d",
+"svgs": [
+"4f130238bcb57f6c",
+"1558d986ffe67fd0",
+"90cd0f6600da51f8"
+]
+},
+{
+"text": "wr",
+"time": "4/4",
+"counting": "(1^(2 3 4))",
+"parse": "fccfebd2d137551e",
+"svgs": [
+"226c5f1865546eb8",
+"4d191e6c53d626c4",
+"b99212d835aa4adc"
+]
+},
+{
+"text": "h.r q",
+"time": "4/4",
+"counting": "(1^(2 3)) 4",
+"parse": "47db8ed1ebed9150",
+"svgs": [
+"da5bd42a8e3cce05",
+"9e7b7c71b6f0c511",
+"a2dd685aa14dd46d"
+]
+},
+{
+"text": "e e e e e e e e",
+"time": "4/4",
+"counting": "1 & 2 & 3 & 4 &",
+"parse": "9fdf0d6384af4908",
+"svgs": [
+"a9504a3fee52e235",
+"deabe570289953c2",
+"c5b0942a0d574361"
+]
+},
+{
+"text": "e e q e e q",
+"time": "4/4",
+"counting": "1 & 2 3 & 4",
+"parse": "76acf5e3d35fd054",
+"svgs": [
+"7ff2a807b76ce527",
+"5f380aeb6f73978a",
+"d4181fe5531230c5"
+]
+},
+{
+"text": "e er q q q",
+"time": "4/4",
+"counting": "1 (&) 2 3 4",
+"parse": "b79cde7d3b92896f",
+"svgs": [
+"cde8a10f96c57dcd",
+"72b8474973887c48",
+"de97782eca26ad19"
+]
+},
+{
+"text": "er e er e q q",
+"time": "4/4",
+"counting": "(1) & (2) & 3 4",
+"parse": "66628b5639bbeea5",
+"svgs": [
+"5b891ccbbbf17ab1",
+"5dcfeadd804ecd22",
+"83a107d74da2f68a"
+]
+},
+{
+"text": "qr e e qr e e",
+"time": "4/4",
+"counting": "(1) 2 & (3) 4 &",
+"parse": "f20f2004d662a7ad",
+"svgs": [
+"dcbc869977e8b19e",
+"c95e31d5399bd89e",
+"ff95a35984592ff8"
+]
+},
+{
+"text": "q. e q q",
+"time": "4/4",
+"counting": "1^(& 2) & 3 4",
+"parse": "09e90efa24a46d46",
+"svgs": [
+"91b5de8293ce0705",
+"761c3977dd6a2f29",
+"1f8318eec748b152"
+]
+},
+{
+"text": "q q q. e",
+"time": "4/4",
+"counting": "1 2 3^(& 4) &",
+"parse": "545cc131ef6d5c83",
+"svgs": [
+"5c38c2fa17867d88",
+"2c05a0f9f07aaebe",
+"d931c5f88ff69eae"
+]
+},
+{
+"text": "e q e q q",
+"time": "4/4",
+"counting": "1 &^(2) & 3 4",
+"parse": "f2dccb2826fbcd52",
+"svgs": [
+"e292499e70714eac",
+"b86418563e8afb28",
+"09fec124eeafb05c"
+]
+},
+{
+"text": "e q q q e",
+"time": "4/4",
+"counting": "1 &^(2) &^(3) &^(4) &",
+"parse": "ec0f997f107aa54c",
+"svgs": [
+"daab21af5aa0deef",
+"24c8af5fe0a9a949",
+"5b4f8a3582e49928"
+]
+},
+{
+"text": "er q e q. e",
+"time": "4/4",
+"counting": "(1) &^(2) & 3^(& 4) &",
+"parse": "c911b743b4cea0b3",
+"svgs": [
+"c5ad7fd829e188f5",
+"cfcee47068392a7d",
+"cb22d98339aaa8ec"
+]
+},
+{
+"text": "s s s s q h",
+"time": "4/4",
+"counting": "1 e & a 2 3^(4)",
+"parse": "14318fc41b4fa2da",
+"svgs": [
+"bc31f7d2cf8a53fe",
+"a4874a3756f2659d",
+"16277b7ae0b3a32a"
+]
+},
+{
+"text": "e s s e s s h",
+"time": "4/4",
+"counting": "1 & a 2 & a 3^(4)",
+"parse": "7d36e44c4ea373fe",
+"svgs": [
+"49c261bde4010ad5",
+"4993e5979781a805",
+"5b42f591cabebc23"
+]
+},
+{
+"text": "s s e s s e h",
+"time": "4/4",
+"counting": "1 e & 2 e & 3^(4)",
+"parse": "0a98b0fd4c9149b8",
+"svgs": [
+"95ae62e294e71290",
+"199246845566b027",
+"5f6100908e1a1a2e"
+]
+},
+{
+"text": "s s e e s s q q",
+"time": "4/4",
+"counting": "1 e & 2 & a 3 4",
+"parse": "63932573ee916e12",
+"svgs": [
+"af9f535e31c0f2c4",
+"5c273e20b1cb1015",
+"e01eba23de243f5a"
+]
+},
+{
+"text": "sr s s s q h",
+"time": "4/4",
+"counting": "(1) e & a 2 3^(4)",
+"parse": "e6c6085b8b0c5fac",
+"svgs": [
+"cab758a10a1a8f2c",
+"af1f35caf64389d8",
+"efbc08db51b697fa"
+]
+},
+{
+"text": "e. s q h",
+"time": "4/4",
+"counting": "1^(e &) a 2 3^(4)",
+"parse": "a632fb4cc366f5c8",
+"svgs": [
+"a354e794be065f33",
+"db64b7b0a73005b9",
+"07dae55dcb519d53"
+]
+},
+{
+"text": "[e e e] [e e e] q q",
+"time": "4/4",
+"counting": "1 la le 2 la le 3 4",
+"parse": "90c88d090b6f0d0f",
+"svgs": [
+"dceac28919c5d952",
+"ba77d9729cfa44ea",
+"7f9d96df58677e77"
+]
+},
+{
+"text": "[e er e] q h",
+"time": "4/4",
+"counting": "1 (la) le 2 3^(4)",
+"parse": "0e3a0c087f051491",
+"svgs": [
+"95be10ab9d36f409",
+"81fe84af94605876",
+"25df3b84e00107b1"
+]
+},
+{
+"text": "[q e] [q e] h",
+"time": "4/4",
+"counting": "1^(la) le 2^(la) le 3^(4)",
+"parse": "086d3db16386a519",
+"svgs": [
+"7d8b1ec6bbfc6bb5",
+"fa746c2037715dce",
+"c10d422369bf4bd2"
+]
+},
+{
+"text": "q_ q q q",
+"time": "4/4",
+"counting": "1^(2) 3 4",
+"parse": "ac76be08ed0f91c1",
+"svgs": [
+"94f22b4df64faec9",
+"d3566abbdf489a9d",
+"5e2ca3fe1720e801"
+]
+},
+{
+"text": "q_ e e q q",
+"time": "4/4",
+"counting": "1^(& 2) & 3 4",
+"parse": "f1de214cf354d7d7",
+"svgs": [
+"0a3537f29f044e3c",
+"60cc769e699b9882",
+"9280a52212a09910"
+]
+},
+{
+"text": "q q h_ | q q h",
+"time": "4/4",
+"counting": "1 2 3^(4 1) 2 3^(4)",
+"parse": "3f79cb34172d0a4b",
+"svgs": [
+"119d4286198d8854",
+"d7c83aa9da5f3d03",
+"a9d65d3da606613a"
+],
+"rows": [
+"3a89f88654bca61f",
+"9fc8b77708141bec"
+]
+},
+{
+"text": "q q q. e_ | e e q h",
+"time": "4/4",
+"counting": "1 2 3^(& 4) &^(1) & 2 3^(4)",
+"parse": "f2e20e1efabee11a",
+"svgs": [
+"3f1141f8ad048822",
+"afe53fa4870c8bda",
+"d376bd450050d682"
+],
+"rows": [
+"bdd30678aa0a313a",
+"1eb63b27ece6972a"
+]
+},
+{
+"text": "w_ | h h",
+"time": "4/4",
+"counting": "1^(2 3 4 1 2) 3^(4)",
+"parse": "3177ca7de8eb6f5a",
+"svgs": [
+"3ab2b8671b522348",
+"eecbd905c4aa6839",
+"08df1d11ef314d75"
+],
+"rows": [
+"137c18a4f73fcf64",
+"fcc6ddcb239ba2b1"
+]
+},
+{
+"text": "q q q",
+"time": "3/4",
+"counting": "1 2 3",
+"parse": "c3fc33d95719f849",
+"svgs": [
+"2a48f5efe0085934",
+"f7fe7c7c72db555e",
+"5d7f9ed0c447ffb1"
+]
+},
+{
+"text": "h.",
+"time": "3/4",
+"counting": "1^(2 3)",
+"parse": "7db1bb6d2578dc74",
+"svgs": [
+"b4ee4b5573530b7c",
+"746dfa6f3937fb24",
+"cac7cd37425d66a8"
+]
+},
+{
+"text": "h q | q h",
+"time": "3/4",
+"counting": "1^(2) 3 1 2^(3)",
+"parse": "1cb4e31ecf780c6f",
+"svgs": [
+"dc7d55a594efecfc",
+"e78df587c86e035c",
+"d31aa5cec969b8fc"
+],
+"rows": [
+"3a4093eac73f0479",
+"a5572716fb8c6c92"
+]
+},
+{
+"text": "qr q q | hr q",
+"time": "3/4",
+"counting": "(1) 2 3 (1^(2)) 3",
+"parse": "2f06283ad816a025",
+"svgs": [
+"fee198b2649f91be",
+"d3ad5610f614fa2d",
+"cab985f624ce1af9"
+],
+"rows": [
+"8fba6fd93dd88024",
+"e0150a14d3200a26"
+]
+},
+{
+"text": "e e e e q",
+"time": "3/4",
+"counting": "1 & 2 & 3",
+"parse": "61765bfc2043e232",
+"svgs": [
+"d9d913136f74deb9",
+"375eefd34677c9cb",
+"e505a77e49b5225b"
+]
+},
+{
+"text": "q q | h",
+"time": "2/4",
+"counting": "1 2 1^(2)",
+"parse": "248ccbd0d991150d",
+"svgs": [
+"4f2d5a8be9a87b86",
+"3624aabdfe376086",
+"d19c793cf9cdf58d"
+],
+"rows": [
+"eee60ba3961f5800",
+"eb5346bf2267f08f"
+]
+},
+{
+"text": "e e q | q. e",
+"time": "2/4",
+"counting": "1 & 2 1^(& 2) &",
+"parse": "e855e324b1708756",
+"svgs": [
+"b843eddb4fc5bf34",
+"0ed53568265d41da",
+"bef7eec30bcef612"
+],
+"rows": [
+"7793a500d427d462",
+"fdd8240fdb7aebbd"
+]
+},
+{
+"text": "e e e e e e",
+"time": "6/8",
+"counting": "1 2 3 4 5 6",
+"parse": "32cf2798a7b600e1",
+"svgs": [
+"65b78805c0b0f5c0",
+"77955f6ec4c65b17",
+"3979534febf5c6ae"
+]
+},
+{
+"text": "q. q.",
+"time": "6/8",
+"counting": "1^(2 3) 4^(5 6)",
+"parse": "4adea56b5ae94129",
+"svgs": [
+"56a817d6e413f5b8",
+"90215e0a71336add",
+"b7f90597729b5cde"
+]
+},
+{
+"text": "q e q e",
+"time": "6/8",
+"counting": "1^(2) 3 4^(5) 6",
+"parse": "5707920eb836b7f2",
+"svgs": [
+"506ea14d5869b0de",
+"69fb63405a294885",
+"7d84428c95f74273"
+]
+},
+{
+"text": "h.",
+"time": "6/8",
+"counting": "1^(2 3 4 5 6)",
+"parse": "7db1bb6d2578dc74",
+"svgs": [
+"190b6d3317a3418e",
+"4a67a8cd32042266",
+"c96eb6503d916795"
+]
+},
+{
+"text": "s s s s s s q.",
+"time": "6/8",
+"counting": "1 & 2 & 3 & 4^(5 6)",
+"parse": "d6f3c4988ff3afcc",
+"svgs": [
+"0d5c2e3c6132c952",
+"80ed208747e2d42b",
+"aef6e4d95d1d3fd8"
+]
+},
+{
+"text": "er e e q.",
+"time": "6/8",
+"counting": "(1) 2 3 4^(5 6)",
+"parse": "2a0ebc4281408d1e",
+"svgs": [
+"23dc55aa3155765d",
+"7188b5a20e6c768a",
+"a480cb17395e0f0e"
+]
+},
+{
+"text": "q.r e e e",
+"time": "6/8",
+"counting": "(1^(2 3)) 4 5 6",
+"parse": "0ec830929aa15da8",
+"svgs": [
+"8215229a5a84935a",
+"f532e4df9cc7ee3e",
+"6ba790631051f632"
+]
+},
+{
+"text": "q. q._ | q. q.",
+"time": "6/8",
+"counting": "1^(2 3) 4^(5 6 1 2 3) 4^(5 6)",
+"parse": "9c44e0ee557e15a4",
+"svgs": [
+"f95c13713d2fe326",
+"a58093a74b74102e",
+"6efa68c3adf2bc95"
+],
+"rows": [
+"3c8b4faefe039d24",
+"55cd3349c605e42d"
+]
+},
+{
+"text": "q q q qr",
+"time": "4/4",
+"counting": "1 2 3 (4)",
+"parse": "6e300a9b5694ccce",
+"svgs": [
+"01d1b76d65157b12",
+"b67c70ee95a623bd",
+"e48736ad040b2395"
+]
+},
+{
+"text": "qr q q q",
+"time": "4/4",
+"counting": "(1) 2 3 4",
+"parse": "d56264c7a908f894",
+"svgs": [
+"3f7c30aae622ac47",
+"9118be53585930d9",
+"9230d8297946936e"
+]
+},
+{
+"text": "q q qr q",
+"time": "4/4",
+"counting": "1 2 (3) 4",
+"parse": "448468b24fb58652",
+"svgs": [
+"80acc9c1c1a6a2ac",
+"31dba8ce32593995",
+"4455270dc2ba5132"
+]
+},
+{
+"text": "q qr q qr",
+"time": "4/4",
+"counting": "1 (2) 3 (4)",
+"parse": "b83a7c50f9fd18c6",
+"svgs": [
+"f571febe0574692b",
+"ebee03f7b4454906",
+"d13dc4fd59c4c3b2"
+]
+},
+{
+"text": "qr q qr q",
+"time": "4/4",
+"counting": "(1) 2 (3) 4",
+"parse": "3a6cfa5234f5cfaf",
+"svgs": [
+"2740ad3ffc1a6326",
+"da7d8384322c1832",
+"eba1f0a8a76239c8"
+]
+},
+{
+"text": "q q qr qr",
+"time": "4/4",
+"counting": "1 2 (3) (4)",
+"parse": "ea7e977d2d940b4f",
+"svgs": [
+"041c5d7fe54adada",
+"7929633f13067102",
+"5131a2c939ada881"
+]
+},
+{
+"text": "h q q",
+"time": "4/4",
+"counting": "1^(2) 3 4",
+"parse": "8fe1fd1d9d446196",
+"svgs": [
+"e33c3ad138909910",
+"ed02053c7e34acf6",
+"3915bb93c3e7d95b"
+]
+},
+{
+"text": "h hr",
+"time": "4/4",
+"counting": "1^(2) (3^(4))",
+"parse": "9b474d13936d259e",
+"svgs": [
+"2a47f6659ba08df4",
+"56683731aa0c757f",
+"ef229bbbafe05562"
+]
+},
+{
+"text": "q qr h",
+"time": "4/4",
+"counting": "1 (2) 3^(4)",
+"parse": "db57e444e53f2601",
+"svgs": [
+"d520d323c3e60a38",
+"80f3c2dcc59dd152",
+"8173ac8c81f44905"
+]
+},
+{
+"text": "h q qr",
+"time": "4/4",
+"counting": "1^(2) 3 (4)",
+"parse": "955c480bfc614734",
+"svgs": [
+"c363c8d423502bcd",
+"6c4af78b732d4d30",
+"63710b1c08429c72"
+]
+},
+{
+"text": "hr q q",
+"time": "4/4",
+"counting": "(1^(2)) 3 4",
+"parse": "682622e363a73353",
+"svgs": [
+"51a0e5090a71aea7",
+"62dc4e7887d7629a",
+"1a28cf6f64db7d37"
+]
+},
+{
+"text": "h q",
+"time": "3/4",
+"counting": "1^(2) 3",
+"parse": "eab6859fb5f850f9",
+"svgs": [
+"d77c474e54c47d24",
+"735588e95242e594",
+"5c108dbfe3a87b71"
+]
+},
+{
+"text": "q h",
+"time": "3/4",
+"counting": "1 2^(3)",
+"parse": "df96b0b62e3658b8",
+"svgs": [
+"36ff822271790a73",
+"b62af05a0d0590bf",
+"18e6fe7dd8b017f1"
+]
+},
+{
+"text": "qr q q",
+"time": "3/4",
+"counting": "(1) 2 3",
+"parse": "db92764a881779c3",
+"svgs": [
+"af5daacd8d5bc3e1",
+"e4bd96c037dada4c",
+"8ce59ea637b1b8ed"
+]
+},
+{
+"text": "h qr",
+"time": "3/4",
+"counting": "1^(2) (3)",
+"parse": "f298eb3dd66893d8",
+"svgs": [
+"a188d76f7c35af4b",
+"f4de035604a472ec",
+"06af7e5c06dff8f8"
+]
+},
+{
+"text": "q qr q",
+"time": "3/4",
+"counting": "1 (2) 3",
+"parse": "788b2c3e152c05bb",
+"svgs": [
+"c22de21a811e6fe7",
+"9fcd438b2b856d79",
+"e64e60e509b307db"
+]
+},
+{
+"text": "q q qr",
+"time": "3/4",
+"counting": "1 2 (3)",
+"parse": "db24b478e48d5055",
+"svgs": [
+"f185c07201649944",
+"9531134a42739e4a",
+"4f9f1af3dd6ffe62"
+]
+},
+{
+"text": "q q",
+"time": "2/4",
+"counting": "1 2",
+"parse": "29b5599c074e8192",
+"svgs": [
+"d114bc7f2b5b5a00",
+"c73a55e83b9cb9bd",
+"64933a8727284889"
+]
+},
+{
+"text": "h",
+"time": "2/4",
+"counting": "1^(2)",
+"parse": "5f358e0c939fc22d",
+"svgs": [
+"d17c305d90141e0a",
+"a406e22b92750310",
+"994b4c908bff6df3"
+]
+},
+{
+"text": "qr q",
+"time": "2/4",
+"counting": "(1) 2",
+"parse": "f7d1290ae3185d00",
+"svgs": [
+"6d8a5d551ff3fa33",
+"350834681dbffbe7",
+"e894ae61e7a5c41e"
+]
+},
+{
+"text": "q qr",
+"time": "2/4",
+"counting": "1 (2)",
+"parse": "d315c6f147fe43bd",
+"svgs": [
+"68cf6c1d7edcc521",
+"a9837bd199af9638",
+"f01c8c27f14a977e"
+]
+},
+{
+"text": "e e q q q",
+"time": "4/4",
+"counting": "1 & 2 3 4",
+"parse": "a3ece228b85b7ce3",
+"svgs": [
+"36404bb7a2b3316d",
+"63e7230f0f01581f",
+"4f5d75fbaf89def0"
+]
+},
+{
+"text": "q e e q q",
+"time": "4/4",
+"counting": "1 2 & 3 4",
+"parse": "9839b035a937560e",
+"svgs": [
+"45148b36bee44dfb",
+"a9944cc0cca0411b",
+"ff9a003a3aa37dc5"
+]
+},
+{
+"text": "q q e e q",
+"time": "4/4",
+"counting": "1 2 3 & 4",
+"parse": "6caf75e2484fc81f",
+"svgs": [
+"d554423112770456",
+"8b145cc7b8d08406",
+"432b87d7b474b0d4"
+]
+},
+{
+"text": "e e e e q q",
+"time": "4/4",
+"counting": "1 & 2 & 3 4",
+"parse": "fba90357f68d40d5",
+"svgs": [
+"deca056c5ea7d726",
+"c7fd2c2a78e6058b",
+"72eb09e9fec08ac9"
+]
+},
+{
+"text": "q q e e e e",
+"time": "4/4",
+"counting": "1 2 3 & 4 &",
+"parse": "e4d4b7f4621c203d",
+"svgs": [
+"84f8c5c5fcebc510",
+"a107d142da1436c8",
+"8b89c63d74538a8d"
+]
+},
+{
+"text": "e e h q",
+"time": "4/4",
+"counting": "1 & 2^(3) 4",
+"parse": "e306d6a327997970",
+"svgs": [
+"0adedea2918a6ff4",
+"0f9bb6e23228046d",
+"ab530c9f23b69641"
+]
+},
+{
+"text": "q e e h",
+"time": "4/4",
+"counting": "1 2 & 3^(4)",
+"parse": "2aa6274ca293791b",
+"svgs": [
+"f971a38055811f22",
+"22867ca88bc91536",
+"b3fd0160bc7b368d"
+]
+},
+{
+"text": "er e q q q",
+"time": "4/4",
+"counting": "(1) & 2 3 4",
+"parse": "664dcde45da85984",
+"svgs": [
+"adfb66757ead6d68",
+"2ffa2fda5c0d3076",
+"14baea9fffa34af1"
+]
+},
+{
+"text": "q er e q q",
+"time": "4/4",
+"counting": "1 (2) & 3 4",
+"parse": "26ab39e32f2f6bac",
+"svgs": [
+"d99ad3f7a6dfa90c",
+"4f2f77b4cb76d156",
+"aef16b4e47788a3b"
+]
+},
+{
+"text": "q e er h",
+"time": "4/4",
+"counting": "1 2 (&) 3^(4)",
+"parse": "eb286ab139240529",
+"svgs": [
+"e64b3af8a07065a7",
+"0549317148151c6f",
+"f784e36d4efd19b3"
+]
+},
+{
+"text": "e er e er h",
+"time": "4/4",
+"counting": "1 (&) 2 (&) 3^(4)",
+"parse": "2598faf5bec9ec01",
+"svgs": [
+"17b4e2e7fff81ad1",
+"88af983e6cd62842",
+"8ba5216c68177431"
+]
+},
+{
+"text": "q q er e q",
+"time": "4/4",
+"counting": "1 2 (3) & 4",
+"parse": "fe86598815456f8d",
+"svgs": [
+"90a4f1d59db4e7cb",
+"fedb38f1ffd02be7",
+"73cc8a1d493bfa06"
+]
+},
+{
+"text": "q er e er e q",
+"time": "4/4",
+"counting": "1 (2) & (3) & 4",
+"parse": "7dc53a571833ccdf",
+"svgs": [
+"81f437ecf846c969",
+"89f695719df3cf8c",
+"fa0b196e5730c172"
+]
+},
+{
+"text": "q. e h",
+"time": "4/4",
+"counting": "1^(& 2) & 3^(4)",
+"parse": "2750e8a9089351c7",
+"svgs": [
+"beb24eedee797fac",
+"4461555424a6434c",
+"3bfbf98d066997ec"
+]
+},
+{
+"text": "q q. e q",
+"time": "4/4",
+"counting": "1 2^(& 3) & 4",
+"parse": "34c52aaddf9a297e",
+"svgs": [
+"f0b80d5be444f4b5",
+"732a02e3627c11fa",
+"7b64067412f003e6"
+]
+},
+{
+"text": "q. e q. e",
+"time": "4/4",
+"counting": "1^(& 2) & 3^(& 4) &",
+"parse": "e046a7e204d2b993",
+"svgs": [
+"b96908e51e1b719d",
+"d21df3228bf492a4",
+"123241318a4bd8d4"
+]
+},
+{
+"text": "h q. e",
+"time": "4/4",
+"counting": "1^(2) 3^(& 4) &",
+"parse": "aae2829297a34dbf",
+"svgs": [
+"675a4ed488eb51a1",
+"cc49c6d14e97354c",
+"f8e478cbbf4e4756"
+]
+},
+{
+"text": "q. e e e q",
+"time": "4/4",
+"counting": "1^(& 2) & 3 & 4",
+"parse": "2198aba1c1e86c1b",
+"svgs": [
+"385c05d95690dded",
+"446552dfdd2f99aa",
+"bf04d8d5422cbb5f"
+]
+},
+{
+"text": "q e q e q",
+"time": "4/4",
+"counting": "1 2 &^(3) & 4",
+"parse": "400df4f6a29c824c",
+"svgs": [
+"4f35fd084a41d37c",
+"e18f45b1c835bb7c",
+"61399f98e0ab30aa"
+]
+},
+{
+"text": "e q e h",
+"time": "4/4",
+"counting": "1 &^(2) & 3^(4)",
+"parse": "2fa2cda2c6c4d31a",
+"svgs": [
+"2239230bc52a8ad5",
+"d43139d17d156442",
+"4436732734fb030f"
+]
+},
+{
+"text": "h_ q q",
+"time": "4/4",
+"counting": "1^(2 3) 4",
+"parse": "fb22c59263fdd281",
+"svgs": [
+"87ecd642becbbddf",
+"f9d8a3eef96d0eb7",
+"6af349d89c8a653f"
+]
+},
+{
+"text": "q q_ q q",
+"time": "4/4",
+"counting": "1 2^(3) 4",
+"parse": "dcd95e276b276f25",
+"svgs": [
+"7cf3715842eb48a5",
+"e9185ea8319965ee",
+"9ec776ce5123efc6"
+]
+},
+{
+"text": "e e_ e e q q",
+"time": "4/4",
+"counting": "1 &^(2) & 3 4",
+"parse": "5cfc861e827ff2f0",
+"svgs": [
+"d0c324107dc6fe12",
+"897c80c294ac6cb9",
+"ea9c44a209dd7a3d"
+]
+},
+{
+"text": "q e e_ e e q",
+"time": "4/4",
+"counting": "1 2 &^(3) & 4",
+"parse": "de31b252be2b8dd7",
+"svgs": [
+"c0eaeaf5c09195ef",
+"b62df991a39b6056",
+"cd466897a3dbc02c"
+]
+},
+{
+"text": "e q e e q e",
+"time": "4/4",
+"counting": "1 &^(2) & 3 &^(4) &",
+"parse": "afb4efab46ccd512",
+"svgs": [
+"a5ea21a7727337e9",
+"d75e48591f38a6e4",
+"3057807a5bf4f51b"
+]
+},
+{
+"text": "s s s s q q q",
+"time": "4/4",
+"counting": "1 e & a 2 3 4",
+"parse": "62428bb8f5a252d9",
+"svgs": [
+"494c551de3598136",
+"1759293fa9037b07",
+"9779c400c51cdab1"
+]
+},
+{
+"text": "q s s s s q q",
+"time": "4/4",
+"counting": "1 2 e & a 3 4",
+"parse": "60335cd6ead1ab14",
+"svgs": [
+"b95452f79da86de6",
+"a9bc7eca13404e19",
+"a9a5d4022efd7bff"
+]
+},
+{
+"text": "e s s q q q",
+"time": "4/4",
+"counting": "1 & a 2 3 4",
+"parse": "248af6250fa41b9f",
+"svgs": [
+"0f206de31b17426b",
+"a96f5c9ebc3c9b5f",
+"5878cd1b0d95a09c"
+]
+},
+{
+"text": "s s e q q q",
+"time": "4/4",
+"counting": "1 e & 2 3 4",
+"parse": "bb28cdb607f205c2",
+"svgs": [
+"1fae525c9867bfe5",
+"65a5807d47debbf0",
+"8f085787fe5545eb"
+]
+},
+{
+"text": "e s s e s s q q",
+"time": "4/4",
+"counting": "1 & a 2 & a 3 4",
+"parse": "10f1bfcaa9ed600b",
+"svgs": [
+"e9e9a2322a029408",
+"be4b1fd2851d3fdb",
+"b7071ad30568c67b"
+]
+},
+{
+"text": "q e s s s s e q",
+"time": "4/4",
+"counting": "1 2 & a 3 e & 4",
+"parse": "c4e02175e0d6442c",
+"svgs": [
+"fa07c6d4f1be4552",
+"d697fb67502ad8fe",
+"e6d0e43b62e8e566"
+]
+},
+{
+"text": "s s s s s s s s h",
+"time": "4/4",
+"counting": "1 e & a 2 e & a 3^(4)",
+"parse": "6476c6d1a6f7d919",
+"svgs": [
+"8cd6d55e2a59aa1c",
+"661e5cbe9e936016",
+"7fcbfdfa5362f75a"
+]
+},
+{
+"text": "[e e e] q q q",
+"time": "4/4",
+"counting": "1 la le 2 3 4",
+"parse": "0ffd0cdd5832e151",
+"svgs": [
+"203cebeb028be860",
+"77c868802ed061db",
+"44ce7cfd03da009f"
+]
+},
+{
+"text": "q [e e e] q q",
+"time": "4/4",
+"counting": "1 2 la le 3 4",
+"parse": "d520612d7b9ea211",
+"svgs": [
+"063bacaa4f72d219",
+"980769af4760d2d0",
+"8ac1bc20f3b6dbab"
+]
+},
+{
+"text": "[e e e] [e e e] h",
+"time": "4/4",
+"counting": "1 la le 2 la le 3^(4)",
+"parse": "d04d7b04cbe76f57",
+"svgs": [
+"dfa4791f88fa1faf",
+"6e8f9fbb86160934",
+"f2335b6728e2b352"
+]
+},
+{
+"text": "q q [e e e] q",
+"time": "4/4",
+"counting": "1 2 3 la le 4",
+"parse": "4ef5b85cde61ab38",
+"svgs": [
+"5f316a66c6982224",
+"71b727cd596acbe0",
+"0ea9375dabf40d4e"
+]
+},
+{
+"text": "[e e e] q [e e e] q",
+"time": "4/4",
+"counting": "1 la le 2 3 la le 4",
+"parse": "f3097fdd8556046e",
+"svgs": [
+"659af8ea4d04b69b",
+"115e7f1e7437fd3b",
+"22c15f55a93a25bb"
+]
+},
+{
+"text": "h [e e e] q",
+"time": "4/4",
+"counting": "1^(2) 3 la le 4",
+"parse": "b1086eda873a11a8",
+"svgs": [
+"61cb85891cd3ba6a",
+"f276a6cb7b4d5b11",
+"1288f42bad5322e5"
+]
+},
+{
+"text": "[e e e] h q",
+"time": "4/4",
+"counting": "1 la le 2^(3) 4",
+"parse": "b81736fc4f4bd962",
+"svgs": [
+"8e423bad9704a321",
+"469713914d1a7703",
+"7db521a2580f728f"
+]
+},
+{
+"text": "e e e q.",
+"time": "6/8",
+"counting": "1 2 3 4^(5 6)",
+"parse": "b26ec47167c8855a",
+"svgs": [
+"2e8d56354b7d8f86",
+"0bb874b22053ebb8",
+"2ace97aee840e159"
+]
+},
+{
+"text": "q. e e e",
+"time": "6/8",
+"counting": "1^(2 3) 4 5 6",
+"parse": "a04e443cb6eb2de1",
+"svgs": [
+"aca5f2b8012b3450",
+"7ea38ffe73d60f69",
+"d3810fd340f06b8b"
+]
+},
+{
+"text": "q e e e e",
+"time": "6/8",
+"counting": "1^(2) 3 4 5 6",
+"parse": "c2dffd3037c87fda",
+"svgs": [
+"2066a7a956206be7",
+"b2f709f78cfa8305",
+"c0968ebdb5eb9809"
+]
+},
+{
+"text": "q.r q.",
+"time": "6/8",
+"counting": "(1^(2 3)) 4^(5 6)",
+"parse": "3b0184f7ca4ed4ca",
+"svgs": [
+"bf015304599fa8ae",
+"089cfbac6271d477",
+"2b7baff2a281767b"
+]
+},
+{
+"text": "q e q.",
+"time": "6/8",
+"counting": "1^(2) 3 4^(5 6)",
+"parse": "41310b0d8f211fb6",
+"svgs": [
+"7ce3b69e18b5553e",
+"5ac229c230a9be8c",
+"9c6461cf7e8bce28"
+]
+},
+{
+"text": "q e s s q q",
+"time": "4/4",
+"counting": "1 2 & a 3 4",
+"parse": "c3574e1f57706967",
+"svgs": [
+"88550bc74487b407",
+"e46896507c4d7be3",
+"7ca44453f08c6ddc"
+]
+},
+{
+"text": "[e e e] q h",
+"time": "4/4",
+"counting": "1 la le 2 3^(4)",
+"parse": "1d6351b7cff7989c",
+"svgs": [
+"f6ffb8d52e305acb",
+"fa8c90325ad47eb9",
+"cb47604b3d2d9b91"
+]
+},
+{
+"text": "q qr e e q",
+"time": "4/4",
+"counting": "1 (2) 3 & 4",
+"parse": "8cf64d767d18e5cc",
+"svgs": [
+"a5a3d6d233ec36a3",
+"39e0478d5dba163d",
+"d9af9a765dc4f8cc"
+]
+},
+{
+"text": "s s s s s s s s q q",
+"time": "4/4",
+"counting": "1 e & a 2 e & a 3 4",
+"parse": "d6c5d926a61ca36c",
+"svgs": [
+"90dc974049a4193e",
+"d38d6822162f6b79",
+"8471cc09aa5128f1"
+]
+}
+]
+}

@@ -50,7 +50,7 @@ Engine and shared systems (`docs/engine/`):
 | [sound.md](docs/engine/sound.md) | any sound, music or ambience; sound in a listening game (the full "sound while listening" rule); countdowns; the loudness cap; `tones.js`; the automatic compression of sound files (`tools/compress-sounds.py`, `compress-sounds.yml`) |
 | [pitch.md](docs/engine/pitch.md) | pitch detection or any listening game: `pitch.js`, attacks, suppress, `setRange`, `requireMic`, detector tuning, CLASSROOM MODE (`Pitch.ROOM`) and THE ROOM CHECK (`shared/room-check.js`) |
 | [notes-and-scales.md](docs/engine/notes-and-scales.md) | instruments and members, transpositions, scales, note sequences, the mode picker, progress keys, staff drawing |
-| [rhythm.md](docs/engine/rhythm.md) | rhythms, counting, the rhythm staff, onsets (claps/hits), calibration and the audio clock, the rhythm judge, the timing check |
+| [rhythm.md](docs/engine/rhythm.md) | rhythms, counting, the rhythm staff, sticking, accents, grace notes, rolls, onsets (claps/hits), calibration and the audio clock, the rhythm judge, the timing check |
 | [avatars.md](docs/engine/avatars.md) | avatars, the creator, parts and names, avatar backgrounds and animation, item unlocks, portraits, skins, the Locker, the avatar badge |
 | [seasons.md](docs/engine/seasons.md) | seasonal events, event items, the lobby's event banner and panel, seasonal looks |
 | [leaderboard.md](docs/engine/leaderboard.md) | the leaderboard endpoint, its events, its screen, privacy, the anonymous BUG REPORTS (`shared/bug-report.js`) |
