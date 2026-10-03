@@ -13,7 +13,8 @@
    The creator (shared/avatar-creator.js + avatar.css + the full-body sprite parts in shared/instrument-sprites.js) is
    loaded the first time EDIT AVATAR is used on a page that doesn't already have it.
 
-     Arcade.AvatarBadge.mount(el, {member, instLabel, changeInstrument: href | fn | null})   draws the badge into el
+     Arcade.AvatarBadge.mount(el, {member, instLabel, changeInstrument: href | fn | null, tuneUp: href | fn})   draws the badge into el
+     (tuneUp: the floor only: a TUNE UP item, shown by arcade.css only while the top bar is too narrow for its own button)
      the menu also has "<token icon> 142 tokens · PRIZE COUNTER" (Arcade.Tokens.iconHTML): the Prize Counter over this page when it has shared/prizes.js
      (the floor), else the floor page with ?prizes, which opens it there; and, when a scoreboard address is set,
      "🏆 Leaderboard: Grade 7 · change" ("· choose your grade" with none): the leaderboard screen on the floor, else the
@@ -140,6 +141,7 @@ window.Arcade = window.Arcade || {};
       `<button type="button" class="avb-item avb-share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg><span>Share to Band Ninja</span></button>` +
       `<button type="button" class="avb-item avb-locker"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 12h14M9 7h2M9 16h2"/></svg><span class="avb-lk-t">Locker</span></button>` +
       (A.Tokens && A.store ? `<button type="button" class="avb-item avb-prize"><span class="avb-tk" aria-hidden="true">${A.Tokens.iconHTML({size: 18})}</span><span class="avb-pz-t">Prize Counter</span></button>` : '') +
+      (opts.tuneUp ? `<button type="button" class="avb-item avb-tune"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/></svg><span>Tune up</span></button>` : '') +
       (A.Leaderboard && A.Leaderboard.available() && A.store ? `<button type="button" class="avb-item avb-lb"><span class="avb-tk" aria-hidden="true">🏆</span><span class="avb-lb-t">Leaderboard</span></button>` : '') +
       (opts.changeInstrument ? `<button type="button" class="avb-item avb-inst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg><span>Change instrument</span></button>` : '') +
       `</div>`;
@@ -148,7 +150,7 @@ window.Arcade = window.Arcade || {};
       lockerLabel(b);
       menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); el.classList.add('open');
       if (A.Sfx) A.Sfx.event('ui-toggle');
-      setTimeout(() => menu.querySelector('.avb-item').focus(), 0);
+      setTimeout(() => { const f = [...menu.querySelectorAll('.avb-item')].find(x => x.offsetParent); if (f) f.focus(); }, 0);
       setTimeout(() => { addEventListener('pointerdown', outside, true); addEventListener('keydown', key, true); }, 0);
     };
     const close = (refocus) => {
@@ -162,7 +164,7 @@ window.Arcade = window.Arcade || {};
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); return; }
       if (/^Arrow(Up|Down)$/.test(e.key) && menu.contains(document.activeElement)) {
         e.preventDefault(); e.stopPropagation();
-        const items = [...menu.querySelectorAll('.avb-item')], i = items.indexOf(document.activeElement);
+        const items = [...menu.querySelectorAll('.avb-item')].filter(x => x.offsetParent), i = items.indexOf(document.activeElement);
         items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
       }
     };
@@ -192,6 +194,12 @@ window.Arcade = window.Arcade || {};
       close(false);
       if (A.LeaderboardScreen) { A.LeaderboardScreen.open(); return; }
       const href = A.linkTo((A.ROOT || '../') + 'index.html', {leaderboard: ''});
+      if (A.Sfx && A.Sfx.playThenGo) A.Sfx.playThenGo('ui-toggle', href); else location.href = href;
+    });
+    const tune = el.querySelector('.avb-tune');                        // TUNE UP (the floor's narrow top bar: arcade.css shows it only then)
+    if (tune) tune.addEventListener('click', () => {
+      close(false);
+      const href = typeof opts.tuneUp === 'function' ? opts.tuneUp() : opts.tuneUp;
       if (A.Sfx && A.Sfx.playThenGo) A.Sfx.playThenGo('ui-toggle', href); else location.href = href;
     });
     const inst = el.querySelector('.avb-inst');

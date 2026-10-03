@@ -30,20 +30,25 @@
 </button>
 <div class="room" aria-hidden="true"></div>
 
-<!-- THE FLOOR'S TOP BAR (the lobby, a zone, ALL GAMES, the FULL ARCADE; arcade.js): back, where you are, TUNE UP (the
-     Note Checker), ALL GAMES, FULL ARCADE, LEADERBOARD (leaderboard-screen.js; hidden when no scoreboard address is set), your AVATAR BADGE (shared/avatar-badge.js: edit avatar / change instrument) and the sound button -->
+<!-- THE FLOOR'S TOP BAR (the lobby, a zone, ARCADE VIEW; arcade.js): three groups. LEFT: back + where you are. CENTER (centered on
+     the screen): ARCADE VIEW (LIST / CABINETS: its icon shows the mode last used), TUNE UP (the toolbox), LEADERBOARD
+     (leaderboard-screen.js; hidden when no scoreboard address is set). RIGHT: your AVATAR BADGE (shared/avatar-badge.js:
+     edit avatar / change instrument…) and the sound/settings button. Narrow screens: shorter labels, then icons only, then
+     TUNE UP and LEADERBOARD move into the badge's menu (arcade.js fitBar) -->
 <nav class="fbar" id="fbar" aria-label="Arcade">
-  <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span id="backLbl">Lobby</span></button>
-  <h2 class="fb-title" id="fbTitle" hidden></h2>
+  <div class="fb-left">
+    <button type="button" class="fb-back" id="backBtn" hidden><span aria-hidden="true">←</span> <span class="fb-back-l" id="backLbl">Lobby</span></button>
+    <h2 class="fb-title" id="fbTitle" hidden></h2>
+  </div>
+  <div class="fb-center" id="fbCenter">
+    <button type="button" class="fb-btn fb-view" id="viewBtn" aria-pressed="false" aria-label="Arcade view" title="Arcade view" data-mode="cabinets">
+      <svg class="fbv-list" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><svg class="fbv-cab" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span class="fb-l" aria-hidden="true"><span class="fb-long">Arcade view</span><span class="fb-short">View</span></span></button>
+    <a class="fb-btn fb-tune" id="tuneBtn" href="note-checker/index.html" aria-label="Tune up" title="Tune up">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M5.5 11.5l1.2 1M12 8v1.6M18.5 11.5l-1.2 1"/></svg><span class="fb-l" aria-hidden="true"><span class="fb-long">Tune up</span><span class="fb-short">Tune up</span></span></a>
+    <button type="button" class="fb-btn fb-lb" id="lbBtn" aria-label="Leaderboard" title="Leaderboard" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20h7M10 17h4"/></svg><span class="fb-l" aria-hidden="true"><span class="fb-long">Leaderboard</span><span class="fb-short">Leaders</span></span></button>
+  </div>
   <div class="fb-right">
-    <a class="fb-btn fb-tune" id="tuneBtn" href="note-checker/index.html">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M5.5 11.5l1.2 1M12 8v1.6M18.5 11.5l-1.2 1"/></svg><span>Tune up</span></a>
-    <button type="button" class="fb-btn fb-all" id="allBtn">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><span>All games</span></button>
-    <button type="button" class="fb-btn fb-full" id="fullBtn">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span>Full arcade</span></button>
-    <button type="button" class="fb-btn fb-lb" id="lbBtn" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20h7M10 17h4"/></svg><span>Leaderboard</span></button>
     <div class="fb-avb" id="avBadge"></div>
     <div class="sound-ctl" id="soundCtl" role="group" aria-label="Sound"></div>
   </div>
@@ -64,8 +69,10 @@
   <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
 </section>
 
-<!-- ONE ZONE: the cabinet carousel with only that zone's games (or, #full-arcade, every game's) -->
+<!-- ONE ZONE: the cabinet carousel with only that zone's games (or ARCADE VIEW: CABINETS, #full-arcade: every game's) -->
 <main class="zone" id="zoneView" hidden>
+  <!-- ARCADE VIEW's switch (only in CABINETS, #full-arcade; arcade.js fills it) -->
+  <div class="vsw" role="radiogroup" aria-label="Arcade view"></div>
   <section class="carousel" aria-roledescription="carousel" aria-label="Games">
     <button class="nav nav-prev" id="prevBtn" aria-label="Previous game">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4L6 12l10 8z"/></svg>
@@ -90,9 +97,10 @@
   </section>
 </main>
 
-<!-- ALL GAMES: every game once, as a card (lobby.js) -->
+<!-- ARCADE VIEW: LIST (#all-games, once called ALL GAMES): every game once, as a card (lobby.js) -->
 <section class="allg" id="allView" hidden aria-labelledby="allTitle">
   <h2 class="sr" id="allTitle">All games</h2>
+  <div class="vsw" role="radiogroup" aria-label="Arcade view"></div>
   <div class="allg-bar" role="group" aria-label="Filter the games">
     <button type="button" class="allg-chip" id="niFilter" aria-pressed="false"><span class="allg-chk" aria-hidden="true"></span>No instrument needed</button>
     <span class="allg-count" id="allCount" aria-live="polite"></span>

@@ -341,7 +341,8 @@ for (const [name, w, h] of SIZES) {
       if (hash) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
       await settle(page);
       const got = await contrasts(page, hash ? '#fbar' : '#fbar, #zones .zsign, #lobby > .sign');
-      expect(got.length).toBeGreaterThan(3);
+      // (a phone's zone: the top bar is icons + the zone's name, so its title is the only text: tests/top-bar.spec.js)
+      expect(got.length).toBeGreaterThan(hash && w <= 600 ? 0 : 3);
       for (const t of got) expect(`${name} ${hash || 'lobby'} "${t.text}" ${t.ratio}`).toMatch(t.ratio >= 4.5 ? /./ : /^$/);
     }
     watch.check();

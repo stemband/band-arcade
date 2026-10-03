@@ -60,6 +60,10 @@
 .breath{width:56px;height:56px;display:grid;place-items:center}
 .breath .ring{width:100%;height:100%;border-radius:50%;border:4px solid var(--cyan);box-shadow:var(--glow-cyan)}
 .coach{font-family:var(--display);font-size:clamp(22px,3.4vw,34px);color:var(--cyan-hi)}
+/* the pit countdown's 3, 2, 1: styled like the race's start countdown (.banner), centered in the card */
+.coach-sub{font-size:14px;color:var(--cyan-hi)}
+.coach.coach-num{font-style:italic;font-size:clamp(44px,min(9vw,11vh),76px);line-height:1;color:var(--yellow);transform:skewX(-8deg);
+  -webkit-text-stroke:2px var(--red-ink);text-shadow:0 4px 0 var(--red-ink),var(--glow-yellow)}
 .pit-next{font-size:14px;color:var(--text-lo)}
 .pit-next b{color:var(--text-hi)}
 .note-staff.big{width:min(260px,70vw);background:var(--screen);border-radius:10px;padding:0 6px}
@@ -142,7 +146,9 @@
   .breath .ring{animation:breathe 3.5s ease-in-out infinite}
   .banner:not(.b-count){animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
   .note-card.flash{animation:shake .3s}
+  html:not(.no-motion) .coach.coach-num.pop{animation:coach-pop .25s ease-out}
 }
+@keyframes coach-pop{from{transform:skewX(-8deg) scale(1.35);opacity:0}}
 @keyframes breathe{0%{transform:scale(.55)}70%,100%{transform:scale(1)}}
 @keyframes pop{from{transform:translate(-50%,-50%) skewX(-8deg) scale(1.6);opacity:0}}
 @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}

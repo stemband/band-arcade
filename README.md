@@ -23,9 +23,9 @@ is sent anywhere except the leaderboard, and check that a Backup Code brings eve
 ## What's in here
 
 ```
-index.html            The arcade (home page): PRESS START, the ZONE LOBBY, each zone's cabinets, ALL GAMES, the FULL ARCADE
+index.html            The arcade (home page): PRESS START, the ZONE LOBBY, each zone's cabinets, ARCADE VIEW (LIST / CABINETS)
 arcade.css / .js      The arcade's look and behavior (the page's views and addresses, a zone's carousel, swipe, keys)
-lobby.js              The zone lobby's neon signs, CONTINUE and ASSIGNED cards, and the ALL GAMES grid (flat, no 3D)
+lobby.js              The zone lobby's neon signs, CONTINUE and ASSIGNED cards, and ARCADE VIEW's LIST grid (flat, no 3D)
 arcade3d.js           The 3D arcade floor (three.js): cabinets built in code, glossy floor, haze
 shared/vendor/        three.js r149 (three.min.js) and its MIT license. Loaded only by the home page
 select-player/        "Select Your Player": a view on the arcade floor page (player.js, style.css); its old address redirects
@@ -154,7 +154,7 @@ No build step and no installs. It's plain HTML, CSS and JavaScript, so any stati
 2. **The zone lobby** (`index.html`): one neon sign per zone (see *The zone lobby* below). Tap a sign to walk into that zone: its cabinets in the carousel (◀ ▶ buttons, a swipe, the ←/→ keys, or the lights). **START** opens the game straight away with the saved instrument. **← LOBBY** (or the browser's Back, or the iPad's back-swipe) goes back. **ALL GAMES** shows every game as a card; **FULL ARCADE** walks the whole arcade (every cabinet in one carousel); **TUNE UP** opens the Note Checker.
 2b. **Select Your Player for one game** (`index.html?game=<game-id>`, on the same page, so its music starts at once; the old `select-player/index.html?game=<game-id>` addresses still work; the browser's Back button returns to the cabinets) opens for a two-player game (Neon Face-Off: Player 2 picks there too), when no instrument is saved yet, or from a game's instrument chip: a fighting-game character select. Sixteen portraits, one per instrument (woodwinds on the top row, brass and percussion below, including the **Snare Drum**), tinted by section (woodwinds magenta, brass amber, percussion cyan). Tap one to see it big with its player card (name, key and clef, first five notes, stars on this device; Horn also has **Starting notes: F–C / C–G**), then tap it again or press **SELECT**. On a Chromebook the arrow keys move and Enter selects. A flash, **PLAYER 1 READY**, and the game starts. If this device already has a player, **Continue as …** (with its portrait) comes first.
    The big preview shows **the student's own avatar** (see *Create Your Player*) with the instrument as a badge, and **EDIT PLAYER** opens Create Your Player. The first time a device reaches Select Player it asks **"Create your player?"** once (MAYBE LATER keeps the random look it was given).
-3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the zone you came from (or ALL GAMES, or the lobby), with that game's cabinet in front.
+3. **The game.** The instrument name in the top bar opens Select Player again (to switch instruments); **← Arcade** goes back to the zone you came from (or ARCADE VIEW, or the lobby), with that game's cabinet in front.
 
 Opening a game with no instrument saved sends the student to Select Player for that game.
 
@@ -173,9 +173,11 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 
 - **TODAY'S PRACTICE** (the first card in the lobby, once an instrument is chosen): WARM UP → SKILL → PLAY, about 15 minutes. Each step opens a game (or the Tuner / Metronome) and checks itself off when the student FINISHES a round there today. All 3 done = 10 tokens (once a day) and a stamp on this week's row; 4 practice days in one week = the PRACTICE PRO name plate. To change the day's skills, set a one-day override or change the bonus, edit the `PRACTICE` block at the top of `shared/practice.js` (its first lines say how).
 - **CONTINUE** (top of the lobby): the last game opened on this device, one tap to play it again.
-- **ALL GAMES** (in the top bar everywhere): every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games.
+- **The top bar** (every floor screen): on the left, ← back and where you are; in the middle of the screen, **ARCADE VIEW**, **TUNE UP** and **LEADERBOARD**; on the right, the avatar badge and the sound/settings button. On an iPad held upright the labels get shorter ("Leaders"); on a phone the middle buttons are just icons, and when even those don't fit, TUNE UP and LEADERBOARD move into the avatar badge's menu.
+- **ARCADE VIEW** (in the top bar everywhere): every game at once, two ways, with a switch at the top to flip between them, **LIST | CABINETS**. The button opens whichever one this device used last (the first time: CABINETS if the device can draw 3D, else LIST), and flipping keeps the same game in front.
+  - **LIST**: every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games. Link to it with `index.html#all-games`.
+  - **CABINETS**: every game's cabinet in one carousel, zone by zone in the lobby's order (a game in two zones stands only once, in its first zone), with a small zone-color sign under each cabinet so students learn where games live. Below it, a strip of every game's marquee, grouped by zone: tap one and the carousel spins straight there. It opens on the ASSIGNED game, else the last game played on this device, else the first. Link to it with `index.html#full-arcade`.
 - **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
-- **FULL ARCADE** (in the top bar next to ALL GAMES): every game's cabinet in one carousel, zone by zone in the lobby's order (a game in two zones stands only once, in its first zone), with a small zone-color sign under each cabinet so students learn where games live. Below it, a strip of every game's marquee, grouped by zone: tap one and the carousel spins straight there. It opens on the ASSIGNED game, else the last game played on this device, else the first. Link to it with `index.html#full-arcade`.
 - **Addresses:** each view has its own address, so the browser's Back button and the iPad's back-swipe work, and you can share a zone: `index.html#zone=technique-lab`, `index.html#all-games`, `index.html#full-arcade`. (`?demo` stays on.)
 - **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself. A zone's `order` line picks which cabinet is in front when it opens (Technique Lab opens on Showtime Malfunction, which every instrument can play).
 - **Two-cabinet zones** (2-Player Corner) are a straight row: the arrows go back and forth between the two (no wrapping around), and the arrow at an end rests.
@@ -193,7 +195,7 @@ window.Arcade.FEATURED = {game: 'lost-signal', note: 'Practice this week!', unti
 - **until** (optional): the last day it shows, as year-month-day. The day after, it disappears by itself. Leave it out to keep it up until you change it.
 - **To turn it off**, write `game: null` (no quotes around null).
 
-While it's on, the lobby shows a glowing **ASSIGNED** card at the top with your note, and the game gets an ASSIGNED badge on its cabinet, its zone's sign and its ALL GAMES card. Save the file (upload it to GitHub); students see it the next time the arcade opens.
+While it's on, the lobby shows a glowing **ASSIGNED** card at the top with your note, and the game gets an ASSIGNED badge on its cabinet, its zone's sign and its ARCADE VIEW LIST card. Save the file (upload it to GitHub); students see it the next time the arcade opens.
 
 ### Which instruments a game suits
 
@@ -514,7 +516,7 @@ Each page loads only its own sounds, after the first tap, two at a time (school 
 
 ## Create Your Player (avatars)
 
-**The avatar badge.** Every screen with a top bar (the lobby, zones, Full Arcade, All Games, Choose Your Instrument and
+**The avatar badge.** Every screen with a top bar (the lobby, zones, Arcade View, Choose Your Instrument and
 every game's menus) shows the student's avatar, name and instrument in the top-right corner, with a small pencil.
 Tapping it offers **EDIT AVATAR** (the editor opens right on top of that screen; DONE saves and closes, CANCEL throws
 the changes away, and the student is back exactly where they were, with the same note set and level selected) and
@@ -814,7 +816,7 @@ On devices that can do it, the home page shows real 3D cabinets (three.js). Ever
 
 - **2D fallback.** The flat cabinets are still there. The page switches to them by itself when the device has no WebGL, when three.js can't load, or when the device is too slow. The 3D view first lowers its quality (sharper pixels off, no haze, no sway); if frames are still slow (averaging over 40 ms for a few seconds), it switches to 2D.
 - **Force 2D:** add `?flat` to the address, e.g. `index.html?flat` or `index.html?demo&flat`.
-- **Only what's needed.** The lobby and ALL GAMES are flat pictures (no 3D at all), so three.js loads only when a zone opens. Inside a zone (and the Full Arcade), only the front cabinet and its neighbors are full 3D models; one farther away is a flat picture, cabinets too far round to be seen aren't built at all, a quick spin from the jump strip builds only where it starts and ends, and walking back to the lobby throws the zone's cabinets away. Compared with the old 13-cabinet aisle, a zone is ready about twice as fast and uses about half the memory.
+- **Only what's needed.** The lobby and ARCADE VIEW's LIST are flat pictures (no 3D at all), so three.js loads only when a zone opens. Inside a zone (and ARCADE VIEW's CABINETS), only the front cabinet and its neighbors are full 3D models; one farther away is a flat picture, cabinets too far round to be seen aren't built at all, a quick spin from the jump strip builds only where it starts and ends, and walking back to the lobby throws the zone's cabinets away. Compared with the old 13-cabinet aisle, a zone is ready about twice as fast and uses about half the memory.
 - **For testing only:** `?keep3d` stops the automatic switch to 2D, so you can see the 3D view on a slow computer. `?fps` shows the average frame time in the corner (under 40 ms is fine; the page aims for about 17–33 ms).
 - **Why three.js r149:** it's the last version with a plain `three.min.js` that works from a `<script>` tag and when you open the page by double-clicking. Newer versions need JavaScript modules, which break on local files. Don't update it without checking that.
 
