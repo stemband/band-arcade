@@ -13,11 +13,11 @@
          id          a prefix for element ids (several staffs on one page)
          sticking    false (default): true = R / L under each head (small under grace heads), as large as the counting's
                      big syllables; with the counting on it goes under the counting and the staff is 40 px taller
-         rolls       'slash' (default): each / a short thick diagonal through the stem (between head and beam);
+         rolls       'slash' (default): each / a bold diagonal centered on the stem, halfway between head and beam (// /// stacked);
                      'written': a / note drawn as its two strokes (half the value, same hand, beamed by the beat: 32nds
                      get a third beam), each its own g.rn with data-s 0 / 1. A z is a small "z" on the stem either way.
        Accents (>) are drawn above the stems and beams (above a triplet's 3: then the drawing moves down `lift` px) and
-       grace notes left of their note (one: a small slashed eighth; two or more: small beamed sixteenths; no slur), with
+       grace notes left of their note (one: a small slashed eighth; two or more: small beamed sixteenths; a small slur from the first grace to the note, drawing only), with
        room made before them. These come from the text, so a rhythm without them draws exactly as before.
        Also returns `strokes`: [{n, s, x}] one per drawn head (graces s < 0), for lighting each stroke as it plays; in
        'written' mode `notes` and `xs` are the drawn strokes (each keeps its parsed note's i, plus s).
@@ -28,7 +28,7 @@
    THE PARTS (classes, for a game's CSS): notes `g.rn` (data-n = note index, data-g = counting group), counting groups
    `g.rc` (data-g) holding `text.rc-big` (data-t = its tick), `text.rc-small` (data-t), `text.rc-par` (rest parentheses)
    and `line.rc-u` (the underline under the small syllables only); rudiments: `text.rs-hand` (data-n, data-s),
-   `text.rs-hand.grace`, `path.rs-acc`, `g.rs-grace` (data-n = the main note), `path.rs-slash`, `text.rs-buzz`. Colors are currentColor: style them with tokens.
+   `text.rs-hand.grace`, `path.rs-acc`, `g.rs-grace` (data-n = the main note), `path.rs-slash`, `text.rs-buzz`, `path.rs-gslur` (a grace group's slur, drawing only). Colors are currentColor: style them with tokens.
    SPACING like printed music: space grows with the note's length (log), then widened wherever a note's counting
    needs more room than its value gives; a fixed pad after every bar line. */
 window.Arcade = window.Arcade || {};
@@ -150,12 +150,17 @@ window.Arcade = window.Arcade || {};
           parts.push(`<line x1="${round(sx)}" y1="${LINE - 2}" x2="${round(sx)}" y2="${TOP}" stroke="currentColor" stroke-width="2.4"/>`);
           if (!beamOf[k] && LEVELS[n.val]) parts.push(flagSVG(sx, LEVELS[n.val]));
         }
-        if (n.roll) parts.push(slashSVG(x, n.val === 'w' ? null : x + STEM_DX, n.roll));
-        if (n.buzz) parts.push(`<text class="rs-buzz" x="${round(n.val === 'w' ? x : x + STEM_DX)}" y="${LINE - 16}" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="19" text-anchor="middle" fill="currentColor">z</text>`);
+        if (n.roll || n.buzz) {
+          // halfway between the head and the beam (the stem's end when there is no beam; a whole note: above its head)
+          const stem = n.val !== 'w', cx = stem ? x + STEM_DX : x;
+          const top = beamOf[k] ? TOP + (LEVELS[n.val] - 1) * 10 + 6.5 : TOP, mid = stem ? (top + LINE - HEAD_RY - 2) / 2 : LINE - 22;
+          if (n.roll) parts.push(slashSVG(cx, mid, n.roll));
+          else parts.push(`<text class="rs-buzz" x="${round(cx)}" y="${round(mid + HAND.grace * .3)}" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="${HAND.grace}" text-anchor="middle" fill="currentColor">z</text>`);
+        }
       }
       if (n.dots) for (let d = 0; d < n.dots; d++) parts.push(`<circle cx="${round(x + 15 + d * 8)}" cy="${LINE - 5}" r="2.8" fill="currentColor"/>`);
       out.push(`<g class="rn${n.rest ? ' rest' : ''}" data-n="${n.i}"${written ? ` data-s="${n.s || 0}"` : ''} data-g="${gi}" id="${pre}-n${n.i}${n.s ? 's' + n.s : ''}">${parts.join('')}</g>`);
-      if (!n.rest && n.graces && n.graces.length) out.push(graceSVG(n, x));
+      if (!n.rest && n.graces && n.graces.length) out.push(graceSVG(n, x), graceSlurSVG(n, x));
       if (!n.rest) {
         strokes.push({n: n.i, s: n.s || 0, x: round(x)});
         if (n.graces) n.graces.forEach((h, j) => strokes.push({n: n.i, s: j - n.graces.length, x: round(graceX(n, x, j))}));
@@ -233,12 +238,14 @@ window.Arcade = window.Arcade || {};
     }
     return s;
   }
-  /* a roll's slashes through the stem, between the head and the beam (a whole note: above its head) */
-  function slashSVG(x, sx, n) {
+  /* a roll's slashes: bold diagonals (about a beam's thickness) centered on the stem at `mid`, rising left to right;
+     // and /// stack parallel, evenly spaced around mid */
+  const SL = {half: 7, rise: 2.5, thick: 4.6, gap: 8};
+  function slashSVG(cx, mid, n) {
     let s = '';
     for (let j = 0; j < n; j++) {
-      const cx = sx == null ? x : sx, cy = LINE - 18 - j * 7;
-      s += `<path class="rs-slash" d="M${round(cx - 6)} ${round(cy + 3.5)}L${round(cx + 6)} ${round(cy - 3.5)}" stroke="currentColor" stroke-width="3.2" fill="none"/>`;
+      const cy = mid + (j - (n - 1) / 2) * SL.gap, t = SL.thick / 2, l = cx - SL.half, r = cx + SL.half;
+      s += `<path class="rs-slash" d="M${round(l)} ${round(cy + SL.rise + t)}L${round(r)} ${round(cy - SL.rise + t)}L${round(r)} ${round(cy - SL.rise - t)}L${round(l)} ${round(cy + SL.rise - t)}z" fill="currentColor"/>`;
     }
     return s;
   }
@@ -263,6 +270,12 @@ window.Arcade = window.Arcade || {};
       parts.push(`<rect x="${round(a)}" y="${top}" width="${round(wd)}" height="3.6" fill="currentColor"/><rect x="${round(a)}" y="${top + 6}" width="${round(wd)}" height="3.6" fill="currentColor"/>`);
     }
     return `<g class="rs-grace" data-n="${n.i}">${parts.join('')}</g>`;
+  }
+  /* the grace-note slur: DRAWING ONLY (never a tie: the counting, strokes and ticks don't know it), under the heads from
+     the first grace head to its own main note's head, thin like a tie */
+  function graceSlurSVG(n, x) {
+    const x1 = graceX(n, x, 0), x2 = x - 2, y1 = LINE + 4, y2 = LINE + 6, m = (x1 + x2) / 2, d = 6;
+    return `<path class="rs-gslur" data-n="${n.i}" d="M${round(x1)} ${y1}Q${round(m)} ${y2 + d + 2} ${round(x2)} ${y2}Q${round(m)} ${y2 + d} ${round(x1)} ${y1}z" fill="currentColor" stroke="currentColor" stroke-width=".6"/>`;
   }
   function handSVG(h, x, y, fs, n, s, grace) {
     return `<text class="rs-hand${grace ? ' grace' : ''}" data-n="${n}" data-s="${s}" x="${round(x)}" y="${y}" font-size="${fs}">${h}</text>`;

@@ -23,6 +23,8 @@ const EX = [
   {name: 'Multiple bounce', time: '2/4', text: 'ezR ezL ezR ezL'},
   {name: 'Flam accent in 6/8', time: '6/8', text: '{L}e>R eL eR {R}e>L eR eL'},
 ];
+// the staff checks and the gallery also draw // and /// (stacked slashes; an unbeamed quarter's slashes reach its stem's end)
+const STAFF_EX = [...EX, {name: 'Stacked slashes (// and ///)', time: '2/4', text: 's//R s///L e>R q//R'}];
 const sha = s => crypto.createHash('sha1').update(s).digest('hex').slice(0, 16);
 
 async function open(page) {
@@ -111,6 +113,23 @@ test.describe('rudiment notation', () => {
     watch.check();
   });
 
+  test('the grace-note slur is drawing only: the parse, strokes() and the counting are the same before and after engraving', {tag: '@quick'}, async ({page}) => {
+    const watch = await open(page);
+    const r = await page.evaluate(EX => EX.filter(e => /\{/.test(e.text)).map(e => {
+      const C = Arcade.Counting, p = C.parse(e.text, e.time), snap = () => JSON.stringify([p.notes, C.strokes(p), C.text(C.groups(p))]);
+      const before = snap(), svgs = ['slash', 'written'].map(rolls => Arcade.RhythmStaff.engrave(p, {rolls, sticking: true}).svg);
+      return {before, after: snap(), slurs: svgs.map(s => (s.match(/rs-gslur/g) || []).length), groups: p.notes.filter(n => n.graces.length).length, ties: p.notes.filter(n => n.tie).length,
+        tiePaths: svgs.map(s => (s.match(/rs-tie/g) || []).length)};
+    }), EX);
+    expect(r.length).toBe(4);
+    r.forEach(x => {
+      expect(x.after).toBe(x.before);
+      expect(x.slurs).toEqual([x.groups, x.groups]);
+      expect([x.ties, ...x.tiePaths]).toEqual([0, 0, 0]);                  // never a tie
+    });
+    watch.check();
+  });
+
   for (const rolls of ['slash', 'written']) {
     test(`the staff (${rolls}): one sticking letter under each head, accents above, graces left of their note, nothing past the edge`, async ({page}) => {
       const watch = await open(page);
@@ -128,16 +147,33 @@ test.describe('rudiment notation', () => {
           const graces = [...svg.querySelectorAll('g.rs-grace')].map(g => ({n: +g.dataset.n, b: box(g), heads: g.querySelectorAll('ellipse').length,
             slash: g.querySelectorAll('line').length > g.querySelectorAll('ellipse').length, beams: g.querySelectorAll('rect').length}));
           const accs = [...svg.querySelectorAll('path.rs-acc')].map(a => box(a));
+          const graceHeads = [...svg.querySelectorAll('g.rs-grace')].map(g => ({n: +g.dataset.n, first: box(g.querySelector('ellipse'))}));
+          const gslurs = [...svg.querySelectorAll('path.rs-gslur')].map(pth => {
+            const l = pth.getTotalLength(), a = pth.getPointAtLength(0), b = pth.getPointAtLength(l / 2);
+            return {n: +pth.dataset.n, b: box(pth), a: {x: a.x, y: a.y}, end: {x: b.x, y: b.y}};
+          });
+          // per note: its stem, the bottom of what is above the slashes (the beam at this stem, or the stem's end), slashes, z
+          const stemmed = [...svg.querySelectorAll('g.rn:not(.rest)')].filter(g => g.querySelector('.rs-slash, .rs-buzz')).map(g => {
+            const st = g.querySelector('line'), sx = +st.getAttribute('x1'), stTop = +st.getAttribute('y2'), head = box(g.querySelector('ellipse'));
+            const under = [...svg.querySelectorAll('rect')].filter(r => +r.getAttribute('x') <= sx && +r.getAttribute('x') + +r.getAttribute('width') >= sx && +r.getAttribute('y') < head.y)
+              .reduce((m, r) => Math.max(m, +r.getAttribute('y') + +r.getAttribute('height')), stTop);
+            const slashes = [...g.querySelectorAll('.rs-slash')].map(pth => {
+              const pts = pth.getAttribute('d').match(/-?[\d.]+/g).map(Number);
+              return {b: box(pth), x0: pts[0], y0: pts[1], x1: pts[2], y1: pts[3], x3: pts[6], y3: pts[7]};
+            });
+            const z = g.querySelector('.rs-buzz');
+            return {n: +g.dataset.n, sx, head, under, slashes, z: z ? {b: box(z), fs: +z.getAttribute('font-size')} : null};
+          });
           const beams = [...svg.querySelectorAll('rect')].map(r => ({x: +r.getAttribute('x'), y: +r.getAttribute('y'), w: +r.getAttribute('width')}));
           const all = box(svg), vb = svg.viewBox.baseVal;
           const bars = [...svg.querySelectorAll('line.rs-bar')].map(l => +l.getAttribute('x1'));
           const allTexts = [...svg.querySelectorAll('text, ellipse, path, rect, line')].map(el => { const b = el.getBoundingClientRect(), s = svg.getBoundingClientRect(); return {r: b.right - s.left, l: b.left - s.left}; });
           return {name: e.name, counting, notes: p.notes.map(n => ({i: n.i, hand: n.hand, accent: n.accent, graces: n.graces, roll: n.roll, rest: n.rest, buzz: n.buzz})),
-            heads, threes, hands, ghands, graces, accs, beams, bars, W: vb.width, H: vb.height, h: E.h, w: E.w, strokes: E.strokes,
+            heads, threes, graceHeads, gslurs, stemmed, hands, ghands, graces, accs, beams, bars, W: vb.width, H: vb.height, h: E.h, w: E.w, strokes: E.strokes,
             maxR: Math.max(...allTexts.map(t => t.r)), minL: Math.min(...allTexts.map(t => t.l)), slashes: svg.querySelectorAll('path.rs-slash').length,
             buzzes: svg.querySelectorAll('text.rs-buzz').length, svgW: svg.getBoundingClientRect().width, top: all.y, written: rolls === 'written'};
         }));
-      }, [EX, rolls]);
+      }, [STAFF_EX, rolls]);
       for (const r of res) {
         const where = `${r.name} (${rolls}, counting ${r.counting})`;
         // one main letter per head, in order, under it
@@ -178,6 +214,44 @@ test.describe('rudiment notation', () => {
           expect(g.heads, where).toBe(want);
           expect(g.slash, `${where}: a single grace has its slash`).toBe(want === 1);
           expect(g.beams, where).toBe(want === 1 ? 0 : 2);
+        });
+        // the grace-note slur (drawing only): one per grace group, from the first grace head to its own main note's head,
+        // under the heads, clear of the sticking row
+        const groups = r.notes.filter(n => n.graces.length);
+        expect(r.gslurs.map(g => g.n), `${where}: one slur per grace group`).toEqual(groups.map(n => n.i));
+        r.gslurs.forEach(g => {
+          const first = r.graceHeads.find(h => h.n === g.n).first, hd = r.heads.find(h => h.n === g.n && h.s === 0).b;
+          expect(g.a.x, `${where}: slur ${g.n} starts at the first grace head`).toBeGreaterThanOrEqual(first.x - .5);
+          expect(g.a.x, `${where}: slur ${g.n} starts at the first grace head`).toBeLessThanOrEqual(first.x + first.width + .5);
+          expect(g.end.x, `${where}: slur ${g.n} ends at its own note's head`).toBeGreaterThanOrEqual(hd.x - .5);
+          expect(g.end.x, `${where}: slur ${g.n} ends at its own note's head`).toBeLessThanOrEqual(hd.x + hd.width + .5);
+          expect(g.b.y, `${where}: slur ${g.n} below the heads' middle`).toBeGreaterThan(hd.y + hd.height / 2);
+          expect(g.b.y + g.b.height, `${where}: slur ${g.n} curves gently`).toBeLessThan(hd.y + hd.height + 12);
+          [...r.hands, ...r.ghands].forEach(h => expect(g.b.y + g.b.height, `${where}: slur ${g.n} clear of the sticking`).toBeLessThan(h.b.y - 4));
+        });
+        // slashes: bold, centered on the stem, rising left to right, halfway between head and beam (or the stem's end),
+        // stacked parallel and evenly; the z the size of a small grace letter, centered on the stem at the slashes' height
+        r.stemmed.forEach(st => {
+          const mid = (st.under + st.head.y) / 2;
+          if (st.slashes.length) {
+            const cy = st.slashes.map(sl => sl.b.y + sl.b.height / 2), avg = cy.reduce((a, b) => a + b, 0) / cy.length;
+            expect(Math.abs(avg - mid), `${where}: note ${st.n}'s slashes halfway between head and beam`).toBeLessThan(2);
+            st.slashes.forEach((sl, j) => {
+              expect(Math.abs(sl.b.x + sl.b.width / 2 - st.sx), `${where}: slash ${j} centered on the stem`).toBeLessThan(.6);
+              expect(sl.y0, `${where}: slash ${j} rises left to right`).toBeGreaterThan(sl.y1);
+              expect(sl.y0 - sl.y3, `${where}: slash ${j} about a beam thick`).toBeGreaterThanOrEqual(4);
+              expect(sl.b.y, `${where}: slash ${j} below the beam`).toBeGreaterThan(st.under);
+              expect(sl.b.y + sl.b.height, `${where}: slash ${j} clear of the head`).toBeLessThan(st.head.y);
+              // (coordinates are rounded to 0.1 px)
+              if (j) expect(Math.abs((sl.y0 - st.slashes[j - 1].y0) - (st.slashes[1].y0 - st.slashes[0].y0)), `${where}: slashes evenly spaced`).toBeLessThan(.25);
+              if (j) expect(Math.abs((sl.y1 - sl.y0) - (st.slashes[0].y1 - st.slashes[0].y0)), `${where}: slashes parallel`).toBeLessThan(.25);
+            });
+          }
+          if (st.z) {
+            expect(st.z.fs, `${where}: the z ~60 % of a sticking letter, never smaller`).toBeGreaterThanOrEqual(30 * .6);
+            expect(Math.abs(st.z.b.x + st.z.b.width / 2 - st.sx), `${where}: the z centered on the stem`).toBeLessThan(1.5);
+            expect(Math.abs(st.z.b.y + st.z.b.height / 2 - mid), `${where}: the z at a slash's height`).toBeLessThan(4);
+          }
         });
         // rolls: slashes in the slash view; in the written view the 32nds get a third beam
         const rolled = r.notes.filter(n => n.roll).length;
@@ -245,7 +319,7 @@ test.describe('rudiment notation', () => {
             return `<figure style="margin:0"><figcaption style="font-size:12px;color:var(--text-lo)">${label}</figcaption><div style="color:var(--text-hi)">${E.svg.replace('<svg ', '<svg style="max-width:100%;height:auto" ')}</div></figure>`;
           }).join('')}</div></section>`).join('')}</div>`;
       RS.refine(document.body);
-    }, EX);
+    }, STAFF_EX);
     if (process.env.GALLERY) await page.locator('#sheet').screenshot({path: path.join(ROOT, 'docs/gallery/rudiment-notation.png')});
     watch.check();
   });
