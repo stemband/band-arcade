@@ -199,7 +199,7 @@ test.describe('THE LEADERBOARD\'S TITLE', () => {
         const r = s => document.querySelector(s).getBoundingClientRect();
         const t = [...document.querySelectorAll('#lbTitle .lb-trophy')].map(e => e.getBoundingClientRect());
         return {n: t.length, hidden: [...document.querySelectorAll('#lbTitle .lb-trophy')].every(e => e.getAttribute('aria-hidden') === 'true'),
-          word: r('#lbTitle .lb-t-word'), t0: t[0], t1: t[1], panel: r('.lb-in'), x: r('.lb-x'), title: r('#lbTitle'),
+          fits: (e => e.scrollWidth <= e.clientWidth)(document.getElementById('lbTitle')), word: r('#lbTitle .lb-t-word'), t0: t[0], t1: t[1], panel: r('.lb-in'), x: r('.lb-x'), title: r('#lbTitle'),
           caps: getComputedStyle(document.querySelector('#lbTitle .lb-t-word')).textTransform};
       });
       expect(m.n).toBe(2);
@@ -213,6 +213,7 @@ test.describe('THE LEADERBOARD\'S TITLE', () => {
       expect(Math.abs(m.x.right - m.panel.right)).toBeLessThanOrEqual(1);   // ✕ at the right edge
       expect(m.t1.right).toBeLessThanOrEqual(m.x.left);                    // never under it
       expect(m.title.bottom - m.title.top).toBeLessThan(80);               // one line
+      expect(m.fits, 'the title overflows its column').toBe(true);
       watch.check();
     });
   }
