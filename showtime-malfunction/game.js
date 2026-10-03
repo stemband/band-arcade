@@ -7,12 +7,14 @@
    the snare saves under 'showtime-malfunction:count'. Levels and rules: levels.js. Characters: characters.js.
    DIFFICULTY: Normal | NIGHTMARE (levels.js column `x`: bigger counts, faster walk). NIGHTMARE opens once this
    instrument has cleared The 5:00 Show on Normal (any mode; ?demo: always) and saves under the same keys + ':extra'.
-   It is separate from the SPOOKY LEVEL (Mild | Spooky | Jump Scare), which only changes the visuals.
+   It is separate from the SPOOKY LEVEL (Mild | Spooky | Jump Scare | Terror), which only changes the visuals and the scares.
    SPECIAL MACHINES (levels.js SHOWTIME_SPECIALS, characters.js): from Showtime 3 on, an animatronic walking on may be
    a special one with an ability (one at a time; its first appearance on a device pauses for its card); the
    MALFUNCTION FILES (gameData.files) collect them. JUMP SCARE (the third spooky level; shared/teacher-settings.js can
    hide it; asked every time; back to Spooky on a new day): 1–2 scares a showtime (levels.js SHOWTIME_SCARES) that
-   pause everything and never cost a spotlight.
+   pause everything and never cost a spotlight. TERROR (the fourth; TERROR_ALLOWED; its own warning, terrorDay): 2–4
+   scares a showtime with build-ups, fake-outs and four more kinds (FACE, PANEL, LIGHTS OUT, MAESTRO). Every scare fills
+   the ENTIRE screen (#scare). THE SAFETY RULES are at the scares' section below.
    THE ENCORE (ENDLESS MODE, shared/endless.js; every number in levels.js SHOWTIME_ENDLESS): the ∞ card under the
    showtimes. Machines keep walking on, faster and faster, until the 3 spotlights are out; G.endless holds the run, and
    G.L / G.lv are worked out again every frame from the run time (endlessRow, lvAt). No stars, nothing in `games`. */
@@ -22,7 +24,7 @@
   const GAME_ID = 'showtime-malfunction', SNARE_KEY = GAME_ID + ':count', EXTRA = ':extra';
   const LEVELS = window.SHOWTIMES, RULES = window.SHOWTIME_RULES, SHOW = A.Showtime;
   const SPEC = window.SHOWTIME_SPECIALS, MACH = SPEC.machines, SCARES = window.SHOWTIME_SCARES, END = window.SHOWTIME_ENDLESS;
-  const SCARE_TYPES = ['lunge', 'eyes', 'popup', 'band'];
+  const SCARE_TYPES = window.SHOWTIME_SCARES.terror.kinds.concat('fade');   // Jump Scare: the first 4; Terror: all 8
   // ?demo&special=<id> (or a part of it: lurker, dolls…): every animatronic that may be a special is that one, from
   // Showtime 1 on (tests). ?demo&scare=<type> (Jump Scare on): that kind of scare, 3 s into the showtime
   const FORCE = (() => { const q = A.DEMO && (A.params.get('special') || '').toLowerCase(); return !q ? null : MACH[q] ? q : Object.keys(MACH).find(k => k.includes(q)) || null; })();
@@ -49,43 +51,57 @@
   const pick = list => list[Math.floor(Math.random() * list.length)];
 
   /* ---------- the spooky level (remembered): Mild = glitches and static only; Spooky = darker, and a lean-in at game over;
-     Jump Scare = everything Spooky has + 1–2 jump scares a showtime. Jump Scare: only when the teacher allows it
-     (shared/teacher-settings.js), asked EVERY time it's turned on, never the default, and back to Spooky on a new day ---------- */
+     Jump Scare = everything Spooky has + 1–2 jump scares a showtime; TERROR = everything Jump Scare has + a darker arena,
+     build-ups, fake-outs, 4 more scare kinds and 2–4 scares a showtime. Jump Scare and Terror: only when the teacher allows
+     each (shared/teacher-settings.js JUMP_SCARE_ALLOWED, TERROR_ALLOWED), asked EVERY time they're turned on, never the
+     default, and back to Spooky on a new day (jumpDay, terrorDay) ---------- */
   const jumpAllowed = () => !!(A.TEACHER && A.TEACHER.JUMP_SCARE_ALLOWED);
+  const terrorAllowed = () => !!(A.TEACHER && A.TEACHER.TERROR_ALLOWED);
   const dayKey = () => { const d = A.store.today ? A.store.today() : new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
-  const spookyOn = () => gd.spooky === 'spooky' || gd.spooky === 'jump';
-  const jumpOn = () => gd.spooky === 'jump';
+  const spookyOn = () => gd.spooky === 'spooky' || gd.spooky === 'jump' || gd.spooky === 'terror';
+  const terrorOn = () => gd.spooky === 'terror';
+  const jumpOn = () => gd.spooky === 'jump' || terrorOn();              // scares happen (Jump Scare, or Terror)
   function setSpooky(v) {
-    gd.spooky = v === 'jump' && jumpAllowed() ? 'jump' : v === 'spooky' || v === 'jump' ? 'spooky' : 'mild';
+    gd.spooky = v === 'terror' && terrorAllowed() ? 'terror' : v === 'jump' && jumpAllowed() ? 'jump'
+      : v === 'spooky' || v === 'jump' || v === 'terror' ? 'spooky' : 'mild';
     if (gd.spooky === 'jump') gd.jumpDay = dayKey();
+    if (gd.spooky === 'terror') gd.terrorDay = dayKey();
     save(); drawSpooky();
   }
   function drawSpooky() {
     if (gd.spooky === 'jump' && (!jumpAllowed() || gd.jumpDay !== dayKey())) { gd.spooky = 'spooky'; save(); }   // a new day, or switched off
+    if (gd.spooky === 'terror' && (!terrorAllowed() || gd.terrorDay !== dayKey())) { gd.spooky = 'spooky'; save(); }
     document.body.classList.toggle('spooky-mode', spookyOn());
     document.body.classList.toggle('jump-mode', jumpOn());
+    document.body.classList.toggle('terror-mode', terrorOn());
     document.querySelectorAll('[data-spooky="jump"]').forEach(b => { b.hidden = !jumpAllowed(); });
+    document.querySelectorAll('[data-spooky="terror"]').forEach(b => { b.hidden = !terrorAllowed(); });
     document.querySelectorAll('[data-jump-note]').forEach(p => { p.hidden = !jumpAllowed(); });
+    document.querySelectorAll('[data-terror-note]').forEach(p => { p.hidden = !terrorAllowed(); });
     document.querySelectorAll('[data-spooky]').forEach(b => b.setAttribute('aria-pressed', b.dataset.spooky === (gd.spooky || 'mild')));
   }
-  /** Jump Scare: asked every time it's turned on (shared/ui-kit.js confirm; the safe answer has the focus) */
-  function askJump() {
-    A.UI.confirm({title: 'Jump Scare mode', theme: 'st-jump', danger: true, yes: 'Yes', no: 'No',
-      text: '<b>This mode has sudden jump scares with loud sounds. Are you sure?</b>',
+  /** Jump Scare and Terror: asked every time they're turned on (shared/ui-kit.js confirm; the safe answer has the focus) */
+  function askScary(level) {
+    const terror = level === 'terror';
+    A.UI.confirm({title: terror ? 'TERROR mode' : 'Jump Scare mode', theme: 'st-jump', danger: true, yes: 'Yes', no: 'No',
+      text: terror ? '<b>TERROR mode is much scarier than Jump Scare: build-ups, fake-outs, the lights going out and full-screen scares with loud sounds. Are you sure?</b>'
+        : '<b>This mode has sudden jump scares with loud sounds. Are you sure?</b>',
       extra: `<label class="jw-check"><input type="checkbox" id="jwVisual"${gd.scareVisual ? ' checked' : ''}> Visual scares only (no scare sounds)</label>`,
       onYes: panel => { gd.scareVisual = panel.querySelector('#jwVisual').checked; }})
-      .then(yes => { if (yes) { setSpooky('jump'); sfx('ui-toggle'); } });
+      .then(yes => { if (yes) { setSpooky(level); sfx('ui-toggle'); } });
   }
   // the spooky level's buttons: on the showtime screen, and in the Settings panel (so it can change from the pause menu)
   document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('button[data-spooky]'); if (!b) return;
-    if (b.dataset.spooky === 'jump') { if (!jumpOn()) askJump(); return; }
-    setSpooky(b.dataset.spooky); sfx('ui-toggle');
+    const v = b.dataset.spooky;
+    if (v === 'jump' || v === 'terror') { if (gd.spooky !== v) askScary(v); return; }
+    setSpooky(v); sfx('ui-toggle');
   });
   A.UI.settings.register(box => {
     box.innerHTML = `<span class="ui-label" id="spookySetLbl">Spooky level</span>
-      <div class="ui-seg st-seg" role="group" aria-labelledby="spookySetLbl"><button type="button" data-spooky="mild">Mild</button><button type="button" data-spooky="spooky">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" hidden>Jump Scare</button></div>
-      <p class="st-jump-note" data-jump-note hidden>Jump Scare resets to Spooky each new day.</p>`;
+      <div class="ui-seg st-seg" role="group" aria-labelledby="spookySetLbl"><button type="button" data-spooky="mild">Mild</button><button type="button" data-spooky="spooky">Spooky</button><button type="button" class="jump-seg" data-spooky="jump" hidden>Jump Scare</button><button type="button" class="jump-seg terror-seg" data-spooky="terror" hidden>Terror</button></div>
+      <p class="st-jump-note" data-jump-note hidden>Jump Scare resets to Spooky each new day.</p>
+      <p class="st-jump-note" data-terror-note hidden>Terror resets to Spooky each new day.</p>`;
     drawSpooky();
   });
   drawSpooky();
@@ -256,7 +272,7 @@
     onRestart: () => { const lv = G ? G.lv : 1, end = !!(G && G.endless); unfreeze(); if (end) startEndless(); else startShow(lv); },
     onLevels: () => { unfreeze(); showHub(); },
     levelsLabel: 'Back to showtimes',
-    canPause: () => !!G && !G.over,
+    canPause: () => !!G && !G.over && !G.scare,             // (a scare is full screen and over in ~2 s: no menu under it)
     info: () => !G ? [] : G.endless ? [['Rebooted', G.rebooted], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Time', mss(G.t - G.endless.t0)], ['Score', G.score]]
       : [['Rebooted', `${G.rebooted} / ${G.total}`], ['Spotlights', `${G.lights} / ${RULES.spotlights}`], ['Score', G.score]],
   });
@@ -289,7 +305,8 @@
       // the game clock (s: stops with the band), the pool the specials' extra notes come from, the special on the floor,
       // the intro card's pause, recent attacks (the Lurker's roll), the jump scares planned (game-clock seconds)
       t: 0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
-      scare: null, scarePlan: planScares(L), entered: 0, lastScare: null, scares: [], held: false, timers: []};
+      scare: null, scarePlan: planScares(L, lv, extra), entered: 0, lastScare: null, scares: [], held: false, timers: [],
+      dreads: [], fakeOuts: [], sightings: [], fakes: 0, lastFake: false, lastKind: null, lightsOut: null, maestro: null};
     $('hudLevelLabel').textContent = `Showtime ${lv}${extra ? ' · Nightmare' : ''}`; $('hudLevelName').textContent = L.name;
     enterShow("It's showtime!", 'showtime-start');
   }
@@ -365,7 +382,8 @@
     G = {lv: lvAt(t0), L: endlessRow(t0), extra: false, endless: E, key: null, wasOpen: true, queue: [], bots: [], sig: seq && seq.sig, fit: seq && seq.fit,
       name: seq ? seq.name : null, total: 0, rebooted: 0, lights: END.lives, score: 0, spawnAt: 0, over: false, band: [], nextId: 0,
       bossItems: [], bossPending: false, t: t0, pool: seq ? seq.pool : [], special: null, paused: false, attacks: [], specials: 0, specialPts: 0,
-      scare: null, scarePlan: FORCE_SCARE && jumpOn() ? [{at: t0 + 3}] : [], entered: 0, lastScare: null, scares: [], held: false, timers: []};
+      scare: null, scarePlan: FORCE_SCARE && jumpOn() ? [{at: t0 + 3, kind: FORCE_SCARE}] : [], entered: 0, lastScare: null, scares: [], held: false, timers: [],
+      dreads: [], fakeOuts: [], sightings: [], fakes: 0, lastFake: false, lastKind: null, lightsOut: null, maestro: null};
     E.speed = E.topSpeed = G.L.speed;
     $('hudLevelLabel').textContent = '∞ The Encore'; $('hudLevelName').textContent = 'Combo 0';
     enterShow('The Encore!', 'endless-start');
@@ -420,7 +438,10 @@
   function stopShow() {
     cancelAnimationFrame(raf); raf = 0;
     unfreeze();
-    $('scare').className = 'scare'; arena.classList.remove('band-snap'); $('specialCard').hidden = true;
+    $('scare').className = 'scare'; $('specialCard').hidden = true;
+    ['scareBot', 'scareFace', 'scareBand', 'loEyes'].forEach(id => { $(id).innerHTML = ''; });
+    document.body.classList.remove('st-dread'); arena.classList.remove('lo-dark'); $('stSight').className = 'st-sight';
+    $('tpanel').classList.remove('tp-peek'); document.querySelectorAll('#tpanel .tp-face').forEach(x => x.remove());
     if (G) G.over = true;
     if (SN) SN.stop();
     G = null; A.Pitch.demoAttacks = false;
@@ -628,57 +649,204 @@
     setPrompt(`${MACH[b.special].name} split in two! One play each.`, 'bad');
   }
 
-  /* ---------- JUMP SCARES (Jump Scare mode): every showtime gets 1 (2 on longer shows), timed by PROGRESS: a scare is
-     armed when a set share of the animatronics has walked on (levels.js SHOWTIME_SCARES.at) and comes `delay` seconds
-     later. It waits (never skips) while a guard holds: the first seconds of the show, too soon after the last scare, or
-     the last seconds of one of Maestro Moose's phases. Never the last animatronic to walk on, so never in the last
-     seconds of a show. ?demo&scare=<kind>: that kind, 3 s in (and again later) ---------- */
-  function planScares(L) {
+  /* ---------- SCARES (Jump Scare and Terror). THE SAFETY RULES (they never change): no bright or white flash, no strobe,
+     no shake, a luminance change slow or single (≤ 2 opposite changes a second anywhere on the screen); the stings under
+     THE LOUDNESS CAP and only inside a scare's own suppression window (the build-up, a fake-out, LIGHTS OUT and the
+     Maestro's sightings are silent); original broken machines, never gore; a scare never costs anything (G.scare freezes
+     the band, the clocks and the gameplay); "Visual scares only" = no stings; reduced motion = the FADE, nothing else.
+     JUMP SCARE: every showtime gets 1 (2 on longer shows), timed by PROGRESS: a scare is armed when a set share of the
+     animatronics has walked on (levels.js SHOWTIME_SCARES.at) and comes `delay` seconds later. It waits (never skips)
+     while a guard holds: the first seconds of the show, too soon after the last scare, or the last seconds of one of
+     Maestro Moose's phases. Never the last animatronic to walk on, so never in the last seconds of a show.
+     TERROR (SHOWTIME_SCARES.terror): 2–4 a show (`count`), the same plan and guards; each one picks a kind from 8 (never
+     the same twice in a row); THE BUILD-UP before it (buildUp) may end in a FAKE-OUT (the real one comes later);
+     LIGHTS OUT and MAESTRO run their own steps. ?demo&scare=<kind>: that kind, 3 s in (and again later); ?demo&fake=
+     always|never forces the fake-outs ---------- */
+  const TER = SCARES.terror;
+  /** the plan: Jump Scare 1–2 by `at`; Terror `count` (NIGHTMARE: `nightmare`) by `terror.at[n]` */
+  function planScares(L, lv, extra) {
     if (!jumpOn()) return [];
-    if (FORCE_SCARE) return [{at: 3}, {at: 3 + SCARES.apart}];
+    if (FORCE_SCARE) return [{at: 3, kind: FORCE_SCARE}, {at: 3 + SCARES.apart, kind: FORCE_SCARE}];
+    const after = share => ({after: Math.min(L.bots - 1, Math.max(1, Math.round(share * L.bots))), at: null});
+    if (terrorOn()) return TER.at[extra ? TER.nightmare : TER.count[lv - 1]].map(after);
     const long = L.bots >= SCARES.longFrom || !!L.boss;
-    return (long ? SCARES.at.long : SCARES.at.short).map(share => ({after: Math.min(L.bots - 1, Math.max(1, Math.round(share * L.bots))), at: null}));
+    return (long ? SCARES.at.long : SCARES.at.short).map(after);
   }
   /** the queue's animatronics walking on arm the planned scares */
   function armScares() {
     G.scarePlan.forEach(p => { if (p.at == null && G.entered >= p.after) p.at = G.t + SCARES.delay; });
   }
-  function scareTick() {
-    const next = G.scarePlan[0];
-    if (!next || next.at == null || G.t < next.at || !jumpOn()) return;   // not armed yet / not time yet / switched off mid-show
-    const walking = G.bots.filter(b => b.state === 'walk');
+  /** the scare guards: true = wait (never in the first seconds, too soon after the last, near the Maestro's last plays…) */
+  function scareGuard(walking) {
     const boss = walking.find(b => b.boss);
-    const guard = G.t < SCARES.notBefore || (G.lastScare != null && G.t - G.lastScare < SCARES.apart) ||
+    return G.t < SCARES.notBefore || (G.lastScare != null && G.t - G.lastScare < SCARES.apart) || !!G.lightsOut ||
       (boss && (boss.left <= 2 || (1 - boss.z) * boss.walk < SCARES.bossGuard)) ||
       (G.endless && G.t - G.endless.t0 < SCARES.notBefore) ||
       (G.endless && walking.some(b => (1 - b.z) * b.walk < END.scareNearFrontS));     // THE ENCORE: never with a machine near the front
-    // the very end of the show (nothing left to come and the last one about to be rebooted): too late (THE ENCORE never ends)
-    const ending = !G.endless && !G.queue.length && !G.bossPending && !walking.some(b => b.boss || b.z < .75);
-    if (guard) { next.at = G.t + .5; return; }
-    G.scarePlan.shift();
-    if (ending && !FORCE_SCARE) { G.scareSkipped = (G.scareSkipped || 0) + 1; return; }
-    G.lastScare = G.t;
-    scare(FORCE_SCARE || null, walking.length ? pick(walking.filter(b => !b.boss).concat(walking).slice(0, 3)) : null);
   }
-  /** one scare (~1.3 s), then a short beat: the band, the clocks and the microphone all wait (a scare never costs a spotlight) */
-  function scare(type, src) {
-    let kind = type || pick(G.band.length ? SCARE_TYPES : SCARE_TYPES.filter(t => t !== 'band'));
-    if (kind === 'band' && !G.band.length) kind = 'lunge';
-    if (reduced.matches) kind = 'fade';                     // reduced motion: a quick fade to darkness and eyes, nothing moves
-    const el = $('scare'), ms = SCARES.ms;
-    G.scare = {kind, from: src ? src.kind : null}; G.scareEnd = showClock() + ms + SCARES.beat;
-    G.scares.push({kind, t: +G.t.toFixed(1)});
-    A.Pitch.suppress(ms + SCARES.beat);                    // nothing heard counts until the band moves again
-    const who = src && src.kind !== 'duet-dolls' ? src.kind : pick(['walrus', 'owl', 'raccoon', 'gator']);
-    $('scareBot').innerHTML = kind === 'band' || kind === 'fade' ? '' : `<span class="bot glitch">${SHOW.botSVG(who)}</span>`;
-    el.className = 'scare on sct-' + kind;
-    if (kind === 'band') arena.classList.add('band-snap');
-    if (!gd.scareVisual) sfx('scare-sting-' + randInt([1, 3]));
-    later(() => { el.classList.add('out'); arena.classList.remove('band-snap'); }, ms);
+  function scareTick() {
+    if (G.maestro && !terrorOn()) G.maestro = null;          // the spooky level turned down mid-show (Settings): no lunge
+    if (G.maestro) return maestroTick();                     // the Maestro's sightings run first (nothing else meanwhile)
+    const next = G.scarePlan[0];
+    if (!next || next.at == null || G.t < next.at || !jumpOn()) return;   // not armed yet / not time yet / switched off mid-show
+    const walking = G.bots.filter(b => b.state === 'walk');
+    // the very end of the show (nothing left to come and the last one about to be rebooted): too late (THE ENCORE never
+    // ends). A fake-out's real scare (`follow`) is never dropped: at the end it comes as soon as the guards allow
+    const ending = !G.endless && !G.queue.length && !G.bossPending && !walking.some(b => b.boss || b.z < .75);
+    if (scareGuard(walking)) { next.at = G.t + .5; return; }
+    G.scarePlan.shift();
+    if (ending && !FORCE_SCARE && !next.follow) { G.scareSkipped = (G.scareSkipped || 0) + 1; return; }
+    G.lastScare = G.t;
+    const src = walking.length ? pick(walking.filter(b => !b.boss).concat(walking).slice(0, 3)) : null;
+    if (reduced.matches) return scare('fade', src);          // reduced motion: the FADE, no build-up, nothing else
+    const kind = next.kind || (terrorOn() ? terrorKind(walking) : null);
+    if (kind === 'lightsout') return lightsOut();
+    if (kind === 'maestro' && !next.follow) return maestroStart();
+    if (terrorOn()) return buildUp(kind, src, {fake: canFake(next, kind)});
+    scare(kind, src);
+  }
+  /** Terror's kind: one of the 8, never the same twice in a row; BAND needs a band, LIGHTS OUT its guards, MAESTRO a show
+      without him as the boss (never Showtime 8 or the Encore) and time left for his two sightings */
+  function terrorKind(walking) {
+    const ok = k => k !== G.lastKind && (k !== 'band' || G.band.length) && (k !== 'lightsout' || lightsOutOk(walking)) &&
+      (k !== 'maestro' || (!G.endless && !G.L.boss && G.queue.length >= 3));
+    return pick(TER.kinds.filter(ok)) || 'lunge';
+  }
+  /** LIGHTS OUT is fair play only far from the front: never with a machine within bossGuard s of it, never with 2 or fewer
+      machines left in the show */
+  function lightsOutOk(walking) {
+    const left = G.endless ? Infinity : G.queue.length + walking.length + (G.bossPending ? 1 : 0);
+    return left > 2 && !walking.some(b => (1 - b.z) * b.walk < SCARES.bossGuard);
+  }
+  const FORCE_FAKE = A.DEMO ? A.params.get('fake') : null;  // ?demo&fake=always|never (tests)
+  function canFake(next, kind) {
+    if (next.follow || kind === 'maestro' || G.lastFake || (G.fakes || 0) >= TER.fakeMax) return false;   // never two in a row, ≤ fakeMax
+    if (FORCE_FAKE === 'always' || FORCE_FAKE === 'never') return FORCE_FAKE === 'always';
+    if (FORCE_SCARE) return false;
+    return Math.random() < TER.fakeChance;
+  }
+  /** THE BUILD-UP (Terror): the lights slowly dim, the static and the emergency light fade out, every machine freezes
+      mid-step, dead silence, the show waits (G.scare, phase 'build': like a scare it never costs anything). Then the
+      scare, or a FAKE-OUT: the lights come back slowly, the band moves again, and the real one comes fakeDelayS later */
+  function buildUp(kind, src, {fake = false} = {}) {
+    const ms = Math.round(rand(...TER.buildUpS) * 1000);
+    G.scare = {kind, phase: 'build', fake, from: src ? src.kind : null}; G.scareEnd = showClock() + ms;
+    G.dreads.push({kind, t: +G.t.toFixed(1), fake, ms});
+    document.body.style.setProperty('--dim', TER.dimMs + 'ms');
+    document.body.classList.add('st-dread');
     later(() => {
-      el.className = 'scare';
-      if (G && G.scare) { G.scare = null; A.Pitch.ignoreCurrent(); lastT = performance.now(); }
-    }, ms + SCARES.beat);
+      if (!G || !G.scare || G.scare.phase !== 'build') return;
+      if (!fake) { G.lastFake = false; return scare(kind, src); }
+      G.fakes = (G.fakes || 0) + 1; G.lastFake = true;
+      G.scare.phase = 'recover'; G.scareEnd = showClock() + TER.recoverMs;
+      document.body.classList.remove('st-dread');            // the lights come back, slowly
+      G.scarePlan.unshift({at: G.t + rand(...TER.fakeDelayS), kind, follow: true});
+      G.fakeOuts.push({kind, t: +G.t.toFixed(1)});
+      later(() => { if (G && G.scare && G.scare.phase === 'recover') unscare(); }, TER.recoverMs);
+    }, ms);
+  }
+  /** the show moves again after a scare (or a fake-out): nothing heard during it counts */
+  function unscare() { G.scare = null; A.Pitch.ignoreCurrent(); lastT = performance.now(); }
+  /** LIGHTS OUT (Terror): the arena goes dark for lightsOutS; only the machines' eyes glow (#loEyes, placed every frame)
+      and they KEEP WALKING. Not a scare moment: no sound, no freeze, no suppression: the student keeps playing (the
+      target panel is outside the arena and stays lit). Then the lights come back, or (lightsOutEyes) a full-screen EYES */
+  function lightsOut() {
+    const ms = Math.round(rand(...TER.lightsOutS) * 1000);
+    G.lightsOut = {t: G.t, ms}; G.lastKind = 'lightsout';
+    G.scares.push({kind: 'lightsout', t: +G.t.toFixed(1)});
+    arena.classList.add('lo-dark');
+    later(() => {
+      if (!G) return;
+      G.lightsOut = null;
+      const eyes = A.params.get('loeyes') && A.DEMO ? A.params.get('loeyes') === '1' : Math.random() < TER.lightsOutEyes;
+      if (eyes && !G.over) scare('eyes', null);              // the lights come back underneath it
+      arena.classList.remove('lo-dark'); $('loEyes').innerHTML = '';
+    }, ms);
+  }
+  /** the glowing eyes in the dark: two dots on every machine's eyes, where they are this frame */
+  function drawLoEyes() {
+    const box = $('loEyes'), ar = arena.getBoundingClientRect(), dots = [];
+    G.bots.forEach(b => { if (b.state === 'walk') b.el.querySelectorAll('.body .a-eye').forEach(e => dots.push(e.getBoundingClientRect())); });
+    while (box.children.length < dots.length) box.appendChild(document.createElement('i'));
+    [...box.children].forEach((i, k) => {
+      const r = dots[k]; i.hidden = !r; if (!r) return;
+      const d = Math.max(4, r.width * 1.6);
+      i.style.cssText = `left:${(r.left + r.width / 2 - ar.left).toFixed(1)}px;top:${(r.top + r.height / 2 - ar.top).toFixed(1)}px;width:${d.toFixed(1)}px;height:${d.toFixed(1)}px`;
+    });
+  }
+  /** MAESTRO (Terror; never Showtime 8, where he's the boss): his silhouette at the back of the stage for a moment, then
+      sightS later closer (mid-floor), then sightS later his full-screen lunge (after a build-up). The two sightings are
+      silent visuals (no freeze, no suppression); only the lunge is a scare moment */
+  function maestroStart() {
+    G.maestro = {step: 1, at: G.t + rand(...TER.sightS)}; G.lastKind = 'maestro';
+    sighting(1);
+  }
+  function maestroTick() {
+    const M = G.maestro;
+    if (G.t < M.at || G.scare) return;
+    if (M.step === 1) { M.step = 2; M.at = G.t + rand(...TER.sightS); return sighting(2); }
+    const walking = G.bots.filter(b => b.state === 'walk');
+    G.lastScare = null;                                      // (the sightings were the build-up's start: no `apart` wait)
+    if (scareGuard(walking)) { M.at = G.t + .5; return; }
+    G.maestro = null; G.lastScare = G.t;
+    buildUp('maestro', null, {fake: false});
+  }
+  function sighting(n) {
+    const el = $('stSight');
+    el.innerHTML = `<span class="bot">${SHOW.botSVG('moose')}</span>`;
+    el.style.setProperty('--sight', TER.sightMs + 'ms');
+    el.className = 'st-sight'; void el.offsetWidth; el.className = 'st-sight on s' + n;
+    G.sightings.push({n, t: +G.t.toFixed(1)});
+    later(() => { if (el.classList.contains('s' + n)) { el.className = 'st-sight'; el.innerHTML = ''; } }, TER.sightMs);
+  }
+  /** a scare's length: PANEL first peeks from the target panel (peekMs) */
+  const scareMs = kind => SCARES.ms + (kind === 'panel' ? TER.peekMs : 0);
+  /** how big a lunge grows so the machine fills the whole screen (its head wider than the screen; the eyes stay on it) */
+  function fillScale() {
+    const w = innerWidth, h = innerHeight;
+    return {fill: Math.max(1.6, w / (.36 * h)).toFixed(2), pop: Math.max(1, w / (.8 * h)).toFixed(2)};
+  }
+  /** one scare (~1.3 s; PANEL + its peek), FULL SCREEN, then a short beat: the band, the clocks and the microphone all
+      wait (a scare never costs a spotlight). Afterwards it is gone completely and the focus is where it was */
+  function scare(type, src) {
+    const jumpKinds = TER.kinds.slice(0, 4);
+    let kind = type || pick(G.band.length ? jumpKinds : jumpKinds.filter(t => t !== 'band'));
+    if (kind === 'band' && !G.band.length) kind = 'lunge';
+    if (kind === 'lightsout') kind = 'lunge';                // (LIGHTS OUT is its own step: lightsOut())
+    if (reduced.matches) kind = 'fade';                     // reduced motion: a slow fade to darkness and eyes, nothing moves
+    const el = $('scare'), ms = scareMs(kind), total = ms + SCARES.beat, peek = kind === 'panel' ? TER.peekMs : 0;
+    const focus = document.activeElement;
+    G.scare = {kind, phase: 'scare', from: src ? src.kind : null}; G.scareEnd = showClock() + total;
+    G.scares.push({kind, t: +G.t.toFixed(1)}); G.lastKind = kind;
+    A.Pitch.suppress(total);                                 // nothing heard counts until the band moves again
+    const who = src && SHOW.BAND[src.kind] && src.kind !== 'duet-dolls' ? src.kind : pick(['walrus', 'owl', 'raccoon', 'gator']);
+    const face = SHOW.FACE_IDS.includes(who) ? who : pick(SHOW.FACE_IDS);
+    $('scareBot').innerHTML = ['lunge', 'popup', 'maestro'].includes(kind) ? `<span class="bot glitch">${SHOW.botSVG(kind === 'maestro' ? 'moose' : who)}</span>` : '';
+    $('scareFace').innerHTML = kind === 'face' || kind === 'panel' ? `<span class="bot glitch">${SHOW.faceSVG(face)}</span>` : '';
+    $('scareBand').innerHTML = kind === 'band' ? G.band.slice(-5).map(b => `<span class="bot glitch">${SHOW.botSVG(b.kind)}</span>`).join('') : '';
+    const f = fillScale(), eyes = [...el.querySelectorAll('#scareBot .bot-svg .a-eye')].slice(0, 2);
+    el.style.setProperty('--fill', f.fill); el.style.setProperty('--pop', f.pop);
+    if (eyes.length) {                                       // the lunge grows around this machine's eyes (on a 140 × 200 drawing)
+      el.style.setProperty('--ex', (eyes.reduce((a, e) => a + +e.getAttribute('cx'), 0) / eyes.length / 140).toFixed(3));
+      el.style.setProperty('--ey', (eyes.reduce((a, e) => a + +e.getAttribute('cy'), 0) / eyes.length / 200).toFixed(3));
+    } else { el.style.removeProperty('--ex'); el.style.removeProperty('--ey'); }
+    el.style.setProperty('--peek', peek + 'ms'); el.style.setProperty('--hold', TER.faceHoldMs + 'ms');
+    el.className = 'scare on sct-' + kind;
+    if (peek) {                                              // PANEL: the face eases in at the target panel's edge first
+      const tp = $('tpanel'), p = document.createElement('div');
+      p.className = 'tp-face'; p.innerHTML = `<span class="bot glitch">${SHOW.faceSVG(face)}</span>`;
+      tp.style.setProperty('--peek', peek + 'ms'); tp.classList.add('tp-peek'); tp.appendChild(p);
+    }
+    const sting = () => { if (G && !gd.scareVisual) sfx((terrorOn() ? 'terror-sting-' : 'scare-sting-') + randInt([1, 3])); };
+    if (peek) later(sting, peek); else sting();
+    later(() => el.classList.add('out'), ms);
+    later(() => {
+      el.className = 'scare'; ['scareBot', 'scareFace', 'scareBand'].forEach(id => { $(id).innerHTML = ''; });
+      $('tpanel').classList.remove('tp-peek'); document.querySelectorAll('#tpanel .tp-face').forEach(x => x.remove());
+      document.body.classList.remove('st-dread');            // after a build-up: the lights come back, slowly
+      if (focus && focus !== document.activeElement && document.contains(focus) && focus.focus) focus.focus({preventScroll: true});
+      if (G && G.scare) unscare();
+    }, total);
   }
   /* one note on a short staff: the voice box signs and the target panel (tight around the clef, key signature and note) */
   function noteStaff(item, opts = {}) {
@@ -853,6 +1021,7 @@
     } else if (SN) SN.still(now);
     markTarget();
     tether(G.over ? null : lastTarget);
+    if (G.lightsOut) drawLoEyes();
   }
   function reachFront(b) {
     if (G.over) return;
@@ -1142,5 +1311,11 @@
   A.Showtime.lineup = lineup;                              // tests: lay out a stage/results band
   A.Showtime.finish = () => finish(true);                  // tests: end the show now (survived)
   A.Showtime.scare = type => G && !G.scare && scare(type, G.bots.find(b => b.state === 'walk'));   // tests: one scare now
+  /** tests: Terror's steps now: a build-up (+ a fake-out), LIGHTS OUT, the Maestro's sightings */
+  A.Showtime.dread = (kind, o = {}) => G && !G.scare && buildUp(kind || 'lunge', G.bots.find(b => b.state === 'walk'), o);
+  A.Showtime.lightsOut = () => G && !G.lightsOut && lightsOut();
+  A.Showtime.maestro = () => G && !G.maestro && maestroStart();
+  A.Showtime.terrorKind = () => G && terrorKind(G.bots.filter(b => b.state === 'walk'));
+  A.Showtime.lightsOutOk = () => G && lightsOutOk(G.bots.filter(b => b.state === 'walk'));
   showHub();
 })(window.Arcade);

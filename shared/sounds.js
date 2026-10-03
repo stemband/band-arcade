@@ -276,6 +276,12 @@ window.Arcade = window.Arcade || {};
                         when: 'Showtime Malfunction, JUMP SCARE mode: a jump scare (2 of 3, at random). Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
     'scare-sting-3':   {file: 'scare-sting-3', vol: .9, cap: 3, mic: true, screen: 'showtime-malfunction', gen: [[[5000, 5000], 0, .08, .8, 'noise', 3], [[120, 60], .02, .6, 1, 'noise', 1.2], [[1800, 700], .05, .4, .8, 'noise', 1]],
                         when: 'Showtime Malfunction, JUMP SCARE mode: a jump scare (3 of 3, at random). Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
+    'terror-sting-1':  {file: 'terror-sting-1', vol: .9, cap: 3, mic: true, fallback: 'scare-sting-1', gen: 'scare-sting-1', screen: 'showtime-malfunction',
+                        when: 'Showtime Malfunction, TERROR mode: a full-screen scare (1 of 3, at random). OPTIONAL: without this file the jump scare\'s scare-sting-1 plays. Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
+    'terror-sting-2':  {file: 'terror-sting-2', vol: .9, cap: 3, mic: true, fallback: 'scare-sting-2', gen: 'scare-sting-2', screen: 'showtime-malfunction',
+                        when: 'Showtime Malfunction, TERROR mode: a full-screen scare (2 of 3, at random). OPTIONAL: without this file the jump scare\'s scare-sting-2 plays. Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
+    'terror-sting-3':  {file: 'terror-sting-3', vol: .9, cap: 3, mic: true, fallback: 'scare-sting-3', gen: 'scare-sting-3', screen: 'showtime-malfunction',
+                        when: 'Showtime Malfunction, TERROR mode: a full-screen scare (3 of 3, at random). OPTIONAL: without this file the jump scare\'s scare-sting-3 plays. Cartoon-creepy, never a scream; the game caps its loudness.', len: '0.5–1 s'},
     // ---- Sustain Speedway (the mic listens for the whole race: nothing plays while racing) ------------------------
     // THE COUNTDOWN (shared/countdown.js, voice prefix 'race', CLASSIC 3·2·1 one second apart + a spoken GO): one file per
     // word, each played as its number appears. mic: true, because the mic is already listening before the race (they

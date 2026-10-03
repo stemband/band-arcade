@@ -8,6 +8,10 @@
        'turbo-blackout' | 'duet-tank'): HYBRIDS below says whose head sits on whose body; both parents' felt colors,
        visible stitch seams, mismatched eyes (the right one from the other parent) and the parts that show the trick
        plates: Tuba Tank's armor plates (.a-plate, data-i 0…n-1; game.js pops them off with .popped)
+     Arcade.Showtime.faceSVG(kind)                  TERROR's broken FACE (the FACE and PANEL scares): a band member's head
+       only ('walrus' | 'owl' | 'gator' | 'raccoon' | 'moose'), damaged: a cracked faceplate, one eye slowly dimming
+       and brightening, the jaw hanging crooked on one hinge. Broken machinery, never gore. Fills its box (meet): the
+       eyes always show
      Arcade.Showtime.BAND                           who is who (name, instrument, felt colors: theme.css --anim-* tokens)
      Arcade.Showtime.SPECIAL_IDS / HYBRID_IDS      the special machines and the hybrids, in the Malfunction Files' order
    Every drawing is on a 140 × 200 grid, feet at the bottom. Colors are classes styled in style.css. */
@@ -215,8 +219,34 @@ window.Arcade = window.Arcade || {};
       `<g class="bot-body">${body}${HOLDS[b.plays] || ''}${nPlates ? plates(nPlates) : ''}</g><g class="bot-head">${HEADS[kind] ? HEADS[kind]() : ''}</g>` +
       `<path class="a-spark" d="M96 70l6-8-2 7 7-4-6 9"/></svg>`;
   }
+  /* TERROR's BROKEN FACES: the head's box, its eyes and where its jaw hangs ([left x, top y, right x]) */
+  const FACES = {
+    walrus:  {box: [30, 12, 80, 84], eyes: [[56, 34], [84, 34]], r: 4.6, jaw: [46, 64, 94]},
+    owl:     {box: [28, 4, 84, 84], eyes: [[57, 44], [83, 44]], r: 6, jaw: [50, 66, 90]},
+    gator:   {box: [28, 10, 106, 76], eyes: [[54, 26], [74, 26]], r: 5, jaw: [84, 58, 122]},
+    raccoon: {box: [30, 6, 80, 80], eyes: [[55, 40], [85, 40]], r: 4.8, jaw: [52, 62, 88]},
+    moose:   {box: [14, 0, 112, 98], eyes: [[58, 38], [82, 38]], r: 5, jaw: [54, 76, 86]},
+  };
+  const FACE_IDS = Object.keys(FACES);
+  function faceSVG(kind) {
+    const F = FACES[kind] ? kind : 'walrus', f = FACES[F], b = BAND[F], [l, y, r] = f.jaw, m = (l + r) / 2;
+    const [ex, ey] = f.eyes[1], [cx, cy] = f.eyes[0], top = f.box[1] + 8, mid = (cx + ex) / 2;
+    return `<svg class="bot-svg face-svg" viewBox="${f.box.join(' ')}" preserveAspectRatio="xMidYMid meet" style="--felt:var(--${b.felt});--felt2:var(--${b.felt2})" aria-hidden="true">` +
+      // the gap the jaw left: dark, with a bare gear and a rod
+      `<path class="a-dark f-gap" d="M${l} ${y}Q${m} ${y + 10} ${r} ${y}L${r} ${y + 9}Q${m} ${y + 20} ${l} ${y + 9}Z"/>` +
+      `<g class="bot-head">${HEADS[F]()}</g>` +
+      `<circle class="a-gear f-gear" cx="${m}" cy="${y + 6}" r="3.4"/>` +
+      // the jaw, hanging crooked from its left hinge (a bolt left on the right, where it came loose)
+      `<g class="f-jaw" transform="rotate(11 ${l} ${y})"><path class="a-felt2" d="M${l} ${y + 1}Q${m} ${y + 11} ${r} ${y + 1}L${r - 3} ${y + 11}Q${m} ${y + 21} ${l + 3} ${y + 11}Z"/>` +
+      `<path class="a-seam" d="M${l + 4} ${y + 6}Q${m} ${y + 14} ${r - 4} ${y + 6}"/>${bolt(l + 2, y + 3, 2.2)}</g>${bolt(r, y + 1, 1.8)}` +
+      // the cracked faceplate: a split from the top down between the eyes, and a chipped corner
+      `<path class="f-crack" d="M${mid - 3} ${top - 6}l5 7-4 5 6 6-5 5 3 6M${mid + 3} ${top + 12}l8 3 4 7"/>` +
+      `<path class="f-chip" d="M${cx - 11} ${cy - 13}l7 2-2 6-6-1Z"/>` +
+      // one eye slowly dims and brightens (style.css .f-dim: a slow, smooth fade, never a flicker)
+      `<circle class="f-dim" cx="${ex}" cy="${ey}" r="${f.r * 2.4}"/></svg>`;
+  }
   /** the special machines' ids, in the Malfunction Files' order */
   const SPECIAL_IDS = Object.keys(BAND).filter(k => BAND[k].special && !BAND[k].hybrid);
   const HYBRID_IDS = Object.keys(BAND).filter(k => BAND[k].hybrid);
-  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG, SPECIAL_IDS, HYBRID_IDS});
+  A.Showtime = Object.assign(A.Showtime || {}, {BAND, botSVG, faceSVG, FACE_IDS, SPECIAL_IDS, HYBRID_IDS});
 })(window.Arcade);
