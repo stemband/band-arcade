@@ -262,10 +262,11 @@
     const sec = row.closest('.sb-sec'); sec.hidden = false; sec.open = true; saveOpen();
     row.classList.remove('sb-hit'); void row.offsetWidth; row.classList.add('sb-hit'); lastHit = n;
     row.scrollIntoView({block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
-    // the page can still shift under it (fonts arriving, statuses filling in): put it back in view if it moved off
+    // the page can still shift under it (fonts arriving, statuses filling in, a smooth scroll landing late on a busy
+    // machine): put it back in view if it moved off, checked again and again while it is lit up
     const again = () => { const r = row.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) row.scrollIntoView({block: 'center'}); };
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => setTimeout(again, 50));
-    setTimeout(again, 700);
+    [300, 700, 1200, 1800, 2500].forEach(ms => setTimeout(again, ms));
     setTimeout(() => row.classList.remove('sb-hit'), 2600);
   }
   addEventListener('hashchange', goHash);
