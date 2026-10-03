@@ -4,6 +4,14 @@ These check the whole arcade on every pull request (GitHub runs them: `.github/w
 is test tooling only: **nothing in `tests/` is ever loaded by the site**, and the site itself still has no build step
 and no npm packages.
 
+On a pull request: **QUICK CHECK** first (Chromium, the `@quick` tests: the smoke test, every game starts, the docs
+checks and ~40 core tests; ~3 minutes), then **FULL** (everything, Chromium and WebKit, in shards side by side), then
+**ALL TESTS**: one `test-report` download (open its `index.html`: screenshots and traces of anything that failed) and
+the run summary (time per browser, the 10 slowest tests, any test that needed its retry) and `test-times`
+(every test's time, for even shards). A test over 60 s that isn't
+tagged `@slow` fails the check (`ci-summary.js`). The rules for fast tests: docs/engine/testing.md "Keeping the tests
+fast".
+
 ## What they check
 
 | File | What it does | Browsers |
@@ -37,6 +45,8 @@ and no npm packages.
 | `seasonal-shelf.spec.js` | THE SEASONAL SHELF: a seasonal shop item bought during its event at both counters, refused outside it (`offSeason`) and owned afterwards; never the Prize of the Week or discounted; the events' own earned items never sold; the countdown, "Last day!" and the "Coming soon" card (across New Year too); a seasonal wish clearing when its event ends; the Backup Code, QUEST CODE and avatar code carrying the new items (old codes unchanged); every new item drawing at chip/tile/big and full body; Music Note Sparkles still under reduced motion; the event panel's line and the Locker's words. | Chromium + WebKit |
 | `backup-layer.spec.js` | BACKUP / RESTORE opens on top of what opened it: from the arcade's Settings panel, Select Player's card, Arcade Quest's ENTER SAVE CODE and Save Jukebox code panel, and the app's first launch, the panel is what `elementFromPoint` finds at its code box and RESTORE box, the focus is inside and Tab stays there, the RESTORE confirmation comes up above it, Esc closes it and the focus returns to the opener; a pretend iPad keyboard never hides the RESTORE box. | Chromium + WebKit |
 | `results-acts-first.spec.js` | `UI.results` `actsFirst`: Sustain Speedway's NEXT TRACK / TRY AGAIN / TRACKS / GARAGE come before the extra part (NEW IN THE GARAGE!, the tuning report) and are on screen the moment the results appear on a phone in portrait, an iPad both ways and a laptop; NEXT has the focus and Tab then reaches the garage card; without `actsFirst` (every other game) the buttons stay last. | Chromium + WebKit |
+| `shard-by-time.js`, `test-times.json`, `install-browser.sh` | Not tests: tests.yml's shards of equal TIME (each test's last time per browser; refresh `test-times.json` from a green run's `test-times` download now and then) and its browser install (Chromium without apt; WebKit's apt packages cached with the browser (a slow mirror took 6–22 min), with download timeouts and retries). | – |
+| `ci-summary.js` | Not a test: the run summary and THE TIME BUDGET (tests.yml runs it on the merged report): time per browser, the 10 slowest tests, every test that needed its retry; a test over 60 s without `@slow` fails. | – |
 | `docs.spec.js` | The docs stay healthy (no browser): CLAUDE.md is at most 25 KB, every game in `shared/games.js` has `docs/games/<id>.md`, CLAUDE.md's index lists every file in `docs/engine/` and `docs/games/` and every link in it exists, and no link between the doc files is broken. (`tools/check-docs-split.py` was the one-time check that the split from the old CLAUDE.md lost no sentence.) | Chromium + WebKit |
 | `scale-trainer.spec.js` | Scale Trainer: every `AUDITION` entry (shared/scales.js) builds 21 or 41 notes with the right key signature, starting and ending on its written note, inside the member's GMEA chromatic range (bells exempt), in audition order F, B♭, E♭, A♭; a level-4 audition played through `Pitch.demoNote` = 3 stars in time + ALL-STATE READY (not after level 1); a wrong note red then amber when fixed, a skipped note red; time running out mid-scale lets it finish, then ends (unstarted scales 0); the trumpet chromatic F♯3–G5 and back, mallets F4–F6; the Snare Drum refused; practice LOOP and the best clean run; the rhythm picture (7 / 4 bars, no sixteenths); the slurs (1 and 2 octaves, split at a line break; none for mallets); levels 1–2 with the staff for every scale and no timer (a slow clean run = 3 stars), levels 3–4 from memory and timed; the articulation line on the score sheet never changing the stars. | Chromium + WebKit |
 | `tuneup.spec.js` | Tune Up (note-checker/): the tabs (`?tool=`, ←/→, remembered) and the microphone per tab (the Metronome never listens); the Tuner's balloon (sharp above the platform, flat below, in tune landed, the words and arrows, resting when nothing is heard), written vs concert names (trumpet B♭ = C, alto sax = G), HOLD IT (fills in 4 s, drains), the tuning tip after 1.5 s, HEAR THE NOTE (the tone with the mic paused, then TARGET mode, "That's a B, try a C!"; Chromium), the snare's message, reduced motion; the Metronome's clicks exactly 60/BPM apart, accents (beat 1; 6/8 on 1 and 4), subdivisions, tap tempo, the tempo words' boundaries, silent mode, the bop on the audible beat (≤ 10 ms), a hidden tab; the Tempo Ladder (10 steps for 60→100, steps only on downbeats, HOLD, STEP BACK, the goal and the fanfare); the Golden Tuning Fork and the Ladder Climber plate. | Chromium + WebKit |
@@ -76,6 +86,9 @@ npx playwright test                      # everything, both browsers (it starts 
 npx playwright test --project=chromium   # Chromium only (quicker)
 npx playwright test smoke -g "Note Storm"  # one file, tests whose names match
 npx playwright show-report               # the report of the last run, with screenshots of what failed
+npx playwright test --project=chromium --grep @quick   # what QUICK CHECK runs (~3 minutes)
+npx playwright test --grep-invert @slow  # everything but the long full runs
+PLAYWRIGHT_JSON_OUTPUT_NAME=r.json npx playwright test --reporter=json && node ci-summary.js r.json   # the summary + time budget
 ```
 
 In Claude Code's cloud sandbox the browsers are already installed in `/opt/pw-browsers` (Chromium only: WebKit can't be

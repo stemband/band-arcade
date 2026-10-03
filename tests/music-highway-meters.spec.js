@@ -175,7 +175,7 @@ test.describe('music highway: the book songs and the new meters', () => {
   test.describe('full songs', () => {
   test.describe.configure({mode: 'serial'});
   for (const [id, clicks] of [['the-stars-and-stripes-forever', [-8, -6, -4, -2]], ['lisbon-bay', [-6, -4.5, -3, -1.5]], ['the-merry-minstrels', [-6, -4.5, -3, -1.5]]]) {
-    test(`?demo autoPlay: ${id} scores 100 % with no drift; the count-in (also after RESUME) is 4 primary beats`, async ({page, browserName}) => {
+    test(`?demo autoPlay: ${id} scores 100 % with no drift; the count-in (also after RESUME) is 4 primary beats`, {tag: '@slow'}, async ({page, browserName}) => {
       test.setTimeout(150_000);
       const watch = await game(page, browserName);
       const i = await page.evaluate(id => MH_SONGS.findIndex(s => s.id === id), id);

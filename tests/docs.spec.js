@@ -1,5 +1,5 @@
 // THE DOCS STAY HEALTHY: CLAUDE.md is a short index (summary, hard rules, checklist, THE INDEX); every game and shared
-// system has its own file in docs/games/ or docs/engine/. No browser needed: these read the files.
+// system has its own file in docs/games/ or docs/engine/. No browser needed: these read the files. All @quick (QUICK CHECK).
 const {test, expect} = require('@playwright/test');
 const fs = require('fs'), path = require('path');
 
@@ -12,11 +12,11 @@ const DOCS = [...mdIn('docs/engine'), ...mdIn('docs/games')];
 const links = text => [...text.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)].map(m => m[1])
   .filter(h => !/^[a-z]+:/i.test(h) && !h.startsWith('#')).map(h => h.split('#')[0]);
 
-test('CLAUDE.md is at most 25 KB', () => {
+test('CLAUDE.md is at most 25 KB', {tag: '@quick'}, () => {
   expect(fs.statSync(path.join(ROOT, 'CLAUDE.md')).size).toBeLessThanOrEqual(25 * 1024);
 });
 
-test('every game in shared/games.js has docs/games/<id>.md', () => {
+test('every game in shared/games.js has docs/games/<id>.md', {tag: '@quick'}, () => {
   const src = read('shared/games.js');
   const list = src.slice(src.indexOf('Arcade.GAMES = ['), src.indexOf('Arcade.ALL_GAMES'));   // the games, not the zones
   const ids = [...list.matchAll(/^\s+id: '([a-z0-9-]+)'/gm)].map(m => m[1]);
@@ -25,14 +25,14 @@ test('every game in shared/games.js has docs/games/<id>.md', () => {
   expect(missing).toEqual([]);
 });
 
-test('CLAUDE.md\'s index lists every file in docs/engine/ and docs/games/, and every link in it is a real file', () => {
+test('CLAUDE.md\'s index lists every file in docs/engine/ and docs/games/, and every link in it is a real file', {tag: '@quick'}, () => {
   const claude = read('CLAUDE.md');
   const linked = new Set(links(claude).map(h => path.normalize(h)));
   expect(DOCS.filter(f => !linked.has(path.normalize(f)))).toEqual([]);
   expect([...linked].filter(h => !fs.existsSync(path.join(ROOT, h)))).toEqual([]);
 });
 
-test('no broken links between the doc files', () => {
+test('no broken links between the doc files', {tag: '@quick'}, () => {
   const bad = [];
   for (const f of ['CLAUDE.md', ...DOCS]) {
     for (const h of links(read(f))) {

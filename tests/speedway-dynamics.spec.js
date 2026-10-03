@@ -93,7 +93,7 @@ test('a p zone: soft = full speed, loud = slower with "softer!"; the report has 
 /** the race's state when a check fails (with pageWatch's frame gaps and visibility) */
 const SW_STATE = () => { const G = Arcade.Speedway.debug(); return G && {phase: G.phase, lap: G.lap, laps: G.lens.length, dist: +G.dist.toFixed(2), len: G.lens[G.lap], clock: +G.clock.toFixed(2), held: !!G.held, slur: Arcade.Speedway.slur(), podium: !!Arcade.Speedway.podium()}; };
 
-test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); brass gets a lip slur', async ({page}) => {
+test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); brass gets a lip slur', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(150000);
   const watch = await prepare(page, {store: store()});
   const seen = await pageWatch(page);
@@ -134,9 +134,9 @@ test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); 
   watch.check();
 });
 
-test('slur partners stay in the note set and never cross the break (clarinet, alto sax) or leave the range', async ({page}) => {
-  test.setTimeout(90000);
-  for (const m of ['clarinet', 'altosax', 'flute', 'trombone', 'tuba', 'horn']) {
+// one test per instrument, side by side
+for (const m of ['clarinet', 'altosax', 'flute', 'trombone', 'tuba', 'horn']) {
+  test(`slur partners stay in the note set and never cross the break (clarinet, alto sax) or leave the range (${m})`, async ({page}) => {
     await prepare(page, {store: store(m)});
     await page.evaluate(m => { try { const d = JSON.parse(localStorage.getItem('bandarcade.v1')); d.player = m; localStorage.setItem('bandarcade.v1', JSON.stringify(d)); } catch (e) { /* first page */ } }, m).catch(() => {});
     await openSpeedway(page);
@@ -154,5 +154,5 @@ test('slur partners stay in the note set and never cross the break (clarinet, al
       if (m === 'clarinet') expect(x.a < 70.5).toBe(x.b < 70.5);
       if (m === 'altosax') expect(x.a < 73.5).toBe(x.b < 73.5);
     });
-  }
-});
+  });
+}

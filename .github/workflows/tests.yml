@@ -1,7 +1,18 @@
 # Band Arcade's AUTOMATIC TESTS: on every pull request (and every push to main), the whole arcade is opened in
-# Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how). A green ✓ on the pull request =
-# every test passed; a red ✗ = something broke: "Details" shows which test, and the "test-report-<browser>" download has the
-# screenshots (test-report-<browser>-<job number>, one per shard).
+# Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how; docs/engine/testing.md the rules).
+#
+#   1. QUICK CHECK (Chromium, 2 shards side by side, ~3 min): the smoke test (every page, every game's level starts), the docs checks and the
+#      core tests tagged @quick. A red ✗ here = something basic broke; the full run doesn't even start.
+#   2. FULL (after QUICK CHECK passes): everything else in Chromium (3 shards) and the whole suite in WebKit (6 shards),
+#      side by side on 9 machines, each shard about the same TIME (shard-by-time.js + tests/test-times.json), plus Blocktave's and Showtime Malfunction's frame-rate
+#      tests alone on their own machine (perf).
+#   3. ALL TESTS: merges every shard's report into ONE "test-report" download (the HTML report with screenshots and
+#      traces of anything that failed), writes the run summary (time per browser, the 10 slowest tests, every test
+#      that needed a retry) and checks THE TIME BUDGET (a test over 60 s that isn't tagged @slow fails: ci-summary.js).
+#      It is green only when QUICK CHECK, every FULL shard and perf passed.
+#
+# BRANCH PROTECTION (Settings → Branches → main → "Require status checks to pass"): select "quick check" and
+# "all tests". Those two names never change, however the shards are split.
 #
 # Test tooling lives ONLY in tests/ (its own package.json with Playwright) and here. The site itself stays plain files:
 # nothing is built, and the Pages deploy (pages.yml) doesn't wait for or depend on this workflow.
@@ -20,29 +31,18 @@ concurrency:                  # a newer push to the same pull request cancels th
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CI: 'true'
+
 jobs:
-  test:
-    name: tests (${{ matrix.browser }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
+  quick:
+    name: quick check (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        # side by side, so the whole check takes about as long as one job. WebKit is the slow one: its full run alone
-        # took 35+ minutes (plus 5-11 to install it) and was cancelled at the 40-minute limit (October 2026, on main
-        # too), so it runs as 4 SHARDS (Playwright's --shard: each job runs a quarter of the tests) on 4 machines,
-        # with 2 browsers at a time each (--workers=2): with 4, a loaded runner's WebKit crashed Blocktave's pages
-        # ("Target crashed") and missed timing checks, though the page itself uses only a few MB. Those crashes were WebKit's
-        # own Skia GPU drawing on a machine with no GPU: Music Highway's and Sustain Speedway's specs make WebKit draw on
-        # the CPU (tests/helpers.js CPU_DRAWING; docs/engine/testing.md). Blocktave's still can (open). Chromium runs as 2
-        # shards of 4 browsers: alone its tests took 33 minutes + 6 to install on a slow day and hit the limit too.
-        include:
-          - {browser: chromium, shard: 1/2, workers: 4}
-          - {browser: chromium, shard: 2/2, workers: 4}
-          - {browser: webkit, shard: 1/4, workers: 2}
-          - {browser: webkit, shard: 2/4, workers: 2}
-          - {browser: webkit, shard: 3/4, workers: 2}
-          - {browser: webkit, shard: 4/4, workers: 2}
+        shard: [1/2, 2/2]        # two machines side by side: the answer in ~3 minutes
     defaults:
       run:
         working-directory: tests
@@ -55,27 +55,197 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - name: Install the test tools
         run: npm ci
-      - name: Install ${{ matrix.browser }}
-        run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Run the tests (the site is served as-is with python3 -m http.server)
-        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --workers=${{ matrix.workers }}
+      - name: Cache the browser
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('tests/package-lock.json') }}
+      - name: Install chromium
+        run: ./install-browser.sh chromium
+      - name: This shard's tests (equal time, not equal count; shard-by-time.js)
         env:
-          CI: 'true'
-      - name: Blocktave's and Showtime Malfunction's frame rates (alone on the machine, 4× CPU throttle)
-        if: matrix.browser == 'chromium' && matrix.shard == '1/2'
-        run: npx playwright test blocktave showtime-endless -g performance --project=chromium --workers=1
+          SHARD: ${{ matrix.shard }}
+        run: node shard-by-time.js chromium ${SHARD%/*} ${SHARD#*/} --grep @quick > shard.txt
+      - name: Run the @quick tests (smoke, every game starts, docs, the core tests)
+        run: npx playwright test --project=chromium --grep @quick --test-list shard.txt
         env:
-          CI: 'true'
-          PERF: '1'
-      - name: Upload the report and screenshots
-        if: failure()
+          PLAYWRIGHT_JSON_OUTPUT_NAME: quick-results.json
+          BLOB_NAME: report-quick-${{ strategy.job-index }}.zip
+      - name: Summary and time budget
+        if: ${{ !cancelled() }}
+        run: node ci-summary.js quick-results.json
+      - name: Keep the report for ALL TESTS
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-report-${{ matrix.browser }}-${{ strategy.job-index }}
+          name: blob-report-quick-${{ strategy.job-index }}
+          path: tests/blob-report
+          retention-days: 1
+
+  quick-check:
+    # the one QUICK CHECK result (a stable name for branch protection, however QUICK is split)
+    name: quick check
+    if: ${{ always() }}
+    needs: quick
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Both quick shards passed
+        env:
+          QUICK: ${{ needs.quick.result }}
+        run: |
+          echo "quick: $QUICK"
+          [ "$QUICK" = success ]
+
+  full:
+    name: tests (${{ matrix.browser }} ${{ matrix.shard }})
+    needs: quick
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # Chromium: everything but the @quick tests (QUICK CHECK ran those in Chromium already; its report is merged
+        # in below), 4 browsers a machine (ubuntu-latest has 4 cores). WebKit: the whole suite, 3 browsers a machine:
+        # on the CPU (no GPU) WebKit's drawing fills the cores, so a 4th browser only made every test slower (measured:
+        # 3 shards × 4 took 16–24 minutes, 5 × 3 about 14; the tests take the same total CPU however they're split, so more
+        # machines it is: 6 × 3, about 11 minutes each).
+        include:
+          - {browser: chromium, shard: 1/3, workers: 4, grep: '--grep-invert @quick'}
+          - {browser: chromium, shard: 2/3, workers: 4, grep: '--grep-invert @quick'}
+          - {browser: chromium, shard: 3/3, workers: 4, grep: '--grep-invert @quick'}
+          - {browser: webkit, shard: 1/6, workers: 3, grep: ''}
+          - {browser: webkit, shard: 2/6, workers: 3, grep: ''}
+          - {browser: webkit, shard: 3/6, workers: 3, grep: ''}
+          - {browser: webkit, shard: 4/6, workers: 3, grep: ''}
+          - {browser: webkit, shard: 5/6, workers: 3, grep: ''}
+          - {browser: webkit, shard: 6/6, workers: 3, grep: ''}
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install the test tools
+        run: npm ci
+      - name: Cache the browser
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
           path: |
-            tests/playwright-report/
-            tests/test-results/
+            ~/.cache/ms-playwright
+            ~/.cache/apt-webkit
+          key: playwright-v2-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('tests/package-lock.json') }}
+      - name: Install ${{ matrix.browser }}
+        run: ./install-browser.sh ${{ matrix.browser }}
+      - name: This shard's tests (equal time, not equal count; shard-by-time.js)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node shard-by-time.js ${{ matrix.browser }} ${SHARD%/*} ${SHARD#*/} ${{ matrix.grep }} > shard.txt
+      - name: Run the tests (the site is served as-is with python3 -m http.server)
+        run: npx playwright test --project=${{ matrix.browser }} --test-list shard.txt --workers=${{ matrix.workers }} ${{ matrix.grep }}
+        env:
+          BLOB_NAME: report-${{ matrix.browser }}-${{ strategy.job-index }}.zip
+      - name: Keep the report for ALL TESTS
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.browser }}-${{ strategy.job-index }}
+          path: tests/blob-report
+          retention-days: 1
+
+  perf:
+    # a frame rate only means something with the machine to itself: one browser, nothing else running
+    name: perf (frame rates, alone)
+    needs: quick
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install the test tools
+        run: npm ci
+      - name: Cache the browser
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('tests/package-lock.json') }}
+      - name: Install chromium
+        run: ./install-browser.sh chromium
+      - name: Blocktave's and Showtime Malfunction's frame rates (alone on the machine, 4× CPU throttle)
+        run: npx playwright test blocktave showtime-endless -g performance --project=chromium --workers=1 --reporter=list,github
+        env:
+          PERF: '1'
+
+  report:
+    name: all tests
+    if: ${{ always() }}
+    needs: [quick, full, perf]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install the test tools
+        run: npm ci
+      - name: Collect every shard's report
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: tests/all-blob-reports
+          merge-multiple: true
+      - name: Merge them into one report
+        id: merge
+        if: ${{ hashFiles('tests/all-blob-reports/*.zip') != '' }}
+        run: npx playwright merge-reports --reporter html,json ./all-blob-reports
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+      - name: The test report (open index.html; screenshots and traces of anything that failed)
+        if: ${{ steps.merge.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: tests/playwright-report/
           retention-days: 14
+      - name: Summary (time per browser, the 10 slowest, retried tests) and THE TIME BUDGET (60 s a test)
+        id: summary
+        if: ${{ steps.merge.outcome == 'success' }}
+        run: node ci-summary.js results.json
+      - name: Every test's time (test-times.new.json; copy it over tests/test-times.json now and then)
+        if: ${{ steps.merge.outcome == 'success' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-times
+          path: tests/test-times.new.json
+          retention-days: 30
+      - name: Every job passed (quick check, every full shard, perf)
+        env:
+          QUICK: ${{ needs.quick.result }}
+          FULL: ${{ needs.full.result }}
+          PERF: ${{ needs.perf.result }}
+        run: |
+          echo "quick check: $QUICK, full: $FULL, perf: $PERF"
+          [ "$QUICK" = success ] && [ "$FULL" = success ] && [ "$PERF" = success ]
 
   sounds:
     # THE SOUND FILES (tools/compress-sounds.py): nothing above its target (--check), and every file decodes at its

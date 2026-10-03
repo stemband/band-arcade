@@ -22,7 +22,7 @@ async function start(page, lv) {
 }
 
 test.describe('Showtime Malfunction', () => {
-  test('Jump Scare: every showtime plans its scares by progress (1, or 2 on the longer shows)', async ({page}) => {
+  test('Jump Scare: every showtime plans its scares by progress (1, or 2 on the longer shows)', {tag: '@quick'}, async ({page}) => {
     test.setTimeout(180_000);                                              // it plays a show until the first scare
     const watch = await prepare(page, {store: jumpStore()});
     await page.goto(`showtime-malfunction/index.html?demo&nostart&today=${DAY}`);

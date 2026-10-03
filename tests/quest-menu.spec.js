@@ -25,7 +25,7 @@ const btn = page => page.locator('#qMenuSlot .q-menubtn');
 const rect = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); return e && !e.hidden && e.getClientRects().length ? e.getBoundingClientRect().toJSON() : null; }, sel);
 const overlap = (a, b) => !!a && !!b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
-test('Settings: the chosen Text speed, Dodging and Assist mode are highlighted (a different background + ▶)', async ({page}) => {
+test('Settings: the chosen Text speed, Dodging and Assist mode are highlighted (a different background + ▶)', {tag: '@quick'}, async ({page}) => {
   const watch = await world(page, LAPTOP);
   await settle(page);
   await page.evaluate(() => { Arcade.Quest.settings.open(); });
@@ -48,7 +48,7 @@ test('Settings: the chosen Text speed, Dodging and Assist mode are highlighted (
 
 test.describe('a keyboard (laptop)', () => {
   test('the first time: the keyboard line; the key legend shows, fades after 10 s and comes back on a key', async ({page}) => {
-    test.setTimeout(60_000);
+    await page.clock.install();                                                 // the test's clock: the 10 s pass at once
     const watch = await world(page, LAPTOP);
     await expect(page.locator('.q-textbox .q-tline')).toHaveText('On a keyboard: Z or Enter = A, X or Esc = B, M = Menu.');
     await expect(page.locator('.q-textbox .q-tmore')).toHaveText('▼ Enter');
@@ -58,8 +58,10 @@ test.describe('a keyboard (laptop)', () => {
     await expect(btn(page)).toHaveText('Menu');
     let k = await page.evaluate(() => Arcade.Quest.keyHints.state());
     expect(k).toMatchObject({shown: true, dim: false, text: 'Arrows: move · Z / Enter: A (talk, choose) · X / Esc: B (back) · M: Menu · H: hide hints'});
-    await expect.poll(() => page.evaluate(() => Arcade.Quest.keyHints.state().dim), {timeout: 14_000}).toBe(true);
-    expect(await page.evaluate(() => getComputedStyle(document.getElementById('qKeys')).opacity)).not.toBe('0.95');
+    await page.clock.fastForward(10_500);
+    await expect.poll(() => page.evaluate(() => Arcade.Quest.keyHints.state().dim)).toBe(true);
+    // the fade itself is a CSS transition (real time): it has started once the opacity moves
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.getElementById('qKeys')).opacity)).not.toBe('0.95');
     await page.keyboard.press('Shift');
     expect(await page.evaluate(() => Arcade.Quest.keyHints.state().dim)).toBe(false);
     // said only once on this device

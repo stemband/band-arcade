@@ -136,8 +136,9 @@ test.describe('Showtime Malfunction: hybrids', () => {
     watch.check();
   });
 
-  test('the snare: Glitch Lurker rolls faster halfway; Sprocket Dolls splits into two 1-hit minis; the rest are counts', async ({page}) => {
-    test.setTimeout(120_000);
+  // three tests side by side: what each hybrid asks of the snare, the roll speeding up, the minis
+  const SNARE_HEAD = 'the snare: Glitch Lurker rolls faster halfway; Sprocket Dolls splits into two 1-hit minis; the rest are counts';
+  test(`${SNARE_HEAD}: every hybrid's snare job`, async ({page}) => {
     const watch = await prepare(page, {store: store('snare')});
     const out = {};
     for (const id of HYBRIDS) {
@@ -150,6 +151,10 @@ test.describe('Showtime Malfunction: hybrids', () => {
     expect(out['glitch-lurker'].how).toMatch(/Halfway, roll faster/);
     ['blackout-jester', 'sprocket-dolls', 'duet-tank'].forEach(id => { expect(out[id].duet, id).toBe(null); expect(out[id].switchLeft, id).toBe(undefined); });
     expect(out['sprocket-dolls'].how).toMatch(/one hit for each mini/);
+    watch.check();
+  });
+  test(`${SNARE_HEAD}: the roll speeds up halfway`, async ({page}) => {
+    const watch = await prepare(page, {store: store('snare')});
     // the roll speeds up halfway (hold S = a steady roll in ?demo)
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=glitch-lurker');
     await start(page, SOLO);
@@ -158,6 +163,10 @@ test.describe('Showtime Malfunction: hybrids', () => {
     await expect.poll(async () => (await bot(page)).fast, {timeout: 20_000}).toBe(true);
     await expect.poll(async () => { const b = await bot(page); return !b || b.state !== 'walk'; }, {timeout: 20_000}).toBe(true);
     await page.keyboard.up('s');
+    watch.check();
+  });
+  test(`${SNARE_HEAD}: the Sprocket Dolls' minis`, async ({page}) => {
+    const watch = await prepare(page, {store: store('snare')});
     // the Sprocket Dolls' minis: one hit each
     await page.goto('showtime-malfunction/index.html?demo&nostart&special=sprocket-dolls');
     await start(page, SOLO);
@@ -201,7 +210,7 @@ test.describe('Showtime Malfunction: hybrids', () => {
     watch.check();
   });
 
-  test('THE FAIRNESS CHECK: every hybrid can be beaten while its note shows, at every showtime from 5, Normal and NIGHTMARE', async ({page}) => {
+  test('THE FAIRNESS CHECK: every hybrid can be beaten while its note shows, at every showtime from 5, Normal and NIGHTMARE', {tag: '@slow'}, async ({page}) => {
     for (const member of ['trumpet', 'snare']) {
       const watch = await prepare(page, {store: store(member)});
       for (const id of HYBRIDS) {

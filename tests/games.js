@@ -18,7 +18,10 @@
      endlessPlay  the step in its ENDLESS run (a game whose page has an Endless card is also run to GAME OVER):
                default 'wrong' (tap W = a wrong note, which costs a heart); 'idle' = do nothing (notes run out)
      skip      'chromium' | 'webkit': a reason not to run in that browser
-     pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise) */
+     pause     false = no pause button during this run (the run pauses, opens Settings and resumes once otherwise)
+     slow      true = its level takes about a minute of real time or more (a whole rhythm set, a match, a race):
+               tagged @slow, so it runs only in the FULL job (docs/engine/testing.md "Keeping the tests fast");
+               endlessSlow the same for its Endless run */
 const fs = require('fs');
 const path = require('path');
 const {games} = require('./arcade');
@@ -86,7 +89,7 @@ async function blocktaveStep(page) {
     if (s.screen !== 'world') return;
     if (Arcade.BlocktaveCard.current) { d.answer(); return; }
     if (s.held) return;                                   // a first-time card: the run's dismiss() closes it
-    if (s.drops.length) return;                           // mined loot lands beside the player: wait for the pickup
+    if (s.drops.length) { d.step(.25); return; }          // mined loot lands beside the player: the game's test clock picks it up
     const inv = s.inv || {}, go = k => { const t = d.find(k); if (t) { d.standBy(t.x, t.y); d.mine(t.x, t.y); } };
     if (!inv.mallet1 && !inv.mallet2) {
       if (!inv.cork) return go('cork');
@@ -108,9 +111,9 @@ const STEPS = {
     const m = /Answer:\s*([A-G])/.exec(t || ''); await page.keyboard.press(m && m[1] === 'A' ? 'b' : 'a'); await page.waitForTimeout(400); }},
   'chime-heist': {member: 'bells', play: tapHint('.bar.hint'), every: 300},
   'ancient-ninja-scrolls': {play: async page => { await click('#goTrain')(page); await click('.choice.hint')(page); await page.waitForTimeout(150); await click('#nextBtn')(page); await page.waitForTimeout(200); }},
-  'button-masher': {play: masherCombo},
-  'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000},
-  'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000,
+  'button-masher': {play: masherCombo, slow: true},
+  'neon-face-off': {store: {opponent: 'cpu'}, start: click('#startBtn'), play: 'hold', every: 150, key: 'neon-face-off', limit: 120_000, slow: true},
+  'dojo-duel': {start: click('#goBtn'), play: duelPoint, stars: false, limit: 90_000, slow: true,
     done: page => page.evaluate(() => { const s = Arcade.Duel.state(); return !!s && !s.running && s.players.some(p => p.score > 0); })},
   // Music Highway judges timing to the millisecond, so the test uses the game's own autoPlay hook (every note on time,
   // through the real judging) instead of key presses; calibrated already, so the first song doesn't ask for it
@@ -124,23 +127,23 @@ const STEPS = {
   // game's own autoPlay hook (through the real judging); NEXT between rhythms. WebKit: SOUND OFF (see Music Highway).
   // Its Dojo Marathon: nothing played, so every rhythm misses and costs a life.
   'rhythm-dojo': {store: browser => Object.assign({gameData: {'rhythm-dojo': {mode: 'tap', calib: {clap: {ms: 0}, tap: {ms: 0}}}}}, browser === 'webkit' ? {sfx: false} : {}),
-    next: '#rdNext', limit: 150_000, endlessPlay: 'idle',
+    next: '#rdNext', limit: 150_000, endlessPlay: 'idle', slow: true,
     play: async page => {
       await page.evaluate(() => { const D = Arcade.RhythmDojo; if (!window.__auto) { window.__auto = true; D.autoPlay(0, {persist: true}); } if (D.state().phase === 'study') document.getElementById('rdGo').click(); });
       await page.waitForTimeout(400);
     }},
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
-  'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000},
+  'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000, slow: true},
   // 5 animatronics walk in one at a time: about a minute. THE ENCORE: nobody plays, so 3 machines reach the front (~45 s)
-  'showtime-malfunction': {limit: 120_000, endlessPlay: 'idle'},
-  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000},   // level 1 takes about a minute
-  'vanishing-ink': {next: '#rrNext', limit: 100_000},
+  'showtime-malfunction': {limit: 120_000, endlessPlay: 'idle', slow: true, endlessSlow: true},
+  'lost-signal': {store: {gameData: {'lost-signal': {signalChecked: true}}}, next: '#txNext', limit: 100_000, slow: true},   // level 1 takes about a minute
+  'vanishing-ink': {next: '#rrNext', limit: 100_000, slow: true},
   // Blocktave: chapter 1 (above); its Survival Nights run: every step a creature's bump costs a heart (the demo hook)
   'blocktave': {play: blocktaveStep, every: 600, limit: 100_000, key: 'blocktave',
     endlessPlay: async page => { await page.evaluate(() => { const B = Arcade.Blocktave; if (B.state().screen === 'world' && !B.state().held) B.demo.hurt(1); }); await page.waitForTimeout(400); }},
   'arcade-quest': {url: 'arcade-quest/index.html?demo&test', store: {gameData: {'arcade-quest': {settings: {textSpeed: 'instant', dodge: 'easy', assist: true}}}}, start: async page => { await page.waitForTimeout(1200); await page.keyboard.press('Enter'); },
-    play: questTurn, stars: false, limit: 150_000, pause: false,   // a battle waits for you: no pause there
+    play: questTurn, stars: false, limit: 150_000, pause: false, slow: true,   // a battle waits for you: no pause there
     done: page => page.evaluate(() => { const Q = Arcade.Quest, b = Q.battleState && Q.battleState(), s = Q.save.get();
       return (!!b && (b.state === 'friend' || b.state === 'fading')) || (s.battles || 0) > 0 || (s.roster || []).length > 0; })},
 };

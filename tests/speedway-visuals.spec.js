@@ -20,7 +20,7 @@ for (const [name, size] of SIZES) for (const gfx of ['full', 'lite']) {
     const seen = await pageWatch(page);
     await openSpeedway(page, '&season=winter');
     await startTrack(page, 2);
-    await shortRace(page, 3);
+    await shortRace(page, 3, {pitSec: .5});
     await page.keyboard.down('Space');
     await page.waitForTimeout(1500);
     const fx = await page.evaluate(() => Arcade.Speedway.fx());
@@ -51,6 +51,7 @@ test('the podium: the right place when you finish 3rd, and a tap skips it', asyn
   await page.evaluate(() => {
     const G = Arcade.Speedway.debug(); G.lens = G.lens.map(() => 2); G.total = 2 * G.lens.length;
     G.rivals.forEach((r, i) => { r.pace = [5, 4, .01][i]; });                          // two rivals far ahead
+    window.SPEEDWAY_RULES.pitSec = .5;                                                // short pit stops (the rivals' too)
   });
   await page.keyboard.down('Space');
   await page.waitForFunction(() => Arcade.Speedway.podium(), null, {timeout: 90000});
@@ -111,7 +112,7 @@ test('seasonal touches follow ?season= and the date; the Seasonal look switch tu
   watch.check();
 });
 
-test('every time of day and weather draws (all 8 tracks) without errors', async ({page}) => {
+test('every time of day and weather draws (all 8 tracks) without errors', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(180000);
   const watch = await prepare(page, {store: store({gfx: 'full'})});
   await openSpeedway(page);

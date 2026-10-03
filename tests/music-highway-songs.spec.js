@@ -43,7 +43,7 @@ test.describe('music highway songs', () => {
     watch.check();
   });
 
-  test('the seven new songs: at the END, parse, pass the check, trumpet exactly as the book, ranges and lanes fit', async ({page}) => {
+  test('the seven new songs: at the END, parse, pass the check, trumpet exactly as the book, ranges and lanes fit', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {store: device('trumpet')});
     await board(page);
     const r = await page.evaluate(ids => {

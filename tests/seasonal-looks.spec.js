@@ -248,11 +248,11 @@ test('spooky: the jack-o\'-lanterns stand in the FRONT layer, over the floor\'s 
   watch.check();
 });
 
-test('spooky: in a zone and the FULL ARCADE (3D and 2D) the jack-o\'-lanterns stay in front, in free spots: never under or over a cabinet or control', async ({page}) => {
-  test.setTimeout(400000);                                         // every size × every view
-  const watch = await prepare(page, {store: device('trumpet')});
-  const seen = new Set();
-  for (const [name, w, h] of SIZES) {
+// one test per size (they run side by side; each checks both views at its size)
+for (const [name, w, h] of SIZES) {
+  test(`spooky: in a zone and the FULL ARCADE (3D and 2D) the jack-o'-lanterns stay in front, in free spots: never under or over a cabinet or control (${name})`, async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
+    const seen = new Set();
     await page.setViewportSize({width: w, height: h});
     for (const hash of ['#zone=note-reading', '#full-arcade']) {
       for (const flat of [false, true]) {
@@ -287,24 +287,28 @@ test('spooky: in a zone and the FULL ARCADE (3D and 2D) the jack-o\'-lanterns st
         for (const p of vis) expect([at, p.onTop, p.overlaps]).toEqual([at, true, []]);
       }
     }
-  }
-  expect([...seen].sort()).toEqual(['2d', '3d']);                   // both views were checked
-  // the lobby is unchanged: the pumpkins at home
-  await page.goto(floor(SPOOKY));
-  await settle(page);
-  expect(await page.evaluate(() => [...document.querySelectorAll('body > .slook-front .sl-pk')].map(e => e.style.transform + (e.classList.contains('sl-hide') ? 'hidden' : '')))).toEqual(['', '', '']);
-  watch.check();
-});
+    expect([...seen].sort()).toEqual(['2d', '3d']);                 // both views were checked
+    // the lobby is unchanged: the pumpkins at home
+    await page.goto(floor(SPOOKY));
+    await settle(page);
+    expect(await page.evaluate(() => [...document.querySelectorAll('body > .slook-front .sl-pk')].map(e => e.style.transform + (e.classList.contains('sl-hide') ? 'hidden' : '')))).toEqual(['', '', '']);
+    watch.check();
+  });
+}
 
-test('spooky: the moon is twice its old size, its top under the top bar; no bare text on it; the band hall stays at the edge', async ({page}) => {
-  test.setTimeout(300000);                                         // every size × every view
-  const watch = await prepare(page, {store: device('trumpet')});
-  for (const [name, w, h] of SIZES.concat([['big', 1920, 1300], ['phone-landscape', 844, 390]])) {
+// one test per size (they run side by side)
+for (const [name, w, h] of SIZES.concat([['big', 1920, 1300], ['phone-landscape', 844, 390]])) {
+  test(`spooky: the moon is twice its old size, its top under the top bar; no bare text on it; the band hall stays at the edge (${name})`, async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
     await page.setViewportSize({width: w, height: h});
     for (const hash of ['', '#all-games', '#zone=note-reading']) {
       await page.goto(floor(SPOOKY + hash));
       if (hash.includes('zone')) await page.waitForFunction(() => Arcade.Arcade.state().kind, null, {timeout: 15000});
       await settle(page);
+      // the zone's top bar can still grow after the first placement (WebKit: its last font or row lands later) and the
+      // look places the moon again: wait for that state (up to 5 s); if it never comes, the checks below fail
+      await page.waitForFunction(() => document.querySelector('body > .slook .sl-moon').getBoundingClientRect().top >= document.querySelector('#fbar').getBoundingClientRect().bottom,
+        null, {timeout: 5000, polling: 100}).catch(() => {});
       const r = await page.evaluate(() => {
         const q = s => document.querySelector(s).getBoundingClientRect();
         const vmin = Math.min(innerWidth, innerHeight) / 100, old = Math.min(140, Math.max(64, 11 * vmin));
@@ -323,14 +327,14 @@ test('spooky: the moon is twice its old size, its top under the top bar; no bare
       const onMoon = await bareOnMoon(page, 'body');
       expect(onMoon, `${at}: bare text on the moon`).toEqual([]);
     }
-  }
-  watch.check();
-});
+    watch.check();
+  });
+}
 
-test('spooky: the top bar\'s text and the zone signs keep ≥ 4.5:1 over the new scene', async ({page}) => {
-  test.setTimeout(300000);                                         // every size × every view
-  const watch = await prepare(page, {store: device('trumpet')});
-  for (const [name, w, h] of SIZES) {
+// one test per size (they run side by side)
+for (const [name, w, h] of SIZES) {
+  test(`spooky: the top bar's text and the zone signs keep ≥ 4.5:1 over the new scene (${name})`, async ({page}) => {
+    const watch = await prepare(page, {store: device('trumpet')});
     await page.setViewportSize({width: w, height: h});
     for (const hash of ['', '#zone=note-reading']) {
       await page.goto(floor(SPOOKY + hash));
@@ -340,9 +344,9 @@ test('spooky: the top bar\'s text and the zone signs keep ≥ 4.5:1 over the new
       expect(got.length).toBeGreaterThan(3);
       for (const t of got) expect(`${name} ${hash || 'lobby'} "${t.text}" ${t.ratio}`).toMatch(t.ratio >= 4.5 ? /./ : /^$/);
     }
-  }
-  watch.check();
-});
+    watch.check();
+  });
+}
 
 test('spooky: now and then a bat crosses the moon; never with reduced motion, where nothing in the look moves', async ({page}) => {
   const watch = await prepare(page, {store: device('trumpet')});

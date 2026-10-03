@@ -36,7 +36,7 @@ async function openBoard(page) {
 test.describe('leaderboard on a slow scoreboard', () => {
   test.skip(!LB_URL, 'the leaderboard is switched off (no address in shared/leaderboard-config.js)');
 
-  test('warm-up: one quiet status request as the arcade opens (not again within 10 minutes); no preflights', async ({page, browserName}) => {
+  test('warm-up: one quiet status request as the arcade opens (not again within 10 minutes); no preflights', {tag: '@quick'}, async ({page, browserName}) => {
     const watch = await prepare(page, {store: withGrade()});
     const log = await scoreboard(page, 'ok');
     await page.goto('index.html');

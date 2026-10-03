@@ -42,7 +42,7 @@ async function booth(page) {
 }
 const freshAtBooth = page => page.evaluate(() => Arcade.Quest.talk.starSources().reduce((n, s) => n + s.fresh, 0));
 
-test('one wallet: stars turned in at the Prize Counter are gone at the Token Booth, with the same balance', async ({page}) => {
+test('one wallet: stars turned in at the Prize Counter are gone at the Token Booth, with the same balance', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: store()});
   await floor(page); await earn(page); await floor(page);
   expect(await page.evaluate(() => Arcade.Tokens.freshStars())).toBe(6);
@@ -287,7 +287,7 @@ test('QUEST CODE v5: tokens and stars turned in above 2047 survive a round trip;
   watch.check();
 });
 
-test('the Arcade Backup Code carries the wallet (and a balance over 2047)', async ({page}) => {
+test('the Arcade Backup Code carries the wallet (and a balance over 2047)', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: store()});
   await floor(page); await earn(page); await floor(page);
   await page.evaluate(() => { Arcade.Tokens.turnIn(); Arcade.Tokens.add(5000 - Arcade.Tokens.balance()); Arcade.Tokens.setWish('back:jetpack'); });

@@ -5,7 +5,8 @@
    docs/gallery/ (docs/gallery.html shows them): `GALLERY=1 npx playwright test game-runs --project=chromium`. */
 const path = require('path');
 const {test, expect} = require('@playwright/test');
-const {prepare, device, saved, starsIn, ROOT} = require('./helpers');
+const {prepare, device, saved, starsIn, ROOT, CPU_DRAWING} = require('./helpers');
+test.use(CPU_DRAWING);                       // WebKit draws on the CPU here: every game is a canvas game (helpers.js CPU_DRAWING: fewer page crashes on CI)
 const {RUNS, click} = require('./games');
 const GALLERY = !!process.env.GALLERY;
 const shot = (page, id, kind) => GALLERY ? page.screenshot({path: path.join(ROOT, 'docs/gallery', `${id}-${kind}.jpg`), type: 'jpeg', quality: 72}) : null;
@@ -86,8 +87,31 @@ async function step(page, R, how) {
   await page.waitForTimeout(R.every);
 }
 
+/* GAME STARTS (@quick: QUICK CHECK's "every game opens and a level starts"): open the game, Level 1, START, past its
+   intro and "Turn on the microphone" overlays (and a game's own first step, e.g. Ancient Ninja Scrolls' TRAIN) until the level is playing (its pause button shows; Arcade Quest: the
+   battle), with no JavaScript error. The full level is the game run below. */
 for (const R of RUNS) {
-  test(`game run: ${R.name}`, async ({page, browserName}) => {
+  test(`game starts: ${R.name}`, {tag: '@quick'}, async ({page, browserName}) => {
+    test.skip(R.skip === browserName, `not in ${browserName}`);
+    const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
+    await page.goto(R.url || `${R.id}/index.html?demo&nostart`);
+    if (R.setup) await R.setup(page);
+    if (R.start) await R.start(page);
+    else {
+      await page.locator('.ls-card:not(.ls-endless)').first().click();
+      await page.locator('.ls-start').click();
+    }
+    const playing = R.pause === false
+      ? () => page.evaluate(() => { const Q = Arcade.Quest, b = Q && Q.battleState && Q.battleState(); return !!b; })
+      : () => page.locator('#uiPauseBtn').isVisible().catch(() => false);
+    await expect.poll(async () => { if (await playing()) return true; await dismiss(page); if (typeof R.play === 'function') await step(page, R, R.play); return playing(); },
+      {message: `${R.name}: the level never started`, timeout: 30_000, intervals: [100, 250, 500]}).toBe(true);
+    watch.check();
+  });
+}
+
+for (const R of RUNS) {
+  test(`game run: ${R.name}`, R.slow ? {tag: '@slow'} : {}, async ({page, browserName}) => {
     test.skip(R.skip === browserName, `not in ${browserName}`);
     test.setTimeout(R.limit + 60_000);
     const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
@@ -124,7 +148,7 @@ for (const R of RUNS) {
 
 /* ENDLESS: every game with an Endless card, from its card to GAME OVER (wrong notes / missed notes cost the hearts) */
 for (const R of RUNS.filter(r => r.endless)) {
-  test(`endless: ${R.name}`, async ({page, browserName}) => {
+  test(`endless: ${R.name}`, R.endlessSlow ? {tag: '@slow'} : {}, async ({page, browserName}) => {
     test.setTimeout(150_000);
     const watch = await prepare(page, {store: device(R.member, typeof R.store === 'function' ? R.store(browserName) : R.store)});
     await page.goto(R.url || `${R.id}/index.html?demo&nostart`);

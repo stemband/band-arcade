@@ -342,6 +342,8 @@ window.Arcade = window.Arcade || {};
     mo.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden']});
     addEventListener('resize', placeSoon);
     addEventListener('scroll', placeSoon, {passive: true});
+    // the top bar can change height on its own (a font or a line arriving late, WebKit): the moon follows it
+    if (typeof ResizeObserver !== 'undefined') { const bar = document.getElementById('fbar'); if (bar) new ResizeObserver(placeSoon).observe(bar); }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeSoon);
   }
 

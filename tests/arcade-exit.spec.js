@@ -20,7 +20,7 @@ async function startLevel(page) {
 
 test.describe('BACK TO ARCADE GAMES', () => {
   for (const id of ['ghost-notes', 'rhythm-dojo']) {
-    test(`${id}: asks before leaving mid-level, then opens ALL GAMES with the game in front`, async ({page}) => {
+    test(`${id}: asks before leaving mid-level, then opens ALL GAMES with the game in front`, {tag: '@quick'}, async ({page}) => {
       const watch = await prepare(page, {store: device('trumpet', id === 'rhythm-dojo' ? {gameData: {'rhythm-dojo': {mode: 'tap', calib: {clap: {ms: 0}, tap: {ms: 0}}}}} : {})});
       await page.goto(`${id}/index.html?demo&nostart`);
       await startLevel(page);
@@ -45,7 +45,7 @@ test.describe('BACK TO ARCADE GAMES', () => {
     });
   }
 
-  test('the microphone is stopped before the page changes', async ({page}) => {
+  test('the microphone is stopped before the page changes', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await page.goto('ghost-notes/index.html?demo&nostart');
     await startLevel(page);

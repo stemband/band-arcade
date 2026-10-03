@@ -10,7 +10,7 @@ const CALIB = {gameData: {'rhythm-dojo': {calib: {clap: {ms: 0}, tap: {ms: 0}}}}
 const store = browser => device('trumpet', Object.assign({}, CALIB, browser === 'webkit' ? {sfx: false} : {}));
 
 test.describe('rhythm dojo', () => {
-  test('a fresh device opens in TAP mode (first and pressed in the markup) and never asks for the microphone', async ({page, browserName}) => {
+  test('a fresh device opens in TAP mode (first and pressed in the markup) and never asks for the microphone', {tag: '@quick'}, async ({page, browserName}) => {
     // no Rhythm Dojo choices saved yet (and no timing check): count every microphone request
     const watch = await prepare(page, {store: device('trumpet', browserName === 'webkit' ? {sfx: false} : {})});
     await page.addInitScript(() => {
@@ -332,8 +332,9 @@ test('the bamboo dojo: jade + gold cabinet, marquee and screen, flash-safe', asy
         if (h >= 185 && h <= 345) n++;        // cyan-blue (185+), purple, magenta, pink (≤ 345)
       }
       return n / (d.length / 4); };
+    const LIN = Float32Array.from({length: 256}, (_, v) => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });   // (a table: the same values, ~100× fewer powers)
     const lum = img => { const d = img.data, o = new Float32Array(d.length / 4);
-      for (let i = 0; i < o.length; i++) { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; o[i] = .2126 * f(d[i * 4]) + .7152 * f(d[i * 4 + 1]) + .0722 * f(d[i * 4 + 2]); }
+      for (let i = 0; i < o.length; i++) o[i] = .2126 * LIN[d[i * 4]] + .7152 * LIN[d[i * 4 + 1]] + .0722 * LIN[d[i * 4 + 2]];
       return o; };
     let worstBad = 0, flashes = 0, prev = null, frames = [];
     for (let t = 0; t <= 4; t += 1 / 30) {                 // 4 s at 30 fps, the whole sign (scene + title)

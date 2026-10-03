@@ -7,7 +7,7 @@ const {prepare, device} = require('./helpers');
 const ZONE = 'no-instrument';
 const state = page => page.evaluate(() => Arcade.Arcade.state());
 
-test('the zone holds exactly the noInstrument games, in games.js order, and a newly flagged game joins by itself', async ({page}) => {
+test('the zone holds exactly the noInstrument games, in games.js order, and a newly flagged game joins by itself', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: device()});
   await page.goto('index.html?demo&nostart');
   const r = await page.evaluate(z => {

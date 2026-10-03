@@ -14,7 +14,7 @@ async function startLevel(page) {
 const focusedText = page => page.evaluate(() => (document.activeElement && document.activeElement.textContent || '').trim());
 
 test.describe('ui kit', () => {
-  test('pause: the button, Esc and P; the menu takes the focus, arrows move, Tab stays inside, the clock stops', async ({page}) => {
+  test('pause: the button, Esc and P; the menu takes the focus, arrows move, Tab stays inside, the clock stops', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await page.goto('ghost-notes/index.html?demo&nostart');
     await expect(page.locator('#topbar .brand')).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('ui kit', () => {
     watch.check();
   });
 
-  test('results: stars, tiles, new best, button order, the yellow button has the focus, arrows move', async ({page}) => {
+  test('results: stars, tiles, new best, button order, the yellow button has the focus, arrows move', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await page.goto('ghost-notes/index.html?demo&nostart');
     const clicks = [];
@@ -102,7 +102,7 @@ test.describe('ui kit', () => {
     watch.check();
   });
 
-  test('settings: opens from the top bar, Esc closes (focus back), every setting is remembered and shared', async ({page}) => {
+  test('settings: opens from the top bar, Esc closes (focus back), every setting is remembered and shared', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await page.goto('ghost-notes/index.html?demo&nostart');
     const btn = page.locator('#topbar .snd-open');
@@ -154,7 +154,7 @@ test.describe('ui kit', () => {
     watch.check();
   });
 
-  test('confirm and toast', async ({page}) => {
+  test('confirm and toast', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page);
     await page.goto('ghost-notes/index.html?demo&nostart');
     const p = page.evaluate(() => Arcade.UI.confirm({title: 'Start over?', text: 'Sure?', yes: 'Yes', no: 'No', danger: true}));

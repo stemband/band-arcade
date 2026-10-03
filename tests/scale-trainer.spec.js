@@ -38,7 +38,7 @@ async function playAll(page, n = 1e9) {
   await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
 }
 
-test('the AUDITION table, every section: every member, every scale: 21 / 41 / 61 notes, the right written key, start and end on the given written note, inside the section\'s range (bells exempt), in the order printed, sameAs = its source', async ({page}) => {
+test('the AUDITION table, every section: every member, every scale: 21 / 41 / 61 notes, the right written key, start and end on the given written note, inside the section\'s range (bells exempt), in the order printed, sameAs = its source', {tag: '@quick'}, async ({page}) => {
   const watch = await open(page);
   const out = await page.evaluate(members => {
     const S = Arcade.Scales, errs = [], P = Arcade.music.parseNote, W = Arcade.music.writtenMidi;
@@ -448,8 +448,9 @@ test('levels 3–4: from memory ("…, from memory."), timed, the staff hidden f
   watch.check();
 });
 
-test('articulation: shown on the score sheet (✓, or what to check) but never changes the stars while ARTICULATION_COUNTS is false', async ({page}) => {
-  test.setTimeout(120000);
+// three tests side by side (each its own audition run): no attacks, tongued as written, every note tongued
+const ARTS_HEAD = 'articulation: shown on the score sheet (✓, or what to check) but never changes the stars while ARTICULATION_COUNTS is false';
+test(`${ARTS_HEAD}: no attacks at all`, async ({page}) => {
   const watch = await open(page);
   expect(await page.evaluate(() => Arcade.ScaleTrainer.ARTICULATION_COUNTS)).toBe(false);
   // no attacks at all: every note slurred → "check tonguing going up", still 3 stars
@@ -459,9 +460,13 @@ test('articulation: shown on the score sheet (✓, or what to check) but never c
   await expect(page.locator('#scoreSheet .sa-art')).toHaveCount(4);
   await expect(page.locator('#scoreSheet .sa-art').first()).toHaveText('Articulation: check tonguing going up');
   await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
-  await page.locator('#resRetry').click();
+  watch.check();
+});
+test(`${ARTS_HEAD}: tongued where the music says = ✓`, async ({page}) => {
+  test.setTimeout(120000);
+  const watch = await open(page);
   // the demo's Space tongues where the music says (attacks going up, none under a slur): ✓
-  await page.waitForFunction(() => { const s = Arcade.ScaleTrainer.state(); return s && s.listening; }, null, {timeout: 20000});
+  await start(page, 'audition', 0);
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
   await page.keyboard.down('Space');
   await expect(page.locator('#results')).toBeVisible({timeout: 60000});
@@ -469,9 +474,12 @@ test('articulation: shown on the score sheet (✓, or what to check) but never c
   const arts = await page.locator('#scoreSheet .sa-art').allTextContents();
   expect(arts).toEqual(['Articulation: ✓', 'Articulation: ✓', 'Articulation: ✓', 'Articulation: ✓']);
   await expect(page.locator('#results .ui-stars span.on')).toHaveCount(3);
+  watch.check();
+});
+test(`${ARTS_HEAD}: every note tongued`, async ({page}) => {
+  const watch = await open(page);
   // every note tongued (an attack on the slurred ones too) = "check slurring coming down"
-  await page.locator('#resRetry').click();
-  await page.waitForFunction(() => { const s = Arcade.ScaleTrainer.state(); return s && s.listening; }, null, {timeout: 20000});
+  await start(page, 'audition', 0);
   await page.evaluate(async () => {
     const SA = Arcade.ScaleTrainer;
     for (let k = 0; k < 400; k++) { const w = SA.want(); if (!w) break; SA.attack(performance.now() - 120); SA.heard(w.pc); await new Promise(r => setTimeout(r, 5)); }
@@ -580,6 +588,8 @@ test('no file mentions the old name, except the migration, the redirect, the old
     'shared/sounds.js': l => l.includes(OLD + '-menu') || /old name/.test(l),
     'shared/sounds/README.md': l => l.includes(OLD + '-menu'),
     'tests/scale-trainer.spec.js': null,                     // these tests
+    'tests/test-times.json': null,                           // their titles (shard-by-time.js's measured times)
+    'tests/test-times.new.json': null,
   };
   const bad = [];
   (function walk(dir) {

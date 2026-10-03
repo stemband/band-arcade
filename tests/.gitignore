@@ -1,3 +1,9 @@
 node_modules/
 test-results/
 playwright-report/
+blob-report/
+all-blob-reports/
+shard.txt
+test-times.new.json
+*-results.json
+results.json

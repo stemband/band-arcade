@@ -127,7 +127,7 @@ function allReached(r) {
   expect(r.msg).toContain(WHISPERER);
 }
 
-test('BEFRIEND-ALL: the attic door, the full ending, Episode 1 finished', async ({page}) => {
+test('BEFRIEND-ALL: the attic door, the full ending, Episode 1 finished', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(300_000);
   const watch = await boot(page);
   const r = await run(page, {ghost: () => 'befriend', fermata: 'befriend', conductor: 'befriend'});
@@ -144,7 +144,7 @@ test('BEFRIEND-ALL: the attic door, the full ending, Episode 1 finished', async 
   watch.check();
 });
 
-test('DEFEAT-ALL: the Hidden Passage, its treasure, the defeat ending, Episode 1 finished', async ({page}) => {
+test('DEFEAT-ALL: the Hidden Passage, its treasure, the defeat ending, Episode 1 finished', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(300_000);
   const watch = await boot(page);
   const r = await run(page, {ghost: () => 'fade', fermata: 'fade', conductor: 'fade'});
@@ -162,7 +162,7 @@ test('DEFEAT-ALL: the Hidden Passage, its treasure, the defeat ending, Episode 1
   watch.check();
 });
 
-test('MIXED: some friends, the Fermata defeated (the passage), the Conductor befriended (the best ending)', async ({page}) => {
+test('MIXED: some friends, the Fermata defeated (the passage), the Conductor befriended (the best ending)', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(300_000);
   const watch = await boot(page);
   const r = await run(page, {ghost: i => (i % 2 ? 'fade' : 'befriend'), fermata: 'fade', conductor: 'befriend'});

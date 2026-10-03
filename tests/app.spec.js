@@ -12,7 +12,7 @@ const {ROOT, prepare, device, LB_URL} = require('./helpers');
 
 /* ---------- the app's parts in the repository's own ('dev') copy ---------- */
 test.describe('app (dev copy)', () => {
-  test('every page gets the manifest, the Home Screen icon and the iPad app tags; the icons exist', async ({page, request}) => {
+  test('every page gets the manifest, the Home Screen icon and the iPad app tags; the icons exist', {tag: '@quick'}, async ({page, request}) => {
     const watch = await prepare(page);
     for (const p of ['index.html', 'ghost-notes/index.html', 'arcade-quest/index.html?nostart', 'note-checker/index.html']) {
       await page.goto(p);

@@ -2501,6 +2501,7 @@
     begin, showHub, fps, key: WORLD_KEY,
   };
   if (A.DEMO) {
+    let stepNow = 0;                                    // demo.step()'s clock
     A.Blocktave.demo = {
       give: (id, n = 1) => { gain(id, n); return G.p.inv[id]; },
       drop: (id, n, x, y) => dropItem(id, n, x, y),
@@ -2540,6 +2541,20 @@
       spawnCheck: () => trySpawn(),
       award, stats: () => Object.assign({}, stats()), mode: m => switchMode(m),
       hold: on => { G.held = Math.max(0, G.held + (on ? 1 : -1)); },
+      /** THE TEST CLOCK: run the world `s` seconds right now in fixed steps of `dt` (no waiting for frames, so a busy test
+          machine's frame rate never changes the result), the same update() a frame runs; `each(t)` after every step
+          (t = seconds run so far). Its clock carries on from the last step() (never behind the real one), so a mute or
+          a timer set before the steps ends at the same game time however long the test machine takes between calls. The
+          page's own frames carry on afterwards. */
+      step: (s, each, dt = 1 / 60) => {
+        let now = Math.max(performance.now(), stepNow);
+        for (let k = 1, n = Math.round(s / dt); k <= n && G; k++) {
+          now += dt * 1000;
+          if (!G.held && !pause.paused) update(dt * (Card.current || panelOpen() ? R.challengeSlow : 1), dt, now);
+          if (each) each(k * dt);
+        }
+        stepNow = now;
+      },
       /** Chapter 6's helpers: press / release a key, the jump speed now, the organ, the sonar's pick */
       key: (k, on) => { G.keys[k] = !!on; },
       organ: () => playOrgan(),

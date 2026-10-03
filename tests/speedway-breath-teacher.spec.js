@@ -12,7 +12,7 @@ const {openSpeedway, startTrack, shortRace} = require('./speedway-helpers');
 const store = (gd = {}) => device('trumpet', {gameData: {'sustain-speedway': Object.assign({steerHint: true, gfx: 'lite'}, gd)}});
 async function raceToResults(page, lv = 1, sec = 3) {
   await startTrack(page, lv);
-  await shortRace(page, sec);
+  await shortRace(page, sec, {pitSec: .5});                                 // short pit stops (the same for a ghost's race and its replay)
   await page.keyboard.down('Space');
   await page.waitForFunction(() => Arcade.Speedway.podium() || document.querySelector('#resTuning'), null, {timeout: 90000});
   await page.keyboard.press('Enter');
@@ -40,7 +40,7 @@ test('breath records: saved, shown on the results and the track select, a new re
   watch.check();
 });
 
-test('the teacher ghost: ?teacher saves a code; pasted into teacher-ghosts.js it races, with the badge and the results line', async ({page}) => {
+test('the teacher ghost: ?teacher saves a code; pasted into teacher-ghosts.js it races, with the badge and the results line', {tag: '@slow'}, async ({page}) => {
   test.setTimeout(200000);
   const watch = await prepare(page, {store: store()});
   await openSpeedway(page, '&teacher');

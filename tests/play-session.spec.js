@@ -47,7 +47,7 @@ async function startLevel(page) {
 }
 
 test.describe('play session', () => {
-  test('the microphone reminder shows once per play session; permission and errors still happen; a reload shows it again', async ({page}) => {
+  test('the microphone reminder shows once per play session; permission and errors still happen; a reload shows it again', {tag: '@quick'}, async ({page}) => {
     const watch = await prepare(page, {mic: true});
     await fakeMic(page);
     // the first listening game: the reminder, then the microphone

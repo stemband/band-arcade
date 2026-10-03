@@ -118,7 +118,7 @@ test.describe('music highway slurs', () => {
     watch.check();
   });
 
-  test('the pops during the song, the ribbon, the trombone wording and Slur tips: Off', async ({page, browserName}) => {
+  test('the pops during the song, the ribbon, the trombone wording and Slur tips: Off', {tag: '@slow'}, async ({page, browserName}) => {
     const watch = await game(page, browserName, 'trombone');
     const pops = await page.evaluate(i => new Promise(res => {
       const seen = new Set(), H = Arcade.Highway;

@@ -24,7 +24,7 @@ test.describe('pitch engine', () => {
   test.skip(({browserName}) => browserName !== 'chromium', 'the pitch tests run in Chromium only');
 
   for (const [member, name, harmonics] of TIMBRES) {
-    test(`${name}-like tones read as the right note, octave-exact`, async ({page}) => {
+    test(`${name}-like tones read as the right note, octave-exact`, {tag: '@quick'}, async ({page}) => {
       const watch = await prepare(page, {store: {player: member, members: {}, games: {}, modes: {}}});
       await page.goto('note-checker/index.html?demo&nostart');
       const res = await page.evaluate(([id, harmonics]) => {

@@ -153,12 +153,13 @@ test.describe('Neon Face-Off: SMASH and POWER are faster', () => {
       test.setTimeout(90_000);
       const watch = await open(page, {diff: 'rookie', reduce});
       const looks = async (n) => page.evaluate(n => new Promise(done => {
-        const seen = {trail: 0, lines: 0, colors: new Set(), incoming: false};
+        const seen = {trail: 0, trailMax: 0, lines: 0, colors: new Set(), incoming: false};
         const F = Arcade.FaceOff, rx = F.M.shots[n].from === 0 ? 2 : 1;
         const tick = () => {
           const s = F.state(), sh = F.M.shots[n];
           if (s.state === 'travel' && F.M.shots.length === n + 1) {
             seen.trail = Math.max(seen.trail, s.look.trail || 0); seen.lines = Math.max(seen.lines, s.look.lines || 0);
+            seen.trailMax = Math.max(seen.trailMax, s.look.trailMax || 0);
             if (s.look.color) seen.colors.add(s.look.color);
             if (!document.querySelector(`#side${rx} .s-incoming`).hidden) seen.incoming = true;
           }
@@ -172,8 +173,11 @@ test.describe('Neon Face-Off: SMASH and POWER are faster', () => {
       let L = await looks(n);
       expect(L.colors).toEqual([L.hitter]);                        // the glow in the hitter's color
       expect(L.incoming, 'INCOMING! on the receiver').toBe(true);
-      if (reduce) { expect(L.trail).toBe(0); expect(L.lines).toBe(0); }
-      else { expect(L.trail).toBeGreaterThan(18); expect(L.lines).toBeGreaterThan(0); }
+      // the trail grows one point a frame up to its power's length (trailMax: SMASH 30, POWER 18, else 10). How long it
+      // gets on screen depends on the frame rate (a busy WebKit test machine draws ~6 frames a second), so the test
+      // checks each power's length and that the trail is drawn and stays within it, not a frame count
+      if (reduce) { expect(L.trail).toBe(0); expect(L.trailMax).toBe(0); expect(L.lines).toBe(0); }
+      else { expect(L.trailMax).toBe(30); expect(L.trail).toBeGreaterThan(1); expect(L.trail).toBeLessThanOrEqual(30); expect(L.lines).toBeGreaterThan(0); }
       // POWER
       ({n} = await shoot(page, {base: BASE * SPEEDUP ** 5, reaction: REACT.POWER}));
       L = await looks(n);
@@ -181,13 +185,14 @@ test.describe('Neon Face-Off: SMASH and POWER are faster', () => {
       expect(L.incoming, 'no INCOMING! for a POWER shot').toBe(false);
       expect(L.lines).toBe(0);
       if (reduce) expect(L.trail).toBe(0);
-      else { expect(L.trail).toBeGreaterThan(10); expect(L.trail).toBeLessThanOrEqual(18); }
+      else { expect(L.trailMax).toBe(18); expect(L.trail).toBeGreaterThan(1); expect(L.trail).toBeLessThanOrEqual(18); }
       // GOOD: the plain yellow puck
       ({n} = await shoot(page, {base: BASE * SPEEDUP ** 5, reaction: REACT.GOOD}));
       L = await looks(n);
       expect(L.colors).toEqual([]);
       expect(L.lines).toBe(0);
       expect(L.trail).toBeLessThanOrEqual(reduce ? 0 : 10);
+      expect(L.trailMax).toBe(reduce ? 0 : 10);
       watch.check();
     });
   }

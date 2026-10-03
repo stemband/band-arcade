@@ -151,7 +151,7 @@ for (const [name, size, touch] of [['phone', {width: 390, height: 844}, true], [
   });
 }
 
-for (const gfx of ['full', 'lite']) test(`a race carries the parts: the trail in ${gfx === 'full' ? 'Full' : 'Lite (none)'}; clean laps count`, async ({page}) => {
+for (const gfx of ['full', 'lite']) test(`a race carries the parts: the trail in ${gfx === 'full' ? 'Full' : 'Lite (none)'}; clean laps count`, {tag: '@slow'}, async ({page}) => {
   test.setTimeout(120000);
   const watch = await prepare(page, {store: device('trumpet', {gameData: {'sustain-speedway': {steerHint: true, gfx, garage: {body: 'coupe', trail: 'sparkles', glow: 'cyan'}}}})});
   await page.goto(URL + '&unlockall'); await ready(page);
