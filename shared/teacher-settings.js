@@ -23,7 +23,13 @@
    BUG_REPORTS          true (the default): when something breaks on a student's device, a small ANONYMOUS note (the
                         game, the error's message, the file name + line, the browser, the version, how many times)
                         goes to your scoreboard's "Errors" tab (shared/bug-report.js; nothing about the student).
-                        false: nothing is ever sent. (This file is loaded on every page, so it counts everywhere.) */
+                        false: nothing is ever sent. (This file is loaded on every page, so it counts everywhere.)
+
+   CLASSROOM_MODE       the microphone in a loud band room (shared/pitch.js ROOM; docs/engine/pitch.md): Classroom mode
+                        listens only for the instrument CLOSEST to the device, so other students' notes don't count.
+                        'auto' (the default): each device turns it on by itself in a loud room (and off again in a
+                        quiet one), and a student can choose Auto / On / Off in Settings. 'on': always, on every device.
+                        'off': never, on every device (the students' own choice is ignored). */
 window.Arcade = window.Arcade || {};
 window.Arcade.TEACHER = Object.assign(window.Arcade.TEACHER || {}, {
   JUMP_SCARE_ALLOWED: true,
@@ -31,4 +37,5 @@ window.Arcade.TEACHER = Object.assign(window.Arcade.TEACHER || {}, {
   ASK_INSTRUMENT_EVERY_TIME: false,
   SPELL_ANSWER_BUTTONS: true,
   BUG_REPORTS: true,                 // false: no anonymous bug reports to the scoreboard's "Errors" tab
+  CLASSROOM_MODE: 'auto',            // 'auto' | 'on' | 'off': Classroom mode for the microphone (see above)
 });

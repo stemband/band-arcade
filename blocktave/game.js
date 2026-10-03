@@ -2402,7 +2402,7 @@
     if (m === mode) return;
     mode = m; saveGd({mode}); drawMode();
     if (G) { Card.close(); listenSync(); drawHud(); pause.set({extras: pauseExtras()}); }
-    if (m === 'inst' && G) A.requireMic(() => listenSync());
+    if (m === 'inst' && G) A.requireMic(() => listenSync(), {offer: false});   // (mid-game: never the room check's offer)
   }
   addEventListener('resize', () => { if (G) sizeCanvas(); });
 

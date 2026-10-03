@@ -245,6 +245,9 @@
     <span class="ui-label">Mic level</span>
     <div class="ui-meter" aria-hidden="true"><i id="lvlFill"></i><em id="lvlGate"></em></div>
     <p class="ui-howto">The bar shows how loud the mic hears you. The games only listen when the bar passes the red mark. Other people playing nearby? Slide toward Less. Game not hearing you? Slide toward More. This setting is shared by every game.</p>
+    <div class="tu-room"><span class="ui-room-chip" id="roomChip" hidden>Classroom mode</span><span class="muted" id="roomLast"></span>
+      <button type="button" class="btn btn-secondary btn-small" id="roomBtn">Room check</button></div>
+    <p class="ui-howto">Playing in a loud band room? A room check (about 8 seconds) helps the games hear YOUR instrument. Tip: keep the device close to your instrument.</p>
   </section>
 </div>
 
@@ -252,6 +255,7 @@
 <script src="../shared/storage.js"></script>
 <script src="../shared/pitch.js"></script>
 <script src="../shared/mic-gate.js"></script>
+<script src="../shared/room-check.js"></script>
 <script src="../shared/ui.js"></script>
 <script src="../shared/bandninja.js"></script>
 <script src="../shared/portraits.js"></script>

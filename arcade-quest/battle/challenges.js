@@ -33,7 +33,7 @@
   /** the microphone is on (or ?demo stands in): true, or false if the student tapped Cancel on the mic prompt */
   Q.micReady = () => new Promise(res => {
     if (A.Pitch.active || A.Pitch.demoReady) return res(true);
-    A.requireMic(() => res(true));
+    A.requireMic(() => res(true), {offer: false});      // (a battle: never the room check's offer)
     const iv = setInterval(() => {
       const gate = document.getElementById('micGateTitle'), box = gate && gate.closest('.overlay');
       if (A.Pitch.active || A.Pitch.demoReady) clearInterval(iv);

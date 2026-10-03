@@ -85,7 +85,8 @@ window.Arcade = window.Arcade || {};
   });
   $('startBtn').addEventListener('click', () => micFor(T.tab));
 
-  /* the mic sensitivity block (the Note Checker and the Tuner): the same setting as the shared Settings panel */
+  /* the mic sensitivity block (the Note Checker and the Tuner): the same setting as the shared Settings panel, + the
+     Classroom mode chip and the ROOM CHECK button */
   $('sens').value = A.store.sens;
   $('sens').addEventListener('input', e => { A.store.setSens(+e.target.value); A.Pitch.setSensitivity(+e.target.value); });
   A.Pitch.onFrame((r, level) => {
@@ -95,7 +96,12 @@ window.Arcade = window.Arcade || {};
     fill.style.width = A.Pitch.levelPct(level) + '%';
     fill.classList.toggle('over', level >= A.Pitch.gate);
     $('lvlGate').style.left = A.Pitch.levelPct(A.Pitch.gate) + '%';
+    $('roomChip').hidden = !A.Pitch.classroom();
   });
+  /* CLASSROOM MODE's chip (above) and THE ROOM CHECK (shared/room-check.js): the same as the Settings panel's */
+  const roomLast = () => { $('roomLast').textContent = A.RoomCheck.summary(); };
+  $('roomBtn').addEventListener('click', () => A.RoomCheck.open({onClose: roomLast}));
+  document.addEventListener('DOMContentLoaded', roomLast);
 
   /* the first tab: ?tool=, else the one used last, else the Note Checker */
   document.addEventListener('DOMContentLoaded', () => {

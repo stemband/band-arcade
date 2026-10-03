@@ -657,6 +657,23 @@ Names: every word in `shared/avatar-names.js` has a permanent number (its place 
 append-only now: add new words at the end, and retire a word with a `#` in front (`'#Word'`) instead of deleting it.
 A retired or unknown word shows as "Mystery" on the leaderboard.
 
+## Classroom mode and the room check (a loud band room)
+
+When the whole band plays at once, each device's microphone hears everybody. **Classroom mode** makes the games listen
+only for the instrument closest to the device, so other students' notes don't count for this one. It turns itself on
+in a loud room (Auto) and off again when it's quiet; a student can pick Auto / On / Off in Settings, and you can
+decide for every device in `shared/teacher-settings.js` (`CLASSROOM_MODE: 'auto' | 'on' | 'off'`).
+
+The **room check** (about 8 seconds: Settings → Room check, or Tune Up's mic box) measures how much louder this
+student's instrument is than the room at this device. The games offer it once a day in a loud room; it's never forced.
+Only two numbers are kept on the device, nothing is recorded, and it isn't in the Backup Code (it belongs to the room
+and the device).
+
+**First week:** have every student run the room check during a normal noisy rehearsal, on their own device in the spot
+where they practice. The pull request "Classroom mode + room check" has the crowd table that says what to expect.
+Add `?teacher` to a game's address to see this device's check and whether Classroom mode is on (Settings). The details:
+docs/engine/pitch.md (CLASSROOM MODE).
+
 ## PRESS START title screens
 
 Every game page opens on a title screen: the game's marquee, big and moving, over its menu background, with a
