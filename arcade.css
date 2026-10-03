@@ -76,6 +76,25 @@
 .fbar.fit-icons .snd-btn{padding:6px 9px}
 .fbar.fit-icons .fb-center{gap:12px}
 .fbar.fit-tight #tuneBtn,.fbar.fit-tight #lbBtn{display:none}
+/* the same steps by screen width too, so the bar fits even before (or without) fitBar(): ≤ 900 px short labels and
+   compact sides, ≤ 600 px icons. fitBar() can still go further (fit-tight), never wider than these. */
+@media (max-width:900px){
+  .fbar .fb-long,.fbar .avb-sub,.fbar .snd-lbl,.fbar .fb-back-l,.fbar .avb-txt,.fbar .avb-pen{display:none}
+  .fbar .fb-short{display:inline}
+  .fbar .fb-back{padding:6px 10px}
+  .fbar .avb-btn{padding:4px}
+  .fbar .fb-title{font-size:18px}
+}
+@media (max-width:600px){
+  .fbar .fb-l{display:none}
+  .fbar .fb-btn{padding:6px 10px}
+  .fbar{column-gap:8px}
+  .fbar .fb-right{gap:6px}
+  .fbar .avb-btn{padding:2px}
+  .fbar .snd-btn{padding:6px 9px}
+  .fbar .fb-center{gap:12px}
+  .fbar .fb-title{font-size:16px}
+}
 .fb-chip{border-color:var(--line);padding:4px 14px 4px 4px}
 .fb-chip .chip-pic{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--floor-3);display:grid;place-items:center}
 .fb-chip .chip-pic .pt-box{width:34px}

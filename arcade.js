@@ -655,13 +655,13 @@
 
   /* ---------- THE TOP BAR'S FIT: one row, never overlapping; the CENTER group in the middle of the screen. The widest
      step that fits (arcade.css): full labels → short labels (fit-short) → + compact sides (fit-compact: the back arrow,
-     the badge's picture) → icons only (fit-icons; phones ≤ 600 px start here) → TUNE UP and LEADERBOARD into the avatar
-     badge's menu (fit-tight). ---------- */
+     the badge's picture; ≤ 900 px start here) → icons only (fit-icons; phones ≤ 600 px start here) → TUNE UP and
+     LEADERBOARD into the avatar badge's menu (fit-tight). arcade.css also applies the width-based steps by itself, so a
+     resize the script hears late never leaves desktop labels on a phone. ---------- */
   const STEPS = ['', 'fit-short', 'fit-compact', 'fit-icons', 'fit-tight'];
   function fitBar() {
     const bar = $('fbar');
-    if (!bar.offsetWidth) return;
-    const cs = getComputedStyle(bar), inner = bar.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), gap = parseFloat(cs.columnGap) || 0;
+    const cs = getComputedStyle(bar), inner = (bar.clientWidth || innerWidth) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), gap = parseFloat(cs.columnGap) || 0;
     const kids = el => [...el.children].filter(c => c.offsetWidth);
     const row = el => { const k = kids(el), g = parseFloat(getComputedStyle(el).columnGap) || 0; return k.reduce((w, c) => w + c.offsetWidth, 0) + g * Math.max(0, k.length - 1); };
     const fits = () => {
@@ -671,7 +671,7 @@
       const side = Math.max(left, row(bar.querySelector('.fb-right')));
       return row($('fbCenter')) + 2 * side + 2 * gap <= inner + .5;
     };
-    let i = innerWidth <= 600 ? 3 : 0;
+    let i = innerWidth <= 600 ? 3 : innerWidth <= 900 ? 2 : 0;          // (arcade.css applies these by width too)
     for (;; i++) {
       STEPS.forEach((c, j) => { if (c) bar.classList.toggle(c, j <= i && j > 0); });
       if (i >= STEPS.length - 1 || fits()) break;
