@@ -231,15 +231,20 @@ test.describe('the lobby queue', () => {
   });
 
   test('the first-day tour (a `tour` panel) holds everything below it until it finishes; a toast waits for it', async ({page}) => {
-    const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true, items: {owned: {'plate:champion': true}}})});
-    // asked on the way in, with the lobby's own UNLOCKED! card (PRIORITY.tour is above it) and a toast
-    await page.addInitScript(fn => addEventListener('DOMContentLoaded', () => {
-      (0, eval)('(' + fn + ')')([['tour']]);
-      Arcade.Lobby.queue.request({id: 'test-toast', kind: 'toast', views: 'any', ms: 1500,
-        show: () => { const t = Arcade.UI.toast('Hello', {ms: 1500}); t.classList.add('lq-toast'); return t; }});
-    }), testPanels.toString());
+    const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true})});
     await page.goto('index.html?demo&nostart');
     await expect(page.locator('#lobby')).toBeVisible();
+    // asked together while the queue is held: an UNLOCKED! card (a given item), the tour (PRIORITY.tour is above it), a toast
+    await page.evaluate(() => {
+      Arcade.Lobby.queue.hold('test', true);
+      Arcade.store.ownItem('plate:champion');
+      Arcade.Lobby.unlocked();
+      Arcade.Lobby.queue.request({id: 'test-toast', kind: 'toast', views: 'any', ms: 1500,
+        show: () => { const t = Arcade.UI.toast('Hello', {ms: 1500}); t.classList.add('lq-toast'); return t; }});
+    });
+    await askPanels(page, [['tour']]);
+    expect((await state(page)).waiting).toEqual(['tour', 'unlocked', 'test-toast']);
+    await page.evaluate(() => Arcade.Lobby.queue.hold('test', false));
     await expect(page.locator('.lq-test[data-id="tour"]')).toBeVisible();
     await page.waitForTimeout(1200);
     await expect(page.locator('.sk-catchup')).toHaveCount(0);

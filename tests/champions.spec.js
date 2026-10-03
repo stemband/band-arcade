@@ -2,7 +2,7 @@
    card's trophy shelf). The scoreboard (helpers.js's mock) gets a route in front that answers ?action=champions with
    this test's champions and logs every request. This device's id on the boards = its pid's first 6 characters. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, boardFor, lastWeekKey, offscreen, LB_URL, LB_HOSTS, quickLeaderboard, settle} = require('./helpers');
+const {prepare, device, boardFor, lastWeekKey, offscreen, LB_URL, LB_HOSTS, quickLeaderboard, settle, closeUnlocked} = require('./helpers');
 
 const PID = 'abc123' + 'x'.repeat(18), ME = 'abc123';
 const WEEK = lastWeekKey();
@@ -36,8 +36,7 @@ const card = page => page.locator('.ch-ov');
 async function claim(page) {
   await page.locator('.ch-claim').click();
   await expect(card(page)).toHaveCount(0);
-  const ok = page.locator('.sk-catchup [data-close]');             // the UNLOCKED! card that may follow
-  if (await ok.isVisible({timeout: 1200}).catch(() => false)) await ok.click();
+  await closeUnlocked(page);                                       // the UNLOCKED! card that may follow (the lobby queue's next panel)
 }
 /** the lobby shows again (ALL GAMES and back) */
 async function lobbyAgain(page) {
@@ -284,8 +283,7 @@ test.describe('weekly champions', () => {
     await expect(page.locator('.ui-toast.playing-as')).toHaveCount(0);
     await claim(page);
     await expect(card(page)).toHaveCount(0);
-    const catchup = page.locator('.sk-catchup');                       // the plate's UNLOCKED! card, if any, comes first
-    if (await catchup.isVisible()) await catchup.locator('[data-close]').click();
+    await closeUnlocked(page);                                         // the plate's UNLOCKED! card comes first (the lobby queue's next panel)
     await expect(page.locator('.ui-toast.playing-as')).toBeVisible();
     watch.check();
   });
