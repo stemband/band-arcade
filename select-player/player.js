@@ -313,9 +313,20 @@
   highlight(cur, {focus: false, sound: false});
   (saved && canPlay(saved) ? $('continueBtn') : tiles[cur]).focus({preventScroll: true});
   /* skins already earned (old progress counts too) that this student hasn't seen yet: one UNLOCKED! card. On a
-     device's first visit, "Create your player?" comes first (once; skippable: the random avatar stays). */
-  const catchUp = () => { if (live === me && saved) A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved)}); };
-  if (!A.AvatarCreator.offer({onDone: still(() => { card(); catchUp(); })})) catchUp();
+     device's first visit, "Create your player?" comes first (once; skippable: the random avatar stays). Both are
+     panels of THE LOBBY QUEUE (shared/lobby-queue.js) for this screen (views 'select': never over PRESS START or
+     another panel, one at a time; the lobby's own panels wait until the student is back there). */
+  const Q = A.Lobby.queue;
+  const catchUp = () => {
+    if (live !== me || !saved) return;
+    Q.request({id: 'select-unlocked', kind: 'panel', views: 'select', priority: 'unlocked', when: () => live === me, show: done => {
+      if (!A.Skins.catchUp(saved, {onEquip: () => refreshPortraits(saved), onClose: done}).length) done();
+    }});
+  };
+  if (A.store.avatarOffered) catchUp();
+  else Q.request({id: 'create-player', kind: 'panel', views: 'select', when: () => live === me && !A.store.avatarOffered, show: done => {
+    if (!A.AvatarCreator.offer({onDone: () => { done(); still(() => { card(); catchUp(); })(); }})) { done(); catchUp(); }
+  }});
   }
 
   function close() {

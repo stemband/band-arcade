@@ -5,7 +5,7 @@
    layout and reduced motion. `?demo&nostart&today=YYYY-MM-DD` pretends a date (2026-10-05 is a Monday). */
 const fs = require('fs');
 const {test, expect} = require('@playwright/test');
-const {prepare, device, offscreen, saved, VIEWPORTS} = require('./helpers');
+const {prepare, device, offscreen, saved, VIEWPORTS, closeUnlocked} = require('./helpers');
 
 const THU = '2026-10-01', MON = '2026-10-05', TUE = '2026-10-06', NEXT_MON = '2026-10-12';
 const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
@@ -78,6 +78,7 @@ test.describe('Save your progress: when it nudges', () => {
   test('nudges at `days` days with progress since the last backup', async ({page}) => {
     const watch = await prepare(page, {store: player({total: 30, savedAt: '2026-09-01', atSave: 30, days: daysBefore(MON, 14)})});
     await lobby(page); await ready(page);
+    await closeUnlocked(page);              // 14 days in a row in Spooky Season earn its items: their UNLOCKED! card comes first
     await expect(banner(page)).toContainText("You've played on 14 days since your last backup.");
     expect(await status(page)).toMatchObject({kind: 'stars', days: 14, newStars: 0});
     watch.check();
@@ -247,8 +248,10 @@ test.describe('Save your progress: what counts as saved', () => {
       await p.evaluate(() => Arcade.Backup.open());
       if (how === 'file') await p.locator('.bk-pick').setInputFiles(file);
       else { await p.locator('.bk-in').fill(code); await p.locator('.bk-restore').click(); }
+      const reloaded = p.waitForEvent('load');                         // the restore reloads the page (700 ms later)
       await p.locator('#uiConfirm [data-act=yes]').click();
       await restoredInto(p, 'trumpet');
+      await reloaded;                                                   // (reading it mid-reload lost the page's context)
       const s = await saved(p);
       results.push({games: s.games, nudge: s.gameData['backup-nudge']});
       w.check(how);
