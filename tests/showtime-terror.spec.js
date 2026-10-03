@@ -17,12 +17,13 @@ const DAY = '2026-10-05', DAYKEY = '2026-10-5';          // ?demo&today= pretend
 const KINDS = ['lunge', 'eyes', 'popup', 'band', 'face', 'panel', 'maestro'];
 const SIZES = [['phone portrait', 390, 844], ['phone landscape', 844, 390], ['iPad', 1180, 820], ['Chromebook', 1366, 768]];
 
-/** the teacher setting on for this page (teacher-settings.js writes its defaults over window.Arcade.TEACHER: this keeps it) */
-const allowTerror = page => page.addInitScript(() => {
+/** the teacher setting on (or off) for this page, whatever teacher-settings.js says (it writes its values over
+    window.Arcade.TEACHER: this keeps the test's) */
+const allowTerror = (page, on = true) => page.addInitScript(on => {
   window.Arcade = window.Arcade || {};
   const T = window.Arcade.TEACHER = window.Arcade.TEACHER || {};
-  Object.defineProperty(T, 'TERROR_ALLOWED', {get: () => true, set() {}, enumerable: true});
-});
+  Object.defineProperty(T, 'TERROR_ALLOWED', {get: () => on, set() {}, enumerable: true});
+}, on);
 const gameData = (o = {}) => ({'showtime-malfunction': Object.assign({storySeen: true, spooky: 'terror', terrorDay: DAYKEY, jumpDay: DAYKEY}, o)});
 const G = page => page.evaluate(() => { const g = Arcade.Showtime.debug(); return g && {t: g.t, lights: g.lights, scare: g.scare && Object.assign({}, g.scare),
   z: g.bots.map(b => +b.z.toFixed(4)), scares: g.scares.slice(), dreads: g.dreads.slice(), fakeOuts: g.fakeOuts.slice(), sightings: g.sightings.slice(),
@@ -54,7 +55,8 @@ const scareOver = page => expect.poll(() => page.evaluate(() => { const g = Arca
 
 test.describe('Showtime Malfunction: TERROR, the gate', () => {
   test('hidden unless TERROR_ALLOWED; its own warning; Visual scares only is kept', async ({page}) => {
-    // not allowed (the default): no Terror button, and a device that had it plays Spooky
+    // not allowed (TERROR_ALLOWED: false): no Terror button, and a device that had it plays Spooky
+    await allowTerror(page, false);
     let watch = await prepare(page, {store: device('trumpet', {gameData: gameData()})});
     await page.goto(`showtime-malfunction/index.html?demo&nostart&today=${DAY}`);
     await expect(page.locator('#hub [data-spooky="terror"]')).toBeHidden();
@@ -190,8 +192,11 @@ test.describe('Showtime Malfunction: TERROR\'s build-up, fake-outs, LIGHTS OUT a
     }));
     const top = Math.max(...trace.map(([, o]) => o));
     expect(top).toBeGreaterThan(.6);
-    const reach = trace.find(([, o]) => o >= top * .98)[0], start = (trace.find(([, o]) => o > .01) || [0])[0];
-    expect(reach - start, 'one smooth fade of at least 1.5 s').toBeGreaterThanOrEqual(1400);
+    // timed from the moment the build-up starts (a busy WebKit draws only a few frames a second: the first frame it shows
+    // may come late into the fade, but the fade can't be seen complete before it is)
+    const reach = trace.find(([, o]) => o >= top * .98)[0];
+    expect(reach, 'one smooth fade of at least 1.5 s').toBeGreaterThanOrEqual(1400);
+    expect(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('stDread')).transitionDuration)), 'the fade itself: ≥ 1.5 s').toBeGreaterThanOrEqual(1.5);
     // never a fast step: over any 100 ms (or more, to the next sample) the dim changes by ≤ 0.15 (the whole fade is 0.72)
     for (let i = 0; i < trace.length; i++) {
       const j = trace.findIndex(([t]) => t >= trace[i][0] + 100); if (j < 0) break;
@@ -440,6 +445,24 @@ test.describe('Showtime Malfunction: reduced motion', () => {
    transition paused too and set to the clock's time), a small screenshot every 50 ms, the screen in a 16 × 10 grid of
    cells; a cell's luminance "swing" = a change of ≥ 0.1 (relative luminance) after turning the other way. The rule: no
    cell swings 3 times within one second (≤ 2 opposite changes a second, anywhere). */
+/** the screen now, as a 16 × 10 grid of each cell's average relative luminance */
+async function grid(page) {
+  const png = await page.screenshot();
+  return page.evaluate(async b64 => {
+    const img = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob()), c = document.createElement('canvas');
+    const CW = 16, CH = 10; c.width = CW * 8; c.height = CH * 8;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height).data, f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+    const cells = new Array(CW * CH).fill(0);
+    for (let py = 0; py < c.height; py++) for (let px = 0; px < c.width; px++) {
+      const i = (py * c.width + px) * 4;
+      cells[Math.floor(py / 8) * CW + Math.floor(px / 8)] += (.2126 * f(d[i]) + .7152 * f(d[i + 1]) + .0722 * f(d[i + 2])) / 64;
+    }
+    return cells;
+  }, png.toString('base64'));
+}
+/** the biggest change of any cell between two grids */
+const diff = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
 async function measure(page, start, totalMs, stepMs = 50) {
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
   await page.evaluate(() => {
@@ -454,19 +477,15 @@ async function measure(page, start, totalMs, stepMs = 50) {
   const frames = [];
   for (let t = 0; t <= totalMs; t += stepMs) {
     await page.evaluate(() => window.__syncAnims());
-    const png = await page.screenshot();
-    frames.push([t, await page.evaluate(async b64 => {
-      const img = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob()), c = document.createElement('canvas');
-      const CW = 16, CH = 10; c.width = CW * 8; c.height = CH * 8;
-      const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
-      const d = x.getImageData(0, 0, c.width, c.height).data, f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
-      const cells = new Array(CW * CH).fill(0);
-      for (let py = 0; py < c.height; py++) for (let px = 0; px < c.width; px++) {
-        const i = (py * c.width + px) * 4;
-        cells[Math.floor(py / 8) * CW + Math.floor(px / 8)] += (.2126 * f(d[i]) + .7152 * f(d[i + 1]) + .0722 * f(d[i + 2])) / 64;
-      }
-      return cells;
-    }, png.toString('base64'))]);
+    // a capture can show the frame before the animations were set (a busy machine): when a frame differs from the last
+    // one, it is captured again until two captures in a row agree, so only what the page really draws is measured
+    let cells = await grid(page), prev = frames.length ? frames[frames.length - 1][1] : null;
+    for (let k = 0; prev && k < 4 && diff(cells, prev) >= .05; k++) {
+      const again = await grid(page);
+      if (diff(again, cells) < .02) break;
+      cells = again;
+    }
+    frames.push([t, cells]);
     await page.clock.runFor(stepMs);
   }
   // the swings of every cell
