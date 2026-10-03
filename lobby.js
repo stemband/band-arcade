@@ -1,15 +1,15 @@
-/* The arcade LOBBY and ALL GAMES: flat HTML and CSS only (no three.js), drawn here; arcade.js decides when they show.
+/* The arcade LOBBY and ARCADE VIEW's LIST (once ALL GAMES): flat HTML and CSS only (no three.js), drawn here; arcade.js decides when they show.
    THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (+ the PRIZE COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small
    silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
    (shared/practice.js: 3 steps, the whole row), a CONTINUE card (the last game opened on this device) and the ASSIGNED
    card (shared/featured.js); under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js).
-   ALL GAMES: every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
+   LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
    and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
    (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
    The marquee pictures are still frames from shared/marquees.js (Arcade.Marquee.thumb: drawn once, then kept).
    A game that doesn't suit the instrument (games.js fit) stays, dimmed, with its short tag.
      Arcade.Lobby.render({onZone(zone), onGame(game, from)})
-     Arcade.Lobby.renderAll({onGame(game, from), focus: gameId})
+     Arcade.Lobby.renderAll({onGame(game, from), focus: gameId, scrollOnly})   ARCADE VIEW's LIST (scrollOnly: scrolled to it, not focused)
      Arcade.Lobby.lastGame() / remember(game)   the CONTINUE game (store.gameData('floor').last) */
 window.Arcade = window.Arcade || {};
 (function (A) {
@@ -239,10 +239,10 @@ window.Arcade = window.Arcade || {};
     if (f) $('prizeSign').focus({preventScroll: true});
   });
 
-  /* ---------- ALL GAMES ---------- */
+  /* ---------- ARCADE VIEW: LIST (ALL GAMES) ---------- */
   const NI_KEY = 'bandarcade.noinst';
   const niOn = () => { try { return sessionStorage.getItem(NI_KEY) === '1'; } catch (e) { return false; } };
-  function renderAll({onGame, focus}) {
+  function renderAll({onGame, focus, scrollOnly}) {
     const F = A.featuredGame(), only = niOn();
     const chip = $('niFilter');
     if (chip) {
@@ -273,7 +273,7 @@ window.Arcade = window.Arcade || {};
     $('allGrid').querySelectorAll('.gcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'all')));
     const f = focus && $('allGrid').querySelector(`.gcard[data-game="${focus}"]`);
-    if (f) { f.scrollIntoView({block: 'center'}); f.focus({preventScroll: true}); }
+    if (f) { f.scrollIntoView({block: 'center'}); if (!scrollOnly) f.focus({preventScroll: true}); }
   }
 
   /** the lobby is on screen with NOTHING over it (THE LOBBY QUEUE's rule, shared/lobby-queue.js: no PRESS START, pick

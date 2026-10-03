@@ -1,4 +1,4 @@
-/* Arcade home page (index.html): PRESS START, then the ZONE LOBBY, the ZONES and ALL GAMES, all on this one page (so
+/* Arcade home page (index.html): PRESS START, then the ZONE LOBBY, the ZONES and ARCADE VIEW, all on this one page (so
    the audio the student unlocked stays unlocked, and the lobby sound never restarts between them).
      PRESS START   the first visit of a browser session: an attract screen; the gesture that dismisses it unlocks the
                    audio. Then: an instrument saved → straight on, with the PLAYING AS toast ("Playing as Trumpet ·
@@ -6,18 +6,22 @@
                    CHOOSE YOUR INSTRUMENT (Select Player in pick mode, index.html?pick).
      LOBBY         index.html (no hash): one neon sign per zone, CONTINUE, ASSIGNED (lobby.js draws it)
      A ZONE        index.html#zone=<zone id>[&game=<game id>]: the cabinet carousel with only that zone's cabinets
-     ALL GAMES     index.html#all-games: every game as a card (lobby.js)
-     FULL ARCADE   index.html#full-arcade[&game=<game id>]: EVERY game's cabinet in one carousel (each once, zone by
-                   zone in the lobby's order, then the zone's own order), a zone tag under each cabinet and the QUICK
-                   JUMP strip of marquee thumbnails below (a tap spins straight there). It opens on the ASSIGNED game,
-                   else the last game played here, else the first. The same carousel as a zone (arcade.js treats it as
-                   one: `zone` is FULL).
+     ARCADE VIEW   every game at once, two ways; the top bar's ARCADE VIEW button opens the one last used on this device
+                   (gameData('floor').arcadeView = 'list' | 'cabinets'; first time: 'cabinets' with WebGL, else 'list');
+                   the switch at the top of either one ([▦ LIST | CABINETS], a radiogroup) flips to the other, remembered,
+                   with the same game in front (the history entry is replaced: Back still goes where it went)
+       LIST        index.html#all-games (once called ALL GAMES): every game as a card (lobby.js)
+       CABINETS    index.html#full-arcade[&game=<game id>] (once called the FULL ARCADE): EVERY game's cabinet in one
+                   carousel (each once, zone by zone in the lobby's order, then the zone's own order), a zone tag under
+                   each cabinet and the QUICK JUMP strip of marquee thumbnails below (a tap spins straight there). It
+                   opens on the ASSIGNED game, else the last game played here, else the first. The same carousel as a
+                   zone (arcade.js treats it as one: `zone` is FULL).
      SELECT PLAYER index.html?game=<id> (select-player/player.js; a two-player game, or no instrument saved yet)
      PRIZE COUNTER an overlay over any view (shared/prizes.js): the lobby's sign, the avatar badge's menu, the counter
                    at the back of a zone's aisle (3D: arcade3d.js; 2D: .prize2d), or index.html?prizes
    Every step is a browser history entry, so Back (and the iPad back-swipe) goes game → zone → lobby, and a zone can be
    linked straight to. A game page's "← ARCADE" comes back as index.html#<game id>: the student returns to the zone
-   (or ALL GAMES, or the lobby) they left from (sessionStorage), with that game's cabinet in front.
+   (or ARCADE VIEW's LIST or CABINETS, or the lobby) they left from (sessionStorage), with that game's cabinet in front.
    Opening a game: a game that doesn't suit the saved instrument (games.js `fit`) explains why, with SWITCH INSTRUMENT;
    a two-player game with its own Select Player (Neon Face-Off), or no instrument saved yet, opens Select Player;
    anything else goes straight to the game with the saved instrument.
@@ -111,7 +115,7 @@
   }
 
   /* ---------- the carousel: ONE ZONE's cabinets (no repeats; with 1 game, no arrows), or the FULL ARCADE ---------- */
-  const FULL = {id: 'full-arcade', name: 'Full Arcade', full: true};
+  const FULL = {id: 'full-arcade', name: 'Arcade View', full: true};
   /** every floor game once, zone by zone (the lobby's order, then each zone's own; an `auto` zone such as No Instrument
       Needed is skipped: its games stand under their own zones), then any game in no zone; its zone */
   function fullGames() {
@@ -124,7 +128,8 @@
   const tagOf = g => { const z = fullZoneOf[g.id]; return z ? {text: z.name, color: z.color} : null; };
   const isFull = () => zone === FULL;
   let zone = null, ring = [], N = 0, cur = 0, view = null, v3 = null, loading3D = false;
-  let use3D = !A.params.has('flat') && hasWebGL() && !!A.Floor3D;
+  const webGL = hasWebGL();
+  let use3D = !A.params.has('flat') && webGL && !!A.Floor3D;
   const aisle = $('aisle');
   // ring offset, −N/2 < d ≤ N/2. Two cabinets are a straight row instead (no ring): with a ring both would stand on the
   // same side and one would vanish on every turn, so the second is always on the right of the first
@@ -435,7 +440,7 @@
   function route() {
     const raw = decodeURIComponent(location.hash.slice(1));
     if (!raw || raw === 'lobby') return {view: 'lobby'};
-    if (raw === 'all-games') return {view: 'all'};
+    if (raw === 'all-games') { const game = listFocus; listFocus = null; return {view: 'all', game}; }
     const p = new URLSearchParams(raw);
     if (p.has('full-arcade')) return {view: 'zone', zone: FULL, game: p.get('game') || fullStart()};
     if (p.has('zone')) {
@@ -464,6 +469,7 @@
     return g ? g.id : null;
   }
   let current = null, lastSelectGame = null, afterPick = null, autoPicked = false, shownFor;
+  let listFocus = null, listGame = null, listQuiet = false;   // ARCADE VIEW: the card to scroll to; the LIST's last card tapped
   /** the lobby's sound through the music manager: the room ambience, no music (the same track in every view here) */
   const floorSound = () => { A.Sfx.setMusic(null); A.Sfx.setAmbience('lobby-ambience', {builtIn: true}); A.Sfx.preloadMusic('select-music'); };
   function showView() {
@@ -510,21 +516,25 @@
     bar.style.cssText = r.view === 'zone' && r.zone !== FULL ? A.Lobby.zoneStyle(r.zone) : '';
     $('backBtn').hidden = r.view === 'lobby';
     $('fbTitle').hidden = r.view === 'lobby';
-    $('allBtn').hidden = r.view === 'all';
-    $('fullBtn').hidden = r.view === 'zone' && r.zone === FULL;
+    const inView = r.view === 'all' || (r.view === 'zone' && r.zone === FULL);
+    if (inView) setArcadeView(r.view === 'all' ? 'list' : 'cabinets');      // the view used last = the one ARCADE VIEW opens
+    $('viewBtn').setAttribute('aria-pressed', String(inView));
+    drawSwitch(inView ? (r.view === 'all' ? 'list' : 'cabinets') : arcadeView());
     if (r.view !== 'zone') { A.floorPaused = true; if (zone) { hideCabinets(); zone = null; } }
     if (r.view === 'lobby') {
       document.title = A.ARCADE_NAME;
       A.Lobby.render({onZone: z => enterZone(z), onGame: openGame});
       warmBoard();
     } else if (r.view === 'all') {
-      document.title = `All Games · ${A.ARCADE_NAME}`;
-      $('fbTitle').textContent = 'All Games';
+      document.title = `Arcade View: List · ${A.ARCADE_NAME}`;
+      $('fbTitle').textContent = 'Arcade View';
       $('backLbl').textContent = backLabel();
-      A.Lobby.renderAll({onGame: openGame, focus: r.game});
+      $('backBtn').setAttribute('aria-label', 'Back to the ' + backLabel());
+      if (r.game) listGame = r.game;
+      A.Lobby.renderAll({onGame: (g, from) => { listGame = g.id; openGame(g, from); }, focus: r.game, scrollOnly: listQuiet});
       if (!r.game) window.scrollTo(0, 0);
     } else {
-      document.title = `${r.zone.name} · ${A.ARCADE_NAME}`;
+      document.title = r.zone === FULL ? `Arcade View: Cabinets · ${A.ARCADE_NAME}` : `${r.zone.name} · ${A.ARCADE_NAME}`;
       $('fbTitle').textContent = r.zone.name;
       $('backLbl').textContent = r.zone === FULL ? backLabel() : 'Lobby';
       $('backBtn').setAttribute('aria-label', 'Back to the ' + (r.zone === FULL ? backLabel() : 'lobby'));
@@ -547,7 +557,9 @@
       jumps.forEach(b => b.classList.toggle('nofit', !fitOf(ring[+b.dataset.i]).ok));
       if (was !== 'zone') window.scrollTo(0, 0);
     }
-    if (was && was !== current) focusView();
+    if (r.view === 'lobby') $('backBtn').removeAttribute('aria-label');
+    if (was && was !== current && !listQuiet) focusView();
+    fitSoon();
   }
   function backLabel() {
     const st = history.state || {};
@@ -566,6 +578,7 @@
     member: A.store.player || null,
     instLabel: () => { const m = A.store.player ? A.memberById(A.store.player) : null; return m ? m.short : 'Choose instrument'; },
     changeInstrument: () => openPick(null),
+    tuneUp: () => A.linkTo('note-checker/index.html'),           // the menu's TUNE UP: only while the top bar is too narrow (fitBar)
   });
   function chip() { badge.opts.member = A.store.player || null; badge.render(); }
 
@@ -575,17 +588,62 @@
     showView();
     setTimeout(() => A.Sfx.event('zone-enter'), 160);
   }
-  function openFull() {
+  /* ---------- ARCADE VIEW: LIST (#all-games) or CABINETS (#full-arcade), the one last used on this device ---------- */
+  const isArcadeView = () => current === 'all' || (current === 'zone' && isFull());
+  function arcadeView() {
+    const v = (A.store.gameData('floor') || {}).arcadeView;
+    return v === 'list' || v === 'cabinets' ? v : webGL ? 'cabinets' : 'list';
+  }
+  function setArcadeView(v) {
+    const d = A.store.gameData('floor');
+    if (d.arcadeView !== v) { d.arcadeView = v; A.store.saveGameData('floor'); }
+  }
+  /** the top bar's ARCADE VIEW button: from the lobby or a zone, the view used last; inside one (it shows pressed), out again */
+  function openArcadeView() {
+    if (isArcadeView()) { goBack(); return; }
+    const from = {from: current, zone: zone && zone.id};
+    if (arcadeView() === 'list') { A.Sfx.event('all-games-open'); push('#all-games', from); showView(); return; }
     A.Sfx.event('zone-select');
-    push('#full-arcade', {from: current, zone: zone && zone.id});
+    push('#full-arcade', from);
     showView();
     setTimeout(() => A.Sfx.event('zone-enter'), 160);
   }
-  function openAll() {
-    A.Sfx.event('all-games-open');
-    push('#all-games', {from: current, zone: zone && zone.id});
+  /** the switch: the other view in the same history entry, with the same game in front (LIST: scrolled to its card;
+      CABINETS: turned to the LIST's last card tapped) */
+  function switchView(to) {
+    if (!isArcadeView() || to === (current === 'all' ? 'list' : 'cabinets')) return;
+    A.Sfx.event('ui-toggle');
+    setArcadeView(to);
+    listQuiet = true;                                       // the focus stays on the switch (not the first card / START)
+    if (to === 'list') { listFocus = listGame = ring[cur] ? ring[cur].id : null; setHash('#all-games', true); }
+    else {
+      const g = A.floorGames().find(x => x.id === listGame), id = g ? g.id : fullStart();
+      setHash('#full-arcade' + (id ? '&game=' + id : ''), true);
+    }
     showView();
+    listQuiet = false;
+    const sw = document.querySelector(`${current === 'all' ? '#allView' : '#zoneView'} .vsw-opt[aria-checked="true"]`);
+    if (sw) sw.focus({preventScroll: true});
   }
+  const SW_ICONS = {list: $('viewBtn').querySelector('.fbv-list').outerHTML, cabinets: $('viewBtn').querySelector('.fbv-cab').outerHTML};
+  /** the switch at the top of LIST and CABINETS: [▦ LIST | CABINETS], the current one lit (a radiogroup); and the top
+      bar's ARCADE VIEW icon = the mode it opens */
+  function drawSwitch(mode) {
+    $('viewBtn').dataset.mode = mode;
+    $('viewBtn').title = `Arcade view: ${mode === 'list' ? 'List' : 'Cabinets'}`;
+    document.querySelectorAll('.vsw').forEach(box => {
+      box.innerHTML = ['list', 'cabinets'].map(m => `<button type="button" role="radio" class="vsw-opt" data-mode="${m}" aria-checked="${m === mode}" tabindex="${m === mode ? 0 : -1}">` +
+        SW_ICONS[m] + `<span>${m === 'list' ? 'List' : 'Cabinets'}</span></button>`).join('');
+    });
+  }
+  document.querySelectorAll('.vsw').forEach(box => {
+    box.addEventListener('click', e => { const b = e.target.closest('.vsw-opt'); if (b) switchView(b.dataset.mode); });
+    box.addEventListener('keydown', e => {                   // a radiogroup: the arrows pick the other one
+      if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+      e.preventDefault();                                    // (and the carousel's ←/→ leave it alone)
+      const b = e.target.closest('.vsw-opt'); if (b) switchView(b.dataset.mode === 'list' ? 'cabinets' : 'list');
+    });
+  });
   /** BACK: the browser's Back when this page put the view on top (history stays tidy), else straight to the lobby */
   function goBack() {
     A.Sfx.event('zone-back');
@@ -593,8 +651,41 @@
     else { setHash(''); showView(); }
   }
   $('backBtn').addEventListener('click', goBack);
-  $('allBtn').addEventListener('click', openAll);
-  $('fullBtn').addEventListener('click', openFull);
+  $('viewBtn').addEventListener('click', openArcadeView);
+
+  /* ---------- THE TOP BAR'S FIT: one row, never overlapping; the CENTER group in the middle of the screen. The widest
+     step that fits (arcade.css): full labels → short labels (fit-short) → + compact sides (fit-compact: the back arrow,
+     the badge's picture; ≤ 900 px start here) → icons only (fit-icons; phones ≤ 600 px start here) → TUNE UP and
+     LEADERBOARD into the avatar badge's menu (fit-tight). arcade.css also applies the width-based steps by itself, so a
+     resize the script hears late never leaves desktop labels on a phone. ---------- */
+  const STEPS = ['', 'fit-short', 'fit-compact', 'fit-icons', 'fit-tight'];
+  function fitBar() {
+    const bar = $('fbar');
+    const cs = getComputedStyle(bar), inner = (bar.clientWidth || innerWidth) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), gap = parseFloat(cs.columnGap) || 0;
+    const kids = el => [...el.children].filter(c => c.offsetWidth);
+    const row = el => { const k = kids(el), g = parseFloat(getComputedStyle(el).columnGap) || 0; return k.reduce((w, c) => w + c.offsetWidth, 0) + g * Math.max(0, k.length - 1); };
+    const fits = () => {
+      const back = $('backBtn'), title = $('fbTitle');
+      // the left side needs its back button and a little of the title (the rest shrinks with an ellipsis)
+      const left = (back.offsetWidth || 0) + (title.offsetWidth ? (back.offsetWidth ? 10 : 0) + Math.min(title.scrollWidth, 96) : 0);
+      const side = Math.max(left, row(bar.querySelector('.fb-right')));
+      return row($('fbCenter')) + 2 * side + 2 * gap <= inner + .5;
+    };
+    let i = innerWidth <= 600 ? 3 : innerWidth <= 900 ? 2 : 0;          // (arcade.css applies these by width too)
+    for (;; i++) {
+      STEPS.forEach((c, j) => { if (c) bar.classList.toggle(c, j <= i && j > 0); });
+      if (i >= STEPS.length - 1 || fits()) break;
+    }
+    bar.dataset.fit = STEPS[i] || 'full';
+  }
+  let fitT = 0;
+  const fitSoon = () => { cancelAnimationFrame(fitT); fitT = requestAnimationFrame(fitBar); };
+  addEventListener('resize', fitBar);                          // at once: a rotated iPad never shows a frame that doesn't fit
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(fitSoon);
+    ['fbar', 'fbCenter', 'avBadge', 'soundCtl', 'backBtn'].forEach(id => ro.observe($(id)));   // (the bar itself: any width change)
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
   function openPick(g) {
     const p = new URLSearchParams(location.search);
