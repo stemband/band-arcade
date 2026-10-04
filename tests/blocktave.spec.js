@@ -1128,6 +1128,121 @@ test.describe('Blocktave: the parallax backdrop', () => {
     expect(bd.clef).toBe('bass');
   });
 
+  /* MINING UNDERGROUND NEVER ERASES THE CAVE BACKDROP: it goes behind every open tile under the GENERATED ground (w.ground),
+     however deep the student digs; the outside layers never show through a shaft or a mined tunnel */
+  const frames = (page, ms = 120) => page.evaluate(m => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, m)))), ms);
+  /** a shaft from the surface at column x down to row `bottom`, then 3 tiles mined sideways and 1 below; the player stands in it */
+  const digShaft = (page, x, bottom) => page.evaluate(({x, bottom}) => {
+    const d = Arcade.Blocktave.demo, BW = Arcade.BlocktaveWorld, W = Arcade.Blocktave.world(), g = BW.groundAt(W, x), dug = [];
+    for (let y = g; y <= bottom; y++) { d.put(x, y, 'air'); dug.push([x, y]); }
+    for (let k = 1; k <= 3; k++) { d.put(x + k, bottom, 'air'); dug.push([x + k, bottom]); }
+    d.put(x + 3, bottom + 1, 'air'); dug.push([x + 3, bottom + 1]);
+    d.put(x, bottom + 1, 'slate'); d.put(x + 1, bottom + 1, 'slate'); d.put(x + 2, bottom + 1, 'slate'); d.put(x + 3, bottom + 2, 'slate');
+    d.tp(x, bottom);
+    return {g, dug, top: BW.top(W, x)};
+  }, {x, bottom});
+  /** the canvas colors in the middle of these tiles (no light shading: rules.js light.maxShade 0 for the check) */
+  const tileColors = (page, cells) => page.evaluate(cells => {
+    const cv = document.getElementById('btCanvas'), g = cv.getContext('2d'), s = Arcade.Blocktave.state(), S = s.tile, WPX = cv.width / innerWidth, cam = s.backdrop.cam;
+    return cells.map(([x, y]) => { const X = Math.round(((x + .5) * S - cam.x) * WPX), Y = Math.round(((y + .5) * S - cam.y) * WPX); return Array.from(g.getImageData(X, Y, 1, 1).data.slice(0, 3)); });
+  }, cells);
+  const CAVE = [[0x22, 0x1e, 0x3d], [0x2a, 0x25, 0x49], [0x43, 0x3c, 0x6e]];
+  const nearCave = c => Math.min(...CAVE.map(k => Math.hypot(c[0] - k[0], c[1] - k[1], c[2] - k[2]))) < 40;
+
+  test('mining underground never erases the cave backdrop: a shaft into the Bass Depths and its side tunnel show cave rock, never the outside', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { Arcade.Blocktave.demo.time(60); window.BT_RULES.light.maxShade = 0; });
+    const R = await page.evaluate(() => ({deepY: window.BT_RULES.world.deepY, depth: window.BT_RULES.light.caveDepth}));
+    const sh = await digShaft(page, 44, R.deepY + 6);
+    expect(sh.top, 'the live top moved down to the bottom of the shaft').toBeGreaterThan(R.deepY);
+    await frames(page);
+    const bd = (await st(page)).backdrop, at = new Set(bd.cave.at);
+    // every dug tile below the GENERATED ground that's on screen gets the cave texture
+    const shown = await page.evaluate(cells => { const s = Arcade.Blocktave.state(), S = s.tile, c = s.backdrop.cam;
+      return cells.filter(([x, y]) => x * S >= c.x && (x + 1) * S <= c.x + innerWidth && y * S >= c.y && (y + 1) * S <= c.y + innerHeight); }, sh.dug.filter(([, y]) => y > sh.g));
+    expect(shown.length, 'the shaft is on screen').toBeGreaterThan(8);
+    expect(shown.filter(([x, y]) => !at.has(`${x},${y}`)), 'behind every dug tile').toEqual([]);
+    expect(bd.clef, 'the bass clef in the Bass Depths').toBe('bass');
+    // the canvas there: the cave's own colors (fully faded in: caveDepth rows under the generated ground), never the sky or a biome layer
+    const deepCells = shown.filter(([, y]) => y - sh.g >= R.depth + 1);
+    const cols = await tileColors(page, deepCells);
+    expect(cols.filter(c => !nearCave(c)).length, JSON.stringify(cols.slice(0, 6))).toBeLessThanOrEqual(Math.floor(cols.length * .15));
+    // above the generated ground nothing changes: no cave texture there
+    expect(bd.cave.at.filter(k => { const [x, y] = k.split(',').map(Number); return y <= sh.g && x === 44; })).toEqual([]);
+    // the light still follows the LIVE ground: the shaft is lit by day near its mouth
+    expect(await page.evaluate(({x, y}) => Arcade.BlocktaveWorld.light(Arcade.Blocktave.world(), x, y, 1, [], window.BT_RULES), {x: 44, y: sh.g + 2})).toBeGreaterThan(.4);
+  });
+
+  test('a pit opened to the sky in the middle layer: cave rock behind it, and its bottom is still "Underground" (not the surface)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { Arcade.Blocktave.demo.time(60); window.BT_RULES.light.maxShade = 0; });
+    const R = await page.evaluate(() => window.BT_RULES.world);
+    const g0 = await page.evaluate(() => Arcade.BlocktaveWorld.groundAt(Arcade.Blocktave.world(), 60));
+    const sh = await digShaft(page, 60, g0 + 14);
+    expect(g0 + 14).toBeLessThan(R.deepY);
+    await frames(page);
+    const bd = (await st(page)).backdrop, at = new Set(bd.cave.at);
+    const shown = await page.evaluate(cells => { const s = Arcade.Blocktave.state(), S = s.tile, c = s.backdrop.cam;
+      return cells.filter(([x, y]) => x * S >= c.x && (x + 1) * S <= c.x + innerWidth && y * S >= c.y && (y + 1) * S <= c.y + innerHeight); }, sh.dug.filter(([, y]) => y > sh.g));
+    expect(shown.length, 'the pit is on screen').toBeGreaterThan(8);
+    expect(shown.filter(([x, y]) => !at.has(`${x},${y}`)), 'cave behind every tile of the pit').toEqual([]);
+    const cols = await tileColors(page, sh.dug.filter(([, y]) => y >= sh.g + 6).slice(0, 8));
+    expect(cols.filter(c => !nearCave(c)).length, JSON.stringify(cols)).toBeLessThanOrEqual(1);
+    const z = await page.evaluate(y => Arcade.BlocktaveWorld.zone(Arcade.Blocktave.world(), 60, y), g0 + 14);
+    expect(z.layer, 'counted from the generated ground').toBe('middle');
+  });
+
+  test('an older save (no ground line) loads with exactly the ground line of a fresh world from its seed', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => {
+      const BW = Arcade.BlocktaveWorld, R = window.BT_RULES;
+      Arcade.Blocktave.showHub();                                           // (leaving saves the world: write the old one after)
+      const w = BW.generate(9091, R, 2), o = BW.encode(w); o.v = 2;
+      for (let y = BW.top(w, 50); y < R.world.deepY + 4; y++) w.b[y * w.w + 50] = BW.ID.air;   // a shaft dug before this change
+      const o2 = BW.encode(w); o2.v = 2;
+      localStorage.setItem(Arcade.Blocktave.key, JSON.stringify(o2));
+      return {saved: 'ground' in o2, fresh: Array.from(BW.generate(9091, R).ground)};
+    });
+    expect(r.saved, 'the ground line is never saved (old code ignores nothing new)').toBe(false);
+    await page.evaluate(() => Arcade.Blocktave.begin(1));
+    await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
+    const g = await page.evaluate(() => Array.from(Arcade.BlocktaveWorld.groundOf(Arcade.Blocktave.world())));
+    expect(g).toEqual(r.fresh);
+    // a world the seed can't rebuild (another size): the live top, smoothed, once
+    const fb = await page.evaluate(() => { const BW = Arcade.BlocktaveWorld, w = {w: 40, h: 30, seed: 1, b: new Uint8Array(40 * 30)};
+      for (let x = 0; x < 40; x++) for (let y = 12; y < 30; y++) w.b[y * 40 + x] = BW.ID.slate;
+      for (let y = 12; y < 25; y++) w.b[y * 40 + 20] = BW.ID.air;                       // one shaft: the median ignores it
+      return Array.from(BW.groundOf(w)); });
+    expect(fb.every(v => v === 12)).toBe(true);
+  });
+
+  test('GALLERY=1: before / after of a shaft in the Bass Depths (docs/gallery/blocktave-cave-shaft.png)', async ({page}) => {
+    test.skip(!process.env.GALLERY, 'only with GALLERY=1');
+    await page.setViewportSize({width: 1100, height: 700});
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.time(60));
+    const R = await page.evaluate(() => window.BT_RULES.world);
+    await digShaft(page, 44, R.deepY + 6);
+    await frames(page, 200);
+    // BEFORE: the cave counted from the LIVE top (how it was), AFTER: from the generated ground
+    await page.evaluate(() => { const BW = Arcade.BlocktaveWorld; window.__ga = BW.groundAt; BW.groundAt = (w, x) => BW.top(w, x); });
+    await frames(page, 200);
+    const before = (await page.screenshot()).toString('base64');
+    await page.evaluate(() => { Arcade.BlocktaveWorld.groundAt = window.__ga; });
+    await frames(page, 200);
+    const after = (await page.screenshot()).toString('base64');
+    const png = await page.evaluate(async ([a, b]) => {
+      const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + src; });
+      const [A, B] = await Promise.all([load(a), load(b)]), c = document.createElement('canvas'), pad = 40;
+      c.width = A.width + B.width + 30; c.height = A.height + pad; const g = c.getContext('2d');
+      g.fillStyle = '#0b0b1a'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#fff'; g.font = '700 24px sans-serif';
+      g.fillText('Before: the outside shows through the shaft', 10, 28); g.fillText('After: cave rock behind every dug tile', A.width + 40, 28);
+      g.drawImage(A, 0, pad); g.drawImage(B, A.width + 30, pad);
+      return c.toDataURL('image/png').split(',')[1];
+    }, [before, after]);
+    require('fs').writeFileSync(require('path').join(__dirname, '..', 'docs', 'gallery', 'blocktave-cave-shaft.png'), Buffer.from(png, 'base64'));
+  });
+
   test('reduced motion: the layers still follow the camera, but nothing sways; a slow device keeps only the far layer', async ({page}) => {
     await page.emulateMedia({reducedMotion: 'reduce'});
     await enter(page, {mode: 'touch'});

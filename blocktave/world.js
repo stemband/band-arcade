@@ -7,6 +7,7 @@
      BW.encode(world) / BW.decode(obj)   the saved form: {v, seed, w, h, chunks: [RLE per 16 columns], drops, …} (versioned: v 3; v 1 = no drops; v < 3 = no Chapter 6 ores yet)
      BW.placeOres2 / BW.ores2Pass(world, R, view)   Chapter 6's six ores (new worlds; once into an older saved world)
      BW.zone(world, x, y)      {biome, layer: 'peaks'|'surface'|'middle'|'depths'} (Treble Peaks / Bass Depths)
+     BW.groundOf(world) / groundAt(world, x)   the GENERATED ground line (w.ground; rebuilt from the seed for old saves)
      BW.light(world, x, y, sky, lamps)   0–1   ·   BW.lightMap(world, x0, y0, cols, rows, sky, lamps)   a rectangle's light
      BW.room(world, x, y)      the enclosed space around an air tile: {tiles, doors, walls} or null (open / too big)
    The world is side view: x = column (0 at the left), y = row (0 at the top of the sky). */
@@ -99,15 +100,14 @@ window.Arcade = window.Arcade || {};
   // same version, so it can tell natural tiles from ones the player placed or dug
   // (3 = the six ores of Chapter 6, placed by placeOres2 after everything else, so the shape of the world is the same as 2)
   const GEN = 3;
-  function generate(seed, R, gen) {
-    R = R || window.BT_RULES; gen = gen || GEN;
+  /* THE GROUND LINE: the generated surface row of each column (`heights`), from the seed alone (the same random numbers in
+     the same order as always, so a world's shape never changes). generate() keeps it as w.ground; an older save rebuilds it
+     from its seed (groundOf). Returns {r (the random numbers, ready for the rest of the generator), cave, cave2, heights}. */
+  function terrain(seed, R) {
     const W = R.world.w, H = R.world.h, S = R.world.surface, r = rng(seed);
     const n1 = noise1(r), n2 = noise1(r), ridge = noise1(r), cave = noise2(r), cave2 = noise2(r);
-    const b = new Uint8Array(W * H);
-    const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) b[y * W + x] = v; };
-    const get = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? ID.bedrock : b[y * W + x];
     // the ground's height in each biome, blended across the borders
-    const [marsh, brass, canyon] = R.biomes;
+    const [, brass, canyon] = R.biomes;
     const peakAt = brass.from + Math.round((brass.to - brass.from) * (.35 + .3 * r()));   // one tall peak always reaches the Treble Peaks
     const cutAt = canyon.from + Math.round((canyon.to - canyon.from) * (.4 + .2 * r()));  // the canyon's gorge
     const heightIn = (id, x) => {
@@ -128,6 +128,15 @@ window.Arcade = window.Arcade || {};
       if (x < 3) h = Math.min(h, S + 4);
       heights.push(Math.max(6, Math.min(H - 20, Math.round(h))));
     }
+    return {r, cave, cave2, heights};
+  }
+  function generate(seed, R, gen) {
+    R = R || window.BT_RULES; gen = gen || GEN;
+    const W = R.world.w, H = R.world.h, T = terrain(seed, R), r = T.r, cave = T.cave, cave2 = T.cave2, heights = T.heights;
+    const b = new Uint8Array(W * H);
+    const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) b[y * W + x] = v; };
+    const get = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? ID.bedrock : b[y * W + x];
+    const [marsh] = R.biomes;
     // columns: the top, dirt, then slate; the world floor at the bottom
     for (let x = 0; x < W; x++) {
       const h = heights[x], bi = biomeOf(R, x).id;
@@ -225,7 +234,7 @@ window.Arcade = window.Arcade || {};
       }
     });
     const world = {v: 1, gen, seed: seed >>> 0, w: W, h: H, b, meta: {}, bags: [], spawn: {x: sx, y: sy}, time: 20, nights: 0, survived: 0,
-      player: null, cot: null, lockers: {}, drops: [], repaired: REPAIR, dirty: true};
+      player: null, cot: null, lockers: {}, drops: [], repaired: REPAIR, dirty: true, ground: Int16Array.from(heights)};
     if (gen >= 2) ensureStarter(world, world, R);             // THE STARTER GUARANTEE (below)
     if (gen >= 3) placeOres2(world, world, R);                // CHAPTER 6'S ORES (below)
     delete world.tops;
@@ -417,6 +426,24 @@ window.Arcade = window.Arcade || {};
       drops: Array.isArray(o.drops) ? o.drops.filter(d => d && isFinite(d.x) && isFinite(d.y) && typeof d.item === 'string' && d.n > 0).map(d => ({x: +d.x, y: +d.y, item: d.item, n: +d.n, t: +d.t || 0})) : []};
   }
 
+  /* ---------- THE GENERATED GROUND (w.ground): fixed, whatever the player digs or builds ----------
+     The cave backdrop goes behind every open tile under it, and the layers (zone's "surface") count from it. Never saved:
+     a world loaded from a save (any version) rebuilds it from its seed (terrain), the exact original line; only a world
+     the seed can't rebuild (another size) falls back to the live top, smoothed (the median over ±8 columns), once.
+     (The LIGHT keeps using the live top: a shaft dug to the sky lets daylight down.) */
+  function groundOf(w, R) {
+    if (w.ground && w.ground.length === w.w) return w.ground;
+    R = R || window.BT_RULES;
+    if (R && w.w === R.world.w && w.h === R.world.h && isFinite(w.seed)) w.ground = Int16Array.from(terrain(w.seed >>> 0, R).heights);
+    else {
+      const t = Array.from({length: w.w}, (_, x) => top(w, x)), g = new Int16Array(w.w);
+      for (let x = 0; x < w.w; x++) { const near = []; for (let k = -8; k <= 8; k++) near.push(t[Math.max(0, Math.min(w.w - 1, x + k))]); g[x] = near.sort((a, b) => a - b)[8]; }
+      w.ground = g;
+    }
+    return w.ground;
+  }
+  const groundAt = (w, x, R) => groundOf(w, R)[Math.max(0, Math.min(w.w - 1, x))];
+
   /* ---------- queries ---------- */
   const at = (w, x, y) => (x < 0 || x >= w.w || y >= w.h) ? ID.bedrock : y < 0 ? ID.air : w.b[y * w.w + x];
   const put = (w, x, y, v) => { if (x >= 0 && y >= 0 && x < w.w && y < w.h) { w.b[y * w.w + x] = v; w.dirty = true; if (w.tops) w.tops[x] = -1; } };
@@ -430,7 +457,8 @@ window.Arcade = window.Arcade || {};
   function zone(w, x, y, R) {
     R = R || window.BT_RULES;
     const bi = biomeOf(R, Math.max(0, Math.min(w.w - 1, x)));
-    const layer = y < R.world.peaksY ? 'peaks' : y >= R.world.deepY ? 'depths' : y <= top(w, x) + R.world.shallow ? 'surface' : 'middle';
+    // (counted from the GENERATED ground: digging a shaft never turns its bottom into "surface")
+    const layer = y < R.world.peaksY ? 'peaks' : y >= R.world.deepY ? 'depths' : y <= groundAt(w, Math.max(0, Math.min(w.w - 1, x)), R) + R.world.shallow ? 'surface' : 'middle';
     return {biome: bi.id, biomeName: bi.name, layer};
   }
   /** THE LIGHT of a rectangle of tiles (0–1 each; rules.js light):
@@ -508,5 +536,5 @@ window.Arcade = window.Arcade || {};
     const xy = k => [k % w.w, Math.floor(k / w.w)];
     return {tiles, walls: [...walls].map(xy), doors: [...doors].map(xy)};
   }
-  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, ORES2, oreSpots, placeOres2, ores2Pass, at, put, top, zone, light, lightMap, room, biomeOf, CHUNK, VERSION};
+  A.BlocktaveWorld = {BLOCKS: B, ID, rng, generate, starter, ensureStarter, repair, GEN, REPAIR, encode, decode, terrain, groundOf, groundAt, ORES2, oreSpots, placeOres2, ores2Pass, at, put, top, zone, light, lightMap, room, biomeOf, CHUNK, VERSION};
 })(window.Arcade);

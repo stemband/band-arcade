@@ -850,7 +850,7 @@
     // THE SKY AND THE PARALLAX BACKDROP (backdrop.js): the biome's three layers, day to night, the cave backdrop below
     const dayMix = Math.max(0, Math.min(1, (sky - R.light.nightSky) / (1 - R.light.nightSky)));
     BD.draw(ctx, {VW, VH, WPX, S, camX, camY, day: dayMix, dusk: 1 - Math.abs(2 * dayMix - 1), now, still: !!RM.matches,
-      low: bgLow(), world: w, top: x => BW.top(w, x), open: (x, y) => !B[w.b[y * w.w + x]].solid, seed: w.seed, layer: G.layer});
+      low: bgLow(), world: w, ground: x => BW.groundAt(w, x, R), open: (x, y) => !B[w.b[y * w.w + x]].solid, seed: w.seed, layer: G.layer});
     // THE TILES: only the visible ones
     const x0 = Math.floor(camX), y0 = Math.floor(camY), ox = (x0 - camX) * S, oy = (y0 - camY) * S;
     ctx.imageSmoothingEnabled = false;
