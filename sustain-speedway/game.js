@@ -457,9 +457,11 @@
     const sl = G.sl;
     if (!sl.switched && G.dist >= G.lens[G.lap] / 2) {        // THE SWITCH (halfway)
       endHold();
-      sl.switched = true; sl.watch = true; sl.at = now; sl.broke = false;
-      sl.gapFrom = S.state === 'on' ? null : (S.lastSound || now);
-      if (sl.gapFrom != null && now - sl.gapFrom >= R.slur.gapMs) sl.broke = true;
+      // (performance.now(), the time the detector's frames use: a busy page's frame timestamp runs behind it)
+      const pn = performance.now();
+      sl.switched = true; sl.watch = true; sl.at = pn; sl.broke = false;
+      sl.gapFrom = S.state === 'on' ? null : (S.lastSound || pn);
+      if (sl.gapFrom != null && pn - sl.gapFrom >= R.slur.gapMs) sl.broke = true;
       drawNote();
       banner(`SLUR TO ${b.label}!`, 'slur', 900);
     }
@@ -655,7 +657,7 @@
     if (G.phase === 'vcheck') { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; return; }
     // B = a BREAK at a slur's switch: silence (at least 300 ms) until the game has heard the gap, then the new note. Held
     // by the game's own state, not by frames: a slow frame (WebKit) right after the switch must not skip the silence
-    if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && G.sl.watch && (now - G.sl.at < 300 || (!G.sl.broke && now - G.sl.at < 1500))) { A.Pitch.demoNote = null; return; }
+    if (demoKey === 'b' && G.sl && G.sl.lap === G.lap && G.sl.switched && G.sl.watch && (performance.now() - G.sl.at < 300 || (!G.sl.broke && performance.now() - G.sl.at < 1500))) { A.Pitch.demoNote = null; return; }
     if (['space', 's', 'l', 'b'].includes(demoKey)) { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = it.sounding; }
     else if (demoKey === 'd' || demoKey === 'f') {                // drifting: +25 cents at first, +45 after 4 s (F: flat)
       // the wobble (±2) + jitter (±2) keep it under 50 cents: past that it reads as the next note (and the detector's
