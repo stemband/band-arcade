@@ -3,7 +3,8 @@
    the remembered tab, ?r=), a rudiment's page (play/stop, a new tempo at the next repetition, the check-off only after 4
    repetitions, saving, unchecking, Open–Close–Open needs a whole run on the test clock, the roll switch only with rolls,
    no stars / tokens / leaderboard), `fit` (a trumpet is sent away; snare and bells open it), the practice-time log, the
-   Backup Code round trip, the layout at phone / iPad / Chromebook sizes and GALLERY=1's docs/gallery/rudiment-trainer.png.
+   menu music (wanted on the picker and a rudiment's page, faded out before the first count-off click, back after STOP,
+   a pause and an Open–Close–Open run; the Sound Board's Music row), the Backup Code round trip, the layout at phone / iPad / Chromebook sizes and GALLERY=1's docs/gallery/rudiment-trainer.png.
    Sound is OFF unless a test needs the audio clock (the player then runs on performance.now: CI's WebKit has no sound card). */
 const {test, expect} = require('@playwright/test');
 const path = require('path');
@@ -195,6 +196,81 @@ test.describe('rudiment trainer: a rudiment', () => {
     await expect.poll(() => page.evaluate(() => !!(Arcade.RudimentTrainer.state().player || {}).audio), {timeout: 8000}).toBe(true);
     await page.evaluate(() => { Object.defineProperty(document, 'hidden', {configurable: true, get: () => true}); document.dispatchEvent(new Event('visibilitychange')); });
     await expect.poll(async () => (await st(page)).playing, {timeout: 5000}).toBe(false);
+    watch.check();
+  });
+});
+
+test.describe('rudiment trainer: the menu music (rudiment-trainer-menu)', () => {
+  const MENU = 'rudiment-trainer-menu|select-music';                     // the track, else the arcade's select-music
+  const wanted = page => page.evaluate(() => Arcade.Sfx.musicState().music.want);
+
+  test('wanted on the picker and on a rudiment\'s page; not during a run; wanted again after STOP and after Open–Close–Open ends by itself', async ({page}) => {
+    const watch = await open(page);
+    expect(await page.evaluate(() => Arcade.GAMES.find(g => g.id === 'rudiment-trainer').menuMusic)).toBe('rudiment-trainer-menu');
+    expect(await wanted(page)).toBe(MENU);                                   // the picker
+    await page.evaluate(() => Arcade.RudimentTrainer.open('flam-tap'));
+    expect(await wanted(page)).toBe(MENU);                                   // a rudiment's page, stopped
+    await page.locator('#playBtn').click();
+    expect(await wanted(page)).toBe(null);                                   // ▶ PLAY: faded out
+    await expect.poll(() => page.evaluate(() => document.querySelectorAll('#staff .rp-now').length), {timeout: 9000, intervals: [100]}).toBeGreaterThan(0);
+    expect(await wanted(page)).toBe(null);                                   // still nothing during the run
+    await page.locator('#playBtn').click();                                  // ■ STOP
+    await expect(page.locator('#playBtn')).toHaveText('▶ Play');
+    expect(await wanted(page)).toBe(MENU);
+    // the kit's PAUSE stops the run: the music is wanted again
+    await page.locator('#playBtn').click();
+    expect(await wanted(page)).toBe(null);
+    await page.keyboard.press('Escape');
+    await expect.poll(async () => (await st(page)).playing, {timeout: 5000}).toBe(false);
+    expect(await wanted(page)).toBe(MENU);
+    watch.check();
+  });
+
+  test('Open–Close–Open: no music during the run, wanted again when it ends by itself (the test clock)', async ({page}) => {
+    const watch = await prepare(page, {store: quiet()});
+    await page.clock.install();
+    await page.goto('rudiment-trainer/index.html?demo&nostart&r=single-stroke-roll');
+    await page.waitForFunction(() => window.Arcade && Arcade.RudimentTrainer);
+    await page.evaluate(() => Object.assign(Arcade.Rudiments.OCO, {upS: 4, holdS: 1, downS: 4}));   // a short ramp (the real one: the data test)
+    await page.locator('[data-tier="oco"]').click();
+    await page.locator('#playBtn').click();
+    await page.clock.runFor(3_000);
+    expect([(await st(page)).playing, await wanted(page)]).toEqual([true, null]);
+    for (let i = 0; i < 12 && (await st(page)).playing; i++) await page.clock.runFor(2_000);
+    const s = await st(page);
+    expect([s.playing, s.ocoRuns['single-stroke-roll']]).toEqual([false, 1]);   // it ended by itself
+    expect(await wanted(page)).toBe(MENU);
+    watch.check();
+  });
+
+  test('with sound on, the music has faded out before the count-off\'s first click', async ({page, browserName}) => {
+    test.skip(browserName === 'webkit', 'CI\'s WebKit has no sound card: its audio clock never moves');
+    const watch = await open(page, '&r=single-paradiddle', device('snare'));
+    await page.locator('#clickSeg button').first().click();                   // a tap: the audio unlocks and the menu music starts
+    await expect.poll(() => page.evaluate(() => Arcade.Sfx.musicState().music.playing), {timeout: 8000}).toBeTruthy();
+    await page.evaluate(() => {                                              // when the fade-out starts, on the audio clock
+      const f = Arcade.Sfx.gameMenuMusic;
+      Arcade.Sfx.gameMenuMusic = (id, on, o) => { if (on === false) window.__fadeAt = Arcade.Sfx.output().ctx.currentTime; return f(id, on, o); };
+    });
+    await page.locator('#playBtn').click();
+    await expect.poll(() => page.evaluate(() => (Arcade.RudimentTrainer.state().player || {log: []}).log.length), {timeout: 8000}).toBeGreaterThan(0);
+    const r = await page.evaluate(() => ({fadeAt: window.__fadeAt, first: Arcade.RudimentTrainer.state().player.log[0], music: Arcade.Sfx.musicState().music}));
+    expect(r.first.kind).toBe('click');                                       // the count-off's first click…
+    expect(r.first.start - r.fadeAt).toBeGreaterThanOrEqual(0.5);             // …after the 0.5 s fade has ended
+    expect(r.music.playing).toBe(null);                                       // and no music is playing under it
+    await page.locator('#playBtn').click();
+    watch.check();
+  });
+
+  test('the Sound Board\'s Music section lists rudiment-trainer-menu (missing: the arcade\'s select-music)', async ({page}) => {
+    const watch = await prepare(page, {store: quiet()});
+    await page.goto('sound-board/index.html');
+    await page.locator('.sb-sec[data-sec="music"] > summary').click();
+    const row = page.locator('.sb-sec[data-sec="music"] .sb-mrow[data-n="rudiment-trainer-menu"]');
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('b')).toHaveText('Rudiment Trainer');
+    await expect(row).toHaveAttribute('data-fallback', 'select-music');
+    await expect(row.locator('[data-mstatus]')).toHaveText(/^missing — using select music$/, {timeout: 30000});   // the board checks every track in turn
     watch.check();
   });
 });

@@ -233,17 +233,27 @@ window.Arcade = window.Arcade || {};
       kit = null; queue = []; vis = [];
       if (!ended) { ended = true; if (opts.onEnd) try { opts.onEnd({stopped: !!cut}); } catch (e) { setTimeout(() => { throw e; }); } }
     }
-    function stop() { finish(true); }
+    // stop() while start() is still waiting (the audio unlocking, the files loading) cancels that start: it never plays
+    let starting = 0, startId = 0;
+    function stop() {
+      if (starting && !running) { starting = 0; startId++; if (!ended) { ended = true; if (opts.onEnd) try { opts.onEnd({stopped: true}); } catch (e) { setTimeout(() => { throw e; }); } } return; }
+      finish(true);
+    }
 
     async function start() {
-      if (running) stop();
+      if (running || starting) stop();
       if (A.Pitch && A.Pitch.listening && A.Pitch.listening()) return false;   // never while a microphone listens
       ended = false;
+      const my = ++startId; starting = my;
+      const cancelled = () => startId !== my;
       if (!opts.audio) for (let i = 0; i < 8 && !(A.Sfx && A.Sfx.output && A.Sfx.output()); i++) await new Promise(r => setTimeout(r, 40));   // the tap is unlocking the audio
+      if (cancelled()) return false;
       const o = opts.audio || (A.Sfx && A.Sfx.output && A.Sfx.output());
       ctx = o ? o.ctx : null; out = o ? o.out : null;
       if (ctx) { bus = ctx.createGain(); bus.gain.value = 1; bus.connect(out); }
       await Promise.race([loadBuffers(), new Promise(r => setTimeout(r, 1500))]);
+      if (cancelled()) return false;
+      starting = 0;
       if (A.Pitch && A.Pitch.listening && A.Pitch.listening()) return false;
       clk = opts.clock || (A.AudioClock ? A.AudioClock.create().start() : null);
       if (clk && ctx && clk.ctx !== ctx && !opts.clock) { clk.ctx = ctx; clk.off = null; clk.sample(); }   // opts.audio: its own output's clock

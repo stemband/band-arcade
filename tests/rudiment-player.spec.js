@@ -210,7 +210,7 @@ test.describe('rudiment player: live', () => {
     watch.check();
   });
 
-  test('stop() fades everything within 30 ms; a hidden tab stops it; every file missing = the kit plays the same plan; a listening microphone refuses', async ({page}) => {
+  test('stop() fades everything within 30 ms; a stop during start() cancels it; a hidden tab stops it; every file missing = the kit plays the same plan; a listening microphone refuses', async ({page}) => {
     const watch = await open(page);
     await page.evaluate(LIVE);
     const r = await page.evaluate(async ([para, buzz]) => {
@@ -234,6 +234,13 @@ test.describe('rudiment player: live', () => {
       const log = L.player.state().log, p = Arcade.RudimentPlayer.plan(Arcade.Counting.parse(buzz[0], buzz[1]), {bpm: 200});
       const t0 = log[0].time;
       out.kit = {files: [...new Set(log.map(e => e.file))], same: log.length === p.length && log.every((e, i) => Math.abs(e.time - (p[i].time + t0)) < 1e-9 && e.start === e.time && e.kind === p[i].kind)};
+      // stop() while start() is still waiting (the files loading, the audio unlocking): that start never plays
+      L = __live(para[0], para[1], {bpm: 60, reps: Infinity});
+      const early = L.player.start();
+      L.player.stop();
+      const ok = await early;
+      await new Promise(res => setTimeout(res, 200));
+      out.early = {ok, playing: L.player.playing(), ended: L.got.ended, made: L.made.length};
       // a listening microphone: refused
       const had = Arcade.Pitch; Arcade.Pitch = Object.assign({}, had || {}, {listening: () => true});
       L = __live(para[0], para[1]);
@@ -246,6 +253,7 @@ test.describe('rudiment player: live', () => {
     r.stop.stops.forEach(s => expect(s).toBeLessThanOrEqual(r.stop.now + .03 + 1e-9));
     expect([r.stop.playing, r.stop.ended, r.stop.sources]).toEqual([false, 1, 0]);
     expect(r.hidden).toEqual({playing: false, ended: 1});
+    expect(r.early).toEqual({ok: false, playing: false, ended: 1, made: 0});
     expect(r.kit).toEqual({files: ['kit'], same: true});
     expect([r.refused, r.refusedPlaying]).toEqual([false, false]);
     watch.check();
