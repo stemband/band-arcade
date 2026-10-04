@@ -18,7 +18,7 @@
    twinkles. A slow device (game.js marks it): the far layer only. Colors: theme tokens only (--bt-* in theme.css).
      const bd = Arcade.BlocktaveBackdrop.create({col})        col(token) → a color
      bd.draw(ctx, view)   view = {VW, VH, WPX, S, camX, camY, open(x, y) (an open tile?), day (0 night … 1 day), dusk (0–1: sunrise/sunset), now,
-                                  still (no motion), low (far layer only), world, top(x), seed,
+                                  still (no motion), low (far layer only), world, ground(x) (the GENERATED ground row), seed,
                                   layer: the player's layer ('depths' / 'peaks' show their clef)}
      bd.state()           what the last frame drew (tests) */
 window.Arcade = window.Arcade || {};
@@ -293,9 +293,10 @@ window.Arcade = window.Arcade || {};
       }
       ctx.globalAlpha = 1;
     }
-    /* the cave backdrop is copied only behind OPEN tiles under the ground (the rock tiles hide the rest): one small 1:1
-       copy per tile from the cave texture (2 × 2 copies of the tile, so every tile-sized piece is one rectangle), fading
-       in over the caveDepth rows under each column's ground */
+    /* the cave backdrop is copied only behind OPEN tiles under the GENERATED ground (v.ground: world.js w.ground, fixed
+       whatever the player digs, so a shaft or a mined tunnel shows cave rock, never the outside layers; the rock tiles hide
+       the rest): one small 1:1 copy per tile from the cave texture (2 × 2 copies of the tile, so every tile-sized piece is
+       one rectangle), fading in over the caveDepth rows under each column's generated ground */
     function drawCave(ctx, set, v, camPX, camPY) {
       const D = BD(), R = window.BT_RULES, S = v.S, W = v.WPX, x0 = Math.floor(v.camX), y0 = Math.floor(v.camY);
       const cols = Math.ceil(v.VW / S) + 2, rows = Math.ceil(v.VH / S) + 2, depth = R.light.caveDepth;
@@ -303,14 +304,14 @@ window.Arcade = window.Arcade || {};
       const tiles = [];
       for (let i = 0; i < cols; i++) {
         const x = x0 + i; if (x < 0 || x >= v.world.w) continue;
-        const t = v.top(x);
+        const t = v.ground ? v.ground(x) : v.top(x);                        // the GENERATED ground: digging never moves it
         for (let j = Math.max(0, t + 1 - y0); j < rows; j++) {
           const y = y0 + j; if (y >= v.world.h) break;
-          if (v.open(x, y)) tiles.push([(x - v.camX) * S, (y - v.camY) * S, y - t]);
+          if (v.open(x, y)) tiles.push([(x - v.camX) * S, (y - v.camY) * S, y - t, x, y]);
         }
       }
       if (tiles.length) {
-        out.drawn = true; out.tiles = tiles.length;
+        out.drawn = true; out.tiles = tiles.length; out.cells = tiles;
         set.forEach(([id, a]) => {
           if (a <= .001) return;
           const c = caveFor(id, v);
@@ -333,7 +334,8 @@ window.Arcade = window.Arcade || {};
       ctx.globalAlpha = 1;
       return out;
     }
-    return {draw, state: () => last, reset() { size = ''; }};
+    // (state().cave.at: the tiles the cave was drawn behind last frame, as "x,y" (tests; built only when asked))
+    return {draw, state: () => Object.assign({}, last, last.cave ? {cave: Object.assign({}, last.cave, {cells: undefined, at: (last.cave.cells || []).map(c => c[3] + ',' + c[4])})} : {}), reset() { size = ''; }};
   }
   const mod = (a, n) => ((a % n) + n) % n;
   const smooth = t => t * t * (3 - 2 * t);
