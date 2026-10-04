@@ -2,14 +2,14 @@
    JavaScript error, no console error, no missing local file, no request to an outside host, and no visible button
    sticking out of the screen sideways. All @quick (QUICK CHECK). */
 const {test, expect} = require('@playwright/test');
-const {prepare, offscreen, VIEWPORTS} = require('./helpers');
+const {prepare, device, offscreen, VIEWPORTS} = require('./helpers');
 const {PAGES} = require('./pages');
 
 const SIZES = Object.entries(VIEWPORTS);
 
 for (const P of PAGES) {
   test(`smoke: ${P.name}`, {tag: '@quick'}, async ({page}, info) => {
-    const watch = await prepare(page);
+    const watch = await prepare(page, P.member ? {store: device(P.member)} : undefined);
     await page.setViewportSize((P.sizes || SIZES)[0][1]);
     // every file the page asks for has arrived (and its errors would have shown): nothing loading for 500 ms
     await page.goto(P.url, {waitUntil: 'networkidle'});

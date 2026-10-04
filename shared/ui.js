@@ -266,6 +266,8 @@ window.Arcade = window.Arcade || {};
     const g = (A.ALL_GAMES || A.GAMES || []).find(x => x.id === gameId);
     // games.js noPlay with block: true (Sustain Speedway: bells and snare can't hold a long tone): back to Select Player
     if (A.blockedBy(g, A.store.player)) { location.replace(A.playerLink(gameId) + '&need=noplay'); return null; }
+    // games.js fit with block: true (the Rudiment Trainer: snare and bells only): back to Select Player with its `why`
+    if (g && g.fit && g.fit.block && !A.gameFit(g, A.store.player).ok) { location.replace(A.playerLink(gameId) + '&need=fit'); return null; }
     if (inst.pitched === false && !(g && g.unpitched)) { location.replace(A.playerLink(gameId) + '&need=pitched'); return null; }
     return inst;
   };

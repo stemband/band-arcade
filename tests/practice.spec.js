@@ -85,7 +85,7 @@ test.describe("Today's Practice: the plan", () => {
     watch.check();
   });
 
-  test('the warm-up: trumpet = the Tuner, bells = a Scale Trainer scale, snare = the Metronome', async ({page}) => {
+  test('the warm-up: trumpet = the Tuner, bells = a Scale Trainer scale, snare = the rudiment of the day', async ({page}) => {
     const watch = await prepare(page);
     await lobby(page); await ready(page);
     const t = await plan(page, MON, 'trumpet'), b = await plan(page, MON, 'bells'), s = await plan(page, MON, 'snare');
@@ -94,7 +94,7 @@ test.describe("Today's Practice: the plan", () => {
     expect(b[0].game).toBe('scale-trainer');
     expect(b[0].title).toMatch(/^Warm up: the concert [A-G][♭♯]? scale — Scale Trainer$/);
     expect(b[1].game).toBe('chime-heist');                 // scales day: Scale Trainer is already the warm-up
-    expect(s[0].tool).toBe('metronome');
+    expect([s[0].tool, s[0].game, s[0].rudiment]).toEqual([undefined, 'rudiment-trainer', 'five-stroke-roll']);   // day 63: warmUps[63 % 12] = #7
     expect(s.every(x => x.game !== 'scale-trainer')).toBe(true);
     // the assigned Lost Signal doesn't suit the snare: the day's turn in `play` (day 63 of the rotation: 63 % 5 = 3)
     expect(s[2].title).toBe('Play: Keys to the City');
@@ -162,10 +162,58 @@ test.describe("Today's Practice: checking off", () => {
     expect(s).toBeGreaterThanOrEqual(120);
     expect(s).toBeLessThan(126);
     await lobby(page); await ready(page);
-    expect(await page.evaluate(() => Arcade.Practice.today()[0])).toMatchObject({tool: 'metronome', done: true});
+    expect(await page.evaluate(() => Arcade.Practice.today()[0])).toMatchObject({game: 'rudiment-trainer', done: true});   // the old metronome check still counts
     // a ladder climbed to its goal counts too (another day)
     expect(await page.evaluate(() => { const t = Arcade.store.gameData('tuneup'); t.ladderTop = {'2026-10-06': 1}; Arcade.store.saveGameData('tuneup');
       return Arcade.Practice.plan(new Date('2026-10-06T12:00:00'), 'snare')[0].done; })).toBe(true);
+    watch.check();
+  });
+});
+
+test.describe("Today's Practice: the Rudiment Trainer", () => {
+  const FRI = '2026-10-09';
+  const shift = (day, n, k) => Array.from({length: n}, (_, i) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() + k * i); return d.toISOString().slice(0, 10); });
+  const weeksFrom = (day, n) => shift(day, n, 7), daysFrom = (day, n) => shift(day, n, 1);
+  test('the snare\'s warm-up is the RUDIMENT OF THE DAY: by date, its ?r= link, done by 2 minutes of playing along or by the metronome', async ({page}) => {
+    const watch = await prepare(page, {store: device('snare')});
+    await lobby(page); await ready(page);
+    const days = daysFrom(MON, 14);
+    const got = await page.evaluate(ds => ds.map(d => { const s = Arcade.Practice.plan(new Date(d + 'T12:00:00'), 'snare')[0]; return [s.game, s.rudiment, s.query && s.query.r, s.task]; }), days);
+    const want = await page.evaluate(([n0, k]) => { const P = Arcade.Practice.PRACTICE, R = Arcade.Rudiments;
+      return Array.from({length: k}, (_, i) => R.LIST.find(r => r.n === P.warmUps[(n0 + i) % P.warmUps.length])); }, [63, days.length]);
+    expect(got).toEqual(want.map(r => ['rudiment-trainer', r.id, r.id, `Rudiment of the day: ${r.name}`]));
+    expect(await page.evaluate(() => Arcade.Practice.PRACTICE.warmUps)).toEqual([1, 16, 20, 7, 31, 21, 5, 22, 32, 24, 4, 34]);
+    expect(await page.evaluate(() => [Arcade.Practice.RUDIMENT_S, Arcade.Rudiments.PRACTICE_S])).toEqual([120, 120]);   // one number in two files
+    // its card line names it, and the step opens that rudiment's page (?r=)
+    await expect(page.locator('#practiceCard .pr-step').first()).toContainText('Rudiment of the day: Five Stroke Roll');
+    await page.locator('#practiceCard .pr-step').first().click();
+    await page.waitForURL(/rudiment-trainer\/index\.html\?.*r=five-stroke-roll/);
+    await page.waitForFunction(() => Arcade.RudimentTrainer && Arcade.RudimentTrainer.state().screen === 'page');
+    expect(await page.evaluate(() => Arcade.RudimentTrainer.state().cur)).toBe('five-stroke-roll');
+    // done: 2 minutes of playing along today (119 s is not yet), or the old metronome check
+    await lobby(page); await ready(page);
+    const done = (playS, metroS) => page.evaluate(([p, m, d]) => {
+      const S = Arcade.store; S.gameData('rudiment-trainer').playS = {[d]: p}; S.gameData('tuneup').metroS = {[d]: m}; S.saveGameData('rudiment-trainer');
+      return Arcade.Practice.plan(new Date(d + 'T12:00:00'), 'snare')[0].done; }, [playS, metroS, MON]);
+    expect(await done(119, 0)).toBe(false);
+    expect(await done(120, 0)).toBe(true);
+    expect(await done(0, 120)).toBe(true);
+    watch.check();
+  });
+
+  test('technique: the Rudiment Trainer first for snare and bells (never twice in a plan); winds and brass unchanged', async ({page}) => {
+    const watch = await prepare(page);
+    await lobby(page); await ready(page);
+    const step2 = (m, d) => page.evaluate(([mm, dd]) => Arcade.Practice.plan(new Date(dd + 'T12:00:00'), mm).map(s => s.game), [m, d]);
+    expect(await page.evaluate(() => Arcade.Practice.PRACTICE.skills.technique.games[0])).toBe('rudiment-trainer');
+    for (const d of weeksFrom(FRI, 4)) {
+      expect((await step2('bells', d))[1], `bells ${d}`).toBe('rudiment-trainer');
+      const sn = await step2('snare', d);
+      expect(sn[0], `snare ${d}`).toBe('rudiment-trainer');                // the warm-up…
+      expect(sn[1], `snare ${d}`).toBe('chime-heist');                     // …so step 2 moves on (the first fallback that suits)
+      const w = await page.evaluate(dd => Arcade.Practice.weekNo(new Date(dd + 'T12:00:00')), d);
+      for (const m of ['trumpet', 'flute', 'tuba']) expect((await step2(m, d))[1], `${m} ${d}`).toBe(['button-masher', 'sustain-speedway'][w % 2]);
+    }
     watch.check();
   });
 });

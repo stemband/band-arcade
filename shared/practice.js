@@ -16,6 +16,8 @@
        skipped. (An old-style plain list, reading: ['note-storm', …], still works: it counts as `games`.)
      - The PLAY step: `play` = the games that take turns DAY BY DAY when nothing is ASSIGNED (shared/featured.js);
        an assigned game always replaces it.
+     - The snare's warm-up: `warmUps` = the RUDIMENT OF THE DAY list (PAS numbers 1–40, taking turns day by day) and
+       `rudimentS` = the seconds of playing along that finish it.
      - Restart the cycle (a new semester): `rotationStart`, a Monday ('2026-08-03'). Weeks and days are counted from
        it, so every device shows the same games on the same day.
      - The card's ▲ (hide it): `reopenDaily: true` = a hidden card opens again the next day, so each day's new plan is
@@ -23,8 +25,10 @@
 
    THE 3 STEPS (plan(date, member)):
      1. WARM UP  winds & brass: TUNE UP → TUNER, fill one HOLD IT ring today (gameData('tuneup').holds[day] ≥ 1);
-                 bells: the day's scale in Scale Trainer (a finished round); snare: TUNE UP → METRONOME, 2 minutes today
-                 (gameData('tuneup').metroS[day] ≥ metroS) or a Tempo Ladder climbed to its goal (ladderTop[day]).
+                 bells: the day's scale in Scale Trainer (a finished round); snare: THE RUDIMENT OF THE DAY in the Rudiment
+                 Trainer (`warmUps`: PAS numbers taking turns day by day from rotationStart; opened with ?r=<id>), done at
+                 `rudimentS` seconds of playing along today (gameData('rudiment-trainer').playS[day]) OR the old check:
+                 TUNE UP → METRONOME 2 minutes (metroS[day] ≥ 120) or a Tempo Ladder climbed to its goal (ladderTop[day]).
      2. SKILL    the day's skill (`days`, or the `today` override). THE WEEKLY ROTATION: w = whole weeks from
                  `rotationStart` to the date's Monday (0 before it); the step = suitable[w % suitable.length], where
                  suitable = the skill's `games` that suit the member (gameFit); none suits = the first suitable
@@ -71,12 +75,18 @@ window.Arcade = window.Arcade || {};
       rhythm:    {games: ['rhythm-dojo', 'showtime-malfunction']},
       reading:   {games: ['note-storm', 'ghost-notes', 'note-ninja'], fallback: ['ancient-ninja-scrolls']},
       ear:       {games: ['lost-signal', 'vanishing-ink'],            fallback: ['showtime-malfunction']},
-      technique: {games: ['button-masher', 'sustain-speedway'],       fallback: ['chime-heist', 'showtime-malfunction']},
+      technique: {games: ['rudiment-trainer', 'button-masher', 'sustain-speedway'], fallback: ['chime-heist', 'showtime-malfunction']},
     },
     // Step 3 (PLAY) when nothing is ASSIGNED: these take turns DAY by day (school days and weekends alike).
     play: ['music-highway', 'blocktave', 'arcade-quest', 'keys-to-the-city', 'chime-heist'],
     // The rotation counts weeks (and days) from this Monday, so every device agrees. Change it to restart the cycle.
     rotationStart: '2026-08-03',
+    // THE SNARE'S WARM-UP = THE RUDIMENT OF THE DAY in the Rudiment Trainer: these PAS numbers take turns DAY BY DAY
+    // (counted from rotationStart), easier ones first. Edit freely (numbers 1–40; rudiment-trainer/rudiments.js).
+    warmUps: [1, 16, 20, 7, 31, 21, 5, 22, 32, 24, 4, 34],
+    // seconds of playing along in the Rudiment Trainer today that finish the snare's warm-up (the old 2 minutes of
+    // metronome, or a Tempo Ladder, still count too). The same number as rudiment-trainer/rudiments.js PRACTICE_S.
+    rudimentS: 120,
     // The card's ▲ hides it to a slim bar. true = it opens again the next day (so each day's new plan is seen once);
     // false = it stays hidden until the student opens it.
     reopenDaily: true,
@@ -181,6 +191,12 @@ window.Arcade = window.Arcade || {};
     if (!F || !F.game || (F.until && key > String(F.until))) return null;
     return floorGame(F.game);
   }
+  /** the snare's RUDIMENT OF THE DAY: PRACTICE.warmUps (PAS numbers) taking turns day by day from rotationStart
+      (rudiment-trainer/rudiments.js, loaded by the floor page before this file; null without it) */
+  function dayRudiment(date) {
+    const R = A.Rudiments, list = (PRACTICE.warmUps || []).map(n => R && R.LIST.find(r => r.n === n)).filter(Boolean);
+    return list.length ? list[dayIndex(date) % list.length] : null;
+  }
   /** the bells' scale of the day: the Middle School audition scales in turn (shared/scales.js AUDITION_ORDER) */
   function dayScale(date) {
     const S = A.Scales, list = (S && S.AUDITION_ORDER && S.AUDITION_ORDER.ms) || ['F', 'Bb', 'Eb', 'Ab'];
@@ -197,8 +213,13 @@ window.Arcade = window.Arcade || {};
     // 1. WARM UP
     if (kind === 'winds') steps.push({tool: 'tuner', game: 'note-checker', task: `Hold a note in tune for ${HOLD_S} seconds`,
       title: `Warm up: hold a note in tune for ${HOLD_S} seconds`, why: 'Tune Up → Tuner: fill one HOLD IT ring'});
-    else if (kind === 'snare') steps.push({tool: 'metronome', game: 'note-checker', task: `Play along with the metronome for ${METRO_S / 60} minutes`,
-      title: `Warm up: play along with the metronome for ${METRO_S / 60} minutes`, why: 'Tune Up → Metronome (or climb a Tempo Ladder)'});
+    else if (kind === 'snare') {
+      const r = dayRudiment(date), g = floorGame('rudiment-trainer');
+      if (r && g && suits(g, memberId)) steps.push({game: g.id, rudiment: r.id, query: {r: r.id}, task: `Rudiment of the day: ${r.name}`,
+        title: `Warm up: rudiment of the day — ${r.name}`, why: `Play along for ${PRACTICE.rudimentS / 60} minutes (or the Tune Up metronome)`});
+      else steps.push({tool: 'metronome', game: 'note-checker', task: `Play along with the metronome for ${METRO_S / 60} minutes`,
+        title: `Warm up: play along with the metronome for ${METRO_S / 60} minutes`, why: 'Tune Up → Metronome (or climb a Tempo Ladder)'});
+    }
     else {
       const sc = dayScale(date), g = floorGame('scale-trainer');
       if (g && suits(g, memberId)) steps.push({game: g.id, task: `Play the concert ${sc} scale`, title: `Warm up: the concert ${sc} scale — ${g.name}`, why: 'Any finished round counts'});
@@ -226,12 +247,16 @@ window.Arcade = window.Arcade || {};
     return steps.map((s, i) => Object.assign({step: i + 1, word: WORDS[i]}, s, {done: doneOn(s, key)}));
   }
 
-  /** is a step done on that day? a game: a round FINISHED there (the log's f); Tune Up: its own daily logs */
+  /** the metronome's daily check: 2 minutes or a Tempo Ladder climbed to its goal */
+  const metroDone = key => { const t = st().gameData('tuneup') || {}; return ((t.metroS || {})[key] || 0) >= METRO_S || ((t.ladderTop || {})[key] || 0) >= 1; };
+  /** is a step done on that day? a game: a round FINISHED there (the log's f); Tune Up: its own daily logs; the snare's
+      rudiment of the day: rudimentS seconds of playing along in the Rudiment Trainer that day, or the old metronome check */
   function doneOn(s, key) {
+    if (s.rudiment) return (((st().gameData('rudiment-trainer') || {}).playS || {})[key] || 0) >= PRACTICE.rudimentS || metroDone(key);
     if (s.tool) {
       const t = st().gameData('tuneup') || {};
       if (s.tool === 'tuner') return ((t.holds || {})[key] || 0) >= 1;
-      if (s.tool === 'metronome') return ((t.metroS || {})[key] || 0) >= METRO_S || ((t.ladderTop || {})[key] || 0) >= 1;
+      if (s.tool === 'metronome') return metroDone(key);
       return false;
     }
     return !!((st().activityOn(key).f || {})[s.game]);
@@ -320,7 +345,7 @@ window.Arcade = window.Arcade || {};
     const g = floorGame(s.game);
     if (!g) return;
     try { if (A.gameFit(g, st().player).ok) sessionStorage.setItem(PICK, g.id); } catch (e) { /* private mode */ }
-    onGame(g, 'lobby');
+    onGame(g, 'lobby', s.query || null);                          // the rudiment of the day: ?r=<id>
   }
 
   /** the PRACTICE PRO plate's line in the Locker: "2 of 4 practice days this week" */
@@ -335,7 +360,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('pageshow', e => { if (e.persisted) st().reload(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) st().reload(); });
 
-  A.Practice = {PRACTICE, SKILL_NAMES, METRO_S, PICK, plan, today, week, settle, stamped, open, proProgress, kindOf, weakest, dayScale,
+  A.Practice = {PRACTICE, SKILL_NAMES, METRO_S, PICK, dayRudiment, get RUDIMENT_S() { return PRACTICE.rudimentS; }, plan, today, week, settle, stamped, open, proProgress, kindOf, weakest, dayScale,
     collapsed, setCollapsed,
     rotationPick, weekNo, dayIndex,
     get bonus() { return PRACTICE.bonus; },

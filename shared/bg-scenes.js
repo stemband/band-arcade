@@ -544,6 +544,51 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* THE RUDIMENT TRAINER: a drumline practice room at night. A dim wall of acoustic panels, a wood floor, a marching
+     snare on its stand at the left edge (white shell, gold hoops, silver rods) and a practice pad with two crossed
+     sticks on a stool at the right; the gold hoops' glint breathes very slowly (3 s), dust drifts in a spotlight. The
+     middle stays dark for the menu. */
+  S.drumline = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .74;
+    vgrad(x, W, H, [[0, col('rt-night-2')], [.72, mix('rt-night-2', 'floor-3', .3)], [.74, col('dd-wood')], [1, col('deep')]]);
+    // the acoustic panels on the wall
+    const n = 9, pw = W / n;
+    for (let i = 0; i < n; i++) {
+      x.fillStyle = mix('rt-night-2', 'floor-3', .25 + .1 * (i % 2)); x.fillRect(i * pw + pw * .08, H * .12, pw * .84, H * .5);
+      x.strokeStyle = col('rt-night', .8); x.lineWidth = Math.max(1, m / 300);
+      for (let j = 1; j < 5; j++) { x.beginPath(); x.moveTo(i * pw + pw * .08, H * (.12 + .1 * j)); x.lineTo(i * pw + pw * .92, H * (.12 + .1 * j)); x.stroke(); }
+    }
+    x.strokeStyle = col('dd-wood-line', .35); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * W / 12, fy); x.lineTo(W / 2 + (i * W / 12 - W / 2) * 1.5, H); x.stroke(); }
+    const breath = .5 + .5 * Math.sin(t * TAU / 3);
+    // the spotlight cones over each edge
+    glow(x, W * .1, H * .55, m * .5, col('rt-rim', .08), col('rt-rim', 0));
+    glow(x, W * .9, H * .6, m * .45, col('rt-rim', .07), col('rt-rim', 0));
+    // the marching snare on its stand (left)
+    const sx = W * .1, dw = m * .36, dh = m * .16, top = H * .5;
+    x.strokeStyle = col('rt-rim-2'); x.lineWidth = m * .012; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(sx, top + dh); x.lineTo(sx, fy + H * .04); x.moveTo(sx, fy); x.lineTo(sx - dw * .4, fy + H * .1); x.moveTo(sx, fy); x.lineTo(sx + dw * .4, fy + H * .1); x.stroke();
+    x.fillStyle = col('rt-shell', .92); x.fillRect(sx - dw / 2, top, dw, dh);
+    x.fillStyle = col('rt-gold', .75 + .25 * breath); x.fillRect(sx - dw / 2 - m * .01, top - m * .02, dw + m * .02, m * .028); x.fillRect(sx - dw / 2 - m * .01, top + dh - m * .008, dw + m * .02, m * .028);
+    glow(x, sx, top, dw * .7, col('rt-gold', .06 + .1 * breath), col('rt-gold', 0));
+    x.strokeStyle = col('rt-rim-2', .9); x.lineWidth = Math.max(1, m * .006);
+    for (let j = 0; j < 5; j++) { const rx = sx - dw / 2 + dw * (j + .5) / 5; x.beginPath(); x.moveTo(rx, top + m * .01); x.lineTo(rx, top + dh - m * .01); x.stroke(); }
+    // the practice pad with crossed sticks on a stool (right)
+    const px = W * .9, py = H * .64, r = m * .14;
+    x.strokeStyle = col('dd-wood-line'); x.lineWidth = m * .014;
+    x.beginPath(); x.moveTo(px - r * .6, py + r * .3); x.lineTo(px - r * .8, fy + H * .1); x.moveTo(px + r * .6, py + r * .3); x.lineTo(px + r * .8, fy + H * .1); x.stroke();
+    x.fillStyle = col('rt-pad'); x.beginPath(); x.ellipse(px, py, r, r * .45, 0, 0, TAU); x.fill();
+    x.strokeStyle = col('rt-rim', .8); x.lineWidth = m * .006; x.stroke();
+    x.fillStyle = col('rt-gum'); x.beginPath(); x.ellipse(px, py - r * .04, r * .68, r * .3, 0, 0, TAU); x.fill();
+    x.strokeStyle = col('rt-stick'); x.lineWidth = m * .014;
+    x.beginPath(); x.moveTo(px - r * 1.1, py - r * .9); x.lineTo(px + r * .5, py - r * .05); x.moveTo(px + r * 1.1, py - r * .9); x.lineTo(px - r * .5, py - r * .05); x.stroke();
+    // dust in the light
+    for (let i = 0; i < 16; i++) {
+      const dx = (fract(hash(i + 60) + t * (.005 + .004 * hash(i + 61))) * 1.1 - .05) * W, dy = H * (.1 + .6 * fract(hash(i + 62) - t * (.01 + .006 * hash(i + 63))));
+      x.fillStyle = col('rt-shell', .08 + .1 * hash(i + 64)); x.beginPath(); x.arc(dx, dy, m * .003, 0, TAU); x.fill();
+    }
+  };
+
   /* SCALE TRAINER: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
      stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
      The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
@@ -1154,7 +1199,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

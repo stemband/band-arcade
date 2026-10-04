@@ -25,7 +25,8 @@ const PAGES = [
       await page.locator('#prizeSign').click();
       await page.locator('#prizes .pz-s-season .pz-prize').first().waitFor();
     }},
-  ...games.map(g => ({name: g.tool ? `${g.name} (tool)` : g.name, url: `${g.id}/index.html`, game: g})),
+  // (a game only some instruments can open, games.js fit {only, block}: opened as the first of them, e.g. the snare)
+  ...games.map(g => ({name: g.tool ? `${g.name} (tool)` : g.name, url: `${g.id}/index.html`, game: g, member: g.fit && g.fit.block && g.fit.only ? g.fit.only[0] : undefined})),
   // TUNE UP's other two tools (the Note Checker tab is the tool's own entry above)
   {name: 'Tune Up: Tuner', url: 'note-checker/index.html?tool=tuner'},
   {name: 'Tune Up: Metronome', url: 'note-checker/index.html?tool=metronome', open: async page => {

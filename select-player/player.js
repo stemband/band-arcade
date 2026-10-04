@@ -14,7 +14,7 @@
                                                       no Player 2; forGame (optional) dims the instruments that game
                                                       doesn't suit (games.js `fit`); onDone(memberId) instead of a game
      Arcade.SelectView.close()                        tear it down (every listener it added goes with it)
-   The URL is index.html?game=<id>[&players=2][&need=pitched|noplay]; select-player/index.html?game=<id> redirects
+   The URL is index.html?game=<id>[&players=2][&need=pitched|noplay|fit]; select-player/index.html?game=<id> redirects
    there. Links from here are relative to the site root. */
 (function (A) {
   "use strict";
@@ -87,14 +87,17 @@
   /* an unpitched player (the Snare Drum) only plays games marked `unpitched: true` in games.js, and games.js
      `noPlay` with `block: true` rules out more (Sustain Speedway: bells and snare can't hold a long tone) */
   const blocked = id => !pick && A.blockedBy(game, id);
+  // games.js fit with block: true (the Rudiment Trainer): only the instruments it suits can open it
+  const unfit = id => !pick && !!(game.fit && game.fit.block) && !A.gameFit(game, id).ok;
   // pick mode: every instrument, except the ones the game the student wants doesn't suit (games.js fit)
-  const canPlay = id => pick ? !forGame || A.gameFit(forGame, id).ok : !blocked(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
+  const canPlay = id => pick ? !forGame || A.gameFit(forGame, id).ok : !blocked(id) && !unfit(id) && (game.unpitched || !(info(id) && info(id).pitched === false));
   const np = (!pick && game.noPlay) || {};
-  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (pick ? A.gameFit(forGame, t.dataset.id).tag : blocked(t.dataset.id) ? np.label : 'try Showtime Malfunction')); } });
+  tiles.forEach(t => { if (!canPlay(t.dataset.id)) { t.classList.add('no-play'); t.setAttribute('aria-label', t.getAttribute('aria-label') + '. Not for this game: ' + (pick ? A.gameFit(forGame, t.dataset.id).tag : blocked(t.dataset.id) ? np.label : unfit(t.dataset.id) ? game.fit.tag : 'try Showtime Malfunction')); } });
   const gameLinkHTML = id => { const g = A.GAMES.find(x => x.id === id); return g ? `<a href="${A.startLink(g, ROOT)}">${g.name}</a>` : ''; };
   const snareMsg = id => {
     $('spMsg').hidden = false;
     if (pick) { const f = A.gameFit(forGame, id); $('spMsg').innerHTML = `<b>${f.tag || ''}</b> ${f.why || ''}`; return; }
+    if ((id && unfit(id)) || opts.need === 'fit') { $('spMsg').innerHTML = `<b>${game.fit.tag || ''}</b> ${game.fit.why || ''}`; return; }
     if ((id && blocked(id)) || opts.need === 'noplay') {      // games.js noPlay.block: its own message, with links
       const links = (np.games || [np.game]).map(gameLinkHTML).filter(Boolean);
       $('spMsg').innerHTML = `<b>${np.label}</b> Pick an instrument that can hold a long note for this game.${links.length ? ` Or go to ${links.join(' or ')}.` : ''}`;
@@ -108,7 +111,7 @@
   const saved = A.store.player, pending = A.store.pending;
   let cur = Math.max(0, ids.indexOf(saved && canPlay(saved) ? saved : 'flute'));
   $('continue').hidden = true; $('continue').querySelector('.c-label').textContent = 'Continue as';
-  if (/^(pitched|noplay)$/.test(opts.need || '') || (saved && !canPlay(saved))) snareMsg(saved);
+  if (/^(pitched|noplay|fit)$/.test(opts.need || '') || (saved && !canPlay(saved))) snareMsg(saved);
   if (saved && canPlay(saved)) {
     $('continue').hidden = false;
     $('continueName').textContent = info(saved).short;

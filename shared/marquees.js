@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -783,6 +783,36 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
+    /* THE RUDIMENT TRAINER, a drumline practice room. colors: [gold hoops + stroke glow, silver rims, night]. A dark
+       room with a few spotlight cones, a marching snare at each end of the sign (white shell, gold hoops, silver rods)
+       and two sticks taking turns on each head, R L R L: a stroke lands about 1.4 times a second per drum, its soft gold
+       glow swelling and fading (never a flash), the two drums alternating. */
+    drumline: {
+      colors: ['rt-gold', 'rt-rim', 'rt-night'], still: .2,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok('rt-night-2')], [1, tok(c[2])]]); x.fillRect(0, 0, W, H);
+        // soft spotlight cones from above
+        for (let i = 0; i < 4; i++) { const sx = W * (.2 + .2 * i); glow(x, sx, -H * .1, H * 1.1, c[1], .05 + .03 * Math.sin(t * .6 + i)); }
+        // the drums at the ends
+        const rate = 1.4;
+        [[W * .1, 0], [W * .9, 1]].forEach(([dx, k]) => {
+          const dw = H * .62, dh = H * .4, cy = H * .62, top = cy - dh / 2;
+          x.fillStyle = tok('rt-shell'); x.fillRect(dx - dw / 2, top, dw, dh);
+          x.fillStyle = tok(c[0]); x.fillRect(dx - dw / 2 - H * .02, top - H * .04, dw + H * .04, H * .06); x.fillRect(dx - dw / 2 - H * .02, top + dh - H * .02, dw + H * .04, H * .06);
+          x.strokeStyle = tok('rt-rim-2'); x.lineWidth = Math.max(1, H * .015);
+          for (let j = 0; j < 4; j++) { const rx = dx - dw / 2 + dw * (j + .5) / 4; x.beginPath(); x.moveTo(rx, top + H * .02); x.lineTo(rx, top + dh - H * .02); x.stroke(); }
+          // the sticks: R and L take turns; the drums alternate
+          const ph = wrap(t * rate + k * .5, 2), hand = ph < 1 ? 0 : 1, f = ph - Math.floor(ph), hit = Math.exp(-f * 3);
+          glow(x, dx, top - H * .04, dw * .8, c[0], .08 + .3 * hit);
+          [-1, 1].forEach((sd, i) => {
+            const down = i === hand ? 1 - f : 0, tipX = dx + sd * dw * .18, tipY = top - H * .06 - (1 - down) * H * .22;
+            x.strokeStyle = tok('rt-stick'); x.lineCap = 'round'; x.lineWidth = Math.max(2, H * .04);
+            x.beginPath(); x.moveTo(dx + sd * dw * .62, top - H * .5); x.lineTo(tipX, tipY); x.stroke();
+            x.fillStyle = tok('rt-stick-tip'); x.beginPath(); x.arc(tipX, tipY, Math.max(1.5, H * .03), 0, 7); x.fill();
+          });
+        });
+      },
+    },
     /* SCALE TRAINER. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
        of the sign under a warm lamp glow, and a major scale's eight notes on a faint staff between them, climbing and
        coming back down; the note being "played" swells softly and fades (about 2 notes a second, a smooth fade each,
@@ -888,7 +918,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', blocks: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', blocks: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif', drumline: '"GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)
@@ -964,7 +994,8 @@ window.Arcade = window.Arcade || {};
     // each word keeps its color: showtime = first word trim, the rest trim2 with the dead F bulb; faceoff likewise
     const two = (style === 'showtime' || style === 'faceoff') && words.length > 1;
     // taiko (Rhythm Dojo, the bamboo dojo): gold lettering (trim2) in its jade frame (trim)
-    const colorOf = wi => (style === 'taiko' ? k.cab.trim2 : two && wi > 0 ? k.cab.trim2 : k.cab.trim);
+    // drumline (the Rudiment Trainer): white lettering (trim2) in its gold frame (trim)
+    const colorOf = wi => (style === 'taiko' || style === 'drumline' ? k.cab.trim2 : two && wi > 0 ? k.cab.trim2 : k.cab.trim);
     const blockH = (F.hCoef - 2 * F.pad) * s;
     let y = H / 2 - blockH / 2, wi = 0, deadUsed = false;
     // a soft dark haze behind the letters (never over them), as on every marquee (tests measure the letters without it)
