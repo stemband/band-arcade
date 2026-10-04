@@ -69,6 +69,7 @@
 .rd-sheet svg.rs{display:block;width:100%;height:auto}
 .rd-sheet .rc{color:var(--ink);transition:opacity .4s}
 .rd-sheet .rc .rc-small,.rd-sheet .rc .rc-u{color:var(--ink-2)}
+.rd-sheet .rc .rc-big{font-size:clamp(20px,3.4vw,24px)}   /* Rhythm Dojo's beat syllables: the size they have always had (the staff draws 30) */
 .rd-sheet.cnt-fade .rc{opacity:.28}
 .rd-sheet.cnt-hide .rc{opacity:0}
 .rd-sheet .lit{color:var(--rd-lit)!important;fill:var(--rd-lit)}

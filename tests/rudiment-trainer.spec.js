@@ -200,6 +200,30 @@ test.describe('rudiment trainer: a rudiment', () => {
   });
 });
 
+test.describe('rudiment trainer: the COUNTING switch', () => {
+  test('COUNTING on: the syllables in the staff\'s dark ink on the cream card (≥ 4.5 : 1), like the sticking; off removes the row', {tag: '@quick'}, async ({page}) => {
+    const watch = await open(page, '&r=single-paradiddle');
+    await expect(page.locator('#staff text.rc-big')).toHaveCount(0);              // off by default
+    await page.locator('#countSeg button').last().click();
+    await expect(page.locator('#staff text.rc-big').first()).toBeVisible();
+    const r = await page.evaluate(() => {
+      const st = document.getElementById('staff');
+      const lum = c => { const v = (c.match(/[\d.]+/g) || []).slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+      const bg = getComputedStyle(st).backgroundColor;
+      return {bigs: [...st.querySelectorAll('text.rc-big')].map(t => getComputedStyle(t).fill), hands: [...new Set([...st.querySelectorAll('text.rs-hand')].map(t => getComputedStyle(t).fill))],
+        size: getComputedStyle(st.querySelector('text.rc-big')).fontSize, bg, ratio: ratio(getComputedStyle(st.querySelector('text.rc-big')).fill, bg)};
+    });
+    expect(r.hands.length).toBe(1);
+    r.bigs.forEach(f => expect(f).toBe(r.hands[0]));                             // the same ink as the sticking letters
+    expect(r.ratio).toBeGreaterThanOrEqual(4.5);
+    expect(r.size).toBe('30px');                                                 // the staff's own size, not the UI kit's
+    await page.locator('#countSeg button').first().click();
+    await expect(page.locator('#staff text.rc-big')).toHaveCount(0);
+    watch.check();
+  });
+});
+
 test.describe('rudiment trainer: the menu music (rudiment-trainer-menu)', () => {
   const MENU = 'rudiment-trainer-menu|select-music';                     // the track, else the arcade's select-music
   const wanted = page => page.evaluate(() => Arcade.Sfx.musicState().music.want);

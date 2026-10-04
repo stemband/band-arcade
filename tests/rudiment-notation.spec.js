@@ -34,6 +34,36 @@ async function open(page) {
   return watch;
 }
 
+test.describe('the staff\'s rc-* classes are its own', () => {
+  test('with ui-kit.css loaded, an engraved staff\'s counting takes the staff\'s color and its own font size (30); the room check keeps its look', {tag: '@quick'}, async ({page}) => {
+    const watch = await open(page);
+    const r = await page.evaluate(() => {
+      const kit = [...document.styleSheets].some(s => /shared\/ui-kit\.css/.test(s.href || ''));
+      const box = document.createElement('div');
+      box.style.color = 'rgb(10, 20, 30)';                          // a plain page: no game stylesheet around the staff
+      document.body.appendChild(box);
+      const E = Arcade.RhythmStaff.engrave(Arcade.Counting.parse('h e e q', '4/4'), {counting: true, id: 'rc-own'});
+      box.innerHTML = E.svg; Arcade.RhythmStaff.refine(box);
+      const bigs = [...box.querySelectorAll('text.rc-big')].map(t => { const c = getComputedStyle(t); return [c.fill, c.fontSize]; });
+      // the room check's own line (ui-kit.css .rc-panel .rc-big)
+      const panel = document.createElement('div'); panel.className = 'panel rc-panel'; panel.innerHTML = '<p class="rc-big">Stay quiet</p>';
+      document.body.appendChild(panel);
+      const pc = getComputedStyle(panel.querySelector('.rc-big'));
+      const hi = getComputedStyle(document.documentElement).getPropertyValue('--text-hi').trim();
+      const probe = document.createElement('i'); probe.style.color = hi; document.body.appendChild(probe);
+      return {kit, bigs, panel: {weight: pc.fontWeight, color: pc.color, size: parseFloat(pc.fontSize)}, hi: getComputedStyle(probe).color};
+    });
+    expect(r.kit).toBe(true);
+    expect(r.bigs.length).toBeGreaterThan(0);
+    r.bigs.forEach(b => expect(b).toEqual(['rgb(10, 20, 30)', '30px']));
+    expect(r.panel.weight).toBe('700');
+    expect(r.panel.color).toBe(r.hi);
+    expect(r.panel.size).toBeGreaterThanOrEqual(20);
+    expect(r.panel.size).toBeLessThanOrEqual(24);
+    watch.check();
+  });
+});
+
 test.describe('rudiment notation', () => {
   test('every example parses with its hands, accents, graces, rolls and buzzes', {tag: '@quick'}, async ({page}) => {
     const watch = await open(page);

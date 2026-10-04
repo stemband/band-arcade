@@ -40,6 +40,20 @@ test.describe('rhythm dojo', () => {
     watch.check();
   });
 
+  test('the Counting Board\'s beat syllables: the staff\'s ink on the cream sheet, at Rhythm Dojo\'s own size (20–24 px, as always)', async ({page}) => {
+    const watch = await prepare(page);
+    await page.goto('rhythm-dojo/counting.html');
+    const r = await page.evaluate(() => {
+      const sheet = document.querySelector('.rd-sheet'), big = sheet.querySelector('text.rc-big');
+      return {fill: getComputedStyle(big).fill, ink: getComputedStyle(sheet.querySelector('.rc')).color, size: parseFloat(getComputedStyle(big).fontSize),
+        want: Math.min(24, Math.max(20, innerWidth * .034)), bg: getComputedStyle(sheet).backgroundColor};
+    });
+    expect(r.fill).toBe(r.ink);                                                // never the UI kit's light text
+    expect(r.fill).not.toBe(r.bg);
+    expect(r.size).toBeCloseTo(r.want, 1);                                     // the clamp in rhythm-dojo/style.css
+    watch.check();
+  });
+
   test('the Counting Board: every example matches the counting rule', async ({page}) => {
     const watch = await prepare(page);
     await page.goto('rhythm-dojo/counting.html');
