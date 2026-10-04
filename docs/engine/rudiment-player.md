@@ -59,7 +59,7 @@ soft snare hits (`KIT`); the click = `kit.click`.
 
 ## `create(opts)`: the live player
 
-`opts` = `{parsed, bpm, beat, reps (default Infinity), countOff, click, ramp, onStroke(e), onBeat(e), onEnd()}` →
+`opts` = `{parsed, bpm, beat, reps (default Infinity), countOff, click, ramp, onStroke(e), onBeat(e), onEnd({stopped})}` (`stopped`: true = `stop()` or an interruption, false = the run ended by itself: a finite `reps` or OPEN–CLOSE–OPEN) →
 `{start(), stop(), setBpm(bpm), setClick(on), playing(), state()}`. Like the metronome: it waits for `Sfx.output()` (the
 tap unlocking the audio), loads the five buffers with `Sfx.buffer` (at most 1.5 s; whatever isn't ready plays on the
 kit), starts `AudioClock`, and a look-ahead scheduler (`lookaheadS` .15 s, every `tickMs` 25 ms) turns plan entries into
@@ -67,6 +67,7 @@ kit), starts `AudioClock`, and a look-ahead scheduler (`lookaheadS` .15 s, every
 `performance.now()`.
 - `setBpm` and `setClick` take effect at the NEXT repetition's start, never mid-pattern (during a ramp `setBpm` is
   ignored).
+- Each live entry also carries `bpm`: the tempo its repetition plays at (OPEN–CLOSE–OPEN: the tempo at that moment), so a page can count whole repetitions per tempo (the Rudiment Trainer's check-off). `state().audio` = the arcade's AudioContext is really running (not sound off, not suspended): the Rudiment Trainer's practice-time log counts only then.
 - `onStroke(e)` (every stroke and grace, not buzz copies) and `onBeat(e)` (every beat: the count-off and the click
   track's beats, sounding or not: `e.sounded`) fire at the AUDIBLE time (`AudioClock.audAt`, from a requestAnimationFrame
   loop): what the student hears is what lights.

@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko', 'blocks'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko', 'blocks', 'drumline'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -155,6 +155,23 @@ window.Arcade = window.Arcade || {};
               '<ellipse class="s-tkbody" cx="150" cy="566" rx="46" ry="24"/><ellipse class="s-tkhead" cx="150" cy="552" rx="40" ry="9"/>' +
               '<path class="s-tkband" d="M106 566Q150 584 194 566"/>',
       slots: {marquee: [34, 40, 232, 72], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
+    },
+    /* drumline: the Rudiment Trainer cabinet. Its top is a marching snare seen from the side (a white shell between two
+       gold hoops, with silver tension rods), a pair of drumsticks crossed on the lower side panels, and a practice pad
+       on the kick plate */
+    drumline: {
+      outline: 'M22 24Q22 14 32 14H268Q278 14 278 24V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H22Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 104, y: 430, w: 92, h: 90},
+      extras: '<rect class="s-shell" x="22" y="26" width="256" height="78"/>' +
+              '<rect class="s-hoop" x="20" y="18" width="260" height="12" rx="4"/><rect class="s-hoop" x="20" y="98" width="260" height="12" rx="4"/>' +
+              [44, 84, 124, 176, 216, 256].map(x => `<path class="s-rod" d="M${x} 30V98"/><rect class="s-lug" x="${x - 5}" y="56" width="10" height="16" rx="3"/>`).join('') +
+              '<path class="s-stick" d="M52 546L112 470M112 546L52 470"/><path class="s-stick" d="M188 546L248 470M248 546L188 470"/>' +
+              '<ellipse class="s-pad" cx="150" cy="566" rx="50" ry="22"/><ellipse class="s-gum" cx="150" cy="562" rx="34" ry="13"/>',
+      slots: {marquee: [34, 34, 232, 64], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
     /* audition: the Scale Trainer cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
        slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
@@ -589,6 +606,40 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = css('rd-head'); x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.fill();
         x.globalAlpha = .35 + .65 * pulse; x.strokeStyle = css('yellow'); x.lineWidth = Math.max(1.5, H * .02);
         x.beginPath(); x.ellipse(dx, dy - H * .02, W * .13, H * .04, 0, 0, 7); x.stroke(); x.globalAlpha = 1;
+      },
+    },
+    /* the Rudiment Trainer (a drumline practice room): a practice pad seen from above, two sticks taking turns on it,
+       and a single paradiddle's sticking R L R R L R L L underneath, each letter lighting in gold as its stroke lands
+       (about 4 strokes a second: a soft glow that fades, never a blink). A canvas screen (2D and 3D). */
+    drumline: {
+      html() { return `<div class="scr scr-drumline scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const STICK = 'RLRRLRLL', step = .26, tt = t == null ? step * 3.3 : t % (step * 8 + .9), k = Math.floor(tt / step), f = tt / step - k;
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css('rt-night-2')); g.addColorStop(1, css('rt-night'));
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        // the pad
+        const px = W * .5, py = H * .38, rx = W * .3, ry = H * .2;
+        x.fillStyle = css('rt-pad'); x.beginPath(); x.ellipse(px, py, rx, ry, 0, 0, 7); x.fill();
+        x.strokeStyle = css('rt-rim'); x.lineWidth = Math.max(1.5, H * .02); x.stroke();
+        x.fillStyle = css('rt-gum'); x.beginPath(); x.ellipse(px, py, rx * .68, ry * .68, 0, 0, 7); x.fill();
+        const on = k < 8 ? STICK[k] : null, hit = on ? Math.exp(-f * 3) : 0;
+        if (on) { x.globalAlpha = .25 + .5 * hit; x.fillStyle = css('rt-gold'); x.beginPath(); x.ellipse(px + (on === 'R' ? 1 : -1) * rx * .28, py, rx * .2, ry * .2, 0, 0, 7); x.fill(); x.globalAlpha = 1; }
+        // the two sticks: the one playing is down on the pad, the other up
+        [['L', -1], ['R', 1]].forEach(([hand, sd]) => {
+          const down = on === hand ? 1 - f * .8 : .2, tipX = px + sd * rx * .28, tipY = py - ry * .1 - (1 - down) * H * .22;
+          x.strokeStyle = css('rt-stick'); x.lineCap = 'round'; x.lineWidth = Math.max(2, W * .03);
+          x.beginPath(); x.moveTo(px + sd * W * .46, H * .02); x.lineTo(tipX, tipY); x.stroke();
+          x.fillStyle = css('rt-stick-tip'); x.beginPath(); x.arc(tipX, tipY, Math.max(2, W * .022), 0, 7); x.fill();
+        });
+        // the sticking
+        x.font = `700 ${H * .15}px "GN Text", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+        for (let i = 0; i < 8; i++) {
+          const lx = W * (.1 + .8 * i / 7), lit = i === k ? .4 + .6 * Math.exp(-f * 2) : 0;
+          x.fillStyle = css('rt-shell'); x.globalAlpha = .55; x.fillText(STICK[i], lx, H * .9);
+          if (lit) { x.globalAlpha = lit; x.fillStyle = css('rt-gold'); x.fillText(STICK[i], lx, H * .9); }
+          x.globalAlpha = 1;
+        }
       },
     },
     /* Blocktave: a tiny side view of the block world: the avatar walks up to a glowing Tone Ore block, a note bubble

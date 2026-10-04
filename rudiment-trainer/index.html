@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Rudiment Trainer</title>
+<meta name="description" content="The 40 drum rudiments: see them with their sticking, hear them at five tempos and play along on your drum or practice pad.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- THE PICKER: the 40 rudiments, by family -->
+  <section id="hub">
+    <div class="rt-hub-head">
+      <div class="rt-hub-art" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><ellipse class="rt-art-pad" cx="60" cy="70" rx="46" ry="30"/><ellipse class="rt-art-gum" cx="60" cy="66" rx="34" ry="21"/>
+          <path class="rt-art-stick" d="M14 16L74 64"/><path class="rt-art-stick" d="M106 16L46 64"/><circle class="rt-art-tip" cx="74" cy="64" r="5"/><circle class="rt-art-tip" cx="46" cy="64" r="5"/></svg>
+      </div>
+      <div>
+        <h1 class="game-title">Rudiment <span>Trainer</span></h1>
+        <p class="ui-howto">Pick a rudiment, see its sticking, and hear it at five tempos. Play along on your drum or practice pad, then check off each tempo you can play.</p>
+        <p class="rt-credit" id="credit"></p>
+      </div>
+    </div>
+    <div class="rt-tabs" role="tablist" aria-label="Rudiment families" id="tabs"></div>
+    <div class="rt-grid" id="grid"></div>
+  </section>
+
+  <!-- ONE RUDIMENT: the staff with its sticking, the five tempos, play along, check off -->
+  <section id="page" hidden>
+    <div class="rt-page-head">
+      <button type="button" class="btn btn-secondary btn-small rt-back" id="backBtn"><span aria-hidden="true">←</span> Rudiments</button>
+      <div class="rt-title-wrap">
+        <p class="ui-kicker" id="pgFam"></p>
+        <h2 class="rt-title" id="pgTitle"></h2>
+      </div>
+    </div>
+    <div class="stage rt-stage" id="staff"></div>
+    <div class="rt-opts">
+      <div class="rt-opt" id="viewOpt"><span class="ui-label" id="lView">Rolls</span>
+        <div class="ui-seg" role="group" aria-labelledby="lView" id="viewSeg">
+          <button type="button" data-view="slash" aria-pressed="true">Slashes</button>
+          <button type="button" data-view="written" aria-pressed="false">Written out</button>
+        </div></div>
+      <div class="rt-opt"><span class="ui-label" id="lCount">Counting</span>
+        <div class="ui-seg" role="group" aria-labelledby="lCount" id="countSeg">
+          <button type="button" data-count="off" aria-pressed="true">Off</button>
+          <button type="button" data-count="on" aria-pressed="false">On</button>
+        </div></div>
+      <div class="rt-opt"><span class="ui-label" id="lClick">Click</span>
+        <div class="ui-seg" role="group" aria-labelledby="lClick" id="clickSeg">
+          <button type="button" data-click="off" aria-pressed="true">Off</button>
+          <button type="button" data-click="on" aria-pressed="false">On</button>
+        </div></div>
+    </div>
+    <p class="ui-label rt-tier-label" id="lTier">Tempo</p>
+    <div class="rt-tiers" role="group" aria-labelledby="lTier" id="tiers"></div>
+    <div class="rt-play-row">
+      <button type="button" class="btn btn-primary btn-big rt-play" id="playBtn" aria-pressed="false">▶ Play</button>
+      <p class="rt-bpm" id="bpmNow" aria-live="off"></p>
+    </div>
+    <div class="rt-check" id="check" aria-live="polite"></div>
+  </section>
+</div>
+
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
+<script src="../shared/rudiment-player.js"></script>
+<script src="rudiments.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

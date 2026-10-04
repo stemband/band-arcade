@@ -386,8 +386,9 @@
   /* ---------- opening a game ---------- */
   const FROM = 'bandarcade.from';
   let openingT = 0;
-  const gameHref = g => A.linkTo(g.id + '/index.html');
-  function openGame(g, from) {
+  const gameHref = (g, query) => A.linkTo(g.id + '/index.html', query || {});
+  /** open a game (query: extra address parameters for its page, e.g. Today's Practice's rudiment of the day {r: id}) */
+  function openGame(g, from, query) {
     if (!g) return;
     const f = fitOf(g);
     if (!f.ok) { openFit(g); return; }
@@ -397,7 +398,7 @@
     if (!g.player && (g.players === 2 || !A.store.player || A.store.pending)) { A.Sfx.eventSoon('select-' + g.id); openSelect(g); return; }
     Q.hold('opening-game', true);                                 // nothing pops up while its START sound plays (the lobby queue)
     clearTimeout(openingT); openingT = setTimeout(() => Q.hold('opening-game', false), 6000);   // (a game that never left: a blocked link)
-    A.Sfx.playThenGo('select-' + g.id, gameHref(g));              // its START sound, then the game (the saved instrument)
+    A.Sfx.playThenGo('select-' + g.id, gameHref(g, query));       // its START sound, then the game (the saved instrument)
   }
 
   /* a game that doesn't suit this instrument: why, and SWITCH INSTRUMENT (pick mode, that game's unsuited ones dimmed) */

@@ -132,6 +132,13 @@ const STEPS = {
       await page.evaluate(() => { const D = Arcade.RhythmDojo; if (!window.__auto) { window.__auto = true; D.autoPlay(0, {persist: true}); } if (D.state().phase === 'study') document.getElementById('rdGo').click(); });
       await page.waitForTimeout(400);
     }},
+  // THE RUDIMENT TRAINER (a practice tool: no stars, no results screen): as a snare player, Level 1's card = the Single
+  // Stroke Roll; PLAY at Bronze (60) until its check-off shows (4 whole repetitions, ~12 s with the count-off), then
+  // check it off: the run is done when it is saved. SOUND OFF everywhere (its player then runs on performance.now).
+  'rudiment-trainer': {member: 'snare', store: {sfx: false}, stars: false, limit: 60_000,
+    play: async page => { await page.evaluate(() => { const T = Arcade.RudimentTrainer, s = T.state(); const c = document.getElementById('checkBtn');
+      if (c) c.click(); else if (!s.playing && s.screen === 'page') T.play(); }); await page.waitForTimeout(400); },
+    done: page => page.evaluate(() => !!((Arcade.store.gameData('rudiment-trainer').done || {})['single-stroke-roll'] || {}).bronze)},
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000, slow: true},

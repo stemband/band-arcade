@@ -75,6 +75,7 @@ Games and tools (`docs/games/`, one per game id in `shared/games.js`):
 | [vanishing-ink.md](docs/games/vanishing-ink.md) | Vanishing Ink (`vanishing-ink/`) |
 | [chime-heist.md](docs/games/chime-heist.md) | Chime Heist (`chime-heist/`) |
 | [rhythm-dojo.md](docs/games/rhythm-dojo.md) | Rhythm Dojo (`rhythm-dojo/`) |
+| [rudiment-trainer.md](docs/games/rudiment-trainer.md) | the Rudiment Trainer (`rudiment-trainer/`): the 40 rudiments, tempo check-offs, the snare's rudiment of the day |
 | [ancient-ninja-scrolls.md](docs/games/ancient-ninja-scrolls.md) | Ancient Ninja Scrolls (`ancient-ninja-scrolls/`) |
 | [button-masher.md](docs/games/button-masher.md) | Button Masher (`button-masher/`), `shared/fingerings.js`, `shared/diagrams.js` |
 | [neon-face-off.md](docs/games/neon-face-off.md) | Neon Face-Off (`neon-face-off/`) |

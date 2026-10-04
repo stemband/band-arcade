@@ -41,6 +41,9 @@
      fresh,           true = treat this as the screen appearing again even if it never looked hidden
      beside,          an element placed immediately to the LEFT of START, in the sticky heading row (Sustain Speedway's
                       GARAGE): it keeps its own listeners; Tab reaches it before START; it gets the class .ls-beside
+     heading,         the cards' heading instead of "Select your level" (the Rudiment Trainer: "Select your rudiment");
+                      also START's line until one is selected (or `need`: that line's own words)
+     voice,           false = no "Select your level" voice line (a heading that says something else)
    })  Call it every time the cards are drawn. The screen APPEARING (the first call, or the first after the screen was
        hidden) restores the choice and brings the voice line and the idle hint; a redraw while it stays up (a new note
        set) keeps the selection and updates START's line.
@@ -151,7 +154,7 @@ window.Arcade = window.Arcade || {};
   addEventListener('resize', () => placeHint());
 
   /* ---------- the two headings (one style) and the START row ---------- */
-  function headRow(grid, step) {
+  function headRow(grid, step, text) {
     let row = grid.previousElementSibling;
     if (!row || !row.classList.contains('ls-row')) {
       row = document.createElement('div');
@@ -159,7 +162,7 @@ window.Arcade = window.Arcade || {};
       row.innerHTML = '<h2 class="ls-head ui-section"></h2><div class="ls-go" aria-live="polite"></div>';
       grid.parentNode.insertBefore(row, grid);
     }
-    row.querySelector('.ls-head').innerHTML = (step ? '<span class="ls-step" aria-hidden="true">②</span> ' : '') + 'Select your level';
+    row.querySelector('.ls-head').innerHTML = (step ? '<span class="ls-step" aria-hidden="true">②</span> ' : '') + esc(text || 'Select your level');
     return row;
   }
   function notesHead(picker) {
@@ -203,7 +206,7 @@ window.Arcade = window.Arcade || {};
     const go = S.row.querySelector('.ls-go'), was = S.ready;
     S.ready = S.sel !== null;
     if (!S.ready) {
-      go.innerHTML = `<p class="ls-need">${S.picker ? 'Select your notes and level' : 'Select your level'}</p>`;
+      go.innerHTML = `<p class="ls-need">${S.picker ? 'Select your notes and level' : esc((S.opts && (S.opts.need || S.opts.heading)) || 'Select your level')}</p>`;
       S.start = null;
       beside();
     } else {
@@ -320,7 +323,7 @@ window.Arcade = window.Arcade || {};
     st.gameId = o.gameId || st.gameId || pageGame();
     st.open = i => o.unlocked ? !!o.unlocked(i) : true;
     st.lockLine = i => o.lockText ? o.lockText(i) : `Clear Level ${i} to unlock`;
-    st.row = headRow(grid, !!picker);
+    st.row = headRow(grid, !!picker, o.heading);
     notesHead(picker);
     intercept(grid, 'cards');
     if (st.endless) intercept(st.endless, 'endless');

@@ -163,7 +163,7 @@ window.Arcade = window.Arcade || {};
         if (pendClick != null) { clickOn = pendClick; pendClick = null; }
         const r = gen.rep, start = gen.start, b = bpm, T = x => start + x / C.beatTicks * 60 / b;
         clickOf[r] = clickOn;
-        const ev = repPlan(P, C, T, r, gen.prev);
+        const ev = repPlan(P, C, T, r, gen.prev).map(e => Object.assign(e, {bpm: b}));   // the tempo this repetition plays at
         const last = ev.filter(e => e.kind !== 'click' && e.kind !== 'grace' && !e.copy).pop();
         queue = queue.concat(ev).sort((x, y) => x.time - y.time);
         gen = {rep: r + 1, start: T(C.patTicks), prev: last ? last.time : gen.prev};
@@ -231,7 +231,7 @@ window.Arcade = window.Arcade || {};
         if (kit) { const k = kit; k.fade(.02); setTimeout(() => k.stopAll(), 40); }
       }
       kit = null; queue = []; vis = [];
-      if (!ended) { ended = true; if (opts.onEnd) try { opts.onEnd(); } catch (e) { setTimeout(() => { throw e; }); } }
+      if (!ended) { ended = true; if (opts.onEnd) try { opts.onEnd({stopped: !!cut}); } catch (e) { setTimeout(() => { throw e; }); } }
     }
     function stop() { finish(true); }
 
@@ -256,7 +256,7 @@ window.Arcade = window.Arcade || {};
       C.buzzLenS = buzzLenS;
       if (ramp) {
         const pl = plan(P, {ramp: opts.ramp, beat: opts.beat, countOff: opts.countOff, click: true, buzzLenS});
-        queue = pl.map(e => Object.assign({}, e, {time: e.time + t0}));
+        queue = pl.map(e => Object.assign({}, e, {time: e.time + t0, bpm: Math.round(pl.bpmAt(e.time))}));
         for (let r = -1; r < pl.reps; r++) clickOf[r] = clickOn;
         endS = t0 + pl.endS; gen = null; rampAt = t => pl.bpmAt(t - t0);
       } else {
@@ -282,6 +282,8 @@ window.Arcade = window.Arcade || {};
       playing: () => running,
       state: () => ({playing: running, bpm, click: clickOn, pendBpm, pendClick, rep: gen ? gen.rep - 1 : null, queued: queue.length,
         sources: nodes.length, log: log.slice(), endS, now: clk ? clk.now() : null, kit: !!kit,
+        /** the arcade's audio is really running (not sound off, not suspended): the practice-time log counts only then */
+        audio: !!ctx && ctx.state === 'running',
         /** the tempo heard now (a ramp's readout) */
         bpmNow: rampAt && clk ? Math.round(rampAt(clk.audAt(performance.now()))) : bpm}),
     };

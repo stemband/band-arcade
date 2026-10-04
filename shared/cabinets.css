@@ -451,3 +451,16 @@
 .shape-blocks .s-mhead{fill:var(--bt-cork);stroke:var(--bt-cork-2);stroke-width:2}
 .mq-blocks{background:linear-gradient(180deg,var(--bt-slate),var(--bt-sky-night));color:var(--u-hi);border:.12em solid var(--t);border-radius:.2em;box-shadow:var(--t-glow)}
 .scr-blocks{background:var(--bt-sky-night)}
+
+/* the Rudiment Trainer: the drumline cabinet (a marching-snare top with gold hoops and silver rods, crossed sticks, a
+   practice pad on the kick plate) */
+.mq-drumline{background:linear-gradient(180deg,var(--rt-night-2),var(--rt-night));color:var(--u-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:var(--t-glow)}
+.mq-drumline .mq-name{font-family:var(--display)}
+.shape-drumline .s-shell{fill:var(--rt-shell)}
+.shape-drumline .s-hoop{fill:var(--rt-gold);stroke:var(--rt-gold-2);stroke-width:2}
+.shape-drumline .s-rod{stroke:var(--rt-rim-2);stroke-width:3}
+.shape-drumline .s-lug{fill:var(--rt-rim);stroke:var(--rt-rim-2);stroke-width:1.5}
+.shape-drumline .s-stick{stroke:var(--rt-stick);stroke-width:7;stroke-linecap:round;opacity:.85}
+.shape-drumline .s-pad{fill:var(--rt-pad);stroke:var(--rt-rim);stroke-width:2.5}
+.shape-drumline .s-gum{fill:var(--rt-gum)}
+.scr-drumline{background:var(--rt-night)}

@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | 'snare' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -146,6 +146,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* drumline: the Rudiment Trainer cabinet: a classic body with a marching snare on the roof (a white shell, gold
+       hoops, silver tension rods) and two drumsticks crossed over its head */
+    drumline: {
+      width: 0.94, topper: 'snare',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* audition: the Scale Trainer cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
        sheet of music, on a pole), a neon edge along the desk */
     audition: {
@@ -178,7 +186,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks', drumline: 'drumline'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -211,6 +219,7 @@ window.Arcade = window.Arcade || {};
    'rd-body', 'rd-body-2', 'rd-head', 'rd-head-2', 'rd-iron', 'rd-stud', 'rd-stand',
    'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur',
    'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone',
+   'rt-shell', 'rt-rim', 'rt-gold', 'rt-stick', 'rt-night',
    'pz-peg', 'pz-peg-hole', 'pz-wood', 'pz-wood-2', 'pz-paper', 'pz-glass', 'pz-warm'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
@@ -514,6 +523,12 @@ window.Arcade = window.Arcade || {};
       const scr = A.CAB_SCREENS && A.CAB_SCREENS.blocks;
       if (scr && scr.draw) return scr.draw(x, W, H, t);
       x.fillStyle = tok['bt-sky-night']; x.fillRect(0, 0, W, H);
+    },
+    /* the Rudiment Trainer: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.drumline) */
+    drumline(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.drumline;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['rt-night']; x.fillRect(0, 0, W, H);
     },
     /* Rhythm Dojo: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.taiko) */
     taiko(x, W, H, t) {
@@ -919,6 +934,19 @@ window.Arcade = window.Arcade || {};
       drum.userData.pick = true; group.add(detail(drum));
       const wood = lambert(col('rd-stand'));
       [-1, 1].forEach(sd => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.035, .12, .16), wood); leg.position.set(sd * R0 * .75, topY + .06, fz); group.add(detail(leg)); });
+    } else if (P.topper === 'snare') {
+      // a marching snare on the roof (the Rudiment Trainer): a white shell standing upright, gold hoops top and bottom,
+      // silver tension rods around it, its head facing up with a neon ring in the cabinet's trim, two sticks crossed over it
+      const fz = frontTop + zc - .14, R0 = .2, Hs = .16, cy = topY + Hs / 2 + .03;
+      const drum = new THREE.Group(); drum.position.set(0, cy, fz);
+      drum.add(new THREE.Mesh(new THREE.CylinderGeometry(R0, R0, Hs, 24, 1), lambert(col('rt-shell'))));
+      [Hs / 2, -Hs / 2].forEach(y => { const hoop = new THREE.Mesh(new THREE.TorusGeometry(R0 + .006, .014, 6, 28), lambert(col('rt-gold'))); hoop.rotation.x = Math.PI / 2; hoop.position.y = y; drum.add(hoop); });
+      for (let j = 0; j < 10; j++) { const a = j / 10 * Math.PI * 2, rod = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, Hs * .9, 5), basic(col('rt-rim'))); rod.position.set(Math.cos(a) * (R0 + .012), 0, Math.sin(a) * (R0 + .012)); drum.add(rod); }
+      const head = new THREE.Mesh(new THREE.CircleGeometry(R0 * .97, 24), basic(col('rt-shell'))); head.rotation.x = -Math.PI / 2; head.position.y = Hs / 2 + .002; drum.add(head);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * .97, .01, 6, 28), basic(col(k.trim + '-hi'))); ring.rotation.x = Math.PI / 2; ring.position.y = Hs / 2 + .006; drum.add(ring);
+      const wood = lambert(col('rt-stick'));
+      [-1, 1].forEach(sd => { const st = new THREE.Mesh(new THREE.CylinderGeometry(.009, .012, .46, 6), wood); st.position.set(0, Hs / 2 + .05, 0); st.rotation.set(0, 0, Math.PI / 2 + sd * .5); drum.add(st); });
+      drum.userData.pick = true; group.add(detail(drum));
     } else if (P.topper === 'blocks') {
       // a little stack of neon blocks on the roof (Blocktave): dirt blocks with glowing moss tops, and a music block
       // (slate) in the middle with its cyan note glowing on the front

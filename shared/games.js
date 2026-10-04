@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
@@ -34,7 +34,8 @@
                 `why` with a button to switch instruments). Leave it out = every instrument. {only: [member ids]} or
                 {not: [member ids]} (member ids from shared/instruments.js: 'bells', 'snare', 'trumpet'…), tag (a few
                 words), why (one or two plain sentences). This only changes the lobby: the game's own page still
-                checks the instrument itself (unpitched / noPlay below).
+                checks the instrument itself (unpitched / noPlay below). + block: true = the game's own page sends the
+                others to Choose Your Instrument with `why` (&need=fit) and dims their tiles there (the Rudiment Trainer).
      tool       optional: true = not a cabinet (the Note Checker): the lobby's TUNE UP button opens it instead
      demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
      noInstrument optional: true = the game can be played all the way through WITHOUT A LIVE INSTRUMENT (touch, taps,
@@ -243,6 +244,26 @@ window.Arcade.GAMES = [
     marquee: {scene: 'taiko', colors: ['yellow', 'rd-jade', 'rd-night']},
     cabinet: {shape: 'taiko', trim: 'green', trim2: 'yellow', marquee: 'taiko', screen: 'taiko'},
     cabinet3d: {profile: 'taiko', body: 'cab-side'},
+  },
+  {
+    id: 'rudiment-trainer',
+    zones: ['technique-lab'],
+    // snare and bells only: the page itself sends the others to Choose Your Instrument with this message (block: true)
+    fit: {only: ['snare', 'bells'], tag: 'Percussion', why: 'The Rudiment Trainer is for snare drum and bells players: the 40 rudiments every percussionist learns.', block: true},
+    name: 'Rudiment Trainer',
+    bg: {scene: 'drumline', dim: .4, focus: .35},
+    skill: 'Drum rudiments',
+    blurb: 'The 40 drum rudiments: see them, hear them at five tempos, play along.',
+    maxStars: 0,                                     // a practice tool: no stars (tempos are checked off in its own gameData)
+    color: 'yellow',
+    unpitched: true,                                 // the Snare Drum plays it (the bells too: rudiments are hand patterns)
+    // the floor's line instead of a hi-score: the rudiments checked off at all five tempos (rudiment-trainer/game.js)
+    summary: store => { const d = (store.gameData('rudiment-trainer') || {}).done || {}, ids = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      const n = Object.keys(d).filter(k => ids.every(t => d[k] && d[k][t])).length;
+      return n ? `Diamond rudiments: ${n} of 40` : ''; },
+    marquee: {scene: 'drumline', colors: ['rt-gold', 'rt-rim', 'rt-night']},
+    cabinet: {shape: 'drumline', trim: 'yellow', trim2: 'white', marquee: 'drumline', screen: 'drumline'},
+    cabinet3d: {profile: 'drumline', body: 'cab-side'},
   },
   {
     id: 'ancient-ninja-scrolls',

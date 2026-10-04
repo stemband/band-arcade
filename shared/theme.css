@@ -86,6 +86,12 @@
   --tu-sky-a:#1b1446; --tu-sky-b:#3a2466; --tu-sky-c:#6b3a6e; --tu-cloud:#cdbfe8;
   --tu-env-1:#ff5aa8; --tu-env-2:#ffe14d; --tu-env-line:#2a1036; --tu-rope:#e8d9b8; --tu-wicker:#a8743c; --tu-wicker-2:#6f4a22;
   --tu-moss:#5fd88a; --tu-rock:#5a4a6e; --tu-rock-2:#3b2f4d; --tu-flag:#ffe14d; --tu-stage:#2a1a3e; --tu-stage-edge:#ffb43d;
+  /* THE RUDIMENT TRAINER (rudiment-trainer/): a drumline practice room. A marching snare's white shell, silver rims and
+     gold hoops, a gum-rubber practice pad, wooden sticks; the night behind them */
+  --rt-shell:#eef0f4; --rt-rim:#c3cad6; --rt-rim-2:#7d8698; --rt-gold:#e9b949; --rt-gold-2:#9a7322; --rt-pad:#2f343d; --rt-gum:#4a515e;
+  --rt-stick:#d9b27c; --rt-stick-tip:#f3e1bf; --rt-night:#0b0d18; --rt-night-2:#161a2c;
+  /* the five tempo levels (rudiment-trainer/rudiments.js TIERS): fills and borders on the dark floor */
+  --tier-bronze:#d0894c; --tier-silver:#c9d2de; --tier-gold:#ffd24d; --tier-platinum:#b6e3ee; --tier-diamond:#6ff3ff;
   /* THE RUDIMENT PLAYER (shared/rudiment-player.js light()): the stroke sounding now (its head and its sticking letter) */
   --rp-now:var(--yellow);
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
