@@ -86,6 +86,8 @@
   --tu-sky-a:#1b1446; --tu-sky-b:#3a2466; --tu-sky-c:#6b3a6e; --tu-cloud:#cdbfe8;
   --tu-env-1:#ff5aa8; --tu-env-2:#ffe14d; --tu-env-line:#2a1036; --tu-rope:#e8d9b8; --tu-wicker:#a8743c; --tu-wicker-2:#6f4a22;
   --tu-moss:#5fd88a; --tu-rock:#5a4a6e; --tu-rock-2:#3b2f4d; --tu-flag:#ffe14d; --tu-stage:#2a1a3e; --tu-stage-edge:#ffb43d;
+  /* THE RUDIMENT PLAYER (shared/rudiment-player.js light()): the stroke sounding now (its head and its sticking letter) */
+  --rp-now:var(--yellow);
   /* Arcade Quest: the 8-bit palette (sprites.js palettes name these tokens) */
   /* AVATARS (shared/avatar-parts.js): every color a Create Your Player choice can use */
   --av-skin-1:#fde4d0; --av-skin-1-d:#efc4a8; --av-skin-2:#f7d3b4; --av-skin-2-d:#e5b08e; --av-skin-3:#f0c29c; --av-skin-3-d:#dca079; --av-skin-4:#e8b387; --av-skin-4-d:#cf9163; --av-skin-5:#dba06f; --av-skin-5-d:#bf8150; --av-skin-6:#cd8f5d; --av-skin-6-d:#ad7042;
@@ -856,3 +858,6 @@ html.in-play .app-update{visibility:hidden;pointer-events:none}   /* never over 
 .app-steps-small li{grid-template-columns:34px 1fr}
 .app-num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--deep);border:2px solid var(--yellow);color:var(--yellow);font-weight:700}
 .app-panel .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* THE RUDIMENT PLAYER's highlight (RudimentPlayer.light): the sounding stroke's head and sticking letter on the rhythm staff */
+svg.rs .rp-now{color:var(--rp-now);filter:drop-shadow(0 0 4px var(--rp-now))}

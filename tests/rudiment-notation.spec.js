@@ -162,7 +162,17 @@ test.describe('rudiment notation', () => {
               return {b: box(pth), x0: pts[0], y0: pts[1], x1: pts[2], y1: pts[3], x3: pts[6], y3: pts[7]};
             });
             const z = g.querySelector('.rs-buzz');
-            return {n: +g.dataset.n, sx, head, under, slashes, z: z ? {b: box(z), fs: +z.getAttribute('font-size')} : null};
+            // the z's INK (canvas TextMetrics: the drawn glyph, not the font's box), against a big sticking letter's
+            let zi = null;
+            if (z) {
+              const cv = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(z), big = svg.querySelector('text.rs-hand:not(.grace)');
+              cv.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; const m = cv.measureText('z');
+              const bs = getComputedStyle(big); cv.font = `${bs.fontStyle} ${bs.fontWeight} ${bs.fontSize} ${bs.fontFamily}`; const r = cv.measureText(big.textContent);
+              const y = +z.getAttribute('y');
+              zi = {h: m.actualBoundingBoxAscent + m.actualBoundingBoxDescent, capH: r.actualBoundingBoxAscent + r.actualBoundingBoxDescent,
+                top: y - m.actualBoundingBoxAscent, bottom: y + m.actualBoundingBoxDescent};
+            }
+            return {n: +g.dataset.n, sx, head, under, slashes, z: z ? {b: box(z), fs: +z.getAttribute('font-size'), ink: zi} : null};
           });
           const beams = [...svg.querySelectorAll('rect')].map(r => ({x: +r.getAttribute('x'), y: +r.getAttribute('y'), w: +r.getAttribute('width')}));
           const all = box(svg), vb = svg.viewBox.baseVal;
@@ -250,7 +260,10 @@ test.describe('rudiment notation', () => {
           if (st.z) {
             expect(st.z.fs, `${where}: the z ~60 % of a sticking letter, never smaller`).toBeGreaterThanOrEqual(30 * .6);
             expect(Math.abs(st.z.b.x + st.z.b.width / 2 - st.sx), `${where}: the z centered on the stem`).toBeLessThan(1.5);
-            expect(Math.abs(st.z.b.y + st.z.b.height / 2 - mid), `${where}: the z at a slash's height`).toBeLessThan(4);
+            expect(st.z.ink.h / st.z.ink.capH, `${where}: the z's drawn height ≥ 55 % of a big sticking letter's`).toBeGreaterThanOrEqual(.55);
+            expect(Math.abs((st.z.ink.top + st.z.ink.bottom) / 2 - mid), `${where}: the z at a slash's height`).toBeLessThan(2);
+            expect(st.z.ink.top, `${where}: the z clear of the beam`).toBeGreaterThan(st.under);
+            expect(st.z.ink.bottom, `${where}: the z clear of the head`).toBeLessThan(st.head.y);
           }
         });
         // rolls: slashes in the slash view; in the written view the 32nds get a third beam

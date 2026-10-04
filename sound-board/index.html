@@ -86,6 +86,16 @@
     .sb-when{grid-column:1/-1}
     .sb-status{grid-column:1}
   }
+  /* THE RUDIMENT PLAYER (shared/rudiment-player.js): Mr. Graham's ear check of the rudiment sounds and timing */
+  .sb-row.rp-card{display:block;padding:10px 12px}
+  .rp-card h3{margin:0 0 4px;font:700 17px var(--text);color:var(--text-hi)}
+  .rp-card h3 code{font-size:13px;color:var(--text-lo);font-weight:400}
+  .rp-staff{color:var(--text-hi);overflow-x:auto}
+  .rp-staff svg.rs{max-width:100%;height:auto}
+  .rp-ctl{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:6px}
+  .rp-ctl .btn{min-height:44px}
+  .rp-play[aria-pressed="true"]{background:var(--pink);border-color:var(--pink);color:var(--deep)}
+  .rp-bpm{font-weight:700;font-variant-numeric:tabular-nums;color:var(--yellow-hi);min-width:9ch}
 </style>
 </head>
 <body>
@@ -122,6 +132,16 @@
       always has (the fallback shown). Seamless loops, 30–90 s, <code>.m4a</code>.</p>
     <div class="sb-list" id="rooms"></div></div>
   </details>
+  <details class="sb-sec" data-sec="rudiment-player" data-unit="example"><summary class="sb-sum"><h2 class="sb-group" id="rpH">Rudiment player</h2><span class="sb-count"></span><span class="sb-badge" hidden></span></summary>
+    <div class="sb-body"><p class="muted">The rudiment player (<code>shared/rudiment-player.js</code>) playing the rudiment notation's
+      syntax examples with your <code>rudiment-*</code> recordings (their rows are under <b>Rudiment player (the Rudiment
+      Trainer)</b> below; a missing file plays the generated snare). Each loops until you stop it, with a one-measure
+      count-off (two in 2/4 and 6/8). Listen for the timing, then tune the numbers at the top of the player:
+      <code>RULES</code> (how far before its note a flam's or a drag's grace lands, how buzz notes keep ringing) and
+      <code>GAIN</code> (how loud each kind of stroke is). What each number does: <code>docs/engine/rudiment-player.md</code>.
+      These examples test the notation; they are not the official rudiments.</p>
+    <div class="sb-list" id="rudiments"></div></div>
+  </details>
   <div id="groups"></div>
 </div>
 
@@ -135,6 +155,11 @@
 <script src="../arcade-quest/data/maps/manor.js"></script>
 <script src="../arcade-quest/data/music.js"></script>
 <script src="../music-highway/songs.js"></script>
+<script src="../music-highway/backing.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/rudiment-player.js"></script>
 <script>
 (function (A) {
   "use strict";
@@ -204,6 +229,86 @@
     badges();
   }
 
+  /* ---------- THE RUDIMENT PLAYER: every notation example, played (one at a time) ---------- */
+  const RP = A.RudimentPlayer, RS = A.RhythmStaff, C = A.Counting;
+  const RP_EX = [
+    {id: 'paradiddle', name: 'Single paradiddle', time: '2/4', text: 's>R sL sR sR s>L sR sL sL'},
+    {id: 'flam-accent', name: 'Flam accent', time: '2/4', text: '[{L}e>R eL eR] [{R}e>L eR eL]'},
+    {id: 'flam-tap', name: 'Flam tap', time: '2/4', text: '{L}s>R sR {R}s>L sL {L}s>R sR {R}s>L sL'},
+    {id: 'drag-tap', name: 'Single drag tap', time: '2/4', text: '{LL}eR e>L {RR}eL e>R'},
+    {id: 'five-stroke', name: 'Five-stroke-roll-like figure', time: '2/4', text: 's/R s/L e>R qr'},
+    {id: 'buzz', name: 'Multiple bounce', time: '2/4', text: 'ezR ezL ezR ezL'},
+    {id: 'flam-accent-68', name: 'Flam accent in 6/8', time: '6/8', text: '{L}e>R eL eR {R}e>L eR eL'},
+    {id: 'ramp', name: 'OPEN–CLOSE–OPEN: the paradiddle, 60 → 140 → 60', time: '2/4', text: 's>R sL sR sR s>L sR sL sL',
+      ramp: {from: 60, to: 140, upS: 40, holdS: 10, downS: 40}},
+  ];
+  const TEMPOS = [60, 80, 100, 120, 140];
+  const rpState = {}, rp = {now: null};
+  $('rudiments').innerHTML = RP_EX.map(x => `<article class="sb-row rp-card" data-rp="${x.id}" data-q="${esc(['rudiment player', x.name, x.text, x.time, x.ramp ? 'open close open ramp tempo' : 'rudiment tempo click'].join(' ').toLowerCase())}">
+      <h3>${esc(x.name)} <code>${esc(x.time)} · ${esc(x.text)}</code></h3>
+      <div class="rp-staff"></div>
+      <div class="rp-ctl">
+        <button type="button" class="btn btn-primary rp-play" aria-pressed="false">▶ Play</button>
+        ${x.ramp ? `<span class="rp-bpm" aria-live="off">${x.ramp.from} BPM</span><span class="muted">${x.ramp.upS} s up, ${x.ramp.holdS} s at ${x.ramp.to}, ${x.ramp.downS} s down</span>`
+          : `<div class="ui-seg rp-tempo" role="group" aria-label="Tempo">${TEMPOS.map(b => `<button type="button" data-bpm="${b}" aria-pressed="${b === 80}">${b}</button>`).join('')}</div>`}
+        <button type="button" class="btn btn-secondary rp-click" aria-pressed="false">Click: off</button>
+        <button type="button" class="btn btn-secondary rp-view" aria-pressed="false">Rolls: slashes</button>
+      </div></article>`).join('');
+  function rpDraw(x) {
+    const st = rpState[x.id], card = document.querySelector(`[data-rp="${x.id}"]`), box = card.querySelector('.rp-staff');
+    const p = C.parse(x.text, x.time), E = RS.engrave(p, {sticking: true, rolls: st.view, id: 'rp-' + x.id, label: x.name});
+    box.innerHTML = E.svg; RS.refine(box);
+    st.p = p; st.lit = RP.light(box, E);
+  }
+  /* the recordings through the board (they play even when SOUND is off, like every PLAY here) */
+  const rpBuffers = () => Promise.all(Object.entries(RP.SOUNDS).map(([k, n]) => B.load(n, false).then(r => [k, r && r.state === 'ok' && r.buf ? r.buf : null], () => [k, null])))
+    .then(l => Object.fromEntries(l.filter(([, b]) => b)));
+  function rpStop() { if (rp.now) { const p = rp.now.player; rp.now = null; p.stop(); } }
+  async function rpPlay(x) {
+    const st = rpState[x.id], card = document.querySelector(`[data-rp="${x.id}"]`), btn = card.querySelector('.rp-play');
+    if (rp.now && rp.now.id === x.id) { rpStop(); return; }
+    rpStop();
+    const ctx = B.start();
+    if (!ctx) { $('summary').textContent = 'This browser has no Web Audio.'; return; }
+    if (ctx.state !== 'running') await ctx.resume().catch(() => {});
+    const buffers = await rpBuffers();
+    const bpmEl = card.querySelector('.rp-bpm');
+    const player = RP.create({parsed: st.p, bpm: st.bpm, reps: x.ramp ? undefined : Infinity, click: st.click, ramp: x.ramp || null,
+      audio: {ctx, out: B.bus()}, buffers,
+      onStroke: e => { st.lit(e); st.strokes.push({n: e.n, s: e.s, kind: e.kind}); if (st.strokes.length > 400) st.strokes.splice(0, 200); if (bpmEl) bpmEl.textContent = player.state().bpmNow + ' BPM'; },
+      onBeat: () => { if (bpmEl) bpmEl.textContent = player.state().bpmNow + ' BPM'; },
+      onEnd: () => { st.lit.clear(); btn.setAttribute('aria-pressed', 'false'); btn.textContent = '▶ Play'; if (rp.now && rp.now.id === x.id) rp.now = null; }});
+    st.strokes = [];
+    rp.now = {id: x.id, player};
+    btn.setAttribute('aria-pressed', 'true'); btn.textContent = '■ Stop';
+    if (!(await player.start())) { if (rp.now && rp.now.id === x.id) rp.now = null; btn.setAttribute('aria-pressed', 'false'); btn.textContent = '▶ Play'; }
+  }
+  RP_EX.forEach(x => {
+    rpState[x.id] = {bpm: x.ramp ? x.ramp.from : 80, click: false, view: 'slash', strokes: []};
+    const card = document.querySelector(`[data-rp="${x.id}"]`), st = rpState[x.id];
+    rpDraw(x);
+    card.querySelector('.rp-play').addEventListener('click', () => rpPlay(x));
+    card.querySelectorAll('[data-bpm]').forEach(b => b.addEventListener('click', () => {
+      st.bpm = +b.dataset.bpm; card.querySelectorAll('[data-bpm]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      if (rp.now && rp.now.id === x.id) rp.now.player.setBpm(st.bpm);               // from the next repetition
+    }));
+    card.querySelector('.rp-click').addEventListener('click', e => {
+      st.click = !st.click; e.currentTarget.setAttribute('aria-pressed', String(st.click)); e.currentTarget.textContent = 'Click: ' + (st.click ? 'on' : 'off');
+      if (rp.now && rp.now.id === x.id) rp.now.player.setClick(st.click);
+    });
+    card.querySelector('.rp-view').addEventListener('click', e => {
+      st.view = st.view === 'slash' ? 'written' : 'slash';
+      e.currentTarget.setAttribute('aria-pressed', String(st.view === 'written')); e.currentTarget.textContent = 'Rolls: ' + (st.view === 'slash' ? 'slashes' : 'written out');
+      rpDraw(x);                                                                       // the player keeps going; its strokes light the new drawing
+    });
+  });
+  // the counting font arrives late and the section starts closed: measure the drawings again when they can be seen
+  const rpRefine = () => RP_EX.forEach(x => RS.refine(document.querySelector(`[data-rp="${x.id}"] .rp-staff`)));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(rpRefine);
+  document.querySelector('[data-sec="rudiment-player"]').addEventListener('toggle', e => { if (e.target.open) rpRefine(); else rpStop(); });
+  const rpApi = {examples: RP_EX, state: () => ({playing: rp.now ? rp.now.id : null, player: rp.now ? rp.now.player.state() : null,
+    cards: Object.fromEntries(RP_EX.map(x => [x.id, {bpm: rpState[x.id].bpm, click: rpState[x.id].click, view: rpState[x.id].view, strokes: rpState[x.id].strokes.slice()}]))}), stop: rpStop};
+
   /* ---------- THE SECTIONS: counts + warning badges, EXPAND / COLLAPSE ALL, search, remembered, #<sound> links ---------- */
   const secs = () => [...document.querySelectorAll('.sb-sec')];
   const rowsOf = sec => [...sec.querySelectorAll('.sb-row')];
@@ -217,7 +322,8 @@
       badgeRaf = 0;
       secs().forEach(sec => {
         const rows = rowsOf(sec), shown = rows.filter(r => !r.hidden), q = searchQ();
-        sec.querySelector('.sb-count').textContent = `· ${q ? `${shown.length} of ` : ''}${rows.length} sound${rows.length === 1 ? '' : 's'}`;
+        const unit = sec.dataset.unit || 'sound';
+        sec.querySelector('.sb-count').textContent = `· ${q ? `${shown.length} of ` : ''}${rows.length} ${unit}${rows.length === 1 ? '' : 's'}`;
         const miss = rows.filter(r => problem(r) === 'missing').length, long = rows.filter(r => problem(r) === 'long').length, b = sec.querySelector('.sb-badge');
         const parts = [miss && `${miss} missing`, long && `${long} too long`].filter(Boolean);
         b.hidden = !parts.length; b.textContent = parts.length ? '⚠ ' + parts.join(', ') : '';
@@ -272,7 +378,7 @@
   addEventListener('hashchange', goHash);
   badges(); goHash();
   A.SoundBoard = {state: () => ({open: secs().filter(x => x.open).map(x => x.dataset.sec), hidden: secs().filter(x => x.hidden).map(x => x.dataset.sec),
-    sections: secs().map(x => x.dataset.sec), none: !$('none').hidden, hit: lastHit}), badges};
+    sections: secs().map(x => x.dataset.sec), none: !$('none').hidden, hit: lastHit}), badges, rudiments: rpApi};
 
   /* ---------- statuses ---------- */
   const kb = b => b ? (b < 1024 ? b + ' B' : (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB') : '';

@@ -199,6 +199,26 @@ window.Arcade = window.Arcade || {};
       when: 'Rhythm Dojo: after a performance under 60 %: a gentle "try again" (the feedback screen; the microphone has stopped). Kind, never harsh. Falls back to level-failed.', fallback: 'level-failed'},
     'rd-level-clear': {file: 'rd-level-clear', vol: .8, mic: false, screen: 'rhythm-dojo', len: '1–2.5 s',
       when: 'Rhythm Dojo: a level cleared (its results screen): the big taiko finish. Falls back to level-complete.', fallback: 'level-complete'},
+    // ---- THE RUDIMENT PLAYER (shared/rudiment-player.js: the Sound Board's RUDIMENT PLAYER, the Rudiment Trainer) ----------
+    // Mr. Graham's snare recordings. THE HIT IS 10 MS INTO EVERY FILE (they are trimmed so): the player starts each one
+    // 10 ms before its stroke's time (HIT_OFFSET_S). Scheduled on the audio clock by the player, never through the normal
+    // effects player, and never while a microphone listens. Unpitched drum sounds only. Their levels relative to each other:
+    // GAIN in rudiment-player.js (the files carry the dynamics: the accent ~8.5 dB over a stroke, the grace ~9 dB under).
+    'rudiment-stroke': {file: 'rudiment-stroke', vol: 1, mic: false, play: false, screen: 'rudiments', len: 'under 1 s (the hit 10 ms in)',
+      gen: [[[2400, 1600], 0, .12, .45, 'noise', .8]],
+      when: 'The rudiment player: a normal snare stroke (every R and L that isn\'t accented). Trimmed so the hit starts exactly 10 ms into the file. Until you upload it: the generated snare.'},
+    'rudiment-accent': {file: 'rudiment-accent', vol: .8, mic: false, play: false, screen: 'rudiments', len: 'under 1 s (the hit 10 ms in)',
+      gen: [[[2400, 1600], 0, .14, .7, 'noise', .8]],
+      when: 'The rudiment player: an ACCENTED stroke (>): the same snare, played louder (about 8.5 dB over a stroke; vol .8 because the file peaks near full scale). The hit starts exactly 10 ms into the file.'},
+    'rudiment-grace': {file: 'rudiment-grace', vol: 1, mic: false, play: false, screen: 'rudiments', len: 'under 1 s (the hit 10 ms in)',
+      gen: [[[2400, 1600], 0, .08, .15, 'noise', .8]],
+      when: 'The rudiment player: a GRACE note (the soft note of a flam or a drag), about 9 dB under a stroke. The hit starts exactly 10 ms into the file.'},
+    'rudiment-buzz': {file: 'rudiment-buzz', vol: 1, mic: false, play: false, screen: 'rudiments', len: 'about 0.3 s (the hit 10 ms in)',
+      gen: [[[2600, 1800], 0, .28, .3, 'noise', .6]],
+      when: 'The rudiment player: a BUZZ stroke (z: the multiple bounce roll). A long buzz note plays more copies of it until the note ends. The hit starts exactly 10 ms into the file.'},
+    'rudiment-click': {file: 'rudiment-click', vol: 1, mic: false, play: false, screen: 'rudiments', len: 'under 0.25 s (the hit 10 ms in)',
+      gen: [[[2400, 2100], 0, .045, .5, 'noise', 4]],
+      when: 'The rudiment player: the COUNT-OFF clicks before a rudiment and the CLICK track under it (its first click, and every downbeat, a little louder). A stick click, not a pitched tone. The hit starts exactly 10 ms into the file.'},
     'music-highway-menu': {file: 'music-highway-menu', vol: .45, loop: true, mic: false, screen: 'music-highway', when: 'Music Highway: menu music: the song select, the timing check and results screens. Fades out (0.5 s) before a song\'s count-in; never during a song. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'mh-click': {file: 'mh-click', vol: 1, mic: true, screen: 'music-highway', len: 'under 0.06 s',
       when: 'Music Highway: THE CLICK of the one-measure count-in before every song and of the timing check (calibration). A woodblock / stick-click: a sharp attack, bright (most of its sound between 1.5 and 4 kHz so small speakers carry it), under 60 ms, and NOT a pitched tone (the microphone must never take it for a note). The first click of each measure plays it a little higher and louder. Scheduled on the audio clock by music-highway/backing.js (never through the normal effects player); its level is clickVol in music-highway/settings.js. Until you upload it: a generated woodblock click.',
@@ -383,7 +403,7 @@ window.Arcade = window.Arcade || {};
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
     ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja, Showtime Malfunction…)'], ['lost-signal', 'Lost Signal'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
-    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['rhythm-dojo', 'Rhythm Dojo'], ['scale-trainer', 'Scale Trainer'], ['blocktave', 'Blocktave'], ['arcade-quest', 'Arcade Quest']];
+    ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['rhythm-dojo', 'Rhythm Dojo'], ['rudiments', 'Rudiment player (the Rudiment Trainer)'], ['scale-trainer', 'Scale Trainer'], ['blocktave', 'Blocktave'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {
     LIST, SCREENS,
