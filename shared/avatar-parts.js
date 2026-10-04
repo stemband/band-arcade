@@ -658,7 +658,7 @@ window.AVATAR_PARTS = {};
      ANIMATED ITEMS (all optional; still frame = frame 0, used with reduced motion, Motion off and on every copy except
      the largest avatar on screen, see avatar-bg.js): `anim: {pal: {letter: [4 tokens]}}` cycles a fixed color
      (glowphones, lightup); `anim: {maps: {bust: [4 maps], front: [...], 'behind.front': [...]}}` swaps whole maps per
-     frame (flap(), shiftRows() and unhalf() build them from the still map); a HAND item's `bust(api, f)` draws frame f;
+     frame (flap(), shiftRows() and unhalf() build them from the still map; WINGS beat with wingbeat(): see WINGBEAT); a HAND item's `bust(api, f)` draws frame f;
      a pet's `frames` + `seq`. Keep changes small and slow (4 frames at 4 fps): nothing may flash.
      AVATAR CODE: every new part id (free or not) also goes at the END of its field's list in shared/avatar-code.js
      TABLE, so Share to Band Ninja carries it (?demo warns in the console about any id missing there).
@@ -785,10 +785,14 @@ window.AVATAR_PARTS = {};
      bustBehind: {y: 24, half: ['...999............', '..99889...........', '..98889...........', '..98889...........', '..98889...........', '..99999...........', '...4.4............', '...3.3............']}},
     {id: 'wings', name: 'Neon wings', unlock: {stars: 1000},
      behind: {front: {y: 11, half: ['..9.............', '.990............', '.9900...........', '99900...........', '.99900..........', '.999000.........', '..99900.........', '...9900.........', '....990.........', '.....99.........']},
-              side:  {y: 10, rows: ['....9', '...990', '..9900', '..99900', '.999900', '.9999000', '..999900', '...99900', '....9990', '.....99']},
+              // from the side the ROOT (x 11–13, rows 13–17) is under the back's edge (the torso is x 12–18): drawn behind
+              // the body, the wing grows out of the back and sweeps back and up
+              side:  {y: 6, rows: ['9', '99', '.990', '.9990', '..9990', '..99900', '...999000', '....9999000', '.....99999000', '.......9999000',
+                                   '.........99900', '...........990']},
               back:  {y: 11, half: ['..9.............', '.990............', '.9900...........', '99900...........', '.99900..........', '.999000.........', '..99900.........', '...9900.........', '....990.........', '.....99.........']}},
+     // the bust: beside the head (never past x 7 above row 26: the face), the root on the shoulder at row 26
      bustBehind: {y: 12, half: ['.9................', '990...............', '9900..............', '99900.............', '999900............', '.99990............', '.999900...........', '..99990...........',
-                              '..999900..........', '...99990..........', '...999900.........', '....99990.........', '.....9999.........', '......99..........']}},
+                              '..999900..........', '...99990..........', '...99990..........', '....9990..........', '....9999..........', '.....999..........', '......9990........']}},
   ];
 
 
@@ -812,6 +816,34 @@ window.AVATAR_PARTS = {};
   const shiftRows = (m, from, to, dx) => m && Object.assign({}, m, {rows: m.rows.map((r, i) => i >= from && i <= to ? (dx > 0 ? rep('.', dx) + r : r.slice(-dx)) : r)});
   const shiftHalf = (m, dx) => m && (m.half ? Object.assign({}, m, {half: m.half.map(r => (dx > 0 ? rep('.', dx) + r : r.slice(-dx)))}) : shiftRows(m, 0, 99, dx));
   const flap = (m, lower = 0, d = 1) => m && [m, shiftHalf(m, -d), m, shiftHalf(m, d)].map((x, i) => lower && i % 2 ? Object.assign({}, x, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) => (y < lower ? (m.half || m.rows)[y] : (x.half || x.rows)[y]))}) : x);
+  /* WINGBEAT: wings beat by ROTATING about their root (where they join the back), never by sliding. wingbeat(map)
+     builds the 4 frames from the still map with a COLUMN SHEAR: every column moves up or down by round(dx × slope), dx =
+     its distance from the root column (the wing's column nearest the body, which never moves), so the tips move the most.
+     The map grows (y and rows) when a tip moves past its top or bottom. Capes keep flap() (a sideways sway suits cloth).
+     Mr. Graham: tune the numbers here by eye (docs/gallery/avatar-wings.png: GALLERY=1 tests/avatar-wings.spec.js). */
+  const WINGBEAT = {
+    up: -0.4,      // frame 1: the tips raised (rows moved per column away from the root; negative = up)
+    down: 0.3,     // frame 3: the tips lowered (frames 0 and 2 are the still picture)
+    bee: 0.75,     // the bee wings beat smaller: both slopes × this
+  };
+  const wingbeat = (m, {amount = 1, root} = {}) => {
+    if (!m) return m;
+    const key = m.half ? 'half' : 'rows', rows = m[key], y0 = m.y || 0, px = [];
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.' && ch !== ' ') px.push([x, y, ch]); }));
+    const R = root == null ? Math.max(...px.map(p => p[0])) : root, wide = Math.max(...rows.map(r => r.length));
+    const shear = k => {
+      const moved = px.map(([x, y, ch]) => { const d = (R - x) * k * amount; return [x, y + Math.sign(d) * Math.round(Math.abs(d)), ch]; });
+      const top = Math.min(0, ...moved.map(p => p[1])), bottom = Math.max(rows.length - 1, ...moved.map(p => p[1]));
+      const g = Array.from({length: bottom - top + 1}, () => Array(wide).fill('.'));
+      moved.forEach(([x, y, ch]) => { g[y - top][x] = ch; });
+      return Object.assign({}, m, {y: y0 + top, [key]: g.map(r => r.join(''))});
+    };
+    return [m, shear(WINGBEAT.up), m, shear(WINGBEAT.down)];
+  };
+  P.WINGBEAT = WINGBEAT;
+  /** a wing item's anim: every view beats (front, side, back and the bust) */
+  const wingAnim = (bust, behind, o) => ({maps: {bustBehind: wingbeat(bust, o), 'behind.front': wingbeat(behind.front, o), 'behind.side': wingbeat(behind.side, o),
+    'behind.back': wingbeat(behind.back, o)}});
   const BELT_NAMES = ['White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Red', 'Brown', 'Black', 'Diamond'];
   // White–Black: any note set; Diamond: the rare gear rule (Chromatic notes, Random order: NINJA_DIAMOND)
   const beltRule = i => i === 9 ? NINJA_DIAMOND() : ({game: 'note-ninja', level: i + 1, stars: 1, text: `Earn the ${BELT_NAMES[i]} belt in Note Ninja`});
@@ -884,15 +916,15 @@ window.AVATAR_PARTS = {};
   // ---- shoes (sprite only: the bust stops at the shoulders) ----
   P.SHOES.push({id: 'lightup', name: 'Light-up sneakers', unlock: {shop: 300}, rows: 2, sole: true, anim: {pal: {Q: ['pink', 'cyan', 'yellow', 'green']}}});
 
-  // ---- back items: wings and capes flap ----
+  // ---- back items: wings beat (WINGBEAT), capes sway (flap) ----
   P.BACKS.forEach(b => {
-    if (b.id === 'wings' || b.id === 'pixelcape') b.anim = {maps: {bustBehind: flap(b.bustBehind, b.id === 'pixelcape' ? 3 : 0, 2), 'behind.front': flap(b.behind.front, b.id === 'pixelcape' ? 3 : 0),
-      'behind.back': flap(b.behind.back, b.id === 'pixelcape' ? 3 : 0)}};
+    if (b.id === 'wings') b.anim = wingAnim(b.bustBehind, b.behind);
+    if (b.id === 'pixelcape') b.anim = {maps: {bustBehind: flap(b.bustBehind, 3, 2), 'behind.front': flap(b.behind.front, 3), 'behind.back': flap(b.behind.back, 3)}};
   });
   const neon = P.BACKS.find(b => b.id === 'wings'), feather = m => m && Object.assign({}, m, {[m.half ? 'half' : 'rows']: (m.half || m.rows).map((r, y) => [...r].map((ch, x) => (ch === '9' || ch === '0' ? ((x + y) % 3 === 0 ? 'O' : 'N') : ch)).join(''))});
   const fw = {bustBehind: feather(neon.bustBehind), behind: {front: feather(neon.behind.front), side: feather(neon.behind.side), back: feather(neon.behind.back)}};
   P.BACKS.push({id: 'featherwings', name: 'Feathered wings', unlock: {shop: 450}, pal: {N: 'white-hi', O: 'av-white-d'}, bustBehind: fw.bustBehind, behind: fw.behind,
-    anim: {maps: {bustBehind: flap(fw.bustBehind, 0, 2), 'behind.front': flap(fw.behind.front), 'behind.back': flap(fw.behind.back)}}});
+    anim: wingAnim(fw.bustBehind, fw.behind)});
   // the Cape (an accessory skin) flaps too
   P.ACCESSORIES.cape.anim = {maps: {bustBehind: flap(P.ACCESSORIES.cape.bustBehind, 3, 2), 'behind.front': flap(P.ACCESSORIES.cape.behind.front, 3), 'behind.back': flap(P.ACCESSORIES.cape.behind.back, 3)}};
 
@@ -1189,12 +1221,14 @@ window.AVATAR_PARTS = {};
   P.SHOES.push({id: 'iceskates', name: 'Ice skates', unlock: ev('winter'), rows: 3, sole: true, skate: true, pal: {Q: 'q-silver'}});
 
   // ---- back items (pal letters N O): little bat wings that flap ----
-  const batBust = {y: 11, half: ['.N................', '.NN...............', '.NNN..............', '.NNNN.............', '.NONNN............', '.NNONNN...........', '.NNNONNN..........',
-    '.N.NNONNN.........', '....NNONNN........', '....N.NNONN.......', '.......NNONN......', '.......N.NNON.....', '..........NNN.....', '..........N.N.....']};
+  // the bust: beside the head (never past x 7 above row 25: the face), the root on the shoulder at rows 25–26
+  const batBust = {y: 13, half: ['N.................', 'NN................', 'NON...............', 'NNON..............', 'NNNON.............', 'NNNNON............', 'N.NNNON...........',
+    '...NNNON..........', '..N.NNON..........', '....NNNO..........', '....N.NN..........', '......NN..........', '......NNN.........', '.......NNN........']};
   const batFront = {y: 11, half: ['..N.............', '.NN.............', '.NON............', '.NNON...........', '.N.NON..........', '....NNO.........', '....N.NN........', '.......N........']};
-  const batSide = {y: 10, rows: ['....N', '...NN', '..NON', '..NNON', '.N.NNON', '....NNN', '....N.N']};
+  // from the side: the root (x 11–13, rows 13–15) under the back's edge, the arm along the top, scalloped points below
+  const batSide = {y: 7, rows: ['.N', '.NN', '..NON', '..NNON', '..NNNON', '..NNNNOONN', '..N.NNNNOONNNN', '.....N.NNNNNNN', '..........N.NN']};
   P.BACKS.push({id: 'batwings', name: 'Bat wings', unlock: ev('spooky'), pal: {N: 'purple', O: 'purple-ink'}, bustBehind: batBust, behind: {front: batFront, side: batSide, back: batFront},
-    anim: {maps: {bustBehind: flap(batBust, 0, 1), 'behind.front': flap(batFront), 'behind.back': flap(batFront)}}});
+    anim: wingAnim(batBust, {front: batFront, side: batSide, back: batFront})});
 
   // ---- HAND items (pal letters I J L M; the hand is at x 29–30, rows 21–22) ----
   P.HANDS.push(
@@ -1489,13 +1523,15 @@ window.AVATAR_PARTS = {};
      pal: {Y: 'mh-bee', K: 'mh-bee-stripe', W: 'mh-bee-wing'}, seq: [0, 0, 1, 1],
      rows: ['..WW.WW.', '..WWWWW.', '.KYYKYK.', 'KWKYKYKY', 'KKKYKYKY', '.KYYKYK.', '..K..K..', '........'],
      frames: [null, ['........', '...WWW..', '.KYWWWK.', 'KWKYKYKY', 'KKKYKYKY', '.KYYKYK.', '..K..K..', '........']]});
-  const beeWingsBust = {y: 13, half: ['....NNN...........', '...NNNNN..........', '..NNONNNN.........', '..NNNONNNN........', '...NNNONNNN.......', '....NNNNNNN.......', '......NNNNN.......',
-    '....NNNNNN........', '...NNONNNNN.......', '....NNNONNN.......', '.....NNNNN........']};
+  // the bust: the two round wings beside the head (never past x 7 above row 25: the face), the root on the shoulder
+  const beeWingsBust = {y: 12, half: ['...NNN............', '..NNNNN...........', '.NNONNNN..........', '.NNNONNN..........', '..NNNONN..........', '...NNNNN..........', '.....NNN..........',
+    '...NNNNN..........', '..NNONNN..........', '..NNNONN..........', '...NNNNN..........', '.....NNN..........', '......NN..........', '......NNN.........', '.......NNN........']};
   const beeWingsFront = {y: 12, half: ['...NN...........', '..NNNN..........', '.NNONNN.........', '..NNONNN........', '...NNNNN........', '....NNN.........', '..NNNNN.........', '...NNONN........', '....NNN.........']};
-  const beeWingsSide = {y: 11, rows: ['....NN', '...NNNN', '..NNONN', '...NNONN', '....NNN', '...NNN', '....NN']};
+  // from the side: the two round wings meet at the root (x 12–13, rows 13–14) under the back's edge
+  const beeWingsSide = {y: 9, rows: ['....NNN', '...NNNNN', '..NNONNNN', '...NNNONNNN', '.....NNNNNNNNN', '....NNNNNNNNNN', '...NNONNN', '....NNN']};
   P.BACKS.push({id: 'beewings', name: 'Bee Wings', unlock: {game: 'music-highway', achievement: 'bumblebee-legend', text: 'Get 3 ★ on Flight of the Bumblebee at TURBO speed in Music Highway'},
     pal: {N: 'mh-bee-wing', O: 'mh-bee'}, bustBehind: beeWingsBust, behind: {front: beeWingsFront, side: beeWingsSide, back: beeWingsFront},
-    anim: {maps: {bustBehind: flap(beeWingsBust, 0, 1), 'behind.front': flap(beeWingsFront), 'behind.back': flap(beeWingsFront)}}});
+    anim: wingAnim(beeWingsBust, {front: beeWingsFront, side: beeWingsSide, back: beeWingsFront}, {amount: WINGBEAT.bee})});
 
   /* ---------- SCALE TRAINER's high school sections: ALL-STATE READY (3 ★ on level 4, the Audition Room) in Concert Band
      (progress key 'scale-trainer:cb') and Symphonic Band ('scale-trainer:sb'). The Middle School one is the Audition Room
