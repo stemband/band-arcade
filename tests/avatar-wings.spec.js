@@ -48,19 +48,22 @@ async function open(page, store = device()) {
   return watch;
 }
 
-test('side view: every wing is attached to the back in every pose, instrument, top and frame', {tag: '@quick'}, async ({page}) => {
-  const watch = await open(page);
-  const bad = await page.evaluate(WINGS => {
-    const out = [];
-    const looks = [{}, {top: 'hoodie'}, {top: 'marching'}, {top: 'rockstar'}, {top: 'ghosthunter'}, {top: 'tailcoat'}, {hair: 'long'}, {chair: true}];
-    WINGS.forEach(id => ['trumpet', 'tuba', 'basscl', 'flute', 'snare', 'bells'].forEach(m => ['', '-walk', '-play'].forEach(v => looks.forEach(extra => {
-      WT.spriteDiff(m, v, extra, id).forEach((f, i) => { if (!f.wing.length || !WT.attached(f, extra.hair ? [8, 18] : undefined)) out.push(`${id} ${m} ${v || 'stand'} ${JSON.stringify(extra)} frame ${i}`); });
-    }))));
-    return out;
-  }, WINGS);
-  expect(bad).toEqual([]);
-  watch.check();
-});
+// one test per wing (SPLIT, DON'T LOOP: all 4 together took ~60 s on CI's WebKit, the time budget)
+for (const id of WINGS) {
+  test(`side view: every wing is attached to the back in every pose, instrument, top and frame (${id})`, {tag: '@quick'}, async ({page}) => {
+    const watch = await open(page);
+    const bad = await page.evaluate(id => {
+      const out = [];
+      const looks = [{}, {top: 'hoodie'}, {top: 'marching'}, {top: 'rockstar'}, {top: 'ghosthunter'}, {top: 'tailcoat'}, {hair: 'long'}, {chair: true}];
+      ['trumpet', 'tuba', 'basscl', 'flute', 'snare', 'bells'].forEach(m => ['', '-walk', '-play'].forEach(v => looks.forEach(extra => {
+        WT.spriteDiff(m, v, extra, id).forEach((f, i) => { if (!f.wing.length || !WT.attached(f, extra.hair ? [8, 18] : undefined)) out.push(`${id} ${m} ${v || 'stand'} ${JSON.stringify(extra)} frame ${i}`); });
+      })));
+      return out;
+    }, id);
+    expect(bad).toEqual([]);
+    watch.check();
+  });
+}
 
 test('the side view now beats too, and the wings were floating before (the check would have caught it)', async ({page}) => {
   const watch = await open(page);

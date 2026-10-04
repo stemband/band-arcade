@@ -242,11 +242,14 @@
 .play-foot .hear{margin:0}
 
 /* the story and results */
-.story-panel{max-width:620px;text-align:left;border-color:var(--st-red);box-shadow:0 0 18px color-mix(in srgb,var(--st-red) 45%,transparent),0 30px 80px rgba(0,0,0,.6)}
+/* the story panel never grows wider than the screen (the shared .panel width: 460 px or less); its band art SIZES FROM
+   THE ROW'S WIDTH: five equal boxes, each at most 77 × 110 (the full size on an iPad or Chromebook), smaller on a phone,
+   always .7 like the drawings (140 × 200), so nobody is squashed or cropped */
+.story-panel{max-width:620px;min-width:0;text-align:left;overflow-wrap:anywhere;border-color:var(--st-red);box-shadow:0 0 18px color-mix(in srgb,var(--st-red) 45%,transparent),0 30px 80px rgba(0,0,0,.6)}
 .story-panel .ui-title{text-align:center;color:var(--yellow)}
 .story-panel p{color:var(--text-hi);line-height:1.5}
-.story-art{display:flex;justify-content:center;align-items:flex-end;gap:6px;height:110px;margin-bottom:8px}
-.story-art .bot{height:100%;aspect-ratio:.7}
+.story-art{display:flex;justify-content:center;align-items:flex-end;gap:6px;min-width:0;margin-bottom:8px}
+.story-art .bot{flex:1 1 0;min-width:0;max-width:77px;height:auto;aspect-ratio:.7}
 /* the results' rebooted band, under the stars: lineup() sizes the box and places everyone (rows, overlap) */
 .res-band{position:relative;width:100%;margin:6px 0 10px;isolation:isolate}
 .res-band .bot{position:absolute}
