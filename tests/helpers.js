@@ -198,14 +198,27 @@ async function closeUnlocked(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-/** A BUSY PAGE (call before page.goto): every animation frame's timestamp is `ms` older than the moment the frame runs
-    (`random`: a different lag each frame, 0 to `ms`), like a slow iPad or a loaded test machine. Hits and readings are
-    stamped with performance.now(), so a game that judged them by the frame's timestamp would be early / late. */
-async function lagFrames(page, ms, {random = false} = {}) {
-  await page.addInitScript(([ms, random]) => {
+/** A BUSY PAGE (call before page.goto), like a slow iPad or a loaded test machine. Hits and readings are stamped with
+    performance.now(), so a game that judged them by a frame's timestamp would be early / late.
+    lagFrames(page, ms): every animation frame's timestamp is `ms` older than the moment the frame runs.
+    busyFrames(page): each animation frame first works for `window.__busyMs` ms (0 to start; a test sets it), so its
+    callbacks run that long after the frame's timestamp (which never goes backwards, as in a real browser). */
+async function lagFrames(page, ms) {
+  await page.addInitScript(ms => {
     const raf = window.requestAnimationFrame.bind(window);
-    window.requestAnimationFrame = cb => raf(t => cb(t - (random ? Math.random() * ms : ms)));
-  }, [ms, random]);
+    window.requestAnimationFrame = cb => raf(t => cb(t - ms));
+  }, ms);
+}
+async function busyFrames(page) {
+  await page.addInitScript(() => {
+    const raf = window.requestAnimationFrame.bind(window);
+    let seen = -1;
+    window.__busyMs = 0;
+    window.requestAnimationFrame = cb => raf(t => {
+      if (t !== seen) { seen = t; const end = performance.now() + window.__busyMs; while (performance.now() < end) { /* busy */ } }
+      cb(t);
+    });
+  });
 }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked, lagFrames};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked, lagFrames, busyFrames};

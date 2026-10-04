@@ -4,15 +4,16 @@
    fairness check at every showtime, and a wind player never seeing any of it. Hits are fired with the ?demo hook
    Arcade.Onsets.fake(time, level) (a hit at that exact moment and loudness). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain, lagFrames} = require('./helpers');
+const {prepare, device, pageWatch, explain, lagFrames, busyFrames} = require('./helpers');
 
 const DYN = {soft: .05, loud: .4, split: .1414, at: 1};
 const store = (gd = {}, other = {}) => device('snare', {gameData: Object.assign({'showtime-malfunction': Object.assign({storySeen: true}, gd)}, other)});
 
 /** open a showtime as the snare (?demo&snarejob=… forces every regular machine's job) */
-async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false, lag = null} = {}) {
+async function open(page, {lv = 1, job = 'count', q = '', gd = {}, other = {}, solo = false, lag = null, busy = false} = {}) {
   const watch = await prepare(page, {store: store(gd, other)});
-  if (lag) await lagFrames(page, lag.ms, lag);           // a busy page: the frames' timestamps behind performance.now()
+  if (lag) await lagFrames(page, lag);                   // a busy page: the frames' timestamps behind performance.now()
+  if (busy) await busyFrames(page);                       // …or a page that gets busy when the test says so
   watch.seen = await pageWatch(page);                  // what the page saw, for a failure message (SN_STATE)
   await page.goto(`showtime-malfunction/index.html?demo&nostart${job ? '&snarejob=' + job : ''}${q}`);
   await page.locator('.ls-card:not(.ls-endless)').nth(lv - 1).click();
@@ -247,16 +248,19 @@ test.describe('Showtime Malfunction: the snare drum', () => {
     });
   }
 
-  // the snare's clock runs on performance.now() (the time hits are stamped with), never the frame's timestamp: on a busy
-  // page (a slow iPad, a loaded test machine) that runs up to 300 ms behind, and the clock ran fast (hits judged early)
+  // the snare's clock runs on performance.now() (the time hits are stamped with), never the frame's timestamp. Here the
+  // page gets busy right after the measure is planned: every frame's work then starts 200 ms after its timestamp. Judged
+  // by the frames' timestamps, every hit was ~200 ms late (on time = "late", 250 ms late = an extra hit, early = fine)
   for (const [name, off, kind] of [['on time', 0, null], ['early', -250, 'early'], ['late', 250, 'late']]) {
-    test(`rhythm on a busy page (frame timestamps behind): a hit ${name} is judged ${kind || 'on time'}`, async ({page}) => {
-      const watch = await open(page, {lv: 3, job: 'rhythm', solo: true, lag: {ms: 300, random: true}});
+    test(`rhythm on a page that gets busy (frames 200 ms late): a hit ${name} is judged ${kind || 'on time'}`, async ({page}) => {
+      const watch = await open(page, {lv: 3, job: 'rhythm', solo: true, busy: true});
       const s = await waitFor(page, s => s.target.job.type === 'rhythm' && s.target.job.start != null);
       await page.evaluate(i => { const b = Arcade.Showtime.debug().bots.find(x => x.id === i); b.job.list[b.job.idx].text = 'q q q q'; }, s.target.id);
       await freshCountIn(page);
       await playMeasure(page, {offsets: {1: off}});
+      await page.evaluate(() => { window.__busyMs = 200; });
       await judged(page);
+      await page.evaluate(() => { window.__busyMs = 0; });
       const r = await sn(page);
       await explain(watch.seen, SN_STATE, async () => {
         if (kind) { expect(r.last.pass).toBe(false); expect(r.target.job.marks.hits.map(h => h.kind)).toEqual([kind]); }
@@ -399,7 +403,7 @@ test.describe('Showtime Malfunction: the snare drum', () => {
   test('the Lurker\'s roll on a busy page (frame timestamps 500 ms behind): the ring stops filling when the roll stops', async ({page}) => {
     // the roll is judged by performance.now() (the hits' time): judged by the frame's timestamp, a roll that had stopped
     // still counted as ON for another 500 ms
-    const watch = await open(page, {lv: 2, job: null, q: '&special=long-tone-lurker', lag: {ms: 500}});
+    const watch = await open(page, {lv: 2, job: null, q: '&special=long-tone-lurker', lag: 500});
     await waitFor(page, s => s.target.job.type === 'roll');
     await quiet(page);
     const a0 = await holdP(page); await roll(page, 1500, [125]);
