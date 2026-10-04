@@ -9,8 +9,9 @@
      leap      the biggest skip between two notes, in half steps: 2 = stepwise only, 4 = small skips (up to a 3rd),
                7 = larger skips (up to a 5th), 12 = up to an octave (only if the note set reaches that far)
      repeats   true = the same note may come twice in a row (it needs a new tongue on the second one)
-     label     true = the first note's name is shown; false = static hides it
-     find      true = FIND THE SIGNAL: before the echo, try notes until you match the hidden first note
+     label     true = the first note's name is shown (every level now: the student always gets the starting pitch);
+               false = static hides it and the first note counts like the rest
+     find      RETIRED (keep it false): FIND THE SIGNAL, searching for a hidden first note, was taken out of the game
      replays   REPLAY SIGNAL presses per transmission (each lowers that transmission's score a little)
      noteMs    how long each note plays (ms); gapMs = the silence between notes
      story     the level intro's story line; nowWhat = the one plain sentence about what's new
@@ -28,18 +29,18 @@ window.SIGNAL_LEVELS = [
   {name: 'Ringed Giant',  count: 6, len: 4,      pool: 5, leap: 4,  repeats: false, label: true,  find: false, replays: 1, noteMs: 580, gapMs: 130,
    story: 'Near a giant ringed planet, the transmissions speed up. Someone out there is excited!',
    nowWhat: 'Faster playback, and only 1 replay per transmission.'},
-  {name: 'Static Storm',  count: 6, len: 4,      pool: 5, leap: 4,  repeats: false, label: false, find: true,  replays: 1, noteMs: 600, gapMs: 140,
-   story: 'A static storm! The probe is still sending, but the first note is buried in noise.',
-   nowWhat: 'Static is hiding the first note. Find it by ear!'},
-  {name: 'Nebula',        count: 6, len: 5,      pool: 5, leap: 7,  repeats: false, label: false, find: true,  replays: 1, noteMs: 560, gapMs: 130,
+  {name: 'Static Storm',  count: 6, len: 4,      pool: 5, leap: 4,  repeats: false, label: true,  find: false, replays: 1, noteMs: 600, gapMs: 140,
+   story: 'A static storm! It scrambles the signal so it comes in faster and jumpier, but the first note still gets through.',
+   nowWhat: 'The first note is named. Echo all 4: the storm makes the notes shorter.'},
+  {name: 'Nebula',        count: 6, len: 5,      pool: 5, leap: 7,  repeats: false, label: true,  find: false, replays: 1, noteMs: 560, gapMs: 130,
    story: 'Inside a glowing nebula the melodies stretch wider. The probe sends a picture: a stage with empty spotlights.',
-   nowWhat: '5 notes with bigger skips (up to a 5th). Find the first note by ear.'},
-  {name: 'Deep Space',    count: 6, len: 5,      pool: 5, leap: 12, repeats: false, label: false, find: false, replays: 0, noteMs: 520, gapMs: 120,
+   nowWhat: '5 notes with bigger skips (up to a 5th). The first note is named.'},
+  {name: 'Deep Space',    count: 6, len: 5,      pool: 5, leap: 12, repeats: false, label: true,  find: false, replays: 0, noteMs: 520, gapMs: 120,
    story: 'Far from any star, the probe whispers: "Our band forgot its songs. Can you remember them for us?"',
-   nowWhat: 'No name, no searching, no replays. The first note counts like the rest.'},
-  {name: 'The Source',    count: 6, len: 6,      pool: 5, leap: 12, repeats: true,  label: false, find: false, replays: 0, noteMs: 480, gapMs: 110,
+   nowWhat: 'No replays. The first note is named; the rest is up to your ear.'},
+  {name: 'The Source',    count: 6, len: 6,      pool: 5, leap: 12, repeats: true,  label: true,  find: false, replays: 0, noteMs: 480, gapMs: 110,
    story: 'You found the source: a quiet planet full of instruments, all waiting for their music.',
-   nowWhat: '6 notes from your whole note set, and a note can repeat (tongue it again).'},
+   nowWhat: '6 notes from your whole note set, and a note can repeat (tongue it again). The first note is named.'},
 ];
 
 /* what happens after The Source is cleared (the end of the story) */
@@ -54,8 +55,6 @@ window.SIGNAL_RULES = {
   listenAfterMs: 400,   // the microphone listens this long after the last tone has faded (never while it plays)
   base: 100,            // points for each right note
   replayCost: 0.15,     // each REPLAY SIGNAL takes 15% off that transmission's points
-  findCost: 20,         // FIND THE SIGNAL: points lost for each wrong try
-  findReveal: 4,        // FIND THE SIGNAL: after this many wrong tries, a "Show me" button appears (costs 3 tries' points)
   oneStar: 0.70,        // share of notes right for 1 star (clears the level, opens the next)
   twoStar: 0.85,        // 2 stars; 3 stars = every note right and no replays used
   register: [55, 79],   // playback register (SOUNDING midi): concert G3–G5. Each pattern moves by whole octaves, as a
@@ -82,7 +81,7 @@ window.SIGNAL_GEN = {
 /* DEEP SPACE SCAN (the ENDLESS card): the same pattern comes back each round with one new note on the end. */
 window.SIGNAL_ENDLESS = {
   startLen: 2,          // notes in the first round
-  labelRounds: 3,       // the first note is named for the first 3 rounds, then static covers it
+  labelRounds: Infinity, // the first note is named in every round (a number N = named for the first N rounds, then static covers it)
   lives: 3,             // a round with any wrong or missed note costs a heart (the SAME pattern plays again)
   noteMs: 700, gapMs: 140,
   fasterEvery: 5,       // every 5 rounds the notes get quicker…

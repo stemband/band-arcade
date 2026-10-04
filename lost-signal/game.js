@@ -63,8 +63,8 @@
       mic(listening);                                    // the game's own turn-taking decides, not the pause
       if (tx && tx.interrupted) {                        // the transmission plays again from the start (free)
         tx.interrupted = false;
-        const tok = run, phase = tx.found ? 'echo' : 'find';
-        playPattern(tok).then(ok => { if (ok) yourTurn(tok, phase); });
+        const tok = run;
+        playPattern(tok).then(ok => { if (ok) yourTurn(tok); });
       }
     },
     onRestart: () => { unhold(); slotLeft = null; stopTones(); if (G.endless) startEndless(); else startLevel(G.lv); },
@@ -109,7 +109,7 @@
       const lv = i + 1, p = A.store.level(key, inst.id, lv);
       const open = A.DEMO || lv === 1 || p.stars > 0 || A.store.level(key, inst.id, lv - 1).stars > 0;
       const len = Array.isArray(L.len) ? L.len.join('–') : L.len;
-      const bits = [`${len} notes`, L.label ? 'first note named' : L.find ? 'find the first note' : 'no name', `${L.replays} replay${L.replays === 1 ? '' : 's'}`];
+      const bits = [`${len} notes`, L.label ? 'first note named' : 'first note hidden', `${L.replays} replay${L.replays === 1 ? '' : 's'}`];
       return `<button class="lvl" data-l="${lv}" ${open ? '' : 'disabled'}>
         <span class="n">Level ${lv}</span>
         <span class="mini" aria-hidden="true">${'<i></i>'.repeat(Math.min(6, Array.isArray(L.len) ? L.len[1] : L.len))}</span>
@@ -122,7 +122,7 @@
     A.Endless.tile($('endlessTile'), Object.assign(endKey(), {
       title: 'Deep Space Scan',
       label: `${member ? member.short : inst.shortName} · ${st.label}`,
-      blurb: 'The same signal comes back each round with one new note on the end. How long a signal can you echo? 3 hearts, no replays.',
+      blurb: 'The same signal comes back each round with one new note on the end. The first note is always named. How long a signal can you echo? 3 hearts, no replays.',
       onPlay: () => A.requireMic(startEndless)}));
     window.scrollTo(0, 0);
     A.LevelSelect.show({screen: $('hub'), grid: $('levelGrid'), cards: $('levelGrid').querySelectorAll('.lvl'), picker: $('modePick'), endless: $('endlessTile'),
@@ -156,7 +156,7 @@
   function startEndless() {
     A.LevelSelect.played('endless');
     const ns = noteSet(END.pool);
-    G = {endless: true, L: {count: Infinity, label: true, find: false, replays: 0, noteMs: END.noteMs, gapMs: END.gapMs},
+    G = {endless: true, L: {count: Infinity, label: true, replays: 0, noteMs: END.noteMs, gapMs: END.gapMs},
          ns, round: 0, lives: END.lives, score: 0, longest: 0, hits: 0, total: 0, replays: 0, pattern: null};
     G.pattern = generate(ns.set, END.startLen, endlessRules(END.startLen));
     enterPlay('Deep Space Scan', 'Round 1');
@@ -180,7 +180,8 @@
     window.scrollTo(0, 0);
   }
 
-  /** one transmission: INCOMING (the tones) → FIND THE SIGNAL (some levels) → YOUR TURN (the echo) → its result */
+  /** one transmission: INCOMING (the tones) → YOUR TURN (the echo) → its result. (FIND THE SIGNAL, a search for a
+      hidden first note before the echo, is retired: levels.js `find` is ignored.) */
   async function nextTransmission() {
     const tok = ++run, L = G.L;
     let pattern;
@@ -199,16 +200,16 @@
       G.noteMs = L.noteMs; G.gapMs = L.gapMs;
     }
     const labeled = G.endless ? G.round <= END.labelRounds : L.label;
-    G.tx = {pattern, replays: 0, tries: 0, labeled, found: !(L.find && !G.endless), phase: 'incoming',
+    G.tx = {pattern, replays: 0, labeled, phase: 'incoming',
             shift: shiftFor(pattern.map(it => it.sounding))};
     mic(false);
-    $('txResult').hidden = true; $('replayBtn').hidden = true; $('revealBtn').hidden = true;
+    $('txResult').hidden = true; $('replayBtn').hidden = true;
     echo.begin(pattern); input.reset(); drawFirst(); hud(); setPrompt('', '');
     setStatus(G.endless ? `INCOMING SIGNAL · ${pattern.length} notes` : 'INCOMING TRANSMISSION');
     await snd('lost-signal-incoming');
     if (tok !== run) return;
     if (!(await playPattern(tok))) return;
-    if (!G.tx.found) findPhase(tok); else yourTurn(tok, 'echo');
+    yourTurn(tok);
   }
 
   /* ---------- the tones (the mic is paused the whole time) ---------- */
@@ -234,69 +235,33 @@
   }
 
   /** the student's turn: "your turn" (mic still paused), then listen */
-  async function yourTurn(tok, phase) {
+  async function yourTurn(tok) {
     const tx = G.tx;
     await unpaused();
     if (tok !== run) return;
-    setStatus(phase === 'find' ? 'FIND THE SIGNAL' : 'YOUR TURN · ECHO THE SIGNAL');
+    setStatus('YOUR TURN · ECHO THE SIGNAL');
     await snd('lost-signal-your-turn');
     if (tok !== run) return;
     await wait(250);
     await unpaused();                                    // paused during "your turn": the turn starts on RESUME
     if (tok !== run || tx.interrupted) return;
-    tx.phase = phase;
-    if (phase === 'echo') {
-      echo.start();
-      setPrompt(tx.found && !tx.labeled && G.L.find ? 'Now echo the whole transmission, starting with the note you found.' : 'Play the notes back, in order.', '');
-    }
+    tx.phase = 'echo';
+    echo.start();
+    setPrompt('Play the notes back, in order.', '');
     updateReplay();
     mic(true);
   }
 
-  function findPhase(tok) {
-    setPrompt('Static is hiding the first note. Play notes until you lock onto it.', '');
-    yourTurn(tok, 'find');
-  }
-  async function signalFound(given) {
-    const tok = run, tx = G.tx;
-    tx.found = true; mic(false);
-    $('revealBtn').hidden = true; $('replayBtn').hidden = true;
-    drawFirst(true);
-    setStatus('SIGNAL FOUND');
-    setPrompt(given ? `The first note was ${tx.pattern[0].label}.` : `Signal found! It's ${tx.pattern[0].label}.`, 'good');
-    await snd('lost-signal-found');
-    await wait(500);
-    if (tok !== run) return;
-    yourTurn(tok, 'echo');
-  }
-  $('revealBtn').addEventListener('click', () => {
-    if (!G || !G.tx || G.tx.phase !== 'find') return;
-    G.tx.tries += 3;
-    signalFound(true);
-  });
-
   /* ---------- input: a new attack (or a held note no attack was heard for) ---------- */
   function heard(pc, now) {
-    if (!G || !G.tx || !listening) return;
-    const tx = G.tx;
-    if (tx.phase === 'find') {
-      if (pc === tx.pattern[0].pc) signalFound(false);
-      else {
-        tx.tries++;
-        setPrompt(`Searching… that's ${G.ns.name(pc)}. Not it yet.`, 'bad');
-        A.Sfx.event('lost-signal-wrong');
-        if (tx.tries >= RULES.findReveal) $('revealBtn').hidden = false;
-      }
-      return;
-    }
-    if (tx.phase !== 'echo') return;
+    if (!G || !G.tx || !listening || G.tx.phase !== 'echo') return;
     echo.fill(pc);
   }
   const input = A.Echo.input({enabled: () => !!(G && G.tx), onNote: heard});
   A.Pitch.demoAttacks = true;                              // ?demo: Space = the note the game wants, W = a wrong one
   A.Pitch.demoTarget = () => {
     if (!G || !G.tx || !listening) return null;
-    const it = G.tx.phase === 'find' ? G.tx.pattern[0] : echo.want();
+    const it = echo.want();
     return it ? {pc: it.pc, midi: it.sounding} : null;
   };
 
@@ -315,19 +280,19 @@
   /* ---------- REPLAY SIGNAL (before answering; costs a little) ---------- */
   function replaysLeft() { return G && !G.endless ? G.L.replays - G.tx.replays : 0; }
   function updateReplay() {
-    const tx = G && G.tx, can = tx && !G.endless && replaysLeft() > 0 && (tx.phase === 'find' || (tx.phase === 'echo' && echo.i === 0));
+    const tx = G && G.tx, can = tx && !G.endless && replaysLeft() > 0 && tx.phase === 'echo' && echo.i === 0;
     $('replayBtn').hidden = !can;
     if (can) $('replayBtn').textContent = `Replay signal (${replaysLeft()} left)`;
   }
   $('replayBtn').addEventListener('click', async () => {
     if (!G || !G.tx || replaysLeft() <= 0) return;
-    const tok = run, tx = G.tx, phase = tx.phase;
+    const tok = run, tx = G.tx;
     tx.replays++; G.replays++;
     hud();
     setStatus('REPLAYING TRANSMISSION');
     setPrompt(`Replay used: this transmission is worth a little less.`, '');
     if (!(await playPattern(tok))) return;
-    yourTurn(tok, phase);
+    yourTurn(tok);
   });
 
   /* ---------- this transmission's result ---------- */
@@ -340,7 +305,7 @@
     G.hits += right; G.total += n;
     let pts;
     if (G.endless) pts = right * END.base + (perfect ? END.perfectBonus * n : 0);
-    else pts = Math.max(0, Math.round(right * RULES.base * Math.max(0, 1 - RULES.replayCost * tx.replays) - tx.tries * RULES.findCost));
+    else pts = Math.max(0, Math.round(right * RULES.base * Math.max(0, 1 - RULES.replayCost * tx.replays)));
     G.score += pts;
     drawResult(tx);
     setStatus(perfect ? 'TRANSMISSION DECODED' : 'WEAK SIGNAL');
@@ -432,15 +397,13 @@
 
   /* ---------- the console: the demo answer, the first-note box, HUD ---------- */
   function markCurrent() {
-    const tx = G.tx;
     $('demoAns').hidden = !A.DEMO;
-    const it = tx.phase === 'find' ? tx.pattern[0] : echo.want();
+    const it = echo.want();
     if (A.DEMO) $('demoAns').textContent = it ? `Demo: the game wants ${it.label}` : '';
   }
-  function drawFirst(found) {
-    const tx = G.tx, show = tx.labeled || found;
+  function drawFirst() {
+    const tx = G.tx, show = tx.labeled;
     $('first').classList.toggle('static', !show);
-    $('first').classList.toggle('found', !!found);
     $('firstName').textContent = show ? tx.pattern[0].label : '';
     $('first').setAttribute('aria-label', show ? `First note: ${tx.pattern[0].label}` : 'First note: hidden by static');
   }
