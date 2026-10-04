@@ -51,6 +51,7 @@ Engine and shared systems (`docs/engine/`):
 | [pitch.md](docs/engine/pitch.md) | pitch detection or any listening game: `pitch.js`, attacks, suppress, `setRange`, `requireMic`, detector tuning, CLASSROOM MODE (`Pitch.ROOM`) and THE ROOM CHECK (`shared/room-check.js`) |
 | [notes-and-scales.md](docs/engine/notes-and-scales.md) | instruments and members, transpositions, scales, note sequences, the mode picker, progress keys, staff drawing |
 | [rhythm.md](docs/engine/rhythm.md) | rhythms, counting, the rhythm staff, sticking, accents, grace notes, rolls, onsets (claps/hits), calibration and the audio clock, the rhythm judge, the timing check |
+| [rudiment-player.md](docs/engine/rudiment-player.md) | the rudiment player (`shared/rudiment-player.js`), its sounds, the Sound Board's RUDIMENT PLAYER |
 | [avatars.md](docs/engine/avatars.md) | avatars, the creator, parts and names, avatar backgrounds and animation, item unlocks, portraits, skins, the Locker, the avatar badge |
 | [seasons.md](docs/engine/seasons.md) | seasonal events, event items, the lobby's event banner and panel, seasonal looks |
 | [leaderboard.md](docs/engine/leaderboard.md) | the leaderboard endpoint, its events, its screen, privacy, the anonymous BUG REPORTS (`shared/bug-report.js`) |

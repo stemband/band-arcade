@@ -508,6 +508,23 @@ the feedback sounds play after it stops).
 | `rd-miss` | `rd-miss.m4a` or `rd-miss.mp3` | After a performance under 60 %: a gentle "try again". Kind, never harsh. Falls back to level-failed. | under 0.6 s |
 | `rd-level-clear` | `rd-level-clear.m4a` or `rd-level-clear.mp3` | A level cleared (its results screen): the big taiko finish. Falls back to level-complete. | 1–2.5 s |
 
+### Rudiment player (the Rudiment Trainer)
+
+Mr. Graham's snare recordings for the RUDIMENT PLAYER (`shared/rudiment-player.js`; hear it on the Sound Board's
+RUDIMENT PLAYER section). **The hit is exactly 10 ms into every file**: trim each recording so its stroke starts 10 ms
+in, because the player starts every file 10 ms early so the hit lands right on the beat. They never play while a
+microphone listens (the player refuses to start then), and they are unpitched drum sounds only. Their levels against
+each other are the `GAIN` table at the top of `shared/rudiment-player.js`; the timing (flams, drags, buzz copies) is its
+`RULES` table. Until you upload a file: the generated snare from Music Highway's drum kit.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `rudiment-stroke` | `rudiment-stroke.m4a` or `rudiment-stroke.mp3` | A normal snare stroke (every R and L that isn't accented). The hit 10 ms into the file. | under 1 s |
+| `rudiment-accent` | `rudiment-accent.m4a` or `rudiment-accent.mp3` | An ACCENTED stroke (>): the same snare, louder (about 8.5 dB over a stroke; `vol` .8 in sounds.js because the file peaks near full scale). The hit 10 ms into the file. | under 1 s |
+| `rudiment-grace` | `rudiment-grace.m4a` or `rudiment-grace.mp3` | A GRACE note (the soft note of a flam or a drag), about 9 dB under a stroke. The hit 10 ms into the file. | under 1 s |
+| `rudiment-buzz` | `rudiment-buzz.m4a` or `rudiment-buzz.mp3` | A BUZZ stroke (z, the multiple bounce roll); a long buzz note plays more copies until it ends. The hit 10 ms into the file. | about 0.3 s |
+| `rudiment-click` | `rudiment-click.m4a` or `rudiment-click.mp3` | The COUNT-OFF before a rudiment and the CLICK track under it (the first click and every downbeat a little louder). A stick click, not a pitched tone. The hit 10 ms into the file. | under 0.25 s |
+
 ### Scale Trainer
 
 The microphone listens the whole time a scale is played (an audition, a practice run, the Chromatic Challenge), so

@@ -55,6 +55,10 @@ window.Arcade = window.Arcade || {};
   const GR = {lead: 24, step: 13, pad: 8, sc: .62, stem: 26}, HAND = {fs: 30, grace: 18, below: 40}, ACC_Y = TOP - 9, ACC_TRIP_Y = TOP - 27, TRIP_LIFT = 16;
   const graceRoom = n => n.graces && n.graces.length ? GR.lead + (n.graces.length - 1) * GR.step + GR.pad : 0;
   const graceX = (n, x, j) => x - GR.lead - (n.graces.length - 1 - j) * GR.step;
+  /* the buzz "z", sized by its GLYPH (a lowercase italic z is only about half its font size tall): its drawn height ≈
+     `ink` × a big sticking letter's cap height. The estimate here (xh = the z's height in em); refine() measures the real
+     fonts and sets it exactly. */
+  const BUZZ = {fs: Math.round(HAND.grace * 1.6), xh: .48, ink: .6, font: 'Georgia,serif'};
   const HALF = {w: 'h', h: 'q', q: 'e', e: 's', s: 't'}, LEVELS = {e: 1, s: 2, t: 3};
   /* rolls: 'written': a slashed note becomes its two strokes (half the value each, same hand; s = 0, 1) */
   const writeOut = list => list.flatMap(n => n.rest || !n.roll || n.buzz ? [n] : [0, 1].map(s => Object.assign({}, n,
@@ -155,7 +159,7 @@ window.Arcade = window.Arcade || {};
           const stem = n.val !== 'w', cx = stem ? x + STEM_DX : x;
           const top = beamOf[k] ? TOP + (LEVELS[n.val] - 1) * 10 + 6.5 : TOP, mid = stem ? (top + LINE - HEAD_RY - 2) / 2 : LINE - 22;
           if (n.roll) parts.push(slashSVG(cx, mid, n.roll));
-          else parts.push(`<text class="rs-buzz" x="${round(cx)}" y="${round(mid + HAND.grace * .3)}" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="${HAND.grace}" text-anchor="middle" fill="currentColor">z</text>`);
+          else parts.push(`<text class="rs-buzz" data-mid="${round(mid)}" x="${round(cx)}" y="${round(mid + BUZZ.fs * BUZZ.xh / 2)}" font-family="${BUZZ.font}" font-style="italic" font-weight="700" font-size="${BUZZ.fs}" text-anchor="middle" fill="currentColor">z</text>`);
         }
       }
       if (n.dots) for (let d = 0; d < n.dots; d++) parts.push(`<circle cx="${round(x + 15 + d * 8)}" cy="${LINE - 5}" r="2.8" fill="currentColor"/>`);
@@ -323,8 +327,34 @@ window.Arcade = window.Arcade || {};
     return `<g class="rc${g.rest ? ' rest' : ''}${s.cont ? ' cont' : ''}" data-g="${g.g}" data-x="${round(x)}" id="${pre}-c${g.g}${s.cont ? 'b' : ''}" font-family="'GN Text','Atkinson Hyperlegible',sans-serif" font-weight="700" fill="currentColor">${parts.join('')}</g>`;
   }
 
-  /* after the SVG is in the page: lay each counting group out again with the real widths */
+  /* the ink height of a glyph (canvas TextMetrics: the drawn bounds, not the font's box) */
+  let inkCtx = null;
+  function ink(text, font) {
+    try {
+      inkCtx = inkCtx || document.createElement('canvas').getContext('2d');
+      inkCtx.font = font; const m = inkCtx.measureText(text);
+      return {asc: m.actualBoundingBoxAscent || 0, desc: m.actualBoundingBoxDescent || 0};
+    } catch (e) { return {asc: 0, desc: 0}; }
+  }
+  /** the buzz z: its drawn height = BUZZ.ink × a big sticking letter's cap height (never under the grace letters' size),
+      centered on its slash height (data-mid) */
+  function refineBuzz(root) {
+    const zs = (root || document).querySelectorAll('text.rs-buzz');
+    if (!zs.length) return;
+    const cap = ink('R', `700 ${HAND.fs}px 'GN Text','Atkinson Hyperlegible',sans-serif`), capH = cap.asc + cap.desc;
+    const z = ink('z', `italic 700 100px ${BUZZ.font}`), zH = (z.asc + z.desc) / 100;
+    if (!(capH > 0) || !(zH > 0)) return;                    // no canvas text metrics: keep the estimate
+    const fs = Math.max(HAND.grace, BUZZ.ink * capH / zH);
+    zs.forEach(t => {
+      const mid = +t.dataset.mid;
+      t.setAttribute('font-size', round(fs));
+      if (!isNaN(mid)) t.setAttribute('y', round(mid + fs * (z.asc - z.desc) / 100 / 2));
+    });
+  }
+
+  /* after the SVG is in the page: lay each counting group out again with the real widths (and size the buzz z) */
   function refine(root) {
+    refineBuzz(root);
     (root || document).querySelectorAll('g.rc').forEach(gr => {
       const x = +gr.dataset.x, big = gr.querySelector('.rc-big'), pars = gr.querySelectorAll('.rc-par'), small = gr.querySelectorAll('.rc-small');
       let bw = 0;
@@ -341,5 +371,5 @@ window.Arcade = window.Arcade || {};
     });
   }
 
-  A.RhythmStaff = {engrave, refine, rows, LINE, H};
+  A.RhythmStaff = {engrave, refine, rows, LINE, H, BUZZ};
 })(window.Arcade);
