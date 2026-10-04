@@ -149,9 +149,13 @@ for (const [gap, broke] of [[250, true], [50, false]]) {
       G.slurB[G.lap] = G.slurB[G.lap] || G.slurB.find(Boolean); G.rivals.forEach(r => { r.pace = .01; });
       // in an animation frame, right after the game's own: silence for `gap` ms, and the car at halfway, so the game's
       // NEXT frame makes the switch (and judges the gap), before any detector reading can
+      // The last sound is always exactly `gap` ms before NOW (a getter): a slow frame (WebKit on CI) between this one and
+      // the switch must not make the silence longer than the test meant
+      const plain = v => Object.defineProperty(S, 'lastSound', {value: v, writable: true, configurable: true, enumerable: true});
       requestAnimationFrame(() => {
-        G.sl = null; S.state = 'silent'; S.lastSound = performance.now() - gap; G.dist = G.lens[G.lap] / 2;
-        requestAnimationFrame(() => res(Arcade.Speedway.slur().sl));
+        G.sl = null; S.state = 'silent'; G.dist = G.lens[G.lap] / 2;
+        Object.defineProperty(S, 'lastSound', {configurable: true, enumerable: true, get: () => performance.now() - gap, set: plain});
+        requestAnimationFrame(() => { plain(performance.now() - gap); res(Arcade.Speedway.slur().sl); });
       });
     }), gap);
     expect(sl.switched).toBe(true);
