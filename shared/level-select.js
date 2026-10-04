@@ -4,9 +4,19 @@
      "② SELECT YOUR LEVEL"   the heading right above the level cards (no number without a picker). Both are ONE style,
                              `.ls-head` (the announcer's neon lettering, section-heading size), so they can't drift apart
      SELECTING               a tap (or Enter/Space) on a level card selects it (the chosen note set's look: lit border,
-                             glow, a ✓); the one before is deselected. A tap never starts the game. A locked card can't
-                             be selected: "Clear Level N to unlock" pops up on it for a moment. The Endless tile (its
-                             whole card and its button) is selectable like a level.
+                             glow, a ✓); the one before is deselected. A locked card can't be selected: "Clear Level N to
+                             unlock" pops up on it for a moment. The Endless tile (its whole card and its button) is
+                             selectable like a level.
+     DOUBLE TAP              two taps (or a mouse double-click) on the SAME card within DOUBLE_MS (350 ms) and ≤ 30 px
+                             apart = select it, then START, inside the second tap's own click (so requireMic still counts
+                             it as the student's tap; never a timer, never the browser's dblclick, which iPad Safari
+                             doesn't fire for touch). Quick taps on two different cards only select the second. A locked
+                             card's double tap shows its toast once and never starts. START's 'start-ready' sound waits
+                             out the double-tap window, so a double tap that starts the game never plays it. Enter/Space
+                             on a card that is ALREADY selected = START (the first one selects). THE TIP: "Tip: double-tap
+                             a level to start it" under START, at most the first 3 screen appearances with a level
+                             selected on this device (gameData('level-select').dblHint; a double tap that starts a level
+                             ends it).
      START                   in the heading row, so it is on screen whenever the heading is (the row sticks to the top
                              while the cards scroll under it): a big neon START + one line, "LEVEL 4 · FIRST FIVE"; until a
                              level is selected, a dim "Select your notes and level" there instead. It slides in with the
@@ -55,6 +65,7 @@ window.Arcade = window.Arcade || {};
 (function (A) {
   "use strict";
   const IDLE_MS = 5000, VOICE_KEY = 'bandarcade.select-level-at', VOICE_GAP = 60000, VOICE_DELAY = 600, TOAST_MS = 1800;
+  const DOUBLE_MS = 350, DOUBLE_PX = 30, TIP_MAX = 3;           // a double tap: within 350 ms, a finger's wobble apart
   const LOCK = '<svg class="ls-lock-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>';
   const ARROW = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 18h22V7l18 17-18 17V30H4z"/></svg>';
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
@@ -94,6 +105,9 @@ window.Arcade = window.Arcade || {};
     if (!S) return;
     S.appeared = false;
     clearTimeout(S.idleT); hideHint();
+    clearTimeout(S.readyT); S.tap = null;
+    S.live = false;
+    if (S.tipOn) { S.tipOn = false; const t = S.row && S.row.querySelector(':scope>.ls-tip'); if (t) t.remove(); }
     if (S.voice) { S.voice.cancel(); S.voice = null; }
   }
   function stop() { if (S) { leave(); if (S.obs) S.obs.disconnect(); } S = null; }
@@ -200,7 +214,26 @@ window.Arcade = window.Arcade || {};
     el.classList.add('ls-beside');
     if (go.firstChild !== el) go.insertBefore(el, go.firstChild);
   }
-  /** the START area: the button with its line once a level is selected, else the dim hint */
+  /** THE TIP under START, the first TIP_MAX screen appearances with a level selected (each one counted once) */
+  function tip() {
+    const row = S && S.row;
+    if (!row) return;
+    let p = row.querySelector(':scope>.ls-tip');
+    let d = {};
+    try { d = memo(); } catch (e) { /* no storage */ }
+    if (!S.ready || !(S.tipOn || (d.dblHint || 0) < TIP_MAX)) { if (p) p.remove(); return; }
+    if (!p) {
+      p = document.createElement('p');
+      p.className = 'ls-tip'; p.textContent = 'Tip: double-tap a level to start it';
+      row.appendChild(p);
+    }
+    if (!S.tipOn) { S.tipOn = true; tipCount((d.dblHint || 0) + 1); }
+  }
+  function tipCount(n) {
+    try { const d = memo(); d.dblHint = Math.max(d.dblHint || 0, n); A.store.saveGameData('level-select'); } catch (e) { /* no storage */ }
+  }
+  /** the START area: the button with its line once a level is selected, else the dim hint ('tap' = selected by a tap:
+      'start-ready' waits out the double-tap window, so a double tap never plays it) */
   function drawStart(announce) {
     if (!S || !S.row) return;
     const go = S.row.querySelector('.ls-go'), was = S.ready;
@@ -223,9 +256,15 @@ window.Arcade = window.Arcade || {};
       S.start = b;
       if (!was && announce) {
         b.classList.remove('ls-in'); void b.offsetWidth; b.classList.add('ls-in');
-        if (A.Sfx) A.Sfx.event('start-ready');
+        clearTimeout(S.readyT);
+        if (announce !== 'tap') { if (A.Sfx) A.Sfx.event('start-ready'); }
+        else {
+          const st = S;
+          S.readyT = setTimeout(() => { if (S === st && st.ready && st.appeared && A.Sfx) A.Sfx.event('start-ready'); }, DOUBLE_MS);
+        }
       }
     }
+    if (S.live) tip();
     if (S.ready !== was && S.appeared) armHint();              // the next missing step gets its own hint
   }
 
@@ -263,11 +302,28 @@ window.Arcade = window.Arcade || {};
     if (!S || S.sel === null) return;
     const el = S.sel === 'endless' ? S.endless && S.endless.querySelector('.ed-go') : S.cards[S.sel];
     if (!el) return;
+    clearTimeout(S.readyT); S.tap = null;                       // START now: no slide-in sound after it
     remember(S.gameId, S.sel);
     S.pass = true;
     try { el.click(); } finally { S.pass = false; }
   }
-  /** clicks on the cards (and the Endless tile) select instead of starting; START's own click passes through */
+  /** a tap on card `v`: is it the second of a DOUBLE TAP (the same card, within DOUBLE_MS and DOUBLE_PX, or the
+      browser's own double-click)? A keyboard's click (detail 0) is never a tap. */
+  function second(v, e) {
+    if (!e.detail) { S.tap = null; return false; }
+    const now = performance.now(), x = e.clientX, y = e.clientY, l = S.tap;
+    const dbl = !!l && l.v === v && (e.detail === 2 || (now - l.t <= DOUBLE_MS && Math.hypot(x - l.x, y - l.y) <= DOUBLE_PX));
+    S.tap = dbl ? null : {v, t: now, x, y};
+    return dbl;
+  }
+  /** a double tap: select, then START right here, inside the student's tap; the tip has done its job */
+  function tapStart(v) {
+    select(v, 'tap');
+    tipCount(TIP_MAX);
+    begin();
+  }
+  /** clicks on the cards (and the Endless tile) select instead of starting (a double tap starts); START's own click
+      passes through */
   function intercept(el, which) {
     if (el._ls) return;
     el._ls = true;
@@ -277,16 +333,31 @@ window.Arcade = window.Arcade || {};
         if (!S.endless || !S.endless.contains(e.target)) return;
         if (e.target.closest('a')) return;
         e.preventDefault(); e.stopPropagation();
-        select('endless', true);
+        if (second('endless', e)) tapStart('endless'); else select('endless', e.detail ? 'tap' : true);
         return;
       }
       const i = (S.cards || []).findIndex(c => c.contains(e.target));
       if (i < 0) return;
       e.preventDefault(); e.stopPropagation();
-      if (!S.open(i)) { toast(S.cards[i], S.lockLine(i)); return; }
-      select(i, true);
+      const dbl = second(i, e);
+      if (!S.open(i)) { if (!dbl) toast(S.cards[i], S.lockLine(i)); return; }   // a locked card: its toast once
+      if (dbl) tapStart(i); else select(i, e.detail ? 'tap' : true);
     }, true);
   }
+
+  /* ---------- keyboard: Enter/Space on the card that is ALREADY selected = START (the first one selects) ---------- */
+  function onEnter(e) {
+    if (!S || !S.opts || !S.appeared || e.repeat || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const a = document.activeElement;
+    if (!a || S.sel === null) return;
+    const i = (S.cards || []).indexOf(a);                       // the card itself (never a control inside one)
+    const v = i >= 0 ? i : S.endless && S.endless.contains(a) && a.classList.contains('ed-go') ? 'endless' : null;
+    if (v === null || v !== S.sel || (i >= 0 && !S.open(i))) return;
+    e.preventDefault();                                          // no click from this key: START instead
+    begin();
+  }
+  addEventListener('keydown', onEnter);
 
   /* ---------- keyboard: arrows move to the nearest card that way ---------- */
   function onKey(e) {
@@ -366,6 +437,7 @@ window.Arcade = window.Arcade || {};
     st.appeared = true; st.hintDone = false; st.hintFor = null;
     afterStart(() => {
       if (S !== st || !st.appeared) return;
+      st.live = true; tip();                                       // the student sees the screen now
       requestAnimationFrame(() => {
         if (S !== st) return;
         const a = document.activeElement;
@@ -417,6 +489,6 @@ window.Arcade = window.Arcade || {};
     });
   }
 
-  A.LevelSelect = {show, played, highlight, IDLE_MS, VOICE_KEY,
+  A.LevelSelect = {show, played, highlight, IDLE_MS, VOICE_KEY, DOUBLE_MS, TIP_MAX,
     state: () => S ? {sel: S.sel, ready: S.ready, hint: !!S.hint, hintAt: S.hint ? S.hintFor : null, appeared: S.appeared, summary: S.ready ? S.summary : '', practice: !!S.practice} : null};
 })(window.Arcade);
