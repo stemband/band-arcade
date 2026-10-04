@@ -204,6 +204,7 @@ window.Arcade = window.Arcade || {};
     // 10 ms before its stroke's time (HIT_OFFSET_S). Scheduled on the audio clock by the player, never through the normal
     // effects player, and never while a microphone listens. Unpitched drum sounds only. Their levels relative to each other:
     // GAIN in rudiment-player.js (the files carry the dynamics: the accent ~8.5 dB over a stroke, the grace ~9 dB under).
+    'rudiment-trainer-menu': {file: 'rudiment-trainer-menu', vol: .45, loop: true, mic: false, screen: 'rudiments', when: 'Rudiment Trainer: menu music on the rudiment picker and each rudiment\'s page while nothing is playing. Fades out (0.5 s) when ▶ PLAY starts a rudiment (the count-off and the snare never play over it), and fades back in after ■ STOP or when the run ends. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'rudiment-stroke': {file: 'rudiment-stroke', vol: 1, mic: false, play: false, screen: 'rudiments', len: 'under 1 s (the hit 10 ms in)',
       gen: [[[2400, 1600], 0, .12, .45, 'noise', .8]],
       when: 'The rudiment player: a normal snare stroke (every R and L that isn\'t accented). Trimmed so the hit starts exactly 10 ms into the file. Until you upload it: the generated snare.'},

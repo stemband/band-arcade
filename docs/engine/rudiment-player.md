@@ -71,7 +71,7 @@ kit), starts `AudioClock`, and a look-ahead scheduler (`lookaheadS` .15 s, every
 - `onStroke(e)` (every stroke and grace, not buzz copies) and `onBeat(e)` (every beat: the count-off and the click
   track's beats, sounding or not: `e.sounded`) fire at the AUDIBLE time (`AudioClock.audAt`, from a requestAnimationFrame
   loop): what the student hears is what lights.
-- `stop()` cancels every scheduled source (each fades over 20 ms, never a click) and fires `onEnd` once. A hidden tab,
+- `stop()` cancels every scheduled source (each fades over 20 ms, never a click) and fires `onEnd` once. A `stop()` while `start()` is still waiting (the audio unlocking, the files loading) cancels that start: it resolves `false`, nothing plays, `onEnd({stopped: true})` fires once. A hidden tab,
   `pagehide` or the AudioContext stopping (iPad interruptions) stops the run the same way: nothing bursts out on return.
 - `state()`: `{playing, bpm, click, rep, log (every source: time, start, kind, file or 'kit', gain), bpmNow, …}` (tests,
   the ramp's readout). Tests and the Sound Board may pass `audio: {ctx, out}`, `buffers` and `clock`.

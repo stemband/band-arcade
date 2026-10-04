@@ -29,6 +29,7 @@ window.Arcade = window.Arcade || {};
     checkReps: 4,           // full repetitions at a tempo, in this visit, before its check-off button appears
     saveEveryS: 5,          // the practice-time log is saved this often while playing (and at every stop)
     keepDays: 30,           // days kept in the practice-time log
+    musicFadeMs: 500,       // PLAY waits for the menu music's fade-out (Sfx.gameMenuMusic: 0.5 s) before the count-off, when it was playing
   };
   /* ============================================== */
 
@@ -201,8 +202,12 @@ window.Arcade = window.Arcade || {};
       onEnd: ({stopped}) => ended(pl, stopped)});
     S.player = pl; S.playing = true; S.lastNow = null;
     drawPlay();
-    A.Sfx.gameMenuMusic(GAME_ID, false);                           // the player and the menu music never overlap
-    pl.start().then(ok => { if (!ok && S.player === pl) ended(pl, true); });
+    // the player and the menu music never overlap: the music fades out first, then the count-off starts
+    const ms = A.Sfx.musicState ? A.Sfx.musicState().music || {} : {};
+    const fading = !!ms.playing;
+    A.Sfx.gameMenuMusic(GAME_ID, false);
+    const go = () => { if (S.player === pl) pl.start().then(ok => { if (!ok && S.player === pl) ended(pl, true); }); };
+    if (fading) setTimeout(go, RULES.musicFadeMs); else go();
     tick();
   }
   /** a repetition is complete when the next one's first beat (or stroke) sounds: counted at the tempo it played */

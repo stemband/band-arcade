@@ -115,6 +115,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Keys to the City | `keys-to-the-city-menu` | `keys-to-the-city-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Music Highway | `music-highway-menu` | `music-highway-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Rhythm Dojo | `rhythm-dojo-menu` | `rhythm-dojo-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Rudiment Trainer | `rudiment-trainer-menu` | `rudiment-trainer-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Scale Trainer | `scale-trainer-menu` | `scale-trainer-menu.m4a` (or .mp3) | a file already uploaded under the game's old name, `scale-audition-menu.m4a` (or .mp3), then the arcade’s select-music |
 | Blocktave | `blocktave-menu` | `blocktave-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |

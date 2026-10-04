@@ -254,7 +254,7 @@ window.Arcade.GAMES = [
     bg: {scene: 'drumline', dim: .4, focus: .35},
     skill: 'Drum rudiments',
     blurb: 'The 40 drum rudiments: see them, hear them at five tempos, play along.',
-    maxStars: 0,                                     // a practice tool: no stars (tempos are checked off in its own gameData)
+    menuMusic: 'rudiment-trainer-menu', maxStars: 0,                                     // a practice tool: no stars (tempos are checked off in its own gameData)
     color: 'yellow',
     unpitched: true,                                 // the Snare Drum plays it (the bells too: rudiments are hand patterns)
     // the floor's line instead of a hi-score: the rudiments checked off at all five tempos (rudiment-trainer/game.js)
