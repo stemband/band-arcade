@@ -175,7 +175,9 @@
   /* ---------- the story: before the first showtime, and any time from the level screen ---------- */
   $('storyArt').innerHTML = ['walrus', 'owl', 'moose', 'gator', 'raccoon'].map(k => `<span class="bot glitch">${SHOW.botSVG(k)}</span>`).join('');
   let afterStory = null;
-  function showStory(then) { afterStory = then || null; $('story').hidden = false; $('storyGo').focus(); }
+  // (the panel starts at its top on a short phone: "Let's go" has the focus without scrolling the story away; it is
+  // reached by scrolling, the overlay's own scroll)
+  function showStory(then) { afterStory = then || null; $('story').hidden = false; $('story').scrollTop = 0; $('storyGo').focus({preventScroll: true}); }
   $('storyBtn').addEventListener('click', () => showStory());
   $('storyGo').addEventListener('click', () => { $('story').hidden = true; gd.storySeen = true; save(); if (afterStory) afterStory(); });
 
