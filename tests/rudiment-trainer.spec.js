@@ -27,7 +27,7 @@ test.describe('rudiment trainer: the data', () => {
       return {n: R.LIST.map(x => x.n), ids: R.LIST.map(x => x.id), fams: R.FAMILIES.map(f => [f.id, R.LIST.filter(x => x.fam === f.id).length]),
         errors: R.LIST.map(x => [x.id, C.parse(x.text, x.time).errors]).filter(([, e]) => e.length),
         sets: R.LIST.map(x => [x.id, R.bpms(x).length, !!R.TEMPO_SETS[x.tiers]]).filter(([, n, ok]) => n !== 5 || !ok),
-        tiers: R.TIERS.map(t => t.id), times: [...new Set(R.LIST.map(x => x.time))].sort(), credit: R.CREDIT};
+        tiers: R.TIERS.map(t => t.id), times: [...new Set(R.LIST.map(x => x.time))].sort(), credit: R.CREDIT, oco: R.OCO};
     });
     expect(r.errors).toEqual([]);
     expect(r.n).toEqual(Array.from({length: 40}, (_, i) => i + 1));
@@ -36,6 +36,7 @@ test.describe('rudiment trainer: the data', () => {
     expect(r.sets).toEqual([]);
     expect(r.tiers).toEqual(['bronze', 'silver', 'gold', 'platinum', 'diamond']);       // saved: never renamed or reordered
     expect(r.times).toEqual(['2/4', '3/4', '4/4', '6/8']);
+    expect(r.oco).toMatchObject({id: 'oco', upS: 40, holdS: 10, downS: 40});            // Open–Close–Open: 40 s up, 10 s held, 40 s down
     expect(r.credit).toBe('The 40 PAS International Drum Rudiments · Percussive Arts Society');
     watch.check();
   });
@@ -148,11 +149,12 @@ test.describe('rudiment trainer: a rudiment', () => {
   });
 
   test('Open–Close–Open needs one whole run (the test clock); the roll switch shows only with rolls and is remembered', async ({page}) => {
-    test.setTimeout(90_000);
     const watch = await prepare(page, {store: quiet()});
     await page.clock.install();
     await page.goto('rudiment-trainer/index.html?demo&nostart&r=five-stroke-roll');
     await page.waitForFunction(() => window.Arcade && Arcade.RudimentTrainer);
+    // a short ramp (8 s up, 2 s held, 8 s down) so the whole run fits the test budget; the real 40/10/40 s is checked in the data test
+    await page.evaluate(() => Object.assign(Arcade.Rudiments.OCO, {upS: 8, holdS: 2, downS: 8}));
     await expect(page.locator('#viewOpt')).toBeVisible();
     await page.locator('#viewSeg [data-view="written"]').click();
     expect((await st(page)).view).toBe('written');
@@ -160,11 +162,11 @@ test.describe('rudiment trainer: a rudiment', () => {
     await page.locator('[data-tier="oco"]').click();
     await expect(page.locator('#check .rt-hint')).toContainText('all the way through');
     await page.locator('#playBtn').click();
-    await page.clock.runFor(45_000);
+    await page.clock.runFor(9_000);
     expect((await st(page)).canCheck).toBe(false);                            // half a run is not enough
     await page.locator('#playBtn').click();                                    // stopped: still not
     await page.locator('#playBtn').click();
-    for (let i = 0; i < 12 && (await st(page)).playing; i++) await page.clock.runFor(10_000);
+    for (let i = 0; i < 12 && (await st(page)).playing; i++) await page.clock.runFor(3_000);
     const s = await st(page);
     expect([s.playing, s.ocoRuns['five-stroke-roll'], s.canCheck]).toEqual([false, 1, true]);
     await expect(page.locator('#checkBtn')).toHaveText('✓ I can play this at Open–Close–Open');
