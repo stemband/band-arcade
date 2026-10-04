@@ -4,7 +4,7 @@
    gap keeps its speed, with a gap (?demo B) slows + "Slur it!"; the second note comes from the note set (brass: a lip
    slur); the report adds "Pitch in soft / loud zones" and the slur count. */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, pageWatch, explain, CPU_DRAWING} = require('./helpers');
+const {prepare, device, pageWatch, explain, CPU_DRAWING, lagFrames} = require('./helpers');
 test.use(CPU_DRAWING);                       // WebKit draws on the CPU here (helpers.js CPU_DRAWING: no page crashes on CI)
 const {openSpeedway, startTrack} = require('./speedway-helpers');
 
@@ -133,6 +133,32 @@ test('a slur lap: no gap keeps the speed ("Smooth!"), a gap slows ("Slur it!"); 
   await expect(page.locator('#tnSlurs')).toContainText('3 of 4');                       // laps 1, 2 (+ the track's 3 and 6): one break
   watch.check();
 });
+
+// THE SWITCH on a busy page: it's stamped with performance.now() (the detector's clock), never the frame's timestamp,
+// which runs behind it there. Judged by the frame's timestamp, a 250 ms gap right before the switch looked like none
+for (const [gap, broke] of [[250, true], [50, false]]) {
+  test(`a slur's switch on a busy page (frame timestamps 400 ms behind): a ${gap} ms gap before it is ${broke ? 'a BREAK' : 'no break'}`, async ({page}) => {
+    test.setTimeout(60000);
+    const watch = await prepare(page, {store: store()});
+    await lagFrames(page, 400);
+    await openSpeedway(page);
+    await startTrack(page, 5);
+    await page.waitForFunction(() => !Arcade.Pitch.isSuppressed(performance.now() - 500), null, {timeout: 10000});
+    const sl = await page.evaluate(gap => new Promise(res => {
+      const G = Arcade.Speedway.debug(), S = Arcade.Speedway.hearing();
+      G.slurB[G.lap] = G.slurB[G.lap] || G.slurB.find(Boolean); G.rivals.forEach(r => { r.pace = .01; });
+      // in an animation frame, right after the game's own: silence for `gap` ms, and the car at halfway, so the game's
+      // NEXT frame makes the switch (and judges the gap), before any detector reading can
+      requestAnimationFrame(() => {
+        G.sl = null; S.state = 'silent'; S.lastSound = performance.now() - gap; G.dist = G.lens[G.lap] / 2;
+        requestAnimationFrame(() => res(Arcade.Speedway.slur().sl));
+      });
+    }), gap);
+    expect(sl.switched).toBe(true);
+    expect(sl.broke).toBe(broke);
+    watch.check();
+  });
+}
 
 // one test per instrument, side by side
 for (const m of ['clarinet', 'altosax', 'flute', 'trombone', 'tuba', 'horn']) {

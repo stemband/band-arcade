@@ -198,4 +198,14 @@ async function closeUnlocked(page) {
 /** jump the page's clock forward (its timers fire), then a moment of real time for the mocked network to answer */
 async function settle(page, ms) { await page.clock.fastForward(ms); await page.waitForTimeout(250); }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked};
+/** A BUSY PAGE (call before page.goto): every animation frame's timestamp is `ms` older than the moment the frame runs
+    (`random`: a different lag each frame, 0 to `ms`), like a slow iPad or a loaded test machine. Hits and readings are
+    stamped with performance.now(), so a game that judged them by the frame's timestamp would be early / late. */
+async function lagFrames(page, ms, {random = false} = {}) {
+  await page.addInitScript(([ms, random]) => {
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = cb => raf(t => cb(t - (random ? Math.random() * ms : ms)));
+  }, [ms, random]);
+}
+
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked, lagFrames};
