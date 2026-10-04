@@ -262,7 +262,7 @@ test.describe('rudiment trainer: the menu music (rudiment-trainer-menu)', () => 
     watch.check();
   });
 
-  test('the Sound Board\'s Music section lists rudiment-trainer-menu (missing: the arcade\'s select-music)', async ({page}) => {
+  test('the Sound Board\'s Music section lists rudiment-trainer-menu (uploaded, or missing: the arcade\'s select-music)', async ({page}) => {
     const watch = await prepare(page, {store: quiet()});
     await page.goto('sound-board/index.html');
     await page.locator('.sb-sec[data-sec="music"] > summary').click();
@@ -270,7 +270,8 @@ test.describe('rudiment trainer: the menu music (rudiment-trainer-menu)', () => 
     await expect(row).toHaveCount(1);
     await expect(row.locator('b')).toHaveText('Rudiment Trainer');
     await expect(row).toHaveAttribute('data-fallback', 'select-music');
-    await expect(row.locator('[data-mstatus]')).toHaveText(/^missing — using select music$/, {timeout: 30000});   // the board checks every track in turn
+    // uploaded (Mr. Graham's file) or, until then, what plays instead; the board checks every track in turn
+    await expect(row.locator('[data-mstatus]')).toHaveText(/^(✓ uploaded \(\w+(, \d+ s)?\)|missing — using select music)$/, {timeout: 30000});
     watch.check();
   });
 });
