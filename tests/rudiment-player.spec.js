@@ -364,10 +364,14 @@ for (const [name, vp] of [['iPad', {width: 820, height: 1180}], ['Chromebook', {
     await card.locator('.rp-play').click();
     await expect(card.locator('.rp-play')).toHaveAttribute('aria-pressed', 'true');
     await page.waitForFunction(() => { const s = Arcade.SoundBoard.rudiments.state(); return s.playing === 'paradiddle' && s.player && s.player.playing; }, null, {polling: 100});
-    // the strokes light as they sound (a test machine whose audio clock doesn't keep time, WebKit on CI, lights nothing)
-    const moves = await page.evaluate(async () => { const c = new AudioContext(); const a = c.currentTime; await new Promise(r => setTimeout(r, 300)); const b = c.currentTime; c.close(); return b > a; });
+    // the strokes light as they sound (a test machine whose audio clock doesn't keep time lights nothing). The board's OWN
+    // context is checked: a second AudioContext could interrupt it (no sound card) and stop the player
+    const moves = await page.evaluate(async () => { const c = Arcade.Sfx.board.start(); const a = c.currentTime; await new Promise(r => setTimeout(r, 300)); return c.currentTime > a; });
     if (moves) {
-      await page.waitForFunction(() => Arcade.SoundBoard.rudiments.state().cards.paradiddle.strokes.length >= 4, null, {polling: 100, timeout: 15000});
+      await page.waitForFunction(() => Arcade.SoundBoard.rudiments.state().cards.paradiddle.strokes.length >= 4, null, {polling: 100, timeout: 15000})
+        .catch(async e => { throw new Error(e.message + '\nthe player: ' + JSON.stringify(await page.evaluate(() => { const s = Arcade.SoundBoard.rudiments.state(), c = Arcade.Sfx.board.start();
+          return {playing: s.playing, strokes: s.cards.paradiddle.strokes.length, ctx: c.state, t: c.currentTime, out: c.getOutputTimestamp ? c.getOutputTimestamp() : null,
+            player: s.player && {playing: s.player.playing, now: s.player.now, queued: s.player.queued, log: s.player.log.length, first: s.player.log[0]}}; }))); });
       await expect(card.locator('.rp-now').first()).toBeAttached();
       const s = (await page.evaluate(() => Arcade.SoundBoard.rudiments.state())).cards.paradiddle.strokes;
       expect(s.slice(0, 4).map(e => e.kind)).toEqual(['accent', 'stroke', 'stroke', 'stroke']);

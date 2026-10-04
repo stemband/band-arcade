@@ -201,7 +201,10 @@ window.Arcade = window.Arcade || {};
     function frame() {
       if (!running) return;
       clk.sample();
-      const now = clk.audAt(performance.now());
+      let now = clk.audAt(performance.now());
+      // a device whose output timestamp is nonsense (no audio device: a test machine) never lights anything: the audible
+      // time is never more than a second from the context's own clock
+      if (ctx && clk.ctx === ctx && Math.abs(now - ctx.currentTime) > 1) now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
       while (vis.length && vis[0].time <= now) {
         const e = vis.shift();
         try {
