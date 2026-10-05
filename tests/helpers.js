@@ -164,6 +164,131 @@ async function offscreen(page) {
   });
 }
 
+/* WIDE_OK: the only things allowed to be wider than the screen besides the general rules in tooWide() below. Each
+   entry: {sel (a CSS selector), url (a RegExp on the page's path + query + hash; optional), why}. Every entry is
+   reviewed in the pull request that adds it; prefer fixing the layout. */
+const WIDE_OK = [
+];
+
+/**
+ * TOO WIDE: everything VISIBLE on the page (or inside `within`, a CSS selector) that is wider than the screen.
+ * Returns a list of problems (like offscreen()), each naming the element (tag#id.classes "first 30 characters"),
+ * its left–right edges and the viewport width:
+ *   1. any visible element whose box sticks out past the left or right edge of the viewport by more than 1 px
+ *      (panels, dialogs, text, headings, images, SVGs, canvases, tables, cards, rows); only the outermost one is
+ *      named (its children stick out with it);
+ *   2. text cut off sideways: an element whose own text is clipped by its overflow (hidden/clip, no ellipsis) or
+ *      runs past its own box (one unbreakable line wider than the box).
+ * THE GENERAL EXCEPTIONS (each also applies to everything inside):
+ *   a. inside a container that scrolls sideways ON PURPOSE (overflow-x auto/scroll and scrollable: thumbnail strips,
+ *      the staff rows, wide tables). A WINDOW never scrolls sideways on purpose: the page, an .overlay, a dialog or a
+ *      panel that does is the bug itself, so those don't count as such a container.
+ *   b. decorative layers: inside [aria-hidden="true"] (the menu backgrounds, marquee glows, particles, scenery) or
+ *      [hidden], and the inside of an SVG (the <svg> itself is checked).
+ *   c. clipped ON PURPOSE by an overflow: hidden/clip parent whose own box is on screen (carousels, the 3D floor's
+ *      canvas, a scene cropped to its frame): what shows is on screen. Again not when the clipping parent is the
+ *      page or a window: a panel that cuts its own content off is the bug.
+ *   d. WIDE_OK (above): anything else, one entry with a reason each.
+ * `ok` = extra WIDE_OK-style entries for one test.
+ */
+async function tooWide(page, {within = null, ok = []} = {}) {
+  const allow = [...WIDE_OK, ...ok].map(e => ({sel: e.sel, url: e.url ? e.url.source : null}));
+  return page.evaluate(([within, allow]) => {
+    const W = document.documentElement.clientWidth, out = [], flagged = new Set();
+    const here = location.pathname + location.search + location.hash;
+    const okSel = allow.filter(e => !e.url || new RegExp(e.url).test(here)).map(e => e.sel).join(', ');
+    const WINDOW = 'html, body, .overlay, [role="dialog"], [role="alertdialog"], .panel, .ui-panel';
+    const name = el => {
+      const cls = typeof el.className === 'string' ? el.className : (el.className && el.className.baseVal) || '';
+      const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('alt') || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+      return `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls.trim() ? '.' + cls.trim().split(/\s+/).join('.') : ''}${text ? ` "${text}"` : ''}`;
+    };
+    const visible = el => {
+      if (el.checkVisibility && !el.checkVisibility({opacityProperty: true, visibilityProperty: true})) return false;
+      const s = getComputedStyle(el); if (s.visibility === 'hidden' || s.display === 'none') return false;
+      const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1;
+    };
+    const onScreen = r => r.left >= -1 && r.right <= W + 1;
+    /** one of the general exceptions (a, b, c, d) for `el` */
+    const excused = el => {
+      if (el.closest('[aria-hidden="true"], [hidden]') || el.ownerSVGElement) return true;
+      if (okSel && el.closest(okSel)) return true;
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        if (p.matches(WINDOW)) continue;
+        const s = getComputedStyle(p);
+        if (/(auto|scroll)/.test(s.overflowX) && p.scrollWidth > p.clientWidth + 1) return true;
+        if (/(hidden|clip)/.test(s.overflowX) && onScreen(p.getBoundingClientRect())) return true;
+      }
+      return false;
+    };
+    const root = within ? document.querySelector(within) : document.body;
+    if (!root) return [`${within} is not on the page`];
+    for (const el of [root, ...root.querySelectorAll('*')]) {
+      if (/^(SCRIPT|STYLE|LINK|META|TEMPLATE|NOSCRIPT|BR|WBR|OPTION)$/.test(el.tagName)) continue;
+      let p = el.parentElement, under = false;
+      for (; p; p = p.parentElement) if (flagged.has(p)) { under = true; break; }
+      if (under || !visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      // 1. sticks out of the screen
+      if (!onScreen(r) && !excused(el)) {
+        flagged.add(el);
+        out.push(`${name(el)} x ${Math.round(r.left)}–${Math.round(r.right)} of ${W}`);
+        continue;
+      }
+      // 2. its own text cut off sideways
+      const texts = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
+      if (!texts.length) continue;
+      const s = getComputedStyle(el);
+      if (s.display === 'inline' || s.display === 'contents') continue;   // an inline box is its text: nothing to spill out of
+      let cut = '';
+      if (/(hidden|clip)/.test(s.overflowX)) {
+        if (s.textOverflow !== 'ellipsis' && el.scrollWidth > el.clientWidth + 1) cut = `text cut off: ${el.scrollWidth} px of text in a ${el.clientWidth} px box`;
+      } else {
+        const rg = document.createRange(); let lo = Infinity, hi = -Infinity;
+        for (const t of texts) { rg.selectNodeContents(t); for (const q of rg.getClientRects()) if (q.width) { lo = Math.min(lo, q.left); hi = Math.max(hi, q.right); } }
+        if (hi > r.right + 1 || lo < r.left - 1) cut = `text runs out of its box (text ${Math.round(lo)}–${Math.round(hi)}, box ${Math.round(r.left)}–${Math.round(r.right)})`;
+      }
+      if (cut && !excused(el)) { flagged.add(el); out.push(`${name(el)} ${cut}, x ${Math.round(r.left)}–${Math.round(r.right)} of ${W}`); }
+    }
+    // (a window is fixed over the page: whether the page behind it scrolls sideways is the page's own check)
+    const sw = document.documentElement.scrollWidth;
+    if (!within && sw > W + 1) out.push(`the page scrolls sideways: ${sw} px wide in a ${W} px window`);
+    return out.slice(0, 20);
+  }, [within, allow]);
+}
+
+/* PHONE SIZES for the phone-width check (tests/phone-width.spec.js, and the results screens in game-runs.spec.js) */
+const PHONES = [['390 × 844', 390, 844], ['360 × 740', 360, 740], ['375 × 667', 375, 667]];
+
+/**
+ * WINDOW FITS: the open window `sel` passes tooWide(), and its MAIN BUTTON (`main`, or the window's first visible
+ * .btn-primary, else its GO button, else its first .btn, else its first button) can be reached: scrolled into view it
+ * is fully on the screen and nothing covers its middle. Returns the problems (none = []).
+ */
+const MAIN = ['.btn-primary', '[data-act="go"]', '.btn', 'button'];
+async function windowFits(page, sel, {main = null, ok = []} = {}) {
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));   // the layout has settled
+  const bad = await tooWide(page, {within: sel, ok});
+  let btn = null;
+  for (const m of main ? [main] : MAIN.map(m => `${sel} ${m}`)) {
+    const b = page.locator(m).filter({visible: true}).first();
+    if (await b.count()) { btn = b; break; }
+  }
+  if (!btn) return bad;
+  // (the browser's own scroll: Playwright's scrollIntoViewIfNeeded waits for the button to stop moving, and a results
+  // screen's buttons glow and pop in)
+  const at = await btn.evaluate(el => {
+    el.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const hit = document.elementFromPoint(Math.min(Math.max(x, 0), innerWidth - 1), Math.min(Math.max(y, 0), innerHeight - 1));
+    return {r: [r.left, r.right, r.top, r.bottom].map(Math.round), on: r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1,
+      tap: !!hit && (hit === el || el.contains(hit) || hit.contains(el)), text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)};
+  });
+  if (!at.on) bad.push(`its main button "${at.text}" can't be scrolled fully onto the screen (x ${at.r[0]}–${at.r[1]}, y ${at.r[2]}–${at.r[3]})`);
+  else if (!at.tap) bad.push(`its main button "${at.text}" is covered by something else`);
+  return bad;
+}
+
 /** the saved progress of this browser (localStorage) */
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('bandarcade.v1') || '{}'));
 /** the best stars saved for level `lv` of a progress key, any instrument */
@@ -221,4 +346,4 @@ async function busyFrames(page) {
   });
 }
 
-module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked, lagFrames, busyFrames};
+module.exports = {ROOT, LB_URL, LB_HOSTS, OPTIONAL, optional, device, prepare, pageWatch, explain, CPU_DRAWING, boardFor, lastWeekKey, offscreen, tooWide, WIDE_OK, windowFits, PHONES, saved, starsIn, VIEWPORTS, quickLeaderboard, settle, closeUnlocked, lagFrames, busyFrames};

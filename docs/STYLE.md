@@ -57,6 +57,14 @@ Every button uses `.btn` plus one style class, and is at least 44 px tall.
 - Gaps are multiples of 2 (4, 6, 8, 10, 14, 18, 22).
 - Nothing may scroll sideways. An overlay scrolls itself; a panel is never cut off.
 
+## Phones
+- **Every panel and window must fit a 360 px-wide phone: never give art, a row or a panel a fixed width that can't
+  shrink.** Panels: `width: min(<size>px, 100%)`. Grids: `minmax(0, 1fr)` columns, `min-width: 0` on children that hold
+  text. Rows of buttons or chips: `flex-wrap: wrap`. Art: sized from its row with `aspect-ratio`, not a fixed height.
+  Long words: `overflow-wrap: anywhere`. A table that is wider on purpose scrolls sideways in its own box. The shared
+  overlay already keeps every window inside the screen; the pattern and the test: `docs/engine/ui-kit.md` (EVERY
+  WINDOW FITS A PHONE) and `docs/engine/testing.md` (PHONE WIDTH).
+
 ## Icons
 - Icons are simple line or solid shapes in `currentColor`, drawn as inline SVG at 18–24 px.
 - Every icon-only button has an `aria-label`.

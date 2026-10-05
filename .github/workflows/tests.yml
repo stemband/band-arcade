@@ -1,7 +1,7 @@
 # Band Arcade's AUTOMATIC TESTS: on every pull request (and every push to main), the whole arcade is opened in
 # Chromium and WebKit (≈ iPad Safari) and checked (tests/README.md says what and how; docs/engine/testing.md the rules).
 #
-#   1. QUICK CHECK (Chromium, 2 shards side by side, ~3 min): the smoke test (every page, every game's level starts), the docs checks and the
+#   1. QUICK CHECK (Chromium, 3 shards side by side, ~3 min): the smoke test (every page, every game's level starts), the phone-width check at 390 × 844, the docs checks and the
 #      core tests tagged @quick. A red ✗ here = something basic broke; the full run doesn't even start.
 #   2. FULL (after QUICK CHECK passes): everything else in Chromium (3 shards) and the whole suite in WebKit (6 shards),
 #      side by side on 9 machines, each shard about the same TIME (shard-by-time.js + tests/test-times.json), plus Blocktave's and Showtime Malfunction's frame-rate
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1/2, 2/2]        # two machines side by side: the answer in ~3 minutes
+        shard: [1/3, 2/3, 3/3]   # three machines side by side: the answer in ~3 minutes (a 3rd since the phone-width check joined)
     defaults:
       run:
         working-directory: tests
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Both quick shards passed
+      - name: Every quick shard passed
         env:
           QUICK: ${{ needs.quick.result }}
         run: |

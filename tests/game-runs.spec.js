@@ -1,11 +1,13 @@
 /* GAME RUNS (?demo, Chromium and WebKit): every game from PRESS START to its results screen, with its stars saved.
    Which games and how: tests/games.js. On the way, in every game: PAUSE (the shared pause menu opens), SETTINGS
    (a setting changed), RESUME, and at the end the results screen's buttons are there and LEVELS goes back.
+   THE RESULTS FIT A PHONE: each results screen and Endless GAME OVER, just filled by the run, is checked at the phone
+   sizes (helpers.js PHONES, windowFits) before LEVELS.
    GALLERY=1 also saves screenshots of each game's level select, pause menu, settings panel and results screen into
    docs/gallery/ (docs/gallery.html shows them): `GALLERY=1 npx playwright test game-runs --project=chromium`. */
 const path = require('path');
 const {test, expect} = require('@playwright/test');
-const {prepare, device, saved, starsIn, ROOT, CPU_DRAWING} = require('./helpers');
+const {prepare, device, saved, starsIn, ROOT, CPU_DRAWING, windowFits, PHONES} = require('./helpers');
 test.use(CPU_DRAWING);                       // WebKit draws on the CPU here: every game is a canvas game (helpers.js CPU_DRAWING: fewer page crashes on CI)
 const {RUNS, click} = require('./games');
 const GALLERY = !!process.env.GALLERY;
@@ -35,6 +37,18 @@ async function pauseCheck(page, R) {
   await page.locator('#uiPause [data-act=resume]').click();
   await expect(page.locator('#uiPause')).toBeHidden();
   return true;
+}
+
+/* THE RESULTS FIT A PHONE (docs/engine/testing.md PHONE WIDTH): the results screen this run just filled (stars, score
+   sheet, the game's extras, UNLOCKED!), resized to each phone size: nothing wider than the screen (helpers.js tooWide)
+   and its main button reachable; then back to the run's own size. */
+async function resultsFit(page, R, what = 'the results screen') {
+  const size = page.viewportSize();
+  for (const [label, w, h] of PHONES) {
+    await page.setViewportSize({width: w, height: h});
+    expect.soft(await windowFits(page, '#results'), `${R.name}: ${what} on a ${label} phone`).toEqual([]);
+  }
+  await page.setViewportSize(size);
 }
 
 /* overlays that open before or during a level and just want their main button (a story, an intro, "Turn on the
@@ -138,6 +152,7 @@ for (const R of RUNS) {
     if (!R.done) {                                   // the shared results screen: its buttons, and LEVELS goes back
       await page.waitForTimeout(GALLERY ? 1800 : 300);
       await shot(page, R.id, 'results');
+      await resultsFit(page, R);
       await expect(page.locator('#resRetry')).toBeVisible();
       await page.locator('#resLevels').click();
       await expect(page.locator('#results')).toBeHidden();
@@ -161,6 +176,7 @@ for (const R of RUNS.filter(r => r.endless)) {
       await step(page, Object.assign({}, R, {every: 400}), R.endlessPlay);
     }
     if (!(await over())) expect(false, `${R.name}: Endless never reached GAME OVER. The page: ${await diag(page)}`).toBe(true);
+    await resultsFit(page, R, 'GAME OVER');
     watch.check();
   });
 }
