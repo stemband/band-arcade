@@ -1,8 +1,9 @@
 /* SMOKE: every page loads in Chromium and WebKit at iPad landscape, iPad portrait and Chromebook sizes with no
-   JavaScript error, no console error, no missing local file, no request to an outside host, and no visible button
-   sticking out of the screen sideways. All @quick (QUICK CHECK). */
+   JavaScript error, no console error, no missing local file, no request to an outside host, no visible button
+   sticking out of the screen sideways, and nothing visible wider than the screen (helpers.js tooWide; phones:
+   phone-width.spec.js). All @quick (QUICK CHECK). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, offscreen, VIEWPORTS} = require('./helpers');
+const {prepare, device, offscreen, tooWide, VIEWPORTS} = require('./helpers');
 const {PAGES} = require('./pages');
 
 const SIZES = Object.entries(VIEWPORTS);
@@ -26,9 +27,9 @@ for (const P of PAGES) {
         await page.setViewportSize(size);
         await page.waitForTimeout(450);               // the pages' own resize handlers wait up to ~300 ms before they lay out again
       }
-      const bad = await offscreen(page);
+      const bad = [...await offscreen(page), ...await tooWide(page)];      // (tooWide: nothing visible wider than the screen, docs/engine/testing.md PHONE WIDTH)
       if (bad.length) await page.screenshot({path: info.outputPath(`${label.replace(/\s/g, '-')}.png`)});
-      expect(bad, `buttons outside the screen at ${label} (${size.width} × ${size.height})`).toEqual([]);
+      expect([...new Set(bad)], `buttons or anything else outside the screen at ${label} (${size.width} × ${size.height})`).toEqual([]);
     }
     watch.check(`on ${P.url}`);
   });

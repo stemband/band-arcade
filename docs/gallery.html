@@ -27,6 +27,7 @@
   .gal .shots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
   @media (max-width:900px){.gal .shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .gal figure{margin:0}
+  .gal #tokens{overflow-x:auto;max-width:100%}   /* the sheet is wider than a phone: it scrolls sideways inside its box, never the page */
   .gal .tk-sheet{border-collapse:collapse;color:var(--text-hi)}
   .gal .tk-sheet th,.gal .tk-sheet td{padding:8px 14px;text-align:left;border-bottom:1px solid var(--floor-3)}
   .gal .tk-sheet td.tk-q{background:var(--q-black)}
