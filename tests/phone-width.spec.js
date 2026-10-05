@@ -107,14 +107,14 @@ const FLOOR = [
   {name: 'the avatar badge menu', group: 'the avatar', open: click(BADGE), sel: '#avBadge .avb-menu', main: '#avBadge .avb-menu button', gone: false},
   {name: 'the Locker', group: 'the avatar', open: async page => { if (!await visible(page)('#avBadge .avb-menu')) await click(BADGE)(page); await click('#avBadge .avb-locker')(page); },
     sel: '#locker', main: '#lkDone', close: click('#lkDone')},
-  {name: 'Share your avatar (avatar code)', group: 'the avatar', open: async page => { await click(BADGE)(page); await click('#avBadge .avb-share')(page); },
+  {name: 'Share your avatar (avatar code)', group: 'the avatar creator and code', open: async page => { await click(BADGE)(page); await click('#avBadge .avb-share')(page); },
     sel: '.acode-ov', close: click('.acode-ov [data-close]')},
-  {name: 'the avatar creator', group: 'the avatar', open: async page => { await click(BADGE)(page); await click('#avBadge .avb-edit')(page); },
+  {name: 'the avatar creator', group: 'the avatar creator and code', open: async page => { await click(BADGE)(page); await click('#avBadge .avb-edit')(page); },
     sel: '.av-creator', main: '.av-creator .avc-save', close: click('.av-creator .avc-cancel')},
   {name: 'the Prize Counter', group: 'the Prize Counter', open: click('#prizeSign'), sel: '#prizes', close: click('#prizes .pz-x')},
   {name: "the Prize Counter's prize card", group: 'the Prize Counter', open: async page => { await page.evaluate(() => Arcade.Tokens && Arcade.Tokens.add(2000)); await click('#prizeSign')(page); await click('#prizes .pz-wall .pz-prize')(page); },
     sel: '#pzCard', close: click('#pzCard [data-c=close]')},
-  {name: "the Prize Counter's code", group: 'the Prize Counter', open: click('#prizes .pz-codebtn'), sel: '.pz-code-ov',
+  {name: "the Prize Counter's code", group: "the Prize Counter's code", open: async page => { if (!await visible(page)('#prizes')) await click('#prizeSign')(page); await click('#prizes .pz-codebtn')(page); }, sel: '.pz-code-ov',
     close: async page => { await click('.pz-code-ov [data-c=back]')(page); await click('#prizes .pz-x')(page); }},
   // phones: TUNE UP / LEADERBOARD move into the badge's menu (top-bar.spec.js)
   {name: 'the leaderboard', group: 'the leaderboard', open: async page => { if (await visible(page)('#lbBtn')) await click('#lbBtn')(page); else { await click(BADGE)(page); await click('#avBadge .avb-lb')(page); } },
@@ -294,7 +294,7 @@ for (const [size, w, h] of PHONES) {
       });
     }
 
-    // a page's other windows, a group a test (the floor's: the avatar, the Prize Counter, the leaderboard)
+    // a page's other windows, a group a test (the floor's: the avatar, its creator and code, the Prize Counter, its code, the leaderboard)
     for (const P of PAGES) {
       const groups = [...new Set((WINDOWS[P.name] || []).map(x => x.group).filter(Boolean))];
       for (const g of groups) {

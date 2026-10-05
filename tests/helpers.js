@@ -275,8 +275,10 @@ async function windowFits(page, sel, {main = null, ok = []} = {}) {
     if (await b.count()) { btn = b; break; }
   }
   if (!btn) return bad;
-  await btn.scrollIntoViewIfNeeded({timeout: 5000}).catch(() => {});
+  // (the browser's own scroll: Playwright's scrollIntoViewIfNeeded waits for the button to stop moving, and a results
+  // screen's buttons glow and pop in)
   const at = await btn.evaluate(el => {
+    el.scrollIntoView({block: 'nearest', inline: 'nearest'});
     const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
     const hit = document.elementFromPoint(Math.min(Math.max(x, 0), innerWidth - 1), Math.min(Math.max(y, 0), innerHeight - 1));
     return {r: [r.left, r.right, r.top, r.bottom].map(Math.round), on: r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1,
