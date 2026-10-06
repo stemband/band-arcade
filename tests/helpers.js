@@ -267,6 +267,10 @@ const PHONES = [['390 × 844', 390, 844], ['360 × 740', 360, 740], ['375 × 667
  */
 const MAIN = ['.btn-primary', '[data-act="go"]', '.btn', 'button'];
 async function windowFits(page, sel, {main = null, ok = []} = {}) {
+  // the window's own running animations jump to their end first: it's measured as it rests, never mid-way (a results
+  // screen's stars pop in small and tilted, and a star caught then reads as "text runs out of its box"); an endless
+  // one (a glow, a spinner) can't finish and is left as it is; nothing outside the window (a toast) is touched
+  await page.evaluate(s => { const w = document.querySelector(s); if (w) w.getAnimations({subtree: true}).forEach(a => { try { a.finish(); } catch (e) { /* endless */ } }); }, sel);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));   // the layout has settled
   const bad = await tooWide(page, {within: sel, ok});
   let btn = null;
