@@ -1781,8 +1781,9 @@ test.describe('Blocktave: pickup labels and tooltips', () => {
     expect((await st(page)).labels.length, 'at most 4 on screen').toBe(4);
     await expect.poll(() => page.evaluate(() => window.__said.join(' | ')), {message: 'the words for screen readers', timeout: 5000}).toContain('+2 Maple');
     expect(await page.evaluate(() => window.__said.length), 'gathered, never one per item').toBeLessThanOrEqual(3);
-    // (they are dropped when a frame is drawn: a busy WebKit runner can go seconds without one)
-    await expect.poll(async () => (await st(page)).labels.length, {message: 'they fade out after pickupLabelMs', timeout: 15_000}).toBe(0);
+    // they're dropped when a frame is drawn, and a busy WebKit runner can go many seconds without one: so one frame is
+    // drawn on purpose (demo.frame), just after pickupLabelMs
+    expect(await page.evaluate(() => { const B = Arcade.Blocktave; B.demo.frame(performance.now() + window.BT_RULES.pickupLabelMs + 50); return B.state().labels.length; }), 'they fade out after pickupLabelMs').toBe(0);
   });
 
   test('INSTRUMENT mode\'s bonus is in the label\'s number: "+2 Tone Shard"', async ({page}) => {
