@@ -1277,8 +1277,8 @@ test.describe('Blocktave: reach, the swing, the poof', () => {
     await page.waitForTimeout(600);
     expect(await page.evaluate(() => window.__dash.filter(a => a.length).length), 'nothing dashed drawn while playing').toBe(0);
     const far = await page.evaluate(() => { const s = Arcade.Blocktave.state(); return {x: Math.floor(s.player.x) + 9, y: Math.floor(s.player.y) - 1}; });
-    await page.evaluate(f => { Arcade.Blocktave.demo.act(f.x, f.y); Arcade.Blocktave.demo.act(f.x, f.y); }, far);
-    expect((await st(page)).fx.far).toBe(true);
+    // (read in the same call: on a busy machine the outline could fade before a second call)
+    expect(await page.evaluate(f => { Arcade.Blocktave.demo.act(f.x, f.y); Arcade.Blocktave.demo.act(f.x, f.y); return Arcade.Blocktave.state().fx.far; }, far)).toBe(true);
     await expect(page.locator('.ui-toast', {hasText: 'Too far: walk closer!'})).toHaveCount(1);
     await expect.poll(async () => (await st(page)).fx.far, {message: 'the red outline is gone after farFlashMs'}).toBe(false);
   });
@@ -1290,9 +1290,8 @@ test.describe('Blocktave: reach, the swing, the poof', () => {
       return Arcade.Blocktave.state().fx; });
     expect([fx.swings, fx.chips, fx.swing]).toEqual([1, 1, true]);
     await expect.poll(async () => (await st(page)).fx.swing, {message: 'a swing lasts swingMs'}).toBe(false);
-    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 5); });
-    await page.evaluate(i => Arcade.Blocktave.demo.calm(i), id);
-    fx = (await st(page)).fx;
+    // (spawned, calmed and read in one call, like the swing above: the poof lasts only poofMs)
+    fx = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); d.calm(d.spawn('clam', 5)); return Arcade.Blocktave.state().fx; });
     expect([fx.poofs, fx.poofing]).toEqual([1, 1]);
     expect(await page.evaluate(() => Arcade.Sfx.history.some(h => /bt-poof|bt-calm/.test(h.name || h))), 'the poof sound').toBe(true);
   });
