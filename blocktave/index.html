@@ -47,6 +47,7 @@
   <div class="bt-hud">
     <div class="bt-vit">
       <div class="bt-hearts" id="hearts" role="img"></div>
+      <div class="bt-power" id="powerPips" role="img" hidden></div>
       <div class="bt-courage" id="courage" aria-hidden="true"><svg class="bt-flame" viewBox="0 0 16 20" aria-hidden="true"><path class="f1" d="M8 1C9 5 14 7 14 12.5A6 6 0 0 1 2 12.5C2 9.5 4 8 5 6C5.5 8 6.5 9 7.5 9C7.5 6 6.5 4 8 1Z"/><path class="f2" d="M8 9.5C8.6 11.5 10.5 12.2 10.5 14.4A2.5 2.5 0 0 1 5.5 14.4C5.5 12.6 7 12 8 9.5Z"/></svg><span class="bt-cgname" id="courageName"></span><span class="bt-cgbar"><i></i></span></div>
     </div>
     <div class="bt-clock" id="clock"></div>
@@ -65,6 +66,8 @@
     <button type="button" class="btn btn-secondary btn-small bt-sidebtn" id="invBtn">Inventory</button>
     <button type="button" class="btn btn-primary btn-small bt-sidebtn" id="craftBtn">Craft</button>
   </div>
+  <!-- THE ABILITY BUTTONS (the Rey Update 3/4): above the hotbar; on a phone, a column above JUMP / MINE -->
+  <div class="bt-abilbar" id="abilBar" role="group" aria-label="Abilities" hidden></div>
   <div class="bt-pad" id="pad">
     <div class="bt-move" id="padMove">
       <button type="button" class="bt-pbtn" id="padL" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5L8 12L15 19"/></svg></button>
@@ -85,6 +88,14 @@
   <div class="bt-lockerbox" id="lockerBox" hidden><h3 class="ui-kicker">In the locker</h3><div class="bt-grid" id="lockerGrid"></div><h3 class="ui-kicker">Yours</h3></div>
   <div class="bt-grid" id="invGrid"></div>
   <p class="bt-small" id="invHint"></p>
+</div>
+
+<!-- THE POWER TABLE (the Rey Update 3/4): learn, upgrade and equip abilities; the Multi-Power Amulet -->
+<div class="bt-panel bt-ptable" id="ptable" hidden role="dialog" aria-labelledby="ptTitle">
+  <div class="bt-panel-h"><h2 class="ui-title" id="ptTitle">Power Table</h2><button type="button" class="btn btn-secondary btn-small" id="ptClose">Close</button></div>
+  <p class="bt-small" id="ptPips"></p>
+  <div class="bt-pt-list" id="ptList"></div>
+  <p class="bt-small">Abilities run on music: every card you pass and every creature you calm fills a power pip. Using one costs a pip.</p>
 </div>
 
 <!-- CRAFT: THE MEASURE, a crafting station: 4 ingredient slots IN ORDER on a wooden workbench → the result → MAKE IT;

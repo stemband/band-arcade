@@ -14,6 +14,7 @@
   'use strict';
   const {$} = A;
   const GAME_ID = 'blocktave', WORLD_KEY = 'bandarcade.blocktave.world';
+  const POWERS = window.BT_POWERS, AMULET = window.BT_AMULET;
   const R = window.BT_RULES, BW = A.BlocktaveWorld, B = BW.BLOCKS, ID = BW.ID, ITEMS = window.BT_ITEMS, RECIPES = window.BT_RECIPES, CHAPTERS = window.BT_CHAPTERS;
   const Card = A.BlocktaveCard;
   const RM = A.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)');
@@ -127,11 +128,19 @@
   const newSeed = () => seedParam() != null ? seedParam() : Math.floor(Math.random() * 4294967296) >>> 0;
   function playerSave() {
     const p = G.p;
-    return {x: +p.x.toFixed(2), y: +p.y.toFixed(2), hearts: p.hearts, inv: p.inv, hot: p.hot, sel: p.sel, wear: p.wear, wornLeft: p.wornLeft};
+    return {x: +p.x.toFixed(2), y: +p.y.toFixed(2), hearts: p.hearts, inv: p.inv, hot: p.hot, sel: p.sel, wear: p.wear, wornLeft: p.wornLeft, pow: {pips: p.pow.pips, known: p.pow.known, slots: p.pow.slots, amulet: p.pow.amulet}};
   }
 
   /* ================= THE GAME STATE ================= */
   let G = null;
+  /** THE POWER METER and the abilities you know ({fire: level 1–3}), the equipped slots, the Amulet (an older save: none) */
+  function powOf(o) {
+    o = o || {};
+    const known = {}; Object.keys(o.known || {}).forEach(k => { if (POWERS[k]) known[k] = Math.max(1, Math.min(3, Math.round(+o.known[k]) || 1)); });
+    const amulet = !!o.amulet, n = amulet ? R.abilities.amuletSlots : R.abilities.slots;
+    const slots = Array.from({length: n}, (_, i) => { const k = (o.slots || [])[i]; return k && known[k] ? k : null; });
+    return {pips: Math.max(0, Math.min(R.power.max, Math.round(+o.pips) || 0)), known, slots, amulet, cd: {}};
+  }
   /** the worn ARMOR and SHIELD ({id, left}: its durability left), checked against rules.js defense (an older save: none) */
   function wearOf(W) {
     const D = R.defense, out = {armor: null, shield: null};
@@ -153,7 +162,7 @@
       cycleCount: {}, spawnT: 0, died: false, calmed: 0, mined: 0, frames: [], listen: false, wispHold: 0, fx: {},
       p: {x: P.x != null ? P.x : w.spawn.x + .5, y: P.y != null ? P.y : w.spawn.y + 1, vx: 0, vy: 0, face: 1, ground: false, hurtT: 0,
         hearts: P.hearts > 0 ? P.hearts : (endless ? R.endless.hearts : R.player.hearts), inv: P.inv || {}, hot: P.hot || new Array(R.hotbar).fill(null), sel: P.sel || 0, walkT: 0,
-        wear: wearOf(P.wear), wornLeft: Object.assign({}, P.wornLeft)}};   // armor + shield (an older save: none)
+        wear: wearOf(P.wear), wornLeft: Object.assign({}, P.wornLeft), pow: powOf(P.pow)}};   // abilities (an older save: none)   // armor + shield (an older save: none)
     if (endless) Object.entries(R.endless.kit).forEach(([k, n]) => gain(k, n, true, false));
     G.nightWas = isNight();
     G.cycle = cycleNo();
@@ -498,6 +507,9 @@
       case 'coda': line('bt-slate-2', 1, [[8, 16], [8, 10]]); rr('bt-sign', 2, 1, 12, 10, 1.5); g.strokeStyle = col('bt-ink'); g.lineWidth = u; g.beginPath(); g.ellipse(8 * u, 6 * u, 2.6 * u, 3.4 * u, 0, 0, 7); g.stroke();
         line('bt-ink', .9, [[8, 1.6], [8, 10.4]]); line('bt-ink', .9, [[3.6, 6], [12.4, 6]]); break;
       case 'organ': fill('bt-organ', 1, 8, 14, 8); [3, 6, 9, 12].forEach((x, k) => rr('bt-organ-pipe', x, 1 + (k % 2) * 2, 2, 8 - (k % 2) * 2, .8)); fill('bt-stage-edge', 1, 10, 14, .8); break;
+      case 'powertable':                                                // a small maple table with a humming gem on it
+        fill('bt-plank', 0, 7, 16, 2.5); line('bt-plank-2', 1.2, [[2.5, 9.5], [2.5, 16]]); line('bt-plank-2', 1.2, [[13.5, 9.5], [13.5, 16]]);
+        dot('bt-power', 8, 4, 2.8); dot('bt-bolt-2', 7.2, 3.2, .8); line('bt-power', .5, [[3.5, 4], [4.8, 4]]); line('bt-power', .5, [[11.2, 4], [12.5, 4]]); break;
       case 'corallamp': line('bt-coral', 1, [[8, 16], [8, 10]]); line('bt-coral', .9, [[8, 12], [5, 9]]); line('bt-coral', .9, [[8, 12], [11, 9]]); dot('bt-coral-glow', 8, 6.5, 3.6); dot('bt-coral-2', 7, 5.5, 1); break;
       case 'bench': fill('bt-plank', 0, 6, 16, 2.5); line('bt-plank-2', 1, [[2, 8.5], [2, 16]]); line('bt-plank-2', 1, [[14, 8.5], [14, 16]]); oval('bt-cork', 7, 3.6, 3.2, 2.2, 0); oval('bt-cork', 10.2, 4, 2, 1.6, 0); line('bt-slate-2', .6, [[7, 3.6], [10.5, 4]]); break;
       default: fill('bt-dirt', 0, 0, 16, 16);
@@ -851,6 +863,7 @@
     // particles, world drops
     G.parts = G.parts.filter(q => (q.t += real) < q.life);
     stepDrops(dt, now);
+    stepAbilities(dt);
     stepWay(real, now);
     stepCourage(real, now);
     stepSonar(now);
@@ -909,6 +922,7 @@
     G.creatures.forEach(c => drawBubble(c, sx(c.x), sy(c.y)));
     G.creatures.forEach(c => drawHp(c, sx(c.x), sy(c.y), now));
     drawDamage(sx, sy, now);
+    drawAbilities(sx, sy, now);
     drawReach(sx, sy, now);
     drawLabels(sx, sy, now);
     drawWay(sx, sy);
@@ -1219,6 +1233,7 @@
     if (b.key === 'bench') return openCraft();
     if (b.sign) return travel(x, y);
     if (b.key === 'organ') return playOrgan(x, y);
+    if (b.key === 'powertable') return openPowerTable(x, y);
     return false;
   }
   function eat() {
@@ -1369,7 +1384,7 @@
   function screenAt(x, y) { return () => ({x: (x + .5 - camX) * S, y: (y + .5 - camY) * S}); }
   function openCard(sp, at, title, onDone) {
     listenSync(true);
-    const c = Card.open(Object.assign({mode, snare, title, at, countoff: gd().countoff !== false, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); } onDone(r); }, onCancel: () => listenSync()}, sp));
+    const c = Card.open(Object.assign({mode, snare, title, at, countoff: gd().countoff !== false, onDone: r => { listenSync(); if (r && r.ok) { A.store.noteFinished(GAME_ID); if (R.courage.resetOnMine) brave(); charge(R.power.perCard, 'card'); } onDone(r); }, onCancel: () => listenSync()}, sp));
     if (!seen('mining')) firstCard('mining', mode === 'inst' ? 'Mining = playing!' : 'Mining = music!', mode === 'inst'
       ? (snare ? 'Music blocks need a performance: count your hits, play a rhythm or an even roll. Play it right and the block breaks, with double the loot!' : 'Music blocks need a performance: play the note on the card on your instrument. Play it right and the block breaks, with double the loot! Rhythm cards count in with a silent light.')
       : 'Music blocks need a performance: tap the note names on the card (or tap the rhythm). A wrong answer keeps the block: just try again!');
@@ -1741,7 +1756,7 @@
   function panelOpen() { return !!(G && G.panel); }
   function closePanels() {
     tipHide();
-    ['inv', 'craft', 'composer', 'sonar'].forEach(id => { $(id).hidden = true; });
+    ['inv', 'craft', 'composer', 'sonar', 'ptable'].forEach(id => { $(id).hidden = true; });
     bookQ = ''; $('bookSearch').value = '';                               // the Recipe Book's search never outlives the panel
     if (G) { G.panel = null; if (G.w) G.w.dirty = true; }
   }
@@ -2104,6 +2119,7 @@
   const rusherNeed = () => { const b = 60 / R.rhythm.bpm; return R.rhythm.leadS + (R.rusher.beats * 2) * b + R.rhythm.lateMs / 1000; };
   function speedMul(c) {
     let m = c.mul;
+    if (c.slowT > 0) m *= R.abilities.water.slowMul;                     // WATER: slowed
     if (G.gear.metronome.some(g => Math.hypot(g.x - c.x, g.y - c.y) <= R.metronomeRadius)) m *= R.metronomeSlow;
     return m;
   }
@@ -2112,7 +2128,13 @@
     for (const c of G.creatures) {
       c.t += dt;
       if (c.state !== 'live') { c.alpha -= dt * 1.5; continue; }
-      const dx = p.x - c.x, dy = (p.y - .9) - (c.y - .4), d = Math.hypot(dx, dy);
+      let dx = p.x - c.x; const dy = (p.y - .9) - (c.y - .4), d = Math.hypot(dx, dy);
+      if (c.slowT > 0) c.slowT = Math.max(0, c.slowT - dt);
+      if (c.confT > 0) {                                                 // LIGHTNING: confused, it wanders a random way
+        c.confT = Math.max(0, c.confT - dt); c.wanderT = (c.wanderT || 0) - dt;
+        if (c.wanderT <= 0) { c.wanderT = R.abilities.lightning.wanderS; c.wdir = rnd() < .5 ? -1 : 1; }
+        dx = c.wdir * Math.max(1, d);
+      }
       // daylight above ground: creatures fade away (never a burst: a slow fade)
       if (day && c.y <= BW.top(G.w, Math.floor(c.x)) + 2) { c.state = 'gone'; continue; }
       if (d > R.spawn.despawnFar) { c.state = 'gone'; continue; }
@@ -2325,9 +2347,9 @@
   }
   /** ONE CORRECT ACTION against a creature: dmgNow() × n calm damage, a "−3" floating up, the HP bar; at 0 HP it's
       calmed; otherwise a clam / zipper shows a new note (and the snare a new count). Returns true if it hit. */
-  function hitCreature(c, n = 1) {
+  function hitCreature(c, n = 1, raw = null) {
     if (!G || !c || c.state !== 'live' || !(n > 0)) return false;
-    const d = dmgNow() * n, now = performance.now();
+    const d = raw != null ? raw : dmgNow() * n, now = performance.now();   // raw: an ability's own damage
     c.hp = Math.max(0, c.hp - d); c.hitAt = now;
     const L = G.dmg || (G.dmg = []);
     L.push({id: c.id, x: c.x, y: c.y - hpTop(c) - .45, t0: now, text: '−' + d});   // just over its HP bar (never on its bubble)
@@ -2350,6 +2372,7 @@
     dropItem(drop, mode === 'inst' ? R.instrumentBonus : 1, c.x, c.kind === 'wisp' ? c.y : c.y - .4);
     poof(c);
     G.calmed++;
+    charge(R.power.perCalm, 'calm');
     if (!G.endless) {
       if (c.kind === 'clam') { stats().clams++; saveGd(); if (stats().clams >= R.goals.clams) award('clams'); }
       if (c.kind === 'wisp') { stats().wisps++; saveGd(); if (stats().wisps >= R.goals.wisps) award('wisps'); }
@@ -2364,6 +2387,301 @@
       rusher: ['A Rusher!', mode === 'inst' ? 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!' : 'Rushers are fast little metronome gremlins. When one charges, tap its 2-beat rhythm before it arrives!']}[kind];
     firstCard('c-' + kind, T[0], T[1]);
   }
+
+  /* ================= THE POWER TABLE AND ABILITIES (the Rey Update 3/4: abilities run on MUSIC) =================
+     THE POWER METER (rules.js power): every passed card and every calmed creature fills a pip (at most power.max); an
+     ability costs 1 pip and starts its cooldown (abilities.levels). In a fight it's ONE tap: the playing happened before,
+     to charge it. Learned, upgraded and equipped at a Power Table (recipes.js BT_POWERS, BT_AMULET). */
+  const AB = () => R.abilities;
+  const ABIL_KEYS = ['q', 'r', 't'];                                     // (W is Jump and E the Inventory)
+  const ABIL_COL = {fire: 'bt-fire', earth: 'bt-dirt-2', wind: 'bt-wind', water: 'bt-water', lightning: 'bt-bolt'};
+  function charge(n, why) {
+    if (!G || !(n > 0)) return;
+    const P = G.p.pow, was = P.pips;
+    P.pips = Math.min(R.power.max, P.pips + n);
+    G.fx.charges = (G.fx.charges || 0) + (P.pips - was);
+    if (P.pips !== was) { drawPower(); G.w.dirty = true; }
+  }
+  /** the HUD: the pips beside the hearts, and an ABILITY button per equipped slot by the hotbar (its cooldown filling) */
+  function drawPower() {
+    if (!G) return;
+    const P = G.p.pow, any = Object.keys(P.known).length > 0;
+    const el = $('powerPips'); el.hidden = !any;
+    if (any) {
+      el.innerHTML = Array.from({length: R.power.max}, (_, k) => `<i class="bt-pip${k < P.pips ? ' on' : ''}"></i>`).join('');
+      el.setAttribute('aria-label', `Power: ${P.pips} of ${R.power.max}`);
+    }
+    drawAbilBar();
+  }
+  function drawAbilBar() {
+    const bar = $('abilBar'), P = G.p.pow, used = P.slots.some(Boolean);
+    bar.hidden = !used;
+    if (!used) { bar.innerHTML = ''; bar.dataset.sig = ''; return; }
+    const sig = P.slots.map(k => k ? k + P.known[k] : '-').join(',') + '|' + P.pips;
+    if (bar.dataset.sig !== sig) {
+      bar.dataset.sig = sig;
+      bar.innerHTML = P.slots.map((k, i) => k
+        ? `<button type="button" class="bt-abil" data-slot="${i}" data-ab="${k}" aria-label="${POWERS[k].name}, level ${P.known[k]} (key ${ABIL_KEYS[i].toUpperCase()})"><img src="${abilIcon(k)}" alt=""><b>${ABIL_KEYS[i].toUpperCase()}</b><i class="bt-abil-cd"></i></button>`
+        : `<span class="bt-abil empty" aria-hidden="true"><b>${ABIL_KEYS[i].toUpperCase()}</b></span>`).join('');
+      bar.querySelectorAll('button.bt-abil').forEach(b => b.onclick = () => useAbility(+b.dataset.slot));
+    }
+    bar.querySelectorAll('button.bt-abil').forEach(b => {
+      const k = b.dataset.ab, cd = P.cd[k] || 0, max = AB().levels[P.known[k] - 1].cooldownS;
+      b.querySelector('.bt-abil-cd').style.height = `${Math.round(100 * cd / max)}%`;
+      b.classList.toggle('ready', cd <= 0 && P.pips > 0);
+    });
+  }
+  /** an ability's icon (48 px, drawn: no emoji) */
+  const ABIL_ICON = {};
+  function abilIcon(k) {
+    if (ABIL_ICON[k]) return ABIL_ICON[k];
+    const c = document.createElement('canvas'), s = 48, u = s / 16; c.width = c.height = s;
+    const g = c.getContext('2d'), stroke = (cl, w, pts) => { g.strokeStyle = col(cl); g.lineWidth = w * u; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x * u, y * u) : g.moveTo(x * u, y * u)); g.stroke(); };
+    const dot = (cl, x, y, r) => { g.fillStyle = col(cl); g.beginPath(); g.arc(x * u, y * u, r * u, 0, 7); g.fill(); };
+    if (k === 'fire') { [[5, 11, 3], [8.5, 8, 4], [11.5, 11, 2.6]].forEach(([x, y, r]) => dot('bt-fire', x, y, r)); dot('bt-fire-2', 8.5, 9.5, 2); }
+    else if (k === 'earth') { g.fillStyle = col('bt-dirt'); g.fillRect(4 * u, 5 * u, 8 * u, 8 * u); stroke('bt-dirt-2', .8, [[4, 9], [12, 8]]); stroke('text-hi', .8, [[13, 4], [15, 2]]); }
+    else if (k === 'wind') { stroke('bt-wind', 1.4, [[2, 6], [11, 6], [13, 4]]); stroke('bt-wind', 1.4, [[2, 10], [13, 10], [14.5, 12]]); stroke('bt-wind', 1, [[4, 13.5], [9, 13.5]]); }
+    else if (k === 'water') { g.fillStyle = col('bt-water'); g.beginPath(); g.moveTo(8 * u, 2 * u); g.quadraticCurveTo(13 * u, 9 * u, 8 * u, 14 * u); g.quadraticCurveTo(3 * u, 9 * u, 8 * u, 2 * u); g.fill(); dot('bt-water-2', 6.5, 10, 1.2); }
+    else { stroke('bt-bolt', 1.8, [[10, 1.5], [5, 8.5], [9, 8.5], [6, 14.5]]); stroke('bt-bolt-2', .7, [[10, 1.5], [5, 8.5], [9, 8.5], [6, 14.5]]); }
+    return (ABIL_ICON[k] = c.toDataURL());
+  }
+  /** the nearest live creature within r tiles (of the player, or of a point) */
+  function nearestCreature(r, from) {
+    const o = from || {x: G.p.x, y: G.p.y - .9};
+    let best = null, bd = r;
+    G.creatures.forEach(c => { if (c.state !== 'live') return; const d = Math.hypot(c.x - o.x, (c.y - .4) - o.y); if (d <= bd) { bd = d; best = c; } });
+    return best;
+  }
+  /** USE the ability in this slot: 1 pip, its cooldown, its effect. Returns why not, or true. */
+  function useAbility(i) {
+    if (!G || G.held || pause.paused) return false;
+    const P = G.p.pow, k = P.slots[i];
+    if (!k) return 'none';
+    if (Card.current || G.panel) return 'busy';
+    if ((P.cd[k] || 0) > 0) { A.UI.toast(`${POWERS[k].name} is recharging…`, {ms: 900}); return 'cooldown'; }
+    if (P.pips < 1) { A.UI.toast('No power! Play a card or calm a creature to charge it.', {ms: 1800}); A.Sfx.event('bt-wrong'); return 'empty'; }
+    const lv = P.known[k], L = AB().levels[lv - 1];
+    const ok = EFFECT[k](lv, L);
+    if (ok !== true) return ok;                                          // (nothing to use it on: no pip spent)
+    P.pips--; P.cd[k] = L.cooldownS;
+    G.fx.abilities = (G.fx.abilities || 0) + 1; G.fx.lastAbility = k;
+    A.Sfx.event('bt-ability');
+    brave(); drawPower(); G.w.dirty = true;
+    return true;
+  }
+  const aimDir = () => { const c = nearestCreature(AB().range); return c ? (Math.sign(c.x - G.p.x) || G.p.face) : G.p.face; };
+  const EFFECT = {
+    /* FIRE: a wall of warm sparks in front of you; each tickS every creature in it takes perTick × level (at most the
+       level's damage in all, per creature) */
+    fire(lv, L) {
+      const F = AB().fire, dir = aimDir(); G.p.face = dir;
+      const x0 = dir > 0 ? G.p.x + .4 : G.p.x - .4 - F.width;
+      G.fire = {x0, x1: x0 + F.width, y0: G.p.y - F.height, y1: G.p.y + .2, left: F.seconds, tick: 0, lv, cap: L.damage, dealt: {}, t0: performance.now()};
+      return true;
+    },
+    /* EARTH: the soft block you aim at (G.target, else the one in front of you) flies toward the nearest creature (else
+       straight ahead); the first creature it meets takes the level's damage; the block drops where it lands */
+    earth(lv, L) {
+      const E = AB().earth, t = G.target, soft = SOFT();
+      const pick = (x, y) => soft.has(BW.at(G.w, x, y)) && !shelterWall(x, y) && Math.hypot(x + .5 - G.p.x, y + .5 - (G.p.y - .9)) <= E.reach ? {x, y} : null;
+      let b = t && pick(t.x, t.y);
+      if (!b) { const fx = Math.floor(G.p.x + G.p.face), fy = Math.floor(G.p.y - .5); b = pick(fx, fy) || pick(fx, fy + 1) || pick(Math.floor(G.p.x), Math.floor(G.p.y + .5)); }
+      if (!b) { A.UI.toast('Aim at a soft block (dirt, sand, leaves, planks) to throw it.', {ms: 2000}); return 'noblock'; }
+      const key = B[BW.at(G.w, b.x, b.y)].key, drop = B[BW.at(G.w, b.x, b.y)].drop;
+      BW.put(G.w, b.x, b.y, ID.air); checkRooms(b.x, b.y);
+      const c = nearestCreature(AB().range), sx = b.x + .5, sy = b.y + .5;
+      const tx = c ? c.x : sx + G.p.face * AB().range, ty = c ? c.y - .4 : sy, d = Math.hypot(tx - sx, ty - sy) || 1;
+      G.rock = {x: sx, y: sy, vx: (tx - sx) / d * E.speed, vy: (ty - sy) / d * E.speed, key, drop, dmg: L.damage, left: AB().range / E.speed + .2};
+      return true;
+    },
+    /* WIND: a dash of up to `dash` tiles (never into a solid block); creatures near the path are pushed `push` tiles away
+       (never into a block) and take the level's damage */
+    wind(lv, L) {
+      const W = AB().wind, dir = aimDir(), p = G.p, x0 = p.x;
+      let x = p.x;
+      for (let s = 0; s < W.dash; s += .1) { const nx = x + dir * .1; if (collides(nx, p.y)) break; x = nx; }
+      p.x = x; p.face = dir; p.vx = 0;
+      const lo = dir > 0 ? x0 - .6 : x - W.width, hi = dir > 0 ? x + W.width : x0 + .6;   // the path, and a bit beyond its end
+      G.creatures.forEach(c => {
+        if (c.state !== 'live' || c.x < lo || c.x > hi || Math.abs((c.y - .4) - (p.y - .9)) > W.width + .5) return;
+        let cx = c.x; for (let s = 0; s < W.push; s += .1) { const nx = cx + dir * .1; if (solid(nx, c.y - .3) || solid(nx, c.y - .7)) break; cx = nx; }
+        c.x = cx; c.pushedAt = performance.now();
+        hitCreature(c, 1, L.damage);
+      });
+      G.gust = {x0, x1: x, y: p.y - .9, t0: performance.now(), dir};
+      return true;
+    },
+    /* WATER: a splash at the nearest creature (else 3 tiles ahead): Rey's 2 / 5 / 8 damage and slowMul for slowS */
+    water(lv) {
+      const Wt = AB().water, c = nearestCreature(AB().range);
+      const at = c ? {x: c.x, y: c.y - .4} : {x: G.p.x + G.p.face * 3, y: G.p.y - .9};
+      G.creatures.forEach(k => { if (k.state !== 'live' || Math.hypot(k.x - at.x, (k.y - .4) - at.y) > Wt.radius) return; k.slowT = Wt.slowS; hitCreature(k, 1, Wt.damage[lv - 1]); });
+      G.splash = {x: at.x, y: at.y, t0: performance.now()};
+      return true;
+    },
+    /* LIGHTNING: the nearest creature within range: the level's damage and CONFUSED for confuseS; ONE flash */
+    lightning(lv, L) {
+      const Lt = AB().lightning, c = nearestCreature(Lt.range);
+      if (!c) { A.UI.toast('No creature close enough for Lightning.', {ms: 1600}); return 'notarget'; }
+      c.confT = Lt.confuseS; c.wanderT = 0;
+      const top = camY - 1, pts = [[c.x, top]], n = 6;
+      for (let i = 1; i < n; i++) pts.push([c.x + (RM.matches ? 0 : (rnd() - .5) * 1.4), top + (c.y - .5 - top) * i / n]);
+      pts.push([c.x, c.y - .5]);
+      G.bolt = {pts, t0: performance.now()};
+      G.fx.flashes = (G.fx.flashes || 0) + 1;                            // ONE flash a strike (never strobing)
+      hitCreature(c, 1, L.damage);
+      return true;
+    },
+  };
+  /** the world clock moves the cooldowns, the fire wall and a thrown block (paused with the world) */
+  function stepAbilities(dt) {
+    const P = G.p.pow;
+    Object.keys(P.cd).forEach(k => { P.cd[k] = Math.max(0, P.cd[k] - dt); });
+    const F = G.fire;
+    if (F) {
+      F.left -= dt; F.tick -= dt;
+      if (F.tick <= 0) {
+        F.tick = AB().fire.tickS;
+        G.creatures.forEach(c => {
+          if (c.state !== 'live' || c.x < F.x0 || c.x > F.x1 || c.y < F.y0 || c.y - .8 > F.y1) return;
+          const was = F.dealt[c.id] || 0, d = Math.min(AB().fire.perTick * F.lv, F.cap - was);
+          if (d > 0) { F.dealt[c.id] = was + d; hitCreature(c, 1, d); }
+        });
+      }
+      if (F.left <= 0) G.fire = null;
+    }
+    const r = G.rock;
+    if (r) {
+      r.left -= dt;
+      const nx = r.x + r.vx * dt, ny = r.y + r.vy * dt;
+      const hit = G.creatures.find(c => c.state === 'live' && Math.abs(c.x - nx) < .6 && Math.abs((c.y - .4) - ny) < .7);
+      if (hit) hitCreature(hit, 1, r.dmg);
+      if (hit || solid(nx, ny) || r.left <= 0) {
+        if (r.drop) dropItem(r.drop, 1, solid(nx, ny) ? r.x : nx, solid(nx, ny) ? r.y : ny);   // nothing is lost
+        chips(r.x, r.y, col(CHIP[r.key] || 'bt-dirt-2'));
+        A.Sfx.event('bt-break');
+        G.fx.thrown = (G.fx.thrown || 0) + 1; G.rock = null;
+      } else { r.x = nx; r.y = ny; }
+    }
+    if (G.hudT2 == null || G.hudT2 > .25) { G.hudT2 = 0; if (Object.keys(P.known).length) drawAbilBar(); }
+    G.hudT2 += dt;
+  }
+  function drawAbilities(sx, sy, now) {
+    const F = G.fire;
+    if (F) {                                                             // warm sparks rising (a soft glow with reduced motion)
+      const x0 = sx(F.x0), x1 = sx(F.x1), y0 = sy(F.y0), y1 = sy(F.y1);
+      const gr = oc.createLinearGradient(0, y1, 0, y0); gr.addColorStop(0, col('bt-fire')); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      oc.globalAlpha = .4; oc.fillStyle = gr; oc.fillRect(x0, y0, x1 - x0, y1 - y0);
+      if (!RM.matches) {
+        const t = (now - F.t0) / 1000;
+        for (let i = 0; i < 14; i++) {
+          const fx = ((i * 37) % 100) / 100, fy = 1 - ((t * .9 + i * .13) % 1);
+          oc.globalAlpha = .55 + .35 * fy; oc.fillStyle = col(i % 3 ? 'bt-fire' : 'bt-fire-2');
+          oc.beginPath(); oc.arc(x0 + fx * (x1 - x0), y0 + fy * (y1 - y0), S * .1, 0, 7); oc.fill();
+        }
+      }
+      oc.globalAlpha = 1;
+    }
+    const r = G.rock;
+    if (r) { const s = S * .8; oc.drawImage(iconCanvas(ITEMS[r.drop] ? r.drop : 'dirt'), sx(r.x) - s / 2, sy(r.y) - s / 2, s, s); }
+    const gst = G.gust, gf = gst ? (now - gst.t0) / 400 : 1;
+    if (gf < 1) {
+      oc.globalAlpha = .6 * (1 - gf); oc.strokeStyle = col('bt-wind'); oc.lineWidth = Math.max(2, S * .08);
+      [-.5, 0, .5].forEach(o => { oc.beginPath(); oc.moveTo(sx(gst.x0), sy(gst.y + o)); oc.lineTo(sx(gst.x1 + gst.dir * 1.2), sy(gst.y + o)); oc.stroke(); });
+      oc.globalAlpha = 1;
+    } else G.gust = null;
+    const sp = G.splash, wf = sp ? (now - sp.t0) / 500 : 1;
+    if (wf < 1) {
+      oc.globalAlpha = .55 * (1 - wf); oc.strokeStyle = col('bt-water'); oc.lineWidth = Math.max(2, S * .1);
+      oc.beginPath(); oc.arc(sx(sp.x), sy(sp.y), S * AB().water.radius * (RM.matches ? 1 : .5 + wf * .5), 0, 7); oc.stroke(); oc.globalAlpha = 1;
+    } else G.splash = null;
+    G.creatures.forEach(c => {                                           // slowed: a drip; confused: a little "?"
+      if (c.state !== 'live') return;
+      if (c.slowT > 0) { oc.fillStyle = col('bt-water'); oc.beginPath(); oc.arc(sx(c.x + .35), sy(c.y - .9), S * .09, 0, 7); oc.fill(); }
+      if (c.confT > 0) { oc.font = `800 ${Math.round(S * .5)}px ${getComputedStyle(document.body).fontFamily}`; oc.textAlign = 'center'; oc.fillStyle = col('bt-bolt-2'); oc.fillText('?', sx(c.x - .35), sy(c.y - 1)); }
+    });
+    const bo = G.bolt, bf = bo ? (now - bo.t0) / AB().lightning.flashMs : 1;
+    if (bf < 1) {                                                        // ONE flash that fades: never repeated, never the whole screen
+      const pts = RM.matches ? [bo.pts[0], bo.pts[bo.pts.length - 1]] : bo.pts;
+      oc.globalAlpha = .9 * (1 - bf); oc.lineJoin = 'round';
+      [[col('bt-bolt'), Math.max(4, S * .2)], [col('bt-bolt-2'), Math.max(1.5, S * .07)]].forEach(([cl, w]) => {
+        oc.strokeStyle = cl; oc.lineWidth = w; oc.beginPath(); pts.forEach(([x, y], i) => i ? oc.lineTo(sx(x), sy(y)) : oc.moveTo(sx(x), sy(y))); oc.stroke(); });
+      oc.globalAlpha = 1;
+    } else G.bolt = null;
+  }
+
+  /* THE POWER TABLE'S PANEL (#ptable): each ability: Learn / Upgrade (its materials + a performance card, harder each
+     level: BT_POWERS), Equip / Unequip; the Multi-Power Amulet (3 slots) */
+  let ptableAt = null;
+  function openPowerTable(x, y) {
+    closePanels(); ptableAt = {x, y};
+    $('ptable').hidden = false; G.panel = 'ptable';
+    drawPowerTable(); $('ptClose').focus();
+    if (!seen('ptable')) { markSeen('ptable'); A.UI.toast('Abilities run on music: every card you pass and every creature you calm fills a power pip.', {ms: 4200}); }
+    return true;
+  }
+  const matsText = o => Object.entries(o).map(([k, n]) => `${n} ${itemName(k)}`).join(', ');
+  const hasMats = o => Object.entries(o).every(([k, n]) => have(k, n));
+  function drawPowerTable() {
+    const P = G.p.pow;
+    $('ptPips').textContent = `Power: ${P.pips} of ${R.power.max} · ${P.amulet ? '3 ability slots (Multi-Power Amulet)' : '1 ability slot'}`;
+    $('ptList').innerHTML = Object.keys(POWERS).map(k => {
+      const pw = POWERS[k], lv = P.known[k] || 0, nx = pw.levels[lv], L = lv ? AB().levels[lv - 1] : AB().levels[0];
+      const on = P.slots.includes(k);
+      const dmg = k === 'water' ? AB().water.damage[Math.max(0, lv - 1)] : L.damage;
+      return `<div class="bt-pt-row" data-ab="${k}"><img src="${abilIcon(k)}" alt=""><div class="bt-pt-t"><b>${pw.name}</b> <small>${lv ? `Level ${lv}` : 'Not learned'}</small><span>${esc(pw.desc)}${lv ? ` Damage ${dmg} · cooldown ${L.cooldownS} s.` : ''}</span></div>`
+        + `<div class="bt-pt-acts">`
+        + (nx ? `<button type="button" class="btn btn-secondary btn-small" data-learn="${k}"${hasMats(nx.in) ? '' : ' aria-disabled="true"'}>${lv ? 'Upgrade to ' + (lv + 1) : 'Learn'}<small>${esc(matsText(nx.in))}</small></button>` : '<span class="bt-pt-max">Level 3!</span>')
+        + (lv ? `<button type="button" class="btn ${on ? 'btn-primary' : 'btn-secondary'} btn-small" data-equip="${k}" aria-pressed="${on}">${on ? 'Equipped' : 'Equip'}</button>` : '')
+        + `</div></div>`;
+    }).join('') + (P.amulet ? '' : `<div class="bt-pt-row bt-pt-amulet"><span class="bt-pt-gem" aria-hidden="true"></span><div class="bt-pt-t"><b>${AMULET.name}</b><span>${esc(AMULET.desc)}</span></div><div class="bt-pt-acts"><button type="button" class="btn btn-secondary btn-small" data-amulet="1"${hasMats(AMULET.in) ? '' : ' aria-disabled="true"'}>Make it<small>${esc(matsText(AMULET.in))}</small></button></div></div>`);
+    $('ptList').querySelectorAll('[data-learn]').forEach(b => b.onclick = () => learn(b.dataset.learn));
+    $('ptList').querySelectorAll('[data-equip]').forEach(b => b.onclick = () => { equip(b.dataset.equip); drawPowerTable(); });
+    $('ptList').querySelectorAll('[data-amulet]').forEach(b => b.onclick = () => makeAmulet());
+  }
+  /** a Power Table card: the materials are taken only when it's passed */
+  function ptCard(mats, perf, title, onPass) {
+    if (!hasMats(mats)) { A.UI.toast(`You need ${matsText(mats)}.`, {ms: 2200}); return false; }
+    const rect = $('ptList').getBoundingClientRect(), p = G.p;
+    const sp = spec(perf, Math.floor(p.x), Math.floor(p.y - 1), perf === 'scale' ? 8 : 0);
+    closePanels();
+    openCard(sp, {x: rect.left + rect.width / 2, y: Math.max(80, rect.top)}, title, r => {
+      if (!G) return;
+      if (!r.ok || !hasMats(mats)) { if (!r.ok) A.UI.toast('Not quite: your materials are safe. Try again!'); return; }
+      Object.entries(mats).forEach(([k, n]) => take(k, n));
+      onPass(); A.Sfx.event('bt-craft'); drawPower(); G.w.dirty = true;
+      if (ptableAt) openPowerTable(ptableAt.x, ptableAt.y);
+    });
+    return true;
+  }
+  function learn(k) {
+    const P = G.p.pow, lv = P.known[k] || 0, nx = POWERS[k] && POWERS[k].levels[lv];
+    if (!nx) return false;
+    return ptCard(nx.in, nx.perf, `${lv ? 'Upgrade' : 'Learn'}: ${POWERS[k].name}`, () => {
+      P.known[k] = lv + 1;
+      if (!lv && !P.slots.some(Boolean)) P.slots[0] = k;                  // the first one goes straight into a slot
+      A.UI.toast(lv ? `${POWERS[k].name} is level ${lv + 1}!` : `You learned ${POWERS[k].name}! Tap its button (or ${ABIL_KEYS[Math.max(0, P.slots.indexOf(k))].toUpperCase()}) to use it.`, {ms: 2600});
+    });
+  }
+  function makeAmulet() {
+    if (G.p.pow.amulet) return false;
+    return ptCard(AMULET.in, AMULET.perf, AMULET.name, () => {
+      const P = G.p.pow; P.amulet = true;
+      P.slots = Array.from({length: AB().amuletSlots}, (_, i) => P.slots[i] || null);
+      A.UI.toast('Multi-Power Amulet! You can equip 3 abilities now.', {ms: 2600});
+    });
+  }
+  /** equip / unequip: one slot (it replaces), or with the Amulet the first empty of 3 */
+  function equip(k) {
+    const P = G.p.pow; if (!P.known[k]) return false;
+    const i = P.slots.indexOf(k);
+    if (i >= 0) { P.slots[i] = null; drawPower(); return true; }
+    if (!P.amulet) P.slots[0] = k;
+    else { const e = P.slots.indexOf(null); if (e < 0) { A.UI.toast('All 3 slots are full: unequip one first.', {ms: 2000}); return false; } P.slots[e] = k; }
+    drawPower(); G.w.dirty = true;
+    return true;
+  }
+  $('ptClose').onclick = () => closePanels();
 
   /* ================= DRAWING CREATURES (canvas, theme colors) ================= */
   function drawCreature(c, x, y, now) {
@@ -2556,6 +2874,7 @@
     let h = '';
     for (let k = 0; k < max; k++) { const v = Math.max(0, Math.min(1, p.hearts - k)); h += `<i class="bt-heart${v >= 1 ? ' full' : v > 0 ? ' half' : ''}"></i>`; }
     $('hearts').innerHTML = h; $('hearts').setAttribute('aria-label', `${p.hearts} of ${max} hearts`);
+    drawPower();
     const c = inCycle(), night = c >= DAY(), left = night ? DAY() + NIGHT() - c : DAY() - c;
     $('clock').textContent = `${night ? '🌙 Night' : '☀ Day'} ${Math.floor(G.w.time / (DAY() + NIGHT())) + 1} · ${Math.ceil(left / 60)} min`;
     $('clock').classList.toggle('night', night);
@@ -2607,6 +2926,7 @@
     if (e.repeat || Card.current) return;
     if (/^[1-6]$/.test(k)) { selectHot(+k - 1); return; }
     if (k === 'e') { if (G.panel === 'inv') closePanels(); else openInv(); return; }
+    if (ABIL_KEYS.includes(k)) { useAbility(ABIL_KEYS.indexOf(k)); return; }
     if (k === 'c') { if (G.panel === 'craft') closePanels(); else openCraft(); return; }
     if (k === 'b') { setBuild(!G.build); return; }
     if (k === '/' && G.panel === 'craft') { e.preventDefault(); if (!book) { book = true; drawCraft(); } $('bookSearch').focus(); return; }
@@ -2730,9 +3050,11 @@
     state: () => ({screen: G ? 'world' : 'hub', mode, snare, chapter: G && G.ch, endless: !!(G && G.endless),
       player: G && {x: G.p.x, y: G.p.y, hearts: G.p.hearts, tier: tier(), ground: G.p.ground}, inv: G && Object.assign({}, G.p.inv), hot: G && G.p.hot.slice(),
       time: G && G.w.time, night: G && isNight(), nights: G && G.w.nights, survived: G && G.w.survived, listening: A.Pitch.listening(),
-      creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul, hp: c.hp, max: c.max, need: c.need, bar: hpShown(c, performance.now()), flee: c.flee || 0, pcs: c.pcs})) : [],
+      creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul, hp: c.hp, max: c.max, need: c.need, bar: hpShown(c, performance.now()), flee: c.flee || 0, pcs: c.pcs, slowT: c.slowT || 0, confT: c.confT || 0})) : [],
       wear: G ? {armor: G.p.wear.armor && Object.assign({max: wearMax('armor', G.p.wear.armor.id)}, G.p.wear.armor), shield: G.p.wear.shield && Object.assign({max: wearMax('shield', G.p.wear.shield.id)}, G.p.wear.shield)} : null,
-      wornLeft: G ? Object.assign({}, G.p.wornLeft) : null, lastHit: G ? G.lastHit || null : null,
+      wornLeft: G ? Object.assign({}, G.p.wornLeft) : null,
+      power: G ? {pips: G.p.pow.pips, known: Object.assign({}, G.p.pow.known), slots: G.p.pow.slots.slice(), amulet: G.p.pow.amulet, cd: Object.assign({}, G.p.pow.cd),
+        fire: !!G.fire, rock: G.rock ? {x: G.rock.x, y: G.rock.y} : null, bolt: G.bolt ? G.bolt.pts.map(q => q.slice()) : null} : null, lastHit: G ? G.lastHit || null : null,
       damage: G ? dmgNow() : 0, dmgLabels: G ? (G.dmg || []).map(l => l.text) : [], ramp: G ? rampNow() : 0, cotTip: !!gd().cotTip,
       card: Card.current && Card.current.state(), panel: G && G.panel, build: G && G.build, seed: G && G.w.seed, bags: G ? G.w.bags.length : 0, cot: G && G.w.cot,
       held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
@@ -2762,6 +3084,17 @@
       calm: id => { const c = G.creatures.find(k => k.id === id); if (c) calm(c); return !!c; },
       hit: (id, n = 1) => { const c = G.creatures.find(k => k.id === id); return !!c && hitCreature(c, n); },
       nightFalls: () => nightFalls(),
+      /** THE POWER TABLE AND ABILITIES */
+      charge: n => charge(n, 'demo'),
+      ability: i => useAbility(i),
+      learn: k => learn(k), equip: k => equip(k), amulet: () => makeAmulet(),
+      /** hold a creature still (tests: so it stays inside an ability's area) */
+      still: id => { const c = G.creatures.find(k => k.id === id); if (c) c.mul = 0; return !!c; },
+      /** the Amulet at once (tests that aren't about making it) */
+      amuletNow: () => { const P = G.p.pow; P.amulet = true; P.slots = Array.from({length: R.abilities.amuletSlots}, (_, i) => P.slots[i] || null); drawPower(); },
+      /** know an ability at a level at once (tests that aren't about learning it) */
+      know: (k, lv = 1, slot = 0) => { const P = G.p.pow; P.known[k] = lv; if (slot != null) P.slots[slot] = k; drawPower(); },
+      powerTable: () => openPowerTable(Math.floor(G.p.x), Math.floor(G.p.y) - 1),
       /** ARMOR AND SHIELDS: wear / take off / repair; a seeded random for blocks and fair rounding (null = Math.random) */
       wear: id => { if (!have(id)) gain(id, 1, true); return wear(id); },
       unwear: slot => unwear(slot),

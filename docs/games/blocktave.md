@@ -127,3 +127,40 @@ DURABILITY: each hit an item takes (armor) or blocks/meets (shield) uses one. At
 HOW STRONG IS FULL GEAR (for Mr. Graham to tune): with Silver Stage Armor + Silver Cymbal Shield, a 1-heart bump blocks 70 % of the time; the other 30 % costs 0.32 hearts on average (½ heart 64 % of those), so a bump hurts at all only 19 % of the time and costs 0.10 hearts on average (a 90 % cut); a Zipper's ½-heart touch hurts 10 % of the time. With the shield's block at 50 % instead: hurt 32 % of the time, 0.16 hearts on average (an 84 % cut).
 
 Sounds (generated until Mat uploads files): `bt-clank` (a block), `bt-crack` (worn out); both unpitched noise under 0.2 s (`mic: true`: they mute the detector while it listens). `?demo`: `demo.wear(id)` (gives it if needed), `unwear(slot)`, `repair(slot)`, `seedRandom(seed)` (blocks and fair rounding from `BW.rng`; `null` = `Math.random`), `defend(n, drain)`, `hurt(n, drain)`; `state()` adds `wear` (`{id, left, max}` each), `wornLeft`, `lastHit` `{n, raw, red, blocked}`, `fx.blocks` / `absorbed` / `woreOut`. Tests: "Blocktave: ARMOR AND SHIELDS" (each tier's reduction and block with a seeded random, stacking and the cap, half hearts, the drain, durability and repair, wear / swap / take off / the save, an old save, the recipes, the snare in both modes, the panel at three sizes).
+
+## THE REY UPDATE 3/4: THE POWER TABLE AND ABILITIES (charged by music)
+
+Mr. Graham's rule replaces Rey's "no questions or playing": abilities run on MUSIC. The playing happens BEFORE a fight, to charge them; in the fight a use is ONE tap, no card. The fairness check never counts on abilities (a student with none is exactly as safe as before; a test checks that knowing them changes no creature's speed).
+
+THE POWER METER (rules.js `power`; game.js `charge`, `drawPower`): `power.max` 3 pips beside the hearts (`#powerPips`, gold diamonds; shown once any ability is known). Every PASSED card fills `perCard` 1 (all cards go through `openCard`: a music block, a recipe, a creature's card, the Podium, a repair, the Power Table's own cards), and every calmed creature `perCalm` 1 (`calm`). Using an ability costs 1 pip. Saved with the player.
+
+THE POWER TABLE (block `powertable`, appended to world.js BLOCKS; item `powertable`; recipe `power-table`: planks, tone, gem, planks, perf scale, at a Luthier's Bench). BUILD-tap it: `#ptable` (`openPowerTable` / `drawPowerTable`): each of the five abilities with its level, damage and cooldown, LEARN / UPGRADE TO 2 / 3 (its materials + a card, harder each level; a button you can't afford yet is `aria-disabled` and says what it needs), and EQUIP / EQUIPPED. The first ability learned goes straight into a slot. One slot: equipping replaces it. THE MULTI-POWER AMULET (`BT_AMULET`, made at the table, perf longtone): `abilities.amuletSlots` 3 slots; equipping fills the first empty one ("All 3 slots are full: unequip one first."). The first visit shows one toast explaining the meter.
+
+| Power Table recipe (recipes.js `BT_POWERS`, `BT_AMULET`) | Level 1: learn | Level 2: upgrade | Level 3: upgrade |
+|---|---|---|---|
+| Fire (`fire`) | 2 tone, 1 brass · notes3 | 3 tone, 1 hum · scale | 4 tone, 2 hum, 1 gem · longtone |
+| Earth (`earth`) | 2 rhythm, 4 dirt · notes3 | 3 rhythm, 1 basscrystal · scale | 4 rhythm, 2 basscrystal, 1 gem · longtone |
+| Wind (`wind`) | 4 reed, 1 zipthread · notes3 | 6 reed, 1 treblecrystal · scale | 3 zipthread, 2 treblecrystal, 1 gem · longtone |
+| Water (`water`) | 2 pearl, 4 sand · notes3 | 4 pearl, 1 coralpearl · scale | 4 pearl, 3 coralpearl, 1 gem · longtone |
+| Lightning (`lightning`) | 2 spring, 2 dust · notes3 | 3 spring, 1 amberbeat · scale | 4 spring, 2 amberbeat, 1 gem · longtone |
+| Multi-Power Amulet | 1 grandgem, 3 gem, 3 zipthread, 4 brass · longtone | – | – |
+
+USING ONE (`useAbility(slot)`): the ABILITY buttons (`#abilBar`, one per slot, each with its key and a cooldown shade filling from the bottom; a gold border when ready): centered above the hotbar, and on a phone (≤ 760 px) a column above JUMP / MINE (the bottom bar is full there). Keys **Q / R / T** (slots 1–3): the prompt asked for Q / W / E, but W is already JUMP (and the `?demo` wrong-answer key in cards) and E opens the Inventory. Never while a card or a panel is open ("busy"); at 0 pips: "No power! Play a card or calm a creature to charge it." + `bt-wrong`; cooling down: "Fire is recharging…". A use = 1 pip + the level's cooldown + `bt-ability` (unpitched whoosh, under 0.3 s, `mic: true`). Its target: the nearest live creature within `abilities.range` 8, else the way you face. With nothing to use it on (Earth with no soft block, Lightning with no creature in range) it says so and spends nothing. Damage goes through `hitCreature(c, 1, damage)`: the same HP, "−N" labels, new note and calming as music damage.
+
+| Level (`abilities.levels`, Rey's table) | Damage | Cooldown |
+|---|---|---|
+| 1 | 5 | 10 s |
+| 2 | 7 | 5 s |
+| 3 | 10 | 3.5 s |
+
+- FIRE (`abilities.fire`): a wall of warm sparks in front of you, `width` 3 × `height` 2.5 tiles, for `seconds` 2; every `tickS` .5 each creature in it takes `perTick` 3 × level, at most the level's damage in all (per creature). Drawn as a soft orange glow fading upward with sparks rising (reduced motion: the glow only).
+- EARTH (`abilities.earth`): picks up the SOFT block you aim at (`G.target`, else the one in front of you or under you) within `reach` 4.5: `combat.soft` only, never a shelter's wall (`shelterWall`), so never a station, door, glass, brick, rock, ore or lamp. It flies at `speed` 14 toward the nearest creature (else ahead); the first creature it meets takes the level's damage; the block drops as an item where it lands (nothing lost).
+- WIND (`abilities.wind`): a dash of `dash` 3 tiles toward the target (stopping at any solid block); creatures along the path and up to `width` 1.5 beyond take the level's damage and are pushed `push` 4 tiles away (stopping at any block). Three soft streaks.
+- WATER (`abilities.water`): a splash of `radius` 2.5 at the nearest creature (else 3 tiles ahead): Rey's own damage `damage` 2 / 5 / 8 and SLOWED to `slowMul` .4 for `slowS` 3 (`speedMul`; a blue drip over it). A soft ring that fades.
+- LIGHTNING (`abilities.lightning`): the nearest creature within `range` 10: the level's damage and CONFUSED for `confuseS` 3 (it wanders a random way every `wanderS` .7 instead of chasing; a "?" over it). Drawn as ONE zigzag from above the screen to the creature, in the neon violet `--bt-bolt`, fading over `flashMs` 300: one flash a strike, never strobing, never full-screen (`fx.flashes` counts them). Reduced motion: a straight line that fades.
+
+Abilities will hurt the boss too (prompt 4). They work the same in INSTRUMENT, TOUCH and snare: only the cards that charge them follow the mode (the snare learns with drum cards).
+
+SAVING (`player.pow` `{pips, known: {fire: 1–3}, slots: [id|null], amulet}`; `powOf` checks it): an older save has none: no pips, nothing known, one empty slot, the meter and the buttons hidden. Survival Nights starts with none. Tokens: `--bt-power`, `--bt-power-off`, `--bt-fire`, `--bt-fire-2`, `--bt-wind`, `--bt-water`, `--bt-water-2`, `--bt-bolt`, `--bt-bolt-2`.
+
+`?demo`: `demo.charge(n)`, `ability(slot)` (true or why not: `none`, `busy`, `cooldown`, `empty`, `noblock`, `notarget`), `learn(k)`, `equip(k)`, `amulet()`, `powerTable()`, and for tests that aren't about learning: `know(k, level, slot)`, `amuletNow()`, `still(id)` (holds a creature in place); `state().power` `{pips, known, slots, amulet, cd, fire, rock, bolt}`, creatures add `slowT`, `confT`; `fx.charges`, `abilities`, `lastAbility`, `flashes`, `thrown`. Tests: "Blocktave: THE POWER TABLE AND ABILITIES" (the table and learning; charges; each ability's damage at every level and its effect; Earth's protected blocks; Wind's walls; Lightning's one flash and reduced motion; the Amulet with Q / R / T and the buttons; saving and an old save; the snare; the HUD at three sizes).
