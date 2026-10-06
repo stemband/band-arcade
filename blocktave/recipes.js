@@ -4,7 +4,7 @@
      kind  'material' (dropped when you lose all hearts: dropShare in rules.js) | 'block' (placeable, also dropped) |
            'tool' (a mallet: never dropped) | 'use' (eaten or used from the hotbar) |
            'gear' (works while it's ANYWHERE in the hotbar: boots, the glider, the sonar fork; never placed, never dropped;
-           a small badge on its hotbar slot)
+           a small badge on its hotbar slot) | 'armor' / 'shield' (WORN in the Inventory's two slots; never dropped)
      hotbar true = a tool that lives in the HOTBAR (the Neon Torch: it lights the dark while it's in any hotbar slot)
      block the block it places (world.js BLOCKS); tier: a tool's tier (rules.js tools)
      desc  the tooltip's one line (hover, focus or a long-press on any item: written for 6th graders)
@@ -69,6 +69,15 @@ window.BT_ITEMS = {
   corallamp:     {name: 'Coral Lamp', kind: 'block', block: 'corallamp', desc: 'A soft teal lamp that works even under water. Nothing spooky appears in its light.'},
   // --- the Rey Update (APPEND ONLY) ---
   zipthread:     {name: 'Zip Thread', kind: 'material', desc: 'A shiny, super-quick thread left by a calmed Zipper. Light and strong.', found: 'Zippers you calm at night (from the 2nd night on)'},
+  // --- the Rey Update 2/4: armor and shields (APPEND ONLY). kind 'armor' / 'shield': WORN in the Inventory's slots (one
+  // of each), never dropped in the lost-hearts bag; tier 1–3; repair = the material that repairs it at a bench.
+  // Their numbers (damage reduction, block chance, durability) are in rules.js `defense`.
+  feltvest:      {name: 'Felt Vest', kind: 'armor', tier: 1, repair: 'felt', desc: 'A soft padded vest of pad felt. Wear it: creatures\' bumps hurt a quarter less.'},
+  brasscoat:     {name: 'Brass-Buckle Coat', kind: 'armor', tier: 2, repair: 'brass', desc: 'A marching coat with brass buckles, stitched with Zip Thread. Wear it: bumps hurt half as much.'},
+  silverarmor:   {name: 'Silver Stage Armor', kind: 'armor', tier: 3, repair: 'spring', desc: 'Shiny stage armor with springy silver joints. Wear it: bumps hurt much less.'},
+  drumshield:    {name: 'Drumhead Shield', kind: 'shield', tier: 1, repair: 'rawhide', desc: 'A drumhead on a maple hoop. Wear it: it bounces some bumps away completely.'},
+  bellshield:    {name: 'Brass Bell Shield', kind: 'shield', tier: 2, repair: 'brass', desc: 'The bell of a big brass horn. Wear it: it bounces half of the bumps away.'},
+  cymbalshield:  {name: 'Silver Cymbal Shield', kind: 'shield', tier: 3, repair: 'spring', desc: 'A crash cymbal with a strap. Wear it: it bounces most bumps away (it can\'t stop a Sour Wisp\'s drain).'},
 };
 
 /* THE RECIPES: a recipe is a MEASURE of up to 4 ingredients IN ORDER (like notes in a bar: the same ingredients in
@@ -123,6 +132,13 @@ window.BT_RECIPES = [
   {id: 'pipe-organ',     name: 'Pipe Organ',          in: ['grandgem', 'planks', 'planks', 'brass'], perf: 'scale',  out: 'organ',   n: 1, bench: true},
   {id: 'accelerando-boots', name: 'Accelerando Boots', in: ['amberbeat', 'rawhide', 'spring'],     perf: 'beats',    out: 'accelboots', n: 1, bench: true},
   {id: 'coral-lamp',     name: 'Coral Lamp',          in: ['coralpearl', 'glass'],                 perf: 'note',     out: 'corallamp', n: 2},
+  // --- the Rey Update 2/4: armor and shields (at a Luthier's Bench; Zip Thread for the higher tiers) ---
+  {id: 'felt-vest',      name: 'Felt Vest',           in: ['felt', 'felt', 'reed'],                perf: 'notes3',   out: 'feltvest', n: 1, bench: true},
+  {id: 'brass-buckle-coat', name: 'Brass-Buckle Coat', in: ['felt', 'brass', 'zipthread', 'brass'], perf: 'scale',   out: 'brasscoat', n: 1, bench: true},
+  {id: 'silver-stage-armor', name: 'Silver Stage Armor', in: ['spring', 'zipthread', 'gem', 'zipthread'], perf: 'longtone', out: 'silverarmor', n: 1, bench: true},
+  {id: 'drumhead-shield', name: 'Drumhead Shield',    in: ['rawhide', 'planks', 'rawhide'],        perf: 'beats',    out: 'drumshield', n: 1, bench: true},
+  {id: 'brass-bell-shield', name: 'Brass Bell Shield', in: ['brass', 'zipthread', 'brass'],        perf: 'notes3',   out: 'bellshield', n: 1, bench: true},
+  {id: 'silver-cymbal-shield', name: 'Silver Cymbal Shield', in: ['spring', 'brass', 'zipthread', 'gem'], perf: 'scale', out: 'cymbalshield', n: 1, bench: true},
 ];
 
 /* THE CHAPTERS: 6 chapters × 3 MILESTONES = the game's 18 stars (games.js maxStars). Stars come ONLY from these,

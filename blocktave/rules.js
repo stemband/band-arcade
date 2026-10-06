@@ -247,6 +247,31 @@ window.BT_RULES = {
     soft: ['dirt', 'moss', 'sand', 'leaves', 'planks'],   // the SOFT blocks it may break (block keys; Glow Moss is dirt)
     pool: 8,                  // a Night Clam / Zipper carries this many notes of its zone; each hit shows a NEW one of them
   },
+  /* ARMOR AND SHIELDS (the Rey Update 2/4; Rey's numbers). One armor and one shield can be worn (the Inventory's two
+     slots). When a creature's hit lands:
+       1. a worn SHIELD uses 1 durability and BLOCKS the whole hit `block` of the time (a soft clank, one pulse on you);
+       2. otherwise a worn ARMOR uses 1 durability, and the hit shrinks by the reductions together: they MULTIPLY,
+          1 − (1 − armor) × (1 − shield), at most maxReduction (Silver Stage Armor + Silver Cymbal Shield = 68 %);
+       3. what's left is counted in HALF HEARTS by "fair rounding": the whole halves, plus one more half with the chance of
+          the remainder (0.3 hearts → ½ heart 60 % of the time, else nothing), so on average you lose exactly the reduced
+          damage, and ¼ heart = ½ heart half the time.
+     A Sour Wisp's drain is damage too: armor reduces it (and wears), but a shield can't block a drain (no shield at all).
+     durability: hits an item can take (or block); at 0 it wears out (a soft crack, a toast) and is gone. Repair it at a
+     Luthier's Bench: one of its `repair` material (recipes.js) + a one-note performance, back to full. */
+  defense: {
+    armor: {
+      feltvest:    {reduce: .25, durability: 30},   // Felt Vest: 25 % less damage
+      brasscoat:   {reduce: .50, durability: 50},   // Brass-Buckle Coat: 50 % less
+      silverarmor: {reduce: .60, durability: 80},   // Silver Stage Armor: 60 % less
+    },
+    shield: {
+      drumshield:   {reduce: .10, block: .20, durability: 20},   // Drumhead Shield: 10 % less, blocks 1 hit in 5
+      bellshield:   {reduce: .15, block: .50, durability: 35},   // Brass Bell Shield: 15 % less, blocks half the hits
+      cymbalshield: {reduce: .20, block: .70, durability: 50},   // Silver Cymbal Shield: 20 % less, blocks 7 hits in 10
+    },
+    maxReduction: .75,        // armor + shield never take away more than this share of a hit
+    flashMs: 400,             // a block's pulse on the avatar (one soft ring, fading; never white, never repeated)
+  },
   metronomeSlow: .8,          // creatures within a placed Metronome's radius move this fast
   metronomeRadius: 8,
   tunerRadius: 6,             // Sour Wisps can't enter a placed Tuner's radius

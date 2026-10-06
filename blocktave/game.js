@@ -127,11 +127,17 @@
   const newSeed = () => seedParam() != null ? seedParam() : Math.floor(Math.random() * 4294967296) >>> 0;
   function playerSave() {
     const p = G.p;
-    return {x: +p.x.toFixed(2), y: +p.y.toFixed(2), hearts: p.hearts, inv: p.inv, hot: p.hot, sel: p.sel};
+    return {x: +p.x.toFixed(2), y: +p.y.toFixed(2), hearts: p.hearts, inv: p.inv, hot: p.hot, sel: p.sel, wear: p.wear, wornLeft: p.wornLeft};
   }
 
   /* ================= THE GAME STATE ================= */
   let G = null;
+  /** the worn ARMOR and SHIELD ({id, left}: its durability left), checked against rules.js defense (an older save: none) */
+  function wearOf(W) {
+    const D = R.defense, out = {armor: null, shield: null};
+    ['armor', 'shield'].forEach(k => { const w = W && W[k]; if (w && D[k][w.id]) out[k] = {id: w.id, left: Math.max(1, Math.min(D[k][w.id].durability, +w.left || D[k][w.id].durability))}; });
+    return out;
+  }
   const tierOf = inv => Math.max(0, ...Object.keys(inv).filter(k => inv[k] > 0 && ITEMS[k] && ITEMS[k].kind === 'tool').map(k => ITEMS[k].tier));
   function enterWorld(ch) {
     const endless = ch === 'endless';
@@ -146,7 +152,8 @@
       keys: {left: false, right: false, jump: false}, build: false, lastSave: performance.now(), wrong: 0, target: null,
       cycleCount: {}, spawnT: 0, died: false, calmed: 0, mined: 0, frames: [], listen: false, wispHold: 0, fx: {},
       p: {x: P.x != null ? P.x : w.spawn.x + .5, y: P.y != null ? P.y : w.spawn.y + 1, vx: 0, vy: 0, face: 1, ground: false, hurtT: 0,
-        hearts: P.hearts > 0 ? P.hearts : (endless ? R.endless.hearts : R.player.hearts), inv: P.inv || {}, hot: P.hot || new Array(R.hotbar).fill(null), sel: P.sel || 0, walkT: 0}};
+        hearts: P.hearts > 0 ? P.hearts : (endless ? R.endless.hearts : R.player.hearts), inv: P.inv || {}, hot: P.hot || new Array(R.hotbar).fill(null), sel: P.sel || 0, walkT: 0,
+        wear: wearOf(P.wear), wornLeft: Object.assign({}, P.wornLeft)}};   // armor + shield (an older save: none)
     if (endless) Object.entries(R.endless.kit).forEach(([k, n]) => gain(k, n, true, false));
     G.nightWas = isNight();
     G.cycle = cycleNo();
@@ -223,7 +230,7 @@
     const inv = G.p.inv;
     inv[id] = Math.min(MAX_ONE(), (inv[id] || 0) + n);
     const it = ITEMS[id];
-    if (it && (it.kind !== 'tool' || it.hotbar) && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) { G.p.hot[k] = id; gearIn(id); } }
+    if (it && (it.kind !== 'tool' || it.hotbar) && it.kind !== 'armor' && it.kind !== 'shield' && !G.p.hot.includes(id)) { const k = G.p.hot.indexOf(null); if (k >= 0) { G.p.hot[k] = id; gearIn(id); } }
     if (id === 'torch' && !seen('torch') && G.running) setTimeout(() => { if (G) firstCard('torch', 'A Neon Torch!', 'Keep it in your hotbar and it lights the dark around you, at night and underground.'); }, 500);
     findRecipes();
     if (label) pickupLabel(id, n);
@@ -547,6 +554,18 @@
           g.globalAlpha = .7; g.strokeStyle = col('bt-mine'); g.lineWidth = .6 * u; [3, 4.6].forEach(r2 => { g.beginPath(); g.arc(8 * u, 4 * u, r2 * u, -2.4, -.7); g.stroke(); }); g.globalAlpha = 1; break;
         case 'accelboots': g.fillStyle = col('bt-amber'); g.fillRect(6 * u, 4 * u, 4 * u, 7 * u); g.fillRect(6 * u, 10 * u, 7 * u, 3 * u); [[1.5, 6], [2.5, 9], [1.5, 12]].forEach(([x, y]) => line('bt-mine', .7, [[x, y], [x + 3, y]])); break;
         case 'snack': g.fillStyle = col('bt-snack'); g.beginPath(); g.roundRect ? g.roundRect(4 * u, 4 * u, 8 * u, 10 * u, 2 * u) : g.rect(4 * u, 4 * u, 8 * u, 10 * u); g.fill(); line('bt-brass', .8, [[5, 6], [11, 6]]); break;
+        // --- the Rey Update 2/4: armor (a vest / coat / plate) and shields (a drumhead, a bell, a cymbal) ---
+        case 'feltvest': case 'brasscoat': case 'silverarmor': {
+          const body = {feltvest: 'bt-felt', brasscoat: 'bt-rumble', silverarmor: 'bt-silver'}[id], trim = {feltvest: 'bt-felt-2', brasscoat: 'bt-brass', silverarmor: 'bt-spring'}[id];
+          g.fillStyle = col(body); g.beginPath(); g.moveTo(5 * u, 2.5 * u); g.lineTo(11 * u, 2.5 * u); g.lineTo(14 * u, 6 * u); g.lineTo(12 * u, 7.5 * u); g.lineTo(12 * u, 14 * u); g.lineTo(4 * u, 14 * u); g.lineTo(4 * u, 7.5 * u); g.lineTo(2 * u, 6 * u); g.closePath(); g.fill();
+          line(trim, .9, [[8, 3.5], [8, 13.5]]);
+          if (id !== 'feltvest') [5.5, 8.5, 11.5].forEach(yy => dot(trim, 9.7, yy, .8));
+          if (id === 'silverarmor') { line(trim, .7, [[4.5, 8], [11.5, 8]]); dot('text-hi', 6, 5, .8); }
+          break;
+        }
+        case 'drumshield': dot('bt-plank', 8, 8, 6.5); dot('bt-rawhide', 8, 8, 5.2); dot('bt-rawhide-2', 8, 8, 1.6); break;
+        case 'bellshield': dot('bt-brass', 8, 8, 6.5); dot('bt-rumble', 8, 8, 3.6); dot('bt-ink', 8, 8, 1.6); dot('text-hi', 5.4, 5.4, .9); break;
+        case 'cymbalshield': dot('bt-silver', 8, 8, 6.5); g.strokeStyle = col('bt-slate-2'); g.lineWidth = .4 * u; [2.6, 4.4].forEach(r2 => { g.beginPath(); g.arc(8 * u, 8 * u, r2 * u, 0, 7); g.stroke(); }); dot('bt-slate-2', 8, 8, 1.2); dot('text-hi', 5.6, 5.2, .8); break;
         default: dot('text-lo', 8, 8, 4);
       }
     }
@@ -970,6 +989,15 @@
       const ic = iconCanvas('torch'), w = S * .7;
       ctx.save(); ctx.translate(x + p.face * S * .32, y - S * 1.05); if (p.face < 0) ctx.scale(-1, 1);
       ctx.drawImage(ic, -w * .25, -w * .75, w, w); ctx.restore();
+    }
+    // WORN GEAR: small badges over the body (never a new sprite): the armor on the chest, the shield at the front arm
+    const W = p.wear, bw = S * .5;
+    if (W.armor) { ctx.globalAlpha = .9; ctx.drawImage(iconCanvas(W.armor.id), x - bw / 2, y - S * 1.25, bw, bw); ctx.globalAlpha = 1; }
+    if (W.shield) ctx.drawImage(iconCanvas(W.shield.id), x + p.face * S * .36 - bw / 2, y - S * .95, bw, bw);
+    const bf = G.blockAt ? (now - G.blockAt) / R.defense.flashMs : 1;     // a BLOCK: one soft ring that fades (no flashing)
+    if (bf < 1) {
+      ctx.globalAlpha = .7 * (1 - bf); ctx.strokeStyle = col('bt-silver'); ctx.lineWidth = Math.max(2, S * .12);
+      ctx.beginPath(); ctx.ellipse(x, y - S * .95, S * (.6 + (RM.matches ? 0 : bf * .25)), S * (1.05 + (RM.matches ? 0 : bf * .25)), 0, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
     }
     if (p.gliding) {                                                     // the Piccolo Glider: a small swept wing over the head
       const u = S / 16, gy = y - S * 2.05;
@@ -1578,7 +1606,8 @@
       slots.fill(null);
       A.Sfx.event('bt-craft');
       brave();
-      A.UI.toast(`You made ${r.n > 1 ? r.n + ' × ' : ''}${r.name}!`);
+      const wornNow = ITEMS[r.out] && (ITEMS[r.out].kind === 'armor' || ITEMS[r.out].kind === 'shield') && !G.p.wear[ITEMS[r.out].kind] && wear(r.out);
+      A.UI.toast(wornNow ? `You made a ${r.name} and put it on! (Inventory: tap to swap or take it off.)` : `You made ${r.n > 1 ? r.n + ' × ' : ''}${r.name}!`);
       if (r.out === 'mallet1') award('mallet');
       if (r.out === 'metronome') award('metro');
       if (r.out === 'tuner') award('tuner');
@@ -1671,12 +1700,14 @@
     const inv = G.p.inv, ids = Object.keys(inv).filter(k => inv[k] > 0);
     $('invTitle').textContent = locker ? 'Band Locker' : 'Inventory';
     $('invTool').textContent = `Your tool: ${R.tools[tier()]}`;
+    drawWear(locker);
     $('invGrid').innerHTML = ids.length ? ids.map(k => `<button type="button" class="bt-chip" data-id="${k}" data-item="${k}"><img src="${iconURL(k)}" alt=""><span>${esc(itemName(k))}</span><b>${inv[k]}</b></button>`).join('') : '<p class="ui-msg empty">Nothing yet.</p>';
-    $('invHint').textContent = locker ? 'Tap your items to store them, and the locker\'s items to take them.' : `Tap an item to put it in hotbar slot ${G.p.sel + 1}.${have('snack') ? ' Tap a Snack Bag twice to eat it.' : ''}`;
+    $('invHint').textContent = locker ? 'Tap your items to store them, and the locker\'s items to take them.' : `Tap an item to put it in hotbar slot ${G.p.sel + 1}.${ids.some(k => ITEMS[k] && (ITEMS[k].kind === 'armor' || ITEMS[k].kind === 'shield')) ? ' Tap an armor or a shield to wear it.' : ''}${have('snack') ? ' Tap a Snack Bag twice to eat it.' : ''}`;
     $('invGrid').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => {
       const id = b.dataset.id;
       if (locker) { const L = lockerOf(locker), n = inv[id]; if (Object.keys(L).length >= R.lockerSlots && !L[id]) { A.UI.toast('The locker is full.'); return; } take(id, n); L[id] = (L[id] || 0) + n; drawInv(locker); return; }
       if (id === 'snack' && G.p.hot[G.p.sel] === 'snack') { eat(); drawInv(); return; }
+      if (ITEMS[id] && (ITEMS[id].kind === 'armor' || ITEMS[id].kind === 'shield')) { wear(id); drawInv(); return; }   // worn, never in the hotbar
       if (ITEMS[id] && ITEMS[id].kind === 'tool' && !ITEMS[id].hotbar) return;
       const k = G.p.hot.indexOf(id); if (k >= 0) G.p.hot[k] = null;
       G.p.hot[G.p.sel] = id; if (k < 0) gearIn(id); drawHot(); drawInv();
@@ -1687,6 +1718,22 @@
       $('lockerGrid').innerHTML = Array.from({length: R.lockerSlots}, (_, i) => ks[i] ? `<button type="button" class="bt-chip" data-id="${ks[i]}" data-item="${ks[i]}"><img src="${iconURL(ks[i])}" alt=""><span>${esc(itemName(ks[i]))}</span><b>${L[ks[i]]}</b></button>` : '<span class="bt-empty"></span>').join('');
       $('lockerGrid').querySelectorAll('.bt-chip').forEach(b => b.onclick = () => { const id = b.dataset.id; if (!canHold(id)) { bagFull(); return; } gain(id, L[id]); delete L[id]; drawInv(locker); });
     }
+  }
+  /** THE ARMOR and SHIELD slots at the top of the Inventory: what you wear, its durability bar; tap it to take it off; a
+      Repair button when it's worn down (at a bench) */
+  function drawWear(locker) {
+    const box = $('wearRow'); box.hidden = !!locker; if (locker) return;
+    box.innerHTML = ['armor', 'shield'].map(slot => {
+      const w = G.p.wear[slot], label = slot === 'armor' ? 'Armor' : 'Shield';
+      if (!w) return `<div class="bt-wear" data-slot="${slot}"><span class="bt-wear-empty" aria-hidden="true"></span><span class="bt-wear-t"><small>${label}</small>None: tap one in your bag to wear it</span></div>`;
+      const max = wearMax(slot, w.id), f = w.left / max, mat = ITEMS[w.id].repair;
+      return `<div class="bt-wear" data-slot="${slot}"><button type="button" class="bt-wear-btn" data-off="${slot}" data-item="${w.id}" aria-label="${esc(itemName(w.id))}, ${w.left} of ${max} hits left. Tap to take it off.">`
+        + `<span class="bt-wear-ic"><img src="${iconURL(w.id)}" alt=""><i class="bt-dur${f <= .25 ? ' low' : ''}"><b style="width:${Math.round(f * 100)}%"></b></i></span>`
+        + `<span class="bt-wear-t"><small>${label}</small>${esc(itemName(w.id))} <em>${w.left}/${max}</em></span></button>`
+        + (w.left < max ? `<button type="button" class="btn btn-secondary btn-small bt-repair" data-repair="${slot}">Repair (1 ${esc(itemName(mat))})</button>` : '') + `</div>`;
+    }).join('');
+    box.querySelectorAll('[data-off]').forEach(b => b.onclick = () => { unwear(b.dataset.off); drawInv(); });
+    box.querySelectorAll('[data-repair]').forEach(b => b.onclick = () => repair(b.dataset.repair));
   }
   const lockerOf = key => { const w = G.w; w.lockers = w.lockers || {}; return w.lockers[key] || (w.lockers[key] = {}); };
   function openLocker(x, y) { closePanels(); $('inv').hidden = false; G.panel = 'inv'; drawInv(x + ',' + y); $('invClose').focus(); return true; }
@@ -2150,11 +2197,76 @@
     const p = G.p;
     if (!drain && p.hurtT > 0) return;
     if (!drain) { p.hurtT = R.player.hurtCooldownS; p.vx = 0; p.vy = -6; p.x += Math.sign(p.x - (c ? c.x : p.x)) * .6; }
+    const d = defend(n, drain);
+    G.lastHit = d;
+    if (d.blocked) { G.blockAt = performance.now(); G.fx.blocks = (G.fx.blocks || 0) + 1; A.Sfx.event('bt-clank'); return; }
+    if (!(d.n > 0)) { G.fx.absorbed = (G.fx.absorbed || 0) + 1; return; }    // the armor took all of it this time
+    n = d.n;
     p.hearts = Math.max(0, p.hearts - n);
     G.hurtAt = performance.now();
     A.Sfx.event('bt-hurt');
     drawHud();
     if (p.hearts <= 0) outOfBreath();
+  }
+  /* ARMOR AND SHIELDS (rules.js defense): what's left of a hit of `n` hearts. A shield blocks it (never a drain), else
+     the reductions multiply (capped), then FAIR ROUNDING to half hearts: the whole halves + one more half with the chance
+     of the remainder. Each worn item the hit reaches uses 1 durability (the shield even when it blocks). */
+  const rnd = () => (G.rnd || Math.random)();
+  function defend(n, drain) {
+    const W = G.p.wear, D = R.defense, a = W.armor && D.armor[W.armor.id], s = !drain && W.shield && D.shield[W.shield.id];
+    if (s) { wearDown('shield'); if (rnd() < s.block) return {n: 0, raw: 0, red: 1, blocked: true}; }
+    if (a) wearDown('armor');
+    const red = Math.min(D.maxReduction, 1 - (1 - (a ? a.reduce : 0)) * (1 - (s ? s.reduce : 0)));
+    const raw = n * (1 - red), lo = Math.floor(raw * 2 + 1e-9) / 2, rest = (raw - lo) * 2;
+    return {n: lo + (rest > 1e-9 && rnd() < rest ? .5 : 0), raw, red, blocked: false};
+  }
+  /** one hit on a worn item; at 0 it wears out (a soft crack + a toast) and is gone */
+  function wearDown(slot) {
+    const w = G.p.wear[slot]; if (!w) return;
+    w.left--;
+    if (w.left > 0) return;
+    G.p.wear[slot] = null;
+    A.Sfx.event('bt-crack');
+    A.UI.toast(`Your ${itemName(w.id)} wore out!`, {ms: 2400});
+    G.fx.woreOut = (G.fx.woreOut || 0) + 1;
+    if (G.panel === 'inv') drawInv();
+  }
+  const wearMax = (slot, id) => R.defense[slot][id].durability;
+  /** wear an armor or shield from your bag (the one you had on goes back, keeping its wear: wornLeft) */
+  function wear(id) {
+    const it = ITEMS[id], slot = it && it.kind; if (slot !== 'armor' && slot !== 'shield' || !have(id)) return false;
+    const old = G.p.wear[slot];
+    take(id, 1);
+    if (old) unwearTo(old, slot);
+    const left = G.p.wornLeft[id] || wearMax(slot, id); delete G.p.wornLeft[id];
+    G.p.wear[slot] = {id, left};
+    A.Sfx.event('bt-gear');
+    G.w.dirty = true;
+    return true;
+  }
+  function unwearTo(w, slot) {
+    gain(w.id, 1, true, false);
+    if (w.left < wearMax(slot, w.id)) G.p.wornLeft[w.id] = Math.min(G.p.wornLeft[w.id] || 1e9, w.left);
+  }
+  function unwear(slot) {
+    const w = G.p.wear[slot]; if (!w) return false;
+    if (!canHold(w.id)) { bagFull(); return false; }
+    G.p.wear[slot] = null; unwearTo(w, slot); G.w.dirty = true;
+    return true;
+  }
+  /** REPAIR at a Luthier's Bench: one of its repair material + a one-note performance = full durability */
+  function repair(slot) {
+    const w = G.p.wear[slot]; if (!w || Card.current) return false;
+    const mat = ITEMS[w.id].repair;
+    if (!benchNear()) { A.UI.toast('Repair it at a Luthier\'s Bench.', {ms: 1800}); return false; }
+    if (!have(mat)) { A.UI.toast(`You need 1 ${itemName(mat)} to repair it.`, {ms: 1800}); return false; }
+    closePanels();
+    openCard(spec('note', Math.floor(G.p.x), Math.floor(G.p.y)), () => ({x: (G.p.x - camX) * S, y: (G.p.y - 1 - camY) * S}), 'Repair: ' + itemName(w.id), r => {
+      if (!G || !r.ok || G.p.wear[slot] !== w || !have(mat)) return;
+      take(mat, 1); w.left = wearMax(slot, w.id); G.w.dirty = true;
+      A.Sfx.event('bt-craft'); A.UI.toast(`Your ${itemName(w.id)} is as good as new!`, {ms: 1800});
+    });
+    return true;
   }
   /** ALL HEARTS LOST: Survival Nights ends; the world keeps going (respawn at the cot, a bag with a share of the materials) */
   function outOfBreath() {
@@ -2162,7 +2274,7 @@
     if (G.endless) return survivalOver();
     G.died = true;
     const bag = {x: p.x, y: p.y - .6, items: {}}, cot = cotNow(), share = cot ? R.dropShareCot : R.dropShare;   // a cot set: you lose less
-    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use' || it.kind === 'gear') return; const n = Math.floor(p.inv[k] * share); if (n > 0) { bag.items[k] = n; take(k, n); } });
+    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use' || it.kind === 'gear' || it.kind === 'armor' || it.kind === 'shield') return; const n = Math.floor(p.inv[k] * share); if (n > 0) { bag.items[k] = n; take(k, n); } });
     if (Object.keys(bag.items).length) G.w.bags.push(bag);
     p.x = cot ? cot.x + .5 : G.w.spawn.x + .5; p.y = cot ? cot.y + 1 : G.w.spawn.y + 1; p.vx = p.vy = 0;
     p.hearts = maxHearts(); p.hurtT = R.player.hurtCooldownS;
@@ -2619,6 +2731,8 @@
       player: G && {x: G.p.x, y: G.p.y, hearts: G.p.hearts, tier: tier(), ground: G.p.ground}, inv: G && Object.assign({}, G.p.inv), hot: G && G.p.hot.slice(),
       time: G && G.w.time, night: G && isNight(), nights: G && G.w.nights, survived: G && G.w.survived, listening: A.Pitch.listening(),
       creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul, hp: c.hp, max: c.max, need: c.need, bar: hpShown(c, performance.now()), flee: c.flee || 0, pcs: c.pcs})) : [],
+      wear: G ? {armor: G.p.wear.armor && Object.assign({max: wearMax('armor', G.p.wear.armor.id)}, G.p.wear.armor), shield: G.p.wear.shield && Object.assign({max: wearMax('shield', G.p.wear.shield.id)}, G.p.wear.shield)} : null,
+      wornLeft: G ? Object.assign({}, G.p.wornLeft) : null, lastHit: G ? G.lastHit || null : null,
       damage: G ? dmgNow() : 0, dmgLabels: G ? (G.dmg || []).map(l => l.text) : [], ramp: G ? rampNow() : 0, cotTip: !!gd().cotTip,
       card: Card.current && Card.current.state(), panel: G && G.panel, build: G && G.build, seed: G && G.w.seed, bags: G ? G.w.bags.length : 0, cot: G && G.w.cot,
       held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
@@ -2648,6 +2762,12 @@
       calm: id => { const c = G.creatures.find(k => k.id === id); if (c) calm(c); return !!c; },
       hit: (id, n = 1) => { const c = G.creatures.find(k => k.id === id); return !!c && hitCreature(c, n); },
       nightFalls: () => nightFalls(),
+      /** ARMOR AND SHIELDS: wear / take off / repair; a seeded random for blocks and fair rounding (null = Math.random) */
+      wear: id => { if (!have(id)) gain(id, 1, true); return wear(id); },
+      unwear: slot => unwear(slot),
+      repair: slot => repair(slot),
+      seedRandom: seed => { G.rnd = seed == null ? null : BW.rng(seed); },
+      defend: (n, drain) => defend(n, drain),
       caps: kind => ({perNight: capOf(R.spawn.perNight, kind), atOnce: capOf(R.spawn.atOnce, kind)}),
       canHold: id => canHold(id),
       fromBook: id => fromBook(RECIPES.find(r => r.id === id)),
@@ -2676,7 +2796,7 @@
       answer: () => { const c = Card.current; if (c) c.answer(); return !!c; },
       craft: id => { const r = RECIPES.find(x => x.id === id); if (!r) return false; if (!G.panel) openCraft(); slots.fill(null); r.in.forEach((k, i) => { slots[i] = k; }); drawCraft(); perform(); return !!Card.current; },
       spawn: (kind, dx = 6) => { const x = G.p.x + dx; return spawn(kind, x, kind === 'wisp' ? G.p.y - 1.5 : G.p.y).id; },
-      hurt: (n = 1) => { G.p.hurtT = 0; hurt(n, null); },
+      hurt: (n = 1, drain = false) => { G.p.hurtT = 0; hurt(n, null, drain); },
       time: t => { G.w.time = t; },
       heard: pc => heardNote(pc),
       listen: () => listenSync(),
