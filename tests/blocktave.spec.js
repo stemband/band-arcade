@@ -461,7 +461,7 @@ test.describe('Blocktave: COMBAT (HP and music damage)', () => {
         pcs.push(c.pc);
         if (!(await cardOpen(page))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
         const t0 = await page.evaluate(() => { const c = Arcade.BlocktaveCard.current; Arcade.Blocktave.demo.answer(); return c.state().t0; });
-        await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0);
+        await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0, {timeout: 20_000, polling: 100});
       }
       expect((await creature(page, id) || {state: 'gone'}).state, `calmed after exactly ${need}`).not.toBe('live');
       for (let k = 1; k < pcs.length; k++) expect(pcs[k], 'each hit shows a new note').not.toBe(pcs[k - 1]);
@@ -2603,7 +2603,7 @@ async function calmByCards(page, id, max = 16) {
     if (!live) return k - 1;
     if (!(await page.evaluate(() => !!Arcade.BlocktaveCard.current))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
     const t0 = await page.evaluate(() => { const c = Arcade.BlocktaveCard.current; Arcade.Blocktave.demo.answer(); return c ? c.state().t0 : null; });
-    await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0);   // judged and closed (or the next one open)
+    await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0, {timeout: 20_000, polling: 100});   // judged and closed (or the next one open; checked every 100 ms like waitCardGone: a busy WebKit runner starves the page's frames)
   }
   return max + 1;
 }
