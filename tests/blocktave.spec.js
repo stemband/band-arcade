@@ -946,6 +946,7 @@ test.describe('Blocktave: THE POWER TABLE AND ABILITIES (charged by music)', () 
     const d = Arcade.Blocktave.demo, R = window.BT_RULES, s = Arcade.Blocktave.state(), x0 = Math.floor(s.player.x), y = Math.floor(s.player.y);
     for (let x = x0 - 14; x <= x0 + 14; x++) { d.put(x, y, 'slate'); d.put(x, y + 1, 'slate'); for (let yy = y - 8; yy < y; yy++) d.put(x, yy, 'air'); }
     d.tp(x0, y - 1); d.step(.3); d.time(R.dayS + 30);
+    R.spawn.everyS = 1e9;                                                  // no natural night creatures: only the test's own
     if (k) d.know(k, lv, 0);
     d.charge(3); d.seedRandom(4);
     const id = kind ? d.spawn(kind, dx) : null; if (id) d.still(id);
