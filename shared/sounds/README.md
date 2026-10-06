@@ -556,6 +556,7 @@ the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched
 | `blocktave-day` | `blocktave-day.m4a` or `blocktave-day.mp3` | DAY music in the world. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
 | `blocktave-cave` | `blocktave-cave.m4a` or `blocktave-cave.mp3` | CAVE music deep underground (more than `music.caveRows` rows down). Slow and quiet: a low drone, water drips. Until uploaded: a built-in generated cave ambience; stops while the microphone listens. | 60–180 s loop |
 | `blocktave-night` | `blocktave-night.m4a` or `blocktave-night.mp3` | NIGHT music in the world: a little mysterious, never scary. Silent until uploaded; stops while the microphone listens. | 60–180 s loop |
+| `blocktave-boss` | `blocktave-boss.m4a` or `blocktave-boss.mp3` | The STATIC KING fight: epic but never scary. Until it's uploaded the night music plays; stops while the microphone listens. | 60–180 s loop |
 | `bt-break` | `bt-break.m4a` or `bt-break.mp3` | A block breaks. **during play: under 0.5 s, unpitched** | under 0.2 s |
 | `bt-mined` | `bt-mined.m4a` or `bt-mined.mp3` | A challenge passed: a music block breaks and drops its loot. **during play: under 0.5 s, unpitched** | under 0.3 s |
 | `bt-place` | `bt-place.m4a` or `bt-place.mp3` | A block placed, a door opened or closed. **during play: under 0.5 s, unpitched** | under 0.15 s |
@@ -573,6 +574,13 @@ the sound's length + 250 ms (the world's creatures freeze meanwhile). No pitched
 | `bt-boing` | `bt-boing.m4a` or `bt-boing.mp3` | A Timpani Trampoline bounces you up: a soft drum-head boing. **during play: under 0.5 s, unpitched; never while a challenge card listens** | under 0.4 s |
 | `bt-warp` | `bt-warp.m4a` or `bt-warp.mp3` | D.S. al Coda signs: you travel from one sign to its partner (a soft whoosh in and out). **during play: under 0.5 s, unpitched** | under 0.5 s |
 | `bt-gear` | `bt-gear.m4a` or `bt-gear.mp3` | A gear item (Tuba Boots, Piccolo Glider, Sonar Tuning Fork, Accelerando Boots) goes into your hotbar: two quick bright clicks. **during play: under 0.5 s, unpitched** | under 0.3 s |
+| `bt-clank` | `bt-clank.m4a` or `bt-clank.mp3` | Your shield blocks a creature's bump: a soft metal clank. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-crack` | `bt-crack.m4a` or `bt-crack.mp3` | A worn armor or shield wears out: a soft crack, never scary. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-ability` | `bt-ability.m4a` or `bt-ability.mp3` | You use an ability (Fire, Earth, Wind, Water, Lightning): a soft whoosh. **during play: under 0.5 s, unpitched** | under 0.3 s |
+| `bt-hum` | `bt-hum.m4a` or `bt-hum.mp3` | The Resonance Core starts waking the Static King: a calm, rising hum (the Core's glow carries the rest; never a jump scare). **during play: under 0.5 s, unpitched** | under 0.5 s |
+| `bt-laser` | `bt-laser.m4a` or `bt-laser.mp3` | The Static King's laser beam (after its dotted warning line): a soft fizz. **during play: under 0.5 s, unpitched** | under 0.4 s |
+| `bt-flip` | `bt-flip.m4a` or `bt-flip.mp3` | A flipping note is sent back at the Static King: a quick swish. **during play: under 0.5 s, unpitched** | under 0.2 s |
+| `bt-jingle` | `bt-jingle.m4a` or `bt-jingle.mp3` | The Static King is calmed and becomes a little radio: a happy sparkle. **during play: under 0.5 s, unpitched** | under 0.5 s |
 
 ### Arcade Quest
 

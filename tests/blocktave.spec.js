@@ -11,7 +11,7 @@ const {prepare, device} = require('./helpers');
    of 4). The 2 cave-music and 2 count-off tests failed in all of the last 10 WebKit runs (October 2026), and the
    INSTRUMENT count-off's clicks come out empty there; these 5 run in Chromium. */
 const NO_AUDIO_CLOCK = 'WebKit on a CI machine: the audio clock doesn\'t keep time (no sound card); Chromium checks this';
-const SEEN = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, 'c-zipper': 1, composer: 1, 'file-note': 1};
+const SEEN = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, 'c-zipper': 1, composer: 1, 'file-note': 1, 'rey-update': 1, 'c-king': 1, 'boss-calmed': 1};
 /** the device: an instrument, Blocktave's mode, every first-time card already seen */
 const store = (member, mode, extra = {}) => device(member, Object.assign({gameData: {blocktave: {mode, seen: SEEN}}}, extra));
 
@@ -738,7 +738,7 @@ test.describe('Blocktave: smarter nights (the spawn ramp, breaking out, the cot)
   });
 
   test('an old save (from before HP and the Zipper) loads and plays', async ({page}) => {
-    const seen = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1};
+    const seen = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1, 'rey-update': 1};
     await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen, stats: {trumpet: {ore: 0, clams: 3, wisps: 1, mined: 40}}}}}});
     expect(await page.evaluate(() => Arcade.Blocktave.demo.stats().clams)).toBe(3);
     const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('baton', 1); d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 6); });
@@ -1240,6 +1240,265 @@ test.describe('Blocktave: THE POWER TABLE AND ABILITIES (charged by music)', () 
         expect(a.l).toBeGreaterThanOrEqual(0); expect(a.r).toBeLessThanOrEqual(boxes.vw); expect(a.b).toBeLessThanOrEqual(boxes.vh);
         for (const o of boxes.other) expect(hit(a, o), `an ability button and ${o.n}`).toBe(false);
       }
+    });
+  }
+});
+
+/* ================= THE STATIC KING (the Rey Update 4/4) ================= */
+test.describe('Blocktave: THE STATIC KING (the boss) and THE REY UPDATE', () => {
+  /** flat open ground far from the spawn point, night, no natural spawns; the boss awake `dx` tiles away (or not) */
+  const arena = (page, {boss = true, dx = 6, quiet = true} = {}) => page.evaluate(({boss, dx, quiet}) => {
+    const d = Arcade.Blocktave.demo, R = window.BT_RULES, s = Arcade.Blocktave.state(), x0 = Math.floor(s.player.x) + 30, y = Math.floor(s.player.y);
+    for (let x = x0 - 16; x <= x0 + 16; x++) { d.put(x, y, 'slate'); d.put(x, y + 1, 'slate'); for (let yy = y - 10; yy < y; yy++) d.put(x, yy, 'air'); }
+    d.tp(x0, y - 1); d.step(.3); d.time(R.dayS + 30); R.spawn.everyS = 1e9;
+    const id = boss ? d.bossNow(dx, {quiet}) : null;
+    return {x0, y, id};
+  }, {boss, dx, quiet});
+  const boss = page => page.evaluate(() => Arcade.Blocktave.state().boss);
+  const B = () => ({hp: 500, laser: {warnS: [1.2, .8], beamS: .6}, notes: {flipDamage: 15, damage: .5}});
+
+  test('summoning: Signal Wire and the Core made at the Power Table; 3 wire in a line; the warning card; a calm build-up', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {x0, y} = await arena(page, {boss: false});
+    // the Power Table's MAKE rows: each a card
+    await page.evaluate(({x0, y}) => { const d = Arcade.Blocktave.demo; d.put(x0 - 1, y - 1, 'powertable'); ['tone', 'dust', 'hum', 'pearl', 'pearl', 'pearl', 'zipthread'].forEach(k => d.give(k, 1)); d.act(x0 - 1, y - 1, true); }, {x0, y});
+    await expect(page.locator('#ptMake [data-make]')).toHaveCount(2);
+    await page.locator('[data-make=signal-wire]').click();
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await st(page)).inv.signalwire).toBe(3);
+    await page.evaluate(({x0, y}) => Arcade.Blocktave.demo.act(x0 - 1, y - 1, true), {x0, y});
+    await page.locator('[data-make=resonance-core]').click();
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind), 'a demanding card: a scale').toBe('notes');
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await st(page)).inv.resonancecore).toBe(1);
+    await page.evaluate(() => document.getElementById('ptClose').click());
+    // the shape: the Core with 3 wire leading to it (2 is not enough)
+    const cx = x0 + 3;
+    const r = await page.evaluate(({cx, y}) => { const d = Arcade.Blocktave.demo; d.place(cx, y - 1, 'resonancecore');
+      d.place(cx + 1, y - 1, 'signalwire'); d.place(cx + 2, y - 1, 'signalwire'); const two = d.summonCheck(cx, y - 1);
+      d.place(cx + 3, y - 1, 'signalwire'); return {two, three: d.summonCheck(cx, y - 1), core: d.at(cx, y - 1)}; }, {cx, y});
+    expect(r.core).toBe('core');
+    expect(r.two).toContain('3 Signal Wire');
+    expect(r.three).toBeNull();
+    // the warning card: "Not yet" does nothing; "Wake it": a build-up, then it appears a few tiles away
+    await page.evaluate(({cx, y}) => Arcade.Blocktave.demo.act(cx, y - 1, true), {cx, y});
+    await expect(page.locator('#uiConfirm')).toContainText('This wakes the Static King. Ready?');
+    await page.locator('#uiConfirm [data-act=no]').click();
+    expect((await st(page)).waking).toBe(false);
+    await page.evaluate(({cx, y}) => Arcade.Blocktave.demo.act(cx, y - 1, true), {cx, y});
+    await page.locator('#uiConfirm [data-act=yes]').click();
+    const w = await page.evaluate(() => { const s = Arcade.Blocktave.state(); return {waking: s.waking, boss: !!s.boss}; });
+    expect(w).toEqual({waking: true, boss: false});
+    await page.evaluate(() => Arcade.Blocktave.demo.step(window.BT_RULES.boss.wakeS + .1));
+    const b = await boss(page), p = (await st(page)).player;
+    expect(b.hp).toBe(500);
+    expect(Math.abs(b.x - p.x)).toBeGreaterThan(4);
+    await expect(page.locator('#bossBar')).toBeVisible();
+    await expect(page.locator('#bossName')).toHaveText('The Static King');
+    expect(await page.evaluate(({cx, y}) => Arcade.Blocktave.demo.summonCheck(cx, y - 1), {cx, y}), 'one at a time').toContain('already awake');
+  });
+
+  test('never summoned near the spawn point or a cot', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const why = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), x = Math.floor(w.spawn.x) + 3, y = Math.floor(w.spawn.y);
+      d.put(x, y, 'core'); for (let k = 1; k <= 3; k++) d.put(x + k, y, 'signalwire'); return d.summonCheck(x, y); });
+    expect(why).toContain('Too close');
+  });
+
+  test('its HP: calm damage from its cards (by tool), abilities, flipped notes; a "Tune Me!" card every 25 % (25 damage + 2 pips)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id} = await arena(page);
+    await page.evaluate(() => Arcade.Blocktave.demo.give('baton', 1));
+    // its own card (the Golden Baton: 5), chained with a new note
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer());
+    await expect.poll(async () => (await boss(page)).hp).toBe(495);
+    await expect.poll(() => cardOpen(page), {message: 'its next card (a new note)'}).toBe(true);
+    await page.evaluate(() => Arcade.BlocktaveCard.close());
+    // an ability (Lightning 3: 10)
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.know('lightning', 3, 0); d.charge(1); d.ability(0); });
+    expect((await boss(page)).hp).toBe(485);
+    // a flipped note (15)
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.bossAttack('notes'); const f = Arcade.Blocktave.state().flyNotes[0]; d.noteCard(f.id); });
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    await page.evaluate(() => Arcade.Blocktave.demo.step(1.5));
+    expect((await boss(page)).hp).toBe(470);
+    // to 75 %: a "Tune Me!" card opens by itself; passed = 25 damage, and 2 pips in all
+    await page.evaluate(() => Arcade.Blocktave.demo.bossHp(375));
+    const pips0 = (await st(page)).power.pips;
+    await page.evaluate(() => Arcade.Blocktave.demo.step(.1));
+    await expect(page.locator('.bt-card')).toContainText('Tune Me!');
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    const s = await st(page);
+    expect(s.boss.hp).toBe(350);
+    expect(s.power.pips).toBe(Math.min(3, pips0 + 2));
+    expect(s.fx.tunes).toBe(1);
+  });
+
+  test('the LASER: a dotted warning first (1.2 s), then ONE steady beam (0.6 s): 1 heart if you stay; step aside and it misses', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await arena(page);
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, h0 = B.state().player.hearts;
+      d.bossAttack('laser'); const L0 = B.state().lasers[0];
+      d.step(1.15); const warn = B.state().lasers[0]; const h1 = B.state().player.hearts;
+      d.step(.2); const beam = B.state().lasers[0]; const h2 = B.state().player.hearts;
+      d.step(.7); return {L0, warn, beam, h0, h1, h2, gone: B.state().lasers.length}; });
+    expect(r.L0.warn).toBe(1.2); expect(r.L0.beam).toBe(.6);
+    expect(r.warn.on, 'still only the dotted line').toBe(false);
+    expect(r.h1, 'no harm during the warning').toBe(r.h0);
+    expect(r.beam.on).toBe(true);
+    expect(r.h2, 'one heart').toBe(r.h0 - 1);
+    expect(r.gone).toBe(0);
+    // stepping aside during the warning: no harm
+    const miss = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, s = B.state(), h0 = s.player.hearts;
+      d.step(2); d.bossAttack('laser'); d.step(.5); d.tp(Math.floor(s.player.x) - 3, Math.floor(s.player.y) - 1); d.step(1.5); return [h0, B.state().player.hearts]; });
+    expect(miss[1]).toBe(miss[0]);
+  });
+
+  test('FLIPPING NOTES: INSTRUMENT plays one back (15 damage); one that reaches you = ½ heart', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await arena(page);
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo;
+      d.bossAttack('notes'); const f = B.state().flyNotes[0]; d.heard(f.pc); const flipped = B.state().flyNotes[0].state;
+      d.step(1.5); return {flipped, hp: B.state().boss.hp, label: f.label}; });
+    expect(r.flipped).toBe('back');
+    expect(r.label.length).toBeGreaterThan(0);
+    expect(r.hp).toBe(485);
+    const h = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, h0 = B.state().player.hearts; d.bossAttack('notes'); d.step(4.5); return [h0, B.state().player.hearts, B.state().fx.noteHits]; });
+    expect(h[1]).toBe(h[0] - .5);
+    expect(h[2]).toBe(1);
+  });
+
+  test('FLIPPING NOTES, snare INSTRUMENT: tap one = ONE hit; the boss\'s own card is a count', async ({page}) => {
+    await enter(page, {member: 'snare', mode: 'inst'});
+    const {id} = await arena(page);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.bossAttack('notes'); d.noteCard(Arcade.Blocktave.state().flyNotes[0].id); });
+    expect(await page.evaluate(() => [Arcade.BlocktaveCard.current.state().kind, document.querySelector('.bt-card').innerText.includes('One hit')])).toEqual(['count', true]);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await st(page)).fx.flips).toBe(1);
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('count');
+  });
+
+  test('PHASE 2 at 50 %: a shorter laser warning (never under 0.8 s) and two notes a volley', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await arena(page);
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo; d.bossHp(250); if (Arcade.BlocktaveCard.current) Arcade.BlocktaveCard.close();
+      const b = B.state().boss; d.bossAttack('laser'); d.bossAttack('notes'); return {phase: b.phase, warn: B.state().lasers[0].warn, notes: B.state().flyNotes.length}; });
+    expect(r).toEqual({phase: 2, warn: .8, notes: 2});
+  });
+
+  test('fair: its attacks wait while you play a card (only what\'s already flying goes on, slowed)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id} = await arena(page);
+    const r = await page.evaluate(i => { const B = Arcade.Blocktave, d = B.demo; d.creatureCard(i); const a = (B.state().fx.lasers || 0) + (B.state().fx.volleys || 0);
+      d.step(15); return [a, (B.state().fx.lasers || 0) + (B.state().fx.volleys || 0), !!Arcade.BlocktaveCard.current]; }, id);
+    expect(r).toEqual([0, 0, true]);
+  });
+
+  test('losing all hearts: it goes back to sleep (HP restored next time); the Core stays', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {x0, y} = await arena(page);
+    await page.evaluate(({x0, y}) => { const d = Arcade.Blocktave.demo; d.put(x0 + 4, y - 1, 'core'); d.bossHp(300); if (Arcade.BlocktaveCard.current) Arcade.BlocktaveCard.close(); for (let k = 0; k < 5; k++) d.hurt(1); }, {x0, y});
+    const s = await st(page);
+    expect(s.boss).toBeNull();
+    await expect(page.locator('#bossBar')).toBeHidden();
+    expect(await page.evaluate(({x0, y}) => Arcade.Blocktave.demo.at(x0 + 4, y - 1), {x0, y})).toBe('core');
+    await page.evaluate(() => Arcade.Blocktave.demo.bossNow(6));
+    expect((await boss(page)).hp).toBe(500);
+  });
+
+  test('CALMED: a little radio, its Antenna trophy and materials, bossDefeated, the BOSS CALMED! card once, and NO stars', async ({page}) => {
+    const seen = Object.assign({}, SEEN); delete seen['boss-calmed'];
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen}}}});
+    const {id} = await arena(page);
+    const stars0 = await page.evaluate(() => Arcade.store.allStars('trumpet', 'blocktave'));
+    await page.evaluate(i => { const d = Arcade.Blocktave.demo; d.bossHp(5); if (Arcade.BlocktaveCard.current) Arcade.BlocktaveCard.close(); d.hit(i, 5); }, id);
+    await expect(page.locator('#intro')).toContainText('BOSS CALMED!');
+    const s = await st(page);
+    expect(s.boss).toBeNull();
+    expect(s.radio).toBe(true);
+    expect(s.bossDefeated).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(s.drops.map(d => d.item)).toEqual(expect.arrayContaining(['kingantenna', 'zipthread', 'gem', 'hum']));
+    expect(await page.evaluate(() => Arcade.store.allStars('trumpet', 'blocktave')), 'no stars').toBe(stars0);
+    expect(await page.evaluate(() => Arcade.store.gameData('blocktave').bossDefeated)).toBe(s.bossDefeated);
+    expect(await page.evaluate(() => window.BT_ITEMS.kingantenna.kind)).toBe('block');
+  });
+
+  test('THE REY UPDATE card: once for a returning student, the credit exact (first name only); a new student skips it', async ({page}) => {
+    const seen = Object.assign({}, SEEN); delete seen['rey-update'];
+    await prepare(page, {store: store('trumpet', 'touch', {gameData: {blocktave: {mode: 'touch', seen}}})});
+    await page.goto('blocktave/index.html?demo&nostart&seed=42');
+    await page.locator('.ls-card:not(.ls-endless)').first().click(); await page.locator('.ls-start').click();
+    await expect(page.locator('#intro')).toContainText('THE REY UPDATE!');
+    await expect(page.locator('#intro')).toContainText('Ideas by Rey, a Raven Band student.');
+    for (const t of ['HP', 'Zipper', 'Armor and shields', 'Power Table and 5 abilities', 'The Static King, a boss!', 'Signal Wire and a Resonance Core']) await expect(page.locator('#intro')).toContainText(t);
+    await page.locator('#intro [data-act=go]').click();
+    expect(await page.evaluate(() => Arcade.store.gameData('blocktave').seen['rey-update'])).toBe(1);
+    await page.reload();
+    await page.locator('.ls-card:not(.ls-endless)').first().click(); await page.locator('.ls-start').click();
+    await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
+    await page.waitForTimeout(300);
+    await expect(page.locator('#intro')).toBeHidden();
+  });
+
+  test('a brand-new student gets the welcome card, not the update card; the boss\'s first card has the same credit', async ({page}) => {
+    await prepare(page, {store: store('trumpet', 'touch', {gameData: {blocktave: {mode: 'touch', seen: {}}}})});
+    await page.goto('blocktave/index.html?demo&nostart&seed=42');
+    await page.locator('.ls-card:not(.ls-endless)').first().click(); await page.locator('.ls-start').click();
+    await expect(page.locator('#intro')).toContainText('Welcome to Blocktave!');
+    await page.locator('#intro [data-act=go]').click();
+    expect(await page.evaluate(() => Arcade.store.gameData('blocktave').seen['rey-update'])).toBe(1);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); d.bossNow(6); });
+    await expect(page.locator('#intro')).toContainText('The Static King wakes up!');
+    await expect(page.locator('#intro')).toContainText('Ideas by Rey, a Raven Band student.');
+  });
+
+  /** THE FLASH RULE, measured (the Showtime TERROR test's way): frames drawn on the world's own clock, the screen (both
+      canvases) shrunk to a 16 × 9 grid, and no cell swinging bright/dark 3 times within a second */
+  const flashWorst = (page, what) => page.evaluate(what => {
+    const d = Arcade.Blocktave.demo, cv = document.getElementById('btCanvas'), ov = document.getElementById('btOver');
+    const g = document.createElement('canvas'); g.width = 16; g.height = 9; const gx = g.getContext('2d', {willReadFrequently: true});
+    const cells = () => { gx.clearRect(0, 0, 16, 9); gx.drawImage(cv, 0, 0, 16, 9); gx.drawImage(ov, 0, 0, 16, 9); const p = gx.getImageData(0, 0, 16, 9).data, out = [];
+      for (let i = 0; i < p.length; i += 4) out.push((.2126 * p[i] + .7152 * p[i + 1] + .0722 * p[i + 2]) / 255); return out; };
+    const dt = 1 / 30, frames = [], t0 = performance.now();
+    if (what === 'laser') d.bossAttack('laser'); else { d.charge(1); d.ability(0); }
+    for (let k = 0; k <= 75; k++) { d.frame(t0 + k * dt * 1000); frames.push([k * dt * 1000, cells()]); d.step(dt); }
+    let worst = 0;
+    for (let c = 0; c < frames[0][1].length; c++) {
+      let ext = frames[0][1][c], dir = 0; const sw = [];
+      for (const [t, cs] of frames) { const L = cs[c];
+        if (dir === 1 && L > ext) ext = L; if (dir === -1 && L < ext) ext = L;
+        if (dir !== 1 && L - ext >= .1) { sw.push(t); dir = 1; ext = L; } else if (dir !== -1 && ext - L >= .1) { sw.push(t); dir = -1; ext = L; } else if (dir === 0) ext = L; }
+      for (let i = 0; i + 2 < sw.length; i++) if (sw[i + 2] - sw[i] <= 1000) worst = Math.max(worst, 3);
+      worst = Math.max(worst, Math.min(2, sw.length));
+    }
+    return worst;
+  }, what);
+  test('the flash rule, measured: the laser and Lightning never swing a part of the screen 3 times in a second', async ({page, browserName}) => {
+    test.skip(browserName !== 'chromium', 'the frame-by-frame measurement runs in Chromium');
+    await enter(page, {mode: 'touch'});
+    await arena(page);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.know('lightning', 1, 0); d.hold(true); });   // (held: frames only move by d.step… d.frame)
+    await page.evaluate(() => Arcade.Blocktave.demo.hold(false));
+    expect(await flashWorst(page, 'laser'), 'the laser').toBeLessThanOrEqual(2);
+    expect(await flashWorst(page, 'lightning'), 'lightning').toBeLessThanOrEqual(2);
+  });
+
+  for (const [label, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['Chromebook', 1366, 768]]) {
+    test(`the boss's HP bar fits and never overlaps the HUD (${label})`, async ({page}) => {
+      await page.setViewportSize({width: w, height: h});
+      await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen: SEEN, cotTip: 1}}}});
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); d.amuletNow(); d.know('fire', 1, 0); d.know('water', 1, 1); d.charge(2); d.bossNow(6); });
+      await expect(page.locator('#bossBar')).toBeVisible();
+      const boxes = await page.evaluate(() => {
+        const r = el => { const b = el.getBoundingClientRect(); return {l: b.left, r: b.right, t: b.top, b: b.bottom, n: el.id || el.className}; };
+        const vis = el => el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden' && el.getBoundingClientRect().width > 0;
+        return {bar: r(document.getElementById('bossBar')),
+          other: [...document.querySelectorAll('#hearts, #powerPips, #clock, #zone, #modeBadge, #hudLeft button, #goals, #abilBar, #pad .bt-pbtn, #hotbar')].filter(vis).map(r), vw: innerWidth}; });
+      const hit = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+      expect(boxes.bar.l).toBeGreaterThanOrEqual(0); expect(boxes.bar.r).toBeLessThanOrEqual(boxes.vw);
+      for (const o of boxes.other) expect(hit(boxes.bar, o), `the boss bar and ${o.n}`).toBe(false);
     });
   }
 });
@@ -2511,7 +2770,7 @@ test.describe('Blocktave: the Neon Torch', () => {
   });
 
   test('its icon shows in the hotbar, the inventory, a tooltip and the Recipe Book', async ({page}) => {
-    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen: Object.assign({torch: 1}, {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1}), found: {'neon-torch': 1}}}}});
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen: Object.assign({torch: 1}, {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1, 'rey-update': 1}), found: {'neon-torch': 1}}}}});
     await page.evaluate(() => Arcade.Blocktave.demo.give('torch', 1));
     const hot = page.locator('.bt-hot[data-item="torch"] img');
     await expect(hot).toBeVisible();
