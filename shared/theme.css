@@ -185,6 +185,7 @@
   /* Blocktave's Chapter 6 ores and gear */
   --bt-rumble:#6a3cc8; --bt-rumble-2:#2a1650; --bt-treble:#c9f1ff; --bt-treble-2:#7fc8ff; --bt-geode:#8d8478; --bt-geode-2:#ff9ff0;
   --bt-key:#ffcf4a; --bt-key-2:#8a5a00; --bt-coral:#ff7aa8; --bt-coral-2:#ffd1e1; --bt-amber:#f29a2e; --bt-amber-2:#7a3e05;
+  --bt-zipper:#7cf7ff; --bt-zipper-2:#1b6f86; --bt-hp:#5dff9a; --bt-hp-bg:#18203a; --bt-dmg:#fff3a8;   /* the Rey Update: the Zipper, HP bars, calm damage */
   --bt-tramp:#f1e3c4; --bt-tramp-rim:#b9b9c8; --bt-sign:#f4f1e6; --bt-organ:#5a2f1a; --bt-organ-pipe:#e8c76a; --bt-coral-glow:#5fffe0;
   /* Blocktave's parallax backdrop (blocktave/backdrop.js): muted, darker than the world in front of it */
   --bt-marsh-far:#3d2c6b; --bt-marsh-far-2:#5a4590; --bt-marsh-mist:#c9b8ff; --bt-marsh-moon:#f1e9ff; --bt-marsh-water:#a8d8ff;

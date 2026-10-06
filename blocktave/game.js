@@ -888,6 +888,8 @@
     drawDrops(sx, sy, now);
     drawPoofs(sx, sy, now);
     G.creatures.forEach(c => drawBubble(c, sx(c.x), sy(c.y)));
+    G.creatures.forEach(c => drawHp(c, sx(c.x), sy(c.y), now));
+    drawDamage(sx, sy, now);
     drawReach(sx, sy, now);
     drawLabels(sx, sy, now);
     drawWay(sx, sy);
@@ -1010,7 +1012,7 @@
   }
   /* ================= THE POOF (a creature calmed): a soft puff of cloud in its colors and a few notes floating up;
      the creature shrinks into it. Never a flash, never bright white. Reduced motion: none (the creature just fades). */
-  const POOF_COL = {clam: ['bt-clam', 'bt-clam-2'], wisp: ['bt-wisp', 'bt-rhythm'], rusher: ['bt-rusher', 'bt-brass']};
+  const POOF_COL = {clam: ['bt-clam', 'bt-clam-2'], wisp: ['bt-wisp', 'bt-rhythm'], rusher: ['bt-rusher', 'bt-brass'], zipper: ['bt-zipper', 'bt-zipper-2']};
   function poof(c) {
     A.Sfx.event('bt-poof');
     if (RM.matches) return;
@@ -1928,7 +1930,11 @@
   function nightFalls() {
     G.w.nights++; G.died = false; G.cycleCount = {};
     A.Sfx.event('bt-night');
-    if (!seen('night')) firstCard('night', 'Night is falling!', 'Creatures come out in the dark: Night Clams, Sour Wisps and, later, Rushers. They\'re silly, not scary: calm them with your music! Stage Lamps keep them away, and nothing appears inside a closed room with a door.');
+    if (!cotNow() && !gd().cotTip) {                                     // once: a quiet tip (a toast, never in the way)
+      gd().cotTip = 1; saveGd();
+      A.UI.toast('Craft a Practice Cot: you\'ll wake up next to it and lose less if the night goes badly.', {ms: 4200});
+    }
+    if (!seen('night')) firstCard('night', 'Night is falling!', 'Creatures come out in the dark: Night Clams, Sour Wisps and, later, Zippers and Rushers. They\'re silly, not scary: calm them with your music! Stage Lamps keep them away, and nothing appears inside a closed room with a door.');
   }
   function dawn() {
     if (!G.died) {
@@ -1982,12 +1988,25 @@
   }
 
   /* ================= CREATURES (original and silly: never scary) ================= */
-  const KINDS = {clam: 'Night Clam', wisp: 'Sour Wisp', rusher: 'Rusher'};
+  const KINDS = {clam: 'Night Clam', wisp: 'Sour Wisp', rusher: 'Rusher', zipper: 'Zipper'};
   let cid = 0;
+  /* COMBAT (the Rey Update; rules.js combat): MUSIC DOES THE DAMAGE. Every correct musical action against a creature (a
+     right note played or tapped, a right count, each wispTickS of a steady in-tune hold or roll, a right key answer, every
+     right hit in a Rusher's rhythm) does dmgNow() calm damage, by your best tool (combat.damage: none 1, Wooden 2, Brass 3,
+     Silver 4, Golden Baton 5); at 0 HP the creature is CALMED (the poof, its drop). A wrong answer does nothing. */
+  const CB = () => R.combat;
+  const dmgNow = () => CB().damage[Math.max(0, Math.min(CB().damage.length - 1, tier()))];
+  /** THE SPAWN RAMP: perNight and atOnce grow with the night number (spawn.ramp), at most × cap */
+  const rampNow = () => { const n = Math.max(1, (G.w.nights || 0)), r = R.spawn.ramp; return Math.min(r.cap, 1 + r.per * (n - 1)); };
+  const capOf = (tbl, kind) => Math.round((tbl[kind] || 0) * rampNow());
+  /** a creature's own top speed (tiles a second), before the fairness check slows it */
+  const baseSpeed = kind => kind === 'clam' ? R.clam.hopX / R.clam.hopS : kind === 'wisp' ? R.wisp.speed : kind === 'rusher' ? R.rusher.speed : R.zipper.speedX * R.clam.hopX / R.clam.hopS;
+  /** the Practice Cot, if one is set and still there */
+  const cotNow = () => G.w.cot && BW.at(G.w, G.w.cot.x, G.w.cot.y) === ID.cot ? G.w.cot : null;
   function trySpawn() {
     const w = G.w, p = G.p, sky = skyLight();
     const surfaceDark = sky < R.light.dark;
-    const kinds = ['clam', 'wisp'].concat(w.nights >= R.spawn.rushersFrom ? ['rusher'] : []);
+    const kinds = ['clam', 'wisp'].concat(w.nights >= R.spawn.rushersFrom ? ['rusher'] : [], w.nights >= R.spawn.zippersFrom ? ['zipper'] : []);
     for (let tries = 0; tries < 6; tries++) {
       const dx = (R.spawn.safe + Math.random() * (R.spawn.range - R.spawn.safe)) * (Math.random() < .5 ? -1 : 1);
       const x = Math.floor(p.x + dx); if (x < 1 || x >= w.w - 1) continue;
@@ -1997,17 +2016,19 @@
       if (!cave && !surfaceDark) continue;                                   // creatures only come out in the dark
       const kind = cave ? (Math.random() < R.spawn.cave.clam ? 'clam' : 'wisp') : kinds[Math.floor(Math.random() * kinds.length)];
       const cc = G.cycleCount;
-      if ((cc[kind] || 0) >= R.spawn.perNight[kind]) continue;
-      if (G.creatures.filter(c => c.kind === kind && c.state === 'live').length >= R.spawn.atOnce[kind]) continue;
+      if ((cc[kind] || 0) >= capOf(R.spawn.perNight, kind)) continue;
+      if (G.creatures.filter(c => c.kind === kind && c.state === 'live').length >= capOf(R.spawn.atOnce, kind)) continue;
       if (!canSpawnAt(x, y, kind)) continue;
       spawn(kind, x + .5, kind === 'wisp' ? y + .5 : y + 1);
       return true;
     }
     return false;
   }
-  /** nowhere lit, nowhere solid, never inside a closed room with a door (and a clam or a rusher stands on something) */
+  /** nowhere lit, nowhere solid, never inside a closed room with a door, never near the Practice Cot (spawn.cotSafe, even
+      in the dark), and a clam, a rusher or a zipper stands on something */
   function canSpawnAt(x, y, kind) {
-    const w = G.w, v = BW.at(w, x, y);
+    const w = G.w, v = BW.at(w, x, y), cot = cotNow();
+    if (cot && Math.hypot(x + .5 - (cot.x + .5), y + .5 - (cot.y + .5)) < R.spawn.cotSafe) return false;
     if (B[v].solid || v === ID.water || B[BW.at(w, x, y - 1)].solid) return false;
     if (kind !== 'wisp' && !B[BW.at(w, x, y + 1)].solid) return false;
     if (BW.light(w, x, y, skyLight(), G.lamps, R) >= R.light.dark) return false;
@@ -2015,14 +2036,19 @@
     if (rm && rm.doors.length) return false;
     return true;
   }
+  const snareN = () => R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1));
   function spawn(kind, x, y) {
     const c = {id: ++cid, kind, x, y, vx: 0, vy: 0, t: 0, state: 'live', hopT: Math.random(), drainT: 0, alpha: 1, ground: false};
-    if (snare) c.n = R.snareCount[0] + Math.floor(Math.random() * (R.snareCount[1] - R.snareCount[0] + 1));
-    if (kind === 'clam') { const set = notesAt(Math.floor(x), Math.floor(y), 1); c.item = set.items[0]; c.set = set; }
-    // THE FAIRNESS CHECK: slowed until its challenge fits the time it needs to reach you
-    const need = kind === 'rusher' ? rusherNeed() : R.fair.cardS[kind];
-    const dist = Math.max(1, Math.hypot(x - G.p.x, y - G.p.y)), base = kind === 'clam' ? R.clam.hopX / R.clam.hopS : kind === 'wisp' ? R.wisp.speed : R.rusher.speed;
+    c.hp = c.max = CB().hp[kind];
+    if (snare) c.n = kind === 'zipper' ? 1 : snareN();
+    if (kind === 'clam' || kind === 'zipper') { const set = notesAt(Math.floor(x), Math.floor(y), CB().pool); c.item = set.items[0]; c.set = set; c.pcs = [...new Set(set.items.map(i => i.pc))]; }
+    // THE FAIRNESS CHECK, with HP: calming takes ceil(HP ÷ your damage) correct actions of about combat.actionS each (a
+    // Rusher: one rhythm card as it charges); the creature is slowed until that time × fair.margin fits the time it needs
+    // to reach you, so a student with no mallet still has time
+    const need = kind === 'rusher' ? rusherNeed() : Math.ceil(c.max / dmgNow()) * CB().actionS[kind];
+    const dist = Math.max(1, Math.hypot(x - G.p.x, y - G.p.y)), base = baseSpeed(kind);
     const fromDist = kind === 'rusher' ? R.rusher.alert : dist;
+    c.need = need; c.base = base;
     c.mul = Math.min(1, fromDist / base / (need * R.fair.margin));
     G.creatures.push(c);
     G.cycleCount[kind] = (G.cycleCount[kind] || 0) + 1;
@@ -2069,13 +2095,57 @@
         moveBody(c, dt, .4, .9, true);
         if (c.ground && c.vx && collides(c.x + Math.sign(c.vx) * .5, c.y, .4, .9)) c.vy = -R.player.jump * .8;
         if (touches(c)) { hurt(1, c); c.cool = R.rusher.cooldownS; }
+      } else if (c.kind === 'zipper') {                                  // THE ZIPPER: runs (3× a clam), hops ledges
+        c.vy = Math.min(R.player.maxFall, c.vy + R.player.gravity * dt);
+        c.flee = Math.max(0, (c.flee || 0) - dt);
+        const sp = c.base * m;
+        c.vx = c.flee ? -Math.sign(dx || 1) * sp : d < R.zipper.see ? Math.sign(dx) * sp : (RM.matches ? 0 : Math.sin(c.t * 2) * .8);
+        moveBody(c, dt, .3, .6, true);
+        if (c.ground && c.vx && collides(c.x + Math.sign(c.vx) * .4, c.y, .3, .6)) c.vy = -R.zipper.jump;
+        if (!c.flee && touches(c)) { hurt(.5, c); c.flee = R.zipper.fleeS; }   // ½ a heart, then it zips away
       }
+      breakOut(c, d, dt);
       if (!seen('c-' + c.kind) && d < 14 && !G.held && !Card.current) creatureIntro(c.kind);
     }
     G.creatures = G.creatures.filter(c => c.state === 'live' || c.alpha > 0);
     passiveListen(dt);
   }
   const touches = c => Math.abs(c.x - G.p.x) < .7 && c.y > G.p.y - PH - .2 && c.y - .8 < G.p.y;
+  /* BREAKING OUT (combat.breakAfterS / breakEveryS / soft): a creature BOXED IN (its tile inside a small enclosed space
+     with no door: BW.room) that hasn't got any closer to you for breakAfterS breaks ONE soft wall block next to it (the one
+     nearest you) every breakEveryS: a soft crunch, its item dropped as usual. Never a door, glass, brick, rock, ore,
+     station, lamp, cot or Composer Block, never a wall of a closed room with a door (a shelter stays safe), and never a
+     creature that's out in the open: it escapes a box, it never digs toward you through the world. */
+  const SOFT = () => new Set(CB().soft.map(k => ID[k]));
+  function shelterWall(x, y) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (B[BW.at(G.w, x + dx, y + dy)].solid) continue;
+      const rm = BW.room(G.w, x + dx, y + dy, R); if (rm && rm.doors.length) return true;
+    }
+    return false;
+  }
+  function breakOut(c, d, dt) {
+    if (c.state !== 'live') return;
+    if (c.bestD == null || d < c.bestD - .05) { c.bestD = d; c.stuckT = 0; return; }
+    if (d > (c.kind === 'wisp' ? R.wisp.see : R.clam.see) || c.flee || c.cool) { c.stuckT = 0; c.bestD = d; return; }
+    c.stuckT = (c.stuckT || 0) + dt; c.breakT = Math.max(0, (c.breakT || 0) - dt);
+    if (c.stuckT < CB().breakAfterS || c.breakT > 0) return;
+    c.breakT = CB().breakEveryS;
+    const tx = Math.floor(c.x), ty = Math.floor(c.kind === 'wisp' ? c.y : c.y - .5), rm = BW.room(G.w, tx, ty, R);
+    if (!rm || rm.doors.length) return;                                  // out in the open, or a shelter: nothing to break
+    const soft = SOFT(), walls = new Set(rm.walls.map(([x, y]) => x + ',' + y));
+    const near = [[1, 0], [-1, 0], [0, -1], [0, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [tx + dx, ty + dy])
+      .filter(([x, y]) => walls.has(x + ',' + y) && soft.has(BW.at(G.w, x, y)) && !shelterWall(x, y))
+      .sort((a, b) => Math.hypot(a[0] - G.p.x, a[1] - G.p.y) - Math.hypot(b[0] - G.p.x, b[1] - G.p.y));
+    if (!near.length) return;
+    const [bx, by] = near[0], b = B[BW.at(G.w, bx, by)];
+    BW.put(G.w, bx, by, ID.air);
+    if (b.drop) dropItem(b.drop, 1, bx + .5, by + .5);                    // nothing is lost
+    chips(bx + .5, by + .5, col(CHIP[b.key] || 'bt-dirt-2'));
+    A.Sfx.event('bt-break');
+    G.fx.breaks = (G.fx.breaks || 0) + 1;
+    c.stuckT = 0; c.bestD = null;
+  }
   function hurt(n, c, drain) {
     const p = G.p;
     if (!drain && p.hurtT > 0) return;
@@ -2091,10 +2161,9 @@
     const p = G.p;
     if (G.endless) return survivalOver();
     G.died = true;
-    const bag = {x: p.x, y: p.y - .6, items: {}};
-    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use' || it.kind === 'gear') return; const n = Math.floor(p.inv[k] * R.dropShare); if (n > 0) { bag.items[k] = n; take(k, n); } });
+    const bag = {x: p.x, y: p.y - .6, items: {}}, cot = cotNow(), share = cot ? R.dropShareCot : R.dropShare;   // a cot set: you lose less
+    Object.keys(p.inv).forEach(k => { const it = ITEMS[k]; if (!it || it.kind === 'tool' || it.kind === 'use' || it.kind === 'gear') return; const n = Math.floor(p.inv[k] * share); if (n > 0) { bag.items[k] = n; take(k, n); } });
     if (Object.keys(bag.items).length) G.w.bags.push(bag);
-    const cot = G.w.cot && BW.at(G.w, G.w.cot.x, G.w.cot.y) === ID.cot ? G.w.cot : null;
     p.x = cot ? cot.x + .5 : G.w.spawn.x + .5; p.y = cot ? cot.y + 1 : G.w.spawn.y + 1; p.vx = p.vy = 0;
     p.hearts = maxHearts(); p.hurtT = R.player.hurtCooldownS;
     G.creatures.forEach(c => { if (Math.hypot(c.x - p.x, c.y - p.y) < R.spawn.safe) c.state = 'gone'; });
@@ -2103,12 +2172,13 @@
     A.UI.toast(`Out of breath! You're back at your ${cot ? 'cot' : 'starting spot'}. Your bag is where you fell.`, {ms: 3600});
     drawHot(); drawHud(); saveWorld();
   }
-  /** INSTRUMENT mode, no card: a note that matches a nearby clam's bubble calms it; a steady in-tune note dispels a wisp */
+  /** INSTRUMENT mode, no card: a note that matches a nearby clam's bubble is one hit (then it shows a new note); any note
+      of a Zipper's pool is one hit; every combat.wispTickS of a steady in-tune note near a wisp is one hit */
   function heardNote(pc) {
     if (!G || mode !== 'inst' || snare || Card.current || G.held || pause.paused) return;
-    const c = G.creatures.filter(k => k.state === 'live' && k.kind === 'clam' && k.item && k.item.pc === pc && Math.hypot(k.x - G.p.x, k.y - G.p.y) <= R.clam.calm)
+    const c = G.creatures.filter(k => k.state === 'live' && ((k.kind === 'clam' && k.item && k.item.pc === pc) || (k.kind === 'zipper' && k.pcs && k.pcs.includes(pc))) && Math.hypot(k.x - G.p.x, k.y - G.p.y) <= R.clam.calm)
       .sort((a, b) => Math.hypot(a.x - G.p.x, a.y - G.p.y) - Math.hypot(b.x - G.p.x, b.y - G.p.y))[0];
-    if (c) calm(c);
+    if (c) hitCreature(c);
   }
   A.Pitch.onHeld(pc => heardNote(pc));
   A.Pitch.onFrame((r, level, now) => {
@@ -2116,23 +2186,55 @@
     const near = G.creatures.find(k => k.state === 'live' && k.kind === 'wisp' && Math.hypot(k.x - G.p.x, k.y - G.p.y) <= R.wisp.listen);
     if (!near || !r) { G.wispHold = 0; return; }
     const cents = (r.midi - Math.round(r.midi)) * 100;
-    if (Math.abs(cents) <= R.wisp.cents) { G.wispHold += 40; if (G.wispHold >= R.wisp.holdS * 1000) { G.wispHold = 0; calm(near); } } else G.wispHold = 0;
+    if (Math.abs(cents) <= R.wisp.cents) { G.wispHold += 40; if (G.wispHold >= CB().wispTickS * 1000) { G.wispHold -= CB().wispTickS * 1000; hitCreature(near); } } else G.wispHold = 0;
   });
   function passiveListen() { /* (the onHeld / onFrame listeners above do the work while listenSync keeps the mic on) */ }
+  /** a creature's card (tapped, or a Rusher charging). Each right answer is one hit; while the creature isn't calmed yet
+      the next card opens straight away with a NEW note / question (a wrong one ends it). A Rusher's card: every right hit
+      in its rhythm is one hit; it charges again with a new card if it isn't calmed. */
   function creatureCard(c) {
-    if (Card.current || G.held) return;
+    if (Card.current || G.held || c.state !== 'live') return;
     const at = () => ({x: (c.x - camX) * S, y: (c.y - .5 - camY) * S});
     let sp;
-    if (c.kind === 'clam') sp = drum() ? {kind: 'count', n: c.n, sub: 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
-    else if (c.kind === 'wisp') sp = spec('sustain', Math.floor(c.x), Math.floor(c.y));
-    else sp = {kind: 'rhythm', time: '2/4', text: pick(R.rusher.cells || ['q q', 'e e q', 'q e e', 'h']), sub: 'Match the rhythm before it arrives!'};
-    openCard(sp, at, KINDS[c.kind], r => { if (!G) return; if (r.ok && c.state === 'live') { G.wrong = 0; calm(c); } else if (!r.ok) G.wrong++; });
+    if (c.kind === 'clam' || c.kind === 'zipper') sp = drum() ? {kind: 'count', n: c.n, sub: c.n === 1 ? 'One hit' : 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
+    else if (c.kind === 'wisp') { sp = spec('sustain', Math.floor(c.x), Math.floor(c.y)); if (sp.kind === 'sustain' || sp.kind === 'roll') sp.secs = CB().wispTickS; }
+    else sp = {kind: 'rhythm', time: '2/4', text: pick(R.rusher.cells || ['q q', 'e e q', 'q e e', 'h']), sub: mode === 'inst' ? 'Match the rhythm before it arrives!' : 'Tap the rhythm before it arrives!'};
+    G.cardFor = c;
+    const done = r => {
+      if (G && G.cardFor === c) G.cardFor = null;
+      if (!G) return;
+      if (c.kind === 'rusher') { if (r.ok) G.wrong = 0; else G.wrong++; if ((r.hits || 0) > 0) hitCreature(c, r.hits); return; }
+      if (!r.ok) { G.wrong++; return; }
+      G.wrong = 0;
+      if (hitCreature(c) && c.state === 'live')                          // not calmed yet: the next card, a new note / question
+        setTimeout(() => { if (G && c.state === 'live' && !Card.current && !G.held && Math.hypot(c.x - G.p.x, c.y - G.p.y) < R.spawn.range) creatureCard(c); }, 150);
+    };
+    openCard(sp, at, KINDS[c.kind], done);
+  }
+  /** ONE CORRECT ACTION against a creature: dmgNow() × n calm damage, a "−3" floating up, the HP bar; at 0 HP it's
+      calmed; otherwise a clam / zipper shows a new note (and the snare a new count). Returns true if it hit. */
+  function hitCreature(c, n = 1) {
+    if (!G || !c || c.state !== 'live' || !(n > 0)) return false;
+    const d = dmgNow() * n, now = performance.now();
+    c.hp = Math.max(0, c.hp - d); c.hitAt = now;
+    const L = G.dmg || (G.dmg = []);
+    L.push({id: c.id, x: c.x, y: c.y - hpTop(c) - .45, t0: now, text: '−' + d});   // just over its HP bar (never on its bubble)
+    while (L.length > 8) L.shift();
+    G.fx.hits = (G.fx.hits || 0) + 1; G.fx.damage = (G.fx.damage || 0) + d;
+    G.fx.dmgLog = (G.fx.dmgLog || []).concat(d).slice(-20);             // (tests: each hit's damage)
+    if (c.hp <= 0) { calm(c); return true; }
+    if (c.kind === 'clam' && c.set) {                                    // a NEW note from the same pool (more practice)
+      const pool = c.set.items.filter(i => i.pc !== c.item.pc);
+      if (pool.length) c.item = pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (snare && c.kind !== 'zipper') c.n = snareN();
+    return true;
   }
   function calm(c) {
     if (c.state !== 'live') return;
-    c.state = 'calm'; c.calmAt = performance.now();
+    c.state = 'calm'; c.calmAt = performance.now(); c.hp = 0;
     // its item drops into the world where it was (INSTRUMENT mode: more of them, slightly spread)
-    const drop = {clam: 'pearl', wisp: 'dust', rusher: 'spring'}[c.kind];
+    const drop = {clam: 'pearl', wisp: 'dust', rusher: 'spring', zipper: 'zipthread'}[c.kind];
     dropItem(drop, mode === 'inst' ? R.instrumentBonus : 1, c.x, c.kind === 'wisp' ? c.y : c.y - .4);
     poof(c);
     G.calmed++;
@@ -2141,11 +2243,12 @@
       if (c.kind === 'wisp') { stats().wisps++; saveGd(); if (stats().wisps >= R.goals.wisps) award('wisps'); }
       drawGoals();
     }
-    A.UI.toast({clam: 'The Night Clam is calm! It left a Pearl.', wisp: 'The Sour Wisp is in tune now! It left Pitch Dust.', rusher: 'The Rusher found the beat! It left a Valve Spring.'}[c.kind], {ms: 1800});
+    A.UI.toast({clam: 'The Night Clam is calm! It left a Pearl.', wisp: 'The Sour Wisp is in tune now! It left Pitch Dust.', rusher: 'The Rusher found the beat! It left a Valve Spring.', zipper: 'The Zipper settled down! It left Zip Thread.'}[c.kind], {ms: 1800});
   }
   function creatureIntro(kind) {
     const T = {clam: ['A Night Clam!', drum() ? 'Night Clams hop toward you. Tap one and play the number of hits in its bubble to calm it.' : mode === 'inst' ? 'Night Clams hop toward you with a note in their bubble. Play that note to calm them (or tap one for its card)!' : 'Night Clams hop toward you with a note in their bubble. Tap one and tap its note name to calm it!'],
       wisp: ['A Sour Wisp!', drum() ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
+      zipper: ['A Zipper!', drum() ? 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam but calm right down: tap one and play ONE hit.' : mode === 'inst' ? 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam, but ONE right note calms them: play any note from your notes near one (or tap it for its card).' : 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam, but ONE right answer calms them: tap one and tap its note name.'],
       rusher: ['A Rusher!', mode === 'inst' ? 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!' : 'Rushers are fast little metronome gremlins. When one charges, tap its 2-beat rhythm before it arrives!']}[kind];
     firstCard('c-' + kind, T[0], T[1]);
   }
@@ -2177,6 +2280,15 @@
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s * .7, 0, 7); ctx.fill();
       ctx.fillStyle = col('bt-ink'); ctx.beginPath(); ctx.arc(x - s * .12 + wob, y - s * .05, s * .05, 0, 7); ctx.arc(x + s * .14 - wob, y - s * .08, s * .05, 0, 7); ctx.fill();
       ctx.strokeStyle = col('bt-ink'); ctx.lineWidth = s * .04; ctx.beginPath(); ctx.moveTo(x - s * .12, y + s * .12); ctx.quadraticCurveTo(x, y + (c.state === 'calm' ? .22 : .04) * s, x + s * .12, y + s * .12); ctx.stroke();
+    } else if (c.kind === 'zipper') {                                   // a tiny eighth note with legs: a round head-body, a stem, a flag
+      s *= 1.25;
+      const step = RM.matches ? 0 : Math.sin(c.t * 18) * s * .06, f = c.vx < 0 ? -1 : 1;
+      ctx.strokeStyle = col('bt-zipper-2'); ctx.lineWidth = s * .05; ctx.beginPath();
+      ctx.moveTo(x - s * .1, y - s * .14); ctx.lineTo(x - s * .16 + step, y); ctx.moveTo(x + s * .1, y - s * .14); ctx.lineTo(x + s * .16 - step, y); ctx.stroke();
+      ctx.fillStyle = col('bt-zipper'); ctx.beginPath(); ctx.ellipse(x, y - s * .22, s * .2, s * .14, -.35, 0, 7); ctx.fill();
+      ctx.strokeStyle = col('bt-zipper'); ctx.lineWidth = s * .06; ctx.beginPath(); ctx.moveTo(x + f * s * .17, y - s * .26); ctx.lineTo(x + f * s * .17, y - s * .7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + f * s * .17, y - s * .7); ctx.quadraticCurveTo(x + f * s * .42, y - s * .58, x + f * s * .34, y - s * .4); ctx.stroke();
+      ctx.fillStyle = col('bt-ink'); [-.07, .07].forEach(k => { ctx.beginPath(); ctx.arc(x + (k + f * .04) * s, y - s * .24, s * .035, 0, 7); ctx.fill(); });
     } else {
       const sw = RM.matches ? 0 : Math.sin(c.t * 9) * .5;
       ctx.fillStyle = col('bt-rusher'); ctx.beginPath(); ctx.moveTo(x - s * .35, y); ctx.lineTo(x - s * .15, y - s * .85); ctx.lineTo(x + s * .15, y - s * .85); ctx.lineTo(x + s * .35, y); ctx.fill();
@@ -2185,17 +2297,44 @@
     }
     ctx.globalAlpha = 1;
   }
+  /** THE HP BAR over a creature's head: only once it's been hit (for combat.barMs) or while its card is open */
+  /** how high (tiles over its feet) a creature's HP bar sits: over its bubble (a Rusher has none) */
+  const hpTop = c => c.kind === 'rusher' ? 1.1 : (c.kind === 'wisp' ? 2.3 : !drum() ? 3 : 2.4) + .35;
+  const hpShown = (c, now) => c.state === 'live' && ((G.cardFor === c && !!Card.current) || now - (c.hitAt || -1e9) < CB().barMs);
+  function drawHp(c, x, y, now) {
+    if (!hpShown(c, now)) return;
+    const top = hpTop(c);
+    const w = S * 1.1, h = Math.max(4, S * .12), bx = Math.round(x - w / 2), by = Math.round(y - S * top);
+    oc.fillStyle = col('bt-ink'); oc.fillRect(bx - 2, by - 2, w + 4, h + 4);
+    oc.fillStyle = col('bt-hp-bg'); oc.fillRect(bx, by, w, h);
+    oc.fillStyle = col('bt-hp'); oc.fillRect(bx, by, Math.round(w * c.hp / c.max), h);
+    G.fx.bars = (G.fx.bars || 0) + 1;
+  }
+  /** "−3": the calm damage floating up from a creature (like the pickup labels; reduced motion: only the fade, no flashing) */
+  function drawDamage(sx, sy, now) {
+    const L = G.dmg; if (!L || !L.length) return;
+    G.dmg = L.filter(l => now - l.t0 < CB().numberMs);
+    const fs = Math.round(Math.max(15, Math.min(22, S * .6)));
+    oc.font = `800 ${fs}px ${getComputedStyle(document.body).fontFamily}`; oc.textBaseline = 'middle'; oc.textAlign = 'center'; oc.lineJoin = 'round';
+    G.dmg.forEach(l => {
+      const f = (now - l.t0) / CB().numberMs, y = sy(l.y) - (RM.matches ? 0 : f * S * .9), x = sx(l.x);
+      oc.globalAlpha = f < .6 ? 1 : Math.max(0, 1 - (f - .6) / .4);
+      oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(l.text, x, y);
+      oc.fillStyle = col('bt-dmg'); oc.fillText(l.text, x, y);
+    });
+    oc.globalAlpha = 1;
+  }
   /** the note bubble over a clam (a tiny staff), a count for the snare, "tap me" / "hold a note" for wisps */
   function drawBubble(c, x, y) {
     if (c.state !== 'live' || c.kind === 'rusher') return;
-    const s = S, big = c.kind === 'clam' && !drum(), bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
+    const s = S, noteKind = c.kind === 'clam' || c.kind === 'zipper', big = noteKind && !drum(), bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
     oc.fillStyle = col('bt-bubble'); oc.strokeStyle = col('bt-ink'); oc.lineWidth = 1.5;
     oc.beginPath(); oc.roundRect ? oc.roundRect(bx, by, bw, bh, s * .3) : oc.rect(bx, by, bw, bh); oc.fill(); oc.stroke();
     oc.beginPath(); oc.moveTo(x - s * .15, by + bh); oc.lineTo(x, by + bh + s * .25); oc.lineTo(x + s * .15, by + bh); oc.fill();
     oc.fillStyle = col('bt-ink'); oc.textAlign = 'center'; oc.textBaseline = 'middle';
     if (c.kind === 'wisp' || drum()) {
       oc.font = `700 ${Math.round(s * .38)}px ${getComputedStyle(document.body).fontFamily}`;
-      oc.fillText(drum() && c.kind === 'clam' ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
+      oc.fillText(drum() && noteKind ? `× ${c.n}` : mode === 'inst' && !snare ? 'Hold a note!' : 'Tap me!', x, by + bh / 2);
       return;
     }
     // a one-note staff: lines 16 units apart in the ui.js staff (y 56–120), scaled into the bubble
@@ -2219,7 +2358,7 @@
   /* ================= THE MICROPHONE: listening only when something needs it ================= */
   function listenSync(forCard) {
     if (!G) return;
-    const near = mode === 'inst' && !snare && G.creatures.some(c => c.state === 'live' && c.kind !== 'rusher' && Math.hypot(c.x - G.p.x, c.y - G.p.y) <= Math.max(R.clam.listen, R.wisp.listen));
+    const near = mode === 'inst' && !snare && G.creatures.some(c => c.state === 'live' && c.kind !== 'rusher' && Math.hypot(c.x - G.p.x, c.y - G.p.y) <= Math.max(R.clam.listen, R.wisp.listen, R.zipper.listen));
     const want = mode === 'inst' && !pause.paused && !G.held && (forCard || !!Card.current || near);
     if (want === G.listen) return;
     G.listen = want;
@@ -2479,7 +2618,8 @@
     state: () => ({screen: G ? 'world' : 'hub', mode, snare, chapter: G && G.ch, endless: !!(G && G.endless),
       player: G && {x: G.p.x, y: G.p.y, hearts: G.p.hearts, tier: tier(), ground: G.p.ground}, inv: G && Object.assign({}, G.p.inv), hot: G && G.p.hot.slice(),
       time: G && G.w.time, night: G && isNight(), nights: G && G.w.nights, survived: G && G.w.survived, listening: A.Pitch.listening(),
-      creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul})) : [],
+      creatures: G ? G.creatures.map(c => ({id: c.id, kind: c.kind, x: c.x, y: c.y, state: c.state, pc: c.item && c.item.pc, sounding: c.item && c.item.sounding, n: c.n, mul: c.mul, hp: c.hp, max: c.max, need: c.need, bar: hpShown(c, performance.now()), flee: c.flee || 0, pcs: c.pcs})) : [],
+      damage: G ? dmgNow() : 0, dmgLabels: G ? (G.dmg || []).map(l => l.text) : [], ramp: G ? rampNow() : 0, cotTip: !!gd().cotTip,
       card: Card.current && Card.current.state(), panel: G && G.panel, build: G && G.build, seed: G && G.w.seed, bags: G ? G.w.bags.length : 0, cot: G && G.w.cot,
       held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
       drops: G ? (G.w.drops || []).map(d => ({x: d.x, y: d.y, item: d.item, n: d.n, t: d.t || 0, pull: !!d.pull, falling: !!d.vy})) : [],
@@ -2506,6 +2646,9 @@
       give: (id, n = 1) => { gain(id, n); return G.p.inv[id]; },
       drop: (id, n, x, y) => dropItem(id, n, x, y),
       calm: id => { const c = G.creatures.find(k => k.id === id); if (c) calm(c); return !!c; },
+      hit: (id, n = 1) => { const c = G.creatures.find(k => k.id === id); return !!c && hitCreature(c, n); },
+      nightFalls: () => nightFalls(),
+      caps: kind => ({perNight: capOf(R.spawn.perNight, kind), atOnce: capOf(R.spawn.atOnce, kind)}),
       canHold: id => canHold(id),
       fromBook: id => fromBook(RECIPES.find(r => r.id === id)),
       addToSlot: id => addToSlot(id),

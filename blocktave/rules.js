@@ -203,24 +203,56 @@ window.BT_RULES = {
     everyS: 3.5,              // a spawn is tried this often while it's dark somewhere near
     safe: 10,                 // never within this many tiles of the player
     range: 26,                // … and never farther than this
-    perNight: {clam: 8, wisp: 4, rusher: 3},   // the most of each kind that can appear in one night
-    atOnce: {clam: 4, wisp: 2, rusher: 2},     // the most of each kind at once
+    perNight: {clam: 8, wisp: 4, rusher: 3, zipper: 4},   // the most of each kind that can appear in one night (night 1) …
+    atOnce: {clam: 4, wisp: 2, rusher: 2, zipper: 2},     // … and the most of each kind at once (night 1)
+    // THE SPAWN RAMP (the Rey Update): both numbers above grow with the night number: × (1 + per × (night − 1)), at most
+    // × cap (about 2× by night 7). Survival Nights uses its own night count.
+    ramp: {per: .15, cap: 2},
     rushersFrom: 3,           // Rushers come out from the 3rd night on
+    zippersFrom: 2,           // Zippers come out from the 2nd night on
+    cotSafe: 12,              // nothing ever appears this close to your Practice Cot (even in the dark)
     cave: {clam: .6, wisp: .4},                // in unlit caves (any time), the share of spawns of each kind
     despawnFar: 44,           // a creature this far away disappears
   },
   clam: {hopS: 1.3, hopX: 1.6, hopY: 7, see: 16, listen: 9, calm: 10},
-  wisp: {speed: 1.1, see: 18, drain: 3, listen: 9, holdS: 2, cents: 30},
+  // THE ZIPPER (the Rey Update): a tiny, zippy note-bug. speedX = how many times a Night Clam's speed it runs; its touch
+  // takes ½ a heart, then it zips away for fleeS seconds
+  // THE ZIPPER (the Rey Update): speedX × a Night Clam's top speed (hopX ÷ hopS) before the fairness check, notices you
+  // within `see`, the mic listens within `listen`, after its touch (½ a heart) it runs away for fleeS, jump = its hop speed
+  zipper: {speedX: 3, see: 16, listen: 9, fleeS: 1.6, jump: 9},
+  wisp: {speed: 1.1, see: 18, drain: 3, listen: 9, holdS: 2, cents: 30},   // (holdS: before HP; a hold now hits every combat.wispTickS)
   wispDrainS: 4,              // a Sour Wisp this close drains ½ heart every this many seconds
   rusher: {speed: 6.5, alert: 12, beats: 2, cooldownS: 5},
   /* THE FAIRNESS CHECK: a creature's challenge must fit the time it needs to reach you. A creature is slowed until
      (its challenge's seconds) × margin fit in (its distance ÷ its speed). */
+  // (cardS: the challenge seconds before creatures had HP; kept for reference, the check now uses combat.actionS × hits)
   fair: {margin: 1.4, cardS: {clam: 4, wisp: 5, rusher: 0}},
+  /* ---------- COMBAT: MUSIC DOES THE DAMAGE (the Rey Update: Rey's numbers are the starting values) ----------
+     Creatures are still CALMED, never killed: every correct musical action (a right note, a right answer, a right hit,
+     each second of a steady in-tune hold) does CALM DAMAGE against the creature's HP; at 0 it's calmed (the poof, its
+     drop). A wrong answer does nothing. */
+  combat: {
+    hp: {clam: 10, wisp: 15, rusher: 12, zipper: 1},   // each creature's HP (Rey: "10 or more"; the Zipper: 1)
+    damage: [1, 2, 3, 4, 5],  // calm damage per correct action, by your best tool: none, Wooden / Brass / Silver Mallet, Golden Baton
+    wispTickS: 1,             // a Sour Wisp: each this-many seconds of steady in-tune holding (a roll on the snare) is one hit
+    // THE FAIRNESS CHECK with HP: a creature needs ceil(HP ÷ damage) correct actions to calm, each taking about this many
+    // seconds; it's slowed until that time × fair.margin fits the time it needs to reach you
+    actionS: {clam: 2, wisp: 1, zipper: 2.5},
+    numberMs: 900,            // a "−3" floats up from a creature this long (no drift with reduced motion)
+    barMs: 4000,              // its HP bar shows this long after a hit (and while its card is open)
+    // BREAKING OUT: a creature that can't get any closer to you for breakAfterS may break ONE soft block next to it every
+    // breakEveryS (never doors, glass, bricks, rock, ores, stations, lamps, cots, Composer Blocks, or any wall of a
+    // closed room with a door: shelters stay safe). The block drops its item as usual.
+    breakAfterS: 3, breakEveryS: 2,
+    soft: ['dirt', 'moss', 'sand', 'leaves', 'planks'],   // the SOFT blocks it may break (block keys; Glow Moss is dirt)
+    pool: 8,                  // a Night Clam / Zipper carries this many notes of its zone; each hit shows a NEW one of them
+  },
   metronomeSlow: .8,          // creatures within a placed Metronome's radius move this fast
   metronomeRadius: 8,
   tunerRadius: 6,             // Sour Wisps can't enter a placed Tuner's radius
   /* ---------- LOSING ALL HEARTS (gentle: never a lost world) ---------- */
-  dropShare: .25,             // this share of each carried material goes in a floating bag where you fell (tools stay)
+  dropShare: .25,             // this share of each carried material goes in a floating bag where you fell (tools stay) …
+  dropShareCot: .10,          // … only this share when you have a Practice Cot set (the Rey Update)
   /* ---------- BUILDING ---------- */
   benchRange: 6,              // advanced recipes need a Luthier's Bench this close
   cotSafe: 10,                // sleeping on a Practice Cot needs no creature this close

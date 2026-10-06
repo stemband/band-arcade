@@ -11,7 +11,7 @@ const {prepare, device} = require('./helpers');
    of 4). The 2 cave-music and 2 count-off tests failed in all of the last 10 WebKit runs (October 2026), and the
    INSTRUMENT count-off's clicks come out empty there; these 5 run in Chromium. */
 const NO_AUDIO_CLOCK = 'WebKit on a CI machine: the audio clock doesn\'t keep time (no sound card); Chromium checks this';
-const SEEN = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1};
+const SEEN = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, 'c-zipper': 1, composer: 1, 'file-note': 1};
 /** the device: an instrument, Blocktave's mode, every first-time card already seen */
 const store = (member, mode, extra = {}) => device(member, Object.assign({gameData: {blocktave: {mode, seen: SEEN}}}, extra));
 
@@ -377,12 +377,13 @@ test.describe('Blocktave: creatures', () => {
     expect(n.lit, 'none in a lamp\'s light').toBe(0);
   });
 
-  test('INSTRUMENT: playing a Night Clam\'s note calms it (a Pearl, 2×)', async ({page}) => {
+  test('INSTRUMENT: playing a Night Clam\'s notes calms it (a Pearl, 2×)', async ({page}) => {
     await enter(page, {mode: 'inst'});
-    await page.evaluate(() => { Arcade.Blocktave.demo.time(window.BT_RULES.dayS + 30); Arcade.Blocktave.demo.spawn('clam', 4); });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('baton', 1); d.time(window.BT_RULES.dayS + 30); d.spawn('clam', 4); });
     await expect.poll(() => page.evaluate(() => Arcade.Pitch.listening()), {message: 'a creature near: the microphone listens'}).toBe(true);
-    await page.evaluate(() => { Arcade.Pitch.demoNote = Arcade.Blocktave.state().creatures[0].sounding; });
-    await expect.poll(() => page.evaluate(() => (Arcade.Blocktave.state().creatures[0] || {state: 'gone'}).state), {timeout: 8000}).not.toBe('live');
+    // the Golden Baton: 5 a hit, so 2 right notes (each hit shows a new note: play that one next)
+    await expect.poll(() => page.evaluate(() => { const c = Arcade.Blocktave.state().creatures[0]; if (!c || c.state !== 'live') { Arcade.Pitch.demoNote = null; return 'calm'; }
+      Arcade.Pitch.demoNote = c.sounding; return c.hp; }), {timeout: 12000}).toBe('calm');
     await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
     // the Pearls drop into the world where it was (2: INSTRUMENT mode) and come to you once you're close
     const drops = (await st(page)).drops.filter(d => d.item === 'pearl');
@@ -416,26 +417,333 @@ test.describe('Blocktave: creatures', () => {
     expect(r.reach, 'seconds to reach you from where it charges ≥ its challenge × the margin').toBeGreaterThanOrEqual(r.need - 1e-6);
   });
 
-  test('losing all hearts: back at the Practice Cot, 25 % of the materials in a bag, tools kept', async ({page}) => {
+  test('losing all hearts: back at the Practice Cot, only 10 % of the materials in a bag (a cot set), tools kept', async ({page}) => {
     const watch = await enter(page, {mode: 'touch'});
     const cot = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, s = B.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
       d.put(x, y, 'air'); d.put(x, y + 1, 'dirt'); d.place(x, y, 'cot'); d.act(x, y, true); return {x, y}; });
     expect((await st(page)).cot).toEqual(cot);
-    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('dirt', 8); d.give('reed', 4); d.give('mallet1', 1); d.tp(Math.floor(Arcade.Blocktave.state().player.x) + 20, 20); });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('dirt', 30); d.give('reed', 20); d.give('mallet1', 1); d.tp(Math.floor(Arcade.Blocktave.state().player.x) + 20, 20); });
     await settleFor(page, 400);
     await page.evaluate(() => { for (let k = 0; k < 5; k++) Arcade.Blocktave.demo.hurt(1); });
     const s = await st(page);
     expect([Math.floor(s.player.x), Math.round(s.player.y)]).toEqual([cot.x, cot.y + 1]);
     expect(s.player.hearts).toBe(5);
-    expect([s.inv.dirt, s.inv.reed, s.inv.mallet1]).toEqual([6, 3, 1]);
+    expect([s.inv.dirt, s.inv.reed, s.inv.mallet1]).toEqual([27, 18, 1]);
     expect(s.bags).toBe(1);
     const bag = await page.evaluate(() => Arcade.Blocktave.world().bags[0]);
-    expect(bag.items).toEqual({dirt: 2, reed: 1});
+    expect(bag.items).toEqual({dirt: 3, reed: 2});
     // walking into it picks it up
     await page.evaluate(b => Arcade.Blocktave.demo.tp(Math.floor(b.x), Math.floor(b.y)), bag);
     await expect.poll(async () => (await st(page)).bags).toBe(0);
-    expect((await st(page)).inv.dirt).toBe(8);
+    expect((await st(page)).inv.dirt).toBe(30);
     watch.check();
+  });
+});
+
+/* ================= COMBAT (the Rey Update): HP, music damage, the Zipper, the spawn ramp, breaking out, the cot ================= */
+test.describe('Blocktave: COMBAT (HP and music damage)', () => {
+  const TOOLS = [null, 'mallet1', 'mallet2', 'mallet3', 'baton'];
+  /** night, a tool (or none), a creature 6 tiles away; its id */
+  const night = (page, kind, tool, dx = 6) => page.evaluate(({kind, tool, dx}) => { const d = Arcade.Blocktave.demo; if (tool) d.give(tool, 1); d.time(window.BT_RULES.dayS + 30); return d.spawn(kind, dx); }, {kind, tool, dx});
+  const creature = (page, id) => page.evaluate(i => Arcade.Blocktave.state().creatures.find(c => c.id === i) || null, id);
+
+  for (const [t, tool] of TOOLS.entries()) {
+    test(`TOUCH, ${tool || 'no tool'}: a Night Clam needs ceil(10 ÷ ${t + 1}) right answers, a NEW note each time`, async ({page}) => {
+      await enter(page, {mode: 'touch'});
+      const id = await night(page, 'clam', tool);
+      const R = await page.evaluate(() => window.BT_RULES.combat);
+      expect(await page.evaluate(() => Arcade.Blocktave.state().damage)).toBe(R.damage[t]);
+      const need = Math.ceil(R.hp.clam / R.damage[t]), pcs = [];
+      for (let k = 0; k < need; k++) {
+        const c = await creature(page, id);
+        expect(c.state, `answer ${k + 1}`).toBe('live');
+        expect(c.hp).toBe(Math.max(0, R.hp.clam - k * R.damage[t]));
+        pcs.push(c.pc);
+        if (!(await cardOpen(page))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+        const t0 = await page.evaluate(() => { const c = Arcade.BlocktaveCard.current; Arcade.Blocktave.demo.answer(); return c.state().t0; });
+        await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0);
+      }
+      expect((await creature(page, id) || {state: 'gone'}).state, `calmed after exactly ${need}`).not.toBe('live');
+      for (let k = 1; k < pcs.length; k++) expect(pcs[k], 'each hit shows a new note').not.toBe(pcs[k - 1]);
+    });
+  }
+
+  test('a wrong answer does no damage and ends the chain; a right one chains the next card (TOUCH)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const id = await night(page, 'clam', 'mallet1');
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    await page.keyboard.press(await wrongLetter(page));
+    await waitCardGone(page);
+    await page.waitForTimeout(400);
+    expect(await cardOpen(page), 'a wrong answer: no next card').toBe(false);
+    expect((await creature(page, id)).hp).toBe(10);
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer());
+    await expect.poll(async () => (await creature(page, id)).hp).toBe(8);
+    await expect.poll(() => cardOpen(page), {message: 'a right answer: the next card'}).toBe(true);
+  });
+
+  test('INSTRUMENT: a wrong note does nothing; the right one is a hit and shows a new note', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    const id = await night(page, 'clam', 'mallet2', 4);
+    const c = await creature(page, id);
+    await page.evaluate(pc => Arcade.Blocktave.demo.heard((pc + 1) % 12), c.pc);
+    expect((await creature(page, id)).hp).toBe(10);
+    await page.evaluate(pc => Arcade.Blocktave.demo.heard(pc), c.pc);
+    const c2 = await creature(page, id);
+    expect(c2.hp).toBe(7);
+    expect(c2.pc).not.toBe(c.pc);
+  });
+
+  test('snare INSTRUMENT: each right count is a hit (a new count each time)', async ({page}) => {
+    await enter(page, {member: 'snare', mode: 'inst'});
+    const id = await night(page, 'clam', 'mallet3');
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('count');
+    expect(await calmByCards(page, id)).toBe(3);                          // 10 HP, 4 a hit
+  });
+
+  test('Sour Wisp, INSTRUMENT: each second of a steady in-tune note is one hit', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y);
+      for (let dx = 1; dx <= 5; dx++) for (let dy = -3; dy <= -1; dy++) d.put(x + dx, y + dy, 'air'); });
+    const id = await night(page, 'wisp', 'baton', 3);
+    await expect.poll(() => page.evaluate(() => Arcade.Pitch.listening())).toBe(true);
+    await page.evaluate(() => { Arcade.Pitch.demoNote = 72; });
+    await expect.poll(async () => (await creature(page, id) || {state: 'gone'}).state, {timeout: 15000}).not.toBe('live');
+    await page.evaluate(() => { Arcade.Pitch.demoNote = null; });
+    const fx = (await st(page)).fx;
+    expect([fx.hits, fx.damage], 'three hits of 5: 15 → 10 → 5 → calm').toEqual([3, 15]);
+  });
+
+  test('Sour Wisp, TOUCH: each right key answer is one hit, then a new question', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const id = await night(page, 'wisp', 'baton');
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('key');
+    expect(await calmByCards(page, id)).toBe(3);                          // 15 HP, 5 a hit
+  });
+
+  test('Sour Wisp, snare: each 1 s roll card is one hit', async ({page}) => {
+    await enter(page, {member: 'snare', mode: 'inst'});
+    const id = await night(page, 'wisp', 'baton');
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('roll');
+    expect(await calmByCards(page, id)).toBe(3);
+  });
+
+  for (const [member, mode] of [['trumpet', 'touch'], ['trumpet', 'inst'], ['snare', 'inst']]) {
+    test(`Rusher, ${member} ${mode}: every right hit in its rhythm is one hit`, async ({page}) => {
+      await enter(page, {member, mode});
+      const id = await night(page, 'rusher', 'mallet1', 9);
+      await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+      expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('rhythm');
+      // every right hit in a card is one hit (2 a hit: the Wooden Mallet): 2, 4 or 6 a card (its 1 to 3 notes)
+      expect(await calmByCards(page, id), 'calmed in a few cards').toBeLessThanOrEqual(8);
+      const fx = (await st(page)).fx;
+      expect(fx.damage).toBeGreaterThanOrEqual(12);
+      for (const d of fx.dmgLog) expect([2, 4, 6]).toContain(d);
+    });
+  }
+
+  test('the HP bar shows once hit (and while its card is open); "−5" floats up; calmed at 0: the poof, its drop, counted once', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const id = await night(page, 'clam', 'baton');
+    expect((await creature(page, id)).bar, 'no bar before a hit').toBe(false);
+    await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    expect((await creature(page, id)).bar, 'a bar while its card is open').toBe(true);
+    await page.evaluate(() => Arcade.BlocktaveCard.close());
+    await page.evaluate(i => Arcade.Blocktave.demo.hit(i), id);
+    const s = await st(page);
+    expect(s.creatures.find(c => c.id === id)).toMatchObject({hp: 5, bar: true});
+    expect(s.fx.dmgLog).toEqual([5]);
+    expect(s.dmgLabels.length ? s.dmgLabels : ['−5'], 'its "−5" (unless it has already faded on a slow machine)').toEqual(['−5']);
+    await expect.poll(async () => (await creature(page, id)).bar, {message: 'gone barMs after the hit', timeout: 10_000}).toBe(false);
+    const before = await page.evaluate(() => Arcade.Blocktave.demo.stats().clams || 0);
+    await page.evaluate(i => { Arcade.Blocktave.demo.hit(i); Arcade.Blocktave.demo.hit(i); Arcade.Blocktave.demo.calm(i); }, id);
+    expect((await creature(page, id) || {state: 'gone'}).state).not.toBe('live');
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.stats().clams)).toBe(before + 1);
+    expect((await st(page)).drops.filter(d => d.item === 'pearl').reduce((a, d) => a + d.n, 0)).toBe(1);
+  });
+
+  test('THE FAIRNESS CHECK with HP: with no mallet, a Night Clam is slow enough for 10 right notes (and a Wisp for 15 seconds)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => { const d = Arcade.Blocktave.demo, R = window.BT_RULES; d.time(R.dayS + 30);
+      return [8, 14, 22].flatMap(dx => ['clam', 'wisp', 'zipper'].map(kind => { const id = d.spawn(kind, dx), c = Arcade.Blocktave.state().creatures.find(k => k.id === id), p = Arcade.Blocktave.state().player;
+        const base = kind === 'clam' ? R.clam.hopX / R.clam.hopS : kind === 'wisp' ? R.wisp.speed : R.zipper.speedX * R.clam.hopX / R.clam.hopS;
+        return {kind, dx, need: c.need, reach: Math.hypot(c.x - p.x, c.y - p.y) / (base * c.mul), margin: R.fair.margin}; })); });
+    for (const q of r) {
+      expect(q.need, `${q.kind}: HP ÷ 1 × its action time`).toBe({clam: 10 * 2, wisp: 15 * 1, zipper: 1 * 2.5}[q.kind]);
+      expect(q.reach, `${q.kind} from ${q.dx}: seconds to reach you ≥ the time to calm it × the margin`).toBeGreaterThanOrEqual(q.need * q.margin - 1e-6);
+    }
+  });
+
+  test('a stronger tool lets creatures move faster (less to do), never faster than their own speed', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const m = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30);
+      const a = d.spawn('clam', 10); d.give('baton', 1); const b = d.spawn('clam', 10); const cs = Arcade.Blocktave.state().creatures;
+      return [cs.find(c => c.id === a).mul, cs.find(c => c.id === b).mul]; });
+    expect(m[1]).toBeGreaterThan(m[0]);
+    expect(m[1]).toBeLessThanOrEqual(1);
+  });
+});
+
+test.describe('Blocktave: THE ZIPPER', () => {
+  const night = (page, kind, tool, dx = 6) => page.evaluate(({kind, tool, dx}) => { const d = Arcade.Blocktave.demo; if (tool) d.give(tool, 1); d.time(window.BT_RULES.dayS + 30); return d.spawn(kind, dx); }, {kind, tool, dx});
+  const creature = (page, id) => page.evaluate(i => Arcade.Blocktave.state().creatures.find(c => c.id === i) || null, id);
+
+  test('its first-time card; 1 HP; 3× a clam\'s speed; one right answer calms it and it drops Zip Thread', async ({page}) => {
+    const seen = Object.assign({}, SEEN); delete seen['c-zipper'];
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen}}}});
+    const id = await night(page, 'zipper', null, 8);
+    await page.evaluate(() => Arcade.Blocktave.demo.step(.2));
+    await expect(page.locator('#intro')).toContainText('A Zipper!');
+    await page.locator('#intro [data-act=go]').click();
+    const R = await page.evaluate(() => window.BT_RULES);
+    expect(R.zipper.speedX).toBe(3);
+    const c = await creature(page, id);
+    expect([c.hp, c.max]).toEqual([1, 1]);
+    // its run: about 3× a clam's top speed × the fairness check (measured on the test clock, on open ground)
+    const v = await page.evaluate(i => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), p = s.player, x = Math.floor(p.x), y = Math.floor(p.y);
+      for (let dx = -12; dx <= 12; dx++) { d.put(x + dx, y, 'slate'); for (let dy = 1; dy <= 3; dy++) d.put(x + dx, y - dy, 'air'); }
+      const c0 = s.creatures.find(c => c.id === i); d.step(.3); const a = Arcade.Blocktave.state().creatures.find(c => c.id === i); return {dx: Math.abs(a.x - c0.x), mul: a.mul}; }, id);
+    expect(v.dx / .3).toBeGreaterThan(R.zipper.speedX * R.clam.hopX / R.clam.hopS * v.mul * .6);
+    expect(await calmByCards(page, id)).toBe(1);
+    expect((await st(page)).drops.filter(d => d.item === 'zipthread').length).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.BT_ITEMS.zipthread.name)).toBe('Zip Thread');
+  });
+
+  test('INSTRUMENT: any note of its pool calms it; snare: a 1-hit count', async ({page}) => {
+    await enter(page, {mode: 'inst'});
+    const id = await night(page, 'zipper', null, 4);
+    const c = await creature(page, id);
+    expect(c.pcs.length).toBeGreaterThan(1);
+    await page.evaluate(pc => Arcade.Blocktave.demo.heard(pc), c.pcs[c.pcs.length - 1]);
+    expect((await creature(page, id) || {state: 'gone'}).state).not.toBe('live');
+  });
+
+  test('snare INSTRUMENT: its card is ONE hit', async ({page}) => {
+    await enter(page, {member: 'snare', mode: 'inst'});
+    const [id, kind] = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); const i = d.spawn('zipper', 6); d.creatureCard(i); return [i, Arcade.BlocktaveCard.current.state().kind]; });
+    expect(kind).toBe('count');
+    expect((await creature(page, id)).n).toBe(1);
+    expect(await calmByCards(page, id)).toBe(1);
+  });
+
+  test('its touch costs ½ a heart, then it zips away', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const id = await night(page, 'zipper', null, .3);
+    const r = await page.evaluate(i => { const d = Arcade.Blocktave.demo; d.step(.1); const s = Arcade.Blocktave.state(); return {hearts: s.player.hearts, flee: s.creatures.find(c => c.id === i).flee}; }, id);
+    expect(r.hearts).toBe(4.5);
+    expect(r.flee).toBeGreaterThan(0);
+  });
+});
+
+test.describe('Blocktave: smarter nights (the spawn ramp, breaking out, the cot)', () => {
+  test('THE SPAWN RAMP: +15 % a night, at most 2×; Zippers from night 2, Rushers from night 3', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), out = {};
+      for (const n of [1, 2, 3, 7, 12]) { w.nights = n; out[n] = {ramp: B.state().ramp, clam: d.caps('clam'), zipper: d.caps('zipper')}; }
+      return out; });
+    const R = await page.evaluate(() => window.BT_RULES.spawn);
+    expect(r[1].ramp).toBe(1);
+    expect(r[2].ramp).toBeCloseTo(1.15);
+    expect(r[3].ramp).toBeCloseTo(1.3);
+    expect(r[7].ramp).toBeCloseTo(1.9);
+    expect(r[12].ramp).toBe(2);
+    expect(r[1].clam).toEqual({perNight: R.perNight.clam, atOnce: R.atOnce.clam});
+    expect(r[12].clam).toEqual({perNight: R.perNight.clam * 2, atOnce: R.atOnce.clam * 2});
+    expect(R.zippersFrom).toBe(2);
+    // real spawning: none on night 1, some on night 2
+    const kinds = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), R = window.BT_RULES, out = {};
+      for (const n of [1, 2]) { w.nights = n; d.time(R.dayS + 30); B.state(); for (let k = 0; k < 400; k++) d.spawnCheck(); out[n] = B.state().creatures.map(c => c.kind); }
+      return out; });
+    expect(kinds[1]).not.toContain('zipper');
+    expect(kinds[1]).not.toContain('rusher');
+    expect(kinds[2]).toContain('zipper');
+  });
+
+  /** a closed box of `wall` blocks, 1 wide × 2 high, its floor at (x, y + 1); returns its tiles */
+  const box = (page, dx, wall = 'dirt') => page.evaluate(({dx, wall}) => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) + dx, y = Math.floor(s.player.y) - 1;
+    for (let xx = x - 1; xx <= x + 1; xx++) for (let yy = y - 2; yy <= y + 1; yy++) d.put(xx, yy, 'slate');
+    for (let yy = y - 2; yy <= y + 1; yy++) { d.put(x - 1, yy, wall); d.put(x + 1, yy, wall); }
+    d.put(x, y - 2, wall); d.put(x, y + 1, 'slate'); d.put(x, y, 'air'); d.put(x, y - 1, 'air');
+    return {x, y}; }, {dx, wall});
+
+  test('BREAKING OUT: a boxed-in creature breaks ONE soft wall block every 2 s after 3 s stuck; the block drops', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const b = await box(page, -5);
+    const r = await page.evaluate(({x, y}) => { const B = Arcade.Blocktave, d = B.demo, R = window.BT_RULES; d.time(R.dayS + 30);
+      const id = d.spawn('clam', x + .5 - B.state().player.x); const c = B.world && B.state().creatures.find(k => k.id === id);
+      const walls = () => [[x - 1, y], [x - 1, y - 1], [x + 1, y], [x + 1, y - 1], [x, y - 2]].filter(([a, b]) => d.at(a, b) === 'air').length;
+      // (it's stuck from its first hop against the wall, which comes within one hop time: clam.hopS)
+      d.step(2.5); const early = walls(); d.step(R.combat.breakAfterS + R.clam.hopS * 2); const one = walls(); d.step(3); const still = walls();
+      return {early, one, still, dirt: B.state().drops.filter(q => q.item === 'dirt').length, start: [c.x, c.y]}; }, b);
+    expect(r.early, 'not before breakAfterS').toBe(0);
+    expect(r.one, 'one block').toBe(1);
+    expect(r.still, 'out of its box: no more breaking').toBe(1);
+    expect(r.dirt, 'it dropped its block').toBeGreaterThan(0);
+  });
+
+  test('BREAKING OUT: never bricks (only soft blocks), never a shelter\'s wall, never out in the open', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const brick = await box(page, -5, 'brick');
+    const r = await page.evaluate(({x, y}) => { const B = Arcade.Blocktave, d = B.demo, R = window.BT_RULES; d.time(R.dayS + 30);
+      d.spawn('clam', x + .5 - B.state().player.x); d.step(10);
+      return {bricks: [[x - 1, y], [x - 1, y - 1], [x + 1, y], [x + 1, y - 1], [x, y - 2]].every(([a, b]) => d.at(a, b) === 'brick'), breaks: B.state().fx.breaks || 0}; }, brick);
+    expect(r).toEqual({bricks: true, breaks: 0});
+    // a pocket whose only soft wall is a shelter's wall (a closed room with a door): it stays
+    await page.evaluate(() => Arcade.Blocktave.demo.shelter());
+    const sh = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), x0 = Math.floor(w.spawn.x) - 1, y = Math.floor(w.spawn.y) + 1, px = x0 - 2;
+      // the pocket left of the shelter's left wall (x0 - 1): bricks all round, the shelter's dirt wall on its right
+      for (let yy = y - 3; yy <= y; yy++) { d.put(px - 1, yy, 'brick'); d.put(px, yy, 'brick'); }
+      d.put(px, y - 1, 'air'); d.put(px, y - 2, 'air');
+      d.put(x0 + 4, y - 1, 'dirt'); d.put(x0 + 4, y - 2, 'dirt');
+      return {px, y, wall: [[x0 - 1, y - 1], [x0 - 1, y - 2]]}; });
+    const r2 = await page.evaluate(({px, y, wall}) => { const B = Arcade.Blocktave, d = B.demo, R = window.BT_RULES; d.time(R.dayS + 30);
+      d.spawn('clam', px + .5 - B.state().player.x); d.step(10); return wall.map(([a, b]) => d.at(a, b)); }, sh);
+    expect(r2, 'the shelter wall stays').toEqual(['dirt', 'dirt']);
+    // out in the open, behind a dirt wall: never digs through the world toward you
+    const open = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, R = window.BT_RULES, s = B.state(), x = Math.floor(s.player.x) + 30, y = Math.floor(s.player.y) - 1;
+      d.tp(x, y); for (let yy = y - 1; yy <= y; yy++) d.put(x + 3, yy, 'dirt');
+      const n0 = B.state().fx.breaks || 0; d.time(R.dayS + 30); d.spawn('clam', 6); d.step(10); return (B.state().fx.breaks || 0) - n0; });
+    expect(open).toBe(0);
+  });
+
+  test('THE COT: no spawns within 12 tiles of a Practice Cot, even in the dark', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, R = window.BT_RULES, s = B.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+      d.time(R.dayS + 30);
+      const spots = []; for (let dx = -16; dx <= 16; dx++) for (let dy = -8; dy <= 3; dy++) if (d.canSpawnAt(x + dx, y + dy, 'clam')) spots.push([x + dx, y + dy]);
+      d.put(x, y, 'air'); d.put(x, y + 1, 'dirt'); d.place(x, y, 'cot'); d.act(x, y, true); d.time(R.dayS + 30);   // (setting it sleeps to morning: night again)
+      const near = spots.filter(([a, b]) => Math.hypot(a - x, b - y) < R.spawn.cotSafe - 1);
+      const far = spots.filter(([a, b]) => Math.hypot(a - x, b - y) > R.spawn.cotSafe + 1);
+      return {cot: B.state().cot, safe: R.spawn.cotSafe, near: near.filter(([a, b]) => d.canSpawnAt(a, b, 'clam')).length, nearAll: near.length,
+        far: far.filter(([a, b]) => d.canSpawnAt(a, b, 'clam')).length, farAll: far.length}; });
+    expect(r.cot).toBeTruthy();
+    expect(r.safe).toBe(12);
+    expect(r.nearAll, 'there were dark spots near it before').toBeGreaterThan(0);
+    expect(r.near, 'none now').toBe(0);
+    expect(r.far, 'farther away: unchanged').toBe(r.farAll);
+  });
+
+  test('THE COT: the dusk tip shows once (with no cot); losing all hearts with no cot still bags 25 %', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { window.__toasts = []; const t = Arcade.UI.toast; Arcade.UI.toast = (m, o) => { window.__toasts.push(String(m)); return t(m, o); }; });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.nightFalls(); d.nightFalls(); });
+    expect((await page.evaluate(() => window.__toasts)).filter(t => /Practice Cot/.test(t))).toEqual(['Craft a Practice Cot: you\'ll wake up next to it and lose less if the night goes badly.']);
+    expect((await st(page)).cotTip).toBe(true);
+    const inv = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(); d.give('dirt', 8 - (s.inv.dirt || 0)); d.give('reed', 4 - (s.inv.reed || 0)); for (let k = 0; k < 5; k++) d.hurt(1); return [Arcade.Blocktave.state().inv, Arcade.Blocktave.world().bags, Arcade.Blocktave.state().player]; });
+    expect(inv[1].map(b => b.items), JSON.stringify(inv)).toEqual([{dirt: 2, reed: 1}]);
+  });
+
+  test('an old save (from before HP and the Zipper) loads and plays', async ({page}) => {
+    const seen = {welcome: 1, mining: 1, night: 1, 'c-clam': 1, 'c-wisp': 1, 'c-rusher': 1, composer: 1, 'file-note': 1};
+    await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen, stats: {trumpet: {ore: 0, clams: 3, wisps: 1, mined: 40}}}}}});
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.stats().clams)).toBe(3);
+    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('baton', 1); d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 6); });
+    expect(await calmByCards(page, id)).toBe(2);
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.stats().clams)).toBe(4);
   });
 });
 
@@ -2098,6 +2406,17 @@ const track = (page, ms, setup) => page.evaluate(({ms, setup}) => {
   return {minY, y0, maxVy, y: s.player.y, x: s.player.x};
 }, {ms, setup});
 /** let the game run `ms` of game time at once (the test clock): a jump lands, a fall ends */
+/** COMBAT: answer a creature's cards (they chain: a new one after each right answer) until it's calmed; how many it took */
+async function calmByCards(page, id, max = 16) {
+  for (let k = 1; k <= max; k++) {
+    const live = await page.evaluate(i => (Arcade.Blocktave.state().creatures.find(c => c.id === i) || {}).state === 'live', id);
+    if (!live) return k - 1;
+    if (!(await page.evaluate(() => !!Arcade.BlocktaveCard.current))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
+    const t0 = await page.evaluate(() => { const c = Arcade.BlocktaveCard.current; Arcade.Blocktave.demo.answer(); return c ? c.state().t0 : null; });
+    await page.waitForFunction(t => { const c = Arcade.BlocktaveCard.current; return !c || c.state().t0 !== t; }, t0);   // judged and closed (or the next one open)
+  }
+  return max + 1;
+}
 const settleFor = (page, ms) => page.evaluate(ms => Arcade.Blocktave.demo.step(ms / 1000), ms);
 /** run the game's test clock a tenth of a second at a time until cond() (run in the page) is true (at most 20 s of
     real time: things that end on a real timer, a card closing, still get there) */
@@ -2665,8 +2984,7 @@ test.describe('Blocktave: TOUCH mode is the same for every member (the snare rea
       if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
       if (!(await cardOpen(page))) await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
       seenCards.push([kind, await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind), await cardText(page)]);
-      await answer(page);
-      expect(await page.evaluate(i => Arcade.Blocktave.state().creatures.find(c => c.id === i).state, id), `${kind} calmed`).not.toBe('live');
+      expect(await calmByCards(page, id), `${kind} calmed`).toBeLessThanOrEqual(12);
     }
     await page.evaluate(() => Arcade.Blocktave.demo.time(30));
     // every recipe performance (note, notes3, beats, longtone, scale), at a bench
@@ -2718,12 +3036,12 @@ test.describe('Blocktave: TOUCH mode is the same for every member (the snare rea
       expect(NO_WORDS.test(await cardText(page))).toBe(false);
       await answer(page);
     }
-    const id = await page.evaluate(() => Arcade.Blocktave.demo.spawn('clam', 7));
+    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 7); });
     await page.waitForTimeout(150);
     if (await page.locator('#intro').isVisible()) await page.locator('#intro [data-act=go]').click();
     await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
     expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('notes');
-    await answer(page);
+    expect(await calmByCards(page, id)).toBe(2);                         // the Golden Baton: 5 a hit, a clam has 10
     expect(await page.evaluate(() => window.__mic)).toEqual([]);
   });
 
@@ -2732,7 +3050,7 @@ test.describe('Blocktave: TOUCH mode is the same for every member (the snare rea
       for (const k of ['tone', 'note', 'notes3', 'scale', 'sustain', 'longtone', 'rhythm', 'rest', 'beats']) o[k] = d.spec(k, x, y, 3).kind; return o; });
     await enter(page, {member: 'snare', mode: 'inst'});
     expect(await kinds()).toEqual({tone: 'count', note: 'count', notes3: 'count', scale: 'rhythm', sustain: 'roll', longtone: 'roll', rhythm: 'rhythm', rest: 'rest', beats: 'rhythm'});
-    const id = await page.evaluate(() => Arcade.Blocktave.demo.spawn('clam', 7));
+    const id = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); return d.spawn('clam', 7); });
     await page.evaluate(i => Arcade.Blocktave.demo.creatureCard(i), id);
     expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('count');
     await page.evaluate(() => Arcade.BlocktaveCard.close());
