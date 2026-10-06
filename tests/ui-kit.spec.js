@@ -2,7 +2,7 @@
    game shares. Opened and closed with the mouse and the keyboard (focus inside, Tab stays inside, Esc, arrows), and
    the settings remembered on the device and shared by every game. Ghost Notes is the page (any game would do). */
 const {test, expect} = require('@playwright/test');
-const {prepare, device, saved} = require('./helpers');
+const {prepare, device, saved, windowFits} = require('./helpers');
 
 async function startLevel(page) {
   await page.locator('.ls-card:not(.ls-endless)').first().click();
@@ -167,4 +167,18 @@ test.describe('ui kit', () => {
     await expect(page.locator('.ui-toast')).toHaveCount(0, {timeout: 5000});
     watch.check();
   });
+});
+
+test('windowFits measures a window at rest: the results stars caught mid-pop never read as "text runs out of its box"', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await prepare(page, {store: device('trumpet')});
+  await page.goto('ghost-notes/index.html?demo&nostart');
+  await page.waitForFunction(() => !!(window.Arcade && Arcade.UI && Arcade.UI.results));
+  await page.evaluate(() => Arcade.UI.results.show({stars: 3, title: 'Great!', msg: 'Nice', tiles: [['Score', '100']], retry: {onClick() {}}, levels: {onClick() {}}}));
+  await page.waitForFunction(() => document.querySelector('#results').getAnimations({subtree: true}).length === 3);
+  // each star 50 ms into its pop (small and tilted: the moment that used to fail on a busy runner), frozen there
+  for (const t of [50, 400, 750]) {
+    await page.evaluate(t => document.querySelector('#results').getAnimations({subtree: true}).forEach(a => { a.pause(); a.currentTime = t; }), t);
+    expect(await windowFits(page, '#results'), `${t} ms in`).toEqual([]);
+  }
 });
