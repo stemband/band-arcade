@@ -67,6 +67,8 @@ window.BT_ITEMS = {
   organ:         {name: 'Pipe Organ', kind: 'block', block: 'organ', desc: 'A grand pipe organ, 2 blocks wide and 3 tall. Tap it in BUILD mode for a chord. It counts as the Band Hall\'s Music Stand.'},
   accelboots:    {name: 'Accelerando Boots', kind: 'gear', desc: 'Speedy boots. Keep them in your hotbar and you walk faster.'},
   corallamp:     {name: 'Coral Lamp', kind: 'block', block: 'corallamp', desc: 'A soft teal lamp that works even under water. Nothing spooky appears in its light.'},
+  // --- the Rey Update (APPEND ONLY) ---
+  zipthread:     {name: 'Zip Thread', kind: 'material', desc: 'A shiny, super-quick thread left by a calmed Zipper. Light and strong.', found: 'Zippers you calm at night (from the 2nd night on)'},
 };
 
 /* THE RECIPES: a recipe is a MEASURE of up to 4 ingredients IN ORDER (like notes in a bar: the same ingredients in

@@ -113,7 +113,7 @@ window.Arcade = window.Arcade || {};
     if (A.Pitch && A.DEMO) { A.Pitch.demoNote = null; A.Pitch.demoLevel = null; }
     c.el.classList.add(ok ? 'good' : 'bad');
     if (why) c.say.textContent = why;
-    c.tm = setTimeout(() => { if (C === c) { C = null; c.el.remove(); document.body.classList.remove('bt-card-sheet'); } c.o.onDone && c.o.onDone({ok, why}); }, ok ? 380 : R().wrongShowMs);
+    c.tm = setTimeout(() => { if (C === c) { C = null; c.el.remove(); document.body.classList.remove('bt-card-sheet'); } c.o.onDone && c.o.onDone({ok, why, hits: c.hits}); }, ok ? 380 : R().wrongShowMs);
   }
   const loop = (c, fn) => { const tick = now => { if (C !== c || c.done) return; if (!c.paused) fn(now); c.raf = requestAnimationFrame(tick); }; c.raf = requestAnimationFrame(tick); };
 
@@ -286,7 +286,7 @@ window.Arcade = window.Arcade || {};
       const o = c.o, it = o.items[0], need = o.secs * 1000, tol = o.cents || R().sustainCents;
       c.body.innerHTML = `<div class="bt-staff">${A.staffSVG(o.clef, [{n: it.show, x: 190, caption: o.hint ? it.label : ''}], {fit: o.fit || [it.show], keySig: o.sig, width: 300, captions: !!o.hint})}</div>` +
         `<div class="bt-hold"><i></i></div><p class="bt-cents">–</p>`;
-      c.say.textContent = `Hold this note steady and in tune for ${o.secs} seconds.`;
+      c.say.textContent = `Hold this note steady and in tune for ${o.secs} second${o.secs === 1 ? '' : 's'}.`;
       const bar = c.body.querySelector('.bt-hold i'), ce = c.body.querySelector('.bt-cents');
       let got = 0, last = 0, lastGood = 0;
       c.want = () => it;
@@ -383,6 +383,7 @@ window.Arcade = window.Arcade || {};
         const base = t0(), attacks = hits.map(h => ({rel: h - base})).filter(a => a.rel >= -RR.lateMs / 1000 - .05);
         const res = A.RhythmJudge.match(targets, attacks, RR);
         const ok = res.tg.filter(t => ['perfect', 'good', 'ok'].includes(t.res)).length;
+        c.hits = ok;                                                         // (the right hits: a Rusher's calm damage counts them)
         const pass = ok / Math.max(1, res.tg.length) >= RR.pass - 1e-9 && !res.extras.length;
         c.res = res;
         const early = res.tg.filter(t => t.res === 'early').length, late = res.tg.filter(t => t.res === 'late').length, miss = res.tg.filter(t => t.res === 'miss').length;
@@ -415,7 +416,7 @@ window.Arcade = window.Arcade || {};
       const o = c.o, secs = o.secs || R().rollS, rate = o.rate || R().rollRate, maxCv = R().rollMaxCv;
       c.body.innerHTML = `<div class="bt-hold"><i></i></div><p class="bt-cents">Start rolling!</p>`;
       const shown = +(+secs).toFixed(1);                                        // (the Baton's 3 × 0.7 = 2.1, never 2.0999999999999996)
-      c.say.textContent = o.mode === 'inst' ? `An even roll for ${shown} seconds: steady hits, at least ${rate} a second.` : `Tap an even roll for ${shown} seconds: steady taps, at least ${rate} a second.`;
+      c.say.textContent = o.mode === 'inst' ? `An even roll for ${shown} second${shown === 1 ? '' : 's'}: steady hits, at least ${rate} a second.` : `Tap an even roll for ${shown} second${shown === 1 ? '' : 's'}: steady taps, at least ${rate} a second.`;
       const bar = c.body.querySelector('.bt-hold i'), ce = c.body.querySelector('.bt-cents');
       let hits = [];
       const hit = t => { if (c.done || c.paused) return; hits.push(t); };
