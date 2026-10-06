@@ -747,6 +747,197 @@ test.describe('Blocktave: smarter nights (the spawn ramp, breaking out, the cot)
   });
 });
 
+/* ================= ARMOR AND SHIELDS (the Rey Update 2/4) ================= */
+test.describe('Blocktave: ARMOR AND SHIELDS (with durability)', () => {
+  /** n defend() rolls of a `hit`-heart hit with a seeded random: the share blocked, the mean hearts lost, every value seen */
+  const rolls = (page, {wear = [], hit = 1, drain = false, n = 2000, seed = 7} = {}) => page.evaluate(({wear, hit, drain, n, seed}) => {
+    const d = Arcade.Blocktave.demo, R = window.BT_RULES.defense;
+    wear.forEach(id => { d.wear(id); });
+    d.seedRandom(seed);
+    let blocked = 0, sum = 0, red = null, raw = null; const vals = new Set();
+    for (let k = 0; k < n; k++) {
+      ['armor', 'shield'].forEach(sl => { const w = Arcade.Blocktave.state().wear[sl]; if (!w) { const id = wear.find(i => (R[sl] || {})[i]); if (id) d.wear(id); } });   // (worn-out ones put back on)
+      const r = d.defend(hit, drain); if (r.blocked) blocked++; else { red = r.red; raw = r.raw; } sum += r.n; vals.add(r.n);
+    }
+    d.seedRandom(null);
+    return {blocked: blocked / n, mean: sum / n, red, raw, vals: [...vals].sort()}; }, {wear, hit, drain, n, seed});
+
+  test('armor: each tier\'s damage reduction (25 / 50 / 60 %); fair rounding keeps the average exact', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    for (const [id, red] of [['feltvest', .25], ['brasscoat', .5], ['silverarmor', .6]]) {
+      const r = await rolls(page, {wear: [id]});
+      expect(r.blocked, `${id}: armor never blocks`).toBe(0);
+      expect(r.red).toBeCloseTo(red);
+      expect(r.raw).toBeCloseTo(1 - red);
+      expect(r.mean, `${id}: on average exactly the reduced damage`).toBeCloseTo(1 - red, 1);
+      for (const v of r.vals) expect(v * 2 % 1, `${id}: whole half hearts only`).toBe(0);
+    }
+  });
+
+  test('shields: each tier\'s block chance (20 / 50 / 70 %) and reduction (10 / 15 / 20 %)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    for (const [id, block, red] of [['drumshield', .2, .1], ['bellshield', .5, .15], ['cymbalshield', .7, .2]]) {
+      const r = await rolls(page, {wear: [id]});
+      expect(Math.abs(r.blocked - block), `${id}: blocks about ${block * 100} %`).toBeLessThan(.04);
+      expect(r.red).toBeCloseTo(red);
+      expect(r.mean, `${id}: the average`).toBeCloseTo((1 - block) * (1 - red), 1);
+    }
+  });
+
+  test('stacking: the reductions multiply (60 % + 20 % = 68 %), capped at maxReduction', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await rolls(page, {wear: ['silverarmor', 'cymbalshield'], n: 400});
+    expect(r.red).toBeCloseTo(.68);
+    expect(r.raw).toBeCloseTo(.32);
+    const capped = await page.evaluate(() => { window.BT_RULES.defense.maxReduction = .6; const d = Arcade.Blocktave.demo; d.seedRandom(99); let x; do { x = d.defend(1); } while (x.blocked); return x.red; });
+    expect(capped, 'never more than maxReduction').toBeCloseTo(.6);
+  });
+
+  test('half hearts: whole halves stay exact; ¼ heart is ½ heart half the time; no gear = the whole hit', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const none = await rolls(page, {n: 200});
+    expect(none.vals).toEqual([1]);
+    const half = await rolls(page, {wear: ['brasscoat'], hit: 1, n: 200});     // 1 × 50 % = exactly ½: never random
+    expect(half.vals).toEqual([.5]);
+    const quarter = await rolls(page, {wear: ['brasscoat'], hit: .5, n: 4000});  // ½ × 50 % = ¼ heart
+    expect(quarter.vals).toEqual([0, .5]);
+    expect(Math.abs(quarter.mean - .25)).toBeLessThan(.02);
+  });
+
+  test('a real hit: a block costs no heart (a clank, one pulse); a reduced hit costs half hearts', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo; d.wear('cymbalshield'); d.seedRandom(3);
+      const out = []; for (let k = 0; k < 12; k++) { const h0 = B.state().player.hearts; if (h0 <= 1) break; d.hurt(1); const s = B.state(); out.push({lost: h0 - s.player.hearts, blocked: s.lastHit.blocked}); }
+      return {out, blocks: B.state().fx.blocks || 0}; });
+    expect(r.out.some(o => o.blocked)).toBe(true);
+    for (const o of r.out) expect(o.lost, JSON.stringify(o)).toBe(o.blocked ? 0 : Math.round(o.lost * 2) / 2);
+    expect(r.blocks).toBe(r.out.filter(o => o.blocked).length);
+  });
+
+  test('a Sour Wisp\'s drain: armor reduces it, a shield never blocks it (and doesn\'t wear)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await rolls(page, {wear: ['brasscoat', 'cymbalshield'], hit: .5, drain: true, n: 400});
+    expect(r.blocked).toBe(0);
+    expect(r.red, 'the armor only').toBeCloseTo(.5);
+    const w = (await st(page)).wear;
+    expect(w.shield.left, 'the shield untouched').toBe(w.shield.max);
+    // the real drain: hearts go down by half hearts
+    const h = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo; d.seedRandom(5); const h0 = B.state().player.hearts; for (let k = 0; k < 6; k++) d.hurt(.5, true); return [h0, B.state().player.hearts]; });
+    expect(h[1]).toBeLessThan(h[0]);
+    expect(h[1] * 2 % 1).toBe(0);
+  });
+
+  test('durability: each hit uses one; at 0 it wears out (a toast) and is gone; repair at a bench = full again', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { window.__toasts = []; const t = Arcade.UI.toast; Arcade.UI.toast = (m, o) => { window.__toasts.push(String(m)); return t(m, o); }; });
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, max = window.BT_RULES.defense.armor.feltvest.durability; d.wear('feltvest');
+      const a = B.state().wear.armor.left; d.defend(1); const b = B.state().wear.armor.left;
+      for (let k = 1; k < max; k++) d.defend(1); return {max, a, b, after: B.state().wear.armor, inv: B.state().inv.feltvest || 0}; });
+    expect([r.a, r.b]).toEqual([r.max, r.max - 1]);
+    expect(r.after, 'worn out').toBeNull();
+    expect(r.inv, 'and gone').toBe(0);
+    expect(await page.evaluate(() => window.__toasts)).toContain('Your Felt Vest wore out!');
+    // repair: not away from a bench; at a bench with a Felt: a short card, then full
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.wear('feltvest'); for (let k = 0; k < 5; k++) d.defend(1); });
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.repair('armor')), 'no bench').toBe(false);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) - 1, y = Math.floor(s.player.y) - 1; d.put(x, y, 'air'); d.place(x, y, 'bench'); });
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.repair('armor')), 'no felt').toBe(false);
+    await page.evaluate(() => Arcade.Blocktave.demo.give('felt', 1));
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.repair('armor'))).toBe(true);
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('notes');
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    const s = await st(page);
+    expect(s.wear.armor.left).toBe(s.wear.armor.max);
+    expect(s.inv.felt || 0).toBe(0);
+  });
+
+  test('wear, swap, take off (its wear remembered); saved with the world; never in the lost-hearts bag', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo; d.give('bellshield', 1); d.wear('drumshield'); d.defend(1); d.defend(1);
+      const one = B.state().wear.shield; d.wear('bellshield'); const two = B.state(); return {one, two: two.wear.shield, back: two.inv.drumshield, left: two.wornLeft.drumshield, hot: two.hot}; });
+    expect(r.one).toMatchObject({id: 'drumshield', left: 18});
+    expect(r.two).toMatchObject({id: 'bellshield', left: 35});
+    expect([r.back, r.left]).toEqual([1, 18]);
+    expect(r.hot, 'worn gear never sits in the hotbar').not.toContain('drumshield');
+    const again = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.wear('drumshield'); return Arcade.Blocktave.state().wear.shield; });
+    expect(again).toMatchObject({id: 'drumshield', left: 18});
+    await page.evaluate(() => { Arcade.Blocktave.demo.wear('brasscoat'); Arcade.Blocktave.save(); });
+    await page.reload();
+    await page.locator('.ls-card:not(.ls-endless)').first().click(); await page.locator('.ls-start').click(); await into(page);
+    const s = await st(page);
+    expect(s.wear.armor).toMatchObject({id: 'brasscoat', left: 50});
+    expect(s.wear.shield).toMatchObject({id: 'drumshield', left: 18});
+    expect(s.inv.bellshield).toBe(1);
+    // taking it off puts it back in the bag
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.unwear('armor'))).toBe(true);
+    expect((await st(page)).inv.brasscoat).toBe(1);
+    // losing all hearts: armor and shields stay yours
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.unwear('shield'); d.give('dirt', 8 - (Arcade.Blocktave.state().inv.dirt || 0)); d.tp(Math.floor(Arcade.Blocktave.state().player.x) + 20, 20); });
+    await settleFor(page, 400);                                           // (away from the spawn point, where you wake up)
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; for (let k = 0; k < 20 && Arcade.Blocktave.world().bags.length === 0; k++) d.hurt(1); });
+    const bag = await page.evaluate(() => Arcade.Blocktave.world().bags[0].items);
+    expect(bag).toEqual({dirt: 2});
+    expect((await st(page)).inv.drumshield).toBe(1);
+  });
+
+  test('an old save (no armor) loads with none worn', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    // a world saved before this update: its player has no `wear` / `wornLeft` (loaded the real way, from a file)
+    await page.evaluate(() => { const B = Arcade.Blocktave; B.demo.give('felt', 3); const o = JSON.parse(B.worldJSON()); delete o.player.wear; delete o.player.wornLeft; return B.importWorld(JSON.stringify(o), false); });
+    await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
+    const w = await st(page);
+    expect(w.inv.felt).toBe(3);
+    expect(w.wear).toEqual({armor: null, shield: null});
+    expect(w.wornLeft).toEqual({});
+  });
+
+  test('the six recipes: at a bench, with a performance; a new armor goes on when nothing is worn', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const rs = await page.evaluate(() => window.BT_RECIPES.filter(r => ['feltvest', 'brasscoat', 'silverarmor', 'drumshield', 'bellshield', 'cymbalshield'].includes(r.out)).map(r => ({id: r.id, bench: r.bench, perf: r.perf, zip: r.in.includes('zipthread'), tier: window.BT_ITEMS[r.out].tier})));
+    expect(rs.length).toBe(6);
+    for (const r of rs) { expect(r.bench, r.id).toBe(true); expect(r.perf).toBeTruthy(); expect(r.zip, `${r.id}: Zip Thread for tiers 2 and 3`).toBe(r.tier > 1); }
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) - 1, y = Math.floor(s.player.y) - 1; d.put(x, y, 'air'); d.place(x, y, 'bench');
+      ['felt', 'felt', 'reed'].forEach(k => d.give(k, 1)); });
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.craft('felt-vest'))).toBe(true);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await st(page)).wear.armor).toMatchObject({id: 'feltvest', left: 30});
+  });
+
+  for (const mode of ['touch', 'inst']) test(`snare ${mode === 'touch' ? 'TOUCH' : 'INSTRUMENT'}: the same armor rules; the Felt Vest's card follows the mode`, async ({page}) => {
+    {                                                                       // (one page each: the mode is the saved one)
+      await enter(page, {member: 'snare', mode});
+      const r = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) - 1, y = Math.floor(s.player.y) - 1;
+        d.wear('brasscoat'); d.seedRandom(2); const red = d.defend(1).red;
+        d.put(x, y, 'air'); d.place(x, y, 'bench'); ['felt', 'felt', 'reed'].forEach(k => d.give(k, 1)); d.craft('felt-vest'); return {red, kind: Arcade.BlocktaveCard.current.state().kind}; });
+      expect(r.red).toBeCloseTo(.5);
+      expect(r.kind, mode).toBe(mode === 'touch' ? 'notes' : 'count');
+      await page.evaluate(() => Arcade.BlocktaveCard.close());
+    }
+  });
+
+  for (const [label, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['Chromebook', 1366, 768]]) {
+    test(`the Inventory's two slots fit and never overlap (${label})`, async ({page}) => {
+      await page.setViewportSize({width: w, height: h});
+      await enter(page, {mode: 'touch'});
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.wear('silverarmor'); d.wear('cymbalshield'); d.defend(1); d.defend(.5, true); ['feltvest', 'drumshield', 'maple', 'brass', 'felt', 'cork'].forEach(k => d.give(k, 2)); });
+      // (the drain above wears the armor too)
+      await page.locator('#invBtn').click();
+      await expect(page.locator('#wearRow .bt-wear')).toHaveCount(2);
+      const boxes = await page.evaluate(() => {
+        const r = el => { const b = el.getBoundingClientRect(); return {l: b.left, r: b.right, t: b.top, b: b.bottom}; };
+        return {slots: [...document.querySelectorAll('#wearRow .bt-wear')].map(r), parts: [...document.querySelectorAll('#wearRow .bt-wear > *')].map(r),
+          grid: r(document.getElementById('invGrid')), panel: r(document.getElementById('inv')), vw: innerWidth}; });
+      const hit = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+      expect(hit(boxes.slots[0], boxes.slots[1]), 'the two slots').toBe(false);
+      for (const s of boxes.slots) expect(hit(s, boxes.grid), 'a slot and the bag').toBe(false);
+      for (let i = 0; i < boxes.parts.length; i++) for (let j = i + 1; j < boxes.parts.length; j++) expect(hit(boxes.parts[i], boxes.parts[j]), 'inside a slot').toBe(false);
+      for (const s of boxes.slots) { expect(s.l).toBeGreaterThanOrEqual(boxes.panel.l); expect(s.r).toBeLessThanOrEqual(boxes.panel.r + .5); expect(s.r).toBeLessThanOrEqual(boxes.vw); }
+      await expect(page.locator('#wearRow .bt-dur')).toHaveCount(2);
+      await expect(page.locator('#wearRow .bt-repair')).toHaveCount(2);
+    });
+  }
+});
+
 test.describe('Blocktave: stars only from milestones', () => {
   test('each milestone sets its star once; 1,000 blocks mined add none; the leaderboard hears only milestones', async ({page}) => {
     test.setTimeout(120_000);

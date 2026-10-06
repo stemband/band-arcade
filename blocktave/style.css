@@ -344,3 +344,17 @@ html.no-motion .bt-card.bad{animation:none}
 .bt-tempo{display:flex;align-items:baseline;justify-content:center;gap:12px;margin:8px 0}
 .bt-tempo b{font:400 28px/1 var(--display);color:var(--bt-build)}
 .bt-tempo span{font:700 22px var(--text);color:var(--text-hi)}
+/* ARMOR AND SHIELDS (the Rey Update 2/4): the two worn slots at the top of the Inventory, each with a durability bar */
+.bt-wearrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px;margin:0 0 10px}
+.bt-wear{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;padding:6px;border-radius:12px;border:2px dashed var(--floor-3);background:var(--floor)}
+.bt-wear-btn{display:flex;align-items:center;gap:8px;flex:1 1 160px;min-width:0;min-height:48px;padding:4px 8px 4px 4px;border-radius:10px;border:2px solid var(--bt-silver);background:var(--floor-2);color:var(--text-hi);font:inherit;text-align:left;cursor:pointer}
+.bt-wear-ic{position:relative;flex:none;width:40px;height:40px}
+.bt-wear-ic img{width:40px;height:34px;image-rendering:pixelated;display:block}
+.bt-wear-empty{flex:none;width:40px;height:40px;border-radius:8px;border:2px dashed var(--floor-3)}
+.bt-dur{position:absolute;left:2px;right:2px;bottom:0;height:5px;border-radius:3px;background:var(--bt-hp-bg);overflow:hidden}
+.bt-dur b{display:block;height:100%;background:var(--bt-hp)}
+.bt-dur.low b{background:var(--yellow)}
+.bt-wear-t{display:flex;flex-direction:column;min-width:0;font-size:.9rem;line-height:1.25;overflow-wrap:anywhere}
+.bt-wear-t small{color:var(--text-lo);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.bt-wear-t em{font-style:normal;color:var(--yellow-hi)}
+.bt-repair{flex:0 1 auto;min-height:44px}

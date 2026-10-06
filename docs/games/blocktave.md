@@ -98,3 +98,32 @@ BREAKING OUT (game.js `breakOut`; `combat.breakAfterS` 3, `breakEveryS` 2, `soft
 THE COT: losing all hearts with a Practice Cot set (`cotNow()`: the cot block still there) bags `dropShareCot` 10 % instead of 25 %. No spawns within `spawn.cotSafe` 12 tiles of it (`canSpawnAt`, even in the dark). At the first nightfall with no cot set, ONE quiet toast (never a pause): "Craft a Practice Cot: you'll wake up next to it and lose less if the night goes badly." (`gameData.cotTip`).
 
 `?demo`: `demo.hit(id, n)` (n right actions), `demo.nightFalls()`, `demo.caps(kind)` (the ramped caps); `state().creatures[]` adds `hp`, `max`, `need`, `bar`, `flee`, `pcs`; `state()` adds `damage`, `dmgLabels`, `ramp`, `cotTip`; `fx.hits` / `damage` / `bars` / `breaks`. Tests: "Blocktave: COMBAT", "THE ZIPPER", "smarter nights" in tests/blocktave.spec.js (the `calmByCards` helper answers a creature's chained cards).
+
+## THE REY UPDATE 2/4: ARMOR AND SHIELDS (with durability)
+
+Six new WORN items (`BT_ITEMS` kind `'armor'` / `'shield'`, tier 1–3, `repair` = the material that repairs it; ids appended, never renamed), all made at a Luthier's Bench with a performance like every recipe:
+
+| Recipe (id) | In, in order | Perf | Out | Bench | Damage reduction | Block chance | Durability | Repair with |
+|---|---|---|---|---|---|---|---|---|
+| Felt Vest (`felt-vest`) | felt, felt, reed | notes3 | `feltvest` (armor 1) | yes | 25 % | – | 30 | felt |
+| Brass-Buckle Coat (`brass-buckle-coat`) | felt, brass, zipthread, brass | scale | `brasscoat` (armor 2) | yes | 50 % | – | 50 | brass |
+| Silver Stage Armor (`silver-stage-armor`) | spring, zipthread, gem, zipthread | longtone | `silverarmor` (armor 3) | yes | 60 % | – | 80 | spring |
+| Drumhead Shield (`drumhead-shield`) | rawhide, planks, rawhide | beats | `drumshield` (shield 1) | yes | 10 % | 20 % | 20 | rawhide |
+| Brass Bell Shield (`brass-bell-shield`) | brass, zipthread, brass | notes3 | `bellshield` (shield 2) | yes | 15 % | 50 % | 35 | brass |
+| Silver Cymbal Shield (`silver-cymbal-shield`) | spring, brass, zipthread, gem | scale | `cymbalshield` (shield 3) | yes | 20 % | 70 % | 50 | spring |
+
+Every number is in rules.js `defense` (Rey's values; Mr. Graham tunes them there).
+
+WEARING (game.js `wear` / `unwear`; the Inventory's `#wearRow`, `drawWear`): two slots at the top of the Inventory panel, ARMOR and SHIELD (one of each). Tap an armor or shield chip in your bag to wear it (the one you had on goes back to the bag); tap a worn slot to take it off. Armor and shields never go into the hotbar and are never dropped in the lost-hearts bag. A newly crafted one goes on at once when that slot is empty ("You made a Felt Vest and put it on!"). Each slot shows its icon with a DURABILITY BAR (`.bt-dur`, yellow at ≤ 25 %) and "left/max". On the avatar: small badges, never a new sprite (the armor's icon on the chest, the shield's at the front arm). Saved with the player in the world save (`player.wear` `{armor, shield}` each `{id, left}`, `player.wornLeft` `{id: left}`: a worn-down item you took off keeps its wear when you put it back on). An older save has neither: nothing worn (`wearOf`).
+
+A HIT (`hurt` → `defend(n, drain)`):
+1. A worn SHIELD uses 1 durability and BLOCKS the whole hit with its `block` chance: no heart lost, `bt-clank`, and one soft silver ring around the avatar that fades over `flashMs` 400 (one pulse, never white, never repeated; no growth with reduced motion). The hurt cooldown and the knockback still happen.
+2. Otherwise a worn ARMOR uses 1 durability, and the hit shrinks by the reductions MULTIPLIED: `1 − (1 − armor) × (1 − shield)`, at most `maxReduction` .75 (Silver Stage Armor + Silver Cymbal Shield = 68 %).
+3. HALF HEARTS, by FAIR ROUNDING: the whole halves of what's left, plus one more half with the chance of the remainder (a 1-heart hit at 68 % = 0.32 → ½ heart 64 % of the time, else nothing). On average you lose exactly the reduced damage; whole halves (½, 1) are never random; ¼ heart = ½ heart half the time (Rey's rule). A hit the armor takes completely costs nothing (no sound).
+4. A SOUR WISP'S DRAIN is damage: the armor reduces it and wears; a shield never blocks it, doesn't reduce it and doesn't wear.
+
+DURABILITY: each hit an item takes (armor) or blocks/meets (shield) uses one. At 0 it wears out: `bt-crack` + the toast "Your Felt Vest wore out!", and it's gone. REPAIR (`repair(slot)`): the slot's "Repair (1 Felt)" button (only when it's worn down): at a Luthier's Bench (`benchRange`) with one of its repair material, a one-note card (`spec('note')`: TOUCH a name, the snare a count); pass = the material used, full durability, `bt-craft`. Away from a bench or without the material: a toast says so.
+
+HOW STRONG IS FULL GEAR (for Mr. Graham to tune): with Silver Stage Armor + Silver Cymbal Shield, a 1-heart bump blocks 70 % of the time; the other 30 % costs 0.32 hearts on average (½ heart 64 % of those), so a bump hurts at all only 19 % of the time and costs 0.10 hearts on average (a 90 % cut); a Zipper's ½-heart touch hurts 10 % of the time. With the shield's block at 50 % instead: hurt 32 % of the time, 0.16 hearts on average (an 84 % cut).
+
+Sounds (generated until Mat uploads files): `bt-clank` (a block), `bt-crack` (worn out); both unpitched noise under 0.2 s (`mic: true`: they mute the detector while it listens). `?demo`: `demo.wear(id)` (gives it if needed), `unwear(slot)`, `repair(slot)`, `seedRandom(seed)` (blocks and fair rounding from `BW.rng`; `null` = `Math.random`), `defend(n, drain)`, `hurt(n, drain)`; `state()` adds `wear` (`{id, left, max}` each), `wornLeft`, `lastHit` `{n, raw, red, blocked}`, `fx.blocks` / `absorbed` / `woreOut`. Tests: "Blocktave: ARMOR AND SHIELDS" (each tier's reduction and block with a seeded random, stacking and the cap, half hearts, the drain, durability and repair, wear / swap / take off / the save, an old save, the recipes, the snare in both modes, the panel at three sizes).
