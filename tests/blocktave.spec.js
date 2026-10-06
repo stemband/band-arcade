@@ -938,6 +938,312 @@ test.describe('Blocktave: ARMOR AND SHIELDS (with durability)', () => {
   }
 });
 
+/* ================= THE POWER TABLE AND ABILITIES (the Rey Update 3/4) ================= */
+test.describe('Blocktave: THE POWER TABLE AND ABILITIES (charged by music)', () => {
+  /** night, flat open ground, an ability known at a level in slot 0, the meter full; a creature `dx` tiles away, held
+      still; returns its id and the ground */
+  const setup = (page, {k, lv = 1, kind = 'wisp', dx = 1.5}) => page.evaluate(({k, lv, kind, dx}) => {
+    const d = Arcade.Blocktave.demo, R = window.BT_RULES, s = Arcade.Blocktave.state(), x0 = Math.floor(s.player.x), y = Math.floor(s.player.y);
+    for (let x = x0 - 14; x <= x0 + 14; x++) { d.put(x, y, 'slate'); d.put(x, y + 1, 'slate'); for (let yy = y - 8; yy < y; yy++) d.put(x, yy, 'air'); }
+    d.tp(x0, y - 1); d.step(.3); d.time(R.dayS + 30);
+    R.spawn.everyS = 1e9;                                                  // no natural night creatures: only the test's own
+    if (k) d.know(k, lv, 0);
+    d.charge(3); d.seedRandom(4);
+    const id = kind ? d.spawn(kind, dx) : null; if (id) d.still(id);
+    return {id, x0, y};
+  }, {k, lv, kind, dx});
+  const cr = (page, id) => page.evaluate(i => Arcade.Blocktave.state().creatures.find(c => c.id === i) || null, id);
+  const pw = page => page.evaluate(() => Arcade.Blocktave.state().power);
+  const LV = [{damage: 5, cooldownS: 10}, {damage: 7, cooldownS: 5}, {damage: 10, cooldownS: 3.5}];
+
+  test('the Power Table: crafted at a bench, BUILD-tapped open; learn Fire (a card), upgrade it, equip / unequip', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const at = await page.evaluate(() => { const d = Arcade.Blocktave.demo, s = Arcade.Blocktave.state(), x = Math.floor(s.player.x) - 1, y = Math.floor(s.player.y) - 1;
+      d.put(x, y, 'air'); d.place(x, y, 'bench'); ['planks', 'tone', 'gem', 'planks'].forEach(k => d.give(k, 1)); return {x: x + 2, y}; });
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.craft('power-table'))).toBe(true);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await st(page)).inv.powertable).toBe(1);
+    await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.put(x, y, 'air'); d.put(x, y + 1, 'slate'); d.place(x, y, 'powertable'); d.act(x, y, true); }, at);
+    await expect(page.locator('#ptable')).toBeVisible();
+    await expect(page.locator('#ptList .bt-pt-row')).toHaveCount(6);              // five abilities + the Amulet
+    // no materials: the button says so, and a tap opens no card
+    await expect(page.locator('[data-learn=fire]')).toHaveAttribute('aria-disabled', 'true');
+    await page.locator('[data-learn=fire]').dispatchEvent('click');
+    expect(await cardOpen(page)).toBe(false);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.give('tone', 5); d.give('brass', 1); d.give('hum', 1); });
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.act(x, y, true), at);
+    await page.locator('[data-learn=fire]').click();
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('notes');   // TOUCH: tap 3 note names
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    let P = await pw(page);
+    expect(P.known).toEqual({fire: 1});
+    expect(P.slots, 'the first one is equipped at once').toEqual(['fire']);
+    expect((await st(page)).inv.tone, 'its materials were used').toBe(3);
+    await expect(page.locator('#ptable'), 'back at the table').toBeVisible();
+    await page.locator('[data-learn=fire]').click();                                 // upgrade to 2: a scale
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await pw(page)).known.fire).toBe(2);
+    await page.locator('[data-equip=fire]').click();
+    expect((await pw(page)).slots).toEqual([null]);
+    await page.locator('[data-equip=fire]').click();
+    expect((await pw(page)).slots).toEqual(['fire']);
+    await expect(page.locator('#abilBar .bt-abil')).toHaveCount(1);
+  });
+
+  test('charges: +1 a passed card and a calm, at most 3; −1 a use; none at 0; never while a card is open', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => Arcade.Blocktave.demo.know('water', 1, 0));
+    expect((await pw(page)).pips).toBe(0);
+    // a passed card (a Tone Ore) and a failed one
+    const ore = await putBeside(page, 'toneOre');
+    await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.give('mallet1', 1); d.mine(x, y); }, ore);
+    await page.keyboard.press(await wrongLetter(page)); await waitCardGone(page);
+    expect((await pw(page)).pips, 'a wrong answer: nothing').toBe(0);
+    await page.evaluate(({x, y}) => Arcade.Blocktave.demo.mine(x, y), ore);
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    expect((await pw(page)).pips).toBe(1);
+    // a calm
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); d.calm(d.spawn('clam', 6)); });
+    expect((await pw(page)).pips).toBe(2);
+    await page.evaluate(() => Arcade.Blocktave.demo.charge(5));
+    expect((await pw(page)).pips, 'at most 3').toBe(3);
+    // three uses, then empty
+    const r = await page.evaluate(() => { const d = Arcade.Blocktave.demo, out = [];
+      for (let k = 0; k < 4; k++) { out.push(d.ability(0)); d.step(window.BT_RULES.abilities.levels[0].cooldownS + .1); } return out; });
+    expect(r).toEqual([true, true, true, 'empty']);
+    expect((await pw(page)).pips).toBe(0);
+    // a card open: busy (and no pip spent)
+    await page.evaluate(({x, y}) => { const d = Arcade.Blocktave.demo; d.charge(1); d.put(x, y, 'toneOre'); d.mine(x, y); }, ore);
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0))).toBe('busy');
+    expect((await pw(page)).pips).toBe(1);
+  });
+
+  for (const lv of [1, 2, 3]) {
+    test(`level ${lv}: the cooldown is ${LV[lv - 1].cooldownS} s; FIRE deals ${LV[lv - 1].damage} in all (${3 * lv} a tick)`, async ({page}) => {
+      await enter(page, {mode: 'touch'});
+      const {id} = await setup(page, {k: 'fire', lv});
+      // (read in the same call: the page's own frames keep the clock going between calls)
+      expect(await page.evaluate(() => [Arcade.Blocktave.demo.ability(0), Arcade.Blocktave.state().power.cd.fire])).toEqual([true, LV[lv - 1].cooldownS]);
+      expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0)), 'still cooling down').toBe('cooldown');
+      const r = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.step(2.2); return Arcade.Blocktave.state().fx.dmgLog || []; });
+      expect(r.reduce((a, b) => a + b, 0)).toBe(LV[lv - 1].damage);
+      expect(Math.max(...r)).toBeLessThanOrEqual(3 * lv);
+      expect((await cr(page, id)).hp).toBe(15 - LV[lv - 1].damage);
+      await page.evaluate(s => Arcade.Blocktave.demo.step(s), LV[lv - 1].cooldownS);
+      expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0)), 'ready again').toBe(true);
+    });
+  }
+
+  for (const k of ['earth', 'wind', 'lightning']) {
+    test(`${k.toUpperCase()}: the table's damage at levels 1, 2 and 3 (5 / 7 / 10)`, async ({page}) => {
+      await enter(page, {mode: 'touch'});
+      const {x0, y} = await setup(page, {k, lv: 1, kind: null});
+      const got = await page.evaluate(({k, x0, y}) => { const B = Arcade.Blocktave, d = B.demo, out = [];
+        for (const lv of [1, 2, 3]) {
+          d.tp(x0, y - 1); d.step(.2); d.know(k, lv, 0); d.charge(1);
+          const id = d.spawn('wisp', 3.5); d.still(id);                     // a Sour Wisp: 15 HP, so even 10 never calms it
+          if (k === 'earth') { d.put(x0 + 1, y - 1, 'dirt'); d.target(x0 + 1, y - 1); }
+          d.ability(0); d.step(1);
+          const c = B.state().creatures.find(q => q.id === id); out.push(15 - c.hp); d.calm(id); d.step(window.BT_RULES.abilities.levels[0].cooldownS);
+        }
+        return out; }, {k, x0, y});
+      expect(got).toEqual([5, 7, 10]);
+    });
+  }
+
+  test('FIRE only reaches creatures in its wall (in front of you)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id} = await setup(page, {k: 'fire', lv: 3});
+    const far = await page.evaluate(() => { const d = Arcade.Blocktave.demo, i = d.spawn('wisp', -5); d.still(i); return i; });
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.ability(0); d.step(2.2); });
+    expect((await cr(page, id)).hp).toBe(5);
+    expect((await cr(page, far)).hp, 'behind you: untouched').toBe(15);
+  });
+
+  for (const lv of [1, 2, 3]) {
+    test(`WATER level ${lv}: ${[2, 5, 8][lv - 1]} damage and SLOWED for 3 s in the splash; outside it nothing`, async ({page}) => {
+      await enter(page, {mode: 'touch'});
+      const {id} = await setup(page, {k: 'water', lv, dx: 4});
+      const out = await page.evaluate(() => { const d = Arcade.Blocktave.demo, i = d.spawn('wisp', -6); d.still(i); return i; });
+      const [ok, c] = await page.evaluate(i => [Arcade.Blocktave.demo.ability(0), Arcade.Blocktave.state().creatures.find(k => k.id === i)], id);
+      expect(ok).toBe(true);
+      expect(c.hp).toBe(15 - [2, 5, 8][lv - 1]);
+      expect(c.slowT).toBe(3);
+      expect((await cr(page, out)).hp).toBe(15);
+      await page.evaluate(() => Arcade.Blocktave.demo.step(3.1));
+      expect((await cr(page, id)).slowT).toBe(0);
+    });
+  }
+
+  test('water\'s slow really slows: a slowed clam moves at slowMul of its speed', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const R = await page.evaluate(() => window.BT_RULES);
+    const m = await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(window.BT_RULES.dayS + 30); const i = d.spawn('wisp', 6); const c = Arcade.Blocktave.state().creatures.find(k => k.id === i); return {i, mul: c.mul}; });
+    const v = await page.evaluate(({i}) => { const B = Arcade.Blocktave, d = B.demo, pos = () => B.state().creatures.find(c => c.id === i).x;
+      const a = pos(); d.step(.5); const fast = Math.abs(pos() - a);
+      d.know('water', 1, 0); d.charge(1); d.ability(0); const b = pos(); d.step(.5); return {fast, slow: Math.abs(pos() - b)}; }, m);
+    expect(v.slow / v.fast).toBeCloseTo(R.abilities.water.slowMul, 1);
+  });
+
+  for (const lv of [1, 3]) {
+    test(`WIND level ${lv}: a dash that pushes a creature ${4} tiles back with ${LV[lv - 1].damage} damage`, async ({page}) => {
+      await enter(page, {mode: 'touch'});
+      const {id, x0} = await setup(page, {k: 'wind', lv, kind: 'clam', dx: 3.5});
+      const before = await cr(page, id), p0 = (await st(page)).player.x;
+      expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0))).toBe(true);
+      const after = await cr(page, id), p1 = (await st(page)).player.x;
+      expect(p1 - p0, 'the dash').toBeCloseTo(3, 0);
+      expect(after.x - before.x, 'pushed away').toBeGreaterThan(3.5);
+      expect(after.hp).toBe(10 - LV[lv - 1].damage);
+    });
+  }
+
+  test('WIND never dashes or pushes through a wall', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id, x0, y} = await setup(page, {k: 'wind', lv: 1, kind: 'clam', dx: 1.2});
+    await page.evaluate(({x0, y}) => { const d = Arcade.Blocktave.demo; for (let yy = y - 4; yy < y; yy++) d.put(x0 + 3, yy, 'slate'); }, {x0, y});
+    await page.evaluate(() => Arcade.Blocktave.demo.ability(0));
+    const s = await st(page), c = await cr(page, id);
+    expect(s.player.x, 'the player stops before the wall').toBeLessThan(x0 + 3);
+    expect(c.x, 'the creature stops before the wall').toBeLessThan(x0 + 3);
+  });
+
+  test('EARTH: throws the soft block you aim at; the first creature takes the damage; the block drops where it lands', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id, x0, y} = await setup(page, {k: 'earth', lv: 2, kind: 'clam', dx: 5});
+    await page.evaluate(({x0, y}) => { const d = Arcade.Blocktave.demo; d.put(x0 + 1, y - 1, 'dirt'); d.target(x0 + 1, y - 1); }, {x0, y});
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0))).toBe(true);
+    expect(await page.evaluate(({x0, y}) => Arcade.Blocktave.demo.at(x0 + 1, y - 1), {x0, y}), 'picked up').toBe('air');
+    await page.evaluate(() => Arcade.Blocktave.demo.step(1));
+    expect((await cr(page, id)).hp).toBe(10 - 7);
+    expect((await st(page)).drops.some(d => d.item === 'dirt'), 'the dirt drops').toBe(true);
+  });
+
+  test('EARTH never takes a protected block: bricks, a bench, a door, a shelter\'s wall (no pip spent)', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await setup(page, {k: 'earth', lv: 1, kind: null});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, s = B.state(), x = Math.floor(s.player.x), y = Math.floor(s.player.y), out = {};
+      for (const k of ['brick', 'bench', 'glass', 'toneOre', 'lamp']) { d.put(x + 1, y - 1, k); d.target(x + 1, y - 1); out[k] = [d.ability(0), d.at(x + 1, y - 1)]; }
+      return out; });
+    for (const [k, [res, left]] of Object.entries(r)) { expect(res, k).toBe('noblock'); expect(left, k).toBe(k); }
+    // a shelter's wall (dirt, but part of a closed room with a door)
+    await page.evaluate(() => Arcade.Blocktave.demo.shelter());
+    const w = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, w = B.world(), x0 = Math.floor(w.spawn.x) - 1, y = Math.floor(w.spawn.y) + 1;
+      d.target(x0 - 1, y - 1); return [d.ability(0), d.at(x0 - 1, y - 1)]; });
+    expect(w).toEqual(['noblock', 'dirt']);
+    expect((await pw(page)).pips).toBe(3);
+  });
+
+  test('LIGHTNING: the nearest creature in range, the damage, CONFUSED for 3 s (it wanders); ONE flash that fades', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    const {id} = await setup(page, {k: 'lightning', lv: 2, kind: 'clam', dx: 4});
+    const far = await page.evaluate(() => { const d = Arcade.Blocktave.demo, i = d.spawn('clam', -7); d.still(i); return i; });
+    const [ok, s] = await page.evaluate(() => [Arcade.Blocktave.demo.ability(0), Arcade.Blocktave.state()]), c = s.creatures.find(k => k.id === id);
+    expect(ok).toBe(true);
+    expect(c.hp).toBe(10 - 7);
+    expect(c.confT).toBe(3);
+    expect((await cr(page, far)).hp, 'only the nearest').toBe(10);
+    expect(s.fx.flashes, 'one flash').toBe(1);
+    expect(s.power.bolt.length).toBeGreaterThan(2);                                // a zigzag
+    await expect.poll(async () => (await pw(page)).bolt, {message: 'it fades away'}).toBeNull();
+    expect((await st(page)).fx.flashes, 'never repeated').toBe(1);
+    await page.evaluate(() => Arcade.Blocktave.demo.step(3.1));
+    expect((await cr(page, id)).confT).toBe(0);
+    // nobody in range: no strike, no pip
+    await page.evaluate(i => { Arcade.Blocktave.demo.calm(i); }, id);
+    await page.evaluate(i => Arcade.Blocktave.demo.calm(i), far);
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.time(30); d.step(6); });   // daytime: every creature fades away
+    const pips = (await pw(page)).pips;
+    expect(await page.evaluate(() => Arcade.Blocktave.demo.ability(0))).toBe('notarget');
+    expect((await pw(page)).pips).toBe(pips);
+  });
+
+  test('LIGHTNING with reduced motion: a straight line that fades (still one flash)', async ({page}) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await enter(page, {mode: 'touch'});
+    await setup(page, {k: 'lightning', lv: 1, kind: 'clam', dx: 4});
+    const s = await page.evaluate(() => { Arcade.Blocktave.demo.ability(0); return Arcade.Blocktave.state(); });   // (one call: the flash fades in 300 ms)
+    expect(new Set(s.power.bolt.map(q => q[0])).size, 'straight').toBe(1);
+    expect(s.fx.flashes).toBe(1);
+  });
+
+  test('the Multi-Power Amulet: made at the table, 3 slots; Q / R / T and the buttons use each slot', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await setup(page, {k: 'fire', lv: 1, kind: 'clam', dx: 4});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; ['grandgem', 'gem', 'zipthread', 'brass'].forEach(k => d.give(k, 4)); d.know('water', 1, null); d.know('lightning', 1, null); d.powerTable(); });
+    // without it, equipping replaces the one slot
+    await page.locator('[data-equip=water]').click();
+    expect((await pw(page)).slots).toEqual(['water']);
+    await page.locator('[data-amulet]').click();
+    expect(await page.evaluate(() => Arcade.BlocktaveCard.current.state().kind)).toBe('key');   // a long tone in TOUCH = a key question
+    await page.evaluate(() => Arcade.Blocktave.demo.answer()); await waitCardGone(page);
+    let P = await pw(page);
+    expect(P.amulet).toBe(true);
+    expect(P.slots).toEqual(['water', null, null]);
+    await page.locator('[data-equip=fire]').click(); await page.locator('[data-equip=lightning]').click();
+    expect((await pw(page)).slots).toEqual(['water', 'fire', 'lightning']);
+    await page.locator('#ptClose').click();
+    await expect(page.locator('#abilBar button.bt-abil')).toHaveCount(3);
+    await page.keyboard.press('r');
+    expect((await st(page)).fx.lastAbility).toBe('fire');
+    await page.keyboard.press('t');
+    expect((await st(page)).fx.lastAbility).toBe('lightning');
+    await page.locator('#abilBar button[data-ab=water]').click();
+    expect((await st(page)).fx.lastAbility).toBe('water');
+    expect((await pw(page)).pips).toBe(0);
+  });
+
+  test('saved with the world; an old save (no abilities) loads with none', async ({page}) => {
+    await enter(page, {mode: 'touch'});
+    await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.amuletNow(); d.know('wind', 3, 0); d.know('earth', 2, 2); d.charge(2); Arcade.Blocktave.save(); });
+    await page.reload();
+    await page.locator('.ls-card:not(.ls-endless)').first().click(); await page.locator('.ls-start').click(); await into(page);
+    const P = await pw(page);
+    expect([P.pips, P.known, P.slots, P.amulet]).toEqual([2, {wind: 3, earth: 2}, ['wind', null, 'earth'], true]);
+    await page.evaluate(() => { const B = Arcade.Blocktave, o = JSON.parse(B.worldJSON()); delete o.player.pow; return B.importWorld(JSON.stringify(o), false); });
+    await page.waitForFunction(() => Arcade.Blocktave.state().screen === 'world');
+    const Q = await pw(page);
+    expect([Q.pips, Q.known, Q.slots, Q.amulet]).toEqual([0, {}, [null], false]);
+    await expect(page.locator('#powerPips')).toBeHidden();
+    await expect(page.locator('#abilBar')).toBeHidden();
+  });
+
+  test('snare INSTRUMENT: learning is a drum card; abilities and the fairness check are the same', async ({page}) => {
+    await enter(page, {member: 'snare', mode: 'inst'});
+    const r = await page.evaluate(() => { const B = Arcade.Blocktave, d = B.demo, s = B.state(), x = Math.floor(s.player.x) + 1, y = Math.floor(s.player.y) - 1;
+      d.time(window.BT_RULES.dayS + 30);
+      const mulOf = id => B.state().creatures.find(c => c.id === id).mul;
+      const before = mulOf(d.spawn('clam', 10));
+      d.know('lightning', 3, 0); d.charge(3);
+      const after = mulOf(d.spawn('clam', 10));
+      ['tone', 'brass'].forEach(k => d.give(k, 3)); d.put(x, y, 'air'); d.put(x, y + 1, 'slate'); d.place(x, y, 'powertable'); d.act(x, y, true);
+      d.learn('fire'); return {before, after, kind: Arcade.BlocktaveCard.current.state().kind}; });
+    expect(r.kind).toBe('count');
+    expect(r.after, 'knowing abilities never changes the fairness check').toBe(r.before);
+  });
+
+  for (const [label, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['Chromebook', 1366, 768]]) {
+    test(`the HUD with 3 abilities fits and never overlaps the pad, the hotbar or the hearts (${label})`, async ({page}) => {
+      await page.setViewportSize({width: w, height: h});
+      await enter(page, {mode: 'touch', extra: {gameData: {blocktave: {mode: 'touch', seen: SEEN, cotTip: 1}}}});
+      await page.evaluate(() => { const d = Arcade.Blocktave.demo; d.amuletNow(); d.know('fire', 1, 0); d.know('water', 2, 1); d.know('lightning', 3, 2); d.charge(2); });
+      await expect(page.locator('#abilBar button.bt-abil')).toHaveCount(3);
+      await expect(page.locator('#powerPips .bt-pip.on')).toHaveCount(2);
+      const boxes = await page.evaluate(() => {
+        const r = el => { const b = el.getBoundingClientRect(); return {l: b.left, r: b.right, t: b.top, b: b.bottom, n: el.id || el.className}; };
+        const vis = el => el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden';
+        return {abil: [...document.querySelectorAll('#abilBar .bt-abil')].map(r),
+          other: [...document.querySelectorAll('#pad .bt-pbtn, #hotbar .bt-hot, #invBtn, #craftBtn, #hearts, #powerPips, #goals, #hudLeft .ui-pausebtn, #hudLeft button')].filter(vis).map(r),
+          vw: innerWidth, vh: innerHeight}; });
+      const hit = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+      for (const a of boxes.abil) {
+        expect(a.l).toBeGreaterThanOrEqual(0); expect(a.r).toBeLessThanOrEqual(boxes.vw); expect(a.b).toBeLessThanOrEqual(boxes.vh);
+        for (const o of boxes.other) expect(hit(a, o), `an ability button and ${o.n}`).toBe(false);
+      }
+    });
+  }
+});
+
 test.describe('Blocktave: stars only from milestones', () => {
   test('each milestone sets its star once; 1,000 blocks mined add none; the leaderboard hears only milestones', async ({page}) => {
     test.setTimeout(120_000);

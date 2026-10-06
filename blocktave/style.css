@@ -358,3 +358,32 @@ html.no-motion .bt-card.bad{animation:none}
 .bt-wear-t small{color:var(--text-lo);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
 .bt-wear-t em{font-style:normal;color:var(--yellow-hi)}
 .bt-repair{flex:0 1 auto;min-height:44px}
+/* THE POWER METER, THE ABILITY BUTTONS and THE POWER TABLE (the Rey Update 3/4) */
+.bt-power{display:flex;gap:4px;align-items:center;margin-top:4px}
+.bt-pip{display:block;width:14px;height:14px;transform:rotate(45deg);border-radius:3px;background:var(--bt-power-off);box-shadow:0 0 0 2px var(--bt-ink)}
+.bt-pip.on{background:var(--bt-power);box-shadow:0 0 0 2px var(--bt-ink),0 0 8px rgba(255,216,77,.55)}
+.bt-abilbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;
+  padding:4px;border-radius:14px;background:color-mix(in srgb,var(--deep) 70%,transparent);z-index:5}
+.bt-abilbar[hidden]{display:none}
+@media (max-width:760px){
+  .bt-abilbar{left:auto;transform:none;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(146px + env(safe-area-inset-bottom,0px));flex-direction:column-reverse}
+  .bt-abil{width:46px;height:46px}.bt-abil img{width:30px;height:30px}
+}
+.bt-abil{position:relative;display:grid;place-items:center;width:52px;height:52px;padding:0;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);overflow:hidden;cursor:pointer;font:inherit;color:var(--text-hi)}
+.bt-abil img{width:34px;height:34px;image-rendering:pixelated;position:relative;z-index:1}
+.bt-abil b{position:absolute;right:3px;bottom:1px;z-index:2;font-size:.7rem;color:var(--text-lo)}
+.bt-abil.ready{border-color:var(--bt-power)}
+.bt-abil.empty{opacity:.45;border-style:dashed;cursor:default}
+.bt-abil-cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(6,4,13,.7);z-index:1;pointer-events:none}
+.bt-pt-list{display:flex;flex-direction:column;gap:8px}
+.bt-pt-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px;border-radius:12px;border:2px solid var(--floor-3);background:var(--floor-2);min-width:0}
+.bt-pt-row img{width:40px;height:40px;flex:none;image-rendering:pixelated}
+.bt-pt-gem{flex:none;width:28px;height:28px;margin:6px;transform:rotate(45deg);border-radius:6px;background:var(--bt-power);box-shadow:0 0 10px rgba(255,216,77,.5)}
+.bt-pt-t{display:flex;flex-direction:column;flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+.bt-pt-t small{color:var(--yellow-hi)}
+.bt-pt-t span{color:var(--text-lo);font-size:.88rem}
+.bt-pt-acts{display:flex;flex-wrap:wrap;gap:6px;flex:0 1 auto;min-width:0}
+.bt-pt-acts .btn{display:flex;flex-direction:column;align-items:flex-start;min-height:44px;max-width:100%;white-space:normal;text-align:left}
+.bt-pt-acts .btn small{font-size:.72rem;opacity:.85;font-weight:600}
+.bt-pt-acts .btn[aria-disabled=true]{opacity:.55}
+.bt-pt-max{color:var(--yellow-hi);font-weight:800}

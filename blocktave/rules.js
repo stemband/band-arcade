@@ -272,6 +272,37 @@ window.BT_RULES = {
     maxReduction: .75,        // armor + shield never take away more than this share of a hit
     flashMs: 400,             // a block's pulse on the avatar (one soft ring, fading; never white, never repeated)
   },
+  /* THE POWER METER (the Rey Update 3/4): abilities run on MUSIC. Every PASSED challenge card (a music block, a recipe, a
+     creature's card, the Podium, a repair, the Power Table's own cards) fills perCard pips, and so does every creature
+     you calm (perCalm); using an ability costs 1 pip. Shown as max pips beside the hearts. */
+  power: {max: 3, perCard: 1, perCalm: 1},
+  /* ABILITIES (learned and upgraded at the Power Table; recipes.js BT_POWERS has what each costs). Rey's level table:
+     levels[0] = level 1 … levels[2] = level 3: `damage` = calm damage, `cooldownS` = seconds before it can be used again.
+     A use is ONE tap (the ABILITY button by the hotbar, or Q / R / T: W and E are already Jump and the Inventory) toward
+     the aimed spot / the nearest creature within `range`. Never while a card or a panel is open. The fairness check
+     never counts on abilities. */
+  abilities: {
+    levels: [{damage: 5, cooldownS: 10}, {damage: 7, cooldownS: 5}, {damage: 10, cooldownS: 3.5}],
+    range: 8,                 // tiles: how far an ability looks for the nearest creature / the aimed spot
+    slots: 1, amuletSlots: 3, // abilities equipped at once: 1, or 3 with the Multi-Power Amulet
+    // FIRE: a wall of warm sparks in front of you (width × height tiles) for `seconds`; every tickS each creature in it
+    // takes perTick × level, at most the level's damage in all
+    fire: {seconds: 2, tickS: .5, perTick: 3, width: 3, height: 2.5},
+    // EARTH: throws the SOFT block you aim at (rules.js combat.soft; never a station or a shelter wall) at `speed` tiles/s,
+    // up to `reach` tiles away to pick it up and `range` to fly; the first creature it meets takes the level's damage,
+    // and the block drops as an item where it lands
+    earth: {reach: 4.5, speed: 14},
+    // WIND: a dash of `dash` tiles (never into a solid block); creatures within `width` tiles of the dash's path are pushed
+    // `push` tiles away (never into a block) and take the level's damage
+    wind: {dash: 3, push: 4, width: 1.5},
+    // WATER: a splash of `radius` tiles at the target: Rey's own damage (2 / 5 / 8 by level), and creatures in it move
+    // at slowMul for slowS
+    water: {radius: 2.5, damage: [2, 5, 8], slowS: 3, slowMul: .4},
+    // LIGHTNING: strikes the nearest creature within `range` (the level's damage) and CONFUSES it for confuseS (it wanders
+    // a new random way every wanderS); drawn as ONE zigzag flash that fades over flashMs (never strobing, never full-screen;
+    // reduced motion: a straight line that fades)
+    lightning: {range: 10, confuseS: 3, wanderS: .7, flashMs: 300},
+  },
   metronomeSlow: .8,          // creatures within a placed Metronome's radius move this fast
   metronomeRadius: 8,
   tunerRadius: 6,             // Sour Wisps can't enter a placed Tuner's radius

@@ -78,6 +78,8 @@ window.BT_ITEMS = {
   drumshield:    {name: 'Drumhead Shield', kind: 'shield', tier: 1, repair: 'rawhide', desc: 'A drumhead on a maple hoop. Wear it: it bounces some bumps away completely.'},
   bellshield:    {name: 'Brass Bell Shield', kind: 'shield', tier: 2, repair: 'brass', desc: 'The bell of a big brass horn. Wear it: it bounces half of the bumps away.'},
   cymbalshield:  {name: 'Silver Cymbal Shield', kind: 'shield', tier: 3, repair: 'spring', desc: 'A crash cymbal with a strap. Wear it: it bounces most bumps away (it can\'t stop a Sour Wisp\'s drain).'},
+  // --- the Rey Update 3/4: the Power Table (a station) ---
+  powertable:    {name: 'Power Table', kind: 'block', block: 'powertable', desc: 'A table humming with music power. Tap it in BUILD mode to learn, upgrade and equip abilities.'},
 };
 
 /* THE RECIPES: a recipe is a MEASURE of up to 4 ingredients IN ORDER (like notes in a bar: the same ingredients in
@@ -139,7 +141,28 @@ window.BT_RECIPES = [
   {id: 'drumhead-shield', name: 'Drumhead Shield',    in: ['rawhide', 'planks', 'rawhide'],        perf: 'beats',    out: 'drumshield', n: 1, bench: true},
   {id: 'brass-bell-shield', name: 'Brass Bell Shield', in: ['brass', 'zipthread', 'brass'],        perf: 'notes3',   out: 'bellshield', n: 1, bench: true},
   {id: 'silver-cymbal-shield', name: 'Silver Cymbal Shield', in: ['spring', 'brass', 'zipthread', 'gem'], perf: 'scale', out: 'cymbalshield', n: 1, bench: true},
+  // --- the Rey Update 3/4: the Power Table (abilities are learned AT it: BT_POWERS below) ---
+  {id: 'power-table',    name: 'Power Table',         in: ['planks', 'tone', 'gem', 'planks'],     perf: 'scale',    out: 'powertable', n: 1, bench: true},
 ];
+
+/* THE POWER TABLE'S RECIPES (the Rey Update 3/4): each ability is LEARNED (level 1) and UPGRADED (levels 2 and 3) at a
+   Power Table: the materials ({item id: how many}) + a performance card (perf, as in BT_RECIPES; harder each level).
+   The ability ids are saved in worlds: never rename. Their damage and cooldowns are in rules.js `abilities`.
+   amulet: the MULTI-POWER AMULET, made at the Power Table: 3 ability slots instead of 1. */
+window.BT_POWERS = {
+  fire:      {name: 'Fire', desc: 'A wall of warm sparks in front of you for 2 seconds.',
+              levels: [{in: {tone: 2, brass: 1}, perf: 'notes3'}, {in: {tone: 3, hum: 1}, perf: 'scale'}, {in: {tone: 4, hum: 2, gem: 1}, perf: 'longtone'}]},
+  earth:     {name: 'Earth', desc: 'Pick up the soft block you aim at and throw it.',
+              levels: [{in: {rhythm: 2, dirt: 4}, perf: 'notes3'}, {in: {rhythm: 3, basscrystal: 1}, perf: 'scale'}, {in: {rhythm: 4, basscrystal: 2, gem: 1}, perf: 'longtone'}]},
+  wind:      {name: 'Wind', desc: 'Dash ahead and push creatures back.',
+              levels: [{in: {reed: 4, zipthread: 1}, perf: 'notes3'}, {in: {reed: 6, treblecrystal: 1}, perf: 'scale'}, {in: {zipthread: 3, treblecrystal: 2, gem: 1}, perf: 'longtone'}]},
+  water:     {name: 'Water', desc: 'A splash that slows the creatures in it.',
+              levels: [{in: {pearl: 2, sand: 4}, perf: 'notes3'}, {in: {pearl: 4, coralpearl: 1}, perf: 'scale'}, {in: {pearl: 4, coralpearl: 3, gem: 1}, perf: 'longtone'}]},
+  lightning: {name: 'Lightning', desc: 'A zap that makes the nearest creature wander, confused.',
+              levels: [{in: {spring: 2, dust: 2}, perf: 'notes3'}, {in: {spring: 3, amberbeat: 1}, perf: 'scale'}, {in: {spring: 4, amberbeat: 2, gem: 1}, perf: 'longtone'}]},
+};
+window.BT_AMULET = {name: 'Multi-Power Amulet', in: {grandgem: 1, gem: 3, zipthread: 3, brass: 4}, perf: 'longtone',
+  desc: 'Equip 3 abilities at once instead of 1.'};
 
 /* THE CHAPTERS: 6 chapters × 3 MILESTONES = the game's 18 stars (games.js maxStars). Stars come ONLY from these,
    never from mining or building more. Saved as setLevel('blocktave', member, chapter, {stars}) (per instrument).

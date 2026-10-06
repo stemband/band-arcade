@@ -71,6 +71,8 @@ window.Arcade = window.Arcade || {};
     {key: 'coda', name: 'Coda Sign', solid: 0, mine: 'tap', tier: 0, drop: 'coda', use: 'sign', sign: 1},
     {key: 'organ', name: 'Pipe Organ', solid: 0, mine: 'tap', tier: 0, drop: 'organ', use: 'organ'},   // 2 wide × 3 tall (meta: its anchor)
     {key: 'corallamp', name: 'Coral Lamp', solid: 0, mine: 'tap', tier: 0, drop: 'corallamp', light: 1},  // placeable in water
+    // --- the Rey Update 3/4 (APPEND ONLY) ---
+    {key: 'powertable', name: 'Power Table', solid: 0, mine: 'tap', tier: 0, drop: 'powertable', use: 'powertable'},
   ];
   B.forEach((b, i) => { b.id = i; b.solid = !!b.solid; b.name = b.name || b.key; });
   const ID = {}; B.forEach(b => { ID[b.key] = b.id; });

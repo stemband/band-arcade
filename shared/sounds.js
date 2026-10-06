@@ -401,6 +401,7 @@ window.Arcade = window.Arcade || {};
     'bt-gear':     {file: 'bt-gear', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[2600, 5200], 0, .08, .16, 'noise', 1.6], [[3400, 6000], .1, .08, .14, 'noise', 1.6]], when: 'Blocktave: a gear item (Tuba Boots, the Piccolo Glider, the Sonar Tuning Fork, Accelerando Boots) goes into your hotbar: two quick bright clicks.', len: 'under 0.3 s'},
     'bt-clank':    {file: 'bt-clank', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[3200, 1800], 0, .06, .18, 'noise', 2.2], [[2400, 1400], .05, .07, .1, 'noise', 2]], when: 'Blocktave: your shield blocks a creature\'s bump. A soft metal clank, never a tone.', len: 'under 0.2 s'},
     'bt-crack':    {file: 'bt-crack', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[1500, 500], 0, .05, .2, 'noise', 1.4], [[900, 300], .06, .1, .12, 'noise', 1.1]], when: 'Blocktave: a worn armor or shield wears out. A soft crack, never scary.', len: 'under 0.2 s'},
+    'bt-ability':  {file: 'bt-ability', vol: .5, mic: true, play: true, echo: 40, screen: 'blocktave', gen: [[[1200, 4200], 0, .14, .16, 'noise', 1.6], [[4200, 1600], .12, .12, .1, 'noise', 1.4]], when: 'Blocktave: you use an ability (Fire, Earth, Wind, Water, Lightning). A soft whoosh, never a tone.', len: 'under 0.3 s'},
   };
 
   /** the screens, in README / Sound Board order, with their headings */
