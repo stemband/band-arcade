@@ -303,6 +303,33 @@ window.BT_RULES = {
     // reduced motion: a straight line that fades)
     lightning: {range: 10, confuseS: 3, wanderS: .7, flashMs: 300},
   },
+  /* THE BOSS (the Rey Update 4/4; Rey's numbers). Summoned with a Resonance Core and `wire` Signal Wire in a line leading to
+     it (both made at the Power Table), then a tap on the Core (BUILD) and a warning card. MUSIC DOES THE DAMAGE: the same
+     calm damage as every creature (its own cards, by tool), abilities, flipped notes, and its "Tune Me!" cards. */
+  boss: {
+    name: 'the Static King',  // its name everywhere (cards, the HP bar, toasts): rename it HERE, in one place
+    hp: 500,                  // Rey's HP
+    wire: 3,                  // Signal Wire tiles in a straight line, right next to the Core
+    safe: 16,                 // never summoned this close to the spawn point or a Practice Cot (nor inside a Band Hall)
+    wakeS: 2.5,               // the calm build-up (a hum, the Core glowing) before it appears
+    appearDx: 7,              // it appears this many tiles from you, on the Core's side
+    keep: 6, speed: 1.2,      // it drifts to stay about `keep` tiles from you, at `speed` tiles a second
+    leash: 60,                // run this far away and it goes back to sleep (HP restored)
+    listen: 14,               // the microphone listens within this many tiles of it (INSTRUMENT)
+    tuneEvery: .25, tuneDamage: 25, tunePips: 2,   // every 25 % of its HP: a "Tune Me!" card; passed = 25 damage + 2 pips in all
+    phase2: .5,               // at 50 % HP it speeds up (phase 2)
+    attackEveryS: [4.5, 3.2], // seconds between attacks (phase 1, phase 2); never counted while a card is open
+    // LASER: a COLUMN where you stand (a row across open ground could only be dodged by jumping, so never: the fairness
+    // check). A thin dotted line for warnS (phase 1, phase 2: never under .8 s), then ONE steady glow for beamS; standing in
+    // it then = `damage` hearts (armor applies, a shield can block). `width` tiles wide.
+    laser: {warnS: [1.2, .8], beamS: .6, width: 1.6, damage: 1},
+    // FLIPPING NOTES: note-shaped projectiles that arc to where you are in flightS seconds (phase 1, phase 2), perVolley at a
+    // time. Each shows a note name: play it (INSTRUMENT), tap it and name it (TOUCH), tap it and play one hit (snare) to
+    // flip it back for flipDamage; one that reaches you = `damage` hearts. `gravity`: their arc.
+    notes: {flightS: [4, 3.4], perVolley: [1, 2], damage: .5, flipDamage: 15, gravity: 5, speedBack: 14},
+    // CALMED: it drops these (the trophy is a decoration block) and becomes a little radio for radioS seconds
+    drops: {kingantenna: 1, zipthread: 3, gem: 2, hum: 2}, radioS: 4,
+  },
   metronomeSlow: .8,          // creatures within a placed Metronome's radius move this fast
   metronomeRadius: 8,
   tunerRadius: 6,             // Sour Wisps can't enter a placed Tuner's radius

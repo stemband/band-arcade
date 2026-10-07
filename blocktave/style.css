@@ -387,3 +387,16 @@ html.no-motion .bt-card.bad{animation:none}
 .bt-pt-acts .btn small{font-size:.72rem;opacity:.85;font-weight:600}
 .bt-pt-acts .btn[aria-disabled=true]{opacity:.55}
 .bt-pt-max{color:var(--yellow-hi);font-weight:800}
+/* THE STATIC KING (the Rey Update 4/4): its HP bar at the top while it's awake (the milestones box steps aside) */
+.bt-bossbar{position:absolute;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top,0px));z-index:6;width:min(520px,calc(100% - 24px));
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;border:2px solid var(--bt-king-glow);
+  background:color-mix(in srgb,var(--deep) 85%,transparent);color:var(--text-hi);font:700 14px var(--text)}
+.bt-bossbar[hidden]{display:none}
+.bt-bossbar b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.bt-bossbar-track{display:block;height:14px;border-radius:7px;background:var(--bt-hp-bg);overflow:hidden;box-shadow:inset 0 0 0 2px var(--bt-ink)}
+.bt-bossbar-track i{display:block;height:100%;background:linear-gradient(90deg,var(--bt-king-glow),var(--bt-beam));transition:width .2s}
+.bt-bossbar small{color:var(--text-lo);font-variant-numeric:tabular-nums}
+.bt-play.bt-bossfight .bt-goals{display:none}
+@media (max-width:760px){.bt-bossbar{top:calc(122px + env(safe-area-inset-top,0px));grid-template-columns:1fr auto}.bt-bossbar b{grid-column:1/-1}}
+.bt-rey{margin:.4em 0 .6em 1.1em;padding:0;text-align:left}
+.bt-rey li{margin:.15em 0}

@@ -80,6 +80,10 @@ window.BT_ITEMS = {
   cymbalshield:  {name: 'Silver Cymbal Shield', kind: 'shield', tier: 3, repair: 'spring', desc: 'A crash cymbal with a strap. Wear it: it bounces most bumps away (it can\'t stop a Sour Wisp\'s drain).'},
   // --- the Rey Update 3/4: the Power Table (a station) ---
   powertable:    {name: 'Power Table', kind: 'block', block: 'powertable', desc: 'A table humming with music power. Tap it in BUILD mode to learn, upgrade and equip abilities.'},
+  // --- the Rey Update 4/4: summoning the boss (made at a Power Table: BT_PT_MAKE) and its trophy ---
+  signalwire:    {name: 'Signal Wire', kind: 'block', block: 'signalwire', desc: 'Humming wire. Lay 3 in a line leading to a Resonance Core to wake the boss.'},
+  resonancecore: {name: 'Resonance Core', kind: 'block', block: 'core', desc: 'A glowing core. With 3 Signal Wire leading to it, tap it in BUILD mode to wake the boss.'},
+  kingantenna:   {name: "Static King's Antenna", kind: 'block', block: 'antenna', desc: 'A trophy from the calmed Static King. Place it to show it off!'},
 };
 
 /* THE RECIPES: a recipe is a MEASURE of up to 4 ingredients IN ORDER (like notes in a bar: the same ingredients in
@@ -161,6 +165,12 @@ window.BT_POWERS = {
   lightning: {name: 'Lightning', desc: 'A zap that makes the nearest creature wander, confused.',
               levels: [{in: {spring: 2, dust: 2}, perf: 'notes3'}, {in: {spring: 3, amberbeat: 1}, perf: 'scale'}, {in: {spring: 4, amberbeat: 2, gem: 1}, perf: 'longtone'}]},
 };
+/* THE POWER TABLE'S OTHER RECIPES (the Rey Update 4/4): {item id: how many} + a card, made at a Power Table.
+   Signal Wire + the Resonance Core summon the boss (rules.js boss). id: never rename. */
+window.BT_PT_MAKE = [
+  {id: 'signal-wire', out: 'signalwire', n: 3, in: {tone: 1, dust: 1}, perf: 'note'},
+  {id: 'resonance-core', out: 'resonancecore', n: 1, in: {hum: 1, pearl: 3, zipthread: 1}, perf: 'scale'},
+];
 window.BT_AMULET = {name: 'Multi-Power Amulet', in: {grandgem: 1, gem: 3, zipthread: 3, brass: 4}, perf: 'longtone',
   desc: 'Equip 3 abilities at once instead of 1.'};
 

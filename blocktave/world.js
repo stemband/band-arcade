@@ -73,6 +73,10 @@ window.Arcade = window.Arcade || {};
     {key: 'corallamp', name: 'Coral Lamp', solid: 0, mine: 'tap', tier: 0, drop: 'corallamp', light: 1},  // placeable in water
     // --- the Rey Update 3/4 (APPEND ONLY) ---
     {key: 'powertable', name: 'Power Table', solid: 0, mine: 'tap', tier: 0, drop: 'powertable', use: 'powertable'},
+    // --- the Rey Update 4/4 (APPEND ONLY) ---
+    {key: 'signalwire', name: 'Signal Wire', solid: 0, mine: 'tap', tier: 0, drop: 'signalwire'},
+    {key: 'core', name: 'Resonance Core', solid: 0, mine: 'tap', tier: 0, drop: 'resonancecore', use: 'core'},
+    {key: 'antenna', name: "Static King's Antenna", solid: 0, mine: 'tap', tier: 0, drop: 'kingantenna'},   // a trophy
   ];
   B.forEach((b, i) => { b.id = i; b.solid = !!b.solid; b.name = b.name || b.key; });
   const ID = {}; B.forEach(b => { ID[b.key] = b.id; });

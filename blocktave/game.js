@@ -14,7 +14,7 @@
   'use strict';
   const {$} = A;
   const GAME_ID = 'blocktave', WORLD_KEY = 'bandarcade.blocktave.world';
-  const POWERS = window.BT_POWERS, AMULET = window.BT_AMULET;
+  const POWERS = window.BT_POWERS, AMULET = window.BT_AMULET, PT_MAKE = window.BT_PT_MAKE;
   const R = window.BT_RULES, BW = A.BlocktaveWorld, B = BW.BLOCKS, ID = BW.ID, ITEMS = window.BT_ITEMS, RECIPES = window.BT_RECIPES, CHAPTERS = window.BT_CHAPTERS;
   const Card = A.BlocktaveCard;
   const RM = A.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)');
@@ -189,9 +189,19 @@
     if (grew) setTimeout(() => A.UI.toast('New trees have grown near your camp!', {ms: 3200}), 600);
     if (!endless) setTimeout(checkReached, 900);
     if (!endless) setTimeout(checkNewChapter, 1200);
+    if (seen('welcome') && !seen('rey-update')) reyCard();               // a returning student: THE REY UPDATE, once
+    else if (!seen('rey-update')) markSeen('rey-update');                 // (a brand-new one starts with it all)
     if (!seen('welcome')) firstCard('welcome', 'Welcome to Blocktave!', endless ? 'Survive as many nights as you can with one life! Build a shelter, light Stage Lamps and calm the creatures with your music.'
       : mode === 'inst' ? 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: play (or tap) the notes to break them! Tap CRAFT to make tools, and build a shelter before night comes.'
         : 'This world is yours: it lives on this device. Tap a block to mine it. Glowing blocks are music: tap the note names or the rhythm to break them! Tap CRAFT to make tools, and build a shelter before night comes.');
+  }
+  /** THE REY UPDATE (a one-time card): the credit (first name only) and what's new */
+  const REY_NEW = ['Creatures have HP: every right note, answer or hit does calm damage', 'The Zipper, a speedy little note-bug', 'Armor and shields (they wear out: repair them at a bench)',
+    'The Power Table and 5 abilities (Fire, Earth, Wind, Water, Lightning), charged by your music'];
+  function reyCard() {
+    const html = `<p><b>${esc(REY_CREDIT)}</b></p><ul class="bt-rey">${REY_NEW.concat([`${kingName(true)}, a boss!`]).map(t => `<li>${esc(t)}</li>`).join('')}</ul>`
+      + `<p>${esc(`To wake ${kingName()}: make Signal Wire and a Resonance Core at a Power Table, place the Core, lay ${R.boss.wire} Signal Wire in a line leading to it, then tap the Core in BUILD mode.`)}</p>`;
+    firstCard('rey-update', 'THE REY UPDATE!', '', html);
   }
   function stopWorld() {
     if (!G) return;
@@ -223,13 +233,14 @@
     const d = G.way ? G.way.depth : 0, M = R.music;
     if (!G.inCave && d > M.caveRows) G.inCave = true;
     else if (G.inCave && d < M.leaveRows) G.inCave = false;
+    if (kingNow()) return 'blocktave-boss';                               // (until it's uploaded: the night music)
     return G.inCave ? 'blocktave-cave' : isNight() ? 'blocktave-night' : 'blocktave-day';
   }
   function worldMusic(force) {
     const t = musicChoice();
     if (!force && G.musicTrack === t) return;
     G.musicTrack = t;
-    A.Sfx.setMusic(t, {fade: R.music.fadeS, builtIn: t === 'blocktave-cave'});
+    A.Sfx.setMusic(t === 'blocktave-boss' ? ['blocktave-boss', 'blocktave-night'] : t, {fade: R.music.fadeS, builtIn: t === 'blocktave-cave'});
   }
 
   /* ================= INVENTORY ================= */
@@ -510,6 +521,9 @@
       case 'powertable':                                                // a small maple table with a humming gem on it
         fill('bt-plank', 0, 7, 16, 2.5); line('bt-plank-2', 1.2, [[2.5, 9.5], [2.5, 16]]); line('bt-plank-2', 1.2, [[13.5, 9.5], [13.5, 16]]);
         dot('bt-power', 8, 4, 2.8); dot('bt-bolt-2', 7.2, 3.2, .8); line('bt-power', .5, [[3.5, 4], [4.8, 4]]); line('bt-power', .5, [[11.2, 4], [12.5, 4]]); break;
+      case 'signalwire': line('bt-wire', 1.4, [[0, 13], [4, 11], [8, 13], [12, 11], [16, 13]]); dot('bt-wire', 8, 13, 1); break;
+      case 'core': rr('bt-king-2', 3, 6, 10, 10, 2); dot('bt-core', 8, 10, 3.2); dot('text-hi', 7, 9, .9); break;
+      case 'antenna': line('bt-king-2', 1, [[4, 16], [8, 3], [12, 16]]); line('bt-king-2', .7, [[5.5, 11], [10.5, 11]]); line('bt-king-2', .7, [[6.6, 7], [9.4, 7]]); dot('bt-king-glow', 8, 3, 1.6); break;
       case 'corallamp': line('bt-coral', 1, [[8, 16], [8, 10]]); line('bt-coral', .9, [[8, 12], [5, 9]]); line('bt-coral', .9, [[8, 12], [11, 9]]); dot('bt-coral-glow', 8, 6.5, 3.6); dot('bt-coral-2', 7, 5.5, 1); break;
       case 'bench': fill('bt-plank', 0, 6, 16, 2.5); line('bt-plank-2', 1, [[2, 8.5], [2, 16]]); line('bt-plank-2', 1, [[14, 8.5], [14, 16]]); oval('bt-cork', 7, 3.6, 3.2, 2.2, 0); oval('bt-cork', 10.2, 4, 2, 1.6, 0); line('bt-slate-2', .6, [[7, 3.6], [10.5, 4]]); break;
       default: fill('bt-dirt', 0, 0, 16, 16);
@@ -856,7 +870,7 @@
     worldMusic();
     // creatures (they freeze while a sound mutes the microphone: shared/pitch.js suppression)
     const frozen = A.Pitch.listening() && A.Pitch.isSuppressed(now);
-    if (!frozen) stepCreatures(dt);
+    if (!frozen) { stepCreatures(dt); stepBoss(dt); }
     G.spawnT += dt;
     if (G.spawnT >= R.spawn.everyS) { G.spawnT = 0; trySpawn(); }
     listenSync();
@@ -923,6 +937,7 @@
     G.creatures.forEach(c => drawHp(c, sx(c.x), sy(c.y), now));
     drawDamage(sx, sy, now);
     drawAbilities(sx, sy, now);
+    drawBoss(sx, sy, now);
     drawReach(sx, sy, now);
     drawLabels(sx, sy, now);
     drawWay(sx, sy);
@@ -1119,7 +1134,9 @@
   function tapWorld(clientX, clientY, alt) {
     if (!G || G.held || pause.paused || Card.current) return;
     const wx = camX + clientX / S, wy = camY + clientY / S;
-    const cr = G.creatures.find(c => c.state === 'live' && Math.abs(c.x - wx) < .9 && wy > c.y - 1.4 && wy < c.y + .4);
+    const fn = (G.flyNotes || []).find(f => f.state === 'fly' && Math.hypot(f.x - wx, f.y - wy) < .9);
+    if (fn) return noteCard(fn);
+    const cr = G.creatures.find(c => c.state === 'live' && (c.kind === 'king' ? Math.abs(c.x - wx) < 1.5 && wy > c.y - 5 && wy < c.y + .4 : Math.abs(c.x - wx) < .9 && wy > c.y - 1.4 && wy < c.y + .4));
     if (cr) { swing(cr.x, cr.y - .4); return creatureCard(cr); }
     const t = tileAt(clientX, clientY);
     G.target = t;
@@ -1234,6 +1251,7 @@
     if (b.sign) return travel(x, y);
     if (b.key === 'organ') return playOrgan(x, y);
     if (b.key === 'powertable') return openPowerTable(x, y);
+    if (b.key === 'core') return useCore(x, y);
     return false;
   }
   function eat() {
@@ -2050,7 +2068,7 @@
   }
 
   /* ================= CREATURES (original and silly: never scary) ================= */
-  const KINDS = {clam: 'Night Clam', wisp: 'Sour Wisp', rusher: 'Rusher', zipper: 'Zipper'};
+  const KINDS = {clam: 'Night Clam', wisp: 'Sour Wisp', rusher: 'Rusher', zipper: 'Zipper', get king() { return kingName(true); }};
   let cid = 0;
   /* COMBAT (the Rey Update; rules.js combat): MUSIC DOES THE DAMAGE. Every correct musical action against a creature (a
      right note played or tapped, a right count, each wispTickS of a steady in-tune hold or roll, a right key answer, every
@@ -2136,6 +2154,7 @@
         dx = c.wdir * Math.max(1, d);
       }
       // daylight above ground: creatures fade away (never a burst: a slow fade)
+      if (c.kind === 'king') { stepKing(c, dt, d); continue; }
       if (day && c.y <= BW.top(G.w, Math.floor(c.x)) + 2) { c.state = 'gone'; continue; }
       if (d > R.spawn.despawnFar) { c.state = 'gone'; continue; }
       const m = speedMul(c);
@@ -2300,6 +2319,7 @@
     if (Object.keys(bag.items).length) G.w.bags.push(bag);
     p.x = cot ? cot.x + .5 : G.w.spawn.x + .5; p.y = cot ? cot.y + 1 : G.w.spawn.y + 1; p.vx = p.vy = 0;
     p.hearts = maxHearts(); p.hurtT = R.player.hurtCooldownS;
+    kingSleep(`${kingName(true)} went back to sleep. Its Core is still there: try again when you're ready!`);
     G.creatures.forEach(c => { if (Math.hypot(c.x - p.x, c.y - p.y) < R.spawn.safe) c.state = 'gone'; });
     Card.close();
     A.Sfx.event('bt-respawn');
@@ -2310,6 +2330,8 @@
       of a Zipper's pool is one hit; every combat.wispTickS of a steady in-tune note near a wisp is one hit */
   function heardNote(pc) {
     if (!G || mode !== 'inst' || snare || Card.current || G.held || pause.paused) return;
+    const fn = (G.flyNotes || []).filter(f => f.state === 'fly' && f.item.pc === pc).sort((a, b) => Math.hypot(a.x - G.p.x, a.y - G.p.y) - Math.hypot(b.x - G.p.x, b.y - G.p.y))[0];
+    if (fn) { flipNote(fn); return; }                                     // THE STATIC KING's flipping notes: play it to flip it
     const c = G.creatures.filter(k => k.state === 'live' && ((k.kind === 'clam' && k.item && k.item.pc === pc) || (k.kind === 'zipper' && k.pcs && k.pcs.includes(pc))) && Math.hypot(k.x - G.p.x, k.y - G.p.y) <= R.clam.calm)
       .sort((a, b) => Math.hypot(a.x - G.p.x, a.y - G.p.y) - Math.hypot(b.x - G.p.x, b.y - G.p.y))[0];
     if (c) hitCreature(c);
@@ -2330,7 +2352,7 @@
     if (Card.current || G.held || c.state !== 'live') return;
     const at = () => ({x: (c.x - camX) * S, y: (c.y - .5 - camY) * S});
     let sp;
-    if (c.kind === 'clam' || c.kind === 'zipper') sp = drum() ? {kind: 'count', n: c.n, sub: c.n === 1 ? 'One hit' : 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
+    if (c.kind === 'clam' || c.kind === 'zipper' || c.kind === 'king') sp = drum() ? {kind: 'count', n: c.n, sub: c.n === 1 ? 'One hit' : 'Count your hits'} : Object.assign({}, c.set, {kind: 'notes', items: [c.item], sub: mode === 'inst' ? 'Play its note to calm it' : 'Tap its note name to calm it', hint: G.wrong >= R.hintAfterWrong});
     else if (c.kind === 'wisp') { sp = spec('sustain', Math.floor(c.x), Math.floor(c.y)); if (sp.kind === 'sustain' || sp.kind === 'roll') sp.secs = CB().wispTickS; }
     else sp = {kind: 'rhythm', time: '2/4', text: pick(R.rusher.cells || ['q q', 'e e q', 'q e e', 'h']), sub: mode === 'inst' ? 'Match the rhythm before it arrives!' : 'Tap the rhythm before it arrives!'};
     G.cardFor = c;
@@ -2356,8 +2378,9 @@
     while (L.length > 8) L.shift();
     G.fx.hits = (G.fx.hits || 0) + 1; G.fx.damage = (G.fx.damage || 0) + d;
     G.fx.dmgLog = (G.fx.dmgLog || []).concat(d).slice(-20);             // (tests: each hit's damage)
+    if (c.kind === 'king') kingHit(c);
     if (c.hp <= 0) { calm(c); return true; }
-    if (c.kind === 'clam' && c.set) {                                    // a NEW note from the same pool (more practice)
+    if ((c.kind === 'clam' || c.kind === 'king') && c.set) {                                    // a NEW note from the same pool (more practice)
       const pool = c.set.items.filter(i => i.pc !== c.item.pc);
       if (pool.length) c.item = pool[Math.floor(Math.random() * pool.length)];
     }
@@ -2367,6 +2390,7 @@
   function calm(c) {
     if (c.state !== 'live') return;
     c.state = 'calm'; c.calmAt = performance.now(); c.hp = 0;
+    if (c.kind === 'king') { poof(c); G.calmed++; charge(R.power.perCalm, 'calm'); kingCalmed(c); return; }
     // its item drops into the world where it was (INSTRUMENT mode: more of them, slightly spread)
     const drop = {clam: 'pearl', wisp: 'dust', rusher: 'spring', zipper: 'zipthread'}[c.kind];
     dropItem(drop, mode === 'inst' ? R.instrumentBonus : 1, c.x, c.kind === 'wisp' ? c.y : c.y - .4);
@@ -2385,7 +2409,7 @@
       wisp: ['A Sour Wisp!', drum() ? 'Sour Wisps drain your hearts when they get close. Tap one and play an even roll to dispel it.' : mode === 'inst' ? 'Sour Wisps are out of tune and drain your hearts when they get close. Hold any steady, in-tune note near one to dispel it!' : 'Sour Wisps drain your hearts when they get close. Tap one and answer its music question to dispel it!'],
       zipper: ['A Zipper!', drum() ? 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam but calm right down: tap one and play ONE hit.' : mode === 'inst' ? 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam, but ONE right note calms them: play any note from your notes near one (or tap it for its card).' : 'Zippers are tiny, speedy note-bugs! They\'re 3× as quick as a Night Clam, but ONE right answer calms them: tap one and tap its note name.'],
       rusher: ['A Rusher!', mode === 'inst' ? 'Rushers are fast little metronome gremlins. When one charges, match its 2-beat rhythm before it arrives!' : 'Rushers are fast little metronome gremlins. When one charges, tap its 2-beat rhythm before it arrives!']}[kind];
-    firstCard('c-' + kind, T[0], T[1]);
+    if (T) firstCard('c-' + kind, T[0], T[1]);
   }
 
   /* ================= THE POWER TABLE AND ABILITIES (the Rey Update 3/4: abilities run on MUSIC) =================
@@ -2638,6 +2662,8 @@
     $('ptList').querySelectorAll('[data-learn]').forEach(b => b.onclick = () => learn(b.dataset.learn));
     $('ptList').querySelectorAll('[data-equip]').forEach(b => b.onclick = () => { equip(b.dataset.equip); drawPowerTable(); });
     $('ptList').querySelectorAll('[data-amulet]').forEach(b => b.onclick = () => makeAmulet());
+    $('ptMake').innerHTML = PT_MAKE.map(m => `<div class="bt-pt-row"><img src="${iconURL(m.out)}" alt=""><div class="bt-pt-t"><b>${esc(itemName(m.out))}${m.n > 1 ? ' × ' + m.n : ''}</b><span>${esc(ITEMS[m.out].desc)}</span></div><div class="bt-pt-acts"><button type="button" class="btn btn-secondary btn-small" data-make="${m.id}"${hasMats(m.in) ? '' : ' aria-disabled="true"'}>Make it<small>${esc(matsText(m.in))}</small></button></div></div>`).join('');
+    $('ptMake').querySelectorAll('[data-make]').forEach(b => b.onclick = () => ptMake(b.dataset.make));
   }
   /** a Power Table card: the materials are taken only when it's passed */
   function ptCard(mats, perf, title, onPass) {
@@ -2653,6 +2679,11 @@
       if (ptableAt) openPowerTable(ptableAt.x, ptableAt.y);
     });
     return true;
+  }
+  /** THE POWER TABLE's other recipes (BT_PT_MAKE: Signal Wire, the Resonance Core) */
+  function ptMake(id) {
+    const m = PT_MAKE.find(q => q.id === id); if (!m) return false;
+    return ptCard(m.in, m.perf, 'Make: ' + itemName(m.out), () => { gain(m.out, m.n); A.UI.toast(`You made ${m.n > 1 ? m.n + ' × ' : ''}${itemName(m.out)}!`, {ms: 2000}); });
   }
   function learn(k) {
     const P = G.p.pow, lv = P.known[k] || 0, nx = POWERS[k] && POWERS[k].levels[lv];
@@ -2683,6 +2714,247 @@
   }
   $('ptClose').onclick = () => closePanels();
 
+  /* ================= THE BOSS: THE STATIC KING (the Rey Update 4/4; rules.js boss) =================
+     An old, glitchy radio tower on legs that wants everything off-key: silly-but-epic, never scary. It's a creature
+     (kind 'king', in G.creatures) so music damage, its cards, abilities and calming all work as for every creature.
+     Summoned at a Resonance Core with Signal Wire; attacks with telegraphed LASERS (columns) and FLIPPING NOTES you send
+     back with music; "Tune Me!" cards every 25 % of its HP; phase 2 at 50 %. Calmed = a little radio, its trophy. */
+  const BOSS = () => R.boss;
+  const kingName = cap => cap ? BOSS().name.charAt(0).toUpperCase() + BOSS().name.slice(1) : BOSS().name;
+  const kingNow = () => G && G.creatures.find(c => c.kind === 'king' && c.state === 'live');
+  const REY_CREDIT = 'Ideas by Rey, a Raven Band student.';
+  /** SUMMONING: the Core BUILD-tapped: `wire` Signal Wire in a straight line right next to it, not near the spawn point
+      or a cot, not in a Band Hall, no boss awake; then the warning card, then the calm build-up */
+  function wireLine(x, y) {
+    const n = BOSS().wire;
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { for (let k = 1; k <= n; k++) if (BW.at(G.w, x + dx * k, y + dy * k) !== ID.signalwire) return false; return true; });
+  }
+  function summonCheck(x, y) {
+    if (kingNow() || G.waking) return `${kingName(true)} is already awake!`;
+    if (!wireLine(x, y)) return `Lay ${BOSS().wire} Signal Wire in a straight line leading to the Resonance Core.`;
+    const near = (o, r) => o && Math.hypot(o.x - x, o.y - y) < r;
+    if (near(G.w.spawn, BOSS().safe) || near(cotNow(), BOSS().safe)) return `Too close to where you wake up: build the Core at least ${BOSS().safe} blocks away.`;
+    for (const [dx, dy] of [[0, 0], [0, -1], [1, 0], [-1, 0]]) { const rm = BW.room(G.w, x + dx, y + dy, R); if (rm && rm.doors.length && isBandHall(rm)) return 'Not inside the Band Hall! Build the Core somewhere outside it.'; }
+    return null;
+  }
+  function useCore(x, y) {
+    const why = summonCheck(x, y);
+    if (why) { A.UI.toast(why, {ms: 2600}); return true; }
+    G.held++;
+    A.UI.confirm({title: `Wake ${kingName()}?`, text: `This wakes ${kingName()}. Ready?`, yes: 'Wake it', no: 'Not yet'}).then(yes => {
+      if (!G) return; G.held = Math.max(0, G.held - 1);
+      if (yes && !summonCheck(x, y)) wake(x, y);
+    });
+    return true;
+  }
+  /** the calm build-up: a hum, the Core glowing brighter (steady: no flashing), then it appears */
+  function wake(x, y) {
+    G.waking = {x, y, left: BOSS().wakeS, t0: performance.now()};
+    A.Sfx.event('bt-hum');
+  }
+  function spawnKing(cx) {
+    const p = G.p, side = Math.sign(cx + .5 - p.x) || 1;
+    const c = {id: ++cid, kind: 'king', x: p.x + side * BOSS().appearDx, y: p.y, vx: 0, vy: 0, t: 0, state: 'live', alpha: 1, mul: 1, hopT: 0, drainT: 0};
+    c.hp = c.max = BOSS().hp; c.phase = 1; c.atkT = 2; c.tunesDone = 0; c.tuneDue = 0;
+    const set = notesAt(Math.floor(c.x), Math.floor(c.y), CB().pool); c.item = set.items[0]; c.set = set; c.pcs = [...new Set(set.items.map(i => i.pc))];
+    if (snare) c.n = snareN();
+    G.creatures.push(c);
+    G.lasers = []; G.flyNotes = [];
+    G.fx.kings = (G.fx.kings || 0) + 1;
+    worldMusic(true); drawHud();
+    if (!seen('c-king')) firstCard('c-king', `${kingName(true)} wakes up!`, `${kingName(true)} is an old, glitchy radio tower on legs that wants everything off-key. Calm it with music: tap it for its card, ${drum() ? 'play ONE hit' : mode === 'inst' ? 'play' : 'tap'} its flipping notes to send them back, and pass its "Tune Me!" cards. Watch for a dotted line: a laser comes down there, so step aside! ${REY_CREDIT}`);
+    return c;
+  }
+  /** its HP crossed a 25 % line: a "Tune Me!" card is due; at 50 %: phase 2 */
+  function kingHit(c) {
+    const B = BOSS(), done = Math.floor((1 - c.hp / c.max) / B.tuneEvery + 1e-9);
+    if (c.hp > 0 && done > c.tunesDone) { c.tuneDue += done - c.tunesDone; c.tunesDone = done; }
+    if (c.phase === 1 && c.hp <= c.max * B.phase2) { c.phase = 2; A.UI.toast(`${kingName(true)} is sparking up: faster now!`, {ms: 2200}); }
+  }
+  function tuneCard(c) {
+    c.tuneDue--;
+    const sp = spec('notes3', Math.floor(G.p.x), Math.floor(G.p.y - 1), 3);
+    const at = () => ({x: (c.x - camX) * S, y: (c.y - 3 - camY) * S});
+    openCard(Object.assign(sp, {sub: `Pass it: ${R.boss.tuneDamage} calm damage and ${R.boss.tunePips} power pips!`}), at, 'Tune Me!', r => {
+      if (!G || !r.ok || c.state !== 'live') return;
+      charge(Math.max(0, BOSS().tunePips - R.power.perCard), 'tune');    // (the passed card itself gave perCard)
+      G.fx.tunes = (G.fx.tunes || 0) + 1;
+      hitCreature(c, 1, BOSS().tuneDamage);
+    });
+  }
+  /** the king's own step (movement, attacks, its due "Tune Me!" card) */
+  function stepKing(c, dt, d) {
+    const B = BOSS(), p = G.p;
+    if (d > B.leash) { kingSleep(`${kingName(true)} went back to sleep. Its Core is still there.`); return; }
+    const want = p.x + (c.x < p.x ? -1 : 1) * B.keep, conf = c.confT > 0;
+    const sp = B.speed * speedMul(c);
+    c.vx = conf ? (c.wdir || 1) * sp : Math.abs(want - c.x) > .3 ? Math.sign(want - c.x) * sp : 0;
+    c.x += c.vx * dt; c.y += ((p.y - .2) - c.y) * Math.min(1, dt * 1.5);   // it drifts (glitchy: through blocks)
+    if (c.tuneDue > 0 && !Card.current && !G.held && !G.panel) { tuneCard(c); return; }
+    if (Card.current || G.panel) return;                                 // its attacks wait while you play a card
+    c.atkT -= dt;
+    if (c.atkT > 0) return;
+    const ph = c.phase - 1;
+    c.atkT = B.attackEveryS[ph];
+    c.atkN = (c.atkN || 0) + 1;
+    if (c.atkN % 2) laser(c); else volley(c);
+  }
+  /** LASER: a dotted warning line where you stand, then one steady beam */
+  function laser(c) {
+    const L = BOSS().laser;
+    G.lasers.push({x: G.p.x, warn: L.warnS[c.phase - 1], beam: L.beamS, t: 0, hit: false});
+    G.fx.lasers = (G.fx.lasers || 0) + 1;
+  }
+  /** FLIPPING NOTES: each arcs to where you are in flightS, showing a note name (its card: tap it) */
+  function volley(c) {
+    const N = BOSS().notes, ph = c.phase - 1, T = N.flightS[ph];
+    for (let k = 0; k < N.perVolley[ph]; k++) {
+      const it = c.set.items[Math.floor(rnd() * c.set.items.length)], sx = c.x, sy = c.y - 3.2, tx = G.p.x + k * .9 * (G.p.x < c.x ? -1 : 1), ty = G.p.y - .9;
+      G.flyNotes.push({id: ++cid, x: sx, y: sy, vx: (tx - sx) / T, vy: (ty - sy) / T - .5 * N.gravity * T, item: it, label: Card.label(it.n), n: 1, state: 'fly', t: 0, T});
+    }
+    G.fx.volleys = (G.fx.volleys || 0) + 1;
+  }
+  function flipNote(f) {
+    if (!f || f.state !== 'fly') return false;
+    f.state = 'back'; A.Sfx.event('bt-flip'); G.fx.flips = (G.fx.flips || 0) + 1;
+    return true;
+  }
+  /** a flipping note's card (TOUCH: name it; snare: one hit; INSTRUMENT: play it) */
+  function noteCard(f) {
+    if (!f || f.state !== 'fly' || Card.current || G.held) return false;
+    const king = kingNow(); if (!king) return false;
+    const sp = drum() ? {kind: 'count', n: 1, sub: 'One hit'} : Object.assign({}, king.set, {kind: 'notes', items: [f.item], sub: mode === 'inst' ? 'Play it to flip it back!' : 'Name it to flip it back!'});
+    openCard(sp, () => ({x: (f.x - camX) * S, y: (f.y - camY) * S}), 'Flip it back!', r => { if (G && r.ok) flipNote(f); });
+    return true;
+  }
+  /** lasers, flipping notes and the build-up, on the world clock */
+  function stepBoss(dt) {
+    const p = G.p, Wk = G.waking;
+    if (Wk) { Wk.left -= dt; if (Wk.left <= 0) { G.waking = null; spawnKing(Wk.x); } }
+    const king = kingNow();
+    if (G.lasers && G.lasers.length) {
+      G.lasers.forEach(l => {
+        l.t += dt;
+        if (l.t >= l.warn && !l.on) { l.on = true; A.Sfx.event('bt-laser'); }
+        if (l.on && !l.hit && l.t < l.warn + l.beam && Math.abs(p.x - l.x) < BOSS().laser.width / 2 + HW * .6) { l.hit = true; hurt(BOSS().laser.damage, king); G.fx.laserHits = (G.fx.laserHits || 0) + 1; }
+      });
+      G.lasers = G.lasers.filter(l => l.t < l.warn + l.beam);
+    }
+    if (G.flyNotes && G.flyNotes.length) {
+      const N = BOSS().notes;
+      G.flyNotes.forEach(f => {
+        f.t += dt;
+        if (f.state === 'fly') {
+          f.vy += N.gravity * dt; f.x += f.vx * dt; f.y += f.vy * dt;
+          if (Math.abs(f.x - p.x) < .6 && f.y > p.y - PH - .2 && f.y < p.y + .2) { f.state = 'done'; hurt(N.damage, king); G.fx.noteHits = (G.fx.noteHits || 0) + 1; }
+          else if (f.t > f.T + 1.2 || solid(f.x, f.y)) { f.state = 'done'; G.fx.noteMisses = (G.fx.noteMisses || 0) + 1; }
+        } else if (f.state === 'back') {
+          if (!king) { f.state = 'done'; return; }
+          const dx = king.x - f.x, dy = (king.y - 2.5) - f.y, dd = Math.hypot(dx, dy) || 1;
+          if (dd < .8) { f.state = 'done'; hitCreature(king, 1, N.flipDamage); }
+          else { f.x += dx / dd * N.speedBack * dt; f.y += dy / dd * N.speedBack * dt; }
+        }
+      });
+      G.flyNotes = G.flyNotes.filter(f => f.state !== 'done');
+    }
+    if (G.radio) { G.radio.left -= dt; if (G.radio.left <= 0) G.radio = null; }
+  }
+  /** it goes back to sleep (you lost all hearts, or ran far away): HP restored next time, the Core stays */
+  function kingSleep(msg) {
+    const k = kingNow(); if (!k) return;
+    k.state = 'gone'; k.alpha = 0; G.lasers = []; G.flyNotes = [];
+    if (msg) A.UI.toast(msg, {ms: 2600});
+    worldMusic(true); drawHud();
+  }
+  /** CALMED: a big soft poof, notes rising, a little radio with a happy sparkle; its trophy and materials; no stars */
+  function kingCalmed(c) {
+    Object.entries(BOSS().drops).forEach(([k, n]) => dropItem(k, n, c.x, c.y - 1));
+    G.radio = {x: c.x, y: c.y, left: BOSS().radioS, t0: performance.now()};
+    G.lasers = []; G.flyNotes = [];
+    A.Sfx.event('bt-jingle');
+    saveGd({bossDefeated: new Date().toISOString().slice(0, 10)});
+    worldMusic(true); drawHud();
+    if (!seen('boss-calmed')) firstCard('boss-calmed', 'BOSS CALMED!', `You calmed ${kingName()} with your music! It's a happy little radio now. It left its Antenna (a trophy to place) and some rare materials.`);
+    else A.UI.toast(`You calmed ${kingName()} again!`, {ms: 2400});
+  }
+  /** THE HP BAR at the top of the screen */
+  function drawBossBar() {
+    const k = kingNow(), el = $('bossBar');
+    el.hidden = !k; $('play').classList.toggle('bt-bossfight', !!k);
+    if (!k) return;
+    $('bossName').textContent = kingName(true) + (k.phase === 2 ? ' · sparking!' : '');
+    $('bossFill').style.width = `${Math.max(0, 100 * k.hp / k.max)}%`;
+    $('bossHp').textContent = `${Math.ceil(k.hp)} / ${k.max}`;
+    el.setAttribute('aria-label', `${kingName(true)}: ${Math.ceil(k.hp)} of ${k.max}`);
+  }
+  /** its art: a boxy radio on two legs with a lattice antenna and a steady glow on top (no blinking) */
+  function drawKing(c, x, y, s) {
+    const ph2 = c.phase === 2, step = RM.matches ? 0 : Math.sin(c.t * 4) * s * .12;
+    ctx.strokeStyle = col('bt-king-2'); ctx.lineWidth = s * .22; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - s * .6, y - s * 1.1); ctx.lineTo(x - s * .7 + step, y); ctx.moveTo(x + s * .6, y - s * 1.1); ctx.lineTo(x + s * .7 - step, y); ctx.stroke();
+    ctx.fillStyle = col('bt-king-2'); [-1, 1].forEach(k => { ctx.beginPath(); ctx.ellipse(x + k * s * .7 + (k < 0 ? step : -step), y, s * .3, s * .12, 0, 0, 7); ctx.fill(); });
+    const bx = x - s * 1.3, by = y - s * 3.1, bw = s * 2.6, bh = s * 2.1;
+    ctx.fillStyle = col('bt-king'); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, s * .35) : ctx.rect(bx, by, bw, bh); ctx.fill();
+    ctx.strokeStyle = col('bt-king-2'); ctx.lineWidth = s * .08; ctx.stroke();
+    ctx.fillStyle = col('bt-king-2');                                    // the speaker grill
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.arc(bx + s * (.35 + i * .25), by + s * (1.2 + j * .25), s * .06, 0, 7); ctx.fill(); }
+    ctx.fillStyle = col('bt-king-3'); ctx.beginPath(); ctx.arc(x + s * .55, by + s * 1.3, s * .45, 0, 7); ctx.fill();   // the dial = its face
+    ctx.fillStyle = col('bt-ink'); [-.15, .15].forEach(k => { ctx.beginPath(); ctx.arc(x + s * (.55 + k), by + s * 1.2, s * .07, 0, 7); ctx.fill(); });
+    ctx.strokeStyle = col('bt-ink'); ctx.lineWidth = s * .05; ctx.beginPath();
+    if (c.state === 'calm') ctx.arc(x + s * .55, by + s * 1.4, s * .14, .2, Math.PI - .2); else { ctx.moveTo(x + s * .4, by + s * 1.52); ctx.lineTo(x + s * .7, by + s * 1.46); }
+    ctx.stroke();
+    ctx.strokeStyle = col('bt-king-glow'); ctx.lineWidth = s * .08;      // ~~ its static mood line
+    ctx.beginPath(); ctx.moveTo(bx + s * .3, by + s * .45); for (let i = 1; i <= 6; i++) ctx.lineTo(bx + s * (.3 + i * .25), by + s * (.45 + (i % 2 ? -.12 : .12))); ctx.stroke();
+    ctx.strokeStyle = col('bt-king-2'); ctx.lineWidth = s * .07;         // the lattice antenna
+    const ax = x - s * .2, top = by - s * 1.9;
+    ctx.beginPath(); ctx.moveTo(ax - s * .35, by); ctx.lineTo(ax, top); ctx.lineTo(ax + s * .35, by);
+    for (let i = 1; i < 4; i++) { const yy = by - (by - top) * i / 4, w = s * .35 * (1 - i / 4); ctx.moveTo(ax - w, yy); ctx.lineTo(ax + w, yy); }
+    ctx.stroke();
+    const g = ctx.createRadialGradient(ax, top, 0, ax, top, s * .7); g.addColorStop(0, col(ph2 ? 'bt-beam' : 'bt-king-glow')); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ax, top, s * .7, 0, 7); ctx.fill();
+    ctx.fillStyle = col(ph2 ? 'bt-beam' : 'bt-king-glow'); ctx.beginPath(); ctx.arc(ax, top, s * .18, 0, 7); ctx.fill();
+  }
+  /** lasers, flipping notes, the Core's build-up glow, the little radio (the overlay, after the light) */
+  function drawBoss(sx, sy, now) {
+    const Wk = G.waking;
+    if (Wk) {                                                            // the Core glows brighter and brighter, steadily
+      const f = 1 - Wk.left / BOSS().wakeS, cx = sx(Wk.x + .5), cy = sy(Wk.y + .5), g = oc.createRadialGradient(cx, cy, 0, cx, cy, S * (1 + f * 2));
+      g.addColorStop(0, col('bt-core')); g.addColorStop(1, 'rgba(0,0,0,0)');
+      oc.globalAlpha = .25 + .5 * f; oc.fillStyle = g; oc.beginPath(); oc.arc(cx, cy, S * (1 + f * 2), 0, 7); oc.fill(); oc.globalAlpha = 1;
+    }
+    (G.lasers || []).forEach(l => {
+      const x = sx(l.x), w = S * BOSS().laser.width;
+      if (!l.on) {                                                       // the warning: a thin dotted line
+        oc.save(); oc.strokeStyle = col('bt-beam'); oc.globalAlpha = .7; oc.lineWidth = 2; oc.setLineDash([6, 8]);
+        oc.beginPath(); oc.moveTo(x, 0); oc.lineTo(x, VH); oc.stroke(); oc.restore();
+      } else {                                                           // the beam: ONE steady glow (never flickering)
+        oc.globalAlpha = .5; oc.fillStyle = col('bt-beam'); oc.fillRect(x - w / 2, 0, w, VH);
+        oc.globalAlpha = .75; oc.fillRect(x - w / 6, 0, w / 3, VH); oc.globalAlpha = 1;
+      }
+    });
+    const fs = Math.round(Math.max(13, S * .42));
+    (G.flyNotes || []).forEach(f => {                                    // a tumbling note with its name
+      const x = sx(f.x), y = sy(f.y), r = S * .32, a = RM.matches ? 0 : f.t * (f.state === 'back' ? -8 : 4);
+      oc.save(); oc.translate(x, y); oc.rotate(a);
+      oc.fillStyle = col(f.state === 'back' ? 'bt-power' : 'bt-king-3'); oc.beginPath(); oc.ellipse(0, 0, r, r * .75, -.4, 0, 7); oc.fill();
+      oc.strokeStyle = col('bt-ink'); oc.lineWidth = 2; oc.stroke();
+      oc.beginPath(); oc.moveTo(r * .9, -r * .2); oc.lineTo(r * .9, -r * 2.2); oc.stroke();
+      oc.restore();
+      oc.font = `800 ${fs}px ${getComputedStyle(document.body).fontFamily}`; oc.textAlign = 'center'; oc.textBaseline = 'middle';
+      const t = drum() ? '×1' : f.label;
+      oc.lineWidth = 4; oc.strokeStyle = col('bt-ink'); oc.strokeText(t, x, y - S * .85); oc.fillStyle = col('text-hi'); oc.fillText(t, x, y - S * .85);
+    });
+    const rd = G.radio;
+    if (rd) {                                                            // the happy little radio, notes rising
+      const x = sx(rd.x), y = sy(rd.y), a = Math.min(1, rd.left), t = (now - rd.t0) / 1000;
+      oc.globalAlpha = a; oc.fillStyle = col('bt-king'); oc.fillRect(x - S * .4, y - S * .5, S * .8, S * .5);
+      oc.fillStyle = col('bt-king-3'); oc.beginPath(); oc.arc(x + S * .18, y - S * .25, S * .14, 0, 7); oc.fill();
+      oc.strokeStyle = col('bt-king-2'); oc.lineWidth = 2; oc.beginPath(); oc.moveTo(x - S * .2, y - S * .5); oc.lineTo(x - S * .35, y - S * .9); oc.stroke();
+      if (!RM.matches) { oc.fillStyle = col('bt-power'); oc.font = `700 ${fs}px ${getComputedStyle(document.body).fontFamily}`; [0, 1, 2].forEach(i => { const k = ((t * .6 + i / 3) % 1); oc.fillText('♪', x + (i - 1) * S * .4, y - S * (1 + k * 1.5)); }); }
+      oc.globalAlpha = 1;
+    }
+  }
+
   /* ================= DRAWING CREATURES (canvas, theme colors) ================= */
   function drawCreature(c, x, y, now) {
     ctx.globalAlpha = Math.max(0, Math.min(1, c.alpha));
@@ -2697,6 +2969,7 @@
     ctx.globalAlpha = 1;
   }
   function drawCreatureBody(c, x, y, s) {
+    if (c.kind === 'king') { drawKing(c, x, y, s); ctx.globalAlpha = 1; return; }
     if (c.kind === 'clam') {
       const open = c.state === 'calm' ? .5 : .15 + (RM.matches ? 0 : Math.abs(Math.sin(c.t * 3)) * .15);
       ctx.fillStyle = col('bt-clam'); ctx.beginPath(); ctx.ellipse(x, y - s * .25, s * .45, s * .25, 0, 0, Math.PI); ctx.fill();
@@ -2732,6 +3005,7 @@
   const hpTop = c => c.kind === 'rusher' ? 1.1 : (c.kind === 'wisp' ? 2.3 : !drum() ? 3 : 2.4) + .35;
   const hpShown = (c, now) => c.state === 'live' && ((G.cardFor === c && !!Card.current) || now - (c.hitAt || -1e9) < CB().barMs);
   function drawHp(c, x, y, now) {
+    if (c.kind === 'king') return;                                       // (its own big bar at the top of the screen)
     if (!hpShown(c, now)) return;
     const top = hpTop(c);
     const w = S * 1.1, h = Math.max(4, S * .12), bx = Math.round(x - w / 2), by = Math.round(y - S * top);
@@ -2756,7 +3030,7 @@
   }
   /** the note bubble over a clam (a tiny staff), a count for the snare, "tap me" / "hold a note" for wisps */
   function drawBubble(c, x, y) {
-    if (c.state !== 'live' || c.kind === 'rusher') return;
+    if (c.state !== 'live' || c.kind === 'rusher' || c.kind === 'king') return;
     const s = S, noteKind = c.kind === 'clam' || c.kind === 'zipper', big = noteKind && !drum(), bw = s * (big ? 2.8 : 2.2), bh = s * (big ? 2.1 : 1.5), bx = x - bw / 2, by = y - s * (c.kind === 'wisp' ? 2.3 : big ? 3 : 2.4);
     oc.fillStyle = col('bt-bubble'); oc.strokeStyle = col('bt-ink'); oc.lineWidth = 1.5;
     oc.beginPath(); oc.roundRect ? oc.roundRect(bx, by, bw, bh, s * .3) : oc.rect(bx, by, bw, bh); oc.fill(); oc.stroke();
@@ -2788,7 +3062,7 @@
   /* ================= THE MICROPHONE: listening only when something needs it ================= */
   function listenSync(forCard) {
     if (!G) return;
-    const near = mode === 'inst' && !snare && G.creatures.some(c => c.state === 'live' && c.kind !== 'rusher' && Math.hypot(c.x - G.p.x, c.y - G.p.y) <= Math.max(R.clam.listen, R.wisp.listen, R.zipper.listen));
+    const near = mode === 'inst' && !snare && G.creatures.some(c => c.state === 'live' && c.kind !== 'rusher' && Math.hypot(c.x - G.p.x, c.y - G.p.y) <= (c.kind === 'king' ? R.boss.listen : Math.max(R.clam.listen, R.wisp.listen, R.zipper.listen)));
     const want = mode === 'inst' && !pause.paused && !G.held && (forCard || !!Card.current || near);
     if (want === G.listen) return;
     G.listen = want;
@@ -2874,7 +3148,7 @@
     let h = '';
     for (let k = 0; k < max; k++) { const v = Math.max(0, Math.min(1, p.hearts - k)); h += `<i class="bt-heart${v >= 1 ? ' full' : v > 0 ? ' half' : ''}"></i>`; }
     $('hearts').innerHTML = h; $('hearts').setAttribute('aria-label', `${p.hearts} of ${max} hearts`);
-    drawPower();
+    drawPower(); drawBossBar();
     const c = inCycle(), night = c >= DAY(), left = night ? DAY() + NIGHT() - c : DAY() - c;
     $('clock').textContent = `${night ? '🌙 Night' : '☀ Day'} ${Math.floor(G.w.time / (DAY() + NIGHT())) + 1} · ${Math.ceil(left / 60)} min`;
     $('clock').classList.toggle('night', night);
@@ -2907,13 +3181,13 @@
   }
 
   /* ================= FIRST-TIME CARDS (they pause the world) ================= */
-  function firstCard(key, title, text) {
+  function firstCard(key, title, text, html) {
     if (seen(key) || !G) return;
     markSeen(key);
     G.held++;
     const c = Card.current; if (c) c.pause();
     listenSync();
-    A.UI.intro.show({theme: 'bt-intro', kicker: 'New!', title, text: esc(text),
+    A.UI.intro.show({theme: 'bt-intro', kicker: 'New!', title, text: html || esc(text),
       go: {label: 'Got it!', onClick: () => { A.UI.intro.hide(); if (G) { G.held = Math.max(0, G.held - 1); const c2 = Card.current; if (c2) c2.resume(); listenSync(); } }}});
   }
 
@@ -3055,6 +3329,10 @@
       wornLeft: G ? Object.assign({}, G.p.wornLeft) : null,
       power: G ? {pips: G.p.pow.pips, known: Object.assign({}, G.p.pow.known), slots: G.p.pow.slots.slice(), amulet: G.p.pow.amulet, cd: Object.assign({}, G.p.pow.cd),
         fire: !!G.fire, rock: G.rock ? {x: G.rock.x, y: G.rock.y} : null, bolt: G.bolt ? G.bolt.pts.map(q => q.slice()) : null} : null, lastHit: G ? G.lastHit || null : null,
+      boss: G && kingNow() ? (k => ({id: k.id, hp: k.hp, max: k.max, phase: k.phase, x: k.x, y: k.y, tuneDue: k.tuneDue, tunesDone: k.tunesDone, atkT: k.atkT}))(kingNow()) : null,
+      waking: G ? !!G.waking : false, lasers: G ? (G.lasers || []).map(l => ({x: l.x, t: l.t, warn: l.warn, beam: l.beam, on: !!l.on, hit: l.hit})) : [],
+      flyNotes: G ? (G.flyNotes || []).map(f => ({id: f.id, x: f.x, y: f.y, state: f.state, pc: f.item.pc, label: f.label, T: f.T})) : [],
+      bossDefeated: gd().bossDefeated || null, radio: G ? !!G.radio : false,
       damage: G ? dmgNow() : 0, dmgLabels: G ? (G.dmg || []).map(l => l.text) : [], ramp: G ? rampNow() : 0, cotTip: !!gd().cotTip,
       card: Card.current && Card.current.state(), panel: G && G.panel, build: G && G.build, seed: G && G.w.seed, bags: G ? G.w.bags.length : 0, cot: G && G.w.cot,
       held: G && G.held, tile: S, frames: fps(), run: G && {frames: G.nFrames || 0, ms: G.since ? performance.now() - G.since : 0},
@@ -3084,6 +3362,15 @@
       calm: id => { const c = G.creatures.find(k => k.id === id); if (c) calm(c); return !!c; },
       hit: (id, n = 1) => { const c = G.creatures.find(k => k.id === id); return !!c && hitCreature(c, n); },
       nightFalls: () => nightFalls(),
+      /** THE STATIC KING: summon / wake / set HP / make it attack / a flipping note's card / flip */
+      useCore: (x, y) => useCore(x, y), summonCheck: (x, y) => summonCheck(x, y),
+      bossNow: (dx = 7, {quiet = false} = {}) => { const k = spawnKing(Math.floor(G.p.x + dx)); k.x = G.p.x + dx; if (quiet) k.atkT = Infinity; return k.id; },   // quiet: it never attacks by itself (tests make it)
+      bossHp: hp => { const k = kingNow(); if (k) { k.hp = hp; kingHit(k); } return !!k; },
+      bossAttack: what => { const k = kingNow(); if (!k) return false; if (what === 'laser') laser(k); else volley(k); return true; },
+      noteCard: id => noteCard((G.flyNotes || []).find(f => f.id === id)),
+      ptMake: id => ptMake(id),
+      /** draw one frame at this time (tests: the flash rule, measured frame by frame on the world's own clock) */
+      frame: now => { draw(now); return true; },
       /** THE POWER TABLE AND ABILITIES */
       charge: n => charge(n, 'demo'),
       ability: i => useAbility(i),
