@@ -631,6 +631,10 @@ under "Arcade Quest — Episode 2 Rooms".
 | `quest-ep2-intro` | `quest-ep2-intro.m4a` or `quest-ep2-intro.mp3` | Episode 2's intro cutscene (the attic's old stage speaker, the pull, the Showtime Stage's flickering marquee). Until it is uploaded: `quest-intro`. **loops** | 20–60 s loop |
 | `quest-room-lobby` | `quest-room-lobby.m4a` or `quest-room-lobby.mp3` | Episode 2: the Lobby of the Showtime Stage (the safe hub). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
 | `quest-room-greenroom` | `quest-room-greenroom.m4a` or `quest-room-greenroom.mp3` | Episode 2: the Green Room (the practice room). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
+| `quest-room-pit` | `quest-room-pit.m4a` or `quest-room-pit.mp3` | Episode 2: the Orchestra Pit (Tubby Tusk, music stands, timpani). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-workshop` | `quest-room-workshop.m4a` or `quest-room-workshop.mp3` | Episode 2: the Prop Workshop (Snapjaw Sal, paint and cardboard). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-backstage` | `quest-room-backstage.m4a` or `quest-room-backstage.mp3` | Episode 2: Backstage (rope lines, road cases, the stage manager's desk). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-balcony` | `quest-room-balcony.m4a` or `quest-room-balcony.mp3` | Episode 2: the Balcony (seats over the stage; the Microphone peeks through the curtain). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
 | `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
 | `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
 | `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |

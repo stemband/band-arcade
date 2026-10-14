@@ -21,7 +21,8 @@
    ALTERNATE ROUTES stay open whatever happens (routes()): a gate ghost that is done (befriended or faded) always has
    ITS way open: befriended = its `opens` flag, faded = its `opensIfFaded` flag, unless one is already set. This
    repairs saves from before the routes, save codes (they carry the ghosts helped and the roster, so which way is known,
-   not the passage flag) and anything odd, so neither route can lock a student out.
+   not the passage flag) and anything odd, so neither route can lock a student out. The same for Episode 2's band:
+   a room whose machines are all helped (either way) has its band member awake (its map's `wakes` flag).
    maxHp = maxHpAt(level) + the equipped charms' maxHp (Q.charms.fixHp keeps it right).
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
@@ -97,6 +98,9 @@
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
         if (flag) s.flags[flag] = true;
       });
+      // THE BAND WAKES (data/maps/stage.js `wakes`): every machine of that room helped, either way = they're awake
+      const wk = maps[id].wakes, list = maps[id].enemies || [];
+      if (wk && list.length && list.every(g => s.done[id + ':' + g.key])) s.flags[wk.flag] = true;
     });
   }
   /** older saves -> the current version, one step at a time */
@@ -230,7 +234,7 @@
     enemy: COMPANION,
   };
 
-  /* ---------- CHARMS (ARCADE QUEST ONLY): 2 slots. Only battle.js and dodge.js read them, and only this game loads
+  /* ---------- CHARMS (ARCADE QUEST ONLY): 2 slots. Only battle.js, dodge.js and challenges.js (the rhythm windows) read them, and only this game loads
      this file, so they can never change a practice game. ---------- */
   Q.charms = {
     SLOTS: 2,

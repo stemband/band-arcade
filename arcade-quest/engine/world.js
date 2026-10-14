@@ -13,7 +13,7 @@
    Q.episodes.go(1 | 2)                EPISODE SELECT: Episode 1 = the Foyer's jukebox; Episode 2 (only after ep1Done) =
                                        its intro cutscene the first time, then its last Save Jukebox (or the Lobby's)
    Q.go('world', {resume: true, result})  back from a battle (battle.js does this)
-   Q.world.state()                     for tests: {map, x, y, dir, ghosts, npcs, busy, moving, paused}
+   Q.world.state()                     for tests: {map, x, y, dir, ghosts, npcs, busy, moving, paused, whisper}
    Conversations, signs, the jukebox, the Token Booth, the shop and the pause menu are in engine/talk.js. */
 (function (A) {
   "use strict";
@@ -129,9 +129,11 @@
   const doorOpen = d => !d.need || Q.save.flag(d.need);
   /** a door into a room that isn't built yet (Episode 2's next rooms): it shows its `soon` sign instead */
   const doorBuilt = d => !!MAPS()[d.to];
+  /** a letter's tile: the room's own `legend` first (data/maps/stage.js), then QUEST_TILES */
+  const tdef = (ch, def = W.def) => (def.legend && def.legend[ch]) || TILES()[ch];
   function tileOf(x, y) {
-    const row = W.def.tiles[y], ch = row ? row[x] : ' ', t = TILES()[ch] || TILES()[' '];
-    if (t.open) { const d = doorAt(x, y); if (d && doorOpen(d) && TILES()[t.open]) return TILES()[t.open]; }   // a locked door or a cracked wall, opened
+    const row = W.def.tiles[y], ch = row ? row[x] : ' ', t = tdef(ch) || TILES()[' '];
+    if (t.open) { const d = doorAt(x, y); if (d && doorOpen(d) && tdef(t.open)) return tdef(t.open); }   // a locked door or a cracked wall, opened
     return t;
   }
   const npcAt = (x, y) => W.npcs.find(n => n.x === x && n.y === y);
@@ -147,7 +149,7 @@
     W.anim = [];
     def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => {
       const t = tileOf(tx, ty), d = Q.spriteDef(t.sprite);
-      if (t.over) Q.draw(x, TILES()[def.floor || '.'].sprite, tx * T, ty * T, {frame: 0});   // furniture stands on the room's floor
+      if (t.over) Q.draw(x, tdef(def.floor || '.', def).sprite, tx * T, ty * T, {frame: 0});   // furniture stands on the room's floor
       Q.draw(x, t.sprite, tx * T, ty * T, {frame: 0});
       if (d && d.frames && d.frames.length > 1) W.anim.push({x: tx, y: ty, sprite: t.sprite});
     }));
@@ -180,12 +182,18 @@
       const D = (window.QUEST_DIALOGUE || {})[n.id] || {};
       return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};   // (n.awake: drawn below)
     });
-    W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy,
+    W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy, tier: e.tier,
       x: e.at[0], y: e.at[1], px: e.at[0] * T, py: e.at[1] * T, home: e.at.slice(), wander: e.wander == null ? 2 : e.wander, size: e.size || 1,
       move: null, wait: Q.rand(0.4, 1.6)}));
     prerender();
     setTimeout(() => { if (W && W.def === def) prerender(); }, 800);     // again, once any PNG art has loaded
-    W.whisperAt = Q.rand(25, 45); W.whisper = null;
+    const wh = def.whispers || [null, null];                 // a room's own whisper timing (Backstage: more often)
+    W.whisperAt = wh[0] != null ? wh[0] : Q.rand(25, 45); W.whisper = null;
+    // THE GLIMPSE (the Balcony): the first visit, the giant Microphone shows in the room's peek tiles for a moment
+    if (def.glimpse && !Q.save.flag(def.glimpse)) {
+      Q.save.setFlag(def.glimpse);
+      setTimeout(() => { if (W && W.def === def && !W.whisper) { W.whisper = {t: 0, glimpse: true}; Q.sfx('quest-mic-crackle'); } }, 900);
+    }
     // the room's track, through the music manager: it starts as soon as it's loaded, the FIRST time too. Its ghosts'
     // battle music and the rooms next door are fetched now, so a battle or the next room starts with music
     if (A.Sfx && A.Sfx.setMusic) {
@@ -247,7 +255,7 @@
     if (Math.abs(nx - g.home[0]) > g.wander || Math.abs(ny - g.home[1]) > g.wander) return;
     if (nx === W.x && ny === W.y) { if (W.grace <= 0 && !W.move) encounter(g); return; }
     const ch = W.def.tiles[ny] && W.def.tiles[ny][nx];
-    if (solid(nx, ny) || npcAt(nx, ny) || ghostAt(nx, ny) || (TILES()[ch] || {}).door || (W.move && nx === W.x && ny === W.y)) return;
+    if (solid(nx, ny) || npcAt(nx, ny) || ghostAt(nx, ny) || (tdef(ch) || {}).door || (W.move && nx === W.x && ny === W.y)) return;
     g.move = {fx: g.x, fy: g.y, t: 0};
     g.x = nx; g.y = ny;
   }
@@ -260,7 +268,9 @@
     W.flash = {t: 0};
     setTimeout(() => {
       if (!W || W.fighting !== g.key) return;
-      Q.go('battle', {enemy: g.type, overrides: g.happy != null ? {happy: g.happy} : null, back: {scene: 'world', args: {resume: true}}});
+      // the room's own touches: its happy note, its rhythm tier (data/maps/stage.js: deeper rooms read harder rhythms)
+      const o = Object.assign({}, g.happy != null ? {happy: g.happy} : {}, g.tier ? {tier: g.tier} : {});
+      Q.go('battle', {enemy: g.type, overrides: Object.keys(o).length ? o : null, back: {scene: 'world', args: {resume: true}}});
     }, Q.reduced() ? 350 : 700);
   }
   function afterBattle(result) {
@@ -275,6 +285,9 @@
     W.ghosts = W.ghosts.filter(x => x !== g);
     const E = (window.QUEST_ENEMIES || []).find(e => e.id === result.enemy) || {}, s = Q.save.get();
     let whisperer = false;
+    // THE BAND WAKES (Episode 2: data/maps/stage.js `wakes`): this was the room's last machine, helped either way
+    // (checked before anything reads the save again: its repair, save.js routes(), would set the flag quietly)
+    const wk = W.def.wakes, woke = !!wk && !W.def.practice && !(s.flags || {})[wk.flag] && W.def.enemies.every(e => e.key === g.key || s.done[W.map + ':' + e.key]);
     if (!W.def.practice) {
       s.done[W.map + ':' + g.key] = result.kind;
       if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
@@ -285,6 +298,7 @@
     }
     if (E.opens || E.opensIfFaded) prerender();                                   // a door or a cracked wall opened
     const after = [];                                                             // what to show, in order, once back
+    if (woke) { Q.save.setFlag(wk.flag); after.push(() => wake(wk)); }
     // THE ALTERNATE ROUTE: the first gate ghost a student defeats (not befriends) says something moved
     if (!W.def.practice && result.kind === 'fade' && E.opensIfFaded && !Q.save.flag('shiftHint')) {
       Q.save.setFlag('shiftHint');
@@ -304,6 +318,18 @@
       // befriended: the full ending (the best one); defeated: the shorter, still happy one. Both finish Episode 1
       Q.go('cutscene', {id: result.kind === 'befriend' ? 'ending' : 'ending-fade', next: {id: 'cliffhanger', next: {credits: true, first, whisperer}}});
     }
+  }
+
+  /** a band member wakes up (Tubby Tusk, Snapjaw Sal): their `wake` lines (data/dialogue-stage.js) with the awake
+      portrait, then they step aside (`moved`) and the door they guarded opens (prerender) */
+  async function wake(wk) {
+    const n = W.npcs.find(x => x.id === wk.npc), D = (window.QUEST_DIALOGUE || {})[wk.npc] || {};
+    Q.sfx('quest-encore-learned');
+    await Q.talk.say(wk.npc, D.wake || []);
+    if (!W) return;
+    if (n && n.src.moved) Q.world.moveNpc(wk.npc, n.src.moved.at);
+    if (D.metFlag) Q.save.setFlag(D.metFlag);
+    prerender();
   }
 
   /** GHOST WHISPERER: the arcade's UNLOCKED! card (shared/skins.js catchUp) over the manor, with its line on top;
@@ -331,7 +357,8 @@
     if (W.busy || W.def.practice || W.def.safe || W.map === 'foyer') return;
     W.whisperAt -= dt;
     if (W.whisperAt > 0) return;
-    W.whisperAt = Q.rand(55, 95);
+    const every = (W.def.whispers || [])[1] || [55, 95];
+    W.whisperAt = Q.rand(every[0], every[1]);
     W.whisper = {t: 0};
     Q.sfx('quest-mic-crackle');
     let el = Q.$('qWhisper');
@@ -357,10 +384,13 @@
   Q.world = {
     // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too
     state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy || !!W.fade, moving: !!W.move, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
+      whisper: W.whisper ? (W.whisper.glimpse ? 'glimpse' : 'whisper') : null,
       npcs: W.npcs.map(n => ({id: n.id, x: n.x, y: n.y}))},
     /** move an NPC somewhere (Sir Reginald stepping aside) */
     moveNpc(id, at) { W.npcs.filter(n => n.id === id).forEach(n => { n.x = at[0]; n.y = at[1]; n.px = at[0] * T; n.py = at[1] * T; }); },
     here: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir},
+    /** the room's map entry for an NPC standing here (its `awake`, `moved`), or null */
+    npcSrc: id => { const n = W && W.npcs.find(x => x.id === id); return n ? n.src : null; },
     /** the episode of the room you're in (1 outside the overworld) */
     ep: () => (W && W.def.ep) || 1,
     /** tests: a whisper right now */
@@ -470,7 +500,7 @@
       // a whisper: faint static bands, and the microphone's silhouette in every window for a moment
       if (W.whisper) {
         const a = Math.min(1, W.whisper.t / .5, (4.5 - W.whisper.t) / .8);
-        W.def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => { if ((TILES()[ch] || {}).peek) { ctx.globalAlpha = a; Q.draw(ctx, 'mic-shadow', tx * T + 5 - cx, ty * T + 2 - cy); } }));
+        W.def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => { if ((tdef(ch) || {}).peek) { ctx.globalAlpha = a; Q.draw(ctx, 'mic-shadow', tx * T + 5 - cx, ty * T + 2 - cy); } }));
         ctx.globalAlpha = a * .12; ctx.fillStyle = Q.css('q-grey');
         for (let i = 0; i < 6; i++) ctx.fillRect(0, (Q.reduced() ? i * 31 : (i * 31 + Math.floor(now / 90) * 7) % Q.H), Q.W, 1);
         ctx.globalAlpha = 1;
