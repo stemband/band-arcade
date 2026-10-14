@@ -9,13 +9,15 @@
    of this page load), the menu waits behind PRESS START, so the first tap starts the music instead of a new game.
    TEST ARENA (index.html?test, or TEST ARENA on the title): pick any test enemy (one per challenge type) and fight it
    with your instrument. The card shows the challenge YOUR instrument gets (the Snare Drum: ARTICULATE or VOCAB).
+   SHOWTIME MACHINES (the footer's button; ?test&set=2): Episode 2's 8 machine kinds (data/enemies.js `ep: 2`), and
+   RHYTHM PRACTICE: one RHYTHM challenge of each tier (data/rhythms.js), with the scores, no battle.
    Your HP refills every time you come back to the arena. RESET SAVE starts the save slot over. */
 (function (A) {
   "use strict";
   const Q = A.Quest;
   // Episode 2 is still being built: the title says so (remove with build step 5, THE BIG NUMBER + ENDING)
   const SOON = '(coming soon: the theater is still being built)';
-  const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
+  const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING', rhythm: 'RHYTHM', tempo: 'TEMPO', echo: 'ECHO'};
   let player = null;
   const me = () => (player = Q.playerId(A.currentMember().id));
 
@@ -96,33 +98,54 @@
   };
 
   /* ---------- the test arena ---------- */
-  const TEST = () => window.QUEST_ENEMIES.filter(e => e.test);
-  const slots = () => TEST().map((e, i, all) => ({e, x: Math.round(Q.W / (all.length + 1) * (i + 1)) - 16, y: 36}));
+  // set 1: the test enemies (one per challenge type); set 2: Episode 2's machines (+ RHYTHM PRACTICE)
+  const TEST = set => window.QUEST_ENEMIES.filter(e => e.test && (e.ep || 1) === set);
+  const PER_ROW = 5;                                           // buttons per row (the machines' 9 take two rows)
+  // the sprites: one row across the top (8 machines still fit: 32 px each)
+  const slots = set => TEST(set).map((e, i, list) => ({e, x: Math.round(Q.W / (list.length + 1) * (i + 1)) - 16, y: 36}));
+  let arenaSet = /[?&]set=2(&|$)/.test(location.search) ? 2 : 1;
+  /** RHYTHM PRACTICE: one RHYTHM of each tier, then the scores (no battle, nothing saved) */
+  async function rhythmPractice() {
+    if (!(await Q.micReady())) { await Q.say(Q.text('micHint')); return; }
+    const out = [];
+    for (const tier of [1, 2, 3]) {
+      const r = await Q.challenge.run('rhythm', {enemy: {name: 'Rhythm practice', tier, challenge: 'rhythm'}});
+      out.push(`Tier ${tier}: ${Math.round(r.acc * 100)}%`);
+      if (Q.sceneName !== 'arena') return;
+    }
+    await Q.say(['Rhythm practice: ' + out.join(' · ')]);
+  }
   Q.scenes.arena = {
-    enter({from} = {}) {
+    enter({from, set: pick} = {}) {
+      if (pick) arenaSet = pick;
       const s = Q.save.get();
       s.hp = s.maxHp; Q.save.write();                         // a rest between fights
       me();
       const befriended = id => s.roster.includes(id);
       const items = Object.keys(s.items).filter(k => s.items[k] > 0 && window.QUEST_ITEMS[k]).map(k => `${window.QUEST_ITEMS[k].name} ×${s.items[k]}`).join(', ') || 'none';
-      Q.ui.innerHTML = `<div class="q-arena"><h2 class="q-ah">Test Arena</h2>` +
+      Q.ui.innerHTML = `<div class="q-arena${arenaSet === 2 ? ' q-arena2' : ''}"><h2 class="q-ah">${arenaSet === 2 ? 'Test Arena: Showtime machines' : 'Test Arena'}</h2>` +
         `<p class="q-stats"><b>LV ${s.level}</b> · ${Q.text('power')} ${Q.save.powerAt(s.level)} · HP ${s.hp}/${s.maxHp} · XP ${s.xp}/${Q.save.xpToNext(s.level)} · ${A.Tokens.balance()} Tokens</p>` +
         `<p class="q-stats q-small">Bag: ${items} · Friends: ${s.roster.length ? s.roster.map(id => (window.QUEST_ENEMIES.find(e => e.id === id) || {name: id}).name).join(', ') : 'nobody yet'}` +
         ` · Playing beside you: ${Q.band.members().map(id => Q.band.enemy(id).name).join(', ') || 'just you'}</p>` +
         `<div id="qFoes"></div><div class="q-arena-foot" id="qFoot"></div></div>`;
-      const foes = TEST().map(e => {
+      const set = arenaSet;
+      const foes = TEST(set).map(e => {
         const t = Q.challenge.resolve(e.challenge);
         return {id: e.id, cls: 'q-foe' + (befriended(e.id) ? ' friend' : ''),
           label: `${e.name}${befriended(e.id) ? ' <span class="q-ok">✓ friend</span>' : ''}`,
           sub: `${e.test}${TYPE_NAME[t] !== e.test.replace(' (bonus)', '') ? ` → ${TYPE_NAME[t]} for you` : ''}`};
-      });
-      const start = Math.max(0, TEST().findIndex(e => e.id === from));
-      const m = Q.menu(Q.$('qFoes'), foes, {cols: foes.length, label: 'Test enemies', start, cls: 'q-foes',
-        onPick: it => { m.destroy(); f.destroy(); Q.go('battle', {enemy: it.id, back: 'arena'}); },
+      }).concat(set === 2 ? [{id: 'rhythm-practice', cls: 'q-foe', label: 'Rhythm practice', sub: 'Tiers 1, 2, 3'}] : []);
+      const start = Math.max(0, foes.findIndex(e => e.id === from));
+      const m = Q.menu(Q.$('qFoes'), foes, {cols: Math.min(PER_ROW, foes.length) < foes.length ? PER_ROW : foes.length, label: set === 2 ? 'Showtime machines' : 'Test enemies', start, cls: 'q-foes' + (set === 2 ? ' q-foes2' : ''),
+        onPick: it => {
+          if (it.id === 'rhythm-practice') { m.destroy(); f.destroy(); Q.$('qFoes').closest('.q-arena').hidden = true; rhythmPractice().then(() => { if (Q.sceneName === 'arena') Q.go('arena', {from: 'rhythm-practice'}); }); return; }
+          m.destroy(); f.destroy(); Q.go('battle', {enemy: it.id, back: 'arena'});
+        },
         onBack: () => { m.destroy(); f.destroy(); Q.go('title'); }});
-      const f = Q.menu(Q.$('qFoot'), [{id: 'band', label: 'Band'}, {id: 'settings', label: 'Settings'}, {id: 'reset', label: 'Reset save'}, {id: 'title', label: 'Title'}],
-        {cols: 4, label: 'Arena options', cls: 'q-small-menu', keys: false, onPick: it => {
-          if (it.id === 'band') { m.destroy(); f.destroy(); Q.talk.band().then(() => Q.go('arena')); }
+      const f = Q.menu(Q.$('qFoot'), [{id: 'set', label: set === 2 ? 'Test enemies' : 'Machines'}, {id: 'band', label: 'Band'}, {id: 'settings', label: 'Settings'}, {id: 'reset', label: 'Reset save'}, {id: 'title', label: 'Title'}],
+        {cols: 5, label: 'Arena options', cls: 'q-small-menu', keys: false, onPick: it => {
+          if (it.id === 'set') { m.destroy(); f.destroy(); Q.go('arena', {set: set === 2 ? 1 : 2}); }
+          else if (it.id === 'band') { m.destroy(); f.destroy(); Q.talk.band().then(() => Q.go('arena')); }
           else if (it.id === 'settings') Q.settings.open().then(me);
           else if (it.id === 'title') { m.destroy(); f.destroy(); Q.go('title'); }
           else A.UI.confirm({title: 'Start your save over?', text: 'Your Arcade Quest level, tokens, items and band friends start over.', yes: 'Start over', no: 'Keep my save',
@@ -135,7 +158,7 @@
     draw(ctx, now) {
       for (let y = 112; y < Q.H; y += 16) for (let x = 0; x < Q.W; x += 16) Q.draw(ctx, 'tile', x, y);
       const s = Q.save.get(), cur = this.menu ? this.menu.index : -1;
-      slots().forEach(({e, x, y}, i) => {
+      slots(arenaSet).forEach(({e, x, y}, i) => {
         ctx.fillStyle = Q.css(i === cur ? 'q-cursor' : 'q-grey-d'); ctx.fillRect(x - 2, y + 30, 36, 3);
         Q.draw(ctx, e.sprite, x, y + (i === cur && !Q.reduced() ? Math.round(Math.sin(now / 180)) - 1 : 0), {t: now, frame: s.roster.includes(e.id) ? 2 : undefined});
       });

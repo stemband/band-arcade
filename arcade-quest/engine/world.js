@@ -178,7 +178,7 @@
     W.npcs = def.npcs.map(n => {
       const at2 = n.moved && Q.save.flag(n.moved.flag) ? n.moved.at : n.at;
       const D = (window.QUEST_DIALOGUE || {})[n.id] || {};
-      return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};
+      return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};   // (n.awake: drawn below)
     });
     W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy,
       x: e.at[0], y: e.at[1], px: e.at[0] * T, py: e.at[1] * T, home: e.at.slice(), wander: e.wander == null ? 2 : e.wander, size: e.size || 1,
@@ -438,7 +438,8 @@
       const bob = Q.reduced() ? 0 : Math.round(Math.sin(now / 300));
       const list = [];
       W.npcs.forEach(n => list.push({y: n.py, fn: () => {
-        Q.draw(ctx, n.sprite, n.px + 8 - 12 - cx, n.py + T - 28 + 2 - cy, {t: now, flip: n.face === 'left'});
+        const spr = n.src.awake && Q.save.flag(n.src.awake.flag) ? n.src.awake.sprite : n.sprite;   // woken up: un-glitched (Hoot)
+        Q.draw(ctx, spr, n.px + 8 - 12 - cx, n.py + T - 28 + 2 - cy, {t: now, flip: n.face === 'left'});
         if (n.id === 'reginald' && !Q.save.flag('reginaldAwake')) {
           ctx.fillStyle = Q.css('q-white'); ctx.font = '8px "GN Quest", monospace';
           const z = Q.reduced() ? 0 : (now / 600) % 1;

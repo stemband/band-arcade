@@ -151,14 +151,14 @@
   const BOT = {o: 'q-out', b: 'q-steel', k: 'q-black', w: 'q-white', e: 'q-stage-eye', r: 'q-red', R: 'q-carpet-d', y: 'q-gold'};
 
   /* MAESTRO MOOSE: antlers, a felt muzzle, a tailcoat and a bow tie; red glitchy eyes; frozen with the baton up */
-  function moose(beat) {
+  function moose(beat, ok) {
     const g = grid(24, 28);
     line(g, 8, 6, 3, 2, 'a'); line(g, 5, 4, 5, 0, 'a'); line(g, 4, 3, 1, 1, 'a');               // the left antler…
     put(g, 6, 6, 'F'); put(g, 7, 6, 'F');
     mirror(g);                                                                                    // …and the right one
     oval(g, 11.5, 8.5, 4.6, 4.2, 'f');                                                            // the head
     oval(g, 11.5, 11, 3.4, 2.2, 'l'); put(g, 10, 11, 'F'); put(g, 13, 11, 'F');                   // the muzzle, nostrils
-    rect(g, 9, 7, 1, 2, 'e'); rect(g, 14, 7, 1, 2, 'e');                                          // red glitchy eyes
+    rect(g, 9, 7, 1, 2, ok ? 'E' : 'e'); rect(g, 14, 7, 1, 2, ok ? 'E' : 'e');                    // red glitchy eyes (blue: un-glitched)
     put(g, 7, 9, 'b'); put(g, 16, 9, 'b'); rect(g, 11, 13, 2, 1, 'b');                            // bolts, the neck rod
     rect(g, 7, 14, 10, 8, 't'); rect(g, 10, 14, 4, 6, 'w');                                       // the tailcoat, the shirt
     put(g, 10, 14, 'r'); put(g, 11, 14, 'R'); put(g, 12, 14, 'R'); put(g, 13, 14, 'r');            // the bow tie
@@ -167,19 +167,21 @@
     rect(g, 10, 22, 1, 3, 'b'); rect(g, 13, 22, 1, 3, 'b'); rect(g, 8, 25, 3, 2, 'k'); rect(g, 13, 25, 3, 2, 'k');   // rods, boots
     line(g, 7, 15, 5, 20, 't', 2); rect(g, 4, 21, 2, 2, 'l');                                     // the left arm
     if (!beat) { line(g, 16, 15, 19, 10, 't', 2); rect(g, 19, 8, 2, 2, 'l'); line(g, 21, 8, 23, 4, 'w'); }   // FROZEN: baton up
-    else { line(g, 16, 15, 20, 19, 't', 2); rect(g, 20, 20, 2, 2, 'l'); line(g, 22, 21, 23, 25, 'w'); put(g, 19, 5, 'z'); put(g, 21, 3, 'z'); }   // the downbeat (+ a spark)
+    else { line(g, 16, 15, 20, 19, 't', 2); rect(g, 20, 20, 2, 2, 'l'); line(g, 22, 21, 23, 25, 'w'); if (!ok) { put(g, 19, 5, 'z'); put(g, 21, 3, 'z'); } }   // the downbeat (+ a spark while glitched)
     return text(outline(g));
   }
   const UP = moose(false), BEAT = moose(true);
-  S['npc-moose'] = {w: 24, h: 28, fps: 2, palette: Object.assign({}, BOT, {a: 'q-stage-antler', f: 'q-stage-moose', F: 'q-stage-moose-d', l: 'q-stage-moose-l',
-    t: 'q-stage-coat', z: 'q-white'}), frames: [UP, UP, UP, UP, UP, BEAT]};
+  const MOOSE_P = Object.assign({}, BOT, {a: 'q-stage-antler', f: 'q-stage-moose', F: 'q-stage-moose-d', l: 'q-stage-moose-l', t: 'q-stage-coat', z: 'q-white', E: 'q-stage-eye-ok'});
+  S['npc-moose'] = {w: 24, h: 28, fps: 2, palette: MOOSE_P, frames: [UP, UP, UP, UP, UP, BEAT]};
+  // UN-GLITCHED (build step 5, the ending): blue eyes, conducting in time (up, down)
+  S['npc-moose-ok'] = {w: 24, h: 28, fps: 2, palette: MOOSE_P, frames: [moose(false, true), moose(true, true)]};
 
   /* PROFESSOR HOOT: a felt owl in a mortarboard, reading the same page of a music book (it flips up, then back) */
-  function hoot(flip) {
+  function hoot(flip, ok) {
     const g = grid(24, 28);
     oval(g, 11.5, 15, 6.5, 8, 'f'); oval(g, 11.5, 18, 4, 5, 'l');                                  // the body, the belly
     oval(g, 9, 11, 2.8, 2.6, 'l'); oval(g, 14, 11, 2.8, 2.6, 'l');                                 // the face discs
-    rect(g, 8, 10, 2, 2, 'e'); rect(g, 14, 10, 2, 2, 'e'); put(g, 9, 10, 'k'); put(g, 14, 10, 'k'); // eyes (red: the static)
+    rect(g, 8, 10, 2, 2, ok ? 'E' : 'e'); rect(g, 14, 10, 2, 2, ok ? 'E' : 'e'); put(g, 9, 10, 'k'); put(g, 14, 10, 'k'); // eyes (red: the static; blue: awake)
     rect(g, 11, 13, 2, 2, 'y');                                                                    // the beak
     rect(g, 5, 5, 14, 1, 'k'); rect(g, 8, 6, 8, 2, 'K'); line(g, 17, 5, 18, 9, 'y');               // the mortarboard + tassel
     put(g, 6, 14, 'b'); put(g, 17, 14, 'b');
@@ -191,8 +193,11 @@
     return text(outline(g));
   }
   const READ = hoot(false);
-  S['npc-hoot'] = {w: 24, h: 28, fps: 2, palette: Object.assign({}, BOT, {f: 'q-stage-owl', F: 'q-stage-owl-d', l: 'q-stage-owl-l', K: 'q-grey-d', p: 'q-paper-d'}),
-    frames: [READ, READ, READ, hoot(true)]};
+  const HOOT_P = Object.assign({}, BOT, {f: 'q-stage-owl', F: 'q-stage-owl-d', l: 'q-stage-owl-l', K: 'q-grey-d', p: 'q-paper-d', E: 'q-stage-eye-ok'});
+  S['npc-hoot'] = {w: 24, h: 28, fps: 2, palette: HOOT_P, frames: [READ, READ, READ, hoot(true)]};
+  // AWAKE (hootAwake, data/maps/stage.js npc `awake`): the static let go: friendly blue eyes, still reading (a new page now)
+  const READ_OK = hoot(false, true);
+  S['npc-hoot-ok'] = {w: 24, h: 28, fps: 2, palette: HOOT_P, frames: [READ_OK, READ_OK, READ_OK, hoot(true, true)]};
 
   /* TICKET BOOTH TINA: a lavender ghost (Terry's cousin) with a ticket-taker's pillbox hat and a roll of tickets */
   function tina() {
@@ -225,4 +230,112 @@
   const P0 = pete(false);
   S['npc-pete'] = {w: 24, h: 28, fps: 2, palette: {o: 'q-out', x: 'q-stage-stripe', w: 'q-white', W: 'q-paper', y: 'q-stage-pop', Y: 'q-stage-pop-d', k: 'q-black', K: 'q-grey-d'},
     frames: [P0, down(P0), P0, down(pete(true))]};
+
+  /* ---------- EPISODE 2's MACHINES (32 × 32, like Episode 1's ghosts: idle, idle, happy). Glitching = red eyes (the
+     static); happy (befriended) = friendly blue eyes. Silly stage machines, never scary: nobody inside them. ---------- */
+  const MP = {o: 'q-out', k: 'q-black', K: 'q-grey-d', w: 'q-white', e: 'q-stage-eye', E: 'q-stage-eye-ok', b: 'q-steel', B: 'q-steel-d',
+    y: 'q-gold', Y: 'q-brass-d', r: 'q-red', R: 'q-stage-velvet-d', p: 'q-pink', P: 'q-purple', m: 'q-out', s: 'q-stage-bulb', S: 'q-stage-bulb-off',
+    t: 'q-stage-trim', T: 'q-stage-trim-d', W: 'q-wood', l: 'q-wood-l', c: 'q-paper', C: 'q-paper-d', g: 'q-green', G: 'q-cursor', v: 'q-stage-velvet'};
+  const machine = (draw) => ({w: 32, h: 32, fps: 2, palette: MP, frames: [0, 1, 2].map(f => { const g = grid(32, 32); draw(g, f); return text(outline(g)); })});
+  /** a cartoon eye: white with a pupil (red while glitching, blue when happy) */
+  const eye = (g, x, y, happy) => { rect(g, x, y, 2, 2, 'w'); put(g, x + 1, y + 1, happy ? 'E' : 'e'); };
+  const smile = (g, x, y, w) => { put(g, x, y, 'm'); put(g, x + w - 1, y, 'm'); rect(g, x + 1, y + 1, w - 2, 1, 'm'); };
+  const note = (g, x, y) => { rect(g, x, y, 2, 2, 'y'); rect(g, x + 1, y - 4, 1, 4, 'y'); put(g, x + 2, y - 4, 'y'); };
+
+  /* TAPSY: a pair of tap shoes dancing by themselves (one heel up, then the other), shiny, metal taps, little bows */
+  function shoe(g, x, y, happy) {
+    rect(g, x + 1, y - 5, 6, 6, 'w'); rect(g, x + 1, y - 5, 6, 1, 'c');                  // a white spat (the ankle)
+    oval(g, x + 7, y + 4, 7, 3.6, 'k'); rect(g, x + 1, y + 3, 4, 5, 'k');               // the shoe and its heel
+    rect(g, x + 1, y + 8, 4, 1, 'b'); rect(g, x + 8, y + 7, 6, 1, 'b');                 // the taps
+    put(g, x + 11, y + 2, 'K'); put(g, x + 12, y + 2, 'K');                             // shine
+    eye(g, x + 6, y + 2, happy); eye(g, x + 10, y + 2, happy);
+    rect(g, x + 3, y - 2, 3, 1, 'r'); put(g, x + 2, y - 3, 'r'); put(g, x + 6, y - 3, 'r');   // a bow on the spat
+  }
+  S.tapsy = machine((g, f) => {
+    shoe(g, 0, f === 0 ? 17 : 21, f === 2); shoe(g, 16, f === 1 ? 17 : 21, f === 2);
+    if (f === 2) { note(g, 14, 8); note(g, 27, 5); }
+  });
+  /* SPOTLIGHT SPRITE: a little stage light on a yoke, its lens a bulb (dim, bright, beaming when happy) */
+  S.spotlight = machine((g, f) => {
+    line(g, 6, 28, 10, 22, 'K', 2); line(g, 25, 28, 21, 22, 'K', 2); rect(g, 9, 21, 14, 2, 'K');   // the stand and its yoke
+    rect(g, 8, 8, 16, 13, 'B'); rect(g, 9, 9, 14, 11, 'b');                              // the can
+    oval(g, 16, 6, 6, 4, 'Y'); oval(g, 16, 6, 4.6, 2.8, f === 1 ? 'S' : 's');           // the lens (dims, then comes back)
+    eye(g, 11, 12, f === 2); eye(g, 19, 12, f === 2);
+    if (f === 2) { smile(g, 13, 16, 6); line(g, 12, 1, 8, 0, 's'); line(g, 20, 1, 24, 0, 's'); } else rect(g, 14, 17, 4, 1, 'm');
+    rect(g, 6, 13, 2, 3, 'K'); rect(g, 24, 13, 2, 3, 'K');                               // the yoke's knobs
+  });
+  /* FEEDBACK FUZZ: a squealing ball of feedback on a bad cable (its spikes jitter; smooth and round when happy) */
+  S.feedback = machine((g, f) => {
+    oval(g, 16, 14, 9, 8.5, 'p'); oval(g, 16, 14, 6, 5.5, 'P');
+    if (f !== 2) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2 + (f ? .26 : 0), r = k % 2 ? 11 : 12.5; line(g, Math.round(16 + Math.cos(a) * 8), Math.round(14 + Math.sin(a) * 8), Math.round(16 + Math.cos(a) * r), Math.round(14 + Math.sin(a) * r), 'p'); }
+    eye(g, 11, 10, f === 2); eye(g, 19, 10, f === 2);
+    if (f === 2) smile(g, 13, 17, 6); else { oval(g, 16, 18, 2.6, 2, 'm'); rect(g, 15, 17, 2, 1, 'w'); }   // EEEEE!
+    line(g, 16, 23, 14, 27, 'k'); line(g, 14, 27, 20, 29, 'k'); rect(g, 20, 27, 4, 4, 'Y'); rect(g, 24, 28, 2, 1, 'b'); rect(g, 24, 30, 2, 1, 'b');   // the cable and its plug
+  });
+  /* CONFETTI CANNON: a little party cannon on wheels (confetti puffs out; a big burst when happy) */
+  S.confetti = machine((g, f) => {
+    line(g, 12, 20, 21, 9, 'v', 6); line(g, 13, 19, 20, 10, 'y', 1);                     // the barrel, a gold stripe
+    oval(g, 22, 8, 3.5, 3.5, 'R');                                                        // its mouth
+    rect(g, 6, 18, 16, 7, 'v'); rect(g, 6, 20, 16, 1, 'y');                              // the body
+    oval(g, 9, 26, 3.5, 3.5, 'W'); oval(g, 19, 26, 3.5, 3.5, 'W'); put(g, 9, 26, 'l'); put(g, 19, 26, 'l');   // wheels
+    eye(g, 9, 21, f === 2); eye(g, 15, 21, f === 2);
+    const bits = f === 2 ? [[26, 2, 'p'], [28, 6, 'G'], [24, 1, 'y'], [29, 2, 'g'], [22, 0, 'G'], [27, 10, 'y'], [30, 8, 'p']] : f ? [[26, 4, 'p'], [27, 1, 'y']] : [[25, 3, 'G'], [28, 2, 'p']];
+    bits.forEach(([x, y, c]) => rect(g, x, y, 2, 2, c));
+  });
+  /* METRO-GNOME: a tiny pyramid metronome in a pointy gnome hat with a beard; its pendulum ticks left, right */
+  S.metrognome = machine((g, f) => {
+    for (let y = 12; y <= 29; y++) { const hw = 3 + (y - 12) * .5; rect(g, Math.round(16 - hw), y, Math.round(hw * 2), 1, 'W'); }   // the wooden body
+    rect(g, 9, 28, 14, 2, 'l');
+    for (let y = 1; y <= 11; y++) { const hw = (y - 1) * .55; rect(g, Math.round(16 - hw), y, Math.max(1, Math.round(hw * 2)), 1, 'r'); }   // the pointy hat
+    rect(g, 9, 11, 14, 2, 'r');
+    eye(g, 12, 14, f === 2); eye(g, 18, 14, f === 2);
+    oval(g, 16, 20, 5, 3, 'w');                                                           // the beard
+    const tip = f === 0 ? 9 : f === 1 ? 23 : 16;
+    line(g, 16, 27, tip, 17, 'b'); rect(g, tip - 1, 19, 3, 2, 'Y');                     // the pendulum and its weight
+    if (f === 2) note(g, 27, 8);
+  });
+  /* TICKET STUBS: a swarm of torn tickets; the one in front has a face (they shuffle; a neat fan when happy) */
+  function ticket(g, x, y, face, happy) {
+    rect(g, x, y, 12, 7, 'c'); rect(g, x, y + 1, 12, 1, 'r'); rect(g, x + 8, y, 1, 7, 'C');   // paper, a red stripe, the perforation
+    put(g, x + 11, y + 6, '.'); put(g, x + 11, y + 5, '.');                                // torn
+    if (face) { eye(g, x + 2, y + 3, happy); eye(g, x + 5, y + 3, happy); }
+  }
+  S.stubs = machine((g, f) => {
+    const spots = f === 2 ? [[3, 6], [17, 6], [10, 3]] : f ? [[4, 4], [18, 9], [12, 2]] : [[2, 9], [19, 5], [13, 1]];
+    spots.forEach(([x, y]) => ticket(g, x, y, false));
+    ticket(g, 9, 16, true, f === 2);
+    if (f === 2) smile(g, 11, 24, 4);
+  });
+  /* ROPE KNOT: a curtain rope in a terrible knot, a tassel on one end (its ends swing; hanging free when happy) */
+  S.ropeknot = machine((g, f) => {
+    if (f === 2) { line(g, 16, 0, 16, 22, 't', 3); line(g, 17, 0, 17, 22, 'T'); }
+    else {
+      oval(g, 12, 13, 7, 6, 't'); oval(g, 20, 15, 7, 6, 't'); oval(g, 12, 13, 3.5, 2.8, '.'); oval(g, 20, 15, 3.5, 2.8, '.');
+      line(g, 9, 9, 23, 19, 'T', 2); line(g, 6, 2, 9, 9, 't', 3);
+      line(g, 26, 18, f ? 29 : 25, 24, 't', 3);
+    }
+    const ex = f === 2 ? 15 : f ? 28 : 24, ey = f === 2 ? 23 : 24;
+    rect(g, ex, ey, 4, 2, 'y'); for (let i = 0; i < 4; i++) line(g, ex + i, ey + 2, ex + i, ey + 6, 'Y');   // the tassel
+    eye(g, f === 2 ? 13 : 10, f === 2 ? 8 : 11, f === 2); eye(g, f === 2 ? 18 : 19, f === 2 ? 8 : 13, f === 2);
+    if (f === 2) smile(g, 14, 12, 4);
+  });
+  /* MIC-LET: a tiny walking retro microphone with one small red light (the big Microphone's lonely helper) */
+  S.miclet = machine((g, f) => {
+    oval(g, 16, 9, 7, 7, 'b'); oval(g, 16, 9, 5.6, 5.6, 'B');                            // the grille
+    for (let y = 4; y < 15; y++) for (let x = 11; x < 22; x++) if (g[y][x] === 'B' && (x + y) % 2) g[y][x] = 'K';
+    eye(g, 12, 7, f === 2); eye(g, 18, 7, f === 2);
+    if (f === 2) smile(g, 14, 11, 4);
+    rect(g, 13, 15, 6, 3, 'b');                                                           // the collar
+    rect(g, 14, 18, 4, 7, 'k'); put(g, 16, 20, f === 2 ? 'g' : 'r'); put(g, 16, 21, f === 2 ? 'g' : 'r');   // the handle, its little light
+    const l = f === 1 ? 1 : 0;
+    rect(g, 13, 25, 2, 3 + l, 'k'); rect(g, 17, 25, 2, 4 - l, 'k');                       // legs, walking
+    rect(g, 11, 28 + l, 4, 2, 'K'); rect(g, 17, 29 - l, 4, 2, 'K');                       // shoes
+    if (f === 2) note(g, 25, 8);
+  });
+
+  /* ---------- the machines' dodge pieces (battle/dodge.js) ---------- */
+  // (the dodge box is black: a white spat and a grey shoe, so it shows)
+  S['tap-shot'] = {w: 8, h: 7, palette: {k: 'q-grey-d', K: 'q-grey', b: 'q-steel', w: 'q-white', r: 'q-red'}, frames: [['.www....', '.wrw....', '.www....', '.kkkkk..', 'kkkkKkkk', 'kk...kkk', 'bb...bbb']]};
+  S['squeal-shot'] = {w: 6, h: 5, palette: {p: 'q-pink', w: 'q-white'}, frames: [['.pp...', 'p..p..', '....p.', '.....p', '....pw']]};
+  S['stub-shot'] = {w: 7, h: 4, palette: {c: 'q-paper', r: 'q-red', C: 'q-paper-d'}, frames: [['crrrrCc', 'ccccCcc', 'ccccCcc', 'ccccCc.']]};
 })(window.QUEST_ART);

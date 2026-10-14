@@ -51,7 +51,8 @@
    dodging, not the win). A later area multiplies HP (QUEST_AREAS) to keep fights this length at the levels students
    arrive with.
    Episode 1 adds: `phases` (a boss's challenge changes with each PLAY of it), the B♭ Blast (a second attack once the Butler
-   teaches it), the Tuning Slide (boost), `listenBoost`, `mustHarmonize` (HP stops at 1) and per-enemy `music`.
+   teaches it; Episode 2's E♭ ENCORE from Professor Hoot the same way, flag songEb, × RULES.encore; both in PLAY's
+   menu in both episodes), the Tuning Slide (boost), `listenBoost`, `mustHarmonize` (HP stops at 1) and per-enemy `music`.
    The FINAL BOSS adds `stages` (the battle changes as its HP drops: each stage's challenge, notes, dodge and opening
    line; quest-boss-phase plays between them), `finale` (at HP 1 its CALM fills and it says these lines: time to
    HARMONIZE), `harmonizeKeep` (a missed HARMONIZE keeps the CALM) and harmonize {type: 'scale'} (the whole concert
@@ -65,7 +66,7 @@
 (function (A) {
   "use strict";
   const Q = A.Quest;
-  const RULES = {calmMax: 100, harmonizeMiss: 30, speedWeight: .45, blast: 1.3, breath: .3,
+  const RULES = {calmMax: 100, harmonizeMiss: 30, speedWeight: .45, blast: 1.3, encore: 1.3, breath: .3,
     partyHp: .3, bossPartyHp: .45, compHp: .6,             // enemy HP per companion; a companion's HP share (see the header)
     serenadeCalm: 38,                                      // SERENADE: CALM = this × accuracy × the CALM SCALE (see the header)
     compCalm: 1,                                           // after a SERENADE a companion adds your CALM × its companion.power × this (+ its calm perk)
@@ -120,7 +121,7 @@
     }
   }
   const micReady = () => Q.micReady();
-  const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
+  const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING', rhythm: 'RHYTHM', tempo: 'TEMPO', echo: 'ECHO'};
   /** the final boss's stage (data/enemies.js `stages`): the first whose `until` (a share of its HP) is still below it */
   const stageIdx = () => { const st = B.e.stages; if (!st) return -1; const f = B.e.hp / B.e.maxHp, i = st.findIndex(s => f > s.until); return i < 0 ? st.length - 1 : i; };
   const stage = () => (B.e.stages ? B.e.stages[stageIdx()] : null);
@@ -136,14 +137,17 @@
     if (!first) { Q.sfx('quest-boss-phase'); Q.shake(3, 300); float(`STAGE ${i + 1}`, 150, 18, 'calm'); }
     await Q.say([].concat(stage().say || []), {name: B.e.name, portrait: B.e.sprite});
   }
-  /** PLAY: once the Butler taught the B♭ Blast, pick the enemy's challenge or the Blast */
+  /** PLAY: once the Butler taught the B♭ Blast (songBb) or Professor Hoot the E♭ Encore (songEb), pick the enemy's
+      challenge or a song */
   function playMenu() {
-    if (!Q.save.flag('songBb')) return Promise.resolve('main');
+    const songs = [].concat(Q.save.flag('songBb') ? [{id: 'blast', label: Q.text('blast'), sub: Q.text('blastSub'), cls: 'c-play'}] : [],
+      Q.save.flag('songEb') ? [{id: 'encore', label: Q.text('encore'), sub: Q.text('encoreSub'), cls: 'c-play'}] : []);
+    if (!songs.length) return Promise.resolve('main');
     return new Promise(done => {
       const cmd = Q.$('qCmd'); cmd.hidden = false;
       const t = Q.challenge.resolve(challengeNow());
-      const m = Q.menu(cmd, [{id: 'main', label: TYPE_NAME[t] || 'PLAY', sub: Q.text('playSub')}, {id: 'blast', label: Q.text('blast'), sub: Q.text('blastSub'), cls: 'c-play'},
-        {id: null, label: Q.text('back'), cls: 'c-back'}], {cols: 3, label: Q.text('playWhich'),
+      const items = [{id: 'main', label: TYPE_NAME[t] || 'PLAY', sub: Q.text('playSub')}].concat(songs, [{id: null, label: Q.text('back'), cls: 'c-back'}]);
+      const m = Q.menu(cmd, items, {cols: items.length, label: Q.text('playWhich'),
         onPick: it => { m.destroy(); cmd.hidden = true; done(it.id); }, onBack: () => { m.destroy(); cmd.hidden = true; done(null); }});
     });
   }
@@ -252,14 +256,14 @@
   async function doPlay() {
     const which = await playMenu();
     if (!which) return false;
-    const type = challengeNow(), blast = which === 'blast';
-    if ((blast || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
-    if (B.e.phases && !blast) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
-    const res = blast ? await Q.challenge.blast(false) : await Q.challenge.run(type, {enemy: foe()});
+    const type = challengeNow(), blast = which === 'blast', encore = which === 'encore', song = blast || encore;
+    if ((song || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    if (B.e.phases && !song) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
+    const res = blast ? await Q.challenge.blast(false) : encore ? await Q.challenge.encore(false) : await Q.challenge.run(type, {enemy: foe()});
     if (B === null) return false;
     const power = Q.save.powerAt(B.save.level);
     B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;          // the PLAY that reaches the finale can't also end it
-    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : 1));
+    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : encore ? RULES.encore : 1));
     const fork = Q.charms.effects().find(e => e.inTune && res.acc >= (e.at || .9));    // the Tuning Fork
     if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
     const boosted = B.boost && dmg > 0 ? B.boost : 0;
@@ -328,7 +332,7 @@
   }
   async function doHarmonize() {
     const h = B.e.harmonize || {};
-    if ((Q.challenge.uses('play') || h.type === 'articulate') && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    if ((Q.challenge.uses('play') || h.type === 'articulate' || Q.challenge.RHYTHMIC.includes(h.type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     const res = await Q.challenge.run(null, {enemy: B.e, harmonize: true});
     if (B === null) return false;
     if (res.success) { await befriend(); return 'over'; }

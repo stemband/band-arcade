@@ -139,7 +139,7 @@
   --q-stage-velvet:#b8233c; --q-stage-velvet-d:#7a1428; --q-stage-velvet-l:#e2526a;
   --q-stage-bulb:#fff1b0; --q-stage-bulb-off:#6d5a3a; --q-stage-glow:#ffcf5a; --q-stage-stripe:#e8394f;
   --q-stage-mirror:#9fcde4; --q-stage-mirror-l:#e6f6ff; --q-stage-glass:#2a3c6a; --q-stage-pop:#fff4c8; --q-stage-pop-d:#e2c56c;
-  --q-stage-speaker:#2b2631; --q-stage-grille:#141118; --q-stage-glow-red:#ff3048; --q-stage-eye:#ff4a5a; --q-stage-coat:#24203a;
+  --q-stage-speaker:#2b2631; --q-stage-grille:#141118; --q-stage-glow-red:#ff3048; --q-stage-eye:#ff4a5a; --q-stage-eye-ok:#6ad8ff; --q-stage-coat:#24203a;
   --q-stage-moose:var(--anim-moose); --q-stage-moose-d:#4a2c18; --q-stage-moose-l:var(--anim-moose-2); --q-stage-antler:#e8d3a0;
   --q-stage-owl:var(--anim-owl); --q-stage-owl-d:#5a3a26; --q-stage-owl-l:var(--anim-owl-2);
   /* Sustain Speedway: the synthwave racetrack (canvas colors are read from these) */

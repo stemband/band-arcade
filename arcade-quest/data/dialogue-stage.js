@@ -8,10 +8,19 @@
    THE SHOWTIME BAND (Showtime Malfunction's animatronic house band) are friendly malfunctioning MACHINES here: stuck
    in loops by the static, never scary, nobody inside them. Arcade Quest's warm, funny tone.
    FLAGS this episode sets (shared/backup.js QUEST_V6.flags reserves them all): ep2Start (the intro), met-moose,
-   met-hoot, met-tina, met-pete; later: tuskAwake, hootAwake, songEb, salAwake, ricoDone (+ ricoDoor / ricoVent),
-   ep2Done.
+   met-hoot, met-tina, met-pete, hootAwake (6 machines helped), songEb (Hoot's lesson passed); later: tuskAwake,
+   salAwake, ricoDone (+ ricoDoor / ricoVent), ep2Done. NEW CONDITION: 'helped2>=6' = 6 or more Episode 2 machines
+   helped (befriended or powered down), wherever you are; `do: 'teach-eb'` = the E♭ Encore lesson.
    ALSO IN THIS FILE: the intro cutscene ('ep2-intro'), the first lines in the Lobby (QUEST_EP2_ARRIVAL) and the
    microphone's Episode 2 whispers (QUEST_WHISPERS_EP2). */
+/* Professor Hoot's lesson (used twice in his `talk`: right after he wakes, and every visit until you pass) */
+const HOOT_TEACH = {if: 'hootAwake', do: 'teach-eb', lines: [
+  'Now then! The E♭ ENCORE: the concert E♭ scale, bottom to top. On the drum: 8 clean strokes.',
+  'Play it for me, one note at a time. Slowly! A scale is a staircase, not a slide.',
+], yes: [
+  'BRAVO! Hoo-hoo! Every step of the staircase! You know the E♭ Encore!',
+  'Choose it after PLAY in any battle. Your E♭ scale, and it hits harder.',
+], no: ['Again, from the top. Slowly!']};
 Object.assign(window.QUEST_DIALOGUE, {
 
   /* ================= THE ATTIC (Episode 1's last room): the way in ================= */
@@ -74,7 +83,23 @@ Object.assign(window.QUEST_DIALOGUE, {
 
   /* ================= THE GREEN ROOM ================= */
 
+  /* PROFESSOR HOOT: stuck on measure 12 until 6 Episode 2 machines are helped ('helped2>=6': only the Showtime Stage's
+     machines count, befriended or powered down); then he wakes (hootAwake) and teaches the E♭ ENCORE ('teach-eb':
+     the concert E♭ scale bottom to top, 75 % to pass = songEb; the snare: 8 clean strokes) */
   hoot: {name: 'Professor Hoot', sprite: 'npc-hoot', area: 'The Green Room', talk: [
+    {if: 'songEb', cycle: [
+      ['Hoo! Practice your scales every day. Slowly first. The Encore loves a slow start.'],
+      ['Choose the E♭ Encore after PLAY in a battle. Your whole scale, hitting harder!'],
+      ['Long tones, then scales, then the fun stuff. That is the order of the universe. Hoo.'],
+      ['A scale played slowly and well beats a scale played fast and messy. Every time.'],
+    ]},
+    HOOT_TEACH,
+    {if: 'helped2>=6', set: 'hootAwake', next: true, lines: [
+      'Measure 12... measure 12... measure... thirteen?',
+      'MEASURE THIRTEEN! I\'m free! The static let go of my page!',
+      'You did that, didn\'t you? All those machines, calmer now. Hoo! Thank you!',
+    ]},
+    HOOT_TEACH,
     {if: '!met-hoot', set: 'met-hoot', lines: [
       'Measure 12... measure 12... measure 12...',
       '...Hm? A student! Hoo! I mean, hello. I seem to be stuck on this page.',
@@ -84,7 +109,7 @@ Object.assign(window.QUEST_DIALOGUE, {
     {cycle: [
       ['Measure 12... measure 12... measure 12...'],
       ['Hoo! Still measure 12. A lovely measure. I know every dot in it.'],
-      ['A quieter theater, and I could teach you the E♭ Encore. Measure 12...'],
+      ['A quieter theater, and I could teach you the E♭ Encore. ({n} machines helped. Measure 12...)'],
       ['Tip: read the rhythm BEFORE you play it. Hoo! ...measure 12...'],
     ]},
   ]},
