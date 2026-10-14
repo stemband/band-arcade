@@ -345,9 +345,10 @@ test.describe('THE 8 SHOWTIME MACHINES (Test Arena, ?set=2)', () => {
     watch.check();
   });
 
-  for (const reduced of [false, true]) {
-    test(`each machine: befriended (SERENADE → HARMONIZE) and powered down (PLAY), its own dodge running${reduced ? ' (reduced motion)' : ''}`, async ({page}) => {
-      test.setTimeout(90000);
+  // one fresh page per machine (16 battles on one page was heavy for WebKit on CI)
+  const KIND = {tapsy: ['taps'], spotlight: ['beam'], feedback: ['shot'], confetti: ['confetti'], metrognome: ['pendulum'], stubs: ['stubs'], ropeknot: ['rope'], miclet: ['rings']};
+  for (const reduced of [false, true]) for (const machine of MACHINES) {
+    test(`${machine}: befriended (SERENADE → HARMONIZE) and powered down (PLAY), its own dodge running${reduced ? ' (reduced motion)' : ''}`, async ({page}) => {
       if (reduced) await page.emulateMedia({reducedMotion: 'reduce'});
       const watch = await arena(page);
       await page.evaluate(() => {
@@ -368,7 +369,7 @@ test.describe('THE 8 SHOWTIME MACHINES (Test Arena, ?set=2)', () => {
           return p;
         };
       });
-      for (const [id, how] of MACHINES.flatMap(id => [[id, 'befriend'], [id, 'defeat']])) {
+      for (const [id, how] of [[machine, 'befriend'], [machine, 'defeat']]) {
         await page.evaluate(id => { const Q = Arcade.Quest, s = Q.save.get(); s.hp = s.maxHp; s.roster = []; Q.save.write(); Q.go('battle', {enemy: id, back: 'arena'}); }, id);
         let turns = 0;
         for (let i = 0; i < 400; i++) {
@@ -389,13 +390,10 @@ test.describe('THE 8 SHOWTIME MACHINES (Test Arena, ?set=2)', () => {
         expect(turns, id).toBeGreaterThan(0);
       }
       const dodges = await page.evaluate(() => window.__dodges);
-      const KIND = {tapsy: ['taps'], spotlight: ['beam'], feedback: ['shot'], confetti: ['confetti'], metrognome: ['pendulum'], stubs: ['stubs'], ropeknot: ['rope'], miclet: ['rings']};
-      MACHINES.forEach(id => {
-        const d = dodges.filter(x => x.enemy === id);
-        expect(d.length, `${id} dodged`).toBeGreaterThan(0);
-        const all = new Set(d.flatMap(x => x.kinds.concat(x.fx)));
-        KIND[id].forEach(k => expect([...all], `${id}: ${k}`).toContain(k));
-      });
+      const d = dodges.filter(x => x.enemy === machine);
+      expect(d.length, `${machine} dodged`).toBeGreaterThan(0);
+      const all = new Set(d.flatMap(x => x.kinds.concat(x.fx)));
+      KIND[machine].forEach(k => expect([...all], `${machine}: ${k}`).toContain(k));
       watch.check();
     });
   }
