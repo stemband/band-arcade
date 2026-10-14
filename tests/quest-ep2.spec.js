@@ -488,23 +488,23 @@ test('every Episode 2 line fits the text box (≤ 80 characters) and every new s
     ['moose', 'tina', 'pete', 'hoot', 'speaker'].forEach(id => walk(window.QUEST_DIALOGUE[id].talk, id));
     walk(window.QUEST_CUTSCENES['ep2-intro'], 'ep2-intro'); walk(window.QUEST_EP2_ARRIVAL, 'arrival'); walk(window.QUEST_WHISPERS_EP2, 'whispers');
     Object.keys(window.QUEST_SIGNS).filter(k => /soon|roped|stage|box-office|snack|lobby|velvet|greenroom/.test(k)).forEach(k => walk(window.QUEST_SIGNS[k], k));
-    const S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
+    const S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal|rico)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot|rico|borrow-note|borrow-case)$)/.test(id));
     const missing = [];
     ids.forEach(id => Object.values(S[id].palette).forEach(t => { if (!getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim()) missing.push(`${id}: ${t}`); }));
     return {long, missing, n: ids.length};
   });
   expect(r.long).toEqual([]);
   expect(r.missing).toEqual([]);
-  expect(r.n).toBe(70);          // 48 tiles, the speaker, 6 NPCs + Hoot, Moose, Tubby and Sal un-glitched, 8 machines, 3 dodge pieces
+  expect(r.n).toBe(97);          // 69 tiles, the speaker, 7 NPCs + Hoot, Moose, Tubby, Sal and Rico (x2) awake, 8 machines + Rico, 5 dodge pieces
   watch.check();
 });
 
 test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame) and the stage speaker at 4× (docs/gallery/aq-ep2-sprites.png)', async ({page}) => {
   test.skip(!process.env.GALLERY, 'only with GALLERY=1');
-  await page.setViewportSize({width: 1400, height: 1240});
+  await page.setViewportSize({width: 1400, height: 1700});
   const watch = await boot(page, store(save(false)));
   await page.evaluate(() => {
-    const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
+    const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal|rico)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot|rico|borrow-note|borrow-case)$)/.test(id));
     const sheet = document.createElement('div');
     sheet.id = 'aqGallery';
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#1d1830;color:#fbf8ff;font:12px monospace;padding:10px;display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;overflow:hidden';

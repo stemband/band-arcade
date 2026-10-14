@@ -22,6 +22,9 @@
      stubs     ticket stubs fluttering down on gentle side-to-side paths
      rope      a swaying rope sinking down the box, with a gap that drifts side to side: slip through the gap
      rings     static rings expanding from the top (the Mic-let), each with a gap: slip through it
+     borrow    RICO BANDIT's: his sax case sits at the bottom of the box (always shown: you see where they come from);
+               `count` borrowed notes arc up out of it, then curve back toward your note (gently: BORROW.turn) and
+               fade out after BORROW.life seconds. Reduced motion: the same notes, without their little spin
    Never a flash: nothing blinks faster than 3 times a second, nothing fills the box.
    Q.dodge.start({enemy, easy, slow, shield, assist, mute, charm, onHit}) -> Promise {damage, hits, blocked, muted}
    Easy: slower and fewer; Metronome (slow): slower still; Cork Grease (shield): blocks hits; Assist: half damage.
@@ -103,6 +106,9 @@
     },
   };
   const CONFETTI = ['q-pink', 'q-gold', 'q-cursor', 'q-green', 'q-orange'];
+  /* RICO's borrowed notes: how hard they turn back toward you (px/s²), how long they fly, where the case sits */
+  const BORROW = {turn: 42, life: 3.2, max: 46, caseW: 20};
+  const caseAt = () => ({x: BOX.x + BOX.w / 2 - BORROW.caseW / 2, y: BOX.y + BOX.h - 8});
   function spawn(pat, mult) {
     const b = BOX, sp = pat.speed * mult.speed, s = Q.spriteDef(pat.sprite) || {w: 6, h: 6};
     const add = (x, y, vx, vy, extra) => D.shots.push(Object.assign({x, y, vx, vy, sprite: pat.sprite, w: s.w, h: s.h, born: D.t}, extra || {}));
@@ -135,6 +141,13 @@
     } else if (pat.kind === 'squeal') {                       // a squiggly train of feedback crossing on a wave
       const left = Math.random() < .5, y0 = Q.rand(b.y + 14, b.y + b.h - 18), amp = Q.rand(6, 11), freq = Q.rand(1.4, 2);
       for (let k = 0; k < 6; k++) add((left ? b.x - s.w : b.x + b.w) - (left ? 1 : -1) * k * 7, y0, left ? sp : -sp, 0, {y0, amp, freq, born: D.t - k * .07});
+    } else if (pat.kind === 'borrow') {                       // notes arc up out of Rico's case, then curve back toward you
+      const c = caseAt(), n = pat.count || 3;
+      for (let k = 0; k < n; k++) {
+        const a = -Math.PI / 2 + (k - (n - 1) / 2) * .55 + Q.rand(-.12, .12);
+        add(c.x + BORROW.caseW / 2 - s.w / 2, c.y - s.h, Math.cos(a) * sp, Math.sin(a) * sp, {home: true});
+      }
+      Q.sfx('quest-tap');
     } else if (pat.kind === 'stubs') {                        // a ticket stub fluttering down, side to side
       const x0 = Q.rand(b.x + 8, b.x + b.w - 8 - s.w);
       add(x0, b.y - s.h, 0, sp, {x0, ax: Q.rand(6, 12), freq: Q.rand(.6, 1), flip: Math.random() < .5});
@@ -191,6 +204,11 @@
         return false;
       });
       D.shots.forEach(s => {
+        if (s.home) {                                                       // a borrowed note curving back toward your note
+          const dx = D.cx - s.x, dy = D.cy - s.y, d = Math.hypot(dx, dy) || 1, k = BORROW.turn * D.mult.speed * dt;
+          s.vx += dx / d * k; s.vy += dy / d * k;
+          const v = Math.hypot(s.vx, s.vy), m = BORROW.max * D.mult.speed; if (v > m) { s.vx *= m / v; s.vy *= m / v; }
+        }
         if (s.grav) s.vy = Math.min(s.vy + s.grav * dt, 40);
         s.x = s.ax ? s.x0 + Math.sin((D.t - s.born) * s.freq * Math.PI * 2) * s.ax : s.x + s.vx * dt;
         s.y = s.amp ? s.y0 + Math.sin((D.t - s.born) * s.freq * Math.PI * 2) * s.amp : s.y + s.vy * dt;
@@ -201,6 +219,7 @@
       D.fx.forEach(o => FX[o.kind].step(o, dt));
       D.fx = D.fx.filter(o => !FX[o.kind].done(o));
       D.batons = D.batons.filter(bt => D.t < bt.go + bt.dur + .15);
+      D.shots = D.shots.filter(s => !s.home || D.t - s.born < BORROW.life);
       D.shots = D.shots.filter(s => s.x > BOX.x - 20 && s.x < BOX.x + BOX.w + 20 && s.y > BOX.y - 20 && s.y < BOX.y + BOX.h + 20);
       if (D.inv > 0) D.inv -= dt;
       else {
@@ -247,11 +266,13 @@
       ctx.save(); ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip();
       D.warn.forEach(w => { ctx.strokeStyle = Q.css(w.confetti ? 'q-pink' : 'q-purple'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(Math.round(w.x), Math.round(w.y), 7 - (w.at - D.t) * 6, 0, Math.PI * 2); ctx.stroke(); });
       D.fx.forEach(o => FX[o.kind].draw(ctx, o, now));
+      if (D.pats.some(p => p.kind === 'borrow')) { const c = caseAt(); Q.draw(ctx, 'borrow-case', Math.round(c.x), Math.round(c.y - 2), {t: now}); }
       // the taps' beat: the floor glows softly where a tap shoe just landed (a fade, never a flash)
       D.landed.forEach(l => { ctx.fillStyle = Q.css('q-stage-glow'); ctx.globalAlpha = .5 * (1 - (D.t - l.t) / .35); ctx.fillRect(Math.round(l.x - 8), b.y + b.h - 3, 16, 3); ctx.globalAlpha = 1; });
       D.shots.forEach(s => {
         if (s.col) { ctx.fillStyle = Q.css(s.col); const tw = !Q.reduced() && Math.floor((now / 160 + s.x) % 2) ? 2 : 3; ctx.fillRect(Math.round(s.x + 1), Math.round(s.y + 1), tw, 3 - (tw === 2 ? 1 : 0)); return; }   // confetti (its twinkle: decoration)
         if (s.flip != null) return Q.draw(ctx, s.sprite, s.x, s.y, {t: now, flip: !Q.reduced() && Math.floor((D.t - s.born) * 2) % 2 === 0});   // a ticket stub flipping as it flutters
+        if (s.home) { ctx.globalAlpha = Math.min(1, (BORROW.life - (D.t - s.born)) / .4); Q.draw(ctx, s.sprite, s.x, s.y, {t: now, flip: !Q.reduced() && Math.floor((D.t - s.born) * 3) % 2 === 1}); ctx.globalAlpha = 1; return; }
         if (!s.rect) return Q.draw(ctx, s.sprite, s.x, s.y, {t: now});
         // a measure of music: five lines, a bar line at each end, and a note in it
         ctx.fillStyle = Q.css('q-paper'); ctx.globalAlpha = .9;
@@ -283,7 +304,7 @@
       ctx.fillStyle = Q.css('q-cursor'); ctx.fillRect(b.x, b.y + b.h + 4, b.w * Math.max(0, 1 - D.t / D.len), 2);
     },
     state: () => D && {t: D.t, len: D.len, speed: D.mult.speed, mute: D.mute, muted: D.muted, shots: D.shots.length, batons: D.batons.length, hits: D.hits, cx: D.cx, cy: D.cy, damage: D.damage,
-      fx: D.fx.map(o => o.kind), kinds: [...new Set(D.shots.map(s => (s.tap ? 'taps' : s.col ? 'confetti' : s.ax ? 'stubs' : s.amp ? 'wave' : 'shot')))],
+      fx: D.fx.map(o => o.kind), kinds: [...new Set(D.shots.map(s => (s.tap ? 'taps' : s.home ? 'borrow' : s.col ? 'confetti' : s.ax ? 'stubs' : s.amp ? 'wave' : 'shot')))],
       taps: D.shots.filter(s => s.tap).map(s => +(s.lands).toFixed(3)), landed: D.landed.length, warns: D.fx.filter(o => o.go != null).map(o => +(o.go - o.born).toFixed(3))},   // tests
   };
 })(window.Arcade);

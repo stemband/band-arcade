@@ -544,9 +544,11 @@
       const title = Q.text('harmonize' + h.type[0].toUpperCase() + h.type.slice(1));
       return resolve(h.type) === h.type ? RUN[h.type](e, {title}) : articulate(enemy, {taps: 5, secs: 10});
     }
-    if (h.type === 'scale') {                                  // the final HARMONIZE: the whole concert B♭ scale (snare: 8 strokes)
-      if (unpitched) return articulate({taps: 8, time: 16}, {title: Q.text('harmonizeScaleDrum')});
-      return play({notes: 'Bb', order: 'order', count: 8, time: h.time || 40}, undefined, undefined, Q.text('harmonizeScale'));
+    if (h.type === 'scale') {                                  // a scale in order: the final HARMONIZE (the whole concert B♭ scale; snare: 8
+      // strokes), or Rico's (`notes: 'Eb', count: 4`: give the notes back, 4 E♭ scale notes in order; snare: `taps`)
+      const n = h.count || 8, part = n < 8;
+      if (unpitched) return articulate({taps: h.taps || 8, time: h.time || 16}, {title: Q.text(part ? 'harmonizePartDrum' : 'harmonizeScaleDrum', {n: h.taps || 8})});
+      return play({notes: h.notes || 'Bb', order: 'order', count: n, time: h.time || 40}, undefined, undefined, part ? Q.text('harmonizePart', {n}) : Q.text('harmonizeScale'));
     }
     if (unpitched || h.type === 'articulate') {
       const taps = h.taps || 5;

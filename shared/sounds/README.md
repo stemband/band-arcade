@@ -608,6 +608,7 @@ upload a file, that part of the game is simply quiet.
 | `quest-foyer` | `quest-foyer.m4a` or `quest-foyer.mp3` | Arcade Quest: Ghost Notes Manor, the Foyer (the safe hub) and the Practice Hall. Nothing plays until you upload it. **loops** | 30–90 s loop |
 | `quest-manor` | `quest-manor.m4a` or `quest-manor.mp3` | Arcade Quest: exploring Ghost Notes Manor (every room but the Foyer). Nothing plays until you upload it. **loops** | 30–90 s loop |
 | `quest-miniboss` | `quest-miniboss.m4a` or `quest-miniboss.mp3` | Arcade Quest: the mini-boss battle (The Phantom Fermata), in menus and dodging; stops while listening. Nothing plays until you upload it. **loops** | 30–90 s loop |
+| `quest-ep2-miniboss` | `quest-ep2-miniboss.m4a` or `quest-ep2-miniboss.mp3` | Arcade Quest Episode 2: the mini-boss battle (Rico Bandit). Until it is uploaded: `quest-miniboss`. **loops** | 30–90 s loop |
 | `quest-step` | `quest-step.m4a` or `quest-step.mp3` | Arcade Quest: a footstep while exploring (every other step, very quiet). | under 0.08 s |
 | `quest-door` | `quest-door.m4a` or `quest-door.mp3` | Arcade Quest: going through a door to another room (or a locked door rattling). | under 0.5 s |
 | `quest-save` | `quest-save.m4a` or `quest-save.mp3` | Arcade Quest: saving at the Save Jukebox. | 0.5–1.5 s |
@@ -635,6 +636,8 @@ under "Arcade Quest — Episode 2 Rooms".
 | `quest-room-workshop` | `quest-room-workshop.m4a` or `quest-room-workshop.mp3` | Episode 2: the Prop Workshop (Snapjaw Sal, paint and cardboard). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-backstage` | `quest-room-backstage.m4a` or `quest-room-backstage.mp3` | Episode 2: Backstage (rope lines, road cases, the stage manager's desk). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-balcony` | `quest-room-balcony.m4a` or `quest-room-balcony.mp3` | Episode 2: the Balcony (seats over the stage; the Microphone peeks through the curtain). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
+| `quest-room-dressing` | `quest-room-dressing.m4a` or `quest-room-dressing.mp3` | Episode 2: the Dressing Rooms (mirrors with bulbs, costume racks, Rico Bandit). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-loft` | `quest-room-loft.m4a` or `quest-room-loft.mp3` | Episode 2: the Fly Loft (catwalks over the dark; the Microphone far below), and the Vent. Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
 | `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
 | `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |

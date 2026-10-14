@@ -49,6 +49,8 @@ Object.assign(window.QUEST_DIALOGUE, {
       'Tubby, Hoot, Sal, Rico... Help the theater\'s machines. Clear the static!',
       'And a one, and a t— (He freezes again, baton in the air.)',
     ]},
+    {if: 'helped2>=20&!moose-all', set: 'moose-all', lines: ['Every machine in the house is humming. Places, everyone!']},
+    {if: 'ricoDone&!moose-rico', set: 'moose-rico', lines: ['A saxophone! Now we have EVERYBODY. Almost time, almost time...']},
     {if: 'salAwake&!moose-sal', set: 'moose-sal', lines: [
       'A snare! Now we have a beat! Ba-dum, ba-dum...',
       'Tubby AND Sal! Bass and drums! And a one, and a two, and a— (frozen again).',
@@ -84,6 +86,8 @@ Object.assign(window.QUEST_DIALOGUE, {
     ]},
     {if: 'tuskAwake&!tina-tusk', set: 'tina-tusk', do: 'booth', lines: ['Hon, did you hear? The tuba stopped! And the balcony stairs are open again.']},
     {if: 'salAwake&!tina-sal', set: 'tina-sal', do: 'booth', lines: ['No more drum roll from the workshop! I can finally hear my ticket printer.']},
+    {if: 'ricoDoor&!tina-rico', set: 'tina-rico', do: 'booth', lines: ['Rico gave my ticket stubs back! Mostly. A few are signed "R.B." now.']},
+    {if: 'ricoVent&!tina-rico', set: 'tina-rico', do: 'booth', lines: ['Rico\'s resting, hon. The notes found their own way home. So did my stubs.']},
     {if: 'songEb&!tina-eb', set: 'tina-eb', do: 'booth', lines: ['Hoot taught you the Encore? An encore means MORE show. My favorite!']},
     {do: 'booth', cycle: [
       ['Admit one! Or many. What can Tina do for you, hon?'],
@@ -101,6 +105,8 @@ Object.assign(window.QUEST_DIALOGUE, {
     ]},
     {if: 'tuskAwake&!pete-tusk', set: 'pete-tusk', do: 'shop', lines: ['POP! The tuba stopped! The floor stopped shaking. My kernels are so calm.']},
     {if: 'salAwake&!pete-sal', set: 'pete-sal', do: 'shop', lines: ['POP POP! Sorry. Without that drum roll, I\'m the loudest thing here!']},
+    {if: 'ricoDoor&!pete-rico', set: 'pete-rico', do: 'shop', lines: ['Rico gave my POP back! Mostly. POP! There it is.']},
+    {if: 'ricoVent&!pete-rico', set: 'pete-rico', do: 'shop', lines: ['Rico\'s resting. The notes found their own way home. Even my pops! POP!']},
     {if: 'songEb&!pete-eb', set: 'pete-eb', do: 'shop', lines: ['An Encore! POP! I always pop extra popcorn for an encore.']},
     {do: 'shop', cycle: [
       ['POP! Welcome back!'],
@@ -116,6 +122,8 @@ Object.assign(window.QUEST_DIALOGUE, {
      machines count, befriended or powered down); then he wakes (hootAwake) and teaches the E♭ ENCORE ('teach-eb':
      the concert E♭ scale bottom to top, 75 % to pass = songEb; the snare: 8 clean strokes) */
   hoot: {name: 'Professor Hoot', sprite: 'npc-hoot', area: 'The Green Room', talk: [
+    {if: 'hootAwake&ricoDoor&!hoot-rico', set: 'hoot-rico', next: true, lines: ['Rico gave my notes back! Mostly. I am still missing a dotted quarter. Hoo.']},
+    {if: 'hootAwake&ricoVent&!hoot-rico', set: 'hoot-rico', next: true, lines: ['Rico is resting. The notes found their own way home. Clever little notes.']},
     {if: 'songEb', cycle: [
       ['Hoo! Practice your scales every day. Slowly first.', 'The Encore loves a slow start.'],
       ['Choose the E♭ Encore after PLAY in a battle. Your whole scale, hitting harder!'],
@@ -153,6 +161,8 @@ Object.assign(window.QUEST_DIALOGUE, {
     'Oh! I was sitting on the trap door. Scoot, scoot... There! Down to Backstage.',
     'And the rope on the balcony stairs came down. Go up and look, if you like.',
   ], talk: [
+    {if: 'tuskAwake&ricoDoor&!tusk-rico', set: 'tusk-rico', lines: ['Rico gave my low notes back! Mostly. BWAA! Ah, there they are.']},
+    {if: 'tuskAwake&ricoVent&!tusk-rico', set: 'tusk-rico', lines: ['Rico\'s resting. The notes found their own way home. Even the low ones.']},
     {if: 'tuskAwake', cycle: [
       ['Long tones are like naps for your sound. Very good for you.'],
       ['Breathe low, from your belly. A walrus knows. I am mostly belly.'],
@@ -178,6 +188,8 @@ Object.assign(window.QUEST_DIALOGUE, {
     'Want to read rhythms like a pro? Talk to me. The lesson\'s free!',
     'Oh, and the ladder up to the fly loft? I was leaning on it. All yours.',
   ], talk: [
+    {if: 'salAwake&ricoDoor&!sal-rico', set: 'sal-rico', lines: ['Rico gave my rimshot back! Mostly. Ba-dum... tss. Yep, that\'s the one.']},
+    {if: 'salAwake&ricoVent&!sal-rico', set: 'sal-rico', lines: ['Rico\'s resting. The notes found their own way home. Like a good rhythm.']},
     {if: 'charm:metronome-ticker', cycle: [
       ['Count out loud: "1 and 2 and." Your feet can tap, too. Feet are free drums.'],
       ['Rests are part of the rhythm. Silence counts! Literally. Count it.'],
@@ -198,6 +210,32 @@ Object.assign(window.QUEST_DIALOGUE, {
       ['brrrrrrrrrrrr— (Help the workshop\'s 4 machines. Then maybe...) —rrrrr'],
     ]},
   ]},
+
+  /* ================= THE DRESSING ROOMS ================= */
+
+  /* RICO BANDIT (data/enemies.js 'rico', the mini-boss): his speech before the battle (`talk`), the first time in
+     full (met-rico); after it, as an NPC: by the star door, awake (befriended: ricoDoor), or resting in his chair by the
+     vent (powered down: ricoVent) */
+  rico: {name: 'Rico Bandit', sprite: 'npc-rico', area: 'The Dressing Rooms', talk: [
+    {if: 'ricoDoor', cycle: [
+      ['Here, have a C. No, wait, that\'s mine. Here, have a B♭. Also mine. Hm.'],
+      ['I gave everybody\'s notes back. Mostly. I kept one A. For luck.'],
+      ['The star door goes to the stage! Go on. I\'ll catch up. I\'m tuning.'],
+      ['Thanks for listening, kid. Turns out notes like to be played, not kept.'],
+    ]},
+    {if: 'ricoVent', cycle: [
+      ['Zzz... five more minu... zzz...'],
+      ['(Rico mumbles in his sleep.) "...borrowed... just borrowed..."'],
+      ['Zzz... (A note floats out of his pocket and flies home.)'],
+    ]},
+    {if: '!met-rico', set: 'met-rico', lines: [
+      'Whoa, whoa! Don\'t touch the case! These notes are BORROWED.',
+      'Borrowing! I\'m BORROWING them. Every note in this theater.',
+      'When the static stops, I\'ll give \'em back. Probably.',
+      'Rico Bandit, sax. And these notes are staying RIGHT here. Hands off!',
+    ]},
+    {lines: ['Rico hugs his case. "Mine! Well. Borrowed. Same thing!"']},
+  ]},
 });
 
 Object.assign(window.QUEST_SIGNS, {
@@ -208,7 +246,33 @@ Object.assign(window.QUEST_SIGNS, {
   'dressing-soon': ['The Dressing Rooms. Somebody hums a sax tune behind the door.', '(Coming soon: the theater is still being built.)'],
   'wings-soon': ['The curtain is down. Something big is waiting behind it.', '(Coming soon: the theater is still being built.)'],
   'ladder-locked': ['A ladder up to the fly loft. A drum roll rattles every rung. Not yet!'],
-  'ladder-soon': ['The ladder goes up into the dark. Not today.'],
+  'wings-locked': ['The curtain is down. Rico\'s notes are holding the rope tight.'],
+  'stardoor-locked': ['A door with a gold star. Locked. Someone wrote on it: "RICO\'S. KEEP OUT."'],
+  'stardoor-soon': ['The star door opens onto the wings. The stage is so close.', '(Coming soon: the theater is still being built.)'],
+  'vent-locked': ['A vent grate, low in the wall. It\'s screwed shut. Notes hum behind it.'],
+  'hatch-locked': ['A hatch in the catwalk floor. It\'s latched from below.'],
+  'loft-stairs-locked': ['Stairs down to the stage. Notes are tangled in the rail. Not yet.'],
+  'loft-stairs-soon': ['The stairs lead down to the stage. Something enormous is tuning up.', '(Coming soon: the theater is still being built.)'],
+  'jukebox-loft': ['A Save Jukebox, way up here. It hums a lullaby for the lighting crew.'],
+  // THE DRESSING ROOMS
+  'dressing-mirror': ['A mirror ringed with bulbs. Your reflection looks ready for the spotlight.'],
+  'dressing-mirror-2': ['A mirror. Taped to it: "BREAK A LEG! (not really) — Sal"'],
+  'dressing-mirror-3': ['A mirror with one bulb out. Someone drew a tiny raccoon in the corner.'],
+  'dressing-table': ['A makeup table: powder, a brush, a lipstick. Very glamorous.'],
+  'dressing-table-2': ['A makeup table. A sticky note: "Hoot: remember your reading glasses."'],
+  'dressing-rack': ['A costume rack: sparkly vests, a cape, a hat shaped like a trumpet.'],
+  'dressing-rack-2': ['A costume rack. A tiny tuxedo hangs here. It\'s Moose-sized. Antler holes!'],
+  'dressing-heap': ['A heap of "borrowed" notes, spilling out of a sax case. They hum, homesick.'],
+  // THE VENT
+  'vent-box': ['A duct box. Dusty. Rico\'s paw prints go all over it.'],
+  'vent-box-found': ['On the duct box, in the dust: a guitar pick with a tiny four-leaf clover!'],
+  'vent-fan': ['A big fan, turning slowly. Whum... whum... whum. Very relaxing.'],
+  // THE FLY LOFT
+  'loft-gap': ['Far below, through the gap in the curtain: a huge microphone, glowing red.', 'It doesn\'t move. It\'s listening.'],
+  'loft-curtain': ['The top of the great red curtain. From up here it looks like a velvet sea.'],
+  'loft-ropes': ['Ropes run down into the dark. One is labeled "CURTAIN. DO NOT TUG."'],
+  'loft-sandbags': ['Sandbags. Up here they keep the scenery balanced. Very serious bags.'],
+  'loft-lights': ['Lighting bars full of stage lights. They\'re all off. Waiting for a show.'],
   // THE ORCHESTRA PIT
   'trap-locked': ['A trap door. Tubby Tusk is sitting right on top of it. BWAAAAA.'],
   'pit-sign': ['A sign on the rail: "The orchestra pit. Mind the tuba."'],

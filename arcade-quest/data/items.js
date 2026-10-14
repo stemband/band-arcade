@@ -21,6 +21,7 @@ window.QUEST_ITEMS = {
            | {inTune: × damage, at: the accuracy (0–1) a PLAY needs for it} | {crit: a lucky crit's chance}
            | {toneCalm: × CALM gained from a LONG TONE (a PLAY or SERENADE that held a note)}
            | {rhythm: × the RHYTHM / TEMPO / ECHO timing windows (battle/challenges.js RHYTHM: 1.15 = 70 → 80 ms PERFECT)}
+           | {tokens: × the Arcade Tokens a battle gives (battle.js rewards)}
    how you get it: price = Arcade Tokens at the Token Booth · found = '<room>' (a spot in the manor: the map's
    thing with charm: '<id>') · reward = '<enemy id>' (befriending that ghost) · from = how else, in words (the
    CHARMS panel says it: a lesson). A charm can have more than one. */
@@ -38,4 +39,6 @@ window.QUEST_CHARMS = {
   // Sal gives the Metronome Ticker for passing her rhythm lesson (engine/talk.js 'rhythm-lesson')
   'metronome-ticker':  {name: 'Metronome Ticker', icon: 'metro', desc: 'Rhythm, tempo and echo timing is a little more forgiving (15%).', effect: {rhythm: 1.15}, from: 'pass Snapjaw Sal\'s rhythm lesson'},
   'rosin-pouch':       {name: 'Rosin Pouch', icon: 'reed', desc: 'Long tones calm machines 30% faster.', effect: {toneCalm: 1.3}, found: 'pit'},
+  // THE DEFEAT ROUTE's treasure (Episode 2, like the Echo Chime): only in the Vent, opened by powering Rico Bandit down
+  'ricos-pick':        {name: 'Rico\'s Lucky Pick', icon: 'ear', desc: 'Battles give 50% more tokens. Rico swears it\'s lucky.', effect: {tokens: 1.5}, found: 'vent'},
 };

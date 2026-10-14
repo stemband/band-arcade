@@ -73,6 +73,10 @@
                             QUEST_CUTSCENES['ending-fade']). Episode 1 is finished either way
                harmonizeKeep  a missed HARMONIZE doesn't empty the CALM meter
                harmonize {type: 'scale', time}  the whole concert B♭ scale, bottom to top (snare: 8 clean strokes)
+   ALSO (EPISODE 2's MINI-BOSS, Rico Bandit):
+               doneFlag     a flag set when it's helped EITHER way (Rico: 'ricoDone'; the save repair keeps it too)
+               afterLines   {befriend: [...], fade: [...]}: said back in the room after the battle (what opened)
+               harmonize {type: 'scale', notes, count, taps}  that scale's first `count` notes in order (snare: `taps`)
    DODGE KINDS for the final boss: 'baton' (a warning line, then the baton sweeps across the box), 'measure' (falling
    measures of music: a row with one gap), 'sweep' (small fermatas swooping across in a wave).
    Where each ghost wanders: data/maps/manor.js (a wisp's happy note can be set there per ghost). */
@@ -387,6 +391,30 @@ window.QUEST_ENEMIES = [
     rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'snack'}},
     lines: {intro: 'A Mic-let waddles out from behind the curtain. Its red light blinks. "...test... test..."', turn: ['"...one, two... one, two..."', 'Mic-let crackles static at you.', 'Mic-let\'s little red light blinks very fast.'],
       hurt: 'Mic-let\'s light flickers. "...ow... feedback..."', calm: 'Mic-let leans in to listen.', fade: 'Mic-let powers down. "...nobody... ever... plays for me..."',
-      befriend: '"...nobody ever played FOR me before." Mic-let wants to join your band!'},
+      befriend: 'Mic-let looks down at the big microphone below. "It used to love it here." It joins your band!'},
+  },
+  /* RICO BANDIT, EPISODE 2's MINI-BOSS (the Dressing Rooms, dressing:boss): the band's sax player, "borrowing" every note
+     in the theater. Modeled on the Phantom Fermata: befriended = the stage door (ricoDoor), powered down = the vent
+     (ricoVent), either way ricoDone (the Fly Loft's stairs, Backstage's wings). Never mean: he's just very confused. */
+  {
+    id: 'rico', name: 'Rico Bandit', sprite: 'rico', hp: 70, atk: 2, area: 'stage', ep: 2, boss: true, talk: 'rico',
+    music: ['quest-ep2-miniboss', 'quest-miniboss'], opens: 'ricoDoor', opensIfFaded: 'ricoVent', doneFlag: 'ricoDone',
+    challenge: 'echo', phases: ['echo', 'play', 'rhythm', 'echo'], tier: 3,
+    notes: 'Eb', count: 4, time: 12, happy: 0,
+    calm: {perNote: 5, listen: 6, success: 22},
+    harmonize: {type: 'scale', notes: 'Eb', count: 4, taps: 6, time: 20},
+    listen: ['RICO BANDIT, the band\'s sax player. The static has him "borrowing" every note in the theater.',
+      'He plays a lick (ECHO it back), then E♭ notes (PLAY them), then a tricky rhythm.',
+      'HARMONIZE to give the notes back properly: 4 E♭ scale notes, in order.'],
+    dodge: {seconds: 8, patterns: [{kind: 'borrow', sprite: 'borrow-note', every: 1.3, count: 3, speed: 34}, {kind: 'squeal', sprite: 'squeal-shot', every: 2.6, speed: 30}]},
+    companion: {power: .45, perk: {calm: 10}, hp: .8},
+    rewards: {fade: {xp: 26, tokens: 12}, befriend: {xp: 50, tokens: 30, item: 'tuning-slide'}},
+    lines: {intro: 'Rico Bandit hugs his sax case. Notes peek out of it, humming. "Mine! Well. Borrowed."',
+      turn: ['Rico counts his notes. He loses count. He starts again.', '"Finders keepers! Borrowers... borrowers!"', 'Rico tosses a borrowed note. It boomerangs!'],
+      hurt: 'Rico clutches his case. "Hey! Careful! Those aren\'t even mine!"', calm: 'Rico\'s tail stops twitching. He hums along.',
+      fade: 'Rico\'s case pops open! Notes everywhere! He powers down mid-sentence: "Five more minu—"',
+      befriend: 'Rico opens his case. The notes fly home, humming. "Aw. They missed you too."'},
+    afterLines: {befriend: ['The star on the stage door lights up. Somewhere beyond it, the stage waits.'],
+      fade: ['CLANG! Behind the mirrors, the vent grate pops open. Rico snores in his chair.']},
   },
 ];
