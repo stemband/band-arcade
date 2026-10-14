@@ -103,7 +103,7 @@ function after(route, rooms) {
   if (rooms.includes('workshop')) Object.assign(s.flags, {salAwake: true, 'met-sal': true});
   return s;
 }
-const pct = page => page.evaluate(() => { const s = Arcade.Quest.save.get(); return Math.round(Object.keys(s.done).length / 13 * 50 + (s.flags.tuskAwake ? 5 : 0) + (s.flags.salAwake ? 5 : 0) + (s.flags.songEb ? 10 : 0)); });
+const pct = page => page.evaluate(() => { const s = Arcade.Quest.save.get(), n = Arcade.Quest.save.ghosts(2).length; return Math.round(Object.keys(s.done).filter(k => !/:boss$/.test(k)).length / n * 50 + (s.flags.tuskAwake ? 5 : 0) + (s.flags.salAwake ? 5 : 0) + (s.flags.songEb ? 10 : 0)); });
 async function helpAll(page, route, map) {
   const before = ORDER.slice(0, ORDER.indexOf(map)).reduce((n, r) => n + ROOMS[r].length, 0);
   for (const [i, k] of ROOMS[map].entries()) await fight(page, map, k, kindOf(route, before + i));
@@ -161,14 +161,13 @@ for (const route of ['befriend', 'fade', 'mixed']) {
       expect(f['met-sal']).toBe(true);
       expect(await lines(page)).toContain('—rrrrrrrrrrIMSHOT! Phew. Thanks, kid. My wrists were getting tired.');
       await page.evaluate(() => { window.__lines.length = 0; });
-      await step(page, 'workshop', 12, 2, 'up');
-      await drive(page, idleIn('workshop'));
-      expect(await lines(page)).toContain('The ladder goes up into the dark. Not today.');
       expect(await ep2(page)).toBe(await pct(page));
+      await step(page, 'workshop', 12, 2, 'up');                                          // the ladder: up into the Fly Loft
+      await drive(page, idleIn('loft'));
       watch.check();
     });
 
-    test('THE BALCONY: up the stairs Tubby opened, its 2 machines; all 13 helped = 60 %, and none come back', async ({page}) => {
+    test('THE BALCONY: up the stairs Tubby opened, its 2 machines; these 13 helped, the floor\'s line, and none come back', async ({page}) => {
       const watch = await boot(page, after(route, ['pit', 'backstage', 'workshop']));
       await step(page, 'lobby', 21, 2, 'up');
       await drive(page, idleIn('balcony'));
@@ -177,7 +176,7 @@ for (const route of ['befriend', 'fade', 'mixed']) {
       expect(Object.keys(s.done).filter(k => /^(pit|workshop|backstage|balcony):/.test(k)).length).toBe(13);
       if (route !== 'mixed') expect(Object.values(s.done).every(k => k === route)).toBe(true);
       else expect(new Set(Object.values(s.done)).size).toBe(2);
-      expect(await ep2(page)).toBe(60);                                                   // all 13 (50 %), Tubby 5, Sal 5
+      expect(await ep2(page)).toBe(Math.round(13 / 20 * 50 + 10));                          // 13 of the 20 machines, Tubby 5, Sal 5
       for (const [map, x, y] of [['pit', 8, 9], ['workshop', 8, 9], ['backstage', 12, 2], ['balcony', 7, 8]]) { await go(page, map, x, y); expect(await machines(page), map).toEqual([]); }
       watch.check();
     });
@@ -201,19 +200,26 @@ test('a lost battle: back to the jukebox (the Lobby, never saved: the hub), the 
 test('NO SOFT-LOCKS: a search over the gates reaches every room and machine, whatever the routes; codes repair the wakes', {tag: '@quick'}, async ({page}) => {
   const watch = await boot(page);
   const r = await page.evaluate(() => {
-    const Q = Arcade.Quest, M = window.QUEST_MAPS, rooms = Object.keys(M).filter(id => M[id].ep === 2);
+    const Q = Arcade.Quest, M = window.QUEST_MAPS, E = id => window.QUEST_ENEMIES.find(e => e.id === id), rooms = Object.keys(M).filter(id => M[id].ep === 2);
     // the gates: a door is passable once its `need` flag is set; a room's `wakes` flag is set once ALL its machines
-    // are helped (either way: the rule never asks how); Hoot (helped2>=6) and songEb gate no door
+    // are helped (either way: the rule never asks how); a boss's flags (Rico) follow the route taken with it;
+    // Hoot (helped2>=6) and songEb gate no door
     const needs = [].concat(...rooms.map(id => M[id].doors.filter(d => d.need).map(d => d.need)));
     const wakes = rooms.map(id => M[id].wakes && M[id].wakes.flag).filter(Boolean);
-    const reach = new Set(['lobby']), fl = new Set();
-    for (let changed = true; changed;) {
-      changed = false;
-      [...reach].forEach(id => {
-        M[id].doors.forEach(d => { if (M[d.to] && (!d.need || fl.has(d.need)) && !reach.has(d.to)) { reach.add(d.to); changed = true; } });
-        if (M[id].wakes && !fl.has(M[id].wakes.flag)) { fl.add(M[id].wakes.flag); changed = true; }   // every machine here can be helped
-      });
-    }
+    const bossFlags = rooms.map(id => M[id].enemies.map(e => E(e.type)).filter(d => d && d.boss).map(d => [d.opens, d.opensIfFaded, d.doneFlag])).flat(2).filter(Boolean);
+    const search = route => {
+      const reach = new Set(['lobby']), fl = new Set();
+      for (let changed = true; changed;) {
+        changed = false;
+        [...reach].forEach(id => {
+          M[id].doors.forEach(d => { if (M[d.to] && (!d.need || fl.has(d.need)) && !reach.has(d.to)) { reach.add(d.to); changed = true; } });
+          const add = f => { if (f && !fl.has(f)) { fl.add(f); changed = true; } };
+          if (M[id].wakes) add(M[id].wakes.flag);                                           // every machine here can be helped
+          M[id].enemies.map(e => E(e.type)).filter(d => d && d.boss).forEach(d => { add(route === 'befriend' ? d.opens : d.opensIfFaded); add(d.doneFlag); });
+        });
+      }
+      return [...reach].sort();
+    };
     // the save repair (save codes carry `done`): every machine done, any mix of routes = everyone awake
     const out = [];
     for (let k = 0; k < 12; k++) {
@@ -223,11 +229,15 @@ test('NO SOFT-LOCKS: a search over the gates reaches every room and machine, wha
       const f = Q.save.get().flags;
       out.push(wakes.every(w => f[w]));
     }
-    return {rooms, reach: [...reach], needs, wakes, noGateWithoutAWay: needs.every(n => wakes.includes(n) || n === 'salAwake' || n === 'tuskAwake'), repair: out,
+    const machineRooms = rooms.filter(id => !M[id].practice && M[id].enemies.length);
+    return {rooms: rooms.sort(), machineRooms, befriend: search('befriend'), fade: search('fade'), needs, wakes, bossFlags, repair: out,
       hootFirst: (M.pit.enemies.length + M.workshop.enemies.length) >= 6};
   });
-  expect(r.reach.sort()).toEqual(r.rooms.sort());                                         // every built Episode 2 room
-  expect(r.needs.every(n => r.wakes.includes(n))).toBe(true);                             // every gate is a band member waking
+  // every room with machines, on either route; only the defeat route's own passage (the Vent) needs that route
+  for (const route of ['befriend', 'fade']) expect(r.machineRooms.filter(id => !r[route].includes(id)), route).toEqual([]);
+  expect(r.fade).toEqual(r.rooms);
+  expect(r.rooms.filter(id => !r.befriend.includes(id))).toEqual(['vent']);
+  expect(r.needs.every(n => r.wakes.includes(n) || r.bossFlags.includes(n))).toBe(true);    // every gate: a band member waking, or Rico
   expect(r.repair.every(Boolean)).toBe(true);
   expect(r.hootFirst).toBe(true);                                                         // 6 helped before any gate: Hoot first
   watch.check();
@@ -372,7 +382,7 @@ test('SAVES: a save code mid-way (some machines, Tubby awake, Sal not, the Rosin
     const ok = Q.save.fromCode(code).ok, t = Q.save.get();
     return {line, ok, before: {done: before.done, flags: before.flags, charms: before.charms}, after: {done: t.done, flags: t.flags, charms: t.charms}, ep2: P()};
   });
-  expect(r.line).toEqual([0, Math.round(3 / 13 * 50 + 5), Math.round(6 / 13 * 50 + 5)]);
+  expect(r.line).toEqual([0, Math.round(3 / 20 * 50 + 5), Math.round(6 / 20 * 50 + 5)]);
   expect(r.ok).toBe(true);
   expect(r.after.done).toEqual(r.before.done);
   for (const f of ['tuskAwake', 'met-tusk', 'ep2Start', 'ep1Done']) expect(!!r.after.flags[f], f).toBe(!!r.before.flags[f]);

@@ -490,4 +490,110 @@
   const SAL_P = Object.assign({}, BOT, {f: 'q-stage-gator', F: 'q-stage-gator-d', l: 'q-stage-gator-l', d: 'q-stage-drum', D: 'q-brass-d', h: 'q-stage-drumhead', W: 'q-wood-l', E: 'q-stage-eye-ok'});
   S['npc-sal'] = {w: 24, h: 28, fps: 6, palette: SAL_P, frames: [sal(0), sal(1)]};
   S['npc-sal-ok'] = {w: 24, h: 28, fps: 1, palette: SAL_P, frames: [sal(0, true), down(sal(0, true))]};
+
+  /* ---------- BUILD STEP 4: THE DRESSING ROOMS, THE VENT, THE FLY LOFT, RICO BANDIT ---------- */
+  // THE DRESSING ROOMS: a makeup table (under each mirror), a costume rack, the STAR DOOR to the stage (shut / open),
+  // the VENT GRATE low in the wall (shut / popped open), and Rico's heap of "borrowed" notes
+  const DRESS = Object.assign({}, FURN, {v: 'q-void', b: 'q-blue', B: 'q-blue-d', h: 'q-stage-bulb', s: 'q-steel', S: 'q-steel-d', o: 'q-orange'});
+  S['tile-st-vanity'] = tile(DRESS, [drawn(null, g => {
+    rect(g, 0, 4, 16, 3, 'T'); rect(g, 0, 4, 16, 1, 't'); rect(g, 1, 7, 2, 8, 'T'); rect(g, 13, 7, 2, 8, 'T'); rect(g, 3, 7, 10, 4, 'R'); put(g, 8, 9, 'g');
+    rect(g, 2, 2, 2, 2, 'p'); rect(g, 5, 1, 1, 3, 'x'); rect(g, 8, 2, 3, 2, 'y'); put(g, 12, 3, 'b');                 // powder, a lipstick, a brush, a pin
+  })]);
+  S['tile-st-rack'] = tile(DRESS, [drawn(null, g => {
+    rect(g, 1, 1, 14, 1, 'S'); rect(g, 1, 1, 1, 14, 'S'); rect(g, 14, 1, 1, 14, 'S'); rect(g, 0, 14, 4, 1, 'S'); rect(g, 12, 14, 4, 1, 'S');
+    [[3, 'r'], [6, 'b'], [9, 'y'], [11, 'n']].forEach(([x, c]) => { rect(g, x, 2, 2, 1, 'k'); rect(g, x - 1, 3, 3, 8, c); });   // costumes on hangers
+  })]);
+  const STAR = DOORWAY.concat(Array.from({length: 13}, () => 'WWtrrrrrrrrrrtWW'));
+  const starOn = (rows, y0) => over(rows, Array(y0).fill('').concat(['.......y........', '......yyy.......', '....yyyyyyy.....', '......yyy.......', '.....y...y......']));
+  S['tile-st-stardoor'] = tile(Object.assign({r: 'q-stage-velvet-d', y: 'q-gold'}, WALL), [starOn(STAR, 6)]);
+  S['tile-st-stardoor-open'] = tile(Object.assign({y: 'q-stage-bulb'}, WALL), [starOn(DOORWAY.concat(Array(13).fill('WWtvvvvvvvvvvtWW')), 6)]);
+  const GRATE = FACE.slice(0, 7).concat(['WWWWWWWWWWWWWWWW', 'WTTTTTTTTTTTTTTW', 'WTsSsSsSsSsSsSTW', 'WTsSsSsSsSsSsSTW', 'WTsSsSsSsSsSsSTW', 'WTsSsSsSsSsSsSTW', 'WTTTTTTTTTTTTTTW', 'WWWWWWWWWWWWWWWW', 'tttttttttttttttt']);
+  S['tile-st-vent'] = tile(Object.assign({s: 'q-steel', S: 'q-void'}, WALL), [GRATE]);
+  S['tile-st-vent-open'] = tile(Object.assign({s: 'q-steel', S: 'q-void'}, WALL), [FACE.slice(0, 7).concat(['WWWWWWWWWWWWWWWW', 'WTTTTTTTTTTTTTTW', 'WTSSSSSSSSSSSSTW', 'WTSSSSSSSSSSSSTW', 'WTSSSSSSSSSSSSTW', 'WTSSSSSSSSSSSSTW', 'WTTTTTTTTTTTTTTW', 'ssssssWWWWWWWWWW', 'tttttttttttttttt'])]);
+  // Rico's heap of borrowed notes, spilling out (gold and white notes, a few stems)
+  S['tile-st-heap'] = tile(DRESS, [drawn(null, g => {
+    [[2, 12], [6, 11], [10, 12], [4, 9], [9, 8], [12, 10], [7, 6], [3, 13], [12, 13]].forEach(([x, y], i) => { rect(g, x, y, 3, 2, i % 3 ? 'y' : 'w'); rect(g, x + 2, y - 4, 1, 4, i % 3 ? 'Y' : 'K'); });
+  })]);
+
+  // THE VENT: air ducts (dim, riveted), slow fans, notes Rico dropped, a duct box (the Lucky Pick hides on it)
+  const DUCT = {d: 'q-stage-duct', D: 'q-stage-duct-d', l: 'q-stage-duct-l', k: 'q-black', K: 'q-grey-d', y: 'q-gold', Y: 'q-brass-d', w: 'q-white', b: 'q-steel', v: 'q-void'};
+  const ductFloor = g => { rect(g, 0, 0, 16, 16, 'd'); [0, 8].forEach(y => rect(g, 0, y, 16, 1, 'D')); [2, 13].forEach(x => { put(g, x, 3, 'l'); put(g, x, 11, 'l'); }); };
+  S['tile-st-duct'] = tile(DUCT, [drawn(null, ductFloor)]);
+  S['tile-st-duct-notes'] = tile(DUCT, [drawn(null, g => { ductFloor(g); rect(g, 3, 9, 3, 2, 'y'); rect(g, 5, 5, 1, 4, 'Y'); rect(g, 10, 4, 3, 2, 'w'); rect(g, 12, 1, 1, 3, 'K'); })]);
+  S['tile-st-ductwall'] = tile(DUCT, [drawn('D', g => { rect(g, 0, 12, 16, 4, 'd'); rect(g, 0, 12, 16, 1, 'l'); [1, 6, 11].forEach(x => put(g, x, 14, 'K')); })]);
+  const fan = f => drawn('D', g => {
+    oval(g, 7.5, 7.5, 6.5, 6.5, 'k'); oval(g, 7.5, 7.5, 6, 6, 'K');
+    const a0 = f ? Math.PI / 4 : 0; for (let k = 0; k < 4; k++) { const a = a0 + k * Math.PI / 2; line(g, 7.5, 7.5, Math.round(7.5 + Math.cos(a) * 5), Math.round(7.5 + Math.sin(a) * 5), 'b', 2); }
+    rect(g, 7, 7, 2, 2, 'l'); rect(g, 0, 15, 16, 1, 'd');
+  });
+  S['tile-st-fan'] = tile(DUCT, [fan(0), fan(1)], {fps: 2});   // turning slowly (2 frames a second: a slow turn, never a flash)
+  S['tile-st-ductbox'] = tile(DUCT, [drawn(null, g => { ductFloor(g); rect(g, 2, 4, 12, 10, 'K'); rect(g, 2, 4, 12, 2, 'l'); rect(g, 4, 8, 8, 1, 'k'); rect(g, 4, 10, 8, 1, 'k'); })]);
+
+  // THE FLY LOFT: steel catwalks over the dark, the lighting bars, ropes and sandbags, a hole with the ladder down,
+  // the vent's hatch, the stairs down to the stage, and the TOP of the red curtain with a gap (the Microphone below)
+  const LOFT = {c: 'q-stage-catwalk', C: 'q-stage-catwalk-d', v: 'q-void', k: 'q-black', K: 'q-grey-d', y: 'q-gold', b: 'q-steel', B: 'q-steel-d',
+    r: 'q-paper-d', W: 'q-wood', w: 'q-wood-l', l: 'q-stage-bulb', L: 'q-stage-bulb-off', s: 'q-stage-velvet', S: 'q-stage-velvet-d', h: 'q-stage-velvet-l'};
+  const catwalk = g => { rect(g, 0, 0, 16, 16, 'C'); for (let y = 1; y < 16; y += 3) for (let x = 1; x < 16; x += 3) rect(g, x, y, 2, 2, 'c'); rect(g, 0, 0, 16, 1, 'b'); rect(g, 0, 15, 16, 1, 'b'); };
+  S['tile-st-catwalk'] = tile(LOFT, [drawn(null, catwalk)]);
+  S['tile-st-void'] = tile(LOFT, [drawn('v', g => { put(g, 4, 9, 'K'); put(g, 12, 3, 'K'); })]);
+  S['tile-st-lightbar'] = tile(LOFT, [drawn('v', g => { rect(g, 0, 4, 16, 2, 'B'); [2, 8, 13].forEach(x => { rect(g, x, 6, 3, 4, 'k'); rect(g, x, 10, 3, 1, 'L'); }); rect(g, 7, 0, 1, 4, 'r'); })]);
+  S['tile-st-loftrope'] = tile(LOFT, [drawn('v', g => { [4, 8, 11].forEach(x => rect(g, x, 0, 1, 16, 'r')); rect(g, 3, 9, 3, 3, 'W'); })]);
+  S['tile-st-hole'] = tile(LOFT, [drawn(null, g => { catwalk(g); rect(g, 2, 2, 12, 12, 'v'); rect(g, 3, 2, 1, 12, 'W'); rect(g, 12, 2, 1, 12, 'W'); [4, 8, 12].forEach(y => rect(g, 4, y, 8, 1, 'w')); })]);
+  S['tile-st-hatch'] = tile(LOFT, [drawn(null, g => { catwalk(g); rect(g, 2, 3, 12, 10, 'K'); rect(g, 3, 4, 10, 8, 'v'); [5, 7, 9].forEach(y => rect(g, 3, y, 10, 1, 'b')); })]);
+  S['tile-st-loftstairs'] = tile(LOFT, [drawn(null, g => { catwalk(g); for (let i = 0; i < 5; i++) rect(g, 2, 2 + i * 3, 12, 2, i % 2 ? 'W' : 'w'); rect(g, 1, 1, 1, 14, 'y'); rect(g, 14, 1, 1, 14, 'y'); })]);
+  const curtTop = gap => drawn('v', g => { for (let x = 0; x < 16; x++) for (let y = 6; y < 16; y++) put(g, x, y, x % 4 === 1 ? 'h' : x % 4 === 3 ? 'S' : 's'); rect(g, 0, 6, 16, 2, 'y'); if (gap) rect(g, 5, 6, 6, 10, 'v'); });
+  S['tile-st-curttop'] = tile(LOFT, [curtTop(false)]);
+  S['tile-st-curtgap'] = tile(LOFT, [curtTop(true)]);
+
+  /* RICO BANDIT: a raccoon in felt (grey, a dark mask, a striped tail) with a brass alto sax. Glitched: red eyes,
+     clutching his case of borrowed notes; awake: blue eyes, handing a note back; resting: in a chair, eyes shut, zzz */
+  function rico(f, mode) {
+    const g = grid(24, 28), ok = mode !== 'glitch';
+    line(g, 4, 25, 1, 19, 'f', 3); [20, 22, 24].forEach(y => { put(g, 2, y, 'M'); put(g, 3, y, 'M'); });   // the striped tail
+    oval(g, 12, 18, 6, 7, 'f'); oval(g, 12, 19, 3.6, 5, 'l');                                        // the body, the belly
+    oval(g, 12, 8, 6, 5, 'f'); oval(g, 12, 10.5, 3, 2, 'l'); put(g, 12, 11, 'k');                    // the head, the muzzle, the nose
+    rect(g, 7, 2, 2, 3, 'f'); rect(g, 15, 2, 2, 3, 'f'); put(g, 7, 2, 'M'); put(g, 16, 2, 'M');     // ears
+    rect(g, 7, 6, 10, 3, 'M');                                                                        // the bandit mask
+    if (mode === 'rest') { rect(g, 9, 7, 2, 1, 'w'); rect(g, 13, 7, 2, 1, 'w'); }                    // eyes shut
+    else { rect(g, 9, 6, 2, 2, ok ? 'E' : 'e'); rect(g, 13, 6, 2, 2, ok ? 'E' : 'e'); }
+    put(g, 6, 12, 'b'); put(g, 18, 12, 'b');
+    line(g, 15, 12, 18, 22, 'g', 2); oval(g, 17, 23, 2.6, 2, 'g'); put(g, 17, 23, 'G'); put(g, 16, 16, 'G'); put(g, 17, 19, 'G');   // the sax
+    rect(g, 8, 25, 3, 2, 'F'); rect(g, 13, 25, 3, 2, 'F');                                           // feet
+    if (mode === 'glitch') { rect(g, 3, 14, 7, 5, 'K'); rect(g, 3, 14, 7, 1, 'k'); put(g, 4 + f, 13, 'y'); put(g, 7 - f, 12, 'w'); }   // his case, notes peeking out
+    if (mode === 'ok') { rect(g, 3, 9 - f, 2, 2, 'y'); rect(g, 4, 5 - f, 1, 4, 'y'); }               // a note held out: "here, have a C"
+    if (mode === 'rest') { rect(g, 5, 22, 14, 2, 'W'); rect(g, 5, 24, 2, 4, 'W'); rect(g, 17, 24, 2, 4, 'W'); rect(g, 4, 13, 2, 11, 'W'); if (f) { put(g, 19, 2, 'w'); put(g, 21, 0, 'w'); } }   // the chair; zzz
+    return text(outline(g));
+  }
+  const RICO_P = Object.assign({}, BOT, {f: 'q-stage-raccoon', F: 'q-stage-raccoon-d', l: 'q-stage-raccoon-l', M: 'q-stage-mask', g: 'q-brass', G: 'q-brass-d',
+    K: 'q-grey-d', E: 'q-stage-eye-ok', W: 'q-wood'});
+  S['npc-rico'] = {w: 24, h: 28, fps: 2, palette: RICO_P, frames: [rico(0, 'glitch'), rico(1, 'glitch')]};
+  S['npc-rico-ok'] = {w: 24, h: 28, fps: 1, palette: RICO_P, frames: [rico(0, 'ok'), rico(1, 'ok')]};
+  S['npc-rico-rest'] = {w: 24, h: 28, fps: 1, palette: RICO_P, frames: [rico(0, 'rest'), rico(1, 'rest')]};
+
+  /* RICO, THE MINI-BOSS (48 × 48, the Conductor's size class): big, his sax raised, the case at his feet overflowing with
+     borrowed notes (idle, idle, happy: the notes flying home) */
+  function ricoBoss(f) {
+    const g = grid(48, 48), happy = f === 2;
+    line(g, 10, 44, 3, 30, 'f', 5); [32, 36, 40].forEach(y => rect(g, 4 + (y - 32) / 4, y, 4, 2, 'M'));          // the tail
+    oval(g, 24, 32, 11, 12, 'f'); oval(g, 24, 34, 7, 9, 'l');                                                      // the body
+    oval(g, 24, 14, 10, 8.5, 'f'); oval(g, 24, 18.5, 5, 3.4, 'l'); rect(g, 23, 18, 3, 2, 'k');                     // the head, muzzle, nose
+    rect(g, 15, 3, 4, 6, 'f'); rect(g, 29, 3, 4, 6, 'f'); rect(g, 16, 4, 2, 3, 'M'); rect(g, 30, 4, 2, 3, 'M');    // ears
+    rect(g, 15, 10, 18, 5, 'M');                                                                                   // the mask
+    rect(g, 18, 11, 3, 3, 'w'); rect(g, 27, 11, 3, 3, 'w'); rect(g, 19, 12, 2, 2, happy ? 'E' : 'e'); rect(g, 28, 12, 2, 2, happy ? 'E' : 'e');
+    if (happy) { put(g, 21, 21, 'k'); put(g, 27, 21, 'k'); rect(g, 22, 22, 5, 1, 'k'); }
+    put(g, 13, 20, 'b'); put(g, 35, 20, 'b'); put(g, 24, 26, 'b');
+    const up = f === 1 ? 2 : 0;                                                                                     // the sax, raised (a little higher on frame 1)
+    line(g, 30, 22 - up, 36, 38 - up, 'g', 3); oval(g, 35, 40 - up, 5, 3.4, 'g'); oval(g, 35, 40 - up, 3, 1.8, 'G');
+    [26, 30, 34].forEach(y => put(g, 33, y - up, 'G')); line(g, 26, 20, 30, 22 - up, 'G');
+    rect(g, 16, 44, 6, 3, 'F'); rect(g, 27, 44, 6, 3, 'F');
+    rect(g, 1, 36, 14, 10, 'K'); rect(g, 1, 36, 14, 2, 'k'); rect(g, 6, 40, 4, 1, 'y');                             // the case
+    const notes = happy ? [[4, 4], [10, 1], [38, 3], [44, 8], [40, 14], [6, 12]] : [[3, 32], [8, 30], [12, 33], [5, 28], [10, 26]];
+    notes.forEach(([x, y], i) => { rect(g, x, y, 3, 2, i % 2 ? 'y' : 'w'); rect(g, x + 2, y - 4, 1, 4, i % 2 ? 'Y' : 'K'); });
+    return text(outline(g));
+  }
+  S.rico = {w: 48, h: 48, fps: 2, palette: Object.assign({}, RICO_P, {Y: 'q-brass-d'}), frames: [ricoBoss(0), ricoBoss(1), ricoBoss(2)]};
+
+  // RICO's dodge (battle/dodge.js 'borrow'): a borrowed note, and his sax case at the bottom of the box
+  S['borrow-note'] = {w: 6, h: 7, palette: {y: 'q-gold', Y: 'q-brass-d', w: 'q-white'}, frames: [['....Y.', '....YY', '....Y.', '....Y.', '.yyyY.', 'yywyy.', '.yyy..']]};
+  S['borrow-case'] = {w: 20, h: 8, palette: {k: 'q-black', K: 'q-grey-d', y: 'q-gold', g: 'q-grey', w: 'q-white'}, frames: [['..y....w.....y......', 'gggggggggggggggggggg', 'gKKKKKKKKKKKKKKKKKKg', 'gKKKKKKKyyyyKKKKKKKg', 'gKKKKKKKKKKKKKKKKKKg', 'gKKKKKKKKKKKKKKKKKKg', 'gggggggggggggggggggg', '.kk..............kk.']]};
 })(window.QUEST_ART);

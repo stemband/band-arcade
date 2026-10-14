@@ -45,14 +45,15 @@
   /* THE EPISODES: every room says which one it belongs to (QUEST_MAPS[id].ep: data/maps/stage.js sets 2; manor.js
      leaves it out = 1). EP2_ROOMS = THE SHOWTIME STAGE's room ids (docs/games/arcade-quest-ep2-plan.md), so a room
      that isn't built yet (a save code from a later version, a door's sign) still knows its episode. Never reuse one. */
-  const EP2_ROOMS = ['lobby', 'greenroom', 'pit', 'workshop', 'backstage', 'dressing', 'loft', 'stage', 'balcony'];
+  const EP2_ROOMS = ['lobby', 'greenroom', 'pit', 'workshop', 'backstage', 'dressing', 'loft', 'stage', 'balcony', 'vent'];
   const episodeOf = id => { const m = (window.QUEST_MAPS || {})[id]; return m ? m.ep || 1 : EP2_ROOMS.includes(id) ? 2 : 1; };
   /** EVERY GHOST (Episode 1) or MACHINE (Episode 2) of an episode: '<room>:<key>' for every enemy placed on a map of
       that episode, outside `practice` rooms (the Practice Hall, the Green Room; the Test Arena has no map). Read from
       the maps each time, so one added to a map later counts by itself. -> [{key, room}] */
   function ghosts(ep = 1) {
     const maps = window.QUEST_MAPS || {}, out = [];
-    Object.keys(maps).forEach(id => { if (!maps[id].practice && episodeOf(id) === ep) (maps[id].enemies || []).forEach(e => out.push({key: id + ':' + e.key, room: id})); });
+    // (a map entry with `boss: true` isn't one of them: Episode 2's Rico Bandit and THE BIG NUMBER have flags of their own)
+    Object.keys(maps).forEach(id => { if (!maps[id].practice && episodeOf(id) === ep) (maps[id].enemies || []).forEach(e => { if (!e.boss) out.push({key: id + ':' + e.key, room: id}); }); });
     return out;
   }
   /** THE GHOST LOG (the pause menu): {helped, total, rooms: the rooms that still have someone (map names, in map
@@ -93,6 +94,7 @@
       (maps[id].enemies || []).forEach(g => {
         const def = E.find(e => e.id === g.type), kind = s.done[id + ':' + g.key];
         if (!def || !kind || !(def.opens || def.opensIfFaded || def.final)) return;
+        if (def.doneFlag) s.flags[def.doneFlag] = true;                    // (Rico: ricoDone, either way)
         if (!s.route[def.id]) s.route[def.id] = kind;
         if ((def.opens && s.flags[def.opens]) || (def.opensIfFaded && s.flags[def.opensIfFaded])) return;
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
@@ -202,7 +204,7 @@
     flag: name => !!(Q.save.get().flags || {})[name],
     setFlag(name, on = true) { const s = Q.save.get(); s.flags = s.flags || {}; if (on) s.flags[name] = true; else delete s.flags[name]; write(); },
     /** ghosts (Episode 1) or machines (Episode 2) helped, befriended or faded, outside the practice rooms */
-    helped: (ep = 1) => Object.keys(Q.save.get().done || {}).filter(k => episodeOf(k.split(':')[0]) === ep).length,
+    helped: (ep = 1) => { const d = Q.save.get().done || {}; return ghosts(ep).filter(g => d[g.key]).length; },
   };
 
   /* ---------- THE BAND: befriended ghosts (the roster) with a `companion` (data/enemies.js) who play beside you in

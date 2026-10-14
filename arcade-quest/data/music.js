@@ -24,4 +24,7 @@ window.QUEST_ROOM_MUSIC = {
   workshop: 'quest-room-workshop',    // The Prop Workshop
   backstage: 'quest-room-backstage',  // Backstage
   balcony: 'quest-room-balcony',      // The Balcony
+  dressing: 'quest-room-dressing',    // The Dressing Rooms
+  loft: 'quest-room-loft',            // The Fly Loft
+  vent: 'quest-room-loft',            // The Vent (shares the Fly Loft's track)
 };

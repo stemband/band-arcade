@@ -169,6 +169,16 @@
   const musicFor = id => { const def = MAPS()[id] || {}; return [(window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, def.music || 'quest-manor']; };
   function roomMusic(id) { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(musicFor(id), {fade: ROOM_XF}); }
 
+  /** the room's NPCs, where they stand now: `moved` once its flag is set; an npc with `if: flag` (or '!flag') is
+      there only then (Rico, awake by the stage door or resting in his chair, after his battle) */
+  function npcsFor(def) {
+    const on = c => (c[0] === '!' ? !Q.save.flag(c.slice(1)) : Q.save.flag(c));
+    return def.npcs.filter(n => !n.if || on(n.if)).map(n => {
+      const at2 = n.moved && Q.save.flag(n.moved.flag) ? n.moved.at : n.at;
+      const D = (window.QUEST_DIALOGUE || {})[n.id] || {};
+      return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};   // (n.awake: drawn below)
+    });
+  }
   function load(mapId, at, dir) {
     Q.keyHints.wake();                                   // a new room: the key legend comes back
     const id = MAPS()[mapId] ? mapId : hubFor(mapId), def = MAPS()[id];
@@ -177,11 +187,7 @@
     if (save.ep !== (def.ep || 1)) { save.ep = def.ep || 1; Q.save.write(); }      // the episode last played (v6)
     W = {map: id, def, x, y, px: x * T, py: y * T, dir: dir || 'up', move: null, busy: false, grace: 1.2, steps: 0, fade: null, flash: null,
       cycles: (W && W.cycles) || {}, cleared: {}, npcs: [], ghosts: []};
-    W.npcs = def.npcs.map(n => {
-      const at2 = n.moved && Q.save.flag(n.moved.flag) ? n.moved.at : n.at;
-      const D = (window.QUEST_DIALOGUE || {})[n.id] || {};
-      return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};   // (n.awake: drawn below)
-    });
+    W.npcs = npcsFor(def);
     W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy, tier: e.tier,
       x: e.at[0], y: e.at[1], px: e.at[0] * T, py: e.at[1] * T, home: e.at.slice(), wander: e.wander == null ? 2 : e.wander, size: e.size || 1,
       move: null, wait: Q.rand(0.4, 1.6)}));
@@ -198,7 +204,8 @@
     // battle music and the rooms next door are fetched now, so a battle or the next room starts with music
     if (A.Sfx && A.Sfx.setMusic) {
       roomMusic(id);
-      A.Sfx.preloadMusic(def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle')
+      // (a boss's music can be a list: its own track, then the one it falls back to)
+      A.Sfx.preloadMusic([].concat(...def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle'))
         .concat(...(def.doors || []).map(d => MAPS()[d.to] ? musicFor(d.to) : [])));
     }
     Q.talk.hud(); Q.talk.banner(def.name);
@@ -291,22 +298,26 @@
     if (!W.def.practice) {
       s.done[W.map + ':' + g.key] = result.kind;
       if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
+      if (E.doneFlag) s.flags[E.doneFlag] = true;                                // Rico: ricoDone, either way
       Q.save.write();
       // GHOST WHISPERER: the last manor ghost helped (befriended or faded) -> 'manor-all' (save.js achievements)
       const had = Q.save.has('manor-all');
       whisperer = !had && !!Q.save.achievements()['manor-all'];
     }
-    if (E.opens || E.opensIfFaded) prerender();                                   // a door or a cracked wall opened
+    if (E.opens || E.opensIfFaded) { prerender(); W.npcs = npcsFor(W.def); }       // a door or a cracked wall opened (Rico stands up)
     const after = [];                                                             // what to show, in order, once back
     if (woke) { Q.save.setFlag(wk.flag); after.push(() => wake(wk)); }
     // THE ALTERNATE ROUTE: the first gate ghost a student defeats (not befriends) says something moved
-    if (!W.def.practice && result.kind === 'fade' && E.opensIfFaded && !Q.save.flag('shiftHint')) {
+    if (!W.def.practice && result.kind === 'fade' && E.opensIfFaded && (W.def.ep || 1) === 1 && !Q.save.flag('shiftHint')) {
       Q.save.setFlag('shiftHint');
       after.push(() => { Q.sfx('quest-door'); Q.shake(2, 500); return Q.say([Q.text('shiftHint')]); });
     }
     // the UNLOCKED! card (the Spirit Lantern, the Ghost Whisperer plate) after the battle's results; when the Ghost
     // Conductor was the last one, EPISODE 1 COMPLETE shows it instead (engine/story.js)
     if (whisperer && !E.final) after.push(ghostWhisperer);
+    // Episode 2's mini-boss: what opened, in words (data/enemies.js afterLines)
+    const al = !W.def.practice && E.afterLines && E.afterLines[result.kind];
+    if (al) after.push(() => { Q.sfx('quest-door'); return Q.say(al); });
     if (after.length) {
       W.busy = true;
       after.reduce((p, f) => p.then(() => (W ? f() : null)), Promise.resolve()).then(() => { if (W) W.busy = false; });
@@ -363,7 +374,8 @@
     Q.sfx('quest-mic-crackle');
     let el = Q.$('qWhisper');
     if (!el) { el = Q.el('p', 'q-whisper'); el.id = 'qWhisper'; el.setAttribute('aria-live', 'polite'); Q.ui.appendChild(el); }
-    el.textContent = Q.pick((W.def.ep === 2 && window.QUEST_WHISPERS_EP2) || window.QUEST_WHISPERS || ['...so much noise...']);
+    // (a room can add its own: the Fly Loft's `whisperLines`)
+    el.textContent = Q.pick(((W.def.ep === 2 && window.QUEST_WHISPERS_EP2) || window.QUEST_WHISPERS || ['...so much noise...']).concat(W.def.whisperLines || []));
     el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
   }
 
@@ -479,7 +491,7 @@
       (W.def.props || []).forEach(p => {                    // pictures standing on the floor (the attic's stage speaker)
         if (p.if && !Q.save.flag(p.if)) return;
         const d = Q.spriteDef(p.sprite) || {w: 16, h: 16};
-        list.push({y: p.at[1] * T, fn: () => Q.draw(ctx, p.sprite, p.at[0] * T - cx, (p.at[1] + 1) * T - d.h - cy, {t: now, frame: p.frame})});
+        list.push({y: p.at[1] * T, fn: () => Q.draw(ctx, p.sprite, p.at[0] * T + (d.w < T ? Math.floor((T - d.w) / 2) : 0) - cx, (p.at[1] + 1) * T - d.h - cy, {t: now, frame: p.frame})});   // (a small one: centred on its tile)
       });
       W.ghosts.forEach(g => list.push({y: g.py, fn: () => {
         const d = Q.spriteDef(g.type) || {w: 32, h: 32};

@@ -145,6 +145,8 @@
   --q-stage-walrus:var(--anim-walrus); --q-stage-walrus-d:#564a40; --q-stage-walrus-l:var(--anim-walrus-2); --q-stage-tusk:var(--anim-tusk);
   --q-stage-gator:var(--anim-gator); --q-stage-gator-d:#2a5631; --q-stage-gator-l:var(--anim-gator-2); --q-stage-drum:var(--anim-drum); --q-stage-drumhead:var(--anim-drumhead);
   --q-stage-pit:#2e2632; --q-stage-pit-d:#1d1722; --q-stage-red-lit:#d8283e;
+  --q-stage-raccoon:var(--anim-raccoon); --q-stage-raccoon-d:#45474f; --q-stage-raccoon-l:var(--anim-raccoon-2); --q-stage-mask:#2a2b31;
+  --q-stage-duct:#4a5260; --q-stage-duct-d:#2c323c; --q-stage-duct-l:#7a8494; --q-stage-catwalk:#56606e; --q-stage-catwalk-d:#343b46;
   /* Sustain Speedway: the synthwave racetrack (canvas colors are read from these) */
   --sw-sky-top:#0c0420; --sw-sky-mid:#3a0b55; --sw-sky-low:#ff5a7a; --sw-dusk-low:#b0348c; --sw-night-low:#2a1060;
   --sw-sun-1:#ffd166; --sw-sun-2:#ff3fa4; --sw-moon:#e8e2ff; --sw-star:#fff4d8;

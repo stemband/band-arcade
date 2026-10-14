@@ -20,7 +20,10 @@
    Never only befriends: no route can lock a door. engine/save.js repairs a save where they're all done (a save code).
    `tier` on a room's machine = its rhythm tier there (data/rhythms.js: 1 in the Pit and the Workshop, 2 deeper in).
    `whispers: [first, every]` = seconds until the room's first whisper, then between them (Backstage: more often).
-   `glimpse: flag` = the first visit shows the giant Microphone in the room's `peek` tiles once (+ a crackle). */
+   `glimpse: flag` = the first visit shows the giant Microphone in the room's `peek` tiles once (+ a crackle).
+   BUILD STEP 4: `whisperLines` = whispers of the room's own (the Fly Loft), added to the episode's; an npc's
+   `if: flag` (or '!flag') = it's there only then (Rico, after his battle); a map enemy's `boss: true` = not one of the
+   20 machines (Rico Bandit: his own flags, data/enemies.js doneFlag / opens / opensIfFaded). */
 Object.assign(window.QUEST_TILES, {
   '=': {sprite: 'tile-st-cap', solid: true},
   W: {sprite: 'tile-st-wall', solid: true},
@@ -171,12 +174,12 @@ Object.assign(window.QUEST_MAPS, {
      backdrop, a sawhorse. SNAPJAW SAL is stuck in a drum roll; she wakes once its 4 machines are helped (either way),
      teaches RHYTHM ('rhythm-lesson': the Metronome Ticker), and clears the ladder up to the Fly Loft (build step 4:
      until then its `soon` sign). Rhythm tier 1.
-     ITS LETTERS: G boards · W wall · K the backdrop · L the ladder (Sal clears it) · b workbench · c paint cans
+     ITS LETTERS: G boards · W wall · K the backdrop · L the ladder (Sal clears it: then M) · b workbench · c paint cans
      · O the cardboard moon · s sawhorse · = edge · A the door back to the Lobby */
   workshop: {
     name: 'The Prop Workshop', ep: 2, music: 'quest-manor', floor: 'G',
     legend: {
-      K: {sprite: 'tile-st-backdrop', solid: true}, L: {sprite: 'tile-st-ladder', solid: true, door: true},
+      K: {sprite: 'tile-st-backdrop', solid: true}, L: {sprite: 'tile-st-ladder', solid: true, door: true, open: 'M'}, M: {sprite: 'tile-st-ladder', door: true},
       b: {sprite: 'tile-st-bench', over: true, solid: true}, c: {sprite: 'tile-st-paint', over: true, solid: true},
       O: {sprite: 'tile-st-moon', over: true, solid: true}, s: {sprite: 'tile-st-sawhorse', over: true, solid: true},
     },
@@ -195,7 +198,7 @@ Object.assign(window.QUEST_MAPS, {
     ],
     doors: [
       {at: [8, 10], to: 'lobby', spawn: [19, 2], dir: 'down'},
-      {at: [12, 1], to: 'loft', spawn: [7, 8], dir: 'up', need: 'salAwake', locked: 'ladder-locked', soon: 'ladder-soon'},
+      {at: [12, 1], to: 'loft', spawn: [2, 2], dir: 'right', need: 'salAwake', locked: 'ladder-locked'},
     ],
     npcs: [{id: 'sal', at: [8, 3], awake: {flag: 'salAwake', sprite: 'npc-sal-ok'}}],
     wakes: {npc: 'sal', flag: 'salAwake'},
@@ -215,8 +218,8 @@ Object.assign(window.QUEST_MAPS, {
 
   /* 5. BACKSTAGE (down the Pit's trap door, once Tubby moves): rope lines and sandbags, road cases, the stage
      manager's desk (its lamp, THE CLIPBOARD with the running order), a QUIET PLEASE sign the static keeps changing.
-     The ladder back up to the Pit; the Dressing Rooms (build step 4) and the wings to the Main Stage (build step 5)
-     show their signs for now. The whispers come more often here. Rhythm tier 2.
+     The ladder back up to the Pit; the Dressing Rooms (Rico Bandit); the wings to the Main Stage (`need: 'ricoDone'`,
+     either route; build step 5 builds the stage: until then its sign). The whispers come more often here. Rhythm tier 2.
      ITS LETTERS: g dark boards · k black wall · r rope lines · q the QUIET PLEASE sign · d the Dressing Rooms' door
      · w the wings · h the ladder up to the Pit · S sandbags · C a road case · l the desk's lamp · c the clipboard */
   backstage: {
@@ -243,8 +246,8 @@ Object.assign(window.QUEST_MAPS, {
     ],
     doors: [
       {at: [17, 1], to: 'pit', spawn: [10, 4], dir: 'down'},
-      {at: [5, 1], to: 'dressing', spawn: [7, 8], dir: 'up', soon: 'dressing-soon'},
-      {at: [14, 1], to: 'stage', spawn: [7, 8], dir: 'up', soon: 'wings-soon'},
+      {at: [5, 1], to: 'dressing', spawn: [9, 9], dir: 'up'},
+      {at: [14, 1], to: 'stage', spawn: [7, 8], dir: 'up', need: 'ricoDone', locked: 'wings-locked', soon: 'wings-soon'},
     ],
     npcs: [],
     things: [
@@ -294,6 +297,135 @@ Object.assign(window.QUEST_MAPS, {
     enemies: [
       {key: 'm1', type: 'tapsy', at: [4, 6], wander: 2, tier: 2},
       {key: 'm2', type: 'spotlight', at: [12, 8], wander: 2},
+    ],
+  },
+
+  /* 7. THE DRESSING ROOMS (Backstage's door): a row of mirrors with bulbs over makeup tables, costume racks, the STAR
+     DOOR to the stage, a vent grate low in the back wall. RICO BANDIT, the mini-boss (dressing:boss), behind a heap of
+     "borrowed" notes. Befriended: he stands by the star door, awake, and it opens (ricoDoor); powered down: he rests in
+     a chair by the vent and the vent grate pops open (ricoVent) into THE VENT. Rhythm tier 3.
+     ITS LETTERS: u carpet · W wall · m a mirror with bulbs · t a makeup table · c a costume rack · n Rico's heap of
+     notes · s the star door (open: S) · v the vent grate (open: V) · = edge · A the door back to Backstage */
+  dressing: {
+    name: 'The Dressing Rooms', ep: 2, music: 'quest-manor', floor: 'u',
+    legend: {
+      t: {sprite: 'tile-st-vanity', over: true, solid: true}, c: {sprite: 'tile-st-rack', over: true, solid: true}, n: {sprite: 'tile-st-heap', over: true, solid: true},
+      s: {sprite: 'tile-st-stardoor', solid: true, door: true, open: 'S'}, S: {sprite: 'tile-st-stardoor-open', door: true},
+      v: {sprite: 'tile-st-vent', solid: true, door: true, open: 'V'}, V: {sprite: 'tile-st-vent-open', door: true},
+    },
+    tiles: [
+      '====================',
+      '=WmWmWmWmWWWWsWWvWW=',
+      '=ututututuuuuuuuuuu=',
+      '=uuuuuuuuuuuuuuuuuu=',
+      '=uuuuuuuuuuuuuuuuuu=',
+      '=uuuuuuuuuuunuuunuu=',
+      '=uuuuuuuuuuuuuuuuuu=',
+      '=ccuuuuuuuuuuuuuucc=',
+      '=uuuuuuuuuuuuuuuuuu=',
+      '=uuuuuuuuuuuuuuuuuu=',
+      '=========A==========',
+    ],
+    doors: [
+      {at: [9, 10], to: 'backstage', spawn: [5, 2], dir: 'down'},
+      {at: [13, 1], to: 'stage', spawn: [7, 8], dir: 'up', need: 'ricoDoor', locked: 'stardoor-locked', soon: 'stardoor-soon'},
+      {at: [16, 1], to: 'vent', spawn: [2, 4], dir: 'up', need: 'ricoVent', locked: 'vent-locked'},
+    ],
+    npcs: [
+      {id: 'rico', at: [12, 2], if: 'ricoDoor', sprite: 'npc-rico-ok', awake: {flag: 'ricoDoor', sprite: 'npc-rico-ok'}},         // befriended: by the star door, handing notes back
+      {id: 'rico', at: [17, 2], if: 'ricoVent', sprite: 'npc-rico-rest', awake: {flag: 'ricoVent', sprite: 'npc-rico-rest'}},       // powered down: resting in a chair by the vent
+    ],
+    things: [
+      {at: [2, 1], say: 'dressing-mirror'}, {at: [4, 1], say: 'dressing-mirror-2'}, {at: [6, 1], say: 'dressing-mirror'}, {at: [8, 1], say: 'dressing-mirror-3'},
+      {at: [2, 2], say: 'dressing-table'}, {at: [4, 2], say: 'dressing-table'}, {at: [6, 2], say: 'dressing-table-2'}, {at: [8, 2], say: 'dressing-table'},
+      {at: [1, 7], say: 'dressing-rack'}, {at: [2, 7], say: 'dressing-rack'}, {at: [17, 7], say: 'dressing-rack-2'}, {at: [18, 7], say: 'dressing-rack-2'},
+      {at: [12, 5], say: 'dressing-heap'}, {at: [16, 5], say: 'dressing-heap'},
+    ],
+    enemies: [
+      {key: 'm1', type: 'feedback', at: [4, 4], wander: 2},
+      {key: 'm2', type: 'confetti', at: [6, 8], wander: 2},
+      {key: 'm3', type: 'ropeknot', at: [12, 8], wander: 2},
+      {key: 'boss', type: 'rico', at: [14, 5], wander: 0, size: 3, boss: true},  // (boss: not one of the 20 machines)
+    ],
+  },
+
+  /* 8. THE VENT (behind the Dressing Rooms' grate: THE DEFEAT ROUTE's passage, like Episode 1's Hidden Passage): a
+     crawlspace of air ducts, slow fans, notes Rico dropped, and RICO'S LUCKY PICK (only here). The hatch at the far
+     end climbs into the Fly Loft. No machines. It stays open for good (ricoVent never unsets).
+     ITS LETTERS: d duct · n duct with dropped notes · k duct wall · F a fan · b a duct box · L the hatch up · g the
+     grate back down · = edge */
+  vent: {
+    name: 'The Vent', ep: 2, music: 'quest-manor', floor: 'd',
+    legend: {
+      d: {sprite: 'tile-st-duct'}, n: {sprite: 'tile-st-duct-notes'}, k: {sprite: 'tile-st-ductwall', solid: true}, F: {sprite: 'tile-st-fan', solid: true},
+      b: {sprite: 'tile-st-ductbox', solid: true}, L: {sprite: 'tile-st-bladder', door: true}, g: {sprite: 'tile-st-vent-open', door: true},
+    },
+    tiles: [
+      '================',
+      '=kkkFkkkkkFkkkL=',
+      '=ddnddddddddndd=',
+      '=ddddddbddddddd=',
+      '=dnddddddddnddd=',
+      '==g=============',
+    ],
+    doors: [
+      {at: [2, 5], to: 'dressing', spawn: [16, 2], dir: 'down'},
+      {at: [14, 1], to: 'loft', spawn: [2, 9], dir: 'right'},
+    ],
+    npcs: [],
+    things: [
+      {at: [7, 3], say: 'vent-box', charm: 'ricos-pick', found: 'vent-box-found'},
+      {at: [4, 1], say: 'vent-fan'}, {at: [10, 1], say: 'vent-fan'},
+    ],
+    enemies: [],
+  },
+
+  /* 9. THE FLY LOFT (Sal's ladder from the Workshop, or the Vent's hatch): catwalks over the dark, the lighting bars,
+     ropes and sandbags, the TOP of the red curtain. Far below, through the curtain's gap, the giant Microphone stands
+     (steady: the closest it's been). The second SAVE JUKEBOX, by the ladder. Whispers come often here, with lines of
+     their own. THE STAIRS DOWN to the Main Stage need ricoDone (either route; build step 5 builds the stage).
+     Rhythm tier 3.
+     ITS LETTERS: c catwalk · o the dark below · b lighting bars · r ropes · S sandbags · V the curtain's top · x its
+     gap · h the ladder down · v the vent's hatch · d the stairs down · j the Save Jukebox · = edge */
+  loft: {
+    name: 'The Fly Loft', ep: 2, music: 'quest-manor', floor: 'c', whispers: [8, [20, 40]],
+    whisperLines: ['...you\'re close... too close...', '...too LOUD...', '...don\'t look down...', '...they all left the stage...'],
+    legend: {
+      c: {sprite: 'tile-st-catwalk'}, o: {sprite: 'tile-st-void', solid: true}, b: {sprite: 'tile-st-lightbar', solid: true},
+      r: {sprite: 'tile-st-loftrope', solid: true}, S: {sprite: 'tile-st-sandbags', over: true, solid: true},
+      V: {sprite: 'tile-st-curttop', solid: true, peek: true}, x: {sprite: 'tile-st-curtgap', solid: true, peek: true},
+      h: {sprite: 'tile-st-hole', door: true}, v: {sprite: 'tile-st-hatch', door: true}, d: {sprite: 'tile-st-loftstairs', door: true},
+    },
+    tiles: [
+      '======================',
+      '=bbjbbbbbbbbbbbbbbbbb=',
+      '=hcccccccccccccccccrc=',
+      '=cooooooooooooooooScS=',
+      '=coVVVVVVVxVVVVVVVVoc=',
+      '=cooooooooooooooooooc=',
+      '=cccccccccccccccccccc=',
+      '=coooooooocoooooooooc=',
+      '=coooooooocoooooooooc=',
+      '=vccccccccccccccccccd=',
+      '======================',
+    ],
+    doors: [
+      {at: [1, 2], to: 'workshop', spawn: [12, 2], dir: 'down'},
+      {at: [1, 9], to: 'vent', spawn: [13, 2], dir: 'left', need: 'ricoVent', locked: 'hatch-locked'},   // (latched from below: the defeat route's)
+      {at: [20, 9], to: 'stage', spawn: [7, 8], dir: 'down', need: 'ricoDone', locked: 'loft-stairs-locked', soon: 'loft-stairs-soon'},
+    ],
+    npcs: [],
+    props: [{at: [10, 4], sprite: 'mic-shadow', frame: 0}],            // the giant Microphone, far below, through the gap
+    things: [
+      {at: [3, 1], use: 'jukebox', say: 'jukebox-loft'},
+      {at: [10, 3], say: 'loft-gap'}, {at: [5, 3], say: 'loft-curtain'}, {at: [15, 3], say: 'loft-curtain'},
+      {at: [19, 2], say: 'loft-ropes'}, {at: [18, 3], say: 'loft-sandbags'}, {at: [20, 3], say: 'loft-sandbags'}, {at: [8, 1], say: 'loft-lights'},
+    ],
+    enemies: [
+      {key: 'm1', type: 'miclet', at: [6, 6], wander: 2, tier: 3},
+      {key: 'm2', type: 'metrognome', at: [15, 6], wander: 2, tier: 3},
+      {key: 'm3', type: 'stubs', at: [10, 8], wander: 1},
+      {key: 'm4', type: 'miclet', at: [14, 9], wander: 2, tier: 3},
     ],
   },
 });

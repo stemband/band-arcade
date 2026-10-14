@@ -379,8 +379,9 @@
   /* ---------- endings ---------- */
   async function rewards(kind) {
     const r = (B.e.rewards || {})[kind] || {xp: 5, tokens: 1}, s = B.save;
-    s.xp += r.xp; A.Tokens.add(r.tokens);                              // THE SHARED WALLET (shared/tokens.js)
-    const lines = [Q.text('rewards', {n: r.xp, tokens: r.tokens})];
+    const tok = Math.round(r.tokens * Q.charms.mult('tokens'));                // (Rico's Lucky Pick: more tokens)
+    s.xp += r.xp; A.Tokens.add(tok);                                   // THE SHARED WALLET (shared/tokens.js)
+    const lines = [Q.text('rewards', {n: r.xp, tokens: tok})];
     if (r.item && ITEMS()[r.item]) { s.items[r.item] = (s.items[r.item] || 0) + 1; lines.push(Q.text('gotItem', {item: ITEMS()[r.item].name})); }
     if (kind === 'befriend') Object.keys(Q.charms.list()).forEach(id => {       // a charm for befriending this ghost
       const c = Q.charms.get(id); if (c.reward === B.e.id && Q.charms.give(id)) { lines.push(Q.text('gotCharm', {item: c.name})); Q.sfx('charm-equip'); }
@@ -425,7 +426,7 @@
     }
     if (!Q.save.flag('pathsTip') && b.e.serenade !== false) { await Q.say(Q.text('twoPaths')); Q.save.setFlag('pathsTip'); }   // the first battle: the two ways to win
     // the first RHYTHM / TEMPO / ECHO battle anywhere: Snapjaw Sal's how-to card, once (challenges.js Q.rhythmTip)
-    if ([b.e.challenge].concat((b.e.stages || []).map(st => st.challenge)).some(t => Q.challenge.RHYTHMIC.includes(t) && Q.challenge.resolve(t) === t)) await Q.rhythmTip();
+    if ([b.e.challenge].concat((b.e.stages || []).map(st => st.challenge), b.e.phases || []).some(t => Q.challenge.RHYTHMIC.includes(t) && Q.challenge.resolve(t) === t)) await Q.rhythmTip();
     while (B === b) {
       await stageStart();
       if (B !== b) return;

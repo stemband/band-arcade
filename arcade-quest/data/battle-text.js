@@ -137,6 +137,8 @@ window.QUEST_TEXT = {
   encoreDrum:      'The E♭ Encore: 8 clean, separate strokes!',
   encorePlayDrum:  'E♭ ENCORE! 6 clean, separate strokes!',
   // SNAPJAW SAL'S RHYTHM TIP (the first rhythm battle anywhere, and her lesson; once: challenges.js Q.rhythmTip)
+  harmonizePart:   'HARMONIZE! Give the notes back: the first {n} notes of the E♭ scale, in order.',
+  harmonizePartDrum: 'HARMONIZE! Give the beat back: {n} clean, even strokes.',
   rhythmTipKicker: 'Snapjaw Sal\'s rhythm tip',
   rhythmTipTitle:  'It\'s all about WHEN!',
   rhythmTip:       'Read the rhythm. Count it. Play it on ANY note: it\'s all about WHEN.',
