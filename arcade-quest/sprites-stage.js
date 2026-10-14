@@ -596,4 +596,56 @@
   // RICO's dodge (battle/dodge.js 'borrow'): a borrowed note, and his sax case at the bottom of the box
   S['borrow-note'] = {w: 6, h: 7, palette: {y: 'q-gold', Y: 'q-brass-d', w: 'q-white'}, frames: [['....Y.', '....YY', '....Y.', '....Y.', '.yyyY.', 'yywyy.', '.yyy..']]};
   S['borrow-case'] = {w: 20, h: 8, palette: {k: 'q-black', K: 'q-grey-d', y: 'q-gold', g: 'q-grey', w: 'q-white'}, frames: [['..y....w.....y......', 'gggggggggggggggggggg', 'gKKKKKKKKKKKKKKKKKKg', 'gKKKKKKKyyyyKKKKKKKg', 'gKKKKKKKKKKKKKKKKKKg', 'gKKKKKKKKKKKKKKKKKKg', 'gggggggggggggggggggg', '.kk..............kk.']]};
+
+  /* ---------- BUILD STEP 5: THE MAIN STAGE (data/maps/stage.js `stage`) ----------
+     tile-st-backdrop   the painted night-sky backdrop at the back of the stage
+     tile-st-podium     Maestro Moose's podium (in front of him)
+     tile-st-footlights the front edge of the stage: a row of footlights glowing softly (2 frames, 1 a second: two
+                        warm colors trade places, never a flash)
+     stage-glitch       the static at a band member's feet before the finale (2 frames, slow; small and dim)
+     stage-spot         a warm pool of light at their feet after it (still)
+     stage-mic          THE STAGE MIC in its stand, front and center, with a dim red light (still: it never blinks)
+     stage-hole         after the ending: the hole in the boards where its cable runs down
+     moose-note         the Lobby: the note Maestro Moose leaves on the carpet (GONE TO THE STAGE!)
+     bignumber          THE BIG NUMBER (battle): the five band members in two rows (72 × 48, `members`: battle.js
+                        lights the one whose stage is running and dims the others)
+     tuba-bubble · flurry-shot · stick-shot   its dodges: Tubby's bubbles, Hoot's flurry of notes, Sal's sticks */
+  S['tile-st-backdrop'] = tile({c: 'q-stage-coat', s: 'q-stage-bulb-off', S: 'q-stage-glow', T: 'q-stage-trim-d', t: 'q-stage-trim'}, [['cccccccccccccccc', 'ccsccccccccccccc', 'cccccccccccscccc',
+    'cccccccSccccccccc'.slice(0, 16), 'cccccccccccccccc', 'cccccccccccccscc', 'csccccccccccccccc'.slice(0, 16), 'cccccccsccccccccc'.slice(0, 16), 'cccccccccccccccc', 'cccccccccscccccc',
+    'cccscccccccccccc', 'cccccccccccccccc', 'cccccccccccccccc', 'tttttttttttttttt', 'TTTTTTTTTTTTTTTT', 'TcTTcTTcTTcTTcTT']]);
+  S['tile-st-podium'] = tile(Object.assign({w: 'q-wood', W: 'q-wood-l', y: 'q-gold', k: 'q-black'}, BOARD), [over(S['tile-st-boards'].frames[0], ['', '', '', '',
+    '..kkkkkkkkkkkk..', '..kWWWWWWWWWWk..', '..kyyyyyyyyyyk..', '..kwwwwwwwwwwk..', '..kwwwWWWWwwwk..', '..kwwwWyyWwwwk..', '..kwwwWWWWwwwk..', '..kwwwwwwwwwwk..',
+    '..kwwwwwwwwwwk..', '..kyyyyyyyyyyk..', '..kkkkkkkkkkkk..'])]);
+  const foot = i => over(S['tile-st-boards'].frames[0], ['', '', '', '', '', 'TTTTTTTTTTTTTTTT', 'tttttttttttttttt', '.KKKK..KKKK..KKK'.replace(/\./g, 't'),
+    i ? 'tKgbKttKbgKttKgb' : 'tKbgKttKgbKttKbg', 'WWWWWWWWWWWWWWWW', 'WeWWWWWWWWWWWWeW', 'WWWWWWWeWWWWWWWW', 'WWWWWWWWWWWWWWWW', 'TTTTTTTTTTTTTTTT', 'vvvvvvvvvvvvvvvv', 'vvvvvvvvvvvvvvvv']);
+  S['tile-st-footlights'] = tile(Object.assign({K: 'q-grey-d', b: 'q-stage-bulb', g: 'q-stage-glow', W: 'q-stage-wall', e: 'q-stage-wall-d', t: 'q-stage-trim', T: 'q-stage-trim-d', v: 'q-void'}, BOARD), [foot(0), foot(1)], {fps: 1});
+  S['stage-glitch'] = {w: 16, h: 6, fps: 2, palette: {g: 'q-grey-d', G: 'q-grey', r: 'q-stage-red-lit'}, frames: [
+    ['....g.G..g.g....', '..gG.g..G.g.Gg..', '.g.G.g.r.g.G.g..', '..g.G.g..gG.g...', '....g..G.g......', '................'],
+    ['.....G.g.G.g....', '..g.g.G.g.r.g...', '.G.g..G.g.G.g.g.', '..gG.g.G..g.G...', '.....g.G..g.....', '................']]};
+  S['stage-spot'] = {w: 16, h: 6, palette: {y: 'q-stage-glow', b: 'q-stage-bulb'}, frames: [
+    ['....y.y.y.y.....', '..y.y.b.b.y.y...', '.y.b.b.b.b.b.y..', '..y.y.b.b.y.y...', '....y.y.y.y.....', '................']]};
+  function stageMic() {
+    const g = grid(12, 26);
+    oval(g, 5.5, 3.5, 3, 3.4, 'S'); [[4, 2], [6, 2], [5, 3], [4, 4], [6, 4]].forEach(([x, y]) => put(g, x, y, 's'));   // the round head, its mesh
+    rect(g, 3, 7, 6, 2, 'B'); put(g, 5, 9, 'r'); put(g, 6, 9, 'r');                                                  // the band, the red light
+    rect(g, 5, 9, 2, 13, 'b'); put(g, 5, 9, 'r'); put(g, 6, 9, 'r');                                                 // the stand
+    line(g, 5, 22, 1, 25, 'B'); line(g, 6, 22, 10, 25, 'B'); rect(g, 5, 22, 2, 4, 'B');                              // the tripod feet
+    return text(outline(g));
+  }
+  S['stage-mic'] = {w: 12, h: 26, palette: {S: 'q-silver-d', s: 'q-silver', B: 'q-steel-d', b: 'q-steel', r: 'q-stage-red-lit', o: 'q-out'}, frames: [stageMic()]};
+  S['stage-hole'] = {w: 16, h: 16, palette: {k: 'q-black', K: 'q-out', d: 'q-stage-board-d', c: 'q-grey-d', C: 'q-steel-d'}, frames: [['', '', '', '', '', '....dddddddd....', '...dkkkkkkkkd...',
+    '..dkKKKKKKKKkd..', '..dkKKKcCKKKkd..', '..dkKKKcCKKKkd..', '...dkKKcCKKkd...', '....ddkcCkdd....', '.......cC.......', '.......cC.......', '', ''].map(r => r.padEnd(16, '.'))]};
+  S['moose-note'] = {w: 10, h: 7, palette: {p: 'q-paper', k: 'q-black', r: 'q-stage-velvet'}, frames: [['pppppppppp', 'pkkpkkkpkp', 'pppppppppp', 'pkpkkpkkpp', 'pppppppppp', 'ppkkkpprrp', 'pppppppppp']]};
+  // THE BIG NUMBER: who stands where in its 72 × 48 box (back row Hoot, Moose, Rico; front row Tubby, Sal), in the
+  // order of the battle's stages (Tubby, Hoot, Sal, Rico, Moose); `ok` = their un-glitched sprite (befriended)
+  const BIG = [{sprite: 'npc-tusk', ok: 'npc-tusk-ok', at: [12, 20]}, {sprite: 'npc-hoot', ok: 'npc-hoot-ok', at: [0, 0]}, {sprite: 'npc-sal', ok: 'npc-sal-ok', at: [36, 20]},
+    {sprite: 'npc-rico', ok: 'npc-rico-ok', at: [48, 0]}, {sprite: 'npc-moose', ok: 'npc-moose-ok', at: [24, 0]}];
+  const layer = (id, f, at) => ({rows: S[id].frames[f % S[id].frames.length], palette: S[id].palette, at});
+  const backFirst = BIG.slice().sort((a, b) => a.at[1] - b.at[1]);
+  S.bignumber = {w: 72, h: 48, fps: 2, members: BIG,
+    layers: [0, 1, 2].map(f => backFirst.map(m => layer(f === 2 ? m.ok : m.sprite, f === 2 ? 0 : f, m.at)))};
+  S['tuba-bubble'] = {w: 12, h: 12, palette: {b: 'q-stage-eye-ok', B: 'q-steel', w: 'q-white'}, frames: [['....BBBB....', '..BB....BB..', '.B..ww....B.', '.B.ww.....B.', 'B..w.......B',
+    'B..........B', 'B..........B', 'B..........B', '.B........bB', '.B.......b.B', '..BB....BB..', '....BBBB....']]};
+  S['flurry-shot'] = {w: 5, h: 6, palette: {s: 'q-silver', S: 'q-silver-d'}, frames: [['...S.', '...SS', '...S.', '.sss.', 'sssS.', '.ss..']]};
+  S['stick-shot'] = {w: 4, h: 12, palette: {w: 'q-wood-l', W: 'q-wood', t: 'q-paper'}, frames: [['.tt.', '.tt.', '.ww.', '.ww.', '.wW.', '.wW.', '.wW.', '.wW.', '.WW.', '.WW.', '.WW.', '.WW.']]};
 })(window.QUEST_ART);

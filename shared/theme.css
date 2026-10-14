@@ -417,6 +417,11 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .av-plate-ghostwhisperer::after{content:"";position:absolute;right:-7px;top:-11px;width:13px;height:13px;border:2px solid transparent;border-top-color:color-mix(in srgb,var(--white-hi) 80%,transparent);border-left-color:color-mix(in srgb,var(--purple-hi) 70%,transparent);border-radius:50%;transform:rotate(20deg);opacity:.7;pointer-events:none}
 @media (prefers-reduced-motion:no-preference){.av-plate-ghostwhisperer::after{animation:av-wisp 7s ease-in-out infinite}}
 @keyframes av-wisp{0%,100%{transform:translateY(0) rotate(20deg);opacity:.55}50%{transform:translateY(-2px) rotate(-10deg);opacity:.85}}
+/* ARCADE QUEST EPISODE 2: "Encore!" = a theater marquee (a row of warm bulbs along the top and bottom edges, steady);
+   Showstopper = red velvet, a gold border and a small gold star at the corner */
+.av-plate-encore{border-color:var(--q-stage-glow);color:var(--white-hi);background:radial-gradient(circle,var(--q-stage-bulb) 0 1.2px,transparent 1.6px) 0 1px/7px 100% repeat-x,radial-gradient(circle,var(--q-stage-bulb) 0 1.2px,transparent 1.6px) 0 calc(100% - 1px)/7px 100% repeat-x,linear-gradient(180deg,var(--q-stage-wall-d),color-mix(in srgb,var(--q-stage-velvet-d) 70%,transparent));background-size:7px 4px,7px 4px,auto;box-shadow:0 0 5px color-mix(in srgb,var(--q-stage-glow) 45%,transparent)}
+.av-plate-showstopper{position:relative;border:2px solid var(--q-gold);color:var(--white-hi);background:linear-gradient(180deg,var(--q-stage-velvet),var(--q-stage-velvet-d))}
+.av-plate-showstopper::after{content:"★";position:absolute;right:-7px;top:-9px;font-size:12px;line-height:1;color:var(--q-gold);text-shadow:0 0 3px var(--q-stage-velvet-d);pointer-events:none}
 .av-plate-sunset{border-color:var(--amber);background:linear-gradient(0deg,color-mix(in srgb,var(--cyan) 26%,transparent),color-mix(in srgb,var(--amber) 30%,transparent) 55%,color-mix(in srgb,var(--pink) 24%,transparent))}
 [class*="av-plate-belt-"]{border-width:2px 2px 2px 8px;border-color:var(--pb)}
 .av-plate-belt-white{--pb:var(--belt-white)}.av-plate-belt-yellow{--pb:var(--belt-yellow)}.av-plate-belt-orange{--pb:var(--belt-orange)}.av-plate-belt-green{--pb:var(--belt-green)}

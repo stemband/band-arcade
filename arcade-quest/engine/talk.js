@@ -7,7 +7,7 @@
                           `talk` choice with `ask` asks it after its lines: `yes` / `no` lines follow, `do` only on yes
    Q.talk.sign(id)        one sign's lines
    Q.talk.hud()           the little status line (LV, HP, tokens)
-   Q.talk.ghostLog(ep)    THE GHOST LOG (the overworld's pause menu; that episode's, nothing while it has none yet):
+   Q.talk.ghostLog(ep)    THE GHOST LOG (the overworld's pause menu; that episode's: Episode 2's is THE SHOWTIME LOG):
                           "GHOST LOG: 14 / 20 helped" with a pixel ghost,
                           ✓ Ghost Whisperer once every one is helped; from 80 % (16 / 20) the ROOMS that still have
                           someone ("Still wandering: the Library, the Attic"), never where. Q.save.ghostLog() counts.
@@ -17,7 +17,8 @@
    PRIZE COUNTER (shared/prizes.js), so a star turned in at either counter is never counted again and an item bought at
    either shows OWNED at the other. The booth SELLS: avatar items (shared/avatar-parts.js items with unlock {shop:
    price}: owned forever and worn everywhere), including the MANOR COLLECTION (unlock.booth 'quest': only here, tagged
-   "MANOR COLLECTION: only here!"), the SEASONAL SHOP's items during their event (first, "SEASONAL: gone in 12 days!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
+   "MANOR COLLECTION: only here!"), Ticket Booth Tina's STAGE COLLECTION (unlock.booth 'stage': only at HER counter,
+   "STAGE COLLECTION: only here!"; Terry never shows it), the SEASONAL SHOP's items during their event (first, "SEASONAL: gone in 12 days!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
    QUEST_CHARMS with a price; ARCADE QUEST ONLY). Q.talk.charms() = the CHARMS panel (pause menu): 2 slots, owned
    charms to wear, and how to find the rest. */
 (function (A) {
@@ -46,13 +47,15 @@
     GHOST_PX.map((r, y) => [...r].map((c, x) => (c === 'X' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : '')).join('')).join('') + `</svg>`;
   const HINT_AT = 0.8;                                         // the rooms show from 16 of 20 (a share, for more ghosts later)
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  // EPISODE 2's twin: THE SHOWTIME LOG ("SHOWTIME LOG: 14 / 20 helped", "✓ Showstopper", "Still glitching: …")
+  const LOG = {1: {title: 'ghostLog', left: 'ghostLogLeft', done: 'Ghost Whisperer'}, 2: {title: 'showtimeLog', left: 'showtimeLogLeft', done: 'Showstopper'}};
   Q.talk.ghostLog = function (ep = 1) {
-    const g = Q.save.ghostLog(Q.save.get(), ep);
+    const g = Q.save.ghostLog(Q.save.get(), ep), L = LOG[ep] || LOG[1];
     if (!g.total) return '';
     const the = n => n.replace(/^The /, 'the ');
-    return `<div class="q-glog" id="qGhostLog"><p class="q-glog-n">${GHOST_ICON}<b>${esc(Q.text('ghostLog'))}:</b> ${g.helped} / ${g.total} helped</p>` +
-      (g.all ? `<p class="q-glog-done">✓ Ghost Whisperer</p>`
-        : g.helped >= Math.ceil(g.total * HINT_AT) ? `<p class="q-glog-left">${esc(Q.text('ghostLogLeft', {rooms: g.rooms.map(the).join(', ')}))}</p>` : '') + `</div>`;
+    return `<div class="q-glog" id="qGhostLog"><p class="q-glog-n">${GHOST_ICON}<b>${esc(Q.text(L.title))}:</b> ${g.helped} / ${g.total} helped</p>` +
+      (g.all ? `<p class="q-glog-done">✓ ${L.done}</p>`
+        : g.helped >= Math.ceil(g.total * HINT_AT) ? `<p class="q-glog-left">${esc(Q.text(L.left, {rooms: g.rooms.map(the).join(', ')}))}</p>` : '') + `</div>`;
   };
   let bannerT = 0;
   Q.talk.banner = function (name) {
@@ -67,6 +70,7 @@
     if (c.includes('&')) return c.split('&').every(x => cond(x.trim()));   // 'tuskAwake&!moose-tusk': all of them
     if (c[0] === '!') return !cond(c.slice(1));
     if (c.startsWith('charm:')) return Q.charms.owned(c.slice(6));       // 'charm:metronome-ticker': that charm is yours
+    if (c.startsWith('route:')) return Q.world.cond(c);                  // 'route:bignumber=fade': how that story enemy was passed
     if (c === 'snare') return unpitched();
     const m = /^helped>=(\d+)$/.exec(c);
     if (m) return helpedHere() >= +m[1];
@@ -249,7 +253,7 @@
       panel(D.booth || 'Token Booth', r.html, items(), {cols: 2, cls: 'q-booth', onPick: async (it, i, api) => {
         if (it.id === 'looks' || it.id === 'charms' || it.id === 'code') {
           api.el.hidden = true;
-          await (it.id === 'looks' ? cosmeticShop() : it.id === 'code' ? Q.talk.beltCode() : charmShop());
+          await (it.id === 'looks' ? cosmeticShop(D) : it.id === 'code' ? Q.talk.beltCode() : charmShop());
           api.el.hidden = false; r = render(); api.body.innerHTML = r.html; api.rebuild(items());
           return;
         }
@@ -306,11 +310,15 @@
   /* ---------- the Token Booth's shelves: avatar items and charms ---------- */
   const tokensLine = msg => `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
   /** avatar items for tokens (shared/avatar-parts.js unlock {shop}): owned forever, worn everywhere in the arcade */
-  function cosmeticShop() {
+  function cosmeticShop(D = {}) {
     return new Promise(done => {
       // every item for tokens (shared/tokens.js catalog): the Manor Collection first (only here!), then by price
       // SEASONAL items (the seasonal shop) only while their event runs, first, tagged "SEASONAL"
-      const AV = A.Avatar, stock = AV ? T().catalog().filter(it => it.onSale).sort((a, b) => (!!b.season - !!a.season) || (b.questOnly - a.questOnly) || (a.full - b.full)) : [];
+      // TICKET BOOTH TINA (data/dialogue-stage.js `collection: 'stage'`) also sells THE STAGE COLLECTION, first (only
+      // at her counter: counter 'stage'); Terry's booth never shows it
+      const stage = D.collection === 'stage', counter = stage ? 'stage' : 'quest';
+      const AV = A.Avatar, stock = AV ? T().catalog().filter(it => it.onSale && (it.collection !== 'stage' || stage))
+        .sort((a, b) => (!!b.season - !!a.season) || ((b.collection === 'stage') - (a.collection === 'stage')) || (b.questOnly - a.questOnly) || (a.full - b.full)) : [];
       const sea = T().seasonal();
       const bgOf = it => it.field === 'bg' && A.AvatarBg ? ` style="background-image:url(${A.AvatarBg.stillURL(it.id, 128)})"` : '';   // a background: behind you
       const bust = it => AV.bustURL(Object.assign(AV.get(), {[it.field]: it.id}), {color: 'classic', acc: null});
@@ -321,7 +329,7 @@
         return `<img class="q-cos${it.field === 'bg' ? ' q-cos-bg' : ''}" alt=""${bgOf(it)} src="${bust(it)}">`;
       };
       const own = it => T().owned(it.key);
-      const tags = it => (it.season && sea ? `<span class="q-tag q-season">SEASONAL: ${sea.left}</span>` : '') + (it.questOnly ? '<span class="q-tag q-manor">MANOR COLLECTION: only here!</span>' : '') + (T().price(it.key).weekly ? '<span class="q-tag q-weekly">⭐ WEEKLY</span>' : '');
+      const tags = it => (it.season && sea ? `<span class="q-tag q-season">SEASONAL: ${sea.left}</span>` : '') + (it.collection === 'stage' ? '<span class="q-tag q-stagecol">STAGE COLLECTION: only here!</span>' : it.questOnly ? '<span class="q-tag q-manor">MANOR COLLECTION: only here!</span>' : '') + (T().price(it.key).weekly ? '<span class="q-tag q-weekly">⭐ WEEKLY</span>' : '');
       const cost = it => { const p = T().price(it.key); return p.weekly ? `<s>${p.full}</s> ${p.price} tokens` : `${p.price} tokens`; };
       const list = () => stock.map(it => ({id: it.key, label: `${pic(it)}${it.name}${tags(it)}`, sub: own(it) ? 'OWNED' : cost(it), cls: (own(it) ? 'q-owned' : '') + (it.questOnly ? ' q-manoritem' : '')}))
         .concat([{id: null, label: 'Back'}]);
@@ -330,7 +338,7 @@
         const item = stock.find(x => x.key === it.id);
         if (own(item)) { api.body.innerHTML = tokensLine({cls: 'q-good', text: `You own the ${item.name}. Wear it from the LOCKER or EDIT PLAYER.`}); return; }
         Q.save.get();
-        const r = T().buy(item.key, {counter: 'quest'});
+        const r = T().buy(item.key, {counter});
         if (!r.ok) { api.body.innerHTML = tokensLine({cls: 'q-bad', text: `The ${item.name} costs ${r.price} tokens. Turn in stars to get more!`}); Q.sfx('note-wrong'); return; }
         Q.sfx('item-purchase'); Q.talk.hud();
         const av = AV.get(); av[item.field] = item.id; AV.set(av);                     // wear it right away

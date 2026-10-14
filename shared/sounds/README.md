@@ -609,6 +609,9 @@ upload a file, that part of the game is simply quiet.
 | `quest-manor` | `quest-manor.m4a` or `quest-manor.mp3` | Arcade Quest: exploring Ghost Notes Manor (every room but the Foyer). Nothing plays until you upload it. **loops** | 30–90 s loop |
 | `quest-miniboss` | `quest-miniboss.m4a` or `quest-miniboss.mp3` | Arcade Quest: the mini-boss battle (The Phantom Fermata), in menus and dodging; stops while listening. Nothing plays until you upload it. **loops** | 30–90 s loop |
 | `quest-ep2-miniboss` | `quest-ep2-miniboss.m4a` or `quest-ep2-miniboss.mp3` | Arcade Quest Episode 2: the mini-boss battle (Rico Bandit). Until it is uploaded: `quest-miniboss`. **loops** | 30–90 s loop |
+| `quest-ep2-boss` | `quest-ep2-boss.m4a` or `quest-ep2-boss.mp3` | Arcade Quest Episode 2: the final boss battle (THE BIG NUMBER: the whole Showtime Band, glitched). Until it is uploaded: `quest-boss`. **loops** | 30–90 s loop |
+| `quest-encore` | `quest-encore.m4a` or `quest-encore.mp3` | Arcade Quest Episode 2: the ending, the band plays the E♭ Encore with you (ideally an E♭ major tune). Until it is uploaded: `quest-victory`. **loops** | 20–60 s loop |
+| `quest-ep2-cliffhanger` | `quest-ep2-cliffhanger.m4a` or `quest-ep2-cliffhanger.mp3` | Arcade Quest Episode 2: the cliffhanger (Madame Mezzo through a speaker, TO BE CONTINUED IN EPISODE 3). Low and eerie. Until it is uploaded: `quest-cliffhanger`. **loops** | 15–40 s loop |
 | `quest-step` | `quest-step.m4a` or `quest-step.mp3` | Arcade Quest: a footstep while exploring (every other step, very quiet). | under 0.08 s |
 | `quest-door` | `quest-door.m4a` or `quest-door.mp3` | Arcade Quest: going through a door to another room (or a locked door rattling). | under 0.5 s |
 | `quest-save` | `quest-save.m4a` or `quest-save.mp3` | Arcade Quest: saving at the Save Jukebox. | 0.5–1.5 s |
@@ -621,7 +624,7 @@ upload a file, that part of the game is simply quiet.
 | `quest-credits` | `quest-credits.m4a` or `quest-credits.mp3` | Arcade Quest: the credits roll after Episode 1. Nothing plays until you upload it. | 30–90 s loop |
 | `quest-static` | `quest-static.m4a` or `quest-static.mp3` | Arcade Quest: static crackles (the intro glitch, color draining away). | 0.5–1.5 s |
 | `quest-mic-crackle` | `quest-mic-crackle.m4a` or `quest-mic-crackle.mp3` | Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening. | 0.5–2 s |
-| `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: the Ghost Conductor starts a new phase of the battle (never while listening). | 0.5–1 s |
+| `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: a final boss starts a new stage of the battle (the Ghost Conductor; Episode 2: THE BIG NUMBER, a new band member). Never while listening. | 0.5–1 s |
 
 **Arcade Quest, Episode 2: The Showtime Stage** (in progress: each room gets its slot as it is built). Until a file is
 uploaded, the slot plays the track named in the last column, so nothing goes silent. The Sound Board lists the rooms
@@ -638,6 +641,7 @@ under "Arcade Quest — Episode 2 Rooms".
 | `quest-room-balcony` | `quest-room-balcony.m4a` or `quest-room-balcony.mp3` | Episode 2: the Balcony (seats over the stage; the Microphone peeks through the curtain). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
 | `quest-room-dressing` | `quest-room-dressing.m4a` or `quest-room-dressing.mp3` | Episode 2: the Dressing Rooms (mirrors with bulbs, costume racks, Rico Bandit). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-loft` | `quest-room-loft.m4a` or `quest-room-loft.mp3` | Episode 2: the Fly Loft (catwalks over the dark; the Microphone far below), and the Vent. Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-stage` | `quest-room-stage.m4a` or `quest-room-stage.mp3` | Episode 2: the Main Stage (the boards, the footlights; the band frozen, then the stage after the finale). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
 | `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
 | `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |

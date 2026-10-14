@@ -140,10 +140,6 @@ test.describe('RICO BANDIT', () => {
     await drive(page, idleIn('dressing'));
     expect((await lines(page)).join(' ')).toMatch(/Here, have a C|gave everybody|star door|Thanks for listening/);
     await clear(page);
-    await step(page, 'dressing', 13, 2, 'up');                                            // the star door: open, the stage still being built
-    await drive(page, idleIn('dressing'));
-    expect(await lines(page)).toContain('The star door opens onto the wings. The stage is so close.');
-    await clear(page);
     await step(page, 'dressing', 16, 2, 'up');                                            // the vent: still shut on this route
     await drive(page, idleIn('dressing'));
     expect(await lines(page)).toContain('A vent grate, low in the wall. It\'s screwed shut. Notes hum behind it.');
@@ -347,7 +343,8 @@ test('the NPCs react to Rico (befriended / powered down), every new line fits (â
   expect(r.missing).toEqual([]);
   expect(r.long).toEqual([]);
   // befriended: "Rico gave â€¦ back! Mostly." from each of them, once
-  for (const [map, x, y, want] of [['lobby', 11, 7, 'A saxophone! Now we have EVERYBODY.'], ['lobby', 3, 5, 'Rico gave my ticket stubs back! Mostly.'],
+  // (Maestro Moose has gone to the Main Stage by now: build step 5, tests/quest-ep2-finale.spec.js)
+  for (const [map, x, y, want] of [['lobby', 3, 5, 'Rico gave my ticket stubs back! Mostly.'],
     ['lobby', 18, 5, 'Rico gave my POP back! Mostly.'], ['pit', 11, 4, 'Rico gave my low notes back! Mostly.'], ['workshop', 8, 4, 'Rico gave my rimshot back! Mostly.'],
     ['greenroom', 4, 6, 'Rico gave my notes back! Mostly.']]) {
     await go(page, map, x, y + 1 > 9 ? y : y);
@@ -367,13 +364,11 @@ test('powered down, the same NPCs say the other line; the wings and the Loft\'s 
   expect(await lines(page)).toContain('Rico\'s resting. The notes found their own way home. Even the low ones.');
   await go(page, 'backstage', 14, 2);
   await clear(page);
-  await step(page, 'backstage', 14, 2, 'up');                                             // the wings: ricoDone, the stage still being built
-  await drive(page, idleIn('backstage'));
-  expect(await lines(page)).toContain('The curtain is down. Something big is waiting behind it.');
+  await step(page, 'backstage', 14, 2, 'up');                                             // the wings: ricoDone, onto the Main Stage (build step 5)
+  await drive(page, idleIn('stage'));
   await go(page, 'loft', 20, 8);
   await clear(page);
   await step(page, 'loft', 20, 8, 'down');
-  await drive(page, idleIn('loft'));
-  expect(await lines(page)).toContain('The stairs lead down to the stage. Something enormous is tuning up.');
+  await drive(page, idleIn('stage'));
   watch.check();
 });

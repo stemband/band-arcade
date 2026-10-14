@@ -27,4 +27,5 @@ window.QUEST_ROOM_MUSIC = {
   dressing: 'quest-room-dressing',    // The Dressing Rooms
   loft: 'quest-room-loft',            // The Fly Loft
   vent: 'quest-room-loft',            // The Vent (shares the Fly Loft's track)
+  stage: 'quest-room-stage',          // The Main Stage
 };

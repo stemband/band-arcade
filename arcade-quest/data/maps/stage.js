@@ -23,7 +23,11 @@
    `glimpse: flag` = the first visit shows the giant Microphone in the room's `peek` tiles once (+ a crackle).
    BUILD STEP 4: `whisperLines` = whispers of the room's own (the Fly Loft), added to the episode's; an npc's
    `if: flag` (or '!flag') = it's there only then (Rico, after his battle); a map enemy's `boss: true` = not one of the
-   20 machines (Rico Bandit: his own flags, data/enemies.js doneFlag / opens / opensIfFaded). */
+   20 machines (Rico Bandit: his own flags, data/enemies.js doneFlag / opens / opensIfFaded).
+   BUILD STEP 5: an npc's or a thing's or a prop's `if` can also be 'a&b' and 'route:<enemy id>=befriend|fade' (how
+   that story enemy was passed: save.route); an npc's `rest: true` = drawn dim with a little "z" (powered down to
+   rest); a prop's `under: true` = drawn on the floor, under everyone; a map enemy's `sprite` = how it looks in the
+   room (THE BIG NUMBER stands there as Maestro Moose). */
 Object.assign(window.QUEST_TILES, {
   '=': {sprite: 'tile-st-cap', solid: true},
   W: {sprite: 'tile-st-wall', solid: true},
@@ -75,7 +79,7 @@ Object.assign(window.QUEST_MAPS, {
       {at: [21, 1], to: 'balcony', spawn: [7, 8], dir: 'up', need: 'tuskAwake', locked: 'balcony-roped'},
     ],
     npcs: [
-      {id: 'moose', at: [11, 6]},
+      {id: 'moose', at: [11, 6], if: '!ricoDone'},          // (once Rico is done he goes to the Main Stage: his note is here)
       {id: 'tina', at: [3, 3]},
       {id: 'pete', at: [18, 3]},
     ],
@@ -90,7 +94,9 @@ Object.assign(window.QUEST_MAPS, {
       {at: [12, 1], say: 'lobby-bulbs'}, {at: [13, 1], say: 'lobby-bulbs'}, {at: [14, 1], say: 'lobby-bulbs'}, {at: [15, 1], say: 'lobby-bulbs'},
       {at: [8, 3], say: 'velvet-rope'}, {at: [9, 3], say: 'velvet-rope'}, {at: [13, 3], say: 'velvet-rope'}, {at: [14, 3], say: 'velvet-rope'},
       {at: [8, 8], say: 'velvet-rope'}, {at: [9, 8], say: 'velvet-rope'}, {at: [13, 8], say: 'velvet-rope'}, {at: [14, 8], say: 'velvet-rope'},
+      {at: [11, 6], say: 'moose-note', if: 'ricoDone'},
     ],
+    props: [{at: [11, 6], sprite: 'moose-note', under: true, if: 'ricoDone'}],   // Maestro's note on the carpet: GONE TO THE STAGE!
     enemies: [],
   },
 
@@ -247,7 +253,7 @@ Object.assign(window.QUEST_MAPS, {
     doors: [
       {at: [17, 1], to: 'pit', spawn: [10, 4], dir: 'down'},
       {at: [5, 1], to: 'dressing', spawn: [9, 9], dir: 'up'},
-      {at: [14, 1], to: 'stage', spawn: [7, 8], dir: 'up', need: 'ricoDone', locked: 'wings-locked', soon: 'wings-soon'},
+      {at: [14, 1], to: 'stage', spawn: [1, 3], dir: 'right', need: 'ricoDone', locked: 'wings-locked'},
     ],
     npcs: [],
     things: [
@@ -328,7 +334,7 @@ Object.assign(window.QUEST_MAPS, {
     ],
     doors: [
       {at: [9, 10], to: 'backstage', spawn: [5, 2], dir: 'down'},
-      {at: [13, 1], to: 'stage', spawn: [7, 8], dir: 'up', need: 'ricoDoor', locked: 'stardoor-locked', soon: 'stardoor-soon'},
+      {at: [13, 1], to: 'stage', spawn: [20, 3], dir: 'left', need: 'ricoDoor', locked: 'stardoor-locked'},
       {at: [16, 1], to: 'vent', spawn: [2, 4], dir: 'up', need: 'ricoVent', locked: 'vent-locked'},
     ],
     npcs: [
@@ -412,7 +418,7 @@ Object.assign(window.QUEST_MAPS, {
     doors: [
       {at: [1, 2], to: 'workshop', spawn: [12, 2], dir: 'down'},
       {at: [1, 9], to: 'vent', spawn: [13, 2], dir: 'left', need: 'ricoVent', locked: 'hatch-locked'},   // (latched from below: the defeat route's)
-      {at: [20, 9], to: 'stage', spawn: [7, 8], dir: 'down', need: 'ricoDone', locked: 'loft-stairs-locked', soon: 'loft-stairs-soon'},
+      {at: [20, 9], to: 'stage', spawn: [19, 2], dir: 'down', need: 'ricoDone', locked: 'loft-stairs-locked'},
     ],
     npcs: [],
     props: [{at: [10, 4], sprite: 'mic-shadow', frame: 0}],            // the giant Microphone, far below, through the gap
@@ -426,6 +432,69 @@ Object.assign(window.QUEST_MAPS, {
       {key: 'm2', type: 'metrognome', at: [15, 6], wander: 2, tier: 3},
       {key: 'm3', type: 'stubs', at: [10, 8], wander: 1},
       {key: 'm4', type: 'miclet', at: [14, 9], wander: 2, tier: 3},
+    ],
+  },
+
+  /* 10. THE MAIN STAGE (build step 5): the boards, the red curtain drawn back, footlights glowing softly along the
+     front, the painted backdrop, Maestro Moose's podium, and at the very front, center, THE STAGE MIC in its stand.
+     Three ways in: Backstage's wings (ricoDone), the Dressing Rooms' star door (ricoDoor: befriended) and the Fly
+     Loft's stairs (ricoDone). Before the finale the band stands frozen in five glitching spots (Rico too, whatever
+     happened in the Dressing Rooms: here he's "rebooted"), and Maestro Moose at the podium IS THE BIG NUMBER (the
+     map enemy, `sprite: 'npc-moose'`: talk to him (A) or walk into him: his speech, then the battle, data/enemies.js
+     'bignumber'). After it (ep2Done) the band are NPCs: awake (the best ending) or resting (the shorter one), Moose
+     at his podium either way, and where the mic stood, a hole with its cable running down.
+     ITS LETTERS: G boards · V the curtain (drawn back) · k the backdrop · p the podium · f the footlights · M the
+     mic's spot (solid) · w the wings (to Backstage) · s the star door (to the Dressing Rooms) · d the stairs up to the
+     Fly Loft · = edge */
+  stage: {
+    name: 'The Main Stage', ep: 2, music: 'quest-manor', floor: 'G',
+    legend: {
+      k: {sprite: 'tile-st-backdrop', solid: true}, p: {sprite: 'tile-st-podium', over: true, solid: true}, f: {sprite: 'tile-st-footlights', solid: true},
+      M: {sprite: 'tile-st-boards', solid: true}, w: {sprite: 'tile-st-wings', door: true, peek: true}, s: {sprite: 'tile-st-stardoor-open', door: true},
+      d: {sprite: 'tile-st-loftstairs', door: true},
+    },
+    tiles: [
+      '======================',
+      '=VVkkkkkkkkkkkkkkkkdV=',
+      '=VGGGGGGGGGGGGGGGGGGV=',
+      'wGGGGGGGGGGGGGGGGGGGGs',
+      '=VGGGGGGGGGpGGGGGGGGV=',
+      '=VGGGGGGGGGGGGGGGGGGV=',
+      '=VGGGGGGGGGGGGGGGGGGV=',
+      '=VGGGGGGGGGGGGGGGGGGV=',
+      '=GGGGGGGGGGMGGGGGGGGG=',
+      '=ffffffffffffffffffff=',
+      '======================',
+    ],
+    doors: [
+      {at: [0, 3], to: 'backstage', spawn: [14, 2], dir: 'down'},
+      {at: [21, 3], to: 'dressing', spawn: [13, 2], dir: 'down'},
+      {at: [19, 1], to: 'loft', spawn: [19, 9], dir: 'left'},
+    ],
+    npcs: [
+      // before the finale: frozen in the static (their glitched sprites)
+      {id: 'stage-tusk', at: [5, 6], sprite: 'npc-tusk', if: '!ep2Done'},
+      {id: 'stage-hoot', at: [7, 3], sprite: 'npc-hoot', if: '!ep2Done'},
+      {id: 'stage-sal', at: [17, 6], sprite: 'npc-sal', if: '!ep2Done'},
+      {id: 'stage-rico', at: [15, 3], sprite: 'npc-rico', if: '!ep2Done'},
+      // after it: THE BEST ENDING (befriended) = awake; THE SHORTER ENDING (played on) = resting, dimmed
+      ...[['stage-tusk', [5, 6], 'npc-tusk-ok'], ['stage-hoot', [7, 3], 'npc-hoot-ok'], ['stage-sal', [17, 6], 'npc-sal-ok'], ['stage-rico', [15, 3], 'npc-rico-ok']].flatMap(([id, at, ok]) => [
+        {id, at, sprite: ok, if: 'ep2Done&route:bignumber=befriend', awake: {flag: 'ep2Done', sprite: ok}},
+        {id, at, sprite: ok, rest: true, if: 'ep2Done&route:bignumber=fade', awake: {flag: 'ep2Done', sprite: ok}}]),
+      {id: 'stage-moose', at: [11, 3], sprite: 'npc-moose-ok', if: 'ep2Done', awake: {flag: 'ep2Done', sprite: 'npc-moose-ok'}},
+    ],
+    props: [
+      ...[[5, 6], [7, 3], [11, 3], [17, 6], [15, 3]].flatMap(at => [{at, sprite: 'stage-glitch', under: true, if: '!ep2Done'}, {at, sprite: 'stage-spot', under: true, if: 'ep2Done'}]),
+      {at: [11, 8], sprite: 'stage-mic', if: '!ep2Done'},
+      {at: [11, 8], sprite: 'stage-hole', under: true, if: 'ep2Done'},
+    ],
+    things: [
+      {at: [11, 8], say: 'stage-mic', if: '!ep2Done'}, {at: [11, 8], say: 'stage-cable', if: 'ep2Done'},
+      {at: [11, 4], say: 'stage-podium'}, {at: [5, 1], say: 'stage-backdrop'}, {at: [14, 1], say: 'stage-backdrop'},
+      {at: [4, 9], say: 'stage-footlights'}, {at: [17, 9], say: 'stage-footlights'},
+    ],
+    enemies: [
+      {key: 'boss', type: 'bignumber', at: [11, 3], wander: 0, boss: true, sprite: 'npc-moose'},   // (boss: not one of the 20 machines)
     ],
   },
 });

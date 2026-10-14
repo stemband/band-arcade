@@ -136,7 +136,8 @@
     if (i < 0 || i === B.stageShown) return;
     const first = B.stageShown == null; B.stageShown = i;
     if (!first) { Q.sfx('quest-boss-phase'); Q.shake(3, 300); float(`STAGE ${i + 1}`, 150, 18, 'calm'); }
-    await Q.say([].concat(stage().say || []), {name: B.e.name, portrait: B.e.sprite});
+    // (THE BIG NUMBER: each stage is one band member's: their name and portrait, `who` / `portrait`)
+    await Q.say([].concat(stage().say || []), {name: stage().who || B.e.name, portrait: stage().portrait || B.e.sprite});
   }
   /** PLAY: once the Butler taught the B♭ Blast (songBb) or Professor Hoot the E♭ Encore (songEb), pick the enemy's
       challenge or a song */
@@ -188,7 +189,7 @@
     if (B.e.hp >= 1) return;
     if (B.e.finale && !B.finale) {                                // the final boss's finale: he holds on at 1 HP ONCE
       B.e.hp = 1; B.finale = true; B.calm = RULES.calmMax; B.choiceSaid = true;
-      B.queue.push(...[].concat(B.e.finale), Q.text('finaleChoice', {name: B.e.name})); Q.sfx('quest-boss-phase');
+      B.queue.push(...[].concat(B.e.finale), Q.text(B.e.finaleChoice || 'finaleChoice', {name: B.e.name})); Q.sfx('quest-boss-phase');
     } else if (B.e.finale && B.finaleHeldThisPlay) B.e.hp = 1;     // (not in the same PLAY that started the finale)
     else if (B.e.finale) return;
     else if (B.netThisPlay) B.e.hp = 1;                           // (your band can't finish it in the same PLAY either)
@@ -493,7 +494,7 @@
       Q.listen(false);
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(null);
     },
-    update(dt) { Q.dodge.update(dt); },
+    update(dt) { Q.dodge.update(dt); Q.save.tick(dt); },
     draw(ctx, now) {
       if (!B) return;
       // the floor: a dark stage with a few pixel stripes
@@ -505,7 +506,9 @@
       if (B.state === 'fading') alpha = Math.max(0, 1 - (now - B.fadeAt) / 1400);
       const d = Q.spriteDef(B.e.sprite) || {w: 32, h: 32}, dodging = Q.dodge.active(), big = d.h > 32;
       const es = dodging && big ? 1 : 2, ey = dodging ? (big ? 26 : 12) : (big ? 24 : 30);
-      Q.draw(ctx, B.e.sprite, Math.round(160 - d.w * es / 2) + hurt, ey, {scale: es, t: now, alpha, frame: B.state === 'friend' ? 2 : undefined});
+      // THE BIG NUMBER: the band in two rows, × 1.5 (× 2 would reach under its HUD), standing on the floor
+      if (d.members) { const bs = dodging ? 1 : 1.5; band5(ctx, now, d, bs, Math.round(160 - d.w * bs / 2) + hurt, dodging ? ey : 118 - d.h * bs, alpha); }
+      else Q.draw(ctx, B.e.sprite, Math.round(160 - d.w * es / 2) + hurt, ey, {scale: es, t: now, alpha, frame: B.state === 'friend' ? 2 : undefined});
       // your band beside you (happy faces; out of breath = faded; a little hop when they play)
       if (!dodging) B.band.forEach((c, i) => {
         const hop = now < c.hop && now > c.hop - 250 && !Q.reduced() ? -3 : 0;
@@ -518,6 +521,26 @@
       Q.dodge.draw(ctx, now);
     },
   };
+  /* THE BIG NUMBER (sprites-stage.js 'bignumber': `members` = [{sprite, ok, at}] in its own 72 × 48 box): the member
+     whose stage is running stands lit (full color, a soft warm glow behind them); the others wait, dimmed, and
+     flicker GENTLY: a slow fade between two dim levels (FLICKER.hz, well under 3 a second, a small part of the screen),
+     plus a 1-pixel glitch shift now and then. Befriended: everyone lit and un-glitched. Reduced motion: no flicker,
+     no shift (the dim members hold still). */
+  const FLICKER = {hz: .8, lo: .42, hi: .58, shiftEvery: 1.7, shiftFor: .12};
+  function band5(ctx, now, d, s, x0, y0, alpha) {
+    const lit = B.state === 'friend' ? -1 : Math.max(0, stageIdx()), still = Q.reduced(), t = now / 1000;
+    const order = d.members.map((m, i) => i).sort((a, b) => d.members[a].at[1] - d.members[b].at[1]);   // the back row first
+    order.forEach(i => {
+      const m = d.members[i], on = lit < 0 || i === lit, x = x0 + m.at[0] * s, y = y0 + m.at[1] * s;
+      if (on && lit >= 0) { ctx.globalAlpha = .28 * alpha; ctx.fillStyle = Q.css('q-stage-glow'); ctx.beginPath(); ctx.ellipse(x + 12 * s, y + 16 * s, 13 * s, 15 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      const dim = still ? (FLICKER.lo + FLICKER.hi) / 2 : FLICKER.lo + (FLICKER.hi - FLICKER.lo) * (.5 + .5 * Math.sin(t * Math.PI * 2 * FLICKER.hz + i * 1.3));
+      const shift = !on && !still && ((t + i * .37) % FLICKER.shiftEvery) < FLICKER.shiftFor ? s : 0;
+      Q.draw(ctx, B.state === 'friend' ? m.ok : m.sprite, x + shift, y, {scale: s, t: now, alpha: alpha * (on ? 1 : dim)});
+    });
+  }
+  /** tests: THE BIG NUMBER's lit member (-1 = everyone, befriended) and the flicker's numbers */
+  Q.bandLit = () => (B && Q.spriteDef(B.e.sprite) && Q.spriteDef(B.e.sprite).members ? (B.state === 'friend' ? -1 : Math.max(0, stageIdx())) : null);
+  Q.bandLit.FLICKER = FLICKER;
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
     power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup};   // tests

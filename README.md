@@ -128,7 +128,7 @@ blocktave/            Blocktave: a block-building survival world where playing y
   world.js            The blocks, the seeded world generator, the saved world format (run-length chunks), light and rooms
   challenges.js       The challenge card: notes, scales, long tones, rhythms, rests, counts and rolls (mic or touch)
   game.js             The world: drawing, the pad, mining, building, the Measure, creatures, saving to a file, milestones
-arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor; Episode 2: The Showtime Stage, in progress)
+arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor; Episode 2: The Showtime Stage)
   sprites.js          THE PIXEL ART: every enemy as a small pixel map + palette (theme tokens); the instruments the
                       hero holds are in shared/instrument-sprites.js. Edit here
   sprites-manor.js    Ghost Notes Manor's art: map tiles, the manor's ghosts (NPCs), Episode 1's enemies and the mini-boss
@@ -420,7 +420,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 ## Arcade Quest: The Mysterious Microphone
 
-**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Episode 1, **Ghost Notes Manor**, is complete: story, final boss, ending, save codes. **Episode 2: The Showtime Stage (in progress):** it opens after Episode 1 (EPISODES on the title screen, or the old stage speaker under the attic's dusty sheet); so far its intro, the Lobby and the Green Room. The cabinet is on the arcade floor (marquee ARCADE QUEST, "Episode 1: Ghost Notes Manor"); instead of a hi-score its line shows **"Episode 1: 60% · 7 friends"** (how far you are, and how many ghosts joined your band). `arcade-quest/index.html?test` opens the test arena.
+**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Episode 1, **Ghost Notes Manor**, is complete: story, final boss, ending, save codes. **Episode 2, The Showtime Stage, is complete too:** it opens after Episode 1 (EPISODES on the title screen, or the old stage speaker under the attic's dusty sheet). The cabinet is on the arcade floor (marquee ARCADE QUEST, "Episode 1: Ghost Notes Manor"); instead of a hi-score its line shows **"Episode 1: 60% · 7 friends"** (how far you are, and how many ghosts joined your band). `arcade-quest/index.html?test` opens the test arena.
 
 ### The story (Episode 1)
 
@@ -431,6 +431,15 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 - **The ending:** the manor's color comes back and the ghosts celebrate... then every speaker crackles, a giant 8-bit microphone fills the screen ("...still... so much... noise..."), and it vanishes: **TO BE CONTINUED IN EPISODE 2**. A short credits roll ("Created by Mr. Graham", the manor's cast, a Showtime Band cameo), skippable. Then **Episode 1 complete!**: your stats, your save code, and any skins earned. KEEP EXPLORING goes back to the attic.
 - **Skins:** **Pixel Hero** (8-bit frame and chunky pixel sparkles) for finishing Episode 1, and the **Baton** accessory for befriending every kind of ghost in the manor (Wisp, Squeaker, Hush, Wobble, Chatterbox, the Phantom Fermata, the Ghost Conductor).
 - **Where the words are:** every line (the intro, the Conductor, the ending, the whispers, the credits) is in `arcade-quest/data/dialogue.js` (`QUEST_DIALOGUE`, `QUEST_CUTSCENES`, `QUEST_WHISPERS`, `QUEST_CREDITS`); the pictures behind the cutscenes are drawn in `arcade-quest/engine/story.js`; the Conductor, the microphone and the new dodge shapes are pixel art in `arcade-quest/sprites-story.js`; the boss's stages in `data/enemies.js`.
+
+### The story (Episode 2: The Showtime Stage)
+
+- **The way in:** the crackle at the end of Episode 1 came from an old stage speaker under the attic's dusty sheet. Pull the sheet, and it pulls you into **the Showtime Stage**: the little theater where the arcade's animatronic house band, **the Showtime Band**, used to play.
+- **The band, stuck in loops:** Maestro Moose is frozen mid-downbeat in the Lobby ("And a one, and a t—"). Help the theater's 20 glitching machines (tap shoes, spotlights, feedback, confetti cannons, metro-gnomes, ticket stubs, rope knots, Mic-lets) to wake **Tubby Tusk** (tuba), **Professor Hoot** (flute: he teaches the **E♭ Encore**), **Snapjaw Sal** (snare: she teaches **rhythm reading**) and to get past **Rico Bandit** (sax), who is "borrowing" every note in the theater. Rhythm battles (read a rhythm, keep a tempo, echo a pattern) work for every instrument, snare included.
+- **The final boss: THE BIG NUMBER.** Moose finally raises his baton, and the static grabs the whole band at once: five stages, one per member (Tubby's long tone, Hoot's E♭ scale, Sal's two-measure rhythm, Rico's echo, Moose's speeding-up tempo). At the end, **HARMONIZE** with the whole concert E♭ scale to bring the band back in tune (the best ending: they play the Encore with you), or play on and they power down to rest (a shorter ending).
+- **Then the stage mic speaks** for the first time, and you find out why it hates noise... and it escapes down its cable. **TO BE CONTINUED IN EPISODE 3.** Credits ("Created by Mr. Graham"), then **Episode 2 complete!** with your stats and save code.
+- **Rewards (earned, never sold):** finishing it gives the **Showtime Stage** background, the **"Encore!"** name plate and the **Showtime Top Hat**; befriending every kind of machine gives the **Spotlight** effect; helping all 20 makes you a **SHOWSTOPPER** (the Showstopper Sash and its plate). Ticket Booth Tina sells **the Stage Collection** (a sequined bow tie, a marquee-bulb headband, an usher's cap), only at her booth.
+- **Where the words are:** `arcade-quest/data/dialogue-stage.js` (every line, the cutscenes, the credits), the rooms in `arcade-quest/data/maps/stage.js`, the pictures in `arcade-quest/sprites-stage.js` and `engine/story.js`; the story bible is `docs/games/arcade-quest-ep2-plan.md`.
 
 ### Save codes and backups
 

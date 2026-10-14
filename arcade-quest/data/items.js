@@ -11,6 +11,9 @@ window.QUEST_ITEMS = {
   'tuning-slide': {name: 'Tuning Slide', desc: 'Your next PLAY hits 50% harder.',                  effect: {boost: 1.5}, price: 30},
   // keep: true = a key item, never used up: once per battle (the Ghost Conductor's gift)
   'baton':       {name: 'Conductor\'s Baton', desc: 'Once per battle: the next dodge moves at YOUR tempo (much slower).', effect: {slow: 0.5}, keep: true},
+  // Episode 2: THE BIG NUMBER's gift (befriended). Not in the QUEST CODE's item list (QUEST_V1.items is frozen): a
+  // restored code gets it back from the save repair (engine/save.js routes(): a befriended boss's `keep` item)
+  'mic-stand':   {name: 'Golden Mic Stand', desc: 'Once per battle: step up to the mic. Your next PLAY rings out 25% stronger.', effect: {boost: 1.25}, keep: true},
 };
 
 /* ARCADE QUEST: THE CHARMS (power-ups). ARCADE QUEST ONLY: they change Quest battles and NOTHING else (stars in the

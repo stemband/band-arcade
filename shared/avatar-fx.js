@@ -113,6 +113,17 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- THE EFFECTS: fn(ctx, u, t, layer, opts) ---------- */
   const FX = {
+    /* ARCADE QUEST's SPOTLIGHT (Episode 2, 'stage-friends'): a soft cone of warm stage light from above, pooling behind
+       the shoulders. STILL: it never moves or changes (t is ignored), so it can never flicker */
+    spotlight(x, u, t, layer) {
+      if (layer !== 'back') return;
+      const g = x.createLinearGradient(0, 0, 0, 36 * u);
+      g.addColorStop(0, col('q-stage-bulb', .34)); g.addColorStop(.75, col('q-stage-glow', .16)); g.addColorStop(1, col('q-stage-glow', 0));
+      x.fillStyle = g; x.beginPath(); x.moveTo(14 * u, 0); x.lineTo(22 * u, 0); x.lineTo(35 * u, 34 * u); x.lineTo(1 * u, 34 * u); x.closePath(); x.fill();
+      x.save(); x.translate(18 * u, 33 * u); x.scale(1, .3);
+      const p = x.createRadialGradient(0, 0, 0, 0, 0, 17 * u); p.addColorStop(0, col('q-stage-bulb', .4)); p.addColorStop(1, col('q-stage-glow', 0));
+      x.fillStyle = p; x.beginPath(); x.arc(0, 0, 17 * u, 0, TAU); x.fill(); x.restore();
+    },
     notes(x, u, t, layer) {
       if (layer !== 'front') return;
       for (let i = 0; i < 6; i++) {
