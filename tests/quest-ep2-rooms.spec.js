@@ -13,9 +13,9 @@ const ROOMS = {pit: ['m1', 'm2', 'm3'], workshop: ['m1', 'm2', 'm3', 'm4'], back
 // befriend: a gentle, calm-raising PLAY (CALM fills before the HP runs out), then HARMONIZE; defeat: full-power PLAYs
 const PLAY = {befriend: {acc: .2, speed: .5, correct: 4, total: 4, success: true}, fade: {acc: 1, speed: 1, correct: 0, total: 4, success: false}};
 
-/** a save past Episode 1, inside the Showtime Stage (never saved at its jukebox yet) */
+/** a save past Episode 1, inside the Showtime Stage (never saved at its jukebox yet; LV 16: fewer turns a battle) */
 function save(extra = {}) {
-  return Object.assign({v: 6, level: 9, xp: 0, hp: 52, maxHp: 52, tokens: 40, items: {'valve-oil': 2}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
+  return Object.assign({v: 6, level: 16, xp: 0, hp: 80, maxHp: 80, tokens: 40, items: {'valve-oil': 2}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
     world: {map: 'foyer', x: 18, y: 3, dir: 'up'}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: [], route: {},
     flags: {'seen-intro': true, reginaldAwake: true, atticOpen: true, pathsTip: true, ep1Done: true, ep2Start: true, rhythmTip: true}, done: {}, ep: 2}, extra);
 }
@@ -89,70 +89,98 @@ const flags = page => page.evaluate(() => Arcade.Quest.save.get().flags);
 const ep2 = page => page.evaluate(() => Arcade.Quest.save.progress(Arcade.Quest.save.get()).ep2);
 const machines = page => page.evaluate(() => Arcade.Quest.world.state().ghosts.map(g => g.key));
 
-/* THE THREE ROUTES, end to end through the real doors: every machine of the four rooms helped by BEFRIEND, by POWER DOWN,
-   and MIXED. Each wakes Tubby (the trap door, the balcony stairs) and Sal (the ladder), and the floor's line moves. */
+/* THE THREE ROUTES, through the real doors: every machine of the four rooms helped by BEFRIEND, by POWER DOWN and
+   MIXED, one room a test (THE TIME BUDGET: under 60 s each on WebKit). Each room wakes its band member (Tubby: the trap
+   door, the balcony stairs; Sal: the ladder), and the floor's line moves. A later room's test starts from a save where
+   the rooms before it are done (the same route). */
+const ORDER = ['pit', 'backstage', 'workshop', 'balcony'];
+const kindOf = (route, i) => (route === 'mixed' ? (i % 2 ? 'fade' : 'befriend') : route);
+/** a save with these rooms' machines already helped on this route (and, as the game would, their band awake) */
+function after(route, rooms) {
+  const s = save(), list = [].concat(...rooms.map(r => ROOMS[r].map(k => `${r}:${k}`)));
+  list.forEach((k, i) => { s.done[k] = kindOf(route, i); });
+  if (rooms.includes('pit')) Object.assign(s.flags, {tuskAwake: true, 'met-tusk': true});
+  if (rooms.includes('workshop')) Object.assign(s.flags, {salAwake: true, 'met-sal': true});
+  return s;
+}
+const pct = page => page.evaluate(() => { const s = Arcade.Quest.save.get(); return Math.round(Object.keys(s.done).length / 13 * 50 + (s.flags.tuskAwake ? 5 : 0) + (s.flags.salAwake ? 5 : 0) + (s.flags.songEb ? 10 : 0)); });
+async function helpAll(page, route, map) {
+  const before = ORDER.slice(0, ORDER.indexOf(map)).reduce((n, r) => n + ROOMS[r].length, 0);
+  for (const [i, k] of ROOMS[map].entries()) await fight(page, map, k, kindOf(route, before + i));
+}
 for (const route of ['befriend', 'fade', 'mixed']) {
-  test(`the ${route} route: 13 machines, Tubby and Sal wake, the trap door, the balcony and the ladder open`, async ({page}) => {
-    test.setTimeout(150000);
-    const watch = await boot(page);
-    let n = 0;
-    const how = () => (route === 'mixed' ? (n++ % 2 ? 'fade' : 'befriend') : route);
-    const pct = async () => { const s = await page.evaluate(() => Arcade.Quest.save.get()); return Math.round(Object.keys(s.done).length / 13 * 50 + (s.flags.tuskAwake ? 5 : 0) + (s.flags.salAwake ? 5 : 0) + (s.flags.songEb ? 10 : 0)); };
-    expect(await ep2(page)).toBe(0);
-    // THE PIT, through the auditorium doors
-    await step(page, 'lobby', 11, 2, 'up');
-    await drive(page, idleIn('pit'));
-    await talkAt(page, 'pit', 10, 4, 'up');                                              // the glitched Tubby: BWAAAA
-    await drive(page, idleIn('pit'));
-    expect((await lines(page)).join(' ')).toMatch(/BWAAAA/);
-    await step(page, 'pit', 9, 3, 'right');                                              // the trap door: he's sitting on it
-    expect((await page.evaluate(() => Arcade.Quest.world.state())).map).toBe('pit');
-    await page.evaluate(() => { window.__lines.length = 0; });
-    for (const k of ROOMS.pit) await fight(page, 'pit', k, how());
-    const f1 = await flags(page);
-    expect(f1.tuskAwake).toBe(true);
-    expect(f1['met-tusk']).toBe(true);
-    expect(await lines(page)).toContain('BWAAAAAAA—aa? Oh! Hello! Was I stuck? I was stuck.');
-    expect((await page.evaluate(() => Arcade.Quest.world.state())).npcs).toEqual([{id: 'tusk', x: 11, y: 3}]);   // he shuffled aside
-    expect(await ep2(page)).toBe(await pct());
-    // the trap door, down to BACKSTAGE (and the ladder back up)
-    await step(page, 'pit', 10, 4, 'up');
-    await drive(page, idleIn('backstage'));
-    expect((await page.evaluate(() => Arcade.Quest.world.state())).map).toBe('backstage');
-    for (const k of ROOMS.backstage) await fight(page, 'backstage', k, how());
-    await step(page, 'backstage', 17, 2, 'up');
-    await drive(page, idleIn('pit'));
-    // THE WORKSHOP, by the Lobby's side door
-    await go(page, 'lobby', 11, 9);
-    await step(page, 'lobby', 19, 2, 'up');
-    await drive(page, idleIn('workshop'));
-    await page.evaluate(() => { window.__lines.length = 0; });
-    await step(page, 'workshop', 12, 2, 'up');                                           // the ladder: still rattling
-    await drive(page, idleIn('workshop'));
-    expect(await lines(page)).toContain('A ladder up to the fly loft. A drum roll rattles every rung. Not yet!');
-    for (const k of ROOMS.workshop) await fight(page, 'workshop', k, how());
-    const f2 = await flags(page);
-    expect(f2.salAwake).toBe(true);
-    expect(f2['met-sal']).toBe(true);
-    expect(await lines(page)).toContain('—rrrrrrrrrrIMSHOT! Phew. Thanks, kid. My wrists were getting tired.');
-    await page.evaluate(() => { window.__lines.length = 0; });
-    await step(page, 'workshop', 12, 2, 'up');                                           // the ladder: clear, the loft not built yet
-    await drive(page, idleIn('workshop'));
-    expect(await lines(page)).toContain('The ladder goes up into the dark. Not today.');
-    expect(await ep2(page)).toBe(await pct());
-    // THE BALCONY, up the Lobby's stairs (the rope came down with Tubby)
-    await go(page, 'lobby', 11, 9);
-    await step(page, 'lobby', 21, 2, 'up');
-    await drive(page, idleIn('balcony'));
-    for (const k of ROOMS.balcony) await fight(page, 'balcony', k, how());
-    const s = await page.evaluate(() => Arcade.Quest.save.get());
-    expect(Object.keys(s.done).filter(k => /^(pit|workshop|backstage|balcony):/.test(k)).length).toBe(13);
-    if (route === 'befriend') expect(Object.values(s.done).every(k => k === 'befriend')).toBe(true);
-    if (route === 'fade') expect(Object.values(s.done).every(k => k === 'fade')).toBe(true);
-    expect(await ep2(page)).toBe(60);                                                     // all 13 (50 %), Tubby 5, Sal 5
-    // the helped machines never come back
-    for (const [map, x, y] of [['pit', 8, 9], ['workshop', 8, 9], ['backstage', 12, 2], ['balcony', 7, 8]]) { await go(page, map, x, y); expect(await machines(page), map).toEqual([]); }
-    watch.check();
+  test.describe(`the ${route} route`, () => {
+    test('THE ORCHESTRA PIT: Tubby on the trap door; 3 machines; he wakes, moves aside, the trap door opens to Backstage', async ({page}) => {
+      const watch = await boot(page);
+      expect(await ep2(page)).toBe(0);
+      await step(page, 'lobby', 11, 2, 'up');                                            // the auditorium doors
+      await drive(page, idleIn('pit'));
+      await talkAt(page, 'pit', 10, 4, 'up');                                            // the glitched Tubby: BWAAAA
+      await drive(page, idleIn('pit'));
+      expect((await lines(page)).join(' ')).toMatch(/BWAAAA/);
+      await page.evaluate(() => { window.__lines.length = 0; });
+      await step(page, 'pit', 9, 3, 'right');                                            // the trap door: he's sitting on it
+      await drive(page, idleIn('pit'));
+      expect(await lines(page)).toContain('A trap door. Tubby Tusk is sitting right on top of it. BWAAAAA.');
+      await page.evaluate(() => { window.__lines.length = 0; });
+      await helpAll(page, route, 'pit');
+      const f = await flags(page);
+      expect(f.tuskAwake).toBe(true);
+      expect(f['met-tusk']).toBe(true);
+      expect(await lines(page)).toContain('BWAAAAAAA—aa? Oh! Hello! Was I stuck? I was stuck.');
+      expect((await page.evaluate(() => Arcade.Quest.world.state())).npcs).toEqual([{id: 'tusk', x: 11, y: 3}]);   // he shuffled aside
+      expect(await ep2(page)).toBe(await pct(page));
+      await step(page, 'pit', 10, 4, 'up');                                              // down the trap door
+      await drive(page, idleIn('backstage'));
+      watch.check();
+    });
+
+    test('BACKSTAGE: down the trap door, 4 machines, the ladder back up', async ({page}) => {
+      const watch = await boot(page, after(route, ['pit']), 'arcade-quest/index.html?demo&warp=pit');
+      await step(page, 'pit', 10, 4, 'up');
+      await drive(page, idleIn('backstage'));
+      await helpAll(page, route, 'backstage');
+      expect(await machines(page)).toEqual([]);
+      expect(await ep2(page)).toBe(await pct(page));
+      await step(page, 'backstage', 17, 2, 'up');                                        // the ladder up to the Pit
+      await drive(page, idleIn('pit'));
+      watch.check();
+    });
+
+    test('THE PROP WORKSHOP: the ladder rattles; 4 machines; Sal wakes and clears it (the loft: not today)', async ({page}) => {
+      const watch = await boot(page, after(route, ['pit', 'backstage']));
+      await step(page, 'lobby', 19, 2, 'up');                                            // the side door
+      await drive(page, idleIn('workshop'));
+      await page.evaluate(() => { window.__lines.length = 0; });
+      await step(page, 'workshop', 12, 2, 'up');
+      await drive(page, idleIn('workshop'));
+      expect(await lines(page)).toContain('A ladder up to the fly loft. A drum roll rattles every rung. Not yet!');
+      await helpAll(page, route, 'workshop');
+      const f = await flags(page);
+      expect(f.salAwake).toBe(true);
+      expect(f['met-sal']).toBe(true);
+      expect(await lines(page)).toContain('—rrrrrrrrrrIMSHOT! Phew. Thanks, kid. My wrists were getting tired.');
+      await page.evaluate(() => { window.__lines.length = 0; });
+      await step(page, 'workshop', 12, 2, 'up');
+      await drive(page, idleIn('workshop'));
+      expect(await lines(page)).toContain('The ladder goes up into the dark. Not today.');
+      expect(await ep2(page)).toBe(await pct(page));
+      watch.check();
+    });
+
+    test('THE BALCONY: up the stairs Tubby opened, its 2 machines; all 13 helped = 60 %, and none come back', async ({page}) => {
+      const watch = await boot(page, after(route, ['pit', 'backstage', 'workshop']));
+      await step(page, 'lobby', 21, 2, 'up');
+      await drive(page, idleIn('balcony'));
+      await helpAll(page, route, 'balcony');
+      const s = await page.evaluate(() => Arcade.Quest.save.get());
+      expect(Object.keys(s.done).filter(k => /^(pit|workshop|backstage|balcony):/.test(k)).length).toBe(13);
+      if (route !== 'mixed') expect(Object.values(s.done).every(k => k === route)).toBe(true);
+      else expect(new Set(Object.values(s.done)).size).toBe(2);
+      expect(await ep2(page)).toBe(60);                                                   // all 13 (50 %), Tubby 5, Sal 5
+      for (const [map, x, y] of [['pit', 8, 9], ['workshop', 8, 9], ['backstage', 12, 2], ['balcony', 7, 8]]) { await go(page, map, x, y); expect(await machines(page), map).toEqual([]); }
+      watch.check();
+    });
   });
 }
 
@@ -297,7 +325,7 @@ test('THE ROSIN POUCH: found once in the Pit\'s corner timpani; long tones calm 
   const calm = async on => {
     await page.evaluate(on => {
       const Q = Arcade.Quest; Q.charms.equip(0, on ? 'rosin-pouch' : null);
-      Q.challenge.run = async () => ({acc: .5, speed: .5, correct: 1, total: 1, success: false, kind: 'longtone'});
+      Q.challenge.run = async () => ({acc: .15, speed: .5, correct: 1, total: 1, success: false, kind: 'longtone'});   // (well under the CALM cap)
       Q.go('battle', {enemy: 'spotlight', back: 'arena'});
     }, on);
     await drive(page, s => s.cmd);
