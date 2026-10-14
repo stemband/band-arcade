@@ -39,6 +39,8 @@ your avatar, a random one or in a wheelchair).
 | EPISODE 2: `npc-tina` (Ticket Booth Tina), `npc-pete` (Popcorn Pete) | 24 × 28 | Tina 2 (a bob); Pete 4: still, bob, still, bob + a popping kernel |
 | EPISODE 2: `stage-speaker` (the attic's old stage speaker) | 32 × 40 | 2: grille dark, grille glowing red |
 | EPISODE 2: `npc-hoot-ok` (Hoot awake: no red glow), `npc-moose-ok` (Moose awake, for build step 5) | 24 × 28 | as `npc-hoot` / `npc-moose` |
+| EPISODE 2: `npc-tusk` (Tubby Tusk), `npc-sal` (Snapjaw Sal), glitched; `npc-tusk-ok`, `npc-sal-ok` awake | 24 × 28 | 2 each: Tubby's note ripples / Sal's sticks taking turns; awake: a smile / a bob |
+| EPISODE 2: the Pit, Workshop, Backstage and Balcony tiles (`tile-st-pitfloor`, `-sheets`, `-rail`, `-timpani`, `-trap`, `-trap-open`, `-bench`, `-paint`, `-moon`, `-sawhorse`, `-backdrop`, `-ladder`, `-bwall`, `-ropes`, `-quiet`, `-bdoor`, `-wings`, `-bladder`, `-bfloor`, `-sandbags`, `-case`, `-desk-lamp`, `-desk-clip`, `-railing`, `-drop`, `-view`, `-gap`, `-followspot`) | 16 × 16 | 1, or 2 for `tile-st-quiet` (slow) |
 | EPISODE 2 machines: `tapsy`, `spotlight`, `feedback`, `confetti`, `metrognome`, `stubs`, `ropeknot`, `miclet` | 32 × 32 | 3: idle, idle, happy (befriended) |
 | EPISODE 2 dodge shapes: `tap-shot`, `squeal-shot`, `stub-shot` | as in `sprites-stage.js` | as drawn |
 | EPISODE 2: every `tile-st-*` in `sprites-stage.js` (the theater) | 16 × 16 | 1, or 2 for `tile-st-bulbs` and `tile-st-curtain` |

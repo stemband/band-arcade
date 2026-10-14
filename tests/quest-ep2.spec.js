@@ -308,25 +308,26 @@ test.describe('the Lobby and the Green Room', () => {
     watch.check();
   });
 
-  test('doors to rooms still being built show their signs; the balcony is roped off; no whispers in either room', async ({page}) => {
+  test('the Lobby\'s doors: the Pit and the Workshop open (build step 3); the balcony is roped off until Tubby wakes; no whispers in the Lobby or the Green Room', async ({page}) => {
     const watch = await boot(page, store(save(true, {flags: {ep1Done: true, ep2Start: true}})), 'arcade-quest/index.html?demo&warp=lobby');
     await idle(page, 'lobby');
-    for (const [x, sign] of [[11, 'The orchestra pit. Something down there goes BWAAAA.'], [19, 'The Prop Workshop. Behind the door, a drum roll rattles on and on.'],
-      [21, 'Roped off. A sign says: CLOSED FOR REHEARSAL.']]) {
-      await clearLines(page);
+    for (const [x, map] of [[11, 'pit'], [19, 'workshop']]) {
       await page.evaluate(x => Arcade.Quest.world.warp(x, 2, 'up'), x);
-      await page.keyboard.press('ArrowUp');                                              // bump into it
-      await expect.poll(() => lines(page)).toContain(sign);
-      const w = await idle(page, 'lobby');
-      expect([w.x, w.y]).toEqual([x, 2]);                                                // still in the Lobby
+      await page.keyboard.press('ArrowUp');                                              // through the door
+      await idle(page, map);
+      await page.evaluate(() => Arcade.Quest.go('world', {map: 'lobby'}));
+      await idle(page, 'lobby');
     }
-    // Tubby awake (build step 3): the rope comes down, and the balcony says it's coming
-    await page.evaluate(() => Arcade.Quest.save.setFlag('tuskAwake'));
     await clearLines(page);
     await page.evaluate(() => Arcade.Quest.world.warp(21, 2, 'up'));
+    await page.keyboard.press('ArrowUp');                                                // bump into the rope
+    await expect.poll(() => lines(page)).toContain('Roped off. A sign says: CLOSED FOR REHEARSAL.');
+    expect(await idle(page, 'lobby')).toMatchObject({x: 21, y: 2});
+    // Tubby awake: the rope comes down, and the stairs lead up to the balcony
+    await page.evaluate(() => Arcade.Quest.save.setFlag('tuskAwake'));
+    await page.evaluate(() => Arcade.Quest.world.warp(21, 2, 'up'));
     await page.keyboard.press('ArrowUp');
-    await expect.poll(() => lines(page)).toContain('The balcony stairs creak. (Coming soon: the theater is still being built.)');
-    await idle(page, 'lobby');
+    await idle(page, 'balcony');
     // whispers: never in the safe Lobby nor the practice Green Room
     for (const map of ['lobby', 'greenroom']) {
       await page.evaluate(m => Arcade.Quest.go('world', {map: m}), map);
@@ -487,23 +488,23 @@ test('every Episode 2 line fits the text box (≤ 80 characters) and every new s
     ['moose', 'tina', 'pete', 'hoot', 'speaker'].forEach(id => walk(window.QUEST_DIALOGUE[id].talk, id));
     walk(window.QUEST_CUTSCENES['ep2-intro'], 'ep2-intro'); walk(window.QUEST_EP2_ARRIVAL, 'arrival'); walk(window.QUEST_WHISPERS_EP2, 'whispers');
     Object.keys(window.QUEST_SIGNS).filter(k => /soon|roped|stage|box-office|snack|lobby|velvet|greenroom/.test(k)).forEach(k => walk(window.QUEST_SIGNS[k], k));
-    const S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
+    const S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
     const missing = [];
     ids.forEach(id => Object.values(S[id].palette).forEach(t => { if (!getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim()) missing.push(`${id}: ${t}`); }));
     return {long, missing, n: ids.length};
   });
   expect(r.long).toEqual([]);
   expect(r.missing).toEqual([]);
-  expect(r.n).toBe(38);          // 20 tiles, the speaker, 4 NPCs + Hoot and Moose un-glitched, 8 machines, 3 dodge pieces
+  expect(r.n).toBe(70);          // 48 tiles, the speaker, 6 NPCs + Hoot, Moose, Tubby and Sal un-glitched, 8 machines, 3 dodge pieces
   watch.check();
 });
 
 test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame) and the stage speaker at 4× (docs/gallery/aq-ep2-sprites.png)', async ({page}) => {
   test.skip(!process.env.GALLERY, 'only with GALLERY=1');
-  await page.setViewportSize({width: 1200, height: 1400});
+  await page.setViewportSize({width: 1400, height: 1240});
   const watch = await boot(page, store(save(false)));
   await page.evaluate(() => {
-    const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
+    const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
     const sheet = document.createElement('div');
     sheet.id = 'aqGallery';
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#1d1830;color:#fbf8ff;font:12px monospace;padding:10px;display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;overflow:hidden';

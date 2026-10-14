@@ -109,6 +109,7 @@
   function addCalm(n, say) {
     if (!n) return;
     n *= Q.charms.mult('calm');                                  // the Lucky Reed
+    if (B.lastKind === 'longtone') n *= Q.charms.mult('toneCalm'); // the Rosin Pouch: CALM from long tones
     const was = B.calm;
     B.calm = Math.min(RULES.calmMax, B.calm + n); hud();
     if (B.calm >= 50 && was < 50 && B.calm < RULES.calmMax) B.queue.push(B.e.lines.calm);
@@ -260,6 +261,7 @@
     if ((song || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     if (B.e.phases && !song) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
     const res = blast ? await Q.challenge.blast(false) : encore ? await Q.challenge.encore(false) : await Q.challenge.run(type, {enemy: foe()});
+    if (B) B.lastKind = res.kind || null;                        // (the Rosin Pouch: long tones)
     if (B === null) return false;
     const power = Q.save.powerAt(B.save.level);
     B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;          // the PLAY that reaches the finale can't also end it
@@ -294,6 +296,7 @@
   async function doSerenade() {
     if (!(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     const res = await Q.challenge.run(null, {enemy: B.e, serenade: true});
+    if (B) B.lastKind = res.kind || null;
     if (B === null) return false;
     B.serenaded = true;                                           // (THE SAFETY NET is for a student trying to befriend)
     const perfect = res.acc >= RULES.perfectSerenade;
@@ -421,6 +424,8 @@
         : Q.text(left ? 'lineupDuet' : 'lineupSolo', {band: out}));
     }
     if (!Q.save.flag('pathsTip') && b.e.serenade !== false) { await Q.say(Q.text('twoPaths')); Q.save.setFlag('pathsTip'); }   // the first battle: the two ways to win
+    // the first RHYTHM / TEMPO / ECHO battle anywhere: Snapjaw Sal's how-to card, once (challenges.js Q.rhythmTip)
+    if ([b.e.challenge].concat((b.e.stages || []).map(st => st.challenge)).some(t => Q.challenge.RHYTHMIC.includes(t) && Q.challenge.resolve(t) === t)) await Q.rhythmTip();
     while (B === b) {
       await stageStart();
       if (B !== b) return;

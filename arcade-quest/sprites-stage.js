@@ -338,4 +338,156 @@
   S['tap-shot'] = {w: 8, h: 7, palette: {k: 'q-grey-d', K: 'q-grey', b: 'q-steel', w: 'q-white', r: 'q-red'}, frames: [['.www....', '.wrw....', '.www....', '.kkkkk..', 'kkkkKkkk', 'kk...kkk', 'bb...bbb']]};
   S['squeal-shot'] = {w: 6, h: 5, palette: {p: 'q-pink', w: 'q-white'}, frames: [['.pp...', 'p..p..', '....p.', '.....p', '....pw']]};
   S['stub-shot'] = {w: 7, h: 4, palette: {c: 'q-paper', r: 'q-red', C: 'q-paper-d'}, frames: [['crrrrCc', 'ccccCcc', 'ccccCcc', 'ccccCc.']]};
+
+  /* ---------- BUILD STEP 3: THE ORCHESTRA PIT, THE PROP WORKSHOP, BACKSTAGE, THE BALCONY (16 × 16 tiles; each room's
+     map, data/maps/stage.js, says which letter draws which in that room: its `legend`) ---------- */
+  /** a 16 × 16 tile drawn with the helpers: draw(g) on a grid filled with `fill` */
+  const drawn = (fill, draw) => { const g = grid(16, 16); if (fill) rect(g, 0, 0, 16, 16, fill); draw(g); return text(g); };
+  // THE PIT's floor: dark planks (a seam on each plank, never in the same place)
+  const PIT = {p: 'q-stage-pit', d: 'q-stage-pit-d', l: 'q-stage-board-d', c: 'q-paper', C: 'q-paper-d', k: 'q-grey-d', K: 'q-black',
+    g: 'q-brass', G: 'q-brass-d', h: 'q-paper', W: 'q-wood', w: 'q-wood-l', v: 'q-void', b: 'q-stage-board', B: 'q-stage-board-d', T: 'q-stage-trim-d', t: 'q-stage-trim'};
+  const pitFloor = g => { for (let y = 0; y < 16; y++) { if (y % 4 === 3) rect(g, 0, y, 16, 1, 'd'); else put(g, [5, 11, 3, 9][y >> 2], y, 'd'); } put(g, 13, 1, 'l'); put(g, 2, 9, 'l'); };
+  S['tile-st-pitfloor'] = tile(PIT, [drawn('p', pitFloor)]);
+  // sheet music dropped on the floor (two pages, staff lines and a few notes)
+  S['tile-st-sheets'] = tile(PIT, [drawn('p', g => {
+    pitFloor(g); rect(g, 2, 3, 8, 7, 'c'); [4, 6, 8].forEach(y => rect(g, 3, y, 6, 1, 'k')); put(g, 4, 5, 'K'); put(g, 7, 7, 'K'); put(g, 6, 4, 'K');
+    rect(g, 9, 8, 6, 6, 'C'); [10, 12].forEach(y => rect(g, 10, y, 4, 1, 'k')); put(g, 11, 11, 'K');
+  })]);
+  // the pit rail: the stage's edge above, a brass rail, the pit's dark front wall
+  S['tile-st-rail'] = tile(PIT, [drawn('d', g => {
+    rect(g, 0, 0, 16, 5, 'b'); rect(g, 0, 2, 16, 1, 'B'); put(g, 6, 0, 'B'); put(g, 12, 3, 'B'); rect(g, 0, 5, 16, 1, 't'); rect(g, 0, 6, 16, 1, 'T');
+    rect(g, 0, 8, 16, 1, 'g'); [1, 8, 14].forEach(x => rect(g, x, 8, 1, 4, 'G')); rect(g, 0, 12, 16, 1, 'K'); put(g, 4, 14, 'p'); put(g, 11, 13, 'p');
+  })]);
+  // a timpani (a copper kettle drum): its head, the rim, the bowl, little legs
+  S['tile-st-timpani'] = tile(PIT, [drawn(null, g => {
+    oval(g, 7.5, 9, 6.5, 4.5, 'g'); oval(g, 7.5, 8, 5, 2.5, 'G'); oval(g, 7.5, 5.5, 6.5, 2.2, 'h'); rect(g, 1, 5, 14, 1, 'K');
+    put(g, 5, 4, 'C'); put(g, 10, 6, 'C'); rect(g, 3, 13, 1, 3, 'K'); rect(g, 12, 13, 1, 3, 'K'); rect(g, 7, 13, 2, 3, 'K');
+  })]);
+  // THE TRAP DOOR under Tubby: shut (a wooden hatch with a brass ring), then open (a ladder down into the dark)
+  S['tile-st-trap'] = tile(PIT, [drawn('p', g => {
+    pitFloor(g); rect(g, 2, 2, 12, 12, 'T'); rect(g, 3, 3, 10, 10, 'W'); [5, 8, 11].forEach(x => rect(g, x, 3, 1, 10, 'w')); oval(g, 7.5, 8, 1.6, 1.6, 'g'); put(g, 7, 8, 'W'); put(g, 8, 8, 'W');
+  })]);
+  S['tile-st-trap-open'] = tile(PIT, [drawn('p', g => {
+    pitFloor(g); rect(g, 2, 2, 12, 12, 'T'); rect(g, 3, 3, 10, 10, 'v'); rect(g, 4, 3, 1, 10, 'W'); rect(g, 11, 3, 1, 10, 'W'); [4, 7, 10].forEach(y => rect(g, 5, y, 6, 1, 'w'));
+  })]);
+
+  // THE WORKSHOP: a workbench (a block of wood and a paintbrush on it), paint cans, a cardboard moon, a sawhorse
+  const SHOP = Object.assign({}, BOARD, {W: 'q-wood', w: 'q-wood-l', k: 'q-black', K: 'q-grey-d', b: 'q-blue', B: 'q-blue-d', r: 'q-red', y: 'q-gold',
+    g: 'q-green', c: 'q-paper', C: 'q-paper-d', e: 'q-moon', s: 'q-steel', t: 'q-stage-trim', T: 'q-stage-trim-d'});
+  S['tile-st-bench'] = tile(SHOP, [drawn(null, g => {
+    rect(g, 0, 5, 16, 3, 'W'); rect(g, 0, 5, 16, 1, 'w'); rect(g, 1, 8, 2, 7, 'W'); rect(g, 13, 8, 2, 7, 'W'); rect(g, 1, 12, 14, 1, 'w');
+    rect(g, 3, 2, 4, 3, 'w'); rect(g, 3, 2, 4, 1, 'C'); line(g, 9, 4, 13, 2, 'y'); rect(g, 13, 1, 2, 2, 'r');               // a wood block, a paintbrush
+  })]);
+  S['tile-st-paint'] = tile(SHOP, [drawn(null, g => {
+    [[1, 'r'], [6, 'b'], [11, 'y']].forEach(([x, c], i) => {
+      const y = 6 + (i % 2) * 2; rect(g, x, y, 4, 7, 's'); rect(g, x, y, 4, 1, c); rect(g, x, y + 3, 4, 2, c); put(g, x + 1, y - 1, 'K'); put(g, x + 2, y - 1, 'K');
+      put(g, x + 3, y + 1, c); put(g, x + 3, y + 2, c);                                                                    // a friendly drip
+    });
+  })]);
+  S['tile-st-moon'] = tile(SHOP, [drawn(null, g => {
+    oval(g, 7.5, 7, 7, 6.8, 'e'); oval(g, 12, 5, 5, 5, '.');                                                             // a big crescent
+    g.forEach((r, y) => r.forEach((v, x) => { if (v === 'e' && (x + y) % 9 === 0) r[x] = 'C'; }));                              // cardboard spots
+    put(g, 4, 6, 'k'); put(g, 3, 9, 'K'); put(g, 4, 10, 'K'); put(g, 5, 10, 'K'); rect(g, 7, 13, 2, 3, 'W'); rect(g, 4, 15, 8, 1, 'W');          // a sleepy eye, a smile, its stand
+  })]);
+  S['tile-st-sawhorse'] = tile(SHOP, [drawn(null, g => {
+    rect(g, 0, 6, 16, 2, 'W'); rect(g, 0, 6, 16, 1, 'w'); line(g, 3, 8, 1, 15, 'W', 2); line(g, 5, 8, 6, 15, 'W', 2); line(g, 11, 8, 10, 15, 'W', 2); line(g, 13, 8, 14, 15, 'W', 2);
+  })]);
+  // the half-painted backdrop on the back wall: a blue sky with a cloud above, plain canvas below
+  S['tile-st-backdrop'] = tile(Object.assign({}, WALL, SHOP), [over(FACE, ['', '', 'ttttttttttttttt.', 'tbbbbbbbbbbbbbt.', 'tbbcccbbbbbbbbt.', 'tbcccccbbbbccbt.',
+    'tbbbbbbbbbbbbbt.', 'tbbbBbbbbbBBbbt.', 'tccccccccccccct.', 'tcccCccccccccct.', 'tccccccccCccccT.', 'ttttttttttttttt.'])]);
+  // THE LADDER up into the fly loft (in the wall; Snapjaw Sal clears it). Also the way up through the trap door.
+  const LADDER = DOORWAY.concat(Array.from({length: 13}, (_, i) => (i % 3 === 1 ? 'WWtvlwwwwwwlvtWW' : 'WWtvlvvvvvvlvtWW')));
+  S['tile-st-ladder'] = tile(Object.assign({l: 'q-wood', w: 'q-wood-l'}, WALL), [LADDER]);
+
+  // BACKSTAGE: black-painted walls (rope lines, the QUIET PLEASE sign), dark boards, sandbags, road cases, the desk
+  const BACK = {k: 'q-black', K: 'q-grey-d', g: 'q-grey', r: 'q-paper-d', R: 'q-plank-d', v: 'q-void', b: 'q-steel', B: 'q-steel-d', y: 'q-gold',
+    c: 'q-paper', C: 'q-paper-d', W: 'q-wood', w: 'q-wood-l', s: 'q-stage-velvet', S: 'q-stage-velvet-d', L: 'q-stage-red-lit', l: 'q-stage-bulb',
+    p: 'q-stage-board-d', P: 'q-stage-pit-d', n: 'q-green', N: 'q-green-d', e: 'q-stage-glow'};
+  const BFACE = ['KKKKKKKKKKKKKKKK', 'kkkkkkkkkkkkkkkk', 'kkkkkkkKkkkkkkkk', 'kkkkkkkkkkkkkkkk', 'kkkKkkkkkkkkkkkk', 'kkkkkkkkkkkkKkkk', 'kkkkkkkkkkkkkkkk',
+    'kkkkkkkkkkkkkkkk', 'kkkkkkKkkkkkkkkk', 'kkkkkkkkkkkkkkkk', 'kkkkkkkkkkkKkkkk', 'kkkkkkkkkkkkkkkk', 'kKkkkkkkkkkkkkkk', 'kkkkkkkkkkkkkkkk', 'KKKKKKKKKKKKKKKK', 'kkkkkkkkkkkkkkkk'];
+  S['tile-st-bwall'] = tile(BACK, [BFACE]);
+  // rope lines up to the flies, tied off on a cleat rail
+  S['tile-st-ropes'] = tile(BACK, [over(BFACE, Array.from({length: 16}, (_, y) => [...'................'].map((c, x) =>
+    ([3, 7, 12].includes(x) ? (y === 11 && x === 7 ? 'W' : 'r') : y === 11 && x > 5 && x < 10 ? 'b' : '.')).join('')))]);
+  // the QUIET PLEASE sign (lit red); every other second the static adds "PLEASE PLEASE" (one more lit line, a slow change)
+  const quiet = more => over(BFACE, ['', '', '.BBBBBBBBBBBBBB.', '.BLLLLLLLLLLLLB.', '.BLlLlLlLlLlLLB.', '.BLLLLLLLLLLLLB.', '.BLlLlLlLlLlLLB.', '.BLLLLLLLLLLLLB.',
+    more ? '.BLlLlLlLlLlLLB.' : '.BBBBBBBBBBBBBB.', more ? '.BLLLLLLLLLLLLB.' : '', more ? '.BBBBBBBBBBBBBB.' : '']);
+  S['tile-st-quiet'] = tile(BACK, [quiet(false), quiet(true)], {fps: 0.5});
+  const BDOOR = ['KKKKKKKKKKKKKKKK', 'kkkkkkkkkkkkkkkk', 'kkKKKKKKKKKKKKkk'];
+  S['tile-st-bdoor'] = tile(Object.assign({t: 'q-stage-trim'}, BACK), [BDOOR.concat(Array.from({length: 13}, (_, i) => (i === 5 ? 'kkKvvvvvvvvvyKkk' : 'kkKvvvvvvvvvvKkk')))]);
+  // the wings: a gap in the black wall with the red curtain behind it (down: the show isn't on yet)
+  S['tile-st-wings'] = tile(BACK, [BDOOR.concat(Array.from({length: 13}, (_, y) => 'kkK' + 'sSssSssSss'.slice(0, 10) + 'Kkk'))]);
+  S['tile-st-bladder'] = tile(Object.assign({l: 'q-wood', w: 'q-wood-l'}, BACK), [BDOOR.concat(Array.from({length: 13}, (_, i) => (i % 3 === 1 ? 'kkKvlwwwwwwlvKkk' : 'kkKvlvvvvvvlvKkk')))]);
+  const bfloor = g => { for (let y = 0; y < 16; y++) { if (y % 4 === 3) rect(g, 0, y, 16, 1, 'P'); else put(g, [9, 3, 12, 6][y >> 2], y, 'P'); } };
+  S['tile-st-bfloor'] = tile(BACK, [drawn('p', bfloor)]);
+  S['tile-st-sandbags'] = tile(BACK, [drawn(null, g => {
+    [[1, 9], [8, 9], [4.5, 4]].forEach(([x, y]) => { oval(g, x + 3, y + 3, 3.6, 2.8, 'C'); oval(g, x + 3, y + 2.4, 2.6, 1.6, 'c'); put(g, Math.round(x + 3), y, 'K'); });
+    rect(g, 7, 0, 1, 5, 'r');                                                                                                   // its rope, up to the flies
+  })]);
+  S['tile-st-case'] = tile(BACK, [drawn(null, g => {
+    rect(g, 1, 3, 14, 12, 'k'); rect(g, 1, 3, 14, 1, 'K'); [[1, 3], [13, 3], [1, 13], [13, 13]].forEach(([x, y]) => rect(g, x, y, 2, 2, 'b'));
+    rect(g, 3, 8, 10, 2, 'y'); put(g, 7, 6, 'B'); put(g, 8, 6, 'B'); rect(g, 6, 5, 4, 1, 'B');                              // a stencil stripe, a handle
+  })]);
+  // the stage manager's desk: one tile with the lamp (glowing), one with THE CLIPBOARD (the show's running order)
+  const desk = g => { rect(g, 0, 7, 16, 3, 'W'); rect(g, 0, 7, 16, 1, 'w'); rect(g, 1, 10, 2, 6, 'W'); rect(g, 13, 10, 2, 6, 'W'); };
+  S['tile-st-desk-lamp'] = tile(BACK, [drawn(null, g => { desk(g); rect(g, 4, 6, 4, 1, 'K'); line(g, 6, 6, 8, 2, 'K'); oval(g, 10, 2, 3, 1.6, 'n'); rect(g, 8, 3, 5, 1, 'N'); rect(g, 9, 4, 3, 1, 'e'); })]);
+  S['tile-st-desk-clip'] = tile(BACK, [drawn(null, g => { desk(g); rect(g, 4, 2, 7, 5, 'c'); rect(g, 6, 1, 3, 2, 'b'); [3, 4, 5].forEach(y => rect(g, 5, y, 5, 1, 'C')); })]);
+
+  // THE BALCONY: the railing, the dark drop down to the stage, the curtain far below (a gap: the Microphone peeks
+  // through it), a follow-spot on its stand
+  const BAL = Object.assign({}, FURN, {v: 'q-void', V: 'q-stage-pit', r: 'q-stage-velvet-d', R: 'q-stage-wall-d', l: 'q-stage-velvet', s: 'q-steel', S: 'q-steel-d'});
+  S['tile-st-railing'] = tile(BAL, [drawn(null, g => { rect(g, 0, 4, 16, 2, 'g'); rect(g, 0, 6, 16, 1, 'G'); [1, 6, 11].forEach(x => rect(g, x, 7, 2, 7, 'g')); rect(g, 0, 14, 16, 2, 'G'); })]);
+  S['tile-st-drop'] = tile(BAL, [drawn('v', g => { rect(g, 0, 12, 16, 4, 'V'); put(g, 3, 14, 'y'); put(g, 11, 13, 'y'); })]);
+  const farCurtain = gap => drawn('R', g => { for (let x = 0; x < 16; x++) for (let y = 2; y < 16; y++) put(g, x, y, x % 4 === 1 ? 'l' : 'r'); if (gap) rect(g, 6, 2, 4, 14, 'v'); rect(g, 0, 0, 16, 2, 'v'); });
+  S['tile-st-view'] = tile(BAL, [farCurtain(false)]);
+  S['tile-st-gap'] = tile(BAL, [farCurtain(true)]);
+  S['tile-st-followspot'] = tile(BAL, [drawn(null, g => {
+    line(g, 7, 9, 3, 15, 'S'); line(g, 8, 9, 8, 15, 'S'); line(g, 9, 9, 13, 15, 'S');
+    rect(g, 2, 3, 10, 6, 's'); rect(g, 2, 3, 10, 1, 'S'); oval(g, 12.5, 6, 2, 3, 'y'); rect(g, 0, 5, 2, 2, 'S');
+  })]);
+
+  /* TUBBY TUSK: a walrus in felt with ivory tusks, hugging a big brass tuba (its bell over his shoulder). Glitched: red
+     eyes and one low note pouring out of the bell (BWAAAAA); awake: blue eyes, the tuba resting, a smile */
+  function tusk(f, ok) {
+    const g = grid(24, 28);
+    oval(g, 11.5, 19, 8, 8, 'f'); oval(g, 11.5, 21, 5, 5, 'l');                                    // the body, the belly
+    oval(g, 11, 8, 6, 5.2, 'f');                                                                    // the head
+    oval(g, 11, 11, 4, 2.2, 'l'); [8, 10, 12, 14].forEach(x => put(g, x, 11, 'F'));               // the muzzle, whiskers
+    line(g, 9, 13, 9, 17, 'u', 1); line(g, 13, 13, 13, 17, 'u', 1);                               // the tusks
+    rect(g, 7, 6, 2, 2, ok ? 'E' : 'e'); rect(g, 13, 6, 2, 2, ok ? 'E' : 'e'); put(g, 11, 9, 'k');  // eyes (red: the static), nose
+    put(g, 5, 9, 'b'); put(g, 17, 9, 'b');                                                          // bolts
+    oval(g, 15, 20, 4.5, 4.5, 'g'); oval(g, 15, 20, 2.6, 2.6, 'G'); oval(g, 15, 20, 1.2, 1.2, 'g'); // the tuba's coil
+    rect(g, 18, 6, 3, 12, 'g'); rect(g, 19, 7, 1, 10, 'G'); oval(g, 19.5, 4.5, 4, 2, 'g'); rect(g, 17, 4, 6, 1, 'G');   // its bell
+    line(g, 12, 13, 14, 16, 'G');                                                                   // the mouthpiece
+    rect(g, 4, 25, 5, 2, 'F'); rect(g, 14, 25, 5, 2, 'F');                                          // flippers
+    if (!ok) { const w = f ? 1 : 0; put(g, 21 + w, 1, 'z'); put(g, 23, 2 + w, 'z'); put(g, 20, 0, 'z'); }   // BWAAAA: the note's ripples
+    else if (f) { put(g, 10, 12, 'k'); put(g, 12, 12, 'k'); }                                        // awake: a smile under the whiskers
+    return text(outline(g));
+  }
+  const TUSK_P = Object.assign({}, BOT, {f: 'q-stage-walrus', F: 'q-stage-walrus-d', l: 'q-stage-walrus-l', u: 'q-stage-tusk', g: 'q-brass', G: 'q-brass-d', z: 'q-stage-glow-red', E: 'q-stage-eye-ok'});
+  S['npc-tusk'] = {w: 24, h: 28, fps: 3, palette: TUSK_P, frames: [tusk(0), tusk(1)]};
+  S['npc-tusk-ok'] = {w: 24, h: 28, fps: 1, palette: TUSK_P, frames: [tusk(0, true), tusk(1, true)]};
+
+  /* SNAPJAW SAL: a felt gator with a long snout and a snare drum on a strap. Glitched: red eyes and a drum roll that
+     never ends (the sticks take turns, fast); awake: blue eyes, sticks crossed, a big toothy (friendly) grin */
+  function sal(f, ok) {
+    const g = grid(24, 28);
+    oval(g, 10, 17, 6.5, 7, 'f'); oval(g, 10, 18, 4, 5, 'l');                                       // the body, the belly
+    line(g, 4, 22, 0, 26, 'f', 2);                                                                  // the tail
+    oval(g, 8, 8, 5, 4.4, 'f'); rect(g, 10, 6, 12, 5, 'f'); rect(g, 10, 6, 12, 1, 'l');              // the head, the long snout
+    [12, 15, 18, 21].forEach(x => put(g, x, 11, 'w')); put(g, 20, 7, 'k');                         // teeth (friendly ones), a nostril
+    oval(g, 6, 4, 2, 1.8, 'f'); oval(g, 10, 4, 2, 1.8, 'f');                                         // eye bumps
+    rect(g, 5, 4, 2, 2, ok ? 'E' : 'e'); rect(g, 9, 4, 2, 2, ok ? 'E' : 'e');                      // eyes
+    put(g, 3, 9, 'b'); put(g, 15, 12, 'b');
+    rect(g, 6, 19, 14, 5, 'd'); rect(g, 6, 18, 14, 1, 'h'); rect(g, 6, 18, 14, 1, 'h'); rect(g, 6, 24, 14, 1, 'b'); rect(g, 6, 19, 14, 1, 'b');   // the snare
+    [8, 11, 14, 17].forEach(x => rect(g, x, 20, 1, 4, 'D'));                                        // its lugs
+    rect(g, 6, 25, 3, 2, 'F'); rect(g, 13, 25, 3, 2, 'F');                                          // feet
+    if (ok) { line(g, 9, 17, 15, 12, 'W'); line(g, 15, 17, 9, 12, 'W'); }                            // awake: sticks crossed
+    else if (f) { line(g, 9, 17, 6, 12, 'W'); line(g, 15, 18, 18, 16, 'W'); }                         // the roll: one stick up…
+    else { line(g, 9, 18, 6, 16, 'W'); line(g, 15, 17, 18, 12, 'W'); }                               // …then the other
+    return text(outline(g));
+  }
+  const SAL_P = Object.assign({}, BOT, {f: 'q-stage-gator', F: 'q-stage-gator-d', l: 'q-stage-gator-l', d: 'q-stage-drum', D: 'q-brass-d', h: 'q-stage-drumhead', W: 'q-wood-l', E: 'q-stage-eye-ok'});
+  S['npc-sal'] = {w: 24, h: 28, fps: 6, palette: SAL_P, frames: [sal(0), sal(1)]};
+  S['npc-sal-ok'] = {w: 24, h: 28, fps: 1, palette: SAL_P, frames: [sal(0, true), down(sal(0, true))]};
 })(window.QUEST_ART);

@@ -64,7 +64,9 @@
   /* ---------- conversations ---------- */
   function cond(c) {
     if (!c) return true;
+    if (c.includes('&')) return c.split('&').every(x => cond(x.trim()));   // 'tuskAwake&!moose-tusk': all of them
     if (c[0] === '!') return !cond(c.slice(1));
+    if (c.startsWith('charm:')) return Q.charms.owned(c.slice(6));       // 'charm:metronome-ticker': that charm is yours
     if (c === 'snare') return unpitched();
     const m = /^helped>=(\d+)$/.exec(c);
     if (m) return helpedHere() >= +m[1];
@@ -113,9 +115,17 @@
     else if (node.do === 'booth') await booth(D);
     else if (node.do === 'teach') await teach(D, node);
     else if (node.do === 'teach-eb') await teach(D, node, 'eb');
+    else if (node.do === 'rhythm-lesson') await rhythmLesson(D, node);
     else if (node.do === 'wake') { Q.save.setFlag('reginaldAwake'); if (npc && npc.src.moved) Q.world.moveNpc(id, npc.src.moved.at); }
   };
   Q.talk.sign = id => Q.say(SIGNS()[id] || [id]);
+  /** lines said as a character (a band member waking up: their awake portrait, from the room's npc `awake`) */
+  Q.talk.say = async function (id, lines) {
+    let D = DLG()[id]; if (!D || !lines.length) return;
+    const n = Q.world && Q.world.npcSrc ? Q.world.npcSrc(id) : null;
+    if (n && n.awake && Q.save.flag(n.awake.flag)) D = Object.assign({}, D, {sprite: n.awake.sprite});
+    await sayAs(D, lines);
+  };
   Q.talk.thing = async function (th) {
     if (th.use === 'booth') return Q.talk.npc(th.keeper || 'terry');
     if (th.use === 'shop') return Q.talk.npc(th.keeper || 'rusty');
@@ -333,7 +343,7 @@
   function charmHow(c) {
     const E = window.QUEST_ENEMIES || [], M = window.QUEST_MAPS || {};
     return [c.price ? `${c.price} tokens at the Token Booth` : '', c.found ? `hidden in ${(M[c.found] || {}).name || 'the manor'}` : '',
-      c.reward ? `befriend ${(E.find(e => e.id === c.reward) || {}).name || 'a ghost'}` : ''].filter(Boolean).join(', or ');
+      c.reward ? `befriend ${(E.find(e => e.id === c.reward) || {}).name || 'a ghost'}` : '', c.from || ''].filter(Boolean).join(', or ');
   }
   function charmShop() {
     return new Promise(done => {
@@ -440,6 +450,20 @@
     const ok = res.acc >= 0.75;
     if (ok) { Q.save.setFlag(eb ? 'songEb' : 'songBb'); Q.sfx(eb ? 'quest-encore-learned' : 'quest-levelup'); }
     await sayAs(D, ok ? node.yes : node.no);
+  }
+  /* ---------- SNAPJAW SAL's RHYTHM LESSON ('rhythm-lesson', once she's awake): one tier-2 RHYTHM outside a battle
+     (shared rhythm code, battle/challenges.js). Pass (acc >= LESSON_PASS) = the METRONOME TICKER charm, once. ---------- */
+  const LESSON_PASS = 0.75;
+  async function rhythmLesson(D, node) {
+    if (!(await Q.micReady())) { await Q.say(Q.text('micHint')); return; }
+    await Q.rhythmTip();
+    const res = await Q.challenge.run('rhythm', {enemy: {id: 'sal-lesson', name: 'Snapjaw Sal', tier: 2}});
+    const ok = res.acc >= LESSON_PASS;
+    await sayAs(D, ok ? node.yes : node.no);
+    if (ok && Q.charms.give('metronome-ticker')) {
+      Q.sfx('charm-equip');
+      await Q.say(Q.text('gotCharm', {item: Q.charms.get('metronome-ticker').name}));
+    }
   }
 
 })(window.Arcade);

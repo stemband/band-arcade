@@ -18,6 +18,7 @@ async function arena(page, member = 'trumpet', {assist = false} = {}) {
   await page.evaluate(() => {
     const Q = Arcade.Quest;
     Q.micReady = async () => true;
+    Q.save.setFlag('rhythmTip');                                          // (Sal's tip card: quest-ep2-rooms.spec.js)
     window.__foe = id => window.QUEST_ENEMIES.find(e => e.id === id);
     window.__lines = [];
     const say = Q.say; Q.say = (l, o) => { window.__lines.push(...[].concat(l).filter(Boolean)); return say(l, o); };

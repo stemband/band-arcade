@@ -8,8 +8,13 @@
    THE SHOWTIME BAND (Showtime Malfunction's animatronic house band) are friendly malfunctioning MACHINES here: stuck
    in loops by the static, never scary, nobody inside them. Arcade Quest's warm, funny tone.
    FLAGS this episode sets (shared/backup.js QUEST_V6.flags reserves them all): ep2Start (the intro), met-moose,
-   met-hoot, met-tina, met-pete, hootAwake (6 machines helped), songEb (Hoot's lesson passed); later: tuskAwake,
-   salAwake, ricoDone (+ ricoDoor / ricoVent), ep2Done. NEW CONDITION: 'helped2>=6' = 6 or more Episode 2 machines
+   met-hoot, met-tina, met-pete, hootAwake (6 machines helped), songEb (Hoot's lesson passed), tuskAwake + met-tusk
+   (the Pit's 3 machines helped), salAwake + met-sal (the Workshop's 4); later: ricoDone (+ ricoDoor / ricoVent),
+   ep2Done. Not in save codes (they only change a line): rhythmTip (Sal's tip card, battle/challenges.js),
+   balconyGlimpse, moose-tusk, moose-sal, tina-tusk, tina-sal, tina-eb, pete-tusk, pete-sal, pete-eb.
+   NEW CONDITIONS: 'a&b' = both; 'charm:<id>' = that charm is yours.
+   A BAND MEMBER WHO WAKES (data/maps/stage.js `wakes`): `wake` = the lines said the moment the room's last machine is
+   helped (with the awake portrait), `metFlag` = set then. NEW CONDITION: 'helped2>=6' = 6 or more Episode 2 machines
    helped (befriended or powered down), wherever you are; `do: 'teach-eb'` = the E♭ Encore lesson.
    ALSO IN THIS FILE: the intro cutscene ('ep2-intro'), the first lines in the Lobby (QUEST_EP2_ARRIVAL) and the
    microphone's Episode 2 whispers (QUEST_WHISPERS_EP2). */
@@ -44,6 +49,24 @@ Object.assign(window.QUEST_DIALOGUE, {
       'Tubby, Hoot, Sal, Rico... Help the theater\'s machines. Clear the static!',
       'And a one, and a t— (He freezes again, baton in the air.)',
     ]},
+    {if: 'salAwake&!moose-sal', set: 'moose-sal', lines: [
+      'A snare! Now we have a beat! Ba-dum, ba-dum...',
+      'Tubby AND Sal! Bass and drums! And a one, and a two, and a— (frozen again).',
+    ]},
+    {if: 'tuskAwake&!moose-tusk', set: 'moose-tusk', lines: [
+      'A tuba! I hear a TUBA! The band is coming back!',
+      'Tubby, my old friend! And a one, and a t— (He freezes. But he\'s smiling.)',
+    ]},
+    {if: 'salAwake', cycle: [
+      ['Bass and drums are back! Now we need everyone else. And a one, and a t—'],
+      ['Rico... where is Rico? His sax has gone very quiet. And a one, and a t—'],
+      ['Professor Hoot is in the Green Room. I think he has a song for you.'],
+    ]},
+    {if: 'tuskAwake', cycle: [
+      ['A tuba in the pit again! What a sound. And a one, and a t—'],
+      ['Snapjaw Sal is in the Prop Workshop. Her drum roll never stops!'],
+      ['Professor Hoot is in the Green Room, reading one page. Over and over.'],
+    ]},
     {cycle: [
       ['And a one, and a t— And a one, and a t— ...I can\'t START without my band!'],
       ['A conductor without a band is just a moose waving a stick. And a one, and a t—'],
@@ -59,6 +82,9 @@ Object.assign(window.QUEST_DIALOGUE, {
       'Same wallet as his booth, hon. Your arcade stars turn into tokens. 5 each!',
       'Each star counts once, whichever booth you use. We Booths talk.',
     ]},
+    {if: 'tuskAwake&!tina-tusk', set: 'tina-tusk', do: 'booth', lines: ['Hon, did you hear? The tuba stopped! And the balcony stairs are open again.']},
+    {if: 'salAwake&!tina-sal', set: 'tina-sal', do: 'booth', lines: ['No more drum roll from the workshop! I can finally hear my ticket printer.']},
+    {if: 'songEb&!tina-eb', set: 'tina-eb', do: 'booth', lines: ['Hoot taught you the Encore? An encore means MORE show. My favorite!']},
     {do: 'booth', cycle: [
       ['Admit one! Or many. What can Tina do for you, hon?'],
       ['Terry says hi. Well, he says "kssshhh." The static gets into the phone lines.'],
@@ -73,6 +99,9 @@ Object.assign(window.QUEST_DIALOGUE, {
       'POP! Oh, sorry. I pop when I\'m excited. Popcorn Pete, snack counter!',
       'Supplies for the show, for Arcade Tokens. Rusty and I share a supplier.',
     ]},
+    {if: 'tuskAwake&!pete-tusk', set: 'pete-tusk', do: 'shop', lines: ['POP! The tuba stopped! The floor stopped shaking. My kernels are so calm.']},
+    {if: 'salAwake&!pete-sal', set: 'pete-sal', do: 'shop', lines: ['POP POP! Sorry. Without that drum roll, I\'m the loudest thing here!']},
+    {if: 'songEb&!pete-eb', set: 'pete-eb', do: 'shop', lines: ['An Encore! POP! I always pop extra popcorn for an encore.']},
     {do: 'shop', cycle: [
       ['POP! Welcome back!'],
       ['Valve Oil heals you. Popcorn does not. I learned that one the hard way.'],
@@ -113,16 +142,101 @@ Object.assign(window.QUEST_DIALOGUE, {
       ['Tip: read the rhythm BEFORE you play it. Hoo! ...measure 12...'],
     ]},
   ]},
+
+  /* ================= THE ORCHESTRA PIT ================= */
+
+  /* TUBBY TUSK: stuck on one low note until the Pit's 3 machines are helped (either way: data/maps/stage.js `wakes`);
+     then he wakes, shuffles off the trap door (Backstage) and the balcony's rope comes down */
+  tusk: {name: 'Tubby Tusk', sprite: 'npc-tusk', area: 'The Orchestra Pit', metFlag: 'met-tusk', wake: [
+    'BWAAAAAAA—aa? Oh! Hello! Was I stuck? I was stuck.',
+    'One note, for years! My lips feel like jelly. Thank you, little musician.',
+    'Oh! I was sitting on the trap door. Scoot, scoot... There! Down to Backstage.',
+    'And the rope on the balcony stairs came down. Go up and look, if you like.',
+  ], talk: [
+    {if: 'tuskAwake', cycle: [
+      ['Long tones are like naps for your sound. Very good for you.'],
+      ['Breathe low, from your belly. A walrus knows. I am mostly belly.'],
+      ['The trap door goes down to Backstage. Mind the sandbags. They don\'t move.'],
+      ['From the balcony you see the whole stage. Something waits behind the curtain.'],
+      ['A tuba is just a trumpet that ate a big lunch. Ha! Bwa-ha!'],
+    ]},
+    {cycle: [
+      ['BWAAAAAAAAAAAAAAAAAAAAA—', '(He can\'t stop. His eyes glow red with static.)'],
+      ['BWAAAAAAAAAA— (He waves a flipper at the machines in the pit.) —AAAAA'],
+      ['BWAAAAAAAAAAAAA— (Help the pit\'s 3 machines. Maybe then he can stop.)'],
+    ]},
+  ]},
+
+  /* ================= THE PROP WORKSHOP ================= */
+
+  /* SNAPJAW SAL: stuck in a drum roll until the Workshop's 4 machines are helped (either way); then she wakes, clears
+     the fly loft ladder and TEACHES RHYTHM ('rhythm-lesson': one tier-2 rhythm, pass = the Metronome Ticker, once).
+     Her tip card before the first rhythm battle: battle-text.js rhythmTip… */
+  sal: {name: 'Snapjaw Sal', sprite: 'npc-sal', area: 'The Prop Workshop', metFlag: 'met-sal', wake: [
+    '—rrrrrrrrrrIMSHOT! Phew. Thanks, kid. My wrists were getting tired.',
+    'Snapjaw Sal, drums. I keep the beat for the whole Showtime Band.',
+    'Want to read rhythms like a pro? Talk to me. The lesson\'s free!',
+    'Oh, and the ladder up to the fly loft? I was leaning on it. All yours.',
+  ], talk: [
+    {if: 'charm:metronome-ticker', cycle: [
+      ['Count out loud: "1 and 2 and." Your feet can tap, too. Feet are free drums.'],
+      ['Rests are part of the rhythm. Silence counts! Literally. Count it.'],
+      ['Eighth notes come in pairs: "1 and." Two notes, one beat. A bargain!'],
+      ['Wear that Metronome Ticker. It ticks right along with you.'],
+    ]},
+    {if: 'salAwake&snare', do: 'rhythm-lesson', lines: [
+      'Lesson time, drummer! One measure. I count you in, you hit it.',
+      'Read it first. Count it in your head. Then hit exactly WHEN the notes are.',
+    ], yes: ['BA-DUM-TSS! Right in the pocket! Here, take this. It ticks with you.'], no: ['Again! Count out loud this time.']},
+    {if: 'salAwake', do: 'rhythm-lesson', lines: [
+      'Lesson time! One measure. I count you in, you play it on any one note.',
+      'Read it first. Count it in your head. Then play exactly WHEN the notes are.',
+    ], yes: ['BA-DUM-TSS! Right in the pocket! Here, take this. It ticks with you.'], no: ['Again! Count out loud this time.']},
+    {cycle: [
+      ['brrrrrrrrrrrrrrrrrrrrrrrrrrrr', '(Her drum roll never ends. Her eyes glow red with static.)'],
+      ['brrrrrrrrrr— (She nods at the machines in the workshop.) —rrrrrrrrrr'],
+      ['brrrrrrrrrrrr— (Help the workshop\'s 4 machines. Then maybe...) —rrrrr'],
+    ]},
+  ]},
 });
 
 Object.assign(window.QUEST_SIGNS, {
   'jukebox-stage': ['The Save Jukebox hums a show tune. It knows all the words.'],
   // doors to rooms that are still being built (data/maps/stage.js `soon`)
   'soon': ['This way isn\'t open yet. (Coming soon: the theater is still being built.)'],
-  'pit-soon': ['The orchestra pit. Something down there goes BWAAAA.', '(Coming soon: the theater is still being built.)'],
-  'workshop-soon': ['The Prop Workshop. Behind the door, a drum roll rattles on and on.', '(Coming soon: the theater is still being built.)'],
   'balcony-roped': ['Roped off. A sign says: CLOSED FOR REHEARSAL.'],
-  'balcony-soon': ['The balcony stairs creak. (Coming soon: the theater is still being built.)'],
+  'dressing-soon': ['The Dressing Rooms. Somebody hums a sax tune behind the door.', '(Coming soon: the theater is still being built.)'],
+  'wings-soon': ['The curtain is down. Something big is waiting behind it.', '(Coming soon: the theater is still being built.)'],
+  'ladder-locked': ['A ladder up to the fly loft. A drum roll rattles every rung. Not yet!'],
+  'ladder-soon': ['The ladder goes up into the dark. Not today.'],
+  // THE ORCHESTRA PIT
+  'trap-locked': ['A trap door. Tubby Tusk is sitting right on top of it. BWAAAAA.'],
+  'pit-sign': ['A sign on the rail: "The orchestra pit. Mind the tuba."'],
+  'pit-rail': ['The stage is just above the rail. The curtain is down.'],
+  'pit-timpani': ['A timpani: a big copper kettle drum. It hums along with Tubby.'],
+  'pit-timpani-2': ['Another timpani, tucked in the corner. Nothing else back here.'],
+  'pit-timpani-found': ['Something glints behind the timpani, in the corner: a little pouch!'],
+  'pit-stand': ['A music stand. The music on it is one long, low whole note.'],
+  'pit-stand-2': ['A music stand. Someone wrote "BREATHE" in the margin. Twice.'],
+  // THE PROP WORKSHOP
+  'workshop-bench': ['A workbench: wood blocks, glue, a paintbrush. Nothing sharp. Safety first!'],
+  'workshop-bench-2': ['A prop on the bench: a cardboard trumpet. It\'s pretty good, actually.'],
+  'workshop-paint': ['Paint cans: red, blue, gold. One drip dried into a perfect eighth note.'],
+  'workshop-moon': ['A giant cardboard moon with a sleepy face. It looks very relaxed.'],
+  'workshop-sawhorse': ['A sawhorse. It\'s not a horse. It doesn\'t even neigh. Disappointing.'],
+  'workshop-backdrop': ['A backdrop: half a blue sky, half plain canvas. The painter left mid-cloud.'],
+  // BACKSTAGE
+  'backstage-lamp': ['The stage manager\'s lamp. It glows a soft, steady green. Very calming.'],
+  'backstage-clipboard': ['A clipboard with the running order:', '"1. Overture. 2. The Big Number. 3. ENCORE (mic check!)"'],
+  'backstage-quiet': ['A lit sign: QUIET PLEASE.', 'It flickers. Now it says: QUIET PLEASE PLEASE PLEASE.'],
+  'backstage-ropes': ['Rope lines run up into the dark. They hold scenery way, way above.'],
+  'backstage-sandbags': ['Sandbags. They keep the scenery from floating away. Very important bags.'],
+  'backstage-case': ['A road case stenciled SHOWTIME BAND. It\'s covered in stickers.'],
+  'backstage-case-2': ['A road case: "FRAGILE: CONTAINS ONE (1) TRIANGLE."'],
+  // THE BALCONY
+  'balcony-spot': ['A follow-spot on a stand. It points down at the stage, waiting for a star.'],
+  'balcony-railing': ['A brass railing. Far below: the dark stage, and a gap in the curtain.'],
+  'balcony-seats': ['Balcony seats. A little brass plate says: BEST VIEW IN THE HOUSE.'],
   'box-office': ['The box office. A sign in the window: "TONIGHT: THE SHOWTIME BAND! (Probably.)"'],
   'snack-counter': ['The snack counter smells like warm popcorn. Something goes POP now and then.'],
   'lobby-poster': ['A poster: "THE SHOWTIME BAND! Tubby! Hoot! Sal! Rico! And Maestro Moose!"'],

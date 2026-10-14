@@ -161,7 +161,7 @@
       `<div class="q-staff q-one">${staff(seq, [item], 0)}</div><div class="q-hold${cutoff ? ' q-cutoff' : ''}"><i id="qHold"></i></div><p class="q-cents" id="qCents">–</p>`);
     let got = 0, lastT = 0;
     return new Promise(done => {
-      const end = () => { c.stop(); finish(p, stop, {acc: Math.min(1, got / hold), speed: c.left() / secs, correct: got >= hold ? 1 : 0, total: 1}).then(done); };
+      const end = () => { c.stop(); finish(p, stop, {acc: Math.min(1, got / hold), speed: c.left() / secs, correct: got >= hold ? 1 : 0, total: 1, kind: 'longtone'}).then(done); };
       onFrame = (r, level, now) => {
         const dt = lastT ? Math.min(.1, (now - lastT) / 1000) : 0; lastT = now;
         const dev = r ? (((r.midi - item.pc) % 12 + 18) % 12 - 6) * 100 : null;
@@ -348,7 +348,8 @@
     clk.perfAt = aud => (clk.ctx ? (aud - clk.off) * 1000 : aud * 1000 + clk.p0);
     return {clk, kit};
   }
-  const windows = () => { const k = Q.settings.get().assist ? RHYTHM.assist : 1; return {perfectMs: RHYTHM.perfectMs * k, goodMs: RHYTHM.goodMs * k, okMs: RHYTHM.okMs * k, lateMs: RHYTHM.lateMs * k}; };
+  const windows = () => { const k = (Q.settings.get().assist ? RHYTHM.assist : 1) * Q.charms.mult('rhythm');   // (the Metronome Ticker charm)
+    return {perfectMs: RHYTHM.perfectMs * k, goodMs: RHYTHM.goodMs * k, okMs: RHYTHM.okMs * k, lateMs: RHYTHM.lateMs * k}; };
   /** a pattern from QUEST_RHYTHMS (data/rhythms.js): `bars` random ones of the tier, joined by bar lines */
   function pattern(tier, bars = 1) {
     const pool = (window.QUEST_RHYTHMS || {})[tier] || ['q q q q'], out = [];
@@ -507,6 +508,18 @@
         paint: tg => tg.forEach((x, i) => { const b = blobs()[i]; if (b) { b.classList.remove('on'); b.classList.add(RES_CLS(x.res)); } })});
     })();
   }
+  /* SNAPJAW SAL'S RHYTHM TIP: before the first rhythm battle anywhere (and her lesson), once (flag rhythmTip): a card
+     in her voice, even before she wakes. -> Promise (resolves when it closes; at once if already seen) */
+  Q.rhythmTip = () => new Promise(done => {
+    if (Q.save.flag('rhythmTip')) return done();
+    Q.save.setFlag('rhythmTip');
+    const lines = [Q.text('rhythmTip'), Q.text(unpitched ? 'rhythmTipDrum' : 'rhythmTipWinds')];
+    if (!A.UI || !A.UI.intro) return Q.say(lines, {name: 'Snapjaw Sal', portrait: 'npc-sal'}).then(done);
+    Q.input.clear();
+    A.UI.intro.show({theme: 'q-theme q-tip', kicker: Q.text('rhythmTipKicker'), title: Q.text('rhythmTipTitle'), text: lines.join('<br>'),
+      go: {label: Q.text('rhythmTipGo'), onClick: () => setTimeout(done, 0)},
+      onShow: p => { const h = p.querySelector('.ui-intro-hero'); if (h && Q.spriteEl) h.appendChild(Q.spriteEl('npc-sal', {scale: 3})); }});
+  });
   /** tests (and ?demo): the rhythm challenge on screen */
   Q.rhythm = {
     RULES: RHYTHM,
@@ -517,6 +530,8 @@
       windows: RS.W || windows(), result: RS.result || null},
     /** ?demo: a hit heard at performance time p (ms), as if from the microphone (level: its loudness, for the bleed rule) */
     hit(p, level = null) { if (A.DEMO && RS && RS.add) RS.add(p, level); },
+    /** the timing windows now (ms: ASSIST and the Metronome Ticker charm widen them) */
+    windows: () => windows(),
     /** ?demo: ECHO's choice ('play' | 'again') */
     pick(id) { if (A.DEMO && RS && RS.pick) RS.pick(id); },
   };

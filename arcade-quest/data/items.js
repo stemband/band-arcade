@@ -18,9 +18,12 @@ window.QUEST_ITEMS = {
    MAT: edit names, words, prices and strengths freely; never rename an id (saves and save codes use it) and add new
    charms at the end (the save code has room for 8: shared/backup.js QUEST_V2.charms).
    effect: {maxHp: +HP} | {calm: × CALM gained} | {dodge: × enemy note speed} | {block: hits blocked per battle}
-           | {inTune: × damage, at: the accuracy (0–1) a PLAY needs for it}
+           | {inTune: × damage, at: the accuracy (0–1) a PLAY needs for it} | {crit: a lucky crit's chance}
+           | {toneCalm: × CALM gained from a LONG TONE (a PLAY or SERENADE that held a note)}
+           | {rhythm: × the RHYTHM / TEMPO / ECHO timing windows (battle/challenges.js RHYTHM: 1.15 = 70 → 80 ms PERFECT)}
    how you get it: price = Arcade Tokens at the Token Booth · found = '<room>' (a spot in the manor: the map's
-   thing with charm: '<id>') · reward = '<enemy id>' (befriending that ghost). A charm can have more than one. */
+   thing with charm: '<id>') · reward = '<enemy id>' (befriending that ghost) · from = how else, in words (the
+   CHARMS panel says it: a lesson). A charm can have more than one. */
 window.QUEST_CHARMS = {
   'golden-mouthpiece': {name: 'Golden Mouthpiece', icon: 'mouthpiece', desc: '+8 max HP. Big sound, big lungs.', effect: {maxHp: 8}, price: 150},
   'lucky-reed':        {name: 'Lucky Reed', icon: 'reed', desc: 'CALM rises 30% faster.', effect: {calm: 1.3}, found: 'kitchen', price: 250},
@@ -31,4 +34,8 @@ window.QUEST_CHARMS = {
   'echo-chime':        {name: 'Echo Chime', icon: 'chime', desc: '+4 max HP, and CALM rises 15% faster. It rings with the old orchestra.', effect: {maxHp: 4, calm: 1.15}, found: 'passage'},
   // crit: a LUCKY CRIT's chance (battle.js RULES.critChance is 1 in 12 without it)
   'sharp-ear':         {name: 'Sharp Ear', icon: 'ear', desc: 'Critical hits come twice as often (1 in 6).', effect: {crit: 1 / 6}, price: 300},
+  // EPISODE 2 (shared/backup.js QUEST_V6.charms): the Rosin Pouch hides in the Orchestra Pit's corner timpani; Snapjaw
+  // Sal gives the Metronome Ticker for passing her rhythm lesson (engine/talk.js 'rhythm-lesson')
+  'metronome-ticker':  {name: 'Metronome Ticker', icon: 'metro', desc: 'Rhythm, tempo and echo timing is a little more forgiving (15%).', effect: {rhythm: 1.15}, from: 'pass Snapjaw Sal\'s rhythm lesson'},
+  'rosin-pouch':       {name: 'Rosin Pouch', icon: 'reed', desc: 'Long tones calm machines 30% faster.', effect: {toneCalm: 1.3}, found: 'pit'},
 };
