@@ -173,7 +173,7 @@ test('the new items survive the Arcade Backup Code, the QUEST CODE and the avata
   await floorAt(page, SPOOKY);
   const back = await page.evaluate(async ([c, ks]) => { const d = await Arcade.Backup.fullDecode(c); Arcade.store.importAll(d.data); return ks.filter(k => !Arcade.store.ownedItems[k]); }, [code, keys]);
   expect(back).toEqual([]);
-  // the frozen fixtures (v1–v4) still decode exactly
+  // the frozen fixtures (v1–v5) still decode exactly
   const OLD = require('./fixtures/quest-codes.json');
   for (const [v, {code: c, fields}] of Object.entries(OLD)) expect(await page.evaluate(x => Arcade.Backup.questDecode(x).fields, c), v).toEqual(fields);
   watch.check();

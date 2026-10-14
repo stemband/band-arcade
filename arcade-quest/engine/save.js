@@ -13,7 +13,11 @@
             two befriended; [] = a solo),
       route: {<gate or final enemy id>: 'befriend' | 'fade'} (v5: how each story ghost was passed: the Phantom Fermata
             (befriend = the attic door, fade = the Hidden Passage) and the Ghost Conductor (the best ending or the
-            defeat ending); for future achievements)}
+            defeat ending); for future achievements),
+      ep: 1 | 2 (v6: the episode last played: the episode of the room you were last in (QUEST_MAPS[id].ep, 1 when
+            left out); an older save takes it from save.world's room). EPISODE 2 (THE SHOWTIME STAGE) keeps
+            everything else in the same fields: its story flags in `flags` (ep2Start, songEb…), its machines in `done`
+            ('<room>:<key>': its room ids never clash with the manor's), its friends in `roster`, its charms in `charms`}
    ALTERNATE ROUTES stay open whatever happens (routes()): a gate ghost that is done (befriended or faded) always has
    ITS way open: befriended = its `opens` flag, faded = its `opensIfFaded` flag, unless one is already set. This
    repairs saves from before the routes, save codes (they carry the ghosts helped and the roster, so which way is known,
@@ -22,46 +26,63 @@
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
    Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
-   SAVE CODES (shared/backup.js, format version 5): Q.save.code() = the 65-character code shown at the jukebox;
+   SAVE CODES (shared/backup.js, format version 6): Q.save.code() = the 80-character code shown at the jukebox;
    Q.save.fromCode(code) -> {ok, error} replaces this device's save with it (ENTER SAVE CODE on the title screen).
    `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
    star sources the next time the Token Booth counts (engine/talk.js).
-   Every write also stores `progress` = {pct, friends} for the arcade floor's line ("Episode 1: 60% · 7 friends").
+   Every write also stores `progress` = {ep, pct (Episode 1's), ep2 (Episode 2's), friends} for the arcade floor's line
+   ("Episode 1: 60% · 7 friends"; from ep1Done on, Episode 2's: "Episode 2: 15% · 9 friends"; the weights: progress()).
    SETTINGS: {textSpeed: 'slow'|'normal'|'fast'|'instant', dodge: 'easy'|'normal', assist: bool, keyHints: bool (keyboards: the key legend)} (your look and name: Create Your Player, EDIT PLAYER here).
    Sound and music volumes are the arcade's own (shared/sfx.js speaker settings), so they match every other game.
    Q.settings.open() shows the arcade's shared SETTINGS panel (shared/ui-kit.js) with these options under "Arcade Quest". */
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 5;
+  const SAVE_VERSION = 6;
   const data = () => A.store.gameData(GAME);
   const CHARMS = () => window.QUEST_CHARMS || {};
-  /* how far through Episode 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10 (its
-     door or the Hidden Passage),
-     the Ghost Conductor 20 */
-  /** EVERY MANOR GHOST: '<room>:<ghost key>' for every ghost placed on a map, outside the Practice Hall (the Test Arena
-      has no map). Read from the maps each time, so a ghost added to a map later counts by itself. -> [{key, room}] */
-  function ghosts() {
+  /* THE EPISODES: every room says which one it belongs to (QUEST_MAPS[id].ep: data/maps/stage.js sets 2; manor.js
+     leaves it out = 1). EP2_ROOMS = THE SHOWTIME STAGE's room ids (docs/games/arcade-quest-ep2-plan.md), so a room
+     that isn't built yet (a save code from a later version, a door's sign) still knows its episode. Never reuse one. */
+  const EP2_ROOMS = ['lobby', 'greenroom', 'pit', 'workshop', 'backstage', 'dressing', 'loft', 'stage', 'balcony'];
+  const episodeOf = id => { const m = (window.QUEST_MAPS || {})[id]; return m ? m.ep || 1 : EP2_ROOMS.includes(id) ? 2 : 1; };
+  /** EVERY GHOST (Episode 1) or MACHINE (Episode 2) of an episode: '<room>:<key>' for every enemy placed on a map of
+      that episode, outside `practice` rooms (the Practice Hall, the Green Room; the Test Arena has no map). Read from
+      the maps each time, so one added to a map later counts by itself. -> [{key, room}] */
+  function ghosts(ep = 1) {
     const maps = window.QUEST_MAPS || {}, out = [];
-    Object.keys(maps).forEach(id => { if (!maps[id].practice) (maps[id].enemies || []).forEach(e => out.push({key: id + ':' + e.key, room: id})); });
+    Object.keys(maps).forEach(id => { if (!maps[id].practice && episodeOf(id) === ep) (maps[id].enemies || []).forEach(e => out.push({key: id + ':' + e.key, room: id})); });
     return out;
   }
   /** THE GHOST LOG (the pause menu): {helped, total, rooms: the rooms that still have someone (map names, in map
-      order), all: every ghost helped}. The same list as progress() and the 'manor-all' achievement. */
-  function ghostLog(s = Q.save.get()) {
-    const list = ghosts(), done = s.done || {}, left = list.filter(g => !done[g.key]), maps = window.QUEST_MAPS || {};
+      order), all: every ghost helped}. The same list as progress() and the 'manor-all' achievement (Episode 1). */
+  function ghostLog(s = Q.save.get(), ep = 1) {
+    const list = ghosts(ep), done = s.done || {}, left = list.filter(g => !done[g.key]), maps = window.QUEST_MAPS || {};
     const rooms = [...new Set(left.map(g => g.room))].map(id => maps[id].name || id);
     return {helped: list.length - left.length, total: list.length, rooms, all: list.length > 0 && !left.length};
   }
+  /* THE FLOOR'S LINE: Episode 1 until ep1Done, then Episode 2 (it opens then).
+     EPISODE 1: every manor ghost helped = 50 %, the B♭ Blast 10, Sir Reginald 10, the attic 10 (its door or the Hidden
+       Passage), the Ghost Conductor 20.
+     EPISODE 2: every Showtime machine helped = 50 % (none placed yet: 0 until the rooms are built), the E♭ Encore
+       (songEb) 10, Tubby Tusk awake 5, Snapjaw Sal awake 5, Rico Bandit (ricoDone, either route) 10, THE BIG NUMBER
+       (ep2Done) 20. */
+  /* -> {ep: the episode the floor shows, pct: EPISODE 1's % (as it always was), ep2: EPISODE 2's %, friends} */
   function progress(s) {
-    const keys = ghosts().map(g => g.key);
-    const helped = keys.filter(k => (s.done || {})[k]).length, f = s.flags || {};
-    const pct = Math.round((keys.length ? helped / keys.length * 50 : 0) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen || f.atticPassage ? 10 : 0) + (f.ep1Done ? 20 : 0));
-    return {pct: Math.min(100, pct), friends: (s.roster || []).length};
+    const f = s.flags || {}, done = s.done || {};
+    const share = ep => { const keys = ghosts(ep).map(g => g.key); return keys.length ? keys.filter(k => done[k]).length / keys.length * 50 : 0; };
+    const pct = Math.round(share(1) + (f.songBb ? 10 : 0) + (f.reginaldAwake ? 10 : 0) + (f.atticOpen || f.atticPassage ? 10 : 0) + (f.ep1Done ? 20 : 0));
+    const ep2 = Math.round(share(2) + (f.songEb ? 10 : 0) + (f.tuskAwake ? 5 : 0) + (f.salAwake ? 5 : 0) + (f.ricoDone ? 10 : 0) + (f.ep2Done ? 20 : 0));
+    return {ep: f.ep1Done ? 2 : 1, pct: Math.min(100, pct), ep2: Math.min(100, ep2), friends: (s.roster || []).length};
+  }
+  /** where you stand after loading at a room's Save Jukebox: the tile below it, facing up (null: no jukebox / no room) */
+  function jukeSpot(id) {
+    const m = (window.QUEST_MAPS || {})[id], j = m && (m.things || []).find(t => t.use === 'jukebox');
+    return j ? {map: id, x: j.at[0], y: j.at[1] + 1, dir: 'up'} : null;
   }
   const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
-    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null, route: {}});
+    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null, route: {}, ep: 1});
   /** the story ghosts' routes: every gate ghost that's done keeps its way open, and `route` notes how it was passed */
   function routes(s) {
     const maps = window.QUEST_MAPS || {}, E = window.QUEST_ENEMIES || [];
@@ -92,6 +113,7 @@
     if (s.v === 2) { s.charms = {owned: {}, equipped: [null, null]}; s.v = 3; }                           // v2 -> v3: charms
     if (s.v === 3) { s.band = null; s.v = 4; }                                                            // v3 -> v4: the band (default)
     if (s.v === 4) { s.route = {}; s.v = 5; }                                                             // v4 -> v5: routes
+    if (s.v === 5) { s.ep = episodeOf((s.world || {}).map); s.v = 6; }                                     // v5 -> v6: episodes
     s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
     routes(s);
     s.charms = s.charms || {owned: {}, equipped: [null, null]}; s.charms.owned = s.charms.owned || {};
@@ -101,6 +123,9 @@
 
   Q.save = {
     VERSION: SAVE_VERSION,
+    EP2_ROOMS,
+    episodeOf,
+    jukeSpot,
     get() { const d = data(); d.save = upgrade(d.save); return d.save; },
     write,
     /** NEW GAME: a fresh save that KEEPS THE SHARED WALLET (tokens, stars already turned in: shared/tokens.js), which
@@ -114,15 +139,17 @@
       }
       data().save = s; write(); return s;
     },
-    /** this save as a 25-character save code (shared/backup.js) */
+    /** this save as a save code (shared/backup.js: version 6, 80 characters) */
     code: () => A.Backup ? A.Backup.questEncode(Q.save.get()) : '',
     /** replace this device's save with a save code: {ok: true} or {ok: false, error} */
     fromCode(code) {
       const r = A.Backup ? A.Backup.questDecode(code) : {ok: false, error: 'Save codes need shared/backup.js.'};
       if (!r.ok) return r;
       const f = r.fields, s = fresh(), friends = f.roster.filter(id => !['squawk', 'warble', 'clatterbox', 'quizzle', 'stickyvalve'].includes(id));
-      Object.assign(s, {level: f.level, xp: f.xp, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world: f.world,
-        maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms});
+      // (version 6: Episode 2's flags, machines, friends and charms come in these same fields, + the episode)
+      const world = f.world && f.world.x == null ? jukeSpot(f.world.map) || f.world : f.world;   // the Fly Loft's spot: from its map
+      Object.assign(s, {level: f.level, xp: f.xp, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world,
+        maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms, ep: f.ep || episodeOf((f.world || {}).map)});
       data().save = s; Q.charms.fixHp(s);
       if (A.Tokens) A.Tokens.restore(f); else Object.assign(s, {tokens: f.tokens, convertedLeft: f.convertedLeft});   // THE SHARED WALLET
       s.hp = s.maxHp;
@@ -170,8 +197,8 @@
     maxHpAt: level => 20 + (level - 1) * 4,
     flag: name => !!(Q.save.get().flags || {})[name],
     setFlag(name, on = true) { const s = Q.save.get(); s.flags = s.flags || {}; if (on) s.flags[name] = true; else delete s.flags[name]; write(); },
-    /** manor ghosts helped (befriended or faded), outside the Practice Hall */
-    helped: () => Object.keys(Q.save.get().done || {}).length,
+    /** ghosts (Episode 1) or machines (Episode 2) helped, befriended or faded, outside the practice rooms */
+    helped: (ep = 1) => Object.keys(Q.save.get().done || {}).filter(k => episodeOf(k.split(':')[0]) === ep).length,
   };
 
   /* ---------- THE BAND: befriended ghosts (the roster) with a `companion` (data/enemies.js) who play beside you in

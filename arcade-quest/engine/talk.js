@@ -1,10 +1,14 @@
 /* ARCADE QUEST ENGINE: talking and the overworld's panels.
    Q.talk.npc(id, npc)    a conversation from data/dialogue.js (the first `talk` choice whose `if` is true; see there)
    Q.talk.thing(thing)    a sign or object from a map: `say` (data/dialogue.js QUEST_SIGNS) and/or `use`
-                          ('jukebox' saves, 'booth' = Token Booth Terry, 'shop' = Rusty)
+                          ('jukebox' saves, 'booth' = Token Booth Terry, 'shop' = Rusty, or the thing's `keeper`:
+                          Ticket Booth Tina, Popcorn Pete; 'speaker' = the attic's old stage speaker: Episode 2)
+   Q.talk.ask(question)   a YES / NO question (a small panel; B = no). Resolves true for yes. In data/dialogue.js a
+                          `talk` choice with `ask` asks it after its lines: `yes` / `no` lines follow, `do` only on yes
    Q.talk.sign(id)        one sign's lines
    Q.talk.hud()           the little status line (LV, HP, tokens)
-   Q.talk.ghostLog()      THE GHOST LOG (the overworld's pause menu): "GHOST LOG: 14 / 20 helped" with a pixel ghost,
+   Q.talk.ghostLog(ep)    THE GHOST LOG (the overworld's pause menu; that episode's, nothing while it has none yet):
+                          "GHOST LOG: 14 / 20 helped" with a pixel ghost,
                           ✓ Ghost Whisperer once every one is helped; from 80 % (16 / 20) the ROOMS that still have
                           someone ("Still wandering: the Library, the Attic"), never where. Q.save.ghostLog() counts.
    (THE PAUSE MENU is the arcade's shared one: engine/world.js mounts Arcade.UI.pause; its CHARMS opens Q.talk.charms.)
@@ -42,8 +46,8 @@
     GHOST_PX.map((r, y) => [...r].map((c, x) => (c === 'X' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : '')).join('')).join('') + `</svg>`;
   const HINT_AT = 0.8;                                         // the rooms show from 16 of 20 (a share, for more ghosts later)
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-  Q.talk.ghostLog = function () {
-    const g = Q.save.ghostLog();
+  Q.talk.ghostLog = function (ep = 1) {
+    const g = Q.save.ghostLog(Q.save.get(), ep);
     if (!g.total) return '';
     const the = n => n.replace(/^The /, 'the ');
     return `<div class="q-glog" id="qGhostLog"><p class="q-glog-n">${GHOST_ICON}<b>${esc(Q.text('ghostLog'))}:</b> ${g.helped} / ${g.total} helped</p>` +
@@ -63,10 +67,12 @@
     if (c[0] === '!') return !cond(c.slice(1));
     if (c === 'snare') return unpitched();
     const m = /^helped>=(\d+)$/.exec(c);
-    if (m) return Q.save.helped() >= +m[1];
+    if (m) return helpedHere() >= +m[1];
     return Q.save.flag(c);
   }
-  const vars = () => ({you: A.currentMember().short, hero: Q.hero(), need: Math.max(0, REGINALD_NEEDS - Q.save.helped()), n: Q.save.helped()});
+  // 'helped>=N' and {n}, {need} count the episode you're in: manor ghosts (Episode 1) or Showtime machines (Episode 2)
+  const helpedHere = () => Q.save.helped(Q.world && Q.world.ep ? Q.world.ep() : 1);
+  const vars = () => ({you: A.currentMember().short, hero: Q.hero(), need: Math.max(0, REGINALD_NEEDS - helpedHere()), n: helpedHere()});
   const fill = (t, v) => String(t).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m));
   /** say lines, switching name + portrait when a line starts with '@speaker ' */
   async function sayAs(D, lines) {
@@ -93,6 +99,12 @@
       const j = D.talk.findIndex((n, k) => k > i && cond(n.if)); if (j < 0) break;
       i = j; node = D.talk[j];
     }
+    if (node.ask) {                                           // a YES / NO question: `do` only on yes
+      const yes = await Q.talk.ask(fill(node.ask, vars()));
+      await sayAs(D, (yes ? node.yes : node.no) || []);
+      if (!yes) return;
+    }
+    if (node.do === 'episode2') { Q.episodes.go(2); return; }  // into THE SHOWTIME STAGE (the intro, or its jukebox)
     if (node.do === 'shop') await shop(D);
     else if (node.do === 'booth') await booth(D);
     else if (node.do === 'teach') await teach(D, node);
@@ -100,8 +112,10 @@
   };
   Q.talk.sign = id => Q.say(SIGNS()[id] || [id]);
   Q.talk.thing = async function (th) {
-    if (th.use === 'booth') return Q.talk.npc('terry');
-    if (th.use === 'shop') return Q.talk.npc('rusty');
+    if (th.use === 'booth') return Q.talk.npc(th.keeper || 'terry');
+    if (th.use === 'shop') return Q.talk.npc(th.keeper || 'rusty');
+    // THE OLD STAGE SPEAKER under the attic's dusty sheet: only a sign until Episode 1 is finished, then Episode 2's door
+    if (th.use === 'speaker' && Q.episodes.unlocked(2)) return Q.talk.npc('speaker');
     if (th.charm && Q.charms.get(th.charm) && !Q.charms.owned(th.charm)) {       // a hidden charm (data/maps: charm)
       await Q.talk.sign(th.found || th.say);
       Q.charms.give(th.charm); Q.sfx('quest-item');
@@ -111,8 +125,13 @@
     if (th.say) await Q.talk.sign(th.say);
     if (th.use === 'jukebox') await jukebox();
   };
-  Q.talk.intro = () => Q.say(['Whoa! The Ghost Notes cabinet pulled you right through the screen!',
+  /** the first lines in the world after an episode's intro cutscene ('ep2' = THE SHOWTIME STAGE's Lobby) */
+  Q.talk.intro = kind => Q.say(kind === 'ep2' ? (window.QUEST_EP2_ARRIVAL || []) : ['Whoa! The Ghost Notes cabinet pulled you right through the screen!',
     'You land on a dusty carpet. Candles flicker. Somewhere, a ghost is singing.']);
+  /** a YES / NO question in a small panel (A picks, B = no): resolves true for yes */
+  Q.talk.ask = question => new Promise(done => {
+    const p = panel(question, '', [{id: 'yes', label: 'Yes'}, {id: 'no', label: 'No'}], {cols: 2, cls: 'q-ask', onPick: it => { p.close(); done(it.id === 'yes'); }});
+  });
 
   /* ---------- a panel with a menu (shop, booth, charms, save code) ---------- */
   function panel(title, html, items, {cols = 1, onPick, cls = ''} = {}) {
@@ -139,12 +158,12 @@
       return;
     }
     const s = Q.save.get(), here = Q.world.here();
-    s.world = here; s.hp = s.maxHp; Q.save.write();
+    s.world = here; s.ep = Q.save.episodeOf(here.map); s.hp = s.maxHp; Q.save.write();
     Q.sfx('quest-save'); Q.talk.hud();
     await Q.say(['Saved! The jukebox plays your theme song. Your HP is full again.']);
     await Q.talk.showCode();
   }
-  /** the SAVE CODE panel: this save as 65 characters (shared/backup.js version 5), to write down or copy */
+  /** the SAVE CODE panel: this save as 80 characters (shared/backup.js version 6), to write down or copy */
   Q.talk.showCode = function () {
     const code = Q.save.code();
     if (!code) return Promise.resolve();
@@ -166,8 +185,8 @@
     return new Promise(done => {
       const p = Q.el('div', 'q-overlay');
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
-        `<label class="q-small" for="qCodeIn">65 letters and numbers (older codes: 60, 45, 40 or 25). Spaces and dashes don't matter.</label>` +
-        `<input id="qCodeIn" class="q-codein" type="text" maxlength="90" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<label class="q-small" for="qCodeIn">80 letters and numbers (older codes: 65, 60, 45, 40 or 25). Spaces and dashes don't matter.</label>` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="110" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
         `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button>${A.Backup ? '<button type="button" class="q-btn" data-a="backup">Backup</button>' : ''}<button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
@@ -175,7 +194,7 @@
       const close = ok => { off(); p.remove(); done(ok); };
       const off = Q.input.on(btn => { if (btn === 'b') close(false); return true; });
       inp.addEventListener('input', () => {                   // tidy as they type: upper case, groups of 5
-        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 65);
+        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 80);
         inp.value = (raw.match(/.{1,5}/g) || []).join('-'); msg.textContent = ''; confirming = false;
       });
       const load = () => {
@@ -212,7 +231,7 @@
       let r = render();
       const items = () => (r.fresh ? [{id: 'turn', label: `Turn in ${r.fresh} ★`}] : []).concat([{id: 'looks', label: 'Player items', sub: 'For your avatar'},
         {id: 'charms', label: 'Charms', sub: 'Arcade Quest only'}].concat(A.BandNinja ? [{id: 'code', label: 'Enter a code', sub: 'Band Ninja belt codes'}] : []).concat([{id: null, label: 'Done'}]));
-      panel('Token Booth', r.html, items(), {cols: 2, cls: 'q-booth', onPick: async (it, i, api) => {
+      panel(D.booth || 'Token Booth', r.html, items(), {cols: 2, cls: 'q-booth', onPick: async (it, i, api) => {
         if (it.id === 'looks' || it.id === 'charms' || it.id === 'code') {
           api.el.hidden = true;
           await (it.id === 'looks' ? cosmeticShop() : it.id === 'code' ? Q.talk.beltCode() : charmShop());
@@ -397,10 +416,12 @@
       const html = msg => `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
       const list = () => stock.map(k => ({id: k, label: `${ITEMS()[k].name} · ${ITEMS()[k].price} tokens`, sub: `${ITEMS()[k].desc} You have ${Q.save.get().items[k] || 0}.`}))
         .concat([{id: null, label: 'Done'}]);
-      panel('Rusty\'s Supplies', html(), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
-        if (!it.id) { api.close(); Q.say(['Come back soon! Or don\'t! No pressure! Ahh!'], {name: D.name, portrait: D.sprite}).then(done); return; }
+      // Rusty's (the Foyer) or another keeper's counter with the same stock: D.shop = {title, bye} (data/dialogue.js)
+      const own = D.shop || {title: 'Rusty\'s Supplies', bye: 'Come back soon! Or don\'t! No pressure! Ahh!'};
+      panel(own.title, html(), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
+        if (!it.id) { api.close(); Q.say([own.bye], {name: D.name, portrait: D.sprite}).then(done); return; }
         const s = Q.save.get(), item = ITEMS()[it.id];
-        if (!T().spend(item.price)) { api.body.innerHTML = html({cls: 'q-bad', text: `Not enough tokens for the ${item.name}. Terry can turn stars into tokens!`}); return; }
+        if (!T().spend(item.price)) { api.body.innerHTML = html({cls: 'q-bad', text: `Not enough tokens for the ${item.name}. ${own.broke || 'Terry can turn stars into tokens!'}`}); return; }
         s.items[it.id] = (s.items[it.id] || 0) + 1; Q.save.write(); Q.sfx('quest-tokens'); Q.talk.hud();
         api.body.innerHTML = html({cls: 'q-good', text: Q.text('bought', {item: item.name})}); api.rebuild(list());
       }});

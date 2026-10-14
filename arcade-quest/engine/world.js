@@ -9,9 +9,11 @@
    GHOSTS are visible and wander near their spot (no random battles). Bump into one (or let it bump into you) and a
    battle starts. A ghost you befriend or fade never comes back (saved in save.done), except in a `practice` room.
    Q.go('world', {map, x, y, dir})     enter a room (x, y = a tile; left out = the room's start)
-   Q.go('world', {continue: true})     back to the last Save Jukebox (or the Foyer)
+   Q.go('world', {continue: true})     back to the last Save Jukebox (or the episode's hub: the Foyer, the Lobby)
+   Q.episodes.go(1 | 2)                EPISODE SELECT: Episode 1 = the Foyer's jukebox; Episode 2 (only after ep1Done) =
+                                       its intro cutscene the first time, then its last Save Jukebox (or the Lobby's)
    Q.go('world', {resume: true, result})  back from a battle (battle.js does this)
-   Q.world.state()                     for tests: {map, x, y, dir, ghosts, busy, paused}
+   Q.world.state()                     for tests: {map, x, y, dir, ghosts, npcs, busy, moving, paused}
    Conversations, signs, the jukebox, the Token Booth, the shop and the pause menu are in engine/talk.js. */
 (function (A) {
   "use strict";
@@ -60,7 +62,7 @@
       // never mid-battle-flash or while the microphone listens (the Butler's lesson); Esc/P only when you're free to walk
       canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
       note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
-      detail: () => Q.talk.ghostLog(),                                 // THE GHOST LOG (engine/talk.js)
+      detail: () => Q.talk.ghostLog(Q.world.ep()),                     // THE GHOST LOG (engine/talk.js): this episode's
       info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', A.Tokens.balance()]]; },
       extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
         inCharms = true;
@@ -77,7 +79,7 @@
       onLevels: () => { unfreeze(); Q.go('title'); },
       confirmLeave: () => true,
       leaveTitle: 'Go to the title screen?',
-      leaveText: 'Where you are in the manor is kept only from your last Save Jukebox. Your level, items, tokens and friends are already saved.',
+      leaveText: 'Where you are is kept only from your last Save Jukebox. Your level, items, tokens and friends are already saved.',
       leaveYes: 'Title screen',
     });
     pause.el.classList.add('q-menubtn');
@@ -94,14 +96,43 @@
     return pause;
   }
 
+  /* ---------- the episodes: each room's `ep` (data/maps), its hub, and EPISODE SELECT ---------- */
+  const HUB = {1: 'foyer', 2: 'lobby'};
+  const epOf = id => Q.save.episodeOf(id);
+  /** the room to land in when a saved room doesn't exist (yet): that episode's hub */
+  const hubFor = id => (MAPS()[HUB[epOf(id)]] ? HUB[epOf(id)] : 'foyer');
+  /** back to a saved spot {map, x, y, dir} (a Save Jukebox), or the hub of its episode */
+  function loadSpot(at) {
+    if (at && MAPS()[at.map]) { const sp = at.x == null ? Q.save.jukeSpot(at.map) : at; if (sp) return load(sp.map, [sp.x, sp.y], sp.dir); return load(at.map); }
+    load(hubFor(at && at.map));
+  }
+  Q.episodes = {
+    /** Episode 2 opens only after Episode 1 is finished (DECISION 1: no recap, no teacher override) */
+    unlocked: n => n === 1 || (n === 2 && Q.save.flag('ep1Done')),
+    go(n) {
+      if (!Q.episodes.unlocked(n)) return false;
+      if (n === 1) { const sp = Q.save.jukeSpot('foyer'); Q.go('world', {map: 'foyer', x: sp.x, y: sp.y, dir: sp.dir}); return true; }
+      // EPISODE 2: the intro the first time (ep2Start is set as it starts, so a skipped intro counts too)
+      if (!Q.save.flag('ep2Start')) {
+        Q.save.setFlag('ep2Start');
+        Q.go('cutscene', {id: 'ep2-intro', next: {scene: 'world', args: {map: 'lobby', intro: 'ep2'}}});
+        return true;
+      }
+      const w = Q.save.get().world, sp = w && epOf(w.map) === 2 && MAPS()[w.map] ? (w.x == null ? Q.save.jukeSpot(w.map) : w) : Q.save.jukeSpot('lobby');
+      Q.go('world', {map: sp.map, x: sp.x, y: sp.y, dir: sp.dir});
+      return true;
+    },
+  };
+
   /* ---------- the room ---------- */
   const doorAt = (x, y) => W.def.doors.find(d => d.at[0] === x && d.at[1] === y);
   const doorOpen = d => !d.need || Q.save.flag(d.need);
+  /** a door into a room that isn't built yet (Episode 2's next rooms): it shows its `soon` sign instead */
+  const doorBuilt = d => !!MAPS()[d.to];
   function tileOf(x, y) {
-    const row = W.def.tiles[y], ch = row ? row[x] : ' ';
-    if (ch === 'L') { const d = doorAt(x, y); if (d && doorOpen(d)) return TILES().D; }
-    if (ch === 'K') { const d = doorAt(x, y); if (d && doorOpen(d)) return TILES().O; }       // a cracked wall, opened
-    return TILES()[ch] || TILES()[' '];
+    const row = W.def.tiles[y], ch = row ? row[x] : ' ', t = TILES()[ch] || TILES()[' '];
+    if (t.open) { const d = doorAt(x, y); if (d && doorOpen(d) && TILES()[t.open]) return TILES()[t.open]; }   // a locked door or a cracked wall, opened
+    return t;
   }
   const npcAt = (x, y) => W.npcs.find(n => n.x === x && n.y === y);
   const ghostAt = (x, y) => W.ghosts.find(g => g.y === y && Math.abs(g.x - x) <= ((g.size || 1) - 1) / 2);
@@ -138,9 +169,10 @@
 
   function load(mapId, at, dir) {
     Q.keyHints.wake();                                   // a new room: the key legend comes back
-    const def = MAPS()[mapId] || MAPS().foyer, id = MAPS()[mapId] ? mapId : 'foyer';
-    const [x, y] = at || spawnFor(def);
+    const id = MAPS()[mapId] ? mapId : hubFor(mapId), def = MAPS()[id];
+    const [x, y] = at && MAPS()[mapId] ? at : spawnFor(def);
     const save = Q.save.get();
+    if (save.ep !== (def.ep || 1)) { save.ep = def.ep || 1; Q.save.write(); }      // the episode last played (v6)
     W = {map: id, def, x, y, px: x * T, py: y * T, dir: dir || 'up', move: null, busy: false, grace: 1.2, steps: 0, fade: null, flash: null,
       cycles: (W && W.cycles) || {}, cleared: {}, npcs: [], ghosts: []};
     W.npcs = def.npcs.map(n => {
@@ -175,16 +207,18 @@
     const g = ghostAt(nx, ny);
     if (g) return encounter(g);
     const d = doorAt(nx, ny);
-    if (d && !doorOpen(d)) { if (!W.bumped) { W.bumped = true; Q.sfx('quest-door'); Q.talk.sign(d.locked || 'locked'); } return; }
+    if (d && (!doorOpen(d) || !doorBuilt(d))) { if (!W.bumped) { W.bumped = true; Q.sfx('quest-door'); bumpSign(d); } return; }
     if (solid(nx, ny) || npcAt(nx, ny)) return;
     W.move = {fx: W.x, fy: W.y, t: 0};
     W.x = nx; W.y = ny;
     if (++W.steps % 2) Q.sfx('quest-step');
   }
+  /** a locked door says why; a door to a room still being built says its `soon` sign */
+  const bumpSign = d => Q.talk.sign(!doorOpen(d) ? d.locked || 'locked' : d.soon || 'soon');
   function arrive() {
     W.move = null; W.bumped = false;
     const d = doorAt(W.x, W.y);
-    if (d && doorOpen(d)) goThrough(d);
+    if (d && doorOpen(d) && doorBuilt(d)) goThrough(d);
   }
   function goThrough(d) {
     W.busy = true; Q.sfx('quest-door');
@@ -213,7 +247,7 @@
     if (Math.abs(nx - g.home[0]) > g.wander || Math.abs(ny - g.home[1]) > g.wander) return;
     if (nx === W.x && ny === W.y) { if (W.grace <= 0 && !W.move) encounter(g); return; }
     const ch = W.def.tiles[ny] && W.def.tiles[ny][nx];
-    if (solid(nx, ny) || npcAt(nx, ny) || ghostAt(nx, ny) || 'DML'.includes(ch) || (W.move && nx === W.x && ny === W.y)) return;
+    if (solid(nx, ny) || npcAt(nx, ny) || ghostAt(nx, ny) || (TILES()[ch] || {}).door || (W.move && nx === W.x && ny === W.y)) return;
     g.move = {fx: g.x, fy: g.y, t: 0};
     g.x = nx; g.y = ny;
   }
@@ -234,8 +268,8 @@
     W.fighting = null; W.flash = null; W.busy = false; W.grace = 2;
     if (!result || !g) return;
     if (result.kind === 'rest') {                                             // out of breath: back to the last jukebox
-      const at = Q.save.get().world;
-      if (at && MAPS()[at.map]) load(at.map, [at.x, at.y], at.dir); else load('foyer');
+      const at = Q.save.get().world, ep = W.def.ep || 1;
+      if (at && epOf(at.map) === ep) loadSpot(at); else load(HUB[ep]);       // (that episode's jukebox, else its hub)
       return;
     }
     W.ghosts = W.ghosts.filter(x => x !== g);
@@ -288,8 +322,10 @@
     });
   }
 
-  /* ---------- the microphone's whispers (Episode 1's hints): now and then, while exploring (not in the Foyer or the
-     Practice Hall), the static crackles, a microphone shows in the windows and a whisper floats by ---------- */
+  /* ---------- the microphone's whispers: now and then, while exploring (never in a safe room: the Foyer, the Lobby;
+     never in a practice room: the Practice Hall, the Green Room), the static crackles, a microphone shows in the
+     windows (Episode 1) or between the curtains (Episode 2: tiles with `peek`) and a whisper floats by
+     (QUEST_WHISPERS, Episode 2's own QUEST_WHISPERS_EP2) ---------- */
   function whisperTick(dt) {
     if (W.whisper) { W.whisper.t += dt; if (W.whisper.t > 4.5) { W.whisper = null; const el = Q.$('qWhisper'); if (el) el.classList.remove('on'); } return; }
     if (W.busy || W.def.practice || W.def.safe || W.map === 'foyer') return;
@@ -300,7 +336,7 @@
     Q.sfx('quest-mic-crackle');
     let el = Q.$('qWhisper');
     if (!el) { el = Q.el('p', 'q-whisper'); el.id = 'qWhisper'; el.setAttribute('aria-live', 'polite'); Q.ui.appendChild(el); }
-    el.textContent = Q.pick(window.QUEST_WHISPERS || ['...so much noise...']);
+    el.textContent = Q.pick((W.def.ep === 2 && window.QUEST_WHISPERS_EP2) || window.QUEST_WHISPERS || ['...so much noise...']);
     el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
   }
 
@@ -309,28 +345,30 @@
   async function interact() {
     const [fx, fy] = facing();
     const n = npcAt(fx, fy), th = thingAt(fx, fy), d = doorAt(fx, fy);
-    if (!n && !th && !(d && !doorOpen(d))) return;
+    if (!n && !th && !(d && (!doorOpen(d) || !doorBuilt(d)))) return;
     W.busy = true;
     try {
       if (n) { if (n.x !== W.x) n.face = n.x > W.x ? 'left' : 'right'; await Q.talk.npc(n.id, n); }
       else if (th) await Q.talk.thing(th);
-      else await Q.talk.sign(d.locked || 'locked');
+      else await Q.talk.sign(!doorOpen(d) ? d.locked || 'locked' : d.soon || 'soon');
     } finally { if (W) { W.busy = false; Q.talk.hud(); } }
   }
 
   Q.world = {
     // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too
-    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy || !!W.fade, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
+    state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy || !!W.fade, moving: !!W.move, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
       npcs: W.npcs.map(n => ({id: n.id, x: n.x, y: n.y}))},
     /** move an NPC somewhere (Sir Reginald stepping aside) */
     moveNpc(id, at) { W.npcs.filter(n => n.id === id).forEach(n => { n.x = at[0]; n.y = at[1]; n.px = at[0] * T; n.py = at[1] * T; }); },
     here: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir},
+    /** the episode of the room you're in (1 outside the overworld) */
+    ep: () => (W && W.def.ep) || 1,
     /** tests: a whisper right now */
     whisperNow() { if (W) { W.whisper = null; W.whisperAt = 0; } },
     /** tests: stand on a tile (demo only) */
     /** ?demo (tests): start the battle with the ghost `key` in this room, as if you walked into it */
     fight(key) { if (!A.DEMO || !W || W.busy) return false; const g = W.ghosts.find(x => x.key === key); if (!g) return false; encounter(g); return true; },
-    warp(x, y, dir) { if (!A.DEMO || !W) return; W.x = x; W.y = y; W.px = x * T; W.py = y * T; W.move = null; if (dir) W.dir = dir; },
+    warp(x, y, dir) { if (!A.DEMO || !W) return; W.x = x; W.y = y; W.px = x * T; W.py = y * T; W.move = null; W.bumped = false; if (dir) W.dir = dir; },
   };
 
   Q.scenes.world = {
@@ -343,10 +381,8 @@
         roomMusic(W.map);                                // the room's music again, from where it stopped
         Q.talk.hud();
         afterBattle(args.result);
-      } else if (args.continue) {
-        const at = Q.save.get().world;
-        if (at && MAPS()[at.map]) load(at.map, [at.x, at.y], at.dir); else load('foyer');
-      } else load(args.map || 'foyer', args.x != null ? [args.x, args.y] : null, args.dir);
+      } else if (args.continue) { const at = Q.save.get().world; if (at) loadSpot(at); else load(HUB[Q.save.get().ep || 1]); }
+      else load(args.map || 'foyer', args.x != null ? [args.x, args.y] : null, args.dir);
       offKeys = Q.input.on(btn => {
         if (!W || W.busy || W.fade) return false;
         if (btn === 'a' && !W.move) { interact(); return true; }
@@ -355,7 +391,7 @@
         return false;
       });
       // the opening story (NEW GAME), then, the first time the game is played on a keyboard, the keys in one line
-      if (args.intro || Q.keyHints.firstTip()) { W.busy = true; (args.intro ? Q.talk.intro() : Promise.resolve()).then(() => Q.keyHints.tip()).then(() => { if (W) W.busy = false; }); }
+      if (args.intro || Q.keyHints.firstTip()) { W.busy = true; (args.intro ? Q.talk.intro(args.intro) : Promise.resolve()).then(() => Q.keyHints.tip()).then(() => { if (W) W.busy = false; }); }
     },
     exit() { if (offKeys) offKeys(); offKeys = null; Q.keyHints.show(false); if (pause) pause.setActive(false); unfreeze(); Q.input.clear(); },
     update(dt) {
@@ -409,6 +445,11 @@
           ctx.globalAlpha = 1 - z; ctx.fillText('z', n.px + 16 - cx + z * 6, n.py - 14 - cy - z * 8); ctx.globalAlpha = 1;
         }
       }}));
+      (W.def.props || []).forEach(p => {                    // pictures standing on the floor (the attic's stage speaker)
+        if (p.if && !Q.save.flag(p.if)) return;
+        const d = Q.spriteDef(p.sprite) || {w: 16, h: 16};
+        list.push({y: p.at[1] * T, fn: () => Q.draw(ctx, p.sprite, p.at[0] * T - cx, (p.at[1] + 1) * T - d.h - cy, {t: now, frame: p.frame})});
+      });
       W.ghosts.forEach(g => list.push({y: g.py, fn: () => {
         const d = Q.spriteDef(g.type) || {w: 32, h: 32};
         Q.draw(ctx, g.type, Math.round(g.px + 8 - d.w / 2 - cx), Math.round(g.py + T - d.h + 2 - cy + bob), {t: now});
@@ -428,7 +469,7 @@
       // a whisper: faint static bands, and the microphone's silhouette in every window for a moment
       if (W.whisper) {
         const a = Math.min(1, W.whisper.t / .5, (4.5 - W.whisper.t) / .8);
-        W.def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => { if (ch === 'w') { ctx.globalAlpha = a; Q.draw(ctx, 'mic-shadow', tx * T + 5 - cx, ty * T + 2 - cy); } }));
+        W.def.tiles.forEach((row, ty) => [...row].forEach((ch, tx) => { if ((TILES()[ch] || {}).peek) { ctx.globalAlpha = a; Q.draw(ctx, 'mic-shadow', tx * T + 5 - cx, ty * T + 2 - cy); } }));
         ctx.globalAlpha = a * .12; ctx.fillStyle = Q.css('q-grey');
         for (let i = 0; i < 6; i++) ctx.fillRect(0, (Q.reduced() ? i * 31 : (i * 31 + Math.floor(now / 90) * 7) % Q.H), Q.W, 1);
         ctx.globalAlpha = 1;

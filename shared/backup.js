@@ -4,7 +4,7 @@
    Codes ignore spaces, dashes and lower case, and every code has a checksum, so a typo is caught ("That code doesn't
    look right. Check each letter.") instead of loading the wrong progress.
 
-   1. THE ARCADE QUEST SAVE CODE (short: 65 characters, 13 groups of 5; older ones were 60, 45, 40 or 25). Shown at every Save
+   1. THE ARCADE QUEST SAVE CODE (short: 80 characters, 16 groups of 5; older ones were 65, 60, 45, 40 or 25). Shown at every Save
       Jukebox and in the backup panel; ENTER SAVE CODE on Arcade Quest's title screen restores it.
       FORMAT (version 1): 125 bits, most significant bit first, 5 bits per character:
         version 4 · level 6 (1–63) · xp 9 (0–511) · tokens 11 (0–2047) · items 3 each (0–7, QUEST_V1.items order)
@@ -26,15 +26,28 @@
         FROZEN: QUEST_V3 never changes again (old version-3 codes must keep reading exactly the same).
       VERSION 4 (60 characters, 12 groups of 5): the version-3 layout (version = 4) with QUEST_V4.cosmetics = QUEST_V3's
         list + the Tumblers, zero padding to 285 bits, checksum 15. FROZEN, like V1–V3.
-      VERSION 5 (what the game makes now: 65 characters, 13 groups of 5; versions 1–4 still load, each with its own
+      VERSION 5 (65 characters, 13 groups of 5; versions 1–4 still load, each with its own
         frozen list and field sizes, so an old code gives exactly the result it always did). THE SHARED WALLET (shared/
         tokens.js: the Prize Counter and the Token Booth spend the same tokens) can hold more than 2047, so tokens and
         stars turned in get 16 bits each (0–65535):
           version 4 · level 6 · xp 9 · TOKENS 16 · items 3 each · roster · flags · ghosts · last jukebox 3
           · stars turned into tokens 16 (= 116 bits) · charms owned 8 · equipped 3 + 3 (= 130 bits)
           · avatar items unlocked 1 each (QUEST_V5.cosmetics) · worn 1 each · zero padding to 310 bits · checksum 15.
-        Room for 90 items (2 bits each after the 130 bits): QUEST_V5.cosmetics = QUEST_V4's list; a new {shop} item
-        goes at the END of QUEST_V5.cosmetics; when the padding runs out, add a version 6 the same way.
+        Room for 90 items (2 bits each after the 130 bits): QUEST_V5.cosmetics = QUEST_V4's list + the seasonal shop.
+        FROZEN since version 6, like V1–V4.
+      VERSION 6 (what the game makes now: 80 characters, 16 groups of 5; versions 1–5 still load, each exactly as
+        before): Episode 2, THE SHOWTIME STAGE. The version-5 layout's first 130 bits (version = 6; the last jukebox
+        indexes QUEST_V6.jukeboxes = QUEST_V1's + the Showtime Stage's), then THE EPISODE 2 BLOCK (90 bits, always at
+        bit 130):
+          episode last played 2 (1 | 2) · Episode 2 story flags 1 each (QUEST_V6.flags, 20 places)
+          · Episode 2 machines 2 each (QUEST_V6.machines, 22 places: 0 = not helped, 1 = befriended, 2 = powered down)
+          · Episode 2 friends 1 each (QUEST_V6.roster, 12 places) · Episode 2 charms owned 1 each (QUEST_V6.charms,
+          6 places) · equipped 3 + 3 (0 = not an Episode 2 charm, else 1 + the index in QUEST_V6.charms; it wins over
+          the version-2 slot field, which is 0 then)   (= 220 bits)
+        then avatar items unlocked 1 each (QUEST_V6.cosmetics) · worn 1 each · zero padding to 385 bits · checksum 15.
+        Room for 82 items: QUEST_V6.cosmetics = QUEST_V5's list (frozen); a new {shop} item goes at the END of
+        QUEST_V6.cosmetics. Every QUEST_V6 list is reserved for the whole episode NOW (ids the later build steps use),
+        so later steps add nothing to the layout: only ever append to a list while it has places left.
    2. THE ARCADE BACKUP CODE (long: EVERYTHING on the device: stars and progress for every game and instrument,
       skins unlocked and equipped, settings, the Arcade Quest save). Too long to type comfortably, so the panel
       has a COPY button (and shows the short Quest code too).
@@ -49,7 +62,7 @@
    and a restored code each call Arcade.BackupNudge.saved(). "Last saved: Oct 3" / "Never saved on this device" on top.
    RESTORE also takes that file: "Open a backup file" finds the code in it and runs the same check as a typed code.
    Arcade.Backup.button(el, cls)   adds a BACKUP / RESTORE button to el
-   Arcade.Backup.questEncode(save) -> 65 characters in groups of 5 (version 5)
+   Arcade.Backup.questEncode(save) -> 80 characters in groups of 5 (version 6)
    Arcade.Backup.questDecode(code) -> {ok: true, fields} | {ok: false, error}   (arcade-quest/engine/save.js builds the save)
    Arcade.Backup.fullEncode() -> Promise<code>;  fullDecode(code) -> Promise<{ok, data} | {ok: false, error}> */
 window.Arcade = window.Arcade || {};
@@ -123,32 +136,52 @@ window.Arcade = window.Arcade || {};
       'plate:candyheart', 'pet:teddy', 'head:marchshako', 'top:tailcoat', 'effect:notesparkles', 'shoes:rainboots', 'hand:umbrella',
       'pet:ladybug', 'hand:icepop', 'top:hawaiian', 'pet:hermitcrab']),
   };
+  /* EPISODE 2 (version 6). Every list is reserved for the whole episode (docs/games/arcade-quest-ep2-plan.md): the rooms,
+     machine keys and ids below are the ones the later build steps must use. Append only, never reorder. */
+  const QUEST_V6 = {
+    version: 6,
+    // QUEST_V1's jukeboxes (frozen), then the Showtime Stage's: the Lobby's, the Fly Loft's (its spot is read from its map)
+    jukeboxes: QUEST_V1.jukeboxes.concat([{map: 'lobby', x: 21, y: 5, dir: 'up'}, {map: 'loft'}]),
+    flags: ['ep2Start', 'tuskAwake', 'songEb', 'salAwake', 'ricoDone', 'ricoDoor', 'ricoVent', 'ep2Done', 'met-moose', 'met-hoot',
+      'met-tina', 'met-pete', 'met-tusk', 'met-sal', 'met-rico', 'hootAwake'],                                    // 20 places
+    // [room:machine key]: the 20 helpable machines (rooms 3–7 + the Lobby's balcony), then Rico Bandit and THE BIG NUMBER
+    machines: ['pit:m1', 'pit:m2', 'pit:m3', 'workshop:m1', 'workshop:m2', 'workshop:m3', 'workshop:m4', 'backstage:m1', 'backstage:m2',
+      'backstage:m3', 'backstage:m4', 'dressing:m1', 'dressing:m2', 'dressing:m3', 'loft:m1', 'loft:m2', 'loft:m3', 'loft:m4',
+      'balcony:m1', 'balcony:m2', 'dressing:boss', 'stage:boss'],                                                   // 22 places
+    roster: ['tapsy', 'spotlight', 'feedback', 'confetti', 'metrognome', 'stubs', 'ropeknot', 'miclet', 'rico', 'bignumber'],   // 12 places
+    charms: ['metronome-ticker', 'rosin-pouch', 'ricos-pick'],                                                      // 6 places
+    // QUEST_V5's list (frozen), then new {shop} items (only ever add to the END: 82 places in all)
+    cosmetics: QUEST_V5.cosmetics.concat([]),
+  };
+  const V6_PLACES = {flags: 20, machines: 22, roster: 12, charms: 6};
   const QUEST_DATA_BITS = 110, QUEST_CHECK_BITS = 15, QUEST_CHARS = 25;
   const QUEST_DATA_BITS_2 = 185, QUEST_CHARS_2 = 40, CHARM_SLOTS = 8;
   const QUEST_DATA_BITS_3 = 210, QUEST_CHARS_3 = 45;
   const QUEST_DATA_BITS_4 = 285, QUEST_CHARS_4 = 60;
-  const QUEST_DATA_BITS_5 = 310, QUEST_CHARS_5 = 65, V5_HEAD = 130;
-  const V5_ROOM = (QUEST_DATA_BITS_5 - V5_HEAD) / 2;               // 90 items fit (owned + worn: 2 bits each)
-  if (QUEST_V5.cosmetics.length > V5_ROOM && window.console) console.error(`backup.js: QUEST_V5.cosmetics has ${QUEST_V5.cosmetics.length} items, room for ${V5_ROOM}: add a version 6`);
+  const QUEST_DATA_BITS_5 = 310, QUEST_CHARS_5 = 65;
+  const QUEST_DATA_BITS_6 = 385, QUEST_CHARS_6 = 80, V6_EP2 = 130, V6_HEAD = 220;
+  const V6_ROOM = Math.floor((QUEST_DATA_BITS_6 - V6_HEAD) / 2);   // 82 items fit (owned + worn: 2 bits each)
+  if (QUEST_V6.cosmetics.length > V6_ROOM && window.console) console.error(`backup.js: QUEST_V6.cosmetics has ${QUEST_V6.cosmetics.length} items, room for ${V6_ROOM}: add a version 7`);
+  Object.keys(V6_PLACES).forEach(k => { if (QUEST_V6[k].length > V6_PLACES[k] && window.console) console.error(`backup.js: QUEST_V6.${k} has more than ${V6_PLACES[k]} places`); });
   const LENGTHS = {[QUEST_CHARS]: [QUEST_DATA_BITS, 1], [QUEST_CHARS_2]: [QUEST_DATA_BITS_2, 2], [QUEST_CHARS_3]: [QUEST_DATA_BITS_3, 3],
-    [QUEST_CHARS_4]: [QUEST_DATA_BITS_4, 4], [QUEST_CHARS_5]: [QUEST_DATA_BITS_5, 5]};
+    [QUEST_CHARS_4]: [QUEST_DATA_BITS_4, 4], [QUEST_CHARS_5]: [QUEST_DATA_BITS_5, 5], [QUEST_CHARS_6]: [QUEST_DATA_BITS_6, 6]};
   const questCheck = bits => crc32(new Uint8Array([66, 65, 81, ...bitsToBytes(bits)])) & (2 ** QUEST_CHECK_BITS - 1);
   /** this device's avatar items for the code: {owned: {key}, worn: {key}} (unlocked = bought or earned) */
   function cosmeticsNow() {
     const owned = {}, worn = {}, AV = A.Avatar, av = A.store.avatar || {};
-    QUEST_V5.cosmetics.forEach(k => {
+    QUEST_V6.cosmetics.forEach(k => {
       const [f, id] = k.split(':');
       if (AV && AV.isUnlocked ? AV.isUnlocked(f, id) : (A.store.ownedItems || {})[k]) owned[k] = true;
       if (av[f] === id) worn[k] = true;
     });
     return {owned, worn};
   }
-  /** this save as a code: version 5 (the only one made now; `version: 4` makes the old layout, for tests) */
-  function questEncode(s, {version = 5} = {}) {
-    const L = QUEST_V1, w = writer(), v5 = version >= 5, NB = v5 ? 16 : 11;
+  /** this save as a code: version 6 (the only one made now; `version: 4` or `5` makes an old layout, for tests) */
+  function questEncode(s, {version = 6} = {}) {
+    const L = QUEST_V1, w = writer(), v5 = version >= 5, v6 = version >= 6, NB = v5 ? 16 : 11;
     const conv = Object.values(s.converted || {}).reduce((n, v) => n + (+v || 0), 0) + (+s.convertedLeft || 0);
-    const juke = s.world ? L.jukeboxes.findIndex(j => j && j.map === s.world.map) : 0;
-    w.put(v5 ? QUEST_V5.version : QUEST_V4.version, 4); w.put(s.level || 1, 6); w.put(s.xp, 9); w.put(s.tokens, NB);
+    const juke = s.world ? (v6 ? QUEST_V6 : L).jukeboxes.findIndex(j => j && j.map === s.world.map) : 0;
+    w.put(v6 ? QUEST_V6.version : v5 ? QUEST_V5.version : QUEST_V4.version, 4); w.put(s.level || 1, 6); w.put(s.xp, 9); w.put(s.tokens, NB);
     L.items.forEach(id => w.put((s.items || {})[id] || 0, 3));
     L.roster.forEach(id => w.put((s.roster || []).includes(id) ? 1 : 0, 1));
     L.flags.forEach(f => w.put((s.flags || {})[f] ? 1 : 0, 1));
@@ -156,12 +189,22 @@ window.Arcade = window.Arcade || {};
     w.put(Math.max(0, juke), 3); w.put(conv, NB);
     const head = v5 ? 116 : 106;
     while (w.bits.length < head) w.bits.push(0);                  // the version-1 fields end here
-    const ch = s.charms || {}, cos = cosmeticsNow(), list = (v5 ? QUEST_V5 : QUEST_V4).cosmetics;
+    const ch = s.charms || {}, cos = cosmeticsNow(), list = (v6 ? QUEST_V6 : v5 ? QUEST_V5 : QUEST_V4).cosmetics;
+    const eq = [0, 1].map(i => (ch.equipped || [])[i] || null);
     for (let i = 0; i < CHARM_SLOTS; i++) w.put((ch.owned || {})[QUEST_V2.charms[i]] ? 1 : 0, 1);
-    [0, 1].forEach(i => w.put((ch.equipped || [])[i] ? QUEST_V2.charms.indexOf(ch.equipped[i]) + 1 : 0, 3));
+    eq.forEach(id => w.put(id && QUEST_V2.charms.includes(id) ? QUEST_V2.charms.indexOf(id) + 1 : 0, 3));
+    if (v6) {                                                     // THE EPISODE 2 BLOCK (bit 130)
+      const V = QUEST_V6, done = s.done || {};
+      w.put(s.ep === 2 ? 2 : 1, 2);
+      for (let i = 0; i < V6_PLACES.flags; i++) w.put(V.flags[i] && (s.flags || {})[V.flags[i]] ? 1 : 0, 1);
+      for (let i = 0; i < V6_PLACES.machines; i++) { const k = done[V.machines[i]]; w.put(!V.machines[i] || !k ? 0 : k === 'fade' ? 2 : 1, 2); }
+      for (let i = 0; i < V6_PLACES.roster; i++) w.put(V.roster[i] && (s.roster || []).includes(V.roster[i]) ? 1 : 0, 1);
+      for (let i = 0; i < V6_PLACES.charms; i++) w.put(V.charms[i] && (ch.owned || {})[V.charms[i]] ? 1 : 0, 1);
+      eq.forEach(id => w.put(id && V.charms.includes(id) ? V.charms.indexOf(id) + 1 : 0, 3));
+    }
     list.forEach(k => w.put(cos.owned[k] ? 1 : 0, 1));
     list.forEach(k => w.put(cos.worn[k] ? 1 : 0, 1));
-    while (w.bits.length < (v5 ? QUEST_DATA_BITS_5 : QUEST_DATA_BITS_4)) w.bits.push(0);
+    while (w.bits.length < (v6 ? QUEST_DATA_BITS_6 : v5 ? QUEST_DATA_BITS_5 : QUEST_DATA_BITS_4)) w.bits.push(0);
     w.put(questCheck(w.bits), QUEST_CHECK_BITS);
     return group(bitsToChars(w.bits));
   }
@@ -172,20 +215,29 @@ window.Arcade = window.Arcade || {};
     const bits = charsToBits(c).slice(0, n + QUEST_CHECK_BITS), data = bits.slice(0, n);
     if (reader(bits.slice(n)).get(QUEST_CHECK_BITS) !== questCheck(data)) return {ok: false, error: BAD};
     const r = reader(data), version = r.get(4);
-    if (version > 5 || version !== want) return {ok: false, error: 'That code is from a newer Arcade Quest. Try it on the website version of the arcade.'};
+    if (version > 6 || version !== want) return {ok: false, error: 'That code is from a newer Arcade Quest. Try it on the website version of the arcade.'};
     const NB = version >= 5 ? 16 : 11;                            // tokens and stars turned in: 16 bits from version 5
     const L = QUEST_V1, f = {level: Math.max(1, r.get(6)), xp: r.get(9), tokens: r.get(NB), items: {}, roster: [], flags: {}, done: {}, world: null, convertedLeft: 0};
     L.items.forEach(id => { const n = r.get(3); if (n) f.items[id] = n; });
     L.roster.forEach(id => { if (r.get(1)) f.roster.push(id); });
     L.flags.forEach(fl => { if (r.get(1)) f.flags[fl] = true; });
     L.ghosts.forEach(([k, type]) => { if (r.get(1)) f.done[k] = f.roster.includes(type) ? 'befriend' : 'fade'; });
-    const j = r.get(3); f.world = L.jukeboxes[j] ? Object.assign({}, L.jukeboxes[j]) : null;
+    const j = r.get(3), J = version >= 6 ? QUEST_V6.jukeboxes : L.jukeboxes; f.world = J[j] ? Object.assign({}, J[j]) : null;
     f.convertedLeft = r.get(NB);
     f.charms = {owned: {}, equipped: [null, null]}; f.cosmetics = {owned: [], worn: []};
     if (version >= 2) {
-      const rr = reader(data.slice(version >= 5 ? 116 : 106)), list = {2: QUEST_V2, 3: QUEST_V3, 4: QUEST_V4, 5: QUEST_V5}[version].cosmetics;   // each version its own frozen list
+      const rr = reader(data.slice(version >= 5 ? 116 : 106)), list = {2: QUEST_V2, 3: QUEST_V3, 4: QUEST_V4, 5: QUEST_V5, 6: QUEST_V6}[version].cosmetics;   // each version its own frozen list
       for (let i = 0; i < CHARM_SLOTS; i++) if (rr.get(1) && QUEST_V2.charms[i]) f.charms.owned[QUEST_V2.charms[i]] = true;
       [0, 1].forEach(i => { const k = rr.get(3); f.charms.equipped[i] = k ? QUEST_V2.charms[k - 1] || null : null; });
+      if (version >= 6) {                                         // THE EPISODE 2 BLOCK: merged into the same fields
+        const V = QUEST_V6;
+        f.ep = rr.get(2) === 2 ? 2 : 1;
+        for (let i = 0; i < V6_PLACES.flags; i++) if (rr.get(1) && V.flags[i]) f.flags[V.flags[i]] = true;
+        for (let i = 0; i < V6_PLACES.machines; i++) { const k = rr.get(2); if (k && V.machines[i]) f.done[V.machines[i]] = k === 2 ? 'fade' : 'befriend'; }
+        for (let i = 0; i < V6_PLACES.roster; i++) if (rr.get(1) && V.roster[i]) f.roster.push(V.roster[i]);
+        for (let i = 0; i < V6_PLACES.charms; i++) if (rr.get(1) && V.charms[i]) f.charms.owned[V.charms[i]] = true;
+        [0, 1].forEach(i => { const k = rr.get(3); if (k && V.charms[k - 1]) f.charms.equipped[i] = V.charms[k - 1]; });
+      }
       list.forEach(k => { if (rr.get(1)) f.cosmetics.owned.push(k); });
       list.forEach(k => { if (rr.get(1)) f.cosmetics.worn.push(k); });
     }
@@ -395,5 +447,5 @@ window.Arcade = window.Arcade || {};
     return b;
   }
 
-  A.Backup = {ALPHA, QUEST_V1, QUEST_V2, QUEST_V3, QUEST_V4, QUEST_V5, QUEST_CHARS: QUEST_CHARS_5, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button, codeInFile, fileText};
+  A.Backup = {ALPHA, QUEST_V1, QUEST_V2, QUEST_V3, QUEST_V4, QUEST_V5, QUEST_V6, QUEST_CHARS: QUEST_CHARS_6, BAD, clean, crc32, questEncode, questDecode, fullEncode, fullDecode, open, button, codeInFile, fileText};
 })(window.Arcade);

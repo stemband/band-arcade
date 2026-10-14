@@ -1,5 +1,5 @@
 /* ARCADE QUEST: start-up. The saved player (Select Player) is the hero; ?test opens the TEST ARENA directly,
-   ?demo&warp=<room> a room of Ghost Notes Manor, ?sprites the sprite review sheet (sprite-review.js).
+   ?demo&warp=<room> a room of Ghost Notes Manor or the Showtime Stage, ?sprites the sprite review sheet (sprite-review.js).
    The microphone never listens outside a playing challenge (Pitch.pauseListening, see battle/challenges.js). */
 (function (A) {
   "use strict";
@@ -25,7 +25,7 @@
   Q.save.recheck();                                   // achievements from saved progress (an older save, a restored Backup Code)
   Q.arrange.init();                                   // ARRANGE CONTROLS (engine/controls.js): a saved layout, menus kept clear
   // ?test = the test arena; ?demo&warp=<room> = straight into a room of Ghost Notes Manor (foyer, hall, library,
-  // ballroom, kitchen, stairs, attic, practice)
+  // ballroom, kitchen, stairs, attic, practice) or of the Showtime Stage (lobby, greenroom)
   const warp = A.DEMO && (/[?&]warp=([\w-]+)/.exec(location.search) || [])[1];
   if (warp) Q.go('world', {map: warp});
   else Q.go(/[?&]test(=|&|$)/.test(location.search) ? 'arena' : 'title');

@@ -451,9 +451,10 @@ window.Arcade.GAMES = [
     maxStars: 0,                                     // no stars: the quest keeps its own save (level, tokens, band roster)
     color: 'cyan',
     unpitched: true,                                 // the Snare Drum plays too (rhythm, vocab and dodging challenges)
-    // the floor's line instead of a hi-score: "Episode 1: 60% · 7 friends" (arcade-quest/engine/save.js keeps it up to date)
+    // the floor's line instead of a hi-score: "Episode 1: 60% · 7 friends", from Episode 1's end on Episode 2's
+    // (arcade-quest/engine/save.js keeps it up to date; `ep` is missing in lines saved before Episode 2 = 1)
     summary: store => { const s = (store.gameData('arcade-quest') || {}).save, p = s && s.progress;
-      return p ? `Episode 1: ${p.pct}% · ${p.friends} ${p.friends === 1 ? 'friend' : 'friends'}` : ''; },
+      return p ? `Episode ${p.ep === 2 ? 2 : 1}: ${p.ep === 2 ? p.ep2 || 0 : p.pct}% · ${p.friends} ${p.friends === 1 ? 'friend' : 'friends'}` : ''; },
     marquee: {scene: 'pixel', colors: ['purple-ink', 'purple', 'cyan-hi']},
     cabinet: {shape: 'quest', trim: 'cyan', trim2: 'purple', marquee: 'quest', screen: 'quest'},
     cabinet3d: {profile: 'quest', body: 'cab-side'},

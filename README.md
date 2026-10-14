@@ -128,7 +128,7 @@ blocktave/            Blocktave: a block-building survival world where playing y
   world.js            The blocks, the seeded world generator, the saved world format (run-length chunks), light and rooms
   challenges.js       The challenge card: notes, scales, long tones, rhythms, rests, counts and rolls (mic or touch)
   game.js             The world: drawing, the pad, mining, building, the Measure, creatures, saving to a file, milestones
-arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor)
+arcade-quest/         Arcade Quest: The Mysterious Microphone (Episode 1: Ghost Notes Manor; Episode 2: The Showtime Stage, in progress)
   sprites.js          THE PIXEL ART: every enemy as a small pixel map + palette (theme tokens); the instruments the
                       hero holds are in shared/instrument-sprites.js. Edit here
   sprites-manor.js    Ghost Notes Manor's art: map tiles, the manor's ghosts (NPCs), Episode 1's enemies and the mini-boss
@@ -420,7 +420,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 ## Arcade Quest: The Mysterious Microphone
 
-**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Episode 1, **Ghost Notes Manor**, is complete: story, final boss, ending, save codes. The cabinet is on the arcade floor (marquee ARCADE QUEST, "Episode 1: Ghost Notes Manor"); instead of a hi-score its line shows **"Episode 1: 60% · 7 friends"** (how far you are, and how many ghosts joined your band). `arcade-quest/index.html?test` opens the test arena.
+**An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Episode 1, **Ghost Notes Manor**, is complete: story, final boss, ending, save codes. **Episode 2: The Showtime Stage (in progress):** it opens after Episode 1 (EPISODES on the title screen, or the old stage speaker under the attic's dusty sheet); so far its intro, the Lobby and the Green Room. The cabinet is on the arcade floor (marquee ARCADE QUEST, "Episode 1: Ghost Notes Manor"); instead of a hi-score its line shows **"Episode 1: 60% · 7 friends"** (how far you are, and how many ghosts joined your band). `arcade-quest/index.html?test` opens the test arena.
 
 ### The story (Episode 1)
 
@@ -434,7 +434,7 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 ### Save codes and backups
 
-- **Arcade Quest save code:** every Save Jukebox (the Foyer's and the Attic's) shows a 65-character code in 13 groups of 5, with a COPY button (older 25-, 40-, 45- and 60-character codes still load; the 65-character one holds balances over 2047 tokens). On any device, **ENTER SAVE CODE** on the title screen carries on from there (it asks before replacing a save). Codes never use 0/O or 1/I, ignore spaces, dashes and lower case, and have a checksum: a mistyped letter says "That code doesn't look right. Check each letter." instead of loading the wrong save. A code keeps your level, XP, tokens, items, band, story progress, which manor ghosts you helped, your last jukebox and how many stars you already turned into tokens (so they can't be turned in twice), plus your **charms** (owned and worn) and your **player items** (unlocked or bought, and the ones you're wearing).
+- **Arcade Quest save code:** every Save Jukebox (the Foyer's, the Attic's and Episode 2's) shows an 80-character code in 16 groups of 5, with a COPY button (older 25-, 40-, 45-, 60- and 65-character codes still load; the 80-character one holds Episode 2 too). On any device, **ENTER SAVE CODE** on the title screen carries on from there (it asks before replacing a save). Codes never use 0/O or 1/I, ignore spaces, dashes and lower case, and have a checksum: a mistyped letter says "That code doesn't look right. Check each letter." instead of loading the wrong save. A code keeps your level, XP, tokens, items, band, story progress, which manor ghosts you helped, your last jukebox and how many stars you already turned into tokens (so they can't be turned in twice), plus your **charms** (owned and worn) and your **player items** (unlocked or bought, and the ones you're wearing).
 - **Arcade backup (everything):** the **BACKUP / RESTORE** button (in the arcade floor's speaker panel, and under the player card on Select Player) makes one code with everything on the device: every star in every game and mode, skins unlocked and worn, the avatar and its items (bought, unlocked, worn), settings and the Arcade Quest save (charms included). It's long, so it has a COPY button (paste it into an email, a note or Google Classroom); the panel also shows the short Quest code. Pasting a code there and pressing RESTORE asks "This will replace this device's progress. Continue?" first.
 - **The formats** are documented at the top of `shared/backup.js` (Quest code version 2, which still reads version 1; backup format A). Future episodes add a new version and keep reading the old ones.
 
@@ -467,7 +467,9 @@ The first cabinet world, entered from inside the Ghost Notes cabinet (about 30�
 
   To let several rooms share one track, edit `arcade-quest/data/music.js` (instructions at its top). Rooms on the same
   track keep it playing as you walk; a different track crossfades in about a second; after a battle the room's music
-  carries on from where it stopped. The Sound Board's "Arcade Quest — Episode 1 Rooms" section shows which are uploaded.
+  carries on from where it stopped. The Sound Board's "Arcade Quest — Episode 1 Rooms" section shows which are uploaded,
+  and "Arcade Quest — Episode 2 Rooms" the Showtime Stage's (`quest-room-lobby`, `quest-room-greenroom` so far; until
+  uploaded, `quest-foyer`). Episode 2's intro plays `quest-ep2-intro` (until uploaded, `quest-intro`).
 - **Music:** the title waits behind a PRESS START the first time, so that first tap starts the title music. `quest-title`, `quest-intro` (the intro), each room's own music (below; until it's uploaded, `quest-foyer` in the Foyer and Practice Hall and `quest-manor` in the other rooms), `quest-battle`, `quest-miniboss`, `quest-boss` (the Ghost Conductor), `quest-victory` (the celebration and Episode 1 complete), `quest-cliffhanger`, `quest-credits`, each only when its file is uploaded; it stops while the microphone listens. Sounds: `quest-step`, `quest-door`, `quest-save`, `quest-encounter`, `quest-tokens`, `quest-static` (the intro's glitch), `quest-mic-crackle` (the microphone's whispers), `quest-boss-phase` (the Conductor's next stage) and the battle sounds.
 - **Editing:** every line of dialogue and every sign is in `arcade-quest/data/dialogue.js` (grouped by character and room, one line per text box; a test checks they all fit). The rooms are tile maps in `arcade-quest/data/maps/manor.js`: rows of letters, one per tile, with a legend at the top, plus each room's doors, ghosts (and which note a Wisp loves), people and signs. Enemies are in `data/enemies.js`.
 - **Testing:** `?demo&warp=<room>` starts in a room (`foyer`, `hall`, `library`, `ballroom`, `kitchen`, `stairs`, `attic`, `practice`; `?demo&warp=attic` = straight to the Ghost Conductor); the battle demo keys below work everywhere.

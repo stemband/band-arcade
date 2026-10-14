@@ -195,7 +195,7 @@ test('the routes stay open: old saves, save codes and a done gate ghost always k
     out.chime = A.Backup.questDecode(Q.save.code()).fields.charms.owned['echo-chime'] === true;
     return out;
   });
-  expect(r.befriended).toEqual({v: 5, open: true, passage: false, route: {fermata: 'befriend'}});
+  expect(r.befriended).toEqual({v: 6, open: true, passage: false, route: {fermata: 'befriend'}});
   expect(r.faded).toEqual({open: false, passage: true, route: {fermata: 'fade'}});
   expect(r.loaded).toBe(true);
   expect(r.fromCode).toEqual({open: false, passage: true, route: {fermata: 'fade'}});

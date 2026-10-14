@@ -87,7 +87,7 @@ test('a device that never opened Arcade Quest gets only the wallet, and Arcade Q
   expect(w.tokens).toBe(30);
   await quest(page);
   const s = await page.evaluate(() => { const s = Arcade.Quest.save.get(); return {v: s.v, tokens: Arcade.Tokens.balance(), level: s.level, fresh: Arcade.Tokens.freshStars()}; });
-  expect(s).toEqual({v: 5, tokens: 30, level: 1, fresh: 0});
+  expect(s).toEqual({v: 6, tokens: 30, level: 1, fresh: 0});
   watch.check();
 });
 
@@ -260,30 +260,32 @@ test('the wish bar: tokens + stars waiting at the counter, then "You can get you
   watch.check();
 });
 
-test('QUEST CODE v5: tokens and stars turned in above 2047 survive a round trip; the save makes v5', async ({page}) => {
+test('QUEST CODE v5 and v6: tokens and stars turned in above 2047 survive a round trip; the save makes v6', async ({page}) => {
   const watch = await prepare(page, {store: store()});
   await quest(page);
   const r = await page.evaluate(() => {
     const Q = Arcade.Quest, T = Arcade.Tokens, B = Arcade.Backup;
     T.add(40000);
     const s = Q.save.get(); s.converted = {'m:trumpet': 5000}; Q.save.write();
-    const code = Q.save.code(), d = B.questDecode(code);
+    const code = Q.save.code(), d = B.questDecode(code), d5 = B.questDecode(B.questEncode(s, {version: 5})).fields;
     Q.save.reset();                                                  // NEW GAME keeps the shared wallet…
     const kept = T.balance();
     T.spend(T.balance()); T.wallet().converted = {};                 // …so empty it by hand before loading the code
     const loaded = Q.save.fromCode(code);
     return {code, kept, len: code.replace(/-/g, '').length, groups: code.split('-').length, d: d.fields, loaded, bal: T.balance(), left: T.wallet().convertedLeft,
-      v5list: B.QUEST_V5.cosmetics, v4list: B.QUEST_V4.cosmetics};
+      v6list: B.QUEST_V6.cosmetics, v5list: B.QUEST_V5.cosmetics, v4list: B.QUEST_V4.cosmetics, d5};
   });
   expect(r.kept).toBe(40000);
-  expect(r.len).toBe(65);
-  expect(r.groups).toBe(13);
+  expect(r.len).toBe(80);
+  expect(r.groups).toBe(16);
   expect(r.d.tokens).toBe(40000);
+  expect([r.d5.tokens, r.d5.convertedLeft]).toEqual([40000, 5000]);    // the old version-5 layout still holds them
   expect(r.d.convertedLeft).toBe(5000);
   expect(r.loaded.ok).toBe(true);
   expect(r.bal).toBe(40000);
   expect(r.left).toBe(5000);
   expect(r.v5list.slice(0, r.v4list.length)).toEqual(r.v4list);           // V4 frozen, V5 starts with it
+  expect(r.v6list.slice(0, r.v5list.length)).toEqual(r.v5list);           // V5 frozen, V6 starts with it
   watch.check();
 });
 
