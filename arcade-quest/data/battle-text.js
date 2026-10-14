@@ -127,6 +127,16 @@ window.QUEST_TEXT = {
   harmonizeScale: 'HARMONIZE! Play the whole concert B♭ scale, bottom to top. Give the orchestra its sound!',
   harmonizeScaleDrum: 'HARMONIZE! 8 clean, separate strokes. Give the orchestra its beat back!',
   cutoffIntro: 'LONG TONE! Hold {note} steady... until the Conductor cuts you off!',
+  cutoffDone: 'CUT OFF! (He swipes his baton.) Perfectly held.',
+  // EPISODE 2's final boss, THE BIG NUMBER (data/enemies.js 'bignumber')
+  cutoffIntroTusk: 'LONG TONE! Hold {note} as long as Tubby does... until he stops!',
+  cutoffDoneTusk: 'BWAA-STOP! (Tubby gasps for air.) Held as long as a walrus!',
+  harmonizeScaleEb: 'HARMONIZE! Play the whole concert E♭ scale, bottom to top. Bring the band back in tune!',
+  harmonizeScaleEbDrum: 'HARMONIZE! 8 clean, separate strokes. Give the band its beat back!',
+  finaleChoiceEp2: 'HARMONIZE to bring the band back, or play on and they power down to rest.',
+  showtimeLog: 'SHOWTIME LOG',
+  showtimeLogLeft: 'Still glitching: {rooms}',
+  showstopper: 'Every machine in the theater is humming again. You\'re a true SHOWSTOPPER!',
   beatIntro: '{note} × {n}, ON THE BEAT! Watch the baton light.',
   beatIntroDrum: '{n} clean strokes, ON THE BEAT! Watch the baton light.',
 

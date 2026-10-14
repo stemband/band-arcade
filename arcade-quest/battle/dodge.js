@@ -22,6 +22,8 @@
      stubs     ticket stubs fluttering down on gentle side-to-side paths
      rope      a swaying rope sinking down the box, with a gap that drifts side to side: slip through the gap
      rings     static rings expanding from the top (the Mic-let), each with a gap: slip through it
+     bubbles   THE BIG NUMBER's TUBBY TUSK: big, slow tuba bubbles rising from the bottom of the box, wobbling gently
+               side to side (BUBBLE.wobble px). Reduced motion: they rise straight up, no wobble
      borrow    RICO BANDIT's: his sax case sits at the bottom of the box (always shown: you see where they come from);
                `count` borrowed notes arc up out of it, then curve back toward your note (gently: BORROW.turn) and
                fade out after BORROW.life seconds. Reduced motion: the same notes, without their little spin
@@ -109,6 +111,8 @@
   /* RICO's borrowed notes: how hard they turn back toward you (px/s²), how long they fly, where the case sits */
   const BORROW = {turn: 42, life: 3.2, max: 46, caseW: 20};
   const caseAt = () => ({x: BOX.x + BOX.w / 2 - BORROW.caseW / 2, y: BOX.y + BOX.h - 8});
+  /* TUBBY's bubbles: how far they wobble (px, side to side) and how fast (cycles a second) */
+  const BUBBLE = {wobble: [3, 6], freq: [.3, .5]};
   function spawn(pat, mult) {
     const b = BOX, sp = pat.speed * mult.speed, s = Q.spriteDef(pat.sprite) || {w: 6, h: 6};
     const add = (x, y, vx, vy, extra) => D.shots.push(Object.assign({x, y, vx, vy, sprite: pat.sprite, w: s.w, h: s.h, born: D.t}, extra || {}));
@@ -148,6 +152,9 @@
         add(c.x + BORROW.caseW / 2 - s.w / 2, c.y - s.h, Math.cos(a) * sp, Math.sin(a) * sp, {home: true});
       }
       Q.sfx('quest-tap');
+    } else if (pat.kind === 'bubbles') {                      // a big slow tuba bubble rising from the bottom, wobbling a little
+      const x0 = Q.rand(b.x + 4, b.x + b.w - 4 - s.w), w = Q.reduced() ? 0 : Q.rand(BUBBLE.wobble[0], BUBBLE.wobble[1]);
+      add(x0, b.y + b.h, 0, -sp, {bubble: true, x0, ax: w, freq: Q.rand(BUBBLE.freq[0], BUBBLE.freq[1])});
     } else if (pat.kind === 'stubs') {                        // a ticket stub fluttering down, side to side
       const x0 = Q.rand(b.x + 8, b.x + b.w - 8 - s.w);
       add(x0, b.y - s.h, 0, sp, {x0, ax: Q.rand(6, 12), freq: Q.rand(.6, 1), flip: Math.random() < .5});
@@ -304,7 +311,7 @@
       ctx.fillStyle = Q.css('q-cursor'); ctx.fillRect(b.x, b.y + b.h + 4, b.w * Math.max(0, 1 - D.t / D.len), 2);
     },
     state: () => D && {t: D.t, len: D.len, speed: D.mult.speed, mute: D.mute, muted: D.muted, shots: D.shots.length, batons: D.batons.length, hits: D.hits, cx: D.cx, cy: D.cy, damage: D.damage,
-      fx: D.fx.map(o => o.kind), kinds: [...new Set(D.shots.map(s => (s.tap ? 'taps' : s.home ? 'borrow' : s.col ? 'confetti' : s.ax ? 'stubs' : s.amp ? 'wave' : 'shot')))],
-      taps: D.shots.filter(s => s.tap).map(s => +(s.lands).toFixed(3)), landed: D.landed.length, warns: D.fx.filter(o => o.go != null).map(o => +(o.go - o.born).toFixed(3))},   // tests
+      fx: D.fx.map(o => o.kind), kinds: [...new Set(D.shots.map(s => (s.bubble ? 'bubbles' : s.tap ? 'taps' : s.home ? 'borrow' : s.col ? 'confetti' : s.ax ? 'stubs' : s.amp ? 'wave' : 'shot')))],
+      taps: D.shots.filter(s => s.tap).map(s => +(s.lands).toFixed(3)), bubbles: D.shots.filter(s => s.bubble).map(s => ({x: +s.x.toFixed(2), y: +s.y.toFixed(2), x0: s.x0, wobble: s.ax})), landed: D.landed.length, warns: D.fx.filter(o => o.go != null).map(o => +(o.go - o.born).toFixed(3))},   // tests
   };
 })(window.Arcade);

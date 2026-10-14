@@ -14,6 +14,7 @@
       route: {<gate or final enemy id>: 'befriend' | 'fade'} (v5: how each story ghost was passed: the Phantom Fermata
             (befriend = the attic door, fade = the Hidden Passage) and the Ghost Conductor (the best ending or the
             defeat ending); for future achievements),
+      play: {1: seconds, 2: seconds} (the time played in each episode, from build step 5 on; optional: missing = 0),
       ep: 1 | 2 (v6: the episode last played: the episode of the room you were last in (QUEST_MAPS[id].ep, 1 when
             left out); an older save takes it from save.world's room). EPISODE 2 (THE SHOWTIME STAGE) keeps
             everything else in the same fields: its story flags in `flags` (ep2Start, songEb…), its machines in `done`
@@ -94,7 +95,10 @@
       (maps[id].enemies || []).forEach(g => {
         const def = E.find(e => e.id === g.type), kind = s.done[id + ':' + g.key];
         if (!def || !kind || !(def.opens || def.opensIfFaded || def.final)) return;
-        if (def.doneFlag) s.flags[def.doneFlag] = true;                    // (Rico: ricoDone, either way)
+        if (def.doneFlag) s.flags[def.doneFlag] = true;                    // (Rico: ricoDone; THE BIG NUMBER: ep2Done)
+        // a befriended boss's KEY ITEM (`keep`: the Golden Mic Stand) comes back with a save code, which has no room for it
+        const gift = kind === 'befriend' && ((def.rewards || {}).befriend || {}).item, IT = window.QUEST_ITEMS || {};
+        if (gift && IT[gift] && IT[gift].keep && !(s.items || {})[gift]) { s.items = s.items || {}; s.items[gift] = 1; }
         if (!s.route[def.id]) s.route[def.id] = kind;
         if ((def.opens && s.flags[def.opens]) || (def.opensIfFaded && s.flags[def.opensIfFaded])) return;
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
@@ -181,6 +185,13 @@
           'manor-friends' every KIND of manor ghost befriended (the Baton skin accessory)
           'manor-all'     EVERY manor ghost helped, befriended or faded (ghostLog().all: the 20 placed ghosts, the
                           Practice Hall and the Test Arena never count): the Spirit Lantern + the Ghost Whisperer plate
+        EPISODE 2 (THE SHOWTIME STAGE, build step 5):
+          'ep2'           Episode 2 finished, either ending (ep2Done): the Showtime Stage background, the "Encore!"
+                          plate, the Showtime Top Hat
+          'stage-friends' every KIND of Episode 2 machine befriended, + Rico Bandit and THE BIG NUMBER (every
+                          QUEST_ENEMIES entry with area 'stage' in the roster): the Spotlight effect
+          'stage-all'     SHOWSTOPPER: all 20 Showtime machines helped, befriended or powered down (ghostLog(s, 2).all;
+                          the Green Room and the Test Arena never count): the Showstopper Sash + its plate
         Checked after every battle (world.js afterBattle), on load (main.js: Q.save.recheck) and after a save code
         (fromCode); a Backup Code reloads the page, so the load check covers it. */
     achievements() {
@@ -189,6 +200,10 @@
       const manor = (window.QUEST_ENEMIES || []).filter(e => e.area === 'manor').map(e => e.id);
       if (manor.length && manor.every(id => (s.roster || []).includes(id))) a['manor-friends'] = true;
       if (ghostLog(s).all) a['manor-all'] = true;
+      if ((s.flags || {}).ep2Done) a.ep2 = true;
+      const stage = (window.QUEST_ENEMIES || []).filter(e => e.area === 'stage').map(e => e.id);
+      if (stage.length && stage.every(id => (s.roster || []).includes(id))) a['stage-friends'] = true;
+      if (ghostLog(s, 2).all) a['stage-all'] = true;
       write();
       return a;
     },
@@ -196,6 +211,10 @@
     has: id => !!(data().achievements || {})[id],
     /** on load: re-check the achievements when there is a save (never makes one: a device that never played stays so) */
     recheck() { const d = data(); if (d.save && d.save.v) Q.save.achievements(); },
+    /** THE TIME PLAYED, per episode (EPISODE 2 COMPLETE shows it): world.js and battle.js add each frame's seconds to
+        save.play[<the episode last played>] (written with the save's next write; not in save codes) */
+    tick(dt) { const s = Q.save.get(), ep = s.ep || 1; s.play = s.play || {}; s.play[ep] = (s.play[ep] || 0) + Math.min(dt, .5); },
+    played: (ep = 1) => Math.round(((Q.save.get().play || {})[ep] || 0)),
     xpToNext: level => 20 + (level - 1) * 15,
     /** YOUR POWER at a level: about 14 % more every level (LV 1 10 · 2 11 · 3 13 · 5 17 · 8 25 · 10 33 · 15 63).
         A PLAY does power × accuracy × (0.55 + 0.45 × speed) (battle.js); your band's companions scale with it too. */

@@ -21,7 +21,9 @@
    WHAT'S SOLD: every avatar item with unlock {shop: price} (shared/avatar-parts.js), at BOTH counters for the same
    price, EXCEPT the MANOR COLLECTION (unlock.booth === 'quest', the list MANOR_COLLECTION in avatar-parts.js): sold
    ONLY at Arcade Quest's Token Booth; the Prize Counter shows them behind glass ("Only at the Token Booth in Arcade
-   Quest!"), try-on only. Never sold anywhere: seasonal EVENT items (earned: the free gift and ladder) and Band Ninja
+   Quest!"), try-on only. THE STAGE COLLECTION (unlock.booth === 'stage', STAGE_COLLECTION in avatar-parts.js) is
+   sold ONLY at Ticket Booth Tina (Arcade Quest's Showtime Stage: counter 'stage'); the Prize Counter shows them behind
+   glass ("Only at Ticket Booth Tina in Arcade Quest!"); Terry doesn't sell them. Never sold anywhere: seasonal EVENT items (earned: the free gift and ladder) and Band Ninja
    gear (they have no {shop}).
    THE SEASONAL SHOP: items with unlock {shop, season: '<event id>'} (avatar-parts.js SEASON_SHOP) are sold at BOTH
    counters ONLY while that event runs (seasonal(): the shelf, its "gone in 12 days!" / "Last day!"; nextSeason(): the
@@ -40,9 +42,12 @@
      Arcade.Tokens.starSources()             [{key, label, stars, done, fresh}]
      Arcade.Tokens.freshStars()              stars not turned in yet;  waiting() = freshStars() × RATE
      Arcade.Tokens.turnIn()                  -> {stars, tokens} (0 when there's nothing new)
-     Arcade.Tokens.catalog()                 every item for tokens: {key, field, id, name, full, questOnly}
+     Arcade.Tokens.catalog()                 every item for tokens: {key, field, id, name, full, questOnly, collection
+                                             ('manor' | 'stage' | null), season, onSale}
      Arcade.Tokens.price(key)                -> {price, full, weekly} (the Prize of the Week's discount included)
      Arcade.Tokens.canBuy(key, {counter})    -> {ok, why, text, need, price}; counter 'prize' (default) | 'quest'
+                                             (Terry) | 'stage' (Tina: the only counter for the STAGE COLLECTION)
+     Arcade.Tokens.onlyText(item)            "Only at the Token Booth in Arcade Quest!" / "...Ticket Booth Tina..." 
      Arcade.Tokens.buy(key, {counter})       -> the same + the item is owned (the caller decides whether to wear it)
      Arcade.Tokens.owned(key)                bought, or open anyway (?unlockall)
      Arcade.Tokens.weekly(date)              -> {itemId, key, item, price, full, endsAt, daysLeft} (null: nothing to sell)
@@ -149,7 +154,8 @@ window.Arcade = window.Arcade || {};
     const AV = A.Avatar;
     if (!AV || !AV.items) return [];
     return AV.items().filter(it => it.shop && !it.event && !it.official)
-      .map(it => ({key: it.key, field: it.field, id: it.id, name: it.name, full: it.shop, questOnly: it.unlock.booth === 'quest',
+      .map(it => ({key: it.key, field: it.field, id: it.id, name: it.name, full: it.shop, questOnly: it.unlock.booth === 'quest' || it.unlock.booth === 'stage',
+        collection: it.unlock.booth === 'stage' ? 'stage' : it.unlock.booth === 'quest' ? 'manor' : null,
         season: it.unlock.season || null, onSale: !it.unlock.season || seasonOn(it.unlock.season)}));
   }
 
@@ -224,12 +230,17 @@ window.Arcade = window.Arcade || {};
   }
 
   /* ---------- buying ---------- */
-  const QUEST_ONLY_TEXT = 'Only at the Token Booth in Arcade Quest!';
+  const QUEST_ONLY_TEXT = 'Only at the Token Booth in Arcade Quest!', STAGE_ONLY_TEXT = 'Only at Ticket Booth Tina in Arcade Quest!';
+  /** where a collection item is sold, in words (the Prize Counter's glass case) */
+  const onlyText = it => (it.collection === 'stage' ? STAGE_ONLY_TEXT : QUEST_ONLY_TEXT);
   function canBuy(key, {counter = 'prize'} = {}) {
     const it = item(key);
     if (!it) return {ok: false, why: 'unknown', text: "That isn't sold for tokens."};
     const p = price(key).price;
-    if (it.questOnly && counter !== 'quest') return {ok: false, why: 'questOnly', text: QUEST_ONLY_TEXT, price: p};
+    // the counters: 'prize' (the arcade's), 'quest' (Token Booth Terry, the manor) and 'stage' (Ticket Booth Tina, the
+    // Showtime Stage). The MANOR COLLECTION sells at both Arcade Quest booths; the STAGE COLLECTION only at Tina's
+    if (it.questOnly && counter === 'prize') return {ok: false, why: 'questOnly', text: onlyText(it), price: p};
+    if (it.collection === 'stage' && counter !== 'stage') return {ok: false, why: 'stageOnly', text: STAGE_ONLY_TEXT, price: p};
     if (owned(key)) return {ok: false, why: 'owned', text: `You already own the ${it.name}.`, price: p};
     if (it.season && !seasonOn(it.season)) {
       const ev = eventById(it.season);
@@ -322,6 +333,6 @@ window.Arcade = window.Arcade || {};
   document.addEventListener('DOMContentLoaded', () => { try { if (A.store && A.Avatar) seen = freshStars(); } catch (e) { /* a page without games.js */ } });
 
   A.Tokens = {SETTINGS, get RATE() { return SETTINGS.RATE; }, QUEST_ONLY_TEXT, balance, add, spend, restore, starSources, freshStars, waiting, turnIn,
-    catalog, item, owned, price, canBuy, buy, weekly, weekNo, round5, wish, setWish, wishProgress, wishGone,
+    catalog, item, owned, price, canBuy, buy, onlyText, weekly, weekNo, round5, wish, setWish, wishProgress, wishGone,
     seasonal, nextSeason, seasonOn, goneText, resultLine, wallet, skin, iconHTML};
 })(window.Arcade);

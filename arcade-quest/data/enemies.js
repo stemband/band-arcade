@@ -417,4 +417,52 @@ window.QUEST_ENEMIES = [
     afterLines: {befriend: ['The star on the stage door lights up. Somewhere beyond it, the stage waits.'],
       fade: ['CLANG! Behind the mirrors, the vent grate pops open. Rico snores in his chair.']},
   },
+  /* THE BIG NUMBER, EPISODE 2's FINAL BOSS (the Main Stage, stage:boss): the whole Showtime Band, glitched together by
+     the static. Modeled on the Ghost Conductor: 5 `stages`, one per band member (each its own challenge and dodge;
+     `who` + `portrait` = who speaks when the stage starts; `lit` = which member the battle lights up: sprites-stage.js
+     'bignumber' members), then the finale at 1 HP: HARMONIZE with the whole concert E♭ scale (the best ending) or play
+     on (the band powers down to rest: the shorter ending). Both set ep2Done (`doneFlag`). Never mean: they're
+     MUSICIANS stuck in a glitch, and they want to play.
+     BALANCE (battle.js's turns table: 80 % accuracy, 70 % speed = power × 0.69 a PLAY): 215 HP × the stage area's 1.6
+     = 344 HP solo (a trio: × 1.9 = 654). At LV 12 (power 42) about 12 PLAYs solo; LV 14 (power 55) about 9 solo and 9
+     as a trio (companions .4 × your power × .8 each); LV 16 (power 71) about 7. That is about 2 PLAYs a stage, like
+     the Ghost Conductor's (3 stages, about 5 PLAYs at LV 9), for a student who helped about 12 of the 20 machines. */
+  {
+    id: 'bignumber', name: 'The Big Number', sprite: 'bignumber', hp: 215, atk: 2, area: 'stage', ep: 2, boss: true, final: true,
+    music: ['quest-ep2-boss', 'quest-boss'], talk: 'bignumber', doneFlag: 'ep2Done',
+    challenge: 'longtone', notes: 'Eb', harmonizeKeep: true, serenade: false, happy: 0,
+    calm: {perNote: 0, listen: 0, success: 0},
+    finaleChoice: 'finaleChoiceEp2',
+    stages: [
+      {until: .8, who: 'Tubby Tusk', portrait: 'npc-tusk', lit: 0, say: ['BWAAAA— Hold it as long as I do! Breathe from the belly!'],
+        challenge: 'longtone', notes: 'Eb', hold: [3, 5], cutoff: true, time: 13, cutoffIntro: 'cutoffIntroTusk', cutoffDone: 'cutoffDoneTusk',
+        dodge: {seconds: 7, patterns: [{kind: 'bubbles', sprite: 'tuba-bubble', every: 1.1, speed: 17}]}},
+      {until: .6, who: 'Professor Hoot', portrait: 'npc-hoot', lit: 1, say: ['Hoo! The E♭ scale, read from the page. Every note, carefully!'],
+        challenge: 'play', notes: 'Eb', count: 4, time: 12,
+        dodge: {seconds: 7, patterns: [{kind: 'rain', sprite: 'flurry-shot', every: .32, speed: 64}]}},
+      {until: .4, who: 'Snapjaw Sal', portrait: 'npc-sal', lit: 2, say: ['Two whole measures, kid! Count it, then hit it. Ba-dum-TSS!'],
+        challenge: 'rhythm', bars: 2, tier: 3,
+        dodge: {seconds: 7, patterns: [{kind: 'taps', sprite: 'stick-shot', bpm: 92, cols: 5, speed: 60}]}},
+      {until: .2, who: 'Rico Bandit', portrait: 'npc-rico', lit: 3, say: ['Here\'s my lick! Echo it back. Bet you can\'t! (Bet you can.)'],
+        challenge: 'echo', tier: 3, rhythm: 'q. e e e q',
+        dodge: {seconds: 8, patterns: [{kind: 'borrow', sprite: 'borrow-note', every: 1.2, count: 3, speed: 36}]}},
+      {until: 0, who: 'Maestro Moose', portrait: 'npc-moose', lit: 4, say: ['Follow my baton! And a one, and a two... and FASTER!'],
+        challenge: 'tempo', beats: 8, bpm: 92, accel: 16,
+        dodge: {seconds: 8, patterns: [{kind: 'baton', every: 1.6, speed: 1.45}, {kind: 'rain', sprite: 'flurry-shot', every: 1.2, speed: 48}]}},
+    ],
+    finale: ['...Wait. Listen. That sound... that\'s US. That\'s the real Showtime Band!',
+      'The static is letting go! Play the E♭ scale with us, bottom to top.', 'The WHOLE scale. HARMONIZE with the band!'],
+    harmonize: {type: 'scale', notes: 'Eb', time: 40},
+    listen: ['THE BIG NUMBER: the whole Showtime Band, glitched together by the static.',
+      'Each takes a turn: a long tone, the E♭ scale, a rhythm, an echo, then a tempo.',
+      'Play until the static lets go, then HARMONIZE (or play on: they power down).'],
+    dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.2, speed: 1.2}]},
+    companion: {power: .5, perk: {calm: 12}, hp: .9},
+    rewards: {fade: {xp: 40, tokens: 20}, befriend: {xp: 80, tokens: 50, item: 'mic-stand'}},
+    lines: {intro: 'The whole Showtime Band lurches into the spotlight, crackling with static!',
+      turn: ['"AND A ONE, AND A TWO, AND A—" KSSSHHH!', 'The whole band plays a different song. At the same time.', 'Five instruments glitch in five directions!', 'Maestro\'s baton sparks. The band lurches forward.'],
+      hurt: 'The band wobbles... the static flickers... but it holds on.', calm: 'For a moment, the band almost plays together.',
+      fade: 'The static lets go. One by one, the band powers down, gently, to rest.',
+      befriend: 'Their eyes glow blue. "We\'re BACK! {hero}, take the Golden Mic Stand!"'},
+  },
 ];

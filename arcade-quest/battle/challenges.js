@@ -157,7 +157,8 @@
     // cutoff (the Ghost Conductor): the hold length is a secret (the bar is measured against a longer one) and he
     // "cuts you off" when it's reached
     const barLen = cutoff ? hold * 1.6 : hold;
-    const p = panel(title || Q.text(cutoff ? 'cutoffIntro' : 'longIntro', {note: item.label, n: hold}),
+    // (THE BIG NUMBER's Tubby Tusk: his own words, enemy.cutoffIntro / cutoffDone = data/battle-text.js keys)
+    const p = panel(title || Q.text(cutoff ? enemy.cutoffIntro || 'cutoffIntro' : 'longIntro', {note: item.label, n: hold}),
       `<div class="q-staff q-one">${staff(seq, [item], 0)}</div><div class="q-hold${cutoff ? ' q-cutoff' : ''}"><i id="qHold"></i></div><p class="q-cents" id="qCents">–</p>`);
     let got = 0, lastT = 0;
     return new Promise(done => {
@@ -174,7 +175,7 @@
         else if (r.pc !== item.pc) ce.textContent = `That's ${seq.name(r.pc)}`;
         else { const a = Math.round(Math.abs(dev)); ce.textContent = a <= tol ? `IN TUNE ${a ? (dev > 0 ? '+' : '−') + a + '¢' : ''}` : `${dev > 0 ? '+' : '−'}${a}¢ ${dev > 0 ? 'sharp' : 'flat'}`; }
         ce.className = 'q-cents ' + (on ? 'good' : r ? 'bad' : '');
-        if (got >= hold) { say(p, cutoff ? 'CUT OFF! (He swipes his baton.) Perfectly held.' : 'Steady! Beautiful.', 'good'); onFrame = null; end(); }
+        if (got >= hold) { say(p, cutoff ? Q.text(enemy.cutoffDone || 'cutoffDone') : 'Steady! Beautiful.', 'good'); onFrame = null; end(); }
       };
       const stop = demoKeys({
         s: [() => { A.Pitch.demoJitter = 0.01; A.Pitch.demoNote = item.sounding; }, () => { A.Pitch.demoNote = null; }],
@@ -547,8 +548,8 @@
     if (h.type === 'scale') {                                  // a scale in order: the final HARMONIZE (the whole concert B♭ scale; snare: 8
       // strokes), or Rico's (`notes: 'Eb', count: 4`: give the notes back, 4 E♭ scale notes in order; snare: `taps`)
       const n = h.count || 8, part = n < 8;
-      if (unpitched) return articulate({taps: h.taps || 8, time: h.time || 16}, {title: Q.text(part ? 'harmonizePartDrum' : 'harmonizeScaleDrum', {n: h.taps || 8})});
-      return play({notes: h.notes || 'Bb', order: 'order', count: n, time: h.time || 40}, undefined, undefined, part ? Q.text('harmonizePart', {n}) : Q.text('harmonizeScale'));
+      if (unpitched) return articulate({taps: h.taps || 8, time: h.time || 16}, {title: Q.text(part ? 'harmonizePartDrum' : h.notes === 'Eb' ? 'harmonizeScaleEbDrum' : 'harmonizeScaleDrum', {n: h.taps || 8})});
+      return play({notes: h.notes || 'Bb', order: 'order', count: n, time: h.time || 40}, undefined, undefined, part ? Q.text('harmonizePart', {n}) : Q.text(h.notes === 'Eb' ? 'harmonizeScaleEb' : 'harmonizeScale'));
     }
     if (unpitched || h.type === 'articulate') {
       const taps = h.taps || 5;

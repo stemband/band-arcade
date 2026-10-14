@@ -35,9 +35,10 @@ window.Arcade = window.Arcade || {};
     {id: 'upper', title: 'Upper shelf', note: '300–350 tokens'},
     {id: 'lower', title: 'Lower shelf', note: '200–250 tokens'},
     {id: 'manor', title: 'Manor Collection', note: 'Only at the Token Booth in Arcade Quest!'},
+    {id: 'stage', title: 'Stage Collection', note: 'Only at Ticket Booth Tina in Arcade Quest!'},
     {id: 'case', title: 'Glass case', note: '50–150 tokens'},
   ];
-  const tierOf = it => it.season ? 'season' : it.questOnly ? 'manor' : it.full >= 400 ? 'hang' : it.full >= 300 ? 'upper' : it.full >= 200 ? 'lower' : 'case';
+  const tierOf = it => it.season ? 'season' : it.collection === 'stage' ? 'stage' : it.questOnly ? 'manor' : it.full >= 400 ? 'hang' : it.full >= 300 ? 'upper' : it.full >= 200 ? 'lower' : 'case';
   // THE TOKEN ICON (Arcade.Tokens.iconHTML: the coin, or the running event's picture; sized by prizes.css)
   const coin = () => T().iconHTML();
 
@@ -136,10 +137,10 @@ window.Arcade = window.Arcade || {};
   }
   function tile(it) {
     const own = T().owned(it.key), p = T().price(it.key), wish = T().wish() === it.key;
-    const tag = it.questOnly ? `<span class="pz-tag pz-lock">🔒 ${p.full}<small>Only at the Token Booth in Arcade Quest!</small></span>`
+    const tag = it.questOnly ? `<span class="pz-tag pz-lock">🔒 ${p.full}<small>${esc(T().onlyText(it))}</small></span>`
       : `<span class="pz-tag">${p.weekly ? `<s>${p.full}</s> ` : ''}${p.price}</span>`;
     return `<button type="button" class="pz-nav pz-prize pz-t-${tierOf(it)}${own ? ' owned' : ''}${wish ? ' wished' : ''}${p.weekly ? ' weekly' : ''}" data-key="${esc(it.key)}"` +
-      ` aria-label="${esc(it.name)}, ${it.questOnly ? 'only at the Token Booth in Arcade Quest' : `${p.price} tokens`}${own ? ', owned' : ''}${wish ? ', your wish' : ''}${p.weekly ? ', prize of the week' : ''}">` +
+      ` aria-label="${esc(it.name)}, ${it.questOnly ? T().onlyText(it).replace(/^O/, 'o').replace(/!$/, '') : `${p.price} tokens`}${own ? ', owned' : ''}${wish ? ', your wish' : ''}${p.weekly ? ', prize of the week' : ''}">` +
       `<span class="pz-pic">${pic(it)}</span><span class="pz-name">${esc(it.name)}</span>${own ? '<span class="pz-owned">Owned</span>' : tag}` +
       (wish ? '<span class="pz-wishmark" aria-hidden="true">★</span>' : '') + `</button>`;
   }
@@ -262,7 +263,7 @@ window.Arcade = window.Arcade || {};
     const p = T().price(it.key), c = T().canBuy(it.key), own = T().owned(it.key), wish = T().wish() === it.key;
     const worn = A.Avatar.get()[it.field] === it.id, panel = S.card.querySelector('.pz-card');
     const ev = it.season && (A.SEASONS || []).find(e => e.id === it.season);
-    const priceLine = ev && !own ? `<p class="pz-card-price">${coin()}<b>${p.price}</b> tokens · ${esc(ev.name)} only${T().seasonal() ? ` · ${esc(T().seasonal().left)}` : ''}</p>` : it.questOnly ? `<p class="pz-card-price">${coin()}${p.full} tokens · <b>Only at the Token Booth in Arcade Quest!</b></p>`
+    const priceLine = ev && !own ? `<p class="pz-card-price">${coin()}<b>${p.price}</b> tokens · ${esc(ev.name)} only${T().seasonal() ? ` · ${esc(T().seasonal().left)}` : ''}</p>` : it.questOnly ? `<p class="pz-card-price">${coin()}${p.full} tokens · <b>${esc(T().onlyText(it))}</b></p>`
       : `<p class="pz-card-price">${coin()}${p.weekly ? `<s>${p.full}</s> ` : ''}<b>${p.price}</b> tokens${p.weekly ? ' · Prize of the week!' : ''}</p>`;
     let acts;
     if (msg && msg.bought) acts = `${worn ? '' : '<button type="button" class="btn btn-primary" data-c="wear">Wear it now</button>'}<button type="button" class="btn btn-secondary" data-c="close">Keep shopping</button>`;
@@ -272,7 +273,7 @@ window.Arcade = window.Arcade || {};
       `<button type="button" class="btn btn-secondary" data-c="wish" aria-pressed="${wish}">${wish ? '★ Your wish' : '☆ Wish'}</button><button type="button" class="btn btn-secondary" data-c="close">Close</button>`;
     const waiting = !own && !it.questOnly && !c.ok && c.why === 'short' && T().waiting() > 0 ? `<p class="pz-card-note">+${T().waiting()} tokens are waiting at the Token Counter: turn in your new stars!</p>` : '';
     panel.innerHTML = `<div class="pz-card-pic">${preview(it)}</div><h3 class="ui-title" id="pzCardT">${esc(it.name)}</h3>${priceLine}` +
-      `<p class="pz-card-msg" aria-live="polite">${msg && msg.text ? esc(msg.text) : own ? 'You own this prize.' : it.questOnly ? 'Try it on here. You can buy it in Ghost Notes Manor.' : 'Try it on!'}</p>${waiting}` +
+      `<p class="pz-card-msg" aria-live="polite">${msg && msg.text ? esc(msg.text) : own ? 'You own this prize.' : it.questOnly ? (it.collection === 'stage' ? 'Try it on here. You can buy it at the Showtime Stage.' : 'Try it on here. You can buy it in Ghost Notes Manor.') : 'Try it on!'}</p>${waiting}` +
       `<div class="acts pz-card-acts">${acts}</div>`;
     fix(panel);
     panel.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => cardAct(b.dataset.c, it)));

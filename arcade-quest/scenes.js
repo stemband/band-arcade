@@ -15,8 +15,6 @@
 (function (A) {
   "use strict";
   const Q = A.Quest;
-  // Episode 2 is still being built: the title says so (remove with build step 5, THE BIG NUMBER + ENDING)
-  const SOON = '(coming soon: the theater is still being built)';
   const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING', rhythm: 'RHYTHM', tempo: 'TEMPO', echo: 'ECHO'};
   let player = null;
   const me = () => (player = Q.playerId(A.currentMember().id));
@@ -33,7 +31,7 @@
       // title is exactly as it always was
       const ep2 = Q.episodes.unlocked(2);
       Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest:</small>The Mysterious Microphone</h1>` +
-        `<p class="q-ep">${ep2 ? `Episode 2: The Showtime Stage <span class="q-ep-soon">${SOON}</span>` : 'Episode 1: Ghost Notes Manor'}</p><div id="qTitleMenu"></div></div>`;
+        `<p class="q-ep">${ep2 ? 'Episode 2: The Showtime Stage' : 'Episode 1: Ghost Notes Manor'}</p><div id="qTitleMenu"></div></div>`;
       const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
       const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
       const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat(ep2 ? [{id: 'episodes', label: 'Episodes'}] : [], [{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
@@ -43,7 +41,8 @@
       const newGame = () => { Q.save.reset(); Q.save.setFlag('seen-intro'); Q.go('cutscene', {id: 'intro', next: {scene: 'world', args: {map: 'foyer', intro: true}}}); };
       /* EPISODE SELECT: the title menu's place shows the episodes; B or BACK = the title menu again */
       const episodes = () => {
-        const list = [{id: 1, label: 'Episode 1: Ghost Notes Manor ✓'}, {id: 2, label: 'Episode 2: The Showtime Stage', sub: SOON}, {id: 'back', label: 'Back'}];
+        // a finished episode has its ✓ (ep1Done, ep2Done)
+        const list = [{id: 1, label: 'Episode 1: Ghost Notes Manor ✓'}, {id: 2, label: 'Episode 2: The Showtime Stage' + (Q.save.flag('ep2Done') ? ' ✓' : '')}, {id: 'back', label: 'Back'}];
         const e = Q.menu(Q.$('qTitleMenu'), list, {cols: 1, label: 'Episodes', cls: 'q-episodes', onBack: () => { e.destroy(); menu('episodes'); },
           onPick: it => { e.destroy(); if (it.id === 'back') menu('episodes'); else Q.episodes.go(it.id); }});
       };

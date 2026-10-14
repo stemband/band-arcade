@@ -131,7 +131,7 @@ test('the Manor Collection: behind glass at the Prize Counter (no BUY), for sale
   await floor(page);
   const r = await page.evaluate(() => {
     const T = Arcade.Tokens; T.add(1000);
-    return {manor: T.catalog().filter(it => it.questOnly).map(it => it.key).sort(), refuse: T.buy('head:pirate'), can: T.canBuy('head:pirate'), bal: T.balance(), owned: T.owned('head:pirate'),
+    return {manor: T.catalog().filter(it => it.collection === 'manor').map(it => it.key).sort(), refuse: T.buy('head:pirate'), can: T.canBuy('head:pirate'), bal: T.balance(), owned: T.owned('head:pirate'),
       list: window.AVATAR_PARTS.MANOR_COLLECTION};
   });
   expect(r.manor).toEqual(['bg:fireflies', 'hand:wand', 'head:pirate', 'head:royalcrown']);

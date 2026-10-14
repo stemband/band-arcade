@@ -757,6 +757,43 @@ window.Arcade = window.Arcade || {};
     x.imageSmoothingEnabled = false; x.drawImage(st.c, 0, 0, W, H); x.imageSmoothingEnabled = true;
   };
 
+  /* ARCADE QUEST EPISODE 2's SHOWTIME STAGE (the avatar background 'showtimestage'): a dark little theater stage, the
+     red curtain drawn back on both sides, a marquee across the top with a row of bulbs, the boards below. Only the
+     bulbs move: each one fades slowly between dim and warm (3–5 s a cycle), so nothing ever flashes. */
+  S['showtime-curtain'] = (x, W, H, t, o) => {
+    const st = o.state, pw = 120, ph = Math.max(60, Math.round(pw * H / W));
+    if (!st.c || st.c.height !== ph) {
+      st.c = document.createElement('canvas'); st.c.width = pw; st.c.height = ph; st.back = document.createElement('canvas'); st.back.width = pw; st.back.height = ph;
+      const b = st.back.getContext('2d');
+      b.fillStyle = col('q-void'); b.fillRect(0, 0, pw, ph);
+      const g = b.createRadialGradient(pw / 2, ph * .62, 2, pw / 2, ph * .62, pw * .55);     // a soft warm glow on the empty stage
+      g.addColorStop(0, col('q-stage-glow', .2)); g.addColorStop(1, col('q-stage-glow', 0)); b.fillStyle = g; b.fillRect(0, 0, pw, ph);
+      const floor = Math.round(ph * .8);                                                       // the boards
+      b.fillStyle = mix('q-stage-board-d', 'q-black', .45); b.fillRect(0, floor, pw, ph - floor);
+      b.fillStyle = mix('q-stage-board', 'q-black', .5); for (let y = floor + 3; y < ph; y += 4) b.fillRect(0, y, pw, 1);
+      const top = Math.round(ph * .16);
+      [0, 1].forEach(side => {                                                                 // the curtain, drawn back: folds of velvet
+        for (let i = 0; i < 26; i++) {
+          const xx = side ? pw - 1 - i : i, fold = (i % 6) / 6, gather = 1 - i / 26;
+          b.fillStyle = mix(fold < .5 ? 'q-stage-velvet' : 'q-stage-velvet-d', 'q-black', .35 + .25 * (i / 26));
+          b.fillRect(xx, top, 1, Math.round((floor - top) * (.55 + .45 * gather)) + 2);
+        }
+      });
+      b.fillStyle = mix('q-stage-velvet-d', 'q-black', .3); b.fillRect(0, top, pw, 5);        // the valance
+      b.fillStyle = mix('q-stage-wall-d', 'q-black', .2); b.fillRect(20, 1, pw - 40, top - 2);  // the marquee
+      b.fillStyle = mix('q-stage-trim', 'q-black', .35); b.fillRect(20, 1, pw - 40, 1); b.fillRect(20, top - 2, pw - 40, 1);
+      b.fillStyle = mix('q-stage-glow', 'q-black', .55); b.fillRect(30, Math.round(top / 2) - 1, pw - 60, 2);   // a dim line of letters
+    }
+    const p = st.c.getContext('2d');
+    p.clearRect(0, 0, pw, ph); p.drawImage(st.back, 0, 0);
+    const top = Math.round(ph * .16), n = 14;
+    for (let i = 0; i < n; i++) {
+      const bx = 22 + Math.round(i * (pw - 46) / (n - 1)), per = 3 + hash(i) * 2, v = .5 + .5 * Math.sin(t * TAU / per + hash(i + 7) * TAU);
+      p.fillStyle = mix('q-stage-bulb-off', 'q-stage-bulb', .35 + .45 * v); p.fillRect(bx, 3, 1, 1); p.fillRect(bx, top - 4, 1, 1);
+    }
+    x.imageSmoothingEnabled = false; x.drawImage(st.c, 0, 0, W, H); x.imageSmoothingEnabled = true;
+  };
+
   /* THE NOTE CHECKER: a calm, slow, soft aurora (very little motion: students are tuning) */
   S.aurora = (x, W, H, t, o) => {
     vgrad(x, W, H, [[0, col('deep')], [1, col('night')]]);
@@ -1199,7 +1236,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, 'showtime-curtain': 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

@@ -1580,6 +1580,65 @@ window.AVATAR_PARTS = {};
   // pale purple-white with a faint wisp curling up from its corner (CSS: .av-plate-ghostwhisperer in theme.css)
   P.PLATES.push({id: 'ghostwhisperer', name: 'Ghost Whisperer name plate', unlock: QUEST_ALL});
 
+  /* ---------- ARCADE QUEST EPISODE 2, THE SHOWTIME STAGE (arcade-quest/engine/save.js achievements). Earned, never
+     sold: 'ep2' (Episode 2 finished, either ending): the Showtime Stage background, the "Encore!" plate, the Showtime
+     Top Hat (Episode 1 already gives the hand Microphone, so no second mic); 'stage-friends' (every kind of Showtime
+     machine befriended, + Rico Bandit and THE BIG NUMBER): the Spotlight effect; 'stage-all' = SHOWSTOPPER (all 20
+     machines helped, either way): the Showstopper Sash + its plate. THE STAGE COLLECTION (3 {shop} items sold ONLY at
+     Ticket Booth Tina in Arcade Quest's Lobby: STAGE_COLLECTION below) ---------- */
+  const QUEST_EP2 = {game: 'arcade-quest', achievement: 'ep2', text: 'Finish Episode 2 of Arcade Quest'};
+  const QUEST_STAGE_FRIENDS = {game: 'arcade-quest', achievement: 'stage-friends', text: 'Befriend every kind of machine in the Showtime Stage (Arcade Quest)'};
+  const QUEST_STAGE_ALL = {game: 'arcade-quest', achievement: 'stage-all', text: 'Help every machine in the Showtime Stage (Arcade Quest)'};
+  /** a copy of a map with some pixels changed: edits = {row: [[x, ch], ...]} (x within its half or its rows) */
+  const paint = (m, edits) => { if (!m) return m; const key = m.half ? 'half' : 'rows';
+    return Object.assign({}, m, {[key]: m[key].map((r, y) => (edits[y] ? (() => { const a = [...r.padEnd(Math.max(r.length, ...edits[y].map(e => e[0] + 1)), '.')]; edits[y].forEach(([x, ch]) => { a[x] = ch; }); return a.join(''); })() : r))}); };
+  // THE SHOWTIME TOP HAT: the top hat in red velvet with a gold band and a little white star on it
+  const tophat = P.HEADS.find(h => h.id === 'tophat'), velvet = m => recolor(recolor(m, /K/g, 'A'), /u/g, 'g');
+  P.HEADS.push(
+    {id: 'showtophat', name: 'Showtime Top Hat', unlock: QUEST_EP2, hides: 'top', clip: tophat.clip, pal: {A: 'q-stage-velvet'},
+     front: paint(velvet(tophat.front), {3: [[15, 'W']]}), side: velvet(tophat.side), back: velvet(tophat.front),
+     bust: paint(velvet(tophat.bust), {7: [[17, 'W']], 8: [[16, 'W']]})},
+    // THE STAGE COLLECTION: a headband of marquee bulbs (they glow softly in turn: two warm colors, never a flash)
+    {id: 'bulbband', name: 'Marquee-bulb headband', unlock: {shop: 300}, hides: 'none', pal: {A: 'q-stage-trim-d', B: 'q-stage-bulb'},
+     anim: {pal: {B: ['q-stage-bulb', 'q-stage-glow', 'q-stage-glow', 'q-stage-bulb']}},
+     front: {y: 5, half: ['.........ABABABA']}, side: {y: 5, rows: ['.......A.BABABABABABA', '......AA']}, back: {y: 5, half: ['.........AAAAAAA']},
+     bust: {y: 11, half: ['........BABABABABA', '........AAAAAAAAAA']}, bustAfter: {y: 11, x: 27, rows: ['.AA', 'A.A', 'A..A']}},
+    // THE STAGE COLLECTION: an usher's pillbox cap, maroon with a gold band, sitting on top of the hair
+    {id: 'usher', name: 'Usher\'s cap', unlock: {shop: 200}, hides: 'top', clip: {front: 3, side: 3, back: 3, bust: 9}, pal: {A: 'q-stage-velvet-d', B: 'q-gold'},
+     front: {y: 0, half: ['...........AAAAA', '..........AAAAAA', '..........BBBBBB', '..........AAAAAA']},
+     side: {y: 0, rows: ['..........AAAAAAA', '.........AAAAAAAA', '.........BBBBBBBB', '.........AAAAAAAA']},
+     back: {y: 0, half: ['...........AAAAA', '..........AAAAAA', '..........BBBBBB', '..........AAAAAA']},
+     bust: {y: 2, half: ['............AAAAAA', '...........AAAAAAA', '...........AAAAAAA', '...........BBBBBBB', '...........BBBBBBB', '...........AAAAAAA', '..........AAAAAAAA']}});
+  // THE STAGE COLLECTION: the tuxedo with a red sequined bow tie (one sequin glints at a time: a pixel, never a flash)
+  const tux = P.TOPS.find(t => t.id === 'tuxedo');
+  const bowF = paint(tux.front, {0: [[14, 'D'], [15, 'E']], 1: [[14, 'D']]});
+  const bowB = paint(tux.bust, {0: [[15, 'D'], [16, 'D'], [17, 'E']], 1: [[16, 'D'], [17, 'E']], 2: [[15, 'D'], [16, 'D'], [17, 'E']]});
+  const glint = (m, f) => m && Object.assign({}, m, {half: m.half.map((r, y) => [...r].map((ch, x) => (ch === 'D' && (x * 5 + y * 3 + f * 2) % 7 === 0 ? 'W' : ch)).join(''))});
+  P.TOPS.push(
+    {id: 'bowtie', name: 'Sequined bow tie', unlock: {shop: 250}, sleeve: 1, base: tux.base, pal: {D: 'q-stage-velvet', E: 'q-stage-velvet-d'},
+     front: bowF, side: tux.side, back: tux.back, bust: bowB,
+     anim: {maps: {bust: [0, 1, 2, 3].map(f => glint(bowB, f))}}});
+  // SHOWSTOPPER: the sash (gold, a velvet edge, a white star) and its plate
+  const miosm = P.TOPS.find(t => t.id === 'miosmsash');
+  P.TOPS.push(Object.assign({}, miosm, {id: 'showsash', name: 'Showstopper Sash', unlock: QUEST_STAGE_ALL, pal: {D: 'q-gold', E: 'q-stage-velvet', G: 'white-hi'}}));
+  // the Spotlight (shared/avatar-fx.js): a soft cone of stage light behind the avatar; still, never flashing
+  P.EFFECTS.push({id: 'spotlight', name: 'Spotlight', unlock: QUEST_STAGE_FRIENDS});
+  // the Showtime Stage background (shared/bg-scenes.js 'showtime-curtain': the red curtain and a marquee)
+  P.BGS.push({id: 'showtimestage', name: 'Showtime Stage', kind: 'scene', scene: 'showtime-curtain', lift: 1.8, main: 'red-ink', unlock: QUEST_EP2});
+  // the plates (theme.css .av-plate-encore: marquee bulbs; .av-plate-showstopper: velvet, gold and a star)
+  P.PLATES.push({id: 'encore', name: '"Encore!" name plate', unlock: QUEST_EP2}, {id: 'showstopper', name: 'Showstopper name plate', unlock: QUEST_STAGE_ALL});
+  /* THE STAGE COLLECTION (Mat edits this list): {shop} items sold ONLY at Ticket Booth Tina (the Showtime Stage's
+     Lobby, Arcade Quest Episode 2). unlock.booth = 'stage': the Prize Counter shows them behind glass ("Only at Ticket
+     Booth Tina in Arcade Quest!"), Token Booth Terry doesn't sell them, Tina tags them "STAGE COLLECTION: only here!",
+     never the Prize of the Week (shared/tokens.js). Each also goes at the END of QUEST_V6.cosmetics (shared/backup.js). */
+  const STAGE_COLLECTION = ['top:bowtie', 'head:bulbband', 'head:usher'];
+  STAGE_COLLECTION.forEach(k => {
+    const [f, id] = k.split(':'), part = ({head: P.HEADS, top: P.TOPS}[f] || []).find(x => x.id === id);
+    if (part && part.unlock && part.unlock.shop) part.unlock = Object.assign({}, part.unlock, {booth: 'stage'});
+    else if (window.console) console.warn(`avatar-parts.js: STAGE_COLLECTION ${k} is not a {shop} item`);
+  });
+  P.STAGE_COLLECTION = STAGE_COLLECTION;
+
   /* ---------- THE MANOR COLLECTION (Mat edits this list): {shop} items sold ONLY at the Token Booth inside Arcade
      Quest (Ghost Notes Manor). Each gets unlock.booth = 'quest' here: the Prize Counter shows them behind glass with
      "Only at the Token Booth in Arcade Quest!" (a try-on, no BUY), Arcade Quest's booth tags them "MANOR COLLECTION:

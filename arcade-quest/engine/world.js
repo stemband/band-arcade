@@ -138,7 +138,7 @@
   }
   const npcAt = (x, y) => W.npcs.find(n => n.x === x && n.y === y);
   const ghostAt = (x, y) => W.ghosts.find(g => g.y === y && Math.abs(g.x - x) <= ((g.size || 1) - 1) / 2);
-  const thingAt = (x, y) => W.def.things.find(t => t.at[0] === x && t.at[1] === y);
+  const thingAt = (x, y) => W.def.things.find(t => t.at[0] === x && t.at[1] === y && Q.world.cond(t.if));
   const solid = (x, y) => !!tileOf(x, y).solid;
 
   /** draw the room's still tiles once into their own canvas; tiles that animate are drawn every frame */
@@ -172,8 +172,7 @@
   /** the room's NPCs, where they stand now: `moved` once its flag is set; an npc with `if: flag` (or '!flag') is
       there only then (Rico, awake by the stage door or resting in his chair, after his battle) */
   function npcsFor(def) {
-    const on = c => (c[0] === '!' ? !Q.save.flag(c.slice(1)) : Q.save.flag(c));
-    return def.npcs.filter(n => !n.if || on(n.if)).map(n => {
+    return def.npcs.filter(n => Q.world.cond(n.if)).map(n => {
       const at2 = n.moved && Q.save.flag(n.moved.flag) ? n.moved.at : n.at;
       const D = (window.QUEST_DIALOGUE || {})[n.id] || {};
       return {id: n.id, x: at2[0], y: at2[1], px: at2[0] * T, py: at2[1] * T, sprite: n.sprite || D.sprite || 'npc-mezzo', src: n};   // (n.awake: drawn below)
@@ -188,7 +187,7 @@
     W = {map: id, def, x, y, px: x * T, py: y * T, dir: dir || 'up', move: null, busy: false, grace: 1.2, steps: 0, fade: null, flash: null,
       cycles: (W && W.cycles) || {}, cleared: {}, npcs: [], ghosts: []};
     W.npcs = npcsFor(def);
-    W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy, tier: e.tier,
+    W.ghosts = def.enemies.filter(e => def.practice || !save.done[id + ':' + e.key]).map(e => ({key: e.key, type: e.type, happy: e.happy, tier: e.tier, sprite: e.sprite,
       x: e.at[0], y: e.at[1], px: e.at[0] * T, py: e.at[1] * T, home: e.at.slice(), wander: e.wander == null ? 2 : e.wander, size: e.size || 1,
       move: null, wait: Q.rand(0.4, 1.6)}));
     prerender();
@@ -291,7 +290,8 @@
     }
     W.ghosts = W.ghosts.filter(x => x !== g);
     const E = (window.QUEST_ENEMIES || []).find(e => e.id === result.enemy) || {}, s = Q.save.get();
-    let whisperer = false;
+    let whisperer = false, showstopper = false;
+    const firstEp2 = !(s.flags || {}).ep2Done;                                  // (THE BIG NUMBER's doneFlag sets it just below)
     // THE BAND WAKES (Episode 2: data/maps/stage.js `wakes`): this was the room's last machine, helped either way
     // (checked before anything reads the save again: its repair, save.js routes(), would set the flag quietly)
     const wk = W.def.wakes, woke = !!wk && !W.def.practice && !(s.flags || {})[wk.flag] && W.def.enemies.every(e => e.key === g.key || s.done[W.map + ':' + e.key]);
@@ -300,9 +300,11 @@
       if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
       if (E.doneFlag) s.flags[E.doneFlag] = true;                                // Rico: ricoDone, either way
       Q.save.write();
-      // GHOST WHISPERER: the last manor ghost helped (befriended or faded) -> 'manor-all' (save.js achievements)
-      const had = Q.save.has('manor-all');
-      whisperer = !had && !!Q.save.achievements()['manor-all'];
+      // GHOST WHISPERER: the last manor ghost helped (befriended or faded) -> 'manor-all' (save.js achievements);
+      // its Episode 2 twin, SHOWSTOPPER: the last Showtime machine -> 'stage-all'
+      const had = Q.save.has('manor-all'), hadStage = Q.save.has('stage-all'), now = Q.save.achievements();
+      whisperer = !had && !!now['manor-all'];
+      showstopper = !hadStage && !!now['stage-all'];
     }
     if (E.opens || E.opensIfFaded) { prerender(); W.npcs = npcsFor(W.def); }       // a door or a cracked wall opened (Rico stands up)
     const after = [];                                                             // what to show, in order, once back
@@ -314,7 +316,8 @@
     }
     // the UNLOCKED! card (the Spirit Lantern, the Ghost Whisperer plate) after the battle's results; when the Ghost
     // Conductor was the last one, EPISODE 1 COMPLETE shows it instead (engine/story.js)
-    if (whisperer && !E.final) after.push(ghostWhisperer);
+    if (whisperer && !E.final) after.push(() => ghostWhisperer('ghostWhisperer'));
+    if (showstopper && !E.final) after.push(() => ghostWhisperer('showstopper'));       // (THE BIG NUMBER isn't one of the 20)
     // Episode 2's mini-boss: what opened, in words (data/enemies.js afterLines)
     const al = !W.def.practice && E.afterLines && E.afterLines[result.kind];
     if (al) after.push(() => { Q.sfx('quest-door'); return Q.say(al); });
@@ -322,7 +325,15 @@
       W.busy = true;
       after.reduce((p, f) => p.then(() => (W ? f() : null)), Promise.resolve()).then(() => { if (W) W.busy = false; });
     }
-    if (E.final && !W.def.practice) {                                            // THE END of Episode 1 (engine/story.js)
+    if (E.final && !W.def.practice && (W.def.ep || 1) === 2) {                  // THE END of Episode 2 (engine/story.js)
+      const first = firstEp2;
+      Q.save.setFlag('ep2Done'); Q.save.achievements();                          // (doneFlag set it already: ep2Done)
+      W.busy = true;
+      // befriended: the best ending (the band plays the Encore with you); played on: the band powers down to rest.
+      // Both: the Microphone speaks, the cliffhanger, the credits, EPISODE 2 COMPLETE
+      Q.go('cutscene', {id: result.kind === 'befriend' ? 'ep2-ending' : 'ep2-ending-fade',
+        next: {id: 'ep2-mic', next: {id: 'ep2-cliffhanger', next: {credits: true, ep: 2, first, showstopper: Q.save.has('stage-all')}}}});
+    } else if (E.final && !W.def.practice) {                                     // THE END of Episode 1 (engine/story.js)
       const first = !Q.save.flag('ep1Done');
       Q.save.setFlag('ep1Done'); Q.save.achievements();
       W.busy = true;
@@ -343,14 +354,15 @@
     prerender();
   }
 
-  /** GHOST WHISPERER: the arcade's UNLOCKED! card (shared/skins.js catchUp) over the manor, with its line on top;
+  /** GHOST WHISPERER (and Episode 2's SHOWSTOPPER: line 'showstopper'): the arcade's UNLOCKED! card (shared/skins.js
+      catchUp) over the room, with its line on top;
       resolves when it closes (a tick later, so the key that closed it doesn't also reach the overworld) */
-  function ghostWhisperer() {
+  function ghostWhisperer(line = 'ghostWhisperer') {
     return new Promise(done => {
       const fin = () => setTimeout(done, 0);
       if (!A.Skins || !A.Skins.catchUp) return fin();
       Q.input.clear();
-      const shown = A.Skins.catchUp(A.store.player, {lead: Q.text('ghostWhisperer'), theme: 'q-theme', onClose: fin,
+      const shown = A.Skins.catchUp(A.store.player, {lead: Q.text(line), theme: 'q-theme', onClose: fin,
         foot: 'Find them in the <b>LOCKER</b>, or wear one now.'});
       if (!shown.length) return fin();
       // the focus on the card itself, not WEAR IT: an A still pressed from the battle's last line must not choose for you
@@ -383,7 +395,9 @@
   const facing = () => { const [dx, dy] = DIRS[W.dir]; return [W.x + dx, W.y + dy]; };
   async function interact() {
     const [fx, fy] = facing();
-    const n = npcAt(fx, fy), th = thingAt(fx, fy), d = doorAt(fx, fy);
+    const n = npcAt(fx, fy), th = thingAt(fx, fy), d = doorAt(fx, fy), g = ghostAt(fx, fy);
+    // a story boss with a speech (THE BIG NUMBER: Maestro Moose at his podium): A talks to him, like walking into him
+    if (g && !n && ((window.QUEST_ENEMIES || []).find(e => e.id === g.type) || {}).talk) return encounter(g);
     if (!n && !th && !(d && (!doorOpen(d) || !doorBuilt(d)))) return;
     W.busy = true;
     try {
@@ -394,6 +408,16 @@
   }
 
   Q.world = {
+    /** a map entry's `if` (npcs, things, props): 'flag', '!flag', 'a&b' (all) or 'route:<enemy id>=befriend|fade' (how
+        that story enemy was passed: the save's route). No condition = always */
+    cond(c) {
+      if (!c) return true;
+      if (c.includes('&')) return c.split('&').every(x => Q.world.cond(x.trim()));
+      if (c[0] === '!') return !Q.world.cond(c.slice(1));
+      const r = /^route:([\w-]+)=(\w+)$/.exec(c);
+      if (r) return (Q.save.get().route || {})[r[1]] === r[2];
+      return Q.save.flag(c);
+    },
     // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too
     state: () => W && {map: W.map, x: W.x, y: W.y, dir: W.dir, busy: W.busy || !!W.fade, moving: !!W.move, paused: !!Q.paused, ghosts: W.ghosts.map(g => ({key: g.key, type: g.type, x: g.x, y: g.y})),
       whisper: W.whisper ? (W.whisper.glimpse ? 'glimpse' : 'whisper') : null,
@@ -442,6 +466,7 @@
       if (pause && pause.active && pause.el.hidden === free) { pause.el.hidden = !free; }
       Q.keyHints.show(free);
       if (W.grace > 0) W.grace -= dt;
+      if (!Q.paused) Q.save.tick(dt);                    // the time played (EPISODE 2 COMPLETE)
       if (W.fade) {
         W.fade.t += dt / 0.22;
         if (W.fade.t >= 1) { const f = W.fade; W.fade = null; if (f.then) f.then(); else if (!W.fighting) W.busy = false; }   // (a ghost met during the fade-in: its battle is starting)
@@ -481,21 +506,23 @@
       const list = [];
       W.npcs.forEach(n => list.push({y: n.py, fn: () => {
         const spr = n.src.awake && Q.save.flag(n.src.awake.flag) ? n.src.awake.sprite : n.sprite;   // woken up: un-glitched (Hoot)
-        Q.draw(ctx, spr, n.px + 8 - 12 - cx, n.py + T - 28 + 2 - cy, {t: now, flip: n.face === 'left'});
-        if (n.id === 'reginald' && !Q.save.flag('reginaldAwake')) {
+        // `rest` (powered down to rest: the Big Number's shorter ending): dimmed, still, with a little "z" like Sir Reginald's
+        Q.draw(ctx, spr, n.px + 8 - 12 - cx, n.py + T - 28 + 2 - cy, {t: now, flip: n.face === 'left', alpha: n.src.rest ? .55 : undefined, frame: n.src.rest ? 0 : undefined});
+        if ((n.id === 'reginald' && !Q.save.flag('reginaldAwake')) || n.src.rest) {
           ctx.fillStyle = Q.css('q-white'); ctx.font = '8px "GN Quest", monospace';
           const z = Q.reduced() ? 0 : (now / 600) % 1;
           ctx.globalAlpha = 1 - z; ctx.fillText('z', n.px + 16 - cx + z * 6, n.py - 14 - cy - z * 8); ctx.globalAlpha = 1;
         }
       }}));
       (W.def.props || []).forEach(p => {                    // pictures standing on the floor (the attic's stage speaker)
-        if (p.if && !Q.save.flag(p.if)) return;
+        if (!Q.world.cond(p.if)) return;
         const d = Q.spriteDef(p.sprite) || {w: 16, h: 16};
-        list.push({y: p.at[1] * T, fn: () => Q.draw(ctx, p.sprite, p.at[0] * T + (d.w < T ? Math.floor((T - d.w) / 2) : 0) - cx, (p.at[1] + 1) * T - d.h - cy, {t: now, frame: p.frame})});   // (a small one: centred on its tile)
+        const fn = () => Q.draw(ctx, p.sprite, p.at[0] * T + (d.w < T ? Math.floor((T - d.w) / 2) : 0) - cx, (p.at[1] + 1) * T - d.h - (p.under ? 1 : 0) - cy, {t: now, frame: p.frame});   // (a small one: centred on its tile)
+        if (p.under) fn(); else list.push({y: p.at[1] * T, fn});           // `under`: on the floor, under everyone (the stage's spots)
       });
       W.ghosts.forEach(g => list.push({y: g.py, fn: () => {
-        const d = Q.spriteDef(g.type) || {w: 32, h: 32};
-        Q.draw(ctx, g.type, Math.round(g.px + 8 - d.w / 2 - cx), Math.round(g.py + T - d.h + 2 - cy + bob), {t: now});
+        const id = g.sprite || g.type, d = Q.spriteDef(id) || {w: 32, h: 32};      // (a map enemy's own `sprite`: the Big Number = Moose)
+        Q.draw(ctx, id, Math.round(g.px + 8 - d.w / 2 - cx), Math.round(g.py + T - d.h + 2 - cy + (g.sprite ? 0 : bob)), {t: now});
       }}));
       list.push({y: W.py + 0.5, fn: () => {
         // the character (32 × 32, feet on the tile): side view walking left/right, front walking down, back walking up

@@ -102,6 +102,10 @@
 .pz-s-manor{padding:10px 8px 16px;border-radius:12px 12px 0 0;border:2px solid var(--purple);border-bottom:12px solid var(--pz-wood-2);
   background:linear-gradient(115deg,transparent 30%,color-mix(in srgb,var(--purple-hi) 14%,transparent) 36%,transparent 42%),color-mix(in srgb,var(--purple-ink) 22%,var(--deep))}
 .pz-s-manor .pz-shead{color:var(--purple-hi)}
+/* THE STAGE COLLECTION (Ticket Booth Tina's exclusives): the same glass case, in theater velvet */
+.pz-s-stage{padding:10px 8px 16px;border-radius:12px 12px 0 0;border:2px solid var(--q-stage-velvet);border-bottom:12px solid var(--pz-wood-2);
+  background:linear-gradient(115deg,transparent 30%,color-mix(in srgb,var(--q-stage-glow) 14%,transparent) 36%,transparent 42%),color-mix(in srgb,var(--q-stage-velvet-d) 22%,var(--deep))}
+.pz-s-stage .pz-shead{color:var(--q-stage-glow)}
 
 /* one prize: the Locker's thumbnail + a paper price tag on a string */
 .pz-prize{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:clamp(104px,12vw,136px);min-height:44px;padding:8px 6px 6px;

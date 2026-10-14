@@ -15,7 +15,15 @@
      speaker  KSSSHHH: its grille glows red for a moment        speaker-pull  `pull`, through the speaker's grille
      marquee  the Showtime Stage's marquee at night, half its letters out ("SH WT ME"); one letter flickers slowly
               (well under 3 flashes a second)                   steps  you land on the theater's front steps
-   Reduced motion: no shaking, no flicker; the static stands still and nobody bounces (the sheet is already off). */
+   EPISODE 2's ENDINGS (build step 5: 'ep2-ending', 'ep2-ending-fade', 'ep2-mic', 'ep2-cliffhanger'):
+     stage-warm    the Main Stage from the audience: the five spotlights warm up one by one (each fades in over
+                   STAGE.warmS: slow, never a flash) and each band member un-glitches as their light comes on
+     stage-encore  the band plays the E♭ Encore with you: notes float up from each member, your band friends cheer
+     stage-rest    the band powered down to rest (dim, still); Maestro Moose alone in his light
+     stage-mic     the dark stage; the stage mic up front, its red light glowing (it grows over STAGE.micS, steady)
+     mic-dive      the red light dives down the mic's cable into the floor; the speakers at the sides crackle
+   Reduced motion: no shaking, no flicker; the static stands still and nobody bounces (the sheet is already off);
+   the stage lights are simply on, the notes hold still, the red light is already gone. */
 (function (A) {
   "use strict";
   const Q = A.Quest;
@@ -216,6 +224,98 @@
       bands(ctx, now, 3, .2);
     },
   };
+  /* ---------- EPISODE 2: THE MAIN STAGE (the endings) ---------- */
+  const STAGE = {warmS: 1, warmGap: .7, warmAt: .4, micS: 1.5, diveS: 1.6, scale: 1.5};
+  // the band, left to right (Moose in the middle): [glitched sprite, un-glitched sprite]
+  const BAND = [['npc-tusk', 'npc-tusk-ok'], ['npc-hoot', 'npc-hoot-ok'], ['npc-moose', 'npc-moose-ok'], ['npc-sal', 'npc-sal-ok'], ['npc-rico', 'npc-rico-ok']];
+  const bandX = i => 48 + i * 56;
+  /** the stage, seen from the audience (everything above the text box): the backdrop, the curtain drawn back, the boards,
+      the footlights; lit[i] 0–1 = how far member i's spotlight has warmed up */
+  function stageBack(ctx, lit, dark = 0) {
+    ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, Q.H);
+    ctx.fillStyle = Q.css('q-stage-coat'); ctx.fillRect(20, 0, Q.W - 40, 86);
+    for (let i = 0; i < 26; i++) { ctx.fillStyle = Q.css('q-stage-bulb-off'); ctx.fillRect(Math.floor(30 + rnd(i * 2.1) * (Q.W - 60)), Math.floor(4 + rnd(i * 5.3) * 60), 1, 1); }
+    ctx.fillStyle = Q.css('q-stage-board'); ctx.fillRect(0, 86, Q.W, 34);
+    ctx.fillStyle = Q.css('q-stage-board-d'); for (let y = 92; y < 120; y += 6) ctx.fillRect(0, y, Q.W, 1);
+    [0, 1].forEach(side => { for (let i = 0; i < 26; i++) {                                 // the red curtain, drawn back
+      ctx.fillStyle = Q.css(i % 6 < 3 ? 'q-stage-velvet' : 'q-stage-velvet-d'); ctx.fillRect(side ? Q.W - 1 - i : i, 0, 1, 112 - i * 1.6);
+    } });
+    ctx.fillStyle = Q.css('q-stage-velvet-d'); ctx.fillRect(0, 0, Q.W, 6);
+    lit.forEach((l, i) => {                                                                 // the spotlights (soft cones, then pools)
+      if (l <= 0) return;
+      ctx.globalAlpha = .22 * l; ctx.fillStyle = Q.css('q-stage-glow');
+      ctx.beginPath(); ctx.moveTo(bandX(i) - 6, 0); ctx.lineTo(bandX(i) + 6, 0); ctx.lineTo(bandX(i) + 26, 100); ctx.lineTo(bandX(i) - 26, 100); ctx.fill();
+      ctx.globalAlpha = .35 * l; ctx.beginPath(); ctx.ellipse(bandX(i), 99, 26, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    });
+    for (let x = 8; x < Q.W; x += 16) { ctx.fillStyle = Q.css('q-grey-d'); ctx.fillRect(x, 114, 6, 3); ctx.fillStyle = Q.css(dark > .5 ? 'q-stage-bulb-off' : 'q-stage-glow'); ctx.fillRect(x + 2, 113, 2, 1); }
+    if (dark > 0) { ctx.globalAlpha = dark; ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, 120); ctx.globalAlpha = 1; }
+  }
+  /** the band on stage: state 'glitch' | 'ok' | 'rest' per member (rest = dim and still, with a "z") */
+  function stageBand(ctx, now, states, {hop = false} = {}) {
+    const s = STAGE.scale;
+    states.forEach((st, i) => {
+      const y = 100 - 28 * s + (hop && st === 'ok' && !Q.reduced() ? Math.round(Math.abs(Math.sin(now / 280 + i)) * -3) : 0);
+      Q.draw(ctx, BAND[i][st === 'glitch' ? 0 : 1], Math.round(bandX(i) - 12 * s), Math.round(y), {scale: s, t: now, alpha: st === 'rest' ? .5 : 1, frame: st === 'rest' ? 0 : undefined});
+      if (st === 'rest') {
+        const z = Q.reduced() ? .3 : (now / 900 + i * .3) % 1;
+        ctx.fillStyle = Q.css('q-white'); ctx.font = '8px "GN Quest", monospace'; ctx.globalAlpha = .8 - z * .6;
+        ctx.fillText('z', bandX(i) + 10 + z * 6, 100 - 28 * s - z * 10); ctx.globalAlpha = 1;
+      }
+    });
+  }
+  /** the stage mic up front (glow 0–1: its red light) */
+  const MIC = {x: 148, y: 66, s: 2};                                                        // the stage mic, front and center (× 2)
+  function bigMic(ctx, glow, gone = false) {
+    Q.draw(ctx, 'stage-mic', MIC.x, MIC.y, {scale: MIC.s});
+    const lx = MIC.x + 6 * MIC.s, ly = MIC.y + 9.5 * MIC.s;
+    if (!gone && glow > 0) {
+      ctx.globalAlpha = .3 * glow; ctx.fillStyle = Q.css('q-stage-glow-red'); ctx.beginPath(); ctx.arc(lx, ly, 3 + 6 * glow, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = glow; ctx.fillRect(Math.round(lx - 2), Math.round(ly - 1), 4, 2); ctx.globalAlpha = 1;
+    }
+    if (gone) { ctx.fillStyle = Q.css('q-black'); ctx.fillRect(Math.round(lx - 2), Math.round(ly - 1), 4, 2); }
+  }
+  // which band is on stage after the battle (the best ending: awake; the shorter one: resting)
+  const routeBand = () => ((Q.save.get().route || {}).bignumber === 'fade' ? ['rest', 'rest', 'ok', 'rest', 'rest'] : ['ok', 'ok', 'ok', 'ok', 'ok']);
+  Object.assign(SHOW, {
+    'stage-warm'(ctx, now, t) {
+      const lit = BAND.map((b, i) => (Q.reduced() ? 1 : Q.clamp((t - STAGE.warmAt - i * STAGE.warmGap) / STAGE.warmS, 0, 1)));
+      stageBack(ctx, lit); stageBand(ctx, now, lit.map(l => (l > .5 ? 'ok' : 'glitch')));
+    },
+    'stage-encore'(ctx, now) {
+      stageBack(ctx, [1, 1, 1, 1, 1]); stageBand(ctx, now, ['ok', 'ok', 'ok', 'ok', 'ok'], {hop: true});
+      BAND.forEach((b, i) => { for (let k = 0; k < 2; k++) {                                  // notes float up from each member
+        const c = Q.reduced() ? .3 + k * .35 : ((now / 2600) + i * .21 + k * .5) % 1, x = bandX(i) + 14 + Math.round(Math.sin(c * 6 + i) * 3), y = Math.round(54 - c * 46);
+        ctx.globalAlpha = Math.min(1, Math.sin(c * Math.PI) * 1.4); ctx.fillStyle = Q.css(SCREENS[(i + k) % SCREENS.length]);
+        ctx.fillRect(x, y, 3, 2); ctx.fillRect(x + 2, y - 5, 1, 5); ctx.globalAlpha = 1;
+      } });
+      // you, in the middle, and the friends you brought, cheering (a little hop; still under reduced motion)
+      const friends = Q.band ? Q.band.members().slice(0, 2) : [];
+      friends.forEach((id, k) => Q.draw(ctx, id, k ? 200 : 88, 94 + (Q.reduced() ? 0 : Math.round(Math.abs(Math.sin(now / 240 + k)) * -4)), {t: now, frame: 2}));
+      playerAt(ctx, now, 136, 80, 1.5);                                                         // (in front of Maestro: he conducts you)
+    },
+    'stage-rest'(ctx, now) { stageBack(ctx, [0, 0, 1, 0, 0]); stageBand(ctx, now, ['rest', 'rest', 'ok', 'rest', 'rest']); },
+    'stage-mic'(ctx, now, t) {
+      stageBack(ctx, [0, 0, 0, 0, 0], .55); stageBand(ctx, now, routeBand());
+      ctx.globalAlpha = .55; ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, 120); ctx.globalAlpha = 1;
+      bigMic(ctx, Q.reduced() ? 1 : Math.min(1, t / STAGE.micS));
+    },
+    'mic-dive'(ctx, now, t) {
+      stageBack(ctx, [0, 0, 0, 0, 0], .55); stageBand(ctx, now, routeBand());
+      ctx.globalAlpha = .55; ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, 120); ctx.globalAlpha = 1;
+      bigMic(ctx, 0, true);
+      // the red light travels down the stand and into the floor (already gone under reduced motion)
+      const p = Q.reduced() ? 1 : Math.min(1, t / STAGE.diveS), lx = MIC.x + 6 * MIC.s, y0 = MIC.y + 9.5 * MIC.s, y = y0 + p * (114 - y0);
+      if (p < 1) { ctx.globalAlpha = .4; ctx.fillStyle = Q.css('q-stage-glow-red'); ctx.beginPath(); ctx.arc(lx, y, 7, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.fillRect(Math.round(lx - 2), Math.round(y - 2), 4, 4); }
+      ctx.fillStyle = Q.css('q-black'); ctx.beginPath(); ctx.ellipse(lx, 117, 9, 3, 0, 0, Math.PI * 2); ctx.fill();          // the hole it went down
+      [[24, 50], [Q.W - 44, 50]].forEach(([x, y]) => {                                         // the speakers at the sides, crackling
+        ctx.fillStyle = Q.css('q-stage-speaker'); ctx.fillRect(x, y, 20, 28); ctx.fillStyle = Q.css('q-stage-grille'); ctx.beginPath(); ctx.arc(x + 10, y + 16, 7, 0, Math.PI * 2); ctx.fill();
+      });
+      if (p >= 1 || Q.reduced()) { noise(ctx, now, 260, .25); bands(ctx, now, 3, .12); }
+    },
+  });
+  STAGE.lit = t => BAND.map((b, i) => (Q.reduced() ? 1 : Q.clamp((t - STAGE.warmAt - i * STAGE.warmGap) / STAGE.warmS, 0, 1)));   // tests
+  Q.storyStage = STAGE;
+
   /** the manor, celebrating: warm candlelight, your ghost friends bouncing, the Conductor conducting, confetti */
   function party(ctx, now, moving, {rise = 0} = {}) {
     ctx.fillStyle = Q.css('q-wall'); ctx.fillRect(0, 0, Q.W, 70);
@@ -288,7 +388,7 @@
     C = null;
     if (!next) Q.go('title');
     else if (next.id) Q.go('cutscene', next);
-    else if (next.credits) Q.go('credits', {first: next.first, whisperer: next.whisperer});
+    else if (next.credits) Q.go('credits', {first: next.first, whisperer: next.whisperer, ep: next.ep, showstopper: next.showstopper});
     else Q.go(next.scene, next.args);
   }
   Q.scenes.cutscene = {
@@ -312,13 +412,14 @@
   /* ---------- THE CREDITS (a short roll; SKIP, A or Esc skips) ---------- */
   let K = null;
   Q.scenes.credits = {
-    enter({first, whisperer}) {
+    // ep 2: Episode 2's roll (QUEST_CREDITS_EP2), then EPISODE 2 COMPLETE
+    enter({first, whisperer, ep, showstopper}) {
       Q.listen(false);
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-credits');
-      const list = (window.QUEST_CREDITS || []).map(c => `<div class="q-cr"><h3>${fillYou(c.h)}</h3>${c.lines.map(l => `<p>${fillYou(l)}</p>`).join('')}</div>`).join('');
+      const list = ((ep === 2 && window.QUEST_CREDITS_EP2) || window.QUEST_CREDITS || []).map(c => `<div class="q-cr"><h3>${fillYou(c.h)}</h3>${c.lines.map(l => `<p>${fillYou(l)}</p>`).join('')}</div>`).join('');
       Q.ui.innerHTML = `<div class="q-credits" role="region" aria-label="Credits"><div class="q-roll" id="qRoll">${list}</div></div>`;
-      K = {first, done: false};
-      const end = () => { if (!K || K.done) return; K.done = true; off(); removeEventListener('keydown', esc, true); Q.go('complete', {first, whisperer}); };
+      K = {first, ep: ep || 1, done: false};
+      const end = () => { if (!K || K.done) return; K.done = true; off(); removeEventListener('keydown', esc, true); Q.go('complete', {first, whisperer, ep, showstopper}); };
       const esc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); end(); } };
       addEventListener('keydown', esc, true);
       const off = Q.input.on(btn => { if (btn === 'a' || btn === 'b') { end(); return true; } return true; });
@@ -335,7 +436,10 @@
      stats, your save code, the UNLOCKED! card (Pixel Hero, the Baton), KEEP EXPLORING (the attic) / TITLE SCREEN ---------- */
   Q.scenes.complete = {
     // whisperer: the Ghost Conductor was the last manor ghost helped (the Ghost Whisperer's line; its items are on the card)
-    enter({first, whisperer}) {
+    // ep 2: EPISODE 2 COMPLETE (completeEp2 below)
+    enter({first, whisperer, ep, showstopper}) {
+      this.ep = ep || 1;
+      if (ep === 2) return completeEp2({first, showstopper});
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-victory');
       const s = Q.save.get(), code = Q.save.code();
       Q.save.achievements();
@@ -352,6 +456,30 @@
       if (first) Q.sfx('quest-levelup');
     },
     exit() { A.UI.results.hide(); },
-    draw(ctx, now) { party(ctx, now, true); },
+    draw(ctx, now) { if (this.ep === 2) SHOW[(Q.save.get().route || {}).bignumber === 'fade' ? 'stage-rest' : 'stage-encore'](ctx, now, 9); else party(ctx, now, true); },
   };
+  /* EPISODE 2 COMPLETE: the same shared results screen: the machines helped (befriended, powered down), battles,
+     level, the time played in Episode 2, the save code, the UNLOCKED! card (A.Skins.announce: the Showtime Stage, the
+     plate, the Top Hat; the Spotlight on the best ending with every kind befriended), KEEP EXPLORING (back onto the
+     Main Stage, beside the hole the cable went down) / TITLE SCREEN. Its words follow the ending, + the SHOWSTOPPER line
+     once every machine is helped. */
+  function completeEp2({first, showstopper}) {
+    if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-victory');
+    const s = Q.save.get(), code = Q.save.code(), keys = Q.save.ghosts(2).map(g => g.key), done = s.done || {};
+    Q.save.achievements();
+    const helped = keys.filter(k => done[k]).length, friends = keys.filter(k => done[k] === 'befriend').length, faded = keys.filter(k => done[k] === 'fade').length;
+    const mins = Math.max(1, Math.round(Q.save.played(2) / 60)), time = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
+    const best = (s.route || {}).bignumber !== 'fade';
+    const leave = then => { A.UI.results.hide(); then(); };
+    A.UI.results.show({gameId: 'arcade-quest', theme: 'q-theme', stars: null, title: 'Episode 2 complete!',
+      msg: 'The Showtime Stage has its band back. ' + (best ? 'The whole band played the E♭ Encore with you.'
+        : 'The band powered down to rest, and Maestro will wake them for the matinee. (HARMONIZE next time for the best ending!)') +
+        ' But the Microphone got away, down its cable...' + (showstopper ? ' ' + Q.text('showstopper') : ''),
+      tiles: [['Machines helped', `${helped} / ${keys.length}`], ['Befriended', friends], ['Powered down', faded], ['Battles', (s.battles || {}).won || 0], ['Level', s.level], ['Time', time]],
+      extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
+        `<p class="ui-howto">The theater is still yours to explore. Where does that cable go? Find out in Episode 3!</p>`,
+      next: {label: 'Keep exploring', onClick: () => leave(() => Q.go('world', {map: 'stage', x: 11, y: 7, dir: 'down'}))},
+      levels: {label: 'Title screen', onClick: () => leave(() => Q.go('title'))}});
+    if (first) Q.sfx('quest-levelup');
+  }
 })(window.Arcade);
