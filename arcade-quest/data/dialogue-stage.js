@@ -15,7 +15,7 @@
    microphone's Episode 2 whispers (QUEST_WHISPERS_EP2). */
 /* Professor Hoot's lesson (used twice in his `talk`: right after he wakes, and every visit until you pass) */
 const HOOT_TEACH = {if: 'hootAwake', do: 'teach-eb', lines: [
-  'Now then! The E♭ ENCORE: the concert E♭ scale, bottom to top. On the drum: 8 clean strokes.',
+  'Now then! The E♭ ENCORE: the concert E♭ scale, bottom to top.', 'On the drum: 8 clean strokes.',
   'Play it for me, one note at a time. Slowly! A scale is a staircase, not a slide.',
 ], yes: [
   'BRAVO! Hoo-hoo! Every step of the staircase! You know the E♭ Encore!',
@@ -88,9 +88,9 @@ Object.assign(window.QUEST_DIALOGUE, {
      the concert E♭ scale bottom to top, 75 % to pass = songEb; the snare: 8 clean strokes) */
   hoot: {name: 'Professor Hoot', sprite: 'npc-hoot', area: 'The Green Room', talk: [
     {if: 'songEb', cycle: [
-      ['Hoo! Practice your scales every day. Slowly first. The Encore loves a slow start.'],
+      ['Hoo! Practice your scales every day. Slowly first.', 'The Encore loves a slow start.'],
       ['Choose the E♭ Encore after PLAY in a battle. Your whole scale, hitting harder!'],
-      ['Long tones, then scales, then the fun stuff. That is the order of the universe. Hoo.'],
+      ['Long tones, then scales, then the fun stuff.', 'That is the order of the universe. Hoo.'],
       ['A scale played slowly and well beats a scale played fast and messy. Every time.'],
     ]},
     HOOT_TEACH,
@@ -109,7 +109,7 @@ Object.assign(window.QUEST_DIALOGUE, {
     {cycle: [
       ['Measure 12... measure 12... measure 12...'],
       ['Hoo! Still measure 12. A lovely measure. I know every dot in it.'],
-      ['A quieter theater, and I could teach you the E♭ Encore. ({n} machines helped. Measure 12...)'],
+      ['A quieter theater, and I could teach you the E♭ Encore.', '({n} machines helped. Measure 12...)'],
       ['Tip: read the rhythm BEFORE you play it. Hoo! ...measure 12...'],
     ]},
   ]},
