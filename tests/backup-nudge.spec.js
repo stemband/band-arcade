@@ -307,6 +307,10 @@ test.describe('Save your progress: the banner', () => {
     const store = player({total: 12, days: [MON]});
     store.gameData.floor = {last: 'note-storm'};
     const watch = await prepare(page, {store});
+    // an ASSIGNED game of the test's own: shared/featured.js is Mr. Graham's real assignment, whose `until` date is checked
+    // against the real clock (not ?today=), so it runs out while this test still wants the ASSIGNED card
+    await page.route('**/shared/featured.js*', r => r.fulfill({contentType: 'application/javascript',
+      body: "window.Arcade = window.Arcade || {}; window.Arcade.FEATURED = {game: 'lost-signal', note: 'Practice this week!', until: '2999-12-31'};"}));
     for (const [name, size] of Object.entries(Object.assign({phone: {width: 390, height: 844}}, VIEWPORTS))) {
       await page.setViewportSize(size);
       await lobby(page); await ready(page);

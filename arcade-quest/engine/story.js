@@ -10,7 +10,12 @@
      crackle  the party frozen in static                            mic     THE MYSTERIOUS MICROPHONE, huge
      black    nothing (a shot's `title` shows big words over it)
      rafters  THE DEFEAT ENDING: the manor lighting up while the Conductor drifts up into the rafters, fading
-   Reduced motion: no shaking, no flicker; the static stands still and nobody bounces. */
+   EPISODE 2's INTRO ('ep2-intro', data/dialogue-stage.js):
+     sheet    the attic: the dusty sheet slides off an old stage speaker as big as a wardrobe (its grille dark)
+     speaker  KSSSHHH: its grille glows red for a moment        speaker-pull  `pull`, through the speaker's grille
+     marquee  the Showtime Stage's marquee at night, half its letters out ("SH WT ME"); one letter flickers slowly
+              (well under 3 flashes a second)                   steps  you land on the theater's front steps
+   Reduced motion: no shaking, no flicker; the static stands still and nobody bounces (the sheet is already off). */
 (function (A) {
   "use strict";
   const Q = A.Quest;
@@ -69,6 +74,80 @@
     }
   }
   function playerAt(ctx, now, x, y, scale = 2, id) { Q.draw(ctx, id || `player-${me().id}-play`, x, y, {scale, t: now}); }
+  /** THE PULL (Episode 1's intro: the Ghost Notes cabinet; Episode 2's: the old stage speaker's grille): the screen
+      spirals inward and you shrink into it, then a white flash */
+  function pull(ctx, now, t, kind) {
+    ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, Q.H);
+    const spk = kind === 'speaker';
+    if (spk) {                                                                                // the speaker, close up
+      ctx.fillStyle = Q.css('q-stage-speaker'); ctx.fillRect(96, 0, 128, 130);
+      ctx.fillStyle = Q.css('q-stage-trim-d'); ctx.fillRect(96, 0, 128, 3); ctx.fillRect(96, 127, 128, 3);
+      ctx.fillStyle = Q.css('q-stage-grille'); ctx.beginPath(); ctx.arc(160, 61, 50, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = Q.css('q-stage-glow-red'); ctx.globalAlpha = .3; ctx.beginPath(); ctx.arc(160, 61, 50, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = Q.css('q-purple-d'); ctx.fillRect(96, 0, 128, 130);                       // the Ghost Notes cabinet, close up
+      ctx.fillStyle = Q.css('q-bar-5'); ctx.fillRect(100, 4, 120, 14);
+      ctx.fillStyle = Q.css('q-white'); ctx.font = '8px "GN Quest", monospace'; ctx.textAlign = 'center'; ctx.fillText('GHOST NOTES', 160, 14); ctx.textAlign = 'left';
+      ctx.fillStyle = Q.css('q-black'); ctx.fillRect(110, 26, 100, 70);
+    }
+    // the screen (or the grille): a glowing spiral pulling inward
+    const spin = Q.reduced() ? 0 : now / 400;
+    for (let r = 46; r > 2; r -= 5) {
+      ctx.strokeStyle = Q.css(spk ? (r % 10 ? 'q-stage-glow-red' : 'q-pink') : (r % 10 ? 'q-cursor' : 'q-purple')); ctx.globalAlpha = .25 + .6 * (1 - r / 46); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(160, 61, r * .7, spin + r * .2, spin + r * .2 + Math.PI * 1.3); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // you, pulled toward the screen and shrinking
+    const p = Q.reduced() ? Math.min(1, t / 3) : Math.min(1, (t / 3) ** 2), s = 2 - 1.6 * p;
+    Q.draw(ctx, `player-${me().id}`, Math.round(128 + 16 * (2 - s)), Math.round(96 - 40 * p - 32 * s + 16), {scale: s, t: now});
+    noise(ctx, now, 120, .35);
+    if (t > 2.6) { ctx.fillStyle = Q.css('q-white'); ctx.globalAlpha = Math.min(1, (t - 2.6) * 2) * .8; ctx.fillRect(0, 0, Q.W, Q.H); ctx.globalAlpha = 1; }
+  }
+  /** the attic at night (Episode 2's intro): the back wall, a moonlit window, the floorboards */
+  function attic(ctx) {
+    ctx.fillStyle = Q.css('q-wall-d'); ctx.fillRect(0, 0, Q.W, 80);
+    ctx.fillStyle = Q.css('q-trim-d'); ctx.fillRect(0, 76, Q.W, 4);
+    ctx.fillStyle = Q.css('q-plank-d'); ctx.fillRect(0, 80, Q.W, 100);
+    ctx.fillStyle = Q.css('q-plank'); for (let y = 90; y < Q.H; y += 12) ctx.fillRect(0, y, Q.W, 1);
+    ctx.fillStyle = Q.css('q-glass'); ctx.fillRect(28, 16, 30, 34);
+    ctx.fillStyle = Q.css('q-moon'); ctx.fillRect(46, 22, 6, 6);
+    ctx.fillStyle = Q.css('q-trim'); ctx.fillRect(42, 16, 2, 34); ctx.fillRect(28, 32, 30, 2);
+  }
+  /* the old stage speaker (sprite 'stage-speaker', 32 × 40, drawn × 2) and its cable into the wall; glow 0–1 = its
+     grille glowing red */
+  const SPK = {x: 128, y: 44, s: 2};
+  function speaker(ctx, glow) {
+    ctx.fillStyle = Q.css('q-black');                                                        // the cable, along the floor into the wall
+    ctx.fillRect(SPK.x + 60, SPK.y + 74, 70, 3); ctx.fillRect(SPK.x + 128, 70, 3, SPK.y + 7);
+    Q.draw(ctx, 'stage-speaker', SPK.x, SPK.y, {scale: SPK.s, frame: 0});
+    if (glow <= 0) return;
+    ctx.globalAlpha = glow * .35; ctx.fillStyle = Q.css('q-stage-glow-red');
+    ctx.beginPath(); ctx.ellipse(SPK.x + 32, SPK.y + 36, 50, 46, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = glow; Q.draw(ctx, 'stage-speaker', SPK.x, SPK.y, {scale: SPK.s, frame: 1}); ctx.globalAlpha = 1;
+  }
+  /* THE SHOWTIME STAGE's marquee: "SHOWTIME" in bulbs with the O and the I out ("SH WT ME"); the M flickers slowly
+     (off for 0.45 s about every 2.7 s: well under 3 flashes a second; steady under reduced motion) */
+  const MARQUEE = 'SHOWTIME', OUT = [2, 5], FLICKER = 6;
+  function marquee(ctx, now, {x = 40, y = 40, w = 240, h = 64, size = 26, sky = true} = {}) {
+    if (sky) {
+      ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, Q.H);
+      for (let i = 0; i < 40; i++) { ctx.fillStyle = Q.css(i % 3 ? 'q-grey-d' : 'q-grey'); ctx.fillRect(Math.floor(rnd(i * 3.3) * Q.W), Math.floor(rnd(i * 9.1) * 40), 1, 1); }
+      ctx.fillStyle = Q.css('q-stage-wall'); ctx.fillRect(0, y + h + 8, Q.W, Q.H - y - h - 8);   // the theater under it
+      ctx.fillStyle = Q.css('q-stage-trim'); ctx.fillRect(0, y + h + 8, Q.W, 2);
+    }
+    ctx.fillStyle = Q.css('q-stage-wall-d'); ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = Q.css('q-stage-trim'); ctx.fillRect(x, y, w, 2); ctx.fillRect(x, y + h - 2, w, 2); ctx.fillRect(x, y, 2, h); ctx.fillRect(x + w - 2, y, 2, h);
+    // the bulbs around the edge: steady (a few dead ones)
+    for (let bx = x + 5; bx < x + w - 3; bx += 8) [y + 4, y + h - 6].forEach(by => { ctx.fillStyle = Q.css(rnd(bx * 1.7 + by) < .2 ? 'q-stage-bulb-off' : 'q-stage-bulb'); ctx.fillRect(bx, by, 2, 2); });
+    const off = !Q.reduced() && Math.floor(now / 450) % 6 === 3;
+    ctx.font = `${size}px "GN Quest", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    [...MARQUEE].forEach((ch, i) => {
+      const lx = x + w * (i + .5) / MARQUEE.length, ly = y + h / 2 + 1, dead = OUT.includes(i) || (i === FLICKER && off);
+      if (!dead) { ctx.globalAlpha = .3; ctx.fillStyle = Q.css('q-stage-glow'); ctx.fillText(ch, lx + 1, ly + 1); ctx.globalAlpha = 1; }
+      ctx.fillStyle = Q.css(dead ? 'q-stage-bulb-off' : 'q-stage-bulb'); ctx.globalAlpha = dead ? .45 : 1; ctx.fillText(ch, lx, ly); ctx.globalAlpha = 1;
+    });
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
 
   /* ---------- the pictures ---------- */
   const SHOW = {
@@ -76,24 +155,45 @@
     arcade(ctx, now) { arcade(ctx, now); playerAt(ctx, now, 128, 60); },
     glitch(ctx, now, t) { arcade(ctx, now, {glitch: Math.min(.8, .2 + t / 3)}); playerAt(ctx, now, 128, 60); bands(ctx, now, 3, .15); },
     drain(ctx, now, t) { arcade(ctx, now, {glitch: .6}); playerAt(ctx, now, 128, 60); drain(ctx, Math.min(1, t / 2.5)); noise(ctx, now, 500, .45); bands(ctx, now, 4, .2); },
-    pull(ctx, now, t) {
-      ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, Q.H);
-      ctx.fillStyle = Q.css('q-purple-d'); ctx.fillRect(96, 0, 128, 130);                       // the Ghost Notes cabinet, close up
-      ctx.fillStyle = Q.css('q-bar-5'); ctx.fillRect(100, 4, 120, 14);
-      ctx.fillStyle = Q.css('q-white'); ctx.font = '8px "GN Quest", monospace'; ctx.textAlign = 'center'; ctx.fillText('GHOST NOTES', 160, 14); ctx.textAlign = 'left';
-      ctx.fillStyle = Q.css('q-black'); ctx.fillRect(110, 26, 100, 70);
-      // the screen: a glowing spiral pulling inward
-      const spin = Q.reduced() ? 0 : now / 400;
-      for (let r = 46; r > 2; r -= 5) {
-        ctx.strokeStyle = Q.css(r % 10 ? 'q-cursor' : 'q-purple'); ctx.globalAlpha = .25 + .6 * (1 - r / 46); ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(160, 61, r * .7, spin + r * .2, spin + r * .2 + Math.PI * 1.3); ctx.stroke();
+    pull(ctx, now, t) { pull(ctx, now, t, 'cabinet'); },
+    // EPISODE 2's INTRO: the attic's old stage speaker
+    sheet(ctx, now, t) {
+      attic(ctx); speaker(ctx, 0);
+      // the sheet slides off to the right and lands in a heap (already there under reduced motion)
+      const p = Q.reduced() ? 1 : Math.min(1, t / 1.6), e = 1 - (1 - p) * (1 - p);
+      const x0 = SPK.x - 6 + e * 112, bottom = SPK.y + 84, w = 76 - e * 4, h = 88 - e * 68;
+      // a draped shape (flat on top, rounded corners) that becomes a soft heap on the floor; folds down its front
+      const k = 8 - 6 * e;
+      for (let i = 0; i < w; i++) {
+        const u = Math.abs(2 * i / w - 1), col = Math.round(h * Math.sqrt(Math.max(0, 1 - u ** k))), top = bottom - col;
+        ctx.fillStyle = Q.css(i % Math.max(6, Math.round(w / 5)) === 0 ? 'q-ghost-d' : 'q-ghost'); ctx.fillRect(Math.round(x0 + i), top, 1, col);
+        ctx.fillStyle = Q.css('q-ghost-d'); ctx.fillRect(Math.round(x0 + i), Math.round(top + col * .65), 1, Math.ceil(col * .35));
       }
-      ctx.globalAlpha = 1;
-      // you, pulled toward the screen and shrinking
-      const p = Q.reduced() ? Math.min(1, t / 3) : Math.min(1, (t / 3) ** 2), s = 2 - 1.6 * p;
-      Q.draw(ctx, `player-${me().id}`, Math.round(128 + 16 * (2 - s)), Math.round(96 - 40 * p - 32 * s + 16), {scale: s, t: now});
-      noise(ctx, now, 120, .35);
-      if (t > 2.6) { ctx.fillStyle = Q.css('q-white'); ctx.globalAlpha = Math.min(1, (t - 2.6) * 2) * .8; ctx.fillRect(0, 0, Q.W, Q.H); ctx.globalAlpha = 1; }
+    },
+    speaker(ctx, now, t) {
+      const jolt = !Q.reduced() && t < .8;
+      if (jolt) { ctx.save(); ctx.translate(Math.round(rnd(Math.floor(now / 50)) * 4 - 2), 0); }
+      attic(ctx); speaker(ctx, Math.min(1, t / .6));
+      if (jolt) ctx.restore();
+      bands(ctx, now, 2, .15);
+    },
+    'speaker-pull'(ctx, now, t) { pull(ctx, now, t, 'speaker'); },
+    marquee(ctx, now) { marquee(ctx, now); },
+    steps(ctx, now) {
+      // (everything above the text box: it covers the bottom third)
+      ctx.fillStyle = Q.css('q-void'); ctx.fillRect(0, 0, Q.W, Q.H);
+      ctx.fillStyle = Q.css('q-stage-wall'); ctx.fillRect(40, 4, 240, 92);                      // the theater's front
+      ctx.fillStyle = Q.css('q-stage-trim'); ctx.fillRect(40, 4, 240, 2); ctx.fillRect(40, 94, 240, 2);
+      marquee(ctx, now, {x: 80, y: 8, w: 160, h: 26, size: 13, sky: false});
+      [[116, 44], [164, 44]].forEach(([x, y]) => {                                           // two doors, warm light behind
+        ctx.fillStyle = Q.css('q-stage-trim-d'); ctx.fillRect(x - 2, y - 2, 44, 54);
+        ctx.fillStyle = Q.css('q-stage-glow'); ctx.globalAlpha = .85; ctx.fillRect(x, y, 40, 52); ctx.globalAlpha = 1;
+        ctx.fillStyle = Q.css('q-stage-trim'); ctx.fillRect(x + 19, y, 2, 52);
+      });
+      for (let i = 0; i < 3; i++) { ctx.fillStyle = Q.css(i % 2 ? 'q-stage-board-d' : 'q-stage-board'); ctx.fillRect(34 - i * 8, 96 + i * 9, Q.W - 68 + i * 16, 9); }   // the steps
+      ctx.fillStyle = Q.css('q-stage-carpet'); ctx.fillRect(144, 96, 32, 27);                 // the red carpet up the middle
+      ctx.fillStyle = Q.css('q-stage-runner'); ctx.fillRect(144, 96, 2, 27); ctx.fillRect(174, 96, 2, 27);
+      Q.draw(ctx, `player-${me().id}-back`, 128, 58, {scale: 2, t: now});
     },
     party(ctx, now) { party(ctx, now, true); },
     rafters(ctx, now, t) { party(ctx, now, true, {rise: Math.min(1, t / 4)}); },
@@ -246,7 +346,7 @@
           : 'The Ghost Conductor joined your band.') + (whisperer ? ' ' + Q.text('ghostWhisperer') : ''),
         tiles: [['Level', s.level], ['Band friends', s.roster.length], ['Tokens', A.Tokens.balance()], ['Ghosts helped', Q.save.helped()]],
         extra: (code ? `<p class="ui-label">Your save code</p><p class="q-code">${code}</p>` : '') +
-          `<p class="ui-howto">The manor is still yours to explore. Episode 2 is coming...</p>`,
+          `<p class="ui-howto">The manor is still yours to explore. Episode 2 is open: look under the dusty sheet in the attic!</p>`,
         next: {label: 'Keep exploring', onClick: () => leave(() => Q.go('world', {map: 'attic', x: 7, y: 8, dir: 'up'}))},
         levels: {label: 'Title screen', onClick: () => leave(() => Q.go('title'))}});      // (announce: Pixel Hero, the Baton)
       if (first) Q.sfx('quest-levelup');

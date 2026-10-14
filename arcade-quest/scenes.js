@@ -1,6 +1,8 @@
 /* ARCADE QUEST: the TITLE screen and the TEST ARENA.
    TITLE: "ARCADE QUEST: THE MYSTERIOUS MICROPHONE" over the microphone's 8-bit silhouette in static.
-   CONTINUE (back to your last Save Jukebox in Ghost Notes Manor), NEW GAME (the intro cutscene, then Episode 1 from
+   CONTINUE (back to your last Save Jukebox, in whichever episode it is), EPISODES (only once Episode 1 is finished:
+   EPISODE SELECT, "Episode 1: Ghost Notes Manor ✓" = the Foyer's jukebox, "Episode 2: The Showtime Stage" = its intro
+   the first time, then its last jukebox: world.js Q.episodes), NEW GAME (the intro cutscene, then Episode 1 from
    the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, YOUR PLAYER
    (Create Your Player: your look and name, shared/avatar-creator.js), and TEST
    ARENA (only with ?demo or ?test). The title music is quest-title. While the audio is still locked (the first visit
@@ -11,6 +13,8 @@
 (function (A) {
   "use strict";
   const Q = A.Quest;
+  // Episode 2 is still being built: the title says so (remove with build step 5, THE BIG NUMBER + ENDING)
+  const SOON = '(coming soon: the theater is still being built)';
   const TYPE_NAME = {play: 'PLAY', longtone: 'LONG TONE', articulate: 'ARTICULATE', vocab: 'VOCAB', fingering: 'FINGERING'};
   let player = null;
   const me = () => (player = Q.playerId(A.currentMember().id));
@@ -23,17 +27,28 @@
     enter() {
       me();
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-title');
+      // Episode 2 opens only after Episode 1 (ep1Done; an old save that finished it sees it at once); until then the
+      // title is exactly as it always was
+      const ep2 = Q.episodes.unlocked(2);
       Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest:</small>The Mysterious Microphone</h1>` +
-        `<p class="q-ep">Episode 1: Ghost Notes Manor</p><div id="qTitleMenu"></div></div>`;
+        `<p class="q-ep">${ep2 ? `Episode 2: The Showtime Stage <span class="q-ep-soon">${SOON}</span>` : 'Episode 1: Ghost Notes Manor'}</p><div id="qTitleMenu"></div></div>`;
       const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
       const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
-      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat([{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
+      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat(ep2 ? [{id: 'episodes', label: 'Episodes'}] : [], [{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
         [{id: 'settings', label: 'Settings'}], A.AvatarCreator ? [{id: 'avatar', label: 'Your player'}] : [], testing ? [{id: 'arena', label: 'Test Arena'}] : []);
+      if (items.length > 6) { Q.$('qTitleMenu').classList.add('q-many'); Q.ui.querySelector('.q-title').classList.add('q-many'); }   // 4 rows: shorter buttons
       // NEW GAME: the intro cutscene (skippable), then the Foyer
       const newGame = () => { Q.save.reset(); Q.save.setFlag('seen-intro'); Q.go('cutscene', {id: 'intro', next: {scene: 'world', args: {map: 'foyer', intro: true}}}); };
-      const menu = () => {
-        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 2, label: 'Title menu', onPick: it => {
+      /* EPISODE SELECT: the title menu's place shows the episodes; B or BACK = the title menu again */
+      const episodes = () => {
+        const list = [{id: 1, label: 'Episode 1: Ghost Notes Manor ✓'}, {id: 2, label: 'Episode 2: The Showtime Stage', sub: SOON}, {id: 'back', label: 'Back'}];
+        const e = Q.menu(Q.$('qTitleMenu'), list, {cols: 1, label: 'Episodes', cls: 'q-episodes', onBack: () => { e.destroy(); menu('episodes'); },
+          onPick: it => { e.destroy(); if (it.id === 'back') menu('episodes'); else Q.episodes.go(it.id); }});
+      };
+      const menu = (from) => {
+        const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 2, label: 'Title menu', start: from ? Math.max(0, items.findIndex(x => x.id === from)) : 0, onPick: it => {
           if (it.id === 'continue') { m.destroy(); Q.go('world', {continue: true}); }
+          else if (it.id === 'episodes') { m.destroy(); episodes(); }
           else if (it.id === 'arena') { m.destroy(); Q.go('arena'); }
           else if (it.id === 'settings') Q.settings.open().then(me);
           else if (it.id === 'avatar') A.AvatarCreator.open({onClose: () => { me(); const b = Q.$('qTitleMenu').querySelector('.q-btn:nth-child(' + (items.findIndex(x => x.id === 'avatar') + 1) + ')'); if (b) b.focus(); }});   // Create Your Player
@@ -46,7 +61,7 @@
         }});
         // CONTINUE (or NEW GAME) glows, has the focus and gets the idle hint (shared/level-select.js)
         const first = Q.$('qTitleMenu').querySelector('.q-btn');
-        if (A.LevelSelect && first) A.LevelSelect.highlight({screen: Q.$('qTitleMenu'), el: first});
+        if (A.LevelSelect && first && !from) A.LevelSelect.highlight({screen: Q.$('qTitleMenu'), el: first});
       };
       // PRESS START while the audio is still locked: browsers allow sound only after a tap, so the first tap on this
       // page starts the title music (shared/sfx.js unlocks on that same tap) instead of leaving the title at once

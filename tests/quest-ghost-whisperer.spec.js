@@ -95,7 +95,7 @@ async function ghostLog(page) {
 
 test('the list: the 20 placed ghosts, from the maps (never the Practice Hall); progress() counts the same ones', async ({page}) => {
   const watch = await boot(page, store(null));
-  const r = await page.evaluate(() => ({keys: Arcade.Quest.save.ghosts().map(g => g.key), maps: Object.keys(window.QUEST_MAPS).filter(id => window.QUEST_MAPS[id].practice),
+  const r = await page.evaluate(() => ({keys: Arcade.Quest.save.ghosts().map(g => g.key), maps: Object.keys(window.QUEST_MAPS).filter(id => window.QUEST_MAPS[id].practice && !window.QUEST_MAPS[id].ep),
     quest: Arcade.Backup.QUEST_V1.ghosts.map(g => g[0])}));
   expect(r.keys.slice().sort()).toEqual(ALL.slice().sort());
   expect(r.keys.some(k => k.startsWith('practice:'))).toBe(false);

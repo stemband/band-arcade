@@ -228,5 +228,67 @@
     ]
    }
   }
+ },
+ "v5": {
+  "code": "CG886-93J24-65BU2-CJK2B-26WAA-G2222-262A2-J2282-22222-2A222-26222-22222-224BZ",
+  "fields": {
+   "level": 14,
+   "xp": 99,
+   "tokens": 4321,
+   "items": {
+    "valve-oil": 4,
+    "tuning-slide": 2,
+    "baton": 1
+   },
+   "roster": [
+    "wisp",
+    "squeaker",
+    "wobble",
+    "conductor"
+   ],
+   "flags": {
+    "songBb": true,
+    "reginaldAwake": true,
+    "ep1Done": true,
+    "seen-intro": true
+   },
+   "done": {
+    "hall:w2": "befriend",
+    "hall:s1": "befriend",
+    "ballroom:b1": "befriend",
+    "kitchen:c1": "fade",
+    "attic:boss": "befriend"
+   },
+   "world": {
+    "map": "foyer",
+    "x": 18,
+    "y": 3,
+    "dir": "up"
+   },
+   "convertedLeft": 312,
+   "charms": {
+    "owned": {
+     "golden-mouthpiece": true,
+     "echo-chime": true
+    },
+    "equipped": [
+     "golden-mouthpiece",
+     "echo-chime"
+    ]
+   },
+   "cosmetics": {
+    "owned": [
+     "bg:fireflies",
+     "pet:penguin",
+     "hand:tumbler-lime",
+     "hand:icepop",
+     "top:hawaiian"
+    ],
+    "worn": [
+     "pet:penguin",
+     "hand:icepop"
+    ]
+   }
+  }
  }
 }

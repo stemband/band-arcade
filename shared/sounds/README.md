@@ -621,3 +621,13 @@ upload a file, that part of the game is simply quiet.
 | `quest-static` | `quest-static.m4a` or `quest-static.mp3` | Arcade Quest: static crackles (the intro glitch, color draining away). | 0.5–1.5 s |
 | `quest-mic-crackle` | `quest-mic-crackle.m4a` or `quest-mic-crackle.mp3` | Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening. | 0.5–2 s |
 | `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: the Ghost Conductor starts a new phase of the battle (never while listening). | 0.5–1 s |
+
+**Arcade Quest, Episode 2: The Showtime Stage** (in progress: each room gets its slot as it is built). Until a file is
+uploaded, the slot plays the track named in the last column, so nothing goes silent. The Sound Board lists the rooms
+under "Arcade Quest — Episode 2 Rooms".
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `quest-ep2-intro` | `quest-ep2-intro.m4a` or `quest-ep2-intro.mp3` | Episode 2's intro cutscene (the attic's old stage speaker, the pull, the Showtime Stage's flickering marquee). Until it is uploaded: `quest-intro`. **loops** | 20–60 s loop |
+| `quest-room-lobby` | `quest-room-lobby.m4a` or `quest-room-lobby.mp3` | Episode 2: the Lobby of the Showtime Stage (the safe hub). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
+| `quest-room-greenroom` | `quest-room-greenroom.m4a` or `quest-room-greenroom.mp3` | Episode 2: the Green Room (the practice room). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |

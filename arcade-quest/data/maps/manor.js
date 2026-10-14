@@ -11,15 +11,22 @@
      O  an opening in the wall (walk into it, like a door)     v  an old instrument case (furniture)
    IN EACH ROOM:
      doors    {at: [x, y], to: room id, spawn: [x, y] where you appear, dir: 'up'|'down'|'left'|'right',
-               need: a flag (locked until then; `locked` says why)}. On an L tile it's a locked door; on a K tile a cracked
+               need: a flag (locked until then; `locked` says why), soon: a sign shown while room `to` isn't built yet}. On an L tile it's a locked door; on a K tile a cracked
                wall that opens when the flag is set (ALTERNATE ROUTES: data/enemies.js `opensIfFaded`). x counts from 0 at the left, y from 0 at the top.
      npcs     {id (data/dialogue.js), at, sprite?, moved: {flag, at} (where they stand once that flag is set)}
      enemies  {key (unique in the room: saved when you help that ghost), type (data/enemies.js), at, happy?, wander (tiles)}
-     things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop',
+     things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop' | 'speaker'
+               (the attic's old stage speaker: the way into Episode 2), keeper?: who runs that booth or shop (a
+               data/dialogue.js id; default Terry / Rusty),
                charm?: a charm hidden here (data/items.js QUEST_CHARMS; it twinkles until found), found?: the sign said then}
      floor    the floor tile drawn under furniture (tiles with over: true), e.g. '_' in the Kitchen (default '.')
+     props    pictures drawn standing on the floor, y-sorted with everyone: {at: [x, y] (the tile its bottom stands on),
+              sprite, frame?: a fixed frame (else it animates), if?: a flag (only once it's set)}: the attic's stage speaker once its sheet is pulled off
      music    a music event (shared/sounds.js); fog: true = drifting fog over the whole room; practice: true = its
-              ghosts come back every visit (the Practice Hall). */
+              ghosts come back every visit (the Practice Hall); ep: the episode (left out = 1; data/maps/stage.js = 2).
+   TILE FLAGS in QUEST_TILES: solid (can't walk), over (furniture drawn on the room's floor), door (a door tile:
+   ghosts never wander onto it), open (a closed door's char: the tile it shows once its door's `need` is set),
+   peek (the giant microphone shows in it for a moment during a whisper: windows, curtains). */
 window.QUEST_TILES = {
   ' ': {sprite: 'tile-void', solid: true},
   X: {sprite: 'tile-cap', solid: true},
@@ -28,12 +35,12 @@ window.QUEST_TILES = {
   p: {sprite: 'tile-portrait', solid: true},
   q: {sprite: 'tile-portrait2', solid: true},
   n: {sprite: 'tile-portrait3', solid: true},
-  w: {sprite: 'tile-window', solid: true},
+  w: {sprite: 'tile-window', solid: true, peek: true},
   C: {sprite: 'tile-clock', solid: true},
   f: {sprite: 'tile-fireplace', solid: true},
-  D: {sprite: 'tile-door'},
-  L: {sprite: 'tile-locked', solid: true},
-  M: {sprite: 'tile-mat'},
+  D: {sprite: 'tile-door', door: true},
+  L: {sprite: 'tile-locked', solid: true, door: true, open: 'D'},
+  M: {sprite: 'tile-mat', door: true},
   '.': {sprite: 'tile-floor'},
   ',': {sprite: 'tile-carpet'},
   _: {sprite: 'tile-check'},
@@ -54,7 +61,7 @@ window.QUEST_TILES = {
   a: {sprite: 'tile-cabinet', over: true, solid: true},
   e: {sprite: 'tile-sheet', over: true, solid: true},
   z: {sprite: 'tile-cable', over: true},
-  K: {sprite: 'tile-cracked', solid: true},
+  K: {sprite: 'tile-cracked', solid: true, open: 'O'},
   O: {sprite: 'tile-hole'},
   v: {sprite: 'tile-case', over: true, solid: true},
 };
@@ -285,7 +292,8 @@ window.QUEST_MAPS = {
   /* 7. THE ATTIC: its door opens when the Phantom Fermata is HARMONIZED (atticOpen); the Hidden Passage's secret stair
      comes up behind its cracked wall when the Fermata was DEFEATED instead (atticPassage). THE GHOST CONDUCTOR (the final boss) waits at his
      podium. Befriending him ends Episode 1 (the ending, the cliffhanger and the credits: engine/story.js). The
-     dusty sheet hides something big with a cable... (Episode 2). A Save Jukebox by the door. */
+     dusty sheet hides something big with a cable: after Episode 1, the old stage speaker that pulls you into Episode 2.
+     A Save Jukebox by the door. */
   attic: {
     name: 'The Attic', music: 'quest-manor', fog: true,
     tiles: [
@@ -304,11 +312,13 @@ window.QUEST_MAPS = {
       {at: [14, 1], to: 'passage', spawn: [6, 2], dir: 'down', need: 'atticPassage', locked: 'attic-crack'}],
     npcs: [],
     things: [
-      {at: [5, 3], say: 'attic-sheet'}, {at: [6, 3], say: 'attic-sheet'}, {at: [5, 4], say: 'attic-sheet'}, {at: [6, 4], say: 'attic-sheet'},
+      // the dusty sheet: after Episode 1 it hides THE OLD STAGE SPEAKER, the way into Episode 2 (engine/talk.js 'speaker')
+      {at: [5, 3], say: 'attic-sheet', use: 'speaker'}, {at: [6, 3], say: 'attic-sheet', use: 'speaker'}, {at: [5, 4], say: 'attic-sheet', use: 'speaker'}, {at: [6, 4], say: 'attic-sheet', use: 'speaker'},
       {at: [2, 1], say: 'attic-window'}, {at: [13, 1], say: 'attic-window'}, {at: [3, 6], say: 'attic-end'}, {at: [10, 4], say: 'attic-cable'},
       {at: [2, 2], say: 'jukebox', use: 'jukebox'},
     ],
     enemies: [{key: 'boss', type: 'conductor', at: [10, 6], wander: 0, size: 3}],
+    props: [{at: [5, 4], sprite: 'stage-speaker', frame: 0, if: 'ep2Start'}],     // the sheet pulled off (Episode 2's intro)
   },
 
   /* 8. THE HIDDEN PASSAGE (the ALTERNATE ROUTE): behind the cracked wall of the Attic Stairs, opened by DEFEATING the

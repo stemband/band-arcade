@@ -87,6 +87,7 @@ Games and tools (`docs/games/`, one per game id in `shared/games.js`):
 | [dojo-duel.md](docs/games/dojo-duel.md) | Dojo Duel (`dojo-duel/`) |
 | [blocktave.md](docs/games/blocktave.md) | Blocktave (`blocktave/`) |
 | [arcade-quest.md](docs/games/arcade-quest.md) | Arcade Quest (`arcade-quest/`) |
+| [arcade-quest-ep2-plan.md](docs/games/arcade-quest-ep2-plan.md) | Arcade Quest Episode 2, The Showtime Stage: the approved story bible and build plan (what each build step makes, the ids it reserves) |
 | [note-checker.md](docs/games/note-checker.md) | TUNE UP, the toolbox (`note-checker/`): the Note Checker, the Tuner, the Metronome |
 
 ## Adding a game (short)
