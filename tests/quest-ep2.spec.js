@@ -495,13 +495,13 @@ test('every Episode 2 line fits the text box (≤ 80 characters) and every new s
   });
   expect(r.long).toEqual([]);
   expect(r.missing).toEqual([]);
-  expect(r.n).toBe(100);         // 72 tiles (+ the Main Stage's 3), the speaker, 7 NPCs + Hoot, Moose, Tubby, Sal and Rico (x2) awake, 8 machines + Rico, 5 dodge pieces
+  expect(r.n).toBe(99);          // the tiles (+ the Main Stage's new ones, build step 5), the speaker, 7 NPCs + Hoot, Moose, Tubby, Sal and Rico (x2) awake, 8 machines + Rico, 5 dodge pieces
   watch.check();
 });
 
 test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame), the stage speaker, the Main Stage\'s pieces, THE BIG NUMBER and the new avatar items at 4× (docs/gallery/aq-ep2-sprites.png)', async ({page}) => {
   test.skip(!process.env.GALLERY, 'only with GALLERY=1');
-  await page.setViewportSize({width: 1400, height: 2300});
+  await page.setViewportSize({width: 1400, height: 2700});
   const watch = await boot(page, store(save(false)));
   await page.evaluate(() => {
     const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|stage-(glitch|spot|mic|hole)$|moose-note|npc-(moose|hoot|tina|pete|tusk|sal|rico)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot|rico|borrow-note|borrow-case|bignumber|tuba-bubble|flurry-shot|stick-shot)$)/.test(id));
@@ -521,8 +521,8 @@ test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every 
     // build step 5's avatar items: the bust (big) and the full body from the front, the side and the back, each worn alone
     const A = Arcade, base = Object.assign(A.Avatar.get(), {bg: 'none', effect: 'none', pet: 'none', back: 'none', top: 'tee', hand: 'none', head: 'none', plate: 'none'});
     [['head', 'showtophat'], ['head', 'bulbband'], ['head', 'usher'], ['top', 'bowtie'], ['top', 'showsash'], ['effect', 'spotlight'], ['bg', 'showtimestage'], ['plate', 'encore'], ['plate', 'showstopper']].forEach(([f, id]) => {
-      const av = Object.assign({}, base, {[f]: id}), box = document.createElement('figure'); box.style.cssText = 'margin:0;text-align:center;width:300px';
-      box.innerHTML = `<div style="display:flex;gap:6px;align-items:flex-end;justify-content:center">${A.avatarHTML({size: 'big', avatar: av, label: ''})}</div>`;
+      const av = Object.assign({}, base, {[f]: id}), box = document.createElement('figure'); box.style.cssText = 'margin:0;text-align:center;width:220px';
+      box.innerHTML = `<div style="display:flex;gap:6px;align-items:flex-end;justify-content:center">${A.avatarHTML({size: 'tile', avatar: av, label: ''})}</div>`;
       if (f === 'plate') box.innerHTML += `<span class="av-plate av-plate-${id}" style="display:inline-block;margin-top:6px">${A.Avatar.nameOf(av)}</span>`;
       const sp = A.Avatar.sprites('trumpet', {avatar: av}), row = document.createElement('div'); row.style.cssText = 'display:flex;gap:6px;justify-content:center;margin-top:4px';
       ['-front', '', '-back'].forEach(v => { const c = document.createElement('canvas'), fr = sp[v].frames[0]; c.width = fr.width * 3; c.height = fr.height * 3; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(fr, 0, 0, c.width, c.height); row.appendChild(c); });

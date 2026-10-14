@@ -265,7 +265,8 @@ test('the Spirit Lantern: drawn (bust and full body), 4 gentle frames, the ghost
     s.remove();
     // the avatar code: both ids at the END of their lists, and back again
     const T = f => A.avatarCode.TABLE.find(t => t[0] === f)[2];
-    out.table = [T('hand').slice(-1)[0], T('plate').slice(-1)[0]];
+    // (appended in order; later items, Episode 2's plates, come after them)
+    out.table = [T('hand')[T('hand').indexOf('spiritlantern')], T('plate')[T('plate').indexOf('candycorn') + 1]];
     const both = Object.assign({}, base, {hand: 'spiritlantern', plate: 'ghostwhisperer'}), back = A.avatarCode.decode(A.avatarCode.encode(both));
     out.code = [(back.avatar || back).hand, (back.avatar || back).plate];
     out.plateUnlock = P.PLATES.find(p => p.id === 'ghostwhisperer').unlock;
