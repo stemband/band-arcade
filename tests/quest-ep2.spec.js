@@ -501,7 +501,7 @@ test('every Episode 2 line fits the text box (≤ 80 characters) and every new s
 
 test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame) and the stage speaker at 4× (docs/gallery/aq-ep2-sprites.png)', async ({page}) => {
   test.skip(!process.env.GALLERY, 'only with GALLERY=1');
-  await page.setViewportSize({width: 1400, height: 2200});
+  await page.setViewportSize({width: 1400, height: 1240});
   const watch = await boot(page, store(save(false)));
   await page.evaluate(() => {
     const Q = Arcade.Quest, S = window.QUEST_ART.SPRITES, ids = Object.keys(S).filter(id => /^(tile-st-|stage-speaker|npc-(moose|hoot|tina|pete|tusk|sal)|(tapsy|spotlight|feedback|confetti|metrognome|stubs|ropeknot|miclet|tap-shot|squeal-shot|stub-shot)$)/.test(id));
