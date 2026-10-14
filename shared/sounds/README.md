@@ -612,6 +612,10 @@ upload a file, that part of the game is simply quiet.
 | `quest-ep2-boss` | `quest-ep2-boss.m4a` or `quest-ep2-boss.mp3` | Arcade Quest Episode 2: the final boss battle (THE BIG NUMBER: the whole Showtime Band, glitched). Until it is uploaded: `quest-boss`. **loops** | 30–90 s loop |
 | `quest-encore` | `quest-encore.m4a` or `quest-encore.mp3` | Arcade Quest Episode 2: the ending, the band plays the E♭ Encore with you (ideally an E♭ major tune). Until it is uploaded: `quest-victory`. **loops** | 20–60 s loop |
 | `quest-ep2-cliffhanger` | `quest-ep2-cliffhanger.m4a` or `quest-ep2-cliffhanger.mp3` | Arcade Quest Episode 2: the cliffhanger (Madame Mezzo through a speaker, TO BE CONTINUED IN EPISODE 3). Low and eerie. Until it is uploaded: `quest-cliffhanger`. **loops** | 15–40 s loop |
+| `quest-ep2-battle` | `quest-ep2-battle.m4a` or `quest-ep2-battle.mp3` | Arcade Quest Episode 2: every machine battle. Until it is uploaded: `quest-battle`. **loops** | 30–90 s loop |
+| `quest-ep2-title` | `quest-ep2-title.m4a` or `quest-ep2-title.mp3` | Arcade Quest: the title screen once Episode 2 is open. Until it is uploaded: `quest-title`. **loops** | 30–90 s loop |
+| `quest-ep2-credits` | `quest-ep2-credits.m4a` or `quest-ep2-credits.mp3` | Arcade Quest Episode 2: the credits. Until it is uploaded: `quest-credits`. **loops** | 30–90 s loop |
+| `quest-ep2-complete` | `quest-ep2-complete.m4a` or `quest-ep2-complete.mp3` | Arcade Quest Episode 2: EPISODE 2 COMPLETE. Until it is uploaded: `quest-victory`. **loops** | 20–60 s loop |
 | `quest-step` | `quest-step.m4a` or `quest-step.mp3` | Arcade Quest: a footstep while exploring (every other step, very quiet). | under 0.08 s |
 | `quest-door` | `quest-door.m4a` or `quest-door.mp3` | Arcade Quest: going through a door to another room (or a locked door rattling). | under 0.5 s |
 | `quest-save` | `quest-save.m4a` or `quest-save.mp3` | Arcade Quest: saving at the Save Jukebox. | 0.5–1.5 s |
@@ -642,8 +646,65 @@ under "Arcade Quest — Episode 2 Rooms".
 | `quest-room-dressing` | `quest-room-dressing.m4a` or `quest-room-dressing.mp3` | Episode 2: the Dressing Rooms (mirrors with bulbs, costume racks, Rico Bandit). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-loft` | `quest-room-loft.m4a` or `quest-room-loft.mp3` | Episode 2: the Fly Loft (catwalks over the dark; the Microphone far below), and the Vent. Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-stage` | `quest-room-stage.m4a` or `quest-room-stage.mp3` | Episode 2: the Main Stage (the boards, the footlights; the band frozen, then the stage after the finale). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-vent` | `quest-room-vent.m4a` or `quest-room-vent.mp3` | Episode 2: the Vent (air ducts, slow fans, the defeat route's passage). Until it is uploaded: `quest-room-loft`, then `quest-manor`. **loops** | 30–90 s loop |
 | `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
 | `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
 | `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |
 | `quest-tick` | `quest-tick.m4a` or `quest-tick.mp3` | Episode 2: the Metro-Gnome's tick (its pendulum dodge). Unpitched. | under 0.05 s |
 | `quest-encore-learned` | `quest-encore-learned.m4a` or `quest-encore-learned.mp3` | Episode 2: Professor Hoot's lesson passed, the E♭ Encore learned (after the microphone stops). A sparkle, unpitched. | 0.4–1 s |
+
+## Arcade Quest — Episode 2 music
+
+Mr. Graham's recording checklist: every slot Episode 2 plays, grouped like the Sound Board's "Arcade Quest — Episode 2"
+section. Each description says what to compose (the feel, the tempo, the instruments the place suggests). Loops: record a
+seamless loop, export `.m4a`, name it exactly as shown; until a slot is uploaded, the game plays the fallback shown (left
+to right: the first one that exists). The Microphone's speech has **no music on purpose** (silence and
+`quest-mic-crackle`). The table comes from `arcade-quest/data/music.js` (`QUEST_EP2_MUSIC`): edit it there, then
+update this table to match (tests/quest-ep2-polish.spec.js checks they agree, and the Uploaded column against
+`shared/sounds/`).
+
+**Rooms**
+
+| Slot | What it's for (compose from this) | Length | Until it's uploaded | Uploaded |
+|---|---|---|---|---|
+| `quest-room-lobby` | The Lobby (the safe hub): a warm, slightly faded theater-lobby tune, medium swing, piano and soft brass; a little dusty, a little hopeful. | loop 30–90 s | `quest-foyer` | missing |
+| `quest-room-greenroom` | The Green Room (practice): calm and studious, slow, flute and soft strings, like a warm-up before a show. | loop 30–90 s | `quest-foyer` | missing |
+| `quest-room-pit` | The Orchestra Pit: low, warm, a little sleepy; tuba-ish, slow two-feel, timpani taps, music stands rattling. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-workshop` | The Prop Workshop: busy and playful, medium-fast, snare and woodblock, hammer-and-saw rhythms, a bit of cartoon bounce. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-backstage` | Backstage: hushed and tense (QUIET PLEASE), slow pulse, muted strings and brushes; the static creeping closer. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-balcony` | The Balcony: high and airy, slow waltz, celesta and soft pads; the whole stage far below. | loop 30–90 s | `quest-foyer` | missing |
+| `quest-room-dressing` | The Dressing Rooms: sly and jazzy, medium swing, saxophone and walking bass (Rico's room: a sneaky lick). | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-vent` | The Vent: echoey and cramped, slow, metallic taps and a breathy fan hum; a few notes Rico dropped, drifting by. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
+| `quest-room-loft` | The Fly Loft: high, dark and a little dizzy, slow, low drones and a ticking pulse; the Microphone is close. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-stage` | The Main Stage: big and expectant, slow build, the whole band's instruments hinted at once; after the finale, warm. | loop 30–90 s | `quest-manor` | missing |
+
+**Battles**
+
+| Slot | What it's for (compose from this) | Length | Until it's uploaded | Uploaded |
+|---|---|---|---|---|
+| `quest-ep2-battle` | Machine battles: bouncy, show-tune energy, medium-fast, brass stabs and snare; silly, never scary. | loop 30–90 s | `quest-battle` | missing |
+| `quest-ep2-miniboss` | Rico Bandit (mini-boss): a sneaky heist groove, fast swing, saxophone lead and bass; playful mischief. | loop 30–90 s | `quest-miniboss` | missing |
+| `quest-ep2-boss` | THE BIG NUMBER (final boss): the whole band glitching together, fast big-band, tuba, flute, snare, sax and conductor-style hits. | loop 30–90 s | `quest-boss` | missing |
+
+**Story**
+
+| Slot | What it's for (compose from this) | Length | Until it's uploaded | Uploaded |
+|---|---|---|---|---|
+| `quest-ep2-title` | The title screen once Episode 2 is open: the main theme with a show-tune lift, medium tempo, brass and bells. | loop 30–90 s | `quest-title` | missing |
+| `quest-ep2-intro` | The intro (the attic speaker, the pull, the marquee): mysterious static turning into an old theater overture. | loop 20–60 s | `quest-intro` | missing |
+| `quest-encore` | The endings, the E♭ ENCORE: a joyful curtain-call tune in E♭ major, medium tempo, the full band (tuba, flute, snare, sax). | loop 20–60 s | `quest-victory` | missing |
+| `quest-ep2-cliffhanger` | The cliffhanger: low and eerie, very slow, a lone speaker crackling, a question left hanging. | loop 15–40 s | `quest-cliffhanger` | missing |
+| `quest-ep2-credits` | Episode 2's credits: the Encore's tune again, relaxed and warm, E♭ major, a little slower. | loop 30–90 s | `quest-credits` | missing |
+| `quest-ep2-complete` | EPISODE 2 COMPLETE: a short proud fanfare that settles into a loop, brass and drums. | loop 20–60 s | `quest-victory` | missing |
+
+**Effects**
+
+| Slot | What it's for (compose from this) | Length | Until it's uploaded | Uploaded |
+|---|---|---|---|---|
+| `quest-tap` | A tap shoe hitting the floor (the taps dodge). | one-shot, under 0.3 s | the built-in sound | missing |
+| `quest-confetti` | A confetti pop (the confetti dodge). | one-shot, under 0.5 s | the built-in sound | missing |
+| `quest-spot-hum` | A spotlight switching on with a hum (the beam dodge). | one-shot, under 0.5 s | the built-in sound | missing |
+| `quest-tick` | A pendulum tick (the pendulum dodge). | one-shot, under 0.2 s | the built-in sound | missing |
+| `quest-encore-learned` | A cymbal-y sparkle: a song learned, a band member waking. | one-shot, 0.4–1 s | the built-in sound | missing |
+| `quest-mic-crackle` | The Microphone's crackle (whispers, the glimpse, its speech: no music there on purpose). | one-shot, 0.5–1.5 s | the built-in sound | ✓ uploaded |
+| `quest-boss-phase` | A final boss changing stage (the Big Number: the next band member). | one-shot, 0.5–1 s | the built-in sound | ✓ uploaded |

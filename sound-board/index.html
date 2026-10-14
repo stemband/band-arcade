@@ -62,6 +62,7 @@
   .sb-tools{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
   .sb-search{flex:1 1 240px;min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid var(--cyan-ink);background:var(--deep);color:var(--text-hi);font:inherit;font-size:16px}
   .sb-search:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+  .sb-sub{margin:14px 0 6px;font-size:15px;color:var(--text-hi)}
   .sb-tools .btn{min-height:44px}
   .sb-none{margin:14px 0;padding:14px;border-radius:12px;text-align:center;font-weight:700;color:var(--text-hi);background:var(--floor-2);border:1px dashed var(--floor-3)}
   .sb-sec{margin:0 0 8px;border-radius:14px;border:1px solid var(--floor-3);background:color-mix(in srgb,var(--floor-2) 45%,transparent)}
@@ -132,11 +133,15 @@
       always has (the fallback shown). Seamless loops, 30–90 s, <code>.m4a</code>.</p>
     <div class="sb-list" id="rooms"></div></div>
   </details>
-  <details class="sb-sec" data-sec="rooms2"><summary class="sb-sum"><h2 class="sb-group" id="rooms2H">Arcade Quest — Episode 2 Rooms</h2><span class="sb-count"></span><span class="sb-badge" hidden></span></summary>
-    <div class="sb-body"><p class="muted">The Showtime Stage's rooms, one music slot each as they are built (which room plays which:
-      <code>arcade-quest/data/music.js</code>). Until a room's file is uploaded, it plays the fallback shown. Seamless loops,
-      30–90 s, <code>.m4a</code>.</p>
-    <div class="sb-list" id="rooms2"></div></div>
+  <details class="sb-sec" data-sec="rooms2"><summary class="sb-sum"><h2 class="sb-group" id="rooms2H">Arcade Quest — Episode 2</h2><span class="sb-count"></span><span class="sb-badge" hidden></span></summary>
+    <div class="sb-body"><p class="muted">Every track and effect of the Showtime Stage (<code>arcade-quest/data/music.js</code>
+      <code>QUEST_EP2_MUSIC</code>; the recording checklist with what to compose: <code>shared/sounds/README.md</code>,
+      "Arcade Quest — Episode 2 music"). Until a file is uploaded, the game plays the fallback shown. Music: seamless loops,
+      <code>.m4a</code>. The Microphone's speech has no music on purpose.</p>
+    <h3 class="sb-sub">Rooms</h3><div class="sb-list" id="rooms2"></div>
+    <h3 class="sb-sub">Battles</h3><div class="sb-list" id="ep2battles"></div>
+    <h3 class="sb-sub">Story</h3><div class="sb-list" id="ep2story"></div>
+    <h3 class="sb-sub">Effects</h3><div class="sb-list" id="ep2effects"></div></div>
   </details>
   <details class="sb-sec" data-sec="rudiment-player" data-unit="example"><summary class="sb-sum"><h2 class="sb-group" id="rpH">Rudiment player</h2><span class="sb-count"></span><span class="sb-badge" hidden></span></summary>
     <div class="sb-body"><p class="muted">The rudiment player (<code>shared/rudiment-player.js</code>) playing the rudiment notation's
@@ -207,10 +212,15 @@
     .concat((A.ALL_GAMES || A.GAMES).filter(g => g.menuMusic && S.get(g.menuMusic)).map(g => ({who: g.name, n: g.menuMusic,
       instead: g.menuMusicOwn || 'using select music', fallback: g.menuMusicOwn ? '' : 'select-music'})));
   // Arcade Quest's rooms (Episode 1, Episode 2): every room, its track (data/music.js) and the fallback it plays until then
+  // (an Episode 2 room's fallbacks: QUEST_EP2_MUSIC, e.g. the Vent → the Loft's track → quest-manor)
+  const EP2 = window.QUEST_EP2_MUSIC || [], ep2fb = n => ((EP2.find(x => x.n === n) || {}).fallback || []);
   const ROOMS = Object.keys(window.QUEST_MAPS || {}).map(id => {
-    const def = window.QUEST_MAPS[id], n = (window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, fb = def.music || 'quest-manor';
-    return {who: `Episode ${def.ep || 1}: ${def.name}`, n, instead: `plays ${fb} (what this room played before)`, fallback: fb, room: id, ep: def.ep || 1};
+    const def = window.QUEST_MAPS[id], n = (window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, list = ep2fb(n).length ? ep2fb(n) : [def.music || 'quest-manor'], fb = list[0];
+    return {who: `Episode ${def.ep || 1}: ${def.name}`, n, instead: `plays ${list.join(', then ')} (what this room played before)`, fallback: fb, room: id, ep: def.ep || 1};
   }).filter(m => S.get(m.n));
+  // EPISODE 2's battles and story tracks (+ its effects, played like any sound)
+  const EP2ROWS = EP2.filter(m => m.group === 'battles' || m.group === 'story').filter(m => S.get(m.n)).map(m => ({who: m.desc.split(':')[0], n: m.n,
+    instead: `plays ${(m.fallback || []).join(', then ')}`, fallback: (m.fallback || [])[0] || '', group: m.group, ep2: true}));
   const mrow = m => `<div class="sb-row sb-mrow" data-n="${m.n}" data-fallback="${m.fallback || ''}">` +
     `<div class="sb-name"><b>${esc(m.who)}</b>${m.room ? `<small>track <code>${esc(m.n)}</code></small>` : ''}</div>` +
     `<div class="sb-when"><code>shared/sounds/${m.n}.m4a</code></div>` +
@@ -219,9 +229,19 @@
     `<button type="button" class="btn btn-secondary sb-play" data-loopgo="stop">Stop</button></span><p data-loopinfo></p></div>`;
   $('rooms').innerHTML = ROOMS.filter(m => m.ep === 1).map(mrow).join('');
   $('rooms2').innerHTML = ROOMS.filter(m => m.ep === 2).map(mrow).join('');
-  MUSIC.push(...ROOMS.filter(m => !MUSIC.some(x => x.n === m.n)));
-  $('music').innerHTML = MUSIC.filter(m => !m.room).map(mrow).join('');
-  document.querySelectorAll('.sb-mrow').forEach(r => { r.dataset.q = [r.dataset.n, r.querySelector('b').textContent, r.dataset.fallback, 'music loop', /^rooms/.test(r.closest('.sb-sec').dataset.sec) ? 'arcade quest room' : 'menu'].join(' ').toLowerCase(); });
+  $('ep2battles').innerHTML = EP2ROWS.filter(m => m.group === 'battles').map(mrow).join('');
+  $('ep2story').innerHTML = EP2ROWS.filter(m => m.group === 'story').map(mrow).join('');
+  // an effect: Play (one-shot) with its status, like the rows under the screens below
+  $('ep2effects').innerHTML = EP2.filter(m => m.group === 'effects' && S.get(m.n)).map(m => `<div class="sb-row sb-erow" data-n="${m.n}">` +
+    `<div class="sb-name"><b>${esc(m.n)}</b><small>${esc(m.len)}</small></div><div class="sb-when">${esc(m.desc)}</div>` +
+    `<span class="sb-status" data-status>not checked</span><span class="sb-peak" data-peak>–</span>` +
+    `<button type="button" class="btn btn-secondary sb-play" data-play>Play</button></div>`).join('');
+  MUSIC.push(...ROOMS.filter(m => !MUSIC.some(x => x.n === m.n)), ...EP2ROWS.filter(m => !MUSIC.some(x => x.n === m.n)));
+  $('music').innerHTML = MUSIC.filter(m => !m.room && !m.ep2).map(mrow).join('');
+  // (the search finds an Episode 2 row by its room's name and id: "pit", "loft"; and by "episode 2", "battle", "story")
+  document.querySelectorAll('.sb-mrow, .sb-erow').forEach(r => { const m = ROOMS.find(x => x.n === r.dataset.n) || {}, e = EP2.find(x => x.n === r.dataset.n) || {};
+    r.dataset.q = [r.dataset.n, r.querySelector('b').textContent, r.dataset.fallback || '', m.room || '', e.desc || '', e.group || '', r.classList.contains('sb-erow') ? 'effect' : 'music loop',
+      /^rooms/.test(r.closest('.sb-sec').dataset.sec) ? 'arcade quest room' : 'menu', r.closest('[data-sec="rooms2"]') ? 'episode 2 showtime stage' : ''].join(' ').toLowerCase(); });
   function musicStatus() {
     MUSIC.forEach(m => {
       const st = B.status(m.n);
@@ -392,7 +412,7 @@
   const kb = b => b ? (b < 1024 ? b + ' B' : (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB') : '';
   /** a row's status label; a label that changed since the last check gets a yellow outline */
   function label(n, mark) {
-    const st = B.status(n), el = document.querySelector(`#groups .sb-row[data-n="${n}"] [data-status]`);
+    const st = B.status(n), el = document.querySelector(`#groups .sb-row[data-n="${n}"] [data-status]`) || document.createElement('span'), also = [...document.querySelectorAll(`.sb-erow[data-n="${n}"] [data-status]`)];
     let text = st.kind === 'checking' ? 'Checking…'
       : st.kind === 'file' ? `Your file (${st.ext}${st.dur ? ', ' + st.dur.toFixed(2) + ' s' : ''}${st.fileDur && st.fileDur - st.dur > .5 ? ` of sound + ${(st.fileDur - st.dur).toFixed(1)} s of silence at the end: trim it` : ''}${st.bytes ? ', ' + kb(st.bytes) : ''})`
       : st.kind === 'fallback' ? (st.via ? `Fallback (${st.via})` : 'Fallback') : 'Missing file, using generated';
@@ -403,6 +423,7 @@
     const changed = mark && el.dataset.last && el.dataset.last !== text;
     el.className = 'sb-status ' + st.kind + (changed ? ' changed' : '') + (long ? ' too-long' : '');
     el.textContent = text;
+    also.forEach(x => { x.className = 'sb-status ' + st.kind; x.textContent = text; });     // (an Episode 2 effect's row too)
     if (st.kind !== 'checking') el.dataset.last = text;
     badges();
     return st.kind;
@@ -488,9 +509,11 @@
     if (how === 'stop') { info.textContent = ''; return; }
     const rec = await B.load(n, true); label(n); musicStatus();
     // a game's menu track that isn't uploaded yet: its menus play the arcade's select music, so that's what plays here
-    if ((!rec || rec.state !== 'ok') && row.dataset.fallback && row.dataset.fallback !== n) {
-      await loopTest(row.dataset.fallback, row, how);
-      info.textContent = `No ${n} file yet: this is what plays instead (${row.dataset.fallback}). ` + info.textContent;
+    // (an Episode 2 slot falls back along its whole list, like the game: the Vent → the Loft's track → quest-manor)
+    const chain = [row.dataset.fallback].concat(ep2fb(row.dataset.n)).filter(Boolean), next = n === row.dataset.n ? chain[0] : chain[chain.indexOf(n) + 1];
+    if ((!rec || rec.state !== 'ok') && next && next !== n) {
+      await loopTest(next, row, how);
+      info.textContent = `No ${n} file yet: this is what plays instead (${next}). ` + info.textContent;
       return;
     }
     if (!rec || rec.state !== 'ok' || !rec.buf) {

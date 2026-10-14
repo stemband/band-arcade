@@ -166,7 +166,9 @@
      `resume`), so after a battle the room's music carries on, fading back in. The music manager fades it out while the
      microphone listens (the Butler's lesson) and back in after. */
   const ROOM_XF = 1;
-  const musicFor = id => { const def = MAPS()[id] || {}; return [(window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, def.music || 'quest-manor']; };
+  // (an Episode 2 room's fallbacks come from data/music.js QUEST_EP2_MUSIC: the Vent falls back to the Loft's track first)
+  const musicFor = id => { const def = MAPS()[id] || {}, t = (window.QUEST_ROOM_MUSIC || {})[id] || 'quest-room-' + id, tr = Q.track(t);
+    return Array.isArray(tr) ? tr : [t, def.music || 'quest-manor']; };
   function roomMusic(id) { if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(musicFor(id), {fade: ROOM_XF}); }
 
   /** the room's NPCs, where they stand now: `moved` once its flag is set; an npc with `if: flag` (or '!flag') is
@@ -204,7 +206,7 @@
     if (A.Sfx && A.Sfx.setMusic) {
       roomMusic(id);
       // (a boss's music can be a list: its own track, then the one it falls back to)
-      A.Sfx.preloadMusic([].concat(...def.enemies.map(e => ((window.QUEST_ENEMIES || []).find(x => x.id === e.type) || {}).music || 'quest-battle'))
+      A.Sfx.preloadMusic([].concat(...def.enemies.map(e => Q.battleMusic((window.QUEST_ENEMIES || []).find(x => x.id === e.type))))
         .concat(...(def.doors || []).map(d => MAPS()[d.to] ? musicFor(d.to) : [])));
     }
     Q.talk.hud(); Q.talk.banner(def.name);
