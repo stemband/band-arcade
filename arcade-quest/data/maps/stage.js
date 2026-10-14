@@ -82,7 +82,8 @@ Object.assign(window.QUEST_MAPS, {
   },
 
   /* 2. THE GREEN ROOM (off the Lobby): the PRACTICE room, safe. Mirrors with bulbs, a couch, a music stand, and
-     PROFESSOR HOOT, stuck reading the same page (he teaches the E♭ Encore: the next build step). Like the Practice
+     PROFESSOR HOOT, stuck reading the same page until 6 Episode 2 machines are helped; then he wakes and teaches the
+     E♭ Encore (data/dialogue-stage.js). Like the Practice
      Hall, its machines (coming) come back every visit. */
   greenroom: {
     name: 'The Green Room', ep: 2, music: 'quest-foyer', practice: true, safe: true, floor: 'u',
@@ -99,7 +100,7 @@ Object.assign(window.QUEST_MAPS, {
       '=======A========',
     ],
     doors: [{at: [7, 9], to: 'lobby', spawn: [2, 2], dir: 'down'}],
-    npcs: [{id: 'hoot', at: [4, 5]}],
+    npcs: [{id: 'hoot', at: [4, 5], awake: {flag: 'hootAwake', sprite: 'npc-hoot-ok'}}],   // awake: his eyes stop glowing red
     things: [
       {at: [5, 5], say: 'greenroom-stand'},
       {at: [2, 1], say: 'greenroom-mirror'}, {at: [4, 1], say: 'greenroom-mirror-2'}, {at: [6, 1], say: 'greenroom-mirror'},

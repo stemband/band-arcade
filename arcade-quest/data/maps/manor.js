@@ -13,7 +13,8 @@
      doors    {at: [x, y], to: room id, spawn: [x, y] where you appear, dir: 'up'|'down'|'left'|'right',
                need: a flag (locked until then; `locked` says why), soon: a sign shown while room `to` isn't built yet}. On an L tile it's a locked door; on a K tile a cracked
                wall that opens when the flag is set (ALTERNATE ROUTES: data/enemies.js `opensIfFaded`). x counts from 0 at the left, y from 0 at the top.
-     npcs     {id (data/dialogue.js), at, sprite?, moved: {flag, at} (where they stand once that flag is set)}
+     npcs     {id (data/dialogue.js), at, sprite?, moved: {flag, at} (where they stand once that flag is set),
+               awake: {flag, sprite} (the picture once that flag is set: Professor Hoot un-glitched)}
      enemies  {key (unique in the room: saved when you help that ghost), type (data/enemies.js), at, happy?, wander (tiles)}
      things   {at, say: a sign id in data/dialogue.js (inspect with A), use?: 'jukebox' | 'booth' | 'shop' | 'speaker'
                (the attic's old stage speaker: the way into Episode 2), keeper?: who runs that booth or shop (a

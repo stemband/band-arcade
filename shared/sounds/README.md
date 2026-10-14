@@ -631,3 +631,8 @@ under "Arcade Quest — Episode 2 Rooms".
 | `quest-ep2-intro` | `quest-ep2-intro.m4a` or `quest-ep2-intro.mp3` | Episode 2's intro cutscene (the attic's old stage speaker, the pull, the Showtime Stage's flickering marquee). Until it is uploaded: `quest-intro`. **loops** | 20–60 s loop |
 | `quest-room-lobby` | `quest-room-lobby.m4a` or `quest-room-lobby.mp3` | Episode 2: the Lobby of the Showtime Stage (the safe hub). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
 | `quest-room-greenroom` | `quest-room-greenroom.m4a` or `quest-room-greenroom.mp3` | Episode 2: the Green Room (the practice room). Until it is uploaded: `quest-foyer`. **loops** | 30–90 s loop |
+| `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
+| `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
+| `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |
+| `quest-tick` | `quest-tick.m4a` or `quest-tick.mp3` | Episode 2: the Metro-Gnome's tick (its pendulum dodge). Unpitched. | under 0.05 s |
+| `quest-encore-learned` | `quest-encore-learned.m4a` or `quest-encore-learned.mp3` | Episode 2: Professor Hoot's lesson passed, the E♭ Encore learned (after the microphone stops). A sparkle, unpitched. | 0.4–1 s |

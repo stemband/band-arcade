@@ -68,6 +68,8 @@
     if (c === 'snare') return unpitched();
     const m = /^helped>=(\d+)$/.exec(c);
     if (m) return helpedHere() >= +m[1];
+    const m2 = /^helped([12])>=(\d+)$/.exec(c);                 // 'helped2>=6': that episode's machines (or ghosts), wherever you are
+    if (m2) return Q.save.helped(+m2[1]) >= +m2[2];
     return Q.save.flag(c);
   }
   // 'helped>=N' and {n}, {need} count the episode you're in: manor ghosts (Episode 1) or Showtime machines (Episode 2)
@@ -87,7 +89,9 @@
   }
   const cycles = {};
   Q.talk.npc = async function (id, npc) {
-    const D = DLG()[id]; if (!D) return;
+    let D = DLG()[id]; if (!D) return;
+    // a character who wakes up (the map's npc `awake: {flag, sprite}`: Professor Hoot): the un-glitched portrait
+    if (npc && npc.src && npc.src.awake && Q.save.flag(npc.src.awake.flag)) D = Object.assign({}, D, {sprite: npc.src.awake.sprite});
     let i = D.talk.findIndex(n => cond(n.if)); if (i < 0) i = D.talk.length - 1;
     let node = D.talk[i];
     for (;;) {
@@ -108,6 +112,7 @@
     if (node.do === 'shop') await shop(D);
     else if (node.do === 'booth') await booth(D);
     else if (node.do === 'teach') await teach(D, node);
+    else if (node.do === 'teach-eb') await teach(D, node, 'eb');
     else if (node.do === 'wake') { Q.save.setFlag('reginaldAwake'); if (npc && npc.src.moved) Q.world.moveNpc(id, npc.src.moved.at); }
   };
   Q.talk.sign = id => Q.say(SIGNS()[id] || [id]);
@@ -428,12 +433,12 @@
     });
   }
 
-  /* ---------- the Butler's song: the B♭ Blast ---------- */
-  async function teach(D, node) {
+  /* ---------- the songs: the Butler's B♭ Blast (songBb), Professor Hoot's E♭ Encore (songEb, 'teach-eb') ---------- */
+  async function teach(D, node, song) {
     if (!(await Q.micReady())) { await Q.say(Q.text('micHint')); return; }
-    const res = await Q.challenge.blast(true);
+    const eb = song === 'eb', res = await (eb ? Q.challenge.encore(true) : Q.challenge.blast(true));
     const ok = res.acc >= 0.75;
-    if (ok) { Q.save.setFlag('songBb'); Q.sfx('quest-levelup'); }
+    if (ok) { Q.save.setFlag(eb ? 'songEb' : 'songBb'); Q.sfx(eb ? 'quest-encore-learned' : 'quest-levelup'); }
     await sayAs(D, ok ? node.yes : node.no);
   }
 

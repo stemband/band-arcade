@@ -185,6 +185,12 @@ button{font:inherit}
 .q-ok{color:var(--q-green)}
 #qFoot{position:absolute;right:calc(var(--px) * 6);bottom:calc(var(--px) * 4);width:calc(var(--px) * 150)}
 .q-small-menu .q-btn{min-height:calc(var(--px) * 14);font-size:calc(var(--px) * 6.5)}
+/* the Showtime machines (two rows of buttons) and five footer buttons */
+.q-arena2 .q-foes .q-btn{min-height:calc(var(--px) * 18)}
+.q-arena2 .q-stats{top:calc(var(--px) * 70)}
+.q-arena2 .q-stats.q-small{display:none}
+.q-arena2 #qFoes{top:calc(var(--px) * 80)}
+#qFoot{width:calc(var(--px) * 190)}
 
 /* ---------- the game's own panels (Token Booth, shops, charms, save codes) ---------- */
 .q-overlay{inset:0;z-index:10;background:color-mix(in srgb,var(--deep) 90%,transparent);display:grid;place-items:center}
@@ -443,3 +449,25 @@ body.q-paused #ui *{animation-play-state:paused!important}          /* the pause
 .ui-ov .q-keylist{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:4px 0 0;font-size:15px}
 .ui-ov .q-keylist dt{color:var(--q-gold);font-family:"GN Quest",var(--text);font-weight:700}
 .ui-ov .q-keylist dd{margin:0;color:var(--q-white)}
+
+/* ---------- EPISODE 2: THE RHYTHM FAMILY (battle/challenges.js: RHYTHM, TEMPO, ECHO) ---------- */
+.q-rhy .q-clock{visibility:hidden}                              /* the rhythm keeps its own time: the beat light */
+.q-rstaff{width:100%}
+.q-rstaff svg{max-height:calc(var(--px) * 70)}
+.q-rstaff .rc{color:var(--ink)}
+.q-rstaff g.rn.q-cur,.q-rstaff g.rn.q-cur *{fill:var(--cyan-ink);stroke:var(--cyan-ink)}
+.q-rstaff g.q-r-good,.q-rstaff g.q-r-good *{fill:var(--green);stroke:var(--green)}
+.q-rstaff g.q-r-near,.q-rstaff g.q-r-near *{fill:var(--q-orange-d);stroke:var(--q-orange-d)}
+.q-rstaff g.q-r-bad,.q-rstaff g.q-r-bad *{fill:var(--q-red);stroke:var(--q-red)}
+.q-rbeat{margin:0;display:flex;align-items:center;justify-content:center;gap:calc(var(--px) * 4);min-height:calc(var(--px) * 12)}
+.q-rbeat i{display:block;width:calc(var(--px) * 10);height:calc(var(--px) * 10);border-radius:50%;background:var(--q-gold);border:calc(var(--px) * 1) solid var(--q-white);opacity:.25}
+.q-rcount{min-width:calc(var(--px) * 8);color:var(--q-gold);font-size:calc(var(--px) * 10);font-family:"GN Quest",var(--text)}
+.q-tdots,.q-echo{display:flex;align-items:center;justify-content:center;gap:calc(var(--px) * 4);margin:0}
+.q-tdots i,.q-echo b{display:block;width:calc(var(--px) * 9);height:calc(var(--px) * 9);border:calc(var(--px) * 1.5) solid var(--q-white);box-sizing:border-box;border-radius:50%}
+.q-tdots i.on,.q-echo b.on{background:var(--q-gold);border-color:var(--q-gold)}
+.q-tdots .q-r-good,.q-echo .q-r-good{background:var(--q-green);border-color:var(--q-green)}
+.q-tdots .q-r-near,.q-echo .q-r-near{background:var(--q-orange);border-color:var(--q-orange)}
+.q-tdots .q-r-bad,.q-echo .q-r-bad{background:transparent;border-color:var(--q-red)}
+.q-ear{display:block;width:calc(var(--px) * 12);height:calc(var(--px) * 16);border:calc(var(--px) * 2) solid var(--q-cursor);border-radius:50% 50% 30% 50%;border-left-color:transparent;box-sizing:border-box;margin-right:calc(var(--px) * 4)}
+.q-echo-menu{width:80%}
+.q-echo-menu:empty{display:none}

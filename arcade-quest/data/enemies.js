@@ -6,6 +6,11 @@
    hp          how much "grumpy" it has           atk      damage per sour note that hits you while dodging
    challenge   what PLAY does against it:
                  'play'       1–4 notes on the staff (count, notes, time)
+                 'rhythm'     EPISODE 2: read a rhythm (data/rhythms.js tier `tier`, `bars`, `bpm`) and play it on any one
+                              note (the snare: hits); judged by the shared rhythm judge (battle/challenges.js)
+                 'tempo'      EPISODE 2: 8 steady quarter notes at `bpm` after a count-off (`accel`: + that many bpm by
+                              the last beat; `beats`)
+                 'echo'       EPISODE 2: it plays a rhythm (tier `tier`, the mic paused), you play it back by ear
                  'longtone'   hold one note steady and in tune for `hold` seconds
                  'articulate' one note × `taps` separate times (tongued or struck)
                  'vocab'      a Band Ninja vocabulary question (Orange belt, rank `rank`)
@@ -19,13 +24,23 @@
                (a challenge played well: 80 % or better). SERENADE (its happy note, shorter than HARMONIZE: the
                befriend path) adds its own CALM (battle.js RULES.serenadeCalm), the same for every enemy; every CALM gain
                but LISTEN's grows with your level and shrinks with its HP, like damage (battle.js: THE CALM SCALE)
-   serenade    false = no SERENADE against it (the Ghost Conductor: his finale is the story's befriending moment)
+   serenade    false = no SERENADE against it (the Ghost Conductor: his finale is the story's befriending moment).
+               A RHYTHM MACHINE (challenge rhythm / tempo / echo) is SERENADEd with a gentle version of its own kind, for
+               every instrument: a tier 1 rhythm, 4 beats of tempo, or a two-beat echo (challenges.js RHYTHM.serenade)
    harmonize   its happy-note challenge when CALM is full: {type: 'note', hold: seconds} (hold its happy note),
-               or {type: 'articulate', taps} (the Snare Drum always uses this one)
+               or {type: 'articulate', taps} (the Snare Drum always uses this one), or EPISODE 2's {type: 'rhythm' |
+               'tempo' | 'echo', tier?, beats?} (its own kind, every instrument, the snare too)
+   vocab       (VOCAB) a list of vocab.js item ids to ask from (any rank: the Ticket Stubs' tempo and rhythm words);
+               else every item of rank `rank`
+   click       (rhythm family) true = the clicks keep going while you play (else only the count-off clicks)
    listen      what LISTEN says (the last line is its weakness / what calms it)
    dodge       its turn: {seconds, patterns: [{kind, sprite, every (s), speed (px/s), count}]}
                  kind 'rain' (falls from the top) | 'side' (flies across) | 'burst' (a static burst flying outward)
-                 | 'aimed' (heads for your note) | 'wave' (a row with one gap)
+                 | 'aimed' (heads for your note) | 'wave' (a row with one gap); EPISODE 2's machines (battle/dodge.js):
+                 'taps' (taps landing ON a steady beat: bpm, cols) | 'beam' (a spotlight sweeping along a lane, its
+                 warning first) | 'squeal' (a squiggly feedback wave crossing) | 'confetti' (bursts scattering from a
+                 point) | 'pendulum' (a swinging pendulum) | 'stubs' (tickets fluttering down) | 'rope' (a swaying rope
+                 with a gap) | 'rings' (static rings expanding from the Mic-let, with a gap)
    rewards     {fade: {xp, tokens, item?}, befriend: {xp, tokens, item?}} (befriending always gives more)
    companion   how it plays beside you once befriended (THE BAND, battle.js): {power, perk, hp?}
                  power  its PLAY after each of yours: power × YOUR power × YOUR accuracy on that PLAY (.3–.5)
@@ -67,6 +82,7 @@
 window.QUEST_AREAS = {
   test:  {hp: 1, atk: 1},                 // the Test Arena
   manor: {hp: 1, atk: 1},                 // Episode 1: Ghost Notes Manor
+  stage: {hp: 1.6, atk: 1.3},             // Episode 2: the Showtime Stage (students arrive around LV 8–10)
 };
 window.QUEST_ENEMIES = [
   {
@@ -260,5 +276,117 @@ window.QUEST_ENEMIES = [
     lines: {intro: 'The Ghost Conductor taps his baton on the podium. Tap. Tap. TAP.', turn: ['"FROM THE TOP!"', 'The Conductor slashes his baton through the air!', '"Watch. My. BATON!"', 'The Conductor beats a furious 4/4.'],
       hurt: 'The Conductor staggers... and straightens his bow tie.', calm: 'The Conductor lowers his baton. Just a little.', fade: 'The Conductor fades into the rafters, still conducting... and humming along.',
       befriend: '"My orchestra... I can hear them! Take my baton, {hero}."', hold: 'The Conductor won\'t give up his podium. Keep playing!'},
+  },
+  /* ================= EPISODE 2: THE SHOWTIME STAGE's MACHINES (ids reserved by shared/backup.js QUEST_V6.roster: never
+     rename). `ep: 2` + `test` = in the TEST ARENA's Showtime list (until build step 3 puts them in the theater's rooms).
+     Silly, glitching stage machines, never scary: they power down grumbling, or join the band. ================= */
+  {
+    id: 'tapsy', name: 'Tapsy', sprite: 'tapsy', hp: 30, atk: 2, area: 'stage', ep: 2, test: 'RHYTHM',
+    challenge: 'rhythm', tier: 1, notes: 'Eb', happy: 1,
+    calm: {perNote: 3, listen: 6, success: 24},
+    harmonize: {type: 'rhythm', tier: 1},
+    listen: ['TAPSY. A pair of tap shoes that won\'t stop dancing. Nobody is in them. They just... go.', 'Tapsy taps a little ahead of the beat. Always.',
+      'It calms down when you play its rhythm right on time: SERENADE with a gentle rhythm.'],
+    dodge: {seconds: 7, patterns: [{kind: 'taps', sprite: 'tap-shot', bpm: 96, cols: 5, speed: 60}, {kind: 'side', sprite: 'tap-shot', every: 2.4, speed: 46}]},
+    companion: {power: .35, perk: {power: 1.2}},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'valve-oil'}},
+    lines: {intro: 'Tapsy shuffles onto the stage! Shuffle-ball-change! Shuffle-ball-change!', turn: ['Tapsy tap-tap-taps impatiently.', 'Tapsy does a time step. Badly.', 'Clickety-clackety-CLACK!'],
+      hurt: 'Tapsy trips over its own laces.', calm: 'Tapsy taps a little softer. Almost on the beat.', fade: 'Tapsy shuffles offstage, grumbling. "Five, six, seven, eight..."',
+      befriend: 'Tapsy taps your rhythm back, perfectly in time! It wants to join your band!'},
+  },
+  {
+    id: 'spotlight', name: 'Spotlight Sprite', sprite: 'spotlight', hp: 30, atk: 2, area: 'stage', ep: 2, test: 'LONG TONE',
+    challenge: 'longtone', notes: 'Eb', hold: 3, time: 10, happy: 0,
+    calm: {perNote: 0, listen: 8, success: 34},
+    harmonize: {type: 'note', hold: 2.5},
+    listen: ['SPOTLIGHT SPRITE. A little stage light that keeps losing its focus.', 'Wobbly notes make its beam wobble too. It hates that.',
+      'It calms down when you hold one long, steady note. Its favorite is {happy}.'],
+    dodge: {seconds: 7, patterns: [{kind: 'beam', every: 1.9, speed: 50}, {kind: 'rain', sprite: 'sour', every: 1.1, speed: 38}]},
+    companion: {power: .3, perk: {calm: 6}},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'metronome'}},
+    lines: {intro: 'Spotlight Sprite swings down from the rafters! "Where\'s my STAR?"', turn: ['The Spotlight Sprite sweeps the stage.', 'Bzzt. The Spotlight Sprite flickers. (It\'s fine.)', 'The Spotlight Sprite hums a little sharp.'],
+      hurt: 'The Spotlight Sprite\'s bulb dims for a second.', calm: 'The Spotlight Sprite\'s beam steadies.', fade: 'The Spotlight Sprite powers down. "Bzzt... five more minutes..."',
+      befriend: 'The Spotlight Sprite shines right on you. It wants to light up your band!'},
+  },
+  {
+    id: 'feedback', name: 'Feedback Fuzz', sprite: 'feedback', hp: 32, atk: 2, area: 'stage', ep: 2, test: 'PLAY',
+    challenge: 'play', notes: 'Eb', count: 3, time: 10, happy: 2,
+    calm: {perNote: 11, listen: 4, success: 10},
+    harmonize: {type: 'note', hold: 1.5},
+    listen: ['FEEDBACK FUZZ. A squealing ball of feedback from a bad cable. EEEEEEEE!', 'Sour notes make it squeal louder.',
+      'It calms down with clean notes from your E♭ scale. Its favorite is {happy}.'],
+    dodge: {seconds: 7, patterns: [{kind: 'squeal', sprite: 'squeal-shot', every: 1.5, speed: 46}, {kind: 'aimed', sprite: 'static', every: 1.6, speed: 40}]},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'cork-grease'}},
+    lines: {intro: 'Feedback Fuzz screeches out of an amp! EEEEEEEEEEEE!', turn: ['EEEEEEEEEE!', 'Feedback Fuzz wiggles its cable at you.', 'Feedback Fuzz squeals in a key that doesn\'t exist.'],
+      hurt: 'Feedback Fuzz squeaks down an octave.', calm: 'Feedback Fuzz hums instead of squealing.', fade: 'Feedback Fuzz unplugs itself. "Bzzzt... fine... FINE..."',
+      befriend: 'Feedback Fuzz hums a perfectly clean note! It wants to join your band!'},
+  },
+  {
+    id: 'confetti', name: 'Confetti Cannon', sprite: 'confetti', hp: 32, atk: 2, area: 'stage', ep: 2, test: 'ARTICULATE',
+    challenge: 'articulate', notes: 'Eb', taps: 5, time: 8, happy: 4,
+    calm: {perNote: 5, listen: 0, success: 28},
+    harmonize: {type: 'articulate', taps: 6},
+    listen: ['CONFETTI CANNON. It fires on every sound it hears. Every. Single. One.', 'Mushy, slurred notes jam it up.',
+      'It calms down with clean, separate notes: ta, ta, ta, ta.'],
+    dodge: {seconds: 7, patterns: [{kind: 'confetti', every: 1.7, count: 10, speed: 44}, {kind: 'rain', sprite: 'rest', every: 1.2, speed: 40}]},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'snack'}},
+    lines: {intro: 'The Confetti Cannon rolls out! It\'s already celebrating. Nobody knows what.', turn: ['FOOMP! Confetti everywhere!', 'The Confetti Cannon aims at nothing in particular.', 'POP! POP! POP!'],
+      hurt: 'The Confetti Cannon coughs out one sad sparkle.', calm: 'The Confetti Cannon waits for the beat.', fade: 'The Confetti Cannon fizzles. "Pfff... party\'s over..."',
+      befriend: 'The Confetti Cannon fires one perfect burst, just for you! It wants to join your band!'},
+  },
+  {
+    id: 'metrognome', name: 'Metro-Gnome', sprite: 'metrognome', hp: 30, atk: 2, area: 'stage', ep: 2, test: 'TEMPO',
+    challenge: 'tempo', bpm: 96, beats: 8, notes: 'Eb', happy: 3,
+    calm: {perNote: 3, listen: 6, success: 24},
+    harmonize: {type: 'tempo', beats: 8},
+    listen: ['METRO-GNOME. A tiny metronome in a pointy hat, running at the wrong speed.', 'The Metro-Gnome is ticking at 212 bpm. It looks exhausted.',
+      'It calms down when you play a steady beat. SERENADE with a few calm beats.'],
+    dodge: {seconds: 7, patterns: [{kind: 'pendulum', every: 2.8, speed: 1}, {kind: 'rain', sprite: 'rest', every: 1.1, speed: 40}]},
+    companion: {power: .3, perk: {heal: 2}},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'metronome'}},
+    lines: {intro: 'The Metro-Gnome marches out! Tick-tick-tick-tick-tick-tick!', turn: ['TICKTICKTICKTICKTICK!', 'The Metro-Gnome swings its pendulum at you.', 'The Metro-Gnome\'s hat spins. That\'s not normal.'],
+      hurt: 'The Metro-Gnome skips a beat.', calm: 'The Metro-Gnome slows down. Tick... tock... tick...', fade: 'The Metro-Gnome winds down. "Tick... tock... zzz..."',
+      befriend: 'The Metro-Gnome ticks right at YOUR tempo. It wants to keep time for your band!'},
+  },
+  {
+    id: 'stubs', name: 'Ticket Stubs', sprite: 'stubs', hp: 28, atk: 2, area: 'stage', ep: 2, test: 'VOCAB',
+    challenge: 'vocab', vocab: ['tempo', 'beat', 'rest', 'measure', 'time-signature', 'fermata', 'tie', 'ritardando', 'crescendo', 'accent',
+      'allegro', 'andante', 'moderato', 'syncopation', 'staccato', 'accelerando', 'a-tempo', 'adagio', 'presto'], notes: 'Eb', time: 14, happy: 2,
+    calm: {perNote: 0, listen: 15, success: 30},
+    harmonize: {type: 'note', hold: 1.5},
+    listen: ['TICKET STUBS. A fluttering swarm of torn tickets from every show ever.', 'They want to know if you know your tempo and rhythm words.',
+      'They calm down when you know your music words. (They love being listened to, too.)'],
+    dodge: {seconds: 7, patterns: [{kind: 'stubs', sprite: 'stub-shot', every: .55, speed: 32}, {kind: 'side', sprite: 'stub-shot', every: 2.2, speed: 44}]},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'valve-oil'}},
+    lines: {intro: 'A swarm of Ticket Stubs flutters up from the floor! "TICKETS, PLEASE!"', turn: ['The Ticket Stubs flutter in your face.', '"Admit one! Admit TWO! Admit EVERYONE!"', 'The Ticket Stubs shuffle themselves.'],
+      hurt: 'A few Ticket Stubs tear a little more.', calm: 'The Ticket Stubs settle into a neat pile.', fade: 'The Ticket Stubs blow away, grumbling about "no refunds."',
+      befriend: 'The Ticket Stubs spell out "ENCORE!" in the air. They want to join your band!'},
+  },
+  {
+    id: 'ropeknot', name: 'Rope Knot', sprite: 'ropeknot', hp: 30, atk: 2, area: 'stage', ep: 2, test: 'FINGERING (bonus)',
+    challenge: 'fingering', notes: 'Eb', time: 14, happy: 1,
+    calm: {perNote: 0, listen: 5, success: 34},
+    harmonize: {type: 'note', hold: 1.5},
+    listen: ['ROPE KNOT. A curtain rope that tied itself in a knot and can\'t get out.', 'Wrong fingerings make the knot tighter.',
+      'It loosens up when you finger its note exactly right.'],
+    dodge: {seconds: 7, patterns: [{kind: 'rope', every: 2.1, speed: 26}, {kind: 'side', sprite: 'sour', every: 1.8, speed: 44}]},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'cork-grease'}},
+    lines: {intro: 'A Rope Knot drops from the fly loft! It\'s VERY tangled.', turn: ['The Rope Knot swings at you!', 'The Rope Knot ties itself a little tighter.', 'Whoosh! The Rope Knot does a loop-the-loop.'],
+      hurt: 'The Rope Knot frays a little.', calm: 'One loop of the Rope Knot comes undone.', fade: 'The Rope Knot slinks back up into the rafters, still tangled.',
+      befriend: 'The knot comes free! The rope hangs straight and proud. It wants to join your band!'},
+  },
+  {
+    id: 'miclet', name: 'Mic-let', sprite: 'miclet', hp: 30, atk: 2, area: 'stage', ep: 2, test: 'ECHO',
+    challenge: 'echo', tier: 1, notes: 'Eb', happy: 0,
+    calm: {perNote: 3, listen: 10, success: 24},
+    harmonize: {type: 'echo', tier: 2},
+    listen: ['MIC-LET. A tiny walking microphone with one red light. More lonely than mean.', 'Mic-let listens to you very, very carefully.',
+      'It calms down when you echo its rhythm back. It just wants someone to play WITH it.'],
+    dodge: {seconds: 7, patterns: [{kind: 'rings', every: 1.8, speed: 30}, {kind: 'aimed', sprite: 'static', every: 1.9, speed: 38}]},
+    companion: {power: .35, perk: {calm: 8}},
+    rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'snack'}},
+    lines: {intro: 'A Mic-let waddles out from behind the curtain. Its red light blinks. "...test... test..."', turn: ['"...one, two... one, two..."', 'Mic-let crackles static at you.', 'Mic-let\'s little red light blinks very fast.'],
+      hurt: 'Mic-let\'s light flickers. "...ow... feedback..."', calm: 'Mic-let leans in to listen.', fade: 'Mic-let powers down. "...nobody... ever... plays for me..."',
+      befriend: '"...nobody ever played FOR me before." Mic-let wants to join your band!'},
   },
 ];
