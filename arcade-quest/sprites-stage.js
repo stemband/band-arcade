@@ -2,7 +2,7 @@
    one character per pixel ('.' = see-through), each palette maps characters to THEME TOKENS (shared/theme.css: the
    --q-stage-* tokens, plus the manor's --q-*; never a hex color). YOUR OWN ART: arcade-quest/art/<sprite id>.png
    replaces any of these (frames side by side). index.html?sprites shows the game's sprites; GALLERY=1 with
-   tests/quest-ep2.spec.js saves docs/gallery/aq-ep2-sprites.png (every picture below at 4×) for review.
+   tests/quest-ep2.spec.js saves docs/gallery/aq-ep2/sprites.png (every picture below at 4×) for review.
      tile-st-…     the theater's 16 × 16 tiles (data/maps/stage.js says which letter draws which): tile-st-bulbs
                    (the marquee bulbs twinkle, slowly) and tile-st-curtain (it sways) have 2 frames
      stage-speaker the old stage speaker under the attic's sheet (32 × 40: grille dark, grille glowing red)

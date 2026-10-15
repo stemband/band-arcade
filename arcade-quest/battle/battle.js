@@ -485,7 +485,7 @@
       Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id); }));
       hud();
       Q.ui.querySelectorAll('.q-hname,.q-cname').forEach(Q.fitText);     // long names shrink (then wrap), never "…"
-      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(src.music || 'quest-battle');
+      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(Q.battleMusic(src));
       run();
     },
     exit() {

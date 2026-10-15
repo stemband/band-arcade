@@ -422,6 +422,15 @@ A **fingering and slide-position trainer** dressed as a neon versus fighting gam
 
 **An 8-bit RPG where your instrument is how you win battles, and nobody gets hurt.** Episode 1, **Ghost Notes Manor**, is complete: story, final boss, ending, save codes. **Episode 2, The Showtime Stage, is complete too:** it opens after Episode 1 (EPISODES on the title screen, or the old stage speaker under the attic's dusty sheet). The cabinet is on the arcade floor (marquee ARCADE QUEST, "Episode 1: Ghost Notes Manor"); instead of a hi-score its line shows **"Episode 1: 60% · 7 friends"** (how far you are, and how many ghosts joined your band). `arcade-quest/index.html?test` opens the test arena.
 
+**The episodes** (Arcade Quest is Episodes 1 and 2; Episode 3 is not made yet):
+
+| # | Episode | Where | Final boss | About |
+|---|---|---|---|---|
+| 1 | **Ghost Notes Manor** | a haunted manor: 8 rooms, 20 ghosts | the Ghost Conductor | 35–40 minutes |
+| 2 | **The Showtime Stage** | the Showtime Band's theater: 10 rooms, 20 machines, Rico Bandit | THE BIG NUMBER (the whole band) | 30–45 minutes |
+
+Each episode can be finished by befriending (the best ending) or by playing on (a shorter ending); one save and one save code hold both.
+
 ### The story (Episode 1)
 
 - **The villain, only glimpsed:** the Band Arcade's own listening **microphone**. For years it heard every squeak, cracked note and wrong fingering, and nobody ever played just for it. It has come to believe music is only noise, so it is pulling the sound out of the cabinets to make the noise stop. It's misunderstood, not evil. Episode 1 only hints at it: the static, missing sounds, rumors, a giant microphone glimpsed in the windows with a crackling whisper ("...so much noise...") every minute or so while you explore, and the cliffhanger.

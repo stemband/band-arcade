@@ -26,7 +26,8 @@
   Q.scenes.title = {
     enter() {
       me();
-      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-title');
+      // (once Episode 2 is open the title has its own track: quest-ep2-title, falling back to quest-title)
+      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(Q.episodes.unlocked(2) ? Q.track('quest-ep2-title') : 'quest-title');
       // Episode 2 opens only after Episode 1 (ep1Done; an old save that finished it sees it at once); until then the
       // title is exactly as it always was
       const ep2 = Q.episodes.unlocked(2);

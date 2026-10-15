@@ -23,6 +23,10 @@ window.Arcade = window.Arcade || {};
   Q.rand = (a, b) => a + Math.random() * (b - a);
   Q.pick = list => list[Math.floor(Math.random() * list.length)];
   Q.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  /** a music slot and what plays until it is uploaded (data/music.js QUEST_EP2_MUSIC `fallback`): the music manager's list */
+  /** a battle's music: the enemy's own (`music`), else Episode 2's machines' track, else quest-battle */
+  Q.battleMusic = E => (E && E.music) || (E && E.ep === 2 ? Q.track('quest-ep2-battle') : 'quest-battle');
+  Q.track = slot => { const m = (window.QUEST_EP2_MUSIC || []).find(x => x.n === slot); return m && m.fallback ? [slot].concat(m.fallback) : slot; };
 
   let stage, canvas, ctx, ui, viewport, scene = null, last = 0, shakeUntil = 0, shakeAmp = 0;
   Q.init = function () {

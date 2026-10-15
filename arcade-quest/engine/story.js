@@ -415,7 +415,7 @@
     // ep 2: Episode 2's roll (QUEST_CREDITS_EP2), then EPISODE 2 COMPLETE
     enter({first, whisperer, ep, showstopper}) {
       Q.listen(false);
-      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-credits');
+      if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(ep === 2 ? Q.track('quest-ep2-credits') : 'quest-credits');
       const list = ((ep === 2 && window.QUEST_CREDITS_EP2) || window.QUEST_CREDITS || []).map(c => `<div class="q-cr"><h3>${fillYou(c.h)}</h3>${c.lines.map(l => `<p>${fillYou(l)}</p>`).join('')}</div>`).join('');
       Q.ui.innerHTML = `<div class="q-credits" role="region" aria-label="Credits"><div class="q-roll" id="qRoll">${list}</div></div>`;
       K = {first, ep: ep || 1, done: false};
@@ -464,7 +464,7 @@
      Main Stage, beside the hole the cable went down) / TITLE SCREEN. Its words follow the ending, + the SHOWSTOPPER line
      once every machine is helped. */
   function completeEp2({first, showstopper}) {
-    if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic('quest-victory');
+    if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(Q.track('quest-ep2-complete'));
     const s = Q.save.get(), code = Q.save.code(), keys = Q.save.ghosts(2).map(g => g.key), done = s.done || {};
     Q.save.achievements();
     const helped = keys.filter(k => done[k]).length, friends = keys.filter(k => done[k] === 'befriend').length, faded = keys.filter(k => done[k] === 'fade').length;
