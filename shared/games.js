@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'timpani' | 'drumline'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
@@ -45,7 +45,7 @@
                 setting it: a game that needs the microphone only for CLAPS still counts (Rhythm Dojo); one that needs
                 your instrument's notes for part of the game does not (Music Highway's PLAY, Arcade Quest's battles).
                 Today: Note Ninja, Keys to the City (its TOUCH mode), Chime Heist, Rhythm Dojo (TAP or CLAP), Ancient Ninja
-                Scrolls, Button Masher (fingerings on screen), Dojo Duel.
+                Scrolls, Button Masher (fingerings on screen), Dojo Duel, Pedal Point (no microphone at all).
      unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
                 Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
@@ -57,7 +57,7 @@
                 2D cabinets and Select Player). Optional: leave it out for a moving gradient in the game's color with
                 sparkles. {scene, colors, speed, still, every}:
        scene    'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll' | 'versus' | 'hockey' | 'curtain' | 'synthwave'
-                | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
+                | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'kettles' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
@@ -66,7 +66,7 @@
                 subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      bg         its MENU BACKGROUND (shared/backgrounds.js): {scene (shared/bg-scenes.js: 'storm' | 'manor' | 'bamboo' | 'ink'
-                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora' | 'audition'),
+                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora' | 'audition' | 'timpani'),
                 dim (0–1: the dark overlay everywhere), focus (0–1: extra darkness in the middle, behind the menu)}.
                 A picture in shared/backgrounds/<id>.webp|.jpg|.png replaces the scene. Menu screens only, never in play.
      pressStart false = no shared PRESS START title screen (shared/press-start.js; Arcade Quest has its own). Every other
@@ -401,6 +401,23 @@ window.Arcade.GAMES = [
     marquee: {scene: 'radio', colors: ['ls-wave', 'green', 'text-hi']},
     cabinet: {shape: 'signal', trim: 'green', trim2: 'green', marquee: 'signal', screen: 'signal'},
     cabinet3d: {profile: 'signal', body: 'cab-side'},
+  },
+  {
+    id: 'pedal-point',
+    noInstrument: true,                              // no microphone at all: the game makes every sound (timpani + pitch pipe)
+    zones: ['ear-training'],
+    name: 'Pedal Point',
+    bg: {scene: 'timpani', dim: .4, focus: .35},
+    menuMusic: 'pedal-point-menu',
+    skill: 'Tuning by ear',
+    blurb: 'Tune the timpani by ear: work the pedal until the drum matches the pitch.',
+    maxStars: 24,                                    // 8 levels × 3 (pedal-point/levels.js)
+    color: 'yellow',
+    player: 'all',                                   // no instrument needed: START goes straight to the game
+    unpitched: true,                                 // any saved instrument may open it, the Snare Drum too
+    marquee: {scene: 'kettles', colors: ['pp-copper-hi', 'pp-spot', 'pp-night']},
+    cabinet: {shape: 'timpani', trim: 'amber', trim2: 'yellow', marquee: 'kettles', screen: 'timpani'},
+    cabinet3d: {profile: 'timpani', body: 'cab-side'},
   },
   {
     id: 'dojo-duel',

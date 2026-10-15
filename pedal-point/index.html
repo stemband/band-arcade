@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Pedal Point</title>
+<meta name="description" content="Tune the timpani by ear: work the pedal until the drum matches the pitch.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Pedal <span>Point</span></h1>
+      <p class="ui-howto">Tune the timpani by ear. Listen to the pitch pipe, tap the drum, and work its pedal until the two match. No instrument needed: the game makes every sound.</p>
+    </div>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: A = tune to the target, W = 30 cents sharp, Enter = lock in / next.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">Match It</b></div>
+      <div class="c"><small>Tuning</small><b id="hudCount">1 / 5</b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <p class="pp-prompt" id="prompt" aria-live="polite">Tune the drum to the pitch pipe</p>
+    <div class="pp-count" id="count" hidden>
+      <div class="pp-bar" id="countBar" aria-label="Bars of rest"></div>
+      <div class="timer" id="timer"><i></i></div>
+    </div>
+    <div class="pp-stage" id="stage">
+      <div class="pp-drums" id="drums"></div>
+    </div>
+    <!-- while tuning -->
+    <div class="pp-controls" id="controls">
+      <div class="pp-fine" id="fine">
+        <span class="pp-fine-l">Fine tuner</span>
+        <button type="button" class="pp-fine-step" id="fineDown" aria-label="Fine tuner: a little lower">−</button>
+        <div class="pp-fine-track" id="fineTrack" role="slider" tabindex="0" aria-label="Fine tuner" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"><span class="pp-t" id="fineT" aria-hidden="true"></span></div>
+        <button type="button" class="pp-fine-step" id="fineUp" aria-label="Fine tuner: a little higher">+</button>
+      </div>
+      <div class="pp-btns">
+        <button type="button" class="btn btn-secondary pp-strike" id="tapBtn">Tap</button>
+        <button type="button" class="btn btn-secondary pp-strike" id="strokeBtn">Stroke</button>
+        <button type="button" class="btn btn-secondary" id="refBtn">▶ Reference</button>
+        <button type="button" class="btn btn-primary" id="lockBtn">Lock in</button>
+      </div>
+      <p class="pp-keys">Keys: ←/→ drum · ↑/↓ pedal (Shift = fine) · Space tap · Shift+Space stroke · R reference · Enter lock in</p>
+    </div>
+    <!-- after LOCK IN -->
+    <div class="pp-feedback" id="feedback" hidden aria-live="polite"></div>
+  </section>
+</div>
+
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
+
+<!-- No microphone and no instrument: no pitch.js, no mic-gate.js. The drum and the pitch pipe are made by timpani.js
+     on shared/sfx.js's output; every other sound comes from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="drums.js"></script>
+<script src="timpani.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

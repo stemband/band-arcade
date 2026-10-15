@@ -589,6 +589,47 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* PEDAL POINT: a concert stage at night. A dark red curtain behind, the wooden stage, and two pairs of copper
+     timpani at the edges (the bigger kettles outside), each pair under a warm spotlight cone that breathes very slowly
+     (7 s); dust drifts in the light, the kettles' copper catches a soft moving glint. The middle stays dark. */
+  S.timpani = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .7;
+    vgrad(x, W, H, [[0, col('pp-night')], [.6, mix('pp-night', 'pp-curtain', .45)], [.7, mix('pp-curtain', 'pp-night', .55)], [.7, col('pp-stage')], [1, col('pp-stage-2')]]);
+    // the curtain's folds
+    const folds = 14;
+    for (let i = 0; i < folds; i++) {
+      const fx = (i + .5) * W / folds, g = x.createLinearGradient(fx - W / folds / 2, 0, fx + W / folds / 2, 0);
+      g.addColorStop(0, col('pp-curtain', 0)); g.addColorStop(.5, col('pp-curtain', .32)); g.addColorStop(1, col('pp-curtain', 0));
+      x.fillStyle = g; x.fillRect(fx - W / folds / 2, 0, W / folds, fy);
+    }
+    // the stage boards
+    x.strokeStyle = col('pp-stage-2', .9); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * W / 12, fy); x.lineTo(W / 2 + (i * W / 12 - W / 2) * 1.5, H); x.stroke(); }
+    const breath = .5 + .5 * Math.sin(t * TAU / 7);
+    const kettle = (cx, r, glint) => {
+      const top = fy - r * .9;
+      x.strokeStyle = col('pp-chrome-2', .9); x.lineWidth = Math.max(1, m * .008); x.lineCap = 'round';
+      x.beginPath(); x.moveTo(cx - r * .55, top + r * .9); x.lineTo(cx - r * .7, fy + r * .35); x.moveTo(cx + r * .55, top + r * .9); x.lineTo(cx + r * .7, fy + r * .35); x.stroke();
+      x.fillStyle = mix('pp-copper', 'pp-night', .35);
+      x.beginPath(); x.moveTo(cx - r, top); x.quadraticCurveTo(cx - r * .95, top + r * 1.05, cx, top + r * 1.2); x.quadraticCurveTo(cx + r * .95, top + r * 1.05, cx + r, top); x.closePath(); x.fill();
+      x.strokeStyle = col('pp-copper-hi', .25 + .3 * glint); x.lineWidth = Math.max(1, m * .006);
+      x.beginPath(); x.moveTo(cx - r * .72, top + r * .18); x.quadraticCurveTo(cx - r * .6, top + r * .75, cx - r * .2, top + r * 1.02); x.stroke();
+      x.fillStyle = mix('pp-head', 'pp-night', .3); x.beginPath(); x.ellipse(cx, top, r, r * .22, 0, 0, TAU); x.fill();
+      x.strokeStyle = col('pp-chrome', .7); x.lineWidth = Math.max(1, m * .006); x.stroke();
+    };
+    [[.09, .62], [.22, .5]].forEach(([fx, k], i) => {
+      [fx, 1 - fx].forEach((px, side) => kettle(px * W, m * .13 * k / .62 * (W > H ? 1 : .8), .5 + .5 * Math.sin(t * .5 + i * 2 + side * 3)));
+    });
+    // the spotlights over each pair
+    glow(x, W * .15, fy - m * .1, m * .45, col('pp-spot', .06 + .05 * breath), col('pp-spot', 0));
+    glow(x, W * .85, fy - m * .1, m * .45, col('pp-spot', .06 + .05 * (1 - breath)), col('pp-spot', 0));
+    // dust in the light
+    for (let i = 0; i < 18; i++) {
+      const side = i % 2, dx = W * ((side ? .72 : .02) + .26 * fract(hash(i + 80) + t * (.004 + .003 * hash(i + 81)))), dy = H * (.08 + .58 * fract(hash(i + 82) - t * (.01 + .006 * hash(i + 83))));
+      x.fillStyle = col('pp-spot', .07 + .1 * hash(i + 84)); x.beginPath(); x.arc(dx, dy, m * .003, 0, TAU); x.fill();
+    }
+  };
+
   /* SCALE TRAINER: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
      stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
      The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
@@ -1236,7 +1277,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, 'showtime-curtain': 2};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, timpani: 3, 'showtime-curtain': 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

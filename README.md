@@ -119,6 +119,11 @@ music-highway/        Play-along rhythm game: your fingerings fly down a neon hi
   README.md           The song format (and notes for a future MIDI importer)
 lost-signal/          Pitch memory: an alien probe plays a melody, echo it back on your instrument
   levels.js           The 8 levels, rules, the pattern weights and Deep Space Scan (endless). Edit here
+pedal-point/          Tune the timpani by ear: hear the pitch pipe, work the drum's pedal until it matches, lock it in (no microphone)
+  drums.js            THE DRUMS: the four timpani sizes and their ranges, the pedal's equal-cents map. Edit here
+  timpani.js          THE SOUND: the timpani (modal synthesis) and the pitch pipe; every number in its TIMPANI block
+  levels.js           The 8 levels, THE SCORING (stars from the average cents), the keys and reference pitches. Edit here
+  game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
 vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
   levels.js           The 8 levels (First Stroke … Invisible Master), rules, the pattern weights and Endless Scroll. Edit here
   game.js             The round (brush in, study, fade/vanish, answer, results), the Ink Master, reveals, Endless Scroll
@@ -167,7 +172,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 | Note Reading | Ghost Notes, Note Storm, Vanishing Ink |
 | Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
 | Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
-| Ear Training | Lost Signal |
+| Ear Training | Lost Signal, Pedal Point |
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
 | Adventure | Arcade Quest |
 
@@ -250,6 +255,24 @@ microphone is switched off while a transmission plays and listens again only onc
 - **Tuning:** every number is in `lost-signal/levels.js` (levels, rules, the pattern generator's weights, Deep Space Scan).
 - **Shared with Vanishing Ink:** the pattern generator (`shared/patterns.js`) and the echo flow (the slots, how a note
   counts, the result on the staff: `shared/echo.js`). A fix there reaches both games.
+
+## Pedal Point
+
+A **timpani tuning** game: students learn to tune a timpani BY EAR. The game plays a reference (a pitch pipe), the
+student taps the drum and works its PEDAL (toe down = higher, heel down = lower) and the fine tuner until the two match,
+then presses **LOCK IN** and is scored in cents. **No microphone at all**: every sound is the game's own (a synthesized
+timpani that keeps ringing while the pedal glides it, and a reedy pitch pipe), so the score is exact and any instrument,
+or none, can play.
+
+- **The drums:** real sizes and ranges, 32" (D2–A2), 29" (F2–C3), 26" (B♭2–F3) and 23" (D3–A3), low on the left.
+- **Levels:** Match It (one drum, the gauge on the rim shows the nearest note), By Ear (no gauge), Pick Your Drum (a
+  note by name: choose a drum that can reach it), Pitch Pipe (the reference plays once), Fifths and Fourths, Octaves
+  and Fifths (intervals from a named pitch), Two-Drum Setup (a key's tonic and dominant), Quick Change (retune in 4 bars
+  of rest, before the downbeat). Stars from the average error: ≤ 25 cents = 1, ≤ 12 = 2, ≤ 6 = 3.
+- **After LOCK IN:** the error in cents ("+7 cents sharp"), a cents meter, the target and the drum on a bass-clef staff,
+  and the two played together so the difference is heard.
+- **Tuning:** the drums in `pedal-point/drums.js`, the sound in `pedal-point/timpani.js` (the `TIMPANI` block: tune it
+  by ear), the levels, stars and keys in `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
 
 ## Vanishing Ink
 

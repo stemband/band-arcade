@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | 'snare' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | 'snare' | 'kettle' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -154,6 +154,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* timpani: the Pedal Point cabinet: a classic body with a small copper kettle on the roof (a timpani: calfskin-
+       white head, chrome hoop, three chrome legs), a neon ring around its head in the second trim color */
+    timpani: {
+      width: 0.94, topper: 'kettle',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* audition: the Scale Trainer cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
        sheet of music, on a pole), a neon edge along the desk */
     audition: {
@@ -186,7 +194,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks', drumline: 'drumline'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks', drumline: 'drumline', timpani: 'timpani'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -220,6 +228,7 @@ window.Arcade = window.Arcade || {};
    'sa-wall', 'sa-stand', 'sa-sheet', 'sa-ok', 'sa-cur',
    'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone',
    'rt-shell', 'rt-rim', 'rt-gold', 'rt-stick', 'rt-night',
+   'pp-copper', 'pp-copper-2', 'pp-head', 'pp-chrome', 'pp-night',
    'pz-peg', 'pz-peg-hole', 'pz-wood', 'pz-wood-2', 'pz-paper', 'pz-glass', 'pz-warm'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
@@ -523,6 +532,12 @@ window.Arcade = window.Arcade || {};
       const scr = A.CAB_SCREENS && A.CAB_SCREENS.blocks;
       if (scr && scr.draw) return scr.draw(x, W, H, t);
       x.fillStyle = tok['bt-sky-night']; x.fillRect(0, 0, W, H);
+    },
+    /* Pedal Point: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.timpani) */
+    timpani(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.timpani;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['pp-night']; x.fillRect(0, 0, W, H);
     },
     /* the Rudiment Trainer: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.drumline) */
     drumline(x, W, H, t) {
@@ -946,6 +961,19 @@ window.Arcade = window.Arcade || {};
       const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * .97, .01, 6, 28), basic(col(k.trim + '-hi'))); ring.rotation.x = Math.PI / 2; ring.position.y = Hs / 2 + .006; drum.add(ring);
       const wood = lambert(col('rt-stick'));
       [-1, 1].forEach(sd => { const st = new THREE.Mesh(new THREE.CylinderGeometry(.009, .012, .46, 6), wood); st.position.set(0, Hs / 2 + .05, 0); st.rotation.set(0, 0, Math.PI / 2 + sd * .5); drum.add(st); });
+      drum.userData.pick = true; group.add(detail(drum));
+    } else if (P.topper === 'kettle') {
+      // a small timpani on the roof (Pedal Point): a copper kettle (a half sphere, opening up) on three chrome legs, its
+      // calfskin-white head on top with a chrome hoop and a neon ring in the SECOND trim color
+      const fz = frontTop + zc - .14, R0 = .19, cy = topY + .2;
+      const drum = new THREE.Group(); drum.position.set(0, cy, fz);
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(R0, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), lambert(col('pp-copper'))); drum.add(bowl);
+      const head = new THREE.Mesh(new THREE.CircleGeometry(R0 * .99, 24), basic(col('pp-head'))); head.rotation.x = -Math.PI / 2; head.position.y = .002; drum.add(head);
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(R0, .012, 6, 28), lambert(col('pp-chrome'))); hoop.rotation.x = Math.PI / 2; drum.add(hoop);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.02, .008, 6, 28), basic(col(k.trim2 + '-hi'))); ring.rotation.x = Math.PI / 2; ring.position.y = .006; drum.add(ring);
+      const glow = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.02, .03, 6, 28), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.rotation.x = Math.PI / 2; glow.position.y = .006; drum.add(glow);
+      const chrome = lambert(col('pp-chrome'));
+      [0, 1, 2].forEach(j => { const a = j / 3 * Math.PI * 2 + Math.PI / 2, leg = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .2, 5), chrome); leg.position.set(Math.cos(a) * R0 * .55, -.1, Math.sin(a) * R0 * .55); drum.add(leg); });
       drum.userData.pick = true; group.add(detail(drum));
     } else if (P.topper === 'blocks') {
       // a little stack of neon blocks on the roof (Blocktave): dirt blocks with glowing moss tops, and a music block

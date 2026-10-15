@@ -118,6 +118,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Rudiment Trainer | `rudiment-trainer-menu` | `rudiment-trainer-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Scale Trainer | `scale-trainer-menu` | `scale-trainer-menu.m4a` (or .mp3) | a file already uploaded under the game's old name, `scale-audition-menu.m4a` (or .mp3), then the arcade’s select-music |
 | Blocktave | `blocktave-menu` | `blocktave-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Pedal Point | `pedal-point-menu` | `pedal-point-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -267,6 +268,19 @@ except the two tiny echo clicks. Until you upload a file, a built-in version mad
 | `lost-signal-life-lost` | `lost-signal-life-lost.m4a` or `lost-signal-life-lost.mp3` | Lost Signal: Deep Space Scan: a round missed, a heart lost. | 0.3–0.8 s |
 | `lost-signal-game-over` | `lost-signal-game-over.m4a` or `lost-signal-game-over.mp3` | Lost Signal: Deep Space Scan: GAME OVER. | 0.8–1.5 s |
 | `lost-signal-high-score` | `lost-signal-high-score.m4a` or `lost-signal-high-score.mp3` | Lost Signal: Deep Space Scan: GAME OVER with a new #1 (after lost-signal-game-over). | 0.5–1.5 s |
+
+### Pedal Point
+
+Pedal Point never uses the microphone. The timpani and the pitch pipe the student tunes with are made by the game itself
+(`pedal-point/timpani.js`), never files. Its own effects below must be **unpitched** (clicks, ticks, sparkles): a
+pitched effect would muddy the very pitch the student is listening to. The menu music fades out when a level starts.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `pedal-point-menu` | `pedal-point-menu.m4a` or `pedal-point-menu.mp3` | Pedal Point: menu music (the level select, a level's intro, results). Fades out when a level starts. | 30–90 s loop |
+| `pp-lock` | `pp-lock.m4a` or `pp-lock.mp3` | LOCK IN: the tuning is judged. A solid click, **unpitched** | under 0.2 s |
+| `pp-star` | `pp-star.m4a` or `pp-star.mp3` | A BULLSEYE (within 3 cents), right after `pp-lock`. A sparkle, **unpitched** | under 0.4 s |
+| `pp-count` | `pp-count.m4a` or `pp-count.mp3` | QUICK CHANGE: each beat of the bars of rest before the downbeat. A quiet tick, **unpitched** (it plays while the student listens to the drum) | under 0.1 s |
 
 ### Vanishing Ink
 
