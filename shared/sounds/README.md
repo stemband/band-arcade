@@ -630,9 +630,9 @@ upload a file, that part of the game is simply quiet.
 | `quest-mic-crackle` | `quest-mic-crackle.m4a` or `quest-mic-crackle.mp3` | Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening. | 0.5–2 s |
 | `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: a final boss starts a new stage of the battle (the Ghost Conductor; Episode 2: THE BIG NUMBER, a new band member). Never while listening. | 0.5–1 s |
 
-**Arcade Quest, Episode 2: The Showtime Stage** (in progress: each room gets its slot as it is built). Until a file is
-uploaded, the slot plays the track named in the last column, so nothing goes silent. The Sound Board lists the rooms
-under "Arcade Quest — Episode 2 Rooms".
+**Arcade Quest, Episode 2: The Showtime Stage** (every slot: the checklist "Arcade Quest — Episode 2 music" below). Until
+a file is uploaded, the slot plays the track named in the last column, so nothing goes silent. The Sound Board lists
+them under "Arcade Quest — Episode 2".
 
 | Event | File to upload | When it plays | Suggested length |
 |---|---|---|---|

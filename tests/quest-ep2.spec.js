@@ -4,7 +4,7 @@
    Booth Tina = THE SHARED WALLET, Popcorn Pete's shop, the Save Jukebox saves ep: 2 and CONTINUE comes back), doors
    to rooms still being built, Episode 2's whispers, the floor's line per episode, SAVE_VERSION 6, the QUEST CODE
    version 6 (Episode 2's progress; every older version still loads), the Arcade Backup Code, the new rooms at phone,
-   iPad and Chromebook sizes, every new line ≤ 80 characters. GALLERY=1 saves docs/gallery/aq-ep2-sprites.png.
+   iPad and Chromebook sizes, every new line ≤ 80 characters. GALLERY=1 saves docs/gallery/aq-ep2/sprites.png.
    Episode 1 itself is checked by every other quest-*.spec.js (unchanged). */
 const path = require('path');
 const {test, expect} = require('@playwright/test');
@@ -499,7 +499,7 @@ test('every Episode 2 line fits the text box (≤ 80 characters) and every new s
   watch.check();
 });
 
-test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame), the stage speaker, the Main Stage\'s pieces, THE BIG NUMBER and the new avatar items at 4× (docs/gallery/aq-ep2-sprites.png)', async ({page}) => {
+test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every frame), the stage speaker, the Main Stage\'s pieces, THE BIG NUMBER and the new avatar items at 4× (docs/gallery/aq-ep2/sprites.png)', async ({page}) => {
   test.skip(!process.env.GALLERY, 'only with GALLERY=1');
   await page.setViewportSize({width: 1400, height: 2700});
   const watch = await boot(page, store(save(false)));
@@ -530,6 +530,6 @@ test('GALLERY=1: every Episode 2 tile, NPC (glitched and awake), machine (every 
     });
     document.body.appendChild(sheet);
   });
-  await page.locator('#aqGallery').screenshot({path: path.join(ROOT, 'docs/gallery/aq-ep2-sprites.png')});
+  await page.locator('#aqGallery').screenshot({path: path.join(ROOT, 'docs/gallery/aq-ep2/sprites.png')});
   watch.check();
 });

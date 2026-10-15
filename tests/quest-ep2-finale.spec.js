@@ -205,7 +205,7 @@ for (const route of ['befriend', 'fade']) {
     expect(r0.e).toMatchObject({boss: true, final: true, ep: 2, area: 'stage', music: ['quest-ep2-boss', 'quest-boss'], doneFlag: 'ep2Done', serenade: false,
       harmonize: {type: 'scale', notes: 'Eb'}, harmonizeKeep: true});
     expect(r0.e.stages.map(st => st.until)).toEqual([.8, .6, .4, .2, 0]);
-    expect(r0.hp).toBe(344);                                                                   // 215 × the stage area's 1.6 (solo)
+    expect(r0.hp).toBe(196);                                                                   // 140 × the stage area's 1.4 (solo)
     // play until the finale: SERENADE is never offered; the stages come in order
     const s = await drive(page, x => x.b && x.b.hp === 1 && x.b.calm >= 100 && x.cmd, () => 'PLAY');
     const r = await page.evaluate(() => ({runs: window.__runs.filter(x => !x.harm), dodges: window.__dodges, said: window.__said.filter(x => x.lines.some(l => /./.test(l)))}));

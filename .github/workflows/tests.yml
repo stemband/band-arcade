@@ -186,7 +186,7 @@ jobs:
       - name: Install chromium
         run: ./install-browser.sh chromium
       - name: Blocktave's and Showtime Malfunction's frame rates (alone on the machine, 4× CPU throttle)
-        run: npx playwright test blocktave showtime-endless -g performance --project=chromium --workers=1 --reporter=list,github
+        run: npx playwright test blocktave showtime-endless quest-ep2-polish -g performance --project=chromium --workers=1 --reporter=list,github
         env:
           PERF: '1'
 

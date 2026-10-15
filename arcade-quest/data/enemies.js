@@ -86,7 +86,7 @@
 window.QUEST_AREAS = {
   test:  {hp: 1, atk: 1},                 // the Test Arena
   manor: {hp: 1, atk: 1},                 // Episode 1: Ghost Notes Manor
-  stage: {hp: 1.6, atk: 1.3},             // Episode 2: the Showtime Stage (students arrive around LV 8–10)
+  stage: {hp: 1.4, atk: 1.3},             // Episode 2: the Showtime Stage (students arrive around LV 5–7; measured: docs/games/arcade-quest.md, BALANCE)
 };
 window.QUEST_ENEMIES = [
   {
@@ -375,7 +375,7 @@ window.QUEST_ENEMIES = [
       'It loosens up when you finger its note exactly right.'],
     dodge: {seconds: 7, patterns: [{kind: 'rope', every: 2.1, speed: 26}, {kind: 'side', sprite: 'sour', every: 1.8, speed: 44}]},
     rewards: {fade: {xp: 10, tokens: 4}, befriend: {xp: 22, tokens: 9, item: 'cork-grease'}},
-    lines: {intro: 'A Rope Knot drops from the fly loft! It\'s VERY tangled.', turn: ['The Rope Knot swings at you!', 'The Rope Knot ties itself a little tighter.', 'Whoosh! The Rope Knot does a loop-the-loop.'],
+    lines: {intro: 'A Rope Knot drops from the Fly Loft! It\'s VERY tangled.', turn: ['The Rope Knot swings at you!', 'The Rope Knot ties itself a little tighter.', 'Whoosh! The Rope Knot does a loop-the-loop.'],
       hurt: 'The Rope Knot frays a little.', calm: 'One loop of the Rope Knot comes undone.', fade: 'The Rope Knot slinks back up into the rafters, still tangled.',
       befriend: 'The knot comes free! The rope hangs straight and proud. It wants to join your band!'},
   },
@@ -423,12 +423,12 @@ window.QUEST_ENEMIES = [
      'bignumber' members), then the finale at 1 HP: HARMONIZE with the whole concert E♭ scale (the best ending) or play
      on (the band powers down to rest: the shorter ending). Both set ep2Done (`doneFlag`). Never mean: they're
      MUSICIANS stuck in a glitch, and they want to play.
-     BALANCE (battle.js's turns table: 80 % accuracy, 70 % speed = power × 0.69 a PLAY): 215 HP × the stage area's 1.6
-     = 344 HP solo (a trio: × 1.9 = 654). At LV 12 (power 42) about 12 PLAYs solo; LV 14 (power 55) about 9 solo and 9
-     as a trio (companions .4 × your power × .8 each); LV 16 (power 71) about 7. That is about 2 PLAYs a stage, like
-     the Ghost Conductor's (3 stages, about 5 PLAYs at LV 9), for a student who helped about 12 of the 20 machines. */
+     BALANCE (MEASURED, build step 6: tests/quest-balance.spec.js at accuracy .8, one dodge hit a turn): 140 HP × the
+     stage area's 1.4 = 196 HP solo (a trio: × 1.9 = 372). Students reach it at LV 7 on the POWER DOWN route (alone, no
+     healing items: about 12 PLAYs, 2 to spare before they're out of breath) and LV 10 on the BEFRIEND route (with the
+     band). It was 215 (× 1.6 = 344, planned for LV 12–16): a POWER DOWN student lost it every time at 2/3 of the way. */
   {
-    id: 'bignumber', name: 'The Big Number', sprite: 'bignumber', hp: 215, atk: 2, area: 'stage', ep: 2, boss: true, final: true,
+    id: 'bignumber', name: 'The Big Number', sprite: 'bignumber', hp: 140, atk: 2, area: 'stage', ep: 2, boss: true, final: true,
     music: ['quest-ep2-boss', 'quest-boss'], talk: 'bignumber', doneFlag: 'ep2Done',
     challenge: 'longtone', notes: 'Eb', harmonizeKeep: true, serenade: false, happy: 0,
     calm: {perNote: 0, listen: 0, success: 0},

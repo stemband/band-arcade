@@ -193,7 +193,7 @@ Object.assign(window.QUEST_DIALOGUE, {
     '—rrrrrrrrrrIMSHOT! Phew. Thanks, kid. My wrists were getting tired.',
     'Snapjaw Sal, drums. I keep the beat for the whole Showtime Band.',
     'Want to read rhythms like a pro? Talk to me. The lesson\'s free!',
-    'Oh, and the ladder up to the fly loft? I was leaning on it. All yours.',
+    'Oh, and the ladder up to the Fly Loft? I was leaning on it. All yours.',
   ], talk: [
     {if: 'ep2Done&route:bignumber=befriend&!sal-ep2', set: 'sal-ep2', lines: ['BA-DUM-TSS! Now THAT was a big number. You kept the beat, kid.']},
     {if: 'ep2Done&route:bignumber=fade&!sal-ep2', set: 'sal-ep2', lines: ['The band\'s powered down for a nap. Even drummers need a rest. Sometimes.']},
@@ -255,7 +255,7 @@ Object.assign(window.QUEST_SIGNS, {
   'soon': ['This way isn\'t open yet. (Coming soon: the theater is still being built.)'],
   'balcony-roped': ['Roped off. A sign says: CLOSED FOR REHEARSAL.'],
   'dressing-soon': ['The Dressing Rooms. Somebody hums a sax tune behind the door.', '(Coming soon: the theater is still being built.)'],
-  'ladder-locked': ['A ladder up to the fly loft. A drum roll rattles every rung. Not yet!'],
+  'ladder-locked': ['A ladder up to the Fly Loft. A drum roll rattles every rung. Not yet!'],
   'wings-locked': ['The curtain is down. Rico\'s notes are holding the rope tight.'],
   'stardoor-locked': ['A door with a gold star. Locked. Someone wrote on it: "RICO\'S. KEEP OUT."'],
   'vent-locked': ['A vent grate, low in the wall. It\'s screwed shut. Notes hum behind it.'],

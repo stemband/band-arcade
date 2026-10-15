@@ -154,7 +154,7 @@ for (const route of ['befriend', 'fade', 'mixed']) {
       await page.evaluate(() => { window.__lines.length = 0; });
       await step(page, 'workshop', 12, 2, 'up');
       await drive(page, idleIn('workshop'));
-      expect(await lines(page)).toContain('A ladder up to the fly loft. A drum roll rattles every rung. Not yet!');
+      expect(await lines(page)).toContain('A ladder up to the Fly Loft. A drum roll rattles every rung. Not yet!');
       await helpAll(page, route, 'workshop');
       const f = await flags(page);
       expect(f.salAwake).toBe(true);
