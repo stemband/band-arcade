@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'kettles' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -813,6 +813,33 @@ window.Arcade = window.Arcade || {};
         });
       },
     },
+    /* PEDAL POINT, a concert stage. colors: [copper glints + the ring, spotlight, night]. Two copper timpani, one at
+       each end of the sign under a warm spotlight; they take turns ringing (one stroke every 1.6 s): soft rings spread
+       out over the head and fade (about 0.6 s a stroke, never a flash), the kettle's copper glints as it rings. */
+    kettles: {
+      colors: ['pp-copper-hi', 'pp-spot', 'pp-night'], still: .45,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok(c[2])], [.75, tok('pp-night-2')], [1, tok('pp-stage')]]); x.fillRect(0, 0, W, H);
+        [[W * .1, 0], [W * .9, 1]].forEach(([dx, k]) => {
+          glow(x, dx, H * .2, H * .9, c[1], .14);
+          const ph = wrap(t / 1.6 + k * .5, 1), ring = Math.exp(-ph * 4), r = H * .34, top = H * .5;
+          // the bowl
+          x.fillStyle = tok('pp-copper'); x.beginPath(); x.moveTo(dx - r, top); x.quadraticCurveTo(dx - r * .95, top + r * 1.05, dx, top + r * 1.15);
+          x.quadraticCurveTo(dx + r * .95, top + r * 1.05, dx + r, top); x.closePath(); x.fill();
+          x.strokeStyle = rgba(c[0], .35 + .5 * ring); x.lineWidth = Math.max(1.5, H * .03);
+          x.beginPath(); x.moveTo(dx - r * .7, top + r * .2); x.quadraticCurveTo(dx - r * .6, top + r * .75, dx - r * .2, top + r * 1.0); x.stroke();
+          // the head, and its rings spreading out from the middle
+          x.fillStyle = tok('pp-head'); x.beginPath(); x.ellipse(dx, top, r, r * .24, 0, 0, 7); x.fill();
+          x.strokeStyle = tok('pp-chrome'); x.lineWidth = Math.max(1, H * .02); x.stroke();
+          for (let j = 0; j < 2; j++) {
+            const q = ph * 1.6 - j * .3; if (q <= 0 || q >= 1) continue;
+            x.strokeStyle = rgba(c[0], .55 * (1 - q)); x.lineWidth = Math.max(1, H * .018);
+            x.beginPath(); x.ellipse(dx, top, r * q, r * .24 * q, 0, 0, 7); x.stroke();
+          }
+          glow(x, dx, top, r * 1.2, c[0], .12 * ring);
+        });
+      },
+    },
     /* SCALE TRAINER. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
        of the sign under a warm lamp glow, and a major scale's eight notes on a faint staff between them, climbing and
        coming back down; the note being "played" swells softly and fades (about 2 notes a second, a smooth fade each,
@@ -918,7 +945,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- the title ---------- */
   const FONTS = {haunt: '"GN Haunt", "GN Display", sans-serif', pixel: '"GN Pixel", monospace', shade: '"GN Shade", "GN Display", sans-serif',
     faceoff: '"GN Neon", "GN Display", sans-serif', quest: '"GN Quest", sans-serif', signal: '"GN Neon", "GN Display", sans-serif',
-    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', blocks: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif', drumline: '"GN Display", sans-serif'};
+    duel: '"GN Neon", "GN Display", sans-serif', highway: '"GN Neon", "GN Display", sans-serif', keys: '"GN Neon", "GN Display", sans-serif', blocks: '"GN Neon", "GN Display", sans-serif', ink: '"GN Brush", "GN Display", sans-serif', taiko: '"GN Display", sans-serif', drumline: '"GN Display", sans-serif', kettles: '"GN Display", sans-serif'};
   /* ---------- the title: as big as it fits ---------- */
   const TITLE_MARGIN = .04;                        // the safe margin on every side, × the sign's height, inside the border
   const STROKE = .2, GLOW = .35, GLOW_REACH = .55; // outline width, glow blur, and how far the visible glow reaches (measured: ~.19 × the font size)
@@ -994,8 +1021,8 @@ window.Arcade = window.Arcade || {};
     // each word keeps its color: showtime = first word trim, the rest trim2 with the dead F bulb; faceoff likewise
     const two = (style === 'showtime' || style === 'faceoff') && words.length > 1;
     // taiko (Rhythm Dojo, the bamboo dojo): gold lettering (trim2) in its jade frame (trim)
-    // drumline (the Rudiment Trainer): white lettering (trim2) in its gold frame (trim)
-    const colorOf = wi => (style === 'taiko' || style === 'drumline' ? k.cab.trim2 : two && wi > 0 ? k.cab.trim2 : k.cab.trim);
+    // drumline (the Rudiment Trainer): white lettering (trim2) in its gold frame (trim); kettles (Pedal Point): spotlight yellow (trim2) in a copper-amber frame (trim)
+    const colorOf = wi => (style === 'taiko' || style === 'drumline' || style === 'kettles' ? k.cab.trim2 : two && wi > 0 ? k.cab.trim2 : k.cab.trim);
     const blockH = (F.hCoef - 2 * F.pad) * s;
     let y = H / 2 - blockH / 2, wi = 0, deadUsed = false;
     // a soft dark haze behind the letters (never over them), as on every marquee (tests measure the letters without it)

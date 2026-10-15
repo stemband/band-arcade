@@ -22,7 +22,7 @@ window.Arcade = window.Arcade || {};
   "use strict";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const TRIMS = ['pink', 'cyan', 'yellow', 'purple', 'amber', 'green', 'red', 'white', 'blue'];
-  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko', 'blocks', 'drumline'];
+  const MARQUEES = ['bungee', 'haunt', 'pixel', 'shade', 'dojo', 'heist', 'scroll', 'versus', 'faceoff', 'showtime', 'speedway', 'quest', 'signal', 'duel', 'ink', 'highway', 'keys', 'taiko', 'blocks', 'drumline', 'kettles'];
 
   /* an 8-bit microphone (Arcade Quest's marquee and screen): one string per pixel row, X = lit */
   const QUEST_MIC = ['..XXXXX..', '.XX.X.XX.', '.X.X.X.X.', '.XX.X.XX.', '.X.X.X.X.', '.XXXXXXX.', '..XXXXX..',
@@ -172,6 +172,23 @@ window.Arcade = window.Arcade || {};
               '<path class="s-stick" d="M52 546L112 470M112 546L52 470"/><path class="s-stick" d="M188 546L248 470M248 546L188 470"/>' +
               '<ellipse class="s-pad" cx="150" cy="566" rx="50" ry="22"/><ellipse class="s-gum" cx="150" cy="562" rx="34" ry="13"/>',
       slots: {marquee: [34, 34, 232, 64], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
+    },
+    /* timpani: the Pedal Point cabinet. Its top is a timpani seen from the front: a rounded drum head (calfskin white,
+       a chrome hoop) over a copper kettle band behind the marquee; two timpani mallets (felt heads) crossed on the lower
+       side panels, and the drum's pedal on the kick plate */
+    timpani: {
+      outline: 'M22 34Q22 12 150 12Q278 12 278 34V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H22Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 104, y: 430, w: 92, h: 90},
+      extras: '<path class="s-bowl" d="M22 30H278V100Q150 122 22 100Z"/><path class="s-shine" d="M40 44Q48 84 92 104"/>' +
+              '<ellipse class="s-head" cx="150" cy="26" rx="126" ry="12"/><ellipse class="s-hoop" cx="150" cy="26" rx="128" ry="13"/>' +
+              '<path class="s-mallet" d="M52 546L112 470M112 546L52 470"/><path class="s-mallet" d="M188 546L248 470M248 546L188 470"/>' +
+              '<circle class="s-felt" cx="112" cy="470" r="9"/><circle class="s-felt" cx="52" cy="470" r="9"/><circle class="s-felt" cx="248" cy="470" r="9"/><circle class="s-felt" cx="188" cy="470" r="9"/>' +
+              '<path class="s-pedal" d="M118 586L176 556L186 566L128 594Z"/><circle class="s-pivot" cx="124" cy="588" r="5"/>',
+      slots: {marquee: [34, 36, 232, 62], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
     /* audition: the Scale Trainer cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
        slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
@@ -640,6 +657,35 @@ window.Arcade = window.Arcade || {};
           if (lit) { x.globalAlpha = lit; x.fillStyle = css('rt-gold'); x.fillText(STICK[i], lx, H * .9); }
           x.globalAlpha = 1;
         }
+      },
+    },
+    /* Pedal Point: tuning by ear. Two waves (the pitch pipe and the drum) drawn over each other: while the drum is out
+       of tune their sum BEATS (a slow swell and fade); the pedal on the kettle below moves, the beats slow down and stop,
+       and the steady wave turns gold with "IN TUNE" (a 6 s loop; smooth, never a blink). A canvas screen (2D and 3D). */
+    timpani: {
+      html() { return `<div class="scr scr-timpani scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const L = 6, tt = t == null ? 4.8 : t % L, d = Math.max(0, 1 - tt / 4.2);
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css('pp-night-2')); g.addColorStop(1, css('pp-night'));
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        // the waves: beats while out of tune
+        const cy = H * .3, amp = H * .14;
+        x.lineWidth = Math.max(1.5, H * .02); x.strokeStyle = d > 0 ? css('pp-copper-hi') : css('pp-spot');
+        x.beginPath();
+        for (let i = 0; i <= 64; i++) {
+          const u = i / 64, env = d > 0 ? Math.abs(Math.cos(Math.PI * (u * 2.5 * d + (t || 0) * 1.2 * d))) : 1;
+          const y = cy + Math.sin(u * Math.PI * 12) * amp * env;
+          if (i) x.lineTo(u * W, y); else x.moveTo(u * W, y);
+        }
+        x.stroke();
+        if (!d) { x.globalAlpha = Math.min(1, (tt - 4.2) * 2); x.fillStyle = css('pp-spot'); x.font = `700 ${H * .13}px "GN Display", sans-serif`; x.textAlign = 'center'; x.fillText('IN TUNE', W / 2, H * .58); x.globalAlpha = 1; }
+        // the kettle and its pedal (it rises as the drum comes into tune)
+        const kx = W * .5, ky = H * .72, r = W * .26;
+        x.fillStyle = css('pp-copper'); x.beginPath(); x.moveTo(kx - r, ky); x.quadraticCurveTo(kx - r * .95, ky + r * .6, kx, ky + r * .7); x.quadraticCurveTo(kx + r * .95, ky + r * .6, kx + r, ky); x.closePath(); x.fill();
+        x.fillStyle = css('pp-head'); x.beginPath(); x.ellipse(kx, ky, r, r * .16, 0, 0, 7); x.fill();
+        const pa = -.5 + .5 * (1 - d);
+        x.save(); x.translate(W * .82, H * .95); x.rotate(pa); x.fillStyle = css('pp-chrome'); x.fillRect(-W * .12, -H * .03, W * .14, H * .05); x.restore();
       },
     },
     /* Blocktave: a tiny side view of the block world: the avatar walks up to a glowing Tone Ore block, a note bubble

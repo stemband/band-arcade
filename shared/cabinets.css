@@ -464,3 +464,16 @@
 .shape-drumline .s-pad{fill:var(--rt-pad);stroke:var(--rt-rim);stroke-width:2.5}
 .shape-drumline .s-gum{fill:var(--rt-gum)}
 .scr-drumline{background:var(--rt-night)}
+/* Pedal Point: the timpani cabinet (a drum head on top over a copper kettle band, crossed mallets, the pedal on the
+   kick plate), the kettles lettering (spotlight yellow in a copper frame) and its canvas screen */
+.mq-kettles{background:linear-gradient(180deg,var(--pp-night-2),var(--pp-night));color:var(--u-hi);border:.12em solid var(--t);border-radius:.3em;box-shadow:var(--t-glow)}
+.mq-kettles .mq-name{font-family:var(--display)}
+.shape-timpani .s-bowl{fill:var(--pp-copper);stroke:var(--pp-copper-2);stroke-width:2}
+.shape-timpani .s-shine{fill:none;stroke:var(--pp-copper-hi);stroke-width:5;stroke-linecap:round;opacity:.55}
+.shape-timpani .s-head{fill:var(--pp-head)}
+.shape-timpani .s-hoop{fill:none;stroke:var(--pp-chrome);stroke-width:3}
+.shape-timpani .s-mallet{stroke:var(--pp-chrome-2);stroke-width:5;stroke-linecap:round;opacity:.9}
+.shape-timpani .s-felt{fill:var(--pp-head);stroke:var(--pp-head-2);stroke-width:2}
+.shape-timpani .s-pedal{fill:var(--pp-chrome);stroke:var(--pp-chrome-2);stroke-width:2}
+.shape-timpani .s-pivot{fill:var(--pp-chrome-2)}
+.scr-timpani{background:var(--pp-night)}
