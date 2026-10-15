@@ -222,12 +222,13 @@
   }
   const canTune = () => !!G && !G.paused && G.phase === 'tune';
 
-  /* a tap on a kettle: choose it (PICK YOUR DRUM) or make it the active drum, and a tuning tap */
+  /* a tap on a kettle: choose it (PICK YOUR DRUM) or make it the active drum, and a full STROKE (a tuning tap is too
+     quiet on laptop and tablet speakers: only Shift+Space and the TAP button play one) */
   function kettleTap(i) {
     if (!G || G.paused) return;
     if (G.phase === 'pick') return pick(i);
     if (G.phase !== 'tune' || !G.drums[i].enabled) return;
-    setActive(i); strike(true);
+    setActive(i); strike(false);
   }
   function strike(soft) {
     if (!canTune() || G.active == null) return false;
@@ -373,7 +374,7 @@
     t.di = i; G.phase = 'tune'; startDrum(t); G.active = i;
     $('prompt').textContent = promptFor(G.L, G.r);
     A.Sfx.event('ui-toggle');
-    drawAll(); strike(true);
+    drawAll(); strike(false);
     return true;
   }
 
@@ -596,7 +597,7 @@
       const s = k === 'ArrowUp' ? 1 : -1;
       if (e.shiftKey && G.L.fine) setFine(G.active, x.fine + s * RULES.fineStep);
       else setPedal(G.active, x.pedal + s * RULES.pedalStep / x.d.span);
-    } else if (k === ' ') { e.preventDefault(); strike(!e.shiftKey); }
+    } else if (k === ' ') { e.preventDefault(); strike(e.shiftKey); }   // Space = a stroke, Shift+Space = a tuning tap
     else if (k === 'r' || k === 'R') { e.preventDefault(); playRef(); }
     else if (k === 'Enter') { e.preventDefault(); lock(); }
     else if (A.DEMO && (k === 'a' || k === 'A')) { e.preventDefault(); api.auto(); }

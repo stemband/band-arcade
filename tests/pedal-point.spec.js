@@ -218,6 +218,7 @@ test('PICK YOUR DRUM: the wrong drum says it is out of range (no penalty), the r
   const after = await st(page);
   expect(after).toMatchObject({phase: 'tune', active: right, wrongPicks: 1});
   expect(after.drums[right].enabled).toBe(true);
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').slice(-1)[0])).toMatchObject({key: right, soft: false, played: true});   // the right pick = a full stroke
   await page.evaluate(() => { Arcade.PedalPoint.auto(); Arcade.PedalPoint.lock(); });
   expect(Math.abs((await st(page)).results[0].cents)).toBeLessThan(.01);   // no penalty beyond the time
   watch.check();
@@ -357,7 +358,7 @@ for (const [name, vp, touch] of [['phone', {width: 390, height: 844}, true], ['i
   });
 }
 
-test('THE KEYBOARD: ←/→ drum, ↑/↓ pedal, Shift = fine, Space taps, R reference, Enter locks in', async ({page}) => {
+test('THE KEYBOARD: ←/→ drum, ↑/↓ pedal, Shift = fine, Space strokes, Shift+Space taps, R reference, Enter locks in', async ({page}) => {
   const watch = await open(page);
   await page.evaluate(() => Arcade.PedalPoint.begin(7));
   await expect.poll(async () => (await st(page)).ref.plays).toBe(1);
@@ -372,9 +373,9 @@ test('THE KEYBOARD: ←/→ drum, ↑/↓ pedal, Shift = fine, Space taps, R ref
   await page.keyboard.press('Space');
   const strike = await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0]);
   expect(await page.evaluate(() => Arcade.Timpani.test.history.length)).toBe(before + 1);
-  expect(strike).toMatchObject({kind: 'strike', soft: true, key: a});
+  expect(strike).toMatchObject({kind: 'strike', soft: false, key: a});      // Space = a full stroke
   await page.keyboard.press('Shift+Space');
-  expect(await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0].soft)).toBe(false);
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0].soft)).toBe(true);   // Shift+Space = a tuning tap
   await page.keyboard.press('ArrowRight');
   s = await st(page);
   expect(s.active).not.toBe(a);
@@ -452,7 +453,7 @@ test('THE RECORDED DRUMS: the take\'s rate makes the principal exact; a tap is s
     const f = P.state().drums[0].freq;
     out.f = f;
     out.stroke = P.strike(false); out.sTake = T.test.take(0); out.sPrincipal = T.test.principal(0);
-    out.tap = P.strike(true); out.tTake = T.test.take(0);
+    document.getElementById('tapBtn').click(); out.tap = T.test.history[T.test.history.length - 1].played; out.tTake = T.test.take(0);   // the TAP button: the tuning tap
     out.last = T.test.history[T.test.history.length - 1];
     // round robin: twelve strokes in a row never repeat a take
     const files = [];
@@ -499,6 +500,8 @@ test('THE RECORDED DRUMS: the take\'s rate makes the principal exact; a tap is s
   expect(r.muted).toBe(false);
   expect(r.listening).toBe(false);
   expect(r.HIT).toBeCloseTo(.008, 9);
+  await page.keyboard.press('Space');                                    // Space = a full stroke: the mid takes
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0])).toMatchObject({engine: 'samples', soft: false, want: 'mid', played: true});
   watch.check();
 });
 
@@ -518,7 +521,7 @@ test('THE RECORDED DRUMS: with no files (every timpani/ request a 404) the synth
   await page.locator('.ls-start').click();
   await page.locator('#introGo').click();
   for (let k = 0; k < 40 && !(await page.locator('#results').isVisible().catch(() => false)); k++) {
-    await page.keyboard.press('Space');                                  // a tuning tap: the synth plays it
+    await page.keyboard.press('Space');                                  // a stroke: the synth plays it
     await page.keyboard.press('a'); await page.keyboard.press('Enter');
     await expect.poll(async () => (await st(page)).phase).not.toBe('tune');
     await page.keyboard.press('Enter');
@@ -584,5 +587,25 @@ test('the Sound Board\'s Pedal Point section links THE SAMPLE TUNER (a teacher t
   const watch = await prepare(page);
   await page.goto('sound-board/index.html');
   await expect(page.locator('details[data-sec="pedal-point"] .sb-tool a')).toHaveAttribute('href', '../pedal-point/index.html?tune-samples');
+  watch.check();
+});
+
+test('STRIKING: a click on a kettle and the STROKE button = a full stroke (the kettle becomes active); the TAP button = a tuning tap', async ({page}) => {
+  const watch = await open(page);
+  await page.evaluate(() => Arcade.PedalPoint.begin(7));                 // two drums
+  await expect.poll(async () => (await st(page)).ref.plays).toBe(1);
+  const last = () => page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').slice(-1)[0]);
+  const s0 = await st(page), other = s0.drums.findIndex((x, i) => x.enabled && i !== s0.active);
+  const n0 = await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').length);
+  await page.locator(`.pp-kettle[data-i="${other}"]`).click();
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').length)).toBe(n0 + 1);
+  expect(await last()).toMatchObject({key: other, soft: false, played: true});
+  expect((await st(page)).active).toBe(other);
+  await page.locator('#tapBtn').click();
+  expect(await last()).toMatchObject({key: other, soft: true, played: true});
+  await page.locator('#strokeBtn').click();
+  expect(await last()).toMatchObject({key: other, soft: false, played: true});
+  // STROKE comes first and is the yellow one
+  expect(await page.evaluate(() => [...document.querySelectorAll('.pp-btns .pp-strike')].map(b => b.id + ':' + b.classList.contains('btn-primary')))).toEqual(['strokeBtn:true', 'tapBtn:false']);
   watch.check();
 });
