@@ -66,3 +66,21 @@ test('every sound decodes, at its uploaded length, and loops keep sound at the s
   }
   expect(bad).toEqual([]);
 });
+
+// SUBFOLDERS (never compressed, not events): shared/sounds/timpani/ = Pedal Point's recorded drums. Every file decodes
+// (where the browser has AAC); their table, length and 10 ms hit: tests/pedal-point.spec.js THE RECORDED DRUMS.
+test('every file in shared/sounds/timpani/ decodes', async ({page}) => {
+  const files = fs.existsSync(path.join(DIR, 'timpani')) ? fs.readdirSync(path.join(DIR, 'timpani')).filter(f => /\.(mp3|m4a)$/i.test(f)).sort() : [];
+  test.skip(!files.length, 'upload the timpani samples (shared/sounds/timpani/)');
+  await page.goto('offline.html');
+  const got = await page.evaluate(async files => {
+    const ctx = new OfflineAudioContext(1, 1, 44100), out = {};
+    for (const f of files) {
+      try { const b = await ctx.decodeAudioData(await (await fetch('shared/sounds/timpani/' + f)).arrayBuffer()); out[f] = b.length > 0 ? 'ok' : 'empty'; }
+      catch (e) { out[f] = 'error: ' + (e && e.message || e); }
+    }
+    return out;
+  }, files);
+  test.skip(files.every(f => got[f] !== 'ok') && files.every(f => /\.m4a$/i.test(f)), 'this browser has no AAC decoder: decoded in WebKit');
+  expect(files.filter(f => got[f] !== 'ok').map(f => `${f}: ${got[f]}`)).toEqual([]);
+});

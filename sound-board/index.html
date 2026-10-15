@@ -63,6 +63,8 @@
   .sb-search{flex:1 1 240px;min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid var(--cyan-ink);background:var(--deep);color:var(--text-hi);font:inherit;font-size:16px}
   .sb-search:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
   .sb-sub{margin:14px 0 6px;font-size:15px;color:var(--text-hi)}
+  .sb-tool{margin:12px 0 0;font-size:14px;color:var(--text-lo)}
+  .sb-tool a{color:var(--yellow)}
   .sb-tools .btn{min-height:44px}
   .sb-none{margin:14px 0;padding:14px;border-radius:12px;text-align:center;font-weight:700;color:var(--text-hi);background:var(--floor-2);border:1px dashed var(--floor-3)}
   .sb-sec{margin:0 0 8px;border-radius:14px;border:1px solid var(--floor-3);background:color-mix(in srgb,var(--floor-2) 45%,transparent)}
@@ -180,6 +182,11 @@
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
   /* ---------- the list, grouped by screen ---------- */
+  // a teacher tool under a screen's sounds (not linked anywhere students go)
+  const SCREEN_NOTES = {
+    'pedal-point': `<p class="sb-tool"><b>Teacher tool:</b> <a href="../pedal-point/index.html?tune-samples">THE SAMPLE TUNER</a> ` +
+      `for the recorded timpani (<code>shared/sounds/timpani/</code>): play each take against the pitch pipe, nudge its pitch by ear, copy the new lines for <code>pedal-point/samples.js</code>.</p>`,
+  };
   const names = S.names(), byScreen = {};
   names.forEach(n => { const e = S.get(n); (byScreen[e.screen] = byScreen[e.screen] || []).push(n); });
   $('groups').innerHTML = S.SCREENS.filter(([k]) => byScreen[k]).map(([k, label]) =>
@@ -198,7 +205,7 @@
           `<button type="button" class="btn btn-secondary btn-small" data-loopgo="seam">Jump to 3 s before the loop point</button>` +
           `<button type="button" class="btn btn-secondary btn-small" data-loopgo="stop">Stop</button><p data-loopinfo></p></div>` : '') +
         `</div>`;
-    }).join('') + `</div></div></details>`).join('');
+    }).join('') + `</div>${SCREEN_NOTES[k] || ''}</div></details>`).join('');
 
   // what the search looks through: the sound's name, what it's for, its file and its screen
   document.querySelectorAll('#groups .sb-row').forEach(r => {

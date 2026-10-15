@@ -161,7 +161,7 @@
   function stroke(i, {center = 0, v = vel(), at = null} = {}) {
     if (!cfg().drums[i]) return false;
     S.lastActive = performance.now();
-    const ok = T.strike(key(i), freqOf(i), {vel: v, center, layer: true, at});
+    const ok = T.strike(key(i), freqOf(i), {vel: v, center, layer: true, at, dyn: vel()});   // dyn: the recorded LAYER (p / mf / f)
     if (at == null) hitFx(i, center);
     return ok;
   }
@@ -275,7 +275,7 @@
       if (R.log.length > 3000) R.log.splice(0, 1000);
       if (!ctx) return;
       if (e.kind === 'click' && kit) kit.click(at, PRACTICE.click.vol * (e.down ? 1 : .8), !!e.down);
-      if (e.kind === 'stroke') T.strike(key(e.drum), freqOf(e.drum), {at, vel: e.vel, layer: true});
+      if (e.kind === 'stroke') T.strike(key(e.drum), freqOf(e.drum), {at, vel: e.vel, layer: true, dyn: e.dyn});
     }
     function schedule() {
       if (!running) return;
@@ -379,13 +379,13 @@
       const time = tm(n.t) - t0, end = tm(n.t + n.d) - t0, drum = map[n.midi], v = dynAt(n.t);
       notes.push({n: n.i, time, end, drum, roll: n.roll, midi: n.midi});
       if (drum == null) return;
-      if (!n.roll) { out.push({time, kind: 'stroke', drum, vel: Math.min(1.15, v * (n.accent ? PRACTICE.accent : 1)), n: n.i}); return; }
+      if (!n.roll) { out.push({time, kind: 'stroke', drum, vel: Math.min(1.15, v * (n.accent ? PRACTICE.accent : 1)), dyn: v, n: n.i}); return; }
       // a roll: single strokes at the ROLL rate; a release rolls right up to its next note, else stops a stroke short
       const nx = e.notes[k + 1], stop = n.release && nx ? tm(nx.t) - t0 - 1 / ROLL.rate : end - 1 / ROLL.rate;
       let t = time, h = 0;
       while (t < stop - 1e-6 || t === time) {
         const first = t === time;
-        out.push({time: t, kind: 'stroke', drum, vel: Math.min(1.15, v * (first ? (n.accent ? PRACTICE.accent : 1) : ROLL.vel * (h ? 1 - ROLL.rlBalance : 1))), n: n.i, roll: true});
+        out.push({time: t, kind: 'stroke', drum, vel: Math.min(1.15, v * (first ? (n.accent ? PRACTICE.accent : 1) : ROLL.vel * (h ? 1 - ROLL.rlBalance : 1))), dyn: v, n: n.i, roll: true});
         h ^= 1; t += 1 / ROLL.rate;
       }
     });
@@ -668,6 +668,7 @@
     }));
     const seg = (id, attr, val) => $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset[attr] === String(val) ? 'true' : 'false'));
     seg('prOrder', 'order', p.order); seg('prKeys', 'keys', p.keys); seg('prGauge', 'gauge', p.gauge ? 1 : 0);
+    if (A.PedalPoint && A.PedalPoint.mountDrumSound) A.PedalPoint.mountDrumSound($('prSound'), {id: 'prSound', labelClass: 'pr-sl'});   // DRUM SOUND (game.js)
   }
   function openSetup() { drawSetup(); const ov = $('prSetup'); ov.hidden = false; A.UI.layer.open(ov, {trap: true, onEsc: closeSetup, focus: '#prSetupDone'}); }
   function closeSetup() { const ov = $('prSetup'); if (ov.hidden) return; ov.hidden = true; A.UI.layer.close(ov); }

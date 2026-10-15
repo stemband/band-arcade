@@ -62,6 +62,7 @@ shared/               The engine every game uses
   belts.js            The 10 Band Ninja belts (names and colors), shared by Note Ninja and Ancient Ninja Scrolls
   sounds.js           THE SOUND LIST: every sound event, its file name, volume and rules (see sounds/README.md)
   sounds/             Mat's recorded sounds (.m4a / .mp3), and the list of file names to use (README.md)
+    timpani/          Pedal Point's recorded timpani (VCSL, CC0; never compressed: see its README.md)
   sfx.js              Plays every sound: your files, else the built-in sounds; volumes; mutes the mic while sounds play
   counting.js         MR. GRAHAM'S COUNTING (1 & 2 &, 1 e & a, 1 la le, 6/8…): rhythms as text, the counting of each note
   rhythm-staff.js     Draws a rhythm on a one-line percussion staff with the counting underneath (true superscripts)
@@ -121,7 +122,9 @@ lost-signal/          Pitch memory: an alien probe plays a melody, echo it back 
   levels.js           The 8 levels, rules, the pattern weights and Deep Space Scan (endless). Edit here
 pedal-point/          Tune the timpani by ear: hear the pitch pipe, work the drum's pedal until it matches, lock it in (no microphone)
   drums.js            THE DRUMS: the four timpani sizes and their ranges, the pedal's equal-cents map. Edit here
-  timpani.js          THE SOUND: the timpani (modal synthesis) and the pitch pipe; every number in its TIMPANI block
+  samples.js          THE RECORDED TIMPANI: every file in shared/sounds/timpani/ and its measured pitch. Edit here
+  timpani.js          THE SOUND: the recorded timpani (SAMPLES block) or the synth (TIMPANI block), and the pitch pipe
+  tuner.js            THE SAMPLE TUNER (index.html?tune-samples): fix a recorded take's pitch by ear
   levels.js           The 8 levels, THE SCORING (stars from the average cents), the keys and reference pitches. Edit here
   game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
   practice.js         PRACTICE MODE: the Practice Room (1–4 drums, taps, rolls, keys, the click), your own sheet music, the etudes' play-along
@@ -262,7 +265,7 @@ microphone is switched off while a transmission plays and listens again only onc
 
 A **timpani tuning** game: students learn to tune a timpani BY EAR. The game plays a reference (a pitch pipe), the
 student taps the drum and works its PEDAL (toe down = higher, heel down = lower) and the fine tuner until the two match,
-then presses **LOCK IN** and is scored in cents. **No microphone at all**: every sound is the game's own (a synthesized
+then presses **LOCK IN** and is scored in cents. **No microphone at all**: every sound is the game's own (a recorded
 timpani that keeps ringing while the pedal glides it, and a reedy pitch pipe), so the score is exact and any instrument,
 or none, can play.
 
@@ -278,8 +281,16 @@ or none, can play.
   sheet music (a photo or a PDF); it stays on their device and is never uploaded. Four original practice etudes have
   HEAR IT and PLAY ALONG with a score (the GMEA etude itself is copyrighted, so it is never in the game: students load
   their own copy).
-- **Tuning:** the drums in `pedal-point/drums.js`, the sound in `pedal-point/timpani.js` (the `TIMPANI` block: tune it
-  by ear), the levels, stars and keys in `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
+- **The drum sound:** real recorded timpani (65 takes, soft / medium / loud, in `shared/sounds/timpani/`), stretched to
+  the exact pitch of the pedal. Students can switch **DRUM SOUND: RECORDED · SYNTH** in the settings; where the files
+  can't load (a double-clicked page), the game's own synthesized drum plays. To fix a take's pitch by ear, open
+  `pedal-point/index.html?tune-samples` (THE SAMPLE TUNER, linked from the Sound Board). To use recordings of your own
+  drums: `shared/sounds/timpani/README.md`.
+- **Tuning:** the drums in `pedal-point/drums.js`, the recorded takes in `pedal-point/samples.js`, the sound in
+  `pedal-point/timpani.js` (the `SAMPLES` and `TIMPANI` blocks: tune them by ear), the levels, stars and keys in
+  `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
+- **Credit:** the recorded timpani are from the **Versilian Community Sample Library (VCSL)** by Versilian Studios,
+  CC0 1.0 (public domain), <https://github.com/sgossner/VCSL>.
 
 ## Vanishing Ink
 

@@ -8,7 +8,9 @@ const {prepare, device, tooWide} = require('./helpers');
 const URL = 'pedal-point/index.html?demo&nostart';
 const P = page => page.evaluate(() => Arcade.PedalPoint.practice.state());
 /** open the Practice Room (the mode switch's tap also unlocks the audio) */
-async function room(page, store = device()) {
+/** a device on DRUM SOUND: SYNTH (these tests check the synth; THE RECORDED DRUMS tests choose RECORDED themselves) */
+const synthDevice = () => device('trumpet', {gameData: {'pedal-point': {drumSound: 'synth'}}});
+async function room(page, store = synthDevice()) {
   const watch = await prepare(page, {store});
   await page.goto(URL);
   await page.locator('#modePractice').click();
@@ -478,4 +480,37 @@ test('gallery: docs/gallery/pedal-point-practice.png', async ({page, browserName
   await page.waitForTimeout(300); await grab('My music: a loaded image');
   await page.setContent(`<body style="margin:0;background:#111;color:#eee;font:16px sans-serif">${shots.map(s => `<h2 style="margin:12px">${s.label}</h2><img style="display:block;max-width:1024px" src="data:image/png;base64,${s.b64}">`).join('')}</body>`);
   await page.screenshot({path: require('path').join(__dirname, '..', 'docs', 'gallery', 'pedal-point-practice.png'), fullPage: true});
+});
+
+test('THE RECORDED DRUMS in the Practice Room: a held roll alternates takes and overlaps; p / f pick the soft / loud takes; a scheduled stroke\'s hit lands on its time', async ({page}) => {
+  const watch = await room(page, device('trumpet', {gameData: {'pedal-point': {drumSound: 'samples'}}}));
+  expect(await page.evaluate(() => [Arcade.Timpani.engine(), Arcade.Timpani.test.fakeBuffers()])).toEqual(['samples', true]);   // made-up takes: any browser
+  const h0 = await page.evaluate(() => Arcade.Timpani.test.history.length);
+  await page.keyboard.down('j');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('j');
+  const roll = await page.evaluate(n => Arcade.Timpani.test.history.slice(n).filter(h => h.kind === 'strike' && h.played), h0);
+  expect(roll.length).toBeGreaterThan(5);
+  roll.forEach(h => expect(h.engine).toBe('samples'));
+  for (let k = 1; k < roll.length; k++) expect(roll[k].file, `roll stroke ${k + 1} repeats a take`).not.toBe(roll[k - 1].file);
+  expect(Math.max(...roll.map(h => h.ringing))).toBeGreaterThan(2);    // the strokes ring on under each other: one sustained tone
+  expect(Math.max(...roll.map(h => h.ringing))).toBeLessThanOrEqual(await page.evaluate(() => Arcade.Timpani.SAMPLES.MAX_RING));
+  // the dynamics pick the layer
+  const layers = await page.evaluate(() => {
+    const p = Arcade.PedalPoint.practice, T = Arcade.Timpani, out = {};
+    for (const d of ['p', 'mf', 'f']) { p.setDyn(d); p.stroke(0); out[d] = T.test.take('p0').layer; }
+    return out;
+  });
+  expect(layers).toEqual({p: 'soft', mf: 'mid', f: 'loud'});
+  // a stroke scheduled on the audio clock (HEAR IT, PLAY ALONG): the take starts 2 ms early, 8 ms into its file
+  const s = await page.evaluate(() => {
+    const T = Arcade.Timpani, ctx = Arcade.Sfx.output().ctx, at = ctx.currentTime + 0.5;
+    T.strike('p1', 174.61, {at, layer: true, dyn: .68});
+    const h = T.test.history[T.test.history.length - 1];
+    return {at, start: h.start, offset: h.offset, hitAt: h.start + (0.010 - h.offset), lead: T.LEAD_S};
+  });
+  expect(s.start).toBeCloseTo(s.at - .002, 9);
+  expect(s.offset).toBeCloseTo(.008, 9);
+  expect(s.hitAt).toBeCloseTo(s.at, 9);                                  // the hit (10 ms into the file) lands on the time
+  watch.check();
 });

@@ -148,8 +148,23 @@
     <button type="button" data-keys="jkl">J K L ;</button><button type="button" data-keys="fghj">F G H J</button></div></div>
   <div class="pr-srow"><span class="pr-sl" id="prGaugeL">Gauge</span><div class="ui-seg" id="prGauge" role="group" aria-labelledby="prGaugeL">
     <button type="button" data-gauge="1">On</button><button type="button" data-gauge="0">Off</button></div></div>
+  <div class="pr-srow pr-sound" id="prSound"></div>
   <div class="acts"><button type="button" class="btn btn-primary" id="prSetupDone">Done</button></div>
 </div></div>
+
+<!-- THE SAMPLE TUNER (?tune-samples, tuner.js): Mr. Graham's page for the recorded drums' pitches. Nothing is saved. -->
+<section id="tuner" class="wrap tn-wrap" hidden aria-label="The sample tuner">
+  <h1 class="ui-title tn-title">Sample Tuner</h1>
+  <p class="ui-howto">Every recorded timpani take and the pitch it plays as. Press ▶ BOTH: the drum, then the pitch pipe at the row's pitch. Nudge the cents until the two sound in tune, then copy the changed lines. Nothing is saved: leaving this page forgets the nudges.</p>
+  <p class="tn-status" id="tunerStatus" aria-live="polite"></p>
+  <div class="tn-list" id="tunerList"></div>
+  <div class="tn-bottom">
+    <b id="tunerCount">changed: 0</b>
+    <button type="button" class="btn btn-primary" id="tunerCopy" disabled>Copy changed lines</button>
+    <p class="tn-how" id="tunerCopied">Paste these lines over the same lines in pedal-point/samples.js (or give them to Claude Code).</p>
+    <textarea id="tunerOut" class="tn-out" rows="6" readonly hidden aria-label="The changed lines"></textarea>
+  </div>
+</section>
 
 <!-- the results screen and the pause menu: shared/ui-kit.js -->
 
@@ -186,9 +201,11 @@
 <script src="../shared/calibration.js"></script>
 <script src="../music-highway/backing.js"></script>
 <script src="drums.js"></script>
+<script src="samples.js"></script>
 <script src="timpani.js"></script>
 <script src="levels.js"></script>
 <script src="etudes.js"></script>
+<script src="tuner.js"></script>
 <script src="game.js"></script>
 <script src="practice.js"></script>
 </body>
