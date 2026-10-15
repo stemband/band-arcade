@@ -520,27 +520,36 @@
       });
     },
     tx(mode, fn) { return this.open().then(db => new Promise((ok, no) => { const t = db.transaction('sheets', mode), st = t.objectStore('sheets'), out = fn(st); t.oncomplete = () => ok(out && out.result !== undefined ? out.result : out); t.onerror = () => no(t.error); })); },
-    list() { return this.tx('readonly', st => st.getAll()).then(a => (a || []).map(x => ({id: x.id, name: x.name, type: x.type, size: x.size, added: x.added}))); },
-    get(id) { return this.tx('readonly', st => st.get(id)); },
-    add(file) { return this.tx('readwrite', st => st.add({name: file.name || 'My music', type: file.type || '', size: file.size || 0, added: Date.now(), blob: file})); },
-    remove(id) { return this.tx('readwrite', st => st.delete(id)); },
+    // the file's BYTES are stored (an ArrayBuffer), never the File itself: WebKit's private sessions (Safari Private
+    // Browsing) refuse to keep a Blob in IndexedDB, but keep its bytes
+    list() { return this.tx('readonly', st => st.getAll()).then(a => (a || []).map(x => ({id: x.id, name: x.name, type: x.type, size: x.size, added: x.added}))).then(a => a.concat(MEM.map(m => ({id: m.id, name: m.name, type: m.type, size: m.size, added: m.added, mem: true})))); },
+    get(id) { const m = MEM.find(x => x.id === id); return m ? Promise.resolve(m) : this.tx('readonly', st => st.get(id)); },
+    add(file, data) { return this.tx('readwrite', st => st.add({name: file.name || 'My music', type: file.type || '', size: file.size || 0, added: Date.now(), data})); },
+    remove(id) { const k = MEM.findIndex(x => x.id === id); if (k >= 0) { MEM.splice(k, 1); return Promise.resolve(); } return this.tx('readwrite', st => st.delete(id)); },
   };
+  /* a browser that can't keep the file at all (no IndexedDB, storage full or blocked): it's shown for this visit only */
+  const MEM = [];
+  const blobOf = rec => rec.blob || new Blob([rec.data], {type: rec.type || ''});
   async function loadFile(file) {
     if (!file) return;
     const okType = /^image\//.test(file.type) || file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
     if (!okType) { A.UI.toast('That file isn\'t a picture or a PDF.'); return; }
     if (file.size > PRACTICE.sheets.maxMB * 1048576) { A.UI.toast(`That file is too big (over ${PRACTICE.sheets.maxMB} MB).`); return; }
-    try {
-      const list = await SheetDB.list();
-      if (list.length >= PRACTICE.sheets.max) { A.UI.toast(`You have ${list.length} pieces saved. Remove one first.`); return; }
-      const id = await SheetDB.add(file);
-      cfg().sheet = id; save();
-      await drawSheets(id);
-    } catch (e) { A.UI.toast('This browser couldn\'t keep that file. Try a photo or a screenshot.'); }
+    let list = [];
+    try { list = await SheetDB.list(); } catch (e) { list = MEM.slice(); }
+    if (list.length >= PRACTICE.sheets.max) { A.UI.toast(`You have ${list.length} pieces saved. Remove one first.`); return; }
+    let id = null;
+    try { const data = await file.arrayBuffer(); id = await SheetDB.add(file, data); cfg().sheet = id; save(); }
+    catch (e) {
+      id = 'm' + (MEM.length + 1) + '-' + Date.now();
+      MEM.push({id, name: file.name || 'My music', type: file.type || '', size: file.size || 0, added: Date.now(), blob: file});
+      A.UI.toast('This browser can\'t keep your music after you leave, but it\'s here for now.', {ms: 4000});
+    }
+    await drawSheets(id);
   }
   async function drawSheets(pick) {
     let list = [];
-    try { list = await SheetDB.list(); } catch (e) { list = []; }
+    try { list = await SheetDB.list(); } catch (e) { list = MEM.slice(); }
     const sel = $('prSheetSel');
     sel.innerHTML = list.length ? list.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('') : '<option value="">(nothing yet)</option>';
     const id = pick != null ? pick : cfg().sheet;
@@ -563,7 +572,7 @@
     const rec = await SheetDB.get(id).catch(() => null);
     if (!rec) { $('prEmpty').hidden = false; return; }
     S.sheetId = id; cfg().sheet = id; save();
-    S.sheetURL = URL.createObjectURL(rec.blob);
+    S.sheetURL = URL.createObjectURL(blobOf(rec));
     const pdf = rec.type === 'application/pdf' || /\.pdf$/i.test(rec.name);
     S.sheetType = pdf ? 'pdf' : 'image';
     if (pdf) {
@@ -610,7 +619,7 @@
     $('prZoomOut').addEventListener('click', () => zoomBy(.8));
     $('prFit').addEventListener('click', fit);
     $('prFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; loadFile(f); });
-    $('prSheetSel').addEventListener('change', () => showSheet(+$('prSheetSel').value));
+    $('prSheetSel').addEventListener('change', () => { const v = $('prSheetSel').value; showSheet(/^m/.test(v) ? v : +v); });
     $('prRemove').addEventListener('click', () => {
       const id = S.sheetId; if (id == null) return;
       A.UI.confirm({title: 'Remove this music?', text: 'It will be deleted from this device.', yes: 'Remove', no: 'Keep it', danger: true,

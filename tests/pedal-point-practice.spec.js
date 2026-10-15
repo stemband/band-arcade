@@ -127,7 +127,10 @@ test('PLAYING: two fingers at once, two-finger muffle, the ✋ button, the pedal
   expect(await strikes(page, 'p0')).toBeGreaterThan(2);
   expect(await strikes(page, 'p1')).toBeGreaterThan(2);
   // two fingers on ONE drum within muffleMs = muffle
-  await fire(0, 'pointerdown', 21); await fire(0, 'pointerdown', 22);
+  await page.locator('.pr-drum[data-i="0"] .pr-head').evaluate(el => {        // both fingers at once (one call: no test-machine delay between them)
+    const r = el.getBoundingClientRect();
+    [21, 22].forEach(id => el.dispatchEvent(new PointerEvent('pointerdown', {pointerId: id, pointerType: 'touch', clientX: r.left + r.width * .8, clientY: r.top + r.height / 2, bubbles: true, cancelable: true})));
+  });
   expect(await page.evaluate(() => Arcade.Timpani.test.ringing('p0'))).toBe(false);
   await fire(0, 'pointerup', 21); await fire(0, 'pointerup', 22);
   // ✋
@@ -252,6 +255,17 @@ test('SHEET MUSIC: an image loads, stays after a reload (IndexedDB), zooms, hide
   await page.getByRole('button', {name: 'Remove'}).last().click();
   await expect(page.locator('#prView img')).toHaveCount(0);
   expect(await page.evaluate(() => Arcade.PedalPoint.practice.SheetDB.list())).toEqual([]);
+  watch.check();
+});
+
+test('SHEET MUSIC: a browser that can\'t keep the file still shows it for this visit (and says so)', async ({page}) => {
+  const watch = await room(page);
+  await page.locator('#prShow [data-show="sheet"]').click();
+  await page.evaluate(() => { Arcade.PedalPoint.practice.SheetDB.add = () => Promise.reject(new Error('storage refused')); });
+  await page.locator('#prFile').setInputFiles({name: 'just-now.png', mimeType: 'image/png', buffer: await pngOf(page, 300, 200)});
+  await expect(page.locator('#prView img')).toBeVisible();
+  await expect(page.locator('.ui-toast', {hasText: 'here for now'})).toBeVisible();
+  expect(await page.locator('#prSheetSel option').allTextContents()).toEqual(['just-now.png']);
   watch.check();
 });
 
