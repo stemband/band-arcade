@@ -63,6 +63,12 @@ Tips:
 - Opening a page by double-clicking it (a local file) still plays your files, through the browser's plain audio
   player; the ambience seam and exact lengths are only right on the served site.
 
+## Subfolders
+
+Files in a subfolder are not "events" and are never compressed (the compressor only looks at this folder's top
+level). **`timpani/`** holds Pedal Point's recorded timpani: already processed, their timing must never move. What's
+there, the credit, and how to swap in your own drums: [`timpani/README.md`](timpani/README.md).
+
 ## Sounds and the microphone
 
 The games that listen (Ghost Notes, Note Storm, the Note Checker, Neon Face-Off, Vanishing Ink) play sounds too. While a sound

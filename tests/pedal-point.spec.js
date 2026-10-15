@@ -8,7 +8,9 @@ const {prepare, device, tooWide} = require('./helpers');
 const URL = 'pedal-point/index.html?demo&nostart';
 const st = page => page.evaluate(() => Arcade.PedalPoint.state());
 /** open the page, with a first tap (it unlocks the arcade's audio, as PRESS START's tap does) */
-async function open(page, store = device()) {
+/** a device on DRUM SOUND: SYNTH (these tests check the synth; THE RECORDED DRUMS tests choose RECORDED themselves) */
+const synthDevice = () => device('trumpet', {gameData: {'pedal-point': {drumSound: 'synth'}}});
+async function open(page, store = synthDevice()) {
   const watch = await prepare(page, {store});
   await page.goto(URL);
   await page.locator('.game-title').click();
@@ -380,5 +382,207 @@ test('THE KEYBOARD: ←/→ drum, ↑/↓ pedal, Shift = fine, Space taps, R ref
   await page.keyboard.press('Enter');
   expect((await st(page)).phase).toBe('feedback');
   expect((await st(page)).results.length).toBe(2);
+  watch.check();
+});
+
+/* ================= THE RECORDED DRUMS (pedal-point/samples.js, shared/sounds/timpani/) =================
+   The engine's tests give every take a made-up buffer (Timpani.test.fakeBuffers: a decaying sine at its hz, the hit at
+   HIT_MS), so picking, rates, round robin, overlap and the glide are checked in every browser (the open-source Chromium
+   the tests use has no AAC decoder). The real files are decoded where the browser can (WebKit). */
+const fs = require('fs'), path = require('path');
+const TIMP_DIR = path.join(__dirname, '..', 'shared/sounds/timpani');
+const TIMP_FILES = fs.existsSync(TIMP_DIR) ? fs.readdirSync(TIMP_DIR).filter(f => /\.m4a$/i.test(f)).sort() : [];
+const UPLOAD_NOTE = 'upload the timpani samples (shared/sounds/timpani/*.m4a; see its README.md)';
+const recordedDevice = () => device('trumpet', {gameData: {'pedal-point': {drumSound: 'samples'}}});
+const TABLE = () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'pedal-point/samples.js'), 'utf8');
+  return [...src.matchAll(/^\s*\['([^']+)',\s*([0-9.]+),\s*'(soft|mid|loud)',\s*([0-9.]+)\],/gm)].map(m => ({file: m[1], hz: +m[2], layer: m[3], sec: +m[4]}));
+};
+
+test('THE RECORDED DRUMS: the table and shared/sounds/timpani/ match exactly', () => {
+  test.skip(!TIMP_FILES.length, UPLOAD_NOTE);
+  const rows = TABLE(), names = rows.map(r => r.file + '.m4a');
+  expect(rows.length).toBeGreaterThan(0);
+  expect(names.filter(f => !TIMP_FILES.includes(f)), 'table rows with no file').toEqual([]);
+  expect(TIMP_FILES.filter(f => !names.includes(f)), 'files not in the table').toEqual([]);
+  expect(new Set(names).size).toBe(names.length);
+  rows.forEach(r => { expect(r.hz).toBeGreaterThan(60); expect(r.hz).toBeLessThan(240); });
+});
+
+test('THE RECORDED DRUMS: every file decodes, and its mallet hit is 10 ms in', async ({page}) => {
+  test.skip(!TIMP_FILES.length, UPLOAD_NOTE);
+  test.setTimeout(120_000);
+  await page.goto('offline.html');
+  const got = await page.evaluate(async files => {
+    const ctx = new OfflineAudioContext(1, 1, 44100), out = {};
+    for (const f of files) {
+      try {
+        const buf = await ctx.decodeAudioData(await (await fetch('shared/sounds/timpani/' + f)).arrayBuffer());
+        const d = buf.getChannelData(0), w = Math.round(buf.sampleRate / 1000), n = Math.min(d.length, w * 200);
+        let peak = 0; for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+        // the hit: the first 1 ms whose loudest sample reaches a quarter of the peak. (Not "the first sample over 5 %":
+        // AAC's pre-echo smears a few % of a quiet take's attack into the 10 ms before it.)
+        let hit = -1, pre = 0;
+        for (let k = 0; k * w < n && hit < 0; k++) { let m = 0; for (let i = k * w; i < (k + 1) * w; i++) m = Math.max(m, Math.abs(d[i])); if (m >= peak / 4) hit = k; else pre = Math.max(pre, m / peak); }
+        out[f] = {sec: buf.duration, hit, pre};
+      } catch (e) { out[f] = {error: String(e && e.message || e)}; }
+    }
+    return out;
+  }, TIMP_FILES);
+  const noAac = TIMP_FILES.every(f => got[f].error);
+  test.skip(noAac, 'this browser has no AAC decoder (the open-source Chromium): the timpani files are decoded in WebKit');
+  const rows = TABLE(), bad = [];
+  for (const f of TIMP_FILES) {
+    const r = got[f], row = rows.find(x => x.file + '.m4a' === f);
+    if (r.error) { bad.push(`${f}: does not decode (${r.error})`); continue; }
+    if (Math.abs(r.sec - row.sec) > 0.12) bad.push(`${f}: ${r.sec.toFixed(2)} s, the table says ${row.sec}`);
+    if (!(r.hit >= 8 && r.hit <= 17)) bad.push(`${f}: the hit is at ${r.hit} ms (want 10)`);
+  }
+  expect(bad).toEqual([]);
+});
+
+test('THE RECORDED DRUMS: the take\'s rate makes the principal exact; a tap is soft, a stroke mid; round robin; the pedal glides the rate; overlap; damp; mute and the mic rule', async ({page}) => {
+  const watch = await open(page, recordedDevice());
+  await page.evaluate(() => Arcade.PedalPoint.begin(1));
+  const r = await page.evaluate(() => {
+    const P = Arcade.PedalPoint, T = Arcade.Timpani, out = {};
+    out.engine = T.engine();
+    out.fake = T.test.fakeBuffers();
+    P.setFine(0, 0); P.setPedal(0, 2 / 7);                 // G2 on the 29"
+    const f = P.state().drums[0].freq;
+    out.f = f;
+    out.stroke = P.strike(false); out.sTake = T.test.take(0); out.sPrincipal = T.test.principal(0);
+    out.tap = P.strike(true); out.tTake = T.test.take(0);
+    out.last = T.test.history[T.test.history.length - 1];
+    // round robin: twelve strokes in a row never repeat a take
+    const files = [];
+    for (let k = 0; k < 12; k++) { P.strike(false); files.push(T.test.take(0).file); }
+    out.files = files;
+    out.ringingNow = T.test.voices(0);
+    out.MAX = T.SAMPLES.MAX_RING;
+    // the pedal while it rings: every take's playbackRate glides to the new pitch
+    P.setPedal(0, 4 / 7);
+    out.after = P.state().drums[0].freq;
+    out.glide = T.test.glides[T.test.glides.length - 1];
+    out.principal2 = T.test.principal(0);
+    out.hz = T.test.take(0).hz;
+    // damp: every take stops
+    T.damp(0);
+    out.damped = {voices: T.test.voices(0), ringing: T.test.ringing(0)};
+    // SOUND OFF and a listening microphone: nothing
+    Arcade.store.setSfx(false); out.muted = P.strike(false); Arcade.store.setSfx(true);
+    Arcade.Pitch = {listening: () => true}; out.listening = P.strike(true); delete Arcade.Pitch;
+    out.HIT = T.HIT_OFFSET_S;
+    return out;
+  });
+  expect(r.engine).toBe('samples');
+  expect(r.fake).toBe(true);
+  expect(r.stroke).toBe(true);
+  expect(r.sTake.layer).toBe('mid');
+  expect(Math.abs(r.sTake.hz * r.sTake.rate - r.f)).toBeLessThan(1e-9);  // the principal is EXACTLY the drum's pitch
+  expect(r.sPrincipal).toBeCloseTo(r.f, 9);
+  expect(r.tap).toBe(true);
+  expect(r.tTake.layer).toBe('soft');
+  expect(Math.abs(r.tTake.hz * r.tTake.rate - r.f)).toBeLessThan(1e-9);
+  expect(r.last).toMatchObject({engine: 'samples', soft: true, want: 'soft', played: true});
+  expect(r.last.offset).toBeCloseTo(.008, 9);                           // 2 ms before the hit: no 10 ms delay
+  for (let k = 1; k < r.files.length; k++) expect(r.files[k], `stroke ${k + 1} repeats a take`).not.toBe(r.files[k - 1]);
+  expect(r.ringingNow).toBeGreaterThan(1);                              // strokes OVERLAP (no cut)
+  expect(r.ringingNow).toBeLessThanOrEqual(r.MAX);
+  expect(r.after).toBeCloseTo(freq(45), 3);                             // A2
+  expect(r.glide.rates.length).toBe(r.ringingNow);                      // every ringing take follows the pedal
+  expect(r.glide.tc).toBeGreaterThan(0);
+  r.glide.rates.forEach(x => expect(x.rate).toBeGreaterThan(1));
+  expect(r.principal2).toBeCloseTo(freq(45), 6);
+  expect(r.glide.rates[r.glide.rates.length - 1].rate * r.hz).toBeCloseTo(freq(45), 6);
+  expect(r.damped).toEqual({voices: 0, ringing: false});
+  expect(r.muted).toBe(false);
+  expect(r.listening).toBe(false);
+  expect(r.HIT).toBeCloseTo(.008, 9);
+  watch.check();
+});
+
+test('THE RECORDED DRUMS: with no files (every timpani/ request a 404) the synth plays, the menu says so, and a level still earns its stars', async ({page}) => {
+  const watch = await prepare(page, {store: recordedDevice()});
+  await page.route(/\/shared\/sounds\/timpani\//, route => route.fulfill({status: 404, body: ''}));
+  await page.goto(URL);
+  await page.locator('.game-title').click();                            // the first tap: the audio, then the loading
+  await expect.poll(() => page.evaluate(() => Arcade.Timpani.samplesState()), {timeout: 15_000}).toBe('missing');
+  expect(await page.evaluate(() => Arcade.Timpani.engine())).toBe('samples');   // the student's choice stays
+  await page.evaluate(() => Arcade.UI.settings.open());
+  await expect(page.locator('#uiSettings [data-snd="samples"]')).toHaveText('Recorded (not available here)');
+  await expect(page.locator('#uiSettings .pp-credit')).toContainText('Versilian Community Sample Library (public domain)');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#uiSettings')).toBeHidden();
+  await page.locator('.lvl[data-l="1"]').click();
+  await page.locator('.ls-start').click();
+  await page.locator('#introGo').click();
+  for (let k = 0; k < 40 && !(await page.locator('#results').isVisible().catch(() => false)); k++) {
+    await page.keyboard.press('Space');                                  // a tuning tap: the synth plays it
+    await page.keyboard.press('a'); await page.keyboard.press('Enter');
+    await expect.poll(async () => (await st(page)).phase).not.toBe('tune');
+    await page.keyboard.press('Enter');
+  }
+  await expect(page.locator('#results')).toBeVisible();
+  const r = await page.evaluate(() => ({p: Arcade.store.level('pedal-point', 'all', 1), eng: [...new Set(Arcade.Timpani.test.history.filter(h => h.kind === 'strike' && h.played).map(h => h.engine))]}));
+  expect(r.p.stars).toBe(3);
+  expect(r.eng).toEqual(['synth']);
+  watch.check();
+});
+
+test('DRUM SOUND: RECORDED · SYNTH switches the engine and is remembered on this device', async ({page}) => {
+  const watch = await open(page, recordedDevice());
+  await page.evaluate(() => Arcade.UI.settings.open());
+  const rec = page.locator('#uiSettings [data-snd="samples"]'), syn = page.locator('#uiSettings [data-snd="synth"]');
+  await expect(rec).toHaveAttribute('aria-pressed', 'true');
+  await expect(rec).toHaveText(/^Recorded/);
+  await syn.click();
+  await expect(syn).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => [Arcade.Timpani.engine(), Arcade.store.gameData('pedal-point').drumSound])).toEqual(['synth', 'synth']);
+  await page.evaluate(() => { Arcade.Timpani.test.fakeBuffers(); Arcade.PedalPoint.begin(1); Arcade.PedalPoint.strike(true); });
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0].engine)).toBe('synth');   // SYNTH even with takes loaded
+  await page.reload();
+  expect(await page.evaluate(() => Arcade.Timpani.engine())).toBe('synth');
+  await page.evaluate(() => Arcade.UI.settings.open());
+  await expect(page.locator('#uiSettings [data-snd="synth"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#uiSettings [data-snd="samples"]').click();
+  expect(await page.evaluate(() => [Arcade.Timpani.engine(), Arcade.store.gameData('pedal-point').drumSound])).toEqual(['samples', 'samples']);
+  watch.check();
+});
+
+test('THE SAMPLE TUNER (?tune-samples): every take listed by pitch; +5 cents then COPY gives the ready-to-paste line', async ({page}) => {
+  const watch = await prepare(page, {store: synthDevice()});
+  await page.goto('pedal-point/index.html?tune-samples&nostart');
+  await expect(page.locator('#tuner')).toBeVisible();
+  await expect(page.locator('#hub')).toBeHidden();
+  const rows = TABLE();
+  await expect(page.locator('.tn-row')).toHaveCount(rows.length);
+  expect(rows.length).toBe(65);
+  await expect(page.locator('.tn-pitch').first()).toHaveText('D2');
+  await expect.poll(() => page.evaluate(() => Arcade.PPTuner.state().source)).toBe(true);   // samples.js read (the comments)
+  const first = page.locator('.tn-row').first();
+  await first.locator('[data-c="5"]').click();
+  await expect(page.locator('#tunerCount')).toHaveText('changed: 1');
+  await expect(first).toHaveClass(/tn-changed/);
+  // ▶ PIPE plays the row's (nudged) pitch
+  await page.locator('.tn-play').first().click();                       // a tap (the audio)
+  await first.locator('[data-act="pipe"]').click();
+  const pipe = await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'pipe').slice(-1)[0]);
+  const want = (rows[0].hz * Math.pow(2, 5 / 1200)).toFixed(2);
+  expect(pipe.played).toBe(true);
+  expect(pipe.freq).toBeCloseTo(rows[0].hz * Math.pow(2, 5 / 1200), 9);
+  await page.locator('#tunerCopy').click();
+  const out = await page.locator('#tunerOut').inputValue();
+  expect(out).toBe(`    ['${rows[0].file}', ${want}, '${rows[0].layer}', ${rows[0].sec.toFixed(2)}],   // Timpani7G_hit_v2_rr1`);
+  // −5 again: back where it was, nothing changed
+  await first.locator('[data-c="-5"]').click();
+  await expect(page.locator('#tunerCount')).toHaveText('changed: 0');
+  watch.check();
+});
+
+test('the Sound Board\'s Pedal Point section links THE SAMPLE TUNER (a teacher tool: no student page links it)', async ({page}) => {
+  const watch = await prepare(page);
+  await page.goto('sound-board/index.html');
+  await expect(page.locator('details[data-sec="pedal-point"] .sb-tool a')).toHaveAttribute('href', '../pedal-point/index.html?tune-samples');
   watch.check();
 });

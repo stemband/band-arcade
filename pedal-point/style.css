@@ -237,3 +237,23 @@
 .pr-slot select{min-height:40px;border-radius:10px;background:var(--night);color:var(--text-hi);border:2px solid var(--mist-2);padding:4px 8px;font:inherit;max-width:100%}
 @media (max-width:480px){.pr-sl{min-width:0;width:100%}.pr-dyn>button,.pr-show>button{padding:4px 8px}}
 body.pr-open .wrap:not(.pr-wrap){padding-bottom:0}
+
+/* DRUM SOUND (game.js mountDrumSound: the settings panel and the Practice Room's setup) */
+.pp-sound-row{display:grid;gap:6px}
+.pp-credit{margin:2px 0 0;font-size:13px;color:var(--text-lo)}
+.pr-sound .pp-credit{flex-basis:100%}
+
+/* THE SAMPLE TUNER (?tune-samples, tuner.js): a plain list */
+.tn-wrap{padding-bottom:40px}
+.tn-status{color:var(--text-lo);min-height:1.4em}
+.tn-pitch{margin:18px 0 6px}
+.tn-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 10px;margin:4px 0;border-radius:12px;background:var(--night-2)}
+.tn-row.tn-changed{outline:2px solid var(--gold, #ffd23f)}
+.tn-file{min-width:170px;font-weight:700;overflow-wrap:anywhere}
+.tn-file small{font-weight:400;color:var(--text-lo)}
+.tn-play,.tn-nudge{display:flex;flex-wrap:wrap;gap:6px}
+.tn-hz{min-width:150px}
+.tn-hz em{font-style:normal;color:var(--text-lo);font-size:13px}
+.tn-bottom{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:18px;padding:12px;border-radius:14px;background:var(--night);border:2px solid var(--mist-2)}
+.tn-how{flex-basis:100%;margin:0;color:var(--text-lo);font-size:14px}
+.tn-out{flex-basis:100%;width:100%;box-sizing:border-box;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--night-2);color:var(--text-hi);border-radius:10px;border:2px solid var(--mist-2);padding:8px}

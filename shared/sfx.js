@@ -1162,6 +1162,13 @@ window.Arcade = window.Arcade || {};
       if (!e || !e.file || !ready() || FILE_MODE) return Promise.resolve(null);
       return load(e.file).then(r => (r && r.state === 'ok' && r.buf) || null, () => null);
     },
+    /** ANY file under shared/sounds/ (subfolders allowed, no extension: 'timpani/timp-c3-mid-1') as a decoded
+        AudioBuffer, or null (the same rules as buffer(): the same loader, .m4a then .mp3, ?v=SOUNDS_VERSION, the miss
+        memory; null before the first tap, with sound off, or on a file:// page). Pedal Point's recorded timpani. */
+    fileBuffer(path) {
+      if (!path || !ready() || FILE_MODE) return Promise.resolve(null);
+      return load(path).then(r => (r && r.state === 'ok' && r.buf) || null, () => null);
+    },
     /** a piano key at a SOUNDING midi note (Keys to the City's TOUCH mode only: never while a mic listens; it refuses
         then). Respects mute like every sound here. */
     piano(midi) {

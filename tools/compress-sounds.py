@@ -20,7 +20,12 @@ WHAT IT KEEPS: the file name and type (.mp3 stays .mp3, .m4a stays .m4a), so no 
 (within 30 ms; nothing trimmed or faded); the loudness (never normalized: sfx.js's loudness cap does levels); a music
 loop's seam (no new silence at either end). A file that would break any of these is left as it was, and reported.
 It never makes a file bigger or "better" than its upload: a file at or below its target is skipped byte-for-byte, and
-a new encode is kept only if it is at least 15 % smaller."""
+a new encode is kept only if it is at least 15 % smaller.
+
+ONLY THE TOP LEVEL of shared/sounds/: SUBFOLDERS ARE SKIPPED ON PURPOSE. shared/sounds/timpani/ (Pedal Point's
+recorded drums) is already small (mono AAC, 80 kbps) and its timing must never move: every take's mallet hit sits
+exactly 10 ms into its file and the game starts each take 2 ms before it. Re-encoding would shift that (AAC's priming)
+and change the measured levels. See shared/sounds/timpani/README.md."""
 import argparse, array, concurrent.futures, hashlib, json, math, os, pathlib, re, shutil, subprocess, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -237,6 +242,7 @@ def try_file(path, flags, tmp, force=False):
 
 
 def sound_files(names):
+    # the top level only: subfolders (shared/sounds/timpani/) are never touched (see the top of this file)
     every = sorted(p for p in SOUNDS.iterdir() if p.is_file() and p.suffix.lower() in ('.mp3', '.m4a'))
     if names is None:
         return every

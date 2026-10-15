@@ -25,6 +25,31 @@
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
 
+  /* ================= DRUM SOUND: RECORDED · SYNTH =================
+     This device's choice (gameData('pedal-point').drumSound = 'synth', else RECORDED: the default), in the settings
+     panel (also from the pause menu) and the Practice Room's setup. The recorded drums start loading as the page opens
+     (timpani.js preload, after the first tap's audio); until they're in, or where they can't load, the synth plays and
+     the button says so. */
+  const drumSound = () => gd().drumSound === 'synth' ? 'synth' : 'samples';
+  T.setEngine(drumSound());                                // RECORDED: starts loading the takes (timpani.js preload)
+  const recLabel = () => ({ready: 'Recorded', missing: 'Recorded (not available here)'})[T.samplesState()] || 'Recorded (loading…)';
+  /** the DRUM SOUND row in `el` (kept up to date while it's on screen). labelClass: the label's look there */
+  function mountDrumSound(el, {id = 'ppSound', labelClass = 'ui-label'} = {}) {
+    el.innerHTML = `<span class="${labelClass}" id="${id}L">Drum sound</span>` +
+      `<div class="ui-seg pp-sound" role="group" aria-labelledby="${id}L"><button type="button" data-snd="samples"></button><button type="button" data-snd="synth">Synth</button></div>` +
+      `<p class="ui-snote pp-credit">Recorded timpani: Versilian Community Sample Library (public domain).</p>`;
+    const btns = el.querySelectorAll('[data-snd]');
+    const draw = () => { btns[0].textContent = recLabel(); btns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.snd === drumSound()))); };
+    btns.forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.snd !== drumSound()) { A.Sfx.event('ui-toggle'); save({drumSound: b.dataset.snd}); T.setEngine(drumSound()); }
+      draw();
+    }));
+    if (el._ppOff) el._ppOff();                             // drawn again in the same place: one listener
+    const off = el._ppOff = T.onSamples(() => { if (!el.isConnected) { off(); return; } draw(); });
+    draw();
+  }
+  A.UI.settings.register(box => { const row = document.createElement('div'); row.className = 'pp-sound-row'; box.appendChild(row); mountDrumSound(row); });
+
   /* ================= THE LEVEL SELECT ================= */
   const prog = lv => A.store.level(GAME_ID, 'all', lv);
   const unlocked = i => A.DEMO || i === 0 || prog(i).stars > 0;
@@ -621,7 +646,7 @@
     strike: soft => strike(soft !== false),
     reference: () => playRef(),
     starsFor, pointsFor, intervalTarget: (refName, iv) => { const t = intervalTarget(D.DRUMS, D.midiOf(refName), iv); return t && {midi: t.midi, drum: D.DRUMS[t.di].id, name: D.label(t.midi)}; },
-    showHub, setMode, kettleSVG,
+    showHub, setMode, kettleSVG, mountDrumSound, drumSound,
   };
 
   // the first screen: the levels, or THE PRACTICE ROOM when that's where this device was last (practice.js is loaded
@@ -633,6 +658,8 @@
     const quiet = () => setTimeout(() => { if (mode() === 'practice' && !$('practice').hidden) A.Sfx.gameMenuMusic(GAME_ID, false); }, 60);
     addEventListener('pointerdown', quiet, {once: true, capture: true}); addEventListener('keydown', quiet, {once: true, capture: true});
   }
-  if (mode() === 'practice' && !A.PPPractice && document.readyState === 'loading') document.addEventListener('DOMContentLoaded', first, {once: true});
+  // THE SAMPLE TUNER (?tune-samples: Mr. Graham's page, tuner.js) opens instead of the game's screens
+  if (A.params && A.params.has('tune-samples') && A.PPTuner) A.PPTuner.open();
+  else if (mode() === 'practice' && !A.PPPractice && document.readyState === 'loading') document.addEventListener('DOMContentLoaded', first, {once: true});
   else first();
 })(window.Arcade);
