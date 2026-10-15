@@ -84,7 +84,7 @@ Games and tools (`docs/games/`, one per game id in `shared/games.js`):
 | [music-highway.md](docs/games/music-highway.md) | Music Highway (`music-highway/`), `shared/highway-draw.js` |
 | [scale-trainer.md](docs/games/scale-trainer.md) | Scale Trainer (`scale-trainer/`), the AUDITION tables in `shared/scales.js` |
 | [lost-signal.md](docs/games/lost-signal.md) | Lost Signal (`lost-signal/`) |
-| [pedal-point.md](docs/games/pedal-point.md) | Pedal Point (`pedal-point/`): the timpani synth, the drums, the pedal and fine tuner, the gauge, its levels |
+| [pedal-point.md](docs/games/pedal-point.md) | Pedal Point (`pedal-point/`): the timpani synth, the drums, the pedal and fine tuner, the gauge, its levels, PRACTICE MODE (the Practice Room, rolls, the click, LOAD YOUR OWN SHEET MUSIC, the practice etudes) |
 | [dojo-duel.md](docs/games/dojo-duel.md) | Dojo Duel (`dojo-duel/`) |
 | [blocktave.md](docs/games/blocktave.md) | Blocktave (`blocktave/`) |
 | [arcade-quest.md](docs/games/arcade-quest.md) | Arcade Quest (`arcade-quest/`) |

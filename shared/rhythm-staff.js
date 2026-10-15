@@ -16,6 +16,16 @@
          rolls       'slash' (default): each / a bold diagonal centered on the stem, halfway between head and beam (// /// stacked);
                      'written': a / note drawn as its two strokes (half the value, same hand, beamed by the beat: 32nds
                      get a third beam), each its own g.rn with data-s 0 / 1. A z is a small "z" on the stem either way.
+         clef        PITCHED MODE (optional; Pedal Point's etudes): 'bass' = a 5-line bass-clef staff; `pitch(n)` gives
+                     each parsed note its pitch ({letter, oct}: C3 in the 2nd space, F3 on the 4th line), drawn at its
+                     place with the same spacing, beams, dots, rests, accents and roll slashes. Stems stay UP (the
+                     rhythm staff's rule), a beam group's stems all reach above its highest head. Leave `clef` out and
+                     nothing changes: every existing caller draws byte-for-byte as before (tests/rudiment-notation.spec.js)
+         slurs       [[a, b], …] parsed note indices: a SLUR (`path.rs-slur`) under the heads from note a to note b (a roll
+                     released into the next note). Drawing only, like the grace slur: never a tie
+         marks       [{m (measure, 0-based), text, kind: 'dyn' | 'text', above, span}] dynamics (p mf f ff: bold italic,
+                     `text.rs-dyn`) and words ("cresc.", "rit.": italic, `text.rs-text`) under the staff (`above`: over
+                     it); `span` adds a dashed line to the end of that measure ("rit. - - -")
        Accents (>) are drawn above the stems and beams (above a triplet's 3: then the drawing moves down `lift` px) and
        grace notes left of their note (one: a small slashed eighth; two or more: small beamed sixteenths; a small slur from the first grace to the note, drawing only), with
        room made before them. These come from the text, so a rhythm without them draws exactly as before.
@@ -70,8 +80,13 @@ window.Arcade = window.Arcade || {};
     return out;
   }
 
+  /* PITCHED MODE: a diatonic step (C0 = 0) -> y on the 5-line bass staff (the middle line D3 is LINE, 5 px a step) */
+  const STEP = {C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6}, PSTEM = 36, PSP = 10;
+  const pitchY = n => LINE - ((n.oct * 7 + STEP[n.letter]) - 22) * PSP / 2;
+
   function engrave(p, o = {}) {
     const C = A.Counting, M = p.meter, from = o.from || 0, to = o.to == null ? p.measures : o.to;
+    const pitched = o.clef === 'bass' && typeof o.pitch === 'function';
     const counting = o.counting !== false, pre = o.id || 'rs', sticking = !!o.sticking, written = o.rolls === 'written';
     const t0 = from * M.per, t1 = to * M.per;
     const parsedHere = p.notes.filter(n => n.t >= t0 && n.t < t1), notes = written ? writeOut(parsedHere) : parsedHere;
@@ -121,13 +136,21 @@ window.Arcade = window.Arcade || {};
     /* ---------- drawing ---------- */
     const out = [];
     // the staff line, the clef (two bars), the time signature
+    if (pitched) {
+      for (let j = -2; j <= 2; j++) out.push(`<line class="rs-line" x1="6" y1="${LINE + j * PSP}" x2="${round(endX)}" y2="${LINE + j * PSP}" stroke="currentColor" stroke-width="1.6"/>`);
+      out.push(`<text class="rs-clef" x="10" y="${LINE + 11}" font-family="'Noto Music','Bravura','Segoe UI Symbol',serif" font-size="44" fill="currentColor">𝄢</text>`);
+    } else {
     out.push(`<line class="rs-line" x1="6" y1="${LINE}" x2="${round(endX)}" y2="${LINE}" stroke="currentColor" stroke-width="2"/>`);
     out.push(`<rect x="16" y="${LINE - 14}" width="5" height="28" fill="currentColor"/><rect x="26" y="${LINE - 14}" width="5" height="28" fill="currentColor"/>`);
-    if (showTime) out.push(`<g class="rs-time" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="34" text-anchor="middle" fill="currentColor">` +
+    }
+    if (showTime && pitched) out.push(`<g class="rs-time" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="28" text-anchor="middle" fill="currentColor">` +
+      `<text x="64" y="${LINE - 1}">${M.num}</text><text x="64" y="${LINE + 19}">${M.den}</text></g>`);
+    else if (showTime) out.push(`<g class="rs-time" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="34" text-anchor="middle" fill="currentColor">` +
       `<text x="58" y="${LINE - 3}">${M.num}</text><text x="58" y="${LINE + 27}">${M.den}</text></g>`);
-    L.bars.forEach(b => out.push(`<line class="rs-bar" x1="${round(b.x)}" y1="${LINE - 22}" x2="${round(b.x)}" y2="${LINE + 22}" stroke="currentColor" stroke-width="2"/>`));
-    if (final) out.push(`<line x1="${round(endX - 8)}" y1="${LINE - 22}" x2="${round(endX - 8)}" y2="${LINE + 22}" stroke="currentColor" stroke-width="2"/><rect x="${round(endX - 4)}" y="${LINE - 22}" width="5" height="44" fill="currentColor"/>`);
-    else out.push(`<line class="rs-bar" x1="${round(endX)}" y1="${LINE - 22}" x2="${round(endX)}" y2="${LINE + 22}" stroke="currentColor" stroke-width="2"/>`);
+    const BH = pitched ? 2 * PSP : 22;
+    L.bars.forEach(b => out.push(`<line class="rs-bar" x1="${round(b.x)}" y1="${LINE - BH}" x2="${round(b.x)}" y2="${LINE + BH}" stroke="currentColor" stroke-width="2"/>`));
+    if (final) out.push(`<line x1="${round(endX - 8)}" y1="${LINE - BH}" x2="${round(endX - 8)}" y2="${LINE + BH}" stroke="currentColor" stroke-width="2"/><rect x="${round(endX - 4)}" y="${LINE - BH}" width="5" height="${2 * BH}" fill="currentColor"/>`);
+    else out.push(`<line class="rs-bar" x1="${round(endX)}" y1="${LINE - BH}" x2="${round(endX)}" y2="${LINE + BH}" stroke="currentColor" stroke-width="2"/>`);
 
     // beams: runs of eighths/sixteenths in one beat (6/8: a dotted quarter); rests break them; a triplet is its own group
     const unit = M.compound ? 18 : 12, beamable = n => !n.rest && !!LEVELS[n.val];
@@ -140,29 +163,38 @@ window.Arcade = window.Arcade || {};
       if (last && last.key === key && last.ks[last.ks.length - 1] === k - 1) last.ks.push(k); else beams.push({key, ks: [k]});
     }
     beams.filter(b => b.ks.length > 1).forEach(b => b.ks.forEach(k => { beamOf[k] = b; }));
+    // the head's y, and where its stem ends (pitched mode: a beam group's stems end together above its highest head)
+    const hyOf = notes.map(n => { if (!pitched || n.rest) return LINE; const q = o.pitch(n); return q ? round(pitchY(q)) : LINE; });
+    const topOf = k => {
+      if (!pitched) return TOP;
+      const b = beamOf[k], ys = b ? b.ks.map(j => hyOf[j]) : [hyOf[k]];
+      return Math.min(...ys) - PSTEM;
+    };
 
     const strokes = [];
     notes.forEach((n, k) => {
-      const x = xs[k], g = groupOf[n.i], gi = g ? g.g : -1;
+      const x = xs[k], g = groupOf[n.i], gi = g ? g.g : -1, hy = hyOf[k], top = topOf(k);
       const parts = [];
       if (n.rest) parts.push(`<g transform="translate(${round(x)} ${LINE}) scale(${n.val === 'w' || n.val === 'h' ? 1.15 : 1.4}) translate(${-round(x)} ${-LINE})">${restSVG(n, x)}</g>`);
       else {
         const hollow = n.val === 'w' || n.val === 'h';
-        parts.push(`<ellipse cx="${round(x)}" cy="${LINE}" rx="${HEAD_RX}" ry="${HEAD_RY}" transform="rotate(-20 ${round(x)} ${LINE})" ${hollow ? 'fill="none" stroke="currentColor" stroke-width="2.6"' : 'fill="currentColor"'}/>`);
+        parts.push(`<ellipse cx="${round(x)}" cy="${hy}" rx="${HEAD_RX}" ry="${HEAD_RY}" transform="rotate(-20 ${round(x)} ${hy})" ${hollow ? 'fill="none" stroke="currentColor" stroke-width="2.6"' : 'fill="currentColor"'}/>`);
         if (n.val !== 'w') {
           const sx = x + STEM_DX;
-          parts.push(`<line x1="${round(sx)}" y1="${LINE - 2}" x2="${round(sx)}" y2="${TOP}" stroke="currentColor" stroke-width="2.4"/>`);
-          if (!beamOf[k] && LEVELS[n.val]) parts.push(flagSVG(sx, LEVELS[n.val]));
+          parts.push(`<line x1="${round(sx)}" y1="${hy - 2}" x2="${round(sx)}" y2="${top}" stroke="currentColor" stroke-width="2.4"/>`);
+          if (!beamOf[k] && LEVELS[n.val]) parts.push(flagSVG(sx, LEVELS[n.val], top));
         }
         if (n.roll || n.buzz) {
           // halfway between the head and the beam (the stem's end when there is no beam; a whole note: above its head)
           const stem = n.val !== 'w', cx = stem ? x + STEM_DX : x;
-          const top = beamOf[k] ? TOP + (LEVELS[n.val] - 1) * 10 + 6.5 : TOP, mid = stem ? (top + LINE - HEAD_RY - 2) / 2 : LINE - 22;
+          const top2 = beamOf[k] ? top + (LEVELS[n.val] - 1) * 10 + 6.5 : top, mid = stem ? (top2 + hy - HEAD_RY - 2) / 2 : hy - 22;
           if (n.roll) parts.push(slashSVG(cx, mid, n.roll));
           else parts.push(`<text class="rs-buzz" data-mid="${round(mid)}" x="${round(cx)}" y="${round(mid + BUZZ.fs * BUZZ.xh / 2)}" font-family="${BUZZ.font}" font-style="italic" font-weight="700" font-size="${BUZZ.fs}" text-anchor="middle" fill="currentColor">z</text>`);
         }
       }
-      if (n.dots) for (let d = 0; d < n.dots; d++) parts.push(`<circle cx="${round(x + 15 + d * 8)}" cy="${LINE - 5}" r="2.8" fill="currentColor"/>`);
+      // a dot sits in a space: a head on a line (pitched mode) puts it in the space above
+      const dotY = pitched && !n.rest && Math.round((LINE - hy) / (PSP / 2)) % 2 === 0 ? hy - 5 : pitched && !n.rest ? hy : LINE - 5;
+      if (n.dots) for (let d = 0; d < n.dots; d++) parts.push(`<circle cx="${round(x + 15 + d * 8)}" cy="${dotY}" r="2.8" fill="currentColor"/>`);
       out.push(`<g class="rn${n.rest ? ' rest' : ''}" data-n="${n.i}"${written ? ` data-s="${n.s || 0}"` : ''} data-g="${gi}" id="${pre}-n${n.i}${n.s ? 's' + n.s : ''}">${parts.join('')}</g>`);
       if (!n.rest && n.graces && n.graces.length) out.push(graceSVG(n, x), graceSlurSVG(n, x));
       if (!n.rest) {
@@ -173,10 +205,10 @@ window.Arcade = window.Arcade || {};
     strokes.sort((a, b) => a.n - b.n || a.s - b.s);
     // beams (primary + the sixteenths' secondary beams, a stub for a lone sixteenth)
     beams.filter(b => b.ks.length > 1).forEach(b => {
-      const sx = k => xs[k] + STEM_DX, first = b.ks[0], last = b.ks[b.ks.length - 1];
-      out.push(`<rect class="rs-beam" x="${round(sx(first) - 1.2)}" y="${TOP}" width="${round(sx(last) - sx(first) + 2.4)}" height="6.5" fill="currentColor"/>`);
+      const sx = k => xs[k] + STEM_DX, first = b.ks[0], last = b.ks[b.ks.length - 1], BT = topOf(first);
+      out.push(`<rect class="rs-beam" x="${round(sx(first) - 1.2)}" y="${BT}" width="${round(sx(last) - sx(first) + 2.4)}" height="6.5" fill="currentColor"/>`);
       for (let lv = 2; lv <= 3; lv++) b.ks.forEach((k, j) => {         // 2: the sixteenths' beam, 3: the 32nds'
-        const has = q => q != null && LEVELS[notes[q].val] >= lv, y = TOP + (lv - 1) * 10;
+        const has = q => q != null && LEVELS[notes[q].val] >= lv, y = BT + (lv - 1) * 10;
         if (!has(k)) return;
         const nx = b.ks[j + 1], pv = b.ks[j - 1];
         if (has(nx)) out.push(`<rect x="${round(sx(k) - 1.2)}" y="${y}" width="${round(sx(nx) - sx(k) + 2.4)}" height="6.5" fill="currentColor"/>`);
@@ -200,10 +232,28 @@ window.Arcade = window.Arcade || {};
       const a = lastIdx[n.i], b = idx[n.i + 1];
       if (a == null && b == null) return;
       const xa = a != null ? xs[a] + 4 : x0 - 30, xb = b != null ? xs[b] - 4 : endX + 4;
-      out.push(tieSVG(xa, xb));
+      out.push(tieSVG(xa, xb, pitched ? Math.max(a != null ? hyOf[a] : 0, b != null ? hyOf[b] : 0) : LINE));
     });
     // accents: a > above the note, above the beam (every stem reaches TOP), above a triplet's 3
-    notes.forEach((n, k) => { if (n.accent && !n.rest) out.push(accentSVG(xs[k], n.trip ? ACC_TRIP_Y : ACC_Y)); });
+    notes.forEach((n, k) => { if (n.accent && !n.rest) out.push(accentSVG(xs[k], n.trip ? ACC_TRIP_Y : pitched ? topOf(k) - 9 : ACC_Y)); });
+    // PITCHED MODE's extras: slurs (a roll released into the next note) and the dynamics / words
+    if (o.slurs) o.slurs.forEach(([a, b]) => {
+      const ka = lastIdx[a], kb = idx[b];
+      if (ka == null && kb == null) return;
+      const xa = ka != null ? xs[ka] + 2 : x0 - 30, xb = kb != null ? xs[kb] - 2 : endX + 4;
+      const y = Math.max(ka != null ? hyOf[ka] : LINE, kb != null ? hyOf[kb] : LINE) + 9;
+      out.push(slurSVG(xa, xb, y, a, b));
+    });
+    if (o.marks) o.marks.forEach(mk => {
+      if (mk.m < from || mk.m >= to) return;
+      const k = notes.findIndex(n => n.measure === mk.m);
+      if (k < 0) return;
+      const bx = xs[k] - 8, end = (L.bars.find(b => b.m === mk.m) || {x: endX}).x - 6;
+      const y = mk.above ? (pitched ? 12 : TOP - 24) : (pitched ? LINE + 2 * PSP + 26 : LINE + 40);
+      const dyn = mk.kind === 'dyn';
+      out.push(`<text class="${dyn ? 'rs-dyn' : 'rs-text'}" data-m="${mk.m}" x="${round(bx)}" y="${y}" font-family="Georgia,'Times New Roman',serif" font-style="italic" font-weight="${dyn ? 700 : 400}" font-size="${dyn ? 24 : 18}" fill="currentColor">${mk.text}</text>`);
+      if (mk.span) out.push(`<line class="rs-span" data-m="${mk.m}" x1="${round(bx + tw(mk.text, 18) * .8 + 6)}" y1="${y - 5}" x2="${round(end)}" y2="${y - 5}" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 5"/>`);
+    });
     // the counting
     if (counting) shown.forEach(s => out.push(countingSVG(s, xs[s.at], pre)));
     // the sticking: R / L under each head (small under the grace notes); under the counting when both are shown
@@ -234,10 +284,10 @@ window.Arcade = window.Arcade || {};
     return {svg, w: W, h: Ht, xAt, xs, notes, strokes, bars: L.bars, from, to, t0, t1, lift};
   }
 
-  function flagSVG(sx, n) {
+  function flagSVG(sx, n, top = TOP) {
     let s = '';
     for (let k = 0; k < n; k++) {
-      const y = TOP + k * 10;
+      const y = top + k * 10;
       s += `<path d="M${round(sx)} ${y}c1 7 12 10 11 20c-.4 4-2 7-3.4 9c1-3 1.6-6 .6-9c-1.4-5-6-7-8.2-8.4z" fill="currentColor"/>`;
     }
     return s;
@@ -281,11 +331,16 @@ window.Arcade = window.Arcade || {};
     const x1 = graceX(n, x, 0), x2 = x - 2, y1 = LINE + 4, y2 = LINE + 6, m = (x1 + x2) / 2, d = 6;
     return `<path class="rs-gslur" data-n="${n.i}" d="M${round(x1)} ${y1}Q${round(m)} ${y2 + d + 2} ${round(x2)} ${y2}Q${round(m)} ${y2 + d} ${round(x1)} ${y1}z" fill="currentColor" stroke="currentColor" stroke-width=".6"/>`;
   }
+  /* a slur (pitched mode): under the heads like a tie but a longer, flatter arc; DRAWING ONLY */
+  function slurSVG(x1, x2, y, a, b) {
+    const m = (x1 + x2) / 2, d = Math.min(16, 6 + (x2 - x1) * .08);
+    return `<path class="rs-slur" data-a="${a}" data-b="${b}" d="M${round(x1)} ${y}Q${round(m)} ${round(y + d + 3)} ${round(x2)} ${y}Q${round(m)} ${round(y + d)} ${round(x1)} ${y}z" fill="currentColor" stroke="currentColor" stroke-width=".8"/>`;
+  }
   function handSVG(h, x, y, fs, n, s, grace) {
     return `<text class="rs-hand${grace ? ' grace' : ''}" data-n="${n}" data-s="${s}" x="${round(x)}" y="${y}" font-size="${fs}">${h}</text>`;
   }
-  function tieSVG(x1, x2) {
-    const y = LINE + 9, m = (x1 + x2) / 2, d = Math.min(12, 5 + (x2 - x1) * .06);
+  function tieSVG(x1, x2, hy = LINE) {
+    const y = hy + 9, m = (x1 + x2) / 2, d = Math.min(12, 5 + (x2 - x1) * .06);
     return `<path class="rs-tie" d="M${round(x1)} ${y}Q${round(m)} ${round(y + d + 3)} ${round(x2)} ${y}Q${round(m)} ${round(y + d)} ${round(x1)} ${y}z" fill="currentColor" stroke="currentColor" stroke-width=".8"/>`;
   }
   function restSVG(n, x) {

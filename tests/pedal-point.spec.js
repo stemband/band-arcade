@@ -321,6 +321,7 @@ for (const [name, vp, touch] of [['phone', {width: 390, height: 844}, true], ['i
     expect(bottom, 'the controls fit the screen without scrolling').toBeLessThanOrEqual(vp.height);
     expect(await tooWide(page)).toEqual([]);
     // drag the active drum's pedal UP (toe down = higher) by mouse or by touch
+    await page.evaluate(() => { const s = Arcade.PedalPoint.state(); Arcade.PedalPoint.setPedal(s.active, .5); });   // (a round may start at the very top)
     const s0 = await st(page), i = s0.active;
     const plate = page.locator(`.pp-pedal[data-i="${i}"]`);
     const pb = await plate.boundingBox();

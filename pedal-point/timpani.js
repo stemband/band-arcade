@@ -10,9 +10,13 @@
    quieter and dying a little faster. A low (0,1) "thump" under the principal dies almost at once, and the felt
    mallet's contact is a soft ~30 ms burst of filtered noise.
 
-     Timpani.strike(key, freq, {soft})  a drum (key = its place on the stage) struck at `freq` Hz (its principal):
-                                        soft = a TUNING TAP, else a full stroke. A new strike restarts that drum's
-                                        ring at its current pitch. → true, or false (sound off, not unlocked, listening)
+     Timpani.strike(key, freq, {soft, at, vel, center, layer})  a drum (key = its place on the stage) struck at
+                                        `freq` Hz (its principal): soft = a TUNING TAP, else a full stroke; at = a
+                                        context time (scheduled ahead); vel = × the loudness; center 0–1 = the THUD
+                                        (toward the head's center); layer = ADD to the ring (the Practice Room), else
+                                        a new strike restarts that drum's ring at its current pitch.
+                                        → true, or false (sound off, not unlocked, listening)
+     Timpani.ROLL                       the Practice Room's roll: strokes a second, unevenness (commented block)
      Timpani.setFreq(key, freq)         THE PEDAL: every partial of a RINGING drum glides to the new pitch together
                                         (setTargetAtTime, TIMPANI.glide), so the glissando is heard
      Timpani.damp(key) / stopAll()      a hand on the head (quick fade) / everything off (pause, leaving)
@@ -51,6 +55,25 @@ window.Arcade = window.Arcade || {};
     ringHigh: 3.2, highHz: 220,  // A3 (the 23" drum at the top)
     glide: 0.04,                 // s: THE PEDAL's smoothing (setTargetAtTime's time constant): the glissando
     dampMs: 60,                  // a hand on the head
+    // THE CENTER "THUD" (the Practice Room: where the head is struck matters a little, like a real head). A stroke at the
+    // PLAYING SPOT (about 3–4 inches in from the rim) is the normal tone above; toward the CENTER the upper modes fade
+    // and the ring gets short and dull. `from` = how far out (0 = the center, 1 = the rim) the thud starts; at the very
+    // center the upper modes × upper, the ring × ring, the low thump × thump, the mallet's band × mallet
+    thud: {from: 0.38, upper: 0.12, ring: 0.22, thump: 1.8, mallet: 0.5},
+    spot: 0.73,                  // the playing spot's ring, drawn on the head (× the head's radius)
+    layers: 4,                   // the Practice Room's strokes ADD to a ringing drum (a roll is one sustained tone):
+                                 // at most this many at once per drum, the oldest fading out
+  };
+  /* ================= THE ROLL (the Practice Room: PRESS AND HOLD a drum) =================
+     Single strokes, hand to hand, at a steady rate, a little uneven so it never sounds like a machine. */
+  const ROLL = {
+    rate: 14,                    // strokes a second
+    holdMs: 170,                 // a press held this long becomes a roll (the press's own stroke is its first)
+    jitterMs: 6,                 // each stroke lands up to this many ms early or late
+    velJitter: 0.12,             // each stroke's loudness ± this share
+    rlBalance: 0.06,             // the left hand a touch softer than the right (real players aren't perfectly even)
+    vel: 0.62,                   // a roll's strokes, × the dynamic's loudness (a roll is played lighter than a stroke)
+    holdFrac: 0.7,               // PLAY ALONG: a roll note needs a hold covering at least this share of its length
   };
   /* ================= THE PITCH PIPE (the reference) =================
      A free reed: bright and buzzy, steady pitch, no vibrato (so its pitch is exact). harmonics = the loudness of the
@@ -87,28 +110,42 @@ window.Arcade = window.Arcade || {};
     return (noiseBuf = b);
   }
 
+  const layered = {};            // key -> older voices still ringing under the newest (the Practice Room's layers)
+  const allOf = key => (layered[key] || []).concat(voices[key] ? [voices[key]] : []);
   function stopVoice(v, ms = TIMPANI.dampMs) {
     if (!v || v.stopped) return;
     v.stopped = true;
-    const t = v.ctx.currentTime;
+    const t = Math.max(v.ctx.currentTime, v.t0);
     try { v.out.gain.cancelScheduledValues(t); v.out.gain.setValueAtTime(v.out.gain.value, t); v.out.gain.linearRampToValueAtTime(0, t + ms / 1000); } catch (e) {}
     v.nodes.forEach(o => { try { o.stop(t + ms / 1000 + 0.02); } catch (e) {} });
     v.until = Math.min(v.until, t + ms / 1000);
   }
 
-  function strike(key, f, {soft = false} = {}) {
+  /* opts: soft (a tuning tap), at (a context time to play at: scheduled ahead, HEAR IT), vel (× the loudness: the
+     Practice Room's dynamics and a roll's strokes), center (0 = the playing spot or farther out … 1 = dead center: the
+     THUD), layer (true: the stroke ADDS to the ring instead of restarting it: the Practice Room) */
+  function strike(key, f, {soft = false, at = null, vel = 1, center = 0, layer = false} = {}) {
     const o = output();
-    if (!o || !(f > 0)) { log({kind: 'strike', key, freq: f, soft, played: false}); return false; }
-    const {ctx, out} = o, T = TIMPANI, t = ctx.currentTime + 0.01;
-    stopVoice(voices[key], 25);                           // a new stroke restarts the ring at the current pitch
-    const ring = ringOf(f), level = T.vol * (soft ? T.tapVol : 1);
+    if (!o || !(f > 0)) { log({kind: 'strike', key, freq: f, soft, played: false, at}); return false; }
+    const {ctx, out} = o, T = TIMPANI, t = Math.max(ctx.currentTime + 0.01, at || 0);
+    if (layer) {
+      const old = (layered[key] || []).filter(v => !v.stopped && ctx.currentTime < v.until);
+      if (voices[key] && !voices[key].stopped) old.push(voices[key]);
+      while (old.length >= T.layers) stopVoice(old.shift(), 40);
+      layered[key] = old;
+    } else {
+      (layered[key] || []).forEach(v => stopVoice(v, 25)); layered[key] = [];
+      stopVoice(voices[key], 25);                         // a new stroke restarts the ring at the current pitch
+    }
+    const c = Math.max(0, Math.min(1, center)), H = T.thud, mix = (a, b) => a + (b - a) * c;
+    const ring = ringOf(f) * mix(1, H.ring), level = T.vol * (soft ? T.tapVol : 1) * vel;
     const vout = ctx.createGain(); vout.gain.value = level; vout.connect(out);
     const v = {ctx, out: vout, nodes: [], modes: [], freq: f, t0: t, until: t + ring, soft, stopped: false};
     // the modes
     T.partials.forEach((p, i) => {
       const osc = ctx.createOscillator(), g = ctx.createGain();
       osc.type = 'sine'; osc.frequency.setValueAtTime(f * p.ratio, t);
-      const amp = p.gain * (soft && i > 0 ? T.tapBright : 1), tau = ring * p.decay / LN1000;
+      const amp = p.gain * (soft && i > 0 ? T.tapBright : 1) * (i > 0 ? mix(1, H.upper) : 1), tau = ring * p.decay / LN1000;
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(amp * 0.5, t + T.attack);          // (× 0.5: five modes add up)
       g.gain.setTargetAtTime(0, t + T.attack, tau);
@@ -119,19 +156,19 @@ window.Arcade = window.Arcade || {};
     // the thump
     const th = ctx.createOscillator(), tg = ctx.createGain();
     th.type = 'sine'; th.frequency.setValueAtTime(f * T.thump.ratio, t);
-    tg.gain.setValueAtTime(0, t); tg.gain.linearRampToValueAtTime(T.thump.gain * (soft ? 0.6 : 1) * 0.5, t + T.attack);
+    tg.gain.setValueAtTime(0, t); tg.gain.linearRampToValueAtTime(T.thump.gain * (soft ? 0.6 : 1) * mix(1, H.thump) * 0.5, t + T.attack);
     tg.gain.setTargetAtTime(0, t + T.attack, T.thump.decay / LN1000);
     th.connect(tg); tg.connect(vout); th.start(t); th.stop(t + T.thump.decay + 0.1);
     v.nodes.push(th); v.modes.push({osc: th, ratio: T.thump.ratio});
     // the mallet
     const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain(), ms = T.mallet.ms / 1000;
     src.buffer = noise(ctx);
-    bp.type = 'bandpass'; bp.frequency.value = soft ? T.mallet.tapFreq : T.mallet.freq; bp.Q.value = T.mallet.q;
+    bp.type = 'bandpass'; bp.frequency.value = (soft ? T.mallet.tapFreq : T.mallet.freq) * mix(1, H.mallet); bp.Q.value = T.mallet.q;
     ng.gain.setValueAtTime(T.mallet.gain, t); ng.gain.linearRampToValueAtTime(0, t + ms);
     src.connect(bp); bp.connect(ng); ng.connect(vout); src.start(t); src.stop(t + ms + 0.01);
     v.nodes.push(src);
     voices[key] = v;
-    log({kind: 'strike', key, freq: f, soft, played: true, ring: +ring.toFixed(2)});
+    log({kind: 'strike', key, freq: f, soft, played: true, ring: +ring.toFixed(2), at: at ? t : null, vel: +vel.toFixed(3), center: +c.toFixed(3), layer, thud: c > 0});
     return true;
   }
 
@@ -141,14 +178,17 @@ window.Arcade = window.Arcade || {};
     if (!v || v.stopped || !(f > 0)) return false;
     const t = v.ctx.currentTime;
     if (t > v.until) return false;
-    v.freq = f;
-    v.modes.forEach(m => { try { m.osc.frequency.setTargetAtTime(f * m.ratio, t, TIMPANI.glide); } catch (e) {} });
+    allOf(key).forEach(x => {
+      if (x.stopped || t > x.until) return;
+      x.freq = f;
+      x.modes.forEach(m => { try { m.osc.frequency.setTargetAtTime(f * m.ratio, Math.max(t, x.t0), TIMPANI.glide); } catch (e) {} });
+    });
     glides.push({key, freq: f, tc: TIMPANI.glide, at: Math.round(now())}); if (glides.length > 200) glides.shift();
     return true;
   }
-  const ringing = key => { const v = voices[key]; return !!v && !v.stopped && v.ctx.currentTime < v.until; };
-  function damp(key) { stopVoice(voices[key]); }
-  function stopAll() { Object.keys(voices).forEach(k => stopVoice(voices[k])); pipes.slice().forEach(p => p.stop()); }
+  const ringing = key => allOf(key).some(v => !v.stopped && v.ctx.currentTime < v.until);
+  function damp(key) { allOf(key).forEach(v => stopVoice(v)); layered[key] = []; }
+  function stopAll() { Object.keys(voices).forEach(k => damp(k)); pipes.slice().forEach(p => p.stop()); }
 
   /* the pitch pipe */
   const pipes = [];
@@ -187,7 +227,7 @@ window.Arcade = window.Arcade || {};
   const piping = () => pipes.length > 0;
 
   A.Timpani = {
-    TIMPANI, PIPE, strike, setFreq, damp, stopAll, pipe, piping, ringing, ringOf,
+    TIMPANI, PIPE, ROLL, strike, setFreq, damp, stopAll, pipe, piping, ringing, ringOf,
     test: {
       principal: key => voices[key] ? voices[key].freq : null,
       /** the frequencies every mode is headed for (principal × each ratio, the thump last) */
@@ -196,6 +236,7 @@ window.Arcade = window.Arcade || {};
       live: key => voices[key] ? voices[key].modes.map(m => m.osc.frequency.value) : [],
       ringing, history, glides,
       voiceStart: key => voices[key] ? voices[key].t0 : null,
+      voices: key => allOf(key).filter(v => !v.stopped).length,
     },
   };
 })(window.Arcade);
