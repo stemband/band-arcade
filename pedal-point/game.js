@@ -29,11 +29,33 @@
   const prog = lv => A.store.level(GAME_ID, 'all', lv);
   const unlocked = i => A.DEMO || i === 0 || prog(i).stars > 0;
   const KETTLE_ICON = '<svg viewBox="0 0 40 30" aria-hidden="true"><path class="pk-bowl" d="M3 8Q5 25 20 28Q35 25 37 8Z"/><ellipse class="pk-head" cx="20" cy="8" rx="17" ry="4.5"/></svg>';
+  /* LEVELS | PRACTICE (the first screen's mode row, remembered: gameData('pedal-point').mode). PRACTICE = THE PRACTICE
+     ROOM (practice.js): no stars, nothing in `games` progress */
+  const mode = () => gd().mode === 'practice' ? 'practice' : 'levels';
+  function setMode(m) {
+    save({mode: m === 'practice' ? 'practice' : 'levels'});
+    $('modeLevels').setAttribute('aria-pressed', m === 'practice' ? 'false' : 'true');
+    $('modePractice').setAttribute('aria-pressed', m === 'practice' ? 'true' : 'false');
+    if (m === 'practice') openPractice(); else { if (A.PPPractice) A.PPPractice.close(); showHub(); }
+  }
+  function openPractice() {
+    stopRound(); G = null;
+    pause.setActive(false); A.UI.results.hide(); A.UI.intro.hide();
+    $('play').hidden = true; $('hub').hidden = true; $('modeRow').hidden = false;
+    A.Sfx.gameMenuMusic(GAME_ID, false);                     // the drums need quiet (and no menu background: they're played)
+    if (A.PPPractice) A.PPPractice.open();
+    window.scrollTo(0, 0);
+  }
+  $('modeLevels').addEventListener('click', () => { if (mode() !== 'levels') { A.Sfx.event('ui-toggle'); setMode('levels'); } });
+  $('modePractice').addEventListener('click', () => { if (mode() !== 'practice') { A.Sfx.event('ui-toggle'); setMode('practice'); } });
   function showHub() {
+    if (A.PPPractice) A.PPPractice.close();
+    if (mode() === 'practice') save({mode: 'levels'});
+    $('modeLevels').setAttribute('aria-pressed', 'true'); $('modePractice').setAttribute('aria-pressed', 'false');
     stopRound(); G = null;
     A.Sfx.gameMenuMusic(GAME_ID);
     pause.setActive(false); A.UI.results.hide(); A.UI.intro.hide();
-    $('play').hidden = true; $('hub').hidden = false;
+    $('play').hidden = true; $('hub').hidden = false; $('modeRow').hidden = false;
     $('levelGrid').innerHTML = LEVELS.map((L, i) => {
       const lv = i + 1, p = prog(lv), open = unlocked(i);
       return `<button class="lvl" data-l="${lv}" ${open ? '' : 'disabled'}>
@@ -65,6 +87,7 @@
   }
 
   /* ================= THE STAGE: the kettles, their gauges and pedals ================= */
+  /* the kettle, seen from the player's seat (the levels' stage; the intro and the results) */
   function kettleSVG(size) {
     return `<svg class="pp-kettle-svg" viewBox="0 0 120 96" aria-hidden="true">` +
       `<path class="pp-strut" d="M30 78L22 94M90 78L98 94M60 86V95"/>` +
@@ -199,7 +222,7 @@
     G = {lv, L, i: 0, n: L.rounds, results: [], score: 0, used: [], late: 0, paused: false, phase: 'wait', active: null, cursor: 0,
          keyOrder: shuffle(KEYS.map((k, j) => j)), timers: []};
     A.UI.results.hide(); A.UI.intro.hide();
-    $('hub').hidden = true; $('play').hidden = false;
+    $('hub').hidden = true; $('play').hidden = false; $('modeRow').hidden = true;
     pause.setActive(true);
     $('hudLevelLabel').textContent = `Level ${lv}`; $('hudLevelName').textContent = L.name; $('hudScore').textContent = '0';
     buildStage(L);
@@ -598,8 +621,18 @@
     strike: soft => strike(soft !== false),
     reference: () => playRef(),
     starsFor, pointsFor, intervalTarget: (refName, iv) => { const t = intervalTarget(D.DRUMS, D.midiOf(refName), iv); return t && {midi: t.midi, drum: D.DRUMS[t.di].id, name: D.label(t.midi)}; },
-    showHub,
+    showHub, setMode, kettleSVG,
   };
 
-  showHub();
+  // the first screen: the levels, or THE PRACTICE ROOM when that's where this device was last (practice.js is loaded
+  // after this file: the room opens once every script has run)
+  function first() {
+    if (mode() !== 'practice') return showHub();
+    setMode('practice');
+    // PRESS START's tap would start the menu music on a screen that asked for none: the Practice Room asks again
+    const quiet = () => setTimeout(() => { if (mode() === 'practice' && !$('practice').hidden) A.Sfx.gameMenuMusic(GAME_ID, false); }, 60);
+    addEventListener('pointerdown', quiet, {once: true, capture: true}); addEventListener('keydown', quiet, {once: true, capture: true});
+  }
+  if (mode() === 'practice' && !A.PPPractice && document.readyState === 'loading') document.addEventListener('DOMContentLoaded', first, {once: true});
+  else first();
 })(window.Arcade);

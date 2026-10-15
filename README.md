@@ -124,6 +124,8 @@ pedal-point/          Tune the timpani by ear: hear the pitch pipe, work the dru
   timpani.js          THE SOUND: the timpani (modal synthesis) and the pitch pipe; every number in its TIMPANI block
   levels.js           The 8 levels, THE SCORING (stars from the average cents), the keys and reference pitches. Edit here
   game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
+  practice.js         PRACTICE MODE: the Practice Room (1–4 drums, taps, rolls, keys, the click), your own sheet music, the etudes' play-along
+  etudes.js           The four practice etudes, written as PITCH:VALUE text (C:q F:e. C:h*_ …). Edit here
 vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
   levels.js           The 8 levels (First Stroke … Invisible Master), rules, the pattern weights and Endless Scroll. Edit here
   game.js             The round (brush in, study, fade/vanish, answer, results), the Ink Master, reveals, Endless Scroll
@@ -271,6 +273,11 @@ or none, can play.
   of rest, before the downbeat). Stars from the average error: ≤ 25 cents = 1, ≤ 12 = 2, ≤ 6 = 3.
 - **After LOCK IN:** the error in cents ("+7 cents sharp"), a cents meter, the target and the drum on a bass-clef staff,
   and the two played together so the difference is heard.
+- **Practice mode** (the LEVELS | PRACTICE switch): set up 1–4 drums (presets like C & F), tune them, and play them with
+  taps or the keyboard (J K L ;): hold for a roll, two fingers to muffle, a metronome click. Students can load their own
+  sheet music (a photo or a PDF); it stays on their device and is never uploaded. Four original practice etudes have
+  HEAR IT and PLAY ALONG with a score (the GMEA etude itself is copyrighted, so it is never in the game: students load
+  their own copy).
 - **Tuning:** the drums in `pedal-point/drums.js`, the sound in `pedal-point/timpani.js` (the `TIMPANI` block: tune it
   by ear), the levels, stars and keys in `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
 

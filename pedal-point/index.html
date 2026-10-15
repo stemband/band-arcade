@@ -19,6 +19,12 @@
 <div class="wrap">
   <div id="topbar"></div>
 
+  <!-- LEVELS | PRACTICE (remembered: gameData('pedal-point').mode) -->
+  <div class="ui-seg pp-modes" id="modeRow" role="group" aria-label="Choose: levels or practice">
+    <button type="button" id="modeLevels" aria-pressed="true">Levels<small>Tune by ear, earn stars</small></button>
+    <button type="button" id="modePractice" aria-pressed="false">Practice<small>Play the drums, etudes, your music</small></button>
+  </div>
+
   <!-- LEVEL SELECT -->
   <section id="hub">
     <div class="hub-head">
@@ -65,6 +71,86 @@
   </section>
 </div>
 
+<!-- THE PRACTICE ROOM (practice.js): no stars; set up 1–4 drums, play them, the click, your own music, the etudes -->
+<section id="practice" class="wrap pr-wrap" hidden aria-label="The Practice Room">
+  <div class="pr-bar" id="prBar">
+    <button type="button" class="btn btn-secondary btn-small" id="prSetupBtn">Setup</button>
+    <div class="pr-group" role="group" aria-label="The click">
+      <button type="button" class="btn btn-secondary btn-small" id="prClickBtn" aria-pressed="false">Click</button>
+      <label class="pr-tempo"><input type="range" id="prTempo" min="40" max="160" step="1" value="88" aria-label="Click tempo"><b id="prTempoVal">88</b></label>
+      <span class="pr-beat" id="prBeat" aria-hidden="true"></span>
+    </div>
+    <div class="ui-seg pr-dyn" id="prDyn" role="group" aria-label="Dynamics">
+      <button type="button" data-dyn="p">p</button><button type="button" data-dyn="mf" aria-pressed="true">mf</button><button type="button" data-dyn="f">f</button>
+    </div>
+    <div class="ui-seg pr-show" id="prShow" role="group" aria-label="Music">
+      <button type="button" data-show="none" aria-pressed="true">Drums only</button><button type="button" data-show="etude">Etudes</button><button type="button" data-show="sheet">My music</button>
+    </div>
+  </div>
+
+  <!-- the music: one of the etudes, or the student's own sheet music -->
+  <div class="pr-score" id="prScore" hidden>
+    <div class="pr-etude" id="prEtude" hidden>
+      <div class="pr-erow">
+        <label class="pr-sel">Etude <select id="prEtudeSel"></select></label>
+        <button type="button" class="btn btn-secondary btn-small" id="prHear">▶ Hear it</button>
+        <button type="button" class="btn btn-primary btn-small" id="prAlong">Play along</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prStop" hidden>■ Stop</button>
+      </div>
+      <div class="pr-erow pr-eopts">
+        <label class="pr-sel">Tempo <input type="range" id="prPct" min="50" max="100" step="5" value="100" aria-label="Tempo, percent of the marked tempo"><b id="prPctVal">100 %</b></label>
+        <label class="pr-sel">Bars <select id="prFrom" aria-label="From bar"></select> to <select id="prTo" aria-label="To bar"></select></label>
+        <button type="button" class="btn btn-secondary btn-small" id="prLoop" aria-pressed="false">Loop</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prEClick" aria-pressed="true">Click</button>
+      </div>
+      <p class="pr-setupmsg" id="prNeed" hidden><span id="prNeedText"></span> <button type="button" class="btn btn-primary btn-small" id="prCF">Set up C &amp; F for me</button></p>
+      <div class="pr-staff stage" id="prStaff"></div>
+      <p class="pr-result" id="prResult" aria-live="polite"></p>
+    </div>
+    <div class="pr-sheet" id="prSheet" hidden>
+      <div class="pr-erow">
+        <label class="btn btn-secondary btn-small pr-load">Load sheet music<input type="file" id="prFile" accept="image/*,application/pdf"></label>
+        <label class="pr-sel">Show <select id="prSheetSel"></select></label>
+        <button type="button" class="btn btn-secondary btn-small" id="prZoomOut" aria-label="Zoom out">−</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prZoomIn" aria-label="Zoom in">+</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prFit">Fit</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prRemove">Remove</button>
+        <button type="button" class="btn btn-secondary btn-small" id="prHide">Hide music</button>
+      </div>
+      <p class="pr-private">Your music stays on this device.</p>
+      <p class="pr-tip" id="prPdfTip" hidden>On iPad, a photo or a screenshot of the page works best.</p>
+      <div class="pr-view" id="prView" aria-label="Your sheet music"><p class="pr-empty" id="prEmpty">Load a photo, a screenshot or a PDF of your music. It never leaves this device.</p></div>
+    </div>
+  </div>
+
+  <!-- the drums -->
+  <div class="pr-stage" id="prStage">
+    <div class="pr-drums" id="prDrums"></div>
+    <div class="pp-fine pr-fine" id="prFine">
+      <span class="pp-fine-l" id="prFineL">Fine tuner</span>
+      <button type="button" class="pp-fine-step" id="prFineDown" aria-label="Fine tuner: a little lower">−</button>
+      <div class="pp-fine-track" id="prFineTrack" role="slider" tabindex="0" aria-label="Fine tuner" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"><span class="pp-t" id="prFineT" aria-hidden="true"></span></div>
+      <button type="button" class="pp-fine-step" id="prFineUp" aria-label="Fine tuner: a little higher">+</button>
+    </div>
+    <p class="pr-help" id="prHelp">Tap a drum to play it, hold for a roll. Two fingers or ✋ = muffle. The playing spot is the ring; the center sounds dull.</p>
+  </div>
+</section>
+
+<!-- the Practice Room's setup (practice.js) -->
+<div class="overlay ui-ov pr-setup" id="prSetup" hidden><div class="panel ui-panel" role="dialog" aria-modal="true" aria-labelledby="prSetupT">
+  <h2 class="ui-title" id="prSetupT">Set up your drums</h2>
+  <div class="pr-srow"><span class="pr-sl">Presets</span><div class="pr-presets" id="prPresets"></div></div>
+  <div class="pr-srow"><span class="pr-sl" id="prCountL">How many drums</span><div class="ui-seg" id="prCount" role="group" aria-labelledby="prCountL"></div></div>
+  <div class="pr-slots" id="prSlots"></div>
+  <div class="pr-srow"><span class="pr-sl" id="prOrderL">Order</span><div class="ui-seg" id="prOrder" role="group" aria-labelledby="prOrderL">
+    <button type="button" data-order="us">Low on the left<small>Most American setups</small></button><button type="button" data-order="eu">Low on the right<small>European</small></button></div></div>
+  <div class="pr-srow"><span class="pr-sl" id="prKeysL">Keys</span><div class="ui-seg" id="prKeys" role="group" aria-labelledby="prKeysL">
+    <button type="button" data-keys="jkl">J K L ;</button><button type="button" data-keys="fghj">F G H J</button></div></div>
+  <div class="pr-srow"><span class="pr-sl" id="prGaugeL">Gauge</span><div class="ui-seg" id="prGauge" role="group" aria-labelledby="prGaugeL">
+    <button type="button" data-gauge="1">On</button><button type="button" data-gauge="0">Off</button></div></div>
+  <div class="acts"><button type="button" class="btn btn-primary" id="prSetupDone">Done</button></div>
+</div></div>
+
 <!-- the results screen and the pause menu: shared/ui-kit.js -->
 
 <!-- No microphone and no instrument: no pitch.js, no mic-gate.js. The drum and the pitch pipe are made by timpani.js
@@ -94,9 +180,16 @@
 <script src="../shared/marquees.js"></script>
 <script src="../shared/press-start.js"></script>
 <script src="../shared/level-select.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/rhythm-staff.js"></script>
+<script src="../shared/rhythm-judge.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
 <script src="drums.js"></script>
 <script src="timpani.js"></script>
 <script src="levels.js"></script>
+<script src="etudes.js"></script>
 <script src="game.js"></script>
+<script src="practice.js"></script>
 </body>
 </html>

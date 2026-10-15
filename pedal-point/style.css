@@ -130,3 +130,110 @@
 
 /* short screens (a phone held sideways, a Chromebook): a little less pedal */
 @media (max-height:640px){.pp-pedal{height:110px}.pp-stage{padding-top:8px}}
+
+/* ================= LEVELS | PRACTICE ================= */
+.pp-modes{margin:0 0 14px}
+.pp-modes>button{min-width:150px}
+
+/* ================= THE PRACTICE ROOM ================= */
+.pr-wrap{max-width:1200px;padding-top:0}
+.pr-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
+.pr-group{display:flex;align-items:center;gap:8px}
+.pr-tempo{display:flex;align-items:center;gap:6px;font-weight:700}
+.pr-tempo input{width:min(140px,30vw)}
+.pr-tempo b{min-width:2.4em;font-variant-numeric:tabular-nums}
+.pr-beat{width:22px;height:22px;border-radius:50%;background:var(--night-3);border:2px solid var(--pp-chrome-2);display:grid;place-items:center;font:700 13px var(--display);color:var(--pp-night)}
+.pr-beat.on{animation:pr-beat .35s ease-out}
+.pr-beat.on.down{background:var(--pp-spot)}
+@keyframes pr-beat{0%{background:var(--pp-copper-hi);transform:scale(1.15)}100%{background:var(--night-3);transform:scale(1)}}
+.pr-beat.on.down{animation-name:pr-beat-down}
+@keyframes pr-beat-down{0%{background:var(--pp-spot);transform:scale(1.2)}100%{background:var(--night-3);transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.pr-beat.on{animation:none;background:var(--pp-copper-hi)}}
+.pr-dyn>button,.pr-show>button{min-height:44px;padding:4px 12px}
+.pr-dyn>button{font:italic 700 18px Georgia,'Times New Roman',serif;min-width:48px}
+
+/* the music area */
+.pr-score{margin-bottom:10px}
+.pr-score[hidden],.pr-etude[hidden],.pr-sheet[hidden]{display:none}
+.pr-erow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.pr-sel{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.pr-sel select{min-height:40px;border-radius:10px;background:var(--night-2);color:var(--text-hi);border:2px solid var(--mist-2);padding:4px 8px;font:inherit}
+.pr-sel input[type=range]{width:min(130px,28vw)}
+.pr-setupmsg{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;color:var(--pp-spot);font-weight:700}
+.pr-setupmsg[hidden]{display:none}
+.pr-staff{padding:6px 8px;overflow-x:auto}
+.pr-staff .pr-etitle{margin:2px 4px 4px;font:700 18px var(--display);color:var(--ink)}
+.pr-staff .pr-etitle small{font:400 15px system-ui,sans-serif;color:var(--ink-2)}
+.pr-srow-staff svg{display:block;max-width:100%;height:auto;color:var(--ink)}
+.pr-staff g.rn.pp-now{color:#c06d00}
+.pr-staff g.rn.r-ok{color:#1f8a5a}
+.pr-staff g.rn.r-off,.pr-staff g.rn.r-short{color:#b07a00}
+.pr-staff g.rn.r-wrong{color:#7a3fb0}
+.pr-staff g.rn.r-miss{color:#c0392b}
+.pr-result{min-height:22px;margin:6px 0 0;font-weight:700}
+.pr-load{position:relative;overflow:hidden;cursor:pointer}
+.pr-load input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pr-private{margin:0 0 6px;font-size:13px;color:var(--text-lo)}
+.pr-tip{margin:0 0 6px;font-weight:700;color:var(--pp-spot)}
+.pr-tip[hidden]{display:none}
+.pr-view{position:relative;height:clamp(200px,42vh,560px);overflow:hidden;border-radius:var(--r);background:var(--screen);touch-action:none;border:2px solid var(--pp-copper-2)}
+.pr-img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-select:none}
+.pr-pdf{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.pr-empty{margin:0;padding:24px;color:var(--ink-2);text-align:center}
+.pr-empty[hidden]{display:none}
+
+/* the drums, seen from above: the head, its playing spot (the ring), the copper rim */
+.pr-stage{border-radius:var(--r);padding:12px 8px 10px;border:2px solid var(--pp-copper-2);
+  background:radial-gradient(ellipse 60% 70% at 50% 0%,rgba(255,225,160,.18),transparent 70%),linear-gradient(180deg,var(--pp-night-2),var(--pp-stage) 62%,var(--pp-stage-2))}
+.pr-drums{display:flex;justify-content:center;align-items:flex-end;gap:10px}
+.pr-drum{flex:1 1 0;min-width:0;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+.pr-head{position:relative;width:calc(100% * var(--pr-size,1));max-width:calc(min(240px, 34vh) * var(--pr-size,1));aspect-ratio:1;touch-action:none;cursor:pointer;border-radius:50%;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.pr-svg{width:100%;height:100%;display:block;overflow:visible}
+.pr-rim{fill:var(--pp-copper);stroke:var(--pp-copper-2);stroke-width:1.5}
+.pr-hoop{fill:none;stroke:var(--pp-chrome);stroke-width:2.5}
+.pr-skin{fill:var(--pp-head);transition:fill .25s}
+.pr-spot{fill:none;stroke:var(--pp-head-2);stroke-width:1.2;stroke-dasharray:3 3}
+.pr-sz{font:700 11px var(--display);fill:var(--pp-head-2)}
+.pr-ripple{fill:none;stroke:var(--pp-copper-hi);stroke-width:2;opacity:0}
+.pr-key{position:absolute;right:4%;bottom:4%;min-width:26px;padding:1px 6px;border-radius:8px;background:var(--pp-night);color:var(--pp-spot);font:700 14px var(--display);text-align:center}
+@media (hover:none){.pr-key{display:none}}
+.pr-drum.sel .pr-hoop{stroke:var(--pp-spot)}
+.pr-drum.cue .pr-head{box-shadow:0 0 0 4px var(--pp-spot),0 0 24px rgba(255,225,160,.8)}
+.pr-drum.hit .pr-skin{fill:#fff8e8}
+.pr-drum.hit .pr-ripple{animation:pr-ripple .45s ease-out}
+.pr-drum.thud .pr-skin{fill:var(--pp-head-2)}
+.pr-drum.muffled .pr-skin{fill:var(--pp-head-2)}
+@keyframes pr-ripple{0%{opacity:.9;r:12px}100%{opacity:0;r:44px}}
+@media (prefers-reduced-motion:reduce){.pr-drum.hit .pr-ripple{animation:none}}
+.pr-info{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 8px;min-height:26px}
+.pr-note{font:700 20px var(--display);color:var(--pp-spot)}
+.pr-tune{font-size:12px;font-weight:700;color:var(--pp-night);background:var(--coral);border-radius:999px;padding:2px 8px}
+.pr-tune[hidden]{display:none}
+.pr-row{display:flex;align-items:center;gap:6px}
+.pr-hand{min-width:44px;min-height:44px;border-radius:12px;border:2px solid var(--pp-chrome-2);background:var(--pp-night);font-size:20px;touch-action:manipulation}
+.pr-pedal{height:96px;min-width:56px;max-width:72px}
+.pr-pedal .pp-plate{width:44px;margin-left:-22px;height:20px;bottom:calc(var(--p) * (100% - 20px))}
+.pr-drum.sel .pp-plate{background:linear-gradient(180deg,var(--pp-spot),var(--pp-copper-hi))}
+.pr-fine{margin:10px 0 0}
+.pr-help{margin:8px 0 0;text-align:center;font-size:13px;color:var(--text-lo)}
+
+/* music shown: the drums give it room (but stay big enough to tap) */
+.pr-music .pr-head{max-width:calc(max(88px, min(170px, 22vh)) * var(--pr-size,1));min-width:88px}
+.pr-music .pr-pedal{height:80px}
+.pr-music .pr-help{display:none}
+@media (orientation:portrait){.pr-music .pr-view{height:clamp(200px,34vh,520px)}}
+
+/* the setup panel */
+.pr-setup .panel{max-width:620px}
+.pr-srow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0}
+.pr-sl{min-width:120px;font-weight:700}
+.pr-presets{display:flex;flex-wrap:wrap;gap:8px}
+.pr-presets .btn{flex-direction:column;line-height:1.1}
+.pr-presets small{font-weight:400;font-size:12px;color:var(--text-lo)}
+.pr-slots{display:grid;gap:8px}
+.pr-slot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 10px;border-radius:12px;background:var(--night-2)}
+.pr-slot label{display:flex;align-items:center;gap:6px;font-size:14px}
+.pr-slot select{min-height:40px;border-radius:10px;background:var(--night);color:var(--text-hi);border:2px solid var(--mist-2);padding:4px 8px;font:inherit;max-width:100%}
+@media (max-width:480px){.pr-sl{min-width:0;width:100%}.pr-dyn>button,.pr-show>button{padding:4px 8px}}
+body.pr-open .wrap:not(.pr-wrap){padding-bottom:0}
