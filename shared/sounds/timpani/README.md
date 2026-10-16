@@ -7,7 +7,8 @@ synthesized drum instead, and DRUM SOUND says "Recorded (not available here)".)
 
 ## What's here
 
-- **65 files**, `timp-<note>-<layer>-<take>.m4a`, for example `timp-c3-mid-2.m4a` = C3, struck medium, the 2nd take.
+- **59 files**, `timp-<note>-<layer>-<take>.m4a`, for example `timp-c3-mid-1.m4a` = C3, struck medium, the 1st take. (65 at first: six
+  were removed, see THE OCTAVE TRAP below.)
   Notes are written `ab2` = A♭2, `fs3` = F♯3. They cover about D2 to F♯3 (the game stretches the nearest take to any
   pitch on the drums, D2 to A3).
 - **Layers** (how hard the drum was struck): `soft`, `mid`, `loud`. A tuning tap plays a soft take, a stroke a mid
@@ -34,6 +35,16 @@ The pitches were **measured**: each take's spectrum after the attack (0.26–2.2
 the pitch we hear) and its overtones near 1.5× and 2×. Takes where the two disagreed by more than 20 cents were dropped
 (the pitch has to be unambiguous), and so were takes that ring for less than about 2 s (VCSL's smallest drums were cut
 short at F3 and A3). The table's `hz` is the geometric mean of the principal and the overtone-fitted pitch.
+
+## THE OCTAVE TRAP
+
+A timpani's pitch is its PRINCIPAL tone; its overtones sit at about 1.5× and 2× the principal. Those overtones are also
+the 3rd and 4th harmonics of the note an OCTAVE BELOW, so when a take's principal is weak next to them, the ear hears
+that lower octave (worse on small speakers, which can't play the 75–190 Hz principal well). Every take here has its
+principal at least 6 dB over its 1.5× and 2× overtones: six takes whose principal was 5–11 dB WEAKER were removed
+(their lines in `pedal-point/samples.js` say so), and 30 others got a narrow boost at their own pitch (same pitch, same
+loudness). **When you record your own drums: strike at the normal playing spot, about 3–4 inches from the rim; the
+center or the very edge weakens the principal.**
 
 ## Fine-tune a pitch by ear: THE SAMPLE TUNER
 

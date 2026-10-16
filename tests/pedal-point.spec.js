@@ -566,7 +566,7 @@ test('THE SAMPLE TUNER (?tune-samples): every take listed by pitch; +5 cents the
   await expect(page.locator('#hub')).toBeHidden();
   const rows = TABLE();
   await expect(page.locator('.tn-row')).toHaveCount(rows.length);
-  expect(rows.length).toBe(65);
+  expect(rows.length).toBe(59);                                         // 65 takes, less the six that sounded an octave low
   await expect(page.locator('.tn-pitch').first()).toHaveText('D2');
   await expect.poll(() => page.evaluate(() => Arcade.PPTuner.state().source)).toBe(true);   // samples.js read (the comments)
   const first = page.locator('.tn-row').first();
@@ -613,5 +613,23 @@ test('STRIKING: a click on a kettle and the STROKE button = a full stroke (the k
   expect(await last()).toMatchObject({key: other, soft: false, played: true});
   // STROKE comes first and is the yellow one
   expect(await page.evaluate(() => [...document.querySelectorAll('.pp-btns .pp-strike')].map(b => b.id + ':' + b.classList.contains('btn-primary')))).toEqual(['strokeBtn:true', 'tapBtn:false']);
+  watch.check();
+});
+
+test('THE RECORDED DRUMS: with ONE take left at a pitch (G2 soft), round robin still plays a take every time (repeating it), never nothing', async ({page}) => {
+  const watch = await open(page, recordedDevice());
+  const r = await page.evaluate(() => {
+    const T = Arcade.Timpani, out = [];
+    T.test.fakeBuffers();
+    const g2soft = T.samples.filter(s => s.layer === 'soft' && /^timp-g2-/.test(s.file)).map(s => s.file);
+    for (let k = 0; k < 20; k++) { const ok = T.strike('one', 98, {soft: true}); const t = T.test.take('one'); out.push(ok && t ? t.file : null); }
+    const h = T.test.history.filter(x => x.kind === 'strike' && x.key === 'one');
+    return {g2soft, files: out, engines: [...new Set(h.map(x => x.engine))], want: [...new Set(h.map(x => x.want))]};
+  });
+  expect(r.g2soft).toEqual(['timp-g2-soft-1']);                                // one soft G2 take left
+  expect(r.files.length).toBe(20);
+  r.files.forEach(f => expect(f).not.toBeNull());
+  expect(r.engines).toEqual(['samples']);
+  expect(r.want).toEqual(['soft']);
   watch.check();
 });
