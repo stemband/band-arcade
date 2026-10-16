@@ -1,7 +1,7 @@
 /* ARCADE QUEST: the TITLE screen and the TEST ARENA.
    TITLE: "ARCADE QUEST: THE MYSTERIOUS MICROPHONE" over the microphone's 8-bit silhouette in static.
-   CONTINUE (back to your last Save Jukebox, in whichever episode it is), EPISODES (only once Episode 1 is finished:
-   EPISODE SELECT, "Episode 1: Ghost Notes Manor ✓" = the Foyer's jukebox, "Episode 2: The Showtime Stage" = its intro
+   CONTINUE (back to your last Save Jukebox, in whichever episode it is), EPISODES (once Episode 1 is finished, or ?demo:
+   EPISODE SELECT, "Episode 1: Ghost Notes Manor" (✓ = ep1Done) = the Foyer's jukebox, "Episode 2: The Showtime Stage" = its intro
    the first time, then its last jukebox: world.js Q.episodes), NEW GAME (the intro cutscene, then Episode 1 from
    the Foyer), ENTER SAVE CODE (a code from any Save Jukebox, on any device: shared/backup.js), SETTINGS, YOUR PLAYER
    (Create Your Player: your look and name, shared/avatar-creator.js), and TEST
@@ -30,12 +30,13 @@
       if (A.Sfx && A.Sfx.setMusic) A.Sfx.setMusic(Q.episodes.unlocked(2) ? Q.track('quest-ep2-title') : 'quest-title');
       // Episode 2 opens only after Episode 1 (ep1Done; an old save that finished it sees it at once); until then the
       // title is exactly as it always was
-      const ep2 = Q.episodes.unlocked(2);
+      const ep2 = Q.episodes.unlocked(2);                    // the title's line and music: the story's own lock
+      const pick = Q.episodes.open(2);                       // the EPISODES item: open (?demo opens it for the teacher)
       Q.ui.innerHTML = `<div class="q-title"><h1><small>Arcade Quest:</small>The Mysterious Microphone</h1>` +
         `<p class="q-ep">${ep2 ? 'Episode 2: The Showtime Stage' : 'Episode 1: Ghost Notes Manor'}</p><div id="qTitleMenu"></div></div>`;
       const s = Q.save.get(), started = !!(s.world || s.battles.won || Object.keys(s.flags || {}).length);
       const testing = A.DEMO || /[?&]test(=|&|$)/.test(location.search);
-      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat(ep2 ? [{id: 'episodes', label: 'Episodes'}] : [], [{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
+      const items = (started ? [{id: 'continue', label: 'Continue'}] : []).concat(pick ? [{id: 'episodes', label: 'Episodes'}] : [], [{id: 'new', label: 'New game'}, {id: 'code', label: 'Enter save code'}],
         [{id: 'settings', label: 'Settings'}], A.AvatarCreator ? [{id: 'avatar', label: 'Your player'}] : [], testing ? [{id: 'arena', label: 'Test Arena'}] : []);
       if (items.length > 6) { Q.$('qTitleMenu').classList.add('q-many'); Q.ui.querySelector('.q-title').classList.add('q-many'); }   // 4 rows: shorter buttons
       // NEW GAME: the intro cutscene (skippable), then the Foyer
@@ -43,9 +44,13 @@
       /* EPISODE SELECT: the title menu's place shows the episodes; B or BACK = the title menu again */
       const episodes = () => {
         // a finished episode has its ✓ (ep1Done, ep2Done)
-        const list = [{id: 1, label: 'Episode 1: Ghost Notes Manor ✓'}, {id: 2, label: 'Episode 2: The Showtime Stage' + (Q.save.flag('ep2Done') ? ' ✓' : '')}, {id: 'back', label: 'Back'}];
-        const e = Q.menu(Q.$('qTitleMenu'), list, {cols: 1, label: 'Episodes', cls: 'q-episodes', onBack: () => { e.destroy(); menu('episodes'); },
-          onPick: it => { e.destroy(); if (it.id === 'back') menu('episodes'); else Q.episodes.go(it.id); }});
+        const list = [{id: 1, label: 'Episode 1: Ghost Notes Manor' + (Q.save.flag('ep1Done') ? ' ✓' : '')}, {id: 2, label: 'Episode 2: The Showtime Stage' + (Q.save.flag('ep2Done') ? ' ✓' : '')}, {id: 'back', label: 'Back'}];
+        // (open only because of ?demo: say so, small, under the list; students never see it)
+        const note = !ep2 ? Q.el('p', 'q-small q-demo-note') : null;
+        if (note) { note.textContent = 'Demo: every episode is open.'; Q.$('qTitleMenu').after(note); }
+        const close = () => { e.destroy(); if (note) note.remove(); };
+        const e = Q.menu(Q.$('qTitleMenu'), list, {cols: 1, label: 'Episodes', cls: 'q-episodes', onBack: () => { close(); menu('episodes'); },
+          onPick: it => { close(); if (it.id === 'back') menu('episodes'); else Q.episodes.go(it.id); }});
       };
       const menu = (from) => {
         const m = Q.menu(Q.$('qTitleMenu'), items, {cols: 2, label: 'Title menu', start: from ? Math.max(0, items.findIndex(x => x.id === from)) : 0, onPick: it => {
