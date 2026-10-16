@@ -421,25 +421,31 @@ test('THE RECORDED DRUMS: every file decodes, and its mallet hit is 10 ms in', a
         const buf = await ctx.decodeAudioData(await (await fetch('shared/sounds/timpani/' + f)).arrayBuffer());
         const d = buf.getChannelData(0), w = Math.round(buf.sampleRate / 1000), n = Math.min(d.length, w * 200);
         let peak = 0; for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
-        // the hit: the first 1 ms whose loudest sample reaches a quarter of the peak. (Not "the first sample over 5 %":
-        // AAC's pre-echo smears a few % of a quiet take's attack into the 10 ms before it.)
-        let hit = -1, pre = 0;
-        for (let k = 0; k * w < n && hit < 0; k++) { let m = 0; for (let i = k * w; i < (k + 1) * w; i++) m = Math.max(m, Math.abs(d[i])); if (m >= peak / 4) hit = k; else pre = Math.max(pre, m / peak); }
-        out[f] = {sec: buf.duration, hit, pre};
+        // each 1 ms window's loudest sample, × the peak
+        const win = []; for (let k = 0; k * w < n; k++) { let m = 0; for (let i = k * w; i < (k + 1) * w; i++) m = Math.max(m, Math.abs(d[i])); win.push(m / peak); }
+        // THE ATTACK: the first ms reaching a quarter of the peak (a felt mallet's attack rises over a few ms). STARTS: on a
+        // clean take (the first 6 ms under 2 % of the peak), the first ms over 4 %: where the hit begins. (Not "the first
+        // sample over 5 %" everywhere: AAC's pre-echo smears a few % of a quiet take's attack into the 10 ms before it.)
+        const hit = win.findIndex(x => x >= .25), early = Math.max(...win.slice(0, 6)), clean = early < .02;
+        out[f] = {sec: buf.duration, hit, early, start: clean ? win.findIndex(x => x >= .04) : null};
       } catch (e) { out[f] = {error: String(e && e.message || e)}; }
     }
     return out;
   }, TIMP_FILES);
   const noAac = TIMP_FILES.every(f => got[f].error);
+  const clean = TIMP_FILES.filter(f => got[f].start != null).length;
   test.skip(noAac, 'this browser has no AAC decoder (the open-source Chromium): the timpani files are decoded in WebKit');
   const rows = TABLE(), bad = [];
   for (const f of TIMP_FILES) {
     const r = got[f], row = rows.find(x => x.file + '.m4a' === f);
     if (r.error) { bad.push(`${f}: does not decode (${r.error})`); continue; }
     if (Math.abs(r.sec - row.sec) > 0.12) bad.push(`${f}: ${r.sec.toFixed(2)} s, the table says ${row.sec}`);
-    if (!(r.hit >= 8 && r.hit <= 17)) bad.push(`${f}: the hit is at ${r.hit} ms (want 10)`);
+    if (!(r.hit >= 8 && r.hit <= 20)) bad.push(`${f}: the attack reaches a quarter of its peak at ${r.hit} ms (want the hit at 10)`);
+    if (r.early >= .25) bad.push(`${f}: something a quarter of the peak in the first 6 ms (the hit is early)`);
+    if (r.start != null && !(r.start >= 6 && r.start <= 12)) bad.push(`${f}: the hit starts at ${r.start} ms (want 10)`);
   }
   expect(bad).toEqual([]);
+  expect(clean, 'takes clean enough to time their start exactly').toBeGreaterThan(10);
 });
 
 test('THE RECORDED DRUMS: the take\'s rate makes the principal exact; a tap is soft, a stroke mid; round robin; the pedal glides the rate; overlap; damp; mute and the mic rule', async ({page}) => {
