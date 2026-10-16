@@ -112,8 +112,10 @@ window.Arcade = window.Arcade || {};
     dynLayer: {soft: 0.55, mid: 0.8},
     LAYER_COST: 300,             // cents: a take from the wrong layer scores this much worse per layer away (the right
                                  // layer wins unless its nearest take is far: F♯3 has one mid take)
-    RR_WINDOW: 60,               // cents: ROUND ROBIN: takes scoring within this of the best take turns (never the
-                                 // same file twice in a row on one drum: real drums never sound the same twice)
+    // ROUND ROBIN: a stroke varies its take only among the takes of the BEST take's GROUP (the same recorded note: its
+    // file name without the layer and take number, timp-d3-mid-2 → timp-d3) and layer, never the file this drum played
+    // last (real drums never sound the same twice). It never turns between two different recorded notes: they come
+    // from different drums with different attacks, and alternating them sounds like every other note is accented
     MAX_RING: 6,                 // strokes ringing at once on one drum (they OVERLAP, like a real head); the oldest
     fadeMs: 80,                  // beyond that fades out over this long
     batch: 4,                    // files loaded at a time (the page never stalls)
@@ -126,7 +128,8 @@ window.Arcade = window.Arcade || {};
   const LEAD_S = 0.002;                                   // a take starts this long before its hit (the attack stays whole)
   const HIT_OFFSET_S = (SP.HIT_MS - LEAD_S * 1000) / 1000; // where in the file a take starts
   const LAYERS = ['soft', 'mid', 'loud'];
-  const SMP = SP.list.map(([file, hz, layer, sec]) => ({file, hz, layer, sec, li: LAYERS.indexOf(layer), buf: null, lead: 0}));
+  const groupOf = file => file.replace(/-(soft|mid|loud)-\d+$/, '');   // timp-e3-mid-2 → timp-e3 (ROUND ROBIN)
+  const SMP = SP.list.map(([file, hz, layer, sec]) => ({file, hz, layer, sec, li: LAYERS.indexOf(layer), group: groupOf(file), buf: null, lead: 0}));
 
   const voices = {};             // key -> the ringing drum voice
   const history = [], glides = [];
@@ -238,16 +241,17 @@ window.Arcade = window.Arcade || {};
     if (dyn == null) return 'mid';
     return dyn < SAMPLES.dynLayer.soft ? 'soft' : dyn < SAMPLES.dynLayer.mid ? 'mid' : 'loud';
   }
-  /** the take for a strike at f: the decoded take with the lowest |cents| + LAYER_COST × layers away; among the takes
-      within RR_WINDOW of the best, never the one this drum played last (one picked at random from the rest) */
+  /** the take for a strike at f: the BEST take is the decoded one with the lowest |cents| + LAYER_COST × layers away;
+      ROUND ROBIN turns only among the decoded takes of its group and layer (the same recorded note), never the one
+      this drum played last (one picked at random from the rest; a group with one take repeats it) */
   function choose(key, f, want) {
-    const wi = LAYERS.indexOf(want);
-    let c = SMP.filter(s => s.buf).map(s => ({s, score: Math.abs(cents(f, s.hz)) + SAMPLES.LAYER_COST * Math.abs(s.li - wi)}));
-    if (!c.length) return null;
-    const best = Math.min(...c.map(x => x.score));
-    c = c.filter(x => x.score <= best + SAMPLES.RR_WINDOW);
-    if (c.length > 1) c = c.filter(x => x.s.file !== lastFile[key]);
-    return c[Math.floor(Math.random() * c.length)].s;
+    const wi = LAYERS.indexOf(want), ok = SMP.filter(s => s.buf);
+    if (!ok.length) return null;
+    const score = s => Math.abs(cents(f, s.hz)) + SAMPLES.LAYER_COST * Math.abs(s.li - wi);
+    const best = ok.reduce((a, s) => score(s) < score(a) ? s : a);
+    let c = ok.filter(s => s.group === best.group && s.layer === best.layer);
+    if (c.length > 1) c = c.filter(s => s.file !== lastFile[key]);
+    return c[Math.floor(Math.random() * c.length)];
   }
   function strikeSample(key, f, {soft = false, at = null, vel = 1, center = 0, dyn = null, take = null} = {}, o) {
     const want = take ? take.layer : wantLayer({soft, dyn}), s = take || choose(key, f, want);

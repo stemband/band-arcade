@@ -616,6 +616,26 @@ test('STRIKING: a click on a kettle and the STROKE button = a full stroke (the k
   watch.check();
 });
 
+test('THE RECORDED DRUMS: ROUND ROBIN only within one recorded note: F3 (no F3 recording) always uses timp-e3, never alternating with timp-fs3; D3 mid alternates its two takes; C3 mid repeats its one take', async ({page}) => {
+  const watch = await open(page, recordedDevice());
+  const r = await page.evaluate(() => {
+    const T = Arcade.Timpani, out = {};
+    T.test.fakeBuffers();
+    const run = (key, f, n, o) => Array.from({length: n}, () => { const ok = T.strike(key, f, o); const t = T.test.take(key); return ok && t ? t.file : null; });
+    out.groups = Object.fromEntries(['timp-e3-mid-2', 'timp-d3-loud-1', 'timp-fs3-soft-2'].map(f => [f, T.samples.find(s => s.file === f).group]));
+    out.f3 = run('f3', 174.61, 20, {dyn: .68});             // the 23" in C & F, mf
+    out.d3 = run('d3', 146.83, 20, {dyn: .68});
+    out.c3 = run('c3', 130.81, 20, {dyn: .68});
+    return out;
+  });
+  expect(r.groups).toEqual({'timp-e3-mid-2': 'timp-e3', 'timp-d3-loud-1': 'timp-d3', 'timp-fs3-soft-2': 'timp-fs3'});
+  expect(new Set(r.f3)).toEqual(new Set(['timp-e3-mid-2']));          // the nearest note's group only: no accent every other stroke
+  expect(new Set(r.d3)).toEqual(new Set(['timp-d3-mid-1', 'timp-d3-mid-2']));
+  for (let k = 1; k < r.d3.length; k++) expect(r.d3[k], `D3 stroke ${k + 1} repeats a take`).not.toBe(r.d3[k - 1]);
+  expect(new Set(r.c3)).toEqual(new Set(['timp-c3-mid-1']));          // one take in the group: repeated, never null
+  watch.check();
+});
+
 test('THE RECORDED DRUMS: with ONE take left at a pitch (G2 soft), round robin still plays a take every time (repeating it), never nothing', async ({page}) => {
   const watch = await open(page, recordedDevice());
   const r = await page.evaluate(() => {
