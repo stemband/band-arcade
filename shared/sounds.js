@@ -1,6 +1,6 @@
 /* AFTER REPLACING SOUNDS in shared/sounds/, add 1 to this number, so every student's device loads the new files right
    away instead of a copy it saved earlier (every sound URL ends in ?v=<this number>). */
-var SOUNDS_VERSION = 4;
+var SOUNDS_VERSION = 5;
 
 /* Band Arcade: THE SOUND LIST. Every sound the arcade plays, by event name. shared/sfx.js plays them.
 

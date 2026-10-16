@@ -281,7 +281,7 @@ or none, can play.
   sheet music (a photo or a PDF); it stays on their device and is never uploaded. Four original practice etudes have
   HEAR IT and PLAY ALONG with a score (the GMEA etude itself is copyrighted, so it is never in the game: students load
   their own copy).
-- **The drum sound:** real recorded timpani (65 takes, soft / medium / loud, in `shared/sounds/timpani/`), stretched to
+- **The drum sound:** real recorded timpani (59 takes, soft / medium / loud, in `shared/sounds/timpani/`), stretched to
   the exact pitch of the pedal. Students can switch **DRUM SOUND: RECORDED · SYNTH** in the settings; where the files
   can't load (a double-clicked page), the game's own synthesized drum plays. To fix a take's pitch by ear, open
   `pedal-point/index.html?tune-samples` (THE SAMPLE TUNER, linked from the Sound Board). To use recordings of your own

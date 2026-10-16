@@ -93,20 +93,28 @@
                                  // a screen too narrow for that), a tappable head
     label: 16,                   // px at each end of the pedal for TOE / HEEL (the plate travels between them)
     plate: 18,                   // px: the pedal's plate (along the pedal)
-    maxH: .52, maxHMusic: .36,   // × the window's height: the picture's height (smaller with music showing)
+    maxH: .52, maxHMusic: .36,   // × the window's height: the picture's height (smaller with music showing): 3–4 drums
+    fillN: 2,                    // up to this many drums FILL THE ROOM LEFT: from the top of the drums to the bottom of the
+                                 // window, less the fine tuner and the help line under them (never less than maxHMusic
+                                 // with music showing), so 1 or 2 drums are big
+    maxPx: {pedalL: 200, pedalW: 72, seatR: 26},   // (1–2 drums) the pedal and the stool are for a foot, not to scale:
+                                 // once the drums are big they stop growing at these px
     shrink: .85,                 // a small screen: the gap and the span shrink by up to this before targets do
     pad: 6,                      // px around the picture
   };
   const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
   /** the picture for drums of radius rs (inches, left to right) in a box W px wide and at most H px high */
-  function solveArc(rs, W, H) {
+  function solveArc(rs, W, H, {cap = false} = {}) {
     const n = rs.length;
     const build = (s, span, gap, pwPx, tight) => {
-      const w = Math.max(ARC.pedalW, pwPx / s), l = Math.max(ARC.pedalLen, ARC.minPx.pedalL / s), hand = ARC.hand / s;
+      // the pedal and the stool in px: their real size × the scale, at least the finger-sized minimum; capped (big drums)
+      const px = (inch, min, max) => { const v = Math.max(inch * s, min); return cap ? Math.min(v, Math.max(min, max)) : v; };
+      const w = px(ARC.pedalW, pwPx, ARC.maxPx.pedalW) / s, l = px(ARC.pedalLen, ARC.minPx.pedalL, ARC.maxPx.pedalL) / s, hand = ARC.hand / s;
+      const seatR = px(ARC.seatR, 0, ARC.maxPx.seatR) / s;
       const pairs = []; for (let k = 0; k < n - 1; k++) pairs.push(rs[k] + rs[k + 1] + gap);
       const angles = R => pairs.map(c => 2 * Math.asin(Math.min(1, c / (2 * R))));
       const total = R => angles(R).reduce((a, b) => a + b, 0);
-      const base = Math.max(...rs) + ARC.pedalGap + l + ARC.seatGap + ARC.seatR;
+      const base = Math.max(...rs) + ARC.pedalGap + l + ARC.seatGap + seatR;
       let R = base;
       if (n > 1 && total(R) > rad(span)) {               // the span asks for a larger circle: bisect
         let lo = R, hi = R * 50;
@@ -123,13 +131,13 @@
           const toe = [c[0] + u[0] * (r + ARC.pedalGap), c[1] + u[1] * (r + ARC.pedalGap)];
           const heel = [toe[0] + u[0] * l, toe[1] + u[1] * l];
           const side = n === 1 ? 1 : th < -1e-9 ? -1 : 1;                     // the fan's outside (the middle drum: right)
-          return {r, th, c, u, toe, heel, w, l, side};
+          return {r, th, c, u, toe, heel, w, l, side, seatR};
         });
       };
       let ds = place(R), tries = 0;
       while (overlaps(ds) && tries++ < 400) { R *= 1.02; ds = place(R); }
       placeHands(ds, hand, tight);
-      return {R, ds, w, l, hand, span: n > 1 ? deg(ds[n - 1].th - ds[0].th) : 0, limited: n > 1 && deg(ds[n - 1].th - ds[0].th) < span - 3};
+      return {R, ds, w, l, hand, seatR, span: n > 1 ? deg(ds[n - 1].th - ds[0].th) : 0, limited: n > 1 && deg(ds[n - 1].th - ds[0].th) < span - 3};
     };
     const box = g => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -139,7 +147,7 @@
         rectCorners(d.toe, d.heel, d.w).forEach(p => add(p[0], p[1]));
         add(d.hand.c[0] - d.hand.s / 2, d.hand.c[1] - d.hand.s / 2); add(d.hand.c[0] + d.hand.s / 2, d.hand.c[1] + d.hand.s / 2);
       });
-      add(-ARC.seatR, -ARC.seatR); add(ARC.seatR, ARC.seatR + g.youH);
+      add(-g.seatR, -g.seatR); add(g.seatR, g.seatR + g.youH);
       return {x0, y0, x1, y1, w: x1 - x0, h: y1 - y0};
     };
     const fit = (span, gap, pwPx, tight) => {                         // the largest scale (px per inch) whose picture fits; if none fits
@@ -167,8 +175,8 @@
     }
     const s = g.s, ox = g.box.x0, oy = g.box.y0, P = p => [(p[0] - ox) * s + ARC.pad, (p[1] - oy) * s + ARC.pad];
     return {
-      s, R: g.R, span: g.span, limited: g.limited || g.tight, W: Math.ceil(g.box.w * s + 2 * ARC.pad), H: Math.ceil(g.box.h * s + 2 * ARC.pad),
-      seat: {c: P([0, 0]), r: ARC.seatR * s},
+      s, R: g.R, span: g.span, limited: g.limited || g.tight, over: g.box.h * s + 2 * ARC.pad > H + 1, room: H, W: Math.ceil(g.box.w * s + 2 * ARC.pad), H: Math.ceil(g.box.h * s + 2 * ARC.pad),
+      seat: {c: P([0, 0]), r: g.seatR * s},
       drums: g.ds.map(d => ({c: P(d.c), r: d.r * s, th: deg(d.th), toe: P(d.toe), heel: P(d.heel), w: d.w * s, l: d.l * s, u: d.u,
         hand: {c: P(d.hand.c), s: ARC.hand}})),
     };
@@ -187,7 +195,7 @@
     const m = .4;                                        // inches of air
     for (let i = 0; i < ds.length; i++) {
       const a = ds[i];
-      if (segDist([0, 0], a.toe, a.heel) < ARC.seatR + a.w / 2 + m) return true;
+      if (segDist([0, 0], a.toe, a.heel) < a.seatR + a.w / 2 + m) return true;
       for (let j = 0; j < ds.length; j++) {
         const b = ds[j];
         if (i !== j && segDist(b.c, a.toe, a.heel) < b.r + a.w / 2 + m) return true;
@@ -201,7 +209,7 @@
   function placeHands(ds, hand, tight) {
     const rot = (u, t) => [u[0] * Math.cos(t) - u[1] * Math.sin(t), u[0] * Math.sin(t) + u[1] * Math.cos(t)];
     const free = (d, c) => {
-      if (Math.hypot(c[0], c[1]) < ARC.seatR + hand * .75) return false;
+      if (Math.hypot(c[0], c[1]) < d.seatR + hand * .75) return false;
       return ds.every(b => (b === d || Math.hypot(c[0] - b.c[0], c[1] - b.c[1]) >= b.r + hand * .72) &&
         segDist(c, b.toe, b.heel) >= hand * .72 + b.w / 2 && (!b.hand || b === d || Math.hypot(c[0] - b.hand.c[0], c[1] - b.hand.c[1]) >= hand * 1.1));
     };
@@ -228,12 +236,21 @@
      pointing at the seat; one SVG for the shapes, the ✋ buttons and "out of tune" badges on top) ================= */
   let L = null;                                         // the current picture (solveArc, in px inside #prDrums)
   const fx = n => n.toFixed(1);
+  /** the picture's height: 3–4 drums = ARC.maxH (maxHMusic with music); 1–2 drums (fillN) = the room left on screen from
+      the top of the drums (on the page) to the bottom of the window, less what the stage shows under them */
+  function roomH(n, music) {
+    const cap = Math.max(240, innerHeight * (music ? ARC.maxHMusic : ARC.maxH));
+    if (n > ARC.fillN) return cap;
+    const box = $('prDrums'), st = $('prStage'), top = box.getBoundingClientRect().top + scrollY;
+    const under = st.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;   // the fine tuner, the help, padding
+    const room = innerHeight - top - under - ARC.pad;
+    return Math.max(music ? cap : 240, room);
+  }
   function layout() {
     const box = $('prDrums'), W = box.clientWidth;
     if (!W) return null;
-    const music = $('practice').classList.contains('pr-music');
-    const H = Math.max(240, innerHeight * (music ? ARC.maxHMusic : ARC.maxH));
-    const ord = order(), lay = solveArc(ord.map(o => +o.d.id / 2), W, H);
+    const music = $('practice').classList.contains('pr-music'), ord = order(), H = roomH(ord.length, music);
+    const lay = solveArc(ord.map(o => +o.d.id / 2), W, H, {cap: ord.length <= ARC.fillN});
     const dx = Math.max(0, (W - lay.W) / 2), sh = q => [q[0] + dx, q[1]];
     lay.seat.c = sh(lay.seat.c);
     lay.drums.forEach((d, v) => { d.i = ord[v].i; d.id = ord[v].d.id; d.c = sh(d.c); d.toe = sh(d.toe); d.heel = sh(d.heel); d.hand.c = sh(d.hand.c);
@@ -253,7 +270,7 @@
       `<g class="pr-seat" aria-hidden="true"><circle cx="${fx(L.seat.c[0])}" cy="${fx(L.seat.c[1])}" r="${fx(L.seat.r)}"/>` +
       `<text x="${fx(L.seat.c[0])}" y="${fx(L.seat.c[1] + L.seat.r + 13)}" text-anchor="middle">You</text></g>`];
     L.drums.forEach((d, v) => {
-      const [cx, cy] = d.c, r = d.r, away = [-d.u[0], -d.u[1]], fs = Math.max(11, Math.min(22, r * .2));
+      const [cx, cy] = d.c, r = d.r, away = [-d.u[0], -d.u[1]], clampF = v => Math.max(14, Math.min(40, v)), fs = clampF(r * .22), ks = clampF(r * .15);
       svg.push(`<g class="pr-drum" data-i="${d.i}" data-v="${v}">` +
         `<circle class="pr-cue" cx="${fx(cx)}" cy="${fx(cy)}" r="${fx(r + 6)}"/>` +
         `<g class="pr-pedal" data-i="${d.i}" role="slider" tabindex="-1" aria-label="${d.id} inch drum pedal" aria-valuemin="0" aria-valuemax="100" transform="translate(${fx(d.toe[0])} ${fx(d.toe[1])}) rotate(${fx(d.th)})">` +
@@ -265,9 +282,9 @@
         `<g class="pr-head" data-i="${d.i}" role="button" tabindex="-1" aria-label="${d.id} inch drum: tap to play, hold to roll" transform="translate(${fx(cx)} ${fx(cy)})">` +
           `<circle class="pr-rim" r="${fx(r)}"/><circle class="pr-hoop" r="${fx(r * .95)}"/><circle class="pr-skin" r="${fx(r * .92)}"/>` +
           `<circle class="pr-spot" r="${fx(r * .92 * T.TIMPANI.spot)}"/><circle class="pr-ripple" r="${fx(r * .4)}"/>` +
-          `<text class="pr-sz" y="${fx(-fs * .15)}" style="font-size:${fx(fs * .8)}px">${d.id}"</text>` +
+          `<text class="pr-sz" y="${fx(-fs * .15)}" style="font-size:${fx(clampF(fs * .8))}px">${d.id}"</text>` +
           `<text class="pr-note" id="prNote${d.i}" y="${fx(fs * 1.05)}" style="font-size:${fx(fs)}px"></text>` +
-          `<text class="pr-key" x="${fx(away[0] * r * .7)}" y="${fx(away[1] * r * .7)}">${(keys[v] || '').toUpperCase()}</text></g></g>`);
+          `<text class="pr-key" x="${fx(away[0] * r * .7)}" y="${fx(away[1] * r * .7)}" style="font-size:${fx(ks)}px">${(keys[v] || '').toUpperCase()}</text></g></g>`);
     });
     svg.push('</svg>');
     const html = L.drums.map(d => {
@@ -289,12 +306,11 @@
     cancelAnimationFrame(relayT);
     relayT = requestAnimationFrame(() => {
       if (!S.open || !L) return;
-      const box = $('prDrums'), music = $('practice').classList.contains('pr-music');
-      const H = Math.max(240, innerHeight * (music ? ARC.maxHMusic : ARC.maxH));
+      const box = $('prDrums'), music = $('practice').classList.contains('pr-music'), H = roomH(order().length, music);
       if (L.key.split('|').slice(0, 3).join('|') !== [box.clientWidth, Math.round(H), music].join('|') && !Object.keys(S.presses).length) draw();
     });
   }
-  if (window.ResizeObserver) new ResizeObserver(relayout).observe($('prDrums'));
+  if (window.ResizeObserver) { const ro = new ResizeObserver(relayout); ['prDrums', 'prScore', 'prBar'].forEach(id => ro.observe($(id))); }   // the room above the drums changes too
   addEventListener('resize', relayout); addEventListener('orientationchange', relayout);
   const drumL = i => L && L.drums.find(d => d.i === i);
   function drawDrum(i) {
@@ -958,7 +974,7 @@
     arc: () => {
       if (!L) return null;
       const b = $('prDrums').getBoundingClientRect(), P = q => ({x: b.left + q[0], y: b.top + q[1]});
-      return {s: L.s, R: L.R, span: L.span, limited: L.limited, box: {x: b.left, y: b.top, w: b.width, h: b.height},
+      return {s: L.s, R: L.R, span: L.span, limited: L.limited, over: L.over, room: L.room, box: {x: b.left, y: b.top, w: b.width, h: b.height},
         seat: Object.assign(P(L.seat.c), {r: L.seat.r}),
         drums: L.drums.map(d => ({i: d.i, id: d.id, c: P(d.c), r: d.r, th: d.th, u: d.u, toe: P(d.toe), heel: P(d.heel), w: d.w, l: d.l, track: d.track,
           hand: Object.assign(P(d.hand.c), {size: d.hand.s})}))};

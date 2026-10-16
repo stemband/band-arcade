@@ -22,13 +22,13 @@ window.PP_SAMPLES = {
     ['timp-f2-loud-1', 88.49, 'loud', 4.15],   // Timpani7E_hit_v5_rr1
     ['timp-f2-loud-2', 88.37, 'loud', 5.05],   // Timpani7E_hit_v5_rr2
     ['timp-g2-soft-1', 97.10, 'soft', 4.55],   // Timpani7F_hit_v2_rr1
-    ['timp-g2-soft-2', 97.47, 'soft', 4.85],   // Timpani7F_hit_v2_rr2
+    // (timp-g2-soft-2 removed: its principal was weak, so it sounded an octave low)
     ['timp-g2-mid-1', 98.57, 'mid', 6.05],   // Timpani7F_hit_v3_rr1
     ['timp-g2-mid-2', 98.60, 'mid', 5.05],   // Timpani7F_hit_v3_rr2
-    ['timp-g2-loud-1', 97.64, 'loud', 4.70],   // Timpani7F_hit_v5_rr1
+    // (timp-g2-loud-1 removed: its principal was weak, so it sounded an octave low)
     ['timp-g2-loud-2', 97.47, 'loud', 3.90],   // Timpani7F_hit_v5_rr2
     ['timp-ab2-soft-1', 102.93, 'soft', 3.05],   // Timpani6J_hit_v2_rr1
-    ['timp-ab2-soft-2', 102.55, 'soft', 3.70],   // Timpani6J_hit_v2_rr2
+    // (timp-ab2-soft-2 removed: its principal was weak, so it sounded an octave low)
     ['timp-ab2-mid-1', 104.75, 'mid', 2.80],   // Timpani6J_hit_v3_rr1
     ['timp-ab2-mid-2', 104.99, 'mid', 2.60],   // Timpani6J_hit_v3_rr2
     ['timp-ab2-loud-1', 104.81, 'loud', 3.00],   // Timpani6J_hit_v5_rr1
@@ -48,7 +48,7 @@ window.PP_SAMPLES = {
     ['timp-c3-soft-1', 132.40, 'soft', 3.10],   // Timpani6F_hit_v2_rr1
     ['timp-c3-soft-2', 131.49, 'soft', 3.70],   // Timpani6F_hit_v2_rr2
     ['timp-c3-mid-1', 132.51, 'mid', 3.65],   // Timpani6F_hit_v3_rr1
-    ['timp-c3-mid-2', 133.05, 'mid', 3.55],   // Timpani6F_hit_v3_rr2
+    // (timp-c3-mid-2 removed: its principal was weak, so it sounded an octave low)
     ['timp-c3-loud-1', 134.83, 'loud', 2.90],   // Timpani6F_hit_v5_rr1
     ['timp-c3-loud-2', 133.90, 'loud', 2.60],   // Timpani6F_hit_v5_rr2
     ['timp-db3-soft-1', 139.15, 'soft', 2.45],   // Timpani6E_hit_v2_rr1
@@ -69,13 +69,13 @@ window.PP_SAMPLES = {
     ['timp-eb3-loud-1', 158.41, 'loud', 2.15],   // Timpani6C_hit_v5_rr2
     ['timp-e3-soft-1', 163.73, 'soft', 2.85],   // Timpani6B_hit_v2_rr1
     ['timp-e3-soft-2', 163.85, 'soft', 2.55],   // Timpani6B_hit_v2_rr2
-    ['timp-e3-mid-1', 164.20, 'mid', 3.25],   // Timpani6B_hit_v3_rr1
+    // (timp-e3-mid-1 removed: its principal was weak, so it sounded an octave low)
     ['timp-e3-mid-2', 164.48, 'mid', 2.75],   // Timpani6B_hit_v3_rr2
     ['timp-e3-loud-1', 167.01, 'loud', 1.95],   // Timpani6B_hit_v5_rr1
     ['timp-fs3-soft-1', 184.31, 'soft', 6.15],   // Timpani7C_hit_v2_rr1
     ['timp-fs3-soft-2', 184.31, 'soft', 5.15],   // Timpani7C_hit_v2_rr2
     ['timp-fs3-mid-1', 188.13, 'mid', 5.90],   // Timpani7C_hit_v3_rr1
-    ['timp-fs3-loud-1', 187.42, 'loud', 3.95],   // Timpani7C_hit_v5_rr1
+    // (timp-fs3-loud-1 removed: its principal was weak, so it sounded an octave low)
     ['timp-fs3-loud-2', 187.97, 'loud', 4.75],   // Timpani7C_hit_v5_rr2
   ],
 };
