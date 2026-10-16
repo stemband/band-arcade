@@ -545,7 +545,8 @@ test('THE SEMICIRCLE: a pedal drags along its own angle; the head is round (a co
     };
     const span = (await page.evaluate(id => Arcade.PPDrums.byId(id).span, d.id));
     const along = await drag(toward);
-    expect(along).toBeCloseTo(40 / d.track * span, 3);                             // 40 px toward the drum = toe down = higher
+    // 40 px toward the drum = toe down = higher (within 2 %: WebKit rounds a diagonal drag's points to whole pixels)
+    expect(Math.abs(along / (40 / d.track * span) - 1)).toBeLessThan(.02);
     expect(Math.abs(await drag(across))).toBeLessThan(along * .1);                 // across the pedal: almost nothing
   }
   // the head: a press in its box's corner (outside the circle) plays nothing; the spot strokes; the center thuds
