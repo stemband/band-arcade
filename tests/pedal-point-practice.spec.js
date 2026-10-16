@@ -654,20 +654,31 @@ test('gallery: docs/gallery/pedal-point-practice.png', async ({page, browserName
   await page.screenshot({path: require('path').join(__dirname, '..', 'docs', 'gallery', 'pedal-point-practice.png'), fullPage: true});
 });
 
-test('THE RECORDED DRUMS in the Practice Room: a held roll alternates takes and overlaps; p / f pick the soft / loud takes; a scheduled stroke\'s hit lands on its time', async ({page}) => {
+test('THE RECORDED DRUMS in the Practice Room: a held roll stays on one recorded note (F3 = timp-e3) and overlaps, on D3 it alternates the two takes; p / f pick the soft / loud takes; a scheduled stroke\'s hit lands on its time', async ({page}) => {
   const watch = await room(page, device('trumpet', {gameData: {'pedal-point': {drumSound: 'samples'}}}));
   expect(await page.evaluate(() => [Arcade.Timpani.engine(), Arcade.Timpani.test.fakeBuffers()])).toEqual(['samples', true]);   // made-up takes: any browser
-  const h0 = await page.evaluate(() => Arcade.Timpani.test.history.length);
-  // the F3 drum (K): two mid takes near F3 take turns (C3 has one mid take left since the octave-low ones went: it repeats)
-  await page.keyboard.down('k');
-  await page.waitForTimeout(700);
-  await page.keyboard.up('k');
-  const roll = await page.evaluate(n => Arcade.Timpani.test.history.slice(n).filter(h => h.kind === 'strike' && h.played), h0);
+    // the F3 drum (K): no F3 recording, so every stroke of the roll comes from ONE recorded note (timp-e3, the nearest),
+  // never alternating with timp-fs3 (that sounded like every other stroke was accented); it still overlaps
+  const rollOn = async () => {
+    const n = await page.evaluate(() => Arcade.Timpani.test.history.length);
+    await page.keyboard.down('k');
+    await page.waitForTimeout(700);
+    await page.keyboard.up('k');
+    return page.evaluate(n => Arcade.Timpani.test.history.slice(n).filter(h => h.kind === 'strike' && h.played), n);
+  };
+  let roll = await rollOn();
   expect(roll.length).toBeGreaterThan(5);
   roll.forEach(h => expect(h.engine).toBe('samples'));
-  for (let k = 1; k < roll.length; k++) expect(roll[k].file, `roll stroke ${k + 1} repeats a take`).not.toBe(roll[k - 1].file);
+  expect([...new Set(roll.map(h => h.file.replace(/-(soft|mid|loud)-\d+$/, '')))]).toEqual(['timp-e3']);
   expect(Math.max(...roll.map(h => h.ringing))).toBeGreaterThan(2);    // the strokes ring on under each other: one sustained tone
   expect(Math.max(...roll.map(h => h.ringing))).toBeLessThanOrEqual(await page.evaluate(() => Arcade.Timpani.SAMPLES.MAX_RING));
+  // the 23" on D3 (two mid takes of one recorded note): a held roll alternates them, never the same twice, never another note
+  await page.evaluate(() => Arcade.PedalPoint.practice.applySetup([['26', 'C3'], ['23', 'D3']]));
+  roll = await rollOn();
+  expect(roll.length).toBeGreaterThan(5);
+  expect(new Set(roll.map(h => h.file))).toEqual(new Set(['timp-d3-mid-1', 'timp-d3-mid-2']));
+  for (let k = 1; k < roll.length; k++) expect(roll[k].file, `roll stroke ${k + 1} repeats a take`).not.toBe(roll[k - 1].file);
+  expect(Math.max(...roll.map(h => h.ringing))).toBeGreaterThan(2);
   // the dynamics pick the layer
   const layers = await page.evaluate(() => {
     const p = Arcade.PedalPoint.practice, T = Arcade.Timpani, out = {};
