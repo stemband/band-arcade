@@ -614,10 +614,10 @@ for (const [name, vp, min, minMusic] of [['phone', {width: 390, height: 844}, 60
 test('gallery: docs/gallery/pedal-point-semicircle.png', async ({page, browserName}) => {
   test.skip(!process.env.GALLERY || browserName !== 'chromium', 'GALLERY=1 only');
   const shots = [];
-  for (const [label, vp] of [['iPad landscape', {width: 1024, height: 768}], ['Phone', {width: 390, height: 844}]]) {
+  for (const [label, vp, ns] of [['iPad landscape', {width: 1180, height: 820}, [1, 2, 3, 4]], ['Chromebook', {width: 1366, height: 768}, [1, 2]], ['Phone', {width: 390, height: 844}, [1, 2, 3, 4]]]) {
     await page.setViewportSize(vp);
     await room(page);
-    for (const order of ['us', 'eu']) for (const n of [1, 2, 3, 4]) {
+    for (const order of ['us', 'eu']) for (const n of ns) {
       if (order === 'eu' && n === 1) continue;
       await page.evaluate(([o, n]) => { const p = Arcade.PedalPoint.practice; Arcade.store.gameData('pedal-point').practice.order = o; n === 4 ? p.applyPreset('four') : p.setCount(n); }, [order, n]);
       await page.waitForTimeout(100);
@@ -658,9 +658,10 @@ test('THE RECORDED DRUMS in the Practice Room: a held roll alternates takes and 
   const watch = await room(page, device('trumpet', {gameData: {'pedal-point': {drumSound: 'samples'}}}));
   expect(await page.evaluate(() => [Arcade.Timpani.engine(), Arcade.Timpani.test.fakeBuffers()])).toEqual(['samples', true]);   // made-up takes: any browser
   const h0 = await page.evaluate(() => Arcade.Timpani.test.history.length);
-  await page.keyboard.down('j');
+  // the F3 drum (K): two mid takes near F3 take turns (C3 has one mid take left since the octave-low ones went: it repeats)
+  await page.keyboard.down('k');
   await page.waitForTimeout(700);
-  await page.keyboard.up('j');
+  await page.keyboard.up('k');
   const roll = await page.evaluate(n => Arcade.Timpani.test.history.slice(n).filter(h => h.kind === 'strike' && h.played), h0);
   expect(roll.length).toBeGreaterThan(5);
   roll.forEach(h => expect(h.engine).toBe('samples'));
@@ -836,3 +837,70 @@ for (const [name, vp] of [['phone', {width: 390, height: 844}], ['iPad portrait'
     watch.check();
   });
 }
+
+/* ===== BIG DRUMS: 1 or 2 drums fill the room left on screen (ARC.fillN); the pedal and the stool stop growing (maxPx) ===== */
+for (const [name, vp] of [['Chromebook', {width: 1366, height: 768}], ['iPad landscape', {width: 1180, height: 820}], ['iPad portrait', {width: 820, height: 1180}], ['phone', {width: 390, height: 844}]]) {
+  test(`BIG DRUMS (${name}): 1 and 2 drums fill the room (or the width), the stage stays on screen, pedals ≤ 200 × 72 px, labels ≥ 14 px`, async ({page}) => {
+    await page.setViewportSize(vp);
+    const watch = await room(page);
+    const ARC = await page.evaluate(() => Arcade.PedalPoint.practice.ARC);
+    for (const [n, order] of [[1, 'us'], [2, 'us'], [2, 'eu']]) {
+      await page.evaluate(([n, o]) => { const p = Arcade.PedalPoint.practice; Arcade.store.gameData('pedal-point').practice.order = o; p.setCount(n); window.scrollTo(0, 0); }, [n, order]);
+      const a = await ARC_OF(page);
+      expect(checkArc(a, ARC, {eu: order === 'eu'}), `${n} drums ${order}`).toEqual([]);
+      const r = await page.evaluate(() => {
+        const st = document.getElementById('prStage').getBoundingClientRect(), xs = [];
+        document.querySelectorAll('#prDrums .pr-rim, #prDrums .pr-ped, #prDrums .pr-hand').forEach(e => { const b = e.getBoundingClientRect(); xs.push(b.left, b.right); });
+        return {stageBottom: st.bottom, win: innerHeight, picW: Math.max(...xs) - Math.min(...xs),
+          font: Math.min(...[...document.querySelectorAll('#prDrums .pr-sz, #prDrums .pr-note')].map(t => parseFloat(getComputedStyle(t).fontSize)))};
+      });
+      // the room or the width: whichever limits, at least 90 % of it is used
+      const usesH = a.box.h >= .9 * a.room, usesW = r.picW >= .9 * a.box.w;
+      expect(usesH || usesW, `${n} drums: ${Math.round(a.box.h)} of ${Math.round(a.room)} px high, ${Math.round(r.picW)} of ${Math.round(a.box.w)} wide`).toBe(true);
+      // the whole stage on the screen (unless even the smallest the targets allow is taller than the room: the page scrolls)
+      if (!a.over) {
+        expect(r.stageBottom, `${n} drums: the stage ends below the window`).toBeLessThanOrEqual(r.win + 1);
+        a.drums.forEach(d => expect(Math.max(d.toe.y, d.heel.y) + d.w / 2).toBeLessThanOrEqual(r.win + 1));
+      }
+      a.drums.forEach(d => {
+        expect(d.l).toBeLessThanOrEqual(ARC.maxPx.pedalL + .5); expect(d.w).toBeLessThanOrEqual(ARC.maxPx.pedalW + .5);
+        expect(d.l).toBeGreaterThanOrEqual(ARC.minPx.pedalL - .5); expect(d.w).toBeGreaterThanOrEqual(ARC.minPx.pedalW2 - .5);
+      });
+      expect(a.seat.r).toBeLessThanOrEqual(ARC.maxPx.seatR + .5);
+      expect(r.font).toBeGreaterThanOrEqual(14);
+      expect(await tooWide(page)).toEqual([]);
+    }
+    // 3 and 4 drums: exactly as before (ARC.maxH, no caps)
+    for (const n of [3, 4]) {
+      await page.evaluate(n => Arcade.PedalPoint.practice.setCount(n), n);
+      const r = await page.evaluate(() => {
+        const p = Arcade.PedalPoint.practice, a = p.arc(), ds = p.state().drums, W = document.getElementById('prDrums').clientWidth;
+        const order = Arcade.store.gameData('pedal-point').practice.order === 'eu' ? -1 : 1;
+        const rs = ds.map(d => +d.id / 2).sort((x, y) => order * (y - x));
+        const old = p.solveArc(rs, W, Math.max(240, innerHeight * p.ARC.maxH));
+        return {s: a.s, old: old.s, h: a.box.h, oldH: old.H};
+      });
+      expect(r.s, `${n} drums`).toBeCloseTo(r.old, 6);
+      expect(Math.abs(r.h - r.oldH)).toBeLessThanOrEqual(1);
+    }
+    watch.check();
+  });
+}
+
+test('BIG DRUMS with the music showing (1 drum): never smaller than before, and the music keeps its height', async ({page}) => {
+  await page.setViewportSize({width: 1180, height: 820});
+  const watch = await room(page);
+  await page.evaluate(() => Arcade.PedalPoint.practice.setCount(4));
+  await page.locator('#prShow [data-show="sheet"]').click();
+  const view4 = await page.locator('#prView').evaluate(e => e.getBoundingClientRect().height);
+  await page.evaluate(() => Arcade.PedalPoint.practice.setCount(1));
+  await expect.poll(() => page.evaluate(() => Arcade.PedalPoint.practice.arc().drums.length)).toBe(1);
+  const r = await page.evaluate(() => {
+    const p = Arcade.PedalPoint.practice, a = p.arc(), W = document.getElementById('prDrums').clientWidth;
+    const before = p.solveArc([+p.state().drums[0].id / 2], W, Math.max(240, innerHeight * p.ARC.maxHMusic));
+    return {r: a.drums[0].r, before: before.drums[0].r, view: document.getElementById('prView').getBoundingClientRect().height};
+  });
+  expect(r.r).toBeGreaterThanOrEqual(r.before - .5);
+  expect(r.view).toBeCloseTo(view4, 0);
+  watch.check();
+});
