@@ -501,7 +501,7 @@ test('THE RECORDED DRUMS: the take\'s rate makes the principal exact; a tap is s
   expect(r.listening).toBe(false);
   expect(r.HIT).toBeCloseTo(.008, 9);
   await page.keyboard.press('Space');                                    // Space = a full stroke: the mid takes
-  expect(await page.evaluate(() => Arcade.Timpani.test.history.slice(-1)[0])).toMatchObject({engine: 'samples', soft: false, want: 'mid', played: true});
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').slice(-1)[0])).toMatchObject({engine: 'samples', soft: false, want: 'mid', played: true});
   watch.check();
 });
 

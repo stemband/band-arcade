@@ -163,6 +163,8 @@
 .pr-setupmsg[hidden]{display:none}
 .pr-staff{padding:6px 8px;overflow-x:auto}
 .pr-staff .pr-etitle{margin:2px 4px 4px;font:700 18px var(--display);color:var(--ink)}
+.pr-staff .pr-tuning{margin:0 4px 4px;font:400 15px system-ui,sans-serif;color:var(--ink-2);overflow-wrap:anywhere}
+.pr-about{margin:-2px 0 8px;font-size:14px;color:var(--text-lo)}
 .pr-staff .pr-etitle small{font:400 15px system-ui,sans-serif;color:var(--ink-2)}
 .pr-srow-staff svg{display:block;max-width:100%;height:auto;color:var(--ink)}
 .pr-staff g.rn.pp-now{color:#c06d00}

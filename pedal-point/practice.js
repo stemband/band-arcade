@@ -526,11 +526,19 @@
 
   /* ================= THE ETUDES ================= */
   const etudes = E.ETUDES.map(et => E.parse(et));
+  /** an etude's own tuning ([[size, note], …] low to high), else the C & F preset (the first four) */
+  const setupOf = e => (e && e.etude.setup) || PRACTICE.presets.find(x => x.id === 'cf').drums;
+  const noteName = (n, oct = true) => D.label(D.midiOf(n), oct);
+  /** SET UP … FOR ME: the etude's drums, sizes and notes (pedal on the note, fine tuner 0), saved like any setup */
+  function applySetup(setup) {
+    cfg().drums = setup.map(([d, n]) => drumAt(d, n)); save(); T.stopAll(); draw(); drawSetup(); tuneBadges();
+  }
   function showEtude(id) {
     stopRun();
     const e = etudes.find(x => x.etude.id === id) || etudes[0];
     S.etude = e; cfg().etude = e.etude.id; save();
     $('prEtudeSel').value = e.etude.id;
+    $('prAbout').textContent = e.etude.about || '';
     const bars = Array.from({length: e.measures}, (_, k) => `<option value="${k}">${k + 1}</option>`).join('');
     $('prFrom').innerHTML = bars; $('prTo').innerHTML = bars;
     $('prFrom').value = '0'; $('prTo').value = String(e.measures - 1);
@@ -540,12 +548,14 @@
     tuneBadges();
   }
   function engraveEtude(e) {
-    const narrow = ($('prStaff').clientWidth || innerWidth) < 700;               // a phone: 2 bars a row, else 4
-    const rows = A.RhythmStaff.rows(e.parsed, narrow ? 2 : 4), pitch = n => (e.notes[n.i] || {}).pitch;
-    $('prStaff').innerHTML = `<h3 class="pr-etitle">${e.etude.name} <small>♩ = ${e.etude.tempo}</small></h3>` + rows.map(([a, b], r) => {
-      const g = A.RhythmStaff.engrave(e.parsed, {from: a, to: b, counting: false, clef: 'bass', pitch, slurs: e.slurs, marks: e.etude.marks, id: 'pe' + r, label: `${e.etude.name}, bars ${a + 1} to ${b}`});
-      return `<div class="pr-srow-staff" data-from="${a}">${g.svg}</div>`;
-    }).join('');
+    // a phone: 2 bars a row, else 4, or 2 where a row of 4 would have to shrink more than about a quarter (busy 16ths)
+    const room = ($('prStaff').clientWidth || innerWidth) - 16, pitch = n => (e.notes[n.i] || {}).pitch;
+    const draw = per => A.RhythmStaff.rows(e.parsed, per).map(([a, b], r) => ({a, b, g: A.RhythmStaff.engrave(e.parsed, {from: a, to: b, counting: false, clef: 'bass', pitch, slurs: e.slurs, marks: e.etude.marks, id: 'pe' + r, label: `${e.etude.name}, bars ${a + 1} to ${b}`})}));
+    let rows = draw(room < 684 ? 2 : 4);
+    if (rows.some(x => x.g.w > room * 1.3) && room >= 684) rows = draw(2);
+    $('prStaff').innerHTML = `<h3 class="pr-etitle">${e.etude.name} <small>♩ = ${e.etude.tempo}</small></h3>` +
+      `<p class="pr-tuning">Timpani: ${setupOf(e).map(([, n]) => noteName(n)).join(' · ')}</p>` +
+      rows.map(({a, g}) => `<div class="pr-srow-staff" data-from="${a}">${g.svg}</div>`).join('');
   }
   /** which drum plays each etude pitch: the nearest-tuned drum within findCents (each drum once) -> {midi: drumIndex} */
   function assign(e) {
@@ -566,7 +576,13 @@
     cfg().drums.forEach((x, i) => { const b = $('prTune' + i); if (b) { b.hidden = !(i in off); b.textContent = i in off ? `out of tune (${off[i] > 0 ? '+' : '−'}${Math.round(Math.abs(off[i]))}¢)` : ''; } });
     const missing = show ? [...new Set(S.etude.notes.filter(n => !n.rest).map(n => n.midi))].filter(m => !(m in map)) : [];
     $('prNeed').hidden = !missing.length;
-    if (missing.length) $('prNeedText').textContent = `This etude needs ${missing.map(m => D.label(m)).join(' and ')} on your drums. Tune them yourself (good practice!), or:`;
+    if (missing.length) {
+      const su = setupOf(S.etude), few = cfg().drums.length < su.length;
+      $('prNeedText').textContent = few
+        ? `This etude needs ${su.length} drums: ${su.map(([, n]) => noteName(n)).join(', ')}. Tune them yourself (good practice!), or:`
+        : `This etude needs ${missing.map(m => D.label(m)).join(' and ')} on your drums. Tune them yourself (good practice!), or:`;
+      $('prCF').textContent = `Set up ${su.map(([, n]) => noteName(n, false)).join(' · ')} for me`;
+    }
     S.badges = {off, missing};
   }
   /** the strokes HEAR IT plays (and PLAY ALONG's notes): bars [from, to] at pct of the tempo */
@@ -881,14 +897,14 @@
   $('prTempo').addEventListener('input', () => { cfg().tempo = +$('prTempo').value; $('prTempoVal').textContent = cfg().tempo; saveSoon(); });
   $('prDyn').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setDyn(b.dataset.dyn); });
   $('prShow').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setShow(b.dataset.show); });
-  $('prEtudeSel').innerHTML = etudes.map((e, k) => `<option value="${e.etude.id}">${k + 1}. ${e.etude.name}</option>`).join('');
+  $('prEtudeSel').innerHTML = etudes.map((e, k) => `<option value="${e.etude.id}">${k + 1}. ${e.etude.name} · ${setupOf(e).length} drums</option>`).join('');
   $('prEtudeSel').addEventListener('change', () => showEtude($('prEtudeSel').value));
   $('prHear').addEventListener('click', () => startEtude('hear'));
   $('prAlong').addEventListener('click', () => startEtude('along'));
   $('prStop').addEventListener('click', () => { stopRun(); endEtudeUI(); lightNote(null); });
   $('prPct').addEventListener('input', () => { $('prPctVal').textContent = $('prPct').value + ' %'; });
   ['prLoop', 'prEClick'].forEach(id => $(id).addEventListener('click', () => { const b = $(id); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); }));
-  $('prCF').addEventListener('click', () => { if (cfg().drums.length < 2) setCount(2); applyPreset('cf'); });
+  $('prCF').addEventListener('click', () => { if (S.etude) applySetup(setupOf(S.etude)); });
 
   /* ================= THE PRACTICE-TIME LOG: gameData('pedal-point').playS['YYYY-MM-DD'] = seconds really playing
      (the room open, the page visible, something played in the last activeS seconds), the last keepDays days ======== */
@@ -932,7 +948,7 @@
   A.PPPractice = {open, close, PRACTICE};
   A.PedalPoint = A.PedalPoint || {};
   A.PedalPoint.practice = {
-    PRACTICE, SheetDB, etudes, open, close, applyPreset, setCount, select, setPedal, setFine, setShow, setDyn, setClick, showEtude,
+    PRACTICE, SheetDB, etudes, setupOf, applySetup, open, close, applyPreset, setCount, select, setPedal, setFine, setShow, setDyn, setClick, showEtude,
     openSetup, closeSetup, plan: (id, o) => plan(etudes.find(e => e.etude.id === id), o || {}), judge, assign: id => assign(etudes.find(e => e.etude.id === id)),
     press, release, muffle, stroke, startEtude, stop: () => { stopRun(); endEtudeUI(); },
     /** PLAY ALONG in ?demo: a hit on drum i at `rel` s from the first note, held `hold` s */

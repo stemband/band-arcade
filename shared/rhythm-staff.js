@@ -17,7 +17,10 @@
                      'written': a / note drawn as its two strokes (half the value, same hand, beamed by the beat: 32nds
                      get a third beam), each its own g.rn with data-s 0 / 1. A z is a small "z" on the stem either way.
          clef        PITCHED MODE (optional; Pedal Point's etudes): 'bass' = a 5-line bass-clef staff; `pitch(n)` gives
-                     each parsed note its pitch ({letter, oct}: C3 in the 2nd space, F3 on the 4th line), drawn at its
+                     each parsed note its pitch ({letter, oct, acc}: C3 in the 2nd space, F3 on the 4th line; acc −1 / 1 =
+                     a flat / sharp, drawn just left of the head (`g.rs-accidental`, data-acc) on the FIRST note of that
+                     pitch in a bar and carried through the bar; a natural where the same letter and octave returns
+                     unaltered in that bar; no key signature), drawn at its
                      place with the same spacing, beams, dots, rests, accents and roll slashes. Stems stay UP (the
                      rhythm staff's rule), a beam group's stems all reach above its highest head. Leave `clef` out and
                      nothing changes: every existing caller draws byte-for-byte as before (tests/rudiment-notation.spec.js)
@@ -98,6 +101,21 @@ window.Arcade = window.Arcade || {};
     /* ---------- horizontal layout ---------- */
     const x0 = showTime ? S.head : S.head - 40;
     const w = notes.map(n => durW(n.d) + (n.dots ? 8 : 0)), gr = notes.map(graceRoom);
+    // PITCHED MODE: ACCIDENTALS (no key signature: a timpani part writes every flat). Shown on the first note of a pitch
+    // in each bar and carried through the bar; a natural only where the same letter and octave returns unaltered. Each
+    // one takes ACC_W of room before its note, so it never touches the previous note
+    const accs = notes.map(() => null);
+    if (pitched) {
+      let bar = null, seen = {};
+      notes.forEach((n, k) => {
+        if (n.measure !== bar) { bar = n.measure; seen = {}; }
+        if (n.rest) return;
+        const q = o.pitch(n); if (!q) return;
+        const key = q.letter + q.oct, acc = q.acc || 0;
+        if ((seen[key] || 0) !== acc) { accs[k] = acc; gr[k] += ACC_W; }
+        seen[key] = acc;
+      });
+    }
     const xs = [];
     const place = () => {
       let x = x0, m = notes.length ? notes[0].measure : from; const bars = [];
@@ -179,6 +197,7 @@ window.Arcade = window.Arcade || {};
       else {
         const hollow = n.val === 'w' || n.val === 'h';
         parts.push(`<ellipse cx="${round(x)}" cy="${hy}" rx="${HEAD_RX}" ry="${HEAD_RY}" transform="rotate(-20 ${round(x)} ${hy})" ${hollow ? 'fill="none" stroke="currentColor" stroke-width="2.6"' : 'fill="currentColor"'}/>`);
+        if (accs[k] != null) parts.push(accidentalSVG(accs[k], x - HEAD_RX - 8, hy, n.i));
         if (n.val !== 'w') {
           const sx = x + STEM_DX;
           parts.push(`<line x1="${round(sx)}" y1="${hy - 2}" x2="${round(sx)}" y2="${top}" stroke="currentColor" stroke-width="2.4"/>`);
@@ -249,7 +268,12 @@ window.Arcade = window.Arcade || {};
       const k = notes.findIndex(n => n.measure === mk.m);
       if (k < 0) return;
       const bx = xs[k] - 8, end = (L.bars.find(b => b.m === mk.m) || {x: endX}).x - 6;
-      const y = mk.above ? (pitched ? 12 : TOP - 24) : (pitched ? LINE + 2 * PSP + 26 : LINE + 40);
+      let y = mk.above ? (pitched ? 12 : TOP - 24) : (pitched ? LINE + 2 * PSP + 26 : LINE + 40);
+      if (pitched && !mk.above) {                                // under a low note (below the staff): a little lower
+        const near = notes.map((n, j) => j).filter(j => notes[j].measure === mk.m && !notes[j].rest && xs[j] < bx + tw(mk.text, 24) + 12);
+        const low = Math.max(0, ...near.map(j => hyOf[j]));
+        y = Math.min(H - 8, Math.max(y, low + HEAD_RY + 22));
+      }
       const dyn = mk.kind === 'dyn';
       out.push(`<text class="${dyn ? 'rs-dyn' : 'rs-text'}" data-m="${mk.m}" x="${round(bx)}" y="${y}" font-family="Georgia,'Times New Roman',serif" font-style="italic" font-weight="${dyn ? 700 : 400}" font-size="${dyn ? 24 : 18}" fill="currentColor">${mk.text}</text>`);
       if (mk.span) out.push(`<line class="rs-span" data-m="${mk.m}" x1="${round(bx + tw(mk.text, 18) * .8 + 6)}" y1="${y - 5}" x2="${round(end)}" y2="${y - 5}" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 5"/>`);
@@ -330,6 +354,18 @@ window.Arcade = window.Arcade || {};
   function graceSlurSVG(n, x) {
     const x1 = graceX(n, x, 0), x2 = x - 2, y1 = LINE + 4, y2 = LINE + 6, m = (x1 + x2) / 2, d = 6;
     return `<path class="rs-gslur" data-n="${n.i}" d="M${round(x1)} ${y1}Q${round(m)} ${y2 + d + 2} ${round(x2)} ${y2}Q${round(m)} ${y2 + d} ${round(x1)} ${y1}z" fill="currentColor" stroke="currentColor" stroke-width=".6"/>`;
+  }
+  /* an ACCIDENTAL (pitched mode), drawn as paths so it looks the same in every browser: −1 flat, 1 sharp, 0 natural,
+     centered on ax, its pitch's line or space at y */
+  const ACC_W = 14;
+  function accidentalSVG(acc, ax, y, i) {
+    const a = round(ax), d = [];
+    if (acc < 0) d.push(`<path d="M${a - 3} ${y - 17}V${y + 5}C${a + 7} ${y + 1} ${a + 7} ${y - 7} ${a - 3} ${y - 2}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>`);
+    else if (acc > 0) d.push(`<path d="M${a - 2.5} ${y - 10}V${y + 11}M${a + 2.5} ${y - 11}V${y + 10}" stroke="currentColor" stroke-width="1.6"/>`,
+      `<path d="M${a - 6} ${y - 2}L${a + 6} ${y - 5}M${a - 6} ${y + 5}L${a + 6} ${y + 2}" stroke="currentColor" stroke-width="3"/>`);
+    else d.push(`<path d="M${a - 3} ${y - 12}V${y + 4}M${a + 3} ${y - 4}V${y + 12}" stroke="currentColor" stroke-width="1.6"/>`,
+      `<path d="M${a - 3} ${y - 1.5}L${a + 3} ${y - 3.5}M${a - 3} ${y + 4.5}L${a + 3} ${y + 2.5}" stroke="currentColor" stroke-width="2.6"/>`);
+    return `<g class="rs-accidental" data-acc="${acc}" data-n="${i}">${d.join('')}</g>`;
   }
   /* a slur (pitched mode): under the heads like a tie but a longer, flatter arc; DRAWING ONLY */
   function slurSVG(x1, x2, y, a, b) {
