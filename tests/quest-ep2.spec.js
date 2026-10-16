@@ -1,5 +1,5 @@
 /* ARCADE QUEST, EPISODE 2: THE SHOWTIME STAGE, build step 1 (THE FRAMEWORK: docs/games/arcade-quest-ep2-plan.md).
-   EPISODE SELECT on the title (only after ep1Done), the attic's stage speaker (the yes/no and the pull), the intro
+   EPISODE SELECT on the title (only after ep1Done; ?demo opens it on any save, ?demo&locked keeps the real lock), the attic's stage speaker (the yes/no and the pull), the intro
    cutscene 'ep2-intro' (skippable, reduced motion), the Lobby and the Green Room (walkable, every NPC talks, Ticket
    Booth Tina = THE SHARED WALLET, Popcorn Pete's shop, the Save Jukebox saves ep: 2 and CONTINUE comes back), doors
    to rooms still being built, Episode 2's whispers, the floor's line per episode, SAVE_VERSION 6, the QUEST CODE
@@ -64,7 +64,7 @@ const clearLines = page => page.evaluate(() => { window.__lines.length = 0; });
 
 test.describe('EPISODE SELECT', () => {
   test('before Episode 1 is finished the title is exactly as before: no EPISODES, Episode 1\'s line', {tag: '@quick'}, async ({page}) => {
-    const watch = await boot(page, store(save(false)));
+    const watch = await boot(page, store(save(false)), 'arcade-quest/index.html?demo&locked');      // (the real lock, under ?demo)
     expect(await titleItems(page)).toEqual(['Continue', 'New game', 'Enter save code', 'Settings', 'Your player', 'Test Arena']);
     await expect(page.locator('.q-title .q-ep')).toHaveText('Episode 1: Ghost Notes Manor');
     expect(await page.evaluate(() => Arcade.Quest.episodes.go(2))).toBe(false);          // locked: nothing happens
@@ -79,6 +79,7 @@ test.describe('EPISODE SELECT', () => {
     expect(await page.locator('.q-title .q-ep-soon').count()).toBe(0);                  // (build step 5 took the "coming soon" note off)
     await pick(page, 'Episodes');
     expect(await titleItems(page)).toEqual(['Episode 1: Ghost Notes Manor ✓', 'Episode 2: The Showtime Stage', 'Back']);
+    expect(await page.locator('.q-demo-note').count()).toBe(0);                          // truly unlocked: no demo note
     await page.keyboard.press('Escape');                                                 // B = back to the title menu
     await expect(page.locator('#qTitleMenu .q-btn', {hasText: 'Episodes'})).toBeVisible();
     await pick(page, 'Episodes');
@@ -102,21 +103,63 @@ test.describe('EPISODE SELECT', () => {
     watch.check();
   });
 
-  test('the title menu and EPISODE SELECT fit at phone, iPad and laptop sizes', async ({page}) => {
-    test.setTimeout(60000);
+  test('the title menu and EPISODE SELECT fit at phone, iPad and laptop sizes (with the demo note too)', async ({browser}) => {
+    test.setTimeout(90000);
     for (const size of [{width: 390, height: 844}, {width: 1024, height: 768}, {width: 768, height: 1024}, {width: 1366, height: 768}]) {
-      await page.setViewportSize(size);
-      const watch = await boot(page);
-      for (const step of ['title', 'episodes']) {
-        if (step === 'episodes') await pick(page, 'Episodes');
-        const bad = await page.evaluate(() => [...document.querySelectorAll('#ui .q-btn')].filter(b => {
-          const l = b.querySelector('.q-bl') || b, r = b.getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect();
-          return l.scrollWidth > l.clientWidth + 1 || l.scrollHeight > l.clientHeight + 1 || r.bottom > s.bottom + 1 || r.top < s.top - 1;
-        }).map(b => b.textContent));
-        expect(bad, `${step} at ${size.width} × ${size.height}`).toEqual([]);
+      for (const demo of [false, true]) {                    // finished Episode 1 / ?demo on a save that didn't (the note)
+        const ctx = await browser.newContext({viewport: size}), page = await ctx.newPage();
+        const watch = await boot(page, store(save(!demo)));
+        for (const step of ['title', 'episodes']) {
+          if (step === 'episodes') await pick(page, 'Episodes');
+          const bad = await page.evaluate(() => [...document.querySelectorAll('#ui .q-btn, #ui .q-demo-note')].filter(b => {
+            const l = b.querySelector('.q-bl') || b, r = b.getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect();
+            const over = b.classList.contains('q-demo-note') && [...document.querySelectorAll('#qTitleMenu .q-btn')].some(x => { const q = x.getBoundingClientRect(); return q.bottom > r.top + 1 && q.top < r.bottom - 1; });
+            return l.scrollWidth > l.clientWidth + 1 || l.scrollHeight > l.clientHeight + 1 || r.bottom > s.bottom + 1 || r.top < s.top - 1 || over;
+          }).map(b => b.textContent));
+          expect(bad, `${step}${demo ? ' (demo)' : ''} at ${size.width} × ${size.height}`).toEqual([]);
+          if (step === 'episodes') expect(await page.locator('.q-demo-note').count()).toBe(demo ? 1 : 0);
+        }
+        watch.check();
+        await ctx.close();
       }
-      watch.check();
     }
+  });
+
+  test('?demo opens EPISODE SELECT before Episode 1 is finished (the teacher): no ✓ on Episode 1, the demo note; Episode 2 = its intro, ep1Done untouched', {tag: '@quick'}, async ({page}) => {
+    const watch = await boot(page, store(save(false)));
+    expect(await titleItems(page)).toEqual(['Continue', 'Episodes', 'New game', 'Enter save code', 'Settings', 'Your player', 'Test Arena']);
+    await expect(page.locator('.q-title .q-ep')).toHaveText('Episode 1: Ghost Notes Manor');   // the story's line: still Episode 1
+    expect(await page.evaluate(() => [Arcade.Quest.episodes.unlocked(2), Arcade.Quest.episodes.open(2)])).toEqual([false, true]);
+    await pick(page, 'Episodes');
+    expect(await titleItems(page)).toEqual(['Episode 1: Ghost Notes Manor', 'Episode 2: The Showtime Stage', 'Back']);
+    await expect(page.locator('.q-demo-note')).toHaveText('Demo: every episode is open.');
+    await expect(page.locator('.q-demo-note')).toBeVisible();
+    await pick(page, 'Episode 2');
+    await expect.poll(async () => ((await where(page)).cut || {}).id).toBe('ep2-intro');
+    expect(await page.locator('.q-demo-note').count()).toBe(0);
+    expect(await page.evaluate(() => Arcade.Quest.save.flag('ep2Start'))).toBe(true);
+    await page.locator('.q-skip').click();
+    const w = await idle(page, 'lobby');
+    expect([w.x, w.y]).toEqual([11, 10]);
+    expect(await page.evaluate(() => Arcade.Quest.save.flag('ep1Done'))).toBe(false);    // demo opened the menu, not the story
+    watch.check();
+  });
+
+  test('?demo on a brand-new device (no save at all): EPISODES shows; Episode 2 plays its intro', {tag: '@quick'}, async ({page}) => {
+    const watch = await boot(page, device('trumpet', {avatarOffered: true, gameData: {'arcade-quest': {settings: SETTINGS, keysTip: true}}}));
+    expect(await titleItems(page)).toContain('Episodes');
+    await pick(page, 'Episodes');
+    await pick(page, 'Episode 2');
+    await expect.poll(async () => ((await where(page)).cut || {}).id).toBe('ep2-intro');
+    watch.check();
+  });
+
+  test('without ?demo, before Episode 1 is finished: no EPISODES, and Episode 2 can\'t be opened', {tag: '@quick'}, async ({page}) => {
+    const watch = await boot(page, store(save(false)), 'arcade-quest/index.html');
+    expect(await titleItems(page)).not.toContain('Episodes');
+    expect(await page.evaluate(() => Arcade.Quest.episodes.go(2))).toBe(false);
+    expect((await where(page)).scene).toBe('title');
+    watch.check();
   });
 });
 

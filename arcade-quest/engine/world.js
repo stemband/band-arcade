@@ -10,7 +10,7 @@
    battle starts. A ghost you befriend or fade never comes back (saved in save.done), except in a `practice` room.
    Q.go('world', {map, x, y, dir})     enter a room (x, y = a tile; left out = the room's start)
    Q.go('world', {continue: true})     back to the last Save Jukebox (or the episode's hub: the Foyer, the Lobby)
-   Q.episodes.go(1 | 2)                EPISODE SELECT: Episode 1 = the Foyer's jukebox; Episode 2 (only after ep1Done) =
+   Q.episodes.go(1 | 2)                EPISODE SELECT: Episode 1 = the Foyer's jukebox; Episode 2 (after ep1Done, or ?demo) =
                                        its intro cutscene the first time, then its last Save Jukebox (or the Lobby's)
    Q.go('world', {resume: true, result})  back from a battle (battle.js does this)
    Q.world.state()                     for tests: {map, x, y, dir, ghosts, npcs, busy, moving, paused, whisper}
@@ -109,8 +109,11 @@
   Q.episodes = {
     /** Episode 2 opens only after Episode 1 is finished (DECISION 1: no recap, no teacher override) */
     unlocked: n => n === 1 || (n === 2 && Q.save.flag('ep1Done')),
+    /** can it be PICKED in EPISODE SELECT? unlocked, or ?demo (the teacher: every episode; ?demo&locked = the real
+        lock, for tests). The story (the attic speaker, the title's line and music) still asks unlocked() */
+    open: n => Q.episodes.unlocked(n) || (!!A.DEMO && !A.params.has('locked') && (n === 1 || n === 2)),
     go(n) {
-      if (!Q.episodes.unlocked(n)) return false;
+      if (!Q.episodes.open(n)) return false;
       if (n === 1) { const sp = Q.save.jukeSpot('foyer'); Q.go('world', {map: 'foyer', x: sp.x, y: sp.y, dir: sp.dir}); return true; }
       // EPISODE 2: the intro the first time (ep2Start is set as it starts, so a skipped intro counts too)
       if (!Q.save.flag('ep2Start')) {
