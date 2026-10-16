@@ -435,29 +435,195 @@ test('NO STARS from practice, nothing in `games` progress; the practice-time log
   watch.check();
 });
 
+/* ===== THE SEMICIRCLE: the drums around the player's seat, the pedals pointing at it ===== */
+const ARC_OF = page => page.evaluate(() => Arcade.PedalPoint.practice.arc());
+/* plain geometry (the test's own, not the game's): a pedal = a rectangle from toe to heel, w wide */
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const corners = d => { const t = [d.toe.x, d.toe.y], h = [d.heel.x, d.heel.y], ax = sub(h, t), L = Math.hypot(...ax), n = [-ax[1] / L * d.w / 2, ax[0] / L * d.w / 2];
+  return [[t[0] + n[0], t[1] + n[1]], [h[0] + n[0], h[1] + n[1]], [h[0] - n[0], h[1] - n[1]], [t[0] - n[0], t[1] - n[1]]]; };
+const square = (c, sz) => [[c.x - sz / 2, c.y - sz / 2], [c.x + sz / 2, c.y - sz / 2], [c.x + sz / 2, c.y + sz / 2], [c.x - sz / 2, c.y + sz / 2]];
+/** do two convex polygons overlap (separating axes)? */
+function polysOverlap(A, B) {
+  for (const P of [A, B]) for (let i = 0; i < P.length; i++) {
+    const e = sub(P[(i + 1) % P.length], P[i]), n = [-e[1], e[0]];
+    const pr = Q => Q.map(q => q[0] * n[0] + q[1] * n[1]);
+    const a = pr(A), b = pr(B);
+    if (Math.max(...a) <= Math.min(...b) || Math.max(...b) <= Math.min(...a)) return false;
+  }
+  return true;
+}
+/** distance from a point to a convex polygon (0 inside) */
+function polyDist(p, P) {
+  let inside = true, best = Infinity;
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i], b = P[(i + 1) % P.length], e = sub(b, a), t = Math.max(0, Math.min(1, ((p[0] - a[0]) * e[0] + (p[1] - a[1]) * e[1]) / (e[0] ** 2 + e[1] ** 2)));
+    best = Math.min(best, Math.hypot(p[0] - a[0] - t * e[0], p[1] - a[1] - t * e[1]));
+    if (e[0] * (p[1] - a[1]) - e[1] * (p[0] - a[0]) < 0) inside = false;
+  }
+  const ccw = P.every((q, i) => { const a = P[i], b = P[(i + 1) % P.length], c = P[(i + 2) % P.length]; return (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) >= 0; });
+  return (ccw ? inside : P.every((a, i) => { const b = P[(i + 1) % P.length]; return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) <= 0; })) ? 0 : best;
+}
+/** every rule of the picture: on the circle, the order, the span, no overlap, inside the box, the pedals' aim, sizes */
+function checkArc(a, ARC, {eu = false} = {}) {
+  const bad = [], n = a.drums.length, seat = [a.seat.x, a.seat.y];
+  const dist = a.drums.map(d => Math.hypot(d.c.x - seat[0], d.c.y - seat[1]));
+  if (Math.max(...dist) - Math.min(...dist) > 1) bad.push(`not on one circle: ${dist.map(Math.round)}`);
+  const xs = a.drums.map(d => d.c.x), ids = a.drums.map(d => +d.id);
+  for (let k = 1; k < n; k++) {
+    if (!(xs[k] > xs[k - 1])) bad.push('not left to right');
+    if (eu ? !(ids[k] > ids[k - 1]) : !(ids[k] < ids[k - 1])) bad.push(`order ${ids} (${eu ? 'European' : 'US'})`);
+  }
+  const ang = d => Math.atan2(d.c.x - seat[0], seat[1] - d.c.y) * 180 / Math.PI;
+  if (n === 1 && Math.abs(ang(a.drums[0])) > .5) bad.push('one drum is not straight ahead');
+  if (n > 1) {
+    const span = ang(a.drums[n - 1]) - ang(a.drums[0]);
+    if (!a.limited && Math.abs(span - ARC.span[n]) > 3) bad.push(`span ${span.toFixed(1)}° (want ${ARC.span[n]}°)`);
+    if (Math.abs(span - a.span) > 1) bad.push(`span ${span.toFixed(1)}° vs the layout's ${a.span}`);
+    if (Math.abs(ang(a.drums[0]) + ang(a.drums[n - 1])) > 1) bad.push('the fan is not centered on straight ahead');
+  }
+  for (let k = 1; k < n; k++) {
+    const p = a.drums[k - 1], q = a.drums[k], gap = Math.hypot(q.c.x - p.c.x, q.c.y - p.c.y) - p.r - q.r;
+    if (gap < .5 * ARC.gap * ARC.shrink * a.s) bad.push(`rims ${gap.toFixed(1)} px apart`);
+  }
+  const ratio = a.drums.map(d => d.r / +d.id), r0 = ratio[0];
+  if (ratio.some(x => Math.abs(x / r0 - 1) > .02)) bad.push(`heads not in proportion: ${a.drums.map(d => Math.round(d.r * 2))}`);
+  a.drums.forEach(d => {
+    const P = corners(d), axis = Math.atan2(d.heel.y - d.toe.y, d.heel.x - d.toe.x), toSeat = Math.atan2(seat[1] - d.toe.y, seat[0] - d.toe.x);
+    if (Math.abs(((axis - toSeat) * 180 / Math.PI + 540) % 360 - 180) > 2) bad.push(`the ${d.id}" pedal doesn't point at the seat`);
+    if (polyDist(seat, P) < a.seat.r) bad.push(`the ${d.id}" pedal touches the seat`);
+    a.drums.forEach(e => {
+      if (e !== d && polyDist([e.c.x, e.c.y], P) < e.r) bad.push(`the ${d.id}" pedal touches the ${e.id}" head`);
+      if (e !== d && polysOverlap(P, corners(e))) bad.push(`the ${d.id}" and ${e.id}" pedals overlap`);
+      if (polysOverlap(P, square(e.hand, e.hand.size))) bad.push(`the ${d.id}" pedal touches the ${e.id}" ✋`);
+      if (e !== d && polysOverlap(square(d.hand, d.hand.size), square(e.hand, e.hand.size))) bad.push(`✋ ${d.id}" and ${e.id}" overlap`);
+      if (polyDist([e.c.x, e.c.y], square(d.hand, d.hand.size)) < e.r) bad.push(`the ${d.id}" ✋ touches the ${e.id}" head`);
+    });
+    const B = a.box, pts = P.concat(square(d.hand, d.hand.size), [[d.c.x - d.r, d.c.y - d.r], [d.c.x + d.r, d.c.y + d.r]]);
+    if (pts.some(q => q[0] < B.x - .5 || q[0] > B.x + B.w + .5 || q[1] < B.y - .5 || q[1] > B.y + B.h + .5)) bad.push(`the ${d.id}" drum's pieces leave #prDrums`);
+    if (d.w < 44 - .01 || d.l < 90 - .01) bad.push(`the ${d.id}" pedal is ${d.w.toFixed(0)} × ${d.l.toFixed(0)} px`);
+    if (d.hand.size < 44) bad.push('✋ under 44 px');
+  });
+  return bad;
+}
+
+test('THE SEMICIRCLE: 1–4 drums on one circle around the seat, low to high (or European), the span, no overlap, pedals aimed at the seat, real sizes', {tag: '@quick'}, async ({page}) => {
+  await page.setViewportSize({width: 1024, height: 768});
+  const watch = await room(page);
+  const ARC = await page.evaluate(() => Arcade.PedalPoint.practice.ARC);
+  for (const order of ['us', 'eu']) {
+    await page.evaluate(o => { Arcade.PedalPoint.practice.state(); Arcade.store.gameData('pedal-point').practice.order = o; }, order);
+    for (const n of [1, 2, 3, 4]) {
+      await page.evaluate(n => Arcade.PedalPoint.practice.setCount(n), n);
+      const a = await ARC_OF(page);
+      expect(a.drums.length).toBe(n);
+      expect(checkArc(a, ARC, {eu: order === 'eu'}), `${n} drums, ${order}`).toEqual([]);
+      // what's drawn is that picture: the rims' boxes are the heads' circles
+      const rims = await page.locator('.pr-rim').evaluateAll(cs => cs.map(c => { const r = c.getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2}; }));
+      rims.forEach((r, k) => { expect(Math.abs(r.x - a.drums[k].c.x)).toBeLessThan(1); expect(Math.abs(r.y - a.drums[k].c.y)).toBeLessThan(1); expect(Math.abs(r.r - a.drums[k].r)).toBeLessThan(1); });
+      if (n === 4 && order === 'us') expect(a.span).toBeGreaterThan(90);     // the outer drums curve round toward the player's sides
+    }
+  }
+  watch.check();
+});
+
+test('THE SEMICIRCLE: a pedal drags along its own angle; the head is round (a corner plays nothing), the spot strokes, the center thuds', async ({page}) => {
+  await page.setViewportSize({width: 1024, height: 768});
+  const watch = await room(page);
+  await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('four'));
+  const a = await ARC_OF(page);
+  for (const v of [0, 3]) {                                                       // an outer drum each side: steep pedals
+    const d = a.drums[v];
+    expect(d.track).toBeGreaterThan(50); expect(d.track).toBeLessThan(110);         // about today's track (≈ 58 px)
+    const mid = {x: (d.toe.x + d.heel.x) / 2, y: (d.toe.y + d.heel.y) / 2}, toward = [-d.u[0], -d.u[1]], across = [-d.u[1], d.u[0]];
+    const drag = async dir => {
+      await page.evaluate(i => Arcade.PedalPoint.practice.setPedal(i, .2), d.i);   // room to move up
+      const m0 = (await P(page)).drums[d.i].midi;
+      await page.mouse.move(mid.x, mid.y); await page.mouse.down();
+      for (let k = 1; k <= 8; k++) await page.mouse.move(mid.x + dir[0] * 5 * k, mid.y + dir[1] * 5 * k);
+      await page.mouse.up();
+      return ((await P(page)).drums[d.i].midi - m0) * 100;
+    };
+    const span = (await page.evaluate(id => Arcade.PPDrums.byId(id).span, d.id));
+    const along = await drag(toward);
+    // 40 px toward the drum = toe down = higher (within 2 %: WebKit rounds a diagonal drag's points to whole pixels)
+    expect(Math.abs(along / (40 / d.track * span) - 1)).toBeLessThan(.02);
+    expect(Math.abs(await drag(across))).toBeLessThan(along * .1);                 // across the pedal: almost nothing
+  }
+  // the head: a press in its box's corner (outside the circle) plays nothing; the spot strokes; the center thuds
+  const d = a.drums[1], n0 = await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').length);
+  const cornerX = d.c.x + d.r * .9, cornerY = d.c.y - d.r * .9;                    // inside the box, outside the circle
+  expect(await page.evaluate(([x, y]) => !!(document.elementFromPoint(x, y) || {}).closest?.('.pr-head'), [cornerX, cornerY])).toBe(false);
+  await page.mouse.click(cornerX, cornerY);
+  expect(await page.evaluate(() => Arcade.Timpani.test.history.filter(h => h.kind === 'strike').length)).toBe(n0);
+  await page.mouse.click(d.c.x + d.r * .7, d.c.y);
+  let h = await page.evaluate(() => Arcade.Timpani.test.history.filter(x => x.kind === 'strike').slice(-1)[0]);
+  expect(h).toMatchObject({key: 'p' + d.i, thud: false, played: true});
+  await page.mouse.click(d.c.x, d.c.y);
+  h = await page.evaluate(() => Arcade.Timpani.test.history.filter(x => x.kind === 'strike').slice(-1)[0]);
+  expect(h).toMatchObject({key: 'p' + d.i, thud: true});
+  watch.check();
+});
+
 /* ===== LAYOUTS ===== */
-for (const [name, vp, min, minMusic] of [['phone', {width: 390, height: 844}, 60, 60], ['iPad portrait', {width: 768, height: 1024}, 120, 88],
-  ['iPad landscape', {width: 1024, height: 768}, 120, 88], ['Chromebook', {width: 1366, height: 768}, 120, 88]]) {
-  test(`LAYOUT (${name}): 4 drums big enough to tap, with and without music, nothing off the screen`, async ({page}) => {
+for (const [name, vp, min, minMusic] of [['phone', {width: 390, height: 844}, 60, 60], ['phone landscape', {width: 844, height: 390}, 60, 60],
+  ['iPad portrait', {width: 768, height: 1024}, 120, 88], ['iPad landscape', {width: 1024, height: 768}, 120, 88], ['Chromebook', {width: 1366, height: 768}, 120, 88]]) {
+  test(`LAYOUT (${name}): 1–4 drums in the semicircle, targets ≥ 44 px, nothing overlapping or off the screen, with and without music`, async ({page}) => {
     await page.setViewportSize(vp);
     const watch = await room(page);
+    const ARC = await page.evaluate(() => Arcade.PedalPoint.practice.ARC);
+    const targets = async () => {
+      const hands = await page.locator('.pr-hand').evaluateAll(bs => bs.map(b => { const r = b.getBoundingClientRect(); return [r.width, r.height]; }));
+      hands.forEach(([w, h]) => { expect(w).toBeGreaterThanOrEqual(44); expect(h).toBeGreaterThanOrEqual(44); });
+    };
+    for (const n of [1, 2, 3]) {
+      await page.evaluate(n => Arcade.PedalPoint.practice.setCount(n), n);
+      expect(checkArc(await ARC_OF(page), ARC), `${n} drums`).toEqual([]);
+      await targets();
+      expect(await tooWide(page)).toEqual([]);
+    }
     await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('four'));
-    const heads = () => page.locator('.pr-head').evaluateAll(hs => hs.map(h => { const r = h.getBoundingClientRect(); return {w: r.width, l: r.left, r: r.right}; }));
+    const heads = () => page.locator('.pr-head').evaluateAll(hs => hs.map(h => { const r = h.querySelector('.pr-rim').getBoundingClientRect(); return {w: r.width, l: r.left, r: r.right}; }));
     let hs = await heads();
     hs.forEach(h => { expect(h.l).toBeGreaterThanOrEqual(0); expect(h.r).toBeLessThanOrEqual(vp.width); });
-    expect(Math.min(...hs.map(h => h.w))).toBeGreaterThanOrEqual(min * .78 - 1);   // the 23" is drawn smaller (its real size)
-    expect(Math.max(...hs.map(h => h.w))).toBeGreaterThanOrEqual(min);
+    expect(Math.max(...hs.map(h => h.w))).toBeGreaterThanOrEqual(Math.min(min, 64));
+    expect(checkArc(await ARC_OF(page), ARC), '4 drums').toEqual([]);
+    await targets();
     expect(await tooWide(page)).toEqual([]);
+    const h0 = (await ARC_OF(page)).box.h;
     for (const show of ['etude', 'sheet']) {
       await page.evaluate(m => Arcade.PedalPoint.practice.setShow(m), show);
+      await expect.poll(async () => (await ARC_OF(page)).box.h).toBeLessThanOrEqual(h0);      // the music takes room: the drums shrink (never below a finger's size)
       hs = await heads();
-      expect(Math.min(...hs.map(h => h.w))).toBeGreaterThanOrEqual(Math.min(minMusic, min) * .78 - 1);
-      expect(Math.max(...hs.map(h => h.w))).toBeGreaterThanOrEqual(Math.min(minMusic, min));
+      expect(Math.max(...hs.map(h => h.w))).toBeGreaterThanOrEqual(Math.min(minMusic, min, 64));
+      expect(checkArc(await ARC_OF(page), ARC), `4 drums with ${show}`).toEqual([]);
+      await targets();
       expect(await tooWide(page)).toEqual([]);
     }
     watch.check();
   });
 }
+
+/* GALLERY=1: the semicircle for Mr. Graham to compare with his diagram (1–4 drums, US and European, iPad landscape and
+   a phone) */
+test('gallery: docs/gallery/pedal-point-semicircle.png', async ({page, browserName}) => {
+  test.skip(!process.env.GALLERY || browserName !== 'chromium', 'GALLERY=1 only');
+  const shots = [];
+  for (const [label, vp] of [['iPad landscape', {width: 1024, height: 768}], ['Phone', {width: 390, height: 844}]]) {
+    await page.setViewportSize(vp);
+    await room(page);
+    for (const order of ['us', 'eu']) for (const n of [1, 2, 3, 4]) {
+      if (order === 'eu' && n === 1) continue;
+      await page.evaluate(([o, n]) => { const p = Arcade.PedalPoint.practice; Arcade.store.gameData('pedal-point').practice.order = o; n === 4 ? p.applyPreset('four') : p.setCount(n); }, [order, n]);
+      await page.waitForTimeout(100);
+      shots.push({label: `${label}: ${n} drum${n > 1 ? 's' : ''}${n > 1 ? (order === 'us' ? ' (low on the left)' : ' (European)') : ''}`, w: label === 'Phone' ? 360 : 600,
+        b64: (await page.locator('#prStage').screenshot()).toString('base64')});
+    }
+  }
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.setContent(`<body style="margin:0;padding:16px;background:#14101f;color:#eee;font:14px system-ui"><h2 style="margin:0 0 12px">Pedal Point: the Practice Room's semicircle</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">${shots.map(s => `<figure style="margin:0;width:${s.w}px"><img style="width:100%" src="data:image/png;base64,${s.b64}"><figcaption>${s.label}</figcaption></figure>`).join('')}</div></body>`);
+  await page.screenshot({path: require('path').join(__dirname, '..', 'docs', 'gallery', 'pedal-point-semicircle.png'), fullPage: true});
+});
 
 /* GALLERY=1: the Practice Room for Mr. Graham's review (2 and 4 drums, an etude mid-play-along, a loaded image) */
 test('gallery: docs/gallery/pedal-point-practice.png', async ({page, browserName}) => {
