@@ -288,13 +288,19 @@ test('SHEET MUSIC: a PDF opens in the browser\'s own viewer from a blob: URL, or
 });
 
 /* ===== THE ETUDES ===== */
-test('ETUDES: all four parse, every bar adds up, the rolls / releases / accents, C3 and F3', async ({page}) => {
+test('ETUDES: all eleven parse, every bar adds up; the first four (saved ids) unchanged: C3 and F3, their rolls / releases / accents', async ({page}) => {
   const watch = await room(page);
   const r = await page.evaluate(() => Arcade.PPEtudes.ETUDES.map(et => { const e = Arcade.PPEtudes.parse(et);
     return {id: et.id, errors: e.errors, measures: e.measures, total: e.total, per: e.parsed.meter.per, pitches: [...new Set(e.notes.filter(n => !n.rest).map(n => n.midi))].sort(),
       rolls: e.notes.filter(n => n.roll).length, releases: e.slurs.length, accents: e.notes.filter(n => n.accent).length}; }));
-  expect(r.map(x => x.id)).toEqual(['warm-up', 'dotted', 'roll-release', 'big-finish']);
-  r.forEach(x => { expect(x.errors, x.id).toEqual([]); expect(x.measures).toBe(8); expect(x.total).toBe(8 * x.per); expect(x.pitches).toEqual([48, 53]); });
+  expect(r.map(x => x.id)).toEqual(['warm-up', 'dotted', 'roll-release', 'big-finish', 'three-walk', 'waltz', 'leaps', 'eb-march', 'fanfare', 'rolling-hills', 'grand-finale']);
+  expect(r.length).toBe(await page.evaluate(() => window.PP_ETUDES.length));
+  r.forEach(x => { expect(x.errors, x.id).toEqual([]); expect(x.total, x.id).toBe(x.measures * x.per); });
+  r.slice(0, 4).forEach(x => { expect(x.measures).toBe(8); expect(x.pitches).toEqual([48, 53]); });
+  // the first four's music is exactly as it was (their ids are saved: each one's best %)
+  const music = await page.evaluate(() => window.PP_ETUDES.slice(0, 4).map(e => [e.id, e.time, e.tempo, e.music.length, e.music.slice(0, 24), !!e.setup]));
+  expect(music).toEqual([['warm-up', '4/4', 80, 189, 'C:q F:q C:q F:q | C:e C:', false], ['dotted', '4/4', 76, 191, 'C:q. C:e F:h | F:e. F:s ', false],
+    ['roll-release', '4/4', 72, 109, 'C:h* F:h* | C:h*_ F:q -:', false], ['big-finish', '4/4', 88, 189, 'C:e F:e C:e F:e C:q F:q ', false]]);
   expect(r[2]).toMatchObject({rolls: 10, releases: 5, accents: 1});
   expect(r[3]).toMatchObject({rolls: 4, releases: 1, accents: 3});
   // a bar that doesn't add up is caught
@@ -634,8 +640,8 @@ test('gallery: docs/gallery/pedal-point-practice.png', async ({page, browserName
   const grab = async label => shots.push({label, b64: (await page.screenshot()).toString('base64')});
   await grab('2 drums (C & F)');
   await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('four')); await grab('4 drums');
-  for (const id of ['warm-up', 'dotted', 'roll-release', 'big-finish']) {
-    await page.evaluate(id => { const p = Arcade.PedalPoint.practice; p.applyPreset('cf'); p.setShow('etude'); p.showEtude(id); }, id);
+  for (const id of await page.evaluate(() => window.PP_ETUDES.map(e => e.id))) {
+    await page.evaluate(id => { const p = Arcade.PedalPoint.practice; p.applySetup(p.setupOf(p.etudes.find(e => e.etude.id === id))); p.setShow('etude'); p.showEtude(id); }, id);
     await page.locator('#prStaff').screenshot().then(b => shots.push({label: 'Etude: ' + id, b64: b.toString('base64')}));
   }
   await page.evaluate(() => { const p = Arcade.PedalPoint.practice; p.showEtude('big-finish'); });
@@ -680,3 +686,153 @@ test('THE RECORDED DRUMS in the Practice Room: a held roll alternates takes and 
   expect(s.hitAt).toBeCloseTo(s.at, 9);                                  // the hit (10 ms into the file) lands on the time
   watch.check();
 });
+
+/* ===== THE 3- AND 4-DRUM ETUDES: setups, SET UP … FOR ME, accidentals, the tuning line, the list ===== */
+test('NEW ETUDES: each setup holds exactly its notes, in range; SET UP … FOR ME tunes it (every pitch on its own drum at 0 cents, no badge, no offer)', async ({page}) => {
+  const watch = await room(page);
+  const list = await page.evaluate(() => window.PP_ETUDES.filter(e => e.setup).map(e => {
+    const p = Arcade.PPEtudes.parse(e), D = Arcade.PPDrums;
+    return {id: e.id, pitches: [...new Set(p.notes.filter(n => !n.rest).map(n => n.midi))].sort((a, b) => a - b),
+      setup: e.setup.map(([d, n]) => ({d, m: D.midiOf(n), lo: D.byId(d).lowMidi, hi: D.byId(d).highMidi}))};
+  }));
+  expect(list.length).toBe(7);
+  for (const e of list) {
+    expect(e.pitches, e.id).toEqual(e.setup.map(x => x.m).sort((a, b) => a - b));
+    e.setup.forEach(x => { expect(x.m, `${e.id} ${x.d}"`).toBeGreaterThanOrEqual(x.lo); expect(x.m).toBeLessThanOrEqual(x.hi); });
+    await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('cf'));
+    await page.evaluate(id => { const p = Arcade.PedalPoint.practice; p.setShow('etude'); p.showEtude(id); }, e.id);
+    await expect(page.locator('#prNeed')).toBeVisible();
+    await page.locator('#prCF').click();
+    await expect(page.locator('#prNeed')).toBeHidden();
+    const s = await P(page);
+    expect(s.drums.map(d => [d.id, Math.round(d.midi * 100) / 100]), e.id).toEqual(e.setup.map(x => [x.d, x.m]));
+    const map = await page.evaluate(id => Arcade.PedalPoint.practice.assign(id), e.id);
+    e.pitches.forEach(m => { const i = map[m]; expect(i, `${e.id} ${m}`).not.toBeUndefined(); expect(Math.abs(s.drums[i].midi - m) * 100).toBeLessThan(.01); });
+    expect(new Set(Object.values(map)).size).toBe(e.pitches.length);
+    expect((await P(page)).badges).toEqual({off: {}, missing: []});
+  }
+  watch.check();
+});
+
+test('NEW ETUDES: 2 drums on C & F, Three-Drum Walk says it needs 3 drums; SET UP B♭ · C · F FOR ME sets up 3 drums; the list shows drum counts and what each teaches', async ({page}) => {
+  const watch = await room(page);
+  await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('cf'));
+  await page.locator('#prShow [data-show="etude"]').click();
+  await page.locator('#prEtudeSel').selectOption('three-walk');
+  await expect(page.locator('#prNeedText')).toHaveText('This etude needs 3 drums: B♭2, C3, F3. Tune them yourself (good practice!), or:');
+  await expect(page.locator('#prCF')).toHaveText('Set up B♭ · C · F for me');
+  await expect(page.locator('#prAbout')).toHaveText('moving to the next drum over, both ways');
+  await page.locator('#prCF').click();
+  expect((await P(page)).drums.map(d => [d.id, Math.round(d.midi)])).toEqual([['29', 46], ['26', 48], ['23', 53]]);
+  await expect(page.locator('#prDrums .pr-drum')).toHaveCount(3);                  // the semicircle drawn again
+  expect(await page.evaluate(() => Arcade.store.gameData('pedal-point').practice.drums.length)).toBe(3);   // saved
+  // a different setup: E♭ on the 26", G on the 23"
+  await page.locator('#prEtudeSel').selectOption('eb-march');
+  await expect(page.locator('#prNeedText')).toHaveText('This etude needs E♭3 and G3 on your drums. Tune them yourself (good practice!), or:');
+  await expect(page.locator('#prCF')).toHaveText('Set up B♭ · E♭ · G for me');
+  await page.locator('#prEtudeSel').selectOption('fanfare');
+  await expect(page.locator('#prCF')).toHaveText('Set up F · B♭ · C · F for me');
+  const labels = await page.locator('#prEtudeSel option').allTextContents();
+  expect(labels).toEqual(['1. Two-Drum Warm-Up · 2 drums', '2. Dotted Rhythms · 2 drums', '3. Roll and Release · 2 drums', '4. Big Finish · 2 drums',
+    '5. Three-Drum Walk · 3 drums', '6. Waltz for Three · 3 drums', '7. Leaps and Crossings · 3 drums', '8. March in E♭ · 3 drums',
+    '9. Four-Drum Fanfare · 4 drums', '10. Rolling Hills · 4 drums', '11. Grand Finale · 4 drums']);
+  expect(await page.evaluate(() => window.PP_ETUDES.every(e => e.about && e.about.length < 80))).toBe(true);
+  watch.check();
+});
+
+test('NEW ETUDES, THE STAFF: flats on the first B♭ / E♭ of each bar (not on a repeat in the bar), none in the C & F etudes; 2/4 and 3/4; the tuning line', async ({page}) => {
+  const watch = await room(page);
+  await page.locator('#prShow [data-show="etude"]').click();
+  const accs = id => page.evaluate(id => {
+    Arcade.PedalPoint.practice.showEtude(id);
+    const e = Arcade.PedalPoint.practice.etudes.find(x => x.etude.id === id);
+    return [...document.querySelectorAll('#prStaff .rs-accidental')].map(g => {
+      const n = e.notes[+g.dataset.n], head = g.parentNode.querySelector('ellipse'), gb = g.getBBox(), hb = head.getBBox();
+      return {n: +g.dataset.n, acc: +g.dataset.acc, m: n.measure, letter: n.pitch.letter, left: gb.x + gb.width <= hb.x + 1};
+    });
+  }, id);
+  const march = await accs('eb-march');
+  march.forEach(a => { expect(a.acc).toBe(-1); expect(a.left).toBe(true); });
+  // bar 1: E♭ B♭ E♭ B♭ = a flat on the first E♭ and the first B♭ only; bar 2 (E♭ again): a flat again
+  expect(march.filter(a => a.m === 0).map(a => [a.n, a.letter])).toEqual([[0, 'E'], [1, 'B']]);
+  expect(march.filter(a => a.m === 1).map(a => a.letter)).toEqual(['E']);
+  // bar 4: G3 E♭: only the E♭ (G has no flat)
+  expect(march.filter(a => a.m === 3).map(a => a.letter)).toEqual(['E']);
+  // one per pitch per bar, everywhere
+  const perBar = {}; march.forEach(a => { const k = a.m + a.letter; perBar[k] = (perBar[k] || 0) + 1; });
+  Object.values(perBar).forEach(c => expect(c).toBe(1));
+  for (const id of ['warm-up', 'dotted', 'roll-release', 'big-finish']) expect(await accs(id), id).toEqual([]);
+  // time signatures and bars: 2/4 and 3/4
+  const meter = id => page.evaluate(id => {
+    Arcade.PedalPoint.practice.showEtude(id);
+    const t = [...document.querySelectorAll('#prStaff .pr-srow-staff')[0].querySelectorAll('.rs-time text')].map(x => x.textContent);
+    const e = Arcade.PedalPoint.practice.etudes.find(x => x.etude.id === id);
+    return {t, per: e.parsed.meter.per, measures: e.measures, rows: document.querySelectorAll('#prStaff .pr-srow-staff').length,
+      bars: [...document.querySelectorAll('#prStaff .rs-bar')].length};
+  }, id);
+  const w = await meter('waltz'), m = await meter('eb-march');
+  expect(w.t).toEqual(['3', '4']); expect(w.per).toBe(36); expect(w.measures).toBe(16);
+  expect(m.t).toEqual(['2', '4']); expect(m.per).toBe(24); expect(m.measures).toBe(16);
+  // every row has its bar lines (one between each pair of bars, one at the end of a non-final row)
+  expect(w.bars).toBe(16 - 1);
+  // the tuning line
+  await page.evaluate(() => Arcade.PedalPoint.practice.showEtude('leaps'));
+  await expect(page.locator('#prStaff .pr-tuning')).toHaveText('Timpani: B♭2 · C3 · F3');
+  await page.evaluate(() => Arcade.PedalPoint.practice.showEtude('warm-up'));
+  await expect(page.locator('#prStaff .pr-tuning')).toHaveText('Timpani: C3 · F3');
+  watch.check();
+});
+
+test('NEW ETUDES: HEAR IT of Grand Finale strikes all four drums (rolls, rit.); PLAY ALONG of Rolling Hills judges releases on the right drums', async ({page}) => {
+  const watch = await room(page);
+  await page.evaluate(() => Arcade.PedalPoint.practice.applyPreset('four'));
+  const g = await page.evaluate(() => {
+    const p = Arcade.PedalPoint.practice, pl = p.plan('grand-finale'), e = p.etudes.find(x => x.etude.id === 'grand-finale');
+    const gap = m => { const ns = pl.notes.filter(n => e.notes[n.n].measure === m); return ns.slice(1).map((n, k) => n.time - ns[k].time); };
+    return {drums: [...new Set(pl.strokes.map(s => s.drum))].sort(), rolls: pl.strokes.filter(s => s.roll).length, g6: gap(5), g8: gap(7)};
+  });
+  expect(g.drums).toEqual([0, 1, 2, 3]);
+  expect(g.rolls).toBeGreaterThan(20);
+  expect(Math.min(...g.g8)).toBeGreaterThan(Math.min(...g.g6) * .99);        // the rit.: the last bar never runs faster
+  // PLAY ALONG (demo): each note played on its own drum at its time, rolls held: every note on time
+  await page.locator('#prShow [data-show="etude"]').click();
+  await page.locator('#prEtudeSel').selectOption('rolling-hills');
+  await page.locator('#prEClick').click();                                       // (click off)
+  const r = await page.evaluate(() => {
+    const p = Arcade.PedalPoint.practice, pl = p.plan('rolling-hills'), map = p.assign('rolling-hills');
+    return {notes: pl.notes.map(n => ({rel: n.time, drum: n.drum, d: n.end - n.time, roll: n.roll, midi: n.midi})), map};
+  });
+  r.notes.forEach(n => expect(n.drum).toBe(r.map[n.midi]));                     // each pitch on its own drum
+  expect(new Set(r.notes.map(n => n.drum)).size).toBe(4);
+  // played right: every roll held, each release landing on the next drum = all on time
+  await page.locator('#prAlong').click();
+  await page.evaluate(ns => { const p = Arcade.PedalPoint.practice; ns.forEach(n => p.attack(n.drum, n.rel, n.roll ? n.d * .9 : 0)); p.endNow(); }, r.notes);
+  let s = await P(page);
+  expect(s.run.J.res.map(x => x.kind).filter(k => k !== 'ok')).toEqual([]);
+  expect(s.run.J.acc).toBe(100);
+  // the second note (B♭, the first release's target) played on the C drum instead: the wrong drum
+  await page.locator('#prAlong').click();
+  await page.evaluate(ns => { const p = Arcade.PedalPoint.practice; ns.forEach((n, k) => p.attack(k === 1 ? ns[2].drum : n.drum, n.rel, n.roll ? n.d * .9 : 0)); p.endNow(); }, r.notes);
+  s = await P(page);
+  expect(s.run.J.res[1].kind).toBe('wrong');
+  watch.check();
+});
+
+for (const [name, vp] of [['phone', {width: 390, height: 844}], ['iPad portrait', {width: 768, height: 1024}], ['iPad landscape', {width: 1024, height: 768}], ['Chromebook', {width: 1366, height: 768}]]) {
+  test(`NEW ETUDES, LAYOUT (${name}): every etude's staff rows and tuning line fit the screen`, async ({page}) => {
+    await page.setViewportSize(vp);
+    const watch = await room(page);
+    await page.locator('#prShow [data-show="etude"]').click();
+    for (const id of await page.evaluate(() => window.PP_ETUDES.map(e => e.id))) {
+      await page.evaluate(id => { const p = Arcade.PedalPoint.practice; p.applySetup(p.setupOf(p.etudes.find(e => e.etude.id === id))); p.showEtude(id); }, id);
+      const r = await page.evaluate(() => {
+        const st = document.getElementById('prStaff').getBoundingClientRect(), t = document.querySelector('#prStaff .pr-tuning').getBoundingClientRect();
+        return {rows: [...document.querySelectorAll('#prStaff .pr-srow-staff svg')].map(s => { const b = s.getBoundingClientRect(); return [b.left, b.right]; }), st: [st.left, st.right], t: [t.left, t.right]};
+      });
+      r.rows.forEach(([l, rr]) => { expect(l, id).toBeGreaterThanOrEqual(r.st[0] - 1); expect(rr, id).toBeLessThanOrEqual(r.st[1] + 1); });
+      expect(r.t[1], id).toBeLessThanOrEqual(r.st[1] + 1);
+      expect(await tooWide(page), id).toEqual([]);
+    }
+    watch.check();
+  });
+}
