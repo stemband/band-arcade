@@ -564,11 +564,9 @@
     tuneBadges();
   }
   function engraveEtude(e) {
-    // a phone: 2 bars a row, else 4, or 2 where a row of 4 would have to shrink more than about a quarter (busy 16ths)
-    const room = ($('prStaff').clientWidth || innerWidth) - 16, pitch = n => (e.notes[n.i] || {}).pitch;
-    const draw = per => A.RhythmStaff.rows(e.parsed, per).map(([a, b], r) => ({a, b, g: A.RhythmStaff.engrave(e.parsed, {from: a, to: b, counting: false, clef: 'bass', pitch, slurs: e.slurs, marks: e.etude.marks, id: 'pe' + r, label: `${e.etude.name}, bars ${a + 1} to ${b}`})}));
-    let rows = draw(room < 684 ? 2 : 4);
-    if (rows.some(x => x.g.w > room * 1.3) && room >= 684) rows = draw(2);
+    // a phone: 2 bars a row, else 4 (a row wider than the staff area scales down to fit: max-width 100%)
+    const narrow = ($('prStaff').clientWidth || innerWidth) < 700, pitch = n => (e.notes[n.i] || {}).pitch;
+    const rows = A.RhythmStaff.rows(e.parsed, narrow ? 2 : 4).map(([a, b], r) => ({a, b, g: A.RhythmStaff.engrave(e.parsed, {from: a, to: b, counting: false, clef: 'bass', pitch, slurs: e.slurs, marks: e.etude.marks, id: 'pe' + r, label: `${e.etude.name}, bars ${a + 1} to ${b}`})}));
     $('prStaff').innerHTML = `<h3 class="pr-etitle">${e.etude.name} <small>♩ = ${e.etude.tempo}</small></h3>` +
       `<p class="pr-tuning">Timpani: ${setupOf(e).map(([, n]) => noteName(n)).join(' · ')}</p>` +
       rows.map(({a, g}) => `<div class="pr-srow-staff" data-from="${a}">${g.svg}</div>`).join('');

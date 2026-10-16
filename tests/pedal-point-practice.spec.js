@@ -904,3 +904,24 @@ test('BIG DRUMS with the music showing (1 drum): never smaller than before, and 
   expect(r.view).toBeCloseTo(view4, 0);
   watch.check();
 });
+
+/* THE ETUDES' ROWS: 4 bars a staff (2 on a phone, the staff area under 700 px); a row wider than the staff area scales
+   down to fit (max-width 100%), never falls back to 2 bars */
+for (const [name, vp, per] of [['Chromebook', {width: 1366, height: 768}, 4], ['iPad landscape', {width: 1180, height: 820}, 4], ['phone', {width: 390, height: 844}, 2]]) {
+  test(`ETUDE ROWS (${name}): every etude ${per} bars a staff, every row inside the staff area`, async ({page}) => {
+    await page.setViewportSize(vp);
+    const watch = await room(page);
+    await page.locator('#prShow [data-show="etude"]').click();
+    for (const id of await page.evaluate(() => window.PP_ETUDES.map(e => e.id))) {
+      const r = await page.evaluate(id => {
+        const p = Arcade.PedalPoint.practice; p.showEtude(id);
+        const e = p.etudes.find(x => x.etude.id === id), st = document.getElementById('prStaff').getBoundingClientRect();
+        const rows = [...document.querySelectorAll('#prStaff .pr-srow-staff')];
+        return {measures: e.measures, from: rows.map(x => +x.dataset.from), boxes: rows.map(x => { const b = x.querySelector('svg').getBoundingClientRect(); return [b.left, b.right]; }), st: [st.left, st.right]};
+      }, id);
+      expect(r.from, id).toEqual(Array.from({length: Math.ceil(r.measures / per)}, (_, k) => k * per));
+      r.boxes.forEach(([l, rr]) => { expect(l, id).toBeGreaterThanOrEqual(r.st[0] - 1); expect(rr, id).toBeLessThanOrEqual(r.st[1] + 1); });
+    }
+    watch.check();
+  });
+}
