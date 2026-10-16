@@ -185,42 +185,47 @@
 /* the drums, seen from above: the head, its playing spot (the ring), the copper rim */
 .pr-stage{border-radius:var(--r);padding:12px 8px 10px;border:2px solid var(--pp-copper-2);
   background:radial-gradient(ellipse 60% 70% at 50% 0%,rgba(255,225,160,.18),transparent 70%),linear-gradient(180deg,var(--pp-night-2),var(--pp-stage) 62%,var(--pp-stage-2))}
-.pr-drums{display:flex;justify-content:center;align-items:flex-end;gap:10px}
-.pr-drum{flex:1 1 0;min-width:0;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
-.pr-head{position:relative;width:calc(100% * var(--pr-size,1));max-width:calc(min(240px, 34vh) * var(--pr-size,1));aspect-ratio:1;touch-action:none;cursor:pointer;border-radius:50%;
-  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-.pr-svg{width:100%;height:100%;display:block;overflow:visible}
+.pr-drums{position:relative;width:100%;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.pr-arc{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.pr-head,.pr-pedal{pointer-events:auto;touch-action:none;cursor:pointer}
+.pr-pedal{cursor:grab}
+.pr-head:focus,.pr-pedal:focus{outline:none}
+.pr-pedal:focus-visible .pr-ped{stroke:var(--pp-spot);stroke-width:3}
 .pr-rim{fill:var(--pp-copper);stroke:var(--pp-copper-2);stroke-width:1.5}
 .pr-hoop{fill:none;stroke:var(--pp-chrome);stroke-width:2.5}
 .pr-skin{fill:var(--pp-head);transition:fill .25s}
 .pr-spot{fill:none;stroke:var(--pp-head-2);stroke-width:1.2;stroke-dasharray:3 3}
-.pr-sz{font:700 11px var(--display);fill:var(--pp-head-2)}
-.pr-ripple{fill:none;stroke:var(--pp-copper-hi);stroke-width:2;opacity:0}
-.pr-key{position:absolute;right:4%;bottom:4%;min-width:26px;padding:1px 6px;border-radius:8px;background:var(--pp-night);color:var(--pp-spot);font:700 14px var(--display);text-align:center}
+.pr-sz{font-family:var(--display);font-weight:700;fill:var(--pp-head-2);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.pr-note{font-family:var(--display);font-weight:700;fill:#5a3a12;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.pr-key{font:700 14px var(--display);fill:var(--pp-copper-2);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
 @media (hover:none){.pr-key{display:none}}
+.pr-ripple{fill:none;stroke:var(--pp-copper-hi);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.pr-cue{fill:none;stroke:var(--pp-spot);stroke-width:4;opacity:0;filter:drop-shadow(0 0 8px rgba(255,225,160,.8))}
+.pr-drum.cue .pr-cue{opacity:1}
 .pr-drum.sel .pr-hoop{stroke:var(--pp-spot)}
-.pr-drum.cue .pr-head{box-shadow:0 0 0 4px var(--pp-spot),0 0 24px rgba(255,225,160,.8)}
 .pr-drum.hit .pr-skin{fill:#fff8e8}
 .pr-drum.hit .pr-ripple{animation:pr-ripple .45s ease-out}
 .pr-drum.thud .pr-skin{fill:var(--pp-head-2)}
 .pr-drum.muffled .pr-skin{fill:var(--pp-head-2)}
-@keyframes pr-ripple{0%{opacity:.9;r:12px}100%{opacity:0;r:44px}}
+@keyframes pr-ripple{0%{opacity:.9;transform:scale(.6)}100%{opacity:0;transform:scale(2.2)}}
 @media (prefers-reduced-motion:reduce){.pr-drum.hit .pr-ripple{animation:none}}
-.pr-info{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 8px;min-height:26px}
-.pr-note{font:700 20px var(--display);color:var(--pp-spot)}
-.pr-tune{font-size:12px;font-weight:700;color:var(--pp-night);background:var(--coral);border-radius:999px;padding:2px 8px}
+/* THE PEDAL: a rotated plate on its own axis, pointing at the seat (toe at the drum) */
+.pr-ped{fill:var(--pp-night);stroke:var(--pp-chrome-2);stroke-width:2}
+.pr-ptrack{stroke:var(--pp-chrome-2);stroke-width:8;stroke-linecap:round}
+.pr-plate{fill:var(--pp-chrome);stroke:var(--pp-night);stroke-width:1.5}
+.pr-drum.sel .pr-plate{fill:var(--pp-spot)}
+.pr-drum.sel .pr-ped{stroke:var(--pp-spot)}
+.pr-plabel{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;fill:var(--text-lo);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+/* the stool: you sit here */
+.pr-seat circle{fill:var(--pp-night);stroke:var(--pp-chrome-2);stroke-width:1.5}
+.pr-seat text{font-size:12px;font-weight:700;fill:var(--text-lo);text-anchor:middle}
+.pr-hand{position:absolute;min-width:44px;min-height:44px;border-radius:12px;border:2px solid var(--pp-chrome-2);background:var(--pp-night);font-size:20px;padding:0;touch-action:manipulation;z-index:1}
+.pr-tune{position:absolute;font-size:12px;font-weight:700;line-height:1.15;text-align:center;color:var(--pp-night);background:var(--coral);border-radius:10px;padding:2px 8px;pointer-events:none;z-index:1}
 .pr-tune[hidden]{display:none}
-.pr-row{display:flex;align-items:center;gap:6px}
-.pr-hand{min-width:44px;min-height:44px;border-radius:12px;border:2px solid var(--pp-chrome-2);background:var(--pp-night);font-size:20px;touch-action:manipulation}
-.pr-pedal{height:96px;min-width:56px;max-width:72px}
-.pr-pedal .pp-plate{width:44px;margin-left:-22px;height:20px;bottom:calc(var(--p) * (100% - 20px))}
-.pr-drum.sel .pp-plate{background:linear-gradient(180deg,var(--pp-spot),var(--pp-copper-hi))}
 .pr-fine{margin:10px 0 0}
 .pr-help{margin:8px 0 0;text-align:center;font-size:13px;color:var(--text-lo)}
 
 /* music shown: the drums give it room (but stay big enough to tap) */
-.pr-music .pr-head{max-width:calc(max(88px, min(170px, 22vh)) * var(--pr-size,1));min-width:88px}
-.pr-music .pr-pedal{height:80px}
 .pr-music .pr-help{display:none}
 @media (orientation:portrait){.pr-music .pr-view{height:clamp(200px,34vh,520px)}}
 
