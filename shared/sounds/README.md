@@ -648,6 +648,7 @@ upload a file, that part of the game is simply quiet.
 | `quest-credits` | `quest-credits.m4a` or `quest-credits.mp3` | Arcade Quest: the credits roll after Episode 1. Nothing plays until you upload it. | 30–90 s loop |
 | `quest-static` | `quest-static.m4a` or `quest-static.mp3` | Arcade Quest: static crackles (the intro glitch, color draining away). | 0.5–1.5 s |
 | `quest-mic-crackle` | `quest-mic-crackle.m4a` or `quest-mic-crackle.mp3` | Arcade Quest: the Mysterious Microphone crackles (whispers in the manor, the cliffhanger). Never while listening. | 0.5–2 s |
+| `quest-fs-part` | (no file of its own: plays `quest-boss-phase`, quieter) | Arcade Quest: THE FINAL STAND moves on to the next band member. Never while listening. | 0.5–1 s |
 | `quest-boss-phase` | `quest-boss-phase.m4a` or `quest-boss-phase.mp3` | Arcade Quest: a final boss starts a new stage of the battle (the Ghost Conductor; Episode 2: THE BIG NUMBER, a new band member). Never while listening. | 0.5–1 s |
 
 **Arcade Quest, Episode 2: The Showtime Stage** (every slot: the checklist "Arcade Quest — Episode 2 music" below). Until

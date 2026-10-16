@@ -27,8 +27,21 @@
      borrow    RICO BANDIT's: his sax case sits at the bottom of the box (always shown: you see where they come from);
                `count` borrowed notes arc up out of it, then curve back toward your note (gently: BORROW.turn) and
                fade out after BORROW.life seconds. Reduced motion: the same notes, without their little spin
+   THE FINAL STAND (THE BIG NUMBER's `finalStand`, designed by a Raven Band student): options on the kinds above
+     burst {from: 'center'}  notes spewing from the middle of the box, a warning ring first (Tubby Tusk)
+     rings {from: 'drum'}    a small drum near the box's edge shakes (the warning, FS_DRUM.warnS, a soft tap), then a
+                             shockwave ring with one gap expands from it (Snapjaw Sal). Without `from`: the Mic-let's,
+                             unchanged
+     aimed + 'baton-shot'    spinning batons thrown at your note (Maestro Moose; reduced motion: no spin)
+     measure {dir: 'side'}   a column of measures crossing from a side, one gap; {dir: 'alt'}: a row, then a column,
+                             each only once the last has crossed (never both at once: Professor Hoot)
+     beam {from: 'sax'}      a beam of notes fired along one lane from Rico's sax case at the box's edge (the same
+                             dotted warning line first: Rico Bandit)
+   and the dodge itself can run `parts` back to back (one long dodge whose patterns change every part; onPart(i)
+   each time), with `speed` (× the notes' speed, on top of Easy and the Metronome) and `dmg` (× a hit's damage, then
+   ASSIST halves it). Always aimed at you.
    Never a flash: nothing blinks faster than 3 times a second, nothing fills the box.
-   Q.dodge.start({enemy, easy, slow, shield, assist, mute, charm, onHit}) -> Promise {damage, hits, blocked, muted}
+   Q.dodge.start({enemy, easy, slow, shield, assist, mute, charm, onHit, parts?, speed?, dmg?, onPart?}) -> Promise {damage, hits, blocked, muted}
    Easy: slower and fewer; Metronome (slow): slower still; Cork Grease (shield): blocks hits; Assist: half damage.
    Charms (ARCADE QUEST ONLY): charm = the Metronome Charm's speed factor; mute = the Silver Mute's blocks left. */
 (function (A) {
@@ -43,12 +56,16 @@
   const FX = {
     beam: {
       warnS: .8, r: 11,
-      spawn(pat, sp) { const b = BOX, left = Math.random() < .5, y = Q.rand(b.y + 14, b.y + b.h - 14); return {y, x: left ? b.x - 12 : b.x + b.w + 12, dir: left ? 1 : -1, sp, go: D.t + Math.max(FX.beam.warnS, .8 / D.mult.speed)}; },
-      step(o, dt) { if (D.t >= o.go) { if (!o.on) { o.on = true; Q.sfx('quest-spot-hum'); } o.x += o.dir * o.sp * dt; } },
-      hit: (o, cx, cy) => o.on && Math.hypot(cx - o.x, cy - o.y) < FX.beam.r - 2,
+      spawn(pat, sp) { const b = BOX, left = Math.random() < .5, y = Q.rand(b.y + 14, b.y + b.h - 14), sax = pat.from === 'sax';
+        return {y, x: sax ? (left ? b.x + 4 : b.x + b.w - 4) : left ? b.x - 12 : b.x + b.w + 12, x0: left ? b.x : b.x + b.w, dir: left ? 1 : -1, sp, sax, go: D.t + Math.max(FX.beam.warnS, .8 / D.mult.speed)}; },
+      step(o, dt) { if (D.t >= o.go) { if (!o.on) { o.on = true; Q.sfx(o.sax ? 'quest-tap' : 'quest-spot-hum'); } o.x += o.dir * o.sp * dt; } },
+      // (Rico's sax: the beam's head and its short trail of notes behind it, along the lane)
+      hit: (o, cx, cy) => o.on && (o.sax ? Math.abs(cy - o.y) < SAX.half && (cx - o.x) * -o.dir >= -3 && (cx - o.x) * -o.dir <= SAX.trail + 3 : Math.hypot(cx - o.x, cy - o.y) < FX.beam.r - 2),
       done: o => o.on && (o.dir > 0 ? o.x > BOX.x + BOX.w + 14 : o.x < BOX.x - 14),
       draw(ctx, o, now) {
+        if (o.sax) Q.draw(ctx, 'borrow-case', Math.round(o.dir > 0 ? BOX.x + 1 : BOX.x + BOX.w - 21), Math.round(o.y - 4), {t: now});   // Rico's sax case, where the beam comes from
         if (!o.on) { ctx.strokeStyle = Q.css('q-stage-glow'); ctx.globalAlpha = .7; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(BOX.x, o.y); ctx.lineTo(BOX.x + BOX.w, o.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return; }
+        if (o.sax) { for (let k = 0; k * SAX.gap <= SAX.trail; k++) Q.draw(ctx, 'borrow-note', Math.round(o.x - o.dir * k * SAX.gap - 3), Math.round(o.y - 4 + (k % 2 && !Q.reduced() ? -1 : 0)), {t: now}); return; }
         const r = FX.beam.r + (Q.reduced() ? 0 : Math.sin(now / 90) * .6);
         ctx.fillStyle = Q.css('q-stage-glow'); ctx.globalAlpha = .28; ctx.beginPath(); ctx.moveTo(o.x - 3, BOX.y - 2); ctx.lineTo(o.x + 3, BOX.y - 2); ctx.lineTo(o.x + r, o.y); ctx.lineTo(o.x - r, o.y); ctx.fill();
         ctx.globalAlpha = .75; ctx.beginPath(); ctx.ellipse(o.x, o.y, r, r * .7, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -88,15 +105,34 @@
     },
     rings: {
       gapW: 1.0,
-      spawn(pat, sp) { const b = BOX; return {x: b.x + b.w / 2, y: b.y - 8, r: 4, sp, gapA: Q.rand(Math.PI * .2, Math.PI * .8)}; },
-      step(o, dt) { o.r += o.sp * dt; },
+      spawn(pat, sp) {
+        const b = BOX;
+        if (pat.from === 'drum') {                              // SNAPJAW SAL's drum: near an edge, a shake (the warning), then the wave
+          const e = Math.floor(Math.random() * 4), m = FS_DRUM.inset;
+          const x = e === 1 ? b.x + b.w - m : e === 3 ? b.x + m : Q.rand(b.x + 18, b.x + b.w - 18), y = e === 0 ? b.y + m : e === 2 ? b.y + b.h - m : Q.rand(b.y + 16, b.y + b.h - 16);
+          const toward = Math.atan2(b.y + b.h / 2 - y, b.x + b.w / 2 - x);           // the gap opens toward the middle: a way through
+          Q.sfx('quest-tap');
+          return {x, y, r: 3, sp, drum: true, go: D.t + FS_DRUM.warnS, gapA: toward + Q.rand(-.6, .6)};
+        }
+        return {x: b.x + b.w / 2, y: b.y - 8, r: 4, sp, gapA: Q.rand(Math.PI * .2, Math.PI * .8)};
+      },
+      step(o, dt) { if (!o.drum || D.t >= o.go) o.r += o.sp * dt; },
       hit(o, cx, cy) {
+        if (o.drum && D.t < o.go) return false;
         const d = Math.hypot(cx - o.x, cy - o.y); if (Math.abs(d - o.r) > 2.5) return false;
         const a = Math.atan2(cy - o.y, cx - o.x); let diff = Math.abs(a - o.gapA); if (diff > Math.PI) diff = Math.PI * 2 - diff;
         return diff > FX.rings.gapW / 2;
       },
       done: o => o.r > Math.hypot(BOX.w, BOX.h) + 10,
       draw(ctx, o, now) {
+        if (o.drum) {                                           // the drum (it shakes while it's being hit: the warning), then its wave
+          const shake = D.t < o.go && !Q.reduced() ? Math.round(Math.sin(D.t * Math.PI * 2 * FS_DRUM.shakeHz)) : 0;
+          Q.draw(ctx, 'fs-drum', Math.round(o.x - 6 + shake), Math.round(o.y - 5), {t: now});
+          if (D.t < o.go) return;
+          ctx.strokeStyle = Q.css('q-gold'); ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(o.x, o.y, o.r, o.gapA + FX.rings.gapW / 2, o.gapA - FX.rings.gapW / 2 + Math.PI * 2); ctx.stroke();
+          return;
+        }
         ctx.strokeStyle = Q.css('q-grey'); ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(o.x, o.y, o.r, o.gapA + FX.rings.gapW / 2, o.gapA - FX.rings.gapW / 2 + Math.PI * 2); ctx.stroke();
         if (!Q.reduced()) {                                     // a little static along the ring (decoration only)
@@ -108,6 +144,10 @@
     },
   };
   const CONFETTI = ['q-pink', 'q-gold', 'q-cursor', 'q-green', 'q-orange'];
+  /* THE FINAL STAND's pieces: Sal's drum (MAT: TUNE: the shake before its wave, how far in from the edge) and Rico's
+     beam of notes (its half height, the trail of notes behind its head, the notes' spacing) */
+  const FS_DRUM = {warnS: .6, inset: 8, shakeHz: 2.5};   // shakeHz: under the flash rule's 3 a second
+  const SAX = {half: 4, trail: 14, gap: 7};
   /* RICO's borrowed notes: how hard they turn back toward you (px/s²), how long they fly, where the case sits */
   const BORROW = {turn: 42, life: 3.2, max: 46, caseW: 20};
   const caseAt = () => ({x: BOX.x + BOX.w / 2 - BORROW.caseW / 2, y: BOX.y + BOX.h - 8});
@@ -125,9 +165,17 @@
     } else if (pat.kind === 'wave') {
       const gap = Q.rand(b.x + 10, b.x + b.w - 30);
       for (let x = b.x; x < b.x + b.w - s.w; x += s.w + 4) if (x < gap || x > gap + 22) add(x, b.y - s.h, 0, sp * .8);
-    } else if (pat.kind === 'measure') {                      // a row of measures, one gap
-      const mw = 24, gapAt = Math.floor(Q.rand(0, Math.floor(b.w / (mw + 4))));
-      for (let k = 0, x = b.x; x < b.x + b.w - 6; k++, x += mw + 4) if (k !== gapAt) add(x, b.y - 12, 0, sp, {rect: true, w: mw, h: 12});
+    } else if (pat.kind === 'measure') {                      // a row of measures, one gap (or a column from a side: dir 'side'; 'alt' = one, then the other)
+      const dir = pat.dir === 'alt' ? (pat.flip = !pat.flip) ? 'down' : 'side' : pat.dir || 'down', mw = 24;
+      if (dir === 'side') {
+        const left = Math.random() < .5, gapAt = Math.floor(Q.rand(0, Math.floor(b.h / (mw + 4))));
+        for (let k = 0, y = b.y; y < b.y + b.h - 6; k++, y += mw + 4) if (k !== gapAt) add(left ? b.x - 12 : b.x + b.w, y, left ? sp : -sp, 0, {rect: true, vert: true, w: 12, h: mw});
+        if (pat.dir === 'alt') pat.clear = D.t + (b.w + 12) / sp;                      // the next only once this one has crossed
+      } else {
+        const gapAt = Math.floor(Q.rand(0, Math.floor(b.w / (mw + 4))));
+        for (let k = 0, x = b.x; x < b.x + b.w - 6; k++, x += mw + 4) if (k !== gapAt) add(x, b.y - 12, 0, sp, {rect: true, w: mw, h: 12});
+        if (pat.dir === 'alt') pat.clear = D.t + (b.h + 12) / sp;
+      }
     } else if (pat.kind === 'sweep') {                        // fermatas swooping across on a wave
       const left = Math.random() < .5, y0 = Q.rand(b.y + 12, b.y + b.h - 18);
       add(left ? b.x - s.w : b.x + b.w, y0, left ? sp : -sp, 0, {y0, amp: Q.rand(8, 14), freq: Q.rand(1.2, 1.8)});
@@ -162,18 +210,24 @@
       const x = Q.rand(b.x + 18, b.x + b.w - 18), y = Q.rand(b.y + 12, b.y + b.h / 2), n = pat.count || 10;
       D.warn.push({x, y, at: D.t + 0.55, n, sp, confetti: true});
     } else if (pat.kind === 'burst') {
-      const x = Q.rand(b.x + 16, b.x + b.w - 16), y = Q.rand(b.y + 14, b.y + b.h - 14), n = pat.count || 6;
+      const mid = pat.from === 'center';                        // (THE FINAL STAND's Tubby: from the middle of the box)
+      const x = mid ? b.x + b.w / 2 : Q.rand(b.x + 16, b.x + b.w - 16), y = mid ? b.y + b.h / 2 : Q.rand(b.y + 14, b.y + b.h - 14), n = pat.count || 6;
       D.warn.push({x, y, at: D.t + 0.55, n, sp, sprite: pat.sprite});   // a warning ring first (fair!)
     }
   }
   Q.dodge = {
     active: () => !!D,
-    start({enemy, easy, slow, shield = 0, assist, mute = 0, charm = 1, onHit}) {
+    start({enemy, easy, slow, shield = 0, assist, mute = 0, charm = 1, onHit, parts = null, speed = 1, dmg = 1, onPart = null}) {
       const dd = enemy.dodge || {seconds: 6, patterns: [{kind: 'rain', sprite: 'sour', every: .6, speed: 45}]};
-      const mult = {speed: (easy ? .7 : 1) * (slow || 1) * (charm || 1), every: easy ? 1.45 : 1};
+      const mult = {speed: (easy ? .7 : 1) * (slow || 1) * (charm || 1) * (speed || 1), every: easy ? 1.45 : 1};
+      // PARTS (THE FINAL STAND): one long dodge, its patterns changing at each part's start
+      let t0 = 0; const P = parts ? parts.map(p => { const o = Object.assign({}, p, {t0}); t0 += p.seconds; return o; }) : null;
+      const first = P ? P[0].patterns : dd.patterns;
       return new Promise(done => {
-        D = {t: 0, len: dd.seconds, pats: dd.patterns.map(p => Object.assign({next: 0.35 + Math.random() * .4}, p)), mult, shots: [], warn: [], batons: [], fx: [], landed: [],
-          cx: BOX.x + BOX.w / 2 - 3, cy: BOX.y + BOX.h / 2 - 4, inv: 0, damage: 0, hits: 0, blocked: 0, shield, mute, muted: 0, assist, atk: enemy.atk || 2, onHit, done, drag: null};
+        D = {t: 0, len: P ? t0 : dd.seconds, pats: first.map(p => Object.assign({next: 0.35 + Math.random() * .4}, p)), mult, shots: [], warn: [], batons: [], fx: [], landed: [],
+          cx: BOX.x + BOX.w / 2 - 3, cy: BOX.y + BOX.h / 2 - 4, inv: 0, damage: 0, hits: 0, blocked: 0, shield, mute, muted: 0, assist, atk: enemy.atk || 2, dmgMult: dmg || 1, onHit, done, drag: null,
+          parts: P, part: 0, onPart};
+        if (P && onPart) onPart(0);
         const st = Q.stage;
         D.pd = e => { D.drag = {x: e.clientX, y: e.clientY}; };
         D.pm = e => {
@@ -193,11 +247,16 @@
       const h = Q.input.held;
       const vx = (h.right ? 1 : 0) - (h.left ? 1 : 0), vy = (h.down ? 1 : 0) - (h.up ? 1 : 0);
       D.cx = Q.clamp(D.cx + vx * SPEED * dt, BOX.x + 2, BOX.x + BOX.w - 9); D.cy = Q.clamp(D.cy + vy * SPEED * dt, BOX.y + 2, BOX.y + BOX.h - 11);
+      if (D.parts) {                                            // THE FINAL STAND: the next part's patterns
+        let i = D.part; while (i + 1 < D.parts.length && D.t >= D.parts[i + 1].t0) i++;
+        if (i !== D.part) { D.part = i; D.pats = D.parts[i].patterns.map(p => Object.assign({next: D.t + 0.35 + Math.random() * .4}, p)); if (D.onPart) D.onPart(i); if (!D) return; }
+      }
       if (D.t < D.len - 0.8) D.pats.forEach(p => {
         if (D.t < p.next) return;
         spawn(p, D.mult);
         // taps keep a steady beat (every beat, exactly); everything else comes every `every` seconds, give or take
         p.next = p.kind === 'taps' ? p.next + 60 / ((p.bpm || 96) * D.mult.speed) : D.t + p.every * D.mult.every * Q.rand(.8, 1.2);
+        if (p.clear) p.next = Math.max(p.next, p.clear + .15);  // (measures 'alt': never a row and a column at once)
       });
       D.warn = D.warn.filter(w => {
         if (D.t < w.at) return true;
@@ -251,7 +310,7 @@
           let dmg = 0;
           if (D.shield > 0) { D.shield--; D.blocked++; }
           else if (D.mute > 0) { D.mute--; D.muted++; }
-          else { dmg = Math.max(1, Math.round(D.atk * (D.assist ? .5 : 1))); D.damage += dmg; }
+          else { dmg = Math.max(1, Math.round((D.dmgMult !== 1 ? Math.round(D.atk) * D.dmgMult : D.atk) * (D.assist ? .5 : 1))); D.damage += dmg; }   // (THE FINAL STAND: × dmg, then ASSIST halves it)
           if (D.onHit && D.onHit(dmg, !dmg) === 'stop') D.t = D.len;
           Q.shake(2, 160);
         }
@@ -281,8 +340,14 @@
         if (s.flip != null) return Q.draw(ctx, s.sprite, s.x, s.y, {t: now, flip: !Q.reduced() && Math.floor((D.t - s.born) * 2) % 2 === 0});   // a ticket stub flipping as it flutters
         if (s.home) { ctx.globalAlpha = Math.min(1, (BORROW.life - (D.t - s.born)) / .4); Q.draw(ctx, s.sprite, s.x, s.y, {t: now, flip: !Q.reduced() && Math.floor((D.t - s.born) * 3) % 2 === 1}); ctx.globalAlpha = 1; return; }
         if (!s.rect) return Q.draw(ctx, s.sprite, s.x, s.y, {t: now});
-        // a measure of music: five lines, a bar line at each end, and a note in it
         ctx.fillStyle = Q.css('q-paper'); ctx.globalAlpha = .9;
+        if (s.vert) {                                           // a measure turned on its side (Professor Hoot's column)
+          for (let l = 0; l < 5; l++) ctx.fillRect(Math.round(s.x + l * 3), Math.round(s.y), 1, s.h);
+          ctx.fillRect(Math.round(s.x), Math.round(s.y), 13, 1); ctx.fillRect(Math.round(s.x), Math.round(s.y + s.h - 1), 13, 1);
+          ctx.fillStyle = Q.css('q-sour'); ctx.fillRect(Math.round(s.x + 5), Math.round(s.y + s.h / 2 - 2), 3, 4); ctx.fillRect(Math.round(s.x + 7), Math.round(s.y + s.h / 2 - 7), 1, 6);
+          ctx.globalAlpha = 1; return;
+        }
+        // a measure of music: five lines, a bar line at each end, and a note in it
         for (let l = 0; l < 5; l++) ctx.fillRect(Math.round(s.x), Math.round(s.y + l * 3), s.w, 1);
         ctx.fillRect(Math.round(s.x), Math.round(s.y), 1, 13); ctx.fillRect(Math.round(s.x + s.w - 1), Math.round(s.y), 1, 13);
         ctx.fillStyle = Q.css('q-sour'); ctx.fillRect(Math.round(s.x + s.w / 2 - 2), Math.round(s.y + 5), 4, 3); ctx.fillRect(Math.round(s.x + s.w / 2 + 1), Math.round(s.y - 3), 1, 8);
@@ -312,6 +377,8 @@
     },
     state: () => D && {t: D.t, len: D.len, speed: D.mult.speed, mute: D.mute, muted: D.muted, shots: D.shots.length, batons: D.batons.length, hits: D.hits, cx: D.cx, cy: D.cy, damage: D.damage,
       fx: D.fx.map(o => o.kind), kinds: [...new Set(D.shots.map(s => (s.bubble ? 'bubbles' : s.tap ? 'taps' : s.home ? 'borrow' : s.col ? 'confetti' : s.ax ? 'stubs' : s.amp ? 'wave' : 'shot')))],
+      part: D.parts ? D.part : null, parts: D.parts ? D.parts.length : 0, sprites: [...new Set(D.shots.filter(s => s.sprite).map(s => s.sprite))], warnRings: D.warn.length,
+      fxFrom: D.fx.map(o => o.kind + (o.drum ? ':drum' : o.sax ? ':sax' : '')), measures: D.shots.filter(s => s.rect).map(s => (s.vert ? 'side' : 'down')), mult: D.mult.speed, dmgMult: D.dmgMult,
       taps: D.shots.filter(s => s.tap).map(s => +(s.lands).toFixed(3)), bubbles: D.shots.filter(s => s.bubble).map(s => ({x: +s.x.toFixed(2), y: +s.y.toFixed(2), x0: s.x0, wobble: s.ax})), landed: D.landed.length, warns: D.fx.filter(o => o.go != null).map(o => +(o.go - o.born).toFixed(3))},   // tests
   };
 })(window.Arcade);

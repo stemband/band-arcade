@@ -242,8 +242,22 @@ body.q-arranging .q-wrap .dpad,body.q-arranging .q-wrap .abpad{position:relative
 .pb-b{border-color:var(--cyan);color:var(--cyan);margin-top:calc(var(--pb) * .5)}
 body.q-touch .q-gear{display:block}
 
+/* THE FINAL STAND (THE BIG NUMBER; designed by a Raven Band student): its title card, each part's banner (left of the
+   dodge box: the box stays clear) and the seconds left (right of it) */
+.q-btn .q-bpic{float:left;margin-right:calc(var(--px) * 2);image-rendering:pixelated}      /* a charm's icon (the CHARMS panel) */
+.q-fs-card{inset:0;display:grid;place-items:center;z-index:6;pointer-events:none}
+.q-fs-card b{font-family:"GN Quest",var(--display);font-size:calc(var(--px) * 24);color:var(--q-gold);letter-spacing:.06em;
+  background:var(--q-black);border:calc(var(--px) * 2) solid var(--q-gold);padding:calc(var(--px) * 3) calc(var(--px) * 10);animation:q-fs-in .45s ease-out both}
+@keyframes q-fs-in{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.q-fs-banner{left:calc(var(--px) * 4);top:calc(var(--px) * 84);width:calc(var(--px) * 90);margin:0;padding:calc(var(--px) * 2) calc(var(--px) * 3);box-sizing:border-box;
+  background:var(--q-black);border:calc(var(--px) * 1) solid var(--q-gold);color:var(--q-white);font-size:calc(var(--px) * 6);line-height:1.25;z-index:5;pointer-events:none}
+.q-fs-banner b{display:block;color:var(--q-gold)}
+.q-fs-banner[hidden],.q-fs-time[hidden]{display:none}
+.q-fs-time{left:calc(var(--px) * 226);top:calc(var(--px) * 84);width:calc(var(--px) * 90);margin:0;text-align:center;font-family:"GN Quest",var(--display);
+  font-size:calc(var(--px) * 9);color:var(--q-gold);z-index:5;pointer-events:none}
+html.no-motion .q-fs-card b{animation:none}
 @media (prefers-reduced-motion:reduce){
-  .q-tmore,.c-harm.ready,.q-dot,.q-btn.sel::before{animation:none}
+  .q-tmore,.c-harm.ready,.q-dot,.q-btn.sel::before,.q-fs-card b{animation:none}
   .q-float{animation:q-fade 1.1s forwards}
   .q-bar i{transition:none}
 }

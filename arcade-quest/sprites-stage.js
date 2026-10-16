@@ -648,4 +648,17 @@
     'B..........B', 'B..........B', 'B..........B', '.B........bB', '.B.......b.B', '..BB....BB..', '....BBBB....']]};
   S['flurry-shot'] = {w: 5, h: 6, palette: {s: 'q-silver', S: 'q-silver-d'}, frames: [['...S.', '...SS', '...S.', '.sss.', 'sssS.', '.ss..']]};
   S['stick-shot'] = {w: 4, h: 12, palette: {w: 'q-wood-l', W: 'q-wood', t: 'q-paper'}, frames: [['.tt.', '.tt.', '.ww.', '.ww.', '.wW.', '.wW.', '.wW.', '.wW.', '.WW.', '.WW.', '.WW.', '.WW.']]};
+  /* THE FINAL STAND (designed by a Raven Band student): Maestro Moose's thrown batons (they spin: 4 frames; reduced
+     motion: the first only), Snapjaw Sal's drum (hit, then a shockwave), THE HAMBURGER CHARM's icon (the CHARMS panel,
+     the found message) and the crumb a sharp-eyed student might spot in the Main Stage's corner */
+  S['baton-shot'] = {w: 7, h: 7, fps: 8, palette: {w: 'q-white', y: 'q-gold'}, frames: [
+    ['.......', '.......', '.......', 'ywwwwww', '.......', '.......', '.......'],
+    ['......w', '.....w.', '....w..', '...w...', '..w....', '.w.....', 'y......'],
+    ['...y...', '...w...', '...w...', '...w...', '...w...', '...w...', '...w...'],
+    ['y......', '.w.....', '..w....', '...w...', '....w..', '.....w.', '......w']]};
+  S['fs-drum'] = {w: 12, h: 10, palette: {h: 'q-stage-drumhead', d: 'q-stage-drum', W: 'q-silver', s: 'q-silver-d', k: 'q-grey'}, frames: [[
+    '..hhhhhhhh..', '.hhhhhhhhhh.', '.sssssssss s'.replace(' ', 's'), '.dWddWddWdd.', '.dddddddddd.', '.dWddWddWdd.', '.dddddddddd.', '.ssssssssss.', '..k......k..', '.k........k.']]};
+  S['charm-burger'] = {w: 12, h: 10, palette: {o: 'q-orange', O: 'q-orange-d', w: 'q-white', g: 'q-green', y: 'q-gold', p: 'q-wood'}, frames: [[
+    '...oooooo...', '..ooowoowo..', '.oooooooooo.', '.OOOOOOOOOO.', 'gggggggggggg', '.yyyyyyyyyy.', '.pppppppppp.', '.pppppppppp.', '.oooooooooo.', '..OOOOOOOO..']]};
+  S['burger-crumb'] = {w: 3, h: 2, palette: {r: 'q-reed', R: 'q-orange-d'}, frames: [['.r.', 'rR.']]};
 })(window.QUEST_ART);

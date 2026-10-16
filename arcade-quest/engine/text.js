@@ -108,6 +108,7 @@
     const btns = items.map((it, i) => {
       const b = Q.el('button', 'q-btn' + (it.cls ? ' ' + it.cls : ''), `<span class="q-bl">${it.label}</span>${it.sub ? `<small>${it.sub}</small>` : ''}`);
       b.type = 'button'; b.disabled = !!it.disabled; if (it.title) b.title = it.title;
+      if (it.pic && Q.spriteEl) { const pic = Q.spriteEl(it.pic, {scale: it.picScale || 3}); pic.classList.add('q-bpic'); b.prepend(pic); }   // a small picture (a charm's icon)
       b.addEventListener('click', () => { if (!b.disabled) pick(i); });
       b.addEventListener('focus', () => { cur = i; engaged = true; mark(); });
       // THE MOUSE MOVES THE SELECTION (never a hovered box and a different selected one); a disabled button can't be it

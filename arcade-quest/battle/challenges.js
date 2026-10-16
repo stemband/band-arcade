@@ -124,17 +124,19 @@
 
   /* ---------- PLAY: 1–4 notes on the staff ---------- */
   function play(enemy, count = enemy.count || 3, secs = enemy.time || 9, title) {
-    const seq = notes(enemy, count), items = seq.items;
+    // (`repeat`: the first note `count` times: QUICK PLAY's three concert E♭s)
+    const seq = notes(enemy, enemy.repeat ? 1 : count), items = enemy.repeat ? Array.from({length: count}, () => seq.items[0]) : seq.items;
+    const hits = items.map(() => false);                        // each note right on its first try (QUICK PLAY: one hit each)
     const p = panel(title || Q.text('playIntro'), `<div class="q-staff" id="qStaff">${staff(seq, items, 0)}</div>`);
     let i = 0, correct = 0, firstTry = true;
     const mark = () => items.forEach((_, k) => { const g = p.querySelector('#qn' + k); if (g) g.setAttribute('class', k < i ? 'q-done' : k === i ? 'q-cur' : ''); });
     mark(); say(p, `${items[0].label}…`);
     return new Promise(done => {
-      const end = () => { c.stop(); finish(p, stop, {acc: correct / items.length, speed: c.left() / secs, correct, total: items.length}).then(done); };
+      const end = () => { c.stop(); finish(p, stop, {acc: correct / items.length, speed: c.left() / secs, correct, total: items.length, hits: hits.slice()}).then(done); };
       onHeld = pc => {
         if (i >= items.length) return;
         if (pc === items[i].pc) {
-          if (firstTry) correct++;
+          if (firstTry) { correct++; hits[i] = true; }
           i++; firstTry = true; mark(); A.Pitch.ignoreCurrent();
           if (i >= items.length) { say(p, 'Nice!', 'good'); end(); } else say(p, `${items[i].label}…`, 'good');
         } else { firstTry = false; say(p, Q.text('wrongNote', {note: seq.name(pc)}), 'bad'); }
@@ -597,6 +599,13 @@
       return play(enemy);
     },
     uses: t => ['play', 'longtone', 'articulate'].concat(RHYTHMIC).includes(resolve(t)),     // does this challenge use the mic?
+    /** QUICK PLAY (the Hamburger Charm): concert E♭ `notes` times (written in your instrument's key), in `time` s; the
+        snare: `notes` clean taps. -> {acc, speed, correct, total, hits: [true|false per note]} */
+    quick({notes: n = 3, time = 9} = {}) {
+      if (unpitched) return articulate({taps: n, time}, {taps: n, secs: time, title: Q.text('quickIntroDrum', {n})})
+        .then(r => Object.assign(r, {hits: Array.from({length: n}, (_, k) => k < r.correct)}));
+      return play({notes: 'Eb', order: 'order', repeat: true}, n, time, Q.text('quickIntro'));
+    },
     /** the B♭ Blast (Episode 1's song, from the Butler): the concert B♭ scale. learn: the whole scale bottom to top
         (the Snare Drum: 8 clean strokes); in battle: 4 scale notes in random order (snare: 6 strokes) */
     blast(learn) {

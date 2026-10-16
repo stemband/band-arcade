@@ -400,7 +400,10 @@
   const facing = () => { const [dx, dy] = DIRS[W.dir]; return [W.x + dx, W.y + dy]; };
   async function interact() {
     const [fx, fy] = facing();
-    const n = npcAt(fx, fy), th = thingAt(fx, fy), d = doorAt(fx, fy), g = ghostAt(fx, fy);
+    const n = npcAt(fx, fy), d = doorAt(fx, fy), g = ghostAt(fx, fy);
+    // the tile you face; else a SECRET charm right under your feet (the Main Stage's corner: whoever hugs the wall finds it)
+    let th = thingAt(fx, fy);
+    if (!th) { const u = thingAt(W.x, W.y); if (u && u.secret && u.charm && !Q.charms.owned(u.charm)) th = u; }
     // a story boss with a speech (THE BIG NUMBER: Maestro Moose at his podium): A talks to him, like walking into him
     if (g && !n && ((window.QUEST_ENEMIES || []).find(e => e.id === g.type) || {}).talk) return encounter(g);
     if (!n && !th && !(d && (!doorOpen(d) || !doorBuilt(d)))) return;
@@ -413,14 +416,15 @@
   }
 
   Q.world = {
-    /** a map entry's `if` (npcs, things, props): 'flag', '!flag', 'a&b' (all) or 'route:<enemy id>=befriend|fade' (how
-        that story enemy was passed: the save's route). No condition = always */
+    /** a map entry's `if` (npcs, things, props): 'flag', '!flag', 'a&b' (all), 'route:<enemy id>=befriend|fade' (how
+        that story enemy was passed: the save's route) or 'charm:<id>' (that charm is yours). No condition = always */
     cond(c) {
       if (!c) return true;
       if (c.includes('&')) return c.split('&').every(x => Q.world.cond(x.trim()));
       if (c[0] === '!') return !Q.world.cond(c.slice(1));
       const r = /^route:([\w-]+)=(\w+)$/.exec(c);
       if (r) return (Q.save.get().route || {})[r[1]] === r[2];
+      if (c.startsWith('charm:')) return Q.charms.owned(c.slice(6));     // 'charm:<id>': that charm is yours (the Main Stage's crumb)
       return Q.save.flag(c);
     },
     // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too
@@ -500,7 +504,7 @@
       W.anim.forEach(a => Q.draw(ctx, a.sprite, a.x * T - cx, a.y * T - cy, {t: now}));
       // a charm still hidden here (a map thing with `charm`): a small twinkle (steady under reduced motion)
       W.def.things.forEach(th => {
-        if (!th.charm || !Q.charms || Q.charms.owned(th.charm)) return;
+        if (!th.charm || th.secret || !Q.charms || Q.charms.owned(th.charm)) return;      // (a `secret` one: no twinkle at all)
         const on = Q.reduced() || Math.floor(now / 400) % 3 !== 0, x = th.at[0] * T + 11 - cx, y = th.at[1] * T + 3 - cy;
         if (!on) return;
         ctx.fillStyle = Q.css('q-white'); ctx.fillRect(x, y - 2, 1, 5); ctx.fillRect(x - 2, y, 5, 1);
@@ -539,7 +543,7 @@
       // the "talk" bubble over whoever you face
       if (!W.busy && !W.move) {
         const [fx, fy] = facing(), n = npcAt(fx, fy), th = thingAt(fx, fy);
-        if (n || th) Q.draw(ctx, 'talk', fx * T + 4 - cx, (n ? fy * T - 24 : fy * T - 8) - cy - (Q.reduced() ? 0 : Math.round(Math.abs(Math.sin(now / 250)) * 2)));
+        if (n || (th && !th.secret)) Q.draw(ctx, 'talk', fx * T + 4 - cx, (n ? fy * T - 24 : fy * T - 8) - cy - (Q.reduced() ? 0 : Math.round(Math.abs(Math.sin(now / 250)) * 2)));
       }
       // a whisper: faint static bands, and the microphone's silhouette in every window for a moment
       if (W.whisper) {

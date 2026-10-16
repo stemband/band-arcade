@@ -138,7 +138,8 @@
     if (th.charm && Q.charms.get(th.charm) && !Q.charms.owned(th.charm)) {       // a hidden charm (data/maps: charm)
       await Q.talk.sign(th.found || th.say);
       Q.charms.give(th.charm); Q.sfx('quest-item');
-      await Q.say([`You found a charm: the ${Q.charms.get(th.charm).name}! ${Q.charms.get(th.charm).desc}`, 'Wear it from the Pause menu: CHARMS. (Charms work in Arcade Quest only.)']);
+      const c = Q.charms.get(th.charm), pic = c.icon && Q.spriteDef('charm-' + c.icon) ? 'charm-' + c.icon : null;   // (its picture, when one is drawn)
+      await Q.say([`You found a charm: the ${c.name}! ${c.desc}`, 'Wear it from the Pause menu: CHARMS. (Charms work in Arcade Quest only.)'], pic ? {portrait: pic} : {});
       return;
     }
     if (th.say) await Q.talk.sign(th.say);
@@ -350,6 +351,7 @@
   /** how to get a charm you don't have yet */
   function charmHow(c) {
     const E = window.QUEST_ENEMIES || [], M = window.QUEST_MAPS || {};
+    if (c.secret) return c.secret;                                // (an easter egg: never where it is)
     return [c.price ? `${c.price} tokens at the Token Booth` : '', c.found ? `hidden in ${(M[c.found] || {}).name || 'the manor'}` : '',
       c.reward ? `befriend ${(E.find(e => e.id === c.reward) || {}).name || 'a ghost'}` : '', c.from || ''].filter(Boolean).join(', or ');
   }
@@ -413,7 +415,8 @@
       };
       const list = () => ids.map(id => {
         const own = Q.charms.owned(id), on = Q.charms.equipped().includes(id);
-        return {id, label: (on ? '✓ ' : '') + C[id].name, sub: own ? C[id].desc : `Not found yet: ${charmHow(C[id])}`, disabled: !own, cls: on ? 'q-owned' : ''};
+        const pic = own && C[id].icon && Q.spriteDef('charm-' + C[id].icon) ? 'charm-' + C[id].icon : null;      // (its icon, once it's yours)
+        return {id, label: (on ? '✓ ' : '') + C[id].name, sub: own ? C[id].desc : C[id].secret || `Not found yet: ${charmHow(C[id])}`, disabled: !own, cls: on ? 'q-owned' : '', pic};
       }).concat([{id: null, label: 'Done'}]);
       panel('Charms', body(), list(), {cols: 2, cls: 'q-shop q-charms', onPick: (it, i, api) => {
         if (!it.id) { api.close(); done(); return; }
