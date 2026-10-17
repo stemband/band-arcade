@@ -145,27 +145,26 @@ test.describe('THE FINAL STAND', () => {
     watch.check();
   });
 
-  test('2× damage a hit (ASSIST halves it), 2× speed (Dodging: Easy still slows it); always aimed at you, never your band', async ({browser}) => {
-    test.setTimeout(180000);
-    for (const [settings, hit, speed] of [[SETTINGS, 6, 2], [Object.assign({}, SETTINGS, {assist: true}), 3, 2], [Object.assign({}, SETTINGS, {dodge: 'easy'}), 6, 1.4]]) {
-      const ctx = await browser.newContext(), page = await ctx.newPage();
+  // one test per setting (THE TIME BUDGET: 60 s a test)
+  for (const [name, settings, hit, speed] of [['Normal', SETTINGS, 6, 2], ['ASSIST halves it', Object.assign({}, SETTINGS, {assist: true}), 3, 2],
+    ['Dodging: Easy still slows it', Object.assign({}, SETTINGS, {dodge: 'easy'}), 6, 1.4]]) {
+    test(`2× damage a hit, 2× speed (${name}); always aimed at you, never your band`, async ({page}) => {
       await page.clock.install();
       const watch = await boot(page, save({level: 60, band: ['spotlight', 'feedback']}), {settings});
       await bigNumber(page);
       await page.evaluate(() => { const s = Arcade.Quest.dodge.start; window.__hits = []; Arcade.Quest.dodge.start = o => s(Object.assign({}, o, {onHit: (d, b) => { window.__hits.push(d); return o.onHit(d, b); }})); });
       await toFloor(page);
       const band0 = (await st(page)).band;
-      await page.clock.runFor(25000);                                  // standing still: the batons find you
+      await page.clock.runFor(12000);                                  // standing still: Tubby's bursts and Sal's waves find you
       const r = await page.evaluate(() => ({hits: window.__hits, d: Arcade.Quest.dodge.state(), b: Arcade.Quest.battleState()}));
-      expect(r.hits.length, JSON.stringify(settings)).toBeGreaterThan(0);
-      expect([...new Set(r.hits)]).toEqual([hit]);                     // a stage hit is 3 (atk 2 × the stage's 1.3): × 2
+      expect(r.hits.length).toBeGreaterThan(0);
+      expect([...new Set(r.hits)]).toEqual([hit]);                     // a stage hit is 3 (round(atk 2.6)): × 2
       expect(r.d.mult).toBeCloseTo(speed, 5);
       expect(r.b.aim).toBe('you');
       expect(r.b.band.map(c => c.hp)).toEqual(band0.map(c => c.hp));  // the band cheers you on: never hit
       watch.check();
-      await ctx.close();
-    }
-  });
+    });
+  }
 
   test('surviving 60 s: the static cracks, the finale at 1 HP with CALM full; HARMONIZE (the E♭ scale) = the best ending', async ({page}) => {
     test.setTimeout(90000);
@@ -213,7 +212,7 @@ test.describe('THE FINAL STAND', () => {
     watch.check();
   });
 
-  test('the flash rule, measured: 3 s of each part (the drums\' shockwaves, everyone at once)', async ({page, browserName}) => {
+  test('the flash rule, measured: 3 s of each part (the drums\' shockwaves, everyone at once)', {tag: '@slow'}, async ({page, browserName}) => {
     test.skip(browserName !== 'chromium', 'the frame-by-frame measurement runs in Chromium');
     test.setTimeout(300000);
     await page.setViewportSize({width: 640, height: 400});
