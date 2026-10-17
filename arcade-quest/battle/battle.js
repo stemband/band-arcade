@@ -59,7 +59,20 @@
    B♭ scale). Key items (`keep` in data/items.js, the Conductor's Baton) aren't used up: once per battle.
    CHARMS (data/items.js QUEST_CHARMS, 2 worn, Q.charms in engine/save.js; ARCADE QUEST ONLY): `calm` × every CALM
    gain, `inTune` × damage of a PLAY at `at` accuracy or better, `block` sour notes blocked per battle (B.mute),
-   `dodge` × the enemy notes' speed (dodge.js), `maxHp` (the save's maxHp).
+   `dodge` × the enemy notes' speed (dodge.js), `maxHp` (the save's maxHp), `party` × the damage of your PLAY and of
+   every companion's hit (the Hamburger Charm: × 2), `quickPlay` = QUICK PLAY in PLAY's menu.
+   QUICK PLAY (the Hamburger Charm; designed by a Raven Band student): concert E♭ three times (RULES.quick; the snare:
+   3 clean taps), each note played = one regular PLAY hit (power × its accuracy × speed, the Tuning Fork, crits, ×
+   party), a missed note = a miss for that hit only; your band plays along once, after the last. It's your turn
+   (the band's turn follows) and it keeps the finale's rules and the Final Stand's floor like PLAY.
+   THE FINAL STAND (THE BIG NUMBER's `finalStand`, data/enemies.js; designed by a Raven Band student): the first time
+   its HP would reach `at` × its max (your PLAY, a QUICK PLAY or your band's hits) it STOPS THERE, and on the band's next
+   turn it makes its stand instead of a normal turn: quest-boss-phase, Maestro Moose's line, the FINAL STAND card,
+   then ONE dodge of its `parts` back to back (60 s), its notes × `speed` and × `dmg`, always aimed at you (your band
+   cheers you on). Each part: its member lit, their line in a small banner (the dodge keeps going), quest-fs-part;
+   the seconds left on screen. Survive and the static cracks: the finale (HP 1, CALM full, its lines, the choice).
+   Out of breath: HP back to full and the Final Stand again from its first part (never `outOfBreath`; after the
+   second miss, once, the Easy / Assist tip). Leaving the battle loses it as always; nothing of it is saved.
    Q.go('battle', {enemy: 'squawk', back: 'arena'}) or, from the overworld,
    Q.go('battle', {enemy: 'wisp', overrides: {happy: 2}, back: {scene: 'world', args: {...}}}): when it ends, the
    back scene gets args.result = {kind: 'befriend' | 'fade' | 'rest', enemy}. All words: data/battle-text.js. */
@@ -76,7 +89,9 @@
     // LUCKY CRIT at critLuckyFrom accuracy or better, 1 in 12 (critChance; the Sharp Ear charm: 1 in 6). × critMult;
     // your band hits × critBand that turn. PERFECT SERENADE: accuracy ≥ perfectSerenade = CALM × perfectMult
     critSkill: .95, critSpeed: .8, critLuckyFrom: .7, critChance: 1 / 12, critMult: 1.5, critBand: 1.2,
-    perfectSerenade: .95, perfectMult: 1.5};
+    perfectSerenade: .95, perfectMult: 1.5,
+    quick: {notes: 3, time: 9},                            // MAT: TUNE: QUICK PLAY (the Hamburger Charm): concert E♭ × notes, in time seconds
+    fsCardMs: 1400, fsBannerMs: 3500};                    // MAT: TUNE: THE FINAL STAND's title card and each part's banner (ms)
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
   const INTRO_SLIDE = 550;                                     // ms: the band sliding in beside you (THE LINEUP)
@@ -143,7 +158,8 @@
       challenge or a song */
   function playMenu() {
     const songs = [].concat(Q.save.flag('songBb') ? [{id: 'blast', label: Q.text('blast'), sub: Q.text('blastSub'), cls: 'c-play'}] : [],
-      Q.save.flag('songEb') ? [{id: 'encore', label: Q.text('encore'), sub: Q.text('encoreSub'), cls: 'c-play'}] : []);
+      Q.save.flag('songEb') ? [{id: 'encore', label: Q.text('encore'), sub: Q.text('encoreSub'), cls: 'c-play'}] : [],
+      Q.charms.effects().some(e => e.quickPlay) ? [{id: 'quick', label: Q.text('quick'), sub: Q.text('quickSub'), cls: 'c-play'}] : []);   // (the Hamburger Charm)
     if (!songs.length) return Promise.resolve('main');
     return new Promise(done => {
       const cmd = Q.$('qCmd'); cmd.hidden = false;
@@ -186,6 +202,8 @@
   /** the enemy takes n (you or a companion); a story-critical enemy (mustHarmonize) holds on at 1 HP */
   function hurtFoe(n) {
     B.e.hp -= n; B.hurtUntil = performance.now() + 450; Q.sfx('quest-enemy-hurt'); Q.shake(2, 180);
+    // THE FINAL STAND's floor: no hit (yours, a QUICK PLAY's, your band's) can jump past it; it starts on their turn
+    if (B.e.finalStand && !B.fsDone && B.e.hp <= fsFloor()) { B.e.hp = fsFloor(); B.fsPending = true; return; }
     if (B.e.hp >= 1) return;
     if (B.e.finale && !B.finale) {                                // the final boss's finale: he holds on at 1 HP ONCE
       B.e.hp = 1; B.finale = true; B.calm = RULES.calmMax; B.choiceSaid = true;
@@ -212,7 +230,7 @@
     active.forEach((c, i) => {
       if (B.e.hp <= 0) return;                                  // already fading: nothing left to play against
       const p = c.def.companion, perk = p.perk || {};
-      const dmg = Math.max(1, Math.round(power * p.power * res.acc * (perk.power || 1) * (crit ? RULES.critBand : 1)));   // they follow your lead: never a crit of their own
+      const dmg = Math.max(1, Math.round(power * p.power * res.acc * (perk.power || 1) * (crit ? RULES.critBand : 1) * Q.charms.mult('party')));   // they follow your lead: never a crit of their own (× party: the Hamburger Charm)
       c.hop = performance.now() + 250 + 300 * i;
       setTimeout(() => { if (B && B.band.includes(c)) float('-' + dmg, 186, 40 + 10 * i, 'dmg band'); }, 250 + 300 * i);
       hurtFoe(dmg);
@@ -258,6 +276,7 @@
   async function doPlay() {
     const which = await playMenu();
     if (!which) return false;
+    if (which === 'quick') return doQuick();
     const type = challengeNow(), blast = which === 'blast', encore = which === 'encore', song = blast || encore;
     if ((song || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     if (B.e.phases && !song) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
@@ -273,6 +292,7 @@
     if (boosted) { dmg = Math.round(dmg * boosted); B.boost = 0; }
     const crit = dmg > 0 ? critOf(res) : null;
     if (crit) dmg = Math.round(dmg * RULES.critMult);
+    if (dmg > 0 && Q.charms.mult('party') !== 1) dmg = Math.round(dmg * Q.charms.mult('party'));   // the Hamburger Charm
     B.lastCrit = crit;
     if (dmg > 0) {
       hurtFoe(dmg);
@@ -290,6 +310,34 @@
     addCalm((perNote * res.correct + (res.success ? B.e.calm.success || 0 : 0)) * B.calmScale, true);
     bandPlay(res, crit);                                        // your band plays along (your accuracy; ×1.2 after a critical)
     // 0 HP = it fades away, whatever its CALM (run() ends the battle): with a full CALM the student chose to keep playing
+    await sayQ();
+    return true;
+  }
+  /** QUICK PLAY (the Hamburger Charm): concert E♭ three times (the snare: 3 taps); each note played = one PLAY hit */
+  async function doQuick() {
+    if (!(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    const res = await Q.challenge.quick(RULES.quick);
+    if (B === null) return false;
+    B.lastKind = null;
+    const power = Q.save.powerAt(B.save.level), party = Q.charms.mult('party'), fork = Q.charms.effects().find(e => e.inTune && 1 >= (e.at || .9));
+    B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;          // the finale's rules, like a PLAY
+    const hits = res.hits || [];
+    let crit = null;
+    hits.forEach((ok, k) => {
+      if (!ok) { B.queue.push(Q.text('quickMiss', {k: k + 1})); return; }
+      if (B.e.hp <= 0) return;                                  // already fading
+      let dmg = Math.round(power * (1 - RULES.speedWeight + RULES.speedWeight * res.speed));   // a regular PLAY hit at this note's accuracy (1)
+      if (fork) dmg = Math.round(dmg * fork.inTune);
+      if (B.boost) { dmg = Math.round(dmg * B.boost); B.boost = 0; }   // (the Tuning Slide: the first hit)
+      const c = critOf({acc: 1, speed: res.speed}); if (c) { dmg = Math.round(dmg * RULES.critMult); crit = crit || c; }
+      dmg = Math.round(dmg * party);
+      hurtFoe(dmg); hud();
+      setTimeout(() => { if (B) float('-' + dmg, 160 + 12 * k, 26 + 8 * k, c ? 'dmg crit' : 'dmg'); }, 300 * k);
+      B.queue.push(Q.text('quickHit', {k: k + 1, name: B.e.name, n: dmg}));
+    });
+    B.lastCrit = crit;
+    if (B.e.hp > 1 && B.e.hp <= B.e.maxHp / 2 && !B.saidHurt) { B.saidHurt = true; B.queue.push(B.e.lines.hurt); }
+    bandPlay({acc: hits.length ? hits.filter(Boolean).length / hits.length : 0}, crit);   // your band plays along ONCE
     await sayQ();
     return true;
   }
@@ -377,6 +425,61 @@
     await Q.say(lines);
   }
 
+  /* ---------- THE FINAL STAND (THE BIG NUMBER's finalStand; see the header) ---------- */
+  const fsFloor = () => Math.max(1, Math.round(B.e.finalStand.at * B.e.maxHp));
+  const MOOSE = {name: 'Maestro Moose', portrait: 'npc-moose'};
+  /** the title card: FINAL STAND, for a moment (no zoom with reduced motion: CSS) */
+  const fsCard = () => new Promise(done => {
+    const c = Q.el('div', 'q-fs-card', `<b>${Q.text('fsTitle')}</b>`); Q.ui.appendChild(c);
+    setTimeout(() => { c.remove(); done(); }, RULES.fsCardMs);
+  });
+  /** a new part: its member lit, their line in the small banner (the dodge keeps going), a quiet boss-phase */
+  function fsPart(i) {
+    const part = B.e.finalStand.parts[i];
+    B.fsPart = i; B.fsLit = part.lit;
+    if (i > 0) Q.sfx('quest-fs-part');
+    const el = Q.$('qFsBanner'); if (!el) return;
+    el.innerHTML = `<b>${part.who}</b> ${part.say}`; el.hidden = false;
+    clearTimeout(B.fsBannerT); B.fsBannerT = setTimeout(() => { el.hidden = true; }, RULES.fsBannerMs);
+  }
+  async function finalStand() {
+    const b = B, fs = B.e.finalStand, total = fs.parts.reduce((n, p) => n + p.seconds, 0);
+    B.fsPending = false; B.fsActive = true; B.fsTries = 0; B.aim = 'you'; hud();
+    Q.sfx('quest-boss-phase'); Q.shake(4, 400);
+    await Q.say(Q.text('fsOpen'), MOOSE);
+    const slow = B.slow;                                         // (the Metronome: for every try of this stand)
+    for (;;) {
+      if (B !== b) return;
+      await fsCard();
+      if (B !== b) return;
+      const st = Q.settings.get();
+      Q.$('qFsTime').hidden = false;
+      const res = await Q.dodge.start({enemy: Object.assign({}, B.e, {dodge: {seconds: total, patterns: fs.parts[0].patterns}}), parts: fs.parts, speed: fs.speed, dmg: fs.dmg,
+        easy: st.dodge === 'easy', slow, shield: B.shield, assist: st.assist, mute: B.mute, charm: Q.charms.mult('dodge'), onPart: fsPart,
+        onHit: (dmg, blocked) => {                                // always you (your band cheers you on)
+          if (blocked) { float('Blocked!', 150, 80, 'calm'); return; }
+          Q.sfx('quest-hurt');
+          B.save.hp = Math.max(0, B.save.hp - dmg); float('-' + dmg, 40, 58, 'dmg'); hud();
+          if (B.save.hp <= 0) return 'stop';
+        }});
+      if (B !== b) return;
+      clearTimeout(B.fsBannerT); Q.$('qFsBanner').hidden = true; Q.$('qFsTime').hidden = true;
+      B.shield = res.shieldLeft || 0; B.mute = res.muteLeft || 0;
+      if (B.save.hp > 0) break;
+      // out of breath: HP back to full, the band holds at its floor, and the stand starts again from Part 1
+      B.fsTries++; B.fsLit = null; B.save.hp = B.save.maxHp; Q.save.write(); hud();
+      const lines = [Q.text('fsRetry')];
+      if (B.fsTries >= 2 && !B.fsTipSaid) { B.fsTipSaid = true; lines.push(Q.text('fsTip')); }
+      await Q.say(lines, MOOSE);
+    }
+    B.slow = null; B.fsActive = false; B.fsDone = true; B.fsLit = null; B.aim = null; Q.save.write();
+    // the static cracks: straight to the finale (the band's last 10 % is the stand itself)
+    B.e.hp = 1; B.finale = true; B.calm = RULES.calmMax; B.choiceSaid = true; hud();
+    Q.sfx('quest-boss-phase'); Q.shake(5, 500);
+    B.queue.push(Q.text('fsCrack'), ...[].concat(B.e.finale || []), Q.text(B.e.finaleChoice || 'finaleChoice', {name: B.e.name}));
+    await sayQ();
+  }
+
   /* ---------- endings ---------- */
   async function rewards(kind) {
     const r = (B.e.rewards || {})[kind] || {xp: 5, tokens: 1}, s = B.save;
@@ -438,6 +541,7 @@
       if (r === 'over') break;
       if (r === false) continue;                                  // backed out: still your turn
       if (b.e.hp <= 0) { await fade(); break; }
+      if (b.fsPending && !b.fsDone) { await finalStand(); if (B !== b) return; b.round++; continue; }   // THE FINAL STAND, instead of their turn
       await enemyTurn();
       b.round++;
       if (B !== b) return;
@@ -481,7 +585,8 @@
         B.band.map((c, i) => `<div class="q-comp" id="qComp${i}"><span class="q-cname">${c.name}</span><div class="q-bar chp"><i></i></div><small></small></div>`).join('') + `</div></div>` +
         `<p class="q-mictag" id="qMicTag" hidden><span class="q-dot"></span> The mic is listening</p>` +
         `<button type="button" class="q-gear" id="qGear" aria-label="Settings">⚙</button>` +
-        `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>`;
+        `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>` +
+        (src.finalStand ? `<p class="q-fs-banner" id="qFsBanner" hidden></p><p class="q-fs-time" id="qFsTime" hidden></p>` : '');
       Q.$('qGear').addEventListener('click', () => Q.settings.open().then(() => { if (B) B.player = Q.playerId(member.id); }));
       hud();
       Q.ui.querySelectorAll('.q-hname,.q-cname').forEach(Q.fitText);     // long names shrink (then wrap), never "…"
@@ -519,6 +624,9 @@
       // you
       if (!dodging) Q.draw(ctx, B.player, 6, B.band.length ? 58 : 52, {scale: 2, t: now});   // switches to its PLAYING pose during a challenge
       Q.dodge.draw(ctx, now);
+      // THE FINAL STAND: the seconds left to survive
+      const ft = B.fsActive && Q.$('qFsTime'), ds = ft && Q.dodge.state();
+      if (ds) { const t = Q.text('fsTime', {n: Math.max(0, Math.ceil(ds.len - ds.t))}); if (ft.textContent !== t) ft.textContent = t; }
     },
   };
   /* THE BIG NUMBER (sprites-stage.js 'bignumber': `members` = [{sprite, ok, at}] in its own 72 × 48 box): the member
@@ -528,7 +636,7 @@
      no shift (the dim members hold still). */
   const FLICKER = {hz: .8, lo: .42, hi: .58, shiftEvery: 1.7, shiftFor: .12};
   function band5(ctx, now, d, s, x0, y0, alpha) {
-    const lit = B.state === 'friend' ? -1 : Math.max(0, stageIdx()), still = Q.reduced(), t = now / 1000;
+    const lit = B.state === 'friend' ? -1 : B.fsLit != null ? B.fsLit : Math.max(0, stageIdx()), still = Q.reduced(), t = now / 1000;   // (THE FINAL STAND: its part's member; -1 = everyone)
     const order = d.members.map((m, i) => i).sort((a, b) => d.members[a].at[1] - d.members[b].at[1]);   // the back row first
     order.forEach(i => {
       const m = d.members[i], on = lit < 0 || i === lit, x = x0 + m.at[0] * s, y = y0 + m.at[1] * s;
@@ -539,9 +647,12 @@
     });
   }
   /** tests: THE BIG NUMBER's lit member (-1 = everyone, befriended) and the flicker's numbers */
-  Q.bandLit = () => (B && Q.spriteDef(B.e.sprite) && Q.spriteDef(B.e.sprite).members ? (B.state === 'friend' ? -1 : Math.max(0, stageIdx())) : null);
+  Q.bandLit = () => (B && Q.spriteDef(B.e.sprite) && Q.spriteDef(B.e.sprite).members ? (B.state === 'friend' ? -1 : B.fsLit != null ? B.fsLit : Math.max(0, stageIdx())) : null);
   Q.bandLit.FLICKER = FLICKER;
+  /** ?demo only (tests): set the enemy's HP right now */
+  Q.battleDemo = {hp(n) { if (A.DEMO && B) { B.e.hp = n; hud(); } }};
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
     power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
-    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup};   // tests
+    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup,
+    fs: B.e.finalStand ? {floor: fsFloor(), pending: !!B.fsPending, active: !!B.fsActive, done: !!B.fsDone, part: B.fsPart == null ? null : B.fsPart, tries: B.fsTries || 0, tip: !!B.fsTipSaid, finale: !!B.finale} : null};   // tests
 })(window.Arcade);

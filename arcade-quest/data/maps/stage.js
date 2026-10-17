@@ -487,11 +487,16 @@ Object.assign(window.QUEST_MAPS, {
       ...[[5, 6], [7, 3], [11, 3], [17, 6], [15, 3]].flatMap(at => [{at, sprite: 'stage-glitch', under: true, if: '!ep2Done'}, {at, sprite: 'stage-spot', under: true, if: 'ep2Done'}]),
       {at: [11, 8], sprite: 'stage-mic', if: '!ep2Done'},
       {at: [11, 8], sprite: 'stage-hole', under: true, if: 'ep2Done'},
+      // THE HAMBURGER CHARM's only clue (designed by a Raven Band student): a crumb on the boards, nothing more
+      {at: [1, 8], sprite: 'burger-crumb', under: true, if: '!charm:hamburger'},
     ],
     things: [
       {at: [11, 8], say: 'stage-mic', if: '!ep2Done'}, {at: [11, 8], say: 'stage-cable', if: 'ep2Done'},
       {at: [11, 4], say: 'stage-podium'}, {at: [5, 1], say: 'stage-backdrop'}, {at: [14, 1], say: 'stage-backdrop'},
       {at: [4, 9], say: 'stage-footlights'}, {at: [17, 9], say: 'stage-footlights'},
+      // THE HAMBURGER CHARM: the bottom-left corner of the stage, before or after THE BIG NUMBER. `secret`: no twinkle,
+      // and A finds it standing ON this tile too (engine/world.js), so a wall-hugger in the corner finds it
+      {at: [1, 8], charm: 'hamburger', found: 'stage-burger-found', secret: true},
     ],
     enemies: [
       {key: 'boss', type: 'bignumber', at: [11, 3], wander: 0, boss: true, sprite: 'npc-moose'},   // (boss: not one of the 20 machines)

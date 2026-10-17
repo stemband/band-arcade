@@ -25,9 +25,13 @@ window.QUEST_ITEMS = {
            | {toneCalm: × CALM gained from a LONG TONE (a PLAY or SERENADE that held a note)}
            | {rhythm: × the RHYTHM / TEMPO / ECHO timing windows (battle/challenges.js RHYTHM: 1.15 = 70 → 80 ms PERFECT)}
            | {tokens: × the Arcade Tokens a battle gives (battle.js rewards)}
+           | {party: × the damage of your PLAY AND of every companion's hit (stacks with the Tuning Fork, a boost and
+             critical hits, like they stack with each other)} | {quickPlay: true = QUICK PLAY in PLAY's menu (battle.js)}
    how you get it: price = Arcade Tokens at the Token Booth · found = '<room>' (a spot in the manor: the map's
    thing with charm: '<id>') · reward = '<enemy id>' (befriending that ghost) · from = how else, in words (the
-   CHARMS panel says it: a lesson). A charm can have more than one. */
+   CHARMS panel says it: a lesson). A charm can have more than one. secret = what the CHARMS panel says instead of
+   where it hides (the Hamburger Charm: an easter egg). icon = its picture, the sprite 'charm-<icon>' when one is drawn
+   (sprites-stage.js; the CHARMS panel and the found message show it). */
 window.QUEST_CHARMS = {
   'golden-mouthpiece': {name: 'Golden Mouthpiece', icon: 'mouthpiece', desc: '+8 max HP. Big sound, big lungs.', effect: {maxHp: 8}, price: 150},
   'lucky-reed':        {name: 'Lucky Reed', icon: 'reed', desc: 'CALM rises 30% faster.', effect: {calm: 1.3}, found: 'kitchen', price: 250},
@@ -44,4 +48,7 @@ window.QUEST_CHARMS = {
   'rosin-pouch':       {name: 'Rosin Pouch', icon: 'reed', desc: 'Long tones calm machines 30% faster.', effect: {toneCalm: 1.3}, found: 'pit'},
   // THE DEFEAT ROUTE's treasure (Episode 2, like the Echo Chime): only in the Vent, opened by powering Rico Bandit down
   'ricos-pick':        {name: 'Rico\'s Lucky Pick', icon: 'ear', desc: 'Battles give 50% more tokens. Rico swears it\'s lucky.', effect: {tokens: 1.5}, found: 'vent'},
+  // EPISODE 2's HIDDEN EASTER EGG (designed by a Raven Band student): the Main Stage's bottom-left corner, no sparkle,
+  // no sign. The 4th of QUEST_V6.charms' 6 places in the save code
+  'hamburger':         {name: 'Hamburger Charm', icon: 'burger', desc: 'Your band hits twice as hard. Unlocks QUICK PLAY: 3 E♭s, 3 hits!', effect: {party: 2, quickPlay: true}, found: 'stage', secret: 'A secret somewhere on the Main Stage...'},
 };

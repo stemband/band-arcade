@@ -287,3 +287,61 @@ test('BALANCE: the rhythm tiers at accuracy about .8 (the real judge, every patt
   fs.writeFileSync(path.join(OUT, 'quest-balance-rhythm.json'), JSON.stringify(r, null, 1));
   watch.check();
 });
+
+/* THE FINAL STAND, MEASURED (designed by a Raven Band student; data/enemies.js QUEST_FINAL_STAND): the REAL dodge (60 s,
+   its 6 parts, 2× damage and speed) on the test clock, at Dodging: Normal and Easy, with two stand-in students: STILL
+   (never moves: the worst case) and WANDER (keeps moving, a new random direction every 0.4 s, never looking at the
+   hazards). Nothing is stopped by a knockout here: every hit is counted for the whole 60 s, then held against LV 7's
+   and LV 10's HP (44 and 56) to say where a student would run out of breath. 3 runs each. */
+test('BALANCE: THE FINAL STAND (the real dodge, 60 s): hits and HP lost at Dodging Normal and Easy, LV 7 and LV 10', async ({browser}) => {
+  test.setTimeout(900_000);
+  const HP = {7: 44, 10: 56}, RUNS = 3, out = {};
+  for (const dodge of ['normal', 'easy']) for (const bot of ['still', 'wander']) {
+    const runs = [];
+    for (let n = 0; n < RUNS; n++) {
+      const ctx = await browser.newContext(), page = await ctx.newPage();
+      await page.clock.install();
+      const s = {v: 6, level: 10, xp: 0, hp: 56, maxHp: 56, tokens: 0, items: {}, roster: [], battles: {won: 9, befriended: 4, faded: 5}, world: {map: 'lobby', x: 21, y: 5, dir: 'up'},
+        converted: {}, charms: {owned: {}, equipped: [null, null]}, band: [], route: {rico: 'befriend'}, ep: 2, done: {},
+        flags: {'seen-intro': true, pathsTip: true, ep1Done: true, ep2Start: true, rhythmTip: true, ricoDone: true, 'met-bignumber': true}};
+      const watch = await prepare(page, {store: device('trumpet', {avatarOffered: true, gameData: {'arcade-quest': {save: s, settings: {textSpeed: 'instant', dodge, assist: false}, keysTip: true}}})});
+      await page.goto('arcade-quest/index.html?demo&test');
+      await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName === 'arena');
+      await page.evaluate(bot => {
+        const Q = Arcade.Quest;
+        Q.micReady = async () => true;
+        Q.challenge.run = async () => ({acc: 1, speed: 1, correct: 4, total: 4, success: true});
+        const start = Q.dodge.start;
+        window.__hits = [];
+        Q.dodge.start = o => start(Object.assign({}, o, {onHit: (d, blocked) => { if (!blocked) window.__hits.push([+Q.dodge.state().t.toFixed(2), d]); }}));
+        if (bot === 'wander') setInterval(() => { const h = Q.input.held, r = () => Math.floor(Math.random() * 3) - 1, x = r(), y = r();
+          h.left = x < 0; h.right = x > 0; h.up = y < 0; h.down = y > 0; }, 400);
+        Q.go('battle', {enemy: 'bignumber', back: 'arena'});
+      }, bot);
+      for (let i = 0; i < 400 && !(await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))); i++) {
+        if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');
+        await page.clock.runFor(100);
+      }
+      await page.evaluate(() => { Arcade.Quest.battleDemo.hp(Math.round(Arcade.Quest.battleState().ehp * .3)); document.querySelector('#qCmd .q-btn').click(); });
+      for (let i = 0; i < 400 && !(await page.evaluate(() => Arcade.Quest.dodge.active())); i++) {
+        if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');
+        await page.clock.runFor(100);
+      }
+      expect(await page.evaluate(() => Arcade.Quest.dodge.state().parts)).toBe(6);
+      while (await page.evaluate(() => Arcade.Quest.dodge.active())) await page.clock.runFor(1000);
+      const hits = await page.evaluate(() => window.__hits);
+      const lost = hits.reduce((n, h) => n + h[1], 0), outAt = hp => { let n = 0; for (const [t, d] of hits) { n += d; if (n >= hp) return t; } return null; };
+      runs.push({hits: hits.length, dmg: hits.length ? hits[0][1] : 0, lost, perPart: [0, 1, 2, 3, 4, 5].map(p => hits.filter(h => h[0] >= p * 10 && h[0] < p * 10 + 10).length),
+        outOfBreathAt: {7: outAt(HP[7]), 10: outAt(HP[10])}});
+      watch.check();
+      await ctx.close();
+    }
+    const avg = k => +(runs.reduce((n, r) => n + r[k], 0) / runs.length).toFixed(1);
+    out[`${dodge}/${bot}`] = {hits: avg('hits'), hpLost: avg('lost'), perHit: runs[0].dmg,
+      perPart: [0, 1, 2, 3, 4, 5].map(p => +(runs.reduce((n, r) => n + r.perPart[p], 0) / runs.length).toFixed(1)),
+      survives: {7: runs.filter(r => r.lost < HP[7]).length + '/' + RUNS, 10: runs.filter(r => r.lost < HP[10]).length + '/' + RUNS},
+      outOfBreathAt: {7: runs.map(r => r.outOfBreathAt[7]), 10: runs.map(r => r.outOfBreathAt[10])}};
+  }
+  fs.mkdirSync(OUT, {recursive: true});
+  fs.writeFileSync(path.join(OUT, 'quest-balance-final-stand.json'), JSON.stringify(out, null, 1));
+});

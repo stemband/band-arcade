@@ -149,7 +149,7 @@ window.Arcade = window.Arcade || {};
       'backstage:m3', 'backstage:m4', 'dressing:m1', 'dressing:m2', 'dressing:m3', 'loft:m1', 'loft:m2', 'loft:m3', 'loft:m4',
       'balcony:m1', 'balcony:m2', 'dressing:boss', 'stage:boss'],                                                   // 22 places
     roster: ['tapsy', 'spotlight', 'feedback', 'confetti', 'metrognome', 'stubs', 'ropeknot', 'miclet', 'rico', 'bignumber'],   // 12 places
-    charms: ['metronome-ticker', 'rosin-pouch', 'ricos-pick'],                                                      // 6 places
+    charms: ['metronome-ticker', 'rosin-pouch', 'ricos-pick', 'hamburger'],                                         // 6 places (append only: the Hamburger Charm is the 4th, its bit was always 0)
     // QUEST_V5's list (frozen), then new {shop} items (only ever add to the END: 82 places in all): build step 5's
     // STAGE COLLECTION (sold only at Ticket Booth Tina: avatar-parts.js STAGE_COLLECTION)
     cosmetics: QUEST_V5.cosmetics.concat(['top:bowtie', 'head:bulbband', 'head:usher']),

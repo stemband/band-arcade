@@ -72,6 +72,14 @@
                             then the student chooses: HARMONIZE (the best ending) or PLAY on (it fades: the defeat ending,
                             QUEST_CUTSCENES['ending-fade']). Episode 1 is finished either way
                harmonizeKeep  a missed HARMONIZE doesn't empty the CALM meter
+               finalStand   (EPISODE 2's THE BIG NUMBER; designed by a Raven Band student) {at, dmg, speed, parts}: the
+                            first time its HP would reach `at` × its max it stops there, and on the band's next turn it
+                            makes a FINAL STAND instead: one dodge of `parts` back to back ([{seconds, who, portrait,
+                            lit (the member lit; -1 = everyone), say (one line, in a banner), patterns}]), its notes
+                            `speed` × as fast and `dmg` × as hard (Easy, the Metronome and ASSIST still apply after),
+                            always aimed at you. Survive it and the static cracks: the finale (HP 1, CALM full, the
+                            choice). Out of breath = HP refilled and the Final Stand from its first part again (no limit;
+                            the battle never ends there). battle.js runs it; battle/dodge.js its pieces
                harmonize {type: 'scale', time}  the whole concert B♭ scale, bottom to top (snare: 8 clean strokes)
    ALSO (EPISODE 2's MINI-BOSS, Rico Bandit):
                doneFlag     a flag set when it's helped EITHER way (Rico: 'ricoDone'; the save repair keeps it too)
@@ -417,6 +425,7 @@ window.QUEST_ENEMIES = [
     afterLines: {befriend: ['The star on the stage door lights up. Somewhere beyond it, the stage waits.'],
       fade: ['CLANG! Behind the mirrors, the vent grate pops open. Rico snores in his chair.']},
   },
+];
   /* THE BIG NUMBER, EPISODE 2's FINAL BOSS (the Main Stage, stage:boss): the whole Showtime Band, glitched together by
      the static. Modeled on the Ghost Conductor: 5 `stages`, one per band member (each its own challenge and dodge;
      `who` + `portrait` = who speaks when the stage starts; `lit` = which member the battle lights up: sprites-stage.js
@@ -427,6 +436,33 @@ window.QUEST_ENEMIES = [
      stage area's 1.4 = 196 HP solo (a trio: × 1.9 = 372). Students reach it at LV 7 on the POWER DOWN route (alone, no
      healing items: about 12 PLAYs, 2 to spare before they're out of breath) and LV 10 on the BEFRIEND route (with the
      band). It was 215 (× 1.6 = 344, planned for LV 12–16): a POWER DOWN student lost it every time at 2/3 of the way. */
+(function () {
+  /* THE FINAL STAND (designed by a Raven Band student): six parts of 10 s, one per band member, then everyone at
+     once. Every number here is Mat's to tune. */
+  const FS = {
+    at: .1,             // MAT: TUNE: starts when the band's HP reaches 10 % of its max
+    dmg: 2, speed: 2,   // MAT: TUNE: the student's buff: 2× damage, 2× speed (on top of the Dodging / Assist settings)
+    partS: 10,          // MAT: TUNE: seconds per part (6 parts = 60 s)
+    allRate: .5,        // MAT: TUNE: the last part (everyone at once) plays each member's pattern at this share of its own rate
+  };
+  // each member's part (their patterns; speeds before the 2×, every = seconds between pieces). MAT: TUNE: every and speed
+  const FS_PARTS = [
+    {who: 'Tubby Tusk', portrait: 'npc-tusk', lit: 0, say: 'BWAAAA! Here come my notes! Watch for the rings, then dodge!',
+      patterns: [{kind: 'burst', from: 'center', sprite: 'flurry-shot', every: 1.7, count: 8, speed: 24}]},
+    {who: 'Snapjaw Sal', portrait: 'npc-sal', lit: 2, say: 'BA-DUM! Feel the shockwave? Slip through the gap, kid!',
+      patterns: [{kind: 'rings', from: 'drum', every: 1.8, speed: 22}]},
+    {who: 'Maestro Moose', portrait: 'npc-moose', lit: 4, say: 'Batons up, everyone! Keep moving, little maestro!',
+      patterns: [{kind: 'aimed', sprite: 'baton-shot', every: 1, speed: 30}, {kind: 'baton', every: 3.6, speed: .8}]},
+    {who: 'Professor Hoot', portrait: 'npc-hoot', lit: 1, say: 'Hoo! Every line has a hole in it. Read ahead and find it!',
+      patterns: [{kind: 'measure', dir: 'alt', every: 1.4, speed: 26}]},
+    {who: 'Rico Bandit', portrait: 'npc-rico', lit: 3, say: 'My sax solo! Watch the dotted lines. Bet you can dodge it!',
+      patterns: [{kind: 'beam', from: 'sax', every: 1.6, speed: 40}]},
+  ];
+  FS_PARTS.push({who: 'Maestro Moose', portrait: 'npc-moose', lit: -1, say: 'EVERYONE! The big finish! Stay with us, all the way!',
+    patterns: [].concat(...FS_PARTS.map(p => p.patterns.map(x => Object.assign({}, x, {every: x.every / FS.allRate}))))});
+  FS_PARTS.forEach(p => { p.seconds = FS.partS; });
+  window.QUEST_FINAL_STAND = FS;
+  window.QUEST_ENEMIES.push(
   {
     id: 'bignumber', name: 'The Big Number', sprite: 'bignumber', hp: 140, atk: 2, area: 'stage', ep: 2, boss: true, final: true,
     music: ['quest-ep2-boss', 'quest-boss'], talk: 'bignumber', doneFlag: 'ep2Done',
@@ -455,7 +491,9 @@ window.QUEST_ENEMIES = [
     harmonize: {type: 'scale', notes: 'Eb', time: 40},
     listen: ['THE BIG NUMBER: the whole Showtime Band, glitched together by the static.',
       'Each takes a turn: a long tone, the E♭ scale, a rhythm, an echo, then a tempo.',
-      'Play until the static lets go, then HARMONIZE (or play on: they power down).'],
+      'Play until the static lets go, then HARMONIZE (or play on: they power down).',
+      'Near the end they make a FINAL STAND: survive 60 seconds of their best!'],
+    finalStand: {at: FS.at, dmg: FS.dmg, speed: FS.speed, parts: FS_PARTS},
     dodge: {seconds: 7, patterns: [{kind: 'baton', every: 2.2, speed: 1.2}]},
     companion: {power: .5, perk: {calm: 12}, hp: .9},
     rewards: {fade: {xp: 40, tokens: 20}, befriend: {xp: 80, tokens: 50, item: 'mic-stand'}},
@@ -464,5 +502,5 @@ window.QUEST_ENEMIES = [
       hurt: 'The band wobbles... the static flickers... but it holds on.', calm: 'For a moment, the band almost plays together.',
       fade: 'The static lets go. One by one, the band powers down, gently, to rest.',
       befriend: 'Their eyes glow blue. "We\'re BACK! {hero}, take the Golden Mic Stand!"'},
-  },
-];
+  });
+})();

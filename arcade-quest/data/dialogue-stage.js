@@ -419,6 +419,8 @@ Object.assign(window.QUEST_SIGNS, {
   'moose-note': ['A note on the carpet, in big loopy letters:', '"GONE TO THE STAGE! PLACES, EVERYONE! — M.M."'],
   'stage-mic': ['The stage mic, in its stand. Its little red light glows, very dim.', 'It\'s pointed right at the band. Almost like it\'s... listening.'],
   'stage-cable': ['The cable runs down, under the arcade. Somewhere, a red light is listening.'],
+  // THE HAMBURGER CHARM (the Main Stage's bottom-left corner; designed by a Raven Band student)
+  'stage-burger-found': ['Something crunches underfoot. Wedged in the corner: a tiny golden hamburger!'],
   'stage-podium': ['Maestro Moose\'s podium. The score on it says: "THE BIG NUMBER. Fortissimo!"'],
   'stage-backdrop': ['A painted backdrop: a starry night over a city. A few of the stars are bulbs.'],
   'stage-footlights': ['The footlights glow, soft and warm. They\'ve waited years for a show.'],
