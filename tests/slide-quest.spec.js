@@ -160,9 +160,11 @@ test('THE BEATS: the drone and the horn 3 Hz apart beat at 3 Hz (an OfflineAudio
   await expect.poll(async () => (await st(page)).droneOn).toBe(true);
   const r = await page.evaluate(async () => {
     const Q = Arcade.SlideQuest, B = Arcade.SQBrass, S = Arcade.SQSlide, s = Q.state();
-    // put the live horn exactly 3 Hz below the target (the drone): flat is always in reach (a 1st-position target
-    // can't go sharper than the stops)
-    const n = s.target.n, want = s.target.freq - 3, x = (S.SLIDE.L0 * S.base(n, 'ideal') / want - S.SLIDE.L0) / 2;
+    // put the live horn exactly 3 Hz off the target (the drone): flat, unless that is past the end of the slide (a
+    // 7th-position target), then sharp (a 1st-position target can't go sharp: the slide is against the stops)
+    const n = s.target.n, xFor = f => (S.SLIDE.L0 * S.base(n, 'ideal') / f - S.SLIDE.L0) / 2;
+    let x = xFor(s.target.freq - 3);
+    if (x > S.SLIDE.travel) x = xFor(s.target.freq + 3);
     Q.setSlide(x); Q.blow(true);
     const fh = B.test.target(), fd = B.test.drone().freq;
     const beat = async (a, b) => {
@@ -179,7 +181,7 @@ test('THE BEATS: the drone and the horn 3 Hz apart beat at 3 Hz (an OfflineAudio
     };
     return {fh, fd, three: await beat(fh, fd), tuned: await beat(fd, fd)};
   });
-  expect(r.fd - r.fh).toBeCloseTo(3, 6);
+  expect(Math.abs(r.fd - r.fh)).toBeCloseTo(3, 6);
   expect(r.three.f).toBeGreaterThan(2.7); expect(r.three.f).toBeLessThan(3.3);
   expect(r.three.depth).toBeGreaterThan(.4);                        // a clear wah-wah-wah, not a ripple
   expect(r.tuned.depth).toBeLessThan(r.three.depth / 3);            // in tune: the beating stops
