@@ -1,6 +1,6 @@
 /* AFTER REPLACING SOUNDS in shared/sounds/, add 1 to this number, so every student's device loads the new files right
    away instead of a copy it saved earlier (every sound URL ends in ?v=<this number>). */
-var SOUNDS_VERSION = 6;
+var SOUNDS_VERSION = 7;
 
 /* Band Arcade: THE SOUND LIST. Every sound the arcade plays, by event name. shared/sfx.js plays them.
 
@@ -408,7 +408,7 @@ window.Arcade = window.Arcade || {};
     // microphone listens a sound mutes it for its length (+ 250 ms), so the "during play" ones stay under 0.5 s ----
     // PEDAL POINT: no microphone, ever. The drum and the pitch pipe are synthesized (pedal-point/timpani.js); these are
     // its UI effects, all UNPITCHED (a pitched effect would muddy what the student is tuning)
-    'pedal-point-menu': {file: 'pedal-point-menu', vol: .45, loop: true, mic: false, screen: 'pedal-point', when: 'Pedal Point: menu music: the level select, a level\'s intro and the results. Fades out (0.5 s) when a level starts: tuning needs quiet. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
+    'pedal-point-menu': {file: 'pedal-point-menu', vol: .25, loop: true, mic: false, screen: 'pedal-point', when: 'Pedal Point: menu music: the level select, a level\'s intro and the results. Fades out (0.5 s) when a level starts: tuning needs quiet. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'pp-lock':  {file: 'pp-lock', vol: .5, mic: false, screen: 'pedal-point', gen: [[2600, 0, .03, .25, 'noise', 1.6], [1400, .04, .05, .2, 'noise', 1.2]], when: 'Pedal Point: LOCK IN (the tuning is judged). A solid click, never a tone.', len: 'under 0.2 s'},
     'pp-star':  {file: 'pp-star', vol: .5, mic: false, screen: 'pedal-point', gen: [[[5200, 7400], 0, .12, .12, 'noise', 2], [[6200, 8400], .12, .14, .1, 'noise', 2]], when: 'Pedal Point: a BULLSEYE (a tuning within 3 cents), right after pp-lock. A sparkle, never a tone.', len: 'under 0.4 s'},
     'pp-count': {file: 'pp-count', vol: .3, mic: false, screen: 'pedal-point', gen: [[3000, 0, .02, .14, 'noise', 2.2]], when: 'Pedal Point: QUICK CHANGE: each beat of the bars of rest before the downbeat. A quiet tick, never a tone (it plays while the student listens to the drum).', len: 'under 0.1 s'},
