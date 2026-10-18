@@ -1,0 +1,120 @@
+/* Slide Quest: a trombone under a spotlight on a dark stage (tokens --sq-* in shared/theme.css) */
+.hub-head{margin-bottom:18px}
+.game-title span{color:var(--cyan-hi);text-shadow:0 0 12px rgba(120,230,255,.5)}
+
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:640px){.levels{grid-template-columns:repeat(2,1fr)}}
+.lvl{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto 1fr auto;gap:2px 8px;text-align:left;background:var(--night-2);border:2px solid transparent;border-radius:16px;padding:12px 12px 12px 14px;min-height:150px}
+.lvl:hover:not([disabled]){border-color:var(--sq-brass-hi)}
+.lvl .n{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);font-weight:700}
+.lvl .t{grid-column:1;font-weight:700;font-size:17px;line-height:1.2}
+.lvl .d{grid-column:1/-1;font-size:13px;color:var(--mist);line-height:1.35}
+.lvl .mini{grid-column:2;grid-row:1/3;width:44px}
+.lvl .mini svg{width:100%;display:block}
+.lvl .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mist);font-variant-numeric:tabular-nums;margin-top:6px}
+.lvl[disabled]{cursor:not-allowed;opacity:.45}
+.si-bell{fill:var(--sq-brass)}
+.si-in{stroke:var(--sq-chrome);stroke-width:2;fill:none}
+.si-out{stroke:var(--sq-brass);stroke-width:3.5;fill:none}
+
+.hud{display:grid;grid-template-columns:repeat(3,auto);justify-content:space-between;gap:10px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.hud div{display:flex;flex-direction:column;min-width:0}
+.hud .c{text-align:center}
+.hud .r{text-align:right}
+.hud small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);font-weight:700}
+.hud b{font-size:20px;line-height:1.2}
+.sq-prompt{min-height:26px;text-align:center;margin:4px 0 8px;font-size:18px;font-weight:700;line-height:1.3;color:var(--text-hi)}
+
+/* THE STAGE: the trombone seen from the side, the full width of the play area */
+.sq-stage{position:relative;border-radius:var(--r);padding:6px 4px 2px;border:2px solid var(--sq-brass-2);touch-action:none;
+  background:radial-gradient(ellipse 55% 80% at 40% 0%,rgba(255,225,160,.2),transparent 70%),linear-gradient(180deg,var(--sq-night-2),var(--sq-stage) 66%,var(--sq-stage-2))}
+.sq-horn{width:100%;display:block;overflow:visible}
+.sq-tube{fill:none;stroke:var(--sq-brass);stroke-width:12;stroke-linecap:round}
+.sq-bell{fill:var(--sq-brass);stroke:var(--sq-brass-2);stroke-width:2}
+.sq-rim{fill:var(--sq-brass-hi);stroke:var(--sq-brass-2);stroke-width:2}
+.sq-shine{fill:none;stroke:var(--sq-brass-hi);stroke-width:4;stroke-linecap:round;opacity:.65}
+.sq-shank{stroke:var(--sq-chrome);stroke-width:8}
+.sq-mp{fill:var(--sq-chrome);stroke:var(--sq-chrome-2);stroke-width:2}
+.sq-inner{stroke:var(--sq-chrome);stroke-width:9;stroke-linecap:round}
+.sq-brace{fill:var(--sq-chrome-2);stroke:var(--sq-chrome-2);stroke-width:6}
+.sq-mark{stroke:var(--sq-mark);stroke-width:2.5}
+.sq-mk{font:700 28px var(--display);fill:var(--sq-mark)}
+.sq-marks[hidden]{display:none}
+.sq-otube{fill:none;stroke:var(--sq-brass);stroke-width:18;stroke-linecap:butt}
+.sq-otube-hi{stroke:var(--sq-brass-hi);stroke-width:3;opacity:.6}
+.sq-ferrule{fill:var(--sq-brass-hi);stroke:var(--sq-brass-2);stroke-width:2}
+.sq-grip{fill:var(--sq-brass-2);stroke:var(--sq-brass-hi);stroke-width:2}
+.sq-bumper{fill:var(--sq-night);stroke:var(--sq-chrome-2);stroke-width:2}
+.sq-hit{fill:transparent}
+.sq-outer{cursor:grab;touch-action:none}
+.sq-outer.held{cursor:grabbing}
+.sq-outer.held .sq-otube{stroke:var(--sq-brass-hi)}
+.sq-ghost{pointer-events:none}
+.sq-ghost path{fill:none;stroke:var(--sq-mark);stroke-width:5;stroke-dasharray:14 10;opacity:.95}
+.sq-ghost[hidden]{display:none}
+/* while the horn sounds the bell glows softly (a slow fade: never a flash) */
+.sq-bellglow{opacity:0;transition:opacity .35s ease}
+.sq-stage.sounding .sq-bellglow{opacity:1}
+.sq-mini .sq-bellglow{display:none}
+
+/* THE CONTROLS */
+.sq-controls{margin-top:10px}
+.sq-controls[hidden]{display:none}
+.sq-main{display:grid;grid-template-columns:auto minmax(0,260px) auto;justify-content:center;align-items:center;gap:10px}
+.sq-nudge{min-width:56px;min-height:56px;border-radius:14px;border:2px solid var(--sq-chrome-2);background:var(--sq-night);color:var(--text-hi);
+  font:700 26px/1 var(--display);display:grid;place-items:center;padding:4px 6px;touch-action:manipulation}
+.sq-nudge small{font:700 11px var(--text,system-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--text-lo)}
+.sq-blow{min-height:64px;font-size:22px;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:linear-gradient(180deg,var(--sq-brass-hi),var(--sq-brass));color:var(--sq-night);border-color:var(--sq-brass-2)}
+.sq-blow.on{box-shadow:0 0 0 3px var(--sq-glow),0 0 18px rgba(255,210,122,.6)}
+.sq-aids{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 18px;margin:10px 0}
+.sq-aids:not(:has(> :not([hidden]))){display:none}
+.sq-lips{display:flex;align-items:center;gap:8px}
+.sq-lips[hidden]{display:none}
+.sq-lip{min-width:72px;min-height:48px;border-radius:12px;border:2px solid var(--sq-chrome-2);background:var(--sq-night);color:var(--text-hi);font:700 15px var(--display);touch-action:manipulation}
+.sq-lip:disabled{opacity:.4}
+.sq-ladder{display:flex;flex-direction:column;gap:4px;padding:4px 6px;border-radius:10px;background:var(--sq-night);border:2px solid var(--sq-chrome-2)}
+.sq-ladder i{width:12px;height:8px;border-radius:4px;background:var(--mist-2)}
+.sq-ladder i.on{background:var(--sq-brass-hi);box-shadow:0 0 6px var(--sq-glow)}
+.sq-needle{width:min(240px,62vw)}
+.sq-needle[hidden]{display:none}
+.sq-needle svg{width:100%;display:block;overflow:visible}
+.sn-zone{fill:rgba(95,216,138,.25)}
+.sn-tick{stroke:var(--mist);stroke-width:2}
+.sn-mid{stroke:var(--text-hi);stroke-width:2.5}
+.sn-l{font:700 11px system-ui,sans-serif;fill:var(--text-lo)}
+.sn-needle path{fill:var(--sq-brass-hi)}
+.sn-needle{transition:transform .08s linear}
+.sq-needle.near .sn-needle path{fill:var(--green)}
+.sq-needle.idle{opacity:.45}
+.sq-needle.idle .sn-needle{visibility:hidden}
+.sq-btns{display:grid;grid-template-columns:repeat(2,auto);justify-content:center;gap:8px;margin-top:4px}
+.sq-btns .btn{min-height:48px}
+.sq-btns [hidden]{display:none}
+#droneBtn[aria-pressed="true"]{border-color:var(--sq-mark);color:var(--sq-mark)}
+.sq-keys{font-size:12px;color:var(--text-lo);text-align:center;margin:8px 0 0}
+@media (hover:none){.sq-keys{display:none}}
+@media (max-width:420px){.sq-main{gap:6px}.sq-blow{padding-left:8px;padding-right:8px}}
+
+/* AFTER LOCK IN */
+.sq-feedback{margin-top:10px}
+.sq-feedback[hidden]{display:none}
+.sq-fb-one{max-width:400px;margin:0 auto;min-width:0;background:var(--screen);color:var(--ink);border-radius:var(--r);padding:8px 10px;border:3px solid var(--sq-brass)}
+.sq-fb-one.bull{border-color:var(--yellow)}
+.sq-fb-note{margin:0;font-size:13px;font-weight:700;color:var(--ink-2)}
+.sq-err{margin:2px 0 2px;font:700 22px var(--display);color:var(--ink)}
+.sq-spot{margin:0 0 4px;font-weight:700;color:var(--ink)}
+.sq-tip5{margin:0 0 4px;font-size:14px;color:var(--ink-2)}
+.sq-bull{font:700 14px var(--display);color:#fff;background:var(--gold-ink);border-radius:999px;padding:2px 8px;vertical-align:middle}
+.sq-meter{width:100%;max-width:300px;display:block;margin:0 auto;overflow:visible}
+.pm-zone.z2{fill:#d9cf9e}.pm-zone.z3{fill:#9fd8b4}
+.pm-tick{stroke:var(--ink-2);stroke-width:1.5}.pm-tick.mid{stroke:var(--ink);stroke-width:2.5}
+.pm-l{font:700 12px system-ui,sans-serif;fill:var(--ink-2)}
+.pm-needle{fill:var(--coral-ink)}.pm-needle.off{fill:#8a1c1c}
+.sq-fb-staff svg{width:100%;max-width:320px;display:block;margin:0 auto}
+.sq-fb-acts{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+
+/* the level intro and the results */
+.sq-intro-horn,.sq-res-horn{width:min(260px,70vw);margin:0 auto}
+.sq-lesson{margin:8px 0 0;font-size:15px;line-height:1.4}
+.sq-lesson b{color:var(--sq-brass-hi)}

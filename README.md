@@ -126,6 +126,10 @@ pedal-point/          Tune the timpani by ear: hear the pitch pipe, work the dru
   timpani.js          THE SOUND: the recorded timpani (SAMPLES block) or the synth (TIMPANI block), and the pitch pipe
   tuner.js            THE SAMPLE TUNER (index.html?tune-samples): fix a recorded take's pitch by ear
   levels.js           The 8 levels, THE SCORING (stars from the average cents), the keys and reference pitches. Edit here
+slide-quest/          Find a note by ear on a trombone slide: blow, slide until the beats with the drone stop, lock it in (no microphone)
+  slide.js            THE PHYSICS: the slide, the partials, the position marks, ideal vs real tuning (the SLIDE block). Edit here
+  brass.js            THE SOUND: the synthesized trombone (BRASS block) and the tuning drone (DRONE block): tune them by ear
+  levels.js           The 8 levels, THE SCORING (stars from the average cents), the rules of a round. Edit here
   game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
   practice.js         PRACTICE MODE: the Practice Room (1–4 drums, taps, rolls, keys, the click), your own sheet music, the etudes' play-along
   etudes.js           The four practice etudes, written as PITCH:VALUE text (C:q F:e. C:h*_ …). Edit here
@@ -177,7 +181,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 | Note Reading | Ghost Notes, Note Storm, Vanishing Ink |
 | Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
 | Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
-| Ear Training | Lost Signal, Pedal Point |
+| Ear Training | Lost Signal, Pedal Point, Slide Quest |
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
 | Adventure | Arcade Quest |
 
@@ -291,6 +295,26 @@ or none, can play.
   `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
 - **Credit:** the recorded timpani are from the **Versilian Community Sample Library (VCSL)** by Versilian Studios,
   CC0 1.0 (public domain), <https://github.com/sgossner/VCSL>.
+
+## Slide Quest
+
+A **trombone slide** game for EVERY student (not just trombonists): learn to find a pitch by ear. Each round has a
+target note; the student blows a virtual trombone and moves its slide until the note matches the tuning drone, then
+presses **LOCK IN** and is scored in cents, exactly like Pedal Point. **No microphone at all**: the trombone and the drone
+are the game's own synthesized sounds, so the score is exact and any instrument, or none, can play.
+
+- **What it teaches:** the positions are not evenly spaced (each step out is a little longer); two close pitches BEAT
+  (wah-wah-wah), slower as they get closer, and stop when they match; and real horns aren't perfectly in tune (5th-
+  partial notes like D in 1st position sit about 14 cents flat at the mark, so a player moves the slide IN).
+- **Levels:** First Slide (one lip setting, told the position, a tuner needle), Find the Spot, Ears Only, No Marks, From
+  Memory (the note plays once), Lip Up, Lip Down (LIP ▲ ▼ choose the family of notes), Real Horn, Trust Your Ears. Stars
+  from the average error: ≤ 25 cents = 1, ≤ 12 = 2, ≤ 6 = 3.
+- **Controls:** drag the slide (it moves from where it is), NUDGE − / + for the last couple of cents (essential on a
+  phone), BLOW (a tap toggles, a hold blows while held; Space on a keyboard), DRONE on/off, LOCK IN.
+- **After LOCK IN:** the error in cents, a cents meter, the target and your note on a bass-clef staff, a ghost outline of
+  the slide at the exact spot, and the horn and the drone played together.
+- **Tuning:** the physics in `slide-quest/slide.js` (the `SLIDE` block), the sound in `slide-quest/brass.js` (the `BRASS`
+  and `DRONE` blocks: tune them by ear), the levels and stars in `slide-quest/levels.js`.
 
 ## Vanishing Ink
 

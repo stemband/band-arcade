@@ -94,6 +94,10 @@
      struts, a warm spotlight, the dark wooden stage and the red curtain behind */
   --pp-copper:#c8733a; --pp-copper-2:#8a4520; --pp-copper-hi:#f0a868; --pp-head:#efe6d2; --pp-head-2:#cfc3a8; --pp-chrome:#c9d0dc;
   --pp-chrome-2:#6d7686; --pp-spot:#ffe1a0; --pp-stage:#2a1c16; --pp-stage-2:#170f0c; --pp-curtain:#5a1424; --pp-night:#0d0a12; --pp-night-2:#1a1220;
+  /* SLIDE QUEST (slide-quest/): a trombone under a warm spotlight on a dark blue stage at night. Brass gold for the bell
+     and the outer slide, chrome for the inner slide tubes, the glow of a sounding bell */
+  --sq-brass:#e2b04a; --sq-brass-2:#9a6a1c; --sq-brass-hi:#ffe08a; --sq-chrome:#cfd6e2; --sq-chrome-2:#6d7686; --sq-mark:#9fe8ff;
+  --sq-spot:#ffe1a0; --sq-glow:#ffd27a; --sq-stage:#18202e; --sq-stage-2:#0c1018; --sq-night:#0a0d14; --sq-night-2:#151b2a; --sq-curtain:#1d2b4a;
   /* the five tempo levels (rudiment-trainer/rudiments.js TIERS): fills and borders on the dark floor */
   --tier-bronze:#d0894c; --tier-silver:#c9d2de; --tier-gold:#ffd24d; --tier-platinum:#b6e3ee; --tier-diamond:#6ff3ff;
   /* THE RUDIMENT PLAYER (shared/rudiment-player.js light()): the stroke sounding now (its head and its sticking letter) */

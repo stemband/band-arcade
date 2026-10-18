@@ -9,7 +9,7 @@
    Each cabinet is built in code from its game's `cabinet3d` entry (shared/games.js):
      PROFILES  side silhouettes (z = depth, front is +z; y = height, in meters) that are extruded
                into the body, plus where the marquee, screen, control panel, coin door and START sit
-               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | 'snare' | 'kettle' | none). `dial: true`
+               on them, and a topper ('peak' | 'dome' | 'fins' | 'pagoda' | 'vault' | 'gate' | 'vs' | 'puck' | 'lamp' | 'wing' | 'dish' | 'lanterns' | 'scroll' | 'road' | 'skyline' | 'taiko' | 'stand' | 'snare' | 'kettle' | 'bell' | none). `dial: true`
                makes the coin door a round safe door with a combination dial; `twoPlayer: true` puts two joysticks
                and two sets of buttons on the control panel (1P in trim2, 2P in trim); `wheel: true` a steering wheel
                and a gear stick instead (a sit-down racer).
@@ -162,6 +162,14 @@ window.Arcade = window.Arcade || {};
       marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
       door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
     },
+    /* trombone: the Slide Quest cabinet: a classic body with a trombone BELL on the roof (a brass flare opening toward
+       the aisle on a short lead pipe), a neon ring around its rim in the second trim color */
+    trombone: {
+      width: 0.94, topper: 'bell',
+      points: [[0, 0], [0.62, 0], [0.62, 0.78], [0.80, 0.84], [0.80, 0.90], [0.56, 1.00], [0.46, 1.02], [0.40, 1.46], [0.64, 1.50], [0.64, 1.72], [0.58, 1.76], [0, 1.76]],
+      marquee: [[0.64, 1.52], [0.64, 1.70]], screen: [[0.455, 1.05], [0.405, 1.43]], panel: [[0.80, 0.90], [0.56, 1.00]],
+      door: {z: 0.62, y0: 0.14, y1: 0.58}, start: [0.62, 0.69],
+    },
     /* audition: the Scale Trainer cabinet: a classic body with a music stand on the roof (a slanted desk holding a lit
        sheet of music, on a pole), a neon edge along the desk */
     audition: {
@@ -194,7 +202,7 @@ window.Arcade = window.Arcade || {};
       door: {z: 0.62, y0: 0.14, y1: 0.56}, start: [0.62, 0.68],
     },
   };
-  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks', drumline: 'drumline', timpani: 'timpani'};
+  const SHAPE_TO_PROFILE = {classic: 'classic', haunted: 'haunted', soundcheck: 'soundcheck', storm: 'storm', dojo: 'dojo', vault: 'vault', temple: 'temple', versus: 'versus', rink: 'rink', showtime: 'showtime', speedway: 'speedway', quest: 'quest', signal: 'signal', duel: 'duel', ink: 'ink', highway: 'highway', keys: 'keys', taiko: 'taiko', audition: 'audition', blocks: 'blocks', drumline: 'drumline', timpani: 'timpani', trombone: 'trombone'};
   const LANTERN_BELTS = ['belt-orange', 'belt-green', 'belt-blue', 'belt-purple', 'belt-red', 'belt-brown', 'belt-black', 'belt-diamond'];
   const BODIES = ['cab-side', 'cab-face', 'cab-panel', 'floor-3'];
 
@@ -229,6 +237,7 @@ window.Arcade = window.Arcade || {};
    'bt-sky-night', 'bt-dirt', 'bt-slate', 'bt-moss', 'bt-tone',
    'rt-shell', 'rt-rim', 'rt-gold', 'rt-stick', 'rt-night',
    'pp-copper', 'pp-copper-2', 'pp-head', 'pp-chrome', 'pp-night',
+   'sq-brass', 'sq-brass-2', 'sq-brass-hi', 'sq-chrome', 'sq-night',
    'pz-peg', 'pz-peg-hole', 'pz-wood', 'pz-wood-2', 'pz-paper', 'pz-glass', 'pz-warm'].forEach(n => { tok[n] = cssVar(n); });
 
   /* ---------- canvas helpers ---------- */
@@ -538,6 +547,12 @@ window.Arcade = window.Arcade || {};
       const scr = A.CAB_SCREENS && A.CAB_SCREENS.timpani;
       if (scr && scr.draw) return scr.draw(x, W, H, t);
       x.fillStyle = tok['pp-night']; x.fillRect(0, 0, W, H);
+    },
+    /* Slide Quest: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.trombone) */
+    trombone(x, W, H, t) {
+      const scr = A.CAB_SCREENS && A.CAB_SCREENS.trombone;
+      if (scr && scr.draw) return scr.draw(x, W, H, t);
+      x.fillStyle = tok['sq-night']; x.fillRect(0, 0, W, H);
     },
     /* the Rudiment Trainer: the same canvas drawing as the 2D screen (shared/cabinets.js SCREENS.drumline) */
     drumline(x, W, H, t) {
@@ -975,6 +990,21 @@ window.Arcade = window.Arcade || {};
       const chrome = lambert(col('pp-chrome'));
       [0, 1, 2].forEach(j => { const a = j / 3 * Math.PI * 2 + Math.PI / 2, leg = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .2, 5), chrome); leg.position.set(Math.cos(a) * R0 * .55, -.1, Math.sin(a) * R0 * .55); drum.add(leg); });
       drum.userData.pick = true; group.add(detail(drum));
+    } else if (P.topper === 'bell') {
+      // a trombone bell on the roof (Slide Quest): a brass flare (an open cone) opening toward the aisle on a short lead
+      // pipe, its bright rim ringed in the SECOND trim color
+      const fz = frontTop + zc - .14, R0 = .17, cy = topY + .2;
+      const bell = new THREE.Group(); bell.position.set(0, cy, fz);
+      const brass = lambert(col('sq-brass'));
+      const inside = lambert(col('sq-brass')); inside.side = THREE.DoubleSide;
+      const flare = new THREE.Mesh(new THREE.CylinderGeometry(R0, .025, .3, 20, 1, true), inside);
+      flare.rotation.x = Math.PI / 2; flare.position.z = .02; bell.add(flare);
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .26, 8), brass); pipe.rotation.x = Math.PI / 2; pipe.position.z = -.25; bell.add(pipe);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(R0, .014, 6, 28), lambert(col('sq-brass-hi'))); rim.position.z = .17; bell.add(rim);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.04, .008, 6, 28), basic(col(k.trim2 + '-hi'))); ring.position.z = .175; bell.add(ring);
+      const glow = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.04, .03, 6, 28), basic(col(k.trim2), {transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false})); glow.position.z = .175; bell.add(glow);
+      const stand = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .2, 5), lambert(col('sq-chrome'))); stand.position.set(0, -.1, -.1); bell.add(stand);
+      bell.userData.pick = true; group.add(detail(bell));
     } else if (P.topper === 'blocks') {
       // a little stack of neon blocks on the roof (Blocktave): dirt blocks with glowing moss tops, and a music block
       // (slate) in the middle with its cyan note glowing on the front
