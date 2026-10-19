@@ -487,3 +487,10 @@
 .shape-trombone .s-ferrule{fill:var(--sq-brass-hi)}
 .shape-trombone .s-grip{fill:var(--sq-brass-2);stroke:var(--sq-brass-hi);stroke-width:1.5}
 .scr-trombone{background:var(--sq-night)}
+/* Perfect Pitch: the tuner cabinet (a clip-on tuner's head over the marquee, a tuning fork down the lower right) and its canvas screen */
+.shape-tuner .s-case{fill:var(--p2-night-2);stroke:var(--p2-stand);stroke-width:2}
+.shape-tuner .s-led{fill:var(--p2-stand)}
+.shape-tuner .s-led.on{fill:var(--p2-glow)}
+.shape-tuner .s-fork{fill:none;stroke:var(--p2-silver);stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.shape-tuner .s-fork-b{fill:var(--p2-silver-2)}
+.scr-needle{background:var(--p2-night)}

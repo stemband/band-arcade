@@ -133,6 +133,11 @@ slide-quest/          Find a note by ear on a trombone slide: blow, slide until 
   game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
   practice.js         PRACTICE MODE: the Practice Room (1–4 drums, taps, rolls, keys, the click), your own sheet music, the etudes' play-along
   etudes.js           The four practice etudes, written as PITCH:VALUE text (C:q F:e. C:h*_ …). Edit here
+perfect-pitch/        Hear it, judge it, tune it: is the instrument sharp, flat or in tune? Fix it with its real tuning slide (no microphone)
+  instruments.js      THE INSTRUMENTS: every tunable instrument's mechanism, voice and physics (the PP2_TUNE table). Edit here
+  art.js              THE PICTURES: each instrument's tuning area (headjoint, barrel, neck, mouthpiece, tuning slide)
+  levels.js           The 8 levels, THE SCORING (judgments + average cents), the rules of a round. Edit here
+  game.js             The picker, the rounds (hear, judge, tune, lock in), the results
 vanishing-ink/        Reading memory: notes appear on the Ink Master's scroll, the ink fades, play them back from memory
   levels.js           The 8 levels (First Stroke … Invisible Master), rules, the pattern weights and Endless Scroll. Edit here
   game.js             The round (brush in, study, fade/vanish, answer, results), the Ink Master, reveals, Endless Scroll
@@ -181,7 +186,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 | Note Reading | Ghost Notes, Note Storm, Vanishing Ink |
 | Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
 | Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
-| Ear Training | Lost Signal, Pedal Point, Slide Quest |
+| Ear Training | Lost Signal, Pedal Point, Slide Quest, Perfect Pitch |
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
 | Adventure | Arcade Quest |
 
@@ -295,6 +300,22 @@ or none, can play.
   `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
 - **Credit:** the recorded timpani are from the **Versilian Community Sample Library (VCSL)** by Versilian Studios,
   CC0 1.0 (public domain), <https://github.com/sgossner/VCSL>.
+
+## Perfect Pitch
+
+An **ear-training tuning** game for EVERY student: no instrument and no microphone. Each round the game plays a tuner's
+reference, then a synthesized version of the instrument being tuned, which it has made **sharp, flat or exactly in
+tune**. The student says SHARP, FLAT or IN TUNE, then fixes it with that instrument's real tuning mechanism, drawn on
+the screen (the flute's headjoint, the clarinet's barrel, the sax mouthpiece, the brass tuning slides), and locks it in.
+
+- **What it teaches:** hearing sharp vs. flat; "longer = lower" (sharp → pull out, flat → push in); where your own
+  instrument's tuning mechanism is and which way it moves; and not moving what's already in tune.
+- **The instrument:** "Tuning: Clarinet ▸" on the first screen picks any instrument but bells and snare (oboe and
+  bassoon are shown locked, with why). It starts on the student's own instrument; note names are in its written pitch.
+- **Levels:** Way Off, Getting Closer, In Tune or Not?, No Needle, Tuning Notes, Hear It Once, Any Note, Perfect Pitch.
+  Stars need both the average error (≤ 25 / 12 / 6 cents) and the judgments (3 / 4 / 5 of 5 right).
+- **Tuning:** the mechanisms in `perfect-pitch/instruments.js` (the `PP2_TUNE` table), the sound in `shared/winds.js`
+  (the `WINDS` block: tune the voices by ear), the levels and stars in `perfect-pitch/levels.js`.
 
 ## Slide Quest
 

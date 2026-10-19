@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Perfect Pitch</title>
+<meta name="description" content="Is it sharp, flat or in tune? Hear it, then fix it with the tuning slide.">
+<meta name="theme-color" content="#0c0a14">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Perfect <span>Pitch</span></h1>
+      <p class="ui-howto">Listen to the tuner, then the instrument. Is it sharp, flat or in tune? Then fix it with the instrument's real tuning slide. No instrument needed: the game makes every sound.</p>
+    </div>
+    <!-- CHOOSE AN INSTRUMENT TO TUNE (remembered: gameData('perfect-pitch').tune) -->
+    <div class="ui-seg p2-tunerow" id="tuneRow" role="group" aria-label="The instrument you are tuning">
+      <button type="button" id="tuneBtn"><span class="p2-tune-pic" id="tunePic" aria-hidden="true"></span><span class="p2-tune-t">Tuning: <b id="tuneName">Choose</b> ▸</span><small id="tuneWhat">Pick an instrument to tune</small></button>
+    </div>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: A = judge right and tune exactly, W = a wrong judgment and 30 cents off, Enter = lock in / next.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">Way Off</b></div>
+      <div class="c"><small>Round</small><b id="hudCount">1 / 5</b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <p class="p2-prompt" id="prompt" aria-live="polite">Listen</p>
+    <p class="p2-noteline" id="noteLine"></p>
+    <p class="p2-judged" id="judged" hidden aria-live="polite"></p>
+    <p class="p2-banner" id="wrongWay" hidden role="status"></p>
+    <!-- THE STAGE: the tuning area (art.js); drag the mechanism anywhere on it -->
+    <div class="p2-stage" id="stage"></div>
+    <!-- HEAR and JUDGE -->
+    <div class="p2-judge" id="judgePanel">
+      <div class="p2-hear">
+        <button type="button" class="btn btn-secondary" id="againBtn">▶ Again</button>
+        <button type="button" class="btn btn-secondary" id="togetherBtn">▶ Together</button>
+      </div>
+      <div class="p2-answers" role="group" aria-label="Your answer">
+        <button type="button" class="p2-ans p2-sharp" id="judgeSharp" data-a="sharp">Sharp<small>too high</small></button>
+        <button type="button" class="p2-ans p2-flat" id="judgeFlat" data-a="flat">Flat<small>too low</small></button>
+        <button type="button" class="p2-ans p2-tune" id="judgeTune" data-a="tune">In tune<small>leave it</small></button>
+      </div>
+      <p class="p2-keys">Keys: S sharp · F flat · I in tune (or ↑ / ↓ / Enter) · R again · T together</p>
+    </div>
+    <!-- TUNE -->
+    <div class="p2-controls" id="controls" hidden>
+      <!-- THE TUNER NEEDLE (levels with needle): −50…+50 cents, while the note sounds -->
+      <div class="p2-needle idle" id="needle" hidden aria-hidden="true">
+        <svg viewBox="-100 0 200 44"><rect class="sn-zone" x="-10.8" y="10" width="21.6" height="16" rx="3"/>
+          <path class="sn-tick" d="M-90 14V22M-45 14V22M45 14V22M90 14V22"/><path class="sn-mid" d="M0 6V30"/>
+          <text class="sn-l" x="-96" y="42">flat</text><text class="sn-l" x="96" y="42" text-anchor="end">sharp</text>
+          <g class="sn-needle"><path d="M0 34L-6 42H6Z M-1.5 4H1.5V34H-1.5Z"/></g></svg>
+      </div>
+      <div class="p2-main">
+        <button type="button" class="p2-nudge" id="nudgeDown" aria-label="Nudge: a little lower (pull out)">−<small>lower</small></button>
+        <button type="button" class="btn btn-primary p2-play" id="playBtn">▶ Play</button>
+        <button type="button" class="p2-nudge" id="nudgeUp" aria-label="Nudge: a little higher (push in)">+<small>higher</small></button>
+      </div>
+      <div class="p2-btns">
+        <button type="button" class="btn btn-secondary" id="refBtn">▶ Reference</button>
+        <button type="button" class="btn btn-secondary" id="bothTuneBtn">▶ Together</button>
+        <button type="button" class="btn btn-primary" id="lockBtn" disabled>Lock in</button>
+      </div>
+      <p class="p2-keys">Keys: ←/→ move it (Shift = fine) · Space play · R reference · T together · Enter lock in</p>
+    </div>
+    <!-- after LOCK IN -->
+    <div class="p2-feedback" id="feedback" hidden aria-live="polite"></div>
+  </section>
+</div>
+
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
+
+<!-- No microphone: no pitch.js, no mic-gate.js. The instrument and the reference are made by shared/winds.js on
+     shared/sfx.js's output; every other sound comes from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/winds.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="instruments.js"></script>
+<script src="art.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

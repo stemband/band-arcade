@@ -126,6 +126,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Blocktave | `blocktave-menu` | `blocktave-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Pedal Point | `pedal-point-menu` | `pedal-point-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Slide Quest | `slide-quest-menu` | `slide-quest-menu.m4a` (or .mp3) | the arcade’s select-music |
+| Perfect Pitch | `perfect-pitch-menu` | `perfect-pitch-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -300,6 +301,18 @@ effect would muddy the very pitch the student is listening to. The menu music fa
 | `slide-quest-menu` | `slide-quest-menu.m4a` or `slide-quest-menu.mp3` | Slide Quest: menu music (the level select, a level's intro, results). Fades out when a level starts. | 30–90 s loop |
 | `sq-lock` | `sq-lock.m4a` or `sq-lock.mp3` | LOCK IN: the note is judged. A solid click, **unpitched** | under 0.2 s |
 | `sq-star` | `sq-star.m4a` or `sq-star.mp3` | A BULLSEYE (within 3 cents), right after `sq-lock`. A sparkle, **unpitched** | under 0.4 s |
+
+### Perfect Pitch
+
+Perfect Pitch never uses the microphone. The instrument the student judges and tunes and the tuner's reference are made
+by the game itself (`shared/winds.js`), never files. Its own effects below must be **unpitched** (clicks, sparkles): a
+pitched effect would muddy the very pitch the student is listening to. The menu music fades out when a level starts.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `perfect-pitch-menu` | `perfect-pitch-menu.m4a` or `perfect-pitch-menu.mp3` | Perfect Pitch: menu music (the level select, a level's intro, results). Fades out when a level starts. | 30–90 s loop |
+| `p2-lock` | `p2-lock.m4a` or `p2-lock.mp3` | LOCK IN (or a right IN TUNE): the round is judged. A solid click, **unpitched** | under 0.2 s |
+| `p2-star` | `p2-star.m4a` or `p2-star.mp3` | A BULLSEYE (within 3 cents), right after `p2-lock`. A sparkle, **unpitched** | under 0.4 s |
 
 ### Vanishing Ink
 

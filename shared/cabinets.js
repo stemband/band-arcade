@@ -207,6 +207,20 @@ window.Arcade = window.Arcade || {};
               '<rect class="s-grip" x="220" y="486" width="28" height="9" rx="3"/>',
       slots: {marquee: [34, 56, 232, 50], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
+    /* tuner: the Perfect Pitch cabinet. The top is a clip-on TUNER's rounded head over the marquee (a dark case with a
+       row of little LEDs, the middle one green), and a TUNING FORK stands down the lower right of the face */
+    tuner: {
+      outline: 'M20 60Q20 4 150 4Q280 4 280 60V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H20Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 96, y: 430, w: 92, h: 90},
+      extras: '<path class="s-case" d="M70 20Q150 6 230 20V32H70Z"/>' +
+              [100, 125, 150, 175, 200].map((x, i) => `<circle class="s-led${i === 2 ? ' on' : ''}" cx="${x}" cy="25" r="4"/>`).join('') +
+              '<path class="s-fork" d="M222 400V470Q222 486 234 486Q246 486 246 470V400M234 486V566"/><circle class="s-fork-b" cx="234" cy="570" r="7"/>',
+      slots: {marquee: [34, 56, 232, 50], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
+    },
     /* audition: the Scale Trainer cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
        slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
        with ticks) on the lower right */
@@ -738,6 +752,38 @@ window.Arcade = window.Arcade || {};
         x.strokeStyle = css('sq-brass'); x.lineWidth = Math.max(2.5, H * .035);
         const o0 = W * .2 + ext, o1 = W * .64 + ext, r = (y2 - y1) / 2;
         x.beginPath(); x.moveTo(o0, y1); x.lineTo(o1, y1); x.arc(o1, y1 + r, r, -Math.PI / 2, Math.PI / 2); x.lineTo(o0, y2); x.stroke();
+        x.lineCap = 'butt';
+      },
+    },
+    /* Perfect Pitch: a tuner's needle swings SHARP, then FLAT, then settles in the middle and IN TUNE glows (a 6 s
+       loop; every move eased, the words fade in and out: never a blink). A canvas screen (2D and 3D). */
+    needle: {
+      html() { return `<div class="scr scr-needle scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const L = 6, tt = t == null ? 5.2 : t % L;
+        const KEYS = [[0, 0], [1.2, 38], [2.6, -30], [3.6, 12], [4.3, -4], [4.8, 0], [6, 0]];
+        const ease = u => u * u * (3 - 2 * u);
+        let c = 0;
+        for (let k = 1; k < KEYS.length; k++) if (tt <= KEYS[k][0]) { const [t0, c0] = KEYS[k - 1], [t1, c1] = KEYS[k]; c = c0 + (c1 - c0) * ease((tt - t0) / (t1 - t0)); break; }
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css('p2-night-2')); g.addColorStop(1, css('p2-night'));
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        const cx = W / 2, cy = H * .86, r = Math.min(W * .42, H * .7), a = v => -Math.PI / 2 + v / 50 * .9;
+        x.lineCap = 'round';
+        x.strokeStyle = css('p2-stand'); x.lineWidth = Math.max(2, H * .03);
+        x.beginPath(); x.arc(cx, cy, r, a(-50), a(50)); x.stroke();
+        x.strokeStyle = css('p2-glow-2'); x.lineWidth = Math.max(3, H * .05);
+        x.beginPath(); x.arc(cx, cy, r, a(-6), a(6)); x.stroke();
+        x.strokeStyle = css('p2-silver-2'); x.lineWidth = Math.max(1, H * .012);
+        for (let v = -50; v <= 50; v += 10) { const q = a(v), r0 = r * (v === 0 ? .82 : .88); x.beginPath(); x.moveTo(cx + Math.cos(q) * r0, cy + Math.sin(q) * r0); x.lineTo(cx + Math.cos(q) * r * .96, cy + Math.sin(q) * r * .96); x.stroke(); }
+        x.fillStyle = css('p2-flat'); x.font = `700 ${H * .14}px "GN Display", "GN Music", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillText('♭', cx - r * .95, cy - r * .2); x.fillStyle = css('p2-sharp'); x.fillText('♯', cx + r * .95, cy - r * .2);
+        const q = a(c), near = Math.abs(c) < 6;
+        x.strokeStyle = near ? css('p2-glow') : css('p2-soft'); x.lineWidth = Math.max(2, H * .025);
+        x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(q) * r * .92, cy + Math.sin(q) * r * .92); x.stroke();
+        x.fillStyle = css('p2-silver'); x.beginPath(); x.arc(cx, cy, Math.max(3, H * .04), 0, Math.PI * 2); x.fill();
+        const glowA = tt < 4.8 ? 0 : tt < 5.2 ? (tt - 4.8) / .4 : tt < 5.6 ? 1 : Math.max(0, (6 - tt) / .4);
+        if (glowA > 0) { x.globalAlpha = glowA; x.fillStyle = css('p2-glow'); x.font = `700 ${H * .15}px "GN Display", sans-serif`; x.fillText('IN TUNE', cx, H * .5); x.globalAlpha = 1; }
         x.lineCap = 'butt';
       },
     },
