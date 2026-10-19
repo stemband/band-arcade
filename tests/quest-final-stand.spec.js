@@ -455,7 +455,7 @@ test.describe('QUICK PLAY', () => {
     watch.check();
   });
 
-  test('it can\'t skip THE FINAL STAND\'s floor or the finale', async ({page}) => {
+  test('it can\'t skip THE FINAL STAND\'s floor or the finale', {tag: '@slow'}, async ({page}) => {   // @slow: a whole Big Number battle through the 60 s stand (over the 60 s budget in WebKit)
     test.setTimeout(90000);
     await page.clock.install();
     const watch = await boot(page, save({level: 60, charms: {hamburger: true}, worn: ['hamburger', null]}), {standIn: false});

@@ -456,7 +456,7 @@ for (const [name, vp, touch] of [['phone', {width: 390, height: 844}, true], ['i
     const s0 = await st(page);
     const crook = await page.locator('#outer .sq-bumper').boundingBox();
     const svgBox = await page.locator('#stage svg').boundingBox();
-    const k = svgBox.width / 1000 * (370 / 60);                         // screen px per cm
+    const k = svgBox.width / 1000 * (340 / 60);                         // screen px per cm (game.js V.travel 340 units = 60 cm)
     const x = crook.x - 20, y = crook.y + crook.height / 2;
     if (touch) {
       const fire = (type, xx) => page.locator('#outer').dispatchEvent(type, {pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: xx, clientY: y, bubbles: true});

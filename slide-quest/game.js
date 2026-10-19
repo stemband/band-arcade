@@ -25,50 +25,60 @@
   const gd = () => A.store.gameData(GAME_ID);
   const save = patch => { Object.assign(gd(), patch); A.store.saveGameData(GAME_ID); };
 
-  /* ================= THE TROMBONE (an SVG, seen from the side) =================
-     The viewBox's units: the mouthpiece and the bell section on the LEFT (fixed), the inner slide tubes (fixed, chrome)
-     and the OUTER SLIDE (brass, with its crook and the grip) that moves to the RIGHT: 0–60 cm of travel = `travel` units.
-     The marks sit on the inner slide where the outer slide's left edge (its ferrules) lines up for each position. */
-  const V = {w: 1000, h: 320, top: 118, bot: 182, in0: 118, in1: 560, out0: 140, out1: 580, travel: 370};
+  /* ================= THE TROMBONE (an SVG, seen from the side, assembled like the real thing) =================
+     Left to right, as a trombone looks from the side with the bell pointing forward (to the right):
+       THE BELL SECTION (fixed, brass): the TUNING SLIDE's crook at the far left joins its two tubes. The UPPER tube runs
+         forward and flares into the BELL, ABOVE the slide; the LOWER (back) tube runs forward under it to the slide lock.
+         Two braces hold them together; a third ties the bell tube to the inner slide's stocking.
+       THE SLIDE (below the bell, reaching past it): the MOUTHPIECE points back toward the player from the upper slide
+         tube; the INNER SLIDE (fixed, chrome) and the OUTER SLIDE (brass, with its crook, bumper and the grip) that moves
+         to the RIGHT: 0–60 cm of travel = `travel` units.
+     The marks sit on a ruler under the slide, where the outer slide's front edge (its ferrules) lines up for each
+     position, so they never hide behind the moving tubes. */
+  const V = {w: 1000, h: 340, top: 230, bot: 268, in0: 250, in1: 600, out0: 274, out1: 612, travel: 340,
+    bell: {y: 120, throat: 380, rim: 560, half: 88}, crook: 104, braceA: 170};
   const PXCM = V.travel / SLIDE.travel;
   const R = (V.bot - V.top) / 2;
   const outerPath = `M${V.out0} ${V.top}H${V.out1}A${R} ${R} 0 0 1 ${V.out1} ${V.bot}H${V.out0}`;
   function hornSVG({marks = true, tuning = 'ideal', mini = false} = {}) {
-    const by = 258;
-    let s = `<svg class="sq-horn${mini ? ' sq-mini' : ''}" viewBox="0 0 ${V.w} ${V.h}" ${mini ? 'aria-hidden="true"' : 'role="img" aria-label="A trombone seen from the side: the bell on the left, the slide on the right"'}>`;
+    const B = V.bell, by = B.y, cr = (V.bot - by) / 2, cy = (V.bot + by) / 2;
+    let s = `<svg class="sq-horn${mini ? ' sq-mini' : ''}" viewBox="0 0 ${V.w} ${V.h}" ${mini ? 'aria-hidden="true"' : 'role="img" aria-label="A trombone seen from the side: the bell on top pointing forward, the slide underneath reaching out to the right"'}>`;
     if (!mini) s += `<defs><radialGradient id="sqGlow"><stop offset="0" stop-color="var(--sq-glow)" stop-opacity=".85"/><stop offset="1" stop-color="var(--sq-glow)" stop-opacity="0"/></radialGradient></defs>` +
-      `<ellipse class="sq-bellglow" cx="440" cy="${by}" rx="90" ry="86" fill="url(#sqGlow)"/>`;
-    // the bell section: the lower inner tube runs back to the tuning slide's crook, then forward to the bell
-    s += `<path class="sq-tube" d="M${V.in0} ${V.bot}H84Q44 ${V.bot} 44 ${(V.bot + by) / 2}Q44 ${by} 84 ${by}H300"/>` +
-      `<path class="sq-bell" d="M296 ${by - 9}C352 ${by - 10} 392 ${by - 26} 412 ${by - 58}L412 ${by + 58}C392 ${by + 26} 352 ${by + 10} 296 ${by + 9}Z"/>` +
-      `<ellipse class="sq-rim" cx="412" cy="${by}" rx="9" ry="58"/>` +
-      `<path class="sq-shine" d="M320 ${by - 12}C360 ${by - 16} 386 ${by - 30} 400 ${by - 48}"/>` +
-      // the mouthpiece and the inner slide (fixed)
-      `<path class="sq-shank" d="M58 ${V.top}H${V.in0}"/><path class="sq-mp" d="M30 ${V.top - 14}Q46 ${V.top - 12} 58 ${V.top - 4}V${V.top + 4}Q46 ${V.top + 12} 30 ${V.top + 14}Z"/>` +
+      `<ellipse class="sq-bellglow" cx="${B.rim + 40}" cy="${by}" rx="100" ry="${B.half + 8}" fill="url(#sqGlow)"/>`;
+    // THE BELL SECTION: the back tube from the slide lock to the tuning slide's crook, round the crook, then forward to the bell
+    s += `<path class="sq-tube" d="M${V.in0} ${V.bot}H${V.crook}A${cr} ${cr} 0 0 1 ${V.crook} ${by}H${B.throat + 4}"/>` +
+      `<path class="sq-tslide" d="M${V.crook + 18} ${V.bot}H${V.crook + 40}M${V.crook + 18} ${by}H${V.crook + 40}"/>` +       // the tuning slide's ferrules
+      `<path class="sq-brace" d="M${V.braceA} ${by + 6}V${V.bot - 6}"/>` +
+      `<path class="sq-brace" d="M${V.in0 + 16} ${by + 6}V${V.top - 4}"/>` +
+      `<path class="sq-bell" d="M${B.throat} ${by - 7}C${B.throat + 74} ${by - 8} ${B.rim - 40} ${by - 25} ${B.rim} ${by - B.half}L${B.rim} ${by + B.half}C${B.rim - 40} ${by + 25} ${B.throat + 74} ${by + 8} ${B.throat} ${by + 7}Z"/>` +
+      `<ellipse class="sq-rim" cx="${B.rim}" cy="${by}" rx="10" ry="${B.half}"/>` +
+      `<path class="sq-shine" d="M${B.throat + 24} ${by - 10}C${B.throat + 90} ${by - 14} ${B.rim - 36} ${by - 30} ${B.rim - 12} ${by - B.half + 12}"/>` +
+      // THE SLIDE: the mouthpiece (pointing back at the player), the inner slide (fixed) and its stocking brace
+      `<path class="sq-shank" d="M${V.in0 - 42} ${V.top}H${V.in0}"/><path class="sq-mp" d="M${V.in0 - 74} ${V.top - 13}Q${V.in0 - 58} ${V.top - 11} ${V.in0 - 46} ${V.top - 4}V${V.top + 4}Q${V.in0 - 58} ${V.top + 11} ${V.in0 - 74} ${V.top + 13}Z"/>` +
       `<path class="sq-inner" d="M${V.in0} ${V.top}H${V.in1}M${V.in0} ${V.bot}H${V.in1}"/>` +
-      `<rect class="sq-brace" x="${V.in0 + 2}" y="${V.top}" width="12" height="${V.bot - V.top}" rx="4"/>` +
-      `<path class="sq-brace" d="M${V.in0 + 8} ${V.bot}V${by - 6}" />`;
-    // THE MARKS: the 7 positions at their TRUE spots (the gaps grow)
+      `<rect class="sq-brace" x="${V.in0 + 2}" y="${V.top}" width="10" height="${V.bot - V.top}" rx="3"/>`;
+    // THE MARKS: the 7 positions at their TRUE spots (the gaps grow), on a ruler under the slide
     s += `<g class="sq-marks"${mini ? '' : ' id="marks"'}${marks ? '' : ' hidden'}>`;
     for (let k = 1; k <= SLIDE.positions; k++) {
       const X = (V.out0 + SL.markX(k, tuning) * PXCM).toFixed(1);
-      s += `<path class="sq-mark" d="M${X} ${V.top - 16}V${V.top + 16}M${X} ${V.bot - 16}V${V.bot + 16}"/><text class="sq-mk" x="${X}" y="${V.top - 26}" text-anchor="middle">${k}</text>`;
+      s += `<path class="sq-mark" d="M${X} ${V.bot + 16}V${V.bot + 32}"/><text class="sq-mk" x="${X}" y="${V.bot + 62}" text-anchor="middle">${k}</text>`;
     }
     s += '</g>';
     // THE OUTER SLIDE (moves): the two tubes, the crook, the ferrules, the grip, and a hit area for the finger
     s += `<g class="sq-outer"${mini ? '' : ' id="outer" role="slider" aria-label="The slide: drag it out (lower) or in (higher)" aria-valuemin="0" aria-valuemax="' + SLIDE.travel + '"'}>` +
       `<path class="sq-otube" d="${outerPath}"/>` +
       `<path class="sq-otube-hi" d="M${V.out0 + 4} ${V.top - 4}H${V.out1}M${V.out0 + 4} ${V.bot - 4}H${V.out1}"/>` +
-      `<rect class="sq-ferrule" x="${V.out0 - 6}" y="${V.top - 12}" width="16" height="24" rx="3"/><rect class="sq-ferrule" x="${V.out0 - 6}" y="${V.bot - 12}" width="16" height="24" rx="3"/>` +
-      `<rect class="sq-grip" x="${V.out0 + 64}" y="${V.top}" width="18" height="${V.bot - V.top}" rx="5"/>` +
-      `<circle class="sq-bumper" cx="${V.out1 + R + 2}" cy="${(V.top + V.bot) / 2}" r="7"/>` +
-      (mini ? '' : `<rect class="sq-hit" x="${V.out0 - 24}" y="${V.top - 40}" width="${V.out1 + R - V.out0 + 48}" height="${V.bot - V.top + 80}"/>`) +
+      `<rect class="sq-ferrule" x="${V.out0 - 6}" y="${V.top - 11}" width="16" height="22" rx="3"/><rect class="sq-ferrule" x="${V.out0 - 6}" y="${V.bot - 11}" width="16" height="22" rx="3"/>` +
+      `<rect class="sq-grip" x="${V.out0 + 56}" y="${V.top}" width="16" height="${V.bot - V.top}" rx="5"/>` +
+      `<circle class="sq-bumper" cx="${V.out1 + R + 2}" cy="${(V.top + V.bot) / 2}" r="6"/>` +
+      (mini ? '' : `<rect class="sq-hit" x="${V.out0 - 24}" y="${V.top - 36}" width="${V.out1 + R - V.out0 + 48}" height="${V.bot - V.top + 72}"/>`) +
       `</g>`;
     // the ghost: where the exact spot was (after LOCK IN), drawn over the slide so it shows even when it's close
     if (!mini) s += `<g class="sq-ghost" id="ghost" hidden><path d="${outerPath}"/></g>`;
     return s + '</svg>';
   }
-  const SLIDE_ICON = `<svg viewBox="0 0 48 24" aria-hidden="true"><path class="si-bell" d="M4 15C10 15 13 13 15 9V22C13 18 10 16 4 16Z"/><path class="si-in" d="M6 6H30M6 12H30"/><path class="si-out" d="M20 6H38A3 3 0 0 1 38 12H20"/></svg>`;
+  /* the level cards' little trombone: the bell on top, the slide underneath (the same assembly as the big one) */
+  const SLIDE_ICON = `<svg viewBox="0 0 48 24" aria-hidden="true"><path class="si-out" d="M17 17H7A5 5 0 0 1 7 7H19"/><path class="si-bell" d="M18 6C24 6 27 4 29 1V13C27 10 24 8 18 8Z"/><path class="si-in" d="M13 15H36M13 19.5H36"/><path class="si-out" d="M19 15H42A2.25 2.25 0 0 1 42 19.5H19"/></svg>`;
 
   /* ================= THE LEVEL SELECT ================= */
   const prog = lv => A.store.level(GAME_ID, 'all', lv);
@@ -113,7 +123,7 @@
     $('lips').hidden = !L.lips;
     $('needle').hidden = !L.needle;
     $('droneBtn').hidden = L.ref !== 'drone';
-    $('ladder').innerHTML = SLIDE.partials.slice().reverse().map(n => `<i data-n="${n}"></i>`).join('');
+    $('ladder').innerHTML = SLIDE.partials.slice().reverse().map(n => `<i data-n="${n}">${n}</i>`).join('');
     A.holdGuard($('stage'), {lock: true});
     A.holdGuard($('blowBtn'), {lock: true});
     dragSlide($('outer'));
@@ -358,7 +368,7 @@
     ], {width: 320, label: `Target ${SL.label(r.target)}, you ${SL.label(Math.round(r.midi))} ${fmtCents(r.cents)}`});
   }
   function spotLine(r) {
-    if (r.wrongLip) return 'That was a different note: try another lip setting.';
+    if (r.wrongLip) return 'That was a different note: try another partial.';
     if (r.abs <= SCORING.bullseye) return 'Right there!';
     return `The exact spot was a little further ${r.spot > r.x ? 'OUT' : 'IN'}.`;
   }
