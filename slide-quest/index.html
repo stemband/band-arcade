@@ -47,11 +47,11 @@
         <button type="button" class="sq-nudge" id="nudgeUp" aria-label="Nudge the slide: a little higher (in)">+<small>higher</small></button>
       </div>
       <div class="sq-aids">
-        <!-- THE LIPS (levels with lips): the ladder shows where you are; the partial is never told in words -->
+        <!-- THE PARTIALS (levels with lips): PARTIAL ▲ ▼ and the ladder of partials 2–6, the current one lit -->
         <div class="sq-lips" id="lips" hidden>
-          <button type="button" class="sq-lip" id="lipDown" aria-label="Lip down: a lower family of notes">Lip ▼</button>
+          <button type="button" class="sq-lip" id="lipDown" aria-label="Partial down: the next lower partial">Partial ▼</button>
           <div class="sq-ladder" id="ladder" aria-hidden="true"></div>
-          <button type="button" class="sq-lip" id="lipUp" aria-label="Lip up: a higher family of notes">Lip ▲</button>
+          <button type="button" class="sq-lip" id="lipUp" aria-label="Partial up: the next higher partial">Partial ▲</button>
         </div>
         <!-- THE TUNER NEEDLE (levels 1–2): −50…+50 cents from the target, while the horn sounds -->
         <div class="sq-needle idle" id="needle" hidden aria-hidden="true">
@@ -65,7 +65,7 @@
         <button type="button" class="btn btn-secondary" id="droneBtn" aria-pressed="false">Drone: off</button>
         <button type="button" class="btn btn-primary" id="lockBtn" disabled>Lock in</button>
       </div>
-      <p class="sq-keys">Keys: ←/→ slide in/out (Shift = fine) · ↑/↓ lip · hold Space to blow · D drone · Enter lock in</p>
+      <p class="sq-keys">Keys: ←/→ slide in/out (Shift = fine) · ↑/↓ partial · hold Space to blow · D drone · Enter lock in</p>
     </div>
     <!-- after LOCK IN -->
     <div class="sq-feedback" id="feedback" hidden aria-live="polite"></div>
