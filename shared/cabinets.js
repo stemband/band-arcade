@@ -726,12 +726,15 @@ window.Arcade = window.Arcade || {};
         }
         x.stroke();
         if (!d) { x.globalAlpha = Math.min(1, (tt - 4.2) * 2); x.fillStyle = css('sq-brass-hi'); x.font = `700 ${H * .13}px "GN Display", sans-serif`; x.textAlign = 'center'; x.fillText('IN TUNE', W / 2, H * .55); x.globalAlpha = 1; }
-        // the trombone: the bell on the left, the slide moving IN as it comes into tune
-        const y1 = H * .7, y2 = H * .8, ext = W * .3 * d;
+        // the trombone, assembled like the real thing: the bell section on top (the tuning slide's crook at the left, the
+        // bell pointing forward), the slide underneath, moving IN as it comes into tune
+        const y1 = H * .7, y2 = H * .8, by = H * .6, ext = W * .3 * d;
         x.lineCap = 'round';
+        x.strokeStyle = css('sq-brass'); x.lineWidth = Math.max(1.5, H * .022);
+        x.beginPath(); x.moveTo(W * .14, y2); x.lineTo(W * .07, y2); x.arc(W * .07, (y2 + by) / 2, (y2 - by) / 2, Math.PI / 2, Math.PI * 1.5); x.lineTo(W * .16, by); x.stroke();
+        x.fillStyle = css('sq-brass'); x.beginPath(); x.moveTo(W * .15, by - H * .012); x.quadraticCurveTo(W * .26, by - H * .015, W * .3, by - H * .085); x.lineTo(W * .3, by + H * .085); x.quadraticCurveTo(W * .26, by + H * .015, W * .15, by + H * .012); x.closePath(); x.fill();
         x.strokeStyle = css('sq-chrome'); x.lineWidth = Math.max(1.5, H * .02);
         x.beginPath(); x.moveTo(W * .14, y1); x.lineTo(W * .62, y1); x.moveTo(W * .14, y2); x.lineTo(W * .62, y2); x.stroke();
-        x.fillStyle = css('sq-brass'); x.beginPath(); x.moveTo(W * .1, H * .86); x.quadraticCurveTo(W * .3, H * .87, W * .36, H * .78); x.lineTo(W * .36, H * .98); x.quadraticCurveTo(W * .3, H * .89, W * .1, H * .9); x.closePath(); x.fill();
         x.strokeStyle = css('sq-brass'); x.lineWidth = Math.max(2.5, H * .035);
         const o0 = W * .2 + ext, o1 = W * .64 + ext, r = (y2 - y1) / 2;
         x.beginPath(); x.moveTo(o0, y1); x.lineTo(o1, y1); x.arc(o1, y1 + r, r, -Math.PI / 2, Math.PI / 2); x.lineTo(o0, y2); x.stroke();
