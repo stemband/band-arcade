@@ -35,24 +35,28 @@
          to the RIGHT: 0–60 cm of travel = `travel` units.
      The marks sit on a ruler under the slide, where the outer slide's front edge (its ferrules) lines up for each
      position, so they never hide behind the moving tubes. */
-  const V = {w: 1000, h: 340, top: 230, bot: 268, in0: 250, in1: 600, out0: 274, out1: 612, travel: 340,
-    bell: {y: 120, throat: 380, rim: 560, half: 88}, crook: 104, braceA: 170};
+  /* Proportions from Mr. Graham's reference photos: a compact bell section, a smaller bell whose rim ends right over
+     4TH POSITION (`bell.rimAt`: computed from that mark, so it stays there if the marks change), and a long slide that
+     reaches well past the bell in 1st position. */
+  const V = {w: 1000, h: 340, top: 230, bot: 268, in0: 200, in1: 590, out0: 222, out1: 602, travel: 340,
+    bell: {y: 158, throat: 210, rimAt: 4, half: 62}, crook: 75, braceA: 105};
   const PXCM = V.travel / SLIDE.travel;
+  V.bell.rim = Math.round(V.out0 + SL.markX(V.bell.rimAt, 'ideal') * PXCM);
   const R = (V.bot - V.top) / 2;
   const outerPath = `M${V.out0} ${V.top}H${V.out1}A${R} ${R} 0 0 1 ${V.out1} ${V.bot}H${V.out0}`;
   function hornSVG({marks = true, tuning = 'ideal', mini = false} = {}) {
     const B = V.bell, by = B.y, cr = (V.bot - by) / 2, cy = (V.bot + by) / 2;
     let s = `<svg class="sq-horn${mini ? ' sq-mini' : ''}" viewBox="0 0 ${V.w} ${V.h}" ${mini ? 'aria-hidden="true"' : 'role="img" aria-label="A trombone seen from the side: the bell on top pointing forward, the slide underneath reaching out to the right"'}>`;
     if (!mini) s += `<defs><radialGradient id="sqGlow"><stop offset="0" stop-color="var(--sq-glow)" stop-opacity=".85"/><stop offset="1" stop-color="var(--sq-glow)" stop-opacity="0"/></radialGradient></defs>` +
-      `<ellipse class="sq-bellglow" cx="${B.rim + 40}" cy="${by}" rx="100" ry="${B.half + 8}" fill="url(#sqGlow)"/>`;
+      `<ellipse class="sq-bellglow" cx="${B.rim + 34}" cy="${by}" rx="80" ry="${B.half + 8}" fill="url(#sqGlow)"/>`;
     // THE BELL SECTION: the back tube from the slide lock to the tuning slide's crook, round the crook, then forward to the bell
     s += `<path class="sq-tube" d="M${V.in0} ${V.bot}H${V.crook}A${cr} ${cr} 0 0 1 ${V.crook} ${by}H${B.throat + 4}"/>` +
       `<path class="sq-tslide" d="M${V.crook + 18} ${V.bot}H${V.crook + 40}M${V.crook + 18} ${by}H${V.crook + 40}"/>` +       // the tuning slide's ferrules
       `<path class="sq-brace" d="M${V.braceA} ${by + 6}V${V.bot - 6}"/>` +
       `<path class="sq-brace" d="M${V.in0 + 16} ${by + 6}V${V.top - 4}"/>` +
-      `<path class="sq-bell" d="M${B.throat} ${by - 7}C${B.throat + 74} ${by - 8} ${B.rim - 40} ${by - 25} ${B.rim} ${by - B.half}L${B.rim} ${by + B.half}C${B.rim - 40} ${by + 25} ${B.throat + 74} ${by + 8} ${B.throat} ${by + 7}Z"/>` +
-      `<ellipse class="sq-rim" cx="${B.rim}" cy="${by}" rx="10" ry="${B.half}"/>` +
-      `<path class="sq-shine" d="M${B.throat + 24} ${by - 10}C${B.throat + 90} ${by - 14} ${B.rim - 36} ${by - 30} ${B.rim - 12} ${by - B.half + 12}"/>` +
+      `<path class="sq-bell" d="M${B.throat} ${by - 7}C${B.throat + 70} ${by - 8} ${B.rim - 30} ${by - 20} ${B.rim} ${by - B.half}L${B.rim} ${by + B.half}C${B.rim - 30} ${by + 20} ${B.throat + 70} ${by + 8} ${B.throat} ${by + 7}Z"/>` +
+      `<ellipse class="sq-rim" cx="${B.rim}" cy="${by}" rx="8" ry="${B.half}"/>` +
+      `<path class="sq-shine" d="M${B.throat + 20} ${by - 10}C${B.throat + 80} ${by - 12} ${B.rim - 28} ${by - 24} ${B.rim - 10} ${by - B.half + 10}"/>` +
       // THE SLIDE: the mouthpiece (pointing back at the player), the inner slide (fixed) and its stocking brace
       `<path class="sq-shank" d="M${V.in0 - 42} ${V.top}H${V.in0}"/><path class="sq-mp" d="M${V.in0 - 74} ${V.top - 13}Q${V.in0 - 58} ${V.top - 11} ${V.in0 - 46} ${V.top - 4}V${V.top + 4}Q${V.in0 - 58} ${V.top + 11} ${V.in0 - 74} ${V.top + 13}Z"/>` +
       `<path class="sq-inner" d="M${V.in0} ${V.top}H${V.in1}M${V.in0} ${V.bot}H${V.in1}"/>` +
