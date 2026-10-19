@@ -477,3 +477,13 @@
 .shape-timpani .s-pedal{fill:var(--pp-chrome);stroke:var(--pp-chrome-2);stroke-width:2}
 .shape-timpani .s-pivot{fill:var(--pp-chrome-2)}
 .scr-timpani{background:var(--pp-night)}
+/* Slide Quest: the trombone cabinet (a brass bell over the marquee, the slide down the lower right) and its canvas screen */
+.shape-trombone .s-pipe{fill:none;stroke:var(--sq-brass);stroke-width:7;stroke-linecap:round}
+.shape-trombone .s-bell{fill:var(--sq-brass);stroke:var(--sq-brass-2);stroke-width:2}
+.shape-trombone .s-rim{fill:var(--sq-brass-hi);stroke:var(--sq-brass-2);stroke-width:2}
+.shape-trombone .s-shine{fill:none;stroke:var(--sq-brass-hi);stroke-width:3;stroke-linecap:round;opacity:.6}
+.shape-trombone .s-inner{fill:none;stroke:var(--sq-chrome);stroke-width:5;stroke-linecap:round}
+.shape-trombone .s-outer{fill:none;stroke:var(--sq-brass);stroke-width:9}
+.shape-trombone .s-ferrule{fill:var(--sq-brass-hi)}
+.shape-trombone .s-grip{fill:var(--sq-brass-2);stroke:var(--sq-brass-hi);stroke-width:1.5}
+.scr-trombone{background:var(--sq-night)}

@@ -190,6 +190,23 @@ window.Arcade = window.Arcade || {};
               '<path class="s-pedal" d="M118 586L176 556L186 566L128 594Z"/><circle class="s-pivot" cx="124" cy="588" r="5"/>',
       slots: {marquee: [34, 36, 232, 62], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
     },
+    /* trombone: the Slide Quest cabinet. A brass trombone BELL lies across the top over the marquee (its lead pipe at
+       the left, the flare opening to the right with a bright rim), and the SLIDE runs down the lower right of the face:
+       two chrome inner tubes, the brass outer slide over them with its U-shaped crook at the bottom and the grip */
+    trombone: {
+      outline: 'M20 40Q20 4 62 4H262Q282 4 282 30V112H262V300L284 318V380H270V598H30V380H16V318L38 300V112H20Z',
+      face: 'M50 112H250V300H50ZM38 386H262V598H38Z', kick: [38, 262],
+      bezel: 'M62 122H238Q246 122 246 130V288Q246 296 238 296H62Q54 296 54 288V130Q54 122 62 122Z',
+      panel: 'M44 306H256L282 368H18Z', lip: 'M18 368H282V382H18Z',
+      joy: [70, 338], btns: [[180, 338], [210, 342], [240, 346]],
+      door: {x: 96, y: 430, w: 92, h: 90},
+      extras: '<path class="s-pipe" d="M28 27H112"/><path class="s-bell" d="M108 22C170 22 220 18 258 6V50C220 38 170 34 108 34Z"/>' +
+              '<ellipse class="s-rim" cx="258" cy="28" rx="7" ry="22"/><path class="s-shine" d="M126 25C170 25 210 22 240 14"/>' +
+              '<path class="s-inner" d="M222 392V470M246 392V470"/><path class="s-outer" d="M222 454V560A12 12 0 0 0 246 560V454"/>' +
+              '<rect class="s-ferrule" x="216" y="450" width="12" height="9" rx="2"/><rect class="s-ferrule" x="240" y="450" width="12" height="9" rx="2"/>' +
+              '<rect class="s-grip" x="220" y="486" width="28" height="9" rx="3"/>',
+      slots: {marquee: [34, 56, 232, 50], screen: [62, 132, 176, 156], start: [80, 386, 140, 46]},
+    },
     /* audition: the Scale Trainer cabinet. A classic body with a music-stand desk for its top (the marquee sits on a
        slanted stand desk), a music stand painted down the lower left side and the judge's score sheet (a clipboard
        with ticks) on the lower right */
@@ -686,6 +703,39 @@ window.Arcade = window.Arcade || {};
         x.fillStyle = css('pp-head'); x.beginPath(); x.ellipse(kx, ky, r, r * .16, 0, 0, 7); x.fill();
         const pa = -.5 + .5 * (1 - d);
         x.save(); x.translate(W * .82, H * .95); x.rotate(pa); x.fillStyle = css('pp-chrome'); x.fillRect(-W * .12, -H * .03, W * .14, H * .05); x.restore();
+      },
+    },
+    /* Slide Quest: finding a note by ear. Two waves (the drone and the trombone) drawn over each other: while the horn is
+       out of tune their sum BEATS (a slow swell and fade); the trombone's slide below moves IN, the beats slow down and
+       stop, and the steady wave turns gold with "IN TUNE" (a 6 s loop; smooth, never a blink). A canvas screen (2D and 3D). */
+    trombone: {
+      html() { return `<div class="scr scr-trombone scr-cv"><canvas aria-hidden="true"></canvas></div>`; },
+      draw(x, W, H, t) {
+        const TK = this._tk || (this._tk = {}), css = n => TK[n] || (TK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+        const L = 6, tt = t == null ? 4.8 : t % L, d = Math.max(0, 1 - tt / 4.2);
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css('sq-night-2')); g.addColorStop(1, css('sq-night'));
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        // the waves: beats while out of tune
+        const cy = H * .28, amp = H * .13;
+        x.lineWidth = Math.max(1.5, H * .02); x.strokeStyle = d > 0 ? css('sq-mark') : css('sq-brass-hi');
+        x.beginPath();
+        for (let i = 0; i <= 64; i++) {
+          const u = i / 64, env = d > 0 ? Math.abs(Math.cos(Math.PI * (u * 2.5 * d + (t || 0) * 1.2 * d))) : 1;
+          const y = cy + Math.sin(u * Math.PI * 12) * amp * env;
+          if (i) x.lineTo(u * W, y); else x.moveTo(u * W, y);
+        }
+        x.stroke();
+        if (!d) { x.globalAlpha = Math.min(1, (tt - 4.2) * 2); x.fillStyle = css('sq-brass-hi'); x.font = `700 ${H * .13}px "GN Display", sans-serif`; x.textAlign = 'center'; x.fillText('IN TUNE', W / 2, H * .55); x.globalAlpha = 1; }
+        // the trombone: the bell on the left, the slide moving IN as it comes into tune
+        const y1 = H * .7, y2 = H * .8, ext = W * .3 * d;
+        x.lineCap = 'round';
+        x.strokeStyle = css('sq-chrome'); x.lineWidth = Math.max(1.5, H * .02);
+        x.beginPath(); x.moveTo(W * .14, y1); x.lineTo(W * .62, y1); x.moveTo(W * .14, y2); x.lineTo(W * .62, y2); x.stroke();
+        x.fillStyle = css('sq-brass'); x.beginPath(); x.moveTo(W * .1, H * .86); x.quadraticCurveTo(W * .3, H * .87, W * .36, H * .78); x.lineTo(W * .36, H * .98); x.quadraticCurveTo(W * .3, H * .89, W * .1, H * .9); x.closePath(); x.fill();
+        x.strokeStyle = css('sq-brass'); x.lineWidth = Math.max(2.5, H * .035);
+        const o0 = W * .2 + ext, o1 = W * .64 + ext, r = (y2 - y1) / 2;
+        x.beginPath(); x.moveTo(o0, y1); x.lineTo(o1, y1); x.arc(o1, y1 + r, r, -Math.PI / 2, Math.PI / 2); x.lineTo(o0, y2); x.stroke();
+        x.lineCap = 'butt';
       },
     },
     /* Blocktave: a tiny side view of the block world: the avatar walks up to a glowing Tone Ore block, a note bubble

@@ -630,6 +630,51 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* SLIDE QUEST: a stage at night. A deep blue curtain behind, the wooden stage, and a TROMBONE SECTION's silhouettes
+     at the edges (two players a side, seated, slides pointing out at a slant, bells catching a little gold), each pair
+     under a warm spotlight cone that breathes very slowly (8 s); dust drifts in the light. The middle stays dark. */
+  S.slide = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .72;
+    vgrad(x, W, H, [[0, col('sq-night')], [.6, mix('sq-night', 'sq-curtain', .5)], [.72, mix('sq-curtain', 'sq-night', .5)], [.72, col('sq-stage')], [1, col('sq-stage-2')]]);
+    const folds = 14;
+    for (let i = 0; i < folds; i++) {
+      const fx = (i + .5) * W / folds, g = x.createLinearGradient(fx - W / folds / 2, 0, fx + W / folds / 2, 0);
+      g.addColorStop(0, col('sq-curtain', 0)); g.addColorStop(.5, col('sq-curtain', .35)); g.addColorStop(1, col('sq-curtain', 0));
+      x.fillStyle = g; x.fillRect(fx - W / folds / 2, 0, W / folds, fy);
+    }
+    x.strokeStyle = col('sq-stage-2', .9); x.lineWidth = Math.max(1, W / 700);
+    for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * W / 12, fy); x.lineTo(W / 2 + (i * W / 12 - W / 2) * 1.5, H); x.stroke(); }
+    const breath = .5 + .5 * Math.sin(t * TAU / 8);
+    // one seated trombonist's silhouette, facing the middle (dir = +1: faces right), its slide out at a slant
+    const player = (px, s, dir, glint) => {
+      const sil = col('sq-stage-2', .95);
+      x.fillStyle = sil;
+      x.beginPath(); x.arc(px, fy - s * 1.55, s * .2, 0, TAU); x.fill();                                      // the head
+      x.beginPath(); x.moveTo(px - s * .28, fy - s * 1.3); x.lineTo(px + s * .28, fy - s * 1.3); x.lineTo(px + s * .34, fy - s * .55); x.lineTo(px - s * .34, fy - s * .55); x.closePath(); x.fill();
+      x.fillRect(px - s * .4, fy - s * .58, s * .8, s * .12);                                                  // the chair
+      x.fillRect(px - s * .36, fy - s * .5, s * .06, s * .5); x.fillRect(px + s * .3, fy - s * .5, s * .06, s * .5);
+      // the trombone: the slide from the mouth out and down, the bell up by the shoulder
+      const mx = px + dir * s * .16, my = fy - s * 1.5, ex = mx + dir * s * 1.5, ey = my + s * .55;
+      x.strokeStyle = sil; x.lineWidth = Math.max(1, s * .07); x.lineCap = 'round';
+      x.beginPath(); x.moveTo(mx, my); x.lineTo(ex, ey); x.moveTo(mx, my + s * .12); x.lineTo(ex, ey + s * .12); x.stroke();
+      x.fillStyle = sil; x.beginPath(); x.moveTo(mx + dir * s * .2, my - s * .02); x.lineTo(mx + dir * s * .75, my - s * .2); x.lineTo(mx + dir * s * .75, my + s * .18); x.closePath(); x.fill();
+      x.strokeStyle = col('sq-brass', .25 + .3 * glint); x.lineWidth = Math.max(1, s * .05);
+      x.beginPath(); x.moveTo(mx + dir * s * .75, my - s * .2); x.lineTo(mx + dir * s * .75, my + s * .18); x.stroke();
+      x.lineCap = 'butt';
+    };
+    const s0 = m * .16 * (W > H ? 1 : .8);
+    [[.06, .9], [.19, 1]].forEach(([fx, k], i) => {
+      player(fx * W, s0 * k, 1, .5 + .5 * Math.sin(t * .5 + i * 2));
+      player((1 - fx) * W, s0 * k, -1, .5 + .5 * Math.sin(t * .5 + i * 2 + 3));
+    });
+    glow(x, W * .14, fy - m * .2, m * .45, col('sq-spot', .06 + .05 * breath), col('sq-spot', 0));
+    glow(x, W * .86, fy - m * .2, m * .45, col('sq-spot', .06 + .05 * (1 - breath)), col('sq-spot', 0));
+    for (let i = 0; i < 18; i++) {
+      const side = i % 2, dx = W * ((side ? .72 : .02) + .26 * fract(hash(i + 90) + t * (.004 + .003 * hash(i + 91)))), dy = H * (.08 + .6 * fract(hash(i + 92) - t * (.01 + .006 * hash(i + 93))));
+      x.fillStyle = col('sq-spot', .07 + .1 * hash(i + 94)); x.beginPath(); x.arc(dx, dy, m * .003, 0, TAU); x.fill();
+    }
+  };
+
   /* SCALE TRAINER: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
      stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
      The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
@@ -1277,7 +1322,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, timpani: 3, 'showtime-curtain': 2};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, timpani: 3, slide: 3, 'showtime-curtain': 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

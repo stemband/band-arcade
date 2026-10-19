@@ -145,6 +145,12 @@ const STEPS = {
     if (await page.locator('#introGo').isVisible().catch(() => false)) await page.locator('#introGo').click();
     else { await page.keyboard.press('a'); await page.keyboard.press('Enter'); }
     await page.waitForTimeout(250); }},
+  // Slide Quest (no microphone): its level intro's LET'S PLAY!, then A (the demo: the slide exactly on the target) +
+  // Enter (LOCK IN); after a lock-in the focus is on NEXT, so the next Enter moves on
+  'slide-quest': {play: async page => {
+    if (await page.locator('#introGo').isVisible().catch(() => false)) await page.locator('#introGo').click();
+    else { await page.keyboard.press('a'); await page.keyboard.press('Enter'); }
+    await page.waitForTimeout(250); }},
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000, slow: true},

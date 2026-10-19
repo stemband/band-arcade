@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>Slide Quest</title>
+<meta name="description" content="Slide a trombone into tune by ear: find the spot where the beats disappear.">
+<meta name="theme-color" content="#0a0d14">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT -->
+  <section id="hub">
+    <div class="hub-head">
+      <h1 class="game-title">Slide <span>Quest</span></h1>
+      <p class="ui-howto">Play a trombone by ear. Blow into the horn and move its slide until your note matches the drone and the wah-wah-wah stops. No instrument needed: the game makes every sound.</p>
+    </div>
+    <div class="levels" id="levelGrid"></div>
+    <p class="demo-help" id="demoHelp" hidden>Demo: A = the slide exactly on the target, W = 30 cents off, Enter = lock in / next.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="hud">
+      <div><small id="hudLevelLabel">Level 1</small><b id="hudLevelName">First Slide</b></div>
+      <div class="c"><small>Note</small><b id="hudCount">1 / 5</b></div>
+      <div class="r"><small>Score</small><b id="hudScore">0</b></div>
+    </div>
+    <p class="sq-prompt" id="prompt" aria-live="polite">Match the drone</p>
+    <!-- THE STAGE: the trombone (game.js hornSVG); drag the outer slide anywhere on it -->
+    <div class="sq-stage" id="stage"></div>
+    <!-- while tuning -->
+    <div class="sq-controls" id="controls">
+      <div class="sq-main">
+        <button type="button" class="sq-nudge" id="nudgeDown" aria-label="Nudge the slide: a little lower (out)">−<small>lower</small></button>
+        <button type="button" class="btn btn-primary sq-blow" id="blowBtn" aria-pressed="false">Blow</button>
+        <button type="button" class="sq-nudge" id="nudgeUp" aria-label="Nudge the slide: a little higher (in)">+<small>higher</small></button>
+      </div>
+      <div class="sq-aids">
+        <!-- THE LIPS (levels with lips): the ladder shows where you are; the partial is never told in words -->
+        <div class="sq-lips" id="lips" hidden>
+          <button type="button" class="sq-lip" id="lipDown" aria-label="Lip down: a lower family of notes">Lip ▼</button>
+          <div class="sq-ladder" id="ladder" aria-hidden="true"></div>
+          <button type="button" class="sq-lip" id="lipUp" aria-label="Lip up: a higher family of notes">Lip ▲</button>
+        </div>
+        <!-- THE TUNER NEEDLE (levels 1–2): −50…+50 cents from the target, while the horn sounds -->
+        <div class="sq-needle idle" id="needle" hidden aria-hidden="true">
+          <svg viewBox="-100 0 200 44"><rect class="sn-zone" x="-10.8" y="10" width="21.6" height="16" rx="3"/>
+            <path class="sn-tick" d="M-90 14V22M-45 14V22M45 14V22M90 14V22"/><path class="sn-mid" d="M0 6V30"/>
+            <text class="sn-l" x="-96" y="42">flat</text><text class="sn-l" x="96" y="42" text-anchor="end">sharp</text>
+            <g class="sn-needle"><path d="M0 34L-6 42H6Z M-1.5 4H1.5V34H-1.5Z"/></g></svg>
+        </div>
+      </div>
+      <div class="sq-btns">
+        <button type="button" class="btn btn-secondary" id="droneBtn" aria-pressed="false">Drone: off</button>
+        <button type="button" class="btn btn-primary" id="lockBtn" disabled>Lock in</button>
+      </div>
+      <p class="sq-keys">Keys: ←/→ slide in/out (Shift = fine) · ↑/↓ lip · hold Space to blow · D drone · Enter lock in</p>
+    </div>
+    <!-- after LOCK IN -->
+    <div class="sq-feedback" id="feedback" hidden aria-live="polite"></div>
+  </section>
+</div>
+
+<!-- the results screen and the pause menu: shared/ui-kit.js -->
+
+<!-- No microphone and no instrument: no pitch.js, no mic-gate.js. The horn and the drone are made by brass.js on
+     shared/sfx.js's output; every other sound comes from shared/sfx.js. -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="slide.js"></script>
+<script src="brass.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

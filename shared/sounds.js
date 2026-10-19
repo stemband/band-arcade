@@ -1,6 +1,6 @@
 /* AFTER REPLACING SOUNDS in shared/sounds/, add 1 to this number, so every student's device loads the new files right
    away instead of a copy it saved earlier (every sound URL ends in ?v=<this number>). */
-var SOUNDS_VERSION = 7;
+var SOUNDS_VERSION = 8;
 
 /* Band Arcade: THE SOUND LIST. Every sound the arcade plays, by event name. shared/sfx.js plays them.
 
@@ -412,6 +412,11 @@ window.Arcade = window.Arcade || {};
     'pp-lock':  {file: 'pp-lock', vol: .5, mic: false, screen: 'pedal-point', gen: [[2600, 0, .03, .25, 'noise', 1.6], [1400, .04, .05, .2, 'noise', 1.2]], when: 'Pedal Point: LOCK IN (the tuning is judged). A solid click, never a tone.', len: 'under 0.2 s'},
     'pp-star':  {file: 'pp-star', vol: .5, mic: false, screen: 'pedal-point', gen: [[[5200, 7400], 0, .12, .12, 'noise', 2], [[6200, 8400], .12, .14, .1, 'noise', 2]], when: 'Pedal Point: a BULLSEYE (a tuning within 3 cents), right after pp-lock. A sparkle, never a tone.', len: 'under 0.4 s'},
     'pp-count': {file: 'pp-count', vol: .3, mic: false, screen: 'pedal-point', gen: [[3000, 0, .02, .14, 'noise', 2.2]], when: 'Pedal Point: QUICK CHANGE: each beat of the bars of rest before the downbeat. A quiet tick, never a tone (it plays while the student listens to the drum).', len: 'under 0.1 s'},
+    // SLIDE QUEST: no microphone, ever. The horn and the drone are synthesized (slide-quest/brass.js); these are its UI
+    // effects, all UNPITCHED (a pitched effect would muddy what the student is tuning)
+    'slide-quest-menu': {file: 'slide-quest-menu', vol: .45, loop: true, mic: false, screen: 'slide-quest', when: 'Slide Quest: menu music: the level select, a level\'s intro and the results. Fades out (0.5 s) when a level starts: tuning needs quiet. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
+    'sq-lock':  {file: 'sq-lock', vol: .5, mic: false, screen: 'slide-quest', gen: [[2600, 0, .03, .25, 'noise', 1.6], [1400, .04, .05, .2, 'noise', 1.2]], when: 'Slide Quest: LOCK IN (the note is judged). A solid click, never a tone.', len: 'under 0.2 s'},
+    'sq-star':  {file: 'sq-star', vol: .5, mic: false, screen: 'slide-quest', gen: [[[5200, 7400], 0, .12, .12, 'noise', 2], [[6200, 8400], .12, .14, .1, 'noise', 2]], when: 'Slide Quest: a BULLSEYE (a note within 3 cents), right after sq-lock. A sparkle, never a tone.', len: 'under 0.4 s'},
     'blocktave-menu':  {file: 'blocktave-menu', vol: .45, loop: true, mic: false, screen: 'blocktave', when: 'Blocktave: menu music: the title screen (chapters, Survival Nights) and the results. Fades out as you enter your world. Until you upload it: the arcade\'s select-music.', len: '30–90 s loop'},
     'blocktave-day':   {file: 'blocktave-day', vol: .4, loop: true, mic: false, screen: 'blocktave', when: 'Blocktave: DAY music in the world (the MUSIC slider). Stops while the microphone listens (a challenge card, a creature near). Silent until you upload it.', len: '60–180 s loop'},
     'blocktave-cave':  {file: 'blocktave-cave', vol: .6, loop: true, mic: false, screen: 'blocktave', genLoop: 'cave', when: 'Blocktave: CAVE music deep underground (more than music.caveRows rows down; back to day/night above music.leaveRows). Slow, quiet, a little mysterious: a low drone, water drips. Stops while the microphone listens. Until you upload it: a built-in generated cave ambience.', len: '60–180 s loop'},
@@ -445,7 +450,7 @@ window.Arcade = window.Arcade || {};
 
   /** the screens, in README / Sound Board order, with their headings */
   const SCREENS = [['floor', 'Arcade floor'], ['select', 'Choose Your Instrument'], ['general', 'Everywhere'], ['game', 'Every game (shared events)'],
-    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja, Showtime Malfunction…)'], ['lost-signal', 'Lost Signal'], ['pedal-point', 'Pedal Point'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
+    ['ghost-notes', 'Ghost Notes'], ['note-storm', 'Note Storm'], ['note-checker', 'Note Checker'], ['note-ninja', 'Note Ninja'], ['endless', 'Endless mode (Note Storm, Note Ninja, Showtime Malfunction…)'], ['lost-signal', 'Lost Signal'], ['pedal-point', 'Pedal Point'], ['slide-quest', 'Slide Quest'], ['vanishing-ink', 'Vanishing Ink'], ['dojo-duel', 'Dojo Duel'], ['chime-heist', 'Chime Heist'],
     ['ancient-ninja-scrolls', 'Ancient Ninja Scrolls'], ['button-masher', 'Button Masher'], ['neon-face-off', 'Neon Face-Off'], ['showtime-malfunction', 'Showtime Malfunction'], ['sustain-speedway', 'Sustain Speedway'], ['keys-to-the-city', 'Keys to the City'], ['music-highway', 'Music Highway'], ['rhythm-dojo', 'Rhythm Dojo'], ['rudiments', 'Rudiment player (the Rudiment Trainer)'], ['scale-trainer', 'Scale Trainer'], ['blocktave', 'Blocktave'], ['arcade-quest', 'Arcade Quest']];
 
   A.Sounds = {

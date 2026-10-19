@@ -1,0 +1,85 @@
+# Slide Quest (`slide-quest/`)
+
+- WHAT IT TEACHES: finding a pitch BY EAR on a trombone slide, for EVERY student (not just trombonists). Each round has a target note; the student blows a virtual trombone (synthesized brass) and moves its SLIDE until the note matches, then LOCKS IN and is scored on how close it got, in cents, exactly like [Pedal Point](pedal-point.md) (its sibling: the same page skeleton, flow, scoring, results, `?demo` hooks and test structure). Three lessons:
+  - THE POSITIONS ARE NOT EVENLY SPACED: each is a half step lower, and each step out is a little LONGER than the last, because pitch follows tube length (the marks show it).
+  - YOUR EARS ARE THE BEST TUNER: two tones close in pitch BEAT (wah-wah-wah); the beating slows as they get closer and stops when they match. The drone and the horn together are the core of the game.
+  - REAL HORNS AREN'T PERFECTLY IN TUNE (levels 7–8): 5th-partial notes are about 14 cents flat at their chart position, so a good player moves the slide IN a little. The ear decides, not the marks.
+- Zone `ear-training`; `noInstrument: true` (so it is in NO INSTRUMENT NEEDED by itself), `player: 'all'` (START goes straight to the game, no Select Player), `unpitched: true` (the Snare Drum opens it too), no `fit`. `maxStars` 24 (8 levels × 3). The name is a pun on "side quest".
+- NO MICROPHONE AT ALL (the pitched-audio exception, [CLAUDE.md](../../CLAUDE.md) hard rules and [sound.md](../engine/sound.md)): the page doesn't load `pitch.js` or `mic-gate.js`; no `requireMic`. Every pitched sound is the game's own (`brass.js`) through `Sfx.output()` (SOUND OFF and the EFFECTS slider apply; never an AudioContext of its own), and every one REFUSES to play while `Arcade.Pitch.listening()` (it never listens; the guard keeps the rule honest). Because the game makes every sound, the score is exact.
+
+## The physics (`slide.js` = `Arcade.SQSlide`; every number in its one commented `SLIDE` block, marked `MAT: TUNE`)
+
+A tenor trombone in B♭. The pitch is exact math, so the score is exact.
+
+- `FP` 58.2705 Hz (the pedal B♭1), `L0` 270 cm (the effective tube length: it sets the spacing of the positions), `travel` 60 cm (a little past 7th, like a real slide), `room` 20 cents (real tuning only), `positions` 7, `partials` 2–6, `et` = the chart note of each partial in 1st position (B♭2, F3, B♭3, D4, F4).
+- THE SLIDE: the extension `x` (cm, 0 = against the stops) adds `2x` of tubing, so the pitch × `L0 / (L0 + 2x)`.
+- THE PARTIAL `n` (2–6), chosen by the lips: the note of the harmonic series that sounds at the slide's spot. Two tunings (a level's `tuning`):
+  - `ideal` (levels 1–6): every partial EXACTLY on the equal-tempered chart: `f(n, x) = ET(n) × L0 / (L0 + 2x)`; 1st position at `x = 0`.
+  - `real` (levels 7–8): the TRUE harmonic series: `f(n, x) = n × FP × 2^(room/1200) × L0 / (L0 + 2x)`. Partial 3 is +2 cents, partial 5 −13.7, partial 6 +2 against the chart. The main tuning slide is set with `room` 20 cents to spare: against the stops the horn is 20 cents sharp of 1st position, so a player can push flat notes up. The intro says it in plain words ("Real players tune with a little room at the top, so they can move flat notes in.").
+- THE MARKS: `markX(k, mode) = L0/2 × (2^((room + 100(k−1))/1200) − 1)` (room 0 in ideal mode). Ideal: 0, 8.0, 16.5, 25.5, 35.1, 45.2, 55.9 cm. Real: 1.6, 9.7, 18.3, 27.4, 37.1, 47.3, 58.1 cm. A mark × its partial lands EXACTLY on the chart note in ideal mode, and on the TRUE harmonic in real mode (so a 5th-partial note at its mark is −13.7 cents: the lesson).
+- `freq(n, x, mode)`, `cents(f, target)` (+ = sharp), `spotFor(midi, n, mode)` (the exact x for that note on that partial, or null when it isn't one of the partial's 7 positions or is out of reach), `waysTo(midi, mode)` (every `[n, position]` that plays it), `shiftX(x, c)` (the slide moved by c cents' worth, + = in), `centsBetween(x1, x2)`, `positionOf(midi, n)`, `harmonicError(n)`, `label(midi)` / `spell(midi)`.
+- NOTE NAMES: the shared speller (`Arcade.music.spell`), concert pitch, bass clef, flats except F♯, exactly like `PPDrums.label`. Never a second speller.
+- `waysTo` is checked against `shared/fingerings.js` TROMBONE in the tests: every chart entry on partials 2–6 is among its answers (F♯4 and up are partials 7–8: not on this horn's ladder).
+
+## The sound (`brass.js` = `Arcade.SQBrass`; every number in its commented `BRASS` and `DRONE` blocks, so Mr. Graham can tune it by ear)
+
+- THE HORN, built to bend: one voice = a `PeriodicWave` (24 harmonics, harmonic k at `1/k^0.7`, the 2nd × 1.3 and the 3rd × 1.2), a low-pass, a very quiet band-passed breath noise (`breath`), no vibrato (tuning needs a steady tone). THE ATTACK ("BWAH"): the low-pass opens to `open` 9 × f in `openS` 40 ms, then settles to `settle` 4.5 × f over `settleS` 150 ms; never below `minCut` 900 Hz (so LOW notes, down to E2 = 82 Hz, keep the harmonics that carry them on tablet speakers) or above `maxCut` 9 kHz. Release `releaseS` 80 ms.
+- `start(f)`, `setFreq(f, {slur})`, `stop()`, `playing()`. `setFreq` GLIDES with `setTargetAtTime` (`glide` 0.012 s), so moving the slide is a smooth glissando; the voice never restarts. A PARTIAL CHANGE (lip up/down) is a quick LIP SLUR (`slur`): the level dips 25 % for 30 ms and the pitch jumps with a 0.02 s glide (the same voice).
+- THE REFERENCE: a TUNING DRONE, deliberately a different timbre (as in real rehearsals; Pedal Point's pitch-pipe idea): a sine with a quiet 2nd (.22) and 3rd (.1) harmonic, a 0.3 s fade in and out, `vol` .26 (a little quieter than the horn's .34). `drone(f, {sec})`: held until `droneStop()`, or timed. With the horn it BEATS clearly: the test renders the two 3 Hz apart in an `OfflineAudioContext` and finds their envelope's peak at 3 Hz (and almost no beating in tune).
+- `stopAll()` on pause, on leaving (`pagehide`) and when the page hides (the pause menu opens by itself). `SQBrass.test`: `live()` (the horn's oscillator frequency now), `target()`, `drone()`, `voiceStart()`, `history` (every start, slur and drone, `played` false when refused), `render(fHorn, fDrone, sec)`.
+- HEADPHONES: the first level ever played shows a one-time toast "Headphones help: the trombone's low notes are LOW." (`gameData('slide-quest').hpTip`); it never blocks play.
+
+## The screen and the controls
+
+- THE STAGE (`--sq-*` tokens in theme.css): a dark stage under a warm spotlight and the trombone seen from the side, the full width of the play area (an SVG, `game.js hornSVG`): the mouthpiece and the bell section on the LEFT (fixed), the chrome inner slide tubes (fixed) and the brass OUTER SLIDE (its U-shaped crook, the ferrules at its open end and the grip) moving to the RIGHT. 0–60 cm of travel = 370 of the drawing's 1000 units. While the horn sounds the bell glows softly (a 0.35 s fade; no flashing).
+- THE SLIDE GRIP: drag the outer slide anywhere on it (pointer capture, `touch-action: none`, `Arcade.holdGuard({lock})`); it moves from where it is and never jumps to the finger. Out = right = lower. NUDGE − / + move it 2 cents' worth (`RULES.nudgeCents`): essential on phones, where 1 cent near 7th position is under a pixel.
+- THE MARKS (levels with `marks`): the 7 positions as thin lines on the inner slide at their TRUE spots (where the outer slide's ferrules line up), numbered 1–7, so the uneven gaps are visible. In real-tuning levels they sit at the chart spots, so a 5th-partial note at its mark really is flat.
+- BLOW (the big gold button): a TAP toggles (so mouse users can blow and drag at once); a press HELD longer than `RULES.holdMs` 350 ms stops on release (one thumb on an iPad while the other hand slides, like the real instrument); Space = hold to blow.
+- DRONE: ON / OFF (levels with `ref: 'drone'`): it starts ON by itself at the start of each round. In a `ref: 'once'` level the note plays once by itself (`RULES.onceSec` 2 s) and never again (the button is hidden; D is refused); a PAUSE during it plays it again, free, on RESUME.
+- LIP ▲ / LIP ▼ (levels with `lips`): a small ladder of 5 dots (partials 2–6), the current one lit; ↑/↓. The partial is never told in words while tuning.
+- THE TUNER NEEDLE (levels 1–2 only, `needle`): a small −50…+50 cent needle relative to the TARGET, moving live while you blow (green inside the 3 ★ zone). No other pitch display while tuning: no live note name, no numbers.
+- LOCK IN: disabled until the horn has sounded this round (a blow, even with SOUND OFF), so the slide is never placed by eye alone. It scores the pitch at the current slide and partial, sounding or not.
+- KEYBOARD: ←/→ slide in/out by 5 cents' worth (Shift = 1 cent), ↑/↓ lip up/down, Space = blow (hold), D = drone on/off (or the once-only note), Enter = LOCK IN, then NEXT.
+- AFTER LOCK IN (never during tuning): the error in words ("+7 cents sharp", "−14 cents flat", "Right on: 0 cents"), the cents meter with the 2 ★ and 3 ★ zones, the target (gold) and the student's note on a small bass-clef staff (`A.staffSVG`), a dashed GHOST OUTLINE of the slide at the EXACT spot (for the lip setting used) with "The exact spot was a little further OUT / IN." (or "Right there!" within 3 cents; on another lip setting's note: "That was a different note: try another lip setting."), then the horn and the drone together for `RULES.bothSec` 1.6 s (▶ HEAR BOTH again), and NEXT. Level 7 (`flatTip`) adds for a 5th-partial target: "5th-partial notes are flat at the mark: bring the slide IN a little."
+
+## The levels (`levels.js`: `SQ_LEVELS`, saved by number: never reorder), the shared LEVEL SELECT PATTERN
+
+Each level starts with its intro (`UI.intro`: its `say`, LET'S PLAY! / LEVELS). Fields: `name`, `idea`, `say`, `tuning`, `partials` (the pool), `focus` ({partial, rounds}: at least that many rounds on that partial), `lips`, `ref` (`'drone'` | `'once'`), `named`, `told`, `marks`, `needle`, `rounds` 5, `lesson`, `flatTip`.
+
+| # | Name | tuning | partials | lips | ref | named | told | marks | needle |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | First Slide | ideal | 3 | – | drone | ✓ | ✓ | ✓ | ✓ |
+| 2 | Find the Spot | ideal | 2–4 | – | drone | ✓ | – | ✓ | ✓ |
+| 3 | Ears Only | ideal | 2–4 | – | drone | – | – | ✓ | – |
+| 4 | No Marks | ideal | 2–4 | – | drone | – | – | – | – |
+| 5 | From Memory | ideal | 2–4 | – | once | – | – | – | – |
+| 6 | Lip Up, Lip Down | ideal | 2–5 | ✓ | drone | ✓ | – | ✓ | – |
+| 7 | Real Horn | real | 3–6 (3 of the 5 rounds on partial 5) | ✓ | drone | ✓ | ✓ | ✓ | – |
+| 8 | Trust Your Ears | real | 2–6 | ✓ | drone | – | – | – | – |
+
+- A round's target is a [note, partial] from the pool (a note at one of the partial's 7 positions); targets never repeat in a level (by note). The slide starts at least `RULES.startAway` 150 cents from the target's spot. Without `lips` the lips are locked to the target's partial; with `lips` the round starts on a partial that can't play the target at all (from the pool where it can).
+- THE PROMPT: named and told = "Play D3 in 4th position"; named = "Find D3"; else "Match the drone" (or, `once`, "Find the note you heard"). The told position is the chart position (real tuning too).
+- THE EAR LESSON: the first time level 4 (`lesson`) opens, its intro adds once "From here on, your ears are the tuner." (`gameData('slide-quest').earLesson`).
+- The level select's cards: "Level N", a small slide icon, the name, the one-line `idea`, the stars and "Best N" (or "5 notes"). A level opens when the one before has a star (`?demo`: all open).
+
+## Scoring (`SQ_SCORING`, Pedal Point's `PP_SCORING`)
+
+- A note's error = 1200 × log2(horn ÷ target) cents (+ = sharp). Stars from the level's AVERAGE |error|: ≤ 25 = 1 ★, ≤ 12 = 2 ★, ≤ 6 = 3 ★. Points: 100 − 3 × |cents| (never below 0) a note; the level's score (their sum) is its Best. Within `bullseye` 3 cents: BULLSEYE! and `sq-star`.
+- Saved: `A.store.setLevel('slide-quest', 'all', level, {stars, best})` (one progress key; the instrument doesn't matter). Nothing new leaves the device (the PRIVACY RULE is unchanged).
+- Results (`UI.results`): Average (cents), Closest, Score; NEXT LEVEL (with a star), TRY AGAIN, LEVELS.
+- THE PAUSE MENU (`UI.pause`): every sound stops; a held drone comes back on RESUME.
+
+## Arcade integration
+
+- games.js: `color: 'cyan'`, `skill: 'Finding pitch by ear'`, `menuMusic: 'slide-quest-menu'` (a loop slot in sounds.js, screen `slide-quest`; uploaded: `shared/sounds/slide-quest-menu.mp3`, about −16 LUFS like the other menus, so `vol` stays .45), and START on the floor plays `select-slide-quest.mp3`, faded out as a level starts (tuning needs quiet), back with the results. Effects (UNPITCHED noise, `mic: false`): `sq-lock` (LOCK IN), `sq-star` (a bullseye) (copies of `pp-lock` and `pp-star`); shared `level-complete`, `level-failed`, `star-earned`, `new-high-score`.
+- The look: cabinet `shape: 'trombone'` (a brass bell lying across the top over the marquee, the slide down the lower right of the face: chrome inner tubes, the brass outer slide with its crook and grip), `screen: 'trombone'` (a canvas: two waves BEATING slower and slower as the slide moves in, then a steady gold wave and IN TUNE; 6 s loop, 2D and 3D), lettering `bungee`, marquee scene `slide` (a trombone at the left end under a soft spotlight, its slide gliding slowly in and out: one smooth sine, never a flash), menu background `slide` (a stage at night: a deep blue curtain, a trombone section's silhouettes at the edges under breathing spotlights, dust in the light, dimmed like Pedal Point's; `STILL` 3), 3D profile `trombone` with a `bell` topper (a brass flare opening toward the aisle, a neon ring in the second trim color). See [backgrounds-cabinets-marquees.md](../engine/backgrounds-cabinets-marquees.md).
+- TODAY'S PRACTICE: not in any skill rotation yet (`shared/practice.js`); Mr. Graham decides later.
+
+## Tests (`tests/slide-quest.spec.js`)
+
+- THE PHYSICS: the marks' cm in both modes, the gaps grow, each mark × partial = the chart note (0 cents ideal; the harmonic error real, partial 5 −13.7 ± 0.1), `room` = +20 cents against the stops, `spotFor` round-trips (and null out of reach), `waysTo` covers every TROMBONE chart entry on partials 2–6, the spellings.
+- THE SOUND: the horn's live frequency follows `setSlide` (Chromium); a glide and a lip slur keep the same voice; the drone + horn BEAT check (an OfflineAudioContext render 3 Hz apart → a 3 Hz envelope; in tune, almost none); nothing with SOUND OFF or while `Pitch.listening()` is forced true; no `getUserMedia` call and no `Arcade.Pitch`, with no instrument chosen.
+- THE LEVELS: each level's flags on the screen (named, told, marks, needle, drone vs once, lips), the drone ON at the start / the once note once, no note name while tuning; LOCK IN disabled before the first blow; `auto()` = 0 cents and 3 ★; a level of 30-cent misses saves nothing; targets never repeat; the start ≥ 150 cents away (and, with lips, on a partial that can't play it); level 7's ≥ 3 partial-5 rounds and its mark-placed answer ≈ −14 cents with the IN line; the ear lesson once.
+- THE CONTROLS: the keyboard map; BLOW's tap and hold; NUDGE; drag by touch and by mouse from where it is; the layout at a phone, an iPad both ways and a Chromebook (every control on screen, NUDGE / LIP / BLOW ≥ 44 px, the slide full width, nothing wider than the screen). Smoke, the game runs and phone-width cover the page automatically.
+- `GALLERY=1` saves `docs/gallery/slide-quest.png`: level 1 (marks, needle), level 6 (lips) and an after-lock-in screen with the ghost slide, for Mr. Graham's review.
+- `tests/games.js` STEPS: the game run presses LET'S PLAY!, then A + Enter, Enter. `?demo` (`Arcade.SlideQuest`): `state()`, `begin(lv)`, `intro(lv)`, `auto()` (the slide and partial EXACTLY on the target; it also counts as a blow, so A + Enter locks in), `wrong()` (30 cents sharp; where the slide can't go sharper, 1st position in ideal tuning, 30 flat), `lock()`, `next()`, `setSlide(x)`, `lip(n)`, `blow(on)`, `drone(on)`, `reference()`, `nudge(c)`, `starsFor(avg)`, `pointsFor(c)`; keys A = auto, W = wrong.

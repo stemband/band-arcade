@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'kettles' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'kettles' | 'slide' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -838,6 +838,35 @@ window.Arcade = window.Arcade || {};
           }
           glow(x, dx, top, r * 1.2, c[0], .12 * ring);
         });
+      },
+    },
+    /* SLIDE QUEST, a stage at night. colors: [brass highlights, spotlight, night]. A trombone stands at the left end of
+       the sign under a soft spotlight, its bell up top, and its slide glides slowly in and out (one smooth sine, 4 s
+       out and back): the outer slide's crook moves down and up the sign. Nothing blinks, nothing flashes. */
+    slide: {
+      colors: ['sq-brass-hi', 'sq-spot', 'sq-night'], still: 1,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok(c[2])], [.75, tok('sq-night-2')], [1, tok('sq-stage')]]); x.fillRect(0, 0, W, H);
+        const bx = Math.min(W * .07, H * .45);
+        glow(x, bx, H * .35, H * .9, c[1], .16);
+        const ext = .5 - .5 * Math.cos(t * Math.PI * 2 / 4), t1 = bx - H * .06, t2 = bx + H * .06;
+        // the inner slide (chrome) and the bell section
+        x.lineCap = 'round';
+        x.strokeStyle = tok('sq-chrome'); x.lineWidth = Math.max(1, H * .025);
+        x.beginPath(); x.moveTo(t1, H * .22); x.lineTo(t1, H * .62); x.moveTo(t2, H * .22); x.lineTo(t2, H * .62); x.stroke();
+        x.fillStyle = tok('sq-brass');
+        x.beginPath(); x.moveTo(t2 + H * .03, H * .5); x.quadraticCurveTo(t2 + H * .05, H * .2, t2 + H * .22, H * .06);
+        x.lineTo(t2 + H * .3, H * .16); x.quadraticCurveTo(t2 + H * .1, H * .24, t2 + H * .07, H * .5); x.closePath(); x.fill();
+        x.strokeStyle = rgba(c[0], .8); x.lineWidth = Math.max(1, H * .02);
+        x.beginPath(); x.moveTo(t2 + H * .22, H * .06); x.lineTo(t2 + H * .3, H * .16); x.stroke();
+        // the outer slide: glides down (out) and back up (in)
+        const top = H * .3 + ext * H * .32, bot = top + H * .38, r = (t2 - t1) / 2;
+        x.strokeStyle = tok('sq-brass'); x.lineWidth = Math.max(1.5, H * .045);
+        x.beginPath(); x.moveTo(t1, top); x.lineTo(t1, bot); x.arc(bx, bot, r, Math.PI, 0, true); x.lineTo(t2, top); x.stroke();
+        x.strokeStyle = rgba(c[0], .55); x.lineWidth = Math.max(1, H * .012);
+        x.beginPath(); x.moveTo(t1 - H * .012, top + H * .02); x.lineTo(t1 - H * .012, bot); x.stroke();
+        x.lineCap = 'butt';
+        glow(x, t2 + H * .26, H * .11, H * .3, c[0], .1 + .06 * ext);
       },
     },
     /* SCALE TRAINER. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end
