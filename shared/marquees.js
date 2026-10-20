@@ -4,7 +4,7 @@
 
    EACH GAME'S MARQUEE is its `marquee` entry in shared/games.js (leave it out for the default):
      scene   the picture behind the title (SCENES below): 'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll'
-             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'kettles' | 'slide' | 'sparkle' (the default)
+             | 'versus' | 'hockey' | 'curtain' | 'synthwave' | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'drumline' | 'kettles' | 'slide' | 'tuner' | 'sparkle' (the default)
      colors  theme tokens (shared/theme.css) the scene uses, in the order its notes below give; any left out
              come from the scene's own defaults
      speed   1 = normal; 0.5 = half as fast, 2 = twice as fast
@@ -867,6 +867,28 @@ window.Arcade = window.Arcade || {};
         x.beginPath(); x.moveTo(t1 - H * .012, top + H * .02); x.lineTo(t1 - H * .012, bot); x.stroke();
         x.lineCap = 'butt';
         glow(x, t2 + H * .26, H * .11, H * .3, c[0], .1 + .06 * ext);
+      },
+    },
+    /* PERFECT PITCH, a tuner at night. colors: [the needle's glow, its amber, night]. A small tuner's arc stands at the
+       left end of the sign; its needle drifts slowly sharp and flat and settles in the middle (one smooth 8 s cycle,
+       every move eased), and the middle mark glows a little brighter while it is in tune. Nothing blinks or flashes. */
+    tuner: {
+      colors: ['p2-glow', 'p2-soft', 'p2-night'], still: 6,
+      draw(x, W, H, t, c) {
+        x.fillStyle = vGrad(x, H, [[0, tok(c[2])], [.75, tok('p2-night-2')], [1, tok('p2-wall')]]); x.fillRect(0, 0, W, H);
+        const r = Math.min(W * .06, H * .42), cx = Math.min(W * .07, H * .5), cy = H * .78;
+        const u = (t % 8) / 8, settle = u < .6 ? 1 - u / .6 : 0, ease = settle * settle * (3 - 2 * settle);
+        const v = Math.sin(u * Math.PI * 2 * 2.2) * 40 * ease, a = q => -Math.PI / 2 + q / 50 * .9;
+        x.lineCap = 'round';
+        x.strokeStyle = tok('p2-stand'); x.lineWidth = Math.max(1.5, H * .05);
+        x.beginPath(); x.arc(cx, cy, r, a(-50), a(50)); x.stroke();
+        x.strokeStyle = rgba(c[0], .45 + .35 * (1 - ease)); x.lineWidth = Math.max(2, H * .07);
+        x.beginPath(); x.arc(cx, cy, r, a(-7), a(7)); x.stroke();
+        const q = a(v);
+        x.strokeStyle = Math.abs(v) < 6 ? tok(c[0]) : tok(c[1]); x.lineWidth = Math.max(1.5, H * .035);
+        x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(q) * r * .95, cy + Math.sin(q) * r * .95); x.stroke();
+        x.lineCap = 'butt';
+        glow(x, cx, cy - r * .6, H * .8, c[0], .08 + .08 * (1 - ease));
       },
     },
     /* SCALE TRAINER. colors: [music stands, notes, lamp light]. The audition room at night: a music stand at each end

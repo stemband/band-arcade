@@ -675,6 +675,39 @@ window.Arcade = window.Arcade || {};
     }
   };
 
+  /* PERFECT PITCH: a band room at night. A dim wall over a dark floor, rows of empty chairs and MUSIC STANDS in
+     silhouette at the edges, and on one stand at the left a TUNER whose green glow breathes very slowly (7 s); dust
+     drifts in its light. The middle stays dark. */
+  S.tuner = (x, W, H, t) => {
+    const m = Math.min(W, H), fy = H * .7;
+    vgrad(x, W, H, [[0, col('p2-night')], [.66, mix('p2-night', 'p2-wall', .7)], [.7, col('p2-floor')], [1, col('p2-night')]]);
+    x.strokeStyle = col('p2-night', .6); x.lineWidth = Math.max(1, W / 800);
+    for (let i = 1; i < 10; i++) { x.beginPath(); x.moveTo(0, fy + (H - fy) * i / 10 * i / 10); x.lineTo(W, fy + (H - fy) * i / 10 * i / 10); x.stroke(); }
+    const breath = .5 + .5 * Math.sin(t * TAU / 7);
+    const sil = col('p2-night', .95);
+    // a music stand: a tripod foot, the pole, the tilted desk
+    const stand = (sx, s, lit) => {
+      x.strokeStyle = sil; x.lineWidth = Math.max(1, s * .04); x.lineCap = 'round';
+      x.beginPath(); x.moveTo(sx, fy - s * .1); x.lineTo(sx, fy - s * 1.1); x.moveTo(sx, fy - s * .1); x.lineTo(sx - s * .22, fy); x.moveTo(sx, fy - s * .1); x.lineTo(sx + s * .22, fy); x.stroke();
+      x.fillStyle = sil; x.beginPath(); x.moveTo(sx - s * .34, fy - s * 1.05); x.lineTo(sx + s * .34, fy - s * 1.05); x.lineTo(sx + s * .3, fy - s * 1.45); x.lineTo(sx - s * .3, fy - s * 1.45); x.closePath(); x.fill();
+      if (lit) { x.fillStyle = col('p2-glow', .25 + .35 * breath); x.fillRect(sx - s * .1, fy - s * 1.32, s * .2, s * .14); }
+      x.lineCap = 'butt';
+    };
+    const chair = (cx, s) => {
+      x.fillStyle = sil;
+      x.fillRect(cx - s * .22, fy - s * .5, s * .44, s * .07); x.fillRect(cx - s * .2, fy - s * .95, s * .06, s * .5);
+      x.fillRect(cx - s * .2, fy - s * .45, s * .04, s * .45); x.fillRect(cx + s * .16, fy - s * .45, s * .04, s * .45);
+    };
+    const s0 = m * .2 * (W > H ? 1 : .8);
+    [[.05, .9], [.17, 1], [.83, 1], [.95, .9]].forEach(([fx, k], i) => { chair(fx * W + s0 * .25 * (i < 2 ? -1 : 1), s0 * k * .8); stand(fx * W, s0 * k, i === 1); });
+    glow(x, W * .17, fy - s0 * 1.25, m * .4, col('p2-glow', .07 + .06 * breath), col('p2-glow', 0));
+    glow(x, W * .85, fy - m * .3, m * .4, col('p2-soft', .03 + .02 * (1 - breath)), col('p2-soft', 0));
+    for (let i = 0; i < 16; i++) {
+      const dx = W * (.06 + .24 * fract(hash(i + 120) + t * (.004 + .003 * hash(i + 121)))), dy = H * (.1 + .55 * fract(hash(i + 122) - t * (.01 + .006 * hash(i + 123))));
+      x.fillStyle = col('p2-glow', .05 + .09 * hash(i + 124)); x.beginPath(); x.arc(dx, dy, m * .003, 0, TAU); x.fill();
+    }
+  };
+
   /* SCALE TRAINER: the audition room. A quiet rehearsal room: a dim wall with wood wainscoting, a wood floor, a music
      stand with its sheet at the left edge, the judges' table (a blue cloth, three chairs, two desk lamps) at the right.
      The lamps' warm pools breathe very slowly (6 s); a few dust motes drift in their light. The middle stays dark. */
@@ -1322,7 +1355,7 @@ window.Arcade = window.Arcade || {};
   /** still frames: a nice moment of each scene (no lightning, no sputter) */
   S.STILL = {storm: 30, manor: 12, bamboo: 20, ink: 6, vault: 9, temple: 30, arena: 4, rink: 7, stage: 3, track: 2, space: 5, 'night-dojo': 10, 'pixel-night': 3, aurora: 20,
     highway: 4, 'keys-city': 6, city: 8, synthwave: 3, galaxy: 10, records: 2, bubbles: 6, lavalamp: 9, confetti: 5, fireflies: 7, 'diamond-dojo': 10,
-    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, timpani: 3, slide: 3, 'showtime-curtain': 2};
+    'haunted-hallway': 4, 'twinkle-lights': 6, 'concert-hall': 3, 'sunset-beach': 5, taiko: 4, audition: 2, blocks: 5, bandhall: 3, drumline: 2, timpani: 3, slide: 3, tuner: 3, 'showtime-curtain': 2};
   /** tests: every lightning / sputter event between from and to (s): {t, len (s until it has faded), pulses} */
   S.flashes = (scene, from, to) => {
     const st = {};

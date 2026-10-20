@@ -98,6 +98,13 @@
      and the outer slide, chrome for the inner slide tubes, the glow of a sounding bell */
   --sq-brass:#e2b04a; --sq-brass-2:#9a6a1c; --sq-brass-hi:#ffe08a; --sq-chrome:#cfd6e2; --sq-chrome-2:#6d7686; --sq-mark:#9fe8ff;
   --sq-spot:#ffe1a0; --sq-glow:#ffd27a; --sq-stage:#18202e; --sq-stage-2:#0c1018; --sq-night:#0a0d14; --sq-night-2:#151b2a; --sq-curtain:#1d2b4a;
+  /* PERFECT PITCH (perfect-pitch/): a band room at night under a tuner's green glow. Silver keys and brass slides,
+     the LIGHTER exposed tube (or cork) a pulled-out joint shows, the black wood of a clarinet, the reed, and the
+     judge buttons' sharp (pink) and flat (blue) */
+  --p2-night:#0c0a14; --p2-night-2:#1a1528; --p2-wall:#221b33; --p2-floor:#171220; --p2-stand:#3b3554; --p2-glow:#7dffb0; --p2-glow-2:#3fae74;
+  --p2-soft:#ffb84d; --p2-brass:#e2b04a; --p2-brass-2:#9a6a1c; --p2-brass-hi:#ffe08a; --p2-silver:#d4dae6; --p2-silver-2:#7a8396;
+  --p2-exposed:#f6f2de; --p2-cork:#c89a64; --p2-cork-2:#8f6a3e; --p2-wood:#26222c; --p2-rubber:#18161c; --p2-reed:#e8cf8e;
+  --p2-sharp:#ff6fae; --p2-flat:#6fd8ff;
   /* the five tempo levels (rudiment-trainer/rudiments.js TIERS): fills and borders on the dark floor */
   --tier-bronze:#d0894c; --tier-silver:#c9d2de; --tier-gold:#ffd24d; --tier-platinum:#b6e3ee; --tier-diamond:#6ff3ff;
   /* THE RUDIMENT PLAYER (shared/rudiment-player.js light()): the stroke sounding now (its head and its sticking letter) */

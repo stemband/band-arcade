@@ -9,7 +9,7 @@
      cabinet   how its arcade cabinet looks. Every field is optional; leave `cabinet` out
                entirely and the game gets the plain 'classic' cabinet in its `color`.
        shape    silhouette (top, side panels, control-panel angle, coin door):
-                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'timpani' | 'drumline' | 'trombone'   (drawn in shared/cabinets.js, SHAPES)
+                'classic' | 'haunted' | 'soundcheck' | 'storm' | 'dojo' | 'vault' | 'temple' | 'versus' | 'rink' | 'showtime' | 'speedway' | 'quest' | 'signal' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'timpani' | 'drumline' | 'trombone' | 'tuner'   (drawn in shared/cabinets.js, SHAPES)
        trim     neon tube around the cabinet: 'pink' | 'cyan' | 'yellow' | 'purple' | 'amber' | 'green' | 'red' | 'white' | 'blue'
        trim2    second neon (screen glow, some buttons): same choices
        marquee  the TITLE's lettering on the lit marquee (its font; in 2D also the sign's frame): 'bungee' | 'haunt' | 'pixel' | 'shade'
@@ -45,7 +45,7 @@
                 setting it: a game that needs the microphone only for CLAPS still counts (Rhythm Dojo); one that needs
                 your instrument's notes for part of the game does not (Music Highway's PLAY, Arcade Quest's battles).
                 Today: Note Ninja, Keys to the City (its TOUCH mode), Chime Heist, Rhythm Dojo (TAP or CLAP), Ancient Ninja
-                Scrolls, Button Masher (fingerings on screen), Dojo Duel, Pedal Point and Slide Quest (no microphone at all).
+                Scrolls, Button Masher (fingerings on screen), Dojo Duel, Pedal Point, Slide Quest and Perfect Pitch (no microphone at all).
      unpitched  optional: true = an unpitched player (the Snare Drum, instruments.js `pitched: false`) can play it
                 (Showtime Malfunction, the Note Checker's ARTICULATION test). Every other game sends a snare player to
                 Select Player ("Snare drummers: try Showtime Malfunction!"); games with a fixed `player` are unaffected
@@ -57,7 +57,7 @@
                 2D cabinets and Select Player). Optional: leave it out for a moving gradient in the game's color with
                 sparkles. {scene, colors, speed, still, every}:
        scene    'storm' | 'manor' | 'vu' | 'dojo' | 'vault' | 'scroll' | 'versus' | 'hockey' | 'curtain' | 'synthwave'
-                | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'kettles' | 'slide' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
+                | 'pixel' | 'radio' | 'duel' | 'ink' | 'highway' | 'keys' | 'taiko' | 'audition' | 'kettles' | 'slide' | 'tuner' | 'sparkle' (the list of each scene's colors is in shared/marquees.js, SCENES)
        colors   theme tokens, in the scene's order (any left out use the scene's own)
        speed    1 = normal, 0.5 = half as fast · still: the moment shown as the still frame (seconds)
        every    storm only: seconds between lightning strikes (never under 1.2; one flash each, never a strobe)
@@ -66,7 +66,7 @@
                 subtitles, taglines or small text (2-player info goes on the lobby's cards, never on the sign)
                 Your own picture: shared/marquees/<id>.png (behind the title) or <id>-full.png (the whole sign)
      bg         its MENU BACKGROUND (shared/backgrounds.js): {scene (shared/bg-scenes.js: 'storm' | 'manor' | 'bamboo' | 'ink'
-                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora' | 'audition' | 'timpani' | 'slide'),
+                | 'vault' | 'temple' | 'arena' | 'rink' | 'stage' | 'track' | 'space' | 'night-dojo' | 'pixel-night' | 'aurora' | 'audition' | 'timpani' | 'slide' | 'tuner'),
                 dim (0–1: the dark overlay everywhere), focus (0–1: extra darkness in the middle, behind the menu)}.
                 A picture in shared/backgrounds/<id>.webp|.jpg|.png replaces the scene. Menu screens only, never in play.
      pressStart false = no shared PRESS START title screen (shared/press-start.js; Arcade Quest has its own). Every other
@@ -435,6 +435,23 @@ window.Arcade.GAMES = [
     marquee: {scene: 'slide', colors: ['sq-brass-hi', 'sq-spot', 'sq-night']},
     cabinet: {shape: 'trombone', trim: 'cyan', trim2: 'yellow', marquee: 'bungee', screen: 'trombone'},
     cabinet3d: {profile: 'trombone', body: 'cab-side'},
+  },
+  {
+    id: 'perfect-pitch',
+    noInstrument: true,                              // no microphone at all: the game makes every sound (shared/winds.js)
+    zones: ['ear-training'],
+    name: 'Perfect Pitch',
+    bg: {scene: 'tuner', dim: .4, focus: .35},
+    menuMusic: 'perfect-pitch-menu',
+    skill: 'Hearing sharp and flat',
+    blurb: 'Is it sharp, flat or in tune? Hear it, then fix it with the tuning slide.',
+    maxStars: 24,                                    // 8 levels × 3 (perfect-pitch/levels.js)
+    color: 'pink',
+    player: 'all',                                   // no instrument needed: START goes straight to the game
+    unpitched: true,                                 // any saved instrument may open it, the Snare Drum and bells too
+    marquee: {scene: 'tuner', colors: ['p2-glow', 'p2-soft', 'p2-night']},
+    cabinet: {shape: 'tuner', trim: 'pink', trim2: 'green', marquee: 'bungee', screen: 'needle'},
+    cabinet3d: {profile: 'tuner', body: 'cab-side'},
   },
   {
     id: 'dojo-duel',
