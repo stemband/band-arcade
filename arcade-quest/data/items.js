@@ -52,3 +52,39 @@ window.QUEST_CHARMS = {
   // no sign. The 4th of QUEST_V6.charms' 6 places in the save code
   'hamburger':         {name: 'Hamburger Charm', icon: 'burger', desc: 'Your band hits twice as hard. Unlocks QUICK PLAY: 3 E♭s, 3 hits!', effect: {party: 2, quickPlay: true}, found: 'stage', secret: 'A secret somewhere on the Main Stage...'},
 };
+
+/* ARCADE QUEST: INSTRUMENT TIERS and UPGRADES (designed by a Raven Band student; Mr. Graham settled the open
+   questions). ARCADE QUEST ONLY, like the charms: they change Quest battles and NOTHING else. engine/save.js Q.gear
+   reads these two blocks; battle.js applies them. MAT: TUNE every number here (never rename an id: saves and save
+   codes use them; add new ones at the end).
+   THE TIERS: the student's own instrument gets better. Each is named after their REAL instrument ({you} = member.short:
+   "Rusty Clarinet", "Metal Trumpet", "Diamond Snare"). The BEST tier you own is always the one used (no equip screen).
+     dmg   share added to YOUR damage (PLAY, each QUICK PLAY hit, the B♭ Blast, the E♭ Encore). Never your band's.
+     calm  share added to every CALM gain you cause (the Lucky Reed's hook, battle.js addCalm), never LISTEN's flat CALM.
+           The student's wording for Metal, "+1 calm for every 5 calm", is exactly +20 % (calm: .2).
+     price Arcade Tokens at Token Booth Terry or Ticket Booth Tina (the shared wallet); `free` = the story flag that
+           gives it for nothing (no refund for a student who bought it first: the booth says so before they buy)
+     found the room of its secret map `thing` ({gear: '<id>'}: data/maps/stage.js)
+     locked shown as a "???" teaser, never owned (Q.gear.give refuses it)
+   THE UPGRADES (Rusty's and Popcorn Pete's UPGRADES tab, paid in NOTE SHARDS): two tracks of `max` steps; step n
+   costs costs[n - 1] Shards and gives n × `step`. An upgrade ADDS to the tier's share, then the sum multiplies like a
+   charm (Metal + POWER UP 3 = +10 % + 12 % = × 1.22). No refunds, no resets.
+   THE SHARDS: the FIRST time each enemy is helped (befriended or powered down) on a map: a regular one `enemy`, a
+   mini-boss (`boss`: the Phantom Fermata, Rico Bandit) `boss`, a final boss (`final`: the Ghost Conductor, THE BIG
+   NUMBER) `final`. Never again for the same enemy, never in the Test Arena or a practice room. Today's total: 18 + 3 + 5
+   (Episode 1) + 20 + 3 + 5 (Episode 2) = 54 Shards; both tracks maxed = 2 × 26 = 52 (nearly everything). */
+window.QUEST_INSTRUMENTS = {
+  tiers: [
+    {id: 'rusty',   name: 'Rusty {you}',       dmg: 0,   calm: 0,   badge: 'rust'},                         // you start with it
+    {id: 'metal',   name: 'Metal {you}',       dmg: .10, calm: .20, badge: 'steel', price: 350, free: 'ep1Done'},   // MAT: TUNE
+    {id: 'diamond', name: 'Diamond {you}',     dmg: .20, calm: .40, badge: 'diamond', found: 'balcony'},          // MAT: TUNE
+    {id: 'perfect', name: 'The Perfect {you}', dmg: .30, calm: .80, locked: true},                                // not earnable yet
+  ],
+};
+window.QUEST_UPGRADES = {
+  max: 5,
+  costs: [2, 3, 5, 7, 9],                                  // MAT: TUNE: Shards for steps 1–5 (26 a track, 52 for both)
+  power: {step: .04},                                      // MAT: TUNE: POWER UP, + 4 % damage a step (5 = +20 %)
+  calm: {step: .06},                                       // MAT: TUNE: CALM UP, + 6 % CALM a step (5 = +30 %)
+  shards: {enemy: 1, boss: 3, final: 5},                   // MAT: TUNE: Shards the first time each enemy is helped
+};

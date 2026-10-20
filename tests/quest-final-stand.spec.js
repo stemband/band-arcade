@@ -369,7 +369,7 @@ test.describe('THE HAMBURGER CHARM', () => {
     }, [old, routes]);
     expect(r.list).toEqual(['metronome-ticker', 'rosin-pouch', 'ricos-pick', 'hamburger']);
     expect(r.place).toBe(3);
-    expect(r.len).toBe(routes[0].length);                                          // the same version 6, the same length
+    expect(r.len).toBe(101);                                                       // version 7 (85 characters + 16 dashes): the gear block came after
     expect(r.owned).toMatchObject({hamburger: true, 'rosin-pouch': true});
     expect(r.eq).toEqual(['hamburger', 'rosin-pouch']);
     expect(r.n).toBeGreaterThan(18);

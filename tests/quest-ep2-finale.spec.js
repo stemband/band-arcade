@@ -197,8 +197,9 @@ for (const route of ['befriend', 'fade']) {
     await page.evaluate(() => {
       const Q = Arcade.Quest, run = Q.challenge.run;
       Q.challenge.run = async (type, o) => { const r = await run(type, o); return r; };
-      // 60 %: no critical hits (a skill crit needs 95 %, a lucky one 70 %), about 33 damage a PLAY at LV 14: two a stage
-      window.__play = {acc: .6, speed: 1, correct: 2, total: 4, success: false};
+      // 55 %: no critical hits (a skill crit needs 95 %, a lucky one 70 %), about 33 damage a PLAY at LV 14: two a stage
+      // (30 × 1.1: every Episode 2 save has finished Episode 1, so it plays the METAL tier: INSTRUMENT TIERS)
+      window.__play = {acc: .55, speed: 1, correct: 2, total: 4, success: false};
       window.__perPlay = Q.save.powerAt(Q.save.get().level);
     });
     const r0 = await page.evaluate(() => ({e: window.QUEST_ENEMIES.find(e => e.id === 'bignumber'), hp: Arcade.Quest.battleState().ehp}));
@@ -285,7 +286,7 @@ for (const route of ['befriend', 'fade']) {
     expect(res.msg).not.toContain('SHOWSTOPPER');                                         // (12 of 20 helped)
     expect(res.tiles.map(t => t[0])).toEqual(['Machines helped', 'Befriended', 'Powered down', 'Battles', 'Level', 'Time']);
     expect(res.tiles[0][1]).toBe('12 / 20');
-    expect(res.extra).toMatch(/q-code">([0-9A-Z]{5}-){15}[0-9A-Z]{5}</);
+    expect(res.extra).toMatch(/q-code">([0-9A-Z]{5}-){16}[0-9A-Z]{5}</);              // (85 characters: version 7)
     expect([res.next, res.levels]).toEqual(['Keep exploring', 'Title screen']);
     // the UNLOCKED! card on it: Episode 2's three items (A.Skins.announce), once
     await expect(page.locator('.sk-unlock .sk-u-equip').first()).toBeVisible();

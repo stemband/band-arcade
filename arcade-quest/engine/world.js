@@ -2,8 +2,8 @@
    walls you bump into, doors between rooms, candles and fog that flicker and drift.
    MOVING: one tile per step (arrows/WASD or the D-pad), smooth in between. A (Enter/Space) talks to whoever you
    face or inspects the thing in front of you; B (Backspace/X, the pad's B), Esc, P or the PAUSE button opens THE
-   PAUSE MENU (shared/ui-kit.js Arcade.UI.pause, pixel-themed in style.css: RESUME · SETTINGS · CHARMS · BAND · TITLE SCREEN,
-   with LV/HP/XP/tokens). It exists only in the overworld (battles are turn-based and wait for you; cutscenes have SKIP);
+   PAUSE MENU (shared/ui-kit.js Arcade.UI.pause, pixel-themed in style.css: RESUME · SETTINGS · CHARMS · INSTRUMENT · BAND ·
+   TITLE SCREEN, with LV/Power/HP/XP/tokens/Note Shards; INSTRUMENT = the tier you play, its portrait on the button). It exists only in the overworld (battles are turn-based and wait for you; cutscenes have SKIP);
    while it's open Q.paused stops the whole game loop, Q.wait and the text box. Esc during a conversation or a panel
    still means B (back / next line), so the two never both react.
    GHOSTS are visible and wander near their spot (no random battles). Bump into one (or let it bump into you) and a
@@ -53,7 +53,7 @@
     pause = A.UI.pause.mount({
       theme: 'q-theme',
       place: menuSlot(),
-      onPause: freeze,
+      onPause: reason => { freeze(reason); Promise.resolve().then(instTile); },   // (the kit draws the menu right after this)
       onResume: () => {
         if (!inCharms) unfreeze();                                     // (the tab hidden over CHARMS: that panel is still open)
         // the kit gives the PAUSE button the focus back; here A (Enter/Space) must talk, not press it again
@@ -63,10 +63,16 @@
       canPause: reason => Q.sceneName === 'world' && !!W && !W.fighting && !Q.input.blocked && (reason !== 'key' || idle()),
       note: 'Save your spot at a Save Jukebox. Your level, items and friends save on their own.',
       detail: () => Q.talk.ghostLog(Q.world.ep()),                     // THE GHOST LOG (engine/talk.js): this episode's
-      info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', A.Tokens.balance()]]; },
+      info: () => { const s = Q.save.get(); return [['Level', s.level], ['Power', Q.save.powerAt(s.level)], ['HP', `${s.hp}/${s.maxHp}`], ['XP', `${s.xp}/${Q.save.xpToNext(s.level)}`], ['Tokens', A.Tokens.balance()],
+        [Q.text('shards'), Q.gear.shards()]]; },                                    // (THE NOTE SHARDS: the upgrades' currency)
       extras: [{label: 'Charms', id: 'qPauseCharms', onClick: async () => {          // the CHARMS panel, then back to the pause menu
         inCharms = true;
         try { await Q.talk.charms(); } finally { inCharms = false; }
+        if (!pause.active) return;
+        if (!pause.paused) pause.pause('button');
+      }}, {label: Q.text('gearTitle'), id: 'qPauseInst', onClick: async () => {      // INSTRUMENT: the tier you play (engine/talk.js)
+        inCharms = true;
+        try { await Q.talk.instrument(); } finally { inCharms = false; }
         if (!pause.active) return;
         if (!pause.paused) pause.pause('button');
       }}, {label: 'Band', id: 'qPauseBand', onClick: async () => {                    // THE BAND panel (who plays beside you)
@@ -94,6 +100,18 @@
       e.preventDefault(); pause.pause('key');
     }, true);                                              // (capture: the open menu keeps its keys from bubbling)
     return pause;
+  }
+
+  /** THE INSTRUMENT TILE: the pause menu's INSTRUMENT button shows the instrument you play, in its tier's colors */
+  function instTile() {
+    const b = document.getElementById('qPauseInst'), id = Q.gear.portrait();
+    if (!b || !id || b.querySelector('.q-instpic')) return;
+    const c = Q.spriteEl(id, {scale: 3}); c.classList.add('q-instpic'); c.style.width = '';
+    b.prepend(c); b.setAttribute('aria-label', `${Q.text('gearTitle')}: ${Q.gear.name()}`);
+    // and the NOTE SHARDS' icon on their tile (next to Tokens)
+    const tile = [...document.querySelectorAll('#uiPause .ui-pinfo .ui-tile')].find(t => (t.querySelector('small') || {}).textContent === Q.text('shards'));
+    const v = tile && tile.querySelector('b');
+    if (v && !v.querySelector('.q-shardic')) { const ic = Q.spriteEl('shard', {scale: 2}); ic.classList.add('q-shardic'); v.prepend(ic); }
   }
 
   /* ---------- the episodes: each room's `ep` (data/maps), its hub, and EPISODE SELECT ---------- */
@@ -281,7 +299,9 @@
       if (!W || W.fighting !== g.key) return;
       // the room's own touches: its happy note, its rhythm tier (data/maps/stage.js: deeper rooms read harder rhythms)
       const o = Object.assign({}, g.happy != null ? {happy: g.happy} : {}, g.tier ? {tier: g.tier} : {});
-      Q.go('battle', {enemy: g.type, overrides: Object.keys(o).length ? o : null, back: {scene: 'world', args: {resume: true}}});
+      // THE NOTE SHARDS this battle earns: only the first time this enemy is helped (never a practice room)
+      const shards = W.def.practice || Q.save.get().done[W.map + ':' + g.key] ? 0 : Q.gear.shardsFor(g.type);
+      Q.go('battle', {enemy: g.type, overrides: Object.keys(o).length ? o : null, shards, back: {scene: 'world', args: {resume: true}}});
     }, Q.reduced() ? 350 : 700);
   }
   function afterBattle(result) {
@@ -301,6 +321,9 @@
     // (checked before anything reads the save again: its repair, save.js routes(), would set the flag quietly)
     const wk = W.def.wakes, woke = !!wk && !W.def.practice && !(s.flags || {})[wk.flag] && W.def.enemies.every(e => e.key === g.key || s.done[W.map + ':' + e.key]);
     if (!W.def.practice) {
+      // THE NOTE SHARDS: the FIRST time this enemy is helped, either way (its `done` record is the proof; the battle
+      // said how many). Written with the record itself, so they can never be earned twice
+      if (!s.done[W.map + ':' + g.key]) Q.gear.earn(Q.gear.shardsFor(g.type));
       s.done[W.map + ':' + g.key] = result.kind;
       if (E.opens || E.final) s.route = Object.assign({}, s.route, {[E.id]: result.kind});   // the route taken (achievements)
       if (E.doneFlag) s.flags[E.doneFlag] = true;                                // Rico: ricoDone, either way
@@ -403,7 +426,8 @@
     const n = npcAt(fx, fy), d = doorAt(fx, fy), g = ghostAt(fx, fy);
     // the tile you face; else a SECRET charm right under your feet (the Main Stage's corner: whoever hugs the wall finds it)
     let th = thingAt(fx, fy);
-    if (!th) { const u = thingAt(W.x, W.y); if (u && u.secret && u.charm && !Q.charms.owned(u.charm)) th = u; }
+    // (the Diamond too: a secret `gear` thing, engine/save.js Q.gear)
+    if (!th) { const u = thingAt(W.x, W.y); if (u && u.secret && (u.charm ? !Q.charms.owned(u.charm) : u.gear ? !Q.gear.owned(u.gear) : false)) th = u; }
     // a story boss with a speech (THE BIG NUMBER: Maestro Moose at his podium): A talks to him, like walking into him
     if (g && !n && ((window.QUEST_ENEMIES || []).find(e => e.id === g.type) || {}).talk) return encounter(g);
     if (!n && !th && !(d && (!doorOpen(d) || !doorBuilt(d)))) return;
@@ -417,7 +441,8 @@
 
   Q.world = {
     /** a map entry's `if` (npcs, things, props): 'flag', '!flag', 'a&b' (all), 'route:<enemy id>=befriend|fade' (how
-        that story enemy was passed: the save's route) or 'charm:<id>' (that charm is yours). No condition = always */
+        that story enemy was passed: the save's route), 'charm:<id>' (that charm is yours) or 'gear:<tier>' (that
+        instrument tier is yours). No condition = always */
     cond(c) {
       if (!c) return true;
       if (c.includes('&')) return c.split('&').every(x => Q.world.cond(x.trim()));
@@ -425,6 +450,7 @@
       const r = /^route:([\w-]+)=(\w+)$/.exec(c);
       if (r) return (Q.save.get().route || {})[r[1]] === r[2];
       if (c.startsWith('charm:')) return Q.charms.owned(c.slice(6));     // 'charm:<id>': that charm is yours (the Main Stage's crumb)
+      if (c.startsWith('gear:')) return Q.gear.owned(c.slice(5));        // 'gear:<tier>': that instrument tier is yours (the Balcony's glint)
       return Q.save.flag(c);
     },
     // busy includes a door's fade (out, then in): input is ignored until it ends, so tests must wait for it too

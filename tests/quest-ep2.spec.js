@@ -340,10 +340,10 @@ test.describe('the Lobby and the Green Room', () => {
     await until(page, '.q-juke');
     await page.locator('.q-juke .q-btn', {hasText: 'Save here'}).click();
     for (let i = 0; i < 10 && !(await page.locator('.q-codep').count()); i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(60); }
-    await expect(page.locator('.q-codep .q-code')).toHaveText(/^([0-9A-Z]{5}-){15}[0-9A-Z]{5}$/);    // the 80-character code
+    await expect(page.locator('.q-codep .q-code')).toHaveText(/^([0-9A-Z]{5}-){16}[0-9A-Z]{5}$/);    // the 85-character code (version 7)
     await page.locator('.q-codep .q-btn', {hasText: 'Done'}).click();
     const s = await page.evaluate(() => { const s = Arcade.Quest.save.get(); return {v: s.v, ep: s.ep, world: s.world, hp: s.hp, maxHp: s.maxHp}; });
-    expect(s).toMatchObject({v: 6, ep: 2, world: {map: 'lobby', x: 21, y: 5, dir: 'up'}});
+    expect(s).toMatchObject({v: 7, ep: 2, world: {map: 'lobby', x: 21, y: 5, dir: 'up'}});   // (SAVE_VERSION 7: the gear)
     expect(s.hp).toBe(s.maxHp);
     await page.evaluate(() => Arcade.Quest.go('title'));
     await pick(page, 'Continue');
@@ -422,13 +422,13 @@ test.describe('the Lobby and the Green Room', () => {
 });
 
 test.describe('saves and codes', () => {
-  test('a v5 save upgrades to v6 (ep from its last jukebox); Episode 1 progress unchanged', {tag: '@quick'}, async ({page}) => {
+  test('a v5 save upgrades to v6 (ep from its last jukebox), then v7 (the gear); Episode 1 progress unchanged', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page, store(save(false)));
     const r = await page.evaluate(() => {
       const Q = Arcade.Quest, s = Q.save.get();
       return {v: s.v, ep: s.ep, level: s.level, roster: s.roster, world: s.world, flags: s.flags};
     });
-    expect(r).toMatchObject({v: 6, ep: 1, level: 9, roster: ['wisp', 'hush', 'conductor'], world: {map: 'foyer', x: 18, y: 3}});
+    expect(r).toMatchObject({v: 7, ep: 1, level: 9, roster: ['wisp', 'hush', 'conductor'], world: {map: 'foyer', x: 18, y: 3}});
     // a v5 save last saved in a (future) Episode 2 room: ep 2
     const r2 = await page.evaluate(() => {
       const d = Arcade.store.gameData('arcade-quest');
@@ -437,23 +437,23 @@ test.describe('saves and codes', () => {
       const s = Arcade.Quest.save.get();
       return {v: s.v, ep: s.ep};
     });
-    expect(r2).toEqual({v: 6, ep: 2});
+    expect(r2).toEqual({v: 7, ep: 2});
     watch.check();
   });
 
-  test('every older QUEST CODE version (1–5) still loads, exactly as before', async ({page}) => {
+  test('every older QUEST CODE version (1–6) still loads, exactly as before', async ({page}) => {
     const watch = await boot(page, store(save(false)));
     for (const [v, {code, fields}] of Object.entries(OLD)) {
       const d = await page.evaluate(c => Arcade.Backup.questDecode(c), code);
       expect(d.ok, v).toBe(true);
       expect(d.fields, v).toEqual(fields);
       const loaded = await page.evaluate(c => { const r = Arcade.Quest.save.fromCode(c); const s = Arcade.Quest.save.get(); return {ok: r.ok, v: s.v, ep: s.ep}; }, code);
-      expect(loaded, v).toEqual({ok: true, v: 6, ep: 1});
+      expect(loaded, v).toEqual({ok: true, v: 7, ep: fields.ep || 1});
     }
     watch.check();
   });
 
-  test('the version-6 code round-trips Episode 2\'s progress (flags, machines and their routes, friends, charms, the episode, the jukebox)', {tag: '@quick'}, async ({page}) => {
+  test('the version-7 code round-trips Episode 2\'s progress (flags, machines and their routes, friends, charms, the episode, the jukebox)', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page);
     const r = await page.evaluate(() => {
       const Q = Arcade.Quest, B = Arcade.Backup, s = Q.save.get();
@@ -472,9 +472,9 @@ test.describe('saves and codes', () => {
       return {code, d, ok, t: {ep: t.ep, world: t.world, flags: t.flags, done: t.done, roster: t.roster, charms: t.charms, v: t.v},
         loft: (() => { const c = B.questEncode(Object.assign({}, t, {world: {map: 'loft'}})); return B.questDecode(c).fields.world; })()};
     });
-    expect(r.code.replace(/-/g, '')).toHaveLength(80);
+    expect(r.code.replace(/-/g, '')).toHaveLength(85);                                    // (version 7 since the gear)
     expect(r.ok).toBe(true);
-    expect(r.t.v).toBe(6);
+    expect(r.t.v).toBe(7);
     expect(r.t.ep).toBe(2);
     expect(r.t.world).toEqual({map: 'lobby', x: 21, y: 5, dir: 'up'});
     expect(r.t.flags).toMatchObject({ep1Done: true, ep2Start: true, songEb: true, tuskAwake: true, ricoDone: true, ricoVent: true, 'met-moose': true, hootAwake: true});
@@ -489,7 +489,7 @@ test.describe('saves and codes', () => {
     watch.check();
   });
 
-  test('the Arcade Backup Code carries the v6 save', async ({page}) => {
+  test('the Arcade Backup Code carries the v7 save', async ({page}) => {
     const watch = await boot(page);
     const code = await page.evaluate(async () => {
       const Q = Arcade.Quest, s = Q.save.get();
@@ -502,7 +502,7 @@ test.describe('saves and codes', () => {
       const s = Arcade.store.gameData('arcade-quest').save;
       return {ok: r.ok, v: s.v, ep: s.ep, world: s.world, flags: s.flags};
     }, code);
-    expect(back).toMatchObject({ok: true, v: 6, ep: 2, world: {map: 'greenroom'}, flags: {ep2Start: true, songEb: true, ep1Done: true}});
+    expect(back).toMatchObject({ok: true, v: 7, ep: 2, world: {map: 'greenroom'}, flags: {ep2Start: true, songEb: true, ep1Done: true}});
     watch.check();
   });
 

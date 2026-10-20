@@ -61,6 +61,14 @@
    gain, `inTune` × damage of a PLAY at `at` accuracy or better, `block` sour notes blocked per battle (B.mute),
    `dodge` × the enemy notes' speed (dodge.js), `maxHp` (the save's maxHp), `party` × the damage of your PLAY and of
    every companion's hit (the Hamburger Charm: × 2), `quickPlay` = QUICK PLAY in PLAY's menu.
+   INSTRUMENT TIERS and UPGRADES (engine/save.js Q.gear; designed by a Raven Band student): the best tier you own
+   (Rusty, Metal, Diamond) + your POWER UP / CALM UP steps ADD into one share, then multiply like a charm: YOUR damage
+   × Q.gear.dmgMult() (PLAY, the B♭ Blast, the E♭ Encore, each QUICK PLAY hit: last, after the Tuning Fork, the
+   boost, a crit and the Hamburger's party, each step rounded), never your band's hits; every CALM gain but LISTEN's ×
+   Q.gear.calmMult() (addCalm, the Lucky Reed's hook: yours, PLAY's small CALM and your band's after a SERENADE). The
+   HUD's name shows the tier as a small badge (a rust dot, a steel dot, a diamond: it sparkles slowly, still under
+   reduced motion). NOTE SHARDS: a battle started from the map (engine/world.js) knows the Shards it gives the first
+   time (`shards`) and says so with its rewards; world.js adds them with the enemy's `done` record.
    QUICK PLAY (the Hamburger Charm; designed by a Raven Band student): concert E♭ three times (RULES.quick; the snare:
    3 clean taps), each note played = one regular PLAY hit (power × its accuracy × speed, the Tuning Fork, crits, ×
    party), a missed note = a miss for that hit only; your band plays along once, after the last. It's your turn
@@ -115,15 +123,19 @@
     });
     Q.$('qShield').hidden = !B.shield && !B.mute; Q.$('qShield').textContent = [B.shield ? `Shield ×${B.shield}` : '', B.mute ? 'Mute ready' : ''].filter(Boolean).join(' · ');
   };
+  /** THE TIER BADGE before your name (style.css .q-tier: a rust dot, a steel dot, a diamond with a slow sparkle) */
+  const tierBadge = member => { const t = Q.gear.best(), name = Q.gear.name(t.id, member);
+    return `<i class="q-tier q-tier-${t.badge || t.id}" id="qTier" role="img" aria-label="${name}" title="${name}"></i>`; };
   /** a floating number over the canvas (damage, CALM +) */
   function float(text, x, y, cls) {
     const f = Q.el('span', 'q-float ' + (cls || ''), text);
     f.style.left = `calc(var(--px) * ${x})`; f.style.top = `calc(var(--px) * ${y})`;
     Q.ui.appendChild(f); setTimeout(() => f.remove(), 1100);
   }
-  function addCalm(n, say) {
+  function addCalm(n, say, {listen = false} = {}) {
     if (!n) return;
     n *= Q.charms.mult('calm');                                  // the Lucky Reed
+    if (!listen) n *= Q.gear.calmMult();                         // YOUR INSTRUMENT + CALM UP (never LISTEN's flat CALM)
     if (B.lastKind === 'longtone') n *= Q.charms.mult('toneCalm'); // the Rosin Pouch: CALM from long tones
     const was = B.calm;
     B.calm = Math.min(RULES.calmMax, B.calm + n); hud();
@@ -293,6 +305,7 @@
     const crit = dmg > 0 ? critOf(res) : null;
     if (crit) dmg = Math.round(dmg * RULES.critMult);
     if (dmg > 0 && Q.charms.mult('party') !== 1) dmg = Math.round(dmg * Q.charms.mult('party'));   // the Hamburger Charm
+    if (dmg > 0 && Q.gear.dmgMult() !== 1) dmg = Math.round(dmg * Q.gear.dmgMult());               // YOUR INSTRUMENT + POWER UP
     B.lastCrit = crit;
     if (dmg > 0) {
       hurtFoe(dmg);
@@ -331,6 +344,7 @@
       if (B.boost) { dmg = Math.round(dmg * B.boost); B.boost = 0; }   // (the Tuning Slide: the first hit)
       const c = critOf({acc: 1, speed: res.speed}); if (c) { dmg = Math.round(dmg * RULES.critMult); crit = crit || c; }
       dmg = Math.round(dmg * party);
+      dmg = Math.round(dmg * Q.gear.dmgMult());                 // YOUR INSTRUMENT + POWER UP (each hit)
       hurtFoe(dmg); hud();
       setTimeout(() => { if (B) float('-' + dmg, 160 + 12 * k, 26 + 8 * k, c ? 'dmg crit' : 'dmg'); }, 300 * k);
       B.queue.push(Q.text('quickHit', {k: k + 1, name: B.e.name, n: dmg}));
@@ -362,7 +376,7 @@
     const lines = B.e.listen.map(l => l.replace('{happy}', Q.happyLabel(B.e))).concat(canSerenade() ? [Q.text('listenSerenade')] : []);
     await Q.say(lines, {name: B.e.name, portrait: B.e.sprite});
     B.listened = true;
-    if (B.e.calm.listen) { addCalm(B.e.calm.listen); await sayQ(Q.text('listenCalm', {name: B.e.name})); }
+    if (B.e.calm.listen) { addCalm(B.e.calm.listen, false, {listen: true}); await sayQ(Q.text('listenCalm', {name: B.e.name})); }
     return true;
   }
   async function doItem() {
@@ -490,6 +504,11 @@
     if (kind === 'befriend') Object.keys(Q.charms.list()).forEach(id => {       // a charm for befriending this ghost
       const c = Q.charms.get(id); if (c.reward === B.e.id && Q.charms.give(id)) { lines.push(Q.text('gotCharm', {item: c.name})); Q.sfx('charm-equip'); }
     });
+    // NOTE SHARDS: the first time this enemy is helped (engine/world.js adds them with its `done` record)
+    if (B.shards > 0) lines.push(Q.text('gotShards', {n: B.shards, shards: Q.gear.shardWord(B.shards)}));
+    // THE METAL TIER: finishing Episode 1 (its final boss, either way: world.js sets ep1Done next) gives it, free
+    const free = Q.gear.tiers().find(t => t.free === 'ep1Done');
+    if (B.e.final && (B.e.ep || 1) === 1 && B.fromMap && free && Q.gear.give(free.id)) lines.push(Q.text('gearEp1', {tier: Q.gear.name(free.id), bonus: Q.gear.bonusText(free)}));
     const breath = Math.min(s.maxHp - s.hp, Math.ceil(s.maxHp * RULES.breath));   // a breather after every battle won
     if (breath > 0) { s.hp += breath; lines.push(Q.text('breath', {n: breath})); }
     let up = false;
@@ -560,7 +579,7 @@
   }
 
   Q.scenes.battle = {
-    enter({enemy, back, overrides}) {
+    enter({enemy, back, overrides, shards}) {
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
       A.store.noteActivity({game: 'arcade-quest', play: 1});      // seasonal events: a game played today
@@ -574,13 +593,13 @@
       const area = (window.QUEST_AREAS || {})[src.area || (src.test ? 'test' : '')] || {hp: 1, atk: 1};
       const hp = Math.round(src.hp * (area.hp || 1) * (1 + (src.boss ? RULES.bossPartyHp : RULES.partyHp) * band.length));
       B = {e: Object.assign({}, src, {maxHp: hp, hp, atk: (src.atk || 2) * (area.atk || 1)}), save, member, back, band, aim: null, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
-        player: Q.playerId(member.id), lineup: L, introAt: performance.now()};
+        player: Q.playerId(member.id), lineup: L, introAt: performance.now(), shards: shards || 0, fromMap: !!(back && typeof back === 'object' && back.scene === 'world')};
       // THE CALM SCALE: CALM rises like damage does: with your power (level) and against its HP (area × band size)
       B.calmScale = Q.save.powerAt(save.level) / Q.save.powerAt(1) * RULES.calmRef / hp;
       Q.ui.innerHTML = `<div class="q-hud">` +
         `<div class="q-hud-e"><p class="q-hname">${src.name}</p><div class="q-bar hp"><i id="qEHp"></i></div><small id="qEHpN"></small>` +
         `<div class="q-calm" id="qCalmBox"><span>CALM</span><div class="q-bar calm"><i id="qCalm"></i></div></div></div>` +
-        `<div class="q-hud-p" id="qHudP"><p class="q-hname">${member.short} <span id="qLv"></span>${B.band.length ? ` <span class="q-party">${Q.text(B.band.length > 1 ? 'bandTrio' : 'bandDuet')}</span>` : ''}</p>` +
+        `<div class="q-hud-p" id="qHudP"><p class="q-hname">${tierBadge(member)}${member.short} <span id="qLv"></span>${B.band.length ? ` <span class="q-party">${Q.text(B.band.length > 1 ? 'bandTrio' : 'bandDuet')}</span>` : ''}</p>` +
         `<div class="q-bar php"><i id="qPHp"></i></div><small id="qPHpN"></small><small class="q-shield" id="qShield" hidden></small>` +
         B.band.map((c, i) => `<div class="q-comp" id="qComp${i}"><span class="q-cname">${c.name}</span><div class="q-bar chp"><i></i></div><small></small></div>`).join('') + `</div></div>` +
         `<p class="q-mictag" id="qMicTag" hidden><span class="q-dot"></span> The mic is listening</p>` +
@@ -652,7 +671,7 @@
   /** ?demo only (tests): set the enemy's HP right now */
   Q.battleDemo = {hp(n) { if (A.DEMO && B) { B.e.hp = n; hud(); } }};
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
-    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
+    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup,
     fs: B.e.finalStand ? {floor: fsFloor(), pending: !!B.fsPending, active: !!B.fsActive, done: !!B.fsDone, part: B.fsPart == null ? null : B.fsPart, tries: B.fsTries || 0, tip: !!B.fsTipSaid, finale: !!B.finale} : null};   // tests
 })(window.Arcade);

@@ -19,8 +19,12 @@
    price}: owned forever and worn everywhere), including the MANOR COLLECTION (unlock.booth 'quest': only here, tagged
    "MANOR COLLECTION: only here!"), Ticket Booth Tina's STAGE COLLECTION (unlock.booth 'stage': only at HER counter,
    "STAGE COLLECTION: only here!"; Terry never shows it), the SEASONAL SHOP's items during their event (first, "SEASONAL: gone in 12 days!"), the PRIZE OF THE WEEK at its discount (⭐ WEEKLY), and CHARMS (data/items.js
-   QUEST_CHARMS with a price; ARCADE QUEST ONLY). Q.talk.charms() = the CHARMS panel (pause menu): 2 slots, owned
-   charms to wear, and how to find the rest. */
+   QUEST_CHARMS with a price; ARCADE QUEST ONLY), and the METAL tier of your instrument (INSTRUMENT: 350 tokens, the
+   same at Terry's and Tina's; finishing Episode 1 gives it free, so it says so before you buy). Q.talk.charms() = the
+   CHARMS panel (pause menu): 2 slots, owned charms to wear, and how to find the rest. Q.talk.instrument() = the
+   INSTRUMENT panel (pause menu): the tier that plays, every tier (owned ✓, how to get it, the Perfect's "???").
+   RUSTY'S SHOP (and Popcorn Pete's, the same stock) has two tabs: ITEMS and UPGRADES (POWER UP and CALM UP for NOTE
+   SHARDS: engine/save.js Q.gear; designed by a Raven Band student). */
 (function (A) {
   "use strict";
   const Q = A.Quest;
@@ -70,6 +74,7 @@
     if (c.includes('&')) return c.split('&').every(x => cond(x.trim()));   // 'tuskAwake&!moose-tusk': all of them
     if (c[0] === '!') return !cond(c.slice(1));
     if (c.startsWith('charm:')) return Q.charms.owned(c.slice(6));       // 'charm:metronome-ticker': that charm is yours
+    if (c.startsWith('gear:')) return Q.gear.owned(c.slice(5));          // 'gear:metal': that instrument tier is yours
     if (c.startsWith('route:')) return Q.world.cond(c);                  // 'route:bignumber=fade': how that story enemy was passed
     if (c === 'snare') return unpitched();
     const m = /^helped>=(\d+)$/.exec(c);
@@ -142,6 +147,13 @@
       await Q.say([`You found a charm: the ${c.name}! ${c.desc}`, 'Wear it from the Pause menu: CHARMS. (Charms work in Arcade Quest only.)'], pic ? {portrait: pic} : {});
       return;
     }
+    if (th.gear && !Q.gear.owned(th.gear)) {                               // a hidden INSTRUMENT TIER (the Diamond: data/maps)
+      await Q.talk.sign(th.found || th.say);
+      Q.gear.give(th.gear); Q.sfx('quest-encore-learned');
+      const t = Q.gear.tier(th.gear), name = Q.gear.name(th.gear);
+      await Q.say([Q.text('gearFound', {tier: name}), Q.text('gearFound2', {bonus: Q.gear.bonusText(t)}), Q.text('gearBest')], {portrait: Q.gear.portrait(th.gear)});
+      return;
+    }
     if (th.say) await Q.talk.sign(th.say);
     if (th.use === 'jukebox') await jukebox();
   };
@@ -154,14 +166,14 @@
   });
 
   /* ---------- a panel with a menu (shop, booth, charms, save code) ---------- */
-  function panel(title, html, items, {cols = 1, onPick, cls = ''} = {}) {
+  function panel(title, html, items, {cols = 1, onPick, cls = '', start = 0} = {}) {
     const p = Q.el('div', 'q-overlay');
     p.innerHTML = `<div class="q-panel q-wpanel ${cls}" role="dialog" aria-modal="true" aria-label="${title}"><h2>${title}</h2><div class="q-pbody">${html}</div><div class="q-pmenu"></div></div>`;
     Q.ui.appendChild(p);
     let m = null;
-    const build = list => { if (m) m.destroy(); m = Q.menu(p.querySelector('.q-pmenu'), list, {cols, label: title, onPick: (it, i) => onPick(it, i, api), onBack: () => onPick({id: null}, -1, api)}); };
+    const build = (list, at = 0) => { if (m) m.destroy(); m = Q.menu(p.querySelector('.q-pmenu'), list, {cols, label: title, start: at, onPick: (it, i) => onPick(it, i, api), onBack: () => onPick({id: null}, -1, api)}); };
     const api = {el: p, body: p.querySelector('.q-pbody'), rebuild: build, close() { if (m) m.destroy(); p.remove(); }};
-    build(items);
+    build(items, start);
     return api;
   }
 
@@ -183,7 +195,7 @@
     await Q.say(['Saved! The jukebox plays your theme song. Your HP is full again.']);
     await Q.talk.showCode();
   }
-  /** the SAVE CODE panel: this save as 80 characters (shared/backup.js version 6), to write down or copy */
+  /** the SAVE CODE panel: this save as 85 characters (shared/backup.js version 7), to write down or copy */
   Q.talk.showCode = function () {
     const code = Q.save.code();
     if (!code) return Promise.resolve();
@@ -205,8 +217,8 @@
     return new Promise(done => {
       const p = Q.el('div', 'q-overlay');
       p.innerHTML = `<div class="q-panel q-wpanel q-codep" role="dialog" aria-modal="true" aria-labelledby="qCodeT"><h2 id="qCodeT">Enter save code</h2>` +
-        `<label class="q-small" for="qCodeIn">80 letters and numbers (older codes: 65, 60, 45, 40 or 25). Spaces and dashes don't matter.</label>` +
-        `<input id="qCodeIn" class="q-codein" type="text" maxlength="110" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
+        `<label class="q-small" for="qCodeIn">85 letters and numbers (older codes: 80, 65, 60, 45, 40 or 25). Spaces and dashes don't matter.</label>` +
+        `<input id="qCodeIn" class="q-codein" type="text" maxlength="110" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX">` +
         `<p class="q-codemsg" role="alert"></p><div class="q-pmenu q-coderow"><button type="button" class="q-btn" data-a="load">Load</button>${A.Backup ? '<button type="button" class="q-btn" data-a="backup">Backup</button>' : ''}<button type="button" class="q-btn" data-a="back">Back</button></div></div>`;
       Q.ui.appendChild(p);
       const inp = p.querySelector('#qCodeIn'), msg = p.querySelector('.q-codemsg');
@@ -214,7 +226,7 @@
       const close = ok => { off(); p.remove(); done(ok); };
       const off = Q.input.on(btn => { if (btn === 'b') close(false); return true; });
       inp.addEventListener('input', () => {                   // tidy as they type: upper case, groups of 5
-        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 80);
+        const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 85);
         inp.value = (raw.match(/.{1,5}/g) || []).join('-'); msg.textContent = ''; confirming = false;
       });
       const load = () => {
@@ -249,12 +261,15 @@
           `<p class="q-small">You have ${coin()}<b>${T().balance()}</b> tokens. (The same tokens as the arcade's Prize Counter.)</p>`};
       };
       let r = render();
+      const metal = METAL();
       const items = () => (r.fresh ? [{id: 'turn', label: `Turn in ${r.fresh} ★`}] : []).concat([{id: 'looks', label: 'Player items', sub: 'For your avatar'},
-        {id: 'charms', label: 'Charms', sub: 'Arcade Quest only'}].concat(A.BandNinja ? [{id: 'code', label: 'Enter a code', sub: 'Band Ninja belt codes'}] : []).concat([{id: null, label: 'Done'}]));
+        {id: 'charms', label: 'Charms', sub: 'Arcade Quest only'}],
+        metal ? [{id: 'inst', label: Q.text('gearTitle'), sub: Q.gear.owned(metal.id) ? 'OWNED' : `${Q.gear.name(metal.id)} · ${metal.price}`}] : [])
+        .concat(A.BandNinja ? [{id: 'code', label: 'Enter a code', sub: 'Band Ninja belt codes'}] : []).concat([{id: null, label: 'Done'}]);
       panel(D.booth || 'Token Booth', r.html, items(), {cols: 2, cls: 'q-booth', onPick: async (it, i, api) => {
-        if (it.id === 'looks' || it.id === 'charms' || it.id === 'code') {
+        if (it.id === 'looks' || it.id === 'charms' || it.id === 'code' || it.id === 'inst') {
           api.el.hidden = true;
-          await (it.id === 'looks' ? cosmeticShop(D) : it.id === 'code' ? Q.talk.beltCode() : charmShop());
+          await (it.id === 'looks' ? cosmeticShop(D) : it.id === 'code' ? Q.talk.beltCode() : it.id === 'inst' ? instShop() : charmShop());
           api.el.hidden = false; r = render(); api.body.innerHTML = r.html; api.rebuild(items());
           return;
         }
@@ -373,6 +388,86 @@
       }});
     });
   }
+  /* ---------- INSTRUMENT TIERS (designed by a Raven Band student; engine/save.js Q.gear) ---------- */
+  /** the tier the booths sell (data/items.js: the one with a `price`: Metal) */
+  const METAL = () => Q.gear.tiers().find(t => t.price && !t.locked) || null;
+  /** how to get a tier you don't own yet, in words */
+  function tierHow(t) {
+    if (t.locked) return Q.text('gearPerfectHow');
+    if (t.price) return Q.text('gearMetalHow', {price: t.price});
+    return Q.text('gearDiamondHow');
+  }
+  /** the booth's INSTRUMENT shelf: the Metal tier for tokens (THE SHARED WALLET), with the free-at-Episode-1 warning */
+  function instShop() {
+    return new Promise(done => {
+      const t = METAL(), name = Q.gear.name(t.id);
+      const body = msg => tokensLine(msg) + (Q.gear.owned(t.id) ? '' : `<p class="q-small q-warn">${Q.text('gearFreeNote')}</p>`) +
+        `<p class="q-small">${Q.text('gearBest')}</p>`;
+      const list = () => [{id: t.id, label: name, pic: Q.gear.portrait(t.id), cls: Q.gear.owned(t.id) ? 'q-owned' : '',
+        sub: Q.gear.owned(t.id) ? 'OWNED' : `${t.price} tokens · ${Q.gear.bonusText(t)}`}, {id: null, label: 'Back'}];
+      const p = panel(Q.text('gearTitle'), body(), list(), {cols: 2, cls: 'q-shop q-instshop', onPick: async (it, i, api) => {
+        if (!it.id) { api.close(); done(); return; }
+        Q.save.get();
+        if (Q.gear.owned(t.id)) { api.body.innerHTML = body({cls: 'q-good', text: Q.text('gearOwned', {tier: name})}); return; }
+        if (T().balance() < t.price) { api.body.innerHTML = body({cls: 'q-bad', text: Q.text('gearBroke', {tier: name, price: t.price})}); Q.sfx('note-wrong'); return; }
+        api.el.hidden = true;
+        const yes = await Q.talk.ask(Q.text('gearBuyAsk', {tier: name, price: t.price}) + ' ' + Q.text('gearFreeNote'));
+        api.el.hidden = false;
+        if (!yes) { api.rebuild(list()); return; }
+        if (!T().spend(t.price)) { api.body.innerHTML = body({cls: 'q-bad', text: Q.text('gearBroke', {tier: name, price: t.price})}); Q.sfx('note-wrong'); api.rebuild(list()); return; }
+        Q.gear.give(t.id); Q.save.write(); Q.sfx('item-purchase'); Q.talk.hud();
+        api.body.innerHTML = body({cls: 'q-good', text: Q.text('gearBought', {tier: name})}); api.rebuild(list());
+      }});
+      return p;
+    });
+  }
+  /** the INSTRUMENT panel (the pause menu): the tier that plays, its bonuses, every tier (✓ owned, how to get the
+      rest, the Perfect's locked "???" silhouette). Nothing to equip: the best one you own always plays. */
+  Q.talk.instrument = function () {
+    return new Promise(done => {
+      const best = Q.gear.best(), b = Q.gear.bonus(), U = Q.gear.ups();
+      const upB = {dmg: Q.gear.level('power') * U.power.step, calm: Q.gear.level('calm') * U.calm.step};
+      const now = `<div class="q-instnow"><span class="q-instbig"></span><div><p><b>${esc(Q.text('gearNow', {tier: Q.gear.name(best.id), bonus: best.dmg || best.calm ? Q.gear.bonusText(best) : Q.text('gearNone')}))}</b></p>` +
+        (upB.dmg || upB.calm ? `<p class="q-small">${esc(Q.text('gearUps', {bonus: Q.gear.bonusText(upB)}))}</p>` : '') +
+        `<p class="q-small">${esc(Q.text('gearBest'))}</p></div></div>`;
+      const body = msg => now + (msg ? `<p class="q-good">${esc(msg)}</p>` : '');
+      const list = () => Q.gear.tiers().map(t => {
+        const own = Q.gear.owned(t.id), on = t === best;
+        if (t.locked) return {id: t.id, label: Q.text('gearPerfect'), sub: Q.text('gearPerfectHow'), pic: Q.gear.portrait('perfect'), disabled: true, cls: 'q-locked'};
+        return {id: t.id, label: (own ? '✓ ' : '') + Q.gear.name(t.id), pic: Q.gear.portrait(t.id), disabled: !own, cls: on ? 'q-owned' : '',
+          sub: own ? (t.dmg || t.calm ? Q.gear.bonusText(t) : Q.text('gearNone')) : tierHow(t)};
+      }).concat([{id: null, label: 'Done'}]);
+      const p = panel(Q.text('gearTitle'), body(), list(), {cols: 2, cls: 'q-shop q-inst', start: Q.gear.tiers().indexOf(best), onPick: (it, i, api) => {
+        if (!it.id) { api.close(); done(); return; }
+        api.body.innerHTML = body(Q.text('gearPlays', {tier: Q.gear.name(best.id)})); bigPic(api);
+      }});
+      const bigPic = api => { const slot = api.body.querySelector('.q-instbig'), id = Q.gear.portrait(best.id); if (slot && id) slot.appendChild(Q.spriteEl(id, {scale: 6, label: Q.gear.name(best.id)})); };
+      bigPic(p);
+    });
+  };
+  /** the NOTE SHARDS' icon (the sprite 'shard': MAT, the student's icon goes there) as a small inline picture */
+  const shardIcon = () => '<i class="q-shardslot"></i>';
+  /** draw the Shards' icons into their slots (a canvas can't travel as HTML) */
+  Q.talk.shardIcons = root => (root || document).querySelectorAll('.q-shardslot').forEach(sl => { const c = Q.spriteEl('shard', {scale: 2}); c.classList.add('q-shardic'); sl.replaceWith(c); });
+  /** the UPGRADES tab (Rusty's and Popcorn Pete's): POWER UP and CALM UP, each step for Shards; no refunds, no resets */
+  function upgradeItems() {
+    const U = Q.gear.ups(), have = Q.gear.shards();
+    return ['power', 'calm'].map(k => {
+      const lv = Q.gear.level(k), c = Q.gear.cost(k), step = U[k].step, track = Q.text(k === 'power' ? 'upPower' : 'upCalm');
+      const bonusAt = n => Q.text(k === 'power' ? 'upDmg' : 'upCalmPct', {n: Q.gear.pct(n * step)});
+      const sub = c == null ? Q.text('upMax', {bonus: bonusAt(lv)}) : have < c ? Q.text('upNeed', {cost: c, shards: Q.gear.shardWord(c)})
+        : Q.text('upNext', {n: lv + 1, bonus: bonusAt(lv + 1), cost: c, shards: Q.gear.shardWord(c)});
+      return {id: k, label: `${track} ${lv}/${U.max}`, sub, disabled: c == null || have < c, cls: c == null ? 'q-owned' : have < c ? 'q-need' : ''};
+    });
+  }
+  function upgradeBody(msg) {
+    const U = Q.gear.ups(), n = Q.gear.shards();
+    const line = k => { const lv = Q.gear.level(k), step = U[k].step;
+      return `<p class="q-small">${esc(Q.text('upStep', {track: Q.text(k === 'power' ? 'upPower' : 'upCalm'), n: lv, max: U.max, bonus: Q.text(k === 'power' ? 'upDmg' : 'upCalmPct', {n: Q.gear.pct(lv * step)})}))}</p>`; };
+    return `<p class="q-shards">${shardIcon()}${esc(Q.text('upHave', {n, shards: Q.gear.shardWord(n)}))}</p>` + line('power') + line('calm') +
+      `<p class="q-small">${esc(Q.text('upKeep'))} ${esc(Q.text('upHow', {shards: Q.text('shards')}))}</p>` + (msg ? `<p class="${msg.cls}">${esc(msg.text)}</p>` : '');
+  }
+
   /** THE BAND panel (the pause menu, the Save Jukebox, the Test Arena): pick up to 2 befriended ghosts to play beside
       you in battle (engine/save.js Q.band). A third pick sends the one picked longest ago on a break. */
   Q.talk.band = function () {
@@ -435,22 +530,38 @@
     });
   };
 
-  /* ---------- Rusty's shop ---------- */
+  /* ---------- Rusty's shop: two TABS, ITEMS (for tokens) and UPGRADES (for NOTE SHARDS) ---------- */
   function shop(D) {
     return new Promise(done => {
       const stock = Object.keys(ITEMS()).filter(k => ITEMS()[k].price);
-      const html = msg => `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : '');
-      const list = () => stock.map(k => ({id: k, label: `${ITEMS()[k].name} · ${ITEMS()[k].price} tokens`, sub: `${ITEMS()[k].desc} You have ${Q.save.get().items[k] || 0}.`}))
+      let tab = 'items';
+      const html = msg => (tab === 'upgrades' ? upgradeBody(msg) : `<p>You have ${coin()}<b>${T().balance()}</b> tokens.</p>` + (msg ? `<p class="${msg.cls}">${msg.text}</p>` : ''));
+      // the tabs: the first row of the menu (the one shown is lit), so the D-pad, Tab and taps all reach them
+      const tabs = () => [{id: 'tab:items', label: Q.text('shopItems'), cls: 'q-tab' + (tab === 'items' ? ' q-tab-on' : '')},
+        {id: 'tab:upgrades', label: Q.text('upTitle'), cls: 'q-tab' + (tab === 'upgrades' ? ' q-tab-on' : '')}];
+      const list = () => tabs().concat(tab === 'upgrades' ? upgradeItems() : stock.map(k => ({id: k, label: `${ITEMS()[k].name} · ${ITEMS()[k].price} tokens`, sub: `${ITEMS()[k].desc} You have ${Q.save.get().items[k] || 0}.`})))
         .concat([{id: null, label: 'Done'}]);
       // Rusty's (the Foyer) or another keeper's counter with the same stock: D.shop = {title, bye} (data/dialogue.js)
       const own = D.shop || {title: 'Rusty\'s Supplies', bye: 'Come back soon! Or don\'t! No pressure! Ahh!'};
+      const show = (api, msg, at) => { api.body.innerHTML = html(msg); Q.talk.shardIcons(api.body); api.el.querySelector('.q-panel').classList.toggle('q-upgrades', tab === 'upgrades'); api.rebuild(list(), at); };
       panel(own.title, html(), list(), {cols: 2, cls: 'q-shop', onPick: (it, i, api) => {
         if (!it.id) { api.close(); Q.say([own.bye], {name: D.name, portrait: D.sprite}).then(done); return; }
+        if (it.id.startsWith('tab:')) { if (tab !== it.id.slice(4)) { tab = it.id.slice(4); show(api, null, i); } return; }
+        if (tab === 'upgrades') {                                    // POWER UP / CALM UP (engine/save.js Q.gear.buy)
+          const r = Q.gear.buy(it.id);
+          if (!r.ok) { Q.sfx('note-wrong'); return; }
+          const U = Q.gear.ups(), step = U[it.id].step;
+          Q.sfx('item-purchase');
+          const next = list().findIndex(x => x.id === it.id && !x.disabled);   // (the same track again, else the first one still open)
+          show(api, {cls: 'q-good', text: Q.text('upBought', {track: Q.text(it.id === 'power' ? 'upPower' : 'upCalm'), n: r.level,
+            bonus: Q.text(it.id === 'power' ? 'upDmg' : 'upCalmPct', {n: Q.gear.pct(r.level * step)})})}, next >= 0 ? next : Math.max(0, list().findIndex(x => !x.disabled && x.id && !x.id.startsWith('tab:'))));
+          return;
+        }
         const s = Q.save.get(), item = ITEMS()[it.id];
         if (!T().spend(item.price)) { api.body.innerHTML = html({cls: 'q-bad', text: `Not enough tokens for the ${item.name}. ${own.broke || 'Terry can turn stars into tokens!'}`}); return; }
         s.items[it.id] = (s.items[it.id] || 0) + 1; Q.save.write(); Q.sfx('quest-tokens'); Q.talk.hud();
         api.body.innerHTML = html({cls: 'q-good', text: Q.text('bought', {item: item.name})}); api.rebuild(list());
-      }});
+      }, start: 2});
     });
   }
 

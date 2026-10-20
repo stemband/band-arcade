@@ -661,4 +661,11 @@
   S['charm-burger'] = {w: 12, h: 10, palette: {o: 'q-orange', O: 'q-orange-d', w: 'q-white', g: 'q-green', y: 'q-gold', p: 'q-wood'}, frames: [[
     '...oooooo...', '..ooowoowo..', '.oooooooooo.', '.OOOOOOOOOO.', 'gggggggggggg', '.yyyyyyyyyy.', '.pppppppppp.', '.pppppppppp.', '.oooooooooo.', '..OOOOOOOO..']]};
   S['burger-crumb'] = {w: 3, h: 2, palette: {r: 'q-reed', R: 'q-orange-d'}, frames: [['.r.', 'rR.']]};
+  /* INSTRUMENT TIERS and UPGRADES (designed by a Raven Band student). THE NOTE SHARDS' icon: a small glowing crystal
+     shaped like an eighth note (the pause tiles, the UPGRADES tab, the found message).
+     MAT: the student's icon goes here (this ONE sprite; its name is QUEST_TEXT `shards` in data/battle-text.js).
+     THE DIAMOND's only clue: one tiny glint at the end of the Balcony's back row (data/maps/stage.js), until it's found. */
+  S['shard'] = {w: 9, h: 10, palette: {h: 'q-gear-shard-l', l: 'q-gear-shard', L: 'q-gear-shard-d'}, frames: [[
+    '.....hL..', '.....lhL.', '.....l.hL', '.....l..L', '.....l...', '.....l...', '..hhhl...', '.hllll...', '.LlllL...', '..LLL....']]};
+  S['diamond-glint'] = {w: 1, h: 1, palette: {h: 'q-gear-dia-l'}, frames: [['h']]};
 })(window.QUEST_ART);

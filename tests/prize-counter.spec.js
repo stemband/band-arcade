@@ -87,7 +87,7 @@ test('a device that never opened Arcade Quest gets only the wallet, and Arcade Q
   expect(w.tokens).toBe(30);
   await quest(page);
   const s = await page.evaluate(() => { const s = Arcade.Quest.save.get(); return {v: s.v, tokens: Arcade.Tokens.balance(), level: s.level, fresh: Arcade.Tokens.freshStars()}; });
-  expect(s).toEqual({v: 6, tokens: 30, level: 1, fresh: 0});
+  expect(s).toEqual({v: 7, tokens: 30, level: 1, fresh: 0});
   watch.check();
 });
 
@@ -260,7 +260,7 @@ test('the wish bar: tokens + stars waiting at the counter, then "You can get you
   watch.check();
 });
 
-test('QUEST CODE v5 and v6: tokens and stars turned in above 2047 survive a round trip; the save makes v6', async ({page}) => {
+test('QUEST CODE v5, v6 and v7: tokens and stars turned in above 2047 survive a round trip; the save makes v7', async ({page}) => {
   const watch = await prepare(page, {store: store()});
   await quest(page);
   const r = await page.evaluate(() => {
@@ -276,8 +276,8 @@ test('QUEST CODE v5 and v6: tokens and stars turned in above 2047 survive a roun
       v6list: B.QUEST_V6.cosmetics, v5list: B.QUEST_V5.cosmetics, v4list: B.QUEST_V4.cosmetics, d5};
   });
   expect(r.kept).toBe(40000);
-  expect(r.len).toBe(80);
-  expect(r.groups).toBe(16);
+  expect(r.len).toBe(85);                                              // (version 7: the gear block)
+  expect(r.groups).toBe(17);
   expect(r.d.tokens).toBe(40000);
   expect([r.d5.tokens, r.d5.convertedLeft]).toEqual([40000, 5000]);    // the old version-5 layout still holds them
   expect(r.d.convertedLeft).toBe(5000);

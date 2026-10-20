@@ -421,6 +421,8 @@ Object.assign(window.QUEST_SIGNS, {
   'stage-cable': ['The cable runs down, under the arcade. Somewhere, a red light is listening.'],
   // THE HAMBURGER CHARM (the Main Stage's bottom-left corner; designed by a Raven Band student)
   'stage-burger-found': ['Something crunches underfoot. Wedged in the corner: a tiny golden hamburger!'],
+  // THE DIAMOND (INSTRUMENT TIERS, designed by a Raven Band student): the Balcony's back row, its far end [16, 8]
+  'balcony-diamond-found': ['Something glints under the very last seat in the back row...', 'An instrument case! Inside, it sparkles like a chandelier.'],
   'stage-podium': ['Maestro Moose\'s podium. The score on it says: "THE BIG NUMBER. Fortissimo!"'],
   'stage-backdrop': ['A painted backdrop: a starry night over a city. A few of the stars are bulbs.'],
   'stage-footlights': ['The footlights glow, soft and warm. They\'ve waited years for a show.'],
