@@ -299,7 +299,14 @@ Object.assign(window.QUEST_MAPS, {
     things: [
       {at: [16, 4], say: 'balcony-spot'}, {at: [4, 3], say: 'balcony-railing'}, {at: [12, 3], say: 'balcony-railing'},
       {at: [3, 5], say: 'balcony-seats'}, {at: [13, 7], say: 'balcony-seats'},
+      // THE DIAMOND (INSTRUMENT TIERS, designed by a Raven Band student): the far end of the back row, a dead-end corner
+      // (seats above, walls right and below). Reachable on EVERY route: the Balcony opens when Tubby Tusk wakes (the
+      // Pit's 3 machines helped, either way). `secret`: no twinkle, no talk bubble; A finds it facing the tile OR
+      // standing on it (engine/world.js), like the Hamburger Charm. Once, ever (Q.gear)
+      {at: [16, 8], gear: 'diamond', found: 'balcony-diamond-found', secret: true},
     ],
+    // its only clue: one pixel of glint on the carpet, until it's found
+    props: [{at: [16, 8], sprite: 'diamond-glint', under: true, if: '!gear:diamond'}],
     enemies: [
       {key: 'm1', type: 'tapsy', at: [4, 6], wander: 2, tier: 2},
       {key: 'm2', type: 'spotlight', at: [12, 8], wander: 2},

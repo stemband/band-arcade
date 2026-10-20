@@ -290,5 +290,71 @@
     ]
    }
   }
+ },
+ "v6": {
+  "code": "EG6U6-93E23-24KZ2-G224D-22862-4REJ2-5A222-2234A-332J2-22222-22222-22222-22222-22222-22222-229XW",
+  "fields": {
+   "level": 14,
+   "xp": 77,
+   "tokens": 4321,
+   "items": {
+    "valve-oil": 3,
+    "tuning-slide": 1
+   },
+   "roster": [
+    "wisp",
+    "hush",
+    "conductor",
+    "tapsy",
+    "rico"
+   ],
+   "flags": {
+    "songBb": true,
+    "reginaldAwake": true,
+    "atticOpen": true,
+    "ep1Done": true,
+    "met-mezzo": true,
+    "seen-intro": true,
+    "ep2Start": true,
+    "tuskAwake": true,
+    "songEb": true,
+    "ricoDone": true,
+    "ricoDoor": true,
+    "met-moose": true
+   },
+   "done": {
+    "hall:w1": "befriend",
+    "hall:w2": "befriend",
+    "stairs:boss": "fade",
+    "attic:boss": "befriend",
+    "pit:m1": "befriend",
+    "pit:m2": "fade",
+    "pit:m3": "fade",
+    "balcony:m1": "befriend",
+    "dressing:boss": "befriend"
+   },
+   "world": {
+    "map": "lobby",
+    "x": 21,
+    "y": 5,
+    "dir": "up"
+   },
+   "convertedLeft": 12,
+   "charms": {
+    "owned": {
+     "lucky-reed": true,
+     "rosin-pouch": true
+    },
+    "equipped": [
+     "rosin-pouch",
+     "lucky-reed"
+    ]
+   },
+   "cosmetics": {
+    "owned": [],
+    "worn": []
+   },
+   "ep": 2
+  }
  }
 }

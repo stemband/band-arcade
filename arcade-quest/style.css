@@ -486,3 +486,35 @@ body.q-paused #ui *{animation-play-state:paused!important}          /* the pause
 .q-ear{display:block;width:calc(var(--px) * 12);height:calc(var(--px) * 16);border:calc(var(--px) * 2) solid var(--q-cursor);border-radius:50% 50% 30% 50%;border-left-color:transparent;box-sizing:border-box;margin-right:calc(var(--px) * 4)}
 .q-echo-menu{width:80%}
 .q-echo-menu:empty{display:none}
+
+/* ---------- INSTRUMENT TIERS and UPGRADES (designed by a Raven Band student; engine/save.js Q.gear) ----------
+   THE TIER BADGE before your name in the battle HUD: a rust dot (Rusty), a steel dot (Metal), a diamond (Diamond)
+   whose sparkle is slow (a step every 0.8 s: under 3 changes a second) and stops under reduced motion */
+.q-tier{display:inline-block;width:calc(var(--px) * 4);height:calc(var(--px) * 4);margin-right:calc(var(--px) * 2);vertical-align:.05em;
+  border-radius:50%;box-sizing:border-box;border:calc(var(--px) * .5) solid var(--q-out)}
+.q-tier-rust{background:var(--q-gear-rust)}
+.q-tier-steel{background:var(--q-steel)}
+.q-tier-diamond{border-radius:0;transform:rotate(45deg) scale(.9);background:var(--q-gear-dia);animation:q-tier-spark 3.2s steps(1) infinite}
+@keyframes q-tier-spark{0%{background:var(--q-gear-dia)}75%{background:var(--q-gear-dia-l)}}
+html.no-motion .q-tier-diamond{animation:none}
+@media (prefers-reduced-motion:reduce){.q-tier-diamond{animation:none}}
+/* the pause menu's INSTRUMENT tile: the instrument in its tier's colors, on the button */
+.ui-ov #qPauseInst{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.ui-ov #qPauseInst .q-instpic{height:1.5em;width:auto;max-width:3em;image-rendering:pixelated;flex:none}
+/* the INSTRUMENT panel: the one that plays (big), then every tier */
+.q-instnow{display:flex;gap:calc(var(--px) * 4);align-items:center;margin-bottom:calc(var(--px) * 2)}
+.q-instnow p{margin:0 0 calc(var(--px) * 1)}
+.q-instbig{flex:none;display:grid;place-items:center;min-width:calc(var(--px) * 26);min-height:calc(var(--px) * 22);background:var(--q-floor);border:calc(var(--px) * .5) solid var(--q-grey-d)}
+.q-instbig canvas{width:auto !important;max-width:calc(var(--px) * 24);height:calc(var(--px) * 20);object-fit:contain;image-rendering:pixelated}
+.q-inst .q-pmenu .q-btn .q-bpic,.q-instshop .q-pmenu .q-btn .q-bpic{width:auto !important;height:calc(var(--px) * 12);max-width:calc(var(--px) * 16);object-fit:contain}
+.q-inst .q-btn.q-locked{border-style:solid;opacity:.8}
+.q-inst .q-btn.q-locked .q-bl{letter-spacing:.2em}
+.q-wpanel .q-warn{color:var(--q-gold)}
+/* Rusty's (and Popcorn Pete's) TABS: ITEMS and UPGRADES; the tab shown is lit */
+.q-shop .q-pmenu .q-btn.q-tab{min-height:calc(var(--px) * 13);font-size:calc(var(--px) * 6.5);border-color:var(--q-grey-d)}
+.q-btn.q-tab.q-tab-on:not(.sel){background:var(--q-floor-2);border-color:var(--q-gold);color:var(--q-gold)}
+.q-btn.q-need:disabled{border-style:dashed}
+.q-btn.q-need small{color:var(--q-orange)}
+/* THE NOTE SHARDS' icon (the sprite 'shard') in a line of text */
+.q-shardic{display:inline-block;width:auto !important;height:1.2em;vertical-align:-.25em;margin-right:.3em;image-rendering:pixelated}
+.q-shards{font-weight:700;color:var(--q-gear-shard-l)}

@@ -1,8 +1,8 @@
 /* AVATAR ITEMS + SAVE CODES: the Tumblers (hand items), the LEGENDARY Grandmaster's Aura (all 10 Band Ninja belt codes)
    and the Arcade Quest save codes. Old codes (versions 1–4) must read EXACTLY as they did before the next version:
    fixtures/quest-codes.json holds codes of each version and what the arcade decoded them to (v1–v3 before version 4
-   existed, v4 before version 5, v5 before version 6). Version 5 (16-bit tokens): tests/prize-counter.spec.js; version 6
-   (Episode 2): tests/quest-ep2.spec.js. */
+   existed, v4 before version 5, v5 before version 6, v6 before version 7). Version 5 (16-bit tokens):
+   tests/prize-counter.spec.js; version 6 (Episode 2): tests/quest-ep2.spec.js; version 7 (the gear): tests/quest-gear.spec.js. */
 const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 const OLD = require('./fixtures/quest-codes.json');
@@ -12,7 +12,7 @@ const TUMBLERS = {
   'tumbler-sunset': {stars: 250}, 'tumbler-galaxy': {shop: 400}, 'tumbler-diamond': {bandninja: 'diamond'},
 };
 
-test('old Arcade Quest codes (v1, v2, v3, v4, v5) still read exactly the same', async ({page}) => {
+test('old Arcade Quest codes (v1, v2, v3, v4, v5, v6) still read exactly the same', async ({page}) => {
   const watch = await prepare(page);
   await page.goto('arcade-quest/index.html?demo&nostart');
   await page.waitForFunction(() => window.Arcade && Arcade.Backup);
@@ -25,10 +25,11 @@ test('old Arcade Quest codes (v1, v2, v3, v4, v5) still read exactly the same', 
     expect(loose.fields, v).toEqual(fields);
   }
   // the frozen lists are untouched: version 4's list starts with version 3's
-  const lists = await page.evaluate(() => ({v3: Arcade.Backup.QUEST_V3.cosmetics, v4: Arcade.Backup.QUEST_V4.cosmetics, v5: Arcade.Backup.QUEST_V5.cosmetics, v6: Arcade.Backup.QUEST_V6.cosmetics}));
+  const lists = await page.evaluate(() => ({v3: Arcade.Backup.QUEST_V3.cosmetics, v4: Arcade.Backup.QUEST_V4.cosmetics, v5: Arcade.Backup.QUEST_V5.cosmetics, v6: Arcade.Backup.QUEST_V6.cosmetics, v7: Arcade.Backup.QUEST_V7.cosmetics}));
   expect(lists.v4.slice(0, lists.v3.length)).toEqual(lists.v3);
   expect(lists.v5.slice(0, lists.v4.length)).toEqual(lists.v4);
   expect(lists.v6.slice(0, lists.v5.length)).toEqual(lists.v5);
+  expect(lists.v7.slice(0, lists.v6.length)).toEqual(lists.v6);
   expect(lists.v4.slice(lists.v3.length)).toEqual(['hand:tumbler-pink', 'hand:tumbler-blue', 'hand:tumbler-lime', 'hand:tumbler-galaxy']);
   watch.check();
 });

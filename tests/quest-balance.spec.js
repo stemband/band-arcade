@@ -345,3 +345,62 @@ test('BALANCE: THE FINAL STAND (the real dodge, 60 s): hits and HP lost at Dodgi
   fs.mkdirSync(OUT, {recursive: true});
   fs.writeFileSync(path.join(OUT, 'quest-balance-final-stand.json'), JSON.stringify(out, null, 1));
 });
+
+/* INSTRUMENT TIERS and UPGRADES, MEASURED (designed by a Raven Band student; engine/save.js Q.gear): each final boss
+   at the levels students reach it (the tables above: BEFRIEND with a trio, POWER DOWN solo), PLAYed through at
+   accuracy .8 with the same stand-ins (each dodge hit once; THE FINAL STAND's 60 s stood in as one hit too), with the
+   gear a student can really have by then. Reports the PLAYs to win (to 0 HP, the finale included; "to the stand" =
+   the PLAYs before THE BIG NUMBER's Final Stand starts) and the HP the student has left.
+     The Ghost Conductor: Rusty, no upgrades (as before) / Rusty + the Shards earned by then (21: POWER UP 3 + CALM UP 3)
+     THE BIG NUMBER: Rusty (as before) / Metal / Metal + Diamond / Metal + Diamond + 49 Shards (all before it: POWER
+     UP 5 + CALM UP 4) + the Hamburger / Metal + Diamond + the Hamburger + both tracks maxed (52 Shards: only after the
+     Big Number, the strongest possible student) */
+test('BALANCE: the final bosses with INSTRUMENT TIERS and UPGRADES (PLAYs to win, HP left)', {tag: '@slow'}, async ({page}) => {
+  test.setTimeout(1_200_000);
+  const watch = await boot(page);
+  const SETUPS = {
+    conductor: [['Rusty', {}], ['Rusty + POWER UP 3 + CALM UP 3 (21 Shards)', {up: {power: 3, calm: 3}}]],
+    bignumber: [['Rusty', {}], ['Metal', {tiers: {metal: true}}], ['Metal + Diamond', {tiers: {metal: true, diamond: true}}],
+      ['Metal + Diamond + Hamburger + POWER UP 5 + CALM UP 4 (49 Shards)', {tiers: {metal: true, diamond: true}, up: {power: 5, calm: 4}}, true],
+      ['Metal + Diamond + Hamburger + both maxed (52 Shards)', {tiers: {metal: true, diamond: true}, up: {power: 5, calm: 5}}, true]],
+  };
+  const AT = {conductor: [['POWER DOWN', 4, []], ['BEFRIEND', 6, ['wobble', 'chatterbox']]], bignumber: [['POWER DOWN', 7, []], ['BEFRIEND', 10, ['rico', 'miclet']]]};
+  const out = [];
+  const RUNS = 3;                                                  // (lucky crits and who the boss aims at are random)
+  for (const boss of ['conductor', 'bignumber']) for (const [route, level, band] of AT[boss]) for (const [name, gear, burger] of SETUPS[boss]) for (let run = 0; run < RUNS; run++) {
+    await page.evaluate(([level, band, gear, burger, boss]) => {
+      const Q = Arcade.Quest, s = Q.save.reset();
+      Object.assign(s.flags, {'seen-intro': true, pathsTip: true, rhythmTip: true});
+      s.level = level; s.roster = band.slice(); s.band = band.slice();
+      s.gear = Object.assign({tiers: {}, shards: 0, shardsGranted: true, up: {power: 0, calm: 0}}, gear);
+      s.charms = {owned: burger ? {hamburger: true} : {}, equipped: [burger ? 'hamburger' : null, null]};
+      Q.charms.fixHp(s); s.hp = s.maxHp; Q.save.write();
+      window.__turns = 0; window.__fsAt = null;
+      Q.go('battle', {enemy: boss, back: 'title'});
+    }, [level, band, gear, !!burger, boss]);
+    let last = null, end = null;
+    for (let i = 0; i < 3000; i++) {
+      const b = await page.evaluate(() => { const b = Arcade.Quest.battleState(); if (b && b.fs && b.fs.pending && window.__fsAt == null) window.__fsAt = window.__turns; return b; });
+      if (!b || b.state !== 'fight') { end = b; break; }
+      last = b;
+      const cmd = await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'));
+      if (cmd) await page.evaluate(() => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith('PLAY') && !x.disabled) || document.querySelector('#qCmd .q-btn'); b.click(); });
+      else if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');   // (only a text box: never a menu left behind)
+      await page.waitForTimeout(20);
+    }
+    const r = await page.evaluate(() => ({turns: window.__turns, fsAt: window.__fsAt, b: Arcade.Quest.battleState(), s: Arcade.Quest.save.get()}));
+    const fin = end || last;
+    out.push({boss, route, level, band: band.length + 1, setup: name, plays: r.turns, toStand: r.fsAt, hpLeft: fin.php, of: fin.maxHp, won: !!end && end.state === 'fading'});
+    await page.evaluate(() => Arcade.Quest.go('title'));
+    await page.waitForTimeout(100);
+  }
+  const rows = [];
+  out.forEach(o => { const k = `${o.boss}|${o.route}|${o.setup}`; let r = rows.find(x => x.k === k); if (!r) rows.push(r = {k, o, runs: []}); r.runs.push(o); });
+  const avg = (l, f) => +(l.reduce((n, x) => n + f(x), 0) / l.length).toFixed(1);
+  const table = rows.map(({o, runs}) => ({boss: o.boss, route: o.route, level: o.level, band: o.band, setup: o.setup, plays: avg(runs, x => x.plays),
+    toStand: runs[0].toStand == null ? null : avg(runs, x => x.toStand), hpLeft: avg(runs, x => x.hpLeft), of: o.of, won: runs.filter(x => x.won).length + '/' + runs.length, each: runs.map(x => x.plays)}));
+  fs.mkdirSync(OUT, {recursive: true});
+  fs.writeFileSync(path.join(OUT, 'quest-balance-gear.json'), JSON.stringify({table, runs: out}, null, 1));
+  console.log(table.map(o => `${o.boss} ${o.route} LV ${o.level} ×${o.band} | ${o.setup}: ${o.plays} PLAYs ${JSON.stringify(o.each)}${o.toStand != null ? ` (${o.toStand} to the stand)` : ''}, HP left ${o.hpLeft}/${o.of}, won ${o.won}`).join('\n'));
+  watch.check();
+});

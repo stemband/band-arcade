@@ -140,7 +140,8 @@ async function finish(page, route, n, code) {
     const Q = Arcade.Quest, B = Arcade.Backup, coded = B.QUEST_V1.flags.concat(B.QUEST_V6.flags);
     const pick = s => ({level: s.level, xp: s.xp, ep: s.ep, flags: Object.keys(s.flags).filter(f => s.flags[f] && coded.includes(f)).sort(), done: s.done, route: s.route,
       charms: {owned: Object.keys(s.charms.owned).filter(k => s.charms.owned[k]).sort(), equipped: s.charms.equipped},
-      items: Object.fromEntries(Object.entries(s.items || {}).filter(([, v]) => v > 0)), roster: (s.roster || []).slice().sort()});
+      items: Object.fromEntries(Object.entries(s.items || {}).filter(([, v]) => v > 0)), roster: (s.roster || []).slice().sort(),
+      gear: {tiers: Object.keys(s.gear.tiers).filter(k => s.gear.tiers[k]).sort(), shards: s.gear.shards, up: s.gear.up}});   // (version 7: the gear)
     const before = pick(JSON.parse(JSON.stringify(Q.save.get())));
     const ok = Q.save.fromCode(code).ok, s = Q.save.get(), after = pick(s);
     return {ok, before, after, pct: (s.progress || {}).ep2, floor: (s.progress || {}).ep, log: Q.save.ghostLog(s, 2).helped, total: Q.save.ghostLog(s, 2).total,
@@ -207,6 +208,16 @@ for (const route of ROUTES) {
       await step(page, 'workshop', 8, 9, 'down', 'lobby');
       await step(page, 'lobby', 21, 2, 'up', 'balcony');                                     // the stairs Tubby's rope opened
       await helpRoom(page, route, 'balcony');
+      // THE DIAMOND (INSTRUMENT TIERS, designed by a Raven Band student): its secret spot at the end of the Balcony's back
+      // row, on every route (the Balcony opens when Tubby wakes, whichever way his machines were helped); once
+      await talkAt(page, 'balcony', 16, 8, 'right');                                         // standing in the corner, A
+      await drive(page, idleIn('balcony'));
+      expect(await page.evaluate(() => [Arcade.Quest.gear.owned('diamond'), Arcade.Quest.gear.best().id])).toEqual([true, 'diamond']);
+      expect(await page.evaluate(() => window.__lines)).toEqual(expect.arrayContaining(['You found the Diamond Trumpet!', 'Your instrument shines: +20 % damage, +40 % CALM.']));
+      const heard = await page.evaluate(() => window.__lines.length);
+      await talkAt(page, 'balcony', 16, 8, 'right');
+      await drive(page, idleIn('balcony'));
+      expect(await page.evaluate(() => window.__lines.length), 'the Diamond is found once').toBe(heard);
       await step(page, 'balcony', 7, 8, 'down', 'lobby');
       const code = await jukebox(page, 'lobby', 21, 5);
       await finish(page, route, 2, code);

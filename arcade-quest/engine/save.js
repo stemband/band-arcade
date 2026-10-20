@@ -18,17 +18,23 @@
       ep: 1 | 2 (v6: the episode last played: the episode of the room you were last in (QUEST_MAPS[id].ep, 1 when
             left out); an older save takes it from save.world's room). EPISODE 2 (THE SHOWTIME STAGE) keeps
             everything else in the same fields: its story flags in `flags` (ep2Start, songEb…), its machines in `done`
-            ('<room>:<key>': its room ids never clash with the manor's), its friends in `roster`, its charms in `charms`}
+            ('<room>:<key>': its room ids never clash with the manor's), its friends in `roster`, its charms in `charms`,
+      gear: {tiers: {metal: true, diamond: true}, shards: n, shardsGranted: true, up: {power: 0–5, calm: 0–5}} (v7:
+            INSTRUMENT TIERS and UPGRADES, Q.gear below: the tiers owned (Rusty always; the Perfect never), the NOTE
+            SHARDS not yet spent, `shardsGranted` = the Shards for the enemies a save had already helped were granted
+            (once: the v6 → v7 migration), the two upgrade tracks' steps)}
    ALTERNATE ROUTES stay open whatever happens (routes()): a gate ghost that is done (befriended or faded) always has
    ITS way open: befriended = its `opens` flag, faded = its `opensIfFaded` flag, unless one is already set. This
    repairs saves from before the routes, save codes (they carry the ghosts helped and the roster, so which way is known,
    not the passage flag) and anything odd, so neither route can lock a student out. The same for Episode 2's band:
-   a room whose machines are all helped (either way) has its band member awake (its map's `wakes` flag).
+   a room whose machines are all helped (either way) has its band member awake (its map's `wakes` flag). And the
+   GEAR (gearRepair): a save that finished Episode 1 (ep1Done) owns the Metal tier, an old save's Shards are granted
+   once, the upgrade steps stay whole numbers 0–max, the Perfect is never owned.
    maxHp = maxHpAt(level) + the equipped charms' maxHp (Q.charms.fixHp keeps it right).
    AVATAR ITEMS bought at the Token Booth are NOT in this save: they're the arcade's (Arcade.store.ownItem), worn
    everywhere. The save code carries them anyway (shared/backup.js version 2).
    Progress (level, items, tokens, friends, flags) saves as it happens; the jukebox saves WHERE you are and heals you.
-   SAVE CODES (shared/backup.js, format version 6): Q.save.code() = the 80-character code shown at the jukebox;
+   SAVE CODES (shared/backup.js, format version 7): Q.save.code() = the 85-character code shown at the jukebox;
    Q.save.fromCode(code) -> {ok, error} replaces this device's save with it (ENTER SAVE CODE on the title screen).
    `convertedLeft` (from a code): stars already turned into tokens on the other device, spread over this device's
    star sources the next time the Token Booth counts (engine/talk.js).
@@ -40,7 +46,7 @@
 (function (A) {
   "use strict";
   const Q = A.Quest, GAME = 'arcade-quest';
-  const SAVE_VERSION = 6;
+  const SAVE_VERSION = 7;
   const data = () => A.store.gameData(GAME);
   const CHARMS = () => window.QUEST_CHARMS || {};
   /* THE EPISODES: every room says which one it belongs to (QUEST_MAPS[id].ep: data/maps/stage.js sets 2; manor.js
@@ -85,7 +91,40 @@
   }
   const write = () => { const d = data(); if (d.save && d.save.v) d.save.progress = progress(d.save); A.store.saveGameData(GAME); };
   const fresh = () => ({v: SAVE_VERSION, level: 1, xp: 0, hp: 20, maxHp: 20, tokens: 0, items: {'valve-oil': 2, 'cork-grease': 1, 'metronome': 1}, roster: [], battles: {won: 0, befriended: 0, faded: 0},
-    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null, route: {}, ep: 1});
+    world: null, flags: {}, done: {}, converted: {}, charms: {owned: {}, equipped: [null, null]}, band: null, route: {}, ep: 1, gear: freshGear(true)});
+  /* ---------- THE GEAR's numbers (data/items.js QUEST_INSTRUMENTS / QUEST_UPGRADES) ---------- */
+  const TIERS = () => (window.QUEST_INSTRUMENTS || {}).tiers || [{id: 'rusty', name: 'Rusty {you}', dmg: 0, calm: 0}];
+  const UPS = () => window.QUEST_UPGRADES || {max: 5, costs: [], power: {step: 0}, calm: {step: 0}, shards: {}};
+  const freshGear = granted => ({tiers: {}, shards: 0, shardsGranted: !!granted, up: {power: 0, calm: 0}});
+  /** the NOTE SHARDS an enemy gives the first time it's helped: a final boss, a mini-boss (`boss`) or a regular one */
+  function shardsFor(enemyId) {
+    const e = (window.QUEST_ENEMIES || []).find(x => x.id === enemyId), S = UPS().shards || {};
+    return !e ? 0 : e.final ? S.final || 0 : e.boss ? S.boss || 0 : S.enemy || 0;
+  }
+  /** the Shards a save's helped enemies are worth (its `done` records, read through the maps: '<room>:<key>' → type) */
+  function shardsEarned(done) {
+    const maps = window.QUEST_MAPS || {};
+    return Object.keys(done || {}).reduce((n, k) => {
+      const [room, key] = k.split(':'), m = maps[room], g = m && !m.practice && (m.enemies || []).find(x => x.key === key);
+      return n + (g ? shardsFor(g.type) : 0);
+    }, 0);
+  }
+  /** THE GEAR's repair (every load, like routes()): the shape, Metal at ep1Done, an old save's Shards once */
+  function gearRepair(s) {
+    // (in place: code holding s.gear or s.gear.up across a get() keeps writing to the same objects)
+    if (!s.gear || typeof s.gear !== 'object') s.gear = freshGear(false);
+    const g = s.gear;
+    if (!g.tiers || typeof g.tiers !== 'object') g.tiers = {};
+    if (!g.up || typeof g.up !== 'object') g.up = {power: 0, calm: 0};
+    g.shardsGranted = !!g.shardsGranted;
+    ['power', 'calm'].forEach(k => { g.up[k] = Math.max(0, Math.min(UPS().max || 5, Math.round(+g.up[k] || 0))); });
+    g.shards = Math.max(0, Math.round(+g.shards || 0));
+    TIERS().forEach(t => { if (t.locked) delete g.tiers[t.id]; else if (t.free && s.flags[t.free]) g.tiers[t.id] = true; });
+    delete g.tiers.rusty;                                                   // (always yours: never stored)
+    // THE RETROACTIVE GRANT: a save from before the Shards gets them for every enemy it had helped, ONCE (the maps
+    // and the enemies must be loaded to count them: the game's pages always have them by the first get())
+    if (!g.shardsGranted && window.QUEST_MAPS && window.QUEST_ENEMIES) { g.shards += shardsEarned(s.done); g.shardsGranted = true; }
+  }
   /** the story ghosts' routes: every gate ghost that's done keeps its way open, and `route` notes how it was passed */
   function routes(s) {
     const maps = window.QUEST_MAPS || {}, E = window.QUEST_ENEMIES || [];
@@ -124,8 +163,10 @@
     if (s.v === 3) { s.band = null; s.v = 4; }                                                            // v3 -> v4: the band (default)
     if (s.v === 4) { s.route = {}; s.v = 5; }                                                             // v4 -> v5: routes
     if (s.v === 5) { s.ep = episodeOf((s.world || {}).map); s.v = 6; }                                     // v5 -> v6: episodes
+    if (s.v === 6) { s.gear = freshGear(false); s.v = 7; }                                                 // v6 -> v7: the gear (Shards granted below)
     s.flags = s.flags || {}; s.done = s.done || {}; s.converted = s.converted || {};
     routes(s);
+    gearRepair(s);
     s.charms = s.charms || {owned: {}, equipped: [null, null]}; s.charms.owned = s.charms.owned || {};
     s.charms.equipped = [0, 1].map(i => { const id = (s.charms.equipped || [])[i]; return id && s.charms.owned[id] && CHARMS()[id] ? id : null; });
     return s;
@@ -149,7 +190,7 @@
       }
       data().save = s; write(); return s;
     },
-    /** this save as a save code (shared/backup.js: version 6, 80 characters) */
+    /** this save as a save code (shared/backup.js: version 7, 85 characters) */
     code: () => A.Backup ? A.Backup.questEncode(Q.save.get()) : '',
     /** replace this device's save with a save code: {ok: true} or {ok: false, error} */
     fromCode(code) {
@@ -160,6 +201,11 @@
       const world = f.world && f.world.x == null ? jukeSpot(f.world.map) || f.world : f.world;   // the Fly Loft's spot: from its map
       Object.assign(s, {level: f.level, xp: f.xp, items: f.items, roster: f.roster, flags: f.flags, done: f.done, world,
         maxHp: Q.save.maxHpAt(f.level), charms: f.charms || s.charms, ep: f.ep || episodeOf((f.world || {}).map)});
+      // THE GEAR (version 7 carries it); an older code derives it the way the save repair does: Metal at ep1Done, the
+      // Shards of the enemies it helped, no upgrades
+      s.gear = f.gear ? {tiers: Object.assign({}, f.gear.tiers), shards: f.gear.shards, shardsGranted: true, up: Object.assign({}, f.gear.up)}
+        : {tiers: {}, shards: shardsEarned(f.done), shardsGranted: true, up: {power: 0, calm: 0}};
+      gearRepair(s);
       data().save = s; Q.charms.fixHp(s);
       if (A.Tokens) A.Tokens.restore(f); else Object.assign(s, {tokens: f.tokens, convertedLeft: f.convertedLeft});   // THE SHARED WALLET
       s.hp = s.maxHp;
@@ -285,6 +331,87 @@
       if (s.maxHp > was) s.hp += s.maxHp - was;
       s.hp = Math.max(1, Math.min(s.hp, s.maxHp));
     },
+  };
+
+  /* ---------- THE GEAR: INSTRUMENT TIERS and UPGRADES (designed by a Raven Band student; ARCADE QUEST ONLY, like the
+     charms). The numbers: data/items.js QUEST_INSTRUMENTS / QUEST_UPGRADES. The save: s.gear (v7).
+     THE TIERS: Rusty (always yours), Metal (ep1Done, or bought: 350 tokens at either token booth), Diamond (a secret
+     map thing in Episode 2: data/maps/stage.js), the Perfect (`locked`: a "???" teaser, never owned). The BEST tier
+     you own is always the one that plays. THE UPGRADES: POWER UP and CALM UP, bought with NOTE SHARDS (the first time
+     each enemy is helped: engine/world.js afterBattle). bonus() = the tier's share + the upgrades' (they ADD), and
+     battle.js multiplies YOUR damage by 1 + dmg (never your band's) and every CALM gain but LISTEN's by 1 + calm. ---------- */
+  const pct = x => Math.round(x * 100);
+  /* the instrument's PORTRAIT in a tier's colors: the member's carry pose (shared/instrument-sprites.js POSES +
+     SHAPES) redrawn with that tier's palette (a tint: rust, steel, diamond; the Perfect a dark silhouette) */
+  const DIA = ['q-gear-dia-l', 'q-gear-dia'], BARS = '123456';
+  const TINT = {
+    rusty: Object.assign({g: 'q-gear-rust', G: 'q-gear-rust-d', m: 'q-gear-rust-l', M: 'q-gear-rust-d', d: 'q-gear-rust'}, ...[...BARS].map((b, i) => ({[b]: i % 2 ? 'q-gear-rust' : 'q-gear-rust-l'}))),
+    metal: Object.assign({g: 'q-silver', G: 'q-steel-d', m: 'q-silver', M: 'q-steel-d', d: 'q-steel'}, ...[...BARS].map((b, i) => ({[b]: i % 2 ? 'q-steel' : 'q-silver'}))),
+    diamond: Object.assign({g: DIA[0], G: DIA[1], m: DIA[0], M: DIA[1], k: 'q-gear-dia-d', w: 'q-gear-dia-d', W: DIA[1], d: DIA[1], D: 'q-white', r: DIA[0], s: DIA[0], x: 'q-white'},
+      ...[...BARS].map((b, i) => ({[b]: DIA[i % 2]}))),
+  };
+  function portrait(tierId, memberId) {
+    const ART = window.QUEST_ART || {}, P = ART.POSES || {}, SH = ART.SHAPES || {}, id = `gear-${memberId}-${tierId}`;
+    if (Q.spriteDef(id)) return id;
+    const pose = (P[memberId] || P[Object.keys(P)[0]] || {}).side, parts = (pose && pose.parts || []).filter(p => SH[p[0]]);
+    if (!parts.length) return null;
+    let x0 = 99, y0 = 99, x1 = 0, y1 = 0;
+    parts.forEach(([sh, x, y]) => { const r = SH[sh]; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + Math.max(...r.map(l => l.length))); y1 = Math.max(y1, y + r.length); });
+    const base = ART.INSTRUMENT_PALETTE || {}, tint = TINT[tierId], pal = {};
+    Object.keys(base).forEach(ch => { pal[ch] = tierId === 'perfect' ? 'q-gear-shadow' : (tint && tint[ch]) || base[ch]; });
+    // (the 'back' parts first, like the hero's drawing)
+    const order = parts.filter(p => p[3] === 'back').concat(parts.filter(p => p[3] !== 'back'));
+    Q.addSprite(id, {w: x1 - x0, h: y1 - y0, layers: [order.map(([sh, x, y]) => ({rows: SH[sh], palette: pal, at: [x - x0, y - y0]}))]});
+    return id;
+  }
+  Q.gear = {
+    tiers: () => TIERS(),
+    ups: () => UPS(),
+    tier: id => TIERS().find(t => t.id === id) || null,
+    /** do you own this tier? (the first is always yours; a `locked` one never is) */
+    owned(id) { const t = Q.gear.tier(id); return !!t && !t.locked && (t === TIERS()[0] || !!Q.save.get().gear.tiers[id]); },
+    /** the BEST tier you own: the one that plays */
+    best: () => TIERS().filter(t => Q.gear.owned(t.id)).pop() || TIERS()[0],
+    /** a tier's name with your real instrument ("Metal Clarinet", "Rusty Snare") */
+    name(id = Q.gear.best().id, member = A.currentMember && A.currentMember()) { const t = Q.gear.tier(id) || TIERS()[0]; return t.name.replace(/\{you\}/g, member ? member.short : 'Instrument'); },
+    /** give a tier (bought, found or earned): false if it was already yours or can't be owned */
+    give(id) {
+      const t = Q.gear.tier(id), s = Q.save.get();
+      if (!t || t.locked || Q.gear.owned(id)) return false;
+      s.gear.tiers[id] = true; write(); return true;
+    },
+    /** the steps bought on a track ('power' | 'calm') */
+    level: k => (Q.save.get().gear.up || {})[k] || 0,
+    /** what plays now: the best tier's share + the upgrades' (they ADD) -> {dmg, calm} */
+    bonus() {
+      const t = Q.gear.best(), U = UPS();
+      return {dmg: (t.dmg || 0) + Q.gear.level('power') * ((U.power || {}).step || 0), calm: (t.calm || 0) + Q.gear.level('calm') * ((U.calm || {}).step || 0)};
+    },
+    dmgMult: () => 1 + Q.gear.bonus().dmg,
+    calmMult: () => 1 + Q.gear.bonus().calm,
+    /** "+10 % damage, +20 % CALM" (a tier, or {dmg, calm}) */
+    bonusText: b => Q.text('gearBonus', {dmg: pct(b.dmg || 0), calm: pct(b.calm || 0)}),
+    pct,
+    /* ---------- NOTE SHARDS (placeholder name: QUEST_TEXT `shards`) ---------- */
+    shards: () => Q.save.get().gear.shards,
+    /** the currency's name for n of them ("1 Note Shard", "4 Note Shards"): the one text key, a last "s" dropped for 1 */
+    shardWord: n => { const w = Q.text('shards'); return n === 1 ? w.replace(/s$/, '') : w; },
+    shardsFor,
+    shardsEarned,
+    /** add Shards (engine/world.js: the first time an enemy is helped) */
+    earn(n) { if (!(n > 0)) return 0; const s = Q.save.get(); s.gear.shards += n; write(); return n; },
+    /** the next step's cost on a track, or null at the top */
+    cost(k) { const U = UPS(), lv = Q.gear.level(k); return lv >= U.max ? null : U.costs[lv]; },
+    /** buy the next step: {ok, level} | {ok: false, why: 'max' | 'need', need} (no refunds, no resets) */
+    buy(k) {
+      const s = Q.save.get(), c = Q.gear.cost(k);
+      if (c == null) return {ok: false, why: 'max'};
+      if (s.gear.shards < c) return {ok: false, why: 'need', need: c};
+      s.gear.shards -= c; s.gear.up[k] = Q.gear.level(k) + 1; write();
+      return {ok: true, level: s.gear.up[k]};
+    },
+    /** a tier's portrait sprite id for your instrument (made the first time it's asked for) */
+    portrait: (tierId = Q.gear.best().id, memberId = (A.currentMember && A.currentMember() || {}).id) => portrait(tierId, memberId),
   };
 
   const DEFAULTS = {textSpeed: 'normal', dodge: 'normal', assist: false, keyHints: true};
