@@ -96,6 +96,10 @@ button{font:inherit}
 .q-bar.chp i{background:var(--q-green)}
 .q-comp small{font-size:calc(var(--px) * 5)!important;white-space:nowrap}
 .q-comp.out{opacity:.5}
+/* THE BAND'S SPECIALS: a thin gold meter under each companion's HP; full = it glows (steady: no blinking) */
+.q-sp{grid-column:1 / -1;display:block;height:calc(var(--px) * 1.5);background:var(--q-grey-d);margin-top:calc(var(--px) * -.5)}
+.q-sp i{display:block;height:100%;width:0;background:var(--q-gold);transition:width .3s}
+.q-comp.sp-full .q-sp i{box-shadow:0 0 calc(var(--px) * 2) var(--q-gold)}
 .q-comp.out .q-cname{text-decoration:line-through}
 .q-hud-p.target{border-color:var(--q-pink)}
 .q-comp.target .q-cname{color:var(--q-pink)}
@@ -121,7 +125,8 @@ button{font:inherit}
 .q-float.dmg{color:var(--q-red)}.q-float.calm{color:var(--q-pink)}.q-float.heal{color:var(--q-green)}
 /* CRITICAL! (gold) and PERFECT SERENADE! (pink): bigger, in the pixel font, over the enemy */
 .q-float.crit,.q-float.perfect{font-family:"GN Quest",var(--display);font-size:calc(var(--px) * 13);white-space:nowrap;letter-spacing:.04em}
-.q-float.crit{color:var(--q-gold)}.q-float.perfect{color:var(--q-pink);font-size:calc(var(--px) * 11)}
+.q-float.crit{color:var(--q-gold)}
+.q-float.special{font-family:"GN Quest",var(--display);font-size:calc(var(--px) * 9);white-space:nowrap;color:var(--q-gold)}.q-float.echo{color:var(--q-purple)}.q-float.perfect{color:var(--q-pink);font-size:calc(var(--px) * 11)}
 @keyframes q-float{to{transform:translate(-50%,calc(var(--px) * -16));opacity:0}}
 
 /* ---------- the challenge panel (a light screen, so notation stays crisp) ---------- */

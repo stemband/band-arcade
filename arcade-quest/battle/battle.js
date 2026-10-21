@@ -69,6 +69,13 @@
    HUD's name shows the tier as a small badge (a rust dot, a steel dot, a diamond: it sparkles slowly, still under
    reduced motion). NOTE SHARDS: a battle started from the map (engine/world.js) knows the Shards it gives the first
    time (`shards`) and says so with its rewards; world.js adds them with the enemy's `done` record.
+   THE BAND'S SPECIALS (data/enemies.js companion.special; designed by a Raven Band student): each companion has a
+   SPECIAL meter (a thin gold bar under its HP; empty at the start of every battle). Each of your PLAYs, moves, QUICK
+   PLAYs and SERENADEs fills it by RULES.specialFill × your accuracy; when it's full, that companion's next turn is its
+   SPECIAL instead (the meter empties): a big hit, several hits, an ECHO that hits at the start of each of the enemy's
+   turns (stacking; never below 1 HP or past the Final Stand's floor: only your PLAY finishes it), a heal for everyone,
+   a shield, a slower next dodge or CALM. After a SERENADE a damage special adds CALM instead (RULES.specialCalm), so
+   befriending keeps up with defeating.
    THE MOVES (data/items.js QUEST_MOVES; designed by a Raven Band student): BOP ATTACK (LV 3), STRONGER BLOW (LV 5), BIG
    BLAST (LV 8), ULTRA CANNON (LV 10) in PLAY's menu, each ONCE PER BATTLE (B.moved): its own short challenge
    (challenges.js Q.challenge.move) and a PLAY's damage × its mult (crits, the Tuning Fork, a boost, party, gear); your
@@ -102,7 +109,11 @@
     // your band hits × critBand that turn. PERFECT SERENADE: accuracy ≥ perfectSerenade = CALM × perfectMult
     critSkill: .95, critSpeed: .8, critLuckyFrom: .7, critChance: 1 / 12, critMult: 1.5, critBand: 1.2,
     perfectSerenade: .95, perfectMult: 1.5,
-    quick: {notes: 3, time: 9},                            // MAT: TUNE: QUICK PLAY (the Hamburger Charm): concert E♭ × notes, in time seconds
+    quick: {notes: 3, time: 9},
+    // MAT: TUNE: THE BAND'S SPECIALS: each of your PLAYs / moves / SERENADEs fills every playing companion's SPECIAL
+    // meter by specialFill × your accuracy (100 = full: its special instead of its usual turn, about every 3rd turn at
+    // 100 %); specialCalm = the CALM a damage special adds after a SERENADE, per share of your power (≈ the same work)
+    specialFill: 36, specialCalm: 33,                            // MAT: TUNE: QUICK PLAY (the Hamburger Charm): concert E♭ × notes, in time seconds
     fsCardMs: 1400, fsBannerMs: 3500};                    // MAT: TUNE: THE FINAL STAND's title card and each part's banner (ms)
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
@@ -124,6 +135,7 @@
       row.querySelector('i').style.width = Math.max(0, c.hp / c.maxHp * 100) + '%';
       row.querySelector('small').textContent = c.out ? Q.text('outShort') : `${Math.max(0, c.hp)}/${c.maxHp}`;
       row.classList.toggle('out', c.out); row.classList.toggle('target', B.aim === c);
+      const sp = row.querySelector('.q-sp i'); if (sp) { sp.style.width = Math.min(100, c.sp) + '%'; row.classList.toggle('sp-full', c.sp >= 100); }
     });
     Q.$('qShield').hidden = !B.shield && !B.mute; Q.$('qShield').textContent = [B.shield ? `Shield ×${B.shield}` : '', B.mute ? 'Mute ready' : ''].filter(Boolean).join(' · ');
   };
@@ -248,6 +260,7 @@
     const power = Q.save.powerAt(B.save.level);
     active.forEach((c, i) => {
       if (B.e.hp <= 0) return;                                  // already fading: nothing left to play against
+      if (fillSpecial(c, res.acc)) { special(c, res.acc, 'play', i); return; }   // THE BAND'S SPECIALS: a full meter
       const p = c.def.companion, perk = p.perk || {};
       const dmg = Math.max(1, Math.round(power * p.power * res.acc * (perk.power || 1) * (crit ? RULES.critBand : 1) * Q.charms.mult('party')));   // they follow your lead: never a crit of their own (× party: the Hamburger Charm)
       c.hop = performance.now() + 250 + 300 * i;
@@ -263,12 +276,78 @@
     hud();
   }
   const bandNames = list => list.map(c => c.name).join(' and ');
+  /* ---------- THE BAND'S SPECIALS (designed by a Raven Band student; data/enemies.js companion.special) ---------- */
+  /** your turn fills this companion's meter (× your accuracy); true = it was full: its SPECIAL now (the meter empties) */
+  function fillSpecial(c, acc) {
+    if (!c.def.companion.special) return false;
+    c.sp = Math.min(100, (c.sp || 0) + RULES.specialFill * (acc || 0));
+    if (c.sp < 100) return false;
+    c.sp = 0; return true;
+  }
+  /** a companion's SPECIAL. After a PLAY its damage lands (one big hit, several hits, or an echo that keeps hitting at
+      the start of each of its turns); after a SERENADE the same work becomes CALM. Heal, shield, slow and calm work
+      either way. Everything × your accuracy (they follow your lead) and × party (the Hamburger), never a crit. */
+  function special(c, acc, mode, i) {
+    const sp = c.def.companion.special, power = Q.save.powerAt(B.save.level), party = Q.charms.mult('party');
+    c.hop = performance.now() + 250 + 300 * i;
+    Q.sfx('quest-crit');
+    setTimeout(() => { if (B && B.band.includes(c)) float(Q.text('specialFloat'), 176, 34 + 10 * i, 'special'); }, 150 + 300 * i);
+    B.queue.push(Q.text('specialGo', {band: c.name, special: sp.name}), sp.say);
+    const shareDmg = (sp.hit || 0) + (sp.hits ? sp.hits * (sp.share || 0) : 0);
+    if (mode === 'play') {
+      const one = share => Math.max(1, Math.round(power * share * acc * party));
+      if (sp.hit) { const d = one(sp.hit); hurtFoe(d); later(() => float('-' + d, 186, 40 + 10 * i, 'dmg band'), 250 + 300 * i); B.queue.push(Q.text('specialHit', {special: sp.name, name: B.e.name, n: d})); }
+      if (sp.hits) {
+        let total = 0;
+        for (let k = 0; k < sp.hits && B.e.hp > 0; k++) { const d = one(sp.share); total += d; hurtFoe(d); later(() => float('-' + d, 180 + 6 * k, 30 + 7 * k, 'dmg band'), 250 + 180 * k); }
+        B.queue.push(Q.text('specialHits', {special: sp.name, k: sp.hits, name: B.e.name, n: total}));
+      }
+      if (sp.dot && B.e.hp > 0) {
+        const per = one(sp.dot.share);
+        B.dots.push({name: sp.name, per, turns: sp.dot.turns});
+        B.queue.push(Q.text('specialDot', {name: B.e.name, n: per, t: sp.dot.turns}));
+      }
+    } else if (shareDmg || sp.dot) {                            // after a SERENADE: the same work, as CALM
+      addCalm((shareDmg + (sp.dot ? sp.dot.share * sp.dot.turns : 0)) * RULES.specialCalm * acc * B.calmScale);
+      B.queue.push(Q.text('specialCalm', {special: sp.name, name: B.e.name}));
+    }
+    if (sp.calm) addCalm(sp.calm * acc * B.calmScale);
+    if (sp.heal) {
+      const n = Math.max(1, Math.round(B.save.maxHp * sp.heal * acc)), was = B.save.hp;
+      B.save.hp = Math.min(B.save.maxHp, B.save.hp + n);
+      B.band.forEach(m => { if (!m.out) m.hp = Math.min(m.maxHp, m.hp + Math.max(1, Math.round(m.maxHp * sp.heal * acc))); });
+      if (B.save.hp > was) float('+' + (B.save.hp - was), 40, 60, 'heal');
+      B.queue.push(Q.text('specialHeal', {special: sp.name}));
+    }
+    if (sp.shield) { B.shield += sp.shield; B.queue.push(Q.text('itemShield', {n: B.shield})); }
+    if (sp.slow) { B.slow = Math.min(B.slow || 1, sp.slow); B.queue.push(Q.text('specialSlow', {name: B.e.name})); }
+    hud();
+  }
+  const later = (f, ms) => setTimeout(() => { if (B) f(); }, ms);
+  /** THE ECHOES (a special's `dot`): at the start of the enemy's turn each one hits, then counts down. They stack, and
+      never bring it below 1 HP (nor past THE FINAL STAND's floor, nor into the finale): only your PLAY finishes it */
+  async function echoes() {
+    if (!B.dots.length) return;
+    const lo = B.finale ? Infinity : B.e.finalStand && !B.fsDone ? fsFloor() + 1 : 1;
+    const lines = [];
+    B.dots.forEach(d => {
+      const n = Math.min(d.per, Math.max(0, Math.ceil(B.e.hp) - lo));
+      d.turns--;
+      if (n <= 0) return;
+      B.e.hp -= n; B.hurtUntil = performance.now() + 450; Q.sfx('quest-enemy-hurt');
+      float('-' + n, 176, 46, 'dmg echo'); lines.push(Q.text('echoHit', {special: d.name, name: B.e.name, n}));
+    });
+    B.dots = B.dots.filter(d => d.turns > 0);
+    hud();
+    if (lines.length) await Q.say(lines);
+  }
   /** after a SERENADE: your band follows your lead and plays softly too: CALM instead of damage (your accuracy) */
   function bandSerenade(res, gain) {
     const active = B.band.filter(c => !c.out);
     if (!active.length) return;
     if (!(gain > 0)) { B.queue.push(Q.text('bandRest', {band: bandNames(active)})); return; }
     active.forEach((c, i) => {
+      if (fillSpecial(c, res.acc)) { special(c, res.acc, 'serenade', i); return; }   // THE BAND'S SPECIALS: a full meter
       const p = c.def.companion, perk = p.perk || {};
       const n = gain * p.power * RULES.compCalm + (perk.calm ? perk.calm * res.acc * B.calmScale : 0);
       c.hop = performance.now() + 250 + 300 * i;
@@ -421,6 +500,8 @@
   /** who the enemy aims at this turn: you or a companion still playing, at random ('you' or the companion) */
   const pickAim = () => { const pool = ['you'].concat(B.band.filter(c => !c.out)); return pool[Math.floor(Math.random() * pool.length)]; };
   async function enemyTurn() {
+    await echoes();                                              // THE BAND'S SPECIALS: the echoes hit first
+    if (!B) return;
     const aim = B.aim = pickAim(), you = aim === 'you';
     hud();
     await Q.say([Q.pick([].concat(B.e.lines.turn)), you && !B.band.length ? '' : Q.text(you ? 'aimYou' : 'aimBand', {name: B.e.name, band: you ? '' : aim.name}),
@@ -601,12 +682,12 @@
       const L = Q.band.lineup(src.id);
       const band = L.band.map(id => {
         const def = Q.band.enemy(id), maxHp = Math.max(4, Math.round(Q.save.maxHpAt(save.level) * (def.companion.hp || RULES.compHp)));
-        return {id, def, name: def.name, sprite: def.sprite, maxHp, hp: maxHp, out: false, hop: 0};
+        return {id, def, name: def.name, sprite: def.sprite, maxHp, hp: maxHp, out: false, hop: 0, sp: 0};
       });
       const area = (window.QUEST_AREAS || {})[src.area || (src.test ? 'test' : '')] || {hp: 1, atk: 1};
       const hp = Math.round(src.hp * (area.hp || 1) * (1 + (src.boss ? RULES.bossPartyHp : RULES.partyHp) * band.length));
       B = {e: Object.assign({}, src, {maxHp: hp, hp, atk: (src.atk || 2) * (area.atk || 1)}), save, member, back, band, aim: null, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
-        player: Q.playerId(member.id), lineup: L, moved: {}, introAt: performance.now(), shards: shards || 0, fromMap: !!(back && typeof back === 'object' && back.scene === 'world')};
+        player: Q.playerId(member.id), lineup: L, moved: {}, dots: [], introAt: performance.now(), shards: shards || 0, fromMap: !!(back && typeof back === 'object' && back.scene === 'world')};
       // THE CALM SCALE: CALM rises like damage does: with your power (level) and against its HP (area × band size)
       B.calmScale = Q.save.powerAt(save.level) / Q.save.powerAt(1) * RULES.calmRef / hp;
       Q.ui.innerHTML = `<div class="q-hud">` +
@@ -614,7 +695,8 @@
         `<div class="q-calm" id="qCalmBox"><span>CALM</span><div class="q-bar calm"><i id="qCalm"></i></div></div></div>` +
         `<div class="q-hud-p" id="qHudP"><p class="q-hname">${tierBadge(member)}${member.short} <span id="qLv"></span>${B.band.length ? ` <span class="q-party">${Q.text(B.band.length > 1 ? 'bandTrio' : 'bandDuet')}</span>` : ''}</p>` +
         `<div class="q-bar php"><i id="qPHp"></i></div><small id="qPHpN"></small><small class="q-shield" id="qShield" hidden></small>` +
-        B.band.map((c, i) => `<div class="q-comp" id="qComp${i}"><span class="q-cname">${c.name}</span><div class="q-bar chp"><i></i></div><small></small></div>`).join('') + `</div></div>` +
+        B.band.map((c, i) => `<div class="q-comp" id="qComp${i}"><span class="q-cname">${c.name}</span><div class="q-bar chp"><i></i></div><small></small>` +
+          (c.def.companion.special ? `<span class="q-sp" title="${c.def.companion.special.name}"><i></i></span>` : '') + `</div>`).join('') + `</div></div>` +
         `<p class="q-mictag" id="qMicTag" hidden><span class="q-dot"></span> The mic is listening</p>` +
         `<button type="button" class="q-gear" id="qGear" aria-label="Settings">⚙</button>` +
         `<p class="q-prompt" id="qPrompt" hidden></p><div class="q-cmd" id="qCmd" hidden></div>` +
@@ -687,6 +769,6 @@
   Q.battleDemo = {hp(n) { if (A.DEMO && B) { B.e.hp = n; hud(); } }};
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
     power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, moved: Object.keys(B.moved), aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
-    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup,
+    band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out, sp: c.sp})), dots: B.dots.map(d => Object.assign({}, d)), slow: B.slow, lineup: B.lineup,
     fs: B.e.finalStand ? {floor: fsFloor(), pending: !!B.fsPending, active: !!B.fsActive, done: !!B.fsDone, part: B.fsPart == null ? null : B.fsPart, tries: B.fsTries || 0, tip: !!B.fsTipSaid, finale: !!B.finale} : null};   // tests
 })(window.Arcade);

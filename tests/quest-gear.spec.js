@@ -441,11 +441,11 @@ test.describe('NOTE SHARDS', () => {
     await page.reload();
     await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName);
     expect(await page.evaluate(() => [Arcade.Quest.gear.shards(), Arcade.Quest.gear.level('power')])).toEqual([17, 1]);
-    // the whole game today: 54 Shards (Episode 1: 18 + 3 + 5, Episode 2: 20 + 3 + 5); both tracks maxed: 52
+    // the whole game today: 55 Shards (Episode 1: 18 + 3 + 5, Episode 2: 20 + 3 + 5, + Tom-Tom Termite's 1, a bonus friend); both tracks maxed: 52
     const all = await page.evaluate(() => { const M = window.QUEST_MAPS, d = {};
       Object.keys(M).filter(id => !M[id].practice).forEach(id => (M[id].enemies || []).forEach(e => { d[id + ':' + e.key] = 'fade'; }));
       const U = window.QUEST_UPGRADES; return {total: Arcade.Quest.gear.shardsEarned(d), max: 2 * U.costs.reduce((a, b) => a + b, 0)}; });
-    expect(all).toEqual({total: 54, max: 52});
+    expect(all).toEqual({total: 55, max: 52});
     watch.check();
   });
 });
@@ -540,7 +540,7 @@ test.describe('SAVE CODES', () => {
 
   test('every fixture code of every older version (1–6) decodes exactly as before and loads with the derived gear', async ({page}) => {
     const watch = await boot(page);
-    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes', f), 'utf8').trim());
+    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6', f), 'utf8').trim());   // (the route codes as version 6 made them: frozen)
     const r = await page.evaluate(([old, routes]) => {
       const Q = Arcade.Quest, B = Arcade.Backup, out = [];
       Object.entries(old).map(([k, v]) => [k, v.code, v.fields]).concat(routes.map((c, i) => ['route' + i, c, null])).forEach(([k, c, fields]) => {
@@ -563,7 +563,7 @@ test.describe('SAVE CODES', () => {
 
   test('a v6 code (Episode 2 finished on the POWER DOWN route) gets Metal and all 54 Shards; v7 keeps them exactly', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page);
-    const code = fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes/fade-6.txt'), 'utf8').trim();
+    const code = fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6/fade-6.txt'), 'utf8').trim();
     const r = await page.evaluate(c => {
       const Q = Arcade.Quest; Q.save.fromCode(c);
       const g = JSON.parse(JSON.stringify(Q.save.get().gear)), c7 = Q.save.code();

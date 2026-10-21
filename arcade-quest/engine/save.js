@@ -59,8 +59,9 @@
       the maps each time, so one added to a map later counts by itself. -> [{key, room}] */
   function ghosts(ep = 1) {
     const maps = window.QUEST_MAPS || {}, out = [];
-    // (a map entry with `boss: true` isn't one of them: Episode 2's Rico Bandit and THE BIG NUMBER have flags of their own)
-    Object.keys(maps).forEach(id => { if (!maps[id].practice && episodeOf(id) === ep) (maps[id].enemies || []).forEach(e => { if (!e.boss) out.push({key: id + ':' + e.key, room: id}); }); });
+    // (a map entry with `boss: true` isn't one of them: Episode 2's Rico Bandit and THE BIG NUMBER have flags of their own;
+    // nor is an `extra`: a bonus friend, Tom-Tom Termite)
+    Object.keys(maps).forEach(id => { if (!maps[id].practice && episodeOf(id) === ep) (maps[id].enemies || []).forEach(e => { if (!e.boss && !e.extra) out.push({key: id + ':' + e.key, room: id}); }); });
     return out;
   }
   /** THE GHOST LOG (the pause menu): {helped, total, rooms: the rooms that still have someone (map names, in map
@@ -143,8 +144,15 @@
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
         if (flag) s.flags[flag] = true;
       });
+      // a BONUS FRIEND (`extra`: Tom-Tom Termite): a save code carries the roster and its doneFlag (termiteDone), not
+      // its `done` key: in the roster = befriended there; the flag alone = powered down. Either way it doesn't come back
+      (maps[id].enemies || []).forEach(g => {
+        if (!g.extra || s.done[id + ':' + g.key]) return;
+        const E = (window.QUEST_ENEMIES || []).find(e => e.id === g.type) || {}, friend = (s.roster || []).includes(g.type);
+        if (friend || (E.doneFlag && s.flags[E.doneFlag])) s.done[id + ':' + g.key] = friend ? 'befriend' : 'fade';   // (its doneFlag: helped either way)
+      });
       // THE BAND WAKES (data/maps/stage.js `wakes`): every machine of that room helped, either way = they're awake
-      const wk = maps[id].wakes, list = maps[id].enemies || [];
+      const wk = maps[id].wakes, list = (maps[id].enemies || []).filter(g => !g.extra);   // (a bonus friend never gates)
       if (wk && list.length && list.every(g => s.done[id + ':' + g.key])) s.flags[wk.flag] = true;
     });
   }
@@ -243,11 +251,11 @@
     achievements() {
       const s = Q.save.get(), d = data(), a = d.achievements || (d.achievements = {});
       if ((s.flags || {}).ep1Done) a.ep1 = true;
-      const manor = (window.QUEST_ENEMIES || []).filter(e => e.area === 'manor').map(e => e.id);
+      const manor = (window.QUEST_ENEMIES || []).filter(e => e.area === 'manor' && !e.extra).map(e => e.id);
       if (manor.length && manor.every(id => (s.roster || []).includes(id))) a['manor-friends'] = true;
       if (ghostLog(s).all) a['manor-all'] = true;
       if ((s.flags || {}).ep2Done) a.ep2 = true;
-      const stage = (window.QUEST_ENEMIES || []).filter(e => e.area === 'stage').map(e => e.id);
+      const stage = (window.QUEST_ENEMIES || []).filter(e => e.area === 'stage' && !e.extra).map(e => e.id);   // (Tom-Tom Termite, a bonus friend: not needed)
       if (stage.length && stage.every(id => (s.roster || []).includes(id))) a['stage-friends'] = true;
       if (ghostLog(s, 2).all) a['stage-all'] = true;
       write();

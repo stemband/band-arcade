@@ -255,6 +255,20 @@
     shoe(g, 0, f === 0 ? 17 : 21, f === 2); shoe(g, 16, f === 1 ? 17 : 21, f === 2);
     if (f === 2) { note(g, 14, 8); note(g, 27, 5); }
   });
+  /* TOM-TOM TERMITE (designed by a Raven Band student): a termite on a little tom-tom, two chewed-down drumsticks
+     (up, then down on the drumhead; notes when happy). Not one of the 20 machines: a bonus friend in the Workshop */
+  S.termite = machine((g, f) => {
+    oval(g, 16, 26, 8, 3, 'r'); rect(g, 8, 23, 17, 4, 'r'); oval(g, 16, 23, 8, 2.4, 'c');   // the tom-tom: its shell, its head
+    rect(g, 8, 25, 17, 1, 'y'); put(g, 10, 27, 'Y'); put(g, 22, 27, 'Y');                     // the rim, two lugs
+    oval(g, 16, 18, 5, 3.4, 'W'); oval(g, 16, 13, 4.5, 3.4, 'l'); oval(g, 16, 7, 5.5, 4.5, 'l');   // abdomen, thorax, head
+    rect(g, 13, 11, 6, 1, 'W'); rect(g, 13, 16, 6, 1, 'l');                                   // the segments
+    line(g, 13, 3, 9, 0, 'k'); line(g, 19, 3, 23, 0, 'k');                                    // antennae
+    eye(g, 13, 6, f === 2); eye(g, 18, 6, f === 2);
+    if (f === 2) smile(g, 14, 9, 4); else { rect(g, 14, 10, 4, 1, 'm'); put(g, 14, 11, 'w'); put(g, 17, 11, 'w'); }   // little mandibles
+    if (f === 1) { line(g, 11, 14, 6, 21, 'C', 1); line(g, 21, 14, 26, 21, 'C', 1); put(g, 6, 21, 'c'); put(g, 26, 21, 'c'); }   // sticks down on the drum
+    else { line(g, 11, 13, 4, 9, 'C', 1); line(g, 21, 13, 28, 9, 'C', 1); put(g, 4, 9, 'c'); put(g, 28, 9, 'c'); }            // sticks up
+    if (f === 2) { note(g, 2, 6); note(g, 27, 4); }
+  });
   /* SPOTLIGHT SPRITE: a little stage light on a yoke, its lens a bulb (dim, bright, beaming when happy) */
   S.spotlight = machine((g, f) => {
     line(g, 6, 28, 10, 22, 'K', 2); line(g, 25, 28, 21, 22, 'K', 2); rect(g, 9, 21, 14, 2, 'K');   // the stand and its yoke

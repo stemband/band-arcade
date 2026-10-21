@@ -168,7 +168,7 @@ test.describe('THE FINAL STAND', () => {
     });
   }
 
-  test('surviving 60 s: the static cracks, the finale at 1 HP with CALM full; HARMONIZE (the E♭ scale) = the best ending', async ({page}) => {
+  test('surviving 60 s: the static cracks, the finale at 1 HP with CALM full; HARMONIZE (the E♭ scale) = the best ending', {tag: '@slow'}, async ({page}) => {   // (a real 60 s stand: about 70 s in WebKit)
     test.setTimeout(90000);
     await page.clock.install();
     const watch = await boot(page, save(), {url: 'arcade-quest/index.html?demo&warp=stage'});
@@ -361,7 +361,7 @@ test.describe('THE HAMBURGER CHARM', () => {
   test('its save code place: the 4th of QUEST_V6.charms; owned and worn round-trip; every older code still loads as before', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page, save({charms: {hamburger: true, 'rosin-pouch': true}, worn: ['hamburger', 'rosin-pouch']}));
     const old = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-codes.json'), 'utf8'));
-    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes', f), 'utf8').trim());
+    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6', f), 'utf8').trim());
     const r = await page.evaluate(([old, routes]) => {
       const B = Arcade.Backup, Q = Arcade.Quest, code = Q.save.code(), f = B.questDecode(code).fields;
       const codes = [].concat(...Object.values(old).map(v => (typeof v === 'string' ? [v] : Object.values(v).filter(x => typeof x === 'string' || (x && x.code)).map(x => x.code || x)))).filter(c => typeof c === 'string' && c.length >= 25);
