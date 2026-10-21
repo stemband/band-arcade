@@ -154,7 +154,8 @@ window.Arcade = window.Arcade || {};
     // QUEST_V1's jukeboxes (frozen), then the Showtime Stage's: the Lobby's, the Fly Loft's (its spot is read from its map)
     jukeboxes: QUEST_V1.jukeboxes.concat([{map: 'lobby', x: 21, y: 5, dir: 'up'}, {map: 'loft'}]),
     flags: ['ep2Start', 'tuskAwake', 'songEb', 'salAwake', 'ricoDone', 'ricoDoor', 'ricoVent', 'ep2Done', 'met-moose', 'met-hoot',
-      'met-tina', 'met-pete', 'met-tusk', 'met-sal', 'met-rico', 'hootAwake', 'met-bignumber'],                   // 20 places
+      'met-tina', 'met-pete', 'met-tusk', 'met-sal', 'met-rico', 'hootAwake', 'met-bignumber',
+      'termiteDone'],                                   // 20 places (append only: Tom-Tom Termite helped, either way, is the 18th)
     // [room:machine key]: the 20 helpable machines (rooms 3–7 + the Lobby's balcony), then Rico Bandit and THE BIG NUMBER
     machines: ['pit:m1', 'pit:m2', 'pit:m3', 'workshop:m1', 'workshop:m2', 'workshop:m3', 'workshop:m4', 'backstage:m1', 'backstage:m2',
       'backstage:m3', 'backstage:m4', 'dressing:m1', 'dressing:m2', 'dressing:m3', 'loft:m1', 'loft:m2', 'loft:m3', 'loft:m4',

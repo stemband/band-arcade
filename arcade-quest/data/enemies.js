@@ -436,7 +436,7 @@ window.QUEST_ENEMIES = [
   // needed for 'stage-friends'); a bonus friend to find. Its SPECIAL is the student's: a hit, then ghostly gnawing
   // every turn after
   {
-    id: 'termite', name: 'Tom-Tom Termite', sprite: 'termite', hp: 32, atk: 2, area: 'stage', ep: 2, extra: true,
+    id: 'termite', name: 'Tom-Tom Termite', sprite: 'termite', hp: 32, atk: 2, area: 'stage', ep: 2, extra: true, doneFlag: 'termiteDone',
     challenge: 'rhythm', tier: 1, notes: 'Eb', happy: 3,
     calm: {perNote: 3, listen: 6, success: 24},
     harmonize: {type: 'rhythm', tier: 1},

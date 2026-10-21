@@ -144,9 +144,13 @@
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
         if (flag) s.flags[flag] = true;
       });
-      // a BONUS FRIEND (`extra`: Tom-Tom Termite) in the roster was befriended there: a save code carries the roster,
-      // not its `done` key, so it doesn't come back
-      (maps[id].enemies || []).forEach(g => { if (g.extra && (s.roster || []).includes(g.type) && !s.done[id + ':' + g.key]) s.done[id + ':' + g.key] = 'befriend'; });
+      // a BONUS FRIEND (`extra`: Tom-Tom Termite): a save code carries the roster and its doneFlag (termiteDone), not
+      // its `done` key: in the roster = befriended there; the flag alone = powered down. Either way it doesn't come back
+      (maps[id].enemies || []).forEach(g => {
+        if (!g.extra || s.done[id + ':' + g.key]) return;
+        const E = (window.QUEST_ENEMIES || []).find(e => e.id === g.type) || {}, friend = (s.roster || []).includes(g.type);
+        if (friend || (E.doneFlag && s.flags[E.doneFlag])) s.done[id + ':' + g.key] = friend ? 'befriend' : 'fade';   // (its doneFlag: helped either way)
+      });
       // THE BAND WAKES (data/maps/stage.js `wakes`): every machine of that room helped, either way = they're awake
       const wk = maps[id].wakes, list = (maps[id].enemies || []).filter(g => !g.extra);   // (a bonus friend never gates)
       if (wk && list.length && list.every(g => s.done[id + ':' + g.key])) s.flags[wk.flag] = true;

@@ -178,7 +178,7 @@ for (const route of ['befriend', 'fade', 'mixed']) {
       if (route !== 'mixed') expect(Object.values(s.done).every(k => k === route)).toBe(true);
       else expect(new Set(Object.values(s.done)).size).toBe(2);
       expect(await ep2(page)).toBe(Math.round(13 / 20 * 50 + 10));                          // 13 of the 20 machines, Tubby 5, Sal 5
-      for (const [map, x, y] of [['pit', 8, 9], ['workshop', 8, 9], ['backstage', 12, 2], ['balcony', 7, 8]]) { await go(page, map, x, y); expect(await machines(page), map).toEqual([]); }
+      for (const [map, x, y] of [['pit', 8, 9], ['workshop', 8, 9], ['backstage', 12, 2], ['balcony', 7, 8]]) { await go(page, map, x, y); expect((await machines(page)).filter(k => k !== 'x1'), map).toEqual([]); }   // (Tom-Tom Termite, a bonus friend, may still be there)
       watch.check();
     });
   });
