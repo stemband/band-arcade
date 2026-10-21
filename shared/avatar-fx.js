@@ -122,10 +122,11 @@ window.Arcade = window.Arcade || {};
       const C = ['q-pink', 'q-blue', 'q-purple'];
       for (let i = 0; i < 12; i++) {
         const y = 2 + i * 2.8, P = 2.5 + hash(i) * 1.5, a = .22 + .2 * (.5 + .5 * Math.sin(t * TAU / P + i * 1.9));
-        const slip = Math.sin(t * TAU / (P * 1.7) + i) * 1.2, x0 = (y > FACE.y0 - 1 && y < FACE.y1 + 1 ? FACE.x1 + .5 : 18) + slip;
+        const h = 1 + hash(i + 7), slip = Math.sin(t * TAU / (P * 1.7) + i) * 1.2;
+        const byFace = y + h > FACE.y0 && y < FACE.y1, x0 = byFace ? Math.max(FACE.x1 + .5, FACE.x1 + .5 + slip) : 18 + slip;   // (beside the face: never on it)
         const w = 36 - x0 - hash(i + 3) * 4;
         if (w <= 0) continue;
-        x.fillStyle = col(C[i % 3], a); x.fillRect(x0 * u, y * u, w * u, (1 + hash(i + 7)) * u);
+        x.fillStyle = col(C[i % 3], a); x.fillRect(x0 * u, y * u, w * u, h * u);
       }
       x.fillStyle = col('q-black', .18);                                                 // the static's shadow on that side (around the face)
       x.fillRect((FACE.x1 + .5) * u, 0, (35.5 - FACE.x1) * u, 36 * u);

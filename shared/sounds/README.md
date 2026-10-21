@@ -724,8 +724,8 @@ update this table to match (tests/quest-ep2-polish.spec.js checks they agree, an
 | `quest-room-dressing` | The Dressing Rooms: sly and jazzy, medium swing, saxophone and walking bass (Rico's room: a sneaky lick). | loop 30–90 s | `quest-manor` | missing |
 | `quest-room-vent` | The Vent: echoey and cramped, slow, metallic taps and a breathy fan hum; a few notes Rico dropped, drifting by. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
 | `quest-room-loft` | The Fly Loft: high, dark and a little dizzy, slow, low drones and a ticking pulse; the Microphone is close. | loop 30–90 s | `quest-manor` | missing |
-| `quest-room-glitch` | The Glitch Dimension: wobbly and broken, slow, detuned synths and bitcrushed echoes of the arcade's songs; strange, never scary. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
 | `quest-room-stage` | The Main Stage: big and expectant, slow build, the whole band's instruments hinted at once; after the finale, warm. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-glitch` | The Glitch Dimension: wobbly and broken, slow, detuned synths and bitcrushed echoes of the arcade's songs; strange, never scary. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
 
 **Battles**
 

@@ -249,7 +249,7 @@ for (const [name, size, touch] of SIZES) {
     const watch = await boot(page, 'arcade-quest/index.html?demo&warp=lobby', open({flags: {ricoVent: true}}));
     await page.waitForFunction(() => Arcade.Quest.sceneName === 'world' && Arcade.Quest.world.state());
     const rooms = await page.evaluate(() => { const M = window.QUEST_MAPS; return Object.keys(M).filter(id => M[id].ep === 2).map(id => {
-      const d = [].concat(...Object.values(M).map(m => (m.doors || []).filter(x => x.to === id)))[0]; return [id, d.spawn[0], d.spawn[1]]; }); });
+      const d = [].concat(...Object.values(M).map(m => (m.doors || []).filter(x => x.to === id)))[0] || {spawn: M[id].start}; return [id, d.spawn[0], d.spawn[1]]; }); });   // (the Glitch Dimension has no door in: its start)
     expect(rooms.length).toBe(10);
     const inside = async what => {
       const box = await page.locator('#screen').boundingBox(), hud = await page.locator('#qWHud').boundingBox();
@@ -325,7 +325,7 @@ for (const how of ['reduced motion', 'Motion off']) {
       await page.evaluate(m => { const Q = Arcade.Quest; Q.save.get().flags.balconyGlimpse = true; Q.go('world', {map: m, x: 0, y: 0, dir: 'down'}); }, id);
       await page.clock.runFor(800);
       await page.evaluate(m => {
-        const d = [].concat(...Object.values(window.QUEST_MAPS).map(x => (x.doors || []).filter(y => y.to === m)))[0];
+        const d = [].concat(...Object.values(window.QUEST_MAPS).map(x => (x.doors || []).filter(y => y.to === m)))[0] || {spawn: window.QUEST_MAPS[m].start};   // (the Glitch Dimension: no door in)
         Arcade.Quest.world.warp(d.spawn[0], d.spawn[1], 'down'); const t = document.getElementById('qText'); if (t) t.hidden = true;
       }, id);
       await page.clock.runFor(800);
