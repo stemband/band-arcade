@@ -201,7 +201,7 @@ test('a lost battle: back to the jukebox (the Lobby, never saved: the hub), the 
 test('NO SOFT-LOCKS: a search over the gates reaches every room and machine, whatever the routes; codes repair the wakes', {tag: '@quick'}, async ({page}) => {
   const watch = await boot(page);
   const r = await page.evaluate(() => {
-    const Q = Arcade.Quest, M = window.QUEST_MAPS, E = id => window.QUEST_ENEMIES.find(e => e.id === id), rooms = Object.keys(M).filter(id => M[id].ep === 2);
+    const Q = Arcade.Quest, M = window.QUEST_MAPS, E = id => window.QUEST_ENEMIES.find(e => e.id === id), rooms = Object.keys(M).filter(id => M[id].ep === 2 && id !== 'glitch');   // (the Glitch Dimension has no door in, only its code: quest-glitch.spec.js)
     // the gates: a door is passable once its `need` flag is set; a room's `wakes` flag is set once ALL its machines
     // are helped (either way: the rule never asks how); a boss's flags (Rico) follow the route taken with it;
     // Hoot (helped2>=6) and songEb gate no door
