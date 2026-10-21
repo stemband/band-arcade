@@ -219,6 +219,9 @@ Object.assign(window.QUEST_MAPS, {
       {key: 'm2', type: 'tapsy', at: [11, 4], wander: 2, tier: 1},
       {key: 'm3', type: 'ropeknot', at: [10, 8], wander: 1},
       {key: 'm4', type: 'confetti', at: [15, 5], wander: 1},
+      // TOM-TOM TERMITE (a Raven Band student's): a bonus friend by the sawhorse, `extra` = not one of the 20 machines
+      // (the Workshop's wake gate, the floor's %, the Showtime Log and SHOWSTOPPER never count it)
+      {key: 'x1', type: 'termite', at: [14, 8], wander: 1, extra: true},
     ],
   },
 

@@ -319,7 +319,7 @@
     const firstEp2 = !(s.flags || {}).ep2Done;                                  // (THE BIG NUMBER's doneFlag sets it just below)
     // THE BAND WAKES (Episode 2: data/maps/stage.js `wakes`): this was the room's last machine, helped either way
     // (checked before anything reads the save again: its repair, save.js routes(), would set the flag quietly)
-    const wk = W.def.wakes, woke = !!wk && !W.def.practice && !(s.flags || {})[wk.flag] && W.def.enemies.every(e => e.key === g.key || s.done[W.map + ':' + e.key]);
+    const wk = W.def.wakes, woke = !!wk && !W.def.practice && !(s.flags || {})[wk.flag] && W.def.enemies.every(e => e.extra || e.key === g.key || s.done[W.map + ':' + e.key]);   // (a bonus friend never gates)
     if (!W.def.practice) {
       // THE NOTE SHARDS: the FIRST time this enemy is helped, either way (its `done` record is the proof; the battle
       // said how many). Written with the record itself, so they can never be earned twice

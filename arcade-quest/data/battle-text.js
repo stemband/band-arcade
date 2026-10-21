@@ -124,6 +124,16 @@ window.QUEST_TEXT = {
   moveIntroUpdown: '{move}! Your first five notes, up AND back down!',
   moveIntroDrum:   '{move}! {n} clean, separate strokes!',
   moveHit:         '{move}! {name} takes {n}.',
+  // THE BAND'S SPECIALS (data/enemies.js companion.special; designed by a Raven Band student)
+  specialFloat:    'SPECIAL!',
+  specialGo:       '{band}\'s SPECIAL: {special}!',
+  specialHit:      '{special}! {name} takes {n}.',
+  specialHits:     '{special}: {k} hits! {name} takes {n} in all.',
+  specialDot:      '{name} keeps hearing it: {n} at the start of its next {t} turns.',
+  specialCalm:     '{special}, played softly. {name} listens.',
+  specialHeal:     '{special}: everyone in your band feels better!',
+  specialSlow:     '{name} slows way down for its next turn.',
+  echoHit:         '{special} echoes! {name} takes {n}.',
   moveNew:         'New move: {move}! Find it in PLAY. Once per battle.',
   boosted:         'The Tuning Slide makes it ring! ×{n} power!',
   // charms (data/items.js QUEST_CHARMS; ARCADE QUEST ONLY)
