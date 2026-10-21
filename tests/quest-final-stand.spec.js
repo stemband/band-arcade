@@ -168,7 +168,7 @@ test.describe('THE FINAL STAND', () => {
     });
   }
 
-  test('surviving 60 s: the static cracks, the finale at 1 HP with CALM full; HARMONIZE (the E♭ scale) = the best ending', async ({page}) => {
+  test('surviving 60 s: the static cracks, the finale at 1 HP with CALM full; HARMONIZE (the E♭ scale) = the best ending', {tag: '@slow'}, async ({page}) => {   // (a real 60 s stand: about 70 s in WebKit)
     test.setTimeout(90000);
     await page.clock.install();
     const watch = await boot(page, save(), {url: 'arcade-quest/index.html?demo&warp=stage'});
