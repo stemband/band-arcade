@@ -20,7 +20,8 @@ window.QUEST_ITEMS = {
    menu (battle/battle.js) and can be used ONCE PER BATTLE. Each is a short musical challenge (battle/challenges.js
    Q.challenge.move) and hits like a PLAY (power × accuracy × speed, crits, charms, gear) × `mult`; your band plays
    along after it like after a PLAY. Nothing is saved: a move is yours once your level reaches it.
-   kind: 'tap' = `taps` clean, separate attacks on concert B♭ (the Snare Drum: taps) · 'tone' = hold concert B♭ for
+   (`need`: a story flag instead of a level; `every`: usable every turn; `echo`: see the GLITCH NOTE below)
+   kind: 'glitch' = one random note of your first five · 'tap' = `taps` clean, separate attacks on concert B♭ (the Snare Drum: taps) · 'tone' = hold concert B♭ for
    `hold` seconds, full and steady (the Bells and the Snare: tap instead) · 'run' = the first five notes in order
    (`updown`: up AND back down), in `time` seconds (the Snare: `taps` strokes).
    MAT: TUNE every number (the student's flat 1 / 5 / 10 / 20 damage became shares of your power, and his levels
@@ -30,6 +31,10 @@ window.QUEST_MOVES = [
   {id: 'blow',   name: 'STRONGER BLOW', level: 5,  mult: 1.3,  kind: 'tone', hold: 3, time: 9, taps: 4},
   {id: 'big',    name: 'BIG BLAST',     level: 8,  mult: 1.45, kind: 'run',  time: 10, taps: 5},
   {id: 'ultra',  name: 'ULTRA CANNON',  level: 10, mult: 1.6,  kind: 'run',  updown: true, time: 14, taps: 9},
+  // THE GLITCH NOTE: not a level's: befriending YOURSELF?!? in the Glitch Dimension (`need`: that flag). One note of your
+  // first five, chosen at random; EVERY turn (`every`: not once per battle); each one also leaves an `echo` that hits
+  // at the start of the enemy's next turns, and they stack (the student's "5 glitch damage each turn (stacks)")
+  {id: 'glitch', name: 'GLITCH NOTE',   need: 'glitchYou', every: true, mult: .8, kind: 'glitch', time: 6, taps: 2, echo: {share: .15, turns: 3}},
 ];
 
 /* ARCADE QUEST: THE CHARMS (power-ups). ARCADE QUEST ONLY: they change Quest battles and NOTHING else (stars in the

@@ -441,11 +441,11 @@ test.describe('NOTE SHARDS', () => {
     await page.reload();
     await page.waitForFunction(() => window.Arcade && Arcade.Quest && Arcade.Quest.sceneName);
     expect(await page.evaluate(() => [Arcade.Quest.gear.shards(), Arcade.Quest.gear.level('power')])).toEqual([17, 1]);
-    // the whole game today: 55 Shards (Episode 1: 18 + 3 + 5, Episode 2: 20 + 3 + 5, + Tom-Tom Termite's 1, a bonus friend); both tracks maxed: 52
+    // the whole game today: 55 Shards (Episode 1: 18 + 3 + 5, Episode 2: 20 + 3 + 5, + Tom-Tom Termite's 1 + the Glitch Dimension's two bosses' 3 each); both tracks maxed: 52
     const all = await page.evaluate(() => { const M = window.QUEST_MAPS, d = {};
       Object.keys(M).filter(id => !M[id].practice).forEach(id => (M[id].enemies || []).forEach(e => { d[id + ':' + e.key] = 'fade'; }));
       const U = window.QUEST_UPGRADES; return {total: Arcade.Quest.gear.shardsEarned(d), max: 2 * U.costs.reduce((a, b) => a + b, 0)}; });
-    expect(all).toEqual({total: 55, max: 52});
+    expect(all).toEqual({total: 61, max: 52});
     watch.check();
   });
 });

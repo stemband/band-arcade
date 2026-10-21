@@ -73,7 +73,7 @@ test.describe('THE BAND\'S SPECIALS', () => {
         T('specialHeal', {special: sp.name}), T('echoHit', {special: sp.name, name: 'The Extremely Long-Winded Squawk', n: 999})];
       return {id: e.id, name: sp.name, kinds, long: words.filter(w => !w || w.length > 80), hitsOk: !sp.hits || sp.share > 0};
     }));
-    expect(r.length).toBe(19);
+    expect(r.length).toBe(21);                                     // (+ Yourself?!? and Mr. Graham?, the Glitch Dimension's)
     for (const x of r) {
       expect(x.name, x.id).toBeTruthy();
       expect(x.kinds.length, x.id).toBeGreaterThan(0);

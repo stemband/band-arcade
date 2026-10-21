@@ -1623,6 +1623,8 @@ window.AVATAR_PARTS = {};
   P.TOPS.push(Object.assign({}, miosm, {id: 'showsash', name: 'Showstopper Sash', unlock: QUEST_STAGE_ALL, pal: {D: 'q-gold', E: 'q-stage-velvet', G: 'white-hi'}}));
   // the Spotlight (shared/avatar-fx.js): a soft cone of stage light behind the avatar; still, never flashing
   P.EFFECTS.push({id: 'spotlight', name: 'Spotlight', unlock: QUEST_STAGE_FRIENDS});
+  // THE GLITCH DIMENSION (a Raven Band student's secret): half of you glitched out (shared/avatar-fx.js 'glitch')
+  P.EFFECTS.push({id: 'glitch', name: 'Glitch', unlock: {game: 'arcade-quest', achievement: 'glitch', text: 'Befriend Yourself?!? in the Glitch Dimension (Arcade Quest)'}});
   // the Showtime Stage background (shared/bg-scenes.js 'showtime-curtain': the red curtain and a marquee)
   P.BGS.push({id: 'showtimestage', name: 'Showtime Stage', kind: 'scene', scene: 'showtime-curtain', lift: 1.8, main: 'red-ink', unlock: QUEST_EP2});
   // the plates (theme.css .av-plate-encore: marquee bulbs; .av-plate-showstopper: velvet, gold and a star)

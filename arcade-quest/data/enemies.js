@@ -100,7 +100,8 @@
 window.QUEST_AREAS = {
   test:  {hp: 1, atk: 1},                 // the Test Arena
   manor: {hp: 1, atk: 1},                 // Episode 1: Ghost Notes Manor
-  stage: {hp: 1.4, atk: 1.3},             // Episode 2: the Showtime Stage (students arrive around LV 5–7; measured: docs/games/arcade-quest.md, BALANCE)
+  stage: {hp: 1.4, atk: 1.3},
+  glitch: {hp: 1.6, atk: 1.4},            // the Glitch Dimension (a secret after Episode 2: students arrive around LV 7–12)             // Episode 2: the Showtime Stage (students arrive around LV 5–7; measured: docs/games/arcade-quest.md, BALANCE)
 };
 window.QUEST_ENEMIES = [
   {
@@ -448,6 +449,46 @@ window.QUEST_ENEMIES = [
     lines: {intro: 'Tom-Tom Termite pops out of a prop! BA-DUM, BA-DUM, CHOMP!', turn: ['Tom-Tom Termite drums on a sawhorse.', 'Chomp. Chomp. BA-DUM-DUM!', 'Tom-Tom Termite does a tom-tom fill. On your foot.'],
       hurt: 'Tom-Tom Termite drops a drumstick.', calm: 'Tom-Tom Termite drums a little softer.', fade: 'Tom-Tom Termite scurries into the props. "Ba-dum... tss."',
       befriend: 'Tom-Tom Termite drums your rhythm back, right on time! It wants to join your band!'},
+  },
+  // THE GLITCH DIMENSION (designed by a Raven Band student; data/maps/stage.js `glitch`): two BEFRIEND-ONLY secrets.
+  // `mustHarmonize`: their HP stops at 1 (they can never be defeated: Mr. Graham's rule); NEW `fillAtHold`: the moment it
+  // holds at 1, its CALM fills (say `hold`), so a student who plays hard still gets to HARMONIZE. HARMONIZE =
+  // {type: 'first5x3'}: the first five notes in order, three times (15 notes; the snare: 15 clean strokes).
+  // `harmonizeKeep`: a missed HARMONIZE keeps the CALM, so they can try again and again. `extra`: never needed for
+  // 'stage-friends'. `opens`: the flag befriending sets (the rewards: engine/save.js, battle.js)
+  {
+    id: 'yourself', name: 'Yourself?!?', sprite: 'glitch-you', mirror: true, hp: 80, atk: 2, area: 'glitch', ep: 2, boss: true, extra: true,
+    music: ['quest-ep2-miniboss', 'quest-miniboss'], mustHarmonize: true, fillAtHold: true, harmonizeKeep: true, opens: 'glitchYou',
+    challenge: 'play', phases: ['play', 'articulate', 'longtone'], notes: 'first5', count: 4, time: 10, taps: 5, hold: 3, happy: 0,
+    calm: {perNote: 4, listen: 8, success: 12},
+    harmonize: {type: 'first5x3'},
+    listen: ['YOURSELF?!? It looks exactly like you. Half of it is static.', 'It copies everything you play. Even the squeaks.',
+      'It can\'t be beaten, only calmed: your first five notes, three times.'],
+    dodge: {seconds: 7, patterns: [{kind: 'aimed', sprite: 'static', every: 1, speed: 46}, {kind: 'burst', sprite: 'static', every: 2.2, count: 7, speed: 40}]},
+    companion: {power: .55, perk: {power: 1.25}, hp: .9, special: {name: 'DOUBLE TAKE', say: 'Your twin plays it back: twice as loud, twice as weird.', hits: 2, share: .7}},
+    rewards: {fade: {xp: 30, tokens: 20}, befriend: {xp: 60, tokens: 40}},
+    lines: {intro: 'Someone steps out of the static. It\'s... YOU?!? Half of you, anyway.', turn: ['Yourself?!? plays your warm-up. Backwards.', 'Yourself?!? copies your stance. Badly.', 'KSSSHHH! Yourself?!? glitches sideways.'],
+      hurt: 'Yourself?!? flickers... and fizzes back.', calm: 'Yourself?!? hums along. In tune, for once.',
+      hold: 'Yourself?!? holds on. The static is calm now. Play your first five, three times!',
+      fade: 'Yourself?!? fizzles into the static. (It will be back.)',
+      befriend: 'The static clears. Yourself?!? gives you a thumbs up. It joins your band!'},
+  },
+  {
+    id: 'mrgraham', name: 'Mr. Graham?', sprite: 'mrgraham', hp: 110, atk: 2, area: 'glitch', ep: 2, boss: true, extra: true,
+    music: ['quest-ep2-boss', 'quest-boss'], mustHarmonize: true, fillAtHold: true, harmonizeKeep: true, opens: 'glitchGraham',
+    challenge: 'play', phases: ['play', 'longtone', 'articulate', 'rhythm'], tier: 2, notes: 'first5', count: 4, time: 10, taps: 5, hold: 4, bpm: 96, happy: 0,
+    calm: {perNote: 4, listen: 8, success: 12},
+    harmonize: {type: 'first5x3'},
+    listen: ['MR. GRAHAM? The band director! Glitched by static, still conducting.', 'He has heard every squeak in the band room. He is not worried about yours.',
+      'Nobody beats the band director. Play your first five notes, three times.'],
+    dodge: {seconds: 8, patterns: [{kind: 'measure', every: 1.8, speed: 34}, {kind: 'baton', every: 2.6, speed: 1}]},
+    companion: {power: .55, perk: {power: 1.3}, hp: .9, special: {name: 'FROM THE TOP!', say: '"Instruments up! FROM THE TOP!" The whole band plays, and feels better.', hits: 3, share: .5, heal: .2}},
+    rewards: {fade: {xp: 40, tokens: 30}, befriend: {xp: 80, tokens: 60}},
+    lines: {intro: 'Mr. Graham? taps his baton. KSSSH. "Instruments up, everyone! From the top!"', turn: ['"Watch me for the cutoff!"', '"Eyes up here, not on your shoes!"', '"Breathe from your belly, not your shoulders!"'],
+      hurt: 'Mr. Graham? smiles. "Good! Again, with more air!"', calm: 'Mr. Graham? nods along to your playing.',
+      hold: '"Nobody defeats the band director. But you CAN impress me. First five, x3!"',
+      fade: 'Mr. Graham? steps back into the static. "Practice, then come back."',
+      befriend: 'The static melts away. "THAT is the sound! I\'ll join your band. Let\'s go!"'},
   },
 ];
   /* THE BIG NUMBER, EPISODE 2's FINAL BOSS (the Main Stage, stage:boss): the whole Showtime Band, glitched together by

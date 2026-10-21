@@ -52,7 +52,7 @@ test('GALLERY=1: every Episode 2 room at iPad landscape, before anything is help
   test.setTimeout(120_000);
   const watch = await boot(page, save());
   const rooms = await page.evaluate(() => Object.keys(window.QUEST_MAPS).filter(id => window.QUEST_MAPS[id].ep === 2));
-  expect(rooms.length).toBe(10);
+  expect(rooms.length).toBe(11);                                          // (+ the Glitch Dimension)
   for (const id of rooms) {
     await stand(page, id);
     await page.locator('#screen').screenshot({path: path.join(OUT, `room-${id}.png`)});

@@ -235,6 +235,18 @@ window.QUEST_DIALOGUE = {
   /* ================= THE KITCHEN ================= */
 
   sizzle: {name: 'Sous-Chef Sizzle', sprite: 'npc-sizzle', area: 'The Kitchen', talk: [
+    // THE GLITCH DIMENSION's secret (designed by a Raven Band student): after Episode 2, the plates tell him the code
+    {if: 'ep2Done&!glitchHint', set: 'glitchHint', lines: [
+      'Psst. Since that big show, my plates keep rattling in a pattern. Listen...',
+      'UP, UP, LEFT, RIGHT, DOWN, UP, RIGHT, RIGHT, DOWN, UP.',
+      'Press that anywhere outside and something glitchy happens. Don\'t tell the soup.',
+      'Meet anyone strange in there? Play your first five notes, three times.',
+    ]},
+    {if: 'ep2Done', cycle: [
+      ['The plates say: UP, UP, LEFT, RIGHT, DOWN, UP, RIGHT, RIGHT, DOWN, UP.'],
+      ['Strange folks in the glitch? Your first five notes, three times. Trust the chef.'],
+      ['Chef\'s tip: say "too-too-too" on every note. Crisp! Like a good cracker.'],
+    ]},
     {cycle: [
       ['Chatterboxes in MY kitchen! Talk, talk, talk! Tongue your notes and they\'ll hush.'],
       ['Chef\'s tip: say "too-too-too" on every note. Crisp! Like a good cracker.'],

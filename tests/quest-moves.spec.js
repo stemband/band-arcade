@@ -59,7 +59,7 @@ const backToCmd = page => until(page, () => !!document.querySelector('#qCmd:not(
 test.describe('THE MOVES', () => {
   test('they unlock at LV 3 / 5 / 8 / 10, in order; below LV 3 PLAY has no sub-menu', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page);
-    const data = await page.evaluate(() => window.QUEST_MOVES.map(m => [m.id, m.name, m.level]));
+    const data = await page.evaluate(() => window.QUEST_MOVES.filter(m => m.level).map(m => [m.id, m.name, m.level]));   // (the level moves; the GLITCH NOTE has its own tests)
     expect(data).toEqual([['bop', 'BOP ATTACK', 3], ['blow', 'STRONGER BLOW', 5], ['big', 'BIG BLAST', 8], ['ultra', 'ULTRA CANNON', 10]]);
     for (const [lv, want] of [[1, []], [2, []], [3, ['bop']], [4, ['bop']], [5, ['bop', 'blow']], [8, ['bop', 'blow', 'big']], [10, ['bop', 'blow', 'big', 'ultra']], [14, ['bop', 'blow', 'big', 'ultra']]]) {
       await setLevel(page, lv);
@@ -91,7 +91,7 @@ test.describe('THE MOVES', () => {
     expect(plain.length).toBe(1);
     const power = await page.evaluate(() => Arcade.Quest.save.powerAt(10));
     expect(plain[0]).toBe(Math.round(power * .6));
-    for (const m of await page.evaluate(() => window.QUEST_MOVES)) {
+    for (const m of await page.evaluate(() => window.QUEST_MOVES.filter(m => m.level))) {
       await page.evaluate(() => Arcade.Quest.go('arena'));
       await fight(page); await openPlay(page); await pick(page, m.name); await backToCmd(page);
       await page.waitForTimeout(900);

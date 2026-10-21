@@ -113,6 +113,25 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- THE EFFECTS: fn(ctx, u, t, layer, opts) ---------- */
   const FX = {
+    /* ARCADE QUEST's GLITCH (the Glitch Dimension, 'glitch': Yourself?!? befriended; designed by a Raven Band student):
+       half of you glitched out. IN FRONT, over the right half of the bust (never the face): bands of the static's
+       colors (pink, blue, purple), each slipping a little sideways and fading in and out slowly (2.5–4 s): a shimmer,
+       never a flash. The still picture is its t = 0 frame. */
+    glitch(x, u, t, layer) {
+      if (layer !== 'front') return;
+      const C = ['q-pink', 'q-blue', 'q-purple'];
+      for (let i = 0; i < 12; i++) {
+        const y = 2 + i * 2.8, P = 2.5 + hash(i) * 1.5, a = .22 + .2 * (.5 + .5 * Math.sin(t * TAU / P + i * 1.9));
+        const h = 1 + hash(i + 7), slip = Math.sin(t * TAU / (P * 1.7) + i) * 1.2;
+        const byFace = y + h > FACE.y0 && y < FACE.y1, x0 = byFace ? Math.max(FACE.x1 + .5, FACE.x1 + .5 + slip) : 18 + slip;   // (beside the face: never on it)
+        const w = 36 - x0 - hash(i + 3) * 4;
+        if (w <= 0) continue;
+        x.fillStyle = col(C[i % 3], a); x.fillRect(x0 * u, y * u, w * u, h * u);
+      }
+      x.fillStyle = col('q-black', .18);                                                 // the static's shadow on that side (around the face)
+      x.fillRect((FACE.x1 + .5) * u, 0, (35.5 - FACE.x1) * u, 36 * u);
+      x.fillRect(18 * u, 0, (FACE.x1 + .5 - 18) * u, (FACE.y0 - .5) * u); x.fillRect(18 * u, (FACE.y1 + .5) * u, (FACE.x1 + .5 - 18) * u, (35.5 - FACE.y1) * u);
+    },
     /* ARCADE QUEST's SPOTLIGHT (Episode 2, 'stage-friends'): a soft cone of warm stage light from above, pooling behind
        the shoulders. STILL: it never moves or changes (t is ignored), so it can never flicker */
     spotlight(x, u, t, layer) {

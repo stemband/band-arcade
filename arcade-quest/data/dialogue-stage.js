@@ -250,6 +250,9 @@ Object.assign(window.QUEST_DIALOGUE, {
 });
 
 Object.assign(window.QUEST_SIGNS, {
+  // THE GLITCH DIMENSION (data/maps/stage.js `glitch`)
+  'glitch-sign': ['A sign made of static: WELCOME TO THE GLITCH DIMENSION.', 'Under it, smaller: (who wrote this?)'],
+  'glitch-wall': ['The wall fizzes like a TV between channels. It hums your first note. Backwards.'],
   'jukebox-stage': ['The Save Jukebox hums a show tune. It knows all the words.'],
   // doors to rooms that are still being built (data/maps/stage.js `soon`)
   'soon': ['This way isn\'t open yet. (Coming soon: the theater is still being built.)'],

@@ -682,4 +682,60 @@
   S['shard'] = {w: 9, h: 10, palette: {h: 'q-gear-shard-l', l: 'q-gear-shard', L: 'q-gear-shard-d'}, frames: [[
     '.....hL..', '.....lhL.', '.....l.hL', '.....l..L', '.....l...', '.....l...', '..hhhl...', '.hllll...', '.LlllL...', '..LLL....']]};
   S['diamond-glint'] = {w: 1, h: 1, palette: {h: 'q-gear-dia-l'}, frames: [['h']]};
+
+  /* ---------- THE GLITCH DIMENSION (a Raven Band student's secret; data/maps/stage.js `glitch`) ----------
+     Everything here is the static's colors (purple, pink, blue) on near-black. Tiles change at most once a second (2
+     frames, fps 1) and only a few pixels at a time: a slow shimmer, never a flash. */
+  const GL = {v: 'q-void', d: 'q-purple-d', p: 'q-purple', k: 'q-pink', b: 'q-blue', B: 'q-blue-d'};
+  const glFloor = f => Array.from({length: 16}, (_, y) => Array.from({length: 16}, (_, x) => {
+    if (x === 0 || y === 0) return 'd';                                                    // the grid
+    const n = (x * 7 + y * 13 + f * 5) % 23;
+    return n === 0 ? 'k' : n === 11 ? 'b' : 'v';                                           // a few stray pixels
+  }).join(''));
+  S['tile-gl-floor'] = tile(GL, [glFloor(0), glFloor(1)], {fps: 1});
+  const glWall = f => Array.from({length: 16}, (_, y) => Array.from({length: 16}, (_, x) => {
+    if (y % 4 === 3) return 'v';                                                           // scanlines
+    const shift = (y >> 2) % 2 && f ? 2 : 0;                                               // one band slips 2 px, then back
+    return ((x + shift) * 3 + y) % 11 === 0 ? 'p' : (x + shift) % 8 === 0 ? 'B' : 'd';
+  }).join(''));
+  S['tile-gl-wall'] = tile(GL, [glWall(0), glWall(1)], {fps: 1});
+  S['tile-gl-void'] = tile(GL, [Array(16).fill('v'.repeat(16))]);
+  const glPortal = f => { const g = grid(16, 16); rect(g, 0, 0, 16, 16, 'v');
+    oval(g, 7.5, 8, 7, 6.5, f ? 'b' : 'k'); oval(g, 7.5, 8, 5.5, 5, 'p'); oval(g, 7.5, 8, 4, 3.5, f ? 'k' : 'b'); oval(g, 7.5, 8, 2.5, 2, 'v'); return text(g); };
+  S['tile-gl-portal'] = tile(GL, [glPortal(0), glPortal(1)], {fps: 1});
+
+  /* MR. GRAHAM? (the band director, glitched by the static; designed by a Raven Band student, approved by Mr.
+     Graham): clear glasses, a short beard, a brown fauxhawk, a conductor's tuxedo with a bow tie, the baton up, then
+     down. While glitched a band of him slips sideways in static colors and his eyes glow red; befriended: a smile,
+     calm eyes, notes. He can't be defeated (data/enemies.js mustHarmonize): only befriended. */
+  const MG = {o: 'q-out', k: 'q-black', K: 'q-grey-d', w: 'q-white', s: 'q-skin-1', S: 'q-skin-2', h: 'q-hair-2', H: 'q-hair',
+    g: 'q-grey', e: 'q-black', r: 'q-red', E: 'q-blue', c: 'q-paper', y: 'q-gold', p: 'q-pink', b: 'q-blue', m: 'q-out'};
+  const graham = f => {
+    const g = grid(32, 32), happy = f === 2;
+    rect(g, 7, 20, 18, 12, 'k'); rect(g, 6, 22, 2, 8, 'k'); rect(g, 24, 22, 2, 8, 'k');      // the tuxedo
+    for (let y = 20; y <= 26; y++) { const hw = Math.max(0, 3 - (y - 20) * .5); rect(g, Math.round(16 - hw), y, Math.round(hw * 2) + 1, 1, 'w'); }   // the shirt
+    line(g, 12, 20, 15, 27, 'K'); line(g, 20, 20, 17, 27, 'K');                              // lapels
+    rect(g, 13, 20, 2, 2, 'k'); rect(g, 17, 20, 2, 2, 'k'); rect(g, 15, 20, 2, 1, 'k');       // the bow tie
+    put(g, 16, 24, 'K'); put(g, 16, 26, 'K');                                                 // shirt studs
+    rect(g, 14, 17, 4, 3, 'S');                                                               // the neck
+    oval(g, 16, 10, 5.5, 6.5, 's');                                                           // the face
+    oval(g, 16, 14.5, 5.5, 3.2, 'h'); rect(g, 11, 11, 1, 4, 'h'); rect(g, 21, 11, 1, 4, 'h');  // the short beard
+    rect(g, 14, 14, 4, 1, happy ? 'm' : 's'); if (happy) { put(g, 13, 13, 'm'); put(g, 18, 13, 'm'); }   // the mouth (a smile)
+    rect(g, 11, 3, 11, 3, 'h'); rect(g, 14, 0, 4, 4, 'h'); put(g, 15, 0, 'H'); put(g, 16, 1, 'H');   // the fauxhawk
+    rect(g, 10, 5, 1, 3, 'H'); rect(g, 21, 5, 1, 3, 'H');                                     // short sides
+    [11, 17].forEach(x => { rect(g, x, 7, 4, 1, 'g'); rect(g, x, 10, 4, 1, 'g'); rect(g, x, 8, 1, 2, 'g'); rect(g, x + 3, 8, 1, 2, 'g'); });   // clear glasses
+    rect(g, 15, 8, 2, 1, 'g');
+    put(g, 12, 9, happy ? 'E' : 'r'); put(g, 13, 9, happy ? 'E' : f ? 'r' : 'e'); put(g, 18, 9, happy ? 'E' : f ? 'r' : 'e'); put(g, 19, 9, happy ? 'E' : 'r');
+    const hand = f === 1 ? [28, 24] : [28, 15];                                               // the baton arm: up, then the downbeat
+    line(g, 24, 21, hand[0], hand[1], 'k', 2); rect(g, hand[0], hand[1] - 1, 2, 2, 's');
+    line(g, hand[0] + 1, hand[1] - 1, hand[0] + 3, hand[1] - (f === 1 ? -4 : 7), 'c');
+    if (happy) { note(g, 2, 8); note(g, 4, 16); }
+    let rows = text(outline(g));
+    if (!happy) {                                                                             // the static: one band slips sideways
+      const y0 = f ? 22 : 6;
+      rows = rows.map((r, y) => (y >= y0 && y < y0 + 2 ? ('..' + r.slice(0, 30)).replace(/[kKw]/g, (ch, x) => (x % 3 ? 'p' : 'b')) : r));
+    }
+    return rows;
+  };
+  S.mrgraham = {w: 32, h: 32, fps: 2, palette: MG, frames: [graham(0), graham(1), graham(2)]};
 })(window.QUEST_ART);
