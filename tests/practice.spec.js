@@ -234,17 +234,17 @@ test.describe("Today's Practice: the bonus and the week", () => {
     });
     await expect(page.locator('#practiceCard')).toHaveClass(/gold/);
     await expect(page.locator('#prTitle')).toContainText('Practice done!');
-    await expect(page.locator('#prTitle')).toContainText('+10 tokens');
+    await expect(page.locator('#prTitle')).toContainText('+40 tokens');
     await expect(page.locator('#practiceCard .pr-sub')).toHaveText('Come back tomorrow for a new skill!');
-    await expect(page.locator('#prizeSign .zs-bal b')).toHaveText('10');
-    expect(await balance(page)).toBe(10);
+    await expect(page.locator('#prizeSign .zs-bal b')).toHaveText('40');
+    expect(await balance(page)).toBe(40);
     await expect(other.locator('#practiceCard')).toHaveClass(/gold/);
     await other.evaluate(() => Arcade.Lobby.redrawPractice());
     await other.reload(); await ready(other);
     await page.reload(); await ready(page);
     await other.reload(); await ready(other);
-    expect(await balance(page)).toBe(10);
-    expect(await balance(other)).toBe(10);
+    expect(await balance(page)).toBe(40);
+    expect(await balance(other)).toBe(40);
     const s = await saved(page);
     expect(s.gameData.practice.paid).toEqual({[MON]: true});
     expect(s.gameData.practice.days).toEqual({[MON]: true});
@@ -506,7 +506,7 @@ test.describe("Today's Practice: the card", () => {
     await lobby(page); await ready(page);
     expect(await page.evaluate(() => Arcade.Practice.today().every(s => s.done))).toBe(true);
     expect(await page.evaluate(() => Arcade.Practice.state().paid)).toBe(true);
-    expect(await balance(page)).toBe(10);                  // restored, never paid again
+    expect(await balance(page)).toBe(40);                  // restored, never paid again
     await expect(page.locator('#practiceCard')).toHaveClass(/gold/);
     watch.check();
   });
@@ -569,15 +569,15 @@ test.describe("Today's Practice: collapsible", () => {
     await expect(card(page)).toHaveClass(/gold/);
     await expect(page.locator('#prTitle')).toHaveText('Practice done! ✓');
     await expect(card(page)).not.toHaveClass(/stamp-go/);
-    expect(await balance(page)).toBe(10);
+    expect(await balance(page)).toBe(40);
     await page.reload(); await ready(page);
-    expect(await balance(page)).toBe(10);
+    expect(await balance(page)).toBe(40);
     expect((await saved(page)).gameData.practice.stamped).toBeUndefined();
     await toggle(page).click();
     await expect(card(page)).toHaveClass(/stamp-go/);                   // opened: the stamp plays now, once
-    await expect(page.locator('#prTitle')).toContainText('+10 tokens');
+    await expect(page.locator('#prTitle')).toContainText('+40 tokens');
     expect((await saved(page)).gameData.practice.stamped).toEqual({[MON]: true});
-    expect(await balance(page)).toBe(10);
+    expect(await balance(page)).toBe(40);
     watch.check();
   });
 
