@@ -694,6 +694,7 @@ them under "Arcade Quest — Episode 2".
 | `quest-room-loft` | `quest-room-loft.m4a` or `quest-room-loft.mp3` | Episode 2: the Fly Loft (catwalks over the dark; the Microphone far below), and the Vent. Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-stage` | `quest-room-stage.m4a` or `quest-room-stage.mp3` | Episode 2: the Main Stage (the boards, the footlights; the band frozen, then the stage after the finale). Until it is uploaded: `quest-manor`. **loops** | 30–90 s loop |
 | `quest-room-vent` | `quest-room-vent.m4a` or `quest-room-vent.mp3` | Episode 2: the Vent (air ducts, slow fans, the defeat route's passage). Until it is uploaded: `quest-room-loft`, then `quest-manor`. **loops** | 30–90 s loop |
+| `quest-room-glitch` | `quest-room-glitch.m4a` or `quest-room-glitch.mp3` | Episode 2: the Glitch Dimension (a secret room after the ending). Until it is uploaded: `quest-room-loft`, then `quest-manor`. **loops** | 30–90 s loop |
 | `quest-tap` | `quest-tap.m4a` or `quest-tap.mp3` | Episode 2: a tap shoe lands (Tapsy's dodge, on its beat). Unpitched. | under 0.1 s |
 | `quest-confetti` | `quest-confetti.m4a` or `quest-confetti.mp3` | Episode 2: the Confetti Cannon's burst (its dodge). Unpitched. | under 0.3 s |
 | `quest-spot-hum` | `quest-spot-hum.m4a` or `quest-spot-hum.mp3` | Episode 2: the Spotlight Sprite's beam switches on (its dodge). A soft electric hum, unpitched. | under 0.4 s |
@@ -723,6 +724,7 @@ update this table to match (tests/quest-ep2-polish.spec.js checks they agree, an
 | `quest-room-dressing` | The Dressing Rooms: sly and jazzy, medium swing, saxophone and walking bass (Rico's room: a sneaky lick). | loop 30–90 s | `quest-manor` | missing |
 | `quest-room-vent` | The Vent: echoey and cramped, slow, metallic taps and a breathy fan hum; a few notes Rico dropped, drifting by. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
 | `quest-room-loft` | The Fly Loft: high, dark and a little dizzy, slow, low drones and a ticking pulse; the Microphone is close. | loop 30–90 s | `quest-manor` | missing |
+| `quest-room-glitch` | The Glitch Dimension: wobbly and broken, slow, detuned synths and bitcrushed echoes of the arcade's songs; strange, never scary. | loop 30–90 s | `quest-room-loft` → `quest-manor` | missing |
 | `quest-room-stage` | The Main Stage: big and expectant, slow build, the whole band's instruments hinted at once; after the finale, warm. | loop 30–90 s | `quest-manor` | missing |
 
 **Battles**

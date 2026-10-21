@@ -28,6 +28,7 @@ window.QUEST_ROOM_MUSIC = {
   loft: 'quest-room-loft',            // The Fly Loft
   vent: 'quest-room-vent',            // The Vent (until uploaded: the Fly Loft's track, then quest-manor)
   stage: 'quest-room-stage',          // The Main Stage
+  glitch: 'quest-room-glitch',        // The Glitch Dimension (a secret after the ending; until uploaded: the Fly Loft's track)
 };
 
 /* EPISODE 2's MUSIC, every slot in one table (MAT: the recording checklist is the same list, in shared/sounds/README.md
@@ -59,6 +60,8 @@ window.QUEST_EP2_MUSIC = [
     desc: 'The Vent: echoey and cramped, slow, metallic taps and a breathy fan hum; a few notes Rico dropped, drifting by.'},
   {n: 'quest-room-loft', group: 'rooms', room: 'loft', fallback: ['quest-manor'], len: 'loop 30–90 s',
     desc: 'The Fly Loft: high, dark and a little dizzy, slow, low drones and a ticking pulse; the Microphone is close.'},
+  {n: 'quest-room-glitch', group: 'rooms', room: 'glitch', fallback: ['quest-room-loft', 'quest-manor'], len: 'loop 30–90 s',
+    desc: 'The Glitch Dimension: wobbly and broken, slow, detuned synths and bitcrushed echoes of the arcade\'s songs; strange, never scary.'},
   {n: 'quest-room-stage', group: 'rooms', room: 'stage', fallback: ['quest-manor'], len: 'loop 30–90 s',
     desc: 'The Main Stage: big and expectant, slow build, the whole band\'s instruments hinted at once; after the finale, warm.'},
   // ---- BATTLES (battle/battle.js: an enemy's `music`, else Episode 2's machines' own) ----

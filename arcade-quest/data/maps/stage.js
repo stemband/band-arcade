@@ -512,4 +512,37 @@ Object.assign(window.QUEST_MAPS, {
       {key: 'boss', type: 'bignumber', at: [11, 3], wander: 0, boss: true, sprite: 'npc-moose'},   // (boss: not one of the 20 machines)
     ],
   },
+
+  /* THE GLITCH DIMENSION (designed by a Raven Band student): a secret room after Episode 2 (ep2Done). There's no door
+     in: anywhere outside, press UP UP LEFT RIGHT DOWN UP RIGHT RIGHT DOWN UP (engine/world.js THE GLITCH CODE; Sous-Chef
+     Sizzle in the manor's Kitchen tells it). Inside: YOURSELF?!? and MR. GRAHAM?, both befriend-only (data/enemies.js);
+     the portal at the bottom goes back to the Lobby. `safe`: no whispers. Its enemies are `boss` (never one of the 20).
+     ITS LETTERS: X the void · Z the static wall · g the floor grid · O the portal back */
+  glitch: {
+    name: 'The Glitch Dimension', ep: 2, music: 'quest-room-glitch', floor: 'g', safe: true, start: [6, 7],
+    legend: {
+      X: {sprite: 'tile-gl-void', solid: true}, Z: {sprite: 'tile-gl-wall', solid: true}, g: {sprite: 'tile-gl-floor'},
+      O: {sprite: 'tile-gl-portal', door: true},
+    },
+    tiles: [
+      'XXXXXXXXXXXXXX',
+      'XZZZZZZZZZZZZX',
+      'XggggggggggggX',
+      'XggggggggggggX',
+      'XggggggggggggX',
+      'XggggggggggggX',
+      'XggggggggggggX',
+      'XggggggggggggX',
+      'XXXXXXOXXXXXXX',
+    ],
+    doors: [
+      {at: [6, 8], to: 'lobby', spawn: [21, 5], dir: 'down'},
+    ],
+    npcs: [],
+    things: [{at: [6, 1], say: 'glitch-sign'}, {at: [3, 1], say: 'glitch-wall'}, {at: [10, 1], say: 'glitch-wall'}],
+    enemies: [
+      {key: 'you', type: 'yourself', at: [4, 3], wander: 0, boss: true, sprite: 'glitch-you'},
+      {key: 'graham', type: 'mrgraham', at: [9, 3], wander: 0, boss: true},
+    ],
+  },
 });

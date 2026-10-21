@@ -52,7 +52,7 @@
   /* THE EPISODES: every room says which one it belongs to (QUEST_MAPS[id].ep: data/maps/stage.js sets 2; manor.js
      leaves it out = 1). EP2_ROOMS = THE SHOWTIME STAGE's room ids (docs/games/arcade-quest-ep2-plan.md), so a room
      that isn't built yet (a save code from a later version, a door's sign) still knows its episode. Never reuse one. */
-  const EP2_ROOMS = ['lobby', 'greenroom', 'pit', 'workshop', 'backstage', 'dressing', 'loft', 'stage', 'balcony', 'vent'];
+  const EP2_ROOMS = ['lobby', 'greenroom', 'pit', 'workshop', 'backstage', 'dressing', 'loft', 'stage', 'balcony', 'vent', 'glitch'];
   const episodeOf = id => { const m = (window.QUEST_MAPS || {})[id]; return m ? m.ep || 1 : EP2_ROOMS.includes(id) ? 2 : 1; };
   /** EVERY GHOST (Episode 1) or MACHINE (Episode 2) of an episode: '<room>:<key>' for every enemy placed on a map of
       that episode, outside `practice` rooms (the Practice Hall, the Green Room; the Test Arena has no map). Read from
@@ -143,6 +143,14 @@
         if ((def.opens && s.flags[def.opens]) || (def.opensIfFaded && s.flags[def.opensIfFaded])) return;
         const flag = kind === 'befriend' ? def.opens || def.opensIfFaded : def.opensIfFaded || def.opens;
         if (flag) s.flags[flag] = true;
+      });
+      // THE GLITCH DIMENSION's two (befriend-only; a save code carries their flags, glitchYou / glitchGraham, not their
+      // roster places or done keys): the flag = befriended, in the roster, and gone from the room
+      if (id === 'glitch') (maps[id].enemies || []).forEach(g => {
+        const E = (window.QUEST_ENEMIES || []).find(e => e.id === g.type);
+        if (!E || !E.opens || !s.flags[E.opens]) return;
+        if (!(s.roster || []).includes(g.type)) (s.roster = s.roster || []).push(g.type);
+        if (!s.done[id + ':' + g.key]) s.done[id + ':' + g.key] = 'befriend';
       });
       // a BONUS FRIEND (`extra`: Tom-Tom Termite): a save code carries the roster and its doneFlag (termiteDone), not
       // its `done` key: in the roster = befriended there; the flag alone = powered down. Either way it doesn't come back
@@ -244,6 +252,8 @@
                           plate, the Showtime Top Hat
           'stage-friends' every KIND of Episode 2 machine befriended, + Rico Bandit and THE BIG NUMBER (every
                           QUEST_ENEMIES entry with area 'stage' in the roster): the Spotlight effect
+          'glitch'        YOURSELF?!? befriended in the Glitch Dimension (flag glitchYou): the Glitch effect (half of
+                          you glitched out; shared/avatar-fx.js)
           'stage-all'     SHOWSTOPPER: all 20 Showtime machines helped, befriended or powered down (ghostLog(s, 2).all;
                           the Green Room and the Test Arena never count): the Showstopper Sash + its plate
         Checked after every battle (world.js afterBattle), on load (main.js: Q.save.recheck) and after a save code
@@ -258,6 +268,7 @@
       const stage = (window.QUEST_ENEMIES || []).filter(e => e.area === 'stage' && !e.extra).map(e => e.id);   // (Tom-Tom Termite, a bonus friend: not needed)
       if (stage.length && stage.every(id => (s.roster || []).includes(id))) a['stage-friends'] = true;
       if (ghostLog(s, 2).all) a['stage-all'] = true;
+      if ((s.flags || {}).glitchYou) a.glitch = true;              // THE GLITCH DIMENSION: Yourself?!? befriended
       write();
       return a;
     },

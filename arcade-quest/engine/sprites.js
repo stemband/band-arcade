@@ -14,7 +14,11 @@
   const Q = A.Quest, ART = window.QUEST_ART;
   const defs = Object.assign({}, ART.SPRITES);
   const frames = {};                                            // id -> [canvas per frame]
-  Q.spriteDef = id => defs[id];
+  /* SPRITES MADE ON DEMAND: 'glitch-you' (YOURSELF?!?, the Glitch Dimension) is the student's own avatar, so it's made
+     from it the first time it's needed (Q.glitchYou) */
+  const LAZY = {'glitch-you': () => Q.glitchYou(A.currentMember ? A.currentMember().id : 'trumpet')};
+  const lazy = id => { if (!defs[id] && LAZY[id]) { try { LAZY[id](); } catch (e) { /* no avatar yet */ } } return defs[id]; };
+  Q.spriteDef = id => lazy(id);
   Q.addSprite = (id, def) => { defs[id] = def; delete frames[id]; };
 
   function render(rowsList, palette, w, h, layers) {
@@ -58,12 +62,12 @@
   /** which frame to show: fixed, or animated (idle frames at fps) */
   function frameIndex(d, opts) {
     if (opts.frame != null) return opts.frame;
-    const list = opts.anim || (d.frames ? (d.frames.length === 3 ? [0, 1] : d.frames.map((_, i) => i)) : (d.layers || d.canvases).map((_, i) => i));
+    const list = opts.anim || d.anim || (d.frames ? (d.frames.length === 3 ? [0, 1] : d.frames.map((_, i) => i)) : (d.layers || d.canvases).map((_, i) => i));
     if (list.length < 2 || Q.reduced()) return list[0];
     return list[Math.floor((opts.t || performance.now()) / 1000 * (d.fps || 2)) % list.length];
   }
   Q.draw = function (ctx, id, x, y, opts = {}) {
-    let d = defs[id]; if (!d) return;
+    let d = lazy(id); if (!d) return;
     if (d.playAlt && !opts.pose && Q.playing && Q.playing() && defs[d.playAlt]) { id = d.playAlt; d = defs[id]; }   // playing now
     if (d.strike && opts.frame == null) opts = Object.assign({}, opts, {frame: Q.strikeNow() ? 1 : 0});        // mallets/sticks
     const f = frameIndex(d, opts), s = opts.scale || 1, img = artOf(id);
@@ -76,7 +80,7 @@
     ctx.restore();
   };
   Q.spriteEl = function (id, {frame = 0, scale = 3, label = ''} = {}) {
-    const d = defs[id], c = document.createElement('canvas');
+    const d = lazy(id), c = document.createElement('canvas');
     if (!d) return c;
     c.width = d.w; c.height = d.h; c.className = 'q-sprite';
     c.style.width = `calc(var(--px) * ${d.w * scale / 3})`;
@@ -108,6 +112,34 @@
       delete frames[id + suffix];
     });
     return id;
+  };
+
+  /* ---------- YOURSELF?!? (the Glitch Dimension; designed by a Raven Band student): the student's own character, HALF
+     GLITCHED: its right half in bands of the static's colors (pink, blue) that slip a pixel sideways, two idle frames
+     (the slip moves once a frame, 2 a second: never a flash); frame 2 (befriended, happy) = the student as they are.
+     Rebuilt for whoever plays (the avatar or the instrument may change). */
+  Q.glitchYou = function (memberId) {
+    const base = defs[Q.playerId(memberId)];
+    const src = base && (base.canvases || framesOf(Q.playerId(memberId)));
+    if (!src || !src.length) return null;
+    const w = base.w, h = base.h, tint = [Q.css('q-pink'), Q.css('q-blue')];
+    const make = (img, phase) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0);
+      if (phase == null) return c;
+      const half = Math.floor(w / 2), data = x.getImageData(half, 0, w - half, h);
+      x.clearRect(half, 0, w - half, h);
+      for (let y = 0; y < h; y += 2) {                                   // two-pixel bands: each slips 0–2 px, every third tinted
+        const band = (y / 2 + phase) % 3, dx = band === 0 ? 2 : band === 1 ? -1 : 0;
+        const tmp = document.createElement('canvas'); tmp.width = w - half; tmp.height = 2;
+        tmp.getContext('2d').putImageData(data, 0, -y, 0, y, w - half, 2);
+        x.drawImage(tmp, half + dx, y);
+        if (band === 0) { x.save(); x.globalCompositeOperation = 'source-atop'; x.globalAlpha = .55; x.fillStyle = tint[(y / 2) % 2]; x.fillRect(half - 2, y, w - half + 4, 2); x.restore(); }
+      }
+      return c;
+    };
+    Q.addSprite('glitch-you', {w, h, fps: 2, canvases: [make(src[0], 0), make(src[1] || src[0], 1), make(src[0], null)], anim: [0, 1]});
+    return 'glitch-you';
   };
 
   /* ---------- when does a character play? ----------

@@ -346,6 +346,9 @@
     // Conductor was the last one, EPISODE 1 COMPLETE shows it instead (engine/story.js)
     if (whisperer && !E.final) after.push(() => ghostWhisperer('ghostWhisperer'));
     if (showstopper && !E.final) after.push(() => ghostWhisperer('showstopper'));       // (THE BIG NUMBER isn't one of the 20)
+    // THE GLITCH DIMENSION's rewards (data/enemies.js `opens`): the GLITCH NOTE + the Glitch look; THE BAND COMBO
+    const reward = !W.def.practice && result.kind === 'befriend' && {glitchYou: 'glitchYouReward', glitchGraham: 'glitchGrahamReward'}[E.opens];
+    if (reward) after.push(() => { Q.sfx('quest-levelup'); return Q.say([Q.text(reward)]); });
     // Episode 2's mini-boss: what opened, in words (data/enemies.js afterLines)
     const al = !W.def.practice && E.afterLines && E.afterLines[result.kind];
     if (al) after.push(() => { Q.sfx('quest-door'); return Q.say(al); });
@@ -421,6 +424,24 @@
 
   /* ---------- A and B ---------- */
   const facing = () => { const [dx, dy] = DIRS[W.dir]; return [W.x + dx, W.y + dy]; };
+  /* THE GLITCH CODE (designed by a Raven Band student; Sous-Chef Sizzle tells it): UP UP LEFT RIGHT DOWN UP RIGHT
+     RIGHT DOWN UP, pressed anywhere outside (the last presses, in order, while you're free to walk), opens the Glitch
+     Dimension, ONLY after Episode 2 (ep2Done); before that the code does nothing at all (no hint, no sound). It takes you
+     there from wherever you are (flag glitchFound, saved in codes); the portal there goes back to the Lobby. */
+  const GLITCH_CODE = ['up', 'up', 'left', 'right', 'down', 'up', 'right', 'right', 'down', 'up'];
+  let codeKeys = [];
+  function glitchCode(btn) {
+    codeKeys = codeKeys.concat(btn).slice(-GLITCH_CODE.length);
+    if (codeKeys.join() !== GLITCH_CODE.join() || !W || W.map === 'glitch' || !MAPS().glitch || !Q.save.flag('ep2Done')) return;
+    codeKeys = [];
+    W.busy = true; W.tap = null;
+    Q.save.setFlag('glitchFound');
+    Q.sfx('quest-mic-crackle'); Q.shake(3, 500);
+    Q.say([Q.text('glitchOpen')]).then(() => {
+      if (!W) return;
+      W.fade = {t: 0, dir: -1, then: () => { load('glitch', MAPS().glitch.start, 'up'); W.fade = {t: 0, dir: 1}; }};
+    });
+  }
   async function interact() {
     const [fx, fy] = facing();
     const n = npcAt(fx, fy), d = doorAt(fx, fy), g = ghostAt(fx, fy);
@@ -469,6 +490,8 @@
     /** tests: stand on a tile (demo only) */
     /** ?demo (tests): start the battle with the ghost `key` in this room, as if you walked into it */
     fight(key) { if (!A.DEMO || !W || W.busy) return false; const g = W.ghosts.find(x => x.key === key); if (!g) return false; encounter(g); return true; },
+    /** tests: the GLITCH CODE as if pressed (each direction one press) */
+    code(list) { (list || GLITCH_CODE).forEach(b => glitchCode(b)); },
     warp(x, y, dir) { if (!A.DEMO || !W) return; W.x = x; W.y = y; W.px = x * T; W.py = y * T; W.move = null; W.bumped = false; if (dir) W.dir = dir; },
   };
 
@@ -487,7 +510,7 @@
       offKeys = Q.input.on(btn => {
         if (!W || W.busy || W.fade) return false;
         if (btn === 'a' && !W.move) { interact(); return true; }
-        if (/^(up|down|left|right)$/.test(btn)) { W.tap = btn; return false; }        // a quick tap still takes one step
+        if (/^(up|down|left|right)$/.test(btn)) { W.tap = btn; glitchCode(btn); return false; }   // a quick tap still takes one step
         if (btn === 'b') { if (pause) pause.pause('button'); return true; }
         return false;
       });

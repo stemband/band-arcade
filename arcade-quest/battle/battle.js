@@ -113,7 +113,8 @@
     // MAT: TUNE: THE BAND'S SPECIALS: each of your PLAYs / moves / SERENADEs fills every playing companion's SPECIAL
     // meter by specialFill × your accuracy (100 = full: its special instead of its usual turn, about every 3rd turn at
     // 100 %); specialCalm = the CALM a damage special adds after a SERENADE, per share of your power (≈ the same work)
-    specialFill: 36, specialCalm: 33,                            // MAT: TUNE: QUICK PLAY (the Hamburger Charm): concert E♭ × notes, in time seconds
+    specialFill: 36, specialCalm: 33,
+    comboAt: 50, comboBoost: 1.25,                         // MAT: TUNE: THE BAND COMBO: every meter at least this full; every special × this                            // MAT: TUNE: QUICK PLAY (the Hamburger Charm): concert E♭ × notes, in time seconds
     fsCardMs: 1400, fsBannerMs: 3500};                    // MAT: TUNE: THE FINAL STAND's title card and each part's banner (ms)
   const ENEMIES = () => window.QUEST_ENEMIES, ITEMS = () => window.QUEST_ITEMS;
   let B = null;                                               // the battle in progress
@@ -189,7 +190,9 @@
       Q.save.flag('songEb') ? [{id: 'encore', label: Q.text('encore'), sub: Q.text('encoreSub'), cls: 'c-play'}] : [],
       Q.charms.effects().some(e => e.quickPlay) ? [{id: 'quick', label: Q.text('quick'), sub: Q.text('quickSub'), cls: 'c-play'}] : [],   // (the Hamburger Charm)
       // THE MOVES (data/items.js QUEST_MOVES): every move your level has reached, once per battle
-      Q.moves().map(m => ({id: 'move:' + m.id, label: m.name, sub: B.moved[m.id] ? Q.text('moveUsed') : Q.text('moveSub' + m.id[0].toUpperCase() + m.id.slice(1)), cls: 'c-play c-move', disabled: !!B.moved[m.id]})));
+      Q.moves().map(m => ({id: 'move:' + m.id, label: m.name, sub: B.moved[m.id] && !m.every ? Q.text('moveUsed') : Q.text('moveSub' + m.id[0].toUpperCase() + m.id.slice(1)), cls: 'c-play c-move', disabled: !!B.moved[m.id] && !m.every})),
+      // THE BAND COMBO (befriending Mr. Graham? in the Glitch Dimension): every special at once, once per battle
+      comboOn() ? [{id: 'combo', label: Q.text('combo'), sub: B.comboUsed ? Q.text('moveUsed') : comboReady() ? Q.text('comboSub') : Q.text('comboWait'), cls: 'c-play c-move', disabled: B.comboUsed || !comboReady()}] : []);
     if (!songs.length) return Promise.resolve('main');
     return new Promise(done => {
       const cmd = Q.$('qCmd'); cmd.hidden = false;
@@ -250,6 +253,9 @@
     } else if (B.e.mustHarmonize) {
       B.e.hp = 1;
       if (!B.heldSaid) { B.heldSaid = true; B.queue.push(B.e.lines.hold); }
+      // `fillAtHold` (the Glitch Dimension's two: they can NEVER be defeated): holding on fills its CALM, so playing
+      // hard still leads to HARMONIZE (a missed one keeps it: harmonizeKeep)
+      if (B.e.fillAtHold && B.calm < RULES.calmMax) { B.calm = RULES.calmMax; B.choiceSaid = true; Q.sfx('quest-calm'); hud(); }
     }
   }
   /** after each of YOUR PLAYs: every companion still playing plays too, as well as you just did (your accuracy) */
@@ -287,8 +293,8 @@
   /** a companion's SPECIAL. After a PLAY its damage lands (one big hit, several hits, or an echo that keeps hitting at
       the start of each of its turns); after a SERENADE the same work becomes CALM. Heal, shield, slow and calm work
       either way. Everything × your accuracy (they follow your lead) and × party (the Hamburger), never a crit. */
-  function special(c, acc, mode, i) {
-    const sp = c.def.companion.special, power = Q.save.powerAt(B.save.level), party = Q.charms.mult('party');
+  function special(c, acc, mode, i, boost = 1) {
+    const sp = c.def.companion.special, power = Q.save.powerAt(B.save.level), party = Q.charms.mult('party') * boost;   // (boost: THE BAND COMBO)
     c.hop = performance.now() + 250 + 300 * i;
     Q.sfx('quest-crit');
     setTimeout(() => { if (B && B.band.includes(c)) float(Q.text('specialFloat'), 176, 34 + 10 * i, 'special'); }, 150 + 300 * i);
@@ -308,12 +314,12 @@
         B.queue.push(Q.text('specialDot', {name: B.e.name, n: per, t: sp.dot.turns}));
       }
     } else if (shareDmg || sp.dot) {                            // after a SERENADE: the same work, as CALM
-      addCalm((shareDmg + (sp.dot ? sp.dot.share * sp.dot.turns : 0)) * RULES.specialCalm * acc * B.calmScale);
+      addCalm((shareDmg + (sp.dot ? sp.dot.share * sp.dot.turns : 0)) * RULES.specialCalm * acc * B.calmScale * boost);
       B.queue.push(Q.text('specialCalm', {special: sp.name, name: B.e.name}));
     }
-    if (sp.calm) addCalm(sp.calm * acc * B.calmScale);
+    if (sp.calm) addCalm(sp.calm * acc * B.calmScale * boost);
     if (sp.heal) {
-      const n = Math.max(1, Math.round(B.save.maxHp * sp.heal * acc)), was = B.save.hp;
+      const n = Math.max(1, Math.round(B.save.maxHp * sp.heal * acc * boost)), was = B.save.hp;
       B.save.hp = Math.min(B.save.maxHp, B.save.hp + n);
       B.band.forEach(m => { if (!m.out) m.hp = Math.min(m.maxHp, m.hp + Math.max(1, Math.round(m.maxHp * sp.heal * acc))); });
       if (B.save.hp > was) float('+' + (B.save.hp - was), 40, 60, 'heal');
@@ -322,6 +328,33 @@
     if (sp.shield) { B.shield += sp.shield; B.queue.push(Q.text('itemShield', {n: B.shield})); }
     if (sp.slow) { B.slow = Math.min(B.slow || 1, sp.slow); B.queue.push(Q.text('specialSlow', {name: B.e.name})); }
     hud();
+  }
+  /* THE BAND COMBO (designed by a Raven Band student; the reward for befriending Mr. Graham? in the Glitch Dimension):
+     in PLAY's menu once every playing companion with a special has its meter at least HALF full (RULES.comboAt), once
+     per battle. You play the ULTRA CANNON's run (your first five up and back down) for a regular PLAY hit, then EVERY
+     companion plays its SPECIAL at once × RULES.comboBoost, and their meters empty. */
+  const comboOn = () => Q.save.flag('glitchGraham') && B.band.some(c => !c.out && c.def.companion.special);
+  const comboReady = () => B.band.filter(c => !c.out && c.def.companion.special).every(c => c.sp >= RULES.comboAt);
+  async function doCombo() {
+    if (!(await micReady())) { await Q.say(Q.text('micHint')); return false; }
+    B.comboUsed = true;
+    const run = (window.QUEST_MOVES || []).find(m => m.id === 'ultra') || {kind: 'run', updown: true, time: 14, taps: 9};
+    const res = await Q.challenge.move(Object.assign({}, run, {name: Q.text('combo')}));
+    if (B === null) return false;
+    B.lastKind = res.kind || null;
+    B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;
+    const power = Q.save.powerAt(B.save.level);
+    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * Q.charms.mult('party') * Q.gear.dmgMult());
+    if (dmg > 0) { hurtFoe(dmg); float('-' + dmg, 170, 30, 'dmg'); hud(); B.queue.push(Q.text('moveHit', {move: Q.text('combo'), name: B.e.name, n: dmg})); }
+    else B.queue.push(Q.text('miss'));
+    if (res.acc > 0) {
+      B.queue.push(Q.text('comboGo'));
+      Q.shake(4, 400);
+      B.band.filter(c => !c.out && c.def.companion.special).forEach((c, i) => { c.sp = 0; special(c, res.acc, 'play', i, RULES.comboBoost); });
+    } else B.queue.push(Q.text('bandRest', {band: bandNames(B.band.filter(c => !c.out))}));
+    hud();
+    await sayQ();
+    return true;
   }
   const later = (f, ms) => setTimeout(() => { if (B) f(); }, ms);
   /** THE ECHOES (a special's `dot`): at the start of the enemy's turn each one hits, then counts down. They stack, and
@@ -375,6 +408,7 @@
     const which = await playMenu();
     if (!which) return false;
     if (which === 'quick') return doQuick();
+    if (which === 'combo') return doCombo();
     const move = which.startsWith('move:') ? Q.moves().find(m => 'move:' + m.id === which) : null;
     const type = challengeNow(), blast = which === 'blast', encore = which === 'encore', song = blast || encore || !!move;
     if ((song || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
@@ -395,6 +429,12 @@
     if (dmg > 0 && Q.charms.mult('party') !== 1) dmg = Math.round(dmg * Q.charms.mult('party'));   // the Hamburger Charm
     if (dmg > 0 && Q.gear.dmgMult() !== 1) dmg = Math.round(dmg * Q.gear.dmgMult());               // YOUR INSTRUMENT + POWER UP
     B.lastCrit = crit;
+    // a move with an `echo` (the GLITCH NOTE): it keeps hitting at the start of the enemy's turns; each use stacks
+    if (move && move.echo && dmg > 0) {
+      const per = Math.max(1, Math.round(power * move.echo.share * res.acc * Q.charms.mult('party')));
+      B.dots.push({name: move.name, per, turns: move.echo.turns});
+      B.queue.push(Q.text('specialDot', {name: B.e.name, n: per, t: move.echo.turns}));
+    }
     if (dmg > 0) {
       hurtFoe(dmg);
       float('-' + dmg, 170, 30, 'dmg'); hud();
@@ -676,6 +716,7 @@
     enter({enemy, back, overrides, shards}) {
       const src = Object.assign({}, ENEMIES().find(e => e.id === enemy) || ENEMIES()[0], overrides || {});
       const save = Q.save.get(), member = A.currentMember();
+      try { Q.glitchYou(member.id); } catch (e) { /* the picture waits */ }   // YOURSELF?!? (the Glitch Dimension): made from this player's own look
       A.store.noteActivity({game: 'arcade-quest', play: 1});      // seasonal events: a game played today
       // THE BAND (everyone at full HP: they refill after every battle) and a fight that stays fair for its size
       // THE LINEUP (engine/save.js Q.band.lineup): a friend of the enemy's own kind sits out and the next friend steps in
@@ -764,11 +805,11 @@
   Q.bandLit = () => (B && Q.spriteDef(B.e.sprite) && Q.spriteDef(B.e.sprite).members ? (B.state === 'friend' ? -1 : B.fsLit != null ? B.fsLit : Math.max(0, stageIdx())) : null);
   Q.bandLit.FLICKER = FLICKER;
   /** THE MOVES your level has reached (data/items.js QUEST_MOVES), in order */
-  Q.moves = () => { const s = Q.save.get(); return (window.QUEST_MOVES || []).filter(m => s && s.level >= m.level); };
+  Q.moves = () => { const s = Q.save.get(); return (window.QUEST_MOVES || []).filter(m => s && (m.need ? !!(s.flags || {})[m.need] : s.level >= m.level)); };
   /** ?demo only (tests): set the enemy's HP right now */
   Q.battleDemo = {hp(n) { if (A.DEMO && B) { B.e.hp = n; hud(); } }};
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
-    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, moved: Object.keys(B.moved), aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
+    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, moved: Object.keys(B.moved), combo: !!B.comboUsed, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out, sp: c.sp})), dots: B.dots.map(d => Object.assign({}, d)), slow: B.slow, lineup: B.lineup,
     fs: B.e.finalStand ? {floor: fsFloor(), pending: !!B.fsPending, active: !!B.fsActive, done: !!B.fsDone, part: B.fsPart == null ? null : B.fsPart, tries: B.fsTries || 0, tip: !!B.fsTipSaid, finale: !!B.finale} : null};   // tests
 })(window.Arcade);

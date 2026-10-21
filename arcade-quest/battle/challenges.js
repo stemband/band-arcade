@@ -127,7 +127,8 @@
     // (`repeat`: the first note `count` times: QUICK PLAY's three concert E♭s)
     // (`updown`: the notes up, then back down: THE ULTRA CANNON's first-five run)
     const seq = notes(enemy, enemy.repeat ? 1 : count), items = enemy.repeat ? Array.from({length: count}, () => seq.items[0])
-      : enemy.updown ? seq.items.concat(seq.items.slice(0, -1).reverse()) : seq.items;
+      : enemy.updown ? seq.items.concat(seq.items.slice(0, -1).reverse())
+      : enemy.times > 1 ? [].concat(...Array.from({length: enemy.times}, () => seq.items)) : seq.items;   // (`times`: the Glitch Dimension's first five × 3)
     const hits = items.map(() => false);                        // each note right on its first try (QUICK PLAY: one hit each)
     const p = panel(title || Q.text('playIntro'), `<div class="q-staff" id="qStaff">${staff(seq, items, 0)}</div>`);
     let i = 0, correct = 0, firstTry = true;
@@ -555,6 +556,10 @@
       if (unpitched) return articulate({taps: h.taps || 8, time: h.time || 16}, {title: Q.text(part ? 'harmonizePartDrum' : h.notes === 'Eb' ? 'harmonizeScaleEbDrum' : 'harmonizeScaleDrum', {n: h.taps || 8})});
       return play({notes: h.notes || 'Bb', order: 'order', count: n, time: h.time || 40}, undefined, undefined, part ? Q.text('harmonizePart', {n}) : Q.text(h.notes === 'Eb' ? 'harmonizeScaleEb' : 'harmonizeScale'));
     }
+    if (h.type === 'first5x3') {                               // THE GLITCH DIMENSION: your first five notes in order, three times
+      if (unpitched) return articulate({taps: 15, time: 24}, {taps: 15, secs: 24, title: Q.text('harmonizeFirst5x3Drum', {n: 15})});
+      return play({notes: 'first5', order: 'order', times: 3}, 5, 36, Q.text('harmonizeFirst5x3'));
+    }
     if (unpitched || h.type === 'articulate') {
       const taps = h.taps || 5;
       return articulate(enemy, {taps, secs: taps + 5, title: unpitched ? Q.text('harmonizeDrum', {n: taps}) : undefined});
@@ -610,6 +615,7 @@
       const first = {notes: 'first5', order: 'order'}, k = m.updown ? 'Updown' : m.kind[0].toUpperCase() + m.kind.slice(1);
       const title = Q.text('moveIntro' + (unpitched ? 'Drum' : k), {move: m.name, n: m.kind === 'tone' ? m.hold : m.taps});
       if (unpitched || (m.kind === 'tone' && inst.id === 'bells')) return articulate({taps: m.taps, time: m.time}, {taps: m.taps, secs: m.time, title: unpitched ? title : Q.text('moveIntroTap', {move: m.name, n: m.taps})});
+      if (m.kind === 'glitch') return play({notes: 'first5', order: 'random'}, 1, m.time, title);
       if (m.kind === 'tap') return articulate(first, {taps: m.taps, secs: m.time, title});
       if (m.kind === 'tone') return longtone(first, {hold: m.hold, secs: m.time, title});
       return play(Object.assign({updown: !!m.updown}, first), 5, m.time, title);
