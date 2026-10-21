@@ -540,7 +540,7 @@ test.describe('SAVE CODES', () => {
 
   test('every fixture code of every older version (1–6) decodes exactly as before and loads with the derived gear', async ({page}) => {
     const watch = await boot(page);
-    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes', f), 'utf8').trim());
+    const routes = fs.readdirSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6')).map(f => fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6', f), 'utf8').trim());   // (the route codes as version 6 made them: frozen)
     const r = await page.evaluate(([old, routes]) => {
       const Q = Arcade.Quest, B = Arcade.Backup, out = [];
       Object.entries(old).map(([k, v]) => [k, v.code, v.fields]).concat(routes.map((c, i) => ['route' + i, c, null])).forEach(([k, c, fields]) => {
@@ -563,7 +563,7 @@ test.describe('SAVE CODES', () => {
 
   test('a v6 code (Episode 2 finished on the POWER DOWN route) gets Metal and all 54 Shards; v7 keeps them exactly', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page);
-    const code = fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes/fade-6.txt'), 'utf8').trim();
+    const code = fs.readFileSync(path.join(ROOT, 'tests/fixtures/quest-ep2-routes-v6/fade-6.txt'), 'utf8').trim();
     const r = await page.evaluate(c => {
       const Q = Arcade.Quest; Q.save.fromCode(c);
       const g = JSON.parse(JSON.stringify(Q.save.get().gear)), c7 = Q.save.code();
