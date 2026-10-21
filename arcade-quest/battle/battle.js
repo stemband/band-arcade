@@ -69,6 +69,10 @@
    HUD's name shows the tier as a small badge (a rust dot, a steel dot, a diamond: it sparkles slowly, still under
    reduced motion). NOTE SHARDS: a battle started from the map (engine/world.js) knows the Shards it gives the first
    time (`shards`) and says so with its rewards; world.js adds them with the enemy's `done` record.
+   THE MOVES (data/items.js QUEST_MOVES; designed by a Raven Band student): BOP ATTACK (LV 3), STRONGER BLOW (LV 5), BIG
+   BLAST (LV 8), ULTRA CANNON (LV 10) in PLAY's menu, each ONCE PER BATTLE (B.moved): its own short challenge
+   (challenges.js Q.challenge.move) and a PLAY's damage × its mult (crits, the Tuning Fork, a boost, party, gear); your
+   band plays along after it. A level-up that reaches one says so (moveNew). Q.moves() = the ones your level reached.
    QUICK PLAY (the Hamburger Charm; designed by a Raven Band student): concert E♭ three times (RULES.quick; the snare:
    3 clean taps), each note played = one regular PLAY hit (power × its accuracy × speed, the Tuning Fork, crits, ×
    party), a missed note = a miss for that hit only; your band plays along once, after the last. It's your turn
@@ -171,13 +175,16 @@
   function playMenu() {
     const songs = [].concat(Q.save.flag('songBb') ? [{id: 'blast', label: Q.text('blast'), sub: Q.text('blastSub'), cls: 'c-play'}] : [],
       Q.save.flag('songEb') ? [{id: 'encore', label: Q.text('encore'), sub: Q.text('encoreSub'), cls: 'c-play'}] : [],
-      Q.charms.effects().some(e => e.quickPlay) ? [{id: 'quick', label: Q.text('quick'), sub: Q.text('quickSub'), cls: 'c-play'}] : []);   // (the Hamburger Charm)
+      Q.charms.effects().some(e => e.quickPlay) ? [{id: 'quick', label: Q.text('quick'), sub: Q.text('quickSub'), cls: 'c-play'}] : [],   // (the Hamburger Charm)
+      // THE MOVES (data/items.js QUEST_MOVES): every move your level has reached, once per battle
+      Q.moves().map(m => ({id: 'move:' + m.id, label: m.name, sub: B.moved[m.id] ? Q.text('moveUsed') : Q.text('moveSub' + m.id[0].toUpperCase() + m.id.slice(1)), cls: 'c-play c-move', disabled: !!B.moved[m.id]})));
     if (!songs.length) return Promise.resolve('main');
     return new Promise(done => {
       const cmd = Q.$('qCmd'); cmd.hidden = false;
       const t = Q.challenge.resolve(challengeNow());
       const items = [{id: 'main', label: TYPE_NAME[t] || 'PLAY', sub: Q.text('playSub')}].concat(songs, [{id: null, label: Q.text('back'), cls: 'c-back'}]);
-      const m = Q.menu(cmd, items, {cols: items.length, label: Q.text('playWhich'),
+      const many = items.length > 5;                               // (the moves: a second row, shorter buttons)
+      const m = Q.menu(cmd, items, {cols: many ? Math.ceil(items.length / 2) : items.length, cls: many ? 'q-movesmenu' : '', label: Q.text('playWhich'),
         onPick: it => { m.destroy(); cmd.hidden = true; done(it.id); }, onBack: () => { m.destroy(); cmd.hidden = true; done(null); }});
     });
   }
@@ -289,15 +296,17 @@
     const which = await playMenu();
     if (!which) return false;
     if (which === 'quick') return doQuick();
-    const type = challengeNow(), blast = which === 'blast', encore = which === 'encore', song = blast || encore;
+    const move = which.startsWith('move:') ? Q.moves().find(m => 'move:' + m.id === which) : null;
+    const type = challengeNow(), blast = which === 'blast', encore = which === 'encore', song = blast || encore || !!move;
     if ((song || Q.challenge.uses(type)) && !(await micReady())) { await Q.say(Q.text('micHint')); return false; }
     if (B.e.phases && !song) { await Q.say(Q.text('phase', {n: B.phase % B.e.phases.length + 1, what: TYPE_NAME[Q.challenge.resolve(type)] || 'PLAY'}), {name: B.e.name}); B.phase++; }
-    const res = blast ? await Q.challenge.blast(false) : encore ? await Q.challenge.encore(false) : await Q.challenge.run(type, {enemy: foe()});
+    if (move) B.moved[move.id] = true;                           // once per battle (set as its challenge starts)
+    const res = blast ? await Q.challenge.blast(false) : encore ? await Q.challenge.encore(false) : move ? await Q.challenge.move(move) : await Q.challenge.run(type, {enemy: foe()});
     if (B) B.lastKind = res.kind || null;                        // (the Rosin Pouch: long tones)
     if (B === null) return false;
     const power = Q.save.powerAt(B.save.level);
     B.heldSaid = false; B.finaleHeldThisPlay = !B.finale; B.netThisPlay = false;          // the PLAY that reaches the finale can't also end it
-    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : encore ? RULES.encore : 1));
+    let dmg = Math.round(power * res.acc * (1 - RULES.speedWeight + RULES.speedWeight * res.speed) * (blast ? RULES.blast : encore ? RULES.encore : move ? move.mult : 1));
     const fork = Q.charms.effects().find(e => e.inTune && res.acc >= (e.at || .9));    // the Tuning Fork
     if (fork && dmg > 0) { dmg = Math.round(dmg * fork.inTune); B.queue.push(Q.text('charmInTune')); }
     const boosted = B.boost && dmg > 0 ? B.boost : 0;
@@ -310,7 +319,7 @@
     if (dmg > 0) {
       hurtFoe(dmg);
       float('-' + dmg, 170, 30, 'dmg'); hud();
-      B.queue.unshift(Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
+      B.queue.unshift(move ? Q.text('moveHit', {move: move.name, name: B.e.name, n: dmg}) : Q.text(res.acc >= .9 ? 'hitGreat' : res.acc >= .5 ? 'hitGood' : 'hitWeak', {name: B.e.name, n: dmg}));
       if (crit) {                                                  // CRITICAL! (a big gold float, a stronger shake, its own sound)
         B.queue.unshift(Q.text(crit === 'skill' ? 'critSkill' : 'critLucky'));
         float(Q.text('critFloat'), 160, 12, 'crit'); Q.shake(5, 380); Q.sfx('quest-crit');
@@ -512,13 +521,17 @@
     const breath = Math.min(s.maxHp - s.hp, Math.ceil(s.maxHp * RULES.breath));   // a breather after every battle won
     if (breath > 0) { s.hp += breath; lines.push(Q.text('breath', {n: breath})); }
     let up = false;
-    const powerWas = Q.save.powerAt(s.level);
+    const powerWas = Q.save.powerAt(s.level), levelWas = s.level;
     while (s.xp >= Q.save.xpToNext(s.level)) { s.xp -= Q.save.xpToNext(s.level); s.level++; Q.charms.fixHp(s); s.hp = s.maxHp; up = true; }
     s.battles = s.battles || {won: 0, befriended: 0, faded: 0};
     s.battles.won++; s.battles[kind === 'befriend' ? 'befriended' : 'faded']++;
     Q.save.write(); hud();
     await Q.say(lines);
-    if (up) { Q.sfx('quest-levelup'); await Q.say(Q.text('levelUp', {n: s.level, from: powerWas, to: Q.save.powerAt(s.level)})); }
+    if (up) {
+      Q.sfx('quest-levelup');
+      const fresh = (window.QUEST_MOVES || []).filter(m => m.level > levelWas && m.level <= s.level);   // THE MOVES this level-up unlocked
+      await Q.say([Q.text('levelUp', {n: s.level, from: powerWas, to: Q.save.powerAt(s.level)})].concat(fresh.map(m => Q.text('moveNew', {move: m.name}))));
+    }
   }
   async function befriend() {
     B.state = 'friend'; Q.sfx('quest-befriend');
@@ -593,7 +606,7 @@
       const area = (window.QUEST_AREAS || {})[src.area || (src.test ? 'test' : '')] || {hp: 1, atk: 1};
       const hp = Math.round(src.hp * (area.hp || 1) * (1 + (src.boss ? RULES.bossPartyHp : RULES.partyHp) * band.length));
       B = {e: Object.assign({}, src, {maxHp: hp, hp, atk: (src.atk || 2) * (area.atk || 1)}), save, member, back, band, aim: null, calm: 0, kept: {}, stageShown: null, finale: false, shield: 0, mute: Q.charms.sum('block'), slow: null, boost: 0, round: 0, phase: 0, listened: false, queue: [], state: 'fight', hurtUntil: 0,
-        player: Q.playerId(member.id), lineup: L, introAt: performance.now(), shards: shards || 0, fromMap: !!(back && typeof back === 'object' && back.scene === 'world')};
+        player: Q.playerId(member.id), lineup: L, moved: {}, introAt: performance.now(), shards: shards || 0, fromMap: !!(back && typeof back === 'object' && back.scene === 'world')};
       // THE CALM SCALE: CALM rises like damage does: with your power (level) and against its HP (area × band size)
       B.calmScale = Q.save.powerAt(save.level) / Q.save.powerAt(1) * RULES.calmRef / hp;
       Q.ui.innerHTML = `<div class="q-hud">` +
@@ -668,10 +681,12 @@
   /** tests: THE BIG NUMBER's lit member (-1 = everyone, befriended) and the flicker's numbers */
   Q.bandLit = () => (B && Q.spriteDef(B.e.sprite) && Q.spriteDef(B.e.sprite).members ? (B.state === 'friend' ? -1 : B.fsLit != null ? B.fsLit : Math.max(0, stageIdx())) : null);
   Q.bandLit.FLICKER = FLICKER;
+  /** THE MOVES your level has reached (data/items.js QUEST_MOVES), in order */
+  Q.moves = () => { const s = Q.save.get(); return (window.QUEST_MOVES || []).filter(m => s && s.level >= m.level); };
   /** ?demo only (tests): set the enemy's HP right now */
   Q.battleDemo = {hp(n) { if (A.DEMO && B) { B.e.hp = n; hud(); } }};
   Q.battleState = () => B && {hp: B.e.hp, ehp: B.e.maxHp, atk: B.e.atk, calm: B.calm, php: B.save.hp, maxHp: B.save.maxHp, state: B.state, shield: B.shield, mute: B.mute,
-    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
+    power: Q.save.powerAt(B.save.level), calmScale: B.calmScale, gear: {tier: Q.gear.best().id, dmg: Q.gear.dmgMult(), calm: Q.gear.calmMult()}, shards: B.shards, net: !!B.netUsed, serenade: B.lastSerenade || 0, perfect: !!B.lastPerfect, crit: B.lastCrit || null, moved: Object.keys(B.moved), aim: B.aim && (B.aim === 'you' ? 'you' : B.aim.id),
     band: B.band.map(c => ({id: c.id, hp: c.hp, maxHp: c.maxHp, out: c.out})), lineup: B.lineup,
     fs: B.e.finalStand ? {floor: fsFloor(), pending: !!B.fsPending, active: !!B.fsActive, done: !!B.fsDone, part: B.fsPart == null ? null : B.fsPart, tries: B.fsTries || 0, tip: !!B.fsTipSaid, finale: !!B.finale} : null};   // tests
 })(window.Arcade);

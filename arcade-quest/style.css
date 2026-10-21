@@ -108,6 +108,8 @@ button{font:inherit}
 .q-cmd .q-btn{height:calc(var(--px) * 30);min-height:0}   /* one fixed height for every battle button (the prompt sits above, at 46) */
 /* ITEM's list: each button as tall as its name + what it does (a long description never spills out); the rows grow up */
 .q-cmd .q-items .q-btn{height:auto;min-height:calc(var(--px) * 30)}
+.q-cmd .q-movesmenu .q-btn{height:auto;min-height:calc(var(--px) * 21);font-size:calc(var(--px) * 7)}   /* PLAY's menu with THE MOVES: two rows */
+.q-cmd .q-movesmenu .q-btn small{font-size:calc(var(--px) * 4.5)}
 .q-items .q-btn small{font-size:calc(var(--px) * 5)}
 .q-mictag{left:50%;transform:translateX(-50%);top:calc(var(--px) * 2);margin:0;padding:calc(var(--px) * 1) calc(var(--px) * 4);background:var(--q-black);
   color:var(--q-red);border:calc(var(--px) * 1) solid var(--q-red);font-size:calc(var(--px) * 6);z-index:6}
