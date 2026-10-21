@@ -125,7 +125,9 @@
   /* ---------- PLAY: 1–4 notes on the staff ---------- */
   function play(enemy, count = enemy.count || 3, secs = enemy.time || 9, title) {
     // (`repeat`: the first note `count` times: QUICK PLAY's three concert E♭s)
-    const seq = notes(enemy, enemy.repeat ? 1 : count), items = enemy.repeat ? Array.from({length: count}, () => seq.items[0]) : seq.items;
+    // (`updown`: the notes up, then back down: THE ULTRA CANNON's first-five run)
+    const seq = notes(enemy, enemy.repeat ? 1 : count), items = enemy.repeat ? Array.from({length: count}, () => seq.items[0])
+      : enemy.updown ? seq.items.concat(seq.items.slice(0, -1).reverse()) : seq.items;
     const hits = items.map(() => false);                        // each note right on its first try (QUICK PLAY: one hit each)
     const p = panel(title || Q.text('playIntro'), `<div class="q-staff" id="qStaff">${staff(seq, items, 0)}</div>`);
     let i = 0, correct = 0, firstTry = true;
@@ -601,6 +603,17 @@
     uses: t => ['play', 'longtone', 'articulate'].concat(RHYTHMIC).includes(resolve(t)),     // does this challenge use the mic?
     /** QUICK PLAY (the Hamburger Charm): concert E♭ `notes` times (written in your instrument's key), in `time` s; the
         snare: `notes` clean taps. -> {acc, speed, correct, total, hits: [true|false per note]} */
+    /** THE MOVES (data/items.js QUEST_MOVES, designed by a Raven Band student): 'tap' = clean attacks on your first
+        note, 'tone' = hold it full and steady (the Bells: taps), 'run' = the first five in order (`updown`: and back
+        down); the Snare Drum taps every one. -> the usual result; battle.js × the move's mult */
+    move(m) {
+      const first = {notes: 'first5', order: 'order'}, k = m.updown ? 'Updown' : m.kind[0].toUpperCase() + m.kind.slice(1);
+      const title = Q.text('moveIntro' + (unpitched ? 'Drum' : k), {move: m.name, n: m.kind === 'tone' ? m.hold : m.taps});
+      if (unpitched || (m.kind === 'tone' && inst.id === 'bells')) return articulate({taps: m.taps, time: m.time}, {taps: m.taps, secs: m.time, title: unpitched ? title : Q.text('moveIntroTap', {move: m.name, n: m.taps})});
+      if (m.kind === 'tap') return articulate(first, {taps: m.taps, secs: m.time, title});
+      if (m.kind === 'tone') return longtone(first, {hold: m.hold, secs: m.time, title});
+      return play(Object.assign({updown: !!m.updown}, first), 5, m.time, title);
+    },
     quick({notes: n = 3, time = 9} = {}) {
       if (unpitched) return articulate({taps: n, time}, {taps: n, secs: time, title: Q.text('quickIntroDrum', {n})})
         .then(r => Object.assign(r, {hits: Array.from({length: n}, (_, k) => k < r.correct)}));

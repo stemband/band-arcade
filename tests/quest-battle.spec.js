@@ -37,7 +37,7 @@ async function step(page, cmd) {
   const menu = await page.evaluate(() => { const c = document.getElementById('qCmd'); return !!c && !c.hidden && c.querySelectorAll('.q-btn').length > 0; });
   if (menu) {
     const label = cmd(await state(page));
-    await page.evaluate(l => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l)); b.click(); }, label);
+    await page.evaluate(l => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l)) || document.querySelector('#qCmd .q-btn'); b.click(); }, label);   // (PLAY's sub-menu: the enemy's own challenge)
   } else await page.keyboard.press('Enter');
   await page.waitForTimeout(40);
 }
@@ -199,7 +199,8 @@ async function fight(page, enemy, pick) {
   for (let i = 0; i < 600; i++) {
     const s = await page.evaluate(() => ({b: Arcade.Quest.battleState(), scene: Arcade.Quest.sceneName, menu: (c => !!c && !c.hidden && c.querySelectorAll('.q-btn').length > 0)(document.getElementById('qCmd'))}));
     if (s.scene !== 'battle') return {turns, save: await page.evaluate(() => Arcade.Quest.save.get())};
-    if (s.menu) {
+    if (s.menu && await page.locator('#qCmd .q-btn.c-back').count()) await page.locator('#qCmd .q-btn').first().click();   // PLAY's sub-menu (THE MOVES): the enemy's own challenge
+    else if (s.menu) {
       const label = pick(s.b); turns++;
       await page.evaluate(l => [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l)).click(), label);
     } else await page.keyboard.press('Enter');

@@ -91,6 +91,19 @@ for (const [name, size, touch] of SIZES) {
         await page.evaluate(() => Arcade.Quest.go('arena'));
         await page.waitForTimeout(100);
       }
+      // THE MOVES: LV 10, both songs and QUICK PLAY = PLAY's longest sub-menu (two rows of shorter buttons)
+      await page.evaluate(() => { const Q = Arcade.Quest, s = Q.save.get(); s.level = 10; Q.save.setFlag('songEb'); s.charms.equipped = ['hamburger', null]; Q.save.write(); });
+      await battle(page, {});
+      await page.locator('#qCmd .q-btn').first().click();
+      await expect(page.locator('#qCmd .q-btn')).toHaveCount(9);
+      bad.push(...(await audit(page, 'PLAY sub-menu (the moves)')).bad);
+      {
+        const box = await page.evaluate(() => { const r = document.getElementById('stage').getBoundingClientRect();
+          return [...document.querySelectorAll('#qCmd .q-btn')].every(b => { const q = b.getBoundingClientRect(); return q.top >= r.top - 1 && q.bottom <= r.bottom + 1 && q.left >= r.left - 1 && q.right <= r.right + 1; }); });
+        expect(box, 'the moves menu stays on the game screen').toBe(true);
+      }
+      await page.evaluate(() => { const Q = Arcade.Quest, s = Q.save.get(); s.level = 1; s.charms.equipped = [null, null]; Q.save.write(); Q.go('arena'); });
+      await page.waitForTimeout(100);
       // 4 actions (no SERENADE), then ITEM: every item ×12
       await battle(page, {serenade: false});
       await expect(page.locator('#qCmd .q-btn')).toHaveCount(4);

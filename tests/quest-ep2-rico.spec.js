@@ -51,6 +51,7 @@ async function drive(page, done, pick = () => 'PLAY', max = 900) {
     const s = await snap(page);
     if (done(s)) return s;
     if (s.intro) await page.locator('#introGo').click();
+    else if (s.cmd && await page.locator('#qCmd:not([hidden]) .q-btn.c-back').count()) await page.locator('#qCmd .q-btn').first().click();   // PLAY's sub-menu (THE MOVES, the songs): the foe's own challenge
     else if (s.cmd) await page.evaluate(l => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l)) || document.querySelector('#qCmd .q-btn'); b.click(); }, pick(s.b));
     else if (s.text || s.scene === 'battle') await page.keyboard.press('Enter');
     await page.waitForTimeout(35);

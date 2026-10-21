@@ -114,6 +114,17 @@ window.QUEST_TEXT = {
   blastDrum:       'The B♭ Blast: 8 clean, separate strokes!',
   blast:           'B♭ BLAST',                     blastSub: 'Your B♭ scale: hits harder',
   playWhich:       'Which attack?',
+  // THE MOVES (data/items.js QUEST_MOVES; designed by a Raven Band student): once per battle each
+  moveSubBop:      'Quick, short notes',            moveSubBlow:  'One big, full note',
+  moveSubBig:      'Your first five, up',           moveSubUltra: 'Your first five, up and down',
+  moveUsed:        'Used this battle',
+  moveIntroTap:    '{move}! {n} short, separate notes on your first note!',
+  moveIntroTone:   '{move}! Hold your first note {n} seconds: big, full and steady!',
+  moveIntroRun:    '{move}! Your first five notes, as fast as you can!',
+  moveIntroUpdown: '{move}! Your first five notes, up AND back down!',
+  moveIntroDrum:   '{move}! {n} clean, separate strokes!',
+  moveHit:         '{move}! {name} takes {n}.',
+  moveNew:         'New move: {move}! Find it in PLAY. Once per battle.',
   boosted:         'The Tuning Slide makes it ring! ×{n} power!',
   // charms (data/items.js QUEST_CHARMS; ARCADE QUEST ONLY)
   charmInTune:     'Your Tuning Fork hums along: in tune hits harder!',

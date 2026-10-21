@@ -16,6 +16,22 @@ window.QUEST_ITEMS = {
   'mic-stand':   {name: 'Golden Mic Stand', desc: 'Once per battle: step up to the mic. Your next PLAY rings out 25% stronger.', effect: {boost: 1.25}, keep: true},
 };
 
+/* ARCADE QUEST: THE MOVES (designed by a Raven Band student). A new move unlocks at each `level`; it shows in PLAY's
+   menu (battle/battle.js) and can be used ONCE PER BATTLE. Each is a short musical challenge (battle/challenges.js
+   Q.challenge.move) and hits like a PLAY (power × accuracy × speed, crits, charms, gear) × `mult`; your band plays
+   along after it like after a PLAY. Nothing is saved: a move is yours once your level reaches it.
+   kind: 'tap' = `taps` clean, separate attacks on concert B♭ (the Snare Drum: taps) · 'tone' = hold concert B♭ for
+   `hold` seconds, full and steady (the Bells and the Snare: tap instead) · 'run' = the first five notes in order
+   (`updown`: up AND back down), in `time` seconds (the Snare: `taps` strokes).
+   MAT: TUNE every number (the student's flat 1 / 5 / 10 / 20 damage became shares of your power, and his levels
+   5 / 10 / 15 / 20 became 3 / 5 / 8 / 10: students finish Episode 2 at about LV 7–11). Never rename an id. */
+window.QUEST_MOVES = [
+  {id: 'bop',    name: 'BOP ATTACK',    level: 3,  mult: 1.15, kind: 'tap',  taps: 3, time: 6},
+  {id: 'blow',   name: 'STRONGER BLOW', level: 5,  mult: 1.3,  kind: 'tone', hold: 3, time: 9, taps: 4},
+  {id: 'big',    name: 'BIG BLAST',     level: 8,  mult: 1.45, kind: 'run',  time: 10, taps: 5},
+  {id: 'ultra',  name: 'ULTRA CANNON',  level: 10, mult: 1.6,  kind: 'run',  updown: true, time: 14, taps: 9},
+];
+
 /* ARCADE QUEST: THE CHARMS (power-ups). ARCADE QUEST ONLY: they change Quest battles and NOTHING else (stars in the
    practice games always show what a student can really play). Wear up to 2 at once: the Pause menu (B, Esc or PAUSE) → CHARMS.
    MAT: edit names, words, prices and strengths freely; never rename an id (saves and save codes use it) and add new
