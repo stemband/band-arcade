@@ -64,6 +64,8 @@ async function until(page, done, arg, max = 250) {
   throw new Error('never: ' + done.toString() + ' ' + JSON.stringify(await page.evaluate(() => ({b: Arcade.Quest.battleState(), scene: Arcade.Quest.sceneName, w: Arcade.Quest.world && Arcade.Quest.world.state()}))));
 }
 const cmdReady = () => !!document.querySelector('#qCmd:not([hidden]) .q-btn');
+/** PLAY, then (in its sub-menu, THE MOVES' or the songs') the enemy's own challenge */
+const pickPlay = page => page.evaluate(() => { const bs = [...document.querySelectorAll('#qCmd .q-btn')]; const b = bs.find(x => x.textContent.startsWith('PLAY') && !x.disabled) || (document.querySelector('#qCmd .q-btn.c-back') ? bs[0] : null); if (!b) throw new Error('no PLAY'); b.click(); });
 const pick = (page, label) => page.evaluate(l => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l) && !x.disabled); if (!b) throw new Error('no ' + l); b.click(); }, label);
 const idleWorld = page => page.waitForFunction(() => { const w = Arcade.Quest.world && Arcade.Quest.world.state(); return Arcade.Quest.sceneName === 'world' && w && !w.busy && !document.querySelector('#qText:not([hidden])') && !document.querySelector('.q-overlay'); });
 /** A through the text until the overworld is free again */
@@ -103,7 +105,7 @@ test.describe('INSTRUMENT TIERS', () => {
     await page.evaluate(() => Arcade.Quest.world.fight('boss'));
     await until(page, () => Arcade.Quest.sceneName === 'battle');
     for (let i = 0; i < 200 && !(await page.evaluate(() => window.__gos.some(g => g.startsWith('cutscene:')))); i++) {
-      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pick(page, 'PLAY');
+      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pickPlay(page);
       else if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');
       await page.waitForTimeout(40);
     }
@@ -359,7 +361,7 @@ test.describe('NOTE SHARDS', () => {
     await page.evaluate(k => { window.__lines.length = 0; window.__play = {acc: 1, speed: 1, correct: 4, total: 4, success: true}; return Arcade.Quest.world.fight(k); }, key);
     await until(page, () => Arcade.Quest.sceneName === 'battle');
     for (let i = 0; i < 250 && (await page.evaluate(() => Arcade.Quest.sceneName === 'battle')); i++) {
-      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pick(page, 'PLAY');
+      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pickPlay(page);
       else if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');
       await page.waitForTimeout(40);
     }
@@ -419,7 +421,7 @@ test.describe('NOTE SHARDS', () => {
     await page.waitForFunction(() => Arcade.Quest.sceneName === 'arena');
     await page.evaluate(() => { window.__play = {acc: 1, speed: 1, correct: 4, total: 4, success: true}; Arcade.Quest.go('battle', {enemy: 'fermata', back: 'arena'}); });
     for (let i = 0; i < 80 && (await page.evaluate(() => Arcade.Quest.sceneName === 'battle')); i++) {
-      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pick(page, 'PLAY');
+      if (await page.evaluate(() => !!document.querySelector('#qCmd:not([hidden]) .q-btn'))) await pickPlay(page);
       else if (await page.locator('#qText:not([hidden])').count()) await page.keyboard.press('Enter');
       await page.waitForTimeout(40);
     }

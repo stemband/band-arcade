@@ -52,6 +52,8 @@ async function until(page, done, arg, max = 200) {
   throw new Error('never: ' + done.toString() + ' ' + JSON.stringify(await page.evaluate(() => ({b: Arcade.Quest.battleState(), d: Arcade.Quest.dodge.state(), scene: Arcade.Quest.sceneName}))));
 }
 const cmdReady = () => !!document.querySelector('#qCmd:not([hidden]) .q-btn');
+/** PLAY, then in its sub-menu (THE MOVES at this level, the songs, QUICK PLAY) the foe's own challenge */
+const playMain = async page => { await pick(page, 'PLAY'); await page.waitForTimeout(120); if (await page.locator('#qCmd:not([hidden]) .q-btn.c-back').count()) await page.locator('#qCmd .q-btn').first().click(); };
 const pick = (page, label) => page.evaluate(l => { const b = [...document.querySelectorAll('#qCmd .q-btn')].find(x => x.textContent.startsWith(l) && !x.disabled); if (!b) throw new Error('no ' + l); b.click(); }, label);
 /** into THE BIG NUMBER (from the Test Arena), at the menu */
 async function bigNumber(page, opts = {}) {
@@ -62,7 +64,7 @@ async function bigNumber(page, opts = {}) {
 /** the band at `share` of its HP, then a PLAY that would finish it: THE FINAL STAND is waiting */
 async function toFloor(page, share = .3) {
   await page.evaluate(sh => Arcade.Quest.battleDemo.hp(Math.round(Arcade.Quest.battleState().ehp * sh)), share);
-  await pick(page, 'PLAY');
+  await playMain(page);
   await until(page, () => Arcade.Quest.dodge.active());
 }
 /** keep the student's note safe (tests that aren't about getting hit): every hit is dropped before it lands */
@@ -95,7 +97,7 @@ test.describe('THE FINAL STAND', () => {
     const watch = await boot(page);
     await bigNumber(page);
     await page.evaluate(() => Arcade.Quest.battleDemo.hp(Math.round(Arcade.Quest.battleState().ehp * .3)));
-    await pick(page, 'PLAY');
+    await playMain(page);
     await until(page, () => (Arcade.Quest.battleState().fs || {}).pending || Arcade.Quest.dodge.active());
     const b = await st(page);
     expect(b.hp).toBe(Math.round(b.ehp * .1));                         // exactly the floor (20 of 196)
@@ -251,7 +253,7 @@ test.describe('THE FINAL STAND', () => {
       await bigNumber(page);
       await safe(page);
       await page.evaluate(sh => Arcade.Quest.battleDemo.hp(Math.round(Arcade.Quest.battleState().ehp * sh)), .3);
-      await pick(page, 'PLAY');
+      await playMain(page);
       await until(page, () => !!document.querySelector('.q-fs-card'));
       const fit = sel => page.evaluate(sel => {
         const e = document.querySelector(sel), r = e.getBoundingClientRect(), s = document.getElementById('screen').getBoundingClientRect();
@@ -343,7 +345,7 @@ test.describe('THE HAMBURGER CHARM', () => {
       await until(page, cmdReady);
       await page.evaluate(() => { Arcade.Quest.battleDemo.hp(9999); Math.random = () => .99; });   // (no lucky crits)
       await pick(page, 'PLAY');
-      if (worn) { await until(page, () => !!document.querySelector('#qCmd .q-btn.c-back')); await pick(page, 'PLAY'); }   // its menu: the regular PLAY
+      await until(page, () => !!document.querySelector('#qCmd .q-btn.c-back')); await pick(page, 'PLAY');   // its menu (THE MOVES, QUICK PLAY): the regular PLAY
       await until(page, () => window.__lines.some(l => /plays along|joins in|hits/.test(l)) && !document.querySelector('#qText:not([hidden])') || Arcade.Quest.dodge.active());
       const r = await page.evaluate(() => ({hp: Arcade.Quest.battleState().hp, band: window.__lines.filter(l => /\d/.test(l))}));
       watch.check();
@@ -400,13 +402,13 @@ test.describe('QUICK PLAY', () => {
     let watch = await into(first, save({charms: {hamburger: true}}));
     await pick(first, 'PLAY');
     await first.waitForTimeout(300);
-    expect(await first.locator('.q-chal').count(), 'not worn: PLAY goes straight to its challenge').toBe(1);
+    expect(await menu(first), 'not worn: no QUICK PLAY (THE MOVES are there at this level)').not.toContain('QUICK PLAY');
     watch.check();
     await ctx.close();
     watch = await into(page, save({charms: {hamburger: true}, worn: ['hamburger', null]}));
     await pick(page, 'PLAY');
     await expect(page.locator('#qCmd .q-btn', {hasText: 'QUICK PLAY'})).toBeVisible();
-    expect((await menu(page)).slice(1)).toEqual(['QUICK PLAY', 'Back']);             // (the first: this foe's own challenge)
+    expect((await menu(page)).slice(1)).toEqual(['QUICK PLAY', 'BOP ATTACK', 'STRONGER BLOW', 'BIG BLAST', 'ULTRA CANNON', 'Back']);   // (the first: this foe's own challenge; then THE MOVES)
     expect(await page.locator('#qCmd .q-btn', {hasText: 'QUICK PLAY'}).locator('small').textContent()).toBe('3 E♭s, 3 hits');
     watch.check();
   });
