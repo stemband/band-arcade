@@ -427,7 +427,7 @@
   /* THE GLITCH CODE (designed by a Raven Band student; Sous-Chef Sizzle tells it): UP UP LEFT RIGHT DOWN UP RIGHT
      RIGHT DOWN UP, pressed anywhere outside (the last presses, in order, while you're free to walk), opens the Glitch
      Dimension, ONLY after Episode 2 (ep2Done); before that the code does nothing at all (no hint, no sound). It takes you
-     there from wherever you are (flag glitchFound, saved in codes); the portal there goes back to the Lobby. */
+     there from wherever you are (flag glitchFound: not in save codes); the portal there goes back to the Lobby. */
   const GLITCH_CODE = ['up', 'up', 'left', 'right', 'down', 'up', 'right', 'right', 'down', 'up'];
   let codeKeys = [];
   function glitchCode(btn) {

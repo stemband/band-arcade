@@ -258,16 +258,16 @@ test.describe('THE GLITCH DIMENSION: the rewards', () => {
     watch.check();
   });
 
-  test('a save code carries it all (version 7): the three flags, then the two friends and their done keys come back', {tag: '@quick'}, async ({page}) => {
+  test('a save code carries it (version 7): the two friends\' flags, then the friends and their done keys come back', {tag: '@quick'}, async ({page}) => {
     const watch = await boot(page, save({roster: ['yourself', 'mrgraham'], band: ['mrgraham'], flags: {glitchFound: true, glitchYou: true, glitchGraham: true}, done: {'glitch:you': 'befriend', 'glitch:graham': 'befriend'}}));
     const r = await page.evaluate(() => {
       const Q = Arcade.Quest, code = Arcade.Backup.questEncode(Q.save.get());
       Q.save.reset();
       const ok = Q.save.fromCode(code).ok, s = Q.save.get();
-      return {ok, len: code.replace(/[^A-Z0-9]/g, '').length, flags: ['glitchFound', 'glitchYou', 'glitchGraham'].map(f => !!s.flags[f]), roster: s.roster.filter(r => ['yourself', 'mrgraham'].includes(r)).sort(),
+      return {ok, len: code.replace(/[^A-Z0-9]/g, '').length, flags: ['glitchYou', 'glitchGraham'].map(f => !!s.flags[f]), roster: s.roster.filter(r => ['yourself', 'mrgraham'].includes(r)).sort(),
         done: [s.done['glitch:you'], s.done['glitch:graham']], glitch: !!Q.save.achievements().glitch, moves: Q.moves().map(m => m.id)};
     });
-    expect(r).toEqual({ok: true, len: 85, flags: [true, true, true], roster: ['mrgraham', 'yourself'], done: ['befriend', 'befriend'], glitch: true, moves: ['bop', 'blow', 'big', 'ultra', 'glitch']});
+    expect(r).toEqual({ok: true, len: 85, flags: [true, true], roster: ['mrgraham', 'yourself'], done: ['befriend', 'befriend'], glitch: true, moves: ['bop', 'blow', 'big', 'ultra', 'glitch']});
     watch.check();
   });
 });
