@@ -80,7 +80,7 @@ window.Arcade = window.Arcade || {};
   /* ---------- TODAY'S PRACTICE (shared/practice.js): the first card, the whole row. A neon header + "About 15
      minutes", three step buttons (WARM UP · SKILL · PLAY: the game's marquee, the step, its one-line task, a big check
      circle; done = a green ✓ + "Done", slightly dimmed but still tappable; the next one to do glows gently), and THIS
-     WEEK (7 stamps, Monday to Sunday). All 3 done: the card turns gold, "PRACTICE DONE! +10 tokens", a stamp (once),
+     WEEK (7 stamps, Monday to Sunday). All 3 done: the card turns gold, "PRACTICE DONE! +40 tokens", a stamp (once),
      the practice-done sound (only here, never while a page listens). Hidden with no instrument saved.
      COLLAPSIBLE: the header's ▲ (or a tap on the title row) hides the card to ONE SLIM BAR in the same spot: "TODAY'S
      PRACTICE", three small step dots (✓ filled = done), "1 of 3", ▼ (gold "PRACTICE DONE! ✓" when all 3 are done). The

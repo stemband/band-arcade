@@ -61,7 +61,7 @@ window.Arcade = window.Arcade || {};
 
   /* ================= THE SETTINGS (Mr. Graham edits these) ================= */
   const PRACTICE = {
-    bonus: 10,              // tokens for finishing all 3 steps (once a day). 5 tokens = 1 star.
+    bonus: 40,              // tokens for finishing all 3 steps (once a day). 5 tokens = 1 star. (Was 10; Mr. Graham raised it to 40.)
     weekGoal: 4,            // practice days in a week (Mon–Sun) that earn the weekly plate
     // THE DAY'S SKILL, by weekday (0 = Sunday). Every device shows the same skill on the same day.
     days: {1: 'scales', 2: 'rhythm', 3: 'reading', 4: 'ear', 5: 'technique', 6: 'choice', 0: 'choice'},
