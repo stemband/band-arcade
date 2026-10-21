@@ -250,7 +250,7 @@ for (const [name, size, touch] of SIZES) {
     await page.waitForFunction(() => Arcade.Quest.sceneName === 'world' && Arcade.Quest.world.state());
     const rooms = await page.evaluate(() => { const M = window.QUEST_MAPS; return Object.keys(M).filter(id => M[id].ep === 2).map(id => {
       const d = [].concat(...Object.values(M).map(m => (m.doors || []).filter(x => x.to === id)))[0] || {spawn: M[id].start}; return [id, d.spawn[0], d.spawn[1]]; }); });   // (the Glitch Dimension has no door in: its start)
-    expect(rooms.length).toBe(10);
+    expect(rooms.length).toBe(11);                                        // (+ the Glitch Dimension, a secret)
     const inside = async what => {
       const box = await page.locator('#screen').boundingBox(), hud = await page.locator('#qWHud').boundingBox();
       expect(box.x, what).toBeGreaterThanOrEqual(-1);
