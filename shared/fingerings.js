@@ -39,6 +39,8 @@
 
    VERIFIED BY MR. GRAHAM
      Bassoon  E♭3 = W 1 3 (whisper key, left hand 1 and 3; no E♭ key). The old W 1 2 + E♭ key is not accepted.
+     Bassoon  B♭2 (2nd line) = W 1 2 3 | 4 5 + right-thumb B♭ key (whisper key, left hand 1 2 3, right hand 1 2).
+              No alternate: the old W 1 2 3 | 4 + B♭ key is not accepted.
 
    ADDED FOR SCALE TRAINER, PLEASE CHECK
      Every note below was missing (the table only had Button Masher's notes); Scale Trainer needs each member's whole
@@ -456,7 +458,7 @@
     'G2':  ['W 1 2 3 | 4 5 6'],
     'Ab2': ['W 1 2 3 | 4 5 6 Ab'],
     'A2':  ['W 1 2 3 | 4 5'],
-    'Bb2': ['W 1 2 3 | 4 RBb'],
+    'Bb2': ['W 1 2 3 | 4 5 RBb'],                        // verified by Mr. Graham
     'B2':  ['W 1 2 3 | 4'],
     'C3':  ['W 1 2 3'],
     'Db3': ['W 1 2 3 C#'],
