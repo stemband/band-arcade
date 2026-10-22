@@ -8,3 +8,4 @@ test-times.new.json
 *-results.json
 results.json
 balance-results/
+node_modules
