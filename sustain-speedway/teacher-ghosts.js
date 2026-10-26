@@ -1,7 +1,7 @@
 /* Sustain Speedway: THE TEACHER GHOST CHALLENGE. Mat edits this file.
 
    HOW TO SET A CHALLENGE
-   1. Open Sustain Speedway with ?teacher at the end of the address (bandarcade.org/sustain-speedway/index.html?teacher)
+   1. Open Sustain Speedway with ?teacher at the end of the address (stemband.github.io/band-arcade/sustain-speedway/index.html?teacher)
       and race the track you want the students to beat.
    2. On the results screen tap SAVE AS TEACHER GHOST and COPY the code it shows.
    3. Paste it here as one line in the list below (on GitHub: the pencil icon on this file, then Commit changes), e.g.

@@ -2,11 +2,12 @@
 
 Practice games for beginning band that listen through the device microphone. Built for school iPads (Safari) and Chromebooks (Chrome), for practice-room and home use.
 
-**Play it at [https://bandarcade.org](https://bandarcade.org).** (The old address, `stemband.github.io/band-arcade/`,
-now forwards there.)
+**Play it at [https://stemband.github.io/band-arcade/](https://stemband.github.io/band-arcade/).** (It briefly lived at
+`bandarcade.org`, but the district filter blocks that domain on school devices, so the github.io address is the one to
+use and share.)
 
 **Progress is saved per web address.** Stars, avatars and settings live in the browser under the address the arcade was
-opened from, so `bandarcade.org`, a copy on your own computer and any other address each start with their own
+opened from, so `stemband.github.io/band-arcade/`, a copy on your own computer and any other address each start with their own
 progress. To move a student's progress from one address (or device) to another, make an **Arcade Backup Code** on the
 old one (BACKUP / RESTORE in the arcade floor's speaker panel or under the Select Player card) and restore it on the
 new one.
@@ -605,7 +606,7 @@ Every sound in the arcade goes through `shared/sfx.js`, and each one can be **yo
 
 **To add or replace a sound:** record it, save it as `.m4a` (best) or `.mp3`, name it exactly as in that list (for example `select-ghost-notes.m4a`, `note-hit.mp3`, `lobby-ambience.m4a`), and upload it into `shared/sounds/`. That's all: the arcade uses your file from then on. Without a file (or if a file won't play), each sound falls back to the arcade's own built-in sound for that moment, so nothing ever goes silent and students never see an error; a missing file is only noted in the browser console. (Music has no built-in version in Arcade Quest; if a track doesn't play, open the page with `?debug` added to its address to see what it tried.) To make one sound louder or softer without re-recording, change its `vol` in `shared/sounds.js`.
 
-**The Sound Board** (`sound-board/index.html`, for example `https://bandarcade.org/sound-board/index.html`; it isn't linked from the arcade): it checks every file when it opens, and **RELOAD ALL SOUNDS** checks again without reloading the page, always against the live files on the server (never a saved copy), with the time of the check. Every sound gets a label: **YOUR FILE (m4a/mp3)**, **FALLBACK** (the arcade's built-in sound for that moment) or **MISSING FILE, USING GENERATED** (a short generic beep until you add one). Press **Play** to hear any sound, and watch the level meter and the peak (dB) next to each sound to match loudness between recordings. The ambience has a **Loop test** that jumps to just before the loop point, so you can hear whether it wraps around cleanly.
+**The Sound Board** (`sound-board/index.html`, for example `https://stemband.github.io/band-arcade/sound-board/index.html`; it isn't linked from the arcade): it checks every file when it opens, and **RELOAD ALL SOUNDS** checks again without reloading the page, always against the live files on the server (never a saved copy), with the time of the check. Every sound gets a label: **YOUR FILE (m4a/mp3)**, **FALLBACK** (the arcade's built-in sound for that moment) or **MISSING FILE, USING GENERATED** (a short generic beep until you add one). Press **Play** to hear any sound, and watch the level meter and the peak (dB) next to each sound to match loudness between recordings. The ambience has a **Loop test** that jumps to just before the loop point, so you can hear whether it wraps around cleanly.
 
 **After replacing sounds, bump `SOUNDS_VERSION` by 1** (the number at the top of `shared/sounds.js`): every sound's address ends in `?v=<that number>`, so every student's device picks up the new files right away instead of a saved copy, and then keeps them saved for fast loading. Details in [`shared/sounds/README.md`](shared/sounds/README.md).
 
@@ -682,8 +683,8 @@ address bar, so a reload doesn't apply them again (`?demo` still carries through
 | `belt=<white…diamond>` | Note Ninja | selects that belt on the level screen if it's open; otherwise the highest open belt, with "Your Band Ninja belt is Green. Clear the belts below to get there!" |
 | `rank=<orange…diamond>` | Ancient Ninja Scrolls | selects that rank's chamber (every chamber is always open there) |
 
-Examples: `bandarcade.org/note-ninja/index.html?inst=Alto%20Sax&belt=green` and
-`bandarcade.org/ancient-ninja-scrolls/index.html?inst=Trumpet&rank=orange`.
+Examples: `stemband.github.io/band-arcade/note-ninja/index.html?inst=Alto%20Sax&belt=green` and
+`stemband.github.io/band-arcade/ancient-ninja-scrolls/index.html?inst=Trumpet&rank=orange`.
 
 **The avatar code ("Share to Band Ninja").** In Create Your Player and in the avatar badge's menu, **SHARE TO BAND
 NINJA** shows a short code (like `BA1-KEKCCchQwkDgRwSUMkLGUEUIZDlhJRFBNFihyIA`, about 43 characters) with a COPY button:
@@ -748,7 +749,7 @@ change"). Changing it moves the student's whole week to the new grade's board. T
 Code, so a student's streak follows them to a new device.
 
 **Hiding a player (teacher):** open the leaderboard with `?teacher` in the address
-(`bandarcade.org/index.html?teacher`). Every entry then shows its 6-character id; paste it into the **Blocked**
+(`stemband.github.io/band-arcade/index.html?teacher`). Every entry then shows its 6-character id; paste it into the **Blocked**
 tab of the scoreboard Sheet. Under MY SETTINGS it shows THIS DEVICE (its grade or "not chosen", the switch, its id, events waiting, stars this
 week, the last send and the last accepted event) with a SEND NOW button, and this device's champion awards and the last weekly check, with a
 CHECK CHAMPIONS NOW button. Under the board it also says how the last request went: "OK in 3.2 s", or why it
@@ -934,8 +935,8 @@ Open `index.html` in **Chrome** by double-clicking it. Chrome allows the microph
 
 ## Put it online (GitHub Pages)
 
-The arcade lives at **https://bandarcade.org**. Every address in the site is relative (`shared/…`, `../index.html`), so
-the same files also work from a subfolder (`https://<your-username>.github.io/band-arcade/`), from
+The arcade lives at **https://stemband.github.io/band-arcade/**. Every address in the site is relative (`shared/…`, `../index.html`), so
+the same files also work at a domain root, from
 `python3 -m http.server` and from a double-clicked file. Nothing has to change if the address changes again.
 
 1. Create a free GitHub account, then a new **public** repository named `band-arcade`.
@@ -943,12 +944,10 @@ the same files also work from a subfolder (`https://<your-username>.github.io/ba
 3. Go to **Settings → Pages**. Under *Build and deployment*, set Source to **GitHub Actions**. The workflow in
    `.github/workflows/pages.yml` then publishes the site every time something is saved to `main`.
 4. After about a minute your arcade is live at `https://<your-username>.github.io/band-arcade/`.
-5. **Your own domain (optional):** in **Settings → Pages → Custom domain**, type the domain (ours is `bandarcade.org`),
-   save, and tick **Enforce HTTPS** once it's offered; at your domain registrar, point the domain at GitHub Pages
-   (GitHub's "Managing a custom domain" page lists the records). The setting is kept in the repository's settings, so
-   every publish keeps it. (The `CNAME` file in the repository says the same domain; with the GitHub Actions source it
-   isn't needed, but it does no harm.) Moving to a new address starts students fresh there: see *Progress is saved per
-   web address* at the top.
+5. **Your own domain (optional, and not used here):** **Settings → Pages → Custom domain** can put the site on a domain
+   you own, but GitHub then forwards the github.io address to that domain. Our district filter blocks newly registered
+   domains (it blocked `bandarcade.org`), so this arcade has no custom domain: leave that box empty. Moving to a new
+   address starts students fresh there: see *Progress is saved per web address* at the top.
 6. Open that link on a school iPad and a Chromebook before sharing it. District web filters sometimes block new domains
    or `github.io`; if so, ask IT to allow your address.
 

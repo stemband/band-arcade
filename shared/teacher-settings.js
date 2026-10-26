@@ -11,7 +11,7 @@
                         plays SPOOKY instead. Separate from JUMP_SCARE_ALLOWED.
 
    SHOW_INSTALL_PROMPT  true: the arcade's sound panel offers INSTALL THE APP (Home Screen / Chrome app; shared/app.js).
-                        false (for now): no button. Turn it on once the site is at its final address (bandarcade.org):
+                        false (for now): no button. Turn it on once you're sure the address is final (stemband.github.io/band-arcade/):
                         an app keeps the progress of the address it was installed from. Installing by hand (Safari's
                         Share → Add to Home Screen, Chrome's install icon) works either way.
 
