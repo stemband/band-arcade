@@ -24,7 +24,7 @@ after an upload, because the bot's commit changes the file.
 3. Upload it into this folder (`shared/sounds/`) on GitHub. To replace a sound, upload a new file with the same name.
    Any quality is fine: it is compressed automatically (above).
 4. Open the **Sound Board** (`sound-board/index.html` on the site, e.g.
-   `https://bandarcade.org/sound-board/index.html`). It checks every file when it opens; after an
+   `https://stemband.github.io/band-arcade/sound-board/index.html`). It checks every file when it opens; after an
    upload, press **RELOAD ALL SOUNDS** (no need to reload the page). Your file shows **YOUR FILE (m4a, 0.42 s,
    18 KB)** with its length and size, so you can tell a replaced file from the old one; a label that changed since
    the last check gets a yellow outline, and "Checked at …" shows when the check ran. The Sound Board always asks

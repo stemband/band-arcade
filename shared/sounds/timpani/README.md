@@ -48,7 +48,7 @@ center or the very edge weakens the principal.**
 
 ## Fine-tune a pitch by ear: THE SAMPLE TUNER
 
-Open **`pedal-point/index.html?tune-samples`** (for example `https://bandarcade.org/pedal-point/index.html?tune-samples`;
+Open **`pedal-point/index.html?tune-samples`** (for example `https://stemband.github.io/band-arcade/pedal-point/index.html?tune-samples`;
 the Sound Board's Pedal Point row links it). Every take is listed by pitch. Press **▶ BOTH**: the drum, then the pitch
 pipe at the row's pitch, under its ring. If they beat against each other, nudge the row's cents (−5 / −1 / +1 / +5)
 until they sound in tune. Then press **COPY CHANGED LINES** and paste them over the same lines in
