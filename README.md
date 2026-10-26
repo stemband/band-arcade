@@ -988,9 +988,9 @@ time they're used.
 - **Updates** still arrive at once: pages are always checked with the server when there's a connection. If the app
   was left open during an update, a small **"New version ready — tap to update"** banner appears (never during a
   game); ignored, the update is applied the next time the app opens. A page never mixes files from two versions.
-- **The INSTALL THE APP button** (the lobby's sound panel) is off for now: `SHOW_INSTALL_PROMPT` in
-  `shared/teacher-settings.js`. Turn it on once the site is at its final address: an installed app keeps the progress
-  of the address it was installed from. Installing by hand works either way.
+- **The INSTALL THE APP button** (the lobby's sound panel) is on: `SHOW_INSTALL_PROMPT` in
+  `shared/teacher-settings.js` (turned on once `stemband.github.io/band-arcade/` became the final address, since an
+  installed app keeps the progress of the address it was installed from). Installing by hand works either way.
 - **iPad progress:** a Home Screen app on an iPad has its OWN storage, separate from Safari. Its first launch asks for
   a Backup Code ("Bring your progress": make it in Safari with Backup / Restore, paste it in the app) or
   **Start fresh**.

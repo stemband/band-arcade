@@ -11,8 +11,8 @@
                         plays SPOOKY instead. Separate from JUMP_SCARE_ALLOWED.
 
    SHOW_INSTALL_PROMPT  true: the arcade's sound panel offers INSTALL THE APP (Home Screen / Chrome app; shared/app.js).
-                        false (for now): no button. Turn it on once you're sure the address is final (stemband.github.io/band-arcade/):
-                        an app keeps the progress of the address it was installed from. Installing by hand (Safari's
+                        On since the address became final (stemband.github.io/band-arcade/): an app keeps the progress
+                        of the address it was installed from. false: no button. Installing by hand (Safari's
                         Share → Add to Home Screen, Chrome's install icon) works either way.
 
    ASK_INSTRUMENT_EVERY_TIME   true: CHOOSE YOUR INSTRUMENT opens after PRESS START every time the arcade opens (for a
@@ -39,7 +39,7 @@ window.Arcade = window.Arcade || {};
 window.Arcade.TEACHER = Object.assign(window.Arcade.TEACHER || {}, {
   JUMP_SCARE_ALLOWED: true,
   TERROR_ALLOWED: true,              // Showtime Malfunction's TERROR spooky level (see above)
-  SHOW_INSTALL_PROMPT: false,
+  SHOW_INSTALL_PROMPT: true,
   ASK_INSTRUMENT_EVERY_TIME: false,
   SPELL_ANSWER_BUTTONS: true,
   BUG_REPORTS: true,                 // false: no anonymous bug reports to the scoreboard's "Errors" tab
