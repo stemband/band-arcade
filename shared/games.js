@@ -387,6 +387,21 @@ window.Arcade.GAMES = [
     cabinet3d: {profile: 'audition', body: 'cab-side'},
   },
   {
+    id: 'first-sight',
+    zones: ['note-reading'],
+    name: 'First Sight',
+    bg: {scene: 'records', dim: .55, focus: .42},
+    menuMusic: 'first-sight-menu',
+    skill: 'Sight-reading',
+    blurb: 'Sight-reading practice for District Honor Band: a brand-new etude every time, in your key, at your level. Study it, play it with the click, then hear how it goes.',
+    maxStars: 0,                                     // a practice tool: no stars (the etudes read are counted in its own gameData)
+    color: 'yellow',
+    unpitched: true,                                 // the Snare Drum reads the same etudes' rhythms on a one-line staff
+    // the floor's line instead of a hi-score: the etudes played through on this device (first-sight/game.js)
+    summary: store => { const n = (store.gameData('first-sight') || {}).read || 0; return n ? `Etudes read: ${n}` : ''; },
+    cabinet: {shape: 'classic', trim: 'yellow', trim2: 'cyan', marquee: 'bungee'},
+  },
+  {
     id: 'lost-signal',
     zones: ['ear-training'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Lost Signal listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},

@@ -1,6 +1,6 @@
 /* THE RHYTHM STAFF: a rhythm (shared/counting.js) as printed music on a ONE-LINE PERCUSSION STAFF, with Mr. Graham's
    counting written underneath. Rhythm Dojo and its Counting Board use it; any game that shows a rhythm should.
-   (Music Highway's notation.js spells durations itself from a melody; this one draws EXACTLY the written values it is
+   (shared/notation.js, Music Highway's and First Sight's, spells durations itself from a melody; this one draws EXACTLY the written values it is
    given: a tie stays a tie, a dotted quarter stays one, triplets get their 3.)
 
      Arcade.RhythmStaff.engrave(parsed, opts) -> {svg, w, h, xAt(tick), xs (per note), bars, from, to}

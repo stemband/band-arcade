@@ -127,6 +127,7 @@ is trimmed automatically and the loop point is smoothed, so it wraps without a g
 | Pedal Point | `pedal-point-menu` | `pedal-point-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Slide Quest | `slide-quest-menu` | `slide-quest-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Perfect Pitch | `perfect-pitch-menu` | `perfect-pitch-menu.m4a` (or .mp3) | the arcade’s select-music |
+| First Sight | `first-sight-menu` | `first-sight-menu.m4a` (or .mp3) | the arcade’s select-music |
 | Lost Signal | `lost-signal-music` | `lost-signal-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (level screens only) |
 | Dojo Duel | `dojo-music` | `dojo-music.m4a` (or .mp3) | its own rule: its built-in chiptune until uploaded (setup screen; dojo-match-music in a match) |
 | Arcade Quest | `quest-title` | `quest-title.m4a` (or .mp3) | its own rule: silent until uploaded (the title screen; every scene and room has its own track) |
@@ -301,6 +302,15 @@ effect would muddy the very pitch the student is listening to. The menu music fa
 | `slide-quest-menu` | `slide-quest-menu.m4a` or `slide-quest-menu.mp3` | Slide Quest: menu music (the level select, a level's intro, results). Fades out when a level starts. | 30–90 s loop |
 | `sq-lock` | `sq-lock.m4a` or `sq-lock.mp3` | LOCK IN: the note is judged. A solid click, **unpitched** | under 0.2 s |
 | `sq-star` | `sq-star.m4a` or `sq-star.mp3` | A BULLSEYE (within 3 cents), right after `sq-lock`. A sparkle, **unpitched** | under 0.4 s |
+
+### First Sight
+
+First Sight never uses the microphone. ▶ HEAR IT's etude is played by the game itself (`shared/winds.js`) and the click
+and snare by the drum kit (`music-highway/backing.js`), never files. The menu music plays on the level select only.
+
+| Event | File to upload | When it plays | Suggested length |
+|---|---|---|---|
+| `first-sight-menu` | `first-sight-menu.m4a` or `first-sight-menu.mp3` | First Sight: menu music on the level select only. Off on an etude's page (reading, ▶ PLAY IT and ▶ HEAR IT need quiet). | 30–90 s loop |
 
 ### Perfect Pitch
 

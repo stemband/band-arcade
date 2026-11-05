@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<!-- the site version, fetched fresh every time (shared/version.js): an old copy of this page reloads -->
+<script>document.write('<script src="../shared/version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>window.Arcade && Arcade.checkVersion && Arcade.checkVersion('dev');</script>
+<title>First Sight</title>
+<meta name="description" content="Sight-reading practice for District Honor Band: a brand-new etude every time, in your key, at your level.">
+<meta name="theme-color" content="#0b0716">
+<link rel="icon" href="../shared/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../shared/fonts.css">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div id="topbar"></div>
+
+  <!-- LEVEL SELECT: the key and length (the picker), then the six levels -->
+  <section id="hub">
+    <div class="fs-hub-head">
+      <h1 class="game-title">First <span>Sight</span></h1>
+      <p class="ui-howto">Sight-reading practice: a brand-new etude every time. Study it, play it with the click, then hear how it goes.</p>
+    </div>
+    <div class="mp fs-pick" id="keyPick">
+      <div class="mp-row" id="keyRow">
+        <span class="mp-lbl" id="lKey">Key</span>
+        <div class="mp-notes fs-keys" role="group" aria-labelledby="lKey" id="keySeg"></div>
+      </div>
+      <div class="mp-row">
+        <span class="mp-lbl" id="lBars">Length</span>
+        <div class="mp-order" role="group" aria-labelledby="lBars" id="barsSeg">
+          <button type="button" class="mp-ord" data-bars="8" aria-pressed="true">8 bars</button>
+          <button type="button" class="mp-ord" data-bars="6" aria-pressed="false">6 bars</button>
+        </div>
+      </div>
+      <p class="fs-pick-note" id="barsNote">6 bars is the length of the district audition's sight-reading.</p>
+    </div>
+    <div class="fs-levels" id="levelGrid"></div>
+    <form class="fs-codeform" id="codeForm" autocomplete="off">
+      <label class="ui-label" for="codeIn">Have an etude code?</label>
+      <div class="fs-coderow">
+        <input id="codeIn" class="fs-codein" type="text" inputmode="text" maxlength="10" placeholder="5E8-K7QX" spellcheck="false" autocapitalize="characters">
+        <button type="submit" class="btn btn-secondary btn-small">Open it</button>
+      </div>
+      <p class="fs-codemsg" id="codeMsg" aria-live="polite"></p>
+    </form>
+    <p class="demo-help" id="demoHelp" hidden>Demo: Space = ▶ Play it, H = ▶ Hear it, N = new etude, Enter = I'm ready.</p>
+  </section>
+
+  <!-- ONE ETUDE: study it, play it with the click, hear it -->
+  <section id="play" hidden>
+    <div class="fs-head">
+      <div class="fs-head-t">
+        <p class="ui-kicker" id="kick"></p>
+        <h2 class="fs-title" id="keyLine"></h2>
+      </div>
+      <button type="button" class="fs-code" id="codeBtn" aria-label="Copy this etude's code"><small>Code</small><b id="codeTxt"></b></button>
+    </div>
+    <div class="stage fs-stage" id="sheet">
+      <p class="fs-print-head" id="printHead"></p>
+      <p class="fs-tempo" id="tempoMark"></p>
+      <div class="fs-rows" id="rows"></div>
+    </div>
+    <div class="fs-status" id="status" aria-live="polite">
+      <div class="fs-study" id="study" hidden>
+        <div class="fs-study-bar" aria-hidden="true"><i id="studyFill"></i></div>
+        <p class="fs-study-t"><b id="studyLeft">30</b> <span id="studyWord">seconds to study it.</span> Find the key, the time signature, the tricky rhythms and the dynamics.</p>
+        <button type="button" class="btn btn-secondary btn-small" id="readyBtn">I'm ready</button>
+      </div>
+      <p class="fs-say" id="say"></p>
+    </div>
+    <div class="fs-actions">
+      <button type="button" class="btn btn-primary btn-big" id="playBtn">▶ Play it</button>
+      <button type="button" class="btn btn-secondary" id="hearBtn">▶ Hear it</button>
+      <button type="button" class="btn btn-secondary" id="newBtn">New etude</button>
+    </div>
+    <div class="fs-opts">
+      <div class="fs-opt"><span class="ui-label" id="lTempo">Tempo</span>
+        <div class="fs-tempo-ctl" role="group" aria-labelledby="lTempo">
+          <button type="button" class="btn btn-secondary btn-small fs-step" id="slowerBtn" aria-label="Slower">−</button>
+          <b class="fs-bpm" id="bpm" aria-live="polite"></b>
+          <button type="button" class="btn btn-secondary btn-small fs-step" id="fasterBtn" aria-label="Faster">+</button>
+        </div></div>
+      <div class="fs-opt"><span class="ui-label" id="lClick">Click while you play</span>
+        <div class="ui-seg" role="group" aria-labelledby="lClick" id="clickSeg">
+          <button type="button" data-click="on" aria-pressed="true">On</button>
+          <button type="button" data-click="off" aria-pressed="false">Off</button>
+        </div></div>
+      <div class="fs-opt"><span class="ui-label" id="lCount">Counting</span>
+        <div class="ui-seg" role="group" aria-labelledby="lCount" id="countSeg">
+          <button type="button" data-count="off" aria-pressed="true">Off</button>
+          <button type="button" data-count="on" aria-pressed="false">On</button>
+        </div></div>
+      <div class="fs-opt"><span class="ui-label" id="lStudy">Study time</span>
+        <div class="ui-seg" role="group" aria-labelledby="lStudy" id="studySeg">
+          <button type="button" data-study="0" aria-pressed="false">Off</button>
+          <button type="button" data-study="30" aria-pressed="true">30 s</button>
+          <button type="button" data-study="60" aria-pressed="false">60 s</button>
+        </div></div>
+    </div>
+    <div class="fs-tools">
+      <button type="button" class="btn btn-secondary btn-small" id="printBtn">Print it</button>
+      <button type="button" class="btn btn-secondary btn-small" id="linkBtn">Copy a link</button>
+    </div>
+  </section>
+</div>
+
+<!-- No microphone: no pitch.js, no mic-gate.js. ▶ HEAR IT plays the etude in the student's own instrument voice
+     (shared/winds.js) on shared/sfx.js's output; the click is music-highway/backing.js's kit (unpitched). -->
+<script src="../shared/instruments.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="../shared/ui.js"></script>
+<script src="../shared/bandninja.js"></script>
+<script src="../shared/portraits.js"></script>
+<script src="../shared/skins.js"></script>
+<script src="../shared/seasons.js"></script>
+<script src="../shared/leaderboard-config.js"></script>
+<script src="../shared/leaderboard.js"></script>
+<script src="../shared/avatar-parts.js"></script>
+<script src="../shared/avatar-names.js"></script>
+<script src="../shared/avatar.js"></script>
+<script src="../shared/avatar-code.js"></script>
+<script src="../shared/avatar-bg.js"></script>
+<script src="../shared/avatar-fx.js"></script>
+<script src="../shared/avatar-badge.js"></script>
+<script src="../shared/scales.js"></script>
+<script src="../shared/games.js"></script>
+<script src="../shared/sounds.js"></script>
+<script src="../shared/sfx.js"></script>
+<script src="../shared/winds.js"></script>
+<script src="../shared/bg-scenes.js"></script>
+<script src="../shared/backgrounds.js"></script>
+<script src="../shared/cabinets.js"></script>
+<script src="../shared/marquees.js"></script>
+<script src="../shared/press-start.js"></script>
+<script src="../shared/level-select.js"></script>
+<script src="../shared/counting.js"></script>
+<script src="../shared/notation.js"></script>
+<script src="../shared/calibration.js"></script>
+<script src="../music-highway/backing.js"></script>
+<script src="etudes.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

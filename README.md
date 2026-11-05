@@ -133,6 +133,9 @@ slide-quest/          Find a note by ear on a trombone slide: blow, slide until 
   game.js             The stage, the pedals and fine tuner, the rounds, LOCK IN's feedback (cents meter, staff, hear both)
   practice.js         PRACTICE MODE: the Practice Room (1–4 drums, taps, rolls, keys, the click), your own sheet music, the etudes' play-along
   etudes.js           The four practice etudes, written as PITCH:VALUE text (C:q F:e. C:h*_ …). Edit here
+first-sight/          Sight-reading practice: a new original etude every time, in your key and level; study it, play it with the click, hear it (no microphone)
+  etudes.js           THE GENERATOR: the six levels (rhythms, meters, tempos, range, markings), the code, the form and melody rules. Edit here
+  game.js             The key / length / level select, the study countdown, PLAY IT (count-in, click, marker), HEAR IT, print, codes
 perfect-pitch/        Hear it, judge it, tune it: is the instrument sharp, flat or in tune? Fix it with its real tuning slide (no microphone)
   instruments.js      THE INSTRUMENTS: every tunable instrument's mechanism, voice and physics (the PP2_TUNE table). Edit here
   art.js              THE PICTURES: each instrument's tuning area (headjoint, barrel, neck, mouthpiece, tuning slide)
@@ -183,7 +186,7 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 
 | Zone | Games |
 |---|---|
-| Note Reading | Ghost Notes, Note Storm, Vanishing Ink |
+| Note Reading | Ghost Notes, Note Storm, Vanishing Ink, First Sight |
 | Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
 | Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
 | Ear Training | Lost Signal, Pedal Point, Slide Quest, Perfect Pitch |
@@ -300,6 +303,24 @@ or none, can play.
   `pedal-point/levels.js`. Headphones help on tablets: these drums are LOW.
 - **Credit:** the recorded timpani are from the **Versilian Community Sample Library (VCSL)** by Versilian Studios,
   CC0 1.0 (public domain), <https://github.com/sgossner/VCSL>.
+
+## First Sight
+
+**Sight-reading practice for District Honor Band.** Pick a key (concert F, B♭, E♭, A♭ or Mix), a length (8 bars, or
+6 = the audition's length) and a level, and the game writes a brand-new ORIGINAL etude in your clef and written key.
+Study it (a 30 s countdown), tap **▶ PLAY IT** for a count-in, the click and a marker moving through the music, and
+play it on your instrument. After one play-through, **▶ HEAR IT** plays it in your instrument's sound so you can check
+yourself. No microphone, no stars.
+
+- **Levels:** Building Blocks (whole, half, quarter), Eighth Notes, Dots & Ties, Off the Beat (syncopation, chromatic
+  notes), District Ready (sixteenths, dotted eighth–sixteenth, triplets at ♩ = 92: last year's district level), Six-Eight.
+- **Codes:** every etude has a code (like `5E8-K7QX`). The same code is the same music on every device and for every
+  instrument (in unison), so a class can read one together: type it on the level screen, or share a link
+  (`first-sight/index.html?code=5E8-K7QX`, from COPY A LINK). PRINT IT prints just the music.
+- **Snare:** the same levels' rhythms on a one-line staff, with accents and dynamics. Bells read the pitched etudes.
+- **Tuning:** the levels (rhythms, meters, tempos, range, how often slurs, accents, ties and chromatic notes appear) in
+  the `LEVELS` table at the top of `first-sight/etudes.js`; the study time, tempo steps and HEAR IT's dynamics in
+  `RULES` at the top of `first-sight/game.js`.
 
 ## Perfect Pitch
 

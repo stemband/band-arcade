@@ -13,6 +13,10 @@
    (Slide Quest's DRONE). With a voice it BEATS (wah-wah-wah), slower as the two get closer.
 
      Winds.play(voice, f, {sec})            a timed note (→ a handle {stop(), onEnd} or null: sound off, locked, listening)
+     Winds.phrase(voice, notes, {lead})     a MELODY scheduled on the audio clock: notes = [{f, at (s from the phrase's
+                                            start), sec, gain (1 = normal)}] → a handle {stop(), onEnd, t0 (the context
+                                            time of at = 0)} or null; stop() silences every note, sounding or waiting
+                                            (First Sight's ▶ HEAR IT)
      Winds.start(voice, f)                  a HELD note (→ true / false); Winds.setFreq(f) glides it; Winds.stop() releases it
      Winds.playing()                        is the held note sounding?
      Winds.ref(f, {sec})                    the reference tone for sec seconds (→ a handle or null)
@@ -58,11 +62,19 @@ window.Arcade = window.Arcade || {};
     horn: Object.assign({}, BRASS, {settle: 2.8, open: 6, minCut: 700}),
     // LOW BRASS: darker still (euphonium, baritone, tuba)
     lowbrass: Object.assign({}, BRASS, {settle: 2.2, open: 5, minCut: 650, maxCut: 6000}),
+    // MALLET (bells, for First Sight's ▶ HEAR IT): a struck bar: a quick attack, then it rings away (decayS); nearly no air
+    mallet: {vol: 0.3, n: 8, harm: k => [0, 1, 0.05, 0.28, 0.02, 0.12, 0, 0.05, 0][k], decayS: 1.1,
+      open: 12, openS: 0.006, settle: 6, settleS: 0.4, minCut: 2000, maxCut: 12000, q: 0.5, attackS: 0.004, releaseS: 0.25,
+      breath: {vol: 0.001, freq: 4000, q: 0.7}},
     // THE REFERENCE (a tuner's tone; Slide Quest's DRONE): a sine with a quiet 2nd and 3rd harmonic, faded in and out
     ref: {vol: 0.26, harmonics: [1, 0.22, 0.1], fadeIn: 0.3, fadeOut: 0.3},
     glide: 0.012,                 // s: a held note's glide (setTargetAtTime's time constant) as the mechanism moves
   };
-  const VOICES = ['flute', 'clarinet', 'sax', 'brass', 'horn', 'lowbrass'];
+  const VOICES = ['flute', 'clarinet', 'sax', 'brass', 'horn', 'lowbrass', 'mallet'];
+  /* each instrument member's voice (shared/instruments.js ids): First Sight plays an etude in the student's own sound.
+     (Perfect Pitch keeps its own table in perfect-pitch/instruments.js.) */
+  const VOICE_FOR = {flute: 'flute', oboe: 'sax', clarinet: 'clarinet', basscl: 'clarinet', bassoon: 'sax', altosax: 'sax', tenorsax: 'sax',
+    barisax: 'sax', trumpet: 'brass', horn: 'horn', trombone: 'brass', baritonetc: 'lowbrass', euphbc: 'lowbrass', tuba: 'lowbrass', bells: 'mallet'};
 
   const history = [];
   const now = () => performance.now();
@@ -95,7 +107,7 @@ window.Arcade = window.Arcade || {};
   const cutFor = (V, f, k) => Math.max(V.minCut, Math.min(V.maxCut, f * k));
 
   /* A VOICE on any context (the game's output, or a test's OfflineAudioContext); sec = null: held */
-  function buildVoice(ctx, dest, name, f, t, sec) {
+  function buildVoice(ctx, dest, name, f, t, sec, gain = 1) {
     const V = WINDS[name];
     const osc = ctx.createOscillator(), lp = ctx.createBiquadFilter(), env = ctx.createGain(), out = ctx.createGain();
     osc.setPeriodicWave(wave(ctx, name)); osc.frequency.setValueAtTime(f, t);
@@ -104,7 +116,8 @@ window.Arcade = window.Arcade || {};
     lp.frequency.linearRampToValueAtTime(cutFor(V, f, V.open), t + V.openS);
     lp.frequency.setTargetAtTime(cutFor(V, f, V.settle), t + V.openS, V.settleS / 3);
     env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(1, t + V.attackS);
-    out.gain.value = V.vol;
+    if (V.decayS) env.gain.setTargetAtTime(0, t + V.attackS, V.decayS / 3);               // a struck voice rings away
+    out.gain.value = V.vol * gain;
     osc.connect(lp); lp.connect(env); env.connect(out); out.connect(dest);
     const ns = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
     ns.buffer = noise(ctx); ns.loop = true;
@@ -115,7 +128,8 @@ window.Arcade = window.Arcade || {};
     const v = {ctx, name, osc, lp, env, out, ns, freq: f, t0: t, sec, stopped: false};
     if (sec != null) {
       const end = t + Math.max(V.attackS, sec);
-      env.gain.setValueAtTime(1, end); env.gain.linearRampToValueAtTime(0, end + V.releaseS);
+      if (V.decayS) env.gain.setTargetAtTime(0, end, V.releaseS / 3);                     // (no jump back up first)
+      else { env.gain.setValueAtTime(1, end); env.gain.linearRampToValueAtTime(0, end + V.releaseS); }
       osc.stop(end + V.releaseS + 0.03); ns.stop(end + V.releaseS + 0.03);
     }
     return v;
@@ -158,6 +172,21 @@ window.Arcade = window.Arcade || {};
     if (!o) return null;
     return handle([buildVoice(o.ctx, o.out, voice, f, o.ctx.currentTime + 0.01, sec)], sec, 'play');
   }
+  /** a melody: every note built now, each starting at its own time on the audio clock (never a timer per note) */
+  function phrase(voice, notes, {lead = 0.12} = {}) {
+    const o = known(voice) && notes && notes.length ? output() : null;
+    log({kind: 'phrase', voice, notes: notes ? notes.length : 0, played: !!o});
+    if (!o) return null;
+    const t0 = o.ctx.currentTime + lead;
+    const vs = notes.filter(n => n.f > 0 && n.sec > 0).map(n => buildVoice(o.ctx, o.out, voice, n.f, t0 + n.at, n.sec, n.gain == null ? 1 : n.gain));
+    if (!vs.length) return null;
+    const end = Math.max(0, ...notes.map(n => n.at + n.sec));
+    const h = handle(vs, lead + end, 'phrase'), stopAll = h.stop;
+    // a note still waiting to start is cancelled outright (stop before its start: it never sounds)
+    h.stop = () => { if (h.done) return; const now = o.ctx.currentTime; vs.forEach(v => { if (v.t0 > now + 0.01 && !v.stopped) { v.stopped = true; try { v.osc.stop(0); v.ns.stop(0); } catch (e) {} } }); stopAll(); };
+    h.t0 = t0;
+    return h;
+  }
   function ref(f, {sec = 1.6} = {}) {
     const o = f > 0 ? output() : null;
     log({kind: 'ref', freq: f, sec, played: !!o});
@@ -196,7 +225,7 @@ window.Arcade = window.Arcade || {};
   function stopAll() { stop(); timed.slice().forEach(h => h.stop()); }
 
   A.Winds = {
-    WINDS, VOICES, play, ref, together, start, setFreq, stop, playing, stopAll,
+    WINDS, VOICES, VOICE_FOR, voiceFor: id => VOICE_FOR[id] || 'flute', play, phrase, ref, together, start, setFreq, stop, playing, stopAll,
     busy: () => playing() || timed.length > 0,
     test: {
       history,

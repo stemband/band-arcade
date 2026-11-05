@@ -8,7 +8,7 @@ judges the pitch and the timing (from the note's attack).
 |---|---|
 | `songs.js` | **THE SONG LIST.** Every song, in the format below. Mat edits this. |
 | `song-map.js` | The song engine: scale degrees → concert pitch → each instrument's written notes, octave fitting, chords. |
-| `notation.js` | The notation engine: note values, beams, rests, ties, accidentals, engraving-style spacing and the time → x map the scrolling staff follows (also the Song Board and the trouble spot). |
+| `../shared/notation.js` | The notation engine (now shared: First Sight uses it too): note values, beams, rests, ties, accidentals, engraving-style spacing and the time → x map the scrolling staff follows (also the Song Board and the trouble spot). |
 | `settings.js` | Judging windows, scoring, stars, speeds, the highway (lanes, pads, pad spacing, the sun), the gate glow, performance, staff spacing, calibration, volumes. |
 | `backing.js` | The generated drums (and the headphones-mode band), scheduled on the audio clock. |
 | `game.js` | The game: song select, the highway, judging, calibration, the headphones check, results. |
