@@ -44,6 +44,9 @@
      cards,           the level cards in level order (the game's own buttons, with the game's own click handlers)
      unlocked(i),     whether level i (0-based) can be played
      picker,          the note-set picker's element (optional: "①"/"②" and the note set in START's line)
+     pickHead         the picker's heading instead of "Select your notes" (First Sight: "Select your key")
+     setLabel()       START's line for the picker's choice instead of reading the mode picker's buttons (First Sight:
+                      "Concert E♭ · 8 bars")
      endless,         the Endless tile's element (optional: selectable, 'endless')
      lockText(i),     a locked card's line (default "Clear Level i to unlock": i = the level before it)
      label(i),        START's name for level i (default: the card's `.n` text, e.g. "Level 4", "Track 2")
@@ -179,11 +182,11 @@ window.Arcade = window.Arcade || {};
     row.querySelector('.ls-head').innerHTML = (step ? '<span class="ls-step" aria-hidden="true">②</span> ' : '') + esc(text || 'Select your level');
     return row;
   }
-  function notesHead(picker) {
+  function notesHead(picker, text) {
     if (!picker || picker.querySelector('.ls-pick')) return;
     const h = document.createElement('h2');
     h.className = 'ls-head ui-section ls-pick';
-    h.innerHTML = '<span class="ls-step" aria-hidden="true">①</span> Select your notes';
+    h.innerHTML = '<span class="ls-step" aria-hidden="true">①</span> ' + esc(text || 'Select your notes');
     picker.insertBefore(h, picker.firstChild);
     // a new note set: START's line follows (the level stays selected)
     picker.addEventListener('click', e => { if (e.target.closest('button')) setTimeout(() => { if (S && S.picker === picker) drawStart(false); }, 30); });
@@ -192,6 +195,7 @@ window.Arcade = window.Arcade || {};
   function noteSet() {
     const p = S && S.picker;
     if (!p) return '';
+    if (S.opts && S.opts.setLabel) return S.opts.setLabel() || '';
     const n = p.querySelector('.mp-note[aria-pressed="true"] b'), o = p.querySelector('.mp-ord[aria-pressed="true"]');
     if (!n) return '';
     const t = n.textContent.trim(), name = /^first/i.test(t) ? 'First five' : /^chrom/i.test(t) ? 'Chromatic' : 'Concert ' + t;
@@ -239,7 +243,7 @@ window.Arcade = window.Arcade || {};
     const go = S.row.querySelector('.ls-go'), was = S.ready;
     S.ready = S.sel !== null;
     if (!S.ready) {
-      go.innerHTML = `<p class="ls-need">${S.picker ? 'Select your notes and level' : esc((S.opts && (S.opts.need || S.opts.heading)) || 'Select your level')}</p>`;
+      go.innerHTML = `<p class="ls-need">${S.picker ? esc((S.opts && S.opts.need) || 'Select your notes and level') : esc((S.opts && (S.opts.need || S.opts.heading)) || 'Select your level')}</p>`;
       S.start = null;
       beside();
     } else {
@@ -395,7 +399,7 @@ window.Arcade = window.Arcade || {};
     st.open = i => o.unlocked ? !!o.unlocked(i) : true;
     st.lockLine = i => o.lockText ? o.lockText(i) : `Clear Level ${i} to unlock`;
     st.row = headRow(grid, !!picker, o.heading);
-    notesHead(picker);
+    notesHead(picker, o.pickHead);
     intercept(grid, 'cards');
     if (st.endless) intercept(st.endless, 'endless');
     cards.forEach((c, i) => {

@@ -1,13 +1,24 @@
-/* Music Highway: THE NOTATION ENGINE. Draws a song as printed music (real note values, beams, rests, ties, dots,
-   accidentals, bar lines, time and key signatures) with engraving-style spacing, and gives a smooth time -> x map so a
-   scrolling staff can follow the music exactly. Used by the game's scrolling staff and trouble spot (game.js) and by
-   the Song Board (songs.html). Needs shared/ui.js (noteY, keySigSVG, keySigWidth). The spacing numbers are in
-   settings.js (STAFF SPACING).
+/* THE NOTATION ENGINE (shared; it began as Music Highway's). Draws a melody as printed music (real note values, beams,
+   rests, ties, dots, accidentals, bar lines, time and key signatures) with engraving-style spacing, and gives a smooth
+   time -> x map so a scrolling staff can follow the music exactly. Used by Music Highway's scrolling staff and trouble
+   spot (music-highway/game.js), the Song Board (music-highway/songs.html) and First Sight's etudes (first-sight/).
+   Needs shared/ui.js (noteY, keySigSVG, keySigWidth). Music Highway's spacing numbers are in its settings.js (STAFF
+   SPACING, window.MH_RULES); without them the defaults below apply.
 
      Arcade.MHNotation.engrave({clef ('treble' | 'bass' | null = a one-line percussion staff), sig, per (beats in a
        measure), timeSig, measures, events: [{t (beats from the first measure), beats, rest?, n (written note),
        label (the letter name / R or L), id?, slur? (its slur group), slurFirst?, slurLast?}], header: 'time' | 'full' | 'none', showTime, x0, width (justify a row
        to this width), captions, final (a double bar at the end)})
+       FIRST SIGHT'S EXTRAS (all optional; a caller that sets none draws byte-for-byte as before):
+         groupBeats            beam eighths and sixteenths by this many beats (1 = by the beat in 4/4 too)
+         event.trip            an eighth-note TRIPLET member (any id shared by its three notes; beats = 1/3): drawn as
+                               eighths, beamed only with its own triplet, a "3" on the beam's side
+         event.art             ['stac' | 'ten' | 'acc']: staccato dot, tenuto line, accent, on the head's side away
+                               from the stem (the first piece of a tied note)
+         event.dyn             a dynamic ('p', 'mf', …) under the staff at the note; event.hair 'cresc' | 'dim' starts a
+                               hairpin there, ending at the next event with hairEnd (or the row's end)
+         event.tieIn / tieOut  a tie coming in from the row before / going on to the next row (half ties at the edges)
+         a rest's label        shown as a caption too (captions: true), like a note's
        -> {svg, vb: {top, h, w}, xAt(beats) (the smooth time -> x map), points: [{t, x}], bars: [x], shortest, layout() (tests)}
        2/2 draws ¢; 6/8 and 3/8 beam by the dotted quarter (3/8: the whole measure), may use dotted rests, and tie a note
        across the middle of a 6/8 bar instead of writing it over the dotted-quarter beat
@@ -34,6 +45,8 @@ window.Arcade = window.Arcade || {};
   const S = () => Object.assign({barPadL: 26, barPadR: 20, noteBase: 36, noteMin: 34, noteGrow: .6, accRoom: 22, dotRoom: 10},
     (window.MH_RULES || {}).staff || {});
 
+  /* an eighth-note triplet member: drawn as an eighth, a third of a beat long */
+  const TRIP = {b: q(1 / 3), head: 'fill', flags: 1, dot: 0, trip: true};
   /* the note values a piece can be written as */
   const VALUES = [
     {b: 4, head: 'whole', flags: 0, dot: 0},
@@ -95,12 +108,17 @@ window.Arcade = window.Arcade || {};
     // 6/8 and 3/8 (`compound`): beams by the dotted quarter (3/8: the whole measure's three eighths together), dotted
     // rests, nothing across the middle of a 6/8 bar (tied instead); 2/2 beams by the half (like 4/4) and shows ¢
     const ts = o.timeSig || [per, 4], compound = ts[1] === 8 && ts[0] % 3 === 0;
-    const groupLen = compound ? 1.5 : per === 4 ? 2 : 1;
+    const groupLen = o.groupBeats ? o.groupBeats * (compound ? 1.5 : 1) : compound ? 1.5 : per === 4 ? 2 : 1;
     const events = o.events.slice().sort((a, b) => a.t - b.t);
 
     /* 1. pieces, measure by measure (notes tied across bar lines and awkward beats) */
     const meas = Array.from({length: M}, () => []);
     events.forEach(e => {
+      if (e.trip) {                                        // a triplet eighth: one piece, never split
+        const m = Math.floor(q(e.t) / per + EPS);
+        if (m >= 0 && m < M) meas[m].push({ev: e, rest: !!e.rest, p: q(q(e.t) - m * per), v: TRIP, m});
+        return;
+      }
       let t = q(e.t), len = q(e.beats), prev = null;
       while (len > EPS) {
         const m = Math.floor(t / per + EPS);
@@ -155,7 +173,7 @@ window.Arcade = window.Arcade || {};
       list.forEach(pc => {
         const g = Math.floor(pc.p / groupLen + EPS), gEnd = Math.floor((pc.p + pc.v.b) / groupLen - EPS);
         if (pc.rest || !pc.v.flags || g !== gEnd) { flush(); return; }
-        if (run.length && run[0].g !== g) flush();
+        if (run.length && (run[0].g !== g || (run[0].ev.trip || null) !== (pc.ev.trip || null))) flush();
         pc.g = g; run.push(pc);
       });
       flush();
@@ -247,6 +265,12 @@ window.Arcade = window.Arcade || {};
         return `<path d="M${f1(x1)} ${f1(ya)}L${f1(x2)} ${f1(yb)}L${f1(x2)} ${f1(yb + th)}L${f1(x1)} ${f1(ya + th)}Z" fill="currentColor"/>`;
       };
       beamSVG += bar(sx(a) - (up ? 1 : 1), sx(z) + 1, 0);
+      // a triplet: its "3" centered on the beam's outer side
+      if (a.ev.trip && run.every(pc => pc.ev.trip === a.ev.trip)) {
+        const mx = (sx(a) + sx(z)) / 2, ty = at(mx) + (up ? -10 : 24);
+        ext(ty - 16, ty + 2);
+        beamSVG += `<text class="tuplet" x="${f1(mx)}" y="${f1(ty)}" text-anchor="middle" ${NUM_FONT} font-style="italic" font-weight="700" font-size="20" fill="currentColor">3</text>`;
+      }
       // second (and third) beams: between neighbors that both have them, else a short stub
       for (let lv = 2; lv <= 3; lv++) {
         run.forEach((pc, i) => {
@@ -258,8 +282,13 @@ window.Arcade = window.Arcade || {};
       }
     });
 
+    const restCaps = [], arts = [];
     all.forEach(pc => {
-      if (pc.rest) { rests += restSVG(pc); return; }
+      if (pc.rest) {
+        rests += restSVG(pc);
+        if (o.captions && pc.ev.label && pc.x != null && !restCaps.some(c => c.ev === pc.ev)) restCaps.push({ev: pc.ev, x: pc.x, label: pc.ev.label});
+        return;
+      }
       const g = grp(pc.ev), xx = pc.x, y = pc.y, v = pc.v, whole = v.head === 'whole';
       let s = '';
       if (!pc.tieFrom) s += `<ellipse class="halo" cx="${f1(xx)}" cy="${f1(y)}" rx="17" ry="13" fill="none" opacity="0"/>`;
@@ -298,6 +327,9 @@ window.Arcade = window.Arcade || {};
       const side = (pc.tieFrom ? pc.tieFrom : pc).up ? 1 : -1;
       if (pc.tieNext) s += tieSVG(xx + 8, pc.tieNext.x != null ? pc.tieNext.x - 8 : xx + 34, y, side);
       if (pc.tieFrom && pc.tieFrom.x == null) s += tieSVG(Math.max(start - 4, xx - 34), xx - 8, y, side);
+      if (pc.ev.tieIn && !pc.tieFrom) s += tieSVG(Math.max(start - 4, xx - 34), xx - 8, y, side);
+      if (pc.ev.tieOut && !pc.tieNext) s += tieSVG(xx + 8, Math.min(W - 6, xx + 34), y, side);
+      if (pc.ev.art && pc.ev.art.length && !pc.tieFrom) arts.push(pc);
       ext(y - 12, y + 12);
       g.a += s;
       if (!pc.tieFrom) { g.x = xx; if (o.captions && pc.ev.label) g.cap = {x: xx, label: pc.ev.label}; }
@@ -327,14 +359,51 @@ window.Arcade = window.Arcade || {};
       slurSVG += `<path class="slur" fill="currentColor" d="M${f1(x1)} ${f1(y1)}C${f1(x1 + dx)} ${f1(yc)} ${f1(x2 - dx)} ${f1(yc)} ${f1(x2)} ${f1(y2)}C${f1(x2 - dx)} ${f1(yi)} ${f1(x1 + dx)} ${f1(yi)} ${f1(x1)} ${f1(y1)}Z"/>`;
     });
 
+    /* ARTICULATIONS: on the head's side away from the stem (a whole note: as if its stem were up), staccato and tenuto
+       nearest the head, the accent outside them */
+    let artSVG = '';
+    arts.forEach(pc => {
+      const below = !pitched || pc.up || pc.v.head === 'whole' && pc.y > MID, d = below ? 1 : -1;
+      let yy = pc.y + d * 15;
+      if (pitched && yy > 56 && yy < 120 && Math.abs(((yy - 56) % 16 + 16) % 16) < 3) yy += d * 4;   // off a staff line
+      const xx = pc.x;
+      ['stac', 'ten', 'acc'].filter(k => pc.ev.art.includes(k)).forEach(k => {
+        if (k === 'stac') artSVG += `<circle class="art art-stac" cx="${f1(xx)}" cy="${f1(yy)}" r="3.2" fill="currentColor"/>`;
+        else if (k === 'ten') artSVG += `<rect class="art art-ten" x="${f1(xx - 9)}" y="${f1(yy - 1.4)}" width="18" height="2.8" fill="currentColor"/>`;
+        else artSVG += `<path class="art art-acc" d="M${f1(xx - 10)} ${f1(yy - 6)}L${f1(xx + 10)} ${f1(yy)}L${f1(xx - 10)} ${f1(yy + 6)}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="miter"/>`;
+        ext(yy - 7, yy + 7);
+        yy += d * (k === 'acc' ? 16 : 11);
+      });
+    });
+    /* DYNAMICS and HAIRPINS: one row under the staff (below the lowest note or mark) */
+    let dynSVG = '';
+    const dynEvs = all.filter(pc => !pc.tieFrom && pc.x != null && (pc.ev.dyn || pc.ev.hair || pc.ev.hairEnd)).filter((pc, i, a) => a.findIndex(x => x.ev === pc.ev) === i);
+    if (dynEvs.length) {
+      const dy = Math.max(146, maxY + 8) + 22;
+      const DYN_FONT = `font-family='Georgia,"Times New Roman",serif' font-style="italic" font-weight="700"`;
+      dynEvs.forEach((pc, i) => {
+        if (pc.ev.dyn) dynSVG += `<text class="dyn" x="${f1(pc.x - 4)}" y="${f1(dy + 8)}" text-anchor="middle" ${DYN_FONT} font-size="26" fill="currentColor">${pc.ev.dyn}</text>`;
+        if (!pc.ev.hair) return;
+        const end = dynEvs.slice(i + 1).find(x => x.ev.hairEnd);
+        const x1 = pc.x + (pc.ev.dyn ? 18 : -2), x2 = end ? end.x - (end.ev.dyn ? 22 : 6) : W - 12;
+        if (x2 - x1 < 16) return;
+        const open = 8, cy = dy;
+        dynSVG += pc.ev.hair === 'cresc'
+          ? `<path class="hairpin cresc" d="M${f1(x2)} ${f1(cy - open)}L${f1(x1)} ${f1(cy)}L${f1(x2)} ${f1(cy + open)}" fill="none" stroke="currentColor" stroke-width="2"/>`
+          : `<path class="hairpin dim" d="M${f1(x1)} ${f1(cy - open)}L${f1(x2)} ${f1(cy)}L${f1(x1)} ${f1(cy + open)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+      });
+      ext(dy - 22, dy + 14);
+    }
+
     const top = Math.floor(Math.min(28, minY - 8)), bot0 = Math.ceil(Math.max(o.minBottom || 146, maxY + 8));
     const bot = bot0 + (o.captions ? 30 : 0), capY = bot - 10;
     let notesSVG = '';
     groups.forEach((g, e) => {
       notesSVG += `<g${e.id ? ` id="${e.id}"` : ''} data-x="${f1(g.x)}">${g.a}${g.cap ? `<text class="ncap" x="${f1(g.cap.x)}" y="${capY}" text-anchor="middle" ${TEXT_FONT} font-weight="700" font-size="15" fill="currentColor" fill-opacity=".72">${g.cap.label}</text>` : ''}</g>`;
     });
+    restCaps.forEach(c => { notesSVG += `<text class="ncap ncap-rest" x="${f1(c.x)}" y="${capY}" text-anchor="middle" ${TEXT_FONT} font-weight="700" font-size="15" fill="currentColor" fill-opacity=".72">${c.label}</text>`; });
     const svg = `<svg class="staff mh-staffsvg" viewBox="0 ${top} ${f1(W)} ${bot - top}" style="color:var(--ink)" role="img" aria-label="${o.label || 'The song on the staff'}">` +
-      lines + head + rests + beamSVG + notesSVG + slurSVG + `</svg>`;
+      lines + head + rests + beamSVG + notesSVG + slurSVG + artSVG + dynSVG + `</svg>`;
     return {svg, vb: {top, h: bot - top, w: W}, xAt, points: pts, bars, shortest, pieces: all.length,
       // tests: every piece as written ({t (beats), b (its value), rest, dot, tie (into the next piece)}) and the beamed groups
       layout: () => ({pieces: all.map(pc => ({t: q(pc.m * per + pc.p), b: pc.v.b, rest: !!pc.rest, full: !!pc.full, dot: !!pc.v.dot, tie: !!pc.tieNext})),
@@ -411,5 +480,5 @@ window.Arcade = window.Arcade || {};
     };
   }
 
-  A.MHNotation = {engrave, pinSVG, split, VALUES, monotone};
+  A.Notation = A.MHNotation = {engrave, pinSVG, split, VALUES, monotone};
 })(window.Arcade);

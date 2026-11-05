@@ -157,6 +157,12 @@ const STEPS = {
     if (await page.locator('#introGo').isVisible().catch(() => false)) await page.locator('#introGo').click();
     else { await page.keyboard.press('a'); await page.keyboard.press('Enter'); }
     await page.waitForTimeout(250); }},
+  // First Sight (no microphone, no stars): I'M READY ends the study time, then ▶ PLAY IT runs the etude with the click
+  // (6 bars at the level's fastest tempo, sound off); done = one etude played through (gameData read)
+  'first-sight': {stars: false, store: {sfx: false, gameData: {'first-sight': {bars: 6, tempo: {1: 88}}}},
+    play: async page => { await page.evaluate(() => { const F = Arcade.FirstSight, s = F.state(); if (s.screen !== 'play') return;
+      if (s.studyOn) F.ready(); else if (!s.run) F.play(); }); await page.waitForTimeout(400); },
+    done: page => page.evaluate(() => (Arcade.store.gameData('first-sight').read || 0) >= 1)},
   // Scale Trainer: Space = the next note of the scale (four scales in a row: about 100 notes on level 1)
   'scale-trainer': {every: 200, limit: 90_000},
   'sustain-speedway': {play: async page => { await page.keyboard.down('Space'); await page.waitForTimeout(1500); }, limit: 150_000, slow: true},
