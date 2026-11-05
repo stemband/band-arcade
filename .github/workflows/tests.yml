@@ -37,7 +37,7 @@ env:
 jobs:
   quick:
     name: quick check (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -88,7 +88,7 @@ jobs:
     name: quick check
     if: ${{ always() }}
     needs: quick
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 2
     steps:
       - name: Every quick shard passed
@@ -101,7 +101,7 @@ jobs:
   full:
     name: tests (${{ matrix.browser }} ${{ matrix.shard }})
     needs: quick
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -163,7 +163,7 @@ jobs:
     # a frame rate only means something with the machine to itself: one browser, nothing else running
     name: perf (frame rates, alone)
     needs: quick
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 15
     defaults:
       run:
@@ -194,7 +194,7 @@ jobs:
     name: all tests
     if: ${{ always() }}
     needs: [quick, full, perf]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 10
     defaults:
       run:
@@ -252,7 +252,7 @@ jobs:
     # upload's length with its loop seams intact (--verify, against tests/fixtures/sound-durations.json). This change's
     # own new sounds are compressed first, as compress-sounds.yml will do once it is on main.
     name: sounds (sizes and lengths)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
