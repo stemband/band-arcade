@@ -221,3 +221,27 @@ test('PRINT IT prints only the music; the etude page fits a phone', async ({page
   await expect(page.locator('#printHead')).toBeVisible();
   watch.check();
 });
+
+test('THE STUDY COUNTDOWN keeps counting after the pause menu\'s BACK TO LEVELS (it once froze for good)', async ({page}) => {
+  const watch = await open(page, fsDevice('trumpet', {studyS: 30}), URL + '&code=1F8-ABCD');
+  const left = () => page.evaluate(() => Arcade.FirstSight.state().studyLeft);
+  const a = await left();
+  await page.waitForTimeout(1300);
+  expect(await left()).toBeLessThan(a - .8);
+  // pause, then BACK TO LEVELS
+  await page.locator('.ui-pause-btn').click();
+  const p0 = await left();
+  await page.waitForTimeout(700);
+  expect(await left()).toBe(p0);                            // paused: it holds
+  await page.locator('.ui-menu [data-act="levels"]').click();
+  await expect(page.locator('#hub')).toBeVisible();
+  // a new etude: its countdown runs
+  await page.locator('.fs-card[data-l="2"]').click();
+  await page.locator('.ls-start').click();
+  expect((await st(page)).studyOn).toBe(true);
+  const b = await left();
+  await page.waitForTimeout(1300);
+  expect(await left()).toBeLessThan(b - .8);
+  await expect(page.locator('#studyLeft')).not.toHaveText('30');
+  watch.check();
+});
