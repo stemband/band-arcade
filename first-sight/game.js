@@ -47,7 +47,7 @@ window.Arcade = window.Arcade || {};
   const S = {
     key: KEY_CHOICES.includes(gd().key) ? gd().key : 'Bb', bars: gd().bars === 6 ? 6 : 8,
     click: gd().click !== false, counting: !!gd().counting, studyS: [0, 30, 60].includes(gd().studyS) ? gd().studyS : 30,
-    et: null, real: null, rows: [], heard: false, played: false, run: null, studyT: 0, studyLeft: 0, studyOn: false, paused: false,
+    et: null, real: null, rows: [], heard: false, played: false, run: null, studyT: 0, studyLeft: 0, studyOn: false,
   };
   if (!pitched) S.key = 'Bb';                                       // the snare reads rhythms: no key to choose
 
@@ -226,7 +226,8 @@ window.Arcade = window.Arcade || {};
     let last = performance.now();
     S.studyT = setInterval(() => {
       const now = performance.now(), dt = (now - last) / 1000; last = now;
-      if (S.paused || document.hidden) return;
+      // the pause menu's own state (never a copy: "Back to levels" closes the menu without calling onResume)
+      if ((pause && pause.paused) || document.hidden) return;
       S.studyLeft = Math.max(0, S.studyLeft - dt);
       drawStudy();
       if (S.studyLeft <= 0) endStudy(true);
@@ -442,8 +443,7 @@ window.Arcade = window.Arcade || {};
 
   /* ---------- pause (the kit's) ---------- */
   const pause = A.UI.pause.mount({
-    onPause: () => { S.paused = true; stopRun(); },
-    onResume: () => { S.paused = false; },
+    onPause: () => stopRun(),                                      // the study countdown reads pause.paused itself
     onLevels: () => showHub(),
     levelsLabel: 'Back to levels',
     confirmLeave: () => false,
