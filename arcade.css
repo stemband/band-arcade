@@ -915,3 +915,38 @@ html.no-motion .ch-confetti{display:none}
 .gs-zones{display:flex;flex-wrap:wrap;gap:4px}
 .gs-item.nofit .mq-thumb,.gs-item.nofit .gs-name,.gs-item.nofit .gs-skill{opacity:.5;filter:saturate(.35)}
 @media (max-width:480px){ .gs-item{grid-template-columns:minmax(0,96px) minmax(0,1fr);gap:10px} .gs-name{font-size:15px} }
+
+/* ---------- MY FAVORITES: THE STAR (Arcade.favButton; lobby.js handles every tap). Icon only on ARCADE VIEW's cards and
+   FIND A GAME's results (bottom right / right, a sibling of the card's button); a pill with words under a cabinet. ---------- */
+.fav-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:0 10px;border-radius:999px;cursor:pointer;
+  border:2px solid var(--line);background:var(--deep);color:var(--text-lo);font:700 14px var(--text)}
+.fav-btn svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.fav-btn:hover{background:var(--floor-3);color:var(--yellow-hi)}
+.fav-btn:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+.fav-btn[aria-pressed="true"]{border-color:var(--yellow);color:var(--yellow-hi);box-shadow:0 0 10px color-mix(in srgb,var(--yellow) 45%,transparent)}
+.fav-btn[aria-pressed="true"] svg{fill:var(--yellow)}
+.fav-pill{padding:0 16px 0 12px}
+.info-fav{margin:0 0 8px;display:flex;justify-content:center}
+.info-fav:empty{display:none}
+.gc-wrap{position:relative;display:flex;min-width:0}
+.gc-wrap>.gcard{flex:1;min-width:0}
+.gc-wrap .gc-foot{padding-right:50px}
+.gc-fav{position:absolute;right:8px;bottom:8px}
+.gs-list>li{position:relative}
+.gs-list .gs-item{padding-right:60px}
+.gs-fav{position:absolute;right:10px;top:50%;transform:translateY(-50%)}
+.allg-chip[hidden]{display:none}
+.allg-fav[aria-pressed="true"]{background:var(--yellow);border-color:var(--yellow);color:var(--deep);box-shadow:var(--glow-yellow)}
+/* RECENTLY PLAYED (lobby.js recentCard; still .lc-continue): CONTINUE big, up to 3 more games played lately under it */
+.lc-recent{flex-direction:column;align-items:stretch;gap:8px;cursor:default}
+.lc-recent:hover{background:linear-gradient(90deg,var(--deep),var(--floor-2))}
+.rp-main{display:flex;align-items:center;gap:12px;min-height:56px;padding:4px;border:0;border-radius:12px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.rp-main:hover,.rp-mini:hover{background:var(--floor-3)}
+.rp-main:focus-visible,.rp-mini:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+.rp-more{border-top:1px solid var(--line);padding-top:8px}
+.rp-h{display:block;margin:0 0 6px 4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo)}
+.rp-row{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rp-mini{display:flex;flex-direction:column;gap:4px;width:100%;min-height:44px;padding:4px;border-radius:10px;border:2px solid var(--line);background:var(--deep);color:var(--text-hi);cursor:pointer;text-align:left}
+.rp-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:6px}
+.rp-name{font:700 13px var(--text);line-height:1.2;overflow-wrap:anywhere}
+.rp-mini.nofit .mq-thumb,.rp-mini.nofit .rp-name,.rp-main.nofit .lc-name{opacity:.5;filter:saturate(.35)}

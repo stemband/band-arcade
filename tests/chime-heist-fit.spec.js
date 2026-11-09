@@ -25,8 +25,8 @@ for (const [name, size, touch] of [['iPad landscape', {width: 1024, height: 768}
         expect(f.ok).toBe(true);
         expect([f.player, f.noInstrument]).toEqual(['bells', true]);
         expect(f.blurb).toBe('Crack the vault codes on the bell kit: read each note and strike its bar. No mic and no instrument needed!');
-        // the lobby (CONTINUE/ASSIGNED cards may show it) and ALL GAMES
-        await expect(page.locator('.lcard.nofit[data-game="chime-heist"]')).toHaveCount(0);
+        // the lobby (RECENTLY PLAYED / ASSIGNED cards may show it) and ALL GAMES
+        await expect(page.locator('#lobbyCards .nofit[data-game="chime-heist"]')).toHaveCount(0);
         await page.goto('index.html?demo&nostart#all-games');
         await expect(page.locator('.gcard[data-game="chime-heist"]')).toBeVisible();
         await expect(page.locator('.gcard.nofit[data-game="chime-heist"]')).toHaveCount(0);

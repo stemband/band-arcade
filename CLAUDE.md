@@ -43,7 +43,7 @@ Engine and shared systems (`docs/engine/`):
 | File | Read it when you touch… |
 |---|---|
 | [version-and-app.md](docs/engine/version-and-app.md) | the installable app, `sw.js`, `shared/app.js`, offline, updates, the play session (`Arcade.session`) |
-| [page-flow.md](docs/engine/page-flow.md) | the floor page: lobby, FIND A GAME (`shared/game-search.js`), NEW GAMES and the NEW badge, THE LOBBY QUEUE (`shared/lobby-queue.js`: anything that pops up on the floor), TODAY'S PRACTICE (`shared/practice.js`), zones, ALL GAMES, FULL ARCADE, the top bar, opening a game, Choose Your Instrument / Select Player, pick mode, players and groups, zones and `fit`, `requireInstrument`, links |
+| [page-flow.md](docs/engine/page-flow.md) | the floor page: lobby, FIND A GAME (`shared/game-search.js`), NEW GAMES and the NEW badge, MY FAVORITES (the ☆), RECENTLY PLAYED, THE LOBBY QUEUE (`shared/lobby-queue.js`: anything that pops up on the floor), TODAY'S PRACTICE (`shared/practice.js`), zones, ALL GAMES, FULL ARCADE, the top bar, opening a game, Choose Your Instrument / Select Player, pick mode, players and groups, zones and `fit`, `requireInstrument`, links |
 | [ui-kit.md](docs/engine/ui-kit.md) | any UI: buttons, results, pause, settings, intro, confirm, toasts, layers, hold guard, overlays |
 | [look-and-theme.md](docs/engine/look-and-theme.md) | colors, tokens, fonts, the neon arcade look, the floor's look |
 | [press-start-and-level-select.md](docs/engine/press-start-and-level-select.md) | a game's PRESS START screen or its first screen (SELECT YOUR NOTES / LEVEL / START) |
