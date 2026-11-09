@@ -208,9 +208,10 @@
     $('infoSkill').textContent = g.skill || '';
     $('infoName').textContent = g.name;
     $('infoBlurb').textContent = g.blurb || '';
-    // tags: ASSIGNED (shared/featured.js), 2 players, and the instrument fit (games.js fit)
+    // tags: NEW (games.js added), ASSIGNED (shared/featured.js), 2 players, and the instrument fit (games.js fit)
     const F = A.featuredGame(), f = fitOf(g);
-    $('infoTags').innerHTML = (F === g ? `<span class="badge b-assigned">Assigned</span>${A.FEATURED.note ? ` <span class="as-note">${esc(A.FEATURED.note)}</span>` : ''}` : '') +
+    $('infoTags').innerHTML = (A.isNewGame(g) ? '<span class="badge b-new">New</span> ' : '') +
+      (F === g ? `<span class="badge b-assigned">Assigned</span>${A.FEATURED.note ? ` <span class="as-note">${esc(A.FEATURED.note)}</span>` : ''}` : '') +
       (g.players === 2 ? ' <span class="badge b-2p">2 players</span>' : '') + (f.ok ? '' : ` <span class="fit-tag">${esc(f.tag)}</span>`);
     if (isFull() && tagOf(g)) $('infoTags').innerHTML = `<span class="ztag" style="${A.Lobby.zoneStyle(fullZoneOf[g.id])}">${esc(fullZoneOf[g.id].name)}</span> ` + $('infoTags').innerHTML;
     $('aisleFlags').innerHTML = (F === g ? '<span class="badge b-assigned">Assigned</span>' : '') + (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`);
@@ -313,7 +314,12 @@
   document.addEventListener('keydown', e => {
     if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || A.SelectView.isOpen || pressStart()) return;
     if (document.body.classList.contains('avc-open') || e.defaultPrevented) return;   // the avatar editor (or the badge's menu) has the keys
+    if (A.GameSearch.isOpen()) return;                                               // FIND A GAME has the keys (its own Esc)
     if (!$('fitDlg').hidden) { if (e.key === 'Escape') closeFit(); return; }
+    // "/" = FIND A GAME (only with no panel over the floor)
+    if (e.key === '/' && !document.body.classList.contains('ui-modal') && !Q.busy({views: 'any'}).match(/^(panel|overlay|leaderboard)$/)) {
+      e.preventDefault(); A.GameSearch.open(); return;
+    }
     if (e.key === 'Escape' && current !== 'lobby') { e.preventDefault(); goBack(); return; }
     if (current !== 'zone') return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
@@ -653,6 +659,14 @@
   }
   $('backBtn').addEventListener('click', goBack);
   $('viewBtn').addEventListener('click', openArcadeView);
+  /* FIND A GAME (shared/game-search.js): the top bar's search, in every floor view. A result opens like a lobby card
+     (fit panel, Select Player, its START sound) and Back from the game returns to the view it was found in; Tune Up's
+     tools open the toolbox on that tab. */
+  A.GameSearch.mount({
+    button: $('searchBtn'),
+    onGame: g => openGame(g, current === 'zone' ? 'zone' : current || 'lobby'),
+    onTool: (g, tool) => { location.href = A.linkTo('note-checker/index.html', tool ? {tool} : {}); },   // like the TUNE UP link
+  });
 
   /* ---------- THE TOP BAR'S FIT: one row, never overlapping; the CENTER group in the middle of the screen. The widest
      step that fits (arcade.css): full labels → short labels (fit-short) → + compact sides (fit-compact: the back arrow,

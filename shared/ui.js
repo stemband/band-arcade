@@ -284,14 +284,33 @@ window.Arcade = window.Arcade || {};
   /** the games with a cabinet (every game except tools like the Note Checker) */
   A.floorGames = () => (A.GAMES || []).filter(g => !g.tool);
   A.zoneById = id => (A.ZONES || []).find(z => z.id === id) || null;
-  /** is game g in zone z? its own `zones` list, or the zone's `auto` flag (games.js ZONES: the No Instrument Needed zone) */
+  /** how many days old game g is (its games.js `added` date, against today's date: ?demo&today= counts); null = no date */
+  A.gameAge = function (g) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((g && g.added) || '');
+    if (!m) return null;
+    const t = (A.store && A.store.dayKey ? A.store.dayKey() : '').split('-').map(Number);
+    if (t.length !== 3 || t.some(isNaN)) return null;
+    return Math.round((Date.UTC(t[0], t[1] - 1, t[2]) - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 864e5);
+  };
+  /** is game g NEW? added under games.js NEW_GAME_DAYS days ago (never a date still to come: a game added ahead of time
+      turns new on its day). The NEW badge and the NEW GAMES zone. */
+  A.isNewGame = function (g) {
+    const age = A.gameAge(g);
+    return age != null && age >= 0 && age < (A.NEW_GAME_DAYS == null ? 30 : A.NEW_GAME_DAYS);
+  };
+  /** is game g in zone z? its own `zones` list, or the zone's `auto` flag (games.js ZONES: the No Instrument Needed
+      zone's 'noInstrument'; 'new' = the NEW GAMES zone, Arcade.isNewGame) */
   A.inZone = function (g, z) {
     if (typeof z === 'string') z = A.zoneById(z);
-    return !!(g && z && (z.auto ? g[z.auto] : (g.zones || []).includes(z.id)));
+    if (!g || !z) return false;
+    if (z.auto === 'new') return A.isNewGame(g);
+    return !!(z.auto ? g[z.auto] : (g.zones || []).includes(z.id));
   };
-  /** a zone's games: the zone's own `order` first (games.js ZONES), then the rest in games.js order */
+  /** a zone's games: the zone's own `order` first (games.js ZONES), then the rest in games.js order (NEW GAMES: the
+      newest first) */
   A.zoneGames = function (id) {
     const z = A.zoneById(id), games = A.floorGames().filter(g => A.inZone(g, z)), order = (z && z.order) || [];
+    if (z && z.auto === 'new') return games.slice().sort((a, b) => (A.gameAge(a) - A.gameAge(b)) || games.indexOf(a) - games.indexOf(b));
     const rank = g => { const i = order.indexOf(g.id); return i < 0 ? order.length + games.indexOf(g) : i; };
     return games.slice().sort((a, b) => rank(a) - rank(b));
   };

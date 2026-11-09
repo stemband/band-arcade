@@ -186,19 +186,24 @@ After PRESS START and the instrument, students land in the **zone lobby**: a dar
 
 | Zone | Games |
 |---|---|
-| Note Reading | Ghost Notes, Note Storm, Vanishing Ink, First Sight |
-| Band Ninja Dojo | Note Ninja, Vanishing Ink, Ancient Ninja Scrolls, Dojo Duel |
-| Technique Lab | Chime Heist, Button Masher, Showtime Malfunction, Sustain Speedway |
+| New Games | filled in by itself: every game added in the last 30 days, newest first (hidden when nothing is new) |
+| Note Reading | Ghost Notes, Note Storm, Keys to the City, Vanishing Ink, First Sight |
+| Band Ninja Dojo | Note Ninja, Vanishing Ink, Rhythm Dojo, Ancient Ninja Scrolls, Dojo Duel |
+| No Instrument Needed | filled in by itself: every game with `noInstrument: true` |
+| Technique Lab | Showtime Malfunction, Music Highway, Button Masher, Sustain Speedway, Chime Heist, Rudiment Trainer, Scale Trainer |
 | Ear Training | Lost Signal, Pedal Point, Slide Quest, Perfect Pitch |
 | 2-Player Corner | Neon Face-Off, Dojo Duel |
-| Adventure | Arcade Quest |
+| Adventure | Blocktave, Arcade Quest |
+| Audition Prep | Scale Trainer, First Sight, Rudiment Trainer |
 
-- **TODAY'S PRACTICE** (the first card in the lobby, once an instrument is chosen): WARM UP → SKILL → PLAY, about 15 minutes. Each step opens a game (or the Tuner / Metronome) and checks itself off when the student FINISHES a round there today. All 3 done = 10 tokens (once a day) and a stamp on this week's row; 4 practice days in one week = the PRACTICE PRO name plate. To change the day's skills, set a one-day override or change the bonus, edit the `PRACTICE` block at the top of `shared/practice.js` (its first lines say how).
+- **TODAY'S PRACTICE** (the first card in the lobby, once an instrument is chosen): WARM UP → SKILL → PLAY, about 15 minutes. Each step opens a game (or the Tuner / Metronome) and checks itself off when the student FINISHES a round there today. All 3 done = 40 tokens (once a day) and a stamp on this week's row; 4 practice days in one week = the PRACTICE PRO name plate. To change the day's skills, set a one-day override or change the bonus, edit the `PRACTICE` block at the top of `shared/practice.js` (its first lines say how).
 - **CONTINUE** (top of the lobby): the last game opened on this device, one tap to play it again.
-- **The top bar** (every floor screen): on the left, ← back and where you are; in the middle of the screen, **ARCADE VIEW**, **TUNE UP** and **LEADERBOARD**; on the right, the avatar badge and the sound/settings button. On an iPad held upright the labels get shorter ("Leaders"); on a phone the middle buttons are just icons, and when even those don't fit, TUNE UP and LEADERBOARD move into the avatar badge's menu.
+- **The top bar** (every floor screen): on the left, ← back and where you are; in the middle of the screen, **FIND A GAME**, **ARCADE VIEW**, **TUNE UP** and **LEADERBOARD**; on the right, the avatar badge and the sound/settings button. On an iPad held upright the labels get shorter ("Leaders"); on a phone the middle buttons are just icons, and when even those don't fit, TUNE UP and LEADERBOARD move into the avatar badge's menu.
 - **ARCADE VIEW** (in the top bar everywhere): every game at once, two ways, with a switch at the top to flip between them, **LIST | CABINETS**. The button opens whichever one this device used last (the first time: CABINETS if the device can draw 3D, else LIST), and flipping keeps the same game in front.
   - **LIST**: every game once, as a card with its marquee, its zone(s), the stars for the current instrument, and a 2P badge for two-player games. Link to it with `index.html#all-games`.
   - **CABINETS**: every game's cabinet in one carousel, zone by zone in the lobby's order (a game in two zones stands only once, in its first zone), with a small zone-color sign under each cabinet so students learn where games live. Below it, a strip of every game's marquee, grouped by zone: tap one and the carousel spins straight there. It opens on the ASSIGNED game, else the last game played on this device, else the first. Link to it with `index.html#full-arcade`.
+- **FIND A GAME** (the magnifier in the top bar everywhere, or the `/` key): type a game's name, a skill or an instrument ("sight reading", "timpani", "2 players") and the matching games show up, best first; a tap opens the game. Spelling mistakes are forgiven ("rudament"). With nothing typed it lists every game A–Z, with a row of starting words to tap. It searches each game's name, skill, blurb, zones and its `keywords` line in `shared/games.js`: when students can't find a game by the words they use, add those words there.
+- **NEW badges and the NEW GAMES sign**: each game's `added: 'YYYY-MM-DD'` line in `shared/games.js` makes it NEW for 30 days (a white NEW badge and a place on the lobby's first sign, NEW GAMES); after that it drops off by itself. Set it to the day students can first play a new game. To make "new" last longer or shorter, change `NEW_GAME_DAYS` just above the zones.
 - **TUNE UP** (in the top bar everywhere): the Note Checker. It isn't a cabinet any more; the games' own links to it still work.
 - **Addresses:** each view has its own address, so the browser's Back button and the iPad's back-swipe work, and you can share a zone: `index.html#zone=technique-lab`, `index.html#all-games`, `index.html#full-arcade`. (`?demo` stays on.)
 - **The zones themselves** (names, colors, taglines, order) are the `ZONES` list near the top of `shared/games.js`; a game joins zones with its `zones: [...]` line. A zone with no games hides itself. A zone's `order` line picks which cabinet is in front when it opens (Technique Lab opens on Showtime Malfunction, which every instrument can play).

@@ -28,6 +28,13 @@
                 group), under the saved player (Arcade.store.player); the hi-score reads that member
      players    optional: 2 = a two-player game (Neon Face-Off): START opens Select Player with &players=2, so Player 2
                 picks too (or CPU); stored as Arcade.store.opponent, never replacing Player 1's instrument
+     added      the date the game first joined the arcade, 'YYYY-MM-DD'. For NEW_GAME_DAYS days (below) the game wears a
+                NEW badge (ARCADE VIEW's list, FIND A GAME, under its cabinet) and stands in the lobby's NEW GAMES zone; after
+                that it drops out by itself. Set it to the day students can first play the game.
+     keywords   words a student might type to find the game in FIND A GAME (the top bar's search, shared/game-search.js),
+                lowercase: the skill ('sight reading'), what it's for ('audition'), the instruments it's about
+                ('timpani'), what it looks like ('robots'). The name, skill, blurb and zone names are searched too, so
+                list the words those leave out. Spelling mistakes are forgiven (one or two letters).
      zones      the lobby ZONES this game's cabinet stands in (ids from Arcade.ZONES below), e.g. ['technique-lab'].
                 A game can be in more than one zone (Dojo Duel). A game with no zone still shows in ALL GAMES.
      fit        which instruments the game suits (the lobby dims it for the others, with `tag`, and opening it explains
@@ -37,6 +44,8 @@
                 checks the instrument itself (unpitched / noPlay below). + block: true = the game's own page sends the
                 others to Choose Your Instrument with `why` (&need=fit) and dims their tiles there (the Rudiment Trainer).
      tool       optional: true = not a cabinet (the Note Checker): the lobby's TUNE UP button opens it instead
+                (FIND A GAME still finds it, and its `tools` list: [{tool, name, keywords}] = a result for each part,
+                opened with ?tool=<tool>)
      demoOnly   optional: true = only on the arcade floor with ?demo in the URL (a game still being built: Arcade Quest)
      noInstrument optional: true = the game can be played all the way through WITHOUT A LIVE INSTRUMENT (touch, taps,
                 claps or on-screen keys: no microphone listening for notes). ALL GAMES' "No instrument needed" filter
@@ -99,9 +108,15 @@ window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
      auto     optional: the name of a game flag (e.g. 'noInstrument'): the zone holds EVERY floor game with that flag
               set, in games.js order, without listing the zone in each game's `zones` (a game added later with the flag
               shows up here by itself; the games stay in their own zones too). Such a zone is a second way in: the FULL
-              ARCADE skips it (each cabinet still once, under its own zone), ALL GAMES' zone tags leave it out, and its
-              cabinets are never dimmed for the saved instrument (`fit`): they need no instrument */
+              ARCADE skips it (each cabinet still once, under its own zone) and ALL GAMES' zone tags leave it out. The
+              No Instrument Needed zone's cabinets are never dimmed for the saved instrument (`fit`): they need no
+              instrument. auto: 'new' = the NEW GAMES zone: every game whose `added` date is under NEW_GAME_DAYS days
+              old, the newest first (Arcade.isNewGame in shared/ui.js); with no new games its sign is hidden */
+/* HOW LONG A GAME IS "NEW": days after its `added` date (the NEW badge and the NEW GAMES zone). 30 = about a month. */
+window.Arcade.NEW_GAME_DAYS = 30;
 window.Arcade.ZONES = [
+  // first: the newest games (filled in automatically from each game's `added` date; hidden when nothing is new)
+  {id: 'new-games',     name: 'New Games',        color: 'white',  tagline: 'Just added to the arcade. Try them first!', auto: 'new'},
   {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, rhythms, words and duels.'},
   // every game flagged noInstrument (below), filled in automatically
@@ -112,16 +127,26 @@ window.Arcade.ZONES = [
   {id: 'ear-training',  name: 'Ear Training',     color: 'green',  tagline: 'Listen closely, then play it back.'},
   {id: 'two-player',    name: '2-Player Corner',  color: 'pink',   tagline: 'Grab a friend and face off.'},
   {id: 'adventure',     name: 'Adventure',        color: 'purple', tagline: 'A story you play with your instrument.'},
+  // the honor band and All-State audition tools in one place (each stays in its own zone too)
+  {id: 'audition-prep', name: 'Audition Prep',    color: 'yellow', tagline: 'Scales, sight-reading and rudiments for honor band.',
+   order: ['scale-trainer', 'first-sight', 'rudiment-trainer']},
 ];
 window.Arcade.GAMES = [
   {
     id: 'note-checker',
+    added: '2026-09-25',
+    keywords: ['note checker', 'check my notes', 'tuner', 'metronome', 'tempo', 'beat', 'click', 'tempo ladder', 'in tune', 'tools', 'toolbox', 'warm up'],
     tool: true,                          // not a cabinet: the lobby's TUNE UP button opens it
     zones: [],
     name: 'Note Checker',
     bg: {scene: 'aurora', dim: .4, focus: .35},
     skill: 'Start here',
     blurb: 'Tune Up: the Note Checker, a hot-air-balloon Tuner and a Metronome with a Tempo Ladder.',
+    // FIND A GAME's results for Tune Up's own tabs (opened with ?tool=)
+    tools: [
+      {tool: 'tuner', name: 'Tuner', keywords: ['tuner', 'tuning', 'in tune', 'sharp', 'flat', 'hold it']},
+      {tool: 'metronome', name: 'Metronome', keywords: ['metronome', 'tempo', 'beat', 'click', 'bpm', 'tempo ladder']},
+    ],
     maxStars: 0,
     color: 'cyan',
     unpitched: true,                     // the Snare Drum can use it (its ARTICULATION test)
@@ -131,6 +156,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'ghost-notes',
+    added: '2026-09-25',
+    keywords: ['note reading', 'note names', 'read notes', 'staff', 'treble clef', 'bass clef', 'letter names', 'ghost', 'haunted', 'fade'],
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Ghost Notes listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Ghost Notes',
@@ -147,6 +174,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'note-storm',
+    added: '2026-09-25',
+    keywords: ['note reading', 'read notes fast', 'speed', 'staff', 'robot', 'blast', 'flash cards', 'letter names'],
     zones: ['note-reading'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Storm listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Note Storm',
@@ -163,6 +192,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'note-ninja',
+    added: '2026-09-26',
+    keywords: ['note names', 'letter names', 'staff', 'flash cards', 'ninja', 'belts', 'band ninja', 'tap'],
     noInstrument: true,
     zones: ['ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Note Ninja shows the notes your instrument reads, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
@@ -180,6 +211,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'keys-to-the-city',
+    added: '2026-09-28',
+    keywords: ['piano', 'keyboard', 'keys', 'staff', 'letter names', 'sharps', 'flats', 'half steps', 'whole steps', 'scales', 'city'],
     noInstrument: true,
     zones: ['note-reading'],
     name: 'Keys to the City',
@@ -197,6 +230,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'vanishing-ink',
+    added: '2026-09-27',
+    keywords: ['memory', 'reading ahead', 'groups of notes', 'note reading', 'phrases', 'ink', 'scroll', 'ninja', 'belts'],
     zones: ['note-reading', 'ninja-dojo'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Vanishing Ink listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Vanishing Ink',
@@ -213,6 +248,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'chime-heist',
+    added: '2026-09-26',
+    keywords: ['bells', 'bell kit', 'glockenspiel', 'mallets', 'mallet percussion', 'percussion', 'keyboard', 'xylophone', 'vault', 'heist'],
     noInstrument: true,
     zones: ['technique-lab'],
     name: 'Chime Heist',
@@ -230,6 +267,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'rhythm-dojo',
+    added: '2026-09-29',
+    keywords: ['rhythm', 'rhythms', 'counting', 'count', 'clap', 'tap', 'beats', 'rests', 'quarter notes', 'eighth notes', 'sixteenth notes', 'dotted', 'time signature', 'snare', 'belts', 'ninja'],
     noInstrument: true,
     zones: ['ninja-dojo'],
     name: 'Rhythm Dojo',
@@ -247,7 +286,9 @@ window.Arcade.GAMES = [
   },
   {
     id: 'rudiment-trainer',
-    zones: ['technique-lab'],
+    added: '2026-10-04',
+    keywords: ['drums', 'drum', 'snare', 'rudiments', 'sticking', 'paradiddle', 'flam', 'roll', 'drag', 'diddle', 'percussion', 'audition', 'honor band', 'tempo'],
+    zones: ['technique-lab', 'audition-prep'],
     // snare and bells only: the page itself sends the others to Choose Your Instrument with this message (block: true)
     fit: {only: ['snare', 'bells'], tag: 'Percussion', why: 'The Rudiment Trainer is for snare drum and bells players: the 40 rudiments every percussionist learns.', block: true},
     name: 'Rudiment Trainer',
@@ -267,6 +308,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'ancient-ninja-scrolls',
+    added: '2026-09-26',
+    keywords: ['vocabulary', 'vocab', 'music words', 'terms', 'symbols', 'dynamics', 'tempo markings', 'definitions', 'quiz', 'test', 'belt exam', 'band ninja', 'scrolls'],
     noInstrument: true,
     zones: ['ninja-dojo'],
     name: 'Ancient Ninja Scrolls',
@@ -284,6 +327,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'button-masher',
+    added: '2026-09-26',
+    keywords: ['fingerings', 'fingering chart', 'valves', 'keys', 'slide positions', 'trombone', 'trumpet', 'clarinet', 'flute', 'saxophone', 'combo', 'fighting'],
     noInstrument: true,
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'Button Masher is about fingerings and slide positions, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
@@ -302,6 +347,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'neon-face-off',
+    added: '2026-09-26',
+    keywords: ['two player', '2 player', 'versus', 'vs', 'friend', 'air hockey', 'hockey', 'puck', 'battle', 'cpu'],
     zones: ['two-player'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Neon Face-Off listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Neon Face-Off',
@@ -319,6 +366,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'showtime-malfunction',
+    added: '2026-09-26',
+    keywords: ['tonguing', 'tongue', 'articulation', 'repeated notes', 'staccato', 'robots', 'animatronic', 'snare', 'rhythm', 'band'],
     zones: ['technique-lab'],
     name: 'Showtime Malfunction',
     bg: {scene: 'stage', dim: .4, focus: .35},
@@ -336,6 +385,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'sustain-speedway',
+    added: '2026-09-26',
+    keywords: ['long tones', 'breathing', 'breath', 'air', 'tone', 'tuning', 'in tune', 'steady', 'dynamics', 'race', 'racing', 'cars'],
     zones: ['technique-lab'],
     fit: {not: ['bells', 'snare'], tag: 'Winds & brass only', why: 'In Sustain Speedway you hold long notes, so it needs a woodwind or brass instrument. Percussion: try Chime Heist or Showtime Malfunction!'},
     name: 'Sustain Speedway',
@@ -356,6 +407,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'music-highway',
+    added: '2026-09-27',
+    keywords: ['play along', 'songs', 'song', 'rhythm', 'timing', 'lanes', 'backing track', 'melody', 'melodies', 'synthwave', 'highway', 'snare'],
     zones: ['technique-lab'],
     name: 'Music Highway',
     bg: {scene: 'highway', dim: .4, focus: .35},
@@ -372,7 +425,9 @@ window.Arcade.GAMES = [
   },
   {
     id: 'scale-trainer',
-    zones: ['technique-lab'],
+    added: '2026-09-30',
+    keywords: ['scales', 'scale', 'major scales', 'chromatic', 'all state', 'honor band', 'district', 'audition', 'gmea', 'concert b flat', 'b flat', 'e flat', 'a flat', 'f major'],
+    zones: ['technique-lab', 'audition-prep'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Scale Trainer listens for the notes of your scales, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Scale Trainer',
     bg: {scene: 'audition', dim: .35, focus: .35},
@@ -388,7 +443,9 @@ window.Arcade.GAMES = [
   },
   {
     id: 'first-sight',
-    zones: ['note-reading'],
+    added: '2026-11-05',
+    keywords: ['sight reading', 'sightreading', 'sight read', 'etude', 'etudes', 'audition', 'honor band', 'district', 'all state', 'new music', 'reading', 'key signatures', 'time signatures'],
+    zones: ['note-reading', 'audition-prep'],
     name: 'First Sight',
     bg: {scene: 'records', dim: .55, focus: .42},
     menuMusic: 'first-sight-menu',
@@ -403,6 +460,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'lost-signal',
+    added: '2026-09-27',
+    keywords: ['ear training', 'by ear', 'echo', 'copy', 'listen', 'play back', 'melody', 'memory', 'alien', 'space', 'probe'],
     zones: ['ear-training'],
     fit: {not: ['snare'], tag: 'Not for snare', why: 'Lost Signal listens for the notes you play, so it needs an instrument that plays pitches. Snare drummers: try Showtime Malfunction!'},
     name: 'Lost Signal',
@@ -419,6 +478,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'pedal-point',
+    added: '2026-10-15',
+    keywords: ['timpani', 'kettle drums', 'drums', 'percussion', 'tuning', 'tune', 'pitch matching', 'by ear', 'pedal'],
     noInstrument: true,                              // no microphone at all: the game makes every sound (timpani + pitch pipe)
     zones: ['ear-training'],
     name: 'Pedal Point',
@@ -436,6 +497,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'slide-quest',
+    added: '2026-10-18',
+    keywords: ['trombone', 'slide', 'positions', 'partials', 'brass', 'tuning', 'pitch matching', 'by ear', 'beats'],
     noInstrument: true,                              // no microphone at all: the game makes every sound (the horn + the drone)
     zones: ['ear-training'],
     name: 'Slide Quest',
@@ -453,6 +516,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'perfect-pitch',
+    added: '2026-10-19',
+    keywords: ['sharp', 'flat', 'in tune', 'out of tune', 'intonation', 'tuning', 'tuning slide', 'by ear', 'listen', 'barrel', 'mouthpiece'],
     noInstrument: true,                              // no microphone at all: the game makes every sound (shared/winds.js)
     zones: ['ear-training'],
     name: 'Perfect Pitch',
@@ -470,6 +535,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'dojo-duel',
+    added: '2026-09-27',
+    keywords: ['two player', '2 player', 'versus', 'vs', 'friend', 'note names', 'race', 'ninja', 'sensei', 'battle'],
     noInstrument: true,
     zones: ['ninja-dojo', 'two-player'],
     name: 'Dojo Duel',
@@ -490,6 +557,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'blocktave',
+    added: '2026-09-30',
+    keywords: ['building', 'build', 'blocks', 'crafting', 'mining', 'survive', 'survival', 'world', 'sandbox', 'adventure', 'creatures'],
     noInstrument: true,                              // TOUCH mode: tap note names and rhythms (no microphone)
     zones: ['adventure'],
     name: 'Blocktave',
@@ -507,6 +576,8 @@ window.Arcade.GAMES = [
   },
   {
     id: 'arcade-quest',
+    added: '2026-09-26',
+    keywords: ['rpg', 'story', 'adventure', 'pixel', 'ghosts', 'battle', 'boss', 'episodes', 'quest', 'microphone', 'friends'],
     zones: ['adventure'],
     name: 'Arcade Quest',
     pressStart: false,                              // its own title screen (arcade-quest/scenes.js), not shared/press-start.js

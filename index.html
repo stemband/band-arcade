@@ -31,7 +31,7 @@
 <div class="room" aria-hidden="true"></div>
 
 <!-- THE FLOOR'S TOP BAR (the lobby, a zone, ARCADE VIEW; arcade.js): three groups. LEFT: back + where you are. CENTER (centered on
-     the screen): ARCADE VIEW (LIST / CABINETS: its icon shows the mode last used), TUNE UP (the toolbox), LEADERBOARD
+     the screen): FIND A GAME (the search, shared/game-search.js), ARCADE VIEW (LIST / CABINETS: its icon shows the mode last used), TUNE UP (the toolbox), LEADERBOARD
      (leaderboard-screen.js; hidden when no scoreboard address is set). RIGHT: your AVATAR BADGE (shared/avatar-badge.js:
      edit avatar / change instrument…) and the sound/settings button. Narrow screens: shorter labels, then icons only, then
      TUNE UP and LEADERBOARD move into the badge's menu (arcade.js fitBar) -->
@@ -41,6 +41,8 @@
     <h2 class="fb-title" id="fbTitle" hidden></h2>
   </div>
   <div class="fb-center" id="fbCenter">
+    <button type="button" class="fb-btn fb-search" id="searchBtn" aria-label="Find a game" title="Find a game (/)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span class="fb-l" aria-hidden="true"><span class="fb-long">Find a game</span><span class="fb-short">Find</span></span></button>
     <button type="button" class="fb-btn fb-view" id="viewBtn" aria-pressed="false" aria-label="Arcade view" title="Arcade view" data-mode="cabinets">
       <svg class="fbv-list" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg><svg class="fbv-cab" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><rect x="4" y="7" width="4.5" height="13" rx="1"/><rect x="9.75" y="4" width="4.5" height="16" rx="1"/><rect x="15.5" y="7" width="4.5" height="13" rx="1"/></svg><span class="fb-l" aria-hidden="true"><span class="fb-long">Arcade view</span><span class="fb-short">View</span></span></button>
     <a class="fb-btn fb-tune" id="tuneBtn" href="note-checker/index.html" aria-label="Tune up" title="Tune up">
@@ -219,6 +221,7 @@
 <script src="champion-lobby.js"></script>
 <script src="season-look.js"></script>
 <script src="leaderboard-screen.js"></script>
+<script src="shared/game-search.js"></script>
 <script src="arcade3d.js"></script>
 <script src="arcade.js"></script>
 </body>
