@@ -1,11 +1,13 @@
 /* The arcade LOBBY and ARCADE VIEW's LIST (once ALL GAMES): flat HTML and CSS only (no three.js), drawn here; arcade.js decides when they show.
    THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (+ the PRIZE COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small
    silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
-   (shared/practice.js: 3 steps, the whole row), a CONTINUE card (the last game opened on this device) and the ASSIGNED
+   (shared/practice.js: 3 steps, the whole row), the RECENTLY PLAYED card (CONTINUE: the last game played on this device,
+   + up to 3 more played lately: Arcade.recentGames) and the ASSIGNED
    card (shared/featured.js); under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js).
    LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, NEW / 2P / ASSIGNED,
-   and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
-   (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
+   "No instrument needed" (games.js noInstrument) and its ☆ (MY FAVORITES). THE FILTERS above the cards (★ My favorites,
+   Fits my <instrument>, No instrument needed; aria-pressed; together = all of them) are remembered for this browser
+   session (sessionStorage bandarcade.favs / .fits / .noinst). THE STAR's taps: below (any .fav-btn on this page).
    The marquee pictures are still frames from shared/marquees.js (Arcade.Marquee.thumb: drawn once, then kept).
    A game that doesn't suit the instrument (games.js fit) stays, dimmed, with its short tag.
      Arcade.Lobby.render({onZone(zone), onGame(game, from)})
@@ -43,12 +45,29 @@ window.Arcade = window.Arcade || {};
       (note ? `<span class="lc-note">${esc(note)}</span>` : '') +
       (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`) + `</span></button>`;
   }
+  /* RECENTLY PLAYED (the old CONTINUE card, still .lc-continue): the last game big ("Continue"), and under it up to 3
+     more of the games this device played lately (Arcade.recentGames: every game page notes itself), one tap each */
+  const RECENT_MORE = 3;
+  function recentCard() {
+    const games = A.recentGames(RECENT_MORE + 1), g = games[0], f = fitOf(g), z = A.zonesOf(g)[0];
+    const more = games.slice(1);
+    return `<section class="lcard lc-continue lc-recent" style="${zoneStyle(z)}" aria-label="Recently played">` +
+      `<button type="button" class="rp-main${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" aria-label="Continue: ${esc(g.name)}${f.ok ? '' : ', ' + esc(f.tag)}">` +
+      `<span class="lc-pic">${thumb(g)}</span>` +
+      `<span class="lc-text"><span class="lc-label">Continue</span><span class="lc-name">${esc(g.name)}</span>` +
+      (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`) + `</span></button>` +
+      (more.length ? `<div class="rp-more"><span class="rp-h" aria-hidden="true">Recently played</span><ul class="rp-row" aria-label="Recently played">` +
+        more.map(m => { const mf = fitOf(m);
+          return `<li><button type="button" class="rp-mini${mf.ok ? '' : ' nofit'}" data-game="${esc(m.id)}" aria-label="${esc(m.name)}${mf.ok ? '' : ', ' + esc(mf.tag)}">` +
+            `<span class="rp-pic">${thumb(m)}</span><span class="rp-name">${esc(m.name)}</span></button></li>`; }).join('') + `</ul></div>` : '') +
+      `</section>`;
+  }
   function render({onZone, onGame}) {
     const cards = [], F = A.featuredGame(), last = lastGame();
     lastOnGame = onGame;
     const pr = practiceCard();
     if (pr) cards.push(pr.html);
-    if (last) cards.push(lobbyCard('continue', last, 'Continue', ''));
+    if (A.recentGames(1).length) cards.push(recentCard());
     if (F) cards.push(lobbyCard('assigned', F, 'Assigned', (A.FEATURED && A.FEATURED.note) || ''));
     $('lobbyCards').innerHTML = cards.join('');
     $('lobbyCards').hidden = !cards.length;
@@ -68,7 +87,7 @@ window.Arcade = window.Arcade || {};
     lit = true;
     $('zones').querySelectorAll('.zsign[data-zone]').forEach(b => b.addEventListener('click', () => onZone(A.zoneById(b.dataset.zone))));
     wirePrize();
-    $('lobbyCards').querySelectorAll('.lcard').forEach(b => b.addEventListener('click', () =>
+    $('lobbyCards').querySelectorAll('.lcard[data-game], .rp-main, .rp-mini').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
     unlocked();                                                // anything unlocked whose UNLOCKED! card hasn't shown yet
@@ -239,29 +258,47 @@ window.Arcade = window.Arcade || {};
     if (f) $('prizeSign').focus({preventScroll: true});
   });
 
-  /* ---------- ARCADE VIEW: LIST (ALL GAMES) ---------- */
-  const NI_KEY = 'bandarcade.noinst';
-  const niOn = () => { try { return sessionStorage.getItem(NI_KEY) === '1'; } catch (e) { return false; } };
+  /* ---------- ARCADE VIEW: LIST (ALL GAMES) ----------
+     THE FILTERS (chips above the cards; any together = games that pass all of them; each remembered for this browser
+     session): ★ MY FAVORITES (Arcade.isFavorite), FITS MY <INSTRUMENT> (Arcade.gameFit: hidden with no instrument saved)
+     and NO INSTRUMENT NEEDED (games.js noInstrument). Each card's ☆ (a sibling of the card's button, bottom right) stars it. */
+  const FILTERS = {
+    favFilter: {key: 'bandarcade.favs', test: g => A.isFavorite(g)},
+    fitFilter: {key: 'bandarcade.fits', test: g => fitOf(g).ok},
+    niFilter: {key: 'bandarcade.noinst', test: g => !!g.noInstrument},
+  };
+  const filterOn = id => { try { return sessionStorage.getItem(FILTERS[id].key) === '1'; } catch (e) { return false; } };
+  let lastAll = null;
   function renderAll({onGame, focus, scrollOnly}) {
-    const F = A.featuredGame(), only = niOn();
-    const chip = $('niFilter');
-    if (chip) {
-      chip.setAttribute('aria-pressed', String(only));
+    lastAll = {onGame};
+    const F = A.featuredGame();
+    const m = A.store.player ? A.memberById(A.store.player) : null;
+    Object.keys(FILTERS).forEach(id => {
+      const chip = $(id); if (!chip) return;
+      if (id === 'fitFilter') { chip.hidden = !m; const l = chip.querySelector('.allg-l'); if (l && m) l.textContent = `Fits my ${m.short || m.name}`; }
+      chip.setAttribute('aria-pressed', String(filterOn(id) && !chip.hidden));
       chip.onclick = () => {
-        try { sessionStorage.setItem(NI_KEY, niOn() ? '0' : '1'); } catch (e) { /* private mode: still toggles below */ }
+        try { sessionStorage.setItem(FILTERS[id].key, filterOn(id) ? '0' : '1'); } catch (e) { /* private mode: still toggles below */ }
         if (A.Sfx) A.Sfx.event('ui-toggle');
         renderAll({onGame, focus: null});
         chip.focus({preventScroll: true});
       };
-    }
-    const games = A.floorGames().filter(g => !only || g.noInstrument);
+    });
+    const on = Object.keys(FILTERS).filter(id => filterOn(id) && !($(id) && $(id).hidden));
+    const games = A.floorGames().filter(g => on.every(id => FILTERS[id].test(g)));
     const count = $('allCount');
-    if (count) count.textContent = only ? `${games.length} game${games.length === 1 ? '' : 's'} you can play without your instrument` : '';
+    if (count) {
+      const n = `${games.length} game${games.length === 1 ? '' : 's'}`;
+      count.textContent = !on.length ? '' : on.length === 1 && on[0] === 'niFilter' ? `${n} you can play without your instrument`
+        : on.length === 1 && on[0] === 'fitFilter' ? `${n} for your ${m ? m.short || m.name : 'instrument'}`
+        : on.length === 1 && on[0] === 'favFilter' ? (games.length ? `${n} in your favorites` : 'No favorites yet. Tap the ☆ on a game to add it here.')
+        : `${n} match`;
+    }
     $('allGrid').innerHTML = games.map(g => {
       const f = fitOf(g), zones = A.zonesOf(g);
       const foot = g.maxStars ? `<span class="gc-stars">${starsHTML(A.gameStars(g))}</span>`
         : `<span class="gc-sum">${esc((g.summary && g.summary(A.store)) || 'No stars: just play!')}</span>`;
-      return `<button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
+      return `<div class="gc-wrap" style="${zoneStyle(zones[0])}"><button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
         `aria-label="${esc(g.name)}${A.isNewGame(g) ? ', new' : ''}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${g.noInstrument ? ', no instrument needed' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
         `<span class="gc-pic">${thumb(g)}</span>` +               // the marquee alone: badges never cover its title
         `<span class="gc-body"><span class="gc-head"><span class="gc-name">${esc(g.name)}</span><span class="gc-badges">` +
@@ -269,7 +306,8 @@ window.Arcade = window.Arcade || {};
         (F === g ? `<span class="badge b-assigned">Assigned</span>` : '') + (twoP(g) ? `<span class="badge b-2p">2P</span>` : '') + `</span></span><span class="gc-skill">${esc(g.skill || '')}</span>` +
         `<span class="gc-zones">${zones.map(z => `<span class="ztag" style="${zoneStyle(z)}">${esc(z.name)}</span>`).join('')}` +
         (g.noInstrument ? `<span class="ni-tag">No instrument needed</span>` : '') + `</span>` +
-        `<span class="gc-foot">${foot}${f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`}</span></span></button>`;
+        `<span class="gc-foot">${foot}${f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`}</span></span></button>` +
+        A.favButton(g, {cls: 'gc-fav'}) + `</div>`;
     }).join('');
     $('allGrid').querySelectorAll('.gcard').forEach(b => b.addEventListener('click', () =>
       onGame(A.floorGames().find(g => g.id === b.dataset.game), 'all')));
@@ -302,6 +340,31 @@ window.Arcade = window.Arcade || {};
       if (!f.length) done();
     }});
   }
+
+  /* ---------- THE STAR (☆/★, Arcade.favButton) anywhere on this page: ARCADE VIEW's cards, under a cabinet, FIND A
+     GAME's results. A tap stars or unstars that game (Arcade.setFavorite), every star for it follows, and the views
+     that show MY FAVORITES redraw (the lobby's sign when it's back; ARCADE VIEW's list when its ★ filter is on). ---------- */
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.fav-btn[data-fav]');
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const g = A.floorGames().find(x => x.id === b.dataset.fav);
+    if (!g) return;
+    const on = A.setFavorite(g);
+    if (A.Sfx) A.Sfx.event('ui-toggle');
+    if (A.UI && A.UI.toast) A.UI.toast(on ? `${g.name} is in My Favorites` : `${g.name} left My Favorites`, {ms: 1800});
+  });
+  addEventListener('arcade:favorites', () => {
+    A.syncFavButtons();
+    const all = $('allView');
+    if (all && !all.hidden && filterOn('favFilter') && lastAll) {
+      const f = document.activeElement && document.activeElement.closest && document.activeElement.closest('.gc-wrap');
+      const next = f && (f.nextElementSibling || f.previousElementSibling);
+      renderAll({onGame: lastAll.onGame, focus: null});
+      const g = next && next.querySelector('.gcard') && $('allGrid').querySelector(`.gcard[data-game="${next.querySelector('.gcard').dataset.game}"]`);
+      (g || $('favFilter')).focus({preventScroll: true});
+    }
+  });
 
   A.Lobby = Object.assign(A.Lobby || {}, {render, renderAll, lastGame, remember, thumb, zoneStyle, redrawPractice, free, unlocked});
 })(window.Arcade);

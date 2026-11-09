@@ -298,12 +298,68 @@ window.Arcade = window.Arcade || {};
     const age = A.gameAge(g);
     return age != null && age >= 0 && age < (A.NEW_GAME_DAYS == null ? 30 : A.NEW_GAME_DAYS);
   };
+  /* ---------- MY FAVORITES and RECENTLY PLAYED (this device's own lists, store.gameData('floor'): `favs` = game ids
+     in the order they were starred, `recent` = the last games opened, newest first; both go into the Backup Code) ---------- */
+  const floorData = () => (A.store && A.store.gameData ? A.store.gameData('floor') : null);
+  const gameById = id => (A.GAMES || []).find(g => g.id === id && !g.tool) || null;
+  /** the starred games (floor games only, in the order they were starred) */
+  A.favorites = function () { const d = floorData(); return ((d && d.favs) || []).map(gameById).filter(Boolean); };
+  A.isFavorite = function (g) { const d = floorData(); return !!(g && d && (d.favs || []).includes(g.id)); };
+  /** star or unstar game g (on = true / false; left out = flip it); tells the page with the 'arcade:favorites' event */
+  A.setFavorite = function (g, on) {
+    const d = floorData();
+    if (!g || !d) return false;
+    const list = (d.favs || []).filter(id => id !== g.id);
+    if (on === undefined) on = !A.isFavorite(g);
+    if (on) list.push(g.id);
+    d.favs = list;
+    A.store.saveGameData('floor');
+    try { dispatchEvent(new CustomEvent('arcade:favorites', {detail: {game: g.id, on}})); } catch (e) { /* old browser */ }
+    return on;
+  };
+  /** THE STAR (☆/★): a button that stars or unstars game g (lobby.js handles every .fav-btn on the floor page). label:
+      true = a pill with words ("Add to favorites" / "In my favorites", under a cabinet); else just the star. */
+  const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
+  A.favButton = function (g, {label = false, cls = ''} = {}) {
+    if (!g || g.tool) return '';
+    const on = A.isFavorite(g), e = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+    return `<button type="button" class="fav-btn${label ? ' fav-pill' : ''}${cls ? ' ' + cls : ''}" data-fav="${e(g.id)}" aria-pressed="${on}" ` +
+      `aria-label="${e(g.name)}: ${on ? 'in my favorites' : 'add to my favorites'}" title="${on ? 'In my favorites' : 'Add to my favorites'}">${STAR}` +
+      (label ? `<span class="fav-l">${on ? 'In my favorites' : 'Add to favorites'}</span>` : '') + `</button>`;
+  };
+  /** put every star for game id on the page in step (after a tap anywhere) */
+  A.syncFavButtons = function (root) {
+    (root || document).querySelectorAll('.fav-btn[data-fav]').forEach(b => {
+      const g = gameById(b.dataset.fav); if (!g) return;
+      const on = A.isFavorite(g);
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', `${g.name}: ${on ? 'in my favorites' : 'add to my favorites'}`);
+      b.title = on ? 'In my favorites' : 'Add to my favorites';
+      const l = b.querySelector('.fav-l'); if (l) l.textContent = on ? 'In my favorites' : 'Add to favorites';
+    });
+  };
+  /** the games played most recently on this device, newest first (n at most); every game page notes itself
+      (mountTopbar), so a game opened from a link counts too */
+  A.RECENT_KEEP = 8;
+  A.recentGames = function (n) {
+    const d = floorData();
+    const ids = (d && d.recent && d.recent.length) ? d.recent : (d && d.last ? [d.last] : []);
+    return ids.map(gameById).filter(Boolean).slice(0, n || A.RECENT_KEEP);
+  };
+  A.noteRecent = function (id) {
+    const d = floorData();
+    if (!d || !id || !gameById(id)) return;
+    const was = (d.recent && d.recent.length ? d.recent : (d.last ? [d.last] : [])).filter(x => x !== id);
+    d.recent = [id, ...was].slice(0, A.RECENT_KEEP);
+    A.store.saveGameData('floor');
+  };
   /** is game g in zone z? its own `zones` list, or the zone's `auto` flag (games.js ZONES: the No Instrument Needed
-      zone's 'noInstrument'; 'new' = the NEW GAMES zone, Arcade.isNewGame) */
+      zone's 'noInstrument'; 'new' = the NEW GAMES zone, Arcade.isNewGame; 'favorites' = MY FAVORITES, Arcade.isFavorite) */
   A.inZone = function (g, z) {
     if (typeof z === 'string') z = A.zoneById(z);
     if (!g || !z) return false;
     if (z.auto === 'new') return A.isNewGame(g);
+    if (z.auto === 'favorites') return A.isFavorite(g);
     return !!(z.auto ? g[z.auto] : (g.zones || []).includes(z.id));
   };
   /** a zone's games: the zone's own `order` first (games.js ZONES), then the rest in games.js order (NEW GAMES: the
@@ -311,6 +367,7 @@ window.Arcade = window.Arcade || {};
   A.zoneGames = function (id) {
     const z = A.zoneById(id), games = A.floorGames().filter(g => A.inZone(g, z)), order = (z && z.order) || [];
     if (z && z.auto === 'new') return games.slice().sort((a, b) => (A.gameAge(a) - A.gameAge(b)) || games.indexOf(a) - games.indexOf(b));
+    if (z && z.auto === 'favorites') return A.favorites();                     // in the order they were starred
     const rank = g => { const i = order.indexOf(g.id); return i < 0 ? order.length + games.indexOf(g) : i; };
     return games.slice().sort((a, b) => rank(a) - rank(b));
   };
@@ -369,6 +426,7 @@ window.Arcade = window.Arcade || {};
     if (A.Bg && gameId) A.Bg.mount(gameId);                // the game's menu background (shared/backgrounds.js)
     if (A.PressStart && gameId) A.PressStart.show(gameId);   // the PRESS START title screen, once per page (shared/press-start.js)
     if (gameId) A.pageGame = gameId;                        // this page's game (the pause menu's BACK TO ARCADE GAMES)
+    if (gameId && A.noteRecent) A.noteRecent(gameId);       // the lobby's RECENTLY PLAYED (a game opened from a link counts too)
     const el = A.$('topbar'); if (!el) return;
     el.className = 'topbar';
     const m = !fixed && A.currentMember ? A.currentMember() : null;

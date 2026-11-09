@@ -111,12 +111,16 @@ window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
               ARCADE skips it (each cabinet still once, under its own zone) and ALL GAMES' zone tags leave it out. The
               No Instrument Needed zone's cabinets are never dimmed for the saved instrument (`fit`): they need no
               instrument. auto: 'new' = the NEW GAMES zone: every game whose `added` date is under NEW_GAME_DAYS days
-              old, the newest first (Arcade.isNewGame in shared/ui.js); with no new games its sign is hidden */
+              old, the newest first (Arcade.isNewGame in shared/ui.js); with no new games its sign is hidden.
+              auto: 'favorites' = MY FAVORITES: the games starred on this device, in the order they were starred
+              (Arcade.isFavorite); hidden while none are */
 /* HOW LONG A GAME IS "NEW": days after its `added` date (the NEW badge and the NEW GAMES zone). 30 = about a month. */
 window.Arcade.NEW_GAME_DAYS = 30;
 window.Arcade.ZONES = [
   // first: the newest games (filled in automatically from each game's `added` date; hidden when nothing is new)
   {id: 'new-games',     name: 'New Games',        color: 'white',  tagline: 'Just added to the arcade. Try them first!', auto: 'new'},
+  // the games this device starred (☆ on ARCADE VIEW's cards, under a cabinet and in FIND A GAME; hidden while none are)
+  {id: 'favorites',     name: 'My Favorites',     color: 'pink',   tagline: 'The games you starred.', auto: 'favorites'},
   {id: 'note-reading',  name: 'Note Reading',     color: 'cyan',   tagline: 'Read it, play it, beat the clock.'},
   {id: 'ninja-dojo',    name: 'Band Ninja Dojo',  color: 'red',    tagline: 'Earn your belts: notes, rhythms, words and duels.'},
   // every game flagged noInstrument (below), filled in automatically

@@ -1,7 +1,7 @@
 /* FIND A GAME: the arcade floor's search (index.html; docs/engine/page-flow.md, FIND A GAME). The top bar's SEARCH button
    (#searchBtn, on the lobby, in a zone and in ARCADE VIEW) or the "/" key opens a panel: a search field and the games
    that match, best first. Each result: the marquee still, the name, a NEW badge (Arcade.isNewGame), the skill and the
-   zones; a tap opens the game the same way the lobby does (fit panel, Select Player, its START sound). TUNE UP's own
+   zones, and its ☆ (Arcade.favButton: MY FAVORITES); a tap opens the game the same way the lobby does (fit panel, Select Player, its START sound). TUNE UP's own
    parts (games.js `tools`) are results too.
    WHAT IS SEARCHED (shared/games.js): the name, `keywords`, `skill`, the zone names and `blurb`, in that order of
    weight. Every typed word must match something: the start of a word ("scal" → scales), a word run together
@@ -62,8 +62,7 @@ window.Arcade = window.Arcade || {};
     });
     return list;
   }
-  let cache = null, cacheFor = null;
-  const index = () => { if (!cache || cacheFor !== A.GAMES) { cache = entries(); cacheFor = A.GAMES; } return cache; };
+  const index = () => entries();   // built fresh each search (24 games: instant), so MY FAVORITES and NEW GAMES are current
 
   /** how well one typed word t matches one field (0 = not at all) */
   function fieldScore(t, f, w) {
@@ -167,7 +166,8 @@ window.Arcade = window.Arcade || {};
       `<span class="gs-text"><span class="gs-name">${esc(r.name)}</span>${tags.join('')}` +
       `<span class="gs-skill">${esc(r.tool ? 'Tune Up' : g.skill || '')}</span>` +
       (zones.length ? `<span class="gs-zones">${zones.map(z => `<span class="ztag" style="${A.Lobby.zoneStyle(z)}">${esc(z.name)}</span>`).join('')}</span>` : '') +
-      (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`) + `</span></button></li>`;
+      (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`) + `</span></button>` +
+      (r.tool || !A.favButton ? '' : A.favButton(g, {cls: 'gs-fav'})) + `</li>`;
   }
   function draw(text) {
     lastText = text;

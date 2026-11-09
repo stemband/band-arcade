@@ -94,6 +94,7 @@
     <p class="info-skill" id="infoSkill"></p>
     <h2 class="info-name" id="infoName"></h2>
     <p class="info-tags" id="infoTags"></p>
+    <p class="info-fav" id="infoFav"></p>
     <p class="hiscore" id="hiscore" hidden></p>
     <p class="info-blurb" id="infoBlurb"></p>
   </section>
@@ -104,6 +105,8 @@
   <h2 class="sr" id="allTitle">All games</h2>
   <div class="vsw" role="radiogroup" aria-label="Arcade view"></div>
   <div class="allg-bar" role="group" aria-label="Filter the games">
+    <button type="button" class="allg-chip allg-fav" id="favFilter" aria-pressed="false"><span class="allg-chk" aria-hidden="true"></span>★ Favorites</button>
+    <button type="button" class="allg-chip" id="fitFilter" aria-pressed="false" hidden><span class="allg-chk" aria-hidden="true"></span><span class="allg-l">Fits my instrument</span></button>
     <button type="button" class="allg-chip" id="niFilter" aria-pressed="false"><span class="allg-chk" aria-hidden="true"></span>No instrument needed</button>
     <span class="allg-count" id="allCount" aria-live="polite"></span>
   </div>

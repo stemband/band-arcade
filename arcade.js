@@ -214,6 +214,7 @@
       (F === g ? `<span class="badge b-assigned">Assigned</span>${A.FEATURED.note ? ` <span class="as-note">${esc(A.FEATURED.note)}</span>` : ''}` : '') +
       (g.players === 2 ? ' <span class="badge b-2p">2 players</span>' : '') + (f.ok ? '' : ` <span class="fit-tag">${esc(f.tag)}</span>`);
     if (isFull() && tagOf(g)) $('infoTags').innerHTML = `<span class="ztag" style="${A.Lobby.zoneStyle(fullZoneOf[g.id])}">${esc(fullZoneOf[g.id].name)}</span> ` + $('infoTags').innerHTML;
+    $('infoFav').innerHTML = A.favButton(g, {label: true});          // ☆ ADD TO FAVORITES (lobby.js handles the tap)
     $('aisleFlags').innerHTML = (F === g ? '<span class="badge b-assigned">Assigned</span>' : '') + (f.ok ? '' : `<span class="fit-tag">${esc(f.tag)}</span>`);
     hiscore(g);
     lights.forEach((b, i) => b.setAttribute('aria-current', i === cur ? 'true' : 'false'));
