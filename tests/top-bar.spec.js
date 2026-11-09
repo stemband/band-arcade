@@ -1,9 +1,9 @@
 /* THE FLOOR'S TOP BAR, ARCADE VIEW and THE LEADERBOARD'S TITLE (index.html .fbar, arcade.js, arcade.css,
    leaderboard-screen.js; docs/engine/page-flow.md):
-   - the bar = LEFT (back + title) | CENTER (ARCADE VIEW, TUNE UP, LEADERBOARD) | RIGHT (avatar badge, sound): the
+   - the bar = LEFT (back + title) | CENTER (FIND A GAME, ARCADE VIEW, TUNE UP, LEADERBOARD) | RIGHT (avatar badge, sound): the
      center group's middle within 8 px of the screen's middle, nothing overlapping, one row, every button ≥ 44 px, at
      Chromebook, iPad landscape/portrait and phone sizes; phones: the center buttons icon-only (aria-label + tooltip),
-     and TUNE UP / LEADERBOARD in the badge's menu when even that doesn't fit
+     and TUNE UP / LEADERBOARD in the badge's menu when even that doesn't fit (FIND A GAME and ARCADE VIEW always stay)
    - ARCADE VIEW opens the view used last on this device; the switch flips LIST ⇄ CABINETS (remembered across reloads,
      the same game in front); #all-games and #full-arcade still open the right one; Back from a game returns to it
    - the leaderboard's 🏆 LEADERBOARD 🏆 is centered on the panel (within 4 px), a trophy each side, read "Leaderboard" */
@@ -18,7 +18,7 @@ const store = (view, member = 'trumpet') => device(member, view ? {gameData: {'s
 const barLayout = page => page.evaluate(() => {
   const vis = el => el && el.offsetWidth > 0 && el.offsetHeight > 0 && getComputedStyle(el).visibility !== 'hidden';
   const box = el => { const r = el.getBoundingClientRect(); return {l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height}; };
-  const els = {back: '#backBtn', title: '#fbTitle', view: '#viewBtn', tune: '#tuneBtn', lb: '#lbBtn', badge: '#avBadge .avb-btn', sound: '#soundCtl .snd-btn'};
+  const els = {back: '#backBtn', title: '#fbTitle', search: '#searchBtn', view: '#viewBtn', tune: '#tuneBtn', lb: '#lbBtn', badge: '#avBadge .avb-btn', sound: '#soundCtl .snd-btn'};
   const items = Object.entries(els).map(([k, s]) => [k, document.querySelector(s)]).filter(([, el]) => vis(el)).map(([k, el]) => ({k, ...box(el),
     label: el.getAttribute('aria-label'), tip: el.getAttribute('title'), words: [...el.querySelectorAll('.fb-l')].some(vis)}));
   return {items, center: box(document.getElementById('fbCenter')), W: innerWidth, fit: document.getElementById('fbar').dataset.fit};
@@ -66,22 +66,22 @@ test.describe('THE TOP BAR: three groups, centered, one row', () => {
             expect(a.h, `${where}: ${a.k} shorter than 44 px`).toBeGreaterThanOrEqual(44);
           }
         }
-        const center = L.items.filter(i => ['view', 'tune', 'lb'].includes(i.k));
-        expect(center.map(i => i.k)[0]).toBe('view');           // ARCADE VIEW first; TUNE UP and LEADERBOARD after it
+        const center = L.items.filter(i => ['search', 'view', 'tune', 'lb'].includes(i.k));
+        expect(center.map(i => i.k).slice(0, 2)).toEqual(['search', 'view']);   // FIND A GAME, ARCADE VIEW; TUNE UP and LEADERBOARD after
         center.forEach(i => { expect(i.label, `${where}: ${i.k}'s aria-label`).toBeTruthy(); expect(i.tip, `${where}: ${i.k}'s tooltip`).toBeTruthy(); });
         if (name === 'phone') {
           expect(center.every(i => !i.words), `${where}: icon-only`).toBe(true);
           if (L.fit === 'fit-tight') {                            // moved: into the avatar badge's menu
-            expect(center.map(i => i.k)).toEqual(['view']);
+            expect(center.map(i => i.k)).toEqual(['search', 'view']);
             await page.locator('#avBadge .avb-btn').click();
             await expect(page.locator('#avBadge .avb-menu')).toBeVisible();
             expect(await page.evaluate(() => document.getElementById('fbar').dataset.fit), `${where}: the fit changed`).toBe('fit-tight');
             await expect(page.locator('#avBadge .avb-tune')).toBeVisible();
             if (await page.locator('#lbBtn').count() && await page.evaluate(() => Arcade.Leaderboard.available())) await expect(page.locator('#avBadge .avb-lb')).toBeVisible();
             await page.keyboard.press('Escape');
-          } else expect(center.map(i => i.k)).toEqual(['view', 'tune', 'lb']);
+          } else expect(center.map(i => i.k)).toEqual(['search', 'view', 'tune', 'lb']);
         } else {
-          expect(center.map(i => i.k)).toEqual(['view', 'tune', 'lb']);
+          expect(center.map(i => i.k)).toEqual(['search', 'view', 'tune', 'lb']);
           expect(center.every(i => i.words), `${where}: labels`).toBe(true);
           await expect(page.locator('#avBadge .avb-tune')).toBeHidden();
         }

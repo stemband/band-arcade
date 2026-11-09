@@ -102,6 +102,7 @@ const SETTINGS = {name: 'Settings', open: async page => { const b = page.locator
 const BADGE = '#avBadge .avb-btn';
 const FLOOR = [
   SETTINGS,
+  {name: 'Find a game (the search)', open: click('#searchBtn'), sel: '#gameSearch', main: '#gsInput', close: click('#gsClose')},
   {name: 'Backup Code', open: clickAll('#soundCtl .snd-btn', '#uiSettings .bk-btn'), sel: '.bk-overlay', main: '.bk-overlay .bk-make',
     close: async page => { await click('.bk-close')(page); await click('#uiSettings [data-act=done]')(page); }},
   {name: 'the avatar badge menu', group: 'the avatar', open: click(BADGE), sel: '#avBadge .avb-menu', main: '#avBadge .avb-menu button', gone: false},

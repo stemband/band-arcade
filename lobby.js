@@ -3,7 +3,7 @@
    silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
    (shared/practice.js: 3 steps, the whole row), a CONTINUE card (the last game opened on this device) and the ASSIGNED
    card (shared/featured.js); under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js).
-   LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, 2P / ASSIGNED,
+   LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, NEW / 2P / ASSIGNED,
    and "No instrument needed" (games.js noInstrument). THE FILTER above the cards: the chip "No instrument needed"
    (aria-pressed) shows only those games; remembered for this browser session (sessionStorage bandarcade.noinst).
    The marquee pictures are still frames from shared/marquees.js (Arcade.Marquee.thumb: drawn once, then kept).
@@ -262,9 +262,10 @@ window.Arcade = window.Arcade || {};
       const foot = g.maxStars ? `<span class="gc-stars">${starsHTML(A.gameStars(g))}</span>`
         : `<span class="gc-sum">${esc((g.summary && g.summary(A.store)) || 'No stars: just play!')}</span>`;
       return `<button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
-        `aria-label="${esc(g.name)}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${g.noInstrument ? ', no instrument needed' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
+        `aria-label="${esc(g.name)}${A.isNewGame(g) ? ', new' : ''}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${g.noInstrument ? ', no instrument needed' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
         `<span class="gc-pic">${thumb(g)}</span>` +               // the marquee alone: badges never cover its title
         `<span class="gc-body"><span class="gc-head"><span class="gc-name">${esc(g.name)}</span><span class="gc-badges">` +
+        (A.isNewGame(g) ? `<span class="badge b-new">New</span>` : '') +
         (F === g ? `<span class="badge b-assigned">Assigned</span>` : '') + (twoP(g) ? `<span class="badge b-2p">2P</span>` : '') + `</span></span><span class="gc-skill">${esc(g.skill || '')}</span>` +
         `<span class="gc-zones">${zones.map(z => `<span class="ztag" style="${zoneStyle(z)}">${esc(z.name)}</span>`).join('')}` +
         (g.noInstrument ? `<span class="ni-tag">No instrument needed</span>` : '') + `</span>` +

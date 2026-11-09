@@ -43,7 +43,7 @@ Engine and shared systems (`docs/engine/`):
 | File | Read it when you touch… |
 |---|---|
 | [version-and-app.md](docs/engine/version-and-app.md) | the installable app, `sw.js`, `shared/app.js`, offline, updates, the play session (`Arcade.session`) |
-| [page-flow.md](docs/engine/page-flow.md) | the floor page: lobby, THE LOBBY QUEUE (`shared/lobby-queue.js`: anything that pops up on the floor), TODAY'S PRACTICE (`shared/practice.js`), zones, ALL GAMES, FULL ARCADE, the top bar, opening a game, Choose Your Instrument / Select Player, pick mode, players and groups, zones and `fit`, `requireInstrument`, links |
+| [page-flow.md](docs/engine/page-flow.md) | the floor page: lobby, FIND A GAME (`shared/game-search.js`), NEW GAMES and the NEW badge, THE LOBBY QUEUE (`shared/lobby-queue.js`: anything that pops up on the floor), TODAY'S PRACTICE (`shared/practice.js`), zones, ALL GAMES, FULL ARCADE, the top bar, opening a game, Choose Your Instrument / Select Player, pick mode, players and groups, zones and `fit`, `requireInstrument`, links |
 | [ui-kit.md](docs/engine/ui-kit.md) | any UI: buttons, results, pause, settings, intro, confirm, toasts, layers, hold guard, overlays |
 | [look-and-theme.md](docs/engine/look-and-theme.md) | colors, tokens, fonts, the neon arcade look, the floor's look |
 | [press-start-and-level-select.md](docs/engine/press-start-and-level-select.md) | a game's PRESS START screen or its first screen (SELECT YOUR NOTES / LEVEL / START) |
@@ -98,5 +98,5 @@ Games and tools (`docs/games/`, one per game id in `shared/games.js`):
 1. Read [adding-a-game.md](docs/engine/adding-a-game.md) (the full steps) and [press-start-and-level-select.md](docs/engine/press-start-and-level-select.md).
 2. New folder with `index.html` (copy `ghost-notes/index.html`'s `<head>`: the three version lines + the shared script tags), `style.css`, `game.js` (`requireInstrument` + `mountTopbar`).
 3. Notes only from `sequences.js` / `mode-picker.js`; results, pause, intros from the UI kit; menu music through `Sfx.gameMenuMusic`.
-4. Add it to `shared/games.js` (zones, `maxStars`, color, `cabinet`, `marquee`, `bg`, `fit` if needed) and a tests/games.js entry if it needs special steps.
+4. Add it to `shared/games.js` (zones, `added`, `keywords`, `maxStars`, color, `cabinet`, `marquee`, `bg`, `fit` if needed) and a tests/games.js entry if it needs special steps.
 5. Write `docs/games/<game id>.md` and add it to the index above.

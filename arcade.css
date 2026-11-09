@@ -58,6 +58,8 @@
 .fb-view[aria-pressed="true"]{border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 18%,var(--deep));box-shadow:0 0 12px color-mix(in srgb,var(--yellow) 50%,transparent),inset 0 0 8px color-mix(in srgb,var(--yellow) 30%,transparent)}
 .fb-tune{border-color:var(--green-ink);color:var(--green-hi)}
 .fb-lb{border-color:var(--amber-ink);color:var(--amber-hi)}
+.fb-search{border-color:var(--pink-ink);color:var(--pink-hi)}
+.fb-search[aria-expanded="true"]{border-color:var(--pink);background:color-mix(in srgb,var(--pink) 18%,var(--deep))}
 .fb-btn:hover,.fb-back:hover,.fb-chip:hover{background:var(--floor-3)}
 .fb-view[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--yellow) 26%,var(--deep))}
 .fb-btn:focus-visible,.fb-back:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
@@ -168,6 +170,7 @@
 .badge{display:inline-block;padding:3px 9px;border-radius:999px;font:400 12px var(--display);letter-spacing:.1em;text-transform:uppercase;line-height:1.3}
 .b-assigned{background:var(--yellow);color:var(--deep);box-shadow:var(--glow-yellow)}
 .b-2p{background:var(--pink);color:var(--deep)}
+.b-new{background:var(--white-hi);color:var(--deep);box-shadow:var(--glow-white)}   /* games.js added: Arcade.isNewGame */
 .fit-tag{display:inline-block;padding:3px 9px;border-radius:8px;border:2px solid var(--amber);color:var(--amber-hi);background:var(--deep);font-weight:700;font-size:13px}
 
 /* ---------- carousel ---------- */
@@ -874,3 +877,41 @@ html.no-motion .ch-confetti{display:none}
 .lb-dev h3{margin:0 0 6px;font-size:15px}
 .lb-dev-list{margin:4px 0 8px;padding-left:18px}
 .lb-send-res{margin-top:6px}
+
+/* ---------- FIND A GAME (shared/game-search.js): the top bar's search panel. Near the top of the screen (not centered),
+   so an iPad's on-screen keyboard never covers the field or the first results. ---------- */
+.gs-overlay{align-items:start}
+.gs-overlay>.gs-panel{margin-block:clamp(8px,6vh,60px) auto}
+.gs-panel{width:min(620px,100%);text-align:left;padding:18px 18px 20px;border-color:var(--pink)}
+.gs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.gs-panel .gs-title{margin:0;font-size:clamp(22px,5vw,28px)}
+.gs-close{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;border:2px solid var(--line);background:var(--deep);color:var(--text-hi);cursor:pointer}
+.gs-close svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.gs-close:hover{background:var(--floor-3)}
+.gs-close:focus-visible,.gs-chip:focus-visible,.gs-item:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+.gs-field{display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 14px;border-radius:14px;border:2px solid var(--cyan);background:var(--deep);
+  box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 35%,transparent)}
+.gs-field:focus-within{box-shadow:var(--glow-cyan)}
+.gs-field svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--cyan-hi);stroke-width:2.2;stroke-linecap:round}
+.gs-field input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text-hi);font:400 18px var(--text);padding:8px 0}
+.gs-field input::placeholder{color:var(--text-dim)}
+.gs-field input::-webkit-search-cancel-button{filter:invert(1) brightness(1.4)}
+.gs-try{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.gs-try[hidden]{display:none}
+.gs-try .ui-label{margin:0 4px 0 0}
+.gs-chip{min-height:44px;padding:6px 14px;border-radius:999px;border:2px solid var(--line);background:var(--deep);color:var(--text-hi);font:700 14px var(--text);cursor:pointer}
+.gs-chip:hover{background:var(--floor-3);border-color:var(--cyan)}
+.gs-panel .gs-count{margin:12px 2px 8px;font-size:14px;color:var(--text-lo)}
+.gs-panel .gs-count.empty{color:var(--text-hi)}
+.gs-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.gs-item{display:grid;grid-template-columns:minmax(0,148px) minmax(0,1fr);align-items:center;gap:12px;width:100%;min-height:64px;padding:8px;
+  border-radius:14px;border:2px solid var(--z,var(--line));background:var(--floor);color:var(--text-hi);text-align:left;cursor:pointer;
+  box-shadow:0 0 8px color-mix(in srgb,var(--z,transparent) 25%,transparent)}
+.gs-item:hover{background:var(--floor-3)}
+.gs-pic .mq-thumb{display:block;width:100%;aspect-ratio:4/1;border-radius:8px}
+.gs-text{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+.gs-name{font:400 17px var(--display);letter-spacing:.03em;text-transform:uppercase;line-height:1.15;overflow-wrap:anywhere}
+.gs-skill{flex-basis:100%;color:var(--text-lo);font-size:14px}
+.gs-zones{display:flex;flex-wrap:wrap;gap:4px}
+.gs-item.nofit .mq-thumb,.gs-item.nofit .gs-name,.gs-item.nofit .gs-skill{opacity:.5;filter:saturate(.35)}
+@media (max-width:480px){ .gs-item{grid-template-columns:minmax(0,96px) minmax(0,1fr);gap:10px} .gs-name{font-size:15px} }
