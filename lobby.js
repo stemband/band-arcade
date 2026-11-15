@@ -87,8 +87,11 @@ window.Arcade = window.Arcade || {};
     lit = true;
     $('zones').querySelectorAll('.zsign[data-zone]').forEach(b => b.addEventListener('click', () => onZone(A.zoneById(b.dataset.zone))));
     wirePrize();
-    $('lobbyCards').querySelectorAll('.lcard[data-game], .rp-main, .rp-mini').forEach(b => b.addEventListener('click', () =>
-      onGame(A.floorGames().find(g => g.id === b.dataset.game), 'lobby')));
+    $('lobbyCards').querySelectorAll('.lcard[data-game], .rp-main, .rp-mini').forEach(b => b.addEventListener('click', () => {
+      const g = A.floorGames().find(x => x.id === b.dataset.game);
+      if (b.classList.contains('lc-assigned') && A.assignedWish) A.assignedWish(g);   // featured.js level/notes: a LEVEL LINK wish
+      onGame(g, 'lobby');
+    }));
     if (A.SeasonLobby) A.SeasonLobby.render($('lobby'));       // a seasonal event: its banner + decorations (season-lobby.js)
     unlocked();                                                // anything unlocked whose UNLOCKED! card hasn't shown yet
     if (A.ChampionLobby) A.ChampionLobby.render();             // WEEKLY CHAMPIONS: the weekly check, the CHAMPION card (champion-lobby.js)

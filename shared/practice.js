@@ -344,7 +344,9 @@ window.Arcade = window.Arcade || {};
     }
     const g = floorGame(s.game);
     if (!g) return;
-    try { if (A.gameFit(g, st().player).ok) sessionStorage.setItem(PICK, g.id); } catch (e) { /* private mode */ }
+    // the ASSIGNED game with a level in featured.js: that level (a LEVEL LINK wish, ui.js); else the first open level short of 3 ★
+    const assigned = A.assignedWish && A.assignedWish(g);
+    try { if (!assigned && A.gameFit(g, st().player).ok) sessionStorage.setItem(PICK, g.id); } catch (e) { /* private mode */ }
     onGame(g, 'lobby', s.query || null);                          // the rudiment of the day: ?r=<id>
   }
 

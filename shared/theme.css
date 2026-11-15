@@ -770,7 +770,12 @@ html.ps-reveal body>*:not(.ps-screen):not(.bg-layer)>*:not(#topbar){animation:ps
 .ls-start:focus-visible{outline:4px solid var(--text-hi);outline-offset:3px}
 .ls-start.ls-in{animation:ls-in .35s ease-out}
 @keyframes ls-in{from{opacity:0;transform:translateX(24px)}}
-@media (max-width:560px){ .ls-go{width:100%;margin-left:0} .ls-start,.ls-need{width:100%} }
+/* UP NEXT: START picked the level after the one the student cleared (level-select.js); its line says so */
+.ls-start.ls-next .ls-sum{color:var(--red-ink)}
+/* ?demo only: COPY LINK, its own item in the row right after START (a level link for Brightspace or a QR code) */
+.ls-link{margin-left:-4px;min-height:44px;padding:6px 14px;border:2px solid var(--cyan);border-radius:12px;background:transparent;color:var(--cyan-hi);font-weight:700;font-size:13px;cursor:pointer}
+.ls-link:focus-visible{outline:3px solid var(--text-hi);outline-offset:2px}
+@media (max-width:560px){ .ls-go{width:100%;margin-left:0} .ls-start,.ls-need{width:100%} .ls-link{margin:0;width:100%} }
 /* THE TIP under START (its first 3 showings): small and quiet, its own line at the row's right; smaller on phones */
 .ls-tip{flex-basis:100%;margin:-4px 2px 0;text-align:right;color:var(--text-lo);font-size:12.5px;font-weight:700;line-height:1.2}
 @media (max-width:560px){ .ls-tip{margin-top:-2px;font-size:11px} }

@@ -94,6 +94,18 @@ window.Arcade = window.Arcade || {};
   }
   const cardStars = c => c ? c.querySelectorAll('.stars .on').length : 0;
 
+  /* LEVEL LINKS (ui.js Arcade.LevelLink): a link's NOTES go in now, before game.js mounts its NOTES picker (it reads
+     store.noteMode); its LEVEL waits for the screen to appear (show). */
+  (function applyNotes() {
+    const L = A.LevelLink, game = pageGame(), w = L && L.peek(game);
+    if (!w || (!w.notes && !w.order) || !A.store || !A.store.setNoteMode) return;
+    const patch = {};
+    if (w.notes) patch.notes = w.notes;
+    if (w.order) patch.order = w.order;
+    try { A.store.setNoteMode(game, patch); } catch (e) { /* no storage */ }
+    L.usedNotes(game);
+  })();
+
   /* ---------- the screen appearing / going ---------- */
   function watch(screen) {
     if (S && S.screen === screen) return S;
@@ -236,6 +248,32 @@ window.Arcade = window.Arcade || {};
   function tipCount(n) {
     try { const d = memo(); d.dblHint = Math.max(d.dblHint || 0, n); A.store.saveGameData('level-select'); } catch (e) { /* no storage */ }
   }
+  /** ?demo (Mr. Graham): COPY LINK under START = a LEVEL LINK (ui.js Arcade.LevelLink) to the selected level and note
+      set, for Brightspace or a QR code. Never shown to students (no ?demo); the link itself has no ?demo. */
+  function linkHref() {
+    const p = S.picker, w = {};
+    const n = p && p.querySelector('.mp-note[aria-pressed="true"]'), o = p && p.querySelector('.mp-ord[aria-pressed="true"]');
+    if (n && n.dataset.notes) w.notes = n.dataset.notes;
+    if (o && o.dataset.order) w.order = o.dataset.order;
+    const rel = A.LevelLink.href(pageGame(), S.sel, w, '');
+    try { return new URL(rel, location.href.replace(/[^/]*\/(?:index\.html)?(?:[?#].*)?$/, '')).href; } catch (e) { return rel; }
+  }
+  function copyLink() {
+    const row = S.row, go = row.querySelector('.ls-go');
+    let c = row.querySelector(':scope>.ls-link');
+    if (!A.DEMO || !A.LevelLink || !S.opts || !S.ready) { if (c) c.remove(); return; }
+    if (!c) {
+      c = document.createElement('button');
+      c.type = 'button'; c.className = 'ls-link'; c.textContent = 'Copy link to this level';
+      c.addEventListener('click', () => {
+        if (!S || S.sel === null) return;
+        const url = linkHref(), done = ok => A.UI && A.UI.toast(ok ? 'Link copied!' : url, {near: c, ms: ok ? 1800 : 8000});
+        try { navigator.clipboard.writeText(url).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+      });
+    }
+    if (c.previousElementSibling !== go) go.after(c);           // its own item in the row, right after START (never inside
+    c.dataset.href = linkHref();                                 // START's area, where a game's `beside` button sits)
+  }
   /** the START area: the button with its line once a level is selected, else the dim hint ('tap' = selected by a tap:
       'start-ready' waits out the double-tap window, so a double tap never plays it) */
   function drawStart(announce) {
@@ -255,8 +293,9 @@ window.Arcade = window.Arcade || {};
         b.addEventListener('click', () => begin());
       }
       beside();
-      b.querySelector('.ls-sum').textContent = S.summary;
-      b.setAttribute('aria-label', `Start: ${S.summary}`);
+      b.querySelector('.ls-sum').textContent = (S.next ? 'Up next · ' : '') + S.summary;
+      b.classList.toggle('ls-next', !!S.next);
+      b.setAttribute('aria-label', `Start${S.next ? ', up next' : ''}: ${S.summary}`);
       S.start = b;
       if (!was && announce) {
         b.classList.remove('ls-in'); void b.offsetWidth; b.classList.add('ls-in');
@@ -268,6 +307,7 @@ window.Arcade = window.Arcade || {};
         }
       }
     }
+    copyLink();
     if (S.live) tip();
     if (S.ready !== was && S.appeared) armHint();              // the next missing step gets its own hint
   }
@@ -288,7 +328,7 @@ window.Arcade = window.Arcade || {};
     if (!S) return;
     if (S.sel === v) { if (byStudent && S.start) S.start.focus({preventScroll: true}); return; }
     S.sel = v;
-    if (byStudent) { remember(S.gameId, v); if (A.Sfx) A.Sfx.event('ui-toggle'); }
+    if (byStudent) { S.next = false; remember(S.gameId, v); if (A.Sfx) A.Sfx.event('ui-toggle'); }
     mark(); drawStart(byStudent);
     // START on screen: the row sticks at the top, so this only matters when the page is scrolled past it
     if (byStudent && S.start) {
@@ -418,12 +458,34 @@ window.Arcade = window.Arcade || {};
     if (!st.appeared) {                                            // the screen appears: the remembered choice
       const v = recall(st.gameId);
       st.sel = valid(v) ? v : null;
+      st.next = false;
+      // UP NEXT: the remembered level is cleared (≥ 1 ★) and the one after it is open and not played yet (0 ★) →
+      // that one instead, so a returning student's START is the next level. A level after which the student already
+      // has stars was picked on purpose: it stays.
+      if (Number.isInteger(st.sel) && cardStars(cards[st.sel]) >= 1 && valid(st.sel + 1) && cardStars(cards[st.sel + 1]) === 0) {
+        st.sel += 1; st.next = true;
+      }
+      // a LEVEL LINK (ui.js Arcade.LevelLink): that level if it's open, else the highest open one below it, saying so
+      if (A.LevelLink && !st.linkRead) {
+        st.linkRead = true;
+        const lv = A.LevelLink.take(pageGame());
+        if (lv === 'endless' && valid('endless')) { st.sel = 'endless'; st.next = false; st.linked = true; remember(st.gameId, 'endless'); }
+        else if (Number.isInteger(lv)) {
+          let pick = Math.min(lv, cards.length - 1);
+          while (pick > 0 && !valid(pick)) pick--;
+          if (valid(pick)) {
+            st.sel = pick; st.next = false; st.linked = true; remember(st.gameId, pick);
+            bnNote(st, pick === lv ? '' : lv >= cards.length ? `This game has ${cards.length} levels. Here's the last one!`
+              : `${levelName(lv)} is still locked. Clear ${levelName(pick)} to get there!`);
+          }
+        }
+      }
       // TODAY'S PRACTICE: the first open level still short of 3 ★ (none left = the remembered one, as always)
       if (!st.pickRead) {
         st.pickRead = true;
-        if (practicePick()) {
+        if (practicePick() && !st.linked) {                       // a level link (the ASSIGNED level) wins
           const i = cards.findIndex((c, k) => valid(k) && cardStars(c) < 3);
-          if (i >= 0) { st.sel = i; st.practice = true; }
+          if (i >= 0) { st.sel = i; st.practice = true; st.next = false; }
         }
       }
       // a Band Ninja link (shared/bandninja.js: ?belt= / ?rank=) asks for a level: that one if it's open, else the
@@ -432,7 +494,7 @@ window.Arcade = window.Arcade || {};
       if (w && Number.isInteger(w.index) && w.index >= 0 && w.index < cards.length) {
         let pick = w.index;
         while (pick > 0 && !valid(pick)) pick--;
-        if (valid(pick)) { st.sel = pick; remember(st.gameId, pick); }
+        if (valid(pick)) { st.sel = pick; st.next = false; remember(st.gameId, pick); }
         bnNote(st, pick === w.index ? '' : w.note());
       }
     } else if (st.sel !== null && !valid(st.sel)) st.sel = null;
@@ -472,7 +534,7 @@ window.Arcade = window.Arcade || {};
     const gameId = (S && S.gameId) || pageGame();
     remember(gameId, i);
     if (A.store && A.store.noteActivity && gameId) A.store.noteActivity({game: gameId, play: 1});   // seasonal events: a game played today
-    if (S && S.opts) { S.sel = i; mark(); drawStart(false); }
+    if (S && S.opts) { S.sel = i; S.next = false; mark(); drawStart(false); }
   }
 
   /** a setup screen's main button (START MATCH, CONTINUE): lit, focused, and the idle hint */
@@ -494,5 +556,5 @@ window.Arcade = window.Arcade || {};
   }
 
   A.LevelSelect = {show, played, highlight, IDLE_MS, VOICE_KEY, DOUBLE_MS, TIP_MAX,
-    state: () => S ? {sel: S.sel, ready: S.ready, hint: !!S.hint, hintAt: S.hint ? S.hintFor : null, appeared: S.appeared, summary: S.ready ? S.summary : '', practice: !!S.practice} : null};
+    state: () => S ? {sel: S.sel, ready: S.ready, hint: !!S.hint, hintAt: S.hint ? S.hintFor : null, appeared: S.appeared, summary: S.ready ? S.summary : '', practice: !!S.practice, next: !!S.next, linked: !!S.linked} : null};
 })(window.Arcade);
