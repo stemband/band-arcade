@@ -15,11 +15,12 @@ const ready = page => page.waitForFunction(() => window.Arcade && Arcade.Arcade 
 const favs = page => page.evaluate(() => Arcade.favorites().map(g => g.id));
 const withFloor = floorData => device('trumpet', {gameData: {floor: floorData}});
 
-test('THE STAR: ARCADE VIEW, a cabinet and FIND A GAME star the same game; saved; the lobby sign follows', {tag: '@quick'}, async ({page}) => {
+test('THE STAR: ARCADE VIEW, a cabinet and FIND A GAME star the same game; saved; the lobby shelf follows', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: device()});
   await page.goto(floor());
   await ready(page);
-  await expect(page.locator('.zsign[data-zone="favorites"]')).toHaveCount(0);        // nothing starred: no sign
+  await expect(page.locator('.zsign[data-zone="favorites"]')).toHaveCount(0);        // never a sign (a shelf)
+  await expect(page.locator('.lc-favorites')).toHaveCount(0);                       // nothing starred: no shelf
   // ARCADE VIEW: a card's star (its own button, not the card's)
   await page.goto(floor('#all-games'));
   await ready(page);
@@ -39,11 +40,12 @@ test('THE STAR: ARCADE VIEW, a cabinet and FIND A GAME star the same game; saved
   await page.keyboard.press('Escape');
   await expect(page.locator('#allGrid .gc-fav[data-fav="pedal-point"]')).toHaveAttribute('aria-pressed', 'true');
   expect(await favs(page)).toEqual(['rhythm-dojo', 'pedal-point']);
-  // saved: the lobby's MY FAVORITES sign, second, in the order they were starred
+  // saved: the lobby's MY FAVORITES shelf, in the order they were starred; one tap opens a game, SEE ALL the zone
   await page.goto(floor());
   await ready(page);
-  await expect(page.locator('#zones .zsign').nth(1)).toHaveAttribute('data-zone', 'favorites');
-  await page.locator('.zsign[data-zone="favorites"]').click();
+  await expect(page.locator('.zsign[data-zone="favorites"]')).toHaveCount(0);
+  expect(await page.locator('.lc-favorites .rp-mini').evaluateAll(b => b.map(x => x.dataset.game))).toEqual(['rhythm-dojo', 'pedal-point']);
+  await page.locator('.lc-favorites .sh-all').click();
   await expect.poll(async () => (await page.evaluate(() => Arcade.Arcade.state())).zone).toBe('favorites');
   expect((await page.evaluate(() => Arcade.Arcade.state())).ring).toEqual(['rhythm-dojo', 'pedal-point']);
   // under a cabinet: the pill unstars the front game
@@ -124,6 +126,6 @@ test('RECENTLY PLAYED from an older save: CONTINUE alone, as before', async ({pa
   await page.goto(floor());
   await ready(page);
   await expect(page.locator('#lobbyCards .lc-continue .rp-main')).toHaveAttribute('data-game', 'note-storm');
-  await expect(page.locator('#lobbyCards .rp-mini')).toHaveCount(0);
+  await expect(page.locator('#lobbyCards .lc-recent .rp-mini')).toHaveCount(0);
   watch.check();
 });

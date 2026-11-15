@@ -548,10 +548,12 @@
       $('backBtn').setAttribute('aria-label', 'Back to the ' + (r.zone === FULL ? backLabel() : 'lobby'));
       A.floorPaused = false;
       let games;
-      if (r.zone === FULL) { const f = fullGames(); games = f.list; fullZoneOf = f.zoneOf; } else games = A.zoneGames(r.zone.id);
+      // NO INSTRUMENT WITH ME (ui.js): a zone shows only its noInstrument games (A.carouselGames)
+      if (r.zone === FULL) { const f = fullGames(); games = f.list; fullZoneOf = f.zoneOf; } else games = A.carouselGames(r.zone.id, r.game);
       const instChanged = shownFor !== undefined && shownFor !== A.store.player;
       shownFor = A.store.player;
-      if (!zone || zone.id !== r.zone.id || instChanged) {
+      const ringChanged = !!zone && (ring.length !== games.length || ring.some((g, i) => g !== games[i]));
+      if (!zone || zone.id !== r.zone.id || instChanged || ringChanged) {
         zone = r.zone; ring = games; N = ring.length;
         cur = Math.max(0, ring.findIndex(g => g.id === r.game));
         $('zoneView').classList.toggle('single', N < 2);

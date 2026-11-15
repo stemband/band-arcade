@@ -132,14 +132,15 @@ test('a game found from ARCADE VIEW comes back to ARCADE VIEW; Tune Up\'s tools 
   watch.check();
 });
 
-test('NEW GAMES: the first sign while games are new, newest first; badges; gone once nothing is new', {tag: '@quick'}, async ({page}) => {
+test('NEW GAMES: the lobby shelf while games are new, newest first; badges; gone once nothing is new', {tag: '@quick'}, async ({page}) => {
   const watch = await prepare(page, {store: device()});
   await page.goto(floor());
   await ready(page);
-  await expect(page.locator('#zones .zsign').first()).toHaveAttribute('data-zone', 'new-games');
+  await expect(page.locator('.zsign[data-zone="new-games"]')).toHaveCount(0);       // a shelf on the lobby, not a sign
   expect(await page.evaluate(() => Arcade.zoneGames('new-games').map(g => g.id))).toEqual(['first-sight', 'perfect-pitch', 'slide-quest', 'pedal-point']);
-  // the zone opens like any other, with the NEW badge in the info
-  await page.locator('.zsign[data-zone="new-games"]').click();
+  expect(await page.locator('.lc-new .rp-mini').evaluateAll(b => b.map(x => x.dataset.game))).toEqual(['first-sight', 'perfect-pitch', 'slide-quest', 'pedal-point']);
+  // SEE ALL opens the zone like any other, with the NEW badge in the info
+  await page.locator('.lc-new .sh-all').click();
   await expect.poll(async () => (await page.evaluate(() => Arcade.Arcade.state())).zone).toBe('new-games');
   await expect(page.locator('#infoTags .b-new')).toBeVisible();
   // ARCADE VIEW's list: a badge on the new ones only; the Full Arcade skips the zone (each cabinet once)
@@ -155,7 +156,7 @@ test('NEW GAMES: the first sign while games are new, newest first; badges; gone 
   await expect(page.locator('#allGrid .gcard .b-new')).toHaveCount(0);
   await page.goto(floor('', '2027-03-01'));
   await ready(page);
-  await expect(page.locator('.zsign[data-zone="new-games"]')).toHaveCount(0);
+  await expect(page.locator('.lc-new')).toHaveCount(0);
   await page.goto(floor('#zone=new-games', '2027-03-01'));    // an old link to it: the lobby
   await ready(page);
   await expect.poll(async () => (await page.evaluate(() => Arcade.Arcade.state())).view).toBe('lobby');

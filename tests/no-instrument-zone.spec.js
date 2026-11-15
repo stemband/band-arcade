@@ -1,6 +1,8 @@
 /* THE NO INSTRUMENT NEEDED ZONE (shared/games.js ZONES `auto: 'noInstrument'`): its games come from the games' own
-   `noInstrument` flag, it opens and returns like every zone, the Full Arcade still shows each cabinet once, nothing in
-   it is dimmed for the saved instrument, and the lobby's signs fit on a phone, an iPad (both ways) and a laptop. */
+   `noInstrument` flag, it opens (from its address) and returns like every zone, the Full Arcade still shows each cabinet
+   once, nothing in it is dimmed for the saved instrument. On the lobby it is no longer a sign: it is the NO INSTRUMENT
+   WITH ME switch (lobby.js noInstSwitch, ui.js Arcade.noInstOn): on = the signs, shelves, RECENTLY PLAYED and the zones'
+   carousels show only those games. The lobby's signs fit on a phone, an iPad (both ways) and a laptop. */
 const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
@@ -27,24 +29,17 @@ test('the zone holds exactly the noInstrument games, in games.js order, and a ne
   expect(r.after).toContain('ghost-notes');
   expect(r.ownZones).toEqual([]);                                                  // nobody lists it by hand
   expect(r.stillInOwn).toBe(true);                                                 // they stay in their own zones
-  // the lobby sign: its neon differs from its neighbours', its game count
-  const sign = page.locator(`.zsign[data-zone="${ZONE}"]`);
-  await expect(sign).toBeVisible();
-  await expect(sign.locator('.zs-name')).toHaveText('No Instrument Needed');
-  await expect(sign.locator('.zs-count')).toHaveText(`${r.flagged.length} games`);
-  await expect(sign.locator('.cab-sil')).toHaveCount(r.flagged.length);
-  const colors = await page.evaluate(() => Arcade.zoneList().map(z => z.color));
-  const i = r.zones.indexOf(ZONE);
-  expect(colors[i]).not.toBe(colors[i - 1]);
-  expect(colors[i]).not.toBe(colors[i + 1]);
+  // the lobby: no sign for it (the NO INSTRUMENT WITH ME switch instead)
+  await expect(page.locator(`.zsign[data-zone="${ZONE}"]`)).toHaveCount(0);
+  await expect(page.locator('#noInstSwitch')).toHaveAttribute('aria-pressed', 'false');
   watch.check();
 });
 
-test('the sign opens the carousel, the address links to it, Back returns to the lobby', async ({page}) => {
+test('its address opens the carousel, Back returns to the lobby', async ({page}) => {
   const watch = await prepare(page, {store: device()});
   await page.goto('index.html?demo&nostart&flat');
   const flagged = await page.evaluate(() => Arcade.floorGames().filter(g => g.noInstrument).map(g => g.id));
-  await page.locator(`.zsign[data-zone="${ZONE}"]`).click();
+  await page.goto(`index.html?demo&nostart&flat#zone=${ZONE}`);
   await expect.poll(async () => (await state(page)).zone).toBe(ZONE);
   let s = await state(page);
   expect(s.view).toBe('zone');
@@ -53,6 +48,7 @@ test('the sign opens the carousel, the address links to it, Back returns to the 
   await expect(page.locator('#fbTitle')).toHaveText('No Instrument Needed');
   await page.locator('#backBtn').click();
   await expect.poll(async () => (await state(page)).view).toBe('lobby');
+  await page.goto('index.html?demo&nostart&flat');
   // a direct link
   await page.goto(`index.html?demo&nostart&flat#zone=${ZONE}&game=rhythm-dojo`);
   await expect.poll(async () => (await state(page)).game).toBe('rhythm-dojo');
@@ -97,12 +93,12 @@ test('nothing in the zone is dimmed for the saved instrument, and opening one ne
 });
 
 for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], ['iPad landscape', 1180, 820], ['laptop', 1366, 768]]) {
-  test(`the lobby's signs fit with the new zone (${name})`, async ({page}) => {
+  test(`the lobby's signs fit (${name})`, async ({page}) => {
     await page.setViewportSize({width: w, height: h});
     const watch = await prepare(page, {store: device()});
     await page.goto('index.html?demo&nostart');
     const signs = page.locator('.zsign');                // the zones' signs + the PRIZE COUNTER's
-    const n = await page.evaluate(() => Arcade.zoneList().length);
+    const n = await page.evaluate(() => Arcade.lobbyZones().length);
     await expect(page.locator('.zsign[data-zone]')).toHaveCount(n);
     await expect(signs).toHaveCount(n + 1);
     const boxes = await signs.evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; }));
@@ -114,7 +110,7 @@ for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], [
       const a = boxes[i], b = boxes[j];
       expect(a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1).toBe(true);
     }
-    // every sign's cabinet silhouettes stay inside it (7 of them on the No Instrument Needed sign)
+    // every sign's cabinet silhouettes stay inside it (7 of them on Technique Lab's)
     const spill = await signs.evaluateAll(els => els.filter(e => { const r = e.getBoundingClientRect();
       return [...e.querySelectorAll('.cab-sil')].some(s => { const q = s.getBoundingClientRect(); return q.left < r.left - 0.5 || q.right > r.right + 0.5; }); }).map(e => e.dataset.zone));
     expect(spill).toEqual([]);
@@ -126,3 +122,47 @@ for (const [name, w, h] of [['phone', 390, 844], ['iPad portrait', 820, 1180], [
     watch.check();
   });
 }
+
+test('NO INSTRUMENT WITH ME: the signs, shelves, RECENTLY PLAYED and carousels show only those games; ARCADE VIEW\'s chip is the same setting', {tag: '@quick'}, async ({page}) => {
+  const store = device('snare', {gameData: {floor: {favs: ['ghost-notes', 'rhythm-dojo'], recent: ['ghost-notes', 'pedal-point'], last: 'ghost-notes'}}});
+  const watch = await prepare(page, {store});
+  await page.goto('index.html?demo&nostart&flat&today=2026-11-08');
+  await expect(page.locator('#zones .zsign[data-zone]').first()).toBeVisible();
+  const all = await page.evaluate(() => Arcade.lobbyZones().map(z => [z.id, Arcade.zoneGames(z.id).length]));
+  const sw = page.locator('#noInstSwitch');
+  await expect(page.locator('#noInstNote')).toBeHidden();
+  await sw.click();
+  await expect(sw).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#noInstNote')).toBeVisible();
+  const want = await page.evaluate(() => Arcade.lobbyZones().map(z => [z.id, Arcade.zoneGames(z.id).filter(g => g.noInstrument).length]));
+  expect(want.every(([, n]) => n > 0)).toBe(true);
+  for (const [id, n] of want) {
+    await expect(page.locator(`.zsign[data-zone="${id}"] .zs-count`)).toHaveText(`${n} ${n === 1 ? 'game' : 'games'}`);
+    await expect(page.locator(`.zsign[data-zone="${id}"] .cab-sil`)).toHaveCount(n);
+  }
+  expect(want.length).toBeLessThanOrEqual(all.length);
+  // the shelves and RECENTLY PLAYED: only games played without an instrument
+  await expect(page.locator('.lc-favorites .rp-mini')).toHaveCount(1);
+  await expect(page.locator('.lc-favorites .rp-mini')).toHaveAttribute('data-game', 'rhythm-dojo');
+  await expect(page.locator('.lc-recent .rp-main')).toHaveAttribute('data-game', 'pedal-point');
+  // a zone's carousel: only those, never dimmed for the snare
+  await page.locator('.zsign[data-zone="technique-lab"]').click();
+  await expect.poll(async () => (await state(page)).zone).toBe('technique-lab');
+  const ring = (await state(page)).ring;
+  const flags = await page.evaluate(r => r.map(id => !!Arcade.GAMES.find(g => g.id === id).noInstrument), ring);
+  expect(flags.length).toBeGreaterThan(0);
+  expect(flags.every(Boolean)).toBe(true);
+  await expect(page.locator('.slot.nofit')).toHaveCount(0);
+  // back from a game that isn't one (its address asks for it): the whole zone, so it is still in front
+  await page.goto('index.html?demo&nostart&flat#zone=technique-lab&game=sustain-speedway');
+  await expect.poll(async () => (await state(page)).game).toBe('sustain-speedway');
+  // ARCADE VIEW's chip: the same setting
+  await page.goto('index.html?demo&nostart&flat#all-games');
+  await expect(page.locator('#niFilter')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#niFilter').click();
+  await page.goto('index.html?demo&nostart&flat');
+  await expect(page.locator('#noInstSwitch')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('.zsign[data-zone="technique-lab"]').click();
+  await expect.poll(async () => (await state(page)).ring.length).toBe(all.find(([id]) => id === 'technique-lab')[1]);
+  watch.check();
+});
