@@ -113,6 +113,8 @@
 .vsw{display:flex;justify-content:center;margin:2px auto 8px;padding:0 12px;width:max-content;max-width:100%;gap:0}
 .zone .vsw{display:none}
 .v-full .zone .vsw{display:flex}
+.v-zcab .zone .vsw{display:flex}   /* a zone as CABINETS: its LIST | CABINETS switch */
+.allg.zgrid .allg-bar{display:none}   /* a zone as LIST: no filter chips (the zone is the filter) */
 .vsw-opt{display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:44px;padding:6px 18px;border:2px solid var(--yellow-ink);background:var(--deep);
   color:var(--text-lo);font:400 15px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .vsw-opt:first-child{border-radius:999px 0 0 999px;border-right-width:1px}
@@ -134,6 +136,9 @@
 /* ---------- A ZONE: the carousel with only its cabinets (there's no big sign here, so the cabinets get its room) ---------- */
 .floor-page.v-zone{--cab-w:clamp(180px, min(64vw, calc((100vh - 300px) / 2)), 290px)}
 @supports (height:100svh){ .floor-page.v-zone{--cab-w:clamp(180px, min(64vw, calc((100svh - 300px) / 2)), 290px)} }
+/* a zone as CABINETS has its switch on top: a little less height for the cabinets */
+.floor-page.v-zcab{--cab-w:clamp(170px, min(64vw, calc((100vh - 352px) / 2)), 290px)}
+@supports (height:100svh){ .floor-page.v-zcab{--cab-w:clamp(170px, min(64vw, calc((100svh - 352px) / 2)), 290px)} }
 .zone[hidden],.lobby[hidden],.allg[hidden]{display:none}
 .zone.single .nav,.zone.single .lights{display:none}
 .aisle-flags{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:6px;pointer-events:none}

@@ -23,6 +23,9 @@ const optional = url => OPTIONAL.some(r => r.test(new URL(url).pathname));
     tests/lobby-queue.spec.js turns it on): gameData 'season-lobby' giftAfter, unless the test gives its own. */
 function device(member = 'trumpet', extra = {}) {
   const gameData = Object.assign({'season-lobby': {giftAfter: '9999-12-31'}}, extra.gameData || {});
+  // a zone opens as CABINETS in the tests written for the carousel (a real first visit opens it as LIST: zone-list.spec.js
+  // covers that); a test's own floor data keeps this unless it sets zoneView itself
+  gameData.floor = Object.assign({zoneView: 'cabinets'}, gameData.floor || {});
   return Object.assign({player: member, members: {}, games: {}, modes: {}}, extra, {gameData});
 }
 

@@ -314,8 +314,10 @@ window.Arcade = window.Arcade || {};
   };
   const filterOn = id => { try { return sessionStorage.getItem(FILTERS[id].key) === '1'; } catch (e) { return false; } };
   let lastAll = null;
-  function renderAll({onGame, focus, scrollOnly}) {
-    lastAll = {onGame};
+  /* also A ZONE as LIST (arcade.js): `games` = a function giving that zone's games (no filter chips: .allg.zgrid hides
+     them), `from` = 'zone' (Back from a game returns to the zone), `label` = the zone's name for the grid's aria-label */
+  function renderAll({onGame, focus, scrollOnly, games: zoneGames, from = 'all', label, zone: inZone}) {
+    lastAll = zoneGames ? null : {onGame};
     const F = A.featuredGame();
     const m = A.store.player ? A.memberById(A.store.player) : null;
     Object.keys(FILTERS).forEach(id => {
@@ -329,8 +331,9 @@ window.Arcade = window.Arcade || {};
         chip.focus({preventScroll: true});
       };
     });
-    const on = Object.keys(FILTERS).filter(id => filterOn(id) && !($(id) && $(id).hidden));
-    const games = A.floorGames().filter(g => on.every(id => FILTERS[id].test(g)));
+    const on = zoneGames ? [] : Object.keys(FILTERS).filter(id => filterOn(id) && !($(id) && $(id).hidden));
+    const games = zoneGames ? zoneGames() : A.floorGames().filter(g => on.every(id => FILTERS[id].test(g)));
+    $('allGrid').setAttribute('aria-label', zoneGames ? `${label || 'Zone'} games` : 'All games');
     const count = $('allCount');
     if (count) {
       const n = `${games.length} game${games.length === 1 ? '' : 's'}`;
@@ -340,10 +343,12 @@ window.Arcade = window.Arcade || {};
         : `${n} match`;
     }
     $('allGrid').innerHTML = games.map(g => {
-      const f = fitOf(g), zones = A.zonesOf(g);
+      const f = A.gameFit(g, A.store.player, inZone ? A.zoneById(inZone) : null), all = A.zonesOf(g);
+      const zones = inZone ? all.filter(z => z.id !== inZone) : all;            // in a zone: its own tag would repeat on every card
       const foot = g.maxStars ? `<span class="gc-stars">${starsHTML(A.gameStars(g))}</span>`
         : `<span class="gc-sum">${esc((g.summary && g.summary(A.store)) || 'No stars: just play!')}</span>`;
-      return `<div class="gc-wrap" style="${zoneStyle(zones[0])}"><button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(zones[0])}" ` +
+      const look = inZone ? A.zoneById(inZone) || all[0] : all[0];
+      return `<div class="gc-wrap" style="${zoneStyle(look)}"><button type="button" class="gcard${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" style="${zoneStyle(look)}" ` +
         `aria-label="${esc(g.name)}${A.isNewGame(g) ? ', new' : ''}${twoP(g) ? ', 2 players' : ''}${F === g ? ', assigned' : ''}${g.noInstrument ? ', no instrument needed' : ''}${f.ok ? '' : ', ' + esc(f.tag)}">` +
         `<span class="gc-pic">${thumb(g)}</span>` +               // the marquee alone: badges never cover its title
         `<span class="gc-body"><span class="gc-head"><span class="gc-name">${esc(g.name)}</span><span class="gc-badges">` +
@@ -355,7 +360,7 @@ window.Arcade = window.Arcade || {};
         A.favButton(g, {cls: 'gc-fav'}) + `</div>`;
     }).join('');
     $('allGrid').querySelectorAll('.gcard').forEach(b => b.addEventListener('click', () =>
-      onGame(A.floorGames().find(g => g.id === b.dataset.game), 'all')));
+      onGame(A.floorGames().find(g => g.id === b.dataset.game), from)));
     const f = focus && $('allGrid').querySelector(`.gcard[data-game="${focus}"]`);
     if (f) { f.scrollIntoView({block: 'center'}); if (!scrollOnly) f.focus({preventScroll: true}); }
   }
