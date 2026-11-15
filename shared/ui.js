@@ -394,6 +394,75 @@ window.Arcade = window.Arcade || {};
     }
     return A.floorGames().find(g => g.id === F.game) || null;
   };
+  /* LEVEL LINKS: a link that opens a game ON A LEVEL, for Brightspace, a QR code on the viewboard, or the ASSIGNED card.
+       ghost-notes/index.html?level=3&notes=bb&order=scale      index.html?game=ghost-notes&level=3 (through Select Player)
+     level  1 = the first level card (the Nth card on the level screen), or 'endless'
+     notes  first5 | bb | eb | f | ab | chrom (any case; games with the NOTES picker)    order  random | scale
+     The address is read ONCE as this page loads (ui.js), taken off the address and A.params (so links built from it
+     never carry it to another page), and kept in sessionStorage as a WISH for that game for WISH_MS: it survives Select
+     Player and the version reload. level-select.js applies it: the notes before the game draws its picker
+     (applyNotes), the level when the level screen first appears (take): that level if it's open, else the highest open
+     one below it with a short line saying so. ?demo shows COPY LINK under START (level-select.js), which builds one. */
+  const LL_KEY = 'bandarcade.level-link', LL_MS = 30 * 60000, LL_PARAMS = ['level', 'notes', 'order'];
+  const LL_NOTES = {first5: 'first5', 'first-5': 'first5', first: 'first5', bb: 'Bb', eb: 'Eb', f: 'F', ab: 'Ab', chrom: 'chrom', chromatic: 'chrom'};
+  const llFolder = () => { const m = location.pathname.match(/([^/]+)\/(?:index\.html)?$/); return m ? m[1] : ''; };
+  function llParse(level, notes, order) {
+    const w = {};
+    const lv = String(level || '').trim().toLowerCase();
+    if (lv === 'endless') w.level = 'endless';
+    else if (/^\d{1,3}$/.test(lv) && +lv >= 1) w.level = +lv - 1;              // 0-based inside, like LevelSelect
+    const n = LL_NOTES[String(notes || '').trim().toLowerCase().replace(/[♭\s]/g, m => m === '♭' ? 'b' : '')];
+    if (n) w.notes = n;
+    const o = String(order || '').trim().toLowerCase();
+    if (o === 'scale' || o === 'order' || o === 'scale-order') w.order = 'order'; else if (o === 'random') w.order = 'random';
+    return w;
+  }
+  const llRead = () => { try { const w = JSON.parse(sessionStorage.getItem(LL_KEY) || 'null'); return w && Date.now() - w.at < LL_MS ? w : null; } catch (e) { return null; } };
+  const llWrite = w => { try { if (w) sessionStorage.setItem(LL_KEY, JSON.stringify(w)); else sessionStorage.removeItem(LL_KEY); } catch (e) { /* private mode */ } };
+  A.LevelLink = {
+    KEY: LL_KEY, WISH_MS: LL_MS, parse: llParse,
+    /** a wish for game `gameId`: {level (0-based | 'endless'), notes, order}; replaces any earlier one */
+    wish(gameId, w) { if (gameId && w && (w.level !== undefined || w.notes || w.order)) llWrite(Object.assign({game: gameId, at: Date.now()}, w)); },
+    /** the wish for this game, if any (still kept) */
+    peek(gameId) { const w = llRead(); return w && w.game === gameId ? w : null; },
+    /** the wish's notes were applied: keep only its level */
+    usedNotes(gameId) { const w = A.LevelLink.peek(gameId); if (w) { delete w.notes; delete w.order; llWrite(w.level === undefined ? null : w); } },
+    /** the level screen appeared: the wished level, used once (undefined = none) */
+    take(gameId) { const w = A.LevelLink.peek(gameId); if (!w) return undefined; llWrite(null); return w.level; },
+    /** a link to game g on level i (0-based | 'endless'), with notes/order when given; no ?demo; relative to `root` */
+    href(gameId, i, w = {}, root = '../') {
+      const q = new URLSearchParams();
+      q.set('level', i === 'endless' ? 'endless' : String(i + 1));
+      if (w.notes) q.set('notes', w.notes.toLowerCase());
+      if (w.order === 'order') q.set('order', 'scale');
+      return root + gameId + '/index.html?' + q.toString();
+    },
+  };
+  /* this page's address: a level link? (a game page: its folder; the floor: its ?game=) */
+  (function readLevelLink() {
+    const p = A.params || new URLSearchParams(location.search);
+    if (!LL_PARAMS.some(k => p.has(k))) return;
+    const w = llParse(p.get('level'), p.get('notes'), p.get('order'));
+    const gameId = p.get('game') || llFolder();
+    LL_PARAMS.forEach(k => p.delete(k));
+    try {
+      const u = new URL(location.href);
+      LL_PARAMS.forEach(k => u.searchParams.delete(k));
+      const q = u.searchParams.toString().replace(/=(?=&|$)/g, '');                // "?demo=" -> "?demo"
+      history.replaceState(history.state, '', u.pathname + (q ? '?' + q : '') + u.hash);
+    } catch (e) { /* file:// in some browsers */ }
+    A.LevelLink.wish(gameId, w);
+  })();
+  /** the ASSIGNED game (shared/featured.js) opened from the lobby: its `level` / `notes` / `order` become a wish */
+  A.assignedWish = function (g) {
+    const F = A.FEATURED, f = A.featuredGame && A.featuredGame();
+    if (!F || !f || !g || f.id !== g.id || (F.level === undefined && !F.notes && !F.order)) return false;
+    const w = llParse(F.level, F.notes, F.order);
+    if (w.level === undefined && !w.notes && !w.order) return false;
+    A.LevelLink.wish(g.id, w);
+    return true;
+  };
+
   /** the stars saved in game g for the current instrument (every mode; a fixed-player game: its own player) */
   A.gameStars = function (g) {
     if (!g || !g.maxStars || !A.store) return 0;
