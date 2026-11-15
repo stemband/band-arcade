@@ -5,7 +5,12 @@
                    Change"); no instrument, a `pending` choice or the teacher setting ASK_INSTRUMENT_EVERY_TIME →
                    CHOOSE YOUR INSTRUMENT (Select Player in pick mode, index.html?pick).
      LOBBY         index.html (no hash): one neon sign per zone, CONTINUE, ASSIGNED (lobby.js draws it)
-     A ZONE        index.html#zone=<zone id>[&game=<game id>]: the cabinet carousel with only that zone's cabinets
+     A ZONE        index.html#zone=<zone id>[&game=<game id>]: that zone's games, two ways, the one last used on this
+                   device (gameData('floor').zoneView = 'list' | 'cabinets'; first time: 'list'), flipped by the switch at
+                   its top ([▦ LIST | CABINETS]):
+       LIST        the zone's games as ARCADE VIEW's cards in #allView (lobby.js renderAll with `games`, no filter chips):
+                   one tap opens a game (gridZone = the zone; `zone` stays null: no carousel)
+       CABINETS    the cabinet carousel with only that zone's cabinets
      ARCADE VIEW   every game at once, two ways; the top bar's ARCADE VIEW button opens the one last used on this device
                    (gameData('floor').arcadeView = 'list' | 'cabinets'; first time: 'cabinets' with WebGL, else 'list');
                    the switch at the top of either one ([▦ LIST | CABINETS], a radiogroup) flips to the other, remembered,
@@ -135,7 +140,8 @@
   // same side and one would vanish on every turn, so the second is always on the right of the first
   const LINE = () => N === 2;
   const wrap = d => { if (!N) return 0; if (LINE()) return d; d = ((d % N) + N) % N; return d > N / 2 ? d - N : d; };
-  const fitOf = g => A.gameFit(g, A.store.player, current === 'zone' ? zone : null);   // (the No Instrument Needed zone: all fit)
+  let gridZone = null;                                    // a zone shown as LIST (its cards; no carousel): the zone
+  const fitOf = g => A.gameFit(g, A.store.player, current === 'zone' ? zone || gridZone : null);   // (the No Instrument Needed zone: all fit)
   const fade = g => fitOf(g).ok ? 1 : .45;                // a game that doesn't suit this instrument stands dimmed
 
   /* the 2D view: CSS 3D-transformed HTML cabinets */
@@ -322,7 +328,7 @@
       e.preventDefault(); A.GameSearch.open(); return;
     }
     if (e.key === 'Escape' && current !== 'lobby') { e.preventDefault(); goBack(); return; }
-    if (current !== 'zone') return;
+    if (current !== 'zone' || gridZone) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
   });
@@ -373,7 +379,7 @@
     const giveUp = () => {
       settled = true; use3D = false; v3 = null; loading3D = false;
       aisle.classList.remove('loading-3d');
-      if (current === 'zone' && (!view || view.kind !== '2d')) { view = null; useView(make2D()); place(true); }
+      if (current === 'zone' && !gridZone && (!view || view.kind !== '2d')) { view = null; useView(make2D()); place(true); }
     };
     const timer = setTimeout(giveUp, 8000);
     let made = null;                       // the cabinets it was made with (a zone change while loading: swap them)
@@ -384,7 +390,7 @@
         if (settled) { v.destroy(); return; }
         aisle.classList.remove('loading-3d');
         v3 = v;
-        if (current === 'zone') { if (made !== ring) v.setRing(ring, wrap, cur, fade, isFull() ? tagOf : null); useView(v); place(true); }
+        if (current === 'zone' && !gridZone) { if (made !== ring) v.setRing(ring, wrap, cur, fade, isFull() ? tagOf : null); useView(v); place(true); }
         else v.setRing([], wrap, 0);
       })
       .catch(err => { clearTimeout(timer); if (window.console) console.warn('3D arcade off:', err); giveUp(); });
@@ -400,7 +406,8 @@
     const f = fitOf(g);
     if (!f.ok) { openFit(g); return; }
     A.Lobby.remember(g);                                          // the lobby's CONTINUE card
-    ss.set(FROM, JSON.stringify(from === 'zone' && isFull() ? {view: 'full'} : {view: from, zone: from === 'zone' && zone ? zone.id : null}));
+    const fromZone = from === 'zone' ? zone || gridZone : null;
+    ss.set(FROM, JSON.stringify(from === 'zone' && isFull() ? {view: 'full'} : {view: from, zone: fromZone ? fromZone.id : null}));
     // a two-player game with its own Select Player (Player 2 picks there too), or no instrument chosen yet: Select Player
     if (!g.player && (g.players === 2 || !A.store.player || A.store.pending)) { A.Sfx.eventSoon('select-' + g.id); openSelect(g); return; }
     Q.hold('opening-game', true);                                 // nothing pops up while its START sound plays (the lobby queue)
@@ -506,19 +513,24 @@
     // no instrument yet (and no PRESS START to lead there): CHOOSE YOUR INSTRUMENT, once per page load
     if (!A.store.player && !pressStart() && !autoPicked && r.view === 'lobby') { autoPicked = true; welcomeThen(() => openPick(null)); return; }
     if (afterPick) { const pg = afterPick; afterPick = null; if (fitOf(pg).ok) openGame(pg, current); }
-    if (lastSelectGame && r.view === 'zone') { const i = ring.indexOf(lastSelectGame); if (i >= 0 && i !== cur) { cur = i; place(true); } }
+    if (lastSelectGame && r.view === 'zone' && !gridZone) { const i = ring.indexOf(lastSelectGame); if (i >= 0 && i !== cur) { cur = i; place(true); } }
     lastSelectGame = null;
   }
   function render(r) {
-    const was = current;
+    const was = current, wasGrid = gridZone;
     current = r.view;
+    const oneZone = r.view === 'zone' && r.zone !== FULL, grid = oneZone && zoneMode() === 'list';
+    gridZone = grid ? r.zone : null;
     document.body.classList.toggle('v-lobby', r.view === 'lobby');
-    document.body.classList.toggle('v-zone', r.view === 'zone');
+    document.body.classList.toggle('v-zone', r.view === 'zone' && !grid);
     document.body.classList.toggle('v-full', r.view === 'zone' && r.zone === FULL);
+    document.body.classList.toggle('v-zcab', oneZone && !grid);
+    document.body.classList.toggle('v-zgrid', grid);
     document.body.classList.toggle('v-all', r.view === 'all');
     $('lobby').hidden = r.view !== 'lobby';
-    $('zoneView').hidden = r.view !== 'zone';
-    $('allView').hidden = r.view !== 'all';
+    $('zoneView').hidden = r.view !== 'zone' || grid;
+    $('allView').hidden = r.view !== 'all' && !grid;
+    $('allView').classList.toggle('zgrid', grid);
     chip();
     const bar = $('fbar');
     bar.style.cssText = r.view === 'zone' && r.zone !== FULL ? A.Lobby.zoneStyle(r.zone) : '';
@@ -527,8 +539,8 @@
     const inView = r.view === 'all' || (r.view === 'zone' && r.zone === FULL);
     if (inView) setArcadeView(r.view === 'all' ? 'list' : 'cabinets');      // the view used last = the one ARCADE VIEW opens
     $('viewBtn').setAttribute('aria-pressed', String(inView));
-    drawSwitch(inView ? (r.view === 'all' ? 'list' : 'cabinets') : arcadeView());
-    if (r.view !== 'zone') { A.floorPaused = true; if (zone) { hideCabinets(); zone = null; } }
+    drawSwitch(inView ? (r.view === 'all' ? 'list' : 'cabinets') : arcadeView(), oneZone ? (grid ? 'list' : 'cabinets') : null);
+    if (r.view !== 'zone' || grid) { A.floorPaused = true; if (zone) { hideCabinets(); zone = null; } }
     if (r.view === 'lobby') {
       document.title = A.ARCADE_NAME;
       A.Lobby.render({onZone: z => enterZone(z), onGame: openGame});
@@ -541,6 +553,17 @@
       if (r.game) listGame = r.game;
       A.Lobby.renderAll({onGame: (g, from) => { listGame = g.id; openGame(g, from); }, focus: r.game, scrollOnly: listQuiet});
       if (!r.game) window.scrollTo(0, 0);
+    } else if (grid) {
+      // A ZONE as LIST: its games as cards (the switch on: only noInstrument ones, A.carouselGames)
+      document.title = `${r.zone.name} · ${A.ARCADE_NAME}`;
+      $('fbTitle').textContent = r.zone.name;
+      $('backLbl').textContent = 'Lobby';
+      $('backBtn').setAttribute('aria-label', 'Back to the lobby');
+      if (r.game) listGame = r.game;
+      const zid = r.zone.id, want = r.game;
+      A.Lobby.renderAll({games: () => A.carouselGames(zid, want), from: 'zone', label: r.zone.name, zone: zid,
+        onGame: (g, from) => { listGame = g.id; openGame(g, from); }, focus: r.game, scrollOnly: listQuiet});
+      if (!r.game && (was !== 'zone' || !wasGrid || wasGrid !== gridZone)) window.scrollTo(0, 0);
     } else {
       document.title = r.zone === FULL ? `Arcade View: Cabinets · ${A.ARCADE_NAME}` : `${r.zone.name} · ${A.ARCADE_NAME}`;
       $('fbTitle').textContent = r.zone.name;
@@ -579,7 +602,7 @@
   function focusView() {
     if (pressStart() || A.SelectView.isOpen) return;
     if (/^(panel|overlay|leaderboard|avatar creator)$/.test(Q.busy({views: 'any'}))) return;   // a panel is up: it keeps the focus
-    const el = current === 'zone' ? view && view.startLink : current === 'all' ? $('allGrid').querySelector('.gcard') : $('zones').querySelector('.zsign');
+    const el = current === 'zone' && !gridZone ? view && view.startLink : current === 'all' || gridZone ? $('allGrid').querySelector('.gcard') : $('zones').querySelector('.zsign');
     if (el) el.focus({preventScroll: true});
   }
   /** THE AVATAR BADGE in the top bar (shared/avatar-badge.js): the avatar, its name and the instrument; its menu =
@@ -621,6 +644,7 @@
   /** the switch: the other view in the same history entry, with the same game in front (LIST: scrolled to its card;
       CABINETS: turned to the LIST's last card tapped) */
   function switchView(to) {
+    if (current === 'zone' && !isFull()) { switchZone(to); return; }
     if (!isArcadeView() || to === (current === 'all' ? 'list' : 'cabinets')) return;
     A.Sfx.event('ui-toggle');
     setArcadeView(to);
@@ -635,14 +659,33 @@
     const sw = document.querySelector(`${current === 'all' ? '#allView' : '#zoneView'} .vsw-opt[aria-checked="true"]`);
     if (sw) sw.focus({preventScroll: true});
   }
+  /* ---------- A ZONE: LIST (its cards) or CABINETS (its carousel), the one last used on this device ---------- */
+  function zoneMode() { const v = (A.store.gameData('floor') || {}).zoneView; return v === 'cabinets' ? 'cabinets' : 'list'; }
+  function setZoneMode(v) { const d = A.store.gameData('floor'); if (d.zoneView !== v) { d.zoneView = v; A.store.saveGameData('floor'); } }
+  /** the zone's switch: the other way, in the same history entry, the same game in front (or scrolled to) */
+  function switchZone(to) {
+    const z = gridZone || zone;
+    if (!z || to === (gridZone ? 'list' : 'cabinets')) return;
+    A.Sfx.event('ui-toggle');
+    const id = gridZone ? listGame : ring[cur] && ring[cur].id;
+    setZoneMode(to);
+    listQuiet = true;                                       // the focus stays on the switch
+    setHash('#zone=' + z.id + (id ? '&game=' + id : ''), true);
+    showView();
+    listQuiet = false;
+    const sw = document.querySelector(`${gridZone ? '#allView' : '#zoneView'} .vsw-opt[aria-checked="true"]`);
+    if (sw) sw.focus({preventScroll: true});
+  }
   const SW_ICONS = {list: $('viewBtn').querySelector('.fbv-list').outerHTML, cabinets: $('viewBtn').querySelector('.fbv-cab').outerHTML};
   /** the switch at the top of LIST and CABINETS: [▦ LIST | CABINETS], the current one lit (a radiogroup); and the top
       bar's ARCADE VIEW icon = the mode it opens */
-  function drawSwitch(mode) {
+  function drawSwitch(mode, zoneShown) {
     $('viewBtn').dataset.mode = mode;
     $('viewBtn').title = `Arcade view: ${mode === 'list' ? 'List' : 'Cabinets'}`;
+    const on = zoneShown || mode;                            // in a zone: the switch shows the zone's own way
     document.querySelectorAll('.vsw').forEach(box => {
-      box.innerHTML = ['list', 'cabinets'].map(m => `<button type="button" role="radio" class="vsw-opt" data-mode="${m}" aria-checked="${m === mode}" tabindex="${m === mode ? 0 : -1}">` +
+      box.setAttribute('aria-label', zoneShown ? 'Zone view' : 'Arcade view');
+      box.innerHTML = ['list', 'cabinets'].map(m => `<button type="button" role="radio" class="vsw-opt" data-mode="${m}" aria-checked="${m === on}" tabindex="${m === on ? 0 : -1}">` +
         SW_ICONS[m] + `<span>${m === 'list' ? 'List' : 'Cabinets'}</span></button>`).join('');
     });
   }
@@ -725,7 +768,7 @@
   }
   addEventListener('popstate', showView);
   // back to this page from a game with the browser's Back (a page kept in memory): fresh stars and CONTINUE
-  addEventListener('pageshow', e => { if (e.persisted) { A.floorPaused = current !== 'zone'; showView(); } });
+  addEventListener('pageshow', e => { if (e.persisted) { A.floorPaused = current !== 'zone' || !!gridZone; showView(); } });
   // "← ARCADE" in the select view: back where the student was (the browser's Back when this page opened it)
   $('spBack').addEventListener('click', e => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
@@ -770,11 +813,13 @@
     if (A.LeaderboardScreen && !pressStart()) setTimeout(() => A.LeaderboardScreen.open(), 0);
   }
   A.Lobby.refocus = focusView;             // the lobby queue: a panel closed and the focus was lost
-  A.Arcade = {state: () => ({playingAs: playingAsShown, view: isFull() ? 'full' : current, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind}),
+  A.Arcade = {state: () => gridZone
+    ? {playingAs: playingAsShown, view: 'zone', mode: 'list', zone: gridZone.id, game: listGame, ring: [...$('allGrid').querySelectorAll('.gcard')].map(b => b.dataset.game), kind: 'list', jump: -1}
+    : {playingAs: playingAsShown, view: isFull() ? 'full' : current, mode: current === 'zone' && !isFull() ? 'cabinets' : undefined, jump: jumps.findIndex(b => b.getAttribute('aria-current') === 'true'), zone: zone && zone.id, game: ring[cur] && ring[cur].id, ring: ring.map(g => g.id), kind: view && view.kind},
     /** the cabinets' screen boxes in a zone / the FULL ARCADE (3D: projected by arcade3d.js; 2D: the visible slots),
         [] elsewhere: season-look.js keeps the seasonal floor props off them */
     cabinets() {
-      if (current !== 'zone' || !view) return [];
+      if (current !== 'zone' || gridZone || !view) return [];
       if (view.boxes) return view.boxes();
       return [...aisle.querySelectorAll('.slot')].filter(el => +getComputedStyle(el).opacity > .02).map(el => el.getBoundingClientRect());
     }};

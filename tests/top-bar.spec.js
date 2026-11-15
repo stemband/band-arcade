@@ -190,10 +190,11 @@ test.describe('ARCADE VIEW: LIST ⇄ CABINETS', () => {
     await page.goto('index.html?demo&nostart&flat#ghost-notes');
     await expect.poll(async () => (await state(page)).view).toBe('full');
     expect((await state(page)).game).toBe('ghost-notes');
-    // a zone's own carousel has no switch
+    // a zone's own carousel has the ZONE's switch (its own LIST | CABINETS, zone-list.spec.js), not ARCADE VIEW's
     await page.goto('index.html?demo&nostart&flat#zone=technique-lab');
     await expect.poll(async () => (await state(page)).view).toBe('zone');
-    await expect(page.locator('#zoneView .vsw')).toBeHidden();
+    await expect(page.locator('#zoneView .vsw')).toHaveAttribute('aria-label', 'Zone view');
+    await expect(page.locator('#zoneView .vsw-opt[data-mode="cabinets"]')).toHaveAttribute('aria-checked', 'true');
     await expect(page.locator('#viewBtn')).toHaveAttribute('aria-pressed', 'false');
     watch.check();
   });
