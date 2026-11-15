@@ -258,9 +258,10 @@ window.Arcade = window.Arcade || {};
     const rel = A.LevelLink.href(pageGame(), S.sel, w, '');
     try { return new URL(rel, location.href.replace(/[^/]*\/(?:index\.html)?(?:[?#].*)?$/, '')).href; } catch (e) { return rel; }
   }
-  function copyLink(go) {
-    let c = go.querySelector(':scope>.ls-link');
-    if (!A.DEMO || !A.LevelLink || !S.opts) { if (c) c.remove(); return; }
+  function copyLink() {
+    const row = S.row, go = row.querySelector('.ls-go');
+    let c = row.querySelector(':scope>.ls-link');
+    if (!A.DEMO || !A.LevelLink || !S.opts || !S.ready) { if (c) c.remove(); return; }
     if (!c) {
       c = document.createElement('button');
       c.type = 'button'; c.className = 'ls-link'; c.textContent = 'Copy link to this level';
@@ -269,9 +270,9 @@ window.Arcade = window.Arcade || {};
         const url = linkHref(), done = ok => A.UI && A.UI.toast(ok ? 'Link copied!' : url, {near: c, ms: ok ? 1800 : 8000});
         try { navigator.clipboard.writeText(url).then(() => done(true), () => done(false)); } catch (e) { done(false); }
       });
-      go.appendChild(c);
     }
-    c.dataset.href = linkHref();
+    if (c.previousElementSibling !== go) go.after(c);           // its own item in the row, right after START (never inside
+    c.dataset.href = linkHref();                                 // START's area, where a game's `beside` button sits)
   }
   /** the START area: the button with its line once a level is selected, else the dim hint ('tap' = selected by a tap:
       'start-ready' waits out the double-tap window, so a double tap never plays it) */
@@ -295,7 +296,6 @@ window.Arcade = window.Arcade || {};
       b.querySelector('.ls-sum').textContent = (S.next ? 'Up next · ' : '') + S.summary;
       b.classList.toggle('ls-next', !!S.next);
       b.setAttribute('aria-label', `Start${S.next ? ', up next' : ''}: ${S.summary}`);
-      copyLink(go);
       S.start = b;
       if (!was && announce) {
         b.classList.remove('ls-in'); void b.offsetWidth; b.classList.add('ls-in');
@@ -307,6 +307,7 @@ window.Arcade = window.Arcade || {};
         }
       }
     }
+    copyLink();
     if (S.live) tip();
     if (S.ready !== was && S.appeared) armHint();              // the next missing step gets its own hint
   }
