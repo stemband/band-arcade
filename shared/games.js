@@ -97,7 +97,8 @@
 window.Arcade = window.Arcade || {};
 window.Arcade.ARCADE_NAME = 'Band Arcade';
 window.Arcade.ARCADE_TAGLINE = 'Practice games that listen to you play.';
-/* THE ZONES of the arcade lobby, in the order their neon signs appear. A game joins a zone with its `zones` list
+/* THE ZONES of the arcade lobby, in the order their neon signs appear (the `auto` ones are not signs: NEW GAMES and MY
+   FAVORITES are the lobby's shelves, NO INSTRUMENT NEEDED its NO INSTRUMENT WITH ME switch; their #zone= addresses still work). A game joins a zone with its `zones` list
    (below); a zone with no games is hidden.
      id       the zone's id (used in the address: index.html#zone=technique-lab); never rename one
      name     the sign's words

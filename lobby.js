@@ -1,9 +1,11 @@
 /* The arcade LOBBY and ARCADE VIEW's LIST (once ALL GAMES): flat HTML and CSS only (no three.js), drawn here; arcade.js decides when they show.
-   THE ZONE LOBBY: a dark arcade wall with one neon sign per zone (+ the PRIZE COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small
-   silhouettes of its cabinets and the student's stars there for the current instrument), and on top TODAY'S PRACTICE
-   (shared/practice.js: 3 steps, the whole row), the RECENTLY PLAYED card (CONTINUE: the last game played on this device,
-   + up to 3 more played lately: Arcade.recentGames) and the ASSIGNED
-   card (shared/featured.js); under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js).
+   THE ZONE LOBBY: a dark arcade wall. On top TODAY'S PRACTICE (shared/practice.js: 3 steps, the whole row), the RECENTLY
+   PLAYED card (CONTINUE: the last game played on this device, + up to 3 more played lately: Arcade.recentGames), the
+   ASSIGNED card (shared/featured.js) and THE SHELVES (MY FAVORITES, NEW GAMES: one tap per game, SEE ALL = the zone);
+   under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js). Then "PICK A ZONE" with the NO
+   INSTRUMENT WITH ME switch, and one neon sign per SKILL zone (Arcade.lobbyZones: never an `auto` zone) (+ the PRIZE
+   COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small silhouettes of its cabinets and the
+   student's stars there for the current instrument).
    LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, NEW / 2P / ASSIGNED,
    "No instrument needed" (games.js noInstrument) and its ☆ (MY FAVORITES). THE FILTERS above the cards (★ My favorites,
    Fits my <instrument>, No instrument needed; aria-pressed; together = all of them) are remembered for this browser
@@ -49,7 +51,9 @@ window.Arcade = window.Arcade || {};
      more of the games this device played lately (Arcade.recentGames: every game page notes itself), one tap each */
   const RECENT_MORE = 3;
   function recentCard() {
-    const games = A.recentGames(RECENT_MORE + 1), g = games[0], f = fitOf(g), z = A.zonesOf(g)[0];
+    const games = A.shownGames(A.recentGames(A.RECENT_KEEP || 8)).slice(0, RECENT_MORE + 1);   // NO INSTRUMENT WITH ME: only those
+    if (!games.length) return '';
+    const g = games[0], f = fitOf(g), z = A.zonesOf(g)[0];
     const more = games.slice(1);
     return `<section class="lcard lc-continue lc-recent" style="${zoneStyle(z)}" aria-label="Recently played">` +
       `<button type="button" class="rp-main${f.ok ? '' : ' nofit'}" data-game="${esc(g.id)}" aria-label="Continue: ${esc(g.name)}${f.ok ? '' : ', ' + esc(f.tag)}">` +
@@ -62,19 +66,56 @@ window.Arcade = window.Arcade || {};
             `<span class="rp-pic">${thumb(m)}</span><span class="rp-name">${esc(m.name)}</span></button></li>`; }).join('') + `</ul></div>` : '') +
       `</section>`;
   }
-  function render({onZone, onGame}) {
+  /* NO INSTRUMENT WITH ME (the switch over the zone signs; Arcade.noInstOn, ui.js): on = only games playable without an
+     instrument on the lobby (signs, counts, shelves, RECENTLY PLAYED) and in the zones' carousels. The same setting as
+     ARCADE VIEW's "No instrument needed" chip; remembered for this browser session. */
+  function noInstSwitch() {
+    const b = $('noInstSwitch'), note = $('noInstNote');
+    if (!b) return;
+    const on = A.noInstOn();
+    b.setAttribute('aria-pressed', String(on));
+    if (note) note.hidden = !on;
+    b.onclick = () => {
+      A.setNoInst(!A.noInstOn());
+      if (A.Sfx) A.Sfx.event('ui-toggle');
+      if (lastArgs) render(lastArgs);
+      b.focus({preventScroll: true});
+    };
+  }
+  /* THE SHELVES (once the NEW GAMES and MY FAVORITES zone signs): a card with a row of up to SHELF_MAX game tiles
+     (the RECENTLY PLAYED tiles' look, .rp-mini), one tap = the game, like CONTINUE. Shown only when they have games (the
+     switch on: only noInstrument ones). SEE ALL opens the zone's carousel (#zone=new-games / #zone=favorites). */
+  const SHELF_MAX = 6;
+  function shelfCard(kind, zoneId, label, games) {
+    const z = A.zoneById(zoneId), list = games.slice(0, SHELF_MAX);
+    return `<section class="lcard lc-shelf lc-${kind}" style="${zoneStyle(z)}" aria-label="${esc(label)}">` +
+      `<div class="sh-head"><span class="lc-label">${esc(label)}</span>` +
+      `<button type="button" class="sh-all" data-zone="${esc(zoneId)}" aria-label="See all: ${esc(label)}">See all <span aria-hidden="true">›</span></button></div>` +
+      `<ul class="rp-row sh-row" aria-label="${esc(label)}">` + list.map(m => { const mf = fitOf(m);
+        return `<li><button type="button" class="rp-mini${mf.ok ? '' : ' nofit'}" data-game="${esc(m.id)}" aria-label="${esc(m.name)}${mf.ok ? '' : ', ' + esc(mf.tag)}">` +
+          `<span class="rp-pic">${thumb(m)}</span><span class="rp-name">${esc(m.name)}</span></button></li>`; }).join('') +
+      `</ul></section>`;
+  }
+  let lastArgs = null;
+  function render(args) {
+    const {onZone, onGame} = args;
+    lastArgs = args;
     const cards = [], F = A.featuredGame(), last = lastGame();
     lastOnGame = onGame;
     const pr = practiceCard();
     if (pr) cards.push(pr.html);
-    if (A.recentGames(1).length) cards.push(recentCard());
+    if (A.recentGames(1).length) { const rc = recentCard(); if (rc) cards.push(rc); }
     if (F) cards.push(lobbyCard('assigned', F, 'Assigned', (A.FEATURED && A.FEATURED.note) || ''));
+    const favs = A.shownGames(A.favorites()), news = A.shownGames(A.zoneGames('new-games'));
+    if (favs.length) cards.push(shelfCard('favorites', 'favorites', 'My favorites', favs));
+    if (news.length) cards.push(shelfCard('new', 'new-games', 'New games', news));
     $('lobbyCards').innerHTML = cards.join('');
     $('lobbyCards').hidden = !cards.length;
     if (pr) wirePractice(pr);
-    const zones = A.zoneList(), flicker = !lit && !reduced.matches;
+    noInstSwitch();
+    const zones = A.lobbyZones(), flicker = !lit && !reduced.matches;
     $('zones').innerHTML = zones.map((z, i) => {
-      const games = A.zoneGames(z.id), stars = games.reduce((n, g) => n + A.gameStars(g), 0);
+      const games = A.shownGames(A.zoneGames(z.id)), stars = games.reduce((n, g) => n + A.gameStars(g), 0);
       const assigned = F && games.includes(F);
       return `<button type="button" class="zsign${flicker ? ' flick' : ''}" data-zone="${esc(z.id)}" style="${zoneStyle(z)};--i:${i}" ` +
         `aria-label="${esc(z.name)}: ${games.map(g => esc(g.name)).join(', ')}. ${stars} stars.">` +
@@ -87,6 +128,7 @@ window.Arcade = window.Arcade || {};
     lit = true;
     $('zones').querySelectorAll('.zsign[data-zone]').forEach(b => b.addEventListener('click', () => onZone(A.zoneById(b.dataset.zone))));
     wirePrize();
+    $('lobbyCards').querySelectorAll('.sh-all[data-zone]').forEach(b => b.addEventListener('click', () => onZone(A.zoneById(b.dataset.zone))));
     $('lobbyCards').querySelectorAll('.lcard[data-game], .rp-main, .rp-mini').forEach(b => b.addEventListener('click', () => {
       const g = A.floorGames().find(x => x.id === b.dataset.game);
       if (b.classList.contains('lc-assigned') && A.assignedWish) A.assignedWish(g);   // featured.js level/notes: a LEVEL LINK wish

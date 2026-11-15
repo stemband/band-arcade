@@ -373,6 +373,28 @@ window.Arcade = window.Arcade || {};
   };
   /** the zones that have at least one game (an empty zone is hidden) */
   A.zoneList = () => (A.ZONES || []).filter(z => A.zoneGames(z.id).length);
+  /* NO INSTRUMENT WITH ME: the lobby's switch (and ARCADE VIEW's "No instrument needed" chip: the same setting). On =
+     the lobby's zone signs, shelves and RECENTLY PLAYED, and a zone's carousel, show only games.js noInstrument games,
+     and those games are never dimmed for the saved instrument. Remembered for this browser session only. */
+  A.NO_INST_KEY = 'bandarcade.noinst';
+  A.noInstOn = () => { try { return sessionStorage.getItem(A.NO_INST_KEY) === '1'; } catch (e) { return false; } };
+  A.setNoInst = function (on) {
+    try { sessionStorage.setItem(A.NO_INST_KEY, on ? '1' : '0'); } catch (e) { /* private mode */ }
+    try { dispatchEvent(new CustomEvent('arcade:noinst', {detail: {on: !!on}})); } catch (e) { /* old browser */ }
+  };
+  /** the games of `list` the student can play right now (all of them, or only noInstrument ones with the switch on) */
+  A.shownGames = list => A.noInstOn() ? (list || []).filter(g => g && g.noInstrument) : (list || []);
+  /** THE LOBBY's zone signs: the skill zones only (never an `auto` zone: NEW GAMES and MY FAVORITES are shelves on the
+      lobby, NO INSTRUMENT NEEDED is the switch; their #zone= addresses still open them), with games to show */
+  A.lobbyZones = () => A.zoneList().filter(z => !z.auto && A.shownGames(A.zoneGames(z.id)).length);
+  /** a zone's carousel: with the switch on, only its noInstrument games (all of them when it has none, or when the game
+      asked for (`want`, e.g. back from it) isn't one) */
+  A.carouselGames = function (id, want) {
+    const all = A.zoneGames(id), z = A.zoneById(id);
+    if (!A.noInstOn() || (z && z.auto)) return all;
+    const some = A.shownGames(all);
+    return some.length && (!want || some.some(g => g.id === want)) ? some : all;
+  };
   /** a game's own zones (only ones that exist; never an `auto` zone: those are a second way in) */
   A.zonesOf = g => (g && g.zones || []).map(A.zoneById).filter(Boolean);
   /** does game g suit this instrument member? games.js `fit` ({only} or {not}); no member saved = it fits; in the
@@ -380,7 +402,8 @@ window.Arcade = window.Arcade || {};
   A.gameFit = function (g, memberId, zone) {
     const f = g && g.fit;
     if (!f || !memberId) return {ok: true};
-    if (zone && zone.auto === 'noInstrument' && g.noInstrument) return {ok: true};   // needs no instrument: never dimmed there
+    // needs no instrument: never dimmed in its zone, or with NO INSTRUMENT WITH ME on
+    if (g.noInstrument && ((zone && zone.auto === 'noInstrument') || A.noInstOn())) return {ok: true};
     const ok = f.only ? f.only.includes(memberId) : !(f.not || []).includes(memberId);
     return ok ? {ok: true} : {ok: false, tag: f.tag || 'Not for your instrument', why: f.why || ''};
   };

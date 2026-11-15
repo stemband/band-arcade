@@ -67,6 +67,12 @@
   <div class="save-nudge" id="saveNudge" role="status"></div>
   <!-- THE LEADERBOARD'S GRADE QUESTION: once, after the first star with no grade (leaderboard-screen.js askGrade) -->
   <div class="grade-ask" id="gradeAsk" role="region" aria-label="Leaderboard grade"></div>
+  <!-- the zone signs' heading + NO INSTRUMENT WITH ME (lobby.js noInstSwitch; the same setting as ARCADE VIEW's chip) -->
+  <div class="zones-head" id="zonesHead">
+    <h2 class="zh-title">Pick a zone</h2>
+    <button type="button" class="ni-switch" id="noInstSwitch" aria-pressed="false"><span class="ni-track" aria-hidden="true"><span class="ni-knob"></span></span><span class="ni-l">No instrument with me</span></button>
+  </div>
+  <p class="ni-note" id="noInstNote" role="status" hidden>Showing only games you can play without your instrument.</p>
   <div class="zones" id="zones"></div>
   <p class="note" id="demoNote" hidden>Demo mode: hold keys 1–5 to play the five notes. All levels unlocked.</p>
 </section>
