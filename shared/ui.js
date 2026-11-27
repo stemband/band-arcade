@@ -384,9 +384,10 @@ window.Arcade = window.Arcade || {};
   };
   /** the games of `list` the student can play right now (all of them, or only noInstrument ones with the switch on) */
   A.shownGames = list => A.noInstOn() ? (list || []).filter(g => g && g.noInstrument) : (list || []);
-  /** THE LOBBY's zone signs: the skill zones only (never an `auto` zone: NEW GAMES and MY FAVORITES are shelves on the
-      lobby, NO INSTRUMENT NEEDED is the switch; their #zone= addresses still open them), with games to show */
-  A.lobbyZones = () => A.zoneList().filter(z => !z.auto && A.shownGames(A.zoneGames(z.id)).length);
+  /** THE LOBBY's zone signs: the skill zones + NO INSTRUMENT NEEDED (Mr. Graham brought its sign back; the NO INSTRUMENT
+      WITH ME switch stays too), never NEW GAMES or MY FAVORITES (shelves on the lobby; their #zone= addresses still open
+      them), with games to show */
+  A.lobbyZones = () => A.zoneList().filter(z => (!z.auto || z.auto === 'noInstrument') && A.shownGames(A.zoneGames(z.id)).length);
   /** a zone's carousel: with the switch on, only its noInstrument games (all of them when it has none, or when the game
       asked for (`want`, e.g. back from it) isn't one) */
   A.carouselGames = function (id, want) {

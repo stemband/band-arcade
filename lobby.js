@@ -3,7 +3,7 @@
    PLAYED card (CONTINUE: the last game played on this device, + up to 3 more played lately: Arcade.recentGames), the
    ASSIGNED card (shared/featured.js) and THE SHELVES (MY FAVORITES, NEW GAMES: one tap per game, SEE ALL = the zone);
    under them, now and then, the SAVE YOUR PROGRESS banner (shared/backup-nudge.js). Then "PICK A ZONE" with the NO
-   INSTRUMENT WITH ME switch, and one neon sign per SKILL zone (Arcade.lobbyZones: never an `auto` zone) (+ the PRIZE
+   INSTRUMENT WITH ME switch, and one neon sign per SKILL zone + NO INSTRUMENT NEEDED (Arcade.lobbyZones) (+ the PRIZE
    COUNTER's sign last: prizeSign()) (games.js ZONES: its color, name, tagline, small silhouettes of its cabinets and the
    student's stars there for the current instrument).
    LIST (ALL GAMES): every game once (even one in two zones), as a card: its marquee, name, zone tags, stars, NEW / 2P / ASSIGNED,

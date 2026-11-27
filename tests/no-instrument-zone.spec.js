@@ -1,8 +1,8 @@
 /* THE NO INSTRUMENT NEEDED ZONE (shared/games.js ZONES `auto: 'noInstrument'`): its games come from the games' own
    `noInstrument` flag, it opens (from its address) and returns like every zone, the Full Arcade still shows each cabinet
-   once, nothing in it is dimmed for the saved instrument. On the lobby it is no longer a sign: it is the NO INSTRUMENT
-   WITH ME switch (lobby.js noInstSwitch, ui.js Arcade.noInstOn): on = the signs, shelves, RECENTLY PLAYED and the zones'
-   carousels show only those games. The lobby's signs fit on a phone, an iPad (both ways) and a laptop. */
+   once, nothing in it is dimmed for the saved instrument. On the lobby it is a sign again (right after the Band Ninja
+   Dojo's), AND the NO INSTRUMENT WITH ME switch (lobby.js noInstSwitch, ui.js Arcade.noInstOn): on = the signs, shelves,
+   RECENTLY PLAYED and the zones' carousels show only those games. The lobby's signs fit on a phone, an iPad (both ways) and a laptop. */
 const {test, expect} = require('@playwright/test');
 const {prepare, device} = require('./helpers');
 
@@ -29,9 +29,15 @@ test('the zone holds exactly the noInstrument games, in games.js order, and a ne
   expect(r.after).toContain('ghost-notes');
   expect(r.ownZones).toEqual([]);                                                  // nobody lists it by hand
   expect(r.stillInOwn).toBe(true);                                                 // they stay in their own zones
-  // the lobby: no sign for it (the NO INSTRUMENT WITH ME switch instead)
-  await expect(page.locator(`.zsign[data-zone="${ZONE}"]`)).toHaveCount(0);
+  // the lobby: its sign, right after the Band Ninja Dojo's, with the NO INSTRUMENT WITH ME switch as well
+  await expect(page.locator(`.zsign[data-zone="${ZONE}"]`)).toHaveCount(1);
+  const order = await page.locator('#zones .zsign[data-zone]').evaluateAll(els => els.map(e => e.dataset.zone));
+  expect(order.indexOf(ZONE)).toBe(order.indexOf('ninja-dojo') + 1);
+  await expect(page.locator(`.zsign[data-zone="${ZONE}"] .zs-count`)).toHaveText(`${r.flagged.length} games`);
   await expect(page.locator('#noInstSwitch')).toHaveAttribute('aria-pressed', 'false');
+  // its sign opens its zone
+  await page.locator(`.zsign[data-zone="${ZONE}"]`).click();
+  await expect.poll(async () => (await state(page)).zone).toBe(ZONE);
   watch.check();
 });
 
